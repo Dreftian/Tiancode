@@ -10,7 +10,7 @@ import { fileURLToPath, pathToFileURL } from "node:url"
 import type { TitlebarTheme } from "../preload/types"
 import { exportDebugLogs, write as writeLog } from "./logging"
 import { getStore, removeStoreFile } from "./store"
-import { PINCH_ZOOM_ENABLED_KEY, WINDOW_IDS_KEY } from "./store-keys"
+import { PINCH_ZOOM_ENABLED_KEY, MINIMIZE_TO_TRAY_KEY, WINDOW_IDS_KEY } from "./store-keys"
 import { createUnresponsiveSampler } from "./unresponsive"
 import { nativeT } from "./native-translations"
 import { createWindowRegistry } from "./window-registry"
@@ -140,6 +140,16 @@ export function setPinchZoomEnabled(enabled: boolean) {
 
 export function getPinchZoomEnabled() {
   return getStore().get(PINCH_ZOOM_ENABLED_KEY) === true
+}
+
+// Minimize-to-tray is a Windows/Linux behavior; on macOS the app keeps running
+// when its window closes by convention and a menu bar icon would be the only
+// way back to a hidden window.
+export function getMinimizeToTrayEnabled() {
+  if (process.platform === "darwin") return false
+  const value = getStore().get(MINIMIZE_TO_TRAY_KEY)
+  // The generic store IPC persists renderer writes as strings, so accept both.
+  return value === true || value === "true"
 }
 
 export function getWindowID(win: BrowserWindow) {
@@ -272,6 +282,14 @@ function registerWindow(win: BrowserWindow, id: string) {
   registry.register(id, win)
 
   win.on("focus", () => registry.focused(id))
+  // Closing the window hides it into the system tray instead of destroying it
+  // while minimize-to-tray is enabled; a real quit (tray "Quit", OS shutdown)
+  // flags the registry first so this never blocks quitting.
+  win.on("close", (event) => {
+    if (registry.isQuitting() || !getMinimizeToTrayEnabled()) return
+    event.preventDefault()
+    win.hide()
+  })
   // Windows never emits before-quit on OS shutdown/logoff, but each window
   // gets session-end before it closes; flag the quit so ids stay persisted.
   win.on("session-end", () => registry.setQuitting())

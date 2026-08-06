@@ -33,7 +33,9 @@ import {
 import { setupAutoUpdater, showUpdaterDialog } from "./updater"
 import { safeWebContentsURL } from "./window-state"
 import {
+  createMainWindow,
   getLastFocusedWindow,
+  getMinimizeToTrayEnabled,
   registerRendererProtocol,
   setRelaunchHandler,
   setAppQuitting,
@@ -48,6 +50,7 @@ import { migrate } from "./migrate"
 import { cleanupStoreFiles } from "./store-cleanup"
 import { startBackgroundCli } from "./background-cli"
 import { setNativeTranslations } from "./native-translations"
+import { createTray } from "./tray"
 import { ensureLoopbackNoProxy, useEnvProxy } from "./util/proxy"
 
 const APP_NAMES: Record<string, string> = {
@@ -190,6 +193,13 @@ const main = Effect.gen(function* () {
     event.preventDefault()
     logger.log("deep link received via open-url", { url })
     emitDeepLinks([url])
+  })
+
+  // With minimize-to-tray the window close is intercepted and hidden, so this
+  // only fires after a real window destruction (e.g. a crash) or when the
+  // feature is off; preserve the default quit-on-last-window in that case.
+  app.on("window-all-closed", () => {
+    if (!getMinimizeToTrayEnabled()) app.quit()
   })
 
   app.on("before-quit", () => {
@@ -381,6 +391,24 @@ const main = Effect.gen(function* () {
 
   const windows = restoreMainWindows()
   if (windows.length) createMenu(menuDeps)
+
+  const showWindow = () => {
+    const win = getLastFocusedWindow()
+    if (win) {
+      win.show()
+      win.focus()
+      return
+    }
+    createMainWindow()
+  }
+  const quitApp = () => {
+    setAppQuitting()
+    app.quit()
+  }
+  // macOS keeps its own window lifecycle conventions (closing the window does
+  // not quit the app), so the tray is Windows/Linux only.
+  const tray = process.platform === "darwin" ? null : createTray({ onShow: showWindow, onQuit: quitApp })
+  app.once("will-quit", () => tray?.destroy())
 })
 
 Effect.runFork(main)

@@ -28,6 +28,9 @@ import {
 import "./settings-v2.css"
 
 const schemeOptions: ("system" | "light" | "dark")[] = ["system", "light", "dark"]
+// Electron store shared with the desktop main process via the store IPC.
+const settingsStoreName = "tiancode.settings"
+const minimizeToTrayKey = "minimizeToTray"
 const fontSettings = {
   ui: {
     action: "settings-ui-font",
@@ -299,6 +302,22 @@ export const SettingsGeneralV2: Component<{
     void update.catch(() => setPinchZoom(!checked))
   }
 
+  const [minimizeToTray, { mutate: setMinimizeToTray }] = createResource(
+    () => desktop() && platform.os !== "macos",
+    () =>
+      window.api?.storeGet
+        ? window.api.storeGet(settingsStoreName, minimizeToTrayKey).then((value) => value === "true")
+        : Promise.resolve(false),
+    { initialValue: false },
+  )
+
+  const onMinimizeToTrayChange = (checked: boolean) => {
+    setMinimizeToTray(checked)
+    const update = window.api?.storeSet?.(settingsStoreName, minimizeToTrayKey, String(checked))
+    if (!update) return
+    void update.catch(() => setMinimizeToTray(!checked))
+  }
+
   const InterfaceSection = () => (
     <LayoutTransitionToggle
       title={language.t("settings.general.row.newInterface.title")}
@@ -530,6 +549,17 @@ export const SettingsGeneralV2: Component<{
               <Switch checked={pinchZoom.latest} onChange={onPinchZoomChange} />
             </div>
           </SettingsRowV2>
+
+          <Show when={platform.os !== "macos"}>
+            <SettingsRowV2
+              title={language.t("settings.general.row.minimizeToTray.title")}
+              description={language.t("settings.general.row.minimizeToTray.description")}
+            >
+              <div data-action="settings-minimize-to-tray">
+                <Switch checked={minimizeToTray.latest} onChange={onMinimizeToTrayChange} />
+              </div>
+            </SettingsRowV2>
+          </Show>
         </SettingsListV2>
       </div>
     </Show>
