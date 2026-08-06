@@ -16,6 +16,29 @@ const pluginName = (entry: PluginEntry) => (typeof entry === "string" ? entry : 
 const pluginOrigin = (entry: PluginEntry) =>
   pluginName(entry).startsWith("@") || pluginName(entry).includes("/") ? "npm" : "local"
 
+const NpmAppCatalog = [
+  { name: "@biomejs/biome", descriptionKey: "settings.plugins.catalog.npm.biome.description" },
+  { name: "@playwright/mcp", descriptionKey: "settings.plugins.catalog.npm.playwrightMcp.description" },
+  { name: "@octokit/rest", descriptionKey: "settings.plugins.catalog.npm.octokitRest.description" },
+  { name: "@slack/web-api", descriptionKey: "settings.plugins.catalog.npm.slackWebApi.description" },
+  { name: "@notionhq/client", descriptionKey: "settings.plugins.catalog.npm.notionClient.description" },
+  { name: "@sentry/cli", descriptionKey: "settings.plugins.catalog.npm.sentryCli.description" },
+  { name: "agent-notify", descriptionKey: "settings.plugins.catalog.npm.agentNotify.description" },
+  { name: "@chime-io/plugin-claude", descriptionKey: "settings.plugins.catalog.npm.chimeClaude.description" },
+] as const
+
+const LocalPluginCatalog = [
+  { name: "env-guard", descriptionKey: "settings.plugins.catalog.local.envGuard.description" },
+  { name: "commit-helper", descriptionKey: "settings.plugins.catalog.local.commitHelper.description" },
+  { name: "notify-idle", descriptionKey: "settings.plugins.catalog.local.notifyIdle.description" },
+  { name: "shell-env", descriptionKey: "settings.plugins.catalog.local.shellEnv.description" },
+  { name: "permission-guard", descriptionKey: "settings.plugins.catalog.local.permissionGuard.description" },
+] as const
+
+type CatalogApp = (typeof NpmAppCatalog)[number] | (typeof LocalPluginCatalog)[number]
+
+const localPluginSpec = (name: string) => `./plugins/${name}.ts`
+
 const PluginTemplate = `// my-plugin.js — Tiancode plugin template
 // Plugins run inside the agent process and react to lifecycle events.
 
@@ -51,6 +74,38 @@ export const MyPlugin = {
 export default MyPlugin
 `
 
+const CatalogRow: Component<{
+  app: CatalogApp
+  origin: "npm" | "local"
+  installed: boolean
+  onAdd: () => void
+}> = (props) => {
+  const language = useLanguage()
+  return (
+    <div class="settings-v2-plugins-item">
+      <div class="settings-v2-plugins-item-copy">
+        <div class="settings-v2-plugins-item-name">{props.app.name}</div>
+        <div class="settings-v2-plugins-item-description">{language.t(props.app.descriptionKey)}</div>
+      </div>
+      <span class="settings-v2-plugins-chip">
+        {props.origin === "npm"
+          ? language.t("settings.plugins.origin.npm")
+          : language.t("settings.plugins.origin.local")}
+      </span>
+      <Show
+        when={props.installed}
+        fallback={
+          <ButtonV2 type="button" variant="outline" size="small" onClick={props.onAdd}>
+            {language.t("settings.plugins.catalog.add")}
+          </ButtonV2>
+        }
+      >
+        <span class="settings-v2-plugins-badge">{language.t("settings.plugins.catalog.installed")}</span>
+      </Show>
+    </div>
+  )
+}
+
 export const SettingsPluginsV2: Component<{
   directory?: string
 }> = (props) => {
@@ -68,20 +123,27 @@ export const SettingsPluginsV2: Component<{
 
   const pluginList = createMemo(() => (config()?.plugin ?? []) as PluginEntry[])
 
-  const addPlugin = async () => {
-    const entry = value().trim()
+  const isInstalled = (spec: string) => pluginList().some((item) => pluginName(item) === spec)
+
+  const addEntry = async (entry: string) => {
     if (!entry) return
     try {
       await serverSdk().client.config.update({
         ...params(),
         config: { plugin: [...(config()?.plugin ?? []), entry] },
       })
-      setValue("")
       showToast({ variant: "success", title: language.t("settings.plugins.add.success") })
       void refetch()
     } catch {
       showToast({ variant: "error", title: language.t("settings.plugins.add.failed") })
     }
+  }
+
+  const addPlugin = async () => {
+    const entry = value().trim()
+    if (!entry) return
+    await addEntry(entry)
+    setValue("")
   }
 
   const removePlugin = async (entry: PluginEntry) => {
@@ -152,6 +214,40 @@ export const SettingsPluginsV2: Component<{
               </For>
             </SettingsListV2>
           </Show>
+        </div>
+
+        <div class="settings-v2-section">
+          <h3 class="settings-v2-section-title">{language.t("settings.plugins.catalog.npm.title")}</h3>
+          <p class="settings-v2-plugins-catalog-description">
+            {language.t("settings.plugins.catalog.npm.description")}
+          </p>
+          <SettingsListV2>
+            <For each={NpmAppCatalog}>
+              {(app) => (
+                <CatalogRow app={app} origin="npm" installed={isInstalled(app.name)} onAdd={() => void addEntry(app.name)} />
+              )}
+            </For>
+          </SettingsListV2>
+          <p class="settings-v2-plugins-catalog-note">{language.t("settings.plugins.catalog.npm.note")}</p>
+        </div>
+
+        <div class="settings-v2-section">
+          <h3 class="settings-v2-section-title">{language.t("settings.plugins.catalog.local.title")}</h3>
+          <p class="settings-v2-plugins-catalog-description">
+            {language.t("settings.plugins.catalog.local.description")}
+          </p>
+          <SettingsListV2>
+            <For each={LocalPluginCatalog}>
+              {(app) => (
+                <CatalogRow
+                  app={app}
+                  origin="local"
+                  installed={isInstalled(localPluginSpec(app.name))}
+                  onAdd={() => void addEntry(localPluginSpec(app.name))}
+                />
+              )}
+            </For>
+          </SettingsListV2>
         </div>
 
         <div class="settings-v2-section">

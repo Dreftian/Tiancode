@@ -54,6 +54,41 @@
   overflow-wrap: anywhere;
 }
 
+.settings-v2-plugins-item-description {
+  font-size: 11px;
+  font-weight: 440;
+  line-height: 1.4;
+  color: var(--v2-text-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.settings-v2-plugins-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 530;
+  line-height: 1;
+  color: var(--v2-state-fg-success);
+  background-color: var(--v2-state-bg-success);
+  flex-shrink: 0;
+}
+
+.settings-v2-plugins-catalog-description {
+  margin: -8px 0 0;
+  font-size: 11px;
+  font-weight: 440;
+  line-height: 1.4;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-plugins-catalog-note {
+  margin: -4px 0 0;
+  font-size: 11px;
+  font-weight: 440;
+  line-height: 1.4;
+  color: var(--v2-text-text-faint);
+}
+
 .settings-v2-plugins-chip {
   padding: 4px 8px;
   border-radius: 4px;
