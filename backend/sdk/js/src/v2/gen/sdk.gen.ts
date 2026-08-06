@@ -25,6 +25,7 @@ import type {
   AuthRemoveResponses,
   AuthSetErrors,
   AuthSetResponses,
+  CloneProjectPayload,
   CommandListErrors,
   CommandListResponses,
   Config as Config3,
@@ -86,6 +87,18 @@ import type {
   FindTextResponses,
   FormatterStatusErrors,
   FormatterStatusResponses,
+  GithubConnectErrors,
+  GithubConnectPayload,
+  GithubConnectResponses,
+  GithubCreateRepoErrors,
+  GithubCreateRepoPayload,
+  GithubCreateRepoResponses,
+  GithubDisconnectErrors,
+  GithubDisconnectResponses,
+  GithubReposErrors,
+  GithubReposResponses,
+  GithubStatusErrors,
+  GithubStatusResponses,
   GlobalConfigGetErrors,
   GlobalConfigGetResponses,
   GlobalConfigUpdateErrors,
@@ -152,6 +165,8 @@ import type {
   PermissionRuleset,
   PermissionV2Reply,
   PermissionV2Source,
+  ProjectCloneErrors,
+  ProjectCloneResponses,
   ProjectCommands,
   ProjectCurrentErrors,
   ProjectCurrentResponses,
@@ -409,12 +424,23 @@ import type {
   V2SkillListResponses,
   VcsApplyErrors,
   VcsApplyResponses,
+  VcsCommitErrors,
+  VcsCommitPayload,
+  VcsCommitResponses,
   VcsDiffErrors,
   VcsDiffRawErrors,
   VcsDiffRawResponses,
   VcsDiffResponses,
   VcsGetErrors,
   VcsGetResponses,
+  VcsPullErrors,
+  VcsPullPayload,
+  VcsPullResponses,
+  VcsPushErrors,
+  VcsPushPayload,
+  VcsPushResponses,
+  VcsRemoteErrors,
+  VcsRemoteResponses,
   VcsStatusErrors,
   VcsStatusResponses,
   WorktreeCreateErrors,
@@ -2185,13 +2211,50 @@ export class File extends HeyApiClient {
   }
 }
 
-export class Instance extends HeyApiClient {
+export class Github extends HeyApiClient {
   /**
-   * Dispose instance
+   * Connect GitHub account
    *
-   * Clean up and dispose the current Tiancode instance, releasing all resources.
+   * Validate a GitHub personal access token and store it for authenticated git operations.
    */
-  public dispose<ThrowOnError extends boolean = false>(
+  public connect<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      githubConnectPayload?: GithubConnectPayload
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { key: "githubConnectPayload", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<GithubConnectResponses, GithubConnectErrors, ThrowOnError>({
+      url: "/github/connect",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Get GitHub connection status
+   *
+   * Report whether a GitHub account is connected. An invalid or expired token is removed.
+   */
+  public status<ThrowOnError extends boolean = false>(
     parameters?: {
       directory?: string
       workspace?: string
@@ -2209,21 +2272,19 @@ export class Instance extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).post<InstanceDisposeResponses, InstanceDisposeErrors, ThrowOnError>({
-      url: "/instance/dispose",
+    return (options?.client ?? this.client).get<GithubStatusResponses, GithubStatusErrors, ThrowOnError>({
+      url: "/github/status",
       ...options,
       ...params,
     })
   }
-}
 
-export class Path extends HeyApiClient {
   /**
-   * Get paths
+   * Disconnect GitHub account
    *
-   * Retrieve the current working directory and related path information for the Tiancode instance.
+   * Remove the stored GitHub token.
    */
-  public get<ThrowOnError extends boolean = false>(
+  public disconnect<ThrowOnError extends boolean = false>(
     parameters?: {
       directory?: string
       workspace?: string
@@ -2241,8 +2302,283 @@ export class Path extends HeyApiClient {
         },
       ],
     )
-    return (options?.client ?? this.client).get<PathGetResponses, PathGetErrors, ThrowOnError>({
-      url: "/path",
+    return (options?.client ?? this.client).post<GithubDisconnectResponses, GithubDisconnectErrors, ThrowOnError>({
+      url: "/github/disconnect",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * List GitHub repositories
+   *
+   * List the authenticated user's repositories, optionally filtered by a search query.
+   */
+  public repos<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      query?: string
+      perPage?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "query", key: "query" },
+            { in: "query", key: "perPage" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<GithubReposResponses, GithubReposErrors, ThrowOnError>({
+      url: "/github/repos",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Create GitHub repository
+   *
+   * Create a repository for the authenticated user.
+   */
+  public createRepo<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      githubCreateRepoPayload?: GithubCreateRepoPayload
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { key: "githubCreateRepoPayload", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<GithubCreateRepoResponses, GithubCreateRepoErrors, ThrowOnError>({
+      url: "/github/repos",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+}
+
+export class Project extends HeyApiClient {
+  /**
+   * Clone project
+   *
+   * Clone a git repository into the local repos directory and register it as a project.
+   */
+  public clone<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      cloneProjectPayload?: CloneProjectPayload
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { key: "cloneProjectPayload", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<ProjectCloneResponses, ProjectCloneErrors, ThrowOnError>({
+      url: "/project/clone",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * List all projects
+   *
+   * Get a list of projects that have been opened with Tiancode.
+   */
+  public list<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<ProjectListResponses, ProjectListErrors, ThrowOnError>({
+      url: "/project",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get current project
+   *
+   * Retrieve the currently active project that Tiancode is working with.
+   */
+  public current<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<ProjectCurrentResponses, ProjectCurrentErrors, ThrowOnError>({
+      url: "/project/current",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Initialize git repository
+   *
+   * Create a git repository for the current project and return the refreshed project info.
+   */
+  public initGit<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<ProjectInitGitResponses, ProjectInitGitErrors, ThrowOnError>({
+      url: "/project/git/init",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Update project
+   *
+   * Update project properties such as name, icon, and commands.
+   */
+  public update<ThrowOnError extends boolean = false>(
+    parameters: {
+      projectID: string
+      directory?: string
+      workspace?: string
+      name?: string
+      icon?: ProjectIcon
+      commands?: ProjectCommands
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "projectID" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "name" },
+            { in: "body", key: "icon" },
+            { in: "body", key: "commands" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).patch<ProjectUpdateResponses, ProjectUpdateErrors, ThrowOnError>({
+      url: "/project/{projectID}",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * List project directories
+   *
+   * List known local absolute directories for a project.
+   */
+  public directories<ThrowOnError extends boolean = false>(
+    parameters: {
+      projectID: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "projectID" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<ProjectDirectoriesResponses, ProjectDirectoriesErrors, ThrowOnError>({
+      url: "/project/{projectID}/directories",
       ...options,
       ...params,
     })
@@ -2282,6 +2618,147 @@ export class Diff extends HeyApiClient {
 }
 
 export class Vcs extends HeyApiClient {
+  /**
+   * Commit changes
+   *
+   * Stage all changes and create a commit in the target directory.
+   */
+  public commit<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      vcsCommitPayload?: VcsCommitPayload
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { key: "vcsCommitPayload", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<VcsCommitResponses, VcsCommitErrors, ThrowOnError>({
+      url: "/vcs/commit",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Push changes
+   *
+   * Push the current branch to its remote, setting the upstream when missing.
+   */
+  public push<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      vcsPushPayload?: VcsPushPayload
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { key: "vcsPushPayload", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<VcsPushResponses, VcsPushErrors, ThrowOnError>({
+      url: "/vcs/push",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Pull changes
+   *
+   * Fast-forward pull the current branch from its remote.
+   */
+  public pull<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      vcsPullPayload?: VcsPullPayload
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { key: "vcsPullPayload", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<VcsPullResponses, VcsPullErrors, ThrowOnError>({
+      url: "/vcs/pull",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Get remote URL
+   *
+   * Report the origin remote URL of the target directory.
+   */
+  public remote<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<VcsRemoteResponses, VcsRemoteErrors, ThrowOnError>({
+      url: "/vcs/remote",
+      ...options,
+      ...params,
+    })
+  }
+
   /**
    * Get VCS info
    *
@@ -2416,6 +2893,70 @@ export class Vcs extends HeyApiClient {
   private _diff?: Diff
   get diff2(): Diff {
     return (this._diff ??= new Diff({ client: this.client }))
+  }
+}
+
+export class Instance extends HeyApiClient {
+  /**
+   * Dispose instance
+   *
+   * Clean up and dispose the current Tiancode instance, releasing all resources.
+   */
+  public dispose<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<InstanceDisposeResponses, InstanceDisposeErrors, ThrowOnError>({
+      url: "/instance/dispose",
+      ...options,
+      ...params,
+    })
+  }
+}
+
+export class Path extends HeyApiClient {
+  /**
+   * Get paths
+   *
+   * Retrieve the current working directory and related path information for the Tiancode instance.
+   */
+  public get<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<PathGetResponses, PathGetErrors, ThrowOnError>({
+      url: "/path",
+      ...options,
+      ...params,
+    })
   }
 }
 
@@ -2983,173 +3524,6 @@ export class Modelhub extends HeyApiClient {
         ...options?.headers,
         ...params.headers,
       },
-    })
-  }
-}
-
-export class Project extends HeyApiClient {
-  /**
-   * List all projects
-   *
-   * Get a list of projects that have been opened with Tiancode.
-   */
-  public list<ThrowOnError extends boolean = false>(
-    parameters?: {
-      directory?: string
-      workspace?: string
-    },
-    options?: Options<never, ThrowOnError>,
-  ) {
-    const params = buildClientParams(
-      [parameters],
-      [
-        {
-          args: [
-            { in: "query", key: "directory" },
-            { in: "query", key: "workspace" },
-          ],
-        },
-      ],
-    )
-    return (options?.client ?? this.client).get<ProjectListResponses, ProjectListErrors, ThrowOnError>({
-      url: "/project",
-      ...options,
-      ...params,
-    })
-  }
-
-  /**
-   * Get current project
-   *
-   * Retrieve the currently active project that Tiancode is working with.
-   */
-  public current<ThrowOnError extends boolean = false>(
-    parameters?: {
-      directory?: string
-      workspace?: string
-    },
-    options?: Options<never, ThrowOnError>,
-  ) {
-    const params = buildClientParams(
-      [parameters],
-      [
-        {
-          args: [
-            { in: "query", key: "directory" },
-            { in: "query", key: "workspace" },
-          ],
-        },
-      ],
-    )
-    return (options?.client ?? this.client).get<ProjectCurrentResponses, ProjectCurrentErrors, ThrowOnError>({
-      url: "/project/current",
-      ...options,
-      ...params,
-    })
-  }
-
-  /**
-   * Initialize git repository
-   *
-   * Create a git repository for the current project and return the refreshed project info.
-   */
-  public initGit<ThrowOnError extends boolean = false>(
-    parameters?: {
-      directory?: string
-      workspace?: string
-    },
-    options?: Options<never, ThrowOnError>,
-  ) {
-    const params = buildClientParams(
-      [parameters],
-      [
-        {
-          args: [
-            { in: "query", key: "directory" },
-            { in: "query", key: "workspace" },
-          ],
-        },
-      ],
-    )
-    return (options?.client ?? this.client).post<ProjectInitGitResponses, ProjectInitGitErrors, ThrowOnError>({
-      url: "/project/git/init",
-      ...options,
-      ...params,
-    })
-  }
-
-  /**
-   * Update project
-   *
-   * Update project properties such as name, icon, and commands.
-   */
-  public update<ThrowOnError extends boolean = false>(
-    parameters: {
-      projectID: string
-      directory?: string
-      workspace?: string
-      name?: string
-      icon?: ProjectIcon
-      commands?: ProjectCommands
-    },
-    options?: Options<never, ThrowOnError>,
-  ) {
-    const params = buildClientParams(
-      [parameters],
-      [
-        {
-          args: [
-            { in: "path", key: "projectID" },
-            { in: "query", key: "directory" },
-            { in: "query", key: "workspace" },
-            { in: "body", key: "name" },
-            { in: "body", key: "icon" },
-            { in: "body", key: "commands" },
-          ],
-        },
-      ],
-    )
-    return (options?.client ?? this.client).patch<ProjectUpdateResponses, ProjectUpdateErrors, ThrowOnError>({
-      url: "/project/{projectID}",
-      ...options,
-      ...params,
-      headers: {
-        "Content-Type": "application/json",
-        ...options?.headers,
-        ...params.headers,
-      },
-    })
-  }
-
-  /**
-   * List project directories
-   *
-   * List known local absolute directories for a project.
-   */
-  public directories<ThrowOnError extends boolean = false>(
-    parameters: {
-      projectID: string
-      directory?: string
-      workspace?: string
-    },
-    options?: Options<never, ThrowOnError>,
-  ) {
-    const params = buildClientParams(
-      [parameters],
-      [
-        {
-          args: [
-            { in: "path", key: "projectID" },
-            { in: "query", key: "directory" },
-            { in: "query", key: "workspace" },
-          ],
-        },
-      ],
-    )
-    return (options?.client ?? this.client).get<ProjectDirectoriesResponses, ProjectDirectoriesErrors, ThrowOnError>({
-      url: "/project/{projectID}/directories",
-      ...options,
-      ...params,
     })
   }
 }
@@ -7592,6 +7966,21 @@ export class OpencodeClient extends HeyApiClient {
     return (this._file ??= new File({ client: this.client }))
   }
 
+  private _github?: Github
+  get github(): Github {
+    return (this._github ??= new Github({ client: this.client }))
+  }
+
+  private _project?: Project
+  get project(): Project {
+    return (this._project ??= new Project({ client: this.client }))
+  }
+
+  private _vcs?: Vcs
+  get vcs(): Vcs {
+    return (this._vcs ??= new Vcs({ client: this.client }))
+  }
+
   private _instance?: Instance
   get instance(): Instance {
     return (this._instance ??= new Instance({ client: this.client }))
@@ -7600,11 +7989,6 @@ export class OpencodeClient extends HeyApiClient {
   private _path?: Path
   get path(): Path {
     return (this._path ??= new Path({ client: this.client }))
-  }
-
-  private _vcs?: Vcs
-  get vcs(): Vcs {
-    return (this._vcs ??= new Vcs({ client: this.client }))
   }
 
   private _command?: Command
@@ -7630,11 +8014,6 @@ export class OpencodeClient extends HeyApiClient {
   private _modelhub?: Modelhub
   get modelhub(): Modelhub {
     return (this._modelhub ??= new Modelhub({ client: this.client }))
-  }
-
-  private _project?: Project
-  get project(): Project {
-    return (this._project ??= new Project({ client: this.client }))
   }
 
   private _pty?: Pty

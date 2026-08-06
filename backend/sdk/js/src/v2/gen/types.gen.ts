@@ -2302,6 +2302,98 @@ export type File = {
   status: "added" | "deleted" | "modified"
 }
 
+export type GithubConnectPayload = {
+  token: string
+}
+
+export type GithubUser = {
+  login: string
+  name?: string
+  avatar_url?: string
+}
+
+export type GithubApiError = {
+  _tag: "GithubApiError"
+  message: string
+  status?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+}
+
+export type GithubStatus = {
+  connected: boolean
+  login?: string
+  avatarUrl?: string
+}
+
+export type GithubDisconnectResult = {
+  success: true
+}
+
+export type GithubRepo = {
+  name: string
+  fullName: string
+  description?: string
+  url: string
+  private: boolean
+  defaultBranch?: string
+}
+
+export type GithubNotConnectedError = {
+  _tag: "GithubNotConnectedError"
+  message: string
+}
+
+export type GithubCreateRepoPayload = {
+  name: string
+  private?: boolean
+  description?: string
+}
+
+export type CloneProjectPayload = {
+  url: string
+  directory?: string
+  branch?: string
+}
+
+export type Project = {
+  id: string
+  worktree: string
+  vcs?: ProjectVcs
+  name?: string
+  icon?: ProjectIcon
+  commands?: ProjectCommands
+  time: ProjectTime
+  sandboxes: Array<string>
+}
+
+export type CloneProjectResult = {
+  project: Project
+  directory: string
+}
+
+export type VcsCommitPayload = {
+  message: string
+  directory?: string
+}
+
+export type VcsOperationResult = {
+  success: boolean
+  output?: string
+}
+
+export type VcsPushPayload = {
+  directory?: string
+  branch?: string
+}
+
+export type VcsPullPayload = {
+  directory?: string
+}
+
+export type VcsRemoteResult = {
+  url?: string
+  hasRemote: boolean
+}
+
 export type Path = {
   home: string
   state: string
@@ -2422,17 +2514,6 @@ export type McpServerNotFoundError = {
   _tag: "McpServerNotFoundError"
   name: string
   message: string
-}
-
-export type Project = {
-  id: string
-  worktree: string
-  vcs?: ProjectVcs
-  name?: string
-  icon?: ProjectIcon
-  commands?: ProjectCommands
-  time: ProjectTime
-  sandboxes: Array<string>
 }
 
 export type ProjectNotFoundError = {
@@ -8083,6 +8164,288 @@ export type FileStatusResponses = {
 }
 
 export type FileStatusResponse = FileStatusResponses[keyof FileStatusResponses]
+
+export type GithubConnectData = {
+  body?: GithubConnectPayload
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/github/connect"
+}
+
+export type GithubConnectErrors = {
+  /**
+   * InvalidRequestError | GithubApiError
+   */
+  400: InvalidRequestError | GithubApiError
+}
+
+export type GithubConnectError = GithubConnectErrors[keyof GithubConnectErrors]
+
+export type GithubConnectResponses = {
+  /**
+   * Connected GitHub user
+   */
+  200: GithubUser
+}
+
+export type GithubConnectResponse = GithubConnectResponses[keyof GithubConnectResponses]
+
+export type GithubStatusData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/github/status"
+}
+
+export type GithubStatusErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GithubStatusError = GithubStatusErrors[keyof GithubStatusErrors]
+
+export type GithubStatusResponses = {
+  /**
+   * GitHub connection status
+   */
+  200: GithubStatus
+}
+
+export type GithubStatusResponse = GithubStatusResponses[keyof GithubStatusResponses]
+
+export type GithubDisconnectData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/github/disconnect"
+}
+
+export type GithubDisconnectErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GithubDisconnectError = GithubDisconnectErrors[keyof GithubDisconnectErrors]
+
+export type GithubDisconnectResponses = {
+  /**
+   * Disconnect result
+   */
+  200: GithubDisconnectResult
+}
+
+export type GithubDisconnectResponse = GithubDisconnectResponses[keyof GithubDisconnectResponses]
+
+export type GithubReposData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+    query?: string
+    perPage?: string
+  }
+  url: "/github/repos"
+}
+
+export type GithubReposErrors = {
+  /**
+   * GithubNotConnectedError | GithubApiError | InvalidRequestError
+   */
+  400: GithubNotConnectedError | GithubApiError | InvalidRequestError
+}
+
+export type GithubReposError = GithubReposErrors[keyof GithubReposErrors]
+
+export type GithubReposResponses = {
+  /**
+   * List of repositories
+   */
+  200: Array<GithubRepo>
+}
+
+export type GithubReposResponse = GithubReposResponses[keyof GithubReposResponses]
+
+export type GithubCreateRepoData = {
+  body?: GithubCreateRepoPayload
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/github/repos"
+}
+
+export type GithubCreateRepoErrors = {
+  /**
+   * GithubNotConnectedError | GithubApiError | InvalidRequestError
+   */
+  400: GithubNotConnectedError | GithubApiError | InvalidRequestError
+}
+
+export type GithubCreateRepoError = GithubCreateRepoErrors[keyof GithubCreateRepoErrors]
+
+export type GithubCreateRepoResponses = {
+  /**
+   * Created repository
+   */
+  200: GithubRepo
+}
+
+export type GithubCreateRepoResponse = GithubCreateRepoResponses[keyof GithubCreateRepoResponses]
+
+export type ProjectCloneData = {
+  body?: CloneProjectPayload
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/project/clone"
+}
+
+export type ProjectCloneErrors = {
+  /**
+   * InvalidRequestError
+   */
+  400: InvalidRequestError
+}
+
+export type ProjectCloneError = ProjectCloneErrors[keyof ProjectCloneErrors]
+
+export type ProjectCloneResponses = {
+  /**
+   * Cloned project
+   */
+  200: CloneProjectResult
+}
+
+export type ProjectCloneResponse = ProjectCloneResponses[keyof ProjectCloneResponses]
+
+export type VcsCommitData = {
+  body?: VcsCommitPayload
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/vcs/commit"
+}
+
+export type VcsCommitErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type VcsCommitError = VcsCommitErrors[keyof VcsCommitErrors]
+
+export type VcsCommitResponses = {
+  /**
+   * Commit result
+   */
+  200: VcsOperationResult
+}
+
+export type VcsCommitResponse = VcsCommitResponses[keyof VcsCommitResponses]
+
+export type VcsPushData = {
+  body?: VcsPushPayload
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/vcs/push"
+}
+
+export type VcsPushErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type VcsPushError = VcsPushErrors[keyof VcsPushErrors]
+
+export type VcsPushResponses = {
+  /**
+   * Push result
+   */
+  200: VcsOperationResult
+}
+
+export type VcsPushResponse = VcsPushResponses[keyof VcsPushResponses]
+
+export type VcsPullData = {
+  body?: VcsPullPayload
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/vcs/pull"
+}
+
+export type VcsPullErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type VcsPullError = VcsPullErrors[keyof VcsPullErrors]
+
+export type VcsPullResponses = {
+  /**
+   * Pull result
+   */
+  200: VcsOperationResult
+}
+
+export type VcsPullResponse = VcsPullResponses[keyof VcsPullResponses]
+
+export type VcsRemoteData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/vcs/remote"
+}
+
+export type VcsRemoteErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type VcsRemoteError = VcsRemoteErrors[keyof VcsRemoteErrors]
+
+export type VcsRemoteResponses = {
+  /**
+   * Remote URL
+   */
+  200: VcsRemoteResult
+}
+
+export type VcsRemoteResponse = VcsRemoteResponses[keyof VcsRemoteResponses]
 
 export type InstanceDisposeData = {
   body?: never
