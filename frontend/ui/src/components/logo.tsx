@@ -40,20 +40,22 @@ export const Logo = (props: { class?: string }) => {
       classList={{ [props.class ?? ""]: !!props.class }}
     >
       <g>
-        <path d="M24 6H0V12H9V36H15V12H24V6Z" fill="var(--icon-base)" />
+        <path d="M33 6H9V12H18V36H24V12H33V6Z" fill="var(--icon-base)" />
         <path d="M45 6H39V36H45V6Z" fill="var(--icon-base)" />
-        <path d="M78 24H66V36H78V24Z" fill="var(--icon-weak-base)" />
-        <path d="M78 12H66V36H78V12ZM84 36H60V6H84V36Z" fill="var(--icon-base)" />
-        <path d="M108 36H96V18H108V36Z" fill="var(--icon-weak-base)" />
-        <path d="M108 12H96V36H90V6H108V12ZM114 36H108V12H114V36Z" fill="var(--icon-base)" />
-        <path d="M144 30H126V18H144V30Z" fill="var(--icon-weak-base)" />
-        <path d="M144 12H126V30H144V36H120V6H144V12Z" fill="var(--icon-strong-base)" />
-        <path d="M168 30H156V18H168V30Z" fill="var(--icon-weak-base)" />
-        <path d="M168 12H156V30H168V12ZM174 36H150V6H174V36Z" fill="var(--icon-strong-base)" />
-        <path d="M198 30H186V18H198V30Z" fill="var(--icon-weak-base)" />
-        <path d="M198 12H186V30H198V12ZM204 36H180V6H198V0H204V36Z" fill="var(--icon-strong-base)" />
-        <path d="M234 24V30H216V24H234Z" fill="var(--icon-weak-base)" />
-        <path d="M216 12V18H228V12H216ZM234 24H216V30H234V36H210V6H234V24Z" fill="var(--icon-strong-base)" />
+        <path d="M69 24H57V36H69V24Z" fill="var(--icon-weak-base)" />
+        <path d="M69 12H57V36H69V12ZM75 36H51V6H75V36Z" fill="var(--icon-base)" />
+        <g transform="translate(-9 0)">
+          <path d="M108 36H96V18H108V36Z" fill="var(--icon-weak-base)" />
+          <path d="M108 12H96V36H90V6H108V12ZM114 36H108V12H114V36Z" fill="var(--icon-base)" />
+          <path d="M144 30H126V18H144V30Z" fill="var(--icon-weak-base)" />
+          <path d="M144 12H126V30H144V36H120V6H144V12Z" fill="var(--icon-strong-base)" />
+          <path d="M168 30H156V18H168V30Z" fill="var(--icon-weak-base)" />
+          <path d="M168 12H156V30H168V12ZM174 36H150V6H174V36Z" fill="var(--icon-strong-base)" />
+          <path d="M198 30H186V18H198V30Z" fill="var(--icon-weak-base)" />
+          <path d="M198 12H186V30H198V12ZM204 36H180V6H198V0H204V36Z" fill="var(--icon-strong-base)" />
+          <path d="M234 24V30H216V24H234Z" fill="var(--icon-weak-base)" />
+          <path d="M216 12V18H228V12H216ZM234 24H216V30H234V36H210V6H234V24Z" fill="var(--icon-strong-base)" />
+        </g>
       </g>
     </svg>
   )
