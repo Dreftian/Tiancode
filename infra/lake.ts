@@ -222,7 +222,7 @@ const ingestService = new sst.aws.Service("LakeIngestService", {
   memory: "4 GB",
   image: {
     context: ".",
-    dockerfile: "packages/stats/server/Dockerfile",
+    dockerfile: "backend/stats/server/Dockerfile",
   },
   link: [ingestConfig],
   permissions: [
@@ -265,7 +265,7 @@ const ingestService = new sst.aws.Service("LakeIngestService", {
   },
   dev: {
     command: "bun run start",
-    directory: "packages/stats/server",
+    directory: "backend/stats/server",
     url: "http://localhost:3000",
   },
   wait: $app.stage === "production",

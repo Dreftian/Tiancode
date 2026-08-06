@@ -5,7 +5,7 @@ const storage = new sst.cloudflare.Bucket("EnterpriseStorage")
 
 new sst.cloudflare.x.SolidStart("Teams", {
   domain: shortDomain,
-  path: "packages/enterprise",
+  path: "backend/enterprise",
   buildCommand: "bun run build:cloudflare",
   link: [SECRET.SupportApiKey],
   environment: {

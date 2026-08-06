@@ -61,11 +61,11 @@ describe("translate app", () => {
 
   test("limits each locale to its app surfaces", () => {
     expect(targetFiles("fr")).toEqual([
-      "packages/app/src/i18n/fr.ts",
-      "packages/ui/src/i18n/fr.ts",
-      "packages/desktop/src/renderer/i18n/fr.ts",
+      "frontend/app/src/i18n/fr.ts",
+      "frontend/ui/src/i18n/fr.ts",
+      "frontend/desktop/src/renderer/i18n/fr.ts",
     ])
-    expect(targetFiles("tr")).toEqual(["packages/app/src/i18n/tr.ts", "packages/ui/src/i18n/tr.ts"])
+    expect(targetFiles("tr")).toEqual(["frontend/app/src/i18n/tr.ts", "frontend/ui/src/i18n/tr.ts"])
   })
 
   test("maps product locale codes to their glossaries", () => {
@@ -139,13 +139,13 @@ opencode/next
   })
 
   test("disables side effects and scopes edits for the translation agent", () => {
-    const config = translationConfig("translate-app-fr", "opencode/gpt-5.5", ["packages/app/src/i18n/fr.ts"])
+    const config = translationConfig("translate-app-fr", "opencode/gpt-5.5", ["frontend/app/src/i18n/fr.ts"])
     expect(config.share).toBe("disabled")
     expect(config.formatter).toBe(false)
     expect(config.lsp).toBe(false)
     expect(config.agent["translate-app-fr"].permission.edit).toEqual({
       "*": "deny",
-      "packages/app/src/i18n/fr.ts": "allow",
+      "frontend/app/src/i18n/fr.ts": "allow",
     })
   })
 
@@ -155,12 +155,12 @@ opencode/next
         { "script/translate-app.ts": "before" },
         {
           "script/translate-app.ts": "before",
-          "packages/app/src/i18n/fr.ts": "translated",
-          "packages/app/src/app.tsx": "unexpected",
+          "frontend/app/src/i18n/fr.ts": "translated",
+          "frontend/app/src/app.tsx": "unexpected",
         },
-        ["packages/app/src/i18n/fr.ts"],
+        ["frontend/app/src/i18n/fr.ts"],
       ),
-    ).toEqual(["packages/app/src/app.tsx"])
+    ).toEqual(["frontend/app/src/app.tsx"])
     expect(unexpectedChanges({ "already-dirty.ts": "before" }, { "already-dirty.ts": "after" }, [])).toEqual([
       "already-dirty.ts",
     ])

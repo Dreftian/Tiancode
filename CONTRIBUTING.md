@@ -41,7 +41,7 @@ https://github.com/anomalyco/models.dev
 
 ### Running against a different directory
 
-By default, `bun dev` runs OpenCode in the `packages/opencode` directory. To run it against a different directory or repository:
+By default, `bun dev` runs OpenCode in the `backend/opencode` directory. To run it against a different directory or repository:
 
 ```bash
 bun dev <directory>
@@ -58,23 +58,23 @@ bun dev .
 To compile a standalone executable:
 
 ```bash
-./packages/opencode/script/build.ts --single
+./backend/opencode/script/build.ts --single
 ```
 
 Then run it with:
 
 ```bash
-./packages/opencode/dist/opencode-<platform>/bin/opencode
+./backend/opencode/dist/opencode-<platform>/bin/opencode
 ```
 
 Replace `<platform>` with your platform (e.g., `darwin-arm64`, `linux-x64`).
 
 - Core pieces:
-  - `packages/opencode`: OpenCode core business logic & server.
-  - `packages/opencode/src/cli/cmd/tui/`: The TUI code, written in SolidJS with [opentui](https://github.com/sst/opentui)
-  - `packages/app`: The shared web UI components, written in SolidJS
-  - `packages/desktop`: The native desktop app, built with Electron (wraps `packages/app`)
-  - `packages/plugin`: Source for `@opencode-ai/plugin`
+  - `backend/opencode`: OpenCode core business logic & server.
+  - `backend/opencode/src/cli/cmd/tui/`: The TUI code, written in SolidJS with [opentui](https://github.com/sst/opentui)
+  - `backend/app`: The shared web UI components, written in SolidJS
+  - `backend/desktop`: The native desktop app, built with Electron (wraps `backend/app`)
+  - `backend/plugin`: Source for `@opencode-ai/plugin`
 
 ### Understanding bun dev vs opencode
 
@@ -116,7 +116,7 @@ To test UI changes during development:
 2. **Then run the web app:**
 
 ```bash
-bun run --cwd packages/app dev
+bun run --cwd backend/app dev
 ```
 
 This starts a local dev server at http://localhost:5173 (or similar port shown in output). Most UI changes can be tested here, but the server must be running for full functionality.
@@ -128,18 +128,18 @@ The desktop app is an Electron application that wraps the web UI.
 To run the desktop app in development:
 
 ```bash
-bun run --cwd packages/desktop dev
+bun run --cwd backend/desktop dev
 ```
 
 To create a production build and package the app:
 
 ```bash
-bun run --cwd packages/desktop build
-bun run --cwd packages/desktop package
+bun run --cwd backend/desktop build
+bun run --cwd backend/desktop package
 ```
 
 > [!NOTE]
-> If you make changes to the API or SDK (e.g. `packages/opencode/src/server/server.ts`), run `./script/generate.ts` to regenerate the SDK and related files.
+> If you make changes to the API or SDK (e.g. `backend/opencode/src/server/server.ts`), run `./script/generate.ts` to regenerate the SDK and related files.
 
 Please try to follow the [style guide](./AGENTS.md)
 
@@ -155,9 +155,9 @@ Caveats:
 - If you want to run the OpenCode TUI and have breakpoints triggered in the server code, you might need to run `bun dev spawn` instead of
   the usual `bun dev`. This is because `bun dev` runs the server in a worker thread and breakpoints might not work there.
 - If `spawn` does not work for you, you can debug the server separately:
-  - Debug server: `bun run --inspect=ws://localhost:6499/ --cwd packages/opencode ./src/index.ts serve --port 4096`,
+  - Debug server: `bun run --inspect=ws://localhost:6499/ --cwd backend/opencode ./src/index.ts serve --port 4096`,
     then attach TUI with `opencode attach http://localhost:4096`
-  - Debug TUI: `bun run --inspect=ws://localhost:6499/ --cwd packages/opencode --conditions=browser ./src/index.ts`
+  - Debug TUI: `bun run --inspect=ws://localhost:6499/ --cwd backend/opencode --conditions=browser ./src/index.ts`
 
 Other tips and tricks:
 

@@ -29,7 +29,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
 
   postPatch = ''
     # NOTE: Relax Bun version check to be a warning instead of an error
-    substituteInPlace packages/script/src/index.ts \
+    substituteInPlace backend/script/src/index.ts \
       --replace-fail 'throw new Error(`This script requires bun@''${expectedBunVersionRange}' \
                      'console.warn(`Warning: This script requires bun@''${expectedBunVersionRange}'
   '';
@@ -39,7 +39,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
 
     cp -R ${finalAttrs.node_modules}/. .
     patchShebangs node_modules
-    patchShebangs packages/*/node_modules
+    patchShebangs backend/*/node_modules
 
     runHook postConfigure
   '';
@@ -52,7 +52,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
   buildPhase = ''
     runHook preBuild
 
-    cd ./packages/opencode
+    cd ./backend/opencode
     bun --bun ./script/build.ts --single --skip-install
     bun --bun ./script/schema.ts schema.json
 

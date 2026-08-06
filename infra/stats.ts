@@ -152,7 +152,7 @@ new sst.x.DevCommand("StatsStudio", {
   },
   dev: {
     command: "bun db:studio",
-    directory: "packages/stats/core",
+    directory: "backend/stats/core",
     autostart: false,
   },
 })
@@ -162,7 +162,7 @@ new sst.x.DevCommand("StatsStudio", {
 ////////////////
 
 export const app = new sst.cloudflare.x.SolidStart("Stats", {
-  path: "packages/stats/app",
+  path: "backend/stats/app",
   buildCommand: "bun run build",
   domain: `stats.${domain}`,
   link: [database, EMAILOCTOPUS_API_KEY],
@@ -190,7 +190,7 @@ export const statSync = new sst.aws.Service("StatsSyncService", {
   memory: "2 GB",
   image: {
     context: ".",
-    dockerfile: "packages/stats/server/Dockerfile",
+    dockerfile: "backend/stats/server/Dockerfile",
   },
   command: ["bun", "src/stat-sync.ts"],
   link: [database, inferenceEvent, statsSyncConfig],
@@ -201,7 +201,7 @@ export const statSync = new sst.aws.Service("StatsSyncService", {
   },
   dev: {
     command: "bun src/stat-sync.ts",
-    directory: "packages/stats/server",
+    directory: "backend/stats/server",
     autostart: false,
   },
 })

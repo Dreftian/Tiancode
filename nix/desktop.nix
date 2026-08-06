@@ -60,14 +60,14 @@ stdenv.mkDerivation (finalAttrs: {
   postPatch =
     # NOTE: Relax Bun version check to be a warning instead of an error
     ''
-      substituteInPlace packages/script/src/index.ts \
+      substituteInPlace backend/script/src/index.ts \
         --replace-fail 'throw new Error(`This script requires bun@''${expectedBunVersionRange}' \
                        'console.warn(`Warning: This script requires bun@''${expectedBunVersionRange}'
     ''
     # https://github.com/electron/electron/issues/31121
     # mac builds use a .app bundle which doesnt have this issue
     + lib.optionalString stdenv.isLinux ''
-      BASE_PATH=packages/desktop
+      BASE_PATH=backend/desktop
       FILES=(src/main/windows.ts)
       for file in "''${FILES[@]}"; do
         substituteInPlace $BASE_PATH/$file \
@@ -81,13 +81,13 @@ stdenv.mkDerivation (finalAttrs: {
 
     cp -R ${finalAttrs.node_modules}/. .
     patchShebangs node_modules
-    patchShebangs packages/*/node_modules
+    patchShebangs backend/*/node_modules
   '';
 
   buildPhase = ''
     runHook preBuild
 
-    cd packages/desktop
+    cd backend/desktop
 
     bun run build
     npx electron-builder --dir \

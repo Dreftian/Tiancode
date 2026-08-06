@@ -47,7 +47,7 @@ new sst.x.DevCommand("Studio", {
   link: [database],
   dev: {
     command: "bun db studio",
-    directory: "packages/console/core",
+    directory: "backend/console/core",
     autostart: true,
   },
 })
@@ -62,7 +62,7 @@ const GOOGLE_CLIENT_ID = new sst.Secret("GOOGLE_CLIENT_ID")
 const authStorage = new sst.cloudflare.Kv("AuthStorage")
 export const auth = new sst.cloudflare.Worker("AuthApi", {
   domain: `auth.${domain}`,
-  handler: "packages/console/function/src/auth.ts",
+  handler: "backend/console/function/src/auth.ts",
   url: true,
   link: [database, authStorage, GITHUB_CLIENT_ID_CONSOLE, GITHUB_CLIENT_SECRET_CONSOLE, GOOGLE_CLIENT_ID],
 })
@@ -241,13 +241,13 @@ const SALESFORCE_CLIENT_SECRET = new sst.Secret("SALESFORCE_CLIENT_SECRET")
 const SALESFORCE_INSTANCE_URL = new sst.Secret("SALESFORCE_INSTANCE_URL")
 
 const logProcessor = new sst.cloudflare.Worker("LogProcessor", {
-  handler: "packages/console/function/src/log-processor.ts",
+  handler: "backend/console/function/src/log-processor.ts",
   link: [SECRET.HoneycombApiKey, ...(lake?.lakeIngest ? [lake.lakeIngest] : [])],
 })
 
 new sst.cloudflare.x.SolidStart("Console", {
   domain,
-  path: "packages/console/app",
+  path: "backend/console/app",
   link: [
     bucket,
     bucketNew,
@@ -305,7 +305,7 @@ new sst.cloudflare.x.SolidStart("Console", {
 ////////////////
 
 export const stat = new sst.cloudflare.Worker("Stat", {
-  handler: "packages/console/function/src/stat.ts",
+  handler: "backend/console/function/src/stat.ts",
   link: [database],
   url: true,
 })

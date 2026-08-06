@@ -33,12 +33,12 @@
 #       - name: Generate Python SDK from OpenAPI (CLI)
 #         shell: bash
 #         run: |
-#           ~/.local/bin/uv run --project packages/sdk/python python packages/sdk/python/scripts/generate.py --source cli
+#           ~/.local/bin/uv run --project backend/sdk/python python backend/sdk/python/scripts/generate.py --source cli
 
 #       - name: Sync Python dependencies
 #         shell: bash
 #         run: |
-#           ~/.local/bin/uv sync --dev --project packages/sdk/python
+#           ~/.local/bin/uv sync --dev --project backend/sdk/python
 
 #       - name: Set version from release tag
 #         shell: bash
@@ -48,9 +48,9 @@
 #             TAG="$(git describe --tags --abbrev=0 || echo 0.0.0)"
 #           fi
 #           echo "Using version: $TAG"
-#           VERSION="$TAG" ~/.local/bin/uv run --project packages/sdk/python python - <<'PY'
+#           VERSION="$TAG" ~/.local/bin/uv run --project backend/sdk/python python - <<'PY'
 # import os, re, pathlib
-# root = pathlib.Path('packages/sdk/python')
+# root = pathlib.Path('backend/sdk/python')
 # pt = (root / 'pyproject.toml').read_text()
 # version = os.environ.get('VERSION','0.0.0').lstrip('v')
 # pt = re.sub(r'(?m)^(version\s*=\s*")[^"]+("\s*)$', f"\\1{version}\\2", pt)
@@ -68,4 +68,4 @@
 #           PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
 #         shell: bash
 #         run: |
-#           ~/.local/bin/uv run --project packages/sdk/python python packages/sdk/python/scripts/publish.py
+#           ~/.local/bin/uv run --project backend/sdk/python python backend/sdk/python/scripts/publish.py

@@ -10,7 +10,7 @@ on:
     paths:
       - "bun.lock"
       - "package.json"
-      - "packages/*/package.json"
+      - "backend/*/package.json"
       - "flake.lock"
       - "nix/node_modules.nix"
       - "nix/scripts/**"
