@@ -185,6 +185,23 @@
   background-color: var(--v2-background-bg-layer-01);
 }
 
+/* Narrower vertical sidebar on desktop so the tab content gets more room.
+   Overrides the default 240px list from tabs-v2.css; triggers keep their
+   icon + label (labels are short, so no ellipsis is needed). */
+@media (min-width: 640px) {
+  .settings-v2[data-component="tabs-v2"][data-variant="settings"][data-orientation="vertical"]
+    [data-slot="tabs-v2-list"] {
+    width: 176px;
+    min-width: 176px;
+    padding-inline: 8px;
+  }
+
+  .settings-v2[data-component="tabs-v2"][data-variant="settings"][data-orientation="vertical"]
+    [data-slot="tabs-v2-trigger"] {
+    padding-inline: 4px;
+  }
+}
+
 @media (max-width: 639px) {
   .settings-v2[data-component="tabs-v2"][data-variant="settings"][data-orientation="vertical"]
     [data-slot="tabs-v2-list"] {
@@ -834,16 +851,6 @@
     padding-inline: 20px;
   }
 
-  .settings-v2-skills-url {
-    flex-wrap: wrap;
-  }
-
-  .settings-v2-skills-url [data-component="text-input-v2"] {
-    width: auto;
-    min-width: 0;
-    flex: 1 1 140px;
-  }
-
   .settings-v2-sub-agents [data-component="settings-v2-row"] {
     flex-wrap: wrap;
   }
@@ -974,11 +981,23 @@
   gap: 4px;
 }
 
+/* URL import: input spans the full row, download button sits below it,
+   aligned to the end so it never overflows the row on narrow panels. */
 .settings-v2-skills-url {
   display: flex;
   width: 100%;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   gap: 8px;
+}
+
+.settings-v2-skills-url [data-component="text-input-v2"] {
+  width: 100%;
+  min-width: 0;
+}
+
+.settings-v2-skills-url [data-component="button-v2"] {
+  align-self: flex-end;
 }
 
 .settings-v2-skills-detail-empty {

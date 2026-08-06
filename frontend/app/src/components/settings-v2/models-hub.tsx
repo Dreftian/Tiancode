@@ -10,6 +10,46 @@ type Compatibility = "green" | "blue" | "red"
 
 const PAGE_SIZE = 6
 
+// HuggingFace pipeline tags map to short readable labels; the id-based hints
+// below complement them (e.g. "meta-llama/Llama-3.2-3B-Instruct" is both
+// text generation and an instruct model).
+const PipelineTagKeys: Record<string, string> = {
+  "text-generation": "settings.modelsHub.desc.text-generation",
+  "image-text-to-text": "settings.modelsHub.desc.image-text-to-text",
+  "text-to-image": "settings.modelsHub.desc.text-to-image",
+  "image-to-image": "settings.modelsHub.desc.image-to-image",
+  "image-classification": "settings.modelsHub.desc.image-classification",
+  "token-classification": "settings.modelsHub.desc.token-classification",
+  "text-classification": "settings.modelsHub.desc.text-classification",
+  "question-answering": "settings.modelsHub.desc.question-answering",
+  summarization: "settings.modelsHub.desc.summarization",
+  translation: "settings.modelsHub.desc.translation",
+  "fill-mask": "settings.modelsHub.desc.fill-mask",
+  "feature-extraction": "settings.modelsHub.desc.feature-extraction",
+  "automatic-speech-recognition": "settings.modelsHub.desc.automatic-speech-recognition",
+  "text-to-speech": "settings.modelsHub.desc.text-to-speech",
+  "depth-estimation": "settings.modelsHub.desc.depth-estimation",
+  "image-segmentation": "settings.modelsHub.desc.image-segmentation",
+  "object-detection": "settings.modelsHub.desc.object-detection",
+}
+
+const ModelIdHints: [RegExp, string][] = [
+  [/instruct/i, "settings.modelsHub.desc.hint.instruct"],
+  [/\bchat\b/i, "settings.modelsHub.desc.hint.chat"],
+  [/vision|vlm|llava/i, "settings.modelsHub.desc.hint.vision"],
+  [/coder|code|starcoder/i, "settings.modelsHub.desc.hint.code"],
+  [/reason/i, "settings.modelsHub.desc.hint.reasoning"],
+  [/quant|q[2348]_/i, "settings.modelsHub.desc.hint.quantized"],
+]
+
+const largestSize = (files: QuantFile[]) =>
+  files.reduce<number | undefined>((max, file) => {
+    const size = asNumber(file.size)
+    if (size === undefined) return max
+    if (max === undefined || size > max) return size
+    return max
+  }, undefined)
+
 export const SettingsModelsHubV2: Component<{
   directory?: string
 }> = (props) => {
@@ -135,6 +175,18 @@ export const SettingsModelsHubV2: Component<{
     return state.total > 0 ? Math.min(100, Math.round((state.received / state.total) * 100)) : 0
   }
 
+  // Compact, human-readable description for a model row: pipeline tag plus
+  // hints derived from the id (e.g. "Text generation · Instruct").
+  const modelDescription = (id: string, pipelineTag: string | undefined) => {
+    const parts: string[] = []
+    const tagKey = pipelineTag ? PipelineTagKeys[pipelineTag] : undefined
+    if (tagKey) parts.push(language.t(tagKey))
+    for (const [pattern, key] of ModelIdHints) {
+      if (pattern.test(id)) parts.push(language.t(key))
+    }
+    return parts.join(" · ")
+  }
+
   const prevPage = () => setPage((page() + pages() - 1) % pages())
   const nextPage = () => setPage((page() + 1) % pages())
 
@@ -187,6 +239,11 @@ export const SettingsModelsHubV2: Component<{
                   {(model) => {
                     const best = model.quantFiles[0]
                     const c = compat(best?.size)
+                    const largest = largestSize(model.quantFiles)
+                    const sizeNote =
+                      largest !== undefined && largest !== asNumber(best?.size) ? formatBytes(largest) : undefined
+                    const description = modelDescription(model.id, model.pipeline_tag)
+                    const descriptionLine = [description, sizeNote].filter(Boolean).join(" · ")
                     return (
                       <div
                         class="settings-v2-models-hub-item"
@@ -195,6 +252,9 @@ export const SettingsModelsHubV2: Component<{
                       >
                         <div class="settings-v2-models-hub-item-copy">
                           <div class="settings-v2-models-hub-item-name">{model.id}</div>
+                          <Show when={descriptionLine}>
+                            <div class="settings-v2-models-hub-item-description">{descriptionLine}</div>
+                          </Show>
                           <div class="settings-v2-models-hub-item-meta">
                             <span class="settings-v2-models-hub-item-badge" data-compat={c}>
                               {best?.quant ?? "GGUF"}

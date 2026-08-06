@@ -57,7 +57,28 @@
         <a href="#how" data-i18n="nav.how">Cómo funciona</a>
         <a href="#stats" data-i18n="nav.stats">Estadísticas</a>
         <a href="#skills" data-i18n="nav.skills">Skills</a>
-        <a href="#download" class="btn btn-ghost nav-download" data-i18n="nav.download">Descargar</a>
+        <div class="nav-dropdown">
+          <button class="nav-dropdown-toggle" type="button" aria-expanded="false" aria-haspopup="true"
+                  data-i18n-aria="nav.dropdownAria" aria-label="Abrir menú de recursos">
+            <span data-i18n="nav.more">Recursos</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          <div class="nav-dropdown-menu">
+            <a href="#/guia" data-i18n="nav.m1">Guía de inicio</a>
+            <a href="#/docs" data-i18n="nav.m2">Documentación</a>
+            <a href="#/faq" data-i18n="nav.m3">Preguntas frecuentes</a>
+            <a href="#/novedades" data-i18n="nav.m4">Novedades</a>
+            <a href="#/portable" data-i18n="nav.m5">Modo portable</a>
+            <a href="#/descarga" data-i18n="nav.m6">Descarga</a>
+            <span class="nav-dropdown-sep" aria-hidden="true"></span>
+            <a href="#/licencia" data-i18n="nav.m7">Licencia</a>
+            <a href="#/terminos" data-i18n="nav.m8">Términos</a>
+            <a href="#/privacidad" data-i18n="nav.m9">Privacidad</a>
+          </div>
+        </div>
+        <a href="#/descarga" class="btn btn-ghost nav-download" data-i18n="nav.download">Descargar</a>
       </nav>
 
       <div class="header-actions">
@@ -88,6 +109,9 @@
 
   <main>
 
+    <!-- ===== Contenido de la home (se oculta al abrir una página interna) ===== -->
+    <div id="home" class="home-content">
+
     <!-- ================= Hero ================= -->
     <section id="hero" class="hero">
       <div class="hero-bg" aria-hidden="true">
@@ -103,7 +127,7 @@
         <p class="hero-tagline reveal" data-i18n="hero.tagline">Tu asistente de IA para programar, directo en tu terminal.</p>
         <p class="hero-sub reveal" data-i18n="hero.sub">Agentes de IA, 24+ skills de ingeniería de software y modelos locales GGUF — una app de escritorio rápida y enfocada para Windows.</p>
         <div class="hero-cta reveal">
-          <a href="#download" class="btn btn-primary btn-lg">
+          <a href="#/descarga" class="btn btn-primary btn-lg">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
               <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
@@ -364,7 +388,7 @@
           <h2 class="cta-title" data-i18n="cta.title">Empieza a programar con IA hoy</h2>
           <p class="cta-sub" data-i18n="cta.sub">Gratis para uso personal. Rápido de instalar, fácil de configurar.</p>
           <div class="cta-actions">
-            <a href="#download" class="btn btn-primary btn-lg">
+            <a href="#/descarga" class="btn btn-primary btn-lg">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                 <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
@@ -377,6 +401,653 @@
       </div>
     </section>
 
+    </div><!-- /#home -->
+
+    <!-- ================================================================
+         Páginas internas (SPA con rutas #/licencia, #/terminos, …).
+         Se muestran/ocultan desde script.js según location.hash.
+         ================================================================ -->
+    <div class="pages">
+
+      <!-- ============ Licencia (#/licencia) ============ -->
+      <section id="page-licencia" class="page" aria-label="Licencia">
+        <div class="container">
+          <div class="page-inner">
+            <div class="page-toolbar reveal">
+              <a href="#hero" class="page-back">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+                </svg>
+                <span data-i18n="page.back">Volver al inicio</span>
+              </a>
+            </div>
+            <header class="page-head reveal">
+              <span class="eyebrow" data-i18n="legal.eyebrow">Legal</span>
+              <h1 class="page-title" data-i18n="lic.title">Licencia MIT</h1>
+              <p class="page-sub" data-i18n="lic.sub">Tiancode es software libre: puedes usarlo, modificarlo y distribuirlo libremente bajo los términos de la Licencia MIT.</p>
+            </header>
+            <div class="page-body reveal" style="--rd:.08s">
+              <h2 data-i18n="lic.sumTitle">Resumen en palabras simples</h2>
+              <ul class="page-list">
+                <li data-i18n="lic.sum1">Uso libre, personal y comercial, sin costes ni licencias adicionales.</li>
+                <li data-i18n="lic.sum2">Puedes modificar el código fuente y crear tus propias versiones.</li>
+                <li data-i18n="lic.sum3">Puedes redistribuir copias, con la condición de incluir el aviso de copyright.</li>
+                <li data-i18n="lic.sum4">El software se entrega «tal cual», sin garantía de ningún tipo.</li>
+              </ul>
+              <h2 data-i18n="lic.copyTitle">Aviso de copyright</h2>
+              <pre class="code-block"><code>Copyright (c) 2026 Tiancode</code></pre>
+              <h2 data-i18n="lic.codeTitle">Texto completo de la licencia</h2>
+              <pre class="code-block"><code>MIT License
+
+Copyright (c) 2026 Tiancode
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.</code></pre>
+              <div class="page-note" role="note">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+                <p data-i18n="lic.note">La licencia MIT se aplica al código de la aplicación Tiancode. Los modelos de IA descargados a través de la app conservan sus propias licencias (normalmente abiertas, como Apache 2.0, MIT o Llama 3).</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ Términos (#/terminos) ============ -->
+      <section id="page-terminos" class="page" aria-label="Términos de uso">
+        <div class="container">
+          <div class="page-inner">
+            <div class="page-toolbar reveal">
+              <a href="#hero" class="page-back">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+                </svg>
+                <span data-i18n="page.back">Volver al inicio</span>
+              </a>
+            </div>
+            <header class="page-head reveal">
+              <span class="eyebrow" data-i18n="legal.eyebrow">Legal</span>
+              <h1 class="page-title" data-i18n="terms.title">Términos de uso</h1>
+              <p class="page-sub" data-i18n="terms.sub">Los términos que rigen el uso de Tiancode. Al descargar o utilizar la aplicación aceptas estas condiciones.</p>
+              <p class="page-updated" data-i18n="terms.updated">Última actualización: 6 de agosto de 2026</p>
+            </header>
+            <div class="page-body reveal" style="--rd:.08s">
+              <h2 data-i18n="terms.s1t">1. Aceptación de los términos</h2>
+              <p data-i18n="terms.s1p">Al descargar, instalar o utilizar Tiancode (la «aplicación») aceptas estos Términos de uso. Si no estás de acuerdo con ellos, no utilices la aplicación.</p>
+              <h2 data-i18n="terms.s2t">2. Uso del software</h2>
+              <p data-i18n="terms.s2p">Tiancode está pensado para desarrolladores y personas que escriben código. Puedes usarlo con fines personales y profesionales. Te comprometes a no utilizarlo para actividades ilegales, dañinas o que infrinjan derechos de terceros.</p>
+              <h2 data-i18n="terms.s3t">3. Uso responsable de la IA</h2>
+              <p data-i18n="terms.s3p1">Los agentes de Tiancode generan código y texto mediante modelos de inteligencia artificial. Los resultados pueden contener errores, vulnerabilidades de seguridad o código incorrecto. Eres responsable de revisar, probar y validar cualquier código generado antes de usarlo en producción.</p>
+              <p data-i18n="terms.s3p2">No utilices la aplicación para generar contenido ilegal, malicioso o que pueda causar daño, y no confíes ciegamente en las respuestas de la IA: verifica siempre lo que produce.</p>
+              <h2 data-i18n="terms.s4t">4. Propiedad del código generado</h2>
+              <p data-i18n="terms.s4p">El código, el texto y las demás salidas que generes con Tiancode te pertenecen. Puedes usarlos, licenciarlos o publicarlos libremente, incluso en proyectos comerciales. Tiancode no reivindica ninguna propiedad sobre tus resultados.</p>
+              <h2 data-i18n="terms.s5t">5. Proveedores de terceros</h2>
+              <p data-i18n="terms.s5p">Cuando conectas proveedores de IA en la nube (OpenAI, Anthropic, etc.), tu uso se rige también por los términos y políticas de esos proveedores. Tiancode actúa como cliente de sus APIs y tus claves se guardan únicamente en tu equipo.</p>
+              <h2 data-i18n="terms.s6t">6. Sin garantías</h2>
+              <p data-i18n="terms.s6p">La aplicación se proporciona «tal cual», sin garantías de ningún tipo, expresas o implícitas, incluyendo disponibilidad, idoneidad para un fin o ausencia de errores.</p>
+              <h2 data-i18n="terms.s7t">7. Limitación de responsabilidad</h2>
+              <p data-i18n="terms.s7p">En la máxima medida permitida por la ley, Tiancode no será responsable de daños directos, indirectos, incidentales o consecuentes derivados del uso de la aplicación, incluyendo pérdida de datos, pérdida de beneficios o fallos producidos por código generado con ella.</p>
+              <h2 data-i18n="terms.s8t">8. Cambios en estos términos</h2>
+              <p data-i18n="terms.s8p">Podemos actualizar estos términos ocasionalmente. La versión vigente se publica siempre en esta página con su fecha de actualización.</p>
+              <h2 data-i18n="terms.s9t">9. Contacto</h2>
+              <p data-i18n="terms.s9p">Si tienes preguntas sobre estos términos, escríbenos a legal@tiancode.dev.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ Privacidad (#/privacidad) ============ -->
+      <section id="page-privacidad" class="page" aria-label="Política de privacidad">
+        <div class="container">
+          <div class="page-inner">
+            <div class="page-toolbar reveal">
+              <a href="#hero" class="page-back">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+                </svg>
+                <span data-i18n="page.back">Volver al inicio</span>
+              </a>
+            </div>
+            <header class="page-head reveal">
+              <span class="eyebrow" data-i18n="legal.eyebrow">Legal</span>
+              <h1 class="page-title" data-i18n="priv.title">Política de privacidad</h1>
+              <p class="page-sub" data-i18n="priv.sub">Tiancode está diseñado con la privacidad por delante: por defecto, tus datos y tu código se procesan en tu propia máquina.</p>
+              <p class="page-updated" data-i18n="priv.updated">Última actualización: 6 de agosto de 2026</p>
+            </header>
+            <div class="page-body reveal" style="--rd:.08s">
+              <h2 data-i18n="priv.s1t">1. Procesamiento local</h2>
+              <p data-i18n="priv.s1p">Tiancode es una aplicación de escritorio. Tus conversaciones, tu código y tu configuración se almacenan y procesan localmente en tu equipo. No mantenemos servidores que reciban tu actividad.</p>
+              <h2 data-i18n="priv.s2t">2. Modelos locales</h2>
+              <p data-i18n="priv.s2p">Si usas modelos locales GGUF, la inferencia se ejecuta íntegramente en tu máquina. Ni tus mensajes ni los resultados salen de tu equipo: cero envíos de datos.</p>
+              <h2 data-i18n="priv.s3t">3. Proveedores en la nube</h2>
+              <p data-i18n="priv.s3p">Si decides conectar un proveedor en la nube (OpenAI, Anthropic u otros), tus mensajes se envían a ese proveedor para obtener respuestas, conforme a sus propias políticas de privacidad. La elección es siempre tuya y puedes volver a modelos locales en cualquier momento. Tu clave API se guarda solo en tu equipo.</p>
+              <h2 data-i18n="priv.s4t">4. Telemetría opcional</h2>
+              <p data-i18n="priv.s4p">La aplicación puede enviar estadísticas de uso anónimas (versión, sistema operativo, funciones utilizadas) para ayudarnos a mejorar el producto. La telemetría está desactivada por defecto y solo se activa si tú la habilitas en la configuración. Nunca incluye el contenido de tus conversaciones ni de tu código.</p>
+              <h2 data-i18n="priv.s5t">5. No vendemos datos</h2>
+              <p data-i18n="priv.s5p">No vendemos, alquilamos ni compartimos tus datos personales con terceros. Tiancode no tiene un modelo de negocio basado en tus datos: es un producto de software.</p>
+              <h2 data-i18n="priv.s6t">6. Dónde se guarda la información</h2>
+              <p data-i18n="priv.s6p">Toda la información vive en tu equipo:</p>
+              <ul class="page-list">
+                <li><span data-i18n="priv.s6l1">Configuración y claves API:</span> <code>%APPDATA%\Tiancode</code> <span data-i18n="priv.s6l1b">(instalador) o la carpeta de la app (portable)</span></li>
+                <li><span data-i18n="priv.s6l2">Modelos locales:</span> <code>%APPDATA%\Tiancode\models</code> <span data-i18n="priv.s6l2b">dentro del directorio de datos</span></li>
+                <li><span data-i18n="priv.s6l3">Registros y diagnóstico:</span> <code>logs</code> <span data-i18n="priv.s6l3b">en la carpeta de datos, solo para resolver incidencias</span></li>
+              </ul>
+              <h2 data-i18n="priv.s7t">7. Tus derechos</h2>
+              <p data-i18n="priv.s7p">Como todo se guarda en tu equipo, controlar tus datos es directo: desinstala la aplicación o elimina su carpeta de datos para borrarlo todo. También puedes eliminar conversaciones individuales desde la interfaz.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ Documentación (#/docs) ============ -->
+      <section id="page-docs" class="page" aria-label="Documentación">
+        <div class="container">
+          <div class="page-inner page-inner--wide">
+            <div class="page-toolbar reveal">
+              <a href="#hero" class="page-back">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+                </svg>
+                <span data-i18n="page.back">Volver al inicio</span>
+              </a>
+            </div>
+            <header class="page-head reveal">
+              <span class="eyebrow" data-i18n="nav.more">Recursos</span>
+              <h1 class="page-title" data-i18n="docs.title">Documentación</h1>
+              <p class="page-sub" data-i18n="docs.sub">La guía oficial de Tiancode: instalación, agentes, skills, modelos locales, configuración, comandos y solución de problemas.</p>
+            </header>
+            <nav class="docs-toc reveal" aria-label="Contenido de la documentación">
+              <span class="toc-label" data-i18n="docs.toc">Contenido</span>
+              <a href="#docs-instalacion"><span class="toc-num">1</span><span data-i18n="docs.t1">Instalación</span></a>
+              <a href="#docs-agentes"><span class="toc-num">2</span><span data-i18n="docs.t2">Agentes</span></a>
+              <a href="#docs-skills"><span class="toc-num">3</span><span data-i18n="docs.t3">Skills</span></a>
+              <a href="#docs-modelos"><span class="toc-num">4</span><span data-i18n="docs.t4">Modelos locales</span></a>
+              <a href="#docs-configuracion"><span class="toc-num">5</span><span data-i18n="docs.t5">Configuración</span></a>
+              <a href="#docs-comandos"><span class="toc-num">6</span><span data-i18n="docs.t6">Comandos</span></a>
+              <a href="#docs-problemas"><span class="toc-num">7</span><span data-i18n="docs.t7">Solución de problemas</span></a>
+            </nav>
+            <div class="page-body reveal" style="--rd:.08s">
+              <h2 id="docs-instalacion" data-i18n="docs.s1t">1. Instalación</h2>
+              <p data-i18n="docs.s1p">Tiancode 1.0.0 se distribuye en dos formatos para Windows 10 y 11 (64 bits):</p>
+              <ul class="page-list">
+                <li data-i18n="docs.s1l1">Instalador NSIS (Tiancode-1.0.0-setup.exe): instalación clásica con asistente, accesos directos y actualizaciones sencillas.</li>
+                <li data-i18n="docs.s1l2">Versión portable (Tiancode-portable-1.0.0.exe): sin instalación, se ejecuta desde cualquier carpeta o USB.</li>
+              </ul>
+              <p data-i18n="docs.s1p2">Requisitos mínimos: Windows 10 u 11 de 64 bits, 4 GB de RAM y 1 GB de espacio libre. Para modelos locales se recomiendan 8 GB de RAM o más.</p>
+              <h2 id="docs-agentes" data-i18n="docs.s2t">2. Agentes</h2>
+              <p data-i18n="docs.s2p">Los agentes son asistentes de IA especializados que trabajan en tu proyecto. Puedes tener varios agentes en la misma conversación, delegar tareas a sub-agentes y asignar a cada uno un rol (senior-dev, reviewer, arquitecto…).</p>
+              <pre class="code-block"><code>$ tiancode --agent senior-dev</code></pre>
+              <p data-i18n="docs.s2p2">Cada agente mantiene su propio contexto y puede ejecutar comandos en la terminal integrada para verificar su trabajo antes de proponer cambios.</p>
+              <h2 id="docs-skills" data-i18n="docs.s3t">3. Skills</h2>
+              <p data-i18n="docs.s3p">Tiancode incluye 24 skills de ingeniería de software listas para usar: entrevistas de requisitos, TDD, code review, auditoría de seguridad, optimización de rendimiento, CI/CD, refactorización, depuración asistida y más.</p>
+              <p data-i18n="docs.s3p2">Las skills viven en la carpeta de skills integrada. Puedes crear las tuyas propias añadiendo archivos a esa carpeta: cada skill define el flujo de trabajo que sigue el agente.</p>
+              <h2 id="docs-modelos" data-i18n="docs.s4t">4. Modelos locales</h2>
+              <p data-i18n="docs.s4p">Desde la pestaña Modelos puedes buscar y descargar modelos GGUF directamente desde HuggingFace, al estilo LM Studio:</p>
+              <ol class="page-list">
+                <li data-i18n="docs.s4l1">Explora el catálogo y elige un modelo, por ejemplo Llama 3.1 8B en cuantización Q4_K_M.</li>
+                <li data-i18n="docs.s4l2">Descarga el archivo GGUF: la app gestiona el progreso y verifica el espacio en disco.</li>
+                <li data-i18n="docs.s4l3">Selecciona el modelo local como proveedor activo y empieza a conversar sin conexión.</li>
+              </ol>
+              <pre class="code-block"><code>%APPDATA%\Tiancode\models\llama-3.1-8b-instruct.Q4_K_M.gguf</code></pre>
+              <p data-i18n="docs.s4p2">La ejecución usa el backend de llama.cpp: funciona en CPU y aprovecha las GPUs NVIDIA o AMD cuando están disponibles.</p>
+              <h2 id="docs-configuracion" data-i18n="docs.s5t">5. Configuración</h2>
+              <p data-i18n="docs.s5p">La configuración está organizada en pestañas: Apariencia (tema claro/oscuro e idioma), Proveedores (claves API y modelos), Agentes (roles por defecto), Skills (activar y ajustar cada skill), Atajos (atajos de teclado personalizables) y Avanzado (telemetría y carpeta de datos).</p>
+              <h2 id="docs-comandos" data-i18n="docs.s6t">6. Comandos</h2>
+              <p data-i18n="docs.s6p">La CLI de Tiancode expone comandos útiles desde cualquier terminal:</p>
+              <pre class="code-block"><code>tiancode                     # Abre la aplicación
+tiancode --agent senior-dev  # Inicia un agente concreto
+tiancode --portable          # Fuerza el modo portable
+tiancode --models            # Abre la gestión de modelos locales
+tiancode --version           # Muestra la versión instalada</code></pre>
+              <h2 id="docs-problemas" data-i18n="docs.s7t">7. Solución de problemas</h2>
+              <ul class="page-list">
+                <li data-i18n="docs.s7l1">El modelo local va lento: elige una cuantización menor (Q4 en lugar de Q8) o un modelo más pequeño.</li>
+                <li data-i18n="docs.s7l2">La descarga de modelos falla: comprueba la conexión y el espacio libre en la carpeta de modelos.</li>
+                <li data-i18n="docs.s7l3">No conecta con el proveedor: revisa la clave API en Configuración → Proveedores.</li>
+                <li data-i18n="docs.s7l4">La app no arranca en modo portable: asegúrate de tener permisos de escritura en la carpeta.</li>
+                <li data-i18n="docs.s7l5">¿Sigue el problema? Abre una incidencia adjuntando los logs de la carpeta de datos.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ Guía de inicio (#/guia) ============ -->
+      <section id="page-guia" class="page" aria-label="Guía de inicio">
+        <div class="container">
+          <div class="page-inner page-inner--wide">
+            <div class="page-toolbar reveal">
+              <a href="#hero" class="page-back">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+                </svg>
+                <span data-i18n="page.back">Volver al inicio</span>
+              </a>
+            </div>
+            <header class="page-head reveal">
+              <span class="eyebrow" data-i18n="nav.more">Recursos</span>
+              <h1 class="page-title" data-i18n="guide.title">Guía de inicio</h1>
+              <p class="page-sub" data-i18n="guide.sub">Pon Tiancode en marcha en menos de cinco minutos, paso a paso.</p>
+            </header>
+            <div class="qsteps-grid">
+              <div class="qstep reveal" style="--rd:0s">
+                <span class="qstep-num" aria-hidden="true">1</span>
+                <div>
+                  <h3 data-i18n="guide.s1t">Descarga Tiancode</h3>
+                  <p data-i18n="guide.s1d">Elige el instalador NSIS o la versión portable desde la página de descarga. La versión 1.0.0 soporta Windows 10 y 11.</p>
+                </div>
+              </div>
+              <div class="qstep reveal" style="--rd:.05s">
+                <span class="qstep-num" aria-hidden="true">2</span>
+                <div>
+                  <h3 data-i18n="guide.s2t">Instala o ejecuta</h3>
+                  <p data-i18n="guide.s2d">Con el instalador: sigue el asistente. Con la portable: coloca el ejecutable en una carpeta y ejecútalo — no requiere instalación.</p>
+                </div>
+              </div>
+              <div class="qstep reveal" style="--rd:.1s">
+                <span class="qstep-num" aria-hidden="true">3</span>
+                <div>
+                  <h3 data-i18n="guide.s3t">Elige tu proveedor</h3>
+                  <p data-i18n="guide.s3d">Añade tu clave de API (OpenAI, Anthropic…) en Configuración → Proveedores, o descarga un modelo local GGUF desde la pestaña Modelos.</p>
+                </div>
+              </div>
+              <div class="qstep reveal" style="--rd:.15s">
+                <span class="qstep-num" aria-hidden="true">4</span>
+                <div>
+                  <h3 data-i18n="guide.s4t">Crea tu primer chat</h3>
+                  <p data-i18n="guide.s4d">Abre un chat nuevo, selecciona un agente (por ejemplo senior-dev) y haz tu primera petición: analiza tu proyecto, explica un fragmento o escribe una función.</p>
+                </div>
+              </div>
+              <div class="qstep reveal" style="--rd:.2s">
+                <span class="qstep-num" aria-hidden="true">5</span>
+                <div>
+                  <h3 data-i18n="guide.s5t">Prueba una skill</h3>
+                  <p data-i18n="guide.s5d">Activa una skill como TDD o Code Review en la pestaña Skills y pídela en la conversación: el agente seguirá su flujo de trabajo paso a paso.</p>
+                </div>
+              </div>
+              <div class="qstep reveal" style="--rd:.25s">
+                <span class="qstep-num" aria-hidden="true">6</span>
+                <div>
+                  <h3 data-i18n="guide.s6t">Ajusta a tu gusto</h3>
+                  <p data-i18n="guide.s6d">Personaliza el tema (claro u oscuro), el idioma, los atajos de teclado y crea tus propios agentes y skills. Todo se guarda localmente.</p>
+                </div>
+              </div>
+            </div>
+            <div class="page-note reveal" role="note" style="--rd:.3s">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+              </svg>
+              <p data-i18n="guide.note">¿Prefieres los detalles? Consulta la documentación completa o las preguntas frecuentes.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ FAQ (#/faq) ============ -->
+      <section id="page-faq" class="page" aria-label="Preguntas frecuentes">
+        <div class="container">
+          <div class="page-inner page-inner--wide">
+            <div class="page-toolbar reveal">
+              <a href="#hero" class="page-back">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+                </svg>
+                <span data-i18n="page.back">Volver al inicio</span>
+              </a>
+            </div>
+            <header class="page-head reveal">
+              <span class="eyebrow" data-i18n="nav.more">Recursos</span>
+              <h1 class="page-title" data-i18n="faq.title">Preguntas frecuentes</h1>
+              <p class="page-sub" data-i18n="faq.sub">Las dudas más comunes sobre Tiancode, respondidas.</p>
+            </header>
+            <div class="faq-list">
+              <div class="faq-item reveal" style="--rd:0s">
+                <button class="faq-q" type="button" aria-expanded="false" aria-controls="faq-a1">
+                  <span data-i18n="faq.q1">¿Qué es Tiancode?</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="faq-a" id="faq-a1" role="region">
+                  <div class="faq-a-inner"><p data-i18n="faq.a1">Tiancode es una aplicación de escritorio para Windows que integra asistentes de IA en tu flujo de programación: chat con agentes, terminal integrada, skills de ingeniería de software y modelos de IA locales.</p></div>
+                </div>
+              </div>
+              <div class="faq-item reveal" style="--rd:.03s">
+                <button class="faq-q" type="button" aria-expanded="false" aria-controls="faq-a2">
+                  <span data-i18n="faq.q2">¿Es gratis?</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="faq-a" id="faq-a2" role="region">
+                  <div class="faq-a-inner"><p data-i18n="faq.a2">Sí. Tiancode es gratuito para uso personal y profesional, y su código se distribuye bajo licencia MIT.</p></div>
+                </div>
+              </div>
+              <div class="faq-item reveal" style="--rd:.06s">
+                <button class="faq-q" type="button" aria-expanded="false" aria-controls="faq-a3">
+                  <span data-i18n="faq.q3">¿Qué hace Tiancode con mi código y mis conversaciones?</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="faq-a" id="faq-a3" role="region">
+                  <div class="faq-a-inner"><p data-i18n="faq.a3">Nada sin tu permiso. Por defecto, todo se procesa en tu equipo. Solo se envía información al proveedor de IA que elijas explícitamente, y únicamente los mensajes de esa conversación.</p></div>
+                </div>
+              </div>
+              <div class="faq-item reveal" style="--rd:.09s">
+                <button class="faq-q" type="button" aria-expanded="false" aria-controls="faq-a4">
+                  <span data-i18n="faq.q4">¿Qué son los modelos locales GGUF?</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="faq-a" id="faq-a4" role="region">
+                  <div class="faq-a-inner"><p data-i18n="faq.a4">Son modelos de IA listos para ejecutarse en tu propia máquina. Tiancode te permite descargarlos desde HuggingFace e instalarlos con un clic, al estilo LM Studio. Con ellos trabajas sin conexión y sin enviar datos a nadie.</p></div>
+                </div>
+              </div>
+              <div class="faq-item reveal" style="--rd:.12s">
+                <button class="faq-q" type="button" aria-expanded="false" aria-controls="faq-a5">
+                  <span data-i18n="faq.q5">¿Funciona sin internet?</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="faq-a" id="faq-a5" role="region">
+                  <div class="faq-a-inner"><p data-i18n="faq.a5">Sí, si usas un modelo local GGUF: el chat, los agentes y la terminal funcionan completamente offline. Los proveedores en la nube, lógicamente, requieren conexión.</p></div>
+                </div>
+              </div>
+              <div class="faq-item reveal" style="--rd:.15s">
+                <button class="faq-q" type="button" aria-expanded="false" aria-controls="faq-a6">
+                  <span data-i18n="faq.q6">¿Dónde se guarda todo?</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="faq-a" id="faq-a6" role="region">
+                  <div class="faq-a-inner"><p data-i18n="faq.a6">La configuración, las claves y las conversaciones se guardan en tu equipo, en %APPDATA%\Tiancode con el instalador o en la carpeta de la aplicación en modo portable. Los modelos locales se guardan en la carpeta de modelos.</p></div>
+                </div>
+              </div>
+              <div class="faq-item reveal" style="--rd:.18s">
+                <button class="faq-q" type="button" aria-expanded="false" aria-controls="faq-a7">
+                  <span data-i18n="faq.q7">¿Puedo crear mis propios agentes y skills?</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="faq-a" id="faq-a7" role="region">
+                  <div class="faq-a-inner"><p data-i18n="faq.a7">Sí. Puedes definir agentes personalizados con su propio rol y contexto, y añadir skills propias en la carpeta de skills. También puedes compartir y reutilizar plantillas.</p></div>
+                </div>
+              </div>
+              <div class="faq-item reveal" style="--rd:.21s">
+                <button class="faq-q" type="button" aria-expanded="false" aria-controls="faq-a8">
+                  <span data-i18n="faq.q8">¿Necesito una GPU potente?</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="faq-a" id="faq-a8" role="region">
+                  <div class="faq-a-inner"><p data-i18n="faq.a8">No. Los modelos locales se ejecutan en CPU gracias al backend de llama.cpp. Si tienes una GPU NVIDIA o AMD, Tiancode la aprovecha automáticamente para ir más rápido.</p></div>
+                </div>
+              </div>
+              <div class="faq-item reveal" style="--rd:.24s">
+                <button class="faq-q" type="button" aria-expanded="false" aria-controls="faq-a9">
+                  <span data-i18n="faq.q9">¿Puedo usar varios proveedores a la vez?</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="faq-a" id="faq-a9" role="region">
+                  <div class="faq-a-inner"><p data-i18n="faq.a9">Sí. Tiancode es multi-proveedor: combina modelos en la nube (OpenAI, Anthropic y otros) con modelos locales y cambia de uno a otro en cada conversación.</p></div>
+                </div>
+              </div>
+              <div class="faq-item reveal" style="--rd:.27s">
+                <button class="faq-q" type="button" aria-expanded="false" aria-controls="faq-a10">
+                  <span data-i18n="faq.q10">¿Cómo actualizo Tiancode?</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="faq-a" id="faq-a10" role="region">
+                  <div class="faq-a-inner"><p data-i18n="faq.a10">Con el instalador, ejecuta el nuevo instalador y tus datos se conservan. En modo portable, sustituye el ejecutable por la nueva versión: la configuración permanece en su carpeta.</p></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ Novedades (#/novedades) ============ -->
+      <section id="page-novedades" class="page" aria-label="Novedades">
+        <div class="container">
+          <div class="page-inner">
+            <div class="page-toolbar reveal">
+              <a href="#hero" class="page-back">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+                </svg>
+                <span data-i18n="page.back">Volver al inicio</span>
+              </a>
+            </div>
+            <header class="page-head reveal">
+              <span class="eyebrow" data-i18n="nav.more">Recursos</span>
+              <h1 class="page-title" data-i18n="news.title">Novedades</h1>
+              <p class="page-sub" data-i18n="news.sub">Todo lo que trae Tiancode 1.0.0, la primera versión estable.</p>
+            </header>
+            <div class="page-body reveal" style="--rd:.08s">
+              <div class="news-version">
+                <h2 data-i18n="news.v1">Versión 1.0.0</h2>
+                <span class="news-tag" data-i18n="news.chip">Estable</span>
+                <span class="news-date" data-i18n="news.date">6 de agosto de 2026</span>
+              </div>
+              <div class="news-block news-block--new">
+                <h3>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                  </svg>
+                  <span data-i18n="news.newTitle">Novedades</span>
+                </h3>
+                <ul class="news-list news-list--new">
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new1">Modelos locales GGUF: descarga y ejecuta modelos desde HuggingFace sin salir de la app.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new2">24 skills de ingeniería de software integradas, activables una a una.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new3">Sub-agentes: delega tareas a agentes especializados dentro de una conversación.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new4">Pestañas de configuración: apariencia, proveedores, agentes, skills, atajos y avanzado.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new5">Modo portable con Tiancode-portable.exe: sin instalación, listo desde un USB.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new6">Instalador NSIS: instalación limpia y rápida para Windows 10 y 11.</span></li>
+                </ul>
+              </div>
+              <div class="news-block news-block--imp">
+                <h3>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+                  </svg>
+                  <span data-i18n="news.impTitle">Mejoras</span>
+                </h3>
+                <ul class="news-list news-list--imp">
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span data-i18n="news.imp1">Tema oscuro y claro con cambio instantáneo, también sincronizado con el sistema.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span data-i18n="news.imp2">Terminal integrada más rápida, con resaltado de sintaxis.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span data-i18n="news.imp3">Multi-proveedor: usa OpenAI, Anthropic y modelos locales en paralelo.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span data-i18n="news.imp4">Atajos de teclado personalizables para las acciones más frecuentes.</span></li>
+                </ul>
+              </div>
+              <div class="news-block news-block--fix">
+                <h3>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  <span data-i18n="news.fixTitle">Correcciones</span>
+                </h3>
+                <ul class="news-list news-list--fix">
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="news.fix1">Corregido un cierre inesperado al cambiar de proveedor con una conversación abierta.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="news.fix2">Reducido el uso de memoria al trabajar con proyectos grandes.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="news.fix3">Descargas de modelos reanudables si la conexión se interrumpe.</span></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ Modo portable (#/portable) ============ -->
+      <section id="page-portable" class="page" aria-label="Modo portable">
+        <div class="container">
+          <div class="page-inner page-inner--wide">
+            <div class="page-toolbar reveal">
+              <a href="#hero" class="page-back">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+                </svg>
+                <span data-i18n="page.back">Volver al inicio</span>
+              </a>
+            </div>
+            <header class="page-head reveal">
+              <span class="eyebrow" data-i18n="nav.more">Recursos</span>
+              <h1 class="page-title" data-i18n="port.title">Modo portable</h1>
+              <p class="page-sub" data-i18n="port.sub">Tiancode donde lo necesites: sin instalación, con tu configuración a cuestas.</p>
+            </header>
+            <div class="page-body reveal" style="--rd:.08s">
+              <p data-i18n="port.intro">La versión portable (Tiancode-portable.exe) ejecuta la aplicación completa sin instalarla. Es la misma Tiancode, pero todo — el ejecutable, la configuración y los modelos — vive en la carpeta que tú elijas.</p>
+              <h2 data-i18n="port.prosTitle">Por qué elegir la versión portable</h2>
+              <ul class="page-list">
+                <li data-i18n="port.p1">Sin instalación y sin permisos de administrador.</li>
+                <li data-i18n="port.p2">Llévala en un USB y úsala en cualquier PC con Windows 10 u 11.</li>
+                <li data-i18n="port.p3">Tu configuración, agentes, skills y conversaciones viajan contigo.</li>
+                <li data-i18n="port.p4">No deja rastro en el equipo anfitrión: todo vive en su carpeta.</li>
+                <li data-i18n="port.p5">Actualizar es tan simple como sustituir un archivo.</li>
+              </ul>
+              <h2 data-i18n="port.stepsTitle">Primeros pasos</h2>
+              <div class="qsteps-grid">
+                <div class="qstep reveal" style="--rd:0s">
+                  <span class="qstep-num" aria-hidden="true">1</span>
+                  <div>
+                    <h3 data-i18n="port.st1t">Descarga</h3>
+                    <p data-i18n="port.st1d">Obtén Tiancode-portable-1.0.0.exe desde la página de descarga.</p>
+                  </div>
+                </div>
+                <div class="qstep reveal" style="--rd:.05s">
+                  <span class="qstep-num" aria-hidden="true">2</span>
+                  <div>
+                    <h3 data-i18n="port.st2t">Coloca</h3>
+                    <p data-i18n="port.st2d">Crea una carpeta (por ejemplo D:\Tiancode o tu USB) y pon el ejecutable dentro.</p>
+                  </div>
+                </div>
+                <div class="qstep reveal" style="--rd:.1s">
+                  <span class="qstep-num" aria-hidden="true">3</span>
+                  <div>
+                    <h3 data-i18n="port.st3t">Ejecuta</h3>
+                    <p data-i18n="port.st3d">Lanza el exe: Tiancode detecta el modo portable y guarda sus datos en esa misma carpeta.</p>
+                  </div>
+                </div>
+                <div class="qstep reveal" style="--rd:.15s">
+                  <span class="qstep-num" aria-hidden="true">4</span>
+                  <div>
+                    <h3 data-i18n="port.st4t">Programa</h3>
+                    <p data-i18n="port.st4d">Descarga modelos, configura tus proveedores y sigue programando donde quieras.</p>
+                  </div>
+                </div>
+              </div>
+              <div class="page-note reveal" role="note" style="--rd:.2s">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+                <p data-i18n="port.tip">Consejo: los modelos GGUF pueden ocupar varios gigabytes. Si viajas con poco espacio, guarda los modelos en tu equipo y usa la versión portable solo para la configuración y las conversaciones.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ Descarga (#/descarga) ============ -->
+      <section id="page-descarga" class="page" aria-label="Descarga">
+        <div class="container">
+          <div class="page-inner page-inner--wide">
+            <div class="page-toolbar reveal">
+              <a href="#hero" class="page-back">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+                </svg>
+                <span data-i18n="page.back">Volver al inicio</span>
+              </a>
+            </div>
+            <header class="page-head reveal">
+              <span class="eyebrow" data-i18n="nav.more">Recursos</span>
+              <h1 class="page-title" data-i18n="dl.title">Descarga</h1>
+              <p class="page-sub" data-i18n="dl.sub">Tiancode 1.0.0 para Windows 10 y 11 (64 bits). Gratis, sin registro. El instalador y la versión portable son el mismo software: elige el que mejor se adapte a tu flujo.</p>
+            </header>
+            <!-- TODO: sustituir las rutas ./downloads/… por la URL real de distribución -->
+            <div class="dl-grid">
+              <article class="dl-card reveal" style="--rd:0s">
+                <div class="dl-meta">
+                  <span class="dl-chip">v1.0.0</span>
+                  <span class="dl-chip" data-i18n="dl.instSize">~120 MB</span>
+                </div>
+                <h3 data-i18n="dl.instTitle">Instalador de Windows</h3>
+                <p data-i18n="dl.instDesc">Instalación clásica con asistente NSIS. Ideal para uso diario: incluye accesos directos y actualizaciones sencillas.</p>
+                <span class="dl-file">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                  </svg>
+                  <span data-i18n="dl.instFile">Tiancode-1.0.0-setup.exe</span>
+                </span>
+                <a href="./downloads/Tiancode-1.0.0-setup.exe" class="btn btn-primary" download>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  <span data-i18n="dl.instBtn">Descargar instalador</span>
+                </a>
+              </article>
+              <article class="dl-card reveal" style="--rd:.06s">
+                <div class="dl-meta">
+                  <span class="dl-chip">v1.0.0</span>
+                  <span class="dl-chip" data-i18n="dl.portSize">~120 MB</span>
+                </div>
+                <h3 data-i18n="dl.portTitle">Versión portable</h3>
+                <p data-i18n="dl.portDesc">Sin instalación. Ejecuta Tiancode desde cualquier carpeta o USB; la configuración se guarda junto al ejecutable.</p>
+                <span class="dl-file">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                  </svg>
+                  <span data-i18n="dl.portFile">Tiancode-portable-1.0.0.exe</span>
+                </span>
+                <a href="./downloads/Tiancode-portable-1.0.0.exe" class="btn btn-ghost" download>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  <span data-i18n="dl.portBtn">Descargar portable</span>
+                </a>
+              </article>
+            </div>
+            <div class="dl-reqs reveal" style="--rd:.12s">
+              <h2 data-i18n="dl.reqTitle">Requisitos del sistema</h2>
+              <ul>
+                <li>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span data-i18n="dl.req1">Windows 10 u 11, 64 bits.</span>
+                </li>
+                <li>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span data-i18n="dl.req2">4 GB de RAM (8 GB recomendados con modelos locales).</span>
+                </li>
+                <li>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span data-i18n="dl.req3">1 GB de espacio libre; los modelos locales requieren espacio adicional.</span>
+                </li>
+                <li>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span data-i18n="dl.req4">Internet solo para descargar modelos o usar proveedores en la nube.</span>
+                </li>
+              </ul>
+            </div>
+            <div class="page-note reveal" role="note" style="--rd:.18s">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+              </svg>
+              <p>
+                <span data-i18n="dl.checksum">Verifica la integridad de tu descarga con el hash SHA-256 publicado junto a cada versión.</span>
+                <br>
+                <a href="#/novedades" class="dl-news" data-i18n="dl.news">¿Qué hay de nuevo en 1.0.0? Lee las novedades.</a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /.pages -->
   </main>
 
   <!-- ================= Footer ================= -->
@@ -396,21 +1067,21 @@
         </div>
         <nav class="footer-col" aria-label="Producto">
           <h4 data-i18n="footer.product">Producto</h4>
-          <a href="#download" data-i18n="footer.l1">Descargar</a>
-          <a href="#hero" data-i18n="footer.l2">Novedades</a>
-          <a href="#features" data-i18n="footer.l3">Modo portable</a>
+          <a href="#/descarga" data-i18n="footer.l1">Descargar</a>
+          <a href="#/novedades" data-i18n="footer.l2">Novedades</a>
+          <a href="#/portable" data-i18n="footer.l3">Modo portable</a>
         </nav>
         <nav class="footer-col" aria-label="Recursos">
           <h4 data-i18n="footer.resources">Recursos</h4>
-          <a href="#how" data-i18n="footer.l4">Documentación</a>
-          <a href="#how" data-i18n="footer.l5">Guía de inicio</a>
-          <a href="#skills" data-i18n="footer.l6">Preguntas frecuentes</a>
+          <a href="#/docs" data-i18n="footer.l4">Documentación</a>
+          <a href="#/guia" data-i18n="footer.l5">Guía de inicio</a>
+          <a href="#/faq" data-i18n="footer.l6">Preguntas frecuentes</a>
         </nav>
         <nav class="footer-col" aria-label="Legal">
           <h4 data-i18n="footer.legal">Legal</h4>
-          <a href="#hero" data-i18n="footer.l7">Privacidad</a>
-          <a href="#hero" data-i18n="footer.l8">Términos</a>
-          <a href="#hero" data-i18n="footer.l9">Licencia</a>
+          <a href="#/privacidad" data-i18n="footer.l7">Privacidad</a>
+          <a href="#/terminos" data-i18n="footer.l8">Términos</a>
+          <a href="#/licencia" data-i18n="footer.l9">Licencia</a>
         </nav>
       </div>
       <div class="footer-bottom">

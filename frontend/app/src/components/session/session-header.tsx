@@ -31,7 +31,7 @@ import { IconButtonV2 } from "@tiancode-ai/ui/v2/icon-button-v2"
 import { Icon as IconV2 } from "@tiancode-ai/ui/v2/icon"
 import { KeybindV2 } from "@tiancode-ai/ui/v2/keybind-v2"
 import { TooltipV2 } from "@tiancode-ai/ui/v2/tooltip-v2"
-import { reviewTooltipKeybind } from "../command-tooltip-keybind"
+import { fileTreeTooltipKeybind, reviewTooltipKeybind, terminalTooltipKeybind } from "../command-tooltip-keybind"
 import { useTitlebarRightMount } from "../titlebar"
 
 const OPEN_APPS = [
@@ -242,6 +242,14 @@ export function SessionHeader() {
     reviewVisible: isDesktop(),
     reviewOpened: view().reviewPanel.opened(),
     onReviewToggle: () => view().reviewPanel.toggle(),
+    terminalLabel: language.t("command.terminal.toggle"),
+    terminalKeybind: terminalTooltipKeybind(command),
+    terminalOpened: view().terminal.opened(),
+    onTerminalToggle: toggleTerminal,
+    panelLabel: language.t("command.fileTree.toggle"),
+    panelKeybind: fileTreeTooltipKeybind(command),
+    panelOpened: layout.fileTree.opened(),
+    onPanelToggle: () => layout.fileTree.toggle(),
   }))
 
   const selectApp = (app: OpenApp) => {
@@ -524,6 +532,14 @@ type SessionHeaderV2ActionsState = {
   reviewVisible: boolean
   reviewOpened: boolean
   onReviewToggle: () => void
+  terminalLabel: string
+  terminalKeybind: string[]
+  terminalOpened: boolean
+  onTerminalToggle: () => void
+  panelLabel: string
+  panelKeybind: string[]
+  panelOpened: boolean
+  onPanelToggle: () => void
 }
 
 function SessionHeaderV2Actions(props: { state: SessionHeaderV2ActionsState }) {
@@ -536,6 +552,56 @@ function SessionHeaderV2Actions(props: { state: SessionHeaderV2ActionsState }) {
           <StatusPopoverV2 />
         </Tooltip>
       </Show>
+      <TooltipV2
+        class="shrink-0"
+        placement="bottom"
+        value={
+          <>
+            {props.state.terminalLabel}
+            <Show when={props.state.terminalKeybind.length > 0}>
+              <KeybindV2 keys={props.state.terminalKeybind} variant="neutral" />
+            </Show>
+          </>
+        }
+      >
+        <IconButtonV2
+          type="button"
+          variant="ghost-muted"
+          size="large"
+          class="!w-9 shrink-0"
+          state={props.state.terminalOpened ? "pressed" : undefined}
+          onClick={props.state.onTerminalToggle}
+          aria-label={props.state.terminalLabel}
+          aria-expanded={props.state.terminalOpened}
+          aria-controls="terminal-panel"
+          icon={<Icon name={props.state.terminalOpened ? "terminal-active" : "terminal"} size="small" />}
+        />
+      </TooltipV2>
+      <TooltipV2
+        class="shrink-0"
+        placement="bottom"
+        value={
+          <>
+            {props.state.panelLabel}
+            <Show when={props.state.panelKeybind.length > 0}>
+              <KeybindV2 keys={props.state.panelKeybind} variant="neutral" />
+            </Show>
+          </>
+        }
+      >
+        <IconButtonV2
+          type="button"
+          variant="ghost-muted"
+          size="large"
+          class="!w-9 shrink-0"
+          state={props.state.panelOpened ? "pressed" : undefined}
+          onClick={props.state.onPanelToggle}
+          aria-label={props.state.panelLabel}
+          aria-expanded={props.state.panelOpened}
+          aria-controls="file-tree-panel"
+          icon={<Icon name={props.state.panelOpened ? "file-tree-active" : "file-tree"} size="small" />}
+        />
+      </TooltipV2>
       <Show when={props.state.reviewVisible}>
         <TooltipV2
           class="shrink-0"

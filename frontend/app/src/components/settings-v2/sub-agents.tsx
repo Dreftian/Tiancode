@@ -14,6 +14,18 @@ const ModeOptions: { id: "subagent" | "primary"; label: string }[] = [
   { id: "primary", label: "settings.subAgents.create.mode.primary" },
 ]
 
+// Native agents ship with English descriptions from the server (frontmatter);
+// translate the known built-in names so the list reads in the UI language.
+const NativeAgentDescriptionKeys: Record<string, string> = {
+  build: "settings.subAgents.native.build",
+  plan: "settings.subAgents.native.plan",
+  general: "settings.subAgents.native.general",
+  explore: "settings.subAgents.native.explore",
+  compaction: "settings.subAgents.native.compaction",
+  title: "settings.subAgents.native.title",
+  summary: "settings.subAgents.native.summary",
+}
+
 export const SettingsSubAgentsV2: Component<{
   directory?: string
 }> = (props) => {
@@ -36,6 +48,12 @@ export const SettingsSubAgentsV2: Component<{
   )
 
   const agentList = createMemo(() => agents() ?? [])
+
+  const nativeDescription = (agent: { name: string; description?: string }) => {
+    const key = NativeAgentDescriptionKeys[agent.name]
+    if (key) return language.t(key)
+    return agent.description ?? ""
+  }
 
   const submit = async () => {
     if (!name().trim()) return
@@ -93,7 +111,7 @@ export const SettingsSubAgentsV2: Component<{
                       <div class="settings-v2-sub-agents-item">
                         <div class="settings-v2-sub-agents-item-copy">
                           <div class="settings-v2-sub-agents-item-name">{agent.name}</div>
-                          <div class="settings-v2-sub-agents-item-description">{agent.description ?? ""}</div>
+                          <div class="settings-v2-sub-agents-item-description">{nativeDescription(agent)}</div>
                         </div>
                         <span class="settings-v2-sub-agents-mode" data-mode={agent.mode}>
                           {agent.mode === "subagent"
