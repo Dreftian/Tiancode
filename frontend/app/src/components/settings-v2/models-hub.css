@@ -1,5 +1,5 @@
 .settings-v2-models-hub {
-  gap: 24px;
+  gap: 20px;
 }
 
 .settings-v2-models-hub .settings-v2-tab-search {
@@ -17,7 +17,7 @@
   flex-wrap: wrap;
   gap: 8px 24px;
   padding: 10px 14px;
-  border-radius: 6px;
+  border-radius: 8px;
   background-color: var(--v2-background-bg-layer-01);
   box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
   font-size: 11px;
@@ -29,14 +29,36 @@
 
 .settings-v2-models-hub-layout {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 24px;
-  align-items: start;
+  align-items: stretch;
 }
 
-@media (min-width: 1100px) {
+/* Two-column layout once the panel is wide enough; the file detail scrolls
+   internally so it never overflows the dialog. */
+@container settings-panel (min-width: 720px) {
+  .settings-v2-tab-body.settings-v2-models-hub {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
   .settings-v2-models-hub-layout {
-    grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
+    flex: 1;
+    min-height: 0;
+    grid-template-columns: minmax(280px, 400px) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .settings-v2-models-hub-list {
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  .settings-v2-models-hub-detail {
+    max-height: none;
+    overflow-y: auto;
   }
 }
 
@@ -48,9 +70,19 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding-block: 14px;
+  padding-block: 12px;
+  padding-inline: 10px;
+  margin-inline: -10px;
+  border-radius: 8px;
   border-bottom: 0.5px solid var(--v2-border-border-base);
   cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+@media (hover: hover) {
+  .settings-v2-models-hub-item:not([data-selected]):hover {
+    background-color: color-mix(in srgb, var(--v2-background-bg-layer-02) 55%, transparent);
+  }
 }
 
 .settings-v2-models-hub-item:last-child {
@@ -59,9 +91,7 @@
 
 .settings-v2-models-hub-item[data-selected] {
   background-color: var(--v2-background-bg-layer-02);
-  border-radius: 6px;
-  padding-inline: 8px;
-  margin-inline: -8px;
+  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
 }
 
 .settings-v2-models-hub-item-copy {
@@ -74,8 +104,8 @@
 
 .settings-v2-models-hub-item-name {
   font-size: 13px;
-  font-weight: 530;
-  line-height: 1.2;
+  font-weight: 560;
+  line-height: 1.25;
   color: var(--v2-text-text-base);
   overflow-wrap: anywhere;
 }
@@ -128,7 +158,7 @@
 
 .settings-v2-models-hub-detail {
   min-width: 0;
-  border-radius: 8px;
+  border-radius: 10px;
   background-color: var(--v2-background-bg-layer-01);
   box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
   overflow: hidden;
@@ -138,12 +168,12 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 20px 20px 16px;
+  padding: 18px 22px 14px;
   border-bottom: 0.5px solid var(--v2-border-border-base);
 }
 
 .settings-v2-models-hub-files {
-  padding: 4px 20px;
+  padding: 2px 22px;
 }
 
 .settings-v2-models-hub-file {
@@ -151,7 +181,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
-  padding-block: 14px;
+  padding-block: 12px;
   border-bottom: 0.5px solid var(--v2-border-border-base);
 }
 
@@ -170,7 +200,7 @@
 .settings-v2-models-hub-file-name {
   font-size: 12px;
   font-weight: 530;
-  line-height: 1.2;
+  line-height: 1.25;
   color: var(--v2-text-text-base);
   overflow-wrap: anywhere;
 }
@@ -209,7 +239,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px 16px;
-  padding: 16px 20px 20px;
+  padding: 14px 22px 18px;
   border-top: 0.5px solid var(--v2-border-border-base);
 }
 

@@ -5,8 +5,13 @@
   height: 100%;
 }
 
+/* Give the settings dialog more room: wider and taller than the default
+   x-large size so master-detail panes (skills, models hub) can show all
+   their content without heavy scrolling. */
 [data-component="dialog-v2"][data-variant="settings"] [data-slot="dialog-container"] {
   background: var(--v2-background-bg-base);
+  width: min(calc(100vw - 32px), 1240px);
+  height: min(calc(100vh - 72px), 760px);
 }
 
 [data-component="dialog-v2"][data-variant="settings"] [data-slot="dialog-body"] {
@@ -21,6 +26,8 @@
   overflow-y: auto;
   scrollbar-width: none;
   user-select: none;
+  container-type: inline-size;
+  container-name: settings-panel;
 }
 
 .settings-v2-panel :is(input, textarea, [contenteditable="true"]) {
@@ -35,7 +42,7 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  padding: 40px 40px 32px;
+  padding: 28px 32px 22px;
   background: linear-gradient(to bottom, var(--v2-background-bg-base) calc(100% - 24px), transparent);
 }
 
@@ -49,9 +56,9 @@
 .settings-v2-tab-body {
   display: flex;
   flex-direction: column;
-  gap: 36px;
+  gap: 28px;
   width: 100%;
-  padding: 0 40px 40px;
+  padding: 0 32px 32px;
 }
 
 [data-slot="settings-v2-row-description"] a.settings-v2-link {
@@ -340,8 +347,8 @@
 .settings-v2-tab-header.settings-v2-tab-header--stacked {
   display: flex;
   flex-direction: column;
-  gap: 32px;
-  padding-bottom: 32px;
+  gap: 16px;
+  padding-bottom: 20px;
 }
 
 .settings-v2-tab-header--stacked > .settings-v2-tab-header-row {
@@ -776,11 +783,10 @@
   align-items: stretch;
 }
 
-/* Wide (>= 1200px): two-column master-detail that consumes the real panel
-   height. The list column and the markdown detail scroll internally, so the
-   sticky/max-height hacks (based on 100vh) are no longer needed and the
-   detail can never overflow or get cut off by the dialog. */
-@media (min-width: 1200px) {
+/* Two-column master-detail once the panel is wide enough. The list column
+   and the markdown detail scroll internally, so the sticky/max-height
+   hacks are not needed and the detail can never overflow the dialog. */
+@container settings-panel (min-width: 720px) {
   .settings-v2-tab-body.settings-v2-skills {
     flex: 1;
     min-height: 0;
@@ -790,13 +796,14 @@
   .settings-v2-skills-layout {
     flex: 1;
     min-height: 0;
-    grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+    grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr);
   }
 
   .settings-v2-skills-list {
     min-height: 0;
     overflow-y: auto;
+    padding-right: 4px;
   }
 
   .settings-v2-skills-detail,
@@ -856,16 +863,26 @@
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 36px;
+  gap: 24px;
 }
 
 .settings-v2-skills-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding-block: 14px;
+  padding-block: 12px;
+  padding-inline: 10px;
+  margin-inline: -10px;
+  border-radius: 8px;
   border-bottom: 0.5px solid var(--v2-border-border-base);
   cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+@media (hover: hover) {
+  .settings-v2-skills-item:not([data-selected]):hover {
+    background-color: color-mix(in srgb, var(--v2-background-bg-layer-02) 55%, transparent);
+  }
 }
 
 .settings-v2-skills-item:last-child {
@@ -874,9 +891,7 @@
 
 .settings-v2-skills-item[data-selected] {
   background-color: var(--v2-background-bg-layer-02);
-  border-radius: 6px;
-  padding-inline: 8px;
-  margin-inline: -8px;
+  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
 }
 
 .settings-v2-skills-item-copy {
@@ -884,14 +899,15 @@
   min-width: 0;
   flex: 1;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
 }
 
 .settings-v2-skills-item-name {
   font-size: 13px;
-  font-weight: 530;
-  line-height: 1;
+  font-weight: 560;
+  line-height: 1.15;
   color: var(--v2-text-text-base);
+  overflow-wrap: anywhere;
 }
 
 .settings-v2-skills-item[data-disabled] .settings-v2-skills-item-name {
@@ -901,7 +917,7 @@
 .settings-v2-skills-item-description {
   font-size: 12px;
   font-weight: 440;
-  line-height: 1.4;
+  line-height: 1.45;
   color: var(--v2-text-text-faint);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -970,7 +986,7 @@
   min-height: 320px;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: 10px;
   background-color: var(--v2-background-bg-layer-01);
   box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
 }
@@ -980,7 +996,7 @@
   min-width: 0;
   flex-direction: column;
   overflow: hidden;
-  border-radius: 8px;
+  border-radius: 10px;
   background-color: var(--v2-background-bg-layer-01);
   box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
 }
@@ -990,29 +1006,32 @@
   flex-shrink: 0;
   align-items: center;
   gap: 12px;
-  padding: 20px 20px 16px;
+  padding: 18px 22px 14px;
   border-bottom: 0.5px solid var(--v2-border-border-base);
 }
 
 .settings-v2-skills-detail-meta {
   flex-shrink: 0;
-  padding: 12px 20px;
+  padding: 10px 22px;
   font-size: 11px;
   font-weight: 440;
   line-height: 1;
   color: var(--v2-text-text-faint);
   font-variant-numeric: tabular-nums;
   border-bottom: 0.5px solid var(--v2-border-border-base);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .settings-v2-skills-detail-body {
   min-height: 0;
   overflow-y: auto;
-  padding: 20px;
+  padding: 20px 22px 24px;
   user-select: text;
   font-size: 13px;
   font-weight: 440;
-  line-height: 1.6;
+  line-height: 1.65;
   color: var(--v2-text-text-base);
 }
 
@@ -1020,7 +1039,8 @@
 .settings-v2-skills-detail-body h2,
 .settings-v2-skills-detail-body h3 {
   font-weight: 640;
-  margin-block: 16px 8px;
+  margin-block: 18px 8px;
+  color: var(--v2-text-text-base);
 }
 
 .settings-v2-skills-detail-body h1:first-child,
@@ -1030,11 +1050,11 @@
 }
 
 .settings-v2-skills-detail-body p {
-  margin-block: 8px;
+  margin-block: 9px;
 }
 
 .settings-v2-skills-detail-body code {
-  padding: 2px 4px;
+  padding: 2px 5px;
   border-radius: 4px;
   background-color: var(--v2-background-bg-layer-02);
   font-family: var(--v2-font-mono);
@@ -1042,10 +1062,11 @@
 }
 
 .settings-v2-skills-detail-body pre {
-  padding: 12px;
+  padding: 12px 14px;
   overflow-x: auto;
   border-radius: 6px;
   background-color: var(--v2-background-bg-layer-02);
+  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
 }
 
 .settings-v2-skills-detail-body pre code {
@@ -1055,12 +1076,34 @@
 
 .settings-v2-skills-detail-body ul,
 .settings-v2-skills-detail-body ol {
-  padding-inline-start: 20px;
-  margin-block: 8px;
+  padding-inline-start: 22px;
+  margin-block: 9px;
 }
 
 .settings-v2-skills-detail-body li {
-  margin-block: 4px;
+  margin-block: 5px;
+}
+
+.settings-v2-skills-detail-body blockquote {
+  margin-block: 10px;
+  padding-inline-start: 14px;
+  border-inline-start: 2px solid var(--v2-border-border-muted);
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-skills-detail-body table {
+  border-collapse: collapse;
+  margin-block: 10px;
+}
+
+.settings-v2-skills-detail-body th,
+.settings-v2-skills-detail-body td {
+  padding: 6px 10px;
+  border: 0.5px solid var(--v2-border-border-muted);
+}
+
+.settings-v2-skills-detail-body a {
+  color: var(--v2-text-text-accent);
 }
 
 .settings-v2-sub-agents-mode {
@@ -1071,6 +1114,7 @@
   line-height: 1;
   color: var(--v2-text-text-muted);
   background-color: var(--v2-background-bg-layer-02);
+  flex-shrink: 0;
 }
 
 .settings-v2-sub-agents-mode[data-mode="primary"] {
@@ -1081,4 +1125,66 @@
   display: flex;
   justify-content: flex-end;
   padding-top: 16px;
+}
+
+/* Two-column master-detail: agent list on the left, create form on the
+   right, once the panel is wide enough. */
+.settings-v2-sub-agents-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+@container settings-panel (min-width: 720px) {
+  .settings-v2-sub-agents-layout {
+    grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
+  }
+}
+
+.settings-v2-sub-agents-list {
+  min-width: 0;
+}
+
+.settings-v2-sub-agents-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-block: 12px;
+  border-bottom: 0.5px solid var(--v2-border-border-base);
+}
+
+.settings-v2-sub-agents-item:last-child {
+  border-bottom: none;
+}
+
+.settings-v2-sub-agents-item-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.settings-v2-sub-agents-item-name {
+  font-size: 13px;
+  font-weight: 560;
+  line-height: 1.15;
+  color: var(--v2-text-text-base);
+  overflow-wrap: anywhere;
+}
+
+.settings-v2-sub-agents-item-description {
+  font-size: 12px;
+  font-weight: 440;
+  line-height: 1.45;
+  color: var(--v2-text-text-faint);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.settings-v2-sub-agents-form {
+  min-width: 0;
 }

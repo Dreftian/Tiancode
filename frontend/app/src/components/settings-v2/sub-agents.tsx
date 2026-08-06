@@ -2,7 +2,7 @@ import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
 import { SelectV2 } from "@tiancode-ai/ui/v2/select-v2"
 import { TextInputV2 } from "@tiancode-ai/ui/v2/text-input-v2"
 import { TextareaV2 } from "@tiancode-ai/ui/v2/textarea-v2"
-import { type Component, createResource, For, Show, createSignal } from "solid-js"
+import { type Component, createResource, For, Show, createSignal, createMemo } from "solid-js"
 import { useLanguage } from "@/context/language"
 import { useServerSDK } from "@/context/server-sdk"
 import { SettingsListV2 } from "./parts/list"
@@ -34,6 +34,8 @@ export const SettingsSubAgentsV2: Component<{
     (request) => request.then((x) => x.data),
     { initialValue: [] },
   )
+
+  const agentList = createMemo(() => agents() ?? [])
 
   const submit = async () => {
     if (!name().trim()) return
@@ -77,96 +79,114 @@ export const SettingsSubAgentsV2: Component<{
           </div>
         </Show>
 
-        <div class="settings-v2-section">
-          <h3 class="settings-v2-section-title">{language.t("settings.subAgents.section.agents")}</h3>
-          <Show
-            when={(agents() ?? []).length > 0}
-            fallback={<div class="settings-v2-skills-status">{language.t("settings.subAgents.empty")}</div>}
-          >
-            <SettingsListV2>
-              <For each={agents()}>
-                {(agent) => (
-                  <SettingsRowV2 title={agent.name} description={agent.description ?? ""}>
-                    <span class="settings-v2-sub-agents-mode" data-mode={agent.mode}>
-                      {agent.mode === "subagent"
-                        ? language.t("settings.subAgents.create.mode.subagent")
-                        : language.t("settings.subAgents.create.mode.primary")}
-                    </span>
-                  </SettingsRowV2>
-                )}
-              </For>
-            </SettingsListV2>
-          </Show>
-        </div>
+        <div class="settings-v2-sub-agents-layout">
+          <div class="settings-v2-sub-agents-list">
+            <div class="settings-v2-section">
+              <h3 class="settings-v2-section-title">{language.t("settings.subAgents.section.agents")}</h3>
+              <Show
+                when={agentList().length > 0}
+                fallback={<div class="settings-v2-skills-status">{language.t("settings.subAgents.empty")}</div>}
+              >
+                <SettingsListV2>
+                  <For each={agentList()}>
+                    {(agent) => (
+                      <div class="settings-v2-sub-agents-item">
+                        <div class="settings-v2-sub-agents-item-copy">
+                          <div class="settings-v2-sub-agents-item-name">{agent.name}</div>
+                          <div class="settings-v2-sub-agents-item-description">{agent.description ?? ""}</div>
+                        </div>
+                        <span class="settings-v2-sub-agents-mode" data-mode={agent.mode}>
+                          {agent.mode === "subagent"
+                            ? language.t("settings.subAgents.create.mode.subagent")
+                            : language.t("settings.subAgents.create.mode.primary")}
+                        </span>
+                      </div>
+                    )}
+                  </For>
+                </SettingsListV2>
+              </Show>
+            </div>
+          </div>
 
-        <div class="settings-v2-section">
-          <h3 class="settings-v2-section-title">{language.t("settings.subAgents.section.create")}</h3>
-          <SettingsListV2>
-            <SettingsRowV2 title={language.t("settings.subAgents.create.name")} description="">
-              <TextInputV2
-                type="text"
-                appearance="base"
-                value={name()}
-                onInput={(event) => setName(event.currentTarget.value)}
-                placeholder={language.t("settings.subAgents.create.name.placeholder")}
-                spellcheck={false}
-                autocomplete="off"
-                aria-label={language.t("settings.subAgents.create.name")}
-              />
-            </SettingsRowV2>
-            <SettingsRowV2 title={language.t("settings.subAgents.create.description")} description="">
-              <TextareaV2
-                value={description()}
-                onInput={(event) => setDescription(event.currentTarget.value)}
-                placeholder={language.t("settings.subAgents.create.description.placeholder")}
-                rows={2}
-                aria-label={language.t("settings.subAgents.create.description")}
-              />
-            </SettingsRowV2>
-            <SettingsRowV2 title={language.t("settings.subAgents.create.mode")} description="">
-              <SelectV2
-                appearance="inline"
-                data-action="settings-sub-agent-mode"
-                options={ModeOptions}
-                current={ModeOptions.find((option) => option.id === mode())}
-                placement="bottom-end"
-                gutter={6}
-                value={(option) => option.id}
-                label={(option) => language.t(option.label)}
-                onSelect={(option) => {
-                  if (option) setMode(option.id)
-                }}
-              />
-            </SettingsRowV2>
-            <SettingsRowV2 title={language.t("settings.subAgents.create.model")} description="">
-              <TextInputV2
-                type="text"
-                appearance="base"
-                value={model()}
-                onInput={(event) => setModel(event.currentTarget.value)}
-                placeholder={language.t("settings.subAgents.create.model.placeholder")}
-                spellcheck={false}
-                autocomplete="off"
-                aria-label={language.t("settings.subAgents.create.model")}
-              />
-            </SettingsRowV2>
-            <SettingsRowV2 title={language.t("settings.subAgents.create.color")} description="">
-              <TextInputV2
-                type="text"
-                appearance="base"
-                value={color()}
-                onInput={(event) => setColor(event.currentTarget.value)}
-                placeholder={language.t("settings.subAgents.create.color.placeholder")}
-                spellcheck={false}
-                autocomplete="off"
-                aria-label={language.t("settings.subAgents.create.color")}
-              />
-            </SettingsRowV2>
-          </SettingsListV2>
-          <div class="settings-v2-sub-agents-actions">
-            <ButtonV2 type="button" variant="contrast" size="small" disabled={creating() || !name().trim()} onClick={submit}>
-              {creating() ? language.t("settings.subAgents.creating") : language.t("settings.subAgents.create.button")}
-            </ButtonV2>
+          <div class="settings-v2-sub-agents-form">
+            <div class="settings-v2-section">
+              <h3 class="settings-v2-section-title">{language.t("settings.subAgents.section.create")}</h3>
+              <SettingsListV2>
+                <SettingsRowV2 title={language.t("settings.subAgents.create.name")} description="">
+                  <TextInputV2
+                    type="text"
+                    appearance="base"
+                    value={name()}
+                    onInput={(event) => setName(event.currentTarget.value)}
+                    placeholder={language.t("settings.subAgents.create.name.placeholder")}
+                    spellcheck={false}
+                    autocomplete="off"
+                    aria-label={language.t("settings.subAgents.create.name")}
+                  />
+                </SettingsRowV2>
+                <SettingsRowV2 title={language.t("settings.subAgents.create.description")} description="">
+                  <TextareaV2
+                    value={description()}
+                    onInput={(event) => setDescription(event.currentTarget.value)}
+                    placeholder={language.t("settings.subAgents.create.description.placeholder")}
+                    rows={2}
+                    aria-label={language.t("settings.subAgents.create.description")}
+                  />
+                </SettingsRowV2>
+                <SettingsRowV2 title={language.t("settings.subAgents.create.mode")} description="">
+                  <SelectV2
+                    appearance="inline"
+                    data-action="settings-sub-agent-mode"
+                    options={ModeOptions}
+                    current={ModeOptions.find((option) => option.id === mode())}
+                    placement="bottom-end"
+                    gutter={6}
+                    value={(option) => option.id}
+                    label={(option) => language.t(option.label)}
+                    onSelect={(option) => {
+                      if (option) setMode(option.id)
+                    }}
+                  />
+                </SettingsRowV2>
+                <SettingsRowV2 title={language.t("settings.subAgents.create.model")} description="">
+                  <TextInputV2
+                    type="text"
+                    appearance="base"
+                    value={model()}
+                    onInput={(event) => setModel(event.currentTarget.value)}
+                    placeholder={language.t("settings.subAgents.create.model.placeholder")}
+                    spellcheck={false}
+                    autocomplete="off"
+                    aria-label={language.t("settings.subAgents.create.model")}
+                  />
+                </SettingsRowV2>
+                <SettingsRowV2 title={language.t("settings.subAgents.create.color")} description="">
+                  <TextInputV2
+                    type="text"
+                    appearance="base"
+                    value={color()}
+                    onInput={(event) => setColor(event.currentTarget.value)}
+                    placeholder={language.t("settings.subAgents.create.color.placeholder")}
+                    spellcheck={false}
+                    autocomplete="off"
+                    aria-label={language.t("settings.subAgents.create.color")}
+                  />
+                </SettingsRowV2>
+              </SettingsListV2>
+              <div class="settings-v2-sub-agents-actions">
+                <ButtonV2
+                  type="button"
+                  variant="contrast"
+                  size="small"
+                  disabled={creating() || !name().trim()}
+                  onClick={submit}
+                >
+                  {creating()
+                    ? language.t("settings.subAgents.creating")
+                    : language.t("settings.subAgents.create.button")}
+                </ButtonV2>
+              </div>
+            </div>
           </div>
         </div>
       </div>
