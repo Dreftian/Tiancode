@@ -1689,6 +1689,7 @@ export type AgentConfig = {
   temperature?: number
   top_p?: number
   prompt?: string
+  injectAgentsMd?: boolean
   tools?: {
     [key: string]: boolean
   }
@@ -1710,10 +1711,10 @@ export type AgentConfig = {
     | unknown
     | string
     | number
+    | boolean
     | {
         [key: string]: boolean
       }
-    | boolean
     | "subagent"
     | "primary"
     | "all"
@@ -2385,6 +2386,7 @@ export type FormatterStatus = {
 
 export type McpStatusConnected = {
   status: "connected"
+  tools: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
 }
 
 export type McpStatusDisabled = {
@@ -8456,6 +8458,8 @@ export type AppAgentsCreateData = {
     mode: "subagent" | "primary"
     model?: string
     color?: string
+    prompt?: string
+    injectAgentsMd?: boolean
     tools?: Array<string>
   }
   path?: never
@@ -8483,6 +8487,77 @@ export type AppAgentsCreateResponses = {
 }
 
 export type AppAgentsCreateResponse = AppAgentsCreateResponses[keyof AppAgentsCreateResponses]
+
+export type AppAgentsDeleteData = {
+  body?: never
+  path: {
+    name: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/agent/{name}"
+}
+
+export type AppAgentsDeleteErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type AppAgentsDeleteError = AppAgentsDeleteErrors[keyof AppAgentsDeleteErrors]
+
+export type AppAgentsDeleteResponses = {
+  /**
+   * Agent deleted
+   */
+  200: {
+    success: true
+  }
+}
+
+export type AppAgentsDeleteResponse = AppAgentsDeleteResponses[keyof AppAgentsDeleteResponses]
+
+export type AppAgentsUpdateData = {
+  body?: {
+    name: string
+    description: string
+    mode: "subagent" | "primary"
+    model?: string
+    color?: string
+    prompt?: string
+    injectAgentsMd?: boolean
+    tools?: Array<string>
+  }
+  path: {
+    name: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/agent/{name}"
+}
+
+export type AppAgentsUpdateErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type AppAgentsUpdateError = AppAgentsUpdateErrors[keyof AppAgentsUpdateErrors]
+
+export type AppAgentsUpdateResponses = {
+  /**
+   * Updated agent
+   */
+  200: Agent
+}
+
+export type AppAgentsUpdateResponse = AppAgentsUpdateResponses[keyof AppAgentsUpdateResponses]
 
 export type LspStatusData = {
   body?: never

@@ -6,8 +6,12 @@ import type {
   AgentPartInput,
   AppAgentsCreateErrors,
   AppAgentsCreateResponses,
+  AppAgentsDeleteErrors,
+  AppAgentsDeleteResponses,
   AppAgentsErrors,
   AppAgentsResponses,
+  AppAgentsUpdateErrors,
+  AppAgentsUpdateResponses,
   AppLogErrors,
   AppLogResponses,
   AppSkillsErrors,
@@ -625,6 +629,8 @@ export class Agents extends HeyApiClient {
       mode?: "subagent" | "primary"
       model?: string
       color?: string
+      prompt?: string
+      injectAgentsMd?: boolean
       tools?: Array<string>
     },
     options?: Options<never, ThrowOnError>,
@@ -641,6 +647,8 @@ export class Agents extends HeyApiClient {
             { in: "body", key: "mode" },
             { in: "body", key: "model" },
             { in: "body", key: "color" },
+            { in: "body", key: "prompt" },
+            { in: "body", key: "injectAgentsMd" },
             { in: "body", key: "tools" },
           ],
         },
@@ -648,6 +656,99 @@ export class Agents extends HeyApiClient {
     )
     return (options?.client ?? this.client).post<AppAgentsCreateResponses, AppAgentsCreateErrors, ThrowOnError>({
       url: "/agent/create",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Delete an agent
+   *
+   * Remove an agent definition file and reload the agent list.
+   */
+  public delete<ThrowOnError extends boolean = false>(
+    parameters: {
+      name: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "name" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).delete<AppAgentsDeleteResponses, AppAgentsDeleteErrors, ThrowOnError>({
+      url: "/agent/{name}",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Update an agent
+   *
+   * Rewrite an agent definition file and reload the agent list.
+   */
+  public update<ThrowOnError extends boolean = false>(
+    parameters: {
+      path_name: string
+      directory?: string
+      workspace?: string
+      body_name?: string
+      description?: string
+      mode?: "subagent" | "primary"
+      model?: string
+      color?: string
+      prompt?: string
+      injectAgentsMd?: boolean
+      tools?: Array<string>
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            {
+              in: "path",
+              key: "path_name",
+              map: "name",
+            },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            {
+              in: "body",
+              key: "body_name",
+              map: "name",
+            },
+            { in: "body", key: "description" },
+            { in: "body", key: "mode" },
+            { in: "body", key: "model" },
+            { in: "body", key: "color" },
+            { in: "body", key: "prompt" },
+            { in: "body", key: "injectAgentsMd" },
+            { in: "body", key: "tools" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).put<AppAgentsUpdateResponses, AppAgentsUpdateErrors, ThrowOnError>({
+      url: "/agent/{name}",
       ...options,
       ...params,
       headers: {
