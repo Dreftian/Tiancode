@@ -491,6 +491,16 @@ const scenarios: Scenario[] = [
     }))
     .status(400),
   http.protected
+    .delete("/mcp/{name}", "mcp.remove")
+    .mutating()
+    .at((ctx) => ({
+      path: route("/mcp/{name}", { name: "httpapi-disabled" }),
+      headers: ctx.headers(),
+    }))
+    .json(200, (body) => {
+      check(body === true, "removed MCP server should return true")
+    }),
+  http.protected
     .post("/mcp/{name}/auth", "mcp.auth.start")
     .at((ctx) => ({ path: route("/mcp/{name}/auth", { name: "httpapi-missing" }), headers: ctx.headers() }))
     .json(404, object, "status"),

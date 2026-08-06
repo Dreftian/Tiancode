@@ -172,6 +172,7 @@ export interface Interface {
     clientName?: string,
   ) => Effect.Effect<Record<string, ResourceTemplateInfo & { client: string }>>
   readonly add: (name: string, mcp: ConfigMCPV1.Info) => Effect.Effect<{ status: Record<string, Status> | Status }>
+  readonly remove: (name: string) => Effect.Effect<void, NotFoundError>
   readonly connect: (name: string) => Effect.Effect<void, NotFoundError>
   readonly disconnect: (name: string) => Effect.Effect<void, NotFoundError>
   readonly getPrompt: (
@@ -642,6 +643,9 @@ const layer = Layer.effect(
       const s = yield* InstanceState.get(state)
       s.config[name] = mcp
       yield* createAndStore(name, mcp)
+      // Persist in the global config so the server survives restarts.
+      const cfg = yield* cfgSvc.getGlobal()
+      yield* cfgSvc.updateGlobal({ ...cfg, mcp: { ...cfg.mcp, [name]: mcp } })
       return { status: s.status }
     })
 
@@ -656,6 +660,22 @@ const layer = Layer.effect(
       yield* closeClient(s, name)
       delete s.clients[name]
       s.status[name] = { status: "disabled" }
+    })
+
+    const remove = Effect.fn("MCP.remove")(function* (name: string) {
+      yield* requireMcpConfig(name)
+      const s = yield* InstanceState.get(state)
+      yield* closeClient(s, name)
+      delete s.clients[name]
+      delete s.defs[name]
+      delete s.instructions[name]
+      delete s.config[name]
+      delete s.status[name]
+      // Persist the removal in the global config so it survives restarts.
+      const cfg = yield* cfgSvc.getGlobal()
+      const next = { ...cfg.mcp }
+      delete next[name]
+      yield* cfgSvc.updateGlobal({ ...cfg, mcp: next })
     })
 
     function requestTimeout(s: State, name: string, configured: McpEntry | undefined, fallback?: number) {
@@ -978,6 +998,7 @@ const layer = Layer.effect(
       resources,
       resourceTemplates,
       add,
+      remove,
       connect,
       disconnect,
       getPrompt,

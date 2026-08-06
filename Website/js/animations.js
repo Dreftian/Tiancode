@@ -4,9 +4,11 @@
    partículas del hero y contadores animados.
    ============================================================ */
 
-import { reducedMotion } from './utils.js';
+import { reducedMotion, easeOut } from './utils.js';
 
-/* ---------- Loader (aparece ~1.2s) ---------- */
+/* ---------- Loader (monograma + progreso ~1.35s) ---------- */
+const LOADER_MS = 1350;
+
 function hideLoader() {
   const loader = document.getElementById('loader');
   if (!loader || loader.classList.contains('is-hidden')) return;
@@ -14,6 +16,29 @@ function hideLoader() {
   setTimeout(function () {
     if (loader.parentNode) loader.parentNode.removeChild(loader);
   }, 600);
+}
+
+function animateLoader() {
+  const loader = document.getElementById('loader');
+  if (!loader) return;
+  const fill = loader.querySelector('.loader-fill');
+  const pct = loader.querySelector('.loader-pct');
+  if (reducedMotion) {
+    if (fill) fill.style.width = '100%';
+    if (pct) pct.textContent = '100%';
+    setTimeout(hideLoader, 300);
+    return;
+  }
+  const start = performance.now();
+  function step(now) {
+    const p = Math.min(1, (now - start) / LOADER_MS);
+    const eased = easeOut(p);
+    if (fill) fill.style.width = (eased * 100).toFixed(1) + '%';
+    if (pct) pct.textContent = Math.round(eased * 100) + '%';
+    if (p < 1) requestAnimationFrame(step);
+    else setTimeout(hideLoader, 120);
+  }
+  requestAnimationFrame(step);
 }
 
 /* ---------- Animaciones de entrada (scroll) ---------- */
@@ -113,7 +138,7 @@ export function animateCounters() {
 }
 
 export function initAnimations() {
-  setTimeout(hideLoader, reducedMotion ? 300 : 1200);
+  animateLoader();
   initReveal();
   startParticles();
   // Reinicia las partículas al volver a la home

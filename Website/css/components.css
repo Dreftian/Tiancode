@@ -673,6 +673,18 @@
   html { scroll-behavior: auto; }
   .reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
   .hero-blob { animation: none !important; }
-  .spinner { animation-duration: 2.4s !important; }
+  /* Loader estático y breve: monograma ya dibujado, sin shimmer ni aurora */
+  #loader .mark-tile,
+  #loader .mark-t {
+    animation: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+  #loader .loader-orb,
+  #loader .loader-dots,
+  #loader .loader-shimmer,
+  #loader .loader-word,
+  #loader .loader-logo,
+  #loader .loader-text,
+  #loader #loader-grad stop { animation: none !important; }
   .feature-card:hover, .skill-chip:hover, .btn:hover { transform: none; }
 }

@@ -1,0 +1,141 @@
+.settings-v2-mcp-servers {
+  gap: 20px;
+}
+
+.settings-v2-mcp-servers-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+/* Two-column layout once the panel is wide enough: server list on the left,
+   add/edit form on the right. */
+@container settings-panel (min-width: 720px) {
+  .settings-v2-mcp-servers-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 440px);
+  }
+}
+
+.settings-v2-mcp-servers-list {
+  min-width: 0;
+}
+
+.settings-v2-mcp-servers-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-block: 12px;
+  border-bottom: 0.5px solid var(--v2-border-border-base);
+}
+
+.settings-v2-mcp-servers-item:last-child {
+  border-bottom: none;
+}
+
+.settings-v2-mcp-servers-item-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-v2-mcp-servers-item-name {
+  font-size: 13px;
+  font-weight: 560;
+  line-height: 1.15;
+  color: var(--v2-text-text-base);
+  overflow-wrap: anywhere;
+}
+
+.settings-v2-mcp-servers-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  font-size: 11px;
+  font-weight: 440;
+  line-height: 1;
+  color: var(--v2-text-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-v2-mcp-servers-chip {
+  padding: 3px 7px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 640;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-v2-mcp-servers-chip[data-variant="type"] {
+  color: var(--v2-text-text-muted);
+  background-color: var(--v2-background-bg-layer-02);
+}
+
+.settings-v2-mcp-servers-chip[data-tone="green"] {
+  color: var(--v2-state-fg-success);
+  background-color: color-mix(in srgb, var(--v2-state-fg-success) 14%, transparent);
+}
+
+.settings-v2-mcp-servers-chip[data-tone="yellow"] {
+  color: var(--v2-state-fg-warning);
+  background-color: color-mix(in srgb, var(--v2-state-fg-warning) 14%, transparent);
+}
+
+.settings-v2-mcp-servers-chip[data-tone="red"] {
+  color: var(--v2-state-fg-danger);
+  background-color: color-mix(in srgb, var(--v2-state-fg-danger) 14%, transparent);
+}
+
+.settings-v2-mcp-servers-chip[data-tone="muted"] {
+  color: var(--v2-text-text-muted);
+  background-color: var(--v2-background-bg-layer-02);
+}
+
+.settings-v2-mcp-servers-item-error {
+  max-width: 260px;
+  overflow: hidden;
+  color: var(--v2-state-fg-danger);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-v2-mcp-servers-item-actions {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.settings-v2-mcp-servers-item-toggle [data-component="switch"] {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px;
+}
+
+.settings-v2-mcp-servers-form {
+  min-width: 0;
+}
+
+.settings-v2-mcp-servers-form [data-component="textarea-v2"] {
+  width: 100%;
+}
+
+.settings-v2-mcp-servers-hint {
+  font-size: 11px;
+  font-weight: 440;
+  line-height: 1.45;
+  color: var(--v2-text-text-faint);
+}
+
+.settings-v2-mcp-servers-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 16px;
+}
