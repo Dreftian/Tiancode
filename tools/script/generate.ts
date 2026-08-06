@@ -4,6 +4,6 @@ import { $ } from "bun"
 
 await $`bun ./backend/sdk/js/script/build.ts`
 
-await $`bun dev generate > ../sdk/openapi.json`.cwd("backend/opencode")
+await $`bun dev generate > ../sdk/openapi.json`.cwd("backend/tiancode")
 
 await $`./script/format.ts`

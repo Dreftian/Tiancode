@@ -1,5 +1,5 @@
 {
-  "name": "@opencode-ai/web",
+  "name": "@tiancode-ai/web",
   "type": "module",
   "license": "MIT",
   "version": "1.18.14",
@@ -38,7 +38,7 @@
     "vscode-languageserver-types": "3.17.5"
   },
   "devDependencies": {
-    "opencode": "workspace:*",
+    "tiancode": "workspace:*",
     "@types/node": "catalog:",
     "@astrojs/check": "0.9.6",
     "typescript": "catalog:"

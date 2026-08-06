@@ -1,5 +1,5 @@
 {
-  "name": "@opencode-ai/session-ui",
+  "name": "@tiancode-ai/session-ui",
   "version": "1.18.14",
   "private": true,
   "type": "module",
@@ -38,10 +38,10 @@
   },
   "dependencies": {
     "@kobalte/core": "catalog:",
-    "@opencode-ai/client": "file:../app/vendor/opencode-ai-client-1.17.13-v2.tgz",
-    "@opencode-ai/core": "workspace:*",
-    "@opencode-ai/sdk": "workspace:*",
-    "@opencode-ai/ui": "workspace:*",
+    "@tiancode-ai/client": "file:../app/vendor/tiancode-ai-client-1.17.13-v2.tgz",
+    "@tiancode-ai/core": "workspace:*",
+    "@tiancode-ai/sdk": "workspace:*",
+    "@tiancode-ai/ui": "workspace:*",
     "@pierre/diffs": "catalog:",
     "@shikijs/stream": "catalog:",
     "@shikijs/transformers": "3.9.2",

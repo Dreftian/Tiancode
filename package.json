@@ -1,12 +1,12 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "name": "opencode",
+  "name": "tiancode",
   "description": "AI-powered development tool",
   "private": true,
   "type": "module",
   "packageManager": "bun@1.3.14",
   "scripts": {
-    "dev": "bun run --cwd backend/opencode --conditions=browser src/index.ts",
+    "dev": "bun run --cwd backend/tiancode --conditions=browser src/index.ts",
     "dev:desktop": "bun --cwd frontend/desktop dev",
     "dev:web": "bun --cwd frontend/app dev",
     "dev:console": "ulimit -n 10240 2>/dev/null; bun run --cwd backend/console/app dev",
@@ -112,9 +112,9 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.933.0",
-    "@opencode-ai/plugin": "workspace:*",
-    "@opencode-ai/script": "workspace:*",
-    "@opencode-ai/sdk": "workspace:*",
+    "@tiancode-ai/plugin": "workspace:*",
+    "@tiancode-ai/script": "workspace:*",
+    "@tiancode-ai/sdk": "workspace:*",
     "heap-snapshot-toolkit": "1.1.3",
     "typescript": "catalog:"
   },

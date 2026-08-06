@@ -1,10 +1,10 @@
 import { Argument, Flag } from "effect/unstable/cli"
 import { Spec } from "../framework/spec"
 
-declare const OPENCODE_CLI_NAME: string | undefined
+declare const TIANCODE_CLI_NAME: string | undefined
 
-export const Commands = Spec.make(typeof OPENCODE_CLI_NAME === "string" ? OPENCODE_CLI_NAME : "opencode", {
-  description: "OpenCode 2.0 preview command line interface",
+export const Commands = Spec.make(typeof TIANCODE_CLI_NAME === "string" ? TIANCODE_CLI_NAME : "tiancode", {
+  description: "Tiancode 2.0 preview command line interface",
   commands: [
     Spec.make("api", {
       description: "Make a request to the running server",

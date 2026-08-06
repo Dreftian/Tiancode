@@ -10,10 +10,10 @@ const packageDir = path.dirname(fileURLToPath(import.meta.url))
 const rootDir = path.resolve(packageDir, "../..")
 const signScript = path.join(rootDir, "script", "sign-windows.ps1")
 // The Electron 42 packaging update briefly installed Linux launchers/icons under
-// "opencode-desktop". Keep that hidden desktop entry around so existing GNOME/KDE
-// pins still resolve after the canonical app id changes back to ai.opencode.desktop.
-const legacyDesktopEntry = path.join(packageDir, "resources", "linux", "opencode-desktop.desktop")
-const legacyDesktopEntryFpm = `${legacyDesktopEntry}=/usr/share/applications/opencode-desktop.desktop`
+// "tiancode-desktop". Keep that hidden desktop entry around so existing GNOME/KDE
+// pins still resolve after the canonical app id changes back to ai.tiancode.desktop.
+const legacyDesktopEntry = path.join(packageDir, "resources", "linux", "tiancode-desktop.desktop")
+const legacyDesktopEntryFpm = `${legacyDesktopEntry}=/usr/share/applications/tiancode-desktop.desktop`
 
 const metainfoFpm = (appId: string) =>
   `${path.join(packageDir, "resources", `${appId}.metainfo.xml`)}=/usr/share/metainfo/${appId}.metainfo.xml`
@@ -30,39 +30,39 @@ async function signWindows(configuration: { path: string }) {
 }
 
 const channel = (() => {
-  const raw = process.env.OPENCODE_CHANNEL
+  const raw = process.env.TIANCODE_CHANNEL
   if (raw === "dev" || raw === "beta" || raw === "prod") return raw
   return "dev"
 })()
 
 const APP_IDS = {
-  dev: "ai.tian.desktop.dev",
-  beta: "ai.tian.desktop.beta",
-  prod: "ai.tian.desktop",
+  dev: "ai.tiancode.desktop.dev",
+  beta: "ai.tiancode.desktop.beta",
+  prod: "ai.tiancode.desktop",
 } as const
 
 const getBase = (appId: string): Configuration => ({
-  artifactName: "tian-desktop-${os}-${arch}.${ext}",
+  artifactName: "tiancode-desktop-${os}-${arch}.${ext}",
   directories: {
     output: "dist",
     buildResources: "resources",
   },
   // Linux launchers are .desktop files, so this is the desktop file name,
-  // not just the app id. For prod, app id "ai.opencode.desktop" becomes
-  // "ai.opencode.desktop.desktop".
+  // not just the app id. For prod, app id "ai.tiancode.desktop" becomes
+  // "ai.tiancode.desktop.desktop".
   // https://developer.gnome.org/documentation/guidelines/maintainer/integrating.html
   // https://www.electron.build/docs/linux/
   extraMetadata: {
     desktopName: `${appId}.desktop`,
   },
-  files: ["out/**/*", "resources/**/*", "!resources/opencode-cli*"],
+  files: ["out/**/*", "resources/**/*", "!resources/tiancode-cli*"],
   extraResources: [
     ...(channel === "dev"
       ? [
           {
             from: "resources/",
             to: "",
-            filter: ["opencode-cli*"],
+            filter: ["tiancode-cli*"],
           },
         ]
       : []),
@@ -86,8 +86,8 @@ const getBase = (appId: string): Configuration => ({
     sign: true,
   },
   protocols: {
-    name: "Tian",
-    schemes: ["tian"],
+    name: "Tiancode",
+    schemes: ["tiancode"],
   },
   win: {
     icon: `resources/icons/icon.ico`,
@@ -127,7 +127,7 @@ function getConfig() {
       return {
         ...base,
         appId,
-        productName: "Tian Dev",
+        productName: "Tiancode Dev",
         deb: { fpm: [metainfoFpm(appId)] },
         rpm: { packageName: "tian-dev", fpm: [metainfoFpm(appId)] },
       }
@@ -136,8 +136,8 @@ function getConfig() {
       return {
         ...base,
         appId,
-        productName: "Tian Beta",
-        protocols: { name: "Tian Beta", schemes: ["tian"] },
+        productName: "Tiancode Beta",
+        protocols: { name: "Tiancode Beta", schemes: ["tiancode"] },
         publish: { provider: "github", owner: "anomalyco", repo: "opencode-beta", channel: "latest" },
         deb: { fpm: [metainfoFpm(appId)] },
         rpm: { packageName: "tian-beta", fpm: [metainfoFpm(appId)] },
@@ -147,8 +147,8 @@ function getConfig() {
       return {
         ...base,
         appId,
-        productName: "Tian",
-        protocols: { name: "Tian", schemes: ["tian"] },
+        productName: "Tiancode",
+        protocols: { name: "Tiancode", schemes: ["tiancode"] },
         publish: { provider: "github", owner: "anomalyco", repo: "opencode", channel: "latest" },
         deb: { fpm: [metainfoFpm(appId), legacyDesktopEntryFpm] },
         rpm: { packageName: "tian", fpm: [metainfoFpm(appId), legacyDesktopEntryFpm] },

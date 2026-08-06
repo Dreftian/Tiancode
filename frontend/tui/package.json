@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "name": "@opencode-ai/tui",
+  "name": "@tiancode-ai/tui",
   "version": "1.18.14",
   "private": true,
   "type": "module",
@@ -49,10 +49,10 @@
     "./component/register-spinner": "./src/component/register-spinner.ts"
   },
   "dependencies": {
-    "@opencode-ai/core": "workspace:*",
-    "@opencode-ai/plugin": "workspace:*",
-    "@opencode-ai/sdk": "workspace:*",
-    "@opencode-ai/ui": "workspace:*",
+    "@tiancode-ai/core": "workspace:*",
+    "@tiancode-ai/plugin": "workspace:*",
+    "@tiancode-ai/sdk": "workspace:*",
+    "@tiancode-ai/ui": "workspace:*",
     "@opentui/core": "catalog:",
     "@opentui/keymap": "catalog:",
     "@opentui/solid": "catalog:",

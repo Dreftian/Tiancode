@@ -1,35 +1,35 @@
 import { expect, test } from "bun:test"
 import { Schema } from "effect"
-import { AgentV2 } from "@opencode-ai/core/agent"
-import { ModelV2 } from "@opencode-ai/core/model"
-import { SessionV2 } from "@opencode-ai/core/session"
-import { Agent } from "@opencode-ai/schema/agent"
-import { Location } from "@opencode-ai/schema/location"
-import { Model } from "@opencode-ai/schema/model"
-import { AgentAttachment, FileAttachment, Prompt, Source } from "@opencode-ai/schema/prompt"
-import { Provider } from "@opencode-ai/schema/provider"
-import { Project } from "@opencode-ai/schema/project"
-import { ProjectDirectories } from "@opencode-ai/schema/project-directories"
-import { PermissionV1 } from "@opencode-ai/schema/permission-v1"
-import { Session } from "@opencode-ai/schema/session"
-import { SessionInput } from "@opencode-ai/schema/session-input"
-import { SessionMessage } from "@opencode-ai/schema/session-message"
-import { Workspace } from "@opencode-ai/schema/workspace"
-import { Command } from "@opencode-ai/schema/command"
-import { Connection } from "@opencode-ai/schema/connection"
-import { Credential } from "@opencode-ai/schema/credential"
-import { FileSystem } from "@opencode-ai/schema/filesystem"
-import { Integration } from "@opencode-ai/schema/integration"
-import { LLM } from "@opencode-ai/schema/llm"
-import { Permission } from "@opencode-ai/schema/permission"
-import { Plugin } from "@opencode-ai/schema/plugin"
-import { Pty } from "@opencode-ai/schema/pty"
-import { Reference } from "@opencode-ai/schema/reference"
-import { SessionTodo } from "@opencode-ai/schema/session-todo"
-import { Skill } from "@opencode-ai/schema/skill"
-import { AbsolutePath, DateTimeUtcFromMillis, optional, statics } from "@opencode-ai/schema/schema"
-import { ProviderV2 } from "@opencode-ai/core/provider"
-import { PluginV2 } from "@opencode-ai/core/plugin"
+import { AgentV2 } from "@tiancode-ai/core/agent"
+import { ModelV2 } from "@tiancode-ai/core/model"
+import { SessionV2 } from "@tiancode-ai/core/session"
+import { Agent } from "@tiancode-ai/schema/agent"
+import { Location } from "@tiancode-ai/schema/location"
+import { Model } from "@tiancode-ai/schema/model"
+import { AgentAttachment, FileAttachment, Prompt, Source } from "@tiancode-ai/schema/prompt"
+import { Provider } from "@tiancode-ai/schema/provider"
+import { Project } from "@tiancode-ai/schema/project"
+import { ProjectDirectories } from "@tiancode-ai/schema/project-directories"
+import { PermissionV1 } from "@tiancode-ai/schema/permission-v1"
+import { Session } from "@tiancode-ai/schema/session"
+import { SessionInput } from "@tiancode-ai/schema/session-input"
+import { SessionMessage } from "@tiancode-ai/schema/session-message"
+import { Workspace } from "@tiancode-ai/schema/workspace"
+import { Command } from "@tiancode-ai/schema/command"
+import { Connection } from "@tiancode-ai/schema/connection"
+import { Credential } from "@tiancode-ai/schema/credential"
+import { FileSystem } from "@tiancode-ai/schema/filesystem"
+import { Integration } from "@tiancode-ai/schema/integration"
+import { LLM } from "@tiancode-ai/schema/llm"
+import { Permission } from "@tiancode-ai/schema/permission"
+import { Plugin } from "@tiancode-ai/schema/plugin"
+import { Pty } from "@tiancode-ai/schema/pty"
+import { Reference } from "@tiancode-ai/schema/reference"
+import { SessionTodo } from "@tiancode-ai/schema/session-todo"
+import { Skill } from "@tiancode-ai/schema/skill"
+import { AbsolutePath, DateTimeUtcFromMillis, optional, statics } from "@tiancode-ai/schema/schema"
+import { ProviderV2 } from "@tiancode-ai/core/provider"
+import { PluginV2 } from "@tiancode-ai/core/plugin"
 
 test("Core reuses the canonical shared schemas", async () => {
   const [
@@ -55,27 +55,27 @@ test("Core reuses the canonical shared schemas", async () => {
     coreSchema,
     coreWorkspace,
   ] = await Promise.all([
-    import("@opencode-ai/core/command"),
-    import("@opencode-ai/core/integration/connection"),
-    import("@opencode-ai/core/credential"),
-    import("@opencode-ai/core/filesystem"),
-    import("@opencode-ai/core/integration"),
-    import("@opencode-ai/core/location"),
-    import("@opencode-ai/llm"),
-    import("@opencode-ai/core/permission"),
-    import("@opencode-ai/core/v1/permission"),
-    import("@opencode-ai/core/project/copy"),
-    import("@opencode-ai/core/pty"),
-    import("@opencode-ai/core/project/schema"),
-    import("@opencode-ai/core/reference"),
-    import("@opencode-ai/core/session/input"),
-    import("@opencode-ai/core/session/message"),
-    import("@opencode-ai/core/session/todo"),
-    import("@opencode-ai/core/session/prompt"),
-    import("@opencode-ai/core/skill"),
-    import("@opencode-ai/core/v2-schema"),
-    import("@opencode-ai/core/schema"),
-    import("@opencode-ai/core/workspace"),
+    import("@tiancode-ai/core/command"),
+    import("@tiancode-ai/core/integration/connection"),
+    import("@tiancode-ai/core/credential"),
+    import("@tiancode-ai/core/filesystem"),
+    import("@tiancode-ai/core/integration"),
+    import("@tiancode-ai/core/location"),
+    import("@tiancode-ai/llm"),
+    import("@tiancode-ai/core/permission"),
+    import("@tiancode-ai/core/v1/permission"),
+    import("@tiancode-ai/core/project/copy"),
+    import("@tiancode-ai/core/pty"),
+    import("@tiancode-ai/core/project/schema"),
+    import("@tiancode-ai/core/reference"),
+    import("@tiancode-ai/core/session/input"),
+    import("@tiancode-ai/core/session/message"),
+    import("@tiancode-ai/core/session/todo"),
+    import("@tiancode-ai/core/session/prompt"),
+    import("@tiancode-ai/core/skill"),
+    import("@tiancode-ai/core/v2-schema"),
+    import("@tiancode-ai/core/schema"),
+    import("@tiancode-ai/core/workspace"),
   ])
 
   const schemas = [

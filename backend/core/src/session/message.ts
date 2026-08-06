@@ -1,2 +1,2 @@
 export * as SessionMessage from "./message"
-export * from "@opencode-ai/schema/session-message"
+export * from "@tiancode-ai/schema/session-message"

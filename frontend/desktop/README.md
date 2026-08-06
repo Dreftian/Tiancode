@@ -1,6 +1,6 @@
-# OpenCode Desktop
+# Tiancode Desktop
 
-The OpenCode Desktop app, built with Electron.
+The Tiancode Desktop app, built with Electron.
 
 ## Development
 

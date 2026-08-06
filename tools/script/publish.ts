@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { Script } from "@opencode-ai/script"
+import { Script } from "@tiancode-ai/script"
 import { $ } from "bun"
 import { fileURLToPath } from "url"
 
@@ -36,7 +36,7 @@ if (Script.release && !Script.preview) {
 await prepareReleaseFiles()
 
 console.log("\n=== cli ===\n")
-await $`bun ./backend/opencode/script/publish.ts`
+await $`bun ./backend/tiancode/script/publish.ts`
 
 console.log("\n=== preview cli ===\n")
 await $`bun ./backend/cli/script/publish.ts`

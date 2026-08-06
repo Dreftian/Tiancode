@@ -1,7 +1,7 @@
 import { type ChildProcess, spawnSync } from "node:child_process"
 
-// Duplicated from `backend/opencode/src/util/process.ts` because the SDK cannot
-// import `opencode` without creating a cycle (`opencode` depends on `@opencode-ai/sdk`).
+// Duplicated from `backend/tiancode/src/util/process.ts` because the SDK cannot
+// import `tiancode` without creating a cycle (`tiancode` depends on `@tiancode-ai/sdk`).
 export function stop(proc: ChildProcess) {
   if (proc.exitCode !== null || proc.signalCode !== null) return
   if (process.platform === "win32" && proc.pid) {

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Tiancode
+Exec=/opt/Tiancode/ai.tiancode.desktop %U
+Terminal=false
+Type=Application
+Icon=ai.tiancode.desktop
+StartupWMClass=ai.tiancode.desktop
+NoDisplay=true
+Comment=Open source AI coding agent
+Categories=Development;
