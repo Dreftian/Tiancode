@@ -67,7 +67,17 @@ export const SettingsModelsHubV2: Component<{
   const [system, { refetch: refetchSystem }] = createResource(
     () => serverSdk().client.modelhub.system(params()),
     (request) => request.then((x) => x.data),
-    { initialValue: undefined as { ram: number; modelsDir: string } | undefined },
+    {
+      initialValue: undefined as
+        | {
+            ram: number | "NaN" | "Infinity" | "-Infinity"
+            diskFree: number | "NaN" | "Infinity" | "-Infinity"
+            cpu?: string
+            gpu?: string
+            modelsDir: string
+          }
+        | undefined,
+    },
   )
 
   const [models, { refetch: refetchModels }] = createResource(
@@ -195,7 +205,7 @@ export const SettingsModelsHubV2: Component<{
       <div class="settings-v2-tab-header settings-v2-tab-header--stacked">
         <h2 class="settings-v2-tab-title">{language.t("settings.modelsHub.title")}</h2>
         <p class="settings-v2-tab-description">{language.t("settings.modelsHub.description")}</p>
-        <div class="settings-v2-tab-search">
+        <div class="settings-v2-models-hub-search">
           <TextInputV2
             type="search"
             appearance="base"
@@ -209,21 +219,51 @@ export const SettingsModelsHubV2: Component<{
             autocomplete="off"
             aria-label={language.t("settings.modelsHub.search.placeholder")}
           />
-          <ButtonV2 type="button" variant="contrast" size="small" onClick={search} disabled={!query().trim()}>
-            {language.t("settings.modelsHub.search.button")}
-          </ButtonV2>
+          <div class="settings-v2-models-hub-search-actions">
+            <ButtonV2 type="button" variant="contrast" size="small" onClick={search} disabled={!query().trim()}>
+              {language.t("settings.modelsHub.search.button")}
+            </ButtonV2>
+          </div>
         </div>
       </div>
 
       <div class="settings-v2-tab-body settings-v2-models-hub">
         <Show when={system()}>
           <div class="settings-v2-models-hub-sysinfo">
-            <span>
-              {language.t("settings.modelsHub.system.ram")}: {(ram() / 1e9).toFixed(1)} GB
-            </span>
-            <span>
-              {language.t("settings.modelsHub.system.dir")}: {system()!.modelsDir}
-            </span>
+            <div class="settings-v2-models-hub-sysinfo-item">
+              <span class="settings-v2-models-hub-sysinfo-label">
+                {language.t("settings.modelsHub.system.ram")}
+              </span>
+              <span class="settings-v2-models-hub-sysinfo-value">
+                {(asNumber(system()!.ram) ?? 0) / 1e9 >= 1
+                  ? `${((asNumber(system()!.ram) ?? 0) / 1e9).toFixed(1)} GB`
+                  : `${Math.round((asNumber(system()!.ram) ?? 0) / 1e6)} MB`}
+              </span>
+            </div>
+            <div class="settings-v2-models-hub-sysinfo-item">
+              <span class="settings-v2-models-hub-sysinfo-label">
+                {language.t("settings.modelsHub.system.disk")}
+              </span>
+              <span class="settings-v2-models-hub-sysinfo-value">
+                {formatBytes(asNumber(system()!.diskFree) ?? 0)}
+              </span>
+            </div>
+            <Show when={system()!.gpu}>
+              <div class="settings-v2-models-hub-sysinfo-item">
+                <span class="settings-v2-models-hub-sysinfo-label">
+                  {language.t("settings.modelsHub.system.gpu")}
+                </span>
+                <span class="settings-v2-models-hub-sysinfo-value">{system()!.gpu}</span>
+              </div>
+            </Show>
+            <Show when={system()!.cpu}>
+              <div class="settings-v2-models-hub-sysinfo-item">
+                <span class="settings-v2-models-hub-sysinfo-label">
+                  {language.t("settings.modelsHub.system.cpu")}
+                </span>
+                <span class="settings-v2-models-hub-sysinfo-value">{system()!.cpu}</span>
+              </div>
+            </Show>
           </div>
         </Show>
 

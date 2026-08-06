@@ -4,14 +4,38 @@ import { withTransientReadRetry } from "@/util/effect-http-client"
 import { httpClient } from "@tiancode-ai/core/effect/app-node-platform"
 import path from "path"
 import os from "os"
+import { execFile } from "node:child_process"
+import { promisify } from "node:util"
 import { createWriteStream } from "node:fs"
-import { mkdir } from "node:fs/promises"
+import { mkdir, statfs } from "node:fs/promises"
 import { Transform, Readable } from "node:stream"
 import { pipeline } from "node:stream/promises"
 import { Context, Effect, Layer, Schema, Scope, Types } from "effect"
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
 import { FSUtil } from "@tiancode-ai/core/fs-util"
 import { Global } from "@tiancode-ai/core/global"
+
+const execFileAsync = promisify(execFile)
+
+// Detect the primary GPU. Windows exposes it via WMI (works for NVIDIA/AMD/
+// Intel); non-Windows falls back to lspci when available. Failures return
+// undefined so the settings panel still renders.
+const detectGpu = Effect.fn("ModelHub.gpu")(function* () {
+  if (process.platform === "win32") {
+    const result = yield* Effect.tryPromise(() =>
+      execFileAsync("powershell", [
+        "-NoProfile",
+        "-Command",
+        "(Get-CimInstance Win32_VideoController | Where-Object { $_.Name } | Select-Object -First 1).Name",
+      ]),
+    ).pipe(Effect.catch(() => Effect.succeed(undefined)))
+    const name = result?.stdout?.trim()
+    if (name) return name
+  }
+  const lspci = yield* Effect.tryPromise(() => execFileAsync("lspci")).pipe(Effect.catch(() => Effect.succeed(undefined)))
+  const vga = lspci?.stdout?.split("\n").find((line) => /vga|3d|display/i.test(line))
+  return vga?.split(/\s{2,}/).slice(1).join(" ").trim() || undefined
+})
 
 const HUGGINGFACE_API = "https://huggingface.co/api"
 const HUGGINGFACE_RESOLVE = "https://huggingface.co"
@@ -139,10 +163,18 @@ export interface DownloadState {
 // Mutable working entry kept in the registry while a download runs.
 type MutableDownloadState = Types.DeepMutable<DownloadState>
 
+export interface SystemInfo {
+  readonly ram: number
+  readonly diskFree: number
+  readonly cpu: string | undefined
+  readonly gpu: string | undefined
+  readonly modelsDir: string
+}
+
 export interface Interface {
   readonly search: (query: string, limit: number) => Effect.Effect<HfModel[]>
   readonly files: (model: string) => Effect.Effect<QuantFile[]>
-  readonly system: () => Effect.Effect<{ ram: number; modelsDir: string }>
+  readonly system: () => Effect.Effect<SystemInfo>
   readonly downloads: () => Effect.Effect<DownloadState[]>
   readonly download: (model: string, file: string) => Effect.Effect<DownloadState>
 }
@@ -197,7 +229,14 @@ const layer = Layer.effect(
       })
 
       const system = Effect.fn("ModelHub.system")(function* () {
-        return { ram: os.totalmem(), modelsDir }
+        yield* Effect.tryPromise(() => mkdir(modelsDir, { recursive: true })).pipe(Effect.orDie)
+        const diskFree = yield* Effect.tryPromise(() => statfs(modelsDir)).pipe(
+          Effect.map((stats) => Number(stats.bavail) * Number(stats.bsize)),
+          Effect.catch(() => Effect.succeed(undefined)),
+        )
+        const cpu = os.cpus()[0]?.model.trim()
+        const gpu = yield* detectGpu()
+        return { ram: os.totalmem(), diskFree: diskFree ?? 0, cpu, gpu, modelsDir }
       })
 
       const listDownloads = Effect.fn("ModelHub.downloads")(function* () {

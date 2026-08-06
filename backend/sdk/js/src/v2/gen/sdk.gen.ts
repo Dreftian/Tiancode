@@ -2757,7 +2757,7 @@ export class Modelhub extends HeyApiClient {
   /**
    * Get system capabilities
    *
-   * Report the machine RAM and the local models directory for compatibility checks.
+   * Report the machine RAM, free disk space, CPU, GPU and the local models directory for compatibility checks.
    */
   public system<ThrowOnError extends boolean = false>(
     parameters?: {
