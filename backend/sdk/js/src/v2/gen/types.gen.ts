@@ -8915,6 +8915,10 @@ export type ModelhubSystemResponses = {
     diskFree: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     cpu?: string
     gpu?: string
+    vram?: {
+      total: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      free: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    }
     modelsDir: string
   }
 }

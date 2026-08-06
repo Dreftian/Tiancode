@@ -1,8 +1,11 @@
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
+import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
 import { TextInputV2 } from "@tiancode-ai/ui/v2/text-input-v2"
 import { type Component, createResource, For, Show, createSignal, createMemo, onCleanup } from "solid-js"
+import { createStore } from "solid-js/store"
 import { useLanguage } from "@/context/language"
 import { useServerSDK } from "@/context/server-sdk"
+import { Persist, persisted } from "@/utils/persist"
 import { SettingsListV2 } from "./parts/list"
 import "./models-hub.css"
 
@@ -62,6 +65,14 @@ export const SettingsModelsHubV2: Component<{
   const [downloading, setDownloading] = createSignal<Record<string, boolean>>({})
   const [downloads, setDownloads] = createSignal<Record<string, { received: number; total: number }>>({})
 
+  // Memory mode: the GPU VRAM is the preferred memory for local models and
+  // system RAM backs it up only when the model overflows the GPU. Both toggles
+  // persist so the compatibility indicator reflects the user's choice.
+  const [memoryPrefs, setMemoryPrefs] = persisted(
+    Persist.global("settings-v2.models-hub.memory"),
+    createStore({ useGpu: true, useRamFallback: true }),
+  )
+
   const params = () => (props.directory ? { directory: props.directory } : undefined)
 
   const [system, { refetch: refetchSystem }] = createResource(
@@ -74,6 +85,7 @@ export const SettingsModelsHubV2: Component<{
             diskFree: number | "NaN" | "Infinity" | "-Infinity"
             cpu?: string
             gpu?: string
+            vram?: { total: number | "NaN" | "Infinity" | "-Infinity"; free: number | "NaN" | "Infinity" | "-Infinity" }
             modelsDir: string
           }
         | undefined,
@@ -96,16 +108,40 @@ export const SettingsModelsHubV2: Component<{
   )
 
   const ram = createMemo(() => asNumber(system()?.ram) ?? 0)
+  const vramTotal = createMemo(() => asNumber(system()?.vram?.total) ?? 0)
+  const vramFree = createMemo(() => asNumber(system()?.vram?.free) ?? 0)
 
+  // LM Studio-style fit: VRAM is the primary memory, RAM backs it up when the
+  // model overflows the GPU. ~10% overhead for KV cache and runtime buffers.
+  // The memory-mode toggles let the user choose: GPU-first (default), or
+  // RAM-only when they prefer not to use the GPU.
   const compat = (sizeBytes: number | "NaN" | "Infinity" | "-Infinity" | undefined): Compatibility => {
     const size = asNumber(sizeBytes)
     if (size === undefined) return "blue"
-    const total = ram()
-    if (total === 0) return "blue"
-    const ratio = size / total
-    if (ratio <= 0.6) return "green"
-    if (ratio <= 1) return "blue"
-    return "red"
+    const needed = size * 1.1
+    const gpuOn = memoryPrefs.useGpu && vramTotal() > 0
+    const ramOn = memoryPrefs.useRamFallback && ram() > 0
+    if (gpuOn && ramOn) {
+      // Prefer free VRAM for the green tier; fall back to total when unknown.
+      const greenCap = vramFree() > 0 ? vramFree() : vramTotal()
+      if (needed <= greenCap) return "green"
+      if (needed <= vramTotal() + ram()) return "blue"
+      return "red"
+    }
+    if (gpuOn) {
+      const cap = vramFree() > 0 ? vramFree() : vramTotal()
+      if (needed <= cap) return "green"
+      return "red"
+    }
+    if (ramOn) {
+      const total = ram()
+      if (total === 0) return "blue"
+      const ratio = needed / total
+      if (ratio <= 0.6) return "green"
+      if (ratio <= 1) return "blue"
+      return "red"
+    }
+    return "blue"
   }
 
   const pages = createMemo(() => Math.max(1, Math.ceil((models() ?? []).length / PAGE_SIZE)))
@@ -228,6 +264,36 @@ export const SettingsModelsHubV2: Component<{
       </div>
 
       <div class="settings-v2-tab-body settings-v2-models-hub">
+        <div class="settings-v2-models-hub-memory">
+          <span class="settings-v2-models-hub-memory-title">
+            {language.t("settings.modelsHub.memory.title")}
+          </span>
+          <div class="settings-v2-models-hub-memory-toggle">
+            <span class="settings-v2-models-hub-memory-label">
+              {language.t("settings.modelsHub.memory.gpu")}
+            </span>
+            <Switch
+              checked={memoryPrefs.useGpu}
+              onChange={(checked) => setMemoryPrefs("useGpu", checked)}
+              hideLabel
+            >
+              {language.t("settings.modelsHub.memory.gpu")}
+            </Switch>
+          </div>
+          <div class="settings-v2-models-hub-memory-toggle">
+            <span class="settings-v2-models-hub-memory-label">
+              {language.t("settings.modelsHub.memory.ram")}
+            </span>
+            <Switch
+              checked={memoryPrefs.useRamFallback}
+              onChange={(checked) => setMemoryPrefs("useRamFallback", checked)}
+              hideLabel
+            >
+              {language.t("settings.modelsHub.memory.ram")}
+            </Switch>
+          </div>
+        </div>
+
         <Show when={system()}>
           <div class="settings-v2-models-hub-sysinfo">
             <div class="settings-v2-models-hub-sysinfo-item">
@@ -240,6 +306,21 @@ export const SettingsModelsHubV2: Component<{
                   : `${Math.round((asNumber(system()!.ram) ?? 0) / 1e6)} MB`}
               </span>
             </div>
+            <Show when={vramTotal() > 0}>
+              <div class="settings-v2-models-hub-sysinfo-item">
+                <span class="settings-v2-models-hub-sysinfo-label">
+                  {language.t("settings.modelsHub.system.vram")}
+                </span>
+                <span class="settings-v2-models-hub-sysinfo-value">
+                  {`${(vramTotal() / 1e9).toFixed(1)} GB`}
+                  <Show when={vramFree() > 0}>
+                    <span class="settings-v2-models-hub-sysinfo-sub">
+                      {language.t("settings.modelsHub.system.vramFree")} {(vramFree() / 1e9).toFixed(1)} GB
+                    </span>
+                  </Show>
+                </span>
+              </div>
+            </Show>
             <div class="settings-v2-models-hub-sysinfo-item">
               <span class="settings-v2-models-hub-sysinfo-label">
                 {language.t("settings.modelsHub.system.disk")}

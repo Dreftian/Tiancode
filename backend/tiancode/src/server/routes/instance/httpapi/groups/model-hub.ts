@@ -83,6 +83,12 @@ export const ModelHubApi = HttpApi.make("model-hub")
               diskFree: Schema.Number,
               cpu: Schema.optional(Schema.String),
               gpu: Schema.optional(Schema.String),
+              vram: Schema.optional(
+                Schema.Struct({
+                  total: Schema.Number,
+                  free: Schema.Number,
+                }),
+              ),
               modelsDir: Schema.String,
             }),
             "System capabilities",
@@ -92,7 +98,7 @@ export const ModelHubApi = HttpApi.make("model-hub")
             identifier: "modelhub.system",
             summary: "Get system capabilities",
             description:
-              "Report the machine RAM, free disk space, CPU, GPU and the local models directory for compatibility checks.",
+              "Report the machine RAM, GPU VRAM, free disk space, CPU, GPU and the local models directory for compatibility checks.",
           }),
         ),
         HttpApiEndpoint.get("downloads", "/models/downloads", {

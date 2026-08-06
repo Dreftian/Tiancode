@@ -1,0 +1,212 @@
+/* ============================================================
+   Tiancode — Website layout
+   Loader, header, navegación (menú desplegable) y footer.
+   ============================================================ */
+
+/* ================= Loader ================= */
+#loader {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: var(--bg);
+  transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+#loader.is-hidden { opacity: 0; visibility: hidden; }
+
+.spinner { width: 56px; height: 56px; animation: spin 1.1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loader-text { margin: 0; font-size: 14px; color: var(--text-3); }
+
+/* ================= Header ================= */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  background: var(--header-bg);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
+}
+.header-inner { display: flex; align-items: center; gap: 28px; height: var(--header-h); }
+
+.logo { display: inline-flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+.logo-mark {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 6px 14px -6px rgba(99, 102, 241, 0.6);
+}
+.logo-mark svg { width: 17px; height: 17px; }
+
+.main-nav { display: flex; align-items: center; gap: 26px; margin-left: 6px; }
+.main-nav a { font-size: 14.5px; font-weight: 500; color: var(--text-2); transition: color 0.18s ease; }
+.main-nav a:hover { color: var(--text); }
+
+.header-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-2);
+  transition: color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+.icon-btn:hover { color: var(--text); border-color: var(--accent); transform: translateY(-1px); }
+.icon-btn svg { width: 17px; height: 17px; }
+
+/* Iconos de tema: luna en claro, sol en oscuro */
+.icon-sun { display: none; }
+[data-theme="dark"] .icon-sun { display: block; }
+[data-theme="dark"] .icon-moon { display: none; }
+
+.lang-btn { min-width: 46px; font-size: 13px; font-weight: 700; letter-spacing: 0.04em; }
+.nav-download { padding: 9px 16px; font-size: 13.5px; border-radius: 10px; }
+.nav-toggle { display: none; }
+
+/* ================= Menú desplegable "Recursos" ================= */
+.nav-dropdown { position: relative; }
+.nav-dropdown-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 2px;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--text-2);
+  transition: color 0.18s ease;
+}
+.nav-dropdown-toggle:hover { color: var(--text); }
+.nav-dropdown-toggle svg { width: 14px; height: 14px; transition: transform 0.2s ease; }
+.nav-dropdown.is-open .nav-dropdown-toggle svg { transform: rotate(180deg); }
+
+.nav-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  z-index: 70;
+  min-width: 226px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
+}
+/* Puente invisible para que el hover no se rompa entre botón y menú */
+.nav-dropdown-menu::before {
+  content: "";
+  position: absolute;
+  top: -12px;
+  left: 0;
+  right: 0;
+  height: 12px;
+}
+.nav-dropdown.is-open .nav-dropdown-menu,
+.nav-dropdown:hover .nav-dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+.nav-dropdown-menu a {
+  padding: 9px 12px;
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-2);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.nav-dropdown-menu a:hover { background: var(--accent-soft); color: var(--text); }
+.nav-dropdown-sep { height: 1px; margin: 6px 4px; background: var(--border); }
+
+/* ================= Footer ================= */
+.site-footer { border-top: 1px solid var(--border); background: var(--surface-2); }
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 40px;
+  padding: 60px 0 44px;
+}
+.footer-brand p { margin: 14px 0 0; max-width: 300px; font-size: 14px; color: var(--text-3); }
+
+.footer-col { display: flex; flex-direction: column; gap: 10px; }
+.footer-col h4 { margin: 0 0 6px; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); }
+.footer-col a { font-size: 14px; color: var(--text-2); transition: color 0.18s ease; }
+.footer-col a:hover { color: var(--accent); }
+
+.footer-bottom { border-top: 1px solid var(--border); padding: 20px 0 26px; }
+.footer-bottom p { margin: 0; font-size: 13px; color: var(--text-3); text-align: center; }
+
+/* ================= Responsive del layout ================= */
+/* Compacta el header para pantallas medias (antes del menú hamburguesa) */
+@media (max-width: 1120px) {
+  .header-inner { gap: 20px; }
+  .main-nav { gap: 16px; }
+  .main-nav > a, .main-nav .nav-dropdown-toggle { font-size: 14px; }
+}
+
+@media (max-width: 900px) {
+  .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+  /* Menú móvil */
+  .nav-toggle { display: inline-flex; }
+  .main-nav {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    margin: 0;
+    padding: 14px 20px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow-md);
+    display: none;
+  }
+  .nav-open .main-nav { display: flex; }
+  .main-nav a { padding: 10px 6px; }
+  .nav-download { margin-top: 8px; justify-content: center; }
+  /* El menú desplegable pasa a ser inline dentro del menú móvil */
+  .nav-dropdown-menu {
+    position: static;
+    transform: none;
+    min-width: 0;
+    padding: 0 0 0 12px;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    opacity: 1;
+    visibility: visible;
+    display: none;
+    transition: none;
+  }
+  .nav-dropdown.is-open .nav-dropdown-menu { display: flex; }
+  .nav-dropdown-toggle { width: 100%; padding: 10px 6px; justify-content: space-between; }
+  .nav-dropdown-menu a { padding: 9px 6px; }
+}
+
+@media (max-width: 640px) {
+  .container { width: min(var(--maxw), 100% - 32px); }
+  .footer-grid { grid-template-columns: 1fr; }
+}

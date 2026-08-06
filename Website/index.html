@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tiancode — Asistente de IA para programar en Windows</title>
   <meta name="description" content="Tiancode es la app de escritorio con IA para programar: agentes, skills de ingeniería y modelos locales GGUF, todo en tu terminal.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236366f1'/%3E%3Cstop offset='1' stop-color='%2306b6d4'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='24' height='24' rx='6' fill='url(%23g)'/%3E%3Cpath d='M6 15l4-4-4-4m5 11h7' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+
+  <!--
+    La app se sirve con módulos ES (js/main.js), que los navegadores bloquean
+    al abrir index.html directo por file:// (política CORS de módulos).
+    Para desarrollo, sirve la carpeta con un servidor HTTP local, por ejemplo:
+      python -m http.server 8000   (desde Website/)
+      bunx serve                   (con Bun)
+  -->
 
   <!-- Aplica tema e idioma guardados antes del primer render (evita parpadeo) -->
   <script>
@@ -21,7 +30,10 @@
     })();
   </script>
 
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/pages.css">
 </head>
 <body>
 
@@ -55,6 +67,7 @@
       <nav class="main-nav" aria-label="Navegación principal">
         <a href="#features" data-i18n="nav.features">Características</a>
         <a href="#how" data-i18n="nav.how">Cómo funciona</a>
+        <a href="#preview" data-i18n="nav.preview">Vista previa</a>
         <a href="#stats" data-i18n="nav.stats">Estadísticas</a>
         <a href="#skills" data-i18n="nav.skills">Skills</a>
         <div class="nav-dropdown">
@@ -122,7 +135,7 @@
       <canvas id="particles" aria-hidden="true"></canvas>
 
       <div class="container hero-inner">
-        <span class="hero-badge reveal"><span class="badge-dot" aria-hidden="true"></span><span data-i18n="hero.badge">Nuevo · v2.0 disponible</span></span>
+        <span class="hero-badge reveal"><span class="badge-dot" aria-hidden="true"></span><span data-i18n="hero.badge">Nuevo · v1.0.0 disponible</span></span>
         <h1 class="hero-title reveal">Tian<span class="accent-text">code</span></h1>
         <p class="hero-tagline reveal" data-i18n="hero.tagline">Tu asistente de IA para programar, directo en tu terminal.</p>
         <p class="hero-sub reveal" data-i18n="hero.sub">Agentes de IA, 24+ skills de ingeniería de software y modelos locales GGUF — una app de escritorio rápida y enfocada para Windows.</p>
@@ -274,32 +287,359 @@
       </div>
     </section>
 
+    <!-- ================= Vista previa de la app (mockups HTML/CSS) ================= -->
+    <section id="preview" class="section">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow" data-i18n="nav.preview">Vista previa</span>
+          <h2 class="section-title" data-i18n="preview.title">Vista previa de la app</h2>
+          <p class="section-sub" data-i18n="preview.sub">Así se ve Tiancode 1.0.0: la ventana principal con su terminal, el diálogo de configuración, los modelos locales y las skills.</p>
+        </div>
+
+        <div class="preview-grid">
+
+          <!-- Mockup 1: ventana principal (chat + explorador + terminal) -->
+          <div class="preview-item preview-item--wide reveal" style="--rd:0s">
+            <p class="preview-cap" data-i18n="mu.cap.chat">Ventana principal: chat, explorador y terminal con toggles en el titlebar</p>
+            <div class="appwin" aria-hidden="true">
+              <div class="appwin-titlebar">
+                <span class="appwin-dots"><span></span><span></span><span></span></span>
+                <span class="appwin-title" data-i18n="mu.win.title">Tiancode — senior-dev</span>
+                <span class="appwin-actions">
+                  <span class="titlebar-toggle is-on" data-i18n-aria="mu.tt.term" aria-label="Mostrar/ocultar terminal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                  </span>
+                  <span class="titlebar-toggle is-on" data-i18n-aria="mu.tt.panel" aria-label="Mostrar/ocultar panel">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+                  </span>
+                  <span class="win-btn" data-i18n-aria="mu.win.min" aria-label="Minimizar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  </span>
+                  <span class="win-btn" data-i18n-aria="mu.win.max" aria-label="Maximizar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
+                  </span>
+                  <span class="win-btn" data-i18n-aria="mu.win.close" aria-label="Cerrar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+                  </span>
+                </span>
+              </div>
+              <div class="appwin-body">
+                <div class="apanel">
+                  <div class="apanel-title" data-i18n="mu.panel">Explorador</div>
+                  <div class="apanel-file apanel-file--dir">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                    src
+                  </div>
+                  <div class="apanel-file apanel-file--nested is-open">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    auth.js
+                  </div>
+                  <div class="apanel-file apanel-file--nested">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    app.js
+                  </div>
+                  <div class="apanel-file apanel-file--nested">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    utils.js
+                  </div>
+                  <div class="apanel-file apanel-file--dir">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                    tests
+                  </div>
+                  <div class="apanel-file apanel-file--dir">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                    node_modules
+                  </div>
+                </div>
+                <div class="chat">
+                  <div class="bubble bubble--user" data-i18n="mu.chat.user">Refactoriza el validador de auth.js</div>
+                  <div class="bubble bubble--agent" data-i18n="mu.chat.agent">He revisado el módulo: la validación ahora está separada en dos funciones, con tests para cada caso.</div>
+                  <div class="bubble--code">function validate(input) {
+  return rules.every(r =&gt; r(input))
+}</div>
+                </div>
+              </div>
+              <div class="appwin-term">
+                <span class="term-dot"></span>
+                <span data-i18n="mu.term">$ npm test — 12 tests en verde · build ok</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mockup 2: diálogo de configuración -->
+          <div class="preview-item reveal" style="--rd:.05s">
+            <p class="preview-cap" data-i18n="mu.cap.set">Diálogo de configuración (1240 px) con sidebar compacto</p>
+            <div class="appwin appwin--dialog" aria-hidden="true">
+              <div class="appwin-titlebar">
+                <span class="appwin-dots"><span></span><span></span><span></span></span>
+                <span class="appwin-title" data-i18n="mu.set.title">Configuración</span>
+                <span class="appwin-actions">
+                  <span class="win-btn" data-i18n-aria="mu.win.close" aria-label="Cerrar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+                  </span>
+                </span>
+              </div>
+              <div class="appwin-body--dialog">
+                <div class="set-sidebar">
+                  <span class="set-tab is-active">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    <span data-i18n="mu.tab.general">General</span>
+                  </span>
+                  <span class="set-tab">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                    <span data-i18n="mu.tab.providers">Proveedores</span>
+                  </span>
+                  <span class="set-tab">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    <span data-i18n="mu.tab.skills">Skills</span>
+                  </span>
+                  <span class="set-tab">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <span data-i18n="mu.tab.subagents">Sub-Agentes</span>
+                  </span>
+                  <span class="set-tab">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    <span data-i18n="mu.tab.models">Modelos Locales</span>
+                  </span>
+                </div>
+                <div class="set-pane">
+                  <div class="set-row">
+                    <span class="set-label" data-i18n="mu.set.theme">Tema</span>
+                    <span class="set-seg">
+                      <span class="is-on" data-i18n="mu.set.themeDark">Oscuro</span>
+                      <span data-i18n="mu.set.themeLight">Claro</span>
+                    </span>
+                  </div>
+                  <div class="set-row">
+                    <span class="set-label" data-i18n="mu.set.lang">Idioma</span>
+                    <span class="set-seg">
+                      <span class="is-on" data-i18n="mu.set.langEs">Español</span>
+                      <span data-i18n="mu.set.langEn">English</span>
+                    </span>
+                  </div>
+                  <div class="set-row">
+                    <span class="set-label" data-i18n="mu.set.data">Carpeta de datos</span>
+                    <span class="set-path">%APPDATA%\Tiancode</span>
+                  </div>
+                  <div class="set-actions">
+                    <span class="set-btn set-btn--ghost" data-i18n="mu.set.cancel">Cancelar</span>
+                    <span class="set-btn set-btn--primary" data-i18n="mu.set.save">Guardar</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mockup 3: pestaña Modelos Locales -->
+          <div class="preview-item reveal" style="--rd:.1s">
+            <p class="preview-cap" data-i18n="mu.cap.ml">Pestaña Modelos Locales: compatibilidad según RAM y sistema</p>
+            <div class="appwin appwin--dialog" aria-hidden="true">
+              <div class="appwin-titlebar">
+                <span class="appwin-dots"><span></span><span></span><span></span></span>
+                <span class="appwin-title" data-i18n="mu.set.title">Configuración</span>
+                <span class="appwin-actions">
+                  <span class="win-btn" data-i18n-aria="mu.win.close" aria-label="Cerrar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+                  </span>
+                </span>
+              </div>
+              <div class="appwin-body--dialog">
+                <div class="set-sidebar">
+                  <span class="set-tab">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    <span data-i18n="mu.tab.general">General</span>
+                  </span>
+                  <span class="set-tab">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                    <span data-i18n="mu.tab.providers">Proveedores</span>
+                  </span>
+                  <span class="set-tab">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    <span data-i18n="mu.tab.skills">Skills</span>
+                  </span>
+                  <span class="set-tab">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <span data-i18n="mu.tab.subagents">Sub-Agentes</span>
+                  </span>
+                  <span class="set-tab is-active">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    <span data-i18n="mu.tab.models">Modelos Locales</span>
+                  </span>
+                </div>
+                <div class="set-pane">
+                  <div class="ml-search">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <span data-i18n="mu.ml.search">Buscar modelos en HuggingFace…</span>
+                  </div>
+                  <table class="ml-table">
+                    <thead>
+                      <tr>
+                        <th data-i18n="mu.ml.colModel">Modelo</th>
+                        <th data-i18n="mu.ml.colQuant">Quant</th>
+                        <th data-i18n="mu.ml.colSize">Tamaño</th>
+                        <th data-i18n="mu.ml.colCompat">Compatibilidad</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td class="ml-model">llama-3.1-8b-instruct</td>
+                        <td class="ml-quant">Q4_K_M</td>
+                        <td class="ml-size">4.92 GB</td>
+                        <td><span class="ml-badge ml-badge--ok" data-i18n="mu.ml.ok">Cómodo</span></td>
+                      </tr>
+                      <tr>
+                        <td class="ml-model">qwen2.5-coder-7b</td>
+                        <td class="ml-quant">Q8_0</td>
+                        <td class="ml-size">8.54 GB</td>
+                        <td><span class="ml-badge ml-badge--mid" data-i18n="mu.ml.mid">Ajustado</span></td>
+                      </tr>
+                      <tr>
+                        <td class="ml-model">deepseek-r1-32b</td>
+                        <td class="ml-quant">Q4_K_M</td>
+                        <td class="ml-size">19.9 GB</td>
+                        <td><span class="ml-badge ml-badge--no" data-i18n="mu.ml.no">No cabe</span></td>
+                      </tr>
+                      <tr>
+                        <td class="ml-model">mistral-7b-instruct</td>
+                        <td class="ml-quant">IQ4_XS</td>
+                        <td class="ml-size">4.14 GB</td>
+                        <td><span class="ml-badge ml-badge--ok" data-i18n="mu.ml.ok">Cómodo</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <div class="ml-legend">
+                    <span><i class="lg-ok"></i><span data-i18n="mu.ml.ok">Cómodo</span></span>
+                    <span><i class="lg-mid"></i><span data-i18n="mu.ml.mid">Ajustado</span></span>
+                    <span><i class="lg-no"></i><span data-i18n="mu.ml.no">No cabe</span></span>
+                  </div>
+                  <div class="ml-sys">
+                    <p class="ml-sys-title">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+                      <span data-i18n="mu.ml.info">Información del sistema</span>
+                    </p>
+                    <div class="ml-sys-grid">
+                      <div class="ml-sys-item"><span data-i18n="mu.ml.ram">RAM</span><b>32 GB DDR5</b></div>
+                      <div class="ml-sys-item"><span data-i18n="mu.ml.disk">Disco libre</span><b data-i18n="mu.ml.diskVal">214 GB libres</b></div>
+                      <div class="ml-sys-item"><span data-i18n="mu.ml.gpu">GPU</span><b>NVIDIA RTX 4060 · 8 GB</b></div>
+                      <div class="ml-sys-item"><span data-i18n="mu.ml.cpu">CPU</span><b>AMD Ryzen 7 5800X</b></div>
+                    </div>
+                  </div>
+                  <div class="ml-dl">
+                    <div class="ml-dl-label">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                      <span data-i18n="mu.ml.dl">Descargando llama-3.1-8b-instruct.Q4_K_M.gguf… 68%</span>
+                    </div>
+                    <div class="ml-dl-track"><div class="ml-dl-fill"></div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mockup 4: pestaña Skills -->
+          <div class="preview-item reveal" style="--rd:.15s">
+            <p class="preview-cap" data-i18n="mu.cap.sk">Pestaña Skills: toggles, paginación y detalles markdown</p>
+            <div class="appwin appwin--dialog" aria-hidden="true">
+              <div class="appwin-titlebar">
+                <span class="appwin-dots"><span></span><span></span><span></span></span>
+                <span class="appwin-title" data-i18n="mu.set.title">Configuración</span>
+                <span class="appwin-actions">
+                  <span class="win-btn" data-i18n-aria="mu.win.close" aria-label="Cerrar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+                  </span>
+                </span>
+              </div>
+              <div class="appwin-body appwin-body--sk">
+                <div class="sk-pane">
+                  <div class="sk-toolbar">
+                    <span class="sk-title" data-i18n="mu.sk.avail">Skills disponibles</span>
+                    <span class="sk-page" data-i18n="mu.sk.page">Página 1 de 4</span>
+                    <span class="sk-nav">
+                      <span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                      </span>
+                      <span class="is-on">1</span>
+                      <span>2</span>
+                      <span>3</span>
+                      <span>4</span>
+                      <span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                      </span>
+                    </span>
+                  </div>
+                  <div class="sk-body">
+                    <div class="sk-list">
+                      <div class="sk-item is-on">
+                        <span class="sk-item-name">interview-me</span>
+                        <span class="sk-item-desc" data-i18n="mu.sk.d1">Entrevista de requisitos</span>
+                        <span class="sk-toggle" data-i18n-aria="mu.sk.toggle" aria-label="Activar o desactivar skill"></span>
+                      </div>
+                      <div class="sk-item">
+                        <span class="sk-item-name">spec-driven-development</span>
+                        <span class="sk-item-desc" data-i18n="mu.sk.d2">Especificación guiada</span>
+                        <span class="sk-toggle" data-i18n-aria="mu.sk.toggle" aria-label="Activar o desactivar skill"></span>
+                      </div>
+                      <div class="sk-item is-on">
+                        <span class="sk-item-name">test-driven-development</span>
+                        <span class="sk-item-desc" data-i18n="mu.sk.d3">Tests primero, implementación después</span>
+                        <span class="sk-toggle" data-i18n-aria="mu.sk.toggle" aria-label="Activar o desactivar skill"></span>
+                      </div>
+                      <div class="sk-item">
+                        <span class="sk-item-name">code-review-and-quality</span>
+                        <span class="sk-item-desc" data-i18n="mu.sk.d4">Revisión de calidad del código</span>
+                        <span class="sk-toggle" data-i18n-aria="mu.sk.toggle" aria-label="Activar o desactivar skill"></span>
+                      </div>
+                      <div class="sk-item is-on">
+                        <span class="sk-item-name">security-and-hardening</span>
+                        <span class="sk-item-desc" data-i18n="mu.sk.d5">Endurecimiento de seguridad</span>
+                        <span class="sk-toggle" data-i18n-aria="mu.sk.toggle" aria-label="Activar o desactivar skill"></span>
+                      </div>
+                      <div class="sk-item">
+                        <span class="sk-item-name">performance-optimization</span>
+                        <span class="sk-item-desc" data-i18n="mu.sk.d6">Optimización de rendimiento</span>
+                        <span class="sk-toggle" data-i18n-aria="mu.sk.toggle" aria-label="Activar o desactivar skill"></span>
+                      </div>
+                    </div>
+                    <div class="sk-detail">
+                      <p class="sk-detail-title">test-driven-development.md</p>
+                      <p data-i18n="mu.sk.md">Cuando la activas, el agente sigue el flujo TDD: red, green, refactor.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
     <!-- ================= Estadísticas + gráficas ================= -->
-    <section id="stats" class="section">
+    <section id="stats" class="section section-alt">
       <div class="container">
         <div class="section-head reveal">
           <span class="eyebrow" data-i18n="nav.stats">Estadísticas</span>
           <h2 class="section-title" data-i18n="stats.title">Cifras que importan</h2>
-          <p class="section-sub" data-i18n="stats.sub">La comunidad de Tiancode crece rápido. Datos ilustrativos.</p>
+          <p class="section-sub" data-i18n="stats.sub">Datos reales de la versión 1.0.0.</p>
         </div>
 
         <div id="stats-charts">
           <div class="stat-counters reveal">
             <div class="stat">
-              <span class="stat-num" data-count="48" data-suffix="k+">0</span>
-              <span class="stat-label" data-i18n="stats.c1">Descargas</span>
-            </div>
-            <div class="stat">
-              <span class="stat-num" data-count="120" data-suffix="+">0</span>
-              <span class="stat-label" data-i18n="stats.c2">Modelos GGUF compatibles</span>
-            </div>
-            <div class="stat">
               <span class="stat-num" data-count="24" data-suffix="+">0</span>
-              <span class="stat-label" data-i18n="stats.c3">Skills de ingeniería</span>
+              <span class="stat-label" data-i18n="stats.c1">Skills de ingeniería</span>
             </div>
             <div class="stat">
-              <span class="stat-num" data-count="38" data-suffix="+">0</span>
-              <span class="stat-label" data-i18n="stats.c4">Países</span>
+              <span class="stat-num" data-count="216">0</span>
+              <span class="stat-label" data-i18n="stats.c2">Tests e2e (HTTP)</span>
+            </div>
+            <div class="stat">
+              <span class="stat-num" data-count="5">0</span>
+              <span class="stat-label" data-i18n="stats.c3">Pestañas de configuración</span>
+            </div>
+            <div class="stat">
+              <span class="stat-num" data-count="2">0</span>
+              <span class="stat-label" data-i18n="stats.c4">Binarios de descarga</span>
             </div>
           </div>
 
@@ -319,7 +659,7 @@
     </section>
 
     <!-- ================= Skills destacadas ================= -->
-    <section id="skills" class="section section-alt">
+    <section id="skills" class="section">
       <div class="container">
         <div class="section-head reveal">
           <span class="eyebrow" data-i18n="nav.skills">Skills</span>
@@ -381,7 +721,7 @@
     </section>
 
     <!-- ================= CTA final ================= -->
-    <section id="download" class="section">
+    <section id="download" class="section section-alt">
       <div class="container">
         <div class="cta-box reveal">
           <div class="cta-glow" aria-hidden="true"></div>
@@ -396,7 +736,7 @@
               <span data-i18n="cta.button">Descargar Tiancode</span>
             </a>
           </div>
-          <p class="cta-note" data-i18n="cta.note">Windows 10 y 11 · 64 bits · ~120 MB</p>
+          <p class="cta-note" data-i18n="cta.note">Windows 10 y 11 · 64 bits · ~130 MB</p>
         </div>
       </div>
     </section>
@@ -405,7 +745,7 @@
 
     <!-- ================================================================
          Páginas internas (SPA con rutas #/licencia, #/terminos, …).
-         Se muestran/ocultan desde script.js según location.hash.
+         Se muestran/ocultan desde js/router.js según location.hash.
          ================================================================ -->
     <div class="pages">
 
@@ -570,7 +910,7 @@ SOFTWARE.</code></pre>
             <header class="page-head reveal">
               <span class="eyebrow" data-i18n="nav.more">Recursos</span>
               <h1 class="page-title" data-i18n="docs.title">Documentación</h1>
-              <p class="page-sub" data-i18n="docs.sub">La guía oficial de Tiancode: instalación, agentes, skills, modelos locales, configuración, comandos y solución de problemas.</p>
+              <p class="page-sub" data-i18n="docs.sub">La guía oficial de Tiancode: instalación, agentes, skills, modelos locales, configuración, comandos, arquitectura y solución de problemas.</p>
             </header>
             <nav class="docs-toc reveal" aria-label="Contenido de la documentación">
               <span class="toc-label" data-i18n="docs.toc">Contenido</span>
@@ -581,33 +921,38 @@ SOFTWARE.</code></pre>
               <a href="#docs-configuracion"><span class="toc-num">5</span><span data-i18n="docs.t5">Configuración</span></a>
               <a href="#docs-comandos"><span class="toc-num">6</span><span data-i18n="docs.t6">Comandos</span></a>
               <a href="#docs-problemas"><span class="toc-num">7</span><span data-i18n="docs.t7">Solución de problemas</span></a>
+              <a href="#docs-arquitectura"><span class="toc-num">8</span><span data-i18n="docs.t8">Arquitectura del proyecto</span></a>
             </nav>
             <div class="page-body reveal" style="--rd:.08s">
               <h2 id="docs-instalacion" data-i18n="docs.s1t">1. Instalación</h2>
               <p data-i18n="docs.s1p">Tiancode 1.0.0 se distribuye en dos formatos para Windows 10 y 11 (64 bits):</p>
               <ul class="page-list">
-                <li data-i18n="docs.s1l1">Instalador NSIS (Tiancode-1.0.0-setup.exe): instalación clásica con asistente, accesos directos y actualizaciones sencillas.</li>
-                <li data-i18n="docs.s1l2">Versión portable (Tiancode-portable-1.0.0.exe): sin instalación, se ejecuta desde cualquier carpeta o USB.</li>
+                <li data-i18n="docs.s1l1">Instalador NSIS (Tiancode-1.0.0-setup.exe, ~130 MB): instalación clásica con asistente, accesos directos y actualizaciones sencillas.</li>
+                <li data-i18n="docs.s1l2">Versión portable (Tiancode-portable-1.0.0.exe, ~115 MB): sin instalación, se ejecuta desde cualquier carpeta o USB.</li>
               </ul>
               <p data-i18n="docs.s1p2">Requisitos mínimos: Windows 10 u 11 de 64 bits, 4 GB de RAM y 1 GB de espacio libre. Para modelos locales se recomiendan 8 GB de RAM o más.</p>
               <h2 id="docs-agentes" data-i18n="docs.s2t">2. Agentes</h2>
               <p data-i18n="docs.s2p">Los agentes son asistentes de IA especializados que trabajan en tu proyecto. Puedes tener varios agentes en la misma conversación, delegar tareas a sub-agentes y asignar a cada uno un rol (senior-dev, reviewer, arquitecto…).</p>
               <pre class="code-block"><code>$ tiancode --agent senior-dev</code></pre>
-              <p data-i18n="docs.s2p2">Cada agente mantiene su propio contexto y puede ejecutar comandos en la terminal integrada para verificar su trabajo antes de proponer cambios.</p>
+              <p data-i18n="docs.s2p2">Cada agente mantiene su propio contexto y puede ejecutar comandos en la terminal integrada para verificar su trabajo antes de proponer cambios. La barra de título tiene toggles para mostrar u ocultar la terminal y el panel de archivos.</p>
               <h2 id="docs-skills" data-i18n="docs.s3t">3. Skills</h2>
-              <p data-i18n="docs.s3p">Tiancode incluye 24 skills de ingeniería de software listas para usar: entrevistas de requisitos, TDD, code review, auditoría de seguridad, optimización de rendimiento, CI/CD, refactorización, depuración asistida y más.</p>
-              <p data-i18n="docs.s3p2">Las skills viven en la carpeta de skills integrada. Puedes crear las tuyas propias añadiendo archivos a esa carpeta: cada skill define el flujo de trabajo que sigue el agente.</p>
+              <p data-i18n="docs.s3p">Tiancode incluye 24+ skills de ingeniería de software listas para usar: entrevistas de requisitos, TDD, code review, auditoría de seguridad, optimización de rendimiento, CI/CD, refactorización, depuración asistida y más.</p>
+              <p data-i18n="docs.s3p2">La pestaña Skills las lista con paginación, muestra sus detalles en markdown al costado y permite activar o desactivar cada skill con un toggle. También puedes crear las tuyas propias añadiendo archivos a la carpeta de skills: cada skill define el flujo de trabajo que sigue el agente.</p>
               <h2 id="docs-modelos" data-i18n="docs.s4t">4. Modelos locales</h2>
-              <p data-i18n="docs.s4p">Desde la pestaña Modelos puedes buscar y descargar modelos GGUF directamente desde HuggingFace, al estilo LM Studio:</p>
+              <p data-i18n="docs.s4p">Desde la pestaña Modelos Locales puedes buscar y descargar modelos GGUF directamente desde HuggingFace, al estilo LM Studio. El flujo completo:</p>
               <ol class="page-list">
-                <li data-i18n="docs.s4l1">Explora el catálogo y elige un modelo, por ejemplo Llama 3.1 8B en cuantización Q4_K_M.</li>
-                <li data-i18n="docs.s4l2">Descarga el archivo GGUF: la app gestiona el progreso y verifica el espacio en disco.</li>
-                <li data-i18n="docs.s4l3">Selecciona el modelo local como proveedor activo y empieza a conversar sin conexión.</li>
+                <li data-i18n="docs.s4l1">Abre Configuración → Modelos Locales y explora el catálogo, por ejemplo llama-3.1-8b-instruct.</li>
+                <li data-i18n="docs.s4l2">Filtra con el buscador y elige una cuantización: Q2_K, Q3_K_L, Q4_K_M, Q6_K, Q8_0, la familia IQ* o F16. La app muestra el tamaño exacto de cada archivo.</li>
+                <li data-i18n="docs.s4l3">Comprueba el indicador de compatibilidad (verde, azul o rojo) y el panel de Información del sistema, que detecta automáticamente tu RAM, disco libre, GPU y CPU.</li>
+                <li data-i18n="docs.s4l4">Descarga el archivo: verás una barra de progreso y la descarga se reanuda si la conexión se corta. El espacio libre en disco se verifica antes de empezar.</li>
+                <li data-i18n="docs.s4l5">Selecciona el modelo local como proveedor activo y empieza a conversar sin conexión.</li>
               </ol>
+              <p data-i18n="docs.s4q">El indicador de compatibilidad compara el tamaño del archivo con tu RAM: verde significa que cabe con margen, azul que cabe justo y rojo que no cabe. Las cuantizaciones menores (Q2_K, Q3_K_L, IQ*) ocupan menos y son la opción natural para equipos con poca RAM.</p>
               <pre class="code-block"><code>%APPDATA%\Tiancode\models\llama-3.1-8b-instruct.Q4_K_M.gguf</code></pre>
-              <p data-i18n="docs.s4p2">La ejecución usa el backend de llama.cpp: funciona en CPU y aprovecha las GPUs NVIDIA o AMD cuando están disponibles.</p>
+              <p data-i18n="docs.s4p2">La ejecución usa el backend de llama.cpp: funciona en CPU y aprovecha las GPUs NVIDIA o AMD cuando están disponibles. Los modelos se guardan en la carpeta de modelos dentro del directorio de datos.</p>
               <h2 id="docs-configuracion" data-i18n="docs.s5t">5. Configuración</h2>
-              <p data-i18n="docs.s5p">La configuración está organizada en pestañas: Apariencia (tema claro/oscuro e idioma), Proveedores (claves API y modelos), Agentes (roles por defecto), Skills (activar y ajustar cada skill), Atajos (atajos de teclado personalizables) y Avanzado (telemetría y carpeta de datos).</p>
+              <p data-i18n="docs.s5p">El diálogo de configuración (1240 px) usa un sidebar compacto con 5 pestañas: General (tema, idioma y carpeta de datos), Proveedores (claves API y modelos), Skills (lista con toggles, paginación y detalles markdown), Sub-Agentes (crea agentes con modo subagente o primary, modelo, color y descripción) y Modelos Locales (buscador, quantizaciones y compatibilidad).</p>
+              <p data-i18n="docs.s5p2">En la barra de título de la ventana, junto a los botones de minimizar, hay toggles para mostrar u ocultar el terminal y el panel de archivos.</p>
               <h2 id="docs-comandos" data-i18n="docs.s6t">6. Comandos</h2>
               <p data-i18n="docs.s6p">La CLI de Tiancode expone comandos útiles desde cualquier terminal:</p>
               <pre class="code-block"><code>tiancode                     # Abre la aplicación
@@ -623,6 +968,72 @@ tiancode --version           # Muestra la versión instalada</code></pre>
                 <li data-i18n="docs.s7l4">La app no arranca en modo portable: asegúrate de tener permisos de escritura en la carpeta.</li>
                 <li data-i18n="docs.s7l5">¿Sigue el problema? Abre una incidencia adjuntando los logs de la carpeta de datos.</li>
               </ul>
+              <h2 id="docs-arquitectura" data-i18n="docs.s8t">8. Arquitectura del proyecto</h2>
+              <p data-i18n="docs.s8p">Tiancode es un monorepo con cinco carpetas raíz, cada una con una responsabilidad clara:</p>
+              <div class="arch-tree" role="img" aria-label="Diagrama de árbol del monorepo Tiancode">
+                <div class="arch-row">
+                  <span class="arch-dir">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                    Tiancode/
+                  </span>
+                </div>
+                <div class="arch-row arch-row--child">
+                  <span class="arch-dir">├─ frontend/</span>
+                  <span class="arch-sep">·</span>
+                  <span class="arch-desc" data-i18n="arch.f1">Interfaz de la app: aplicación principal, componentes UI, escritorio Electron, TUI, web y session-ui.</span>
+                </div>
+                <div class="arch-row arch-row--child">
+                  <span class="arch-dir">├─ backend/</span>
+                  <span class="arch-sep">·</span>
+                  <span class="arch-desc" data-i18n="arch.f2">Servidor, core, protocolo, schema, SDK y model-hub.</span>
+                </div>
+                <div class="arch-row arch-row--child">
+                  <span class="arch-dir">├─ skills/</span>
+                  <span class="arch-sep">·</span>
+                  <span class="arch-desc" data-i18n="arch.f3">24+ skills de ingeniería en markdown, listas para usar.</span>
+                </div>
+                <div class="arch-row arch-row--child">
+                  <span class="arch-dir">├─ install/</span>
+                  <span class="arch-sep">·</span>
+                  <span class="arch-desc" data-i18n="arch.f4">Binarios de distribución: instalador NSIS y versión portable.</span>
+                </div>
+                <div class="arch-row arch-row--child">
+                  <span class="arch-dir">└─ Website/</span>
+                  <span class="arch-sep">·</span>
+                  <span class="arch-desc" data-i18n="arch.f5">Esta landing page.</span>
+                </div>
+              </div>
+              <div class="stack-chips" aria-hidden="true">
+                <span class="stack-chip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                  Bun
+                </span>
+                <span class="stack-chip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                  TypeScript
+                </span>
+                <span class="stack-chip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+                  SolidJS
+                </span>
+                <span class="stack-chip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                  Electron
+                </span>
+                <span class="stack-chip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  Effect
+                </span>
+                <span class="stack-chip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  Turborepo
+                </span>
+                <span class="stack-chip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  216 e2e
+                </span>
+              </div>
+              <p data-i18n="docs.s8p2">Tiancode está construido con Bun (runtime y gestor de paquetes), TypeScript en todo el código, SolidJS en el frontend, Electron para el escritorio y Effect en el backend, orquestado con Turborepo. La suite de pruebas e2e cubre 216 escenarios HTTP.</p>
             </div>
           </div>
         </div>
@@ -650,7 +1061,7 @@ tiancode --version           # Muestra la versión instalada</code></pre>
                 <span class="qstep-num" aria-hidden="true">1</span>
                 <div>
                   <h3 data-i18n="guide.s1t">Descarga Tiancode</h3>
-                  <p data-i18n="guide.s1d">Elige el instalador NSIS o la versión portable desde la página de descarga. La versión 1.0.0 soporta Windows 10 y 11.</p>
+                  <p data-i18n="guide.s1d">Elige el instalador NSIS (~130 MB) o la versión portable (~115 MB) desde la página de descarga. La versión 1.0.0 soporta Windows 10 y 11.</p>
                 </div>
               </div>
               <div class="qstep reveal" style="--rd:.05s">
@@ -663,8 +1074,8 @@ tiancode --version           # Muestra la versión instalada</code></pre>
               <div class="qstep reveal" style="--rd:.1s">
                 <span class="qstep-num" aria-hidden="true">3</span>
                 <div>
-                  <h3 data-i18n="guide.s3t">Elige tu proveedor</h3>
-                  <p data-i18n="guide.s3d">Añade tu clave de API (OpenAI, Anthropic…) en Configuración → Proveedores, o descarga un modelo local GGUF desde la pestaña Modelos.</p>
+                  <h3 data-i18n="guide.s3t">Elige tu modelo</h3>
+                  <p data-i18n="guide.s3d">Añade tu clave API (OpenAI, Anthropic…) en Configuración → Proveedores, o descarga un modelo local GGUF desde la pestaña Modelos Locales: el indicador verde/azul/rojo te dice si cabe en tu RAM.</p>
                 </div>
               </div>
               <div class="qstep reveal" style="--rd:.15s">
@@ -677,15 +1088,15 @@ tiancode --version           # Muestra la versión instalada</code></pre>
               <div class="qstep reveal" style="--rd:.2s">
                 <span class="qstep-num" aria-hidden="true">5</span>
                 <div>
-                  <h3 data-i18n="guide.s5t">Prueba una skill</h3>
-                  <p data-i18n="guide.s5d">Activa una skill como TDD o Code Review en la pestaña Skills y pídela en la conversación: el agente seguirá su flujo de trabajo paso a paso.</p>
+                  <h3 data-i18n="guide.s5t">Activa skills y sub-agentes</h3>
+                  <p data-i18n="guide.s5d">En la pestaña Skills activa cada skill con su toggle (hay paginación y detalles en markdown); crea sub-agentes con su modelo, color y descripción en la pestaña Sub-Agentes.</p>
                 </div>
               </div>
               <div class="qstep reveal" style="--rd:.25s">
                 <span class="qstep-num" aria-hidden="true">6</span>
                 <div>
                   <h3 data-i18n="guide.s6t">Ajusta a tu gusto</h3>
-                  <p data-i18n="guide.s6d">Personaliza el tema (claro u oscuro), el idioma, los atajos de teclado y crea tus propios agentes y skills. Todo se guarda localmente.</p>
+                  <p data-i18n="guide.s6d">Personaliza el tema (claro u oscuro), el idioma y los atajos de teclado, y usa los toggles del titlebar para mostrar u ocultar el terminal y el panel. Todo se guarda localmente.</p>
                 </div>
               </div>
             </div>
@@ -807,6 +1218,24 @@ tiancode --version           # Muestra la versión instalada</code></pre>
                   <div class="faq-a-inner"><p data-i18n="faq.a10">Con el instalador, ejecuta el nuevo instalador y tus datos se conservan. En modo portable, sustituye el ejecutable por la nueva versión: la configuración permanece en su carpeta.</p></div>
                 </div>
               </div>
+              <div class="faq-item reveal" style="--rd:.3s">
+                <button class="faq-q" type="button" aria-expanded="false" aria-controls="faq-a11">
+                  <span data-i18n="faq.q11">¿Qué significan los colores de compatibilidad de los modelos?</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="faq-a" id="faq-a11" role="region">
+                  <div class="faq-a-inner"><p data-i18n="faq.a11">Cada modelo local muestra un indicador según tu RAM: verde (cabe con margen), azul (cabe justo) y rojo (no cabe). El panel de Información del sistema detecta automáticamente tu RAM, disco libre, GPU y CPU para que elijas con datos reales.</p></div>
+                </div>
+              </div>
+              <div class="faq-item reveal" style="--rd:.33s">
+                <button class="faq-q" type="button" aria-expanded="false" aria-controls="faq-a12">
+                  <span data-i18n="faq.q12">¿Cómo creo un sub-agente?</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="faq-a" id="faq-a12" role="region">
+                  <div class="faq-a-inner"><p data-i18n="faq.a12">En Configuración → Sub-Agentes pulsa «Nuevo agente»: elige el modo (subagente o primary), el modelo, un color y una descripción. Después podrás delegarle tareas dentro de cualquier conversación.</p></div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -843,12 +1272,12 @@ tiancode --version           # Muestra la versión instalada</code></pre>
                   <span data-i18n="news.newTitle">Novedades</span>
                 </h3>
                 <ul class="news-list news-list--new">
-                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new1">Modelos locales GGUF: descarga y ejecuta modelos desde HuggingFace sin salir de la app.</span></li>
-                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new2">24 skills de ingeniería de software integradas, activables una a una.</span></li>
-                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new3">Sub-agentes: delega tareas a agentes especializados dentro de una conversación.</span></li>
-                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new4">Pestañas de configuración: apariencia, proveedores, agentes, skills, atajos y avanzado.</span></li>
-                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new5">Modo portable con Tiancode-portable.exe: sin instalación, listo desde un USB.</span></li>
-                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new6">Instalador NSIS: instalación limpia y rápida para Windows 10 y 11.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new1">Modelos locales GGUF: pestaña con buscador, quantizaciones Q2_K, Q3_K_L, Q4_K_M, Q6_K, Q8_0, IQ* y F16, con el tamaño exacto de cada archivo.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new2">Indicador de compatibilidad verde/azul/rojo según tu RAM, panel de Información del sistema (RAM, disco, GPU y CPU detectados automáticamente) y descargas con barra de progreso reanudable.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new3">Skills con toggles: lista con paginación, detalles en markdown al costado y activación skill por skill.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new4">Sub-agentes personalizables: crea agentes con modo subagente o primary, modelo, color y descripción.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new5">Toggles en el titlebar: muestra u oculta el terminal y el panel de archivos junto a los botones de ventana.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new6">Interfaz V2: tema claro/oscuro, sidebar de configuración compacto y diálogo de configuración de 1240 px.</span></li>
                 </ul>
               </div>
               <div class="news-block news-block--imp">
@@ -859,10 +1288,11 @@ tiancode --version           # Muestra la versión instalada</code></pre>
                   <span data-i18n="news.impTitle">Mejoras</span>
                 </h3>
                 <ul class="news-list news-list--imp">
-                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span data-i18n="news.imp1">Tema oscuro y claro con cambio instantáneo, también sincronizado con el sistema.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span data-i18n="news.imp1">Distribución: instalador NSIS (Tiancode.exe, ~130 MB) y portable (Tiancode-portable.exe, ~115 MB) para Windows 10 y 11.</span></li>
                   <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span data-i18n="news.imp2">Terminal integrada más rápida, con resaltado de sintaxis.</span></li>
                   <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span data-i18n="news.imp3">Multi-proveedor: usa OpenAI, Anthropic y modelos locales en paralelo.</span></li>
                   <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span data-i18n="news.imp4">Atajos de teclado personalizables para las acciones más frecuentes.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span data-i18n="news.imp5">Suite e2e con 216 escenarios HTTP probados sobre el backend.</span></li>
                 </ul>
               </div>
               <div class="news-block news-block--fix">
@@ -901,7 +1331,7 @@ tiancode --version           # Muestra la versión instalada</code></pre>
               <p class="page-sub" data-i18n="port.sub">Tiancode donde lo necesites: sin instalación, con tu configuración a cuestas.</p>
             </header>
             <div class="page-body reveal" style="--rd:.08s">
-              <p data-i18n="port.intro">La versión portable (Tiancode-portable.exe) ejecuta la aplicación completa sin instalarla. Es la misma Tiancode, pero todo — el ejecutable, la configuración y los modelos — vive en la carpeta que tú elijas.</p>
+              <p data-i18n="port.intro">La versión portable (Tiancode-portable.exe, ~115 MB) ejecuta la aplicación completa sin instalarla. Es la misma Tiancode, pero todo — el ejecutable, la configuración y los modelos — vive en la carpeta que tú elijas.</p>
               <h2 data-i18n="port.prosTitle">Por qué elegir la versión portable</h2>
               <ul class="page-list">
                 <li data-i18n="port.p1">Sin instalación y sin permisos de administrador.</li>
@@ -974,7 +1404,7 @@ tiancode --version           # Muestra la versión instalada</code></pre>
               <article class="dl-card reveal" style="--rd:0s">
                 <div class="dl-meta">
                   <span class="dl-chip">v1.0.0</span>
-                  <span class="dl-chip" data-i18n="dl.instSize">~120 MB</span>
+                  <span class="dl-chip" data-i18n="dl.instSize">~130 MB</span>
                 </div>
                 <h3 data-i18n="dl.instTitle">Instalador de Windows</h3>
                 <p data-i18n="dl.instDesc">Instalación clásica con asistente NSIS. Ideal para uso diario: incluye accesos directos y actualizaciones sencillas.</p>
@@ -994,7 +1424,7 @@ tiancode --version           # Muestra la versión instalada</code></pre>
               <article class="dl-card reveal" style="--rd:.06s">
                 <div class="dl-meta">
                   <span class="dl-chip">v1.0.0</span>
-                  <span class="dl-chip" data-i18n="dl.portSize">~120 MB</span>
+                  <span class="dl-chip" data-i18n="dl.portSize">~115 MB</span>
                 </div>
                 <h3 data-i18n="dl.portTitle">Versión portable</h3>
                 <p data-i18n="dl.portDesc">Sin instalación. Ejecuta Tiancode desde cualquier carpeta o USB; la configuración se guarda junto al ejecutable.</p>
@@ -1090,6 +1520,6 @@ tiancode --version           # Muestra la versión instalada</code></pre>
     </div>
   </footer>
 
-  <script src="script.js"></script>
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>
