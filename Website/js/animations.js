@@ -8,10 +8,15 @@ import { reducedMotion, easeOut } from './utils.js';
 
 /* ---------- Loader (monograma + progreso ~1.35s) ---------- */
 const LOADER_MS = 1350;
+const LOADER_TARGET = 90; // 0→90% durante la carga; 100% al ocultarse
 
 function hideLoader() {
   const loader = document.getElementById('loader');
   if (!loader || loader.classList.contains('is-hidden')) return;
+  const fill = loader.querySelector('.loader-fill');
+  const pct = loader.querySelector('.loader-pct');
+  if (fill) fill.style.width = '100%';
+  if (pct) pct.textContent = '100%';
   loader.classList.add('is-hidden');
   setTimeout(function () {
     if (loader.parentNode) loader.parentNode.removeChild(loader);
@@ -29,12 +34,16 @@ function animateLoader() {
     setTimeout(hideLoader, 300);
     return;
   }
+  // Si el fallback inline ya avanzó el progreso (módulo lento), continuar
+  // desde ahí en vez de reiniciar en 0%.
+  const current = pct ? parseFloat(pct.textContent) : 0;
+  const from = Math.min(Math.max(current / LOADER_TARGET, 0), 1);
   const start = performance.now();
   function step(now) {
-    const p = Math.min(1, (now - start) / LOADER_MS);
+    const p = Math.min(1, from + (1 - from) * ((now - start) / LOADER_MS));
     const eased = easeOut(p);
-    if (fill) fill.style.width = (eased * 100).toFixed(1) + '%';
-    if (pct) pct.textContent = Math.round(eased * 100) + '%';
+    if (fill) fill.style.width = (eased * LOADER_TARGET).toFixed(1) + '%';
+    if (pct) pct.textContent = Math.round(eased * LOADER_TARGET) + '%';
     if (p < 1) requestAnimationFrame(step);
     else setTimeout(hideLoader, 120);
   }
