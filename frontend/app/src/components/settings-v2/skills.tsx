@@ -1,12 +1,15 @@
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
+import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
 import { TextInputV2 } from "@tiancode-ai/ui/v2/text-input-v2"
-import { type Component, createResource, For, Show, createSignal } from "solid-js"
+import { Markdown } from "@tiancode-ai/session-ui/markdown"
+import { type Component, createResource, For, Show, createSignal, createMemo } from "solid-js"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { useServerSDK } from "@/context/server-sdk"
 import { SettingsListV2 } from "./parts/list"
-import { SettingsRowV2 } from "./parts/row"
 import "./settings-v2.css"
+
+const PAGE_SIZE = 8
 
 export const SettingsSkillsV2: Component<{
   directory?: string
@@ -17,14 +20,27 @@ export const SettingsSkillsV2: Component<{
   const [url, setUrl] = createSignal("")
   const [importing, setImporting] = createSignal(false)
   const [message, setMessage] = createSignal<"success" | "error" | undefined>(undefined)
+  const [selected, setSelected] = createSignal<string | undefined>(undefined)
+  const [page, setPage] = createSignal(0)
 
   const params = () => (props.directory ? { directory: props.directory } : undefined)
 
-  const [skills, { refetch }] = createResource(
-    () => serverSdk().client.app.skills(params()),
-    (request) => request.then((x) => x.data),
-    { initialValue: [] },
+  const [data, { refetch }] = createResource(
+    async () => {
+      const [skills, config] = await Promise.all([
+        serverSdk().client.app.skills(params()),
+        serverSdk().client.config.get(params()),
+      ])
+      return { skills: skills.data ?? [], disabled: new Set(config.data?.skills?.disabled ?? []) }
+    },
+    { initialValue: { skills: [], disabled: new Set<string>() } },
   )
+
+  const skills = createMemo(() => data().skills)
+  const disabled = createMemo(() => data().disabled)
+  const pages = createMemo(() => Math.max(1, Math.ceil(skills().length / PAGE_SIZE)))
+  const pageSkills = createMemo(() => skills().slice(page() * PAGE_SIZE, (page() + 1) * PAGE_SIZE))
+  const selectedSkill = createMemo(() => skills().find((skill) => skill.name === selected()))
 
   const pickFolder = () => {
     const input = document.createElement("input")
@@ -65,10 +81,28 @@ export const SettingsSkillsV2: Component<{
     }
   }
 
+  const toggleSkill = async (name: string, enabled: boolean) => {
+    setMessage(undefined)
+    try {
+      await serverSdk().client.app.skills2.toggle({ ...params(), name, enabled })
+      void refetch()
+    } catch {
+      setMessage("error")
+    }
+  }
+
   const searchGoogle = () => {
     platform.openExternal(
       `https://www.google.com/search?q=${encodeURIComponent("tiancode skills SKILL.md")}`,
     )
+  }
+
+  const prevPage = () => {
+    setPage((page() + pages() - 1) % pages())
+  }
+
+  const nextPage = () => {
+    setPage((page() + 1) % pages())
   }
 
   return (
@@ -92,56 +126,145 @@ export const SettingsSkillsV2: Component<{
           </div>
         </Show>
 
-        <div class="settings-v2-section">
-          <h3 class="settings-v2-section-title">{language.t("settings.skills.section.installed")}</h3>
-          <Show
-            when={(skills() ?? []).length > 0}
-            fallback={<div class="settings-v2-skills-status">{language.t("settings.skills.empty")}</div>}
-          >
-            <SettingsListV2>
-              <For each={skills()}>
-                {(skill) => (
-                  <SettingsRowV2 title={skill.name} description={skill.description ?? ""}>
-                    <span class="settings-v2-skills-location">{skill.location}</span>
-                  </SettingsRowV2>
-                )}
-              </For>
-            </SettingsListV2>
-          </Show>
-        </div>
+        <div class="settings-v2-skills-layout">
+          <div class="settings-v2-skills-list">
+            <div class="settings-v2-section">
+              <h3 class="settings-v2-section-title">{language.t("settings.skills.section.installed")}</h3>
+              <Show
+                when={skills().length > 0}
+                fallback={<div class="settings-v2-skills-status">{language.t("settings.skills.empty")}</div>}
+              >
+                <SettingsListV2>
+                  <For each={pageSkills()}>
+                    {(skill) => (
+                      <div
+                        class="settings-v2-skills-item"
+                        data-selected={selected() === skill.name ? "" : undefined}
+                        data-disabled={disabled().has(skill.name) ? "" : undefined}
+                        onClick={() => setSelected(skill.name)}
+                      >
+                        <div class="settings-v2-skills-item-copy">
+                          <div class="settings-v2-skills-item-name">{skill.name}</div>
+                          <div class="settings-v2-skills-item-description">{skill.description ?? ""}</div>
+                        </div>
+                        <div
+                          class="settings-v2-skills-item-toggle"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <Switch
+                            checked={!disabled().has(skill.name)}
+                            onChange={(checked) => void toggleSkill(skill.name, checked)}
+                            hideLabel
+                          >
+                            {skill.name}
+                          </Switch>
+                        </div>
+                      </div>
+                    )}
+                  </For>
+                </SettingsListV2>
+                <Show when={pages() > 1}>
+                  <div class="settings-v2-skills-pagination">
+                    <ButtonV2 type="button" variant="ghost" size="small" onClick={prevPage}>
+                      ←
+                    </ButtonV2>
+                    <span class="settings-v2-skills-pagination-label">
+                      {page() + 1} / {pages()}
+                    </span>
+                    <ButtonV2 type="button" variant="ghost" size="small" onClick={nextPage}>
+                      →
+                    </ButtonV2>
+                  </div>
+                </Show>
+              </Show>
+            </div>
 
-        <div class="settings-v2-section">
-          <h3 class="settings-v2-section-title">{language.t("settings.skills.section.import")}</h3>
-          <SettingsListV2>
-            <SettingsRowV2
-              title={language.t("settings.skills.import.folder.title")}
-              description={language.t("settings.skills.import.folder.description")}
-            >
-              <ButtonV2 type="button" variant="outline" size="small" disabled={importing()} onClick={pickFolder}>
-                {importing() ? language.t("settings.skills.importing") : language.t("settings.skills.import.folder.button")}
-              </ButtonV2>
-            </SettingsRowV2>
-            <SettingsRowV2
-              title={language.t("settings.skills.import.url.title")}
-              description={language.t("settings.skills.import.url.description")}
-            >
-              <div class="settings-v2-skills-url">
-                <TextInputV2
-                  type="url"
-                  appearance="base"
-                  value={url()}
-                  onInput={(event) => setUrl(event.currentTarget.value)}
-                  placeholder={language.t("settings.skills.import.url.placeholder")}
-                  spellcheck={false}
-                  autocomplete="off"
-                  aria-label={language.t("settings.skills.import.url.title")}
-                />
-                <ButtonV2 type="button" variant="outline" size="small" disabled={importing() || !url()} onClick={downloadFromUrl}>
-                  {importing() ? language.t("settings.skills.importing") : language.t("settings.skills.import.url.button")}
-                </ButtonV2>
+            <div class="settings-v2-section">
+              <h3 class="settings-v2-section-title">{language.t("settings.skills.section.import")}</h3>
+              <SettingsListV2>
+                <div class="settings-v2-skills-import-row">
+                  <div class="settings-v2-skills-import-copy">
+                    <div class="settings-v2-skills-item-name">
+                      {language.t("settings.skills.import.folder.title")}
+                    </div>
+                    <div class="settings-v2-skills-item-description">
+                      {language.t("settings.skills.import.folder.description")}
+                    </div>
+                  </div>
+                  <ButtonV2
+                    type="button"
+                    variant="outline"
+                    size="small"
+                    disabled={importing()}
+                    onClick={pickFolder}
+                  >
+                    {importing()
+                      ? language.t("settings.skills.importing")
+                      : language.t("settings.skills.import.folder.button")}
+                  </ButtonV2>
+                </div>
+                <div class="settings-v2-skills-import-row">
+                  <div class="settings-v2-skills-import-copy">
+                    <div class="settings-v2-skills-item-name">
+                      {language.t("settings.skills.import.url.title")}
+                    </div>
+                    <div class="settings-v2-skills-item-description">
+                      {language.t("settings.skills.import.url.description")}
+                    </div>
+                  </div>
+                  <div class="settings-v2-skills-url">
+                    <TextInputV2
+                      type="url"
+                      appearance="base"
+                      value={url()}
+                      onInput={(event) => setUrl(event.currentTarget.value)}
+                      placeholder={language.t("settings.skills.import.url.placeholder")}
+                      spellcheck={false}
+                      autocomplete="off"
+                      aria-label={language.t("settings.skills.import.url.title")}
+                    />
+                    <ButtonV2
+                      type="button"
+                      variant="outline"
+                      size="small"
+                      disabled={importing() || !url()}
+                      onClick={downloadFromUrl}
+                    >
+                      {importing()
+                        ? language.t("settings.skills.importing")
+                        : language.t("settings.skills.import.url.button")}
+                    </ButtonV2>
+                  </div>
+                </div>
+              </SettingsListV2>
+            </div>
+          </div>
+
+          <Show when={selectedSkill()} fallback={<div class="settings-v2-skills-detail-empty" />}>
+            {(skill) => (
+              <div class="settings-v2-skills-detail">
+                <div class="settings-v2-skills-detail-header">
+                  <div class="settings-v2-skills-item-copy">
+                    <div class="settings-v2-skills-item-name">{skill().name}</div>
+                    <div class="settings-v2-skills-item-description">{skill().description ?? ""}</div>
+                  </div>
+                  <div class="settings-v2-skills-item-toggle">
+                    <Switch
+                      checked={!disabled().has(skill().name)}
+                      onChange={(checked) => void toggleSkill(skill().name, checked)}
+                      hideLabel
+                    >
+                      {skill().name}
+                    </Switch>
+                  </div>
+                </div>
+                <div class="settings-v2-skills-detail-meta">{skill().location}</div>
+                <div class="settings-v2-skills-detail-body">
+                  <Markdown text={skill().content} class="text-12-regular" />
+                </div>
               </div>
-            </SettingsRowV2>
-          </SettingsListV2>
+            )}
+          </Show>
         </div>
       </div>
     </>

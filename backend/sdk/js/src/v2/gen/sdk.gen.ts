@@ -14,6 +14,8 @@ import type {
   AppSkillsImportErrors,
   AppSkillsImportResponses,
   AppSkillsResponses,
+  AppSkillsToggleErrors,
+  AppSkillsToggleResponses,
   Auth as Auth3,
   AuthRemoveErrors,
   AuthRemoveResponses,
@@ -546,6 +548,45 @@ export class Skills extends HeyApiClient {
     )
     return (options?.client ?? this.client).post<AppSkillsImportResponses, AppSkillsImportErrors, ThrowOnError>({
       url: "/skill/import",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Enable or disable a skill
+   *
+   * Persist the enabled/disabled state of a skill in config and reload the skill list.
+   */
+  public toggle<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      name?: string
+      enabled?: boolean
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "name" },
+            { in: "body", key: "enabled" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<AppSkillsToggleResponses, AppSkillsToggleErrors, ThrowOnError>({
+      url: "/skill/toggle",
       ...options,
       ...params,
       headers: {

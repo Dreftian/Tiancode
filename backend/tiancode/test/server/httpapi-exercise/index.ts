@@ -161,6 +161,21 @@ const scenarios: Scenario[] = [
       )
     }),
   http.protected
+    .post("/skill/toggle", "app.skills.toggle")
+    .mutating()
+    .at((ctx) => ({
+      path: "/skill/toggle",
+      headers: ctx.headers(),
+      body: { name: "httpapi-exercise", enabled: false },
+    }))
+    .json(200, (body) => {
+      array(body)
+      check(
+        body.some((skill) => isRecord(skill) && skill.name === "customize-tiancode"),
+        "toggle should return the full skill list",
+      )
+    }),
+  http.protected
     .post("/agent/create", "app.agents.create")
     .mutating()
     .at((ctx) => ({

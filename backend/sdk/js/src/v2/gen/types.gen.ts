@@ -1901,6 +1901,7 @@ export type Config = {
   skills?: {
     paths?: Array<string>
     urls?: Array<string>
+    disabled?: Array<string>
   }
   references?: {
     [key: string]: string | ConfigV2ReferenceGit | ConfigV2ReferenceLocal
@@ -8411,6 +8412,42 @@ export type AppSkillsImportResponses = {
 }
 
 export type AppSkillsImportResponse = AppSkillsImportResponses[keyof AppSkillsImportResponses]
+
+export type AppSkillsToggleData = {
+  body?: {
+    name: string
+    enabled: boolean
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/skill/toggle"
+}
+
+export type AppSkillsToggleErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type AppSkillsToggleError = AppSkillsToggleErrors[keyof AppSkillsToggleErrors]
+
+export type AppSkillsToggleResponses = {
+  /**
+   * List of skills after toggle
+   */
+  200: Array<{
+    name: string
+    description?: string
+    location: string
+    content: string
+  }>
+}
+
+export type AppSkillsToggleResponse = AppSkillsToggleResponses[keyof AppSkillsToggleResponses]
 
 export type AppAgentsCreateData = {
   body?: {

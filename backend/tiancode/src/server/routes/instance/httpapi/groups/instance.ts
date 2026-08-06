@@ -54,6 +54,7 @@ export const InstancePaths = {
   lsp: "/lsp",
   formatter: "/formatter",
   skillImport: "/skill/import",
+  skillToggle: "/skill/toggle",
   agentCreate: "/agent/create",
 } as const
 
@@ -68,6 +69,11 @@ export const SkillImportInput = Schema.Struct({
     ),
   ),
   url: Schema.optional(Schema.String),
+})
+
+export const SkillToggleInput = Schema.Struct({
+  name: Schema.String,
+  enabled: Schema.Boolean,
 })
 
 export const AgentCreateInput = Schema.Struct({
@@ -199,6 +205,17 @@ export const InstanceApi = HttpApi.make("instance")
             identifier: "app.skills.import",
             summary: "Import a skill",
             description: "Write skill files into the global skills directory and reload the skill list.",
+          }),
+        ),
+        HttpApiEndpoint.post("skillToggle", InstancePaths.skillToggle, {
+          query: WorkspaceRoutingQuery,
+          payload: SkillToggleInput,
+          success: described(Schema.Array(Skill.Info), "List of skills after toggle"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "app.skills.toggle",
+            summary: "Enable or disable a skill",
+            description: "Persist the enabled/disabled state of a skill in config and reload the skill list.",
           }),
         ),
         HttpApiEndpoint.post("agentCreate", InstancePaths.agentCreate, {

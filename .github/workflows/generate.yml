@@ -26,7 +26,7 @@ jobs:
           tiancode-app-secret: ${{ secrets.TIANCODE_APP_SECRET }}
 
       - name: Generate
-        run: ./tools/script/generate.ts
+        run: ./backend/tools/script/generate.ts
 
       - name: Commit and push
         run: |
@@ -43,7 +43,7 @@ jobs:
           #   echo "Failed to push generated code."
           #   echo "Please run locally and push:"
           #   echo ""
-          #   echo "  ./tools/script/generate.ts"
+          #   echo "  ./backend/tools/script/generate.ts"
           #   echo "  git add -A && git commit -m \"chore: generate\" && git push"
           #   echo ""
           #   echo "============================================"

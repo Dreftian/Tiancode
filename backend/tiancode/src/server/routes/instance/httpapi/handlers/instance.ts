@@ -91,8 +91,7 @@ export const instanceHandlers = HttpApiBuilder.group(InstanceHttpApi, "instance"
       return yield* skill.all()
     })
 
-    const importSkill = Effect.fn("InstanceHttpApi.skillImport")(function* (ctx) {
-      const cfg = yield* config.get()
+    const importSkill = Effect.fn("InstanceHttpApi.skillImport")(function* (ctx) {      const cfg = yield* config.get()
       const existing = cfg.skills
       const paths = existing && !Array.isArray(existing) ? (existing.paths ?? []) : []
       const urls = existing && !Array.isArray(existing) ? (existing.urls ?? []) : []
@@ -114,6 +113,12 @@ export const instanceHandlers = HttpApiBuilder.group(InstanceHttpApi, "instance"
         }
       }
       yield* skill.reload()
+      return yield* skill.all()
+    })
+
+    const toggleSkill = Effect.fn("InstanceHttpApi.skillToggle")(function* (ctx) {
+      yield* skill.setEnabled(ctx.payload.name, ctx.payload.enabled)
+      yield* markInstanceForDisposal(yield* InstanceState.context)
       return yield* skill.all()
     })
 
@@ -144,6 +149,7 @@ export const instanceHandlers = HttpApiBuilder.group(InstanceHttpApi, "instance"
       .handle("agent", getAgent)
       .handle("skill", getSkill)
       .handle("skillImport", importSkill)
+      .handle("skillToggle", toggleSkill)
       .handle("agentCreate", createAgent)
       .handle("lsp", getLsp)
       .handle("formatter", getFormatter)

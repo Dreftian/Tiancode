@@ -56,7 +56,7 @@ runs:
     - name: Install dependencies
       run: |
         # Workaround for patched peer variants
-        # e.g. ./tools/patches/ for standard-openapi
+        # e.g. ./backend/tools/patches/ for standard-openapi
         # https://github.com/oven-sh/bun/issues/28147
         if [ "$RUNNER_OS" = "Windows" ]; then
           bun install --linker hoisted ${{ inputs.install-flags }}

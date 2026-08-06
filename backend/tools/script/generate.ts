@@ -6,4 +6,4 @@ await $`bun ./backend/sdk/js/script/build.ts`
 
 await $`bun dev generate > ../sdk/openapi.json`.cwd("backend/tiancode")
 
-await $`./script/format.ts`
+await $`./backend/tools/script/format.ts`

@@ -122,6 +122,8 @@ export interface Interface {
   readonly all: () => Effect.Effect<Info[]>
   readonly dirs: () => Effect.Effect<string[]>
   readonly available: (agent?: Agent.Info) => Effect.Effect<Info[]>
+  /** Enable or disable a skill by name, persisting the choice in config. */
+  readonly setEnabled: (name: string, enabled: boolean) => Effect.Effect<void>
   /** Re-scan skills from disk/config after importing or installing new ones. */
   readonly reload: () => Effect.Effect<void>
 }
@@ -323,6 +325,11 @@ const layer = Layer.effect(
       return yield* new NotFoundError({ name, available: Object.keys(s.skills).toSorted() })
     })
 
+    const disabled = Effect.fn("Skill.disabled")(function* () {
+      const cfg = yield* config.get()
+      return new Set(cfg.skills?.disabled ?? [])
+    })
+
     const all = Effect.fn("Skill.all")(function* () {
       const s = yield* InstanceState.get(state)
       return Object.values(s.skills)
@@ -334,9 +341,22 @@ const layer = Layer.effect(
 
     const available = Effect.fn("Skill.available")(function* (agent?: Agent.Info) {
       const s = yield* InstanceState.get(state)
-      const list = Object.values(s.skills).toSorted((a, b) => a.name.localeCompare(b.name))
+      const blocked = yield* disabled()
+      const list = Object.values(s.skills)
+        .filter((skill) => !blocked.has(skill.name))
+        .toSorted((a, b) => a.name.localeCompare(b.name))
       if (!agent) return list
       return list.filter((skill) => Permission.evaluate("skill", skill.name, agent.permission).action !== "deny")
+    })
+
+    const setEnabled = Effect.fn("Skill.setEnabled")(function* (name: string, enabled: boolean) {
+      const cfg = yield* config.getGlobal()
+      const blocked = new Set(cfg.skills?.disabled ?? [])
+      if (enabled) blocked.delete(name)
+      else blocked.add(name)
+      const skills = { ...cfg.skills, disabled: Array.from(blocked).toSorted() }
+      yield* config.updateGlobal({ ...cfg, skills })
+      yield* InstanceState.invalidate(state)
     })
 
     const reload = Effect.fn("Skill.reload")(function* () {
@@ -344,7 +364,7 @@ const layer = Layer.effect(
       yield* InstanceState.invalidate(state)
     })
 
-    return Service.of({ get, require, all, dirs, available, reload })
+    return Service.of({ get, require, all, dirs, available, setEnabled, reload })
   }),
 )
 
