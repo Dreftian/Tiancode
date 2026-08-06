@@ -117,6 +117,16 @@ import type {
   McpRemoteConfig,
   McpStatusErrors,
   McpStatusResponses,
+  ModelhubDownloadErrors,
+  ModelhubDownloadResponses,
+  ModelhubDownloadsErrors,
+  ModelhubDownloadsResponses,
+  ModelhubFilesErrors,
+  ModelhubFilesResponses,
+  ModelhubSearchErrors,
+  ModelhubSearchResponses,
+  ModelhubSystemErrors,
+  ModelhubSystemResponses,
   ModelRef,
   MoveSessionDestination,
   OutputFormat,
@@ -2674,6 +2684,173 @@ export class Mcp extends HeyApiClient {
   private _auth?: Auth2
   get auth(): Auth2 {
     return (this._auth ??= new Auth2({ client: this.client }))
+  }
+}
+
+export class Modelhub extends HeyApiClient {
+  /**
+   * Search GGUF models
+   *
+   * Search HuggingFace for GGUF models compatible with local inference.
+   */
+  public search<ThrowOnError extends boolean = false>(
+    parameters: {
+      directory?: string
+      workspace?: string
+      query: string
+      limit?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "query", key: "query" },
+            { in: "query", key: "limit" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<ModelhubSearchResponses, ModelhubSearchErrors, ThrowOnError>({
+      url: "/models/search",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * List model GGUF files
+   *
+   * List the GGUF files of a HuggingFace model with exact sizes from the repo tree.
+   */
+  public files<ThrowOnError extends boolean = false>(
+    parameters: {
+      directory?: string
+      workspace?: string
+      model: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "query", key: "model" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<ModelhubFilesResponses, ModelhubFilesErrors, ThrowOnError>({
+      url: "/models/files",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get system capabilities
+   *
+   * Report the machine RAM and the local models directory for compatibility checks.
+   */
+  public system<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<ModelhubSystemResponses, ModelhubSystemErrors, ThrowOnError>({
+      url: "/models/system",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * List model downloads
+   *
+   * Return the registry of started model downloads with progress.
+   */
+  public downloads<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<ModelhubDownloadsResponses, ModelhubDownloadsErrors, ThrowOnError>({
+      url: "/models/downloads",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Download a GGUF model
+   *
+   * Start downloading a GGUF file from HuggingFace into the local models directory.
+   */
+  public download<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      model?: string
+      file?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "model" },
+            { in: "body", key: "file" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<ModelhubDownloadResponses, ModelhubDownloadErrors, ThrowOnError>({
+      url: "/models/download",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
   }
 }
 
@@ -7315,6 +7492,11 @@ export class OpencodeClient extends HeyApiClient {
   private _mcp?: Mcp
   get mcp(): Mcp {
     return (this._mcp ??= new Mcp({ client: this.client }))
+  }
+
+  private _modelhub?: Modelhub
+  get modelhub(): Modelhub {
+    return (this._modelhub ??= new Modelhub({ client: this.client }))
   }
 
   private _project?: Project

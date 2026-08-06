@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tiancode — Asistente de IA para programar en Windows</title>
+  <meta name="description" content="Tiancode es la app de escritorio con IA para programar: agentes, skills de ingeniería y modelos locales GGUF, todo en tu terminal.">
+
+  <!-- Aplica tema e idioma guardados antes del primer render (evita parpadeo) -->
+  <script>
+    (function () {
+      try {
+        var theme = localStorage.getItem('tiancode-theme');
+        var lang = localStorage.getItem('tiancode-lang');
+        document.documentElement.setAttribute(
+          'data-theme',
+          theme || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+        );
+        if (lang === 'en') document.documentElement.lang = 'en';
+      } catch (e) { /* almacenamiento no disponible */ }
+    })();
+  </script>
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ================= Loader (spinner SVG) ================= -->
+  <div id="loader" role="status" aria-label="Cargando Tiancode">
+    <svg class="spinner" viewBox="0 0 48 48" aria-hidden="true">
+      <defs>
+        <linearGradient id="spinner-grad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#6366f1"/>
+          <stop offset="100%" stop-color="#06b6d4"/>
+        </linearGradient>
+      </defs>
+      <circle cx="24" cy="24" r="20" fill="none" stroke="url(#spinner-grad)"
+              stroke-width="5" stroke-linecap="round" stroke-dasharray="96 32"/>
+    </svg>
+    <p class="loader-text" data-i18n="loader.text">Cargando Tiancode…</p>
+  </div>
+
+  <!-- ================= Header ================= -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="#hero" class="logo" aria-label="Tiancode">
+        <span class="logo-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
+          </svg>
+        </span>
+        Tiancode
+      </a>
+
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a href="#features" data-i18n="nav.features">Características</a>
+        <a href="#how" data-i18n="nav.how">Cómo funciona</a>
+        <a href="#stats" data-i18n="nav.stats">Estadísticas</a>
+        <a href="#skills" data-i18n="nav.skills">Skills</a>
+        <a href="#download" class="btn btn-ghost nav-download" data-i18n="nav.download">Descargar</a>
+      </nav>
+
+      <div class="header-actions">
+        <button id="theme-toggle" class="icon-btn" type="button" data-i18n-aria="theme.aria"
+                aria-label="Cambiar tema claro/oscuro" aria-pressed="true">
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        </button>
+        <button id="lang-toggle" class="icon-btn lang-btn" type="button" data-i18n-aria="lang.aria"
+                aria-label="Cambiar idioma">EN</button>
+        <button id="nav-toggle" class="icon-btn nav-toggle" type="button" data-i18n-aria="nav.aria"
+                aria-label="Abrir menú" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <line x1="3" y1="7" x2="21" y2="7"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="17" x2="21" y2="17"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ================= Hero ================= -->
+    <section id="hero" class="hero">
+      <div class="hero-bg" aria-hidden="true">
+        <div class="hero-blob hero-blob--1"></div>
+        <div class="hero-blob hero-blob--2"></div>
+        <div class="hero-grid"></div>
+      </div>
+      <canvas id="particles" aria-hidden="true"></canvas>
+
+      <div class="container hero-inner">
+        <span class="hero-badge reveal"><span class="badge-dot" aria-hidden="true"></span><span data-i18n="hero.badge">Nuevo · v2.0 disponible</span></span>
+        <h1 class="hero-title reveal">Tian<span class="accent-text">code</span></h1>
+        <p class="hero-tagline reveal" data-i18n="hero.tagline">Tu asistente de IA para programar, directo en tu terminal.</p>
+        <p class="hero-sub reveal" data-i18n="hero.sub">Agentes de IA, 24+ skills de ingeniería de software y modelos locales GGUF — una app de escritorio rápida y enfocada para Windows.</p>
+        <div class="hero-cta reveal">
+          <a href="#download" class="btn btn-primary btn-lg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            <span data-i18n="hero.ctaDownload">Descargar para Windows</span>
+          </a>
+          <a href="#features" class="btn btn-ghost btn-lg" data-i18n="hero.ctaFeatures">Ver características</a>
+        </div>
+        <p class="hero-note reveal" data-i18n="hero.note">Instalador y versión portable · Windows 10 y 11</p>
+      </div>
+    </section>
+
+    <!-- ================= Características (bento grid) ================= -->
+    <section id="features" class="section">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow" data-i18n="nav.features">Características</span>
+          <h2 class="section-title" data-i18n="features.title">Todo lo que necesitas para programar con IA</h2>
+          <p class="section-sub" data-i18n="features.sub">Una app de escritorio compacta y potente, diseñada para el flujo de trabajo real de desarrolladores.</p>
+        </div>
+
+        <div class="features-grid">
+          <!-- Agentes (tarjeta ancha con terminal simulada) -->
+          <article class="feature-card card-4 reveal" style="--rd:0s">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+            </span>
+            <h3 data-i18n="f.agents.title">Agentes de IA</h3>
+            <p data-i18n="f.agents.desc">Chat de programación con múltiples agentes y sub-agentes que colaboran, codean y depuran contigo.</p>
+            <div class="term" aria-hidden="true">
+              <div class="term-bar"><span></span><span></span><span></span></div>
+              <div class="term-body">
+                <p class="term-line term-prompt" data-i18n="mock.line1">$ tiancode --agent senior-dev</p>
+                <p class="term-line" data-i18n="mock.line2">▸ Analizando repositorio… 12.400 archivos en 3.2s</p>
+                <p class="term-line term-accent" data-i18n="mock.line3">▸ Detectadas 2 vulnerabilidades en auth.js</p>
+                <p class="term-line" data-i18n="mock.line4">▸ Fix aplicado · tests TDD en verde ✓</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="feature-card card-2 reveal" style="--rd:.05s">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+            </span>
+            <h3 data-i18n="f.models.title">Modelos locales GGUF</h3>
+            <p data-i18n="f.models.desc">Descarga y ejecuta modelos de IA locales desde HuggingFace, al estilo LM Studio. Sin nube, sin límites.</p>
+          </article>
+
+          <article class="feature-card card-2 reveal" style="--rd:.05s">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                <polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
+              </svg>
+            </span>
+            <h3 data-i18n="f.skills.title">24+ skills de ingeniería</h3>
+            <p data-i18n="f.skills.desc">Interviews de requisitos, TDD, code review, seguridad, performance y CI/CD listos para usar.</p>
+          </article>
+
+          <article class="feature-card card-2 reveal" style="--rd:.1s">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+              </svg>
+            </span>
+            <h3 data-i18n="f.providers.title">Multi-proveedor</h3>
+            <p data-i18n="f.providers.desc">Conecta OpenAI, Anthropic y otros proveedores — o combínalos con modelos locales.</p>
+          </article>
+
+          <article class="feature-card card-2 reveal" style="--rd:.1s">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
+              </svg>
+            </span>
+            <h3 data-i18n="f.terminal.title">Terminal integrada</h3>
+            <p data-i18n="f.terminal.desc">Ejecuta comandos, aplica cambios y ve resultados sin salir de la conversación.</p>
+          </article>
+
+          <article class="feature-card card-3 reveal" style="--rd:.1s">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+              </svg>
+            </span>
+            <h3 data-i18n="f.portable.title">Modo portable</h3>
+            <p data-i18n="f.portable.desc">Lleva Tiancode en un USB: sin instalación, configurado y listo en cualquier PC Windows.</p>
+          </article>
+
+          <article class="feature-card card-3 reveal" style="--rd:.15s">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/>
+                <line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/>
+                <line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/>
+                <line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>
+              </svg>
+            </span>
+            <h3 data-i18n="f.more.title">Y mucho más</h3>
+            <p data-i18n="f.more.desc">Atajos de teclado personalizables, tema claro y oscuro, autocompletado y ajustes finos para cada skill.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= Cómo funciona ================= -->
+    <section id="how" class="section section-alt">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow" data-i18n="nav.how">Cómo funciona</span>
+          <h2 class="section-title" data-i18n="how.title">Cómo funciona</h2>
+          <p class="section-sub" data-i18n="how.sub">De cero a tu primer agente en menos de cinco minutos.</p>
+        </div>
+
+        <ol class="steps">
+          <li class="step reveal" style="--rd:0s">
+            <span class="step-num" aria-hidden="true">1</span>
+            <h3 data-i18n="s1.title">Descarga e instala</h3>
+            <p data-i18n="s1.desc">Consigue el instalador o la versión portable para Windows 10 y 11.</p>
+          </li>
+          <li class="step reveal" style="--rd:.08s">
+            <span class="step-num" aria-hidden="true">2</span>
+            <h3 data-i18n="s2.title">Elige tu modelo</h3>
+            <p data-i18n="s2.desc">Conecta tu proveedor de IA favorito o descarga un modelo local GGUF.</p>
+          </li>
+          <li class="step reveal" style="--rd:.16s">
+            <span class="step-num" aria-hidden="true">3</span>
+            <h3 data-i18n="s3.title">Programa con agentes</h3>
+            <p data-i18n="s3.desc">Conversa con tus agentes: analizan, escriben y revisan código por ti.</p>
+          </li>
+          <li class="step reveal" style="--rd:.24s">
+            <span class="step-num" aria-hidden="true">4</span>
+            <h3 data-i18n="s4.title">Ajusta y escala</h3>
+            <p data-i18n="s4.desc">Activa skills, crea sub-agentes personalizados y define tus atajos.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ================= Estadísticas + gráficas ================= -->
+    <section id="stats" class="section">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow" data-i18n="nav.stats">Estadísticas</span>
+          <h2 class="section-title" data-i18n="stats.title">Cifras que importan</h2>
+          <p class="section-sub" data-i18n="stats.sub">La comunidad de Tiancode crece rápido. Datos ilustrativos.</p>
+        </div>
+
+        <div id="stats-charts">
+          <div class="stat-counters reveal">
+            <div class="stat">
+              <span class="stat-num" data-count="48" data-suffix="k+">0</span>
+              <span class="stat-label" data-i18n="stats.c1">Descargas</span>
+            </div>
+            <div class="stat">
+              <span class="stat-num" data-count="120" data-suffix="+">0</span>
+              <span class="stat-label" data-i18n="stats.c2">Modelos GGUF compatibles</span>
+            </div>
+            <div class="stat">
+              <span class="stat-num" data-count="24" data-suffix="+">0</span>
+              <span class="stat-label" data-i18n="stats.c3">Skills de ingeniería</span>
+            </div>
+            <div class="stat">
+              <span class="stat-num" data-count="38" data-suffix="+">0</span>
+              <span class="stat-label" data-i18n="stats.c4">Países</span>
+            </div>
+          </div>
+
+          <div class="charts-grid">
+            <div class="chart-card reveal" style="--rd:.05s">
+              <h3 class="chart-title" data-i18n="stats.chartBars">Descargas mensuales (miles)</h3>
+              <canvas id="bar-chart" class="chart-canvas" aria-hidden="true"></canvas>
+            </div>
+            <div class="chart-card reveal" style="--rd:.1s">
+              <h3 class="chart-title" data-i18n="stats.chartDonut">Uso por proveedor de IA</h3>
+              <canvas id="donut-chart" class="chart-canvas" aria-hidden="true"></canvas>
+              <ul id="donut-legend" class="donut-legend"></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= Skills destacadas ================= -->
+    <section id="skills" class="section section-alt">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow" data-i18n="nav.skills">Skills</span>
+          <h2 class="section-title" data-i18n="skills.title">Skills destacadas</h2>
+          <p class="section-sub" data-i18n="skills.sub">Un catálogo creciente de skills de ingeniería, activables una a una.</p>
+        </div>
+
+        <ul class="skills-list reveal">
+          <li class="skill-chip">
+            <svg class="chip-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <span data-i18n="sk.1">Entrevistas de requisitos</span>
+          </li>
+          <li class="skill-chip">
+            <svg class="chip-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <span data-i18n="sk.2">Test-Driven Development (TDD)</span>
+          </li>
+          <li class="skill-chip">
+            <svg class="chip-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <span data-i18n="sk.3">Code Review</span>
+          </li>
+          <li class="skill-chip">
+            <svg class="chip-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <span data-i18n="sk.4">Auditoría de seguridad</span>
+          </li>
+          <li class="skill-chip">
+            <svg class="chip-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <span data-i18n="sk.5">Optimización de rendimiento</span>
+          </li>
+          <li class="skill-chip">
+            <svg class="chip-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <span data-i18n="sk.6">Pipelines CI/CD</span>
+          </li>
+          <li class="skill-chip">
+            <svg class="chip-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <span data-i18n="sk.7">Refactorización</span>
+          </li>
+          <li class="skill-chip">
+            <svg class="chip-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <span data-i18n="sk.8">Depuración asistida</span>
+          </li>
+          <li class="skill-chip">
+            <svg class="chip-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <span data-i18n="sk.9">Documentación técnica</span>
+          </li>
+          <li class="skill-chip">
+            <svg class="chip-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <span data-i18n="sk.10">Diseño de arquitectura</span>
+          </li>
+          <li class="skill-chip">
+            <svg class="chip-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <span data-i18n="sk.11">Análisis de código estático</span>
+          </li>
+          <li class="skill-chip">
+            <svg class="chip-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <span data-i18n="sk.12">Migración de proyectos</span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ================= CTA final ================= -->
+    <section id="download" class="section">
+      <div class="container">
+        <div class="cta-box reveal">
+          <div class="cta-glow" aria-hidden="true"></div>
+          <h2 class="cta-title" data-i18n="cta.title">Empieza a programar con IA hoy</h2>
+          <p class="cta-sub" data-i18n="cta.sub">Gratis para uso personal. Rápido de instalar, fácil de configurar.</p>
+          <div class="cta-actions">
+            <a href="#download" class="btn btn-primary btn-lg">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              <span data-i18n="cta.button">Descargar Tiancode</span>
+            </a>
+          </div>
+          <p class="cta-note" data-i18n="cta.note">Windows 10 y 11 · 64 bits · ~120 MB</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= Footer ================= -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a href="#hero" class="logo" aria-label="Tiancode">
+            <span class="logo-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
+              </svg>
+            </span>
+            Tiancode
+          </a>
+          <p data-i18n="footer.tagline">El asistente de IA para programar, hecho para Windows.</p>
+        </div>
+        <nav class="footer-col" aria-label="Producto">
+          <h4 data-i18n="footer.product">Producto</h4>
+          <a href="#download" data-i18n="footer.l1">Descargar</a>
+          <a href="#hero" data-i18n="footer.l2">Novedades</a>
+          <a href="#features" data-i18n="footer.l3">Modo portable</a>
+        </nav>
+        <nav class="footer-col" aria-label="Recursos">
+          <h4 data-i18n="footer.resources">Recursos</h4>
+          <a href="#how" data-i18n="footer.l4">Documentación</a>
+          <a href="#how" data-i18n="footer.l5">Guía de inicio</a>
+          <a href="#skills" data-i18n="footer.l6">Preguntas frecuentes</a>
+        </nav>
+        <nav class="footer-col" aria-label="Legal">
+          <h4 data-i18n="footer.legal">Legal</h4>
+          <a href="#hero" data-i18n="footer.l7">Privacidad</a>
+          <a href="#hero" data-i18n="footer.l8">Términos</a>
+          <a href="#hero" data-i18n="footer.l9">Licencia</a>
+        </nav>
+      </div>
+      <div class="footer-bottom">
+        <p data-i18n="footer.rights">© 2026 Tiancode. Todos los derechos reservados.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

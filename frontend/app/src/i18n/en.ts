@@ -1177,4 +1177,18 @@ export const dict = {
   "settings.subAgents.creating": "Creating...",
   "settings.subAgents.create.success": "Agent created",
   "settings.subAgents.create.failed": "Failed to create agent",
+
+  "settings.tab.modelsHub": "Local Models",
+  "settings.modelsHub.title": "Local Models",
+  "settings.modelsHub.description": "Search and download GGUF models from HuggingFace to run AI locally, like LM Studio.",
+  "settings.modelsHub.search.placeholder": "Search models... e.g. llama 3.2",
+  "settings.modelsHub.search.button": "Search",
+  "settings.modelsHub.empty": "No models found. Try another search.",
+  "settings.modelsHub.download": "Download",
+  "settings.modelsHub.detail.files": "Files",
+  "settings.modelsHub.system.ram": "RAM",
+  "settings.modelsHub.system.dir": "Models folder",
+  "settings.modelsHub.compat.green": "Fits comfortably",
+  "settings.modelsHub.compat.blue": "Barely fits",
+  "settings.modelsHub.compat.red": "Does not fit",
 }

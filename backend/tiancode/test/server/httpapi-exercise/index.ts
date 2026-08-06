@@ -188,6 +188,53 @@ const scenarios: Scenario[] = [
       check(body.name === "httpapi-subagent", "created agent should be returned")
       check(body.mode === "subagent", "created agent mode should match")
     }),
+  http.protected
+    .get("/models/search", "modelhub.search")
+    .at((ctx) => ({
+      path: "/models/search?query=llama&limit=2",
+      headers: ctx.headers(),
+    }))
+    .json(200, (body) => {
+      array(body)
+      check(body.every((model) => isRecord(model) && typeof model.id === "string"), "search should return model ids")
+    }),
+  http.protected
+    .get("/models/system", "modelhub.system")
+    .at((ctx) => ({ path: "/models/system", headers: ctx.headers() }))
+    .json(200, (body) => {
+      object(body)
+      check(typeof body.ram === "number" && body.ram > 0, "system should report RAM")
+      check(typeof body.modelsDir === "string", "system should report models dir")
+    }),
+  http.protected
+    .get("/models/files", "modelhub.files")
+    .at((ctx) => ({
+      path: `/models/files?model=${encodeURIComponent("bartowski/Llama-3.2-3B-Instruct-GGUF")}`,
+      headers: ctx.headers(),
+    }))
+    .json(200, (body) => {
+      array(body)
+      check(
+        body.some((file) => isRecord(file) && typeof file.file === "string" && file.file.endsWith(".gguf")),
+        "files should include GGUF entries",
+      )
+    }),
+  http.protected
+    .get("/models/downloads", "modelhub.downloads")
+    .at((ctx) => ({ path: "/models/downloads", headers: ctx.headers() }))
+    .json(200, array),
+  http.protected
+    .post("/models/download", "modelhub.download")
+    .at((ctx) => ({
+      path: "/models/download",
+      headers: ctx.headers(),
+      body: { model: "hugging-quants/Llama-3.2-1B-Instruct-Q8_0-GGUF", file: "llama-3.2-1b-instruct-q8_0.gguf" },
+    }))
+    .json(200, (body) => {
+      object(body)
+      check(body.model === "hugging-quants/Llama-3.2-1B-Instruct-Q8_0-GGUF", "download should echo the model")
+      check(body.done === false, "download should start in background")
+    }),
   http.protected.get("/lsp", "lsp.status").json(200, array),
   http.protected.get("/formatter", "formatter.status").json(200, array),
   http.protected.get("/config", "config.get").json(200, undefined, "status"),

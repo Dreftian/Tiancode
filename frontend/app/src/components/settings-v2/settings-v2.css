@@ -770,14 +770,85 @@
 
 .settings-v2-skills-layout {
   display: grid;
-  grid-template-columns: minmax(320px, 380px) 1fr;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
   gap: 24px;
-  align-items: start;
+  align-items: stretch;
 }
 
-@media (max-width: 1023px) {
+/* Wide (>= 1200px): two-column master-detail that consumes the real panel
+   height. The list column and the markdown detail scroll internally, so the
+   sticky/max-height hacks (based on 100vh) are no longer needed and the
+   detail can never overflow or get cut off by the dialog. */
+@media (min-width: 1200px) {
+  .settings-v2-tab-body.settings-v2-skills {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
   .settings-v2-skills-layout {
-    grid-template-columns: 1fr;
+    flex: 1;
+    min-height: 0;
+    grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .settings-v2-skills-list {
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .settings-v2-skills-detail,
+  .settings-v2-skills-detail-empty {
+    position: static;
+    top: auto;
+    min-height: 0;
+    max-height: none;
+  }
+
+  .settings-v2-skills-detail-body {
+    flex: 1;
+  }
+}
+
+/* Medium (768-1199px): single column, detail flows below the list and the
+   panel scrolls as a whole — no sticky, no overflow. */
+/* Narrow (< 768px): everything stacked, pagination stays centered and the
+   import/sub-agent form controls never overflow horizontally. */
+@media (max-width: 767px) {
+  .settings-v2-tab-body.settings-v2-skills,
+  .settings-v2-tab-body.settings-v2-sub-agents {
+    padding-inline: 20px;
+  }
+
+  .settings-v2-tab-header:has(+ .settings-v2-tab-body.settings-v2-skills),
+  .settings-v2-tab-header:has(+ .settings-v2-tab-body.settings-v2-sub-agents) {
+    padding-inline: 20px;
+  }
+
+  .settings-v2-skills-url {
+    flex-wrap: wrap;
+  }
+
+  .settings-v2-skills-url [data-component="text-input-v2"] {
+    width: auto;
+    min-width: 0;
+    flex: 1 1 140px;
+  }
+
+  .settings-v2-sub-agents [data-component="settings-v2-row"] {
+    flex-wrap: wrap;
+  }
+
+  .settings-v2-sub-agents [data-slot="settings-v2-row-control"] {
+    width: 100%;
+  }
+
+  .settings-v2-sub-agents
+    [data-slot="settings-v2-row-control"]
+    [data-component="textarea-v2"] {
+    width: 100%;
   }
 }
 
@@ -895,8 +966,6 @@
 }
 
 .settings-v2-skills-detail-empty {
-  position: sticky;
-  top: 40px;
   display: flex;
   min-height: 320px;
   align-items: center;
@@ -907,11 +976,8 @@
 }
 
 .settings-v2-skills-detail {
-  position: sticky;
-  top: 40px;
   display: flex;
   min-width: 0;
-  max-height: calc(100vh - 160px);
   flex-direction: column;
   overflow: hidden;
   border-radius: 8px;
@@ -921,6 +987,7 @@
 
 .settings-v2-skills-detail-header {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 12px;
   padding: 20px 20px 16px;
@@ -928,6 +995,7 @@
 }
 
 .settings-v2-skills-detail-meta {
+  flex-shrink: 0;
   padding: 12px 20px;
   font-size: 11px;
   font-weight: 440;

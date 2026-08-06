@@ -8,6 +8,7 @@ import { SettingsGeneralV2 } from "./general"
 import { SettingsKeybinds } from "../settings-keybinds"
 import { SettingsProvidersV2 } from "./providers"
 import { SettingsModelsV2 } from "./models"
+import { SettingsModelsHubV2 } from "./models-hub"
 import { SettingsSkillsV2 } from "./skills"
 import { SettingsSubAgentsV2 } from "./sub-agents"
 import "./settings-v2.css"
@@ -85,6 +86,10 @@ export const DialogSettings: Component<{
                       <Icon name="models" />
                       {language.t("settings.models.title")}
                     </TabsV2.Trigger>
+                    <TabsV2.Trigger value="models-hub">
+                      <Icon name="brain" />
+                      {language.t("settings.tab.modelsHub")}
+                    </TabsV2.Trigger>
                   </div>
                 </div>
                 <div class="flex flex-col gap-1.5">
@@ -122,6 +127,9 @@ export const DialogSettings: Component<{
         </TabsV2.Content>
         <TabsV2.Content value="models" class="settings-v2-panel">
           <SettingsModelsV2 />
+        </TabsV2.Content>
+        <TabsV2.Content value="models-hub" class="settings-v2-panel">
+          <SettingsModelsHubV2 directory={directory()} />
         </TabsV2.Content>
         <TabsV2.Content value="skills" class="settings-v2-panel">
           <SettingsSkillsV2 directory={directory()} />

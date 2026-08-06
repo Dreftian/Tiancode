@@ -8814,6 +8814,183 @@ export type McpDisconnectResponses = {
 
 export type McpDisconnectResponse = McpDisconnectResponses[keyof McpDisconnectResponses]
 
+export type ModelhubSearchData = {
+  body?: never
+  path?: never
+  query: {
+    directory?: string
+    workspace?: string
+    query: string
+    limit?: string
+  }
+  url: "/models/search"
+}
+
+export type ModelhubSearchErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ModelhubSearchError = ModelhubSearchErrors[keyof ModelhubSearchErrors]
+
+export type ModelhubSearchResponses = {
+  /**
+   * HuggingFace GGUF models
+   */
+  200: Array<{
+    id: string
+    downloads?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    likes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    pipeline_tag?: string
+    quantFiles: Array<{
+      file: string
+      quant?: string
+      size?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    }>
+  }>
+}
+
+export type ModelhubSearchResponse = ModelhubSearchResponses[keyof ModelhubSearchResponses]
+
+export type ModelhubFilesData = {
+  body?: never
+  path?: never
+  query: {
+    directory?: string
+    workspace?: string
+    model: string
+  }
+  url: "/models/files"
+}
+
+export type ModelhubFilesErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ModelhubFilesError = ModelhubFilesErrors[keyof ModelhubFilesErrors]
+
+export type ModelhubFilesResponses = {
+  /**
+   * GGUF files of a model
+   */
+  200: Array<{
+    file: string
+    quant?: string
+    size?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  }>
+}
+
+export type ModelhubFilesResponse = ModelhubFilesResponses[keyof ModelhubFilesResponses]
+
+export type ModelhubSystemData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/models/system"
+}
+
+export type ModelhubSystemErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ModelhubSystemError = ModelhubSystemErrors[keyof ModelhubSystemErrors]
+
+export type ModelhubSystemResponses = {
+  /**
+   * System capabilities
+   */
+  200: {
+    ram: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    modelsDir: string
+  }
+}
+
+export type ModelhubSystemResponse = ModelhubSystemResponses[keyof ModelhubSystemResponses]
+
+export type ModelhubDownloadsData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/models/downloads"
+}
+
+export type ModelhubDownloadsErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ModelhubDownloadsError = ModelhubDownloadsErrors[keyof ModelhubDownloadsErrors]
+
+export type ModelhubDownloadsResponses = {
+  /**
+   * Active and finished downloads
+   */
+  200: Array<{
+    model: string
+    file: string
+    dest: string
+    total: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    received: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    done: boolean
+  }>
+}
+
+export type ModelhubDownloadsResponse = ModelhubDownloadsResponses[keyof ModelhubDownloadsResponses]
+
+export type ModelhubDownloadData = {
+  body?: {
+    model: string
+    file: string
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/models/download"
+}
+
+export type ModelhubDownloadErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ModelhubDownloadError = ModelhubDownloadErrors[keyof ModelhubDownloadErrors]
+
+export type ModelhubDownloadResponses = {
+  /**
+   * Started download
+   */
+  200: {
+    model: string
+    file: string
+    dest: string
+    total: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    received: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    done: boolean
+  }
+}
+
+export type ModelhubDownloadResponse = ModelhubDownloadResponses[keyof ModelhubDownloadResponses]
+
 export type ProjectListData = {
   body?: never
   path?: never

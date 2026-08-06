@@ -1289,4 +1289,18 @@ export const dict = {
   "settings.subAgents.creating": "Creando...",
   "settings.subAgents.create.success": "Agente creado",
   "settings.subAgents.create.failed": "Error al crear el agente",
+
+  "settings.tab.modelsHub": "Modelos Locales",
+  "settings.modelsHub.title": "Modelos Locales",
+  "settings.modelsHub.description": "Busca y descarga modelos GGUF desde HuggingFace para ejecutar IA localmente, como LM Studio.",
+  "settings.modelsHub.search.placeholder": "Buscar modelos... ej. llama 3.2",
+  "settings.modelsHub.search.button": "Buscar",
+  "settings.modelsHub.empty": "No se encontraron modelos. Prueba otra búsqueda.",
+  "settings.modelsHub.download": "Descargar",
+  "settings.modelsHub.detail.files": "Archivos",
+  "settings.modelsHub.system.ram": "RAM",
+  "settings.modelsHub.system.dir": "Carpeta de modelos",
+  "settings.modelsHub.compat.green": "Cabe cómodamente",
+  "settings.modelsHub.compat.blue": "Apenas cabe",
+  "settings.modelsHub.compat.red": "No cabe",
 }
