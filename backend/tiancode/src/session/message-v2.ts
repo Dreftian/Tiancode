@@ -45,6 +45,15 @@ interface FetchDecompressionError extends Error {
 
 export const SYNTHETIC_ATTACHMENT_PROMPT = "Attached media from tool result:"
 export { isMedia }
+export type {
+  Assistant,
+  Info,
+  Part,
+  ToolPart,
+  ToolState,
+  ToolStateCompleted,
+  WithParts,
+} from "@tiancode-ai/core/v1/session"
 
 function truncateToolOutput(text: string, maxChars?: number) {
   if (!maxChars || text.length <= maxChars) return text

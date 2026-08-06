@@ -317,7 +317,21 @@ function configSchema() {
     hooks: {
       "astro:build:done": async () => {
         console.log("generating config schema")
-        spawnSync("../tiancode/script/schema.ts", ["./dist/config.json", "./dist/tui.json"])
+        // When the build runs on the bun runtime, spawn that binary directly
+        // (spawnSync("bun") fails on Windows if PATH is stripped). Under node,
+        // "bun" is not resolvable by name either, so fall back to the shell.
+        const runningOnBun = /bun(\.exe)?$/i.test(process.execPath)
+        const result = spawnSync(
+          runningOnBun ? process.execPath : "bun",
+          ["run", "../../backend/tiancode/script/schema.ts", "./dist/config.json", "./dist/tui.json"],
+          { encoding: "utf8", shell: !runningOnBun },
+        )
+        if (result.error || result.status !== 0) {
+          console.error(
+            "failed to generate config schema:",
+            result.error ? result.error.message : result.stderr,
+          )
+        }
       },
     },
   }

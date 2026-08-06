@@ -7,7 +7,7 @@ import { ShareI18nProvider, formatCurrency, formatNumber, normalizeLocale } from
 import styles from "./share.module.css"
 import type { MessageV2 } from "tiancode/session/message-v2"
 import type { Message } from "tiancode/session/message"
-import type { Session } from "tiancode/session/index"
+import type { Session } from "tiancode/session/session"
 import { Part, ProviderIcon } from "./share/part"
 
 type MessageWithParts = MessageV2.Info & { parts: MessageV2.Part[] }
@@ -43,6 +43,7 @@ export default function Share(props: {
   api: string
   info: Session.Info
   messages: { locale: string } & Record<string, string>
+  initialMessages?: Record<string, MessageWithParts>
 }) {
   let lastScrollY = 0
   let hasScrolledToAnchor = false
@@ -61,19 +62,8 @@ export default function Share(props: {
     info?: Session.Info
     messages: Record<string, MessageWithParts>
   }>({
-    info: {
-      id: props.id,
-      slug: props.info.slug,
-      projectID: props.info.projectID,
-      directory: props.info.directory,
-      title: props.info.title,
-      version: props.info.version,
-      time: {
-        created: props.info.time.created,
-        updated: props.info.time.updated,
-      },
-    },
-    messages: {},
+    info: props.info,
+    messages: props.initialMessages ?? {},
   })
   const messages = createMemo(() => Object.values(store.messages).toSorted((a, b) => a.id?.localeCompare(b.id)))
   const [connectionStatus, setConnectionStatus] = createSignal<[Status, string?]>(["disconnected"])
@@ -94,6 +84,8 @@ export default function Share(props: {
 
     let reconnectTimer: number | undefined
     let socket: WebSocket | null = null
+    let reconnectAttempts = 0
+    const MAX_RECONNECT_ATTEMPTS = 10
 
     // Function to create and set up WebSocket with auto-reconnect
     const setupWebSocket = () => {
@@ -112,6 +104,7 @@ export default function Share(props: {
 
       // Handle connection opening
       socket.onopen = () => {
+        reconnectAttempts = 0
         setConnectionStatus(["connected"])
       }
 
@@ -154,11 +147,17 @@ export default function Share(props: {
 
       // Handle connection close and reconnection
       socket.onclose = () => {
+        if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+          setConnectionStatus(["error", props.messages.error_connection_failed])
+          return
+        }
         setConnectionStatus(["reconnecting"])
 
-        // Try to reconnect after 2 seconds
+        // Try to reconnect with exponential backoff
+        const delay = Math.min(2000 * 2 ** reconnectAttempts, 30000)
+        reconnectAttempts++
         clearTimeout(reconnectTimer)
-        reconnectTimer = window.setTimeout(setupWebSocket, 2000) as unknown as number
+        reconnectTimer = window.setTimeout(setupWebSocket, delay) as unknown as number
       }
     }
 
@@ -528,8 +527,8 @@ export function fromV1(v1: Message.Info): MessageWithParts {
       error: v1.metadata.error,
       parts: v1.parts.flatMap((part, index): MessageV2.Part[] => {
         const base = {
-          id: index.toString(),
-          messageID: v1.id,
+          id: index.toString() as MessageV2.Part["id"],
+          messageID: v1.id as MessageV2.Part["messageID"],
           sessionID: v1.metadata.sessionID,
         }
         if (part.type === "text") {
@@ -587,13 +586,13 @@ export function fromV1(v1: Message.Info): MessageWithParts {
                   }
                 }
                 throw new Error("unknown tool invocation state")
-              })(),
+              })() as MessageV2.ToolState,
             },
           ]
         }
         return []
       }),
-    }
+    } as MessageWithParts
   }
 
   if (v1.role === "user") {
@@ -611,8 +610,8 @@ export function fromV1(v1: Message.Info): MessageWithParts {
       },
       parts: v1.parts.flatMap((part, index): MessageV2.Part[] => {
         const base = {
-          id: index.toString(),
-          messageID: v1.id,
+          id: index.toString() as MessageV2.Part["id"],
+          messageID: v1.id as MessageV2.Part["messageID"],
           sessionID: v1.metadata.sessionID,
         }
         if (part.type === "text") {
@@ -637,7 +636,7 @@ export function fromV1(v1: Message.Info): MessageWithParts {
         }
         return []
       }),
-    }
+    } as MessageWithParts
   }
 
   throw new Error("unknown message type")
