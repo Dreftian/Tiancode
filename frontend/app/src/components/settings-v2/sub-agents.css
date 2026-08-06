@@ -1,0 +1,215 @@
+/* Sub-agents tab: list toolbar, grouped rows, color swatches, tools grid and
+   form footer. Complements the shared settings-v2.css layout classes. */
+
+.settings-v2-sub-agents-header-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-v2-sub-agents-toolbar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.settings-v2-sub-agents-toolbar [data-component="text-input-v2"] {
+  width: 100%;
+}
+
+.settings-v2-sub-agents-toolbar [data-component="segmented-control-v2"] {
+  align-self: flex-start;
+}
+
+.settings-v2-sub-agents-group-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding-top: 4px;
+  font-size: 11px;
+  font-weight: 560;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-sub-agents-group-count {
+  font-weight: 440;
+  color: var(--v2-text-text-faint);
+}
+
+.settings-v2-sub-agents-group-hint {
+  font-size: 11px;
+  font-weight: 440;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--v2-text-text-faint);
+}
+
+.settings-v2-sub-agents-item {
+  position: relative;
+  border-radius: 6px;
+}
+
+.settings-v2-sub-agents-item[data-active] {
+  background-color: var(--v2-background-bg-layer-02);
+}
+
+.settings-v2-sub-agents-item[data-builtin] .settings-v2-sub-agents-item-name {
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-sub-agents-avatar {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 50%;
+  background-color: color-mix(in srgb, var(--agent-color) 14%, transparent);
+}
+
+.settings-v2-sub-agents-avatar-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--agent-color);
+}
+
+.settings-v2-sub-agents-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.settings-v2-sub-agents-badge {
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 530;
+  line-height: 1.4;
+  color: var(--v2-text-text-muted);
+  background-color: var(--v2-background-bg-layer-02);
+}
+
+.settings-v2-sub-agents-badge--accent {
+  color: var(--v2-text-text-accent);
+}
+
+.settings-v2-sub-agents-item-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 2px;
+}
+
+.settings-v2-sub-agents-list-footer {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 0.5px solid var(--v2-border-border-base);
+  font-size: 12px;
+  font-weight: 440;
+  line-height: 1;
+  color: var(--v2-text-text-faint);
+}
+
+.settings-v2-sub-agents-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.settings-v2-sub-agents-swatch {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--v2-alpha-dark-16);
+  border-radius: 50%;
+  background-color: var(--swatch);
+  cursor: pointer;
+}
+
+.settings-v2-sub-agents-swatch[data-selected] {
+  box-shadow:
+    0 0 0 2px var(--v2-background-bg-base),
+    0 0 0 4px var(--v2-text-text-base);
+}
+
+.settings-v2-sub-agents-model-stack {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.settings-v2-sub-agents-model-stack [data-component="text-input-v2"] {
+  width: 100%;
+}
+
+.settings-v2-sub-agents-tools-stack {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.settings-v2-sub-agents-tools-grid {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 2px 16px;
+}
+
+.settings-v2-sub-agents-tool-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-v2-sub-agents-sensitive-chip {
+  padding: 1px 5px;
+  border: 0.5px solid color-mix(in srgb, var(--v2-state-fg-warning) 45%, transparent);
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 620;
+  letter-spacing: 0.05em;
+  line-height: 1.3;
+  text-transform: uppercase;
+  color: var(--v2-state-fg-warning);
+}
+
+.settings-v2-sub-agents-workspace-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 0.5px solid var(--v2-border-border-muted);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 440;
+  line-height: 1.4;
+  color: var(--v2-text-text-muted);
+  background-color: var(--v2-background-bg-layer-01);
+}
+
+.settings-v2-sub-agents-workspace-hint svg {
+  flex-shrink: 0;
+  color: var(--v2-text-text-faint);
+}
+
+.settings-v2-sub-agents-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 16px;
+}
+
+.settings-v2-sub-agents-form-actions-spacer {
+  flex: 1;
+}
