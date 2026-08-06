@@ -44,6 +44,9 @@ export type PromptInputV2Props = {
   variantControlVisible?: boolean
   attachKeybind?: string[]
   attachShortcut?: string
+  // Extra action rendered between the left controls and the submit button
+  // (e.g. a dictation microphone button supplied by the host app).
+  micControl?: JSX.Element
 }
 
 export function PromptInputV2(props: PromptInputV2Props) {
@@ -253,6 +256,7 @@ export function PromptInputV2(props: PromptInputV2Props) {
                 </Show>
               )}
             </Show>
+            {props.micControl}
           </div>
           <PromptInputV2SubmitButton
             mode={state.mode}

@@ -403,6 +403,13 @@ export const dict = {
   "prompt.action.send": "Enviar",
   "prompt.action.stop": "Detener",
 
+  "chat.mic.start": "Dictar con el micrófono",
+  "chat.mic.stop": "Detener dictado",
+  "chat.mic.error": "La entrada de voz no es compatible con este navegador",
+  "chat.message.speak": "Leer respuesta en voz alta",
+  "chat.message.stop": "Dejar de leer",
+  "chat.message.speak.failed": "No se pudo leer la respuesta en voz alta",
+
   "prompt.toast.pasteUnsupported.title": "Adjunto no compatible",
   "prompt.toast.attachmentDuplicate.title": "Este archivo ya se ha subido",
   "prompt.toast.pasteUnsupported.description":
@@ -1260,6 +1267,7 @@ export const dict = {
   "settings.tab.subAgents": "Sub-Agents",
   "settings.tab.mcpServers": "Servidores MCP",
   "settings.tab.github": "Github",
+  "settings.tab.voices": "Voces",
   "settings.skills.title": "Skills",
   "settings.skills.description": "Importa skills desde tu computadora o descarga skills publicados desde la web.",
   "settings.skills.section.installed": "Instalados",
@@ -1537,6 +1545,28 @@ export const dict = {
   "settings.github.pull.button": "Pull",
   "settings.github.pull.success": "Pull realizado",
   "settings.github.pull.failed": "Error al hacer pull",
+
+  "settings.voices.title": "Voces",
+  "settings.voices.description":
+    "Elige una voz para leer las respuestas del asistente en voz alta y prueba el modelo de voz gratuito.",
+  "settings.voices.desktopOnly": "Las voces están disponibles en la aplicación de escritorio.",
+  "settings.voices.loading": "Cargando...",
+  "settings.voices.download.title": "Modelo de voz no instalado",
+  "settings.voices.download.description":
+    "Descarga el modelo de voz gratuito kokoro (~325MB) para sintetizar voz en tu computadora. Las voces nunca salen de tu dispositivo.",
+  "settings.voices.download.button": "Descargar modelo de voz",
+  "settings.voices.download.downloading": "Descargando modelo de voz...",
+  "settings.voices.download.progress": "Descargando {{file}}",
+  "settings.voices.download.failed": "No se pudo descargar el modelo de voz",
+  "settings.voices.ready.title": "Selecciona una voz",
+  "settings.voices.voices.empty": "No hay voces disponibles",
+  "settings.voices.voice.probe": "Probar",
+  "settings.voices.voice.speaking": "Detener",
+  "settings.voices.voice.probe.failed": "No se pudo reproducir esta voz",
+  "settings.voices.voice.unsupported": "Solo inglés",
+  "settings.voices.select.title": "Voz activa",
+  "settings.voices.gender.female": "Femenina",
+  "settings.voices.gender.male": "Masculina",
 
   "settings.tab.modelsHub": "Modelos Locales",
   "settings.modelsHub.title": "Modelos Locales",

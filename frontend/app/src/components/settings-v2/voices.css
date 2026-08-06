@@ -1,0 +1,183 @@
+.settings-v2-voices {
+  gap: 20px;
+}
+
+.settings-v2-voices-description {
+  font-size: 13px;
+  font-weight: 440;
+  line-height: 1.5;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-voices-actions {
+  display: flex;
+  justify-content: flex-start;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.settings-v2-voices-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 420px;
+}
+
+.settings-v2-voices-progress-track {
+  height: 6px;
+  border-radius: 3px;
+  background-color: var(--v2-background-bg-layer-02);
+  overflow: hidden;
+}
+
+.settings-v2-voices-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  background-color: var(--v2-background-bg-accent);
+  transition: width 120ms ease-out;
+}
+
+.settings-v2-voices-progress-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 440;
+  line-height: 1.45;
+  color: var(--v2-text-text-faint);
+}
+
+.settings-v2-voices-selected {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background-color: var(--v2-background-bg-layer-01);
+  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
+  color: var(--v2-text-text-base);
+}
+
+.settings-v2-voices-selected [data-component="icon"] {
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-voices-selected-label {
+  font-size: 11px;
+  font-weight: 440;
+  line-height: 1;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-voices-selected-name {
+  font-size: 13px;
+  font-weight: 530;
+  line-height: 1.2;
+}
+
+.settings-v2-voices-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 4px;
+  border: none;
+  border-bottom: 0.5px solid var(--v2-border-border-base);
+  border-radius: 8px;
+  background-color: transparent;
+  text-align: start;
+  cursor: pointer;
+}
+
+.settings-v2-voices-row:last-child {
+  border-bottom: none;
+}
+
+.settings-v2-voices-row:hover {
+  background-color: var(--v2-overlay-simple-overlay-hover);
+}
+
+.settings-v2-voices-row[data-selected] {
+  background-color: var(--v2-background-bg-layer-02);
+}
+
+.settings-v2-voices-row-radio {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--v2-border-border-base);
+  color: var(--v2-text-text-contrast);
+}
+
+.settings-v2-voices-row-radio[data-checked] {
+  box-shadow: none;
+  background-color: var(--v2-background-bg-accent);
+}
+
+.settings-v2-voices-row-radio [data-component="icon"] {
+  width: 12px;
+  height: 12px;
+}
+
+.settings-v2-voices-row-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.settings-v2-voices-row-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.settings-v2-voices-row-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 530;
+  line-height: 1.2;
+  color: var(--v2-text-text-base);
+}
+
+.settings-v2-voices-chip {
+  flex-shrink: 0;
+  padding: 3px 7px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 640;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--v2-text-text-muted);
+  background-color: var(--v2-background-bg-layer-02);
+}
+
+.settings-v2-voices-chip[data-variant="female"] {
+  color: var(--v2-text-text-base);
+}
+
+.settings-v2-voices-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 440;
+  line-height: 1.2;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-voices-unsupported {
+  font-size: 11px;
+  font-weight: 440;
+  line-height: 1.2;
+  color: var(--v2-text-text-faint);
+}

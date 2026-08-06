@@ -53,6 +53,7 @@ import type {
   UserMessage,
 } from "@tiancode-ai/sdk/v2"
 import { showToast } from "@/utils/toast"
+import { isVoiceSpeaking, speakWithVoices, voicesAPI } from "@/utils/voices"
 import { getDirectory, getFilename } from "@tiancode-ai/core/util/path"
 import { Popover as KobaltePopover } from "@kobalte/core/popover"
 import { normalize } from "@tiancode-ai/session-ui/session-diff"
@@ -1031,6 +1032,17 @@ export function MessageTimeline(props: {
       if (group.type !== "part") return
       return getMsgPart(group.ref.messageID, group.ref.partID)
     })
+    const speak = (text: string) => {
+      const id = part()?.id
+      void speakWithVoices(id ?? text, text).then((error) => {
+        if (!error) return
+        showToast({
+          variant: "error",
+          title: language.t("chat.message.speak.failed"),
+          description: error,
+        })
+      })
+    }
     const defaultOpen = createMemo(() => {
       const item = part()
       if (!item) return
@@ -1054,6 +1066,10 @@ export function MessageTimeline(props: {
                 deferToolContent
                 virtualizeDiff={false}
                 onContentRendered={onSizeChange}
+                onSpeak={voicesAPI() ? speak : undefined}
+                speaking={part() ? isVoiceSpeaking(part().id) : false}
+                speakLabel={language.t("chat.message.speak")}
+                stopSpeakLabel={language.t("chat.message.stop")}
               />
             )}
           </Show>

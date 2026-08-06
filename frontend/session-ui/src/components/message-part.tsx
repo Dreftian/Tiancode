@@ -171,6 +171,12 @@ export interface MessageProps {
   showReasoningSummaries?: boolean
   useV2Actions?: boolean
   comments?: UserMessageComment[]
+  // Text-to-speech support for assistant responses; when `onSpeak` is
+  // present, a speaker button appears next to the copy action.
+  onSpeak?: (text: string) => void
+  speaking?: boolean
+  speakLabel?: string
+  stopSpeakLabel?: string
 }
 
 export type SessionAction = (input: { sessionID: string; messageID: string }) => Promise<void> | void
@@ -203,6 +209,10 @@ export interface MessagePartProps {
   showAssistantCopyPartID?: string | null
   turnDurationMs?: number
   useV2Actions?: boolean
+  onSpeak?: (text: string) => void
+  speaking?: boolean
+  speakLabel?: string
+  stopSpeakLabel?: string
 }
 
 function MessageActionButton(
@@ -239,6 +249,64 @@ function MessageActionButton(
           onMouseDown={props.onMouseDown}
           onClick={props.onClick}
           aria-label={props["aria-label"]}
+        />
+      </TooltipV2>
+    </Show>
+  )
+}
+
+// Read-aloud toggle for assistant responses. Uses an inline speaker glyph
+// (the icon set has no volume icon) and swaps to a stop square while playing.
+function MessageSpeakButton(props: {
+  speaking: boolean
+  label: JSX.Element
+  ariaLabel: string
+  useV2?: boolean
+  onMouseDown?: (event: MouseEvent) => void
+  onClick: () => void
+}) {
+  const icon = () =>
+    props.speaking ? (
+      <svg data-slot="icon-svg" width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <rect x="4" y="4" width="8" height="8" fill="currentColor" />
+      </svg>
+    ) : (
+      <svg data-slot="icon-svg" width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M2 6V10H4.5L8 13V3L4.5 6H2Z" fill="currentColor" />
+        <path
+          d="M10.5 5.5C11.1667 6.16667 11.5 7 11.5 8C11.5 9 11.1667 9.83333 10.5 10.5M12.5 3.5C13.8333 4.83333 14.5 6.33333 14.5 8C14.5 9.66667 13.8333 11.1667 12.5 12.5"
+          stroke="currentColor"
+          stroke-linecap="square"
+        />
+      </svg>
+    )
+  return (
+    <Show
+      when={props.useV2}
+      fallback={
+        <Tooltip value={props.label} placement="top" gutter={4}>
+          <button
+            type="button"
+            data-component="icon-button"
+            data-variant="ghost"
+            data-size="normal"
+            onMouseDown={props.onMouseDown}
+            onClick={props.onClick}
+            aria-label={props.ariaLabel}
+          >
+            {icon()}
+          </button>
+        </Tooltip>
+      }
+    >
+      <TooltipV2 value={props.label} placement="top" gutter={4}>
+        <IconButtonV2
+          icon={icon()}
+          size="normal"
+          variant="ghost-muted"
+          onMouseDown={props.onMouseDown}
+          onClick={props.onClick}
+          aria-label={props.ariaLabel}
         />
       </TooltipV2>
     </Show>
@@ -730,6 +798,10 @@ export function AssistantParts(props: {
   showReasoningSummaries?: boolean
   shellToolDefaultOpen?: boolean
   editToolDefaultOpen?: boolean
+  onSpeak?: (text: string) => void
+  speaking?: boolean
+  speakLabel?: string
+  stopSpeakLabel?: string
 }) {
   const data = useData()
   const emptyParts: PartType[] = []
@@ -811,6 +883,10 @@ export function AssistantParts(props: {
                         showAssistantCopyPartID={props.showAssistantCopyPartID}
                         turnDurationMs={props.turnDurationMs}
                         useV2Actions={props.useV2Actions}
+                        onSpeak={props.onSpeak}
+                        speaking={props.speaking}
+                        speakLabel={props.speakLabel}
+                        stopSpeakLabel={props.stopSpeakLabel}
                         defaultOpen={partDefaultOpen(item()!, props.shellToolDefaultOpen, props.editToolDefaultOpen)}
                       />
                     </Show>
@@ -955,6 +1031,10 @@ export function Message(props: MessageProps) {
             showAssistantCopyPartID={props.showAssistantCopyPartID}
             showReasoningSummaries={props.showReasoningSummaries}
             useV2Actions={props.useV2Actions}
+            onSpeak={props.onSpeak}
+            speaking={props.speaking}
+            speakLabel={props.speakLabel}
+            stopSpeakLabel={props.stopSpeakLabel}
           />
         )}
       </Match>
@@ -968,6 +1048,10 @@ export function AssistantMessageDisplay(props: {
   showAssistantCopyPartID?: string | null
   showReasoningSummaries?: boolean
   useV2Actions?: boolean
+  onSpeak?: (text: string) => void
+  speaking?: boolean
+  speakLabel?: string
+  stopSpeakLabel?: string
 }) {
   const emptyTools: ToolPart[] = []
   const part = createMemo(() => index(props.parts))
@@ -1028,6 +1112,10 @@ export function AssistantMessageDisplay(props: {
                       message={props.message}
                       showAssistantCopyPartID={props.showAssistantCopyPartID}
                       useV2Actions={props.useV2Actions}
+                      onSpeak={props.onSpeak}
+                      speaking={props.speaking}
+                      speakLabel={props.speakLabel}
+                      stopSpeakLabel={props.stopSpeakLabel}
                     />
                   </Show>
                 )
@@ -1448,6 +1536,10 @@ export function Part(props: MessagePartProps) {
         showAssistantCopyPartID={props.showAssistantCopyPartID}
         turnDurationMs={props.turnDurationMs}
         useV2Actions={props.useV2Actions}
+        onSpeak={props.onSpeak}
+        speaking={props.speaking}
+        speakLabel={props.speakLabel}
+        stopSpeakLabel={props.stopSpeakLabel}
       />
     </Show>
   )
@@ -1736,6 +1828,16 @@ PART_MAPPING["text"] = function TextPartDisplay(props) {
         </div>
         <Show when={showCopy()}>
           <div data-slot="text-part-copy-wrapper" data-interrupted={interrupted() ? "" : undefined}>
+            <Show when={props.onSpeak}>
+              <MessageSpeakButton
+                speaking={props.speaking ?? false}
+                label={props.speaking ? props.stopSpeakLabel : props.speakLabel}
+                ariaLabel={props.speaking ? props.stopSpeakLabel ?? "" : props.speakLabel ?? ""}
+                useV2={props.useV2Actions}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => props.onSpeak?.(text())}
+              />
+            </Show>
             <MessageActionButton
               icon={copied() ? "check" : "copy"}
               label={copied() ? i18n.t("ui.message.copied") : i18n.t("ui.message.copyResponse")}

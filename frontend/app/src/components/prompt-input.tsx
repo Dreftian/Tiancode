@@ -80,6 +80,7 @@ import { PromptDragOverlay } from "./prompt-input/drag-overlay"
 import { promptPlaceholder } from "./prompt-input/placeholder"
 import { createPromptInputTransientState } from "./prompt-input/transient-state"
 import { showToast } from "@/utils/toast"
+import { VoiceDictationButton } from "@/components/voice-dictation-button"
 import { ImagePreview } from "@tiancode-ai/ui/image-preview"
 import type { ReferenceInfo } from "@tiancode-ai/sdk/v2/client"
 
@@ -1575,6 +1576,17 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
             />
 
             <div class="flex items-center gap-1 pointer-events-auto">
+              <VoiceDictationButton
+                class="flex size-8 items-center justify-center rounded-md text-text-base transition-colors hover:bg-surface-base-active hover:text-text-strong"
+                listeningClass="!text-v2-state-fg-danger hover:!text-v2-state-fg-danger"
+                ariaLabel={language.t("chat.mic.start")}
+                listeningLabel={language.t("chat.mic.stop")}
+                onResult={(text) => {
+                  setEditorText(text)
+                  prompt.set([{ type: "text", content: text, start: 0, end: text.length }], text.length)
+                  focusEditorEnd()
+                }}
+              />
               <Tooltip placement="top" inactive={!working() && blank()} value={tip()}>
                 <IconButton
                   data-action="prompt-submit"

@@ -10,6 +10,7 @@ import { createEffect, createMemo, on, Show } from "solid-js"
 import { ModelSelectorPopoverV2 } from "@/components/dialog-select-model"
 import { DialogSelectModelUnpaidV2 } from "@/components/dialog-select-model-unpaid-v2"
 import type { PromptInputProps } from "@/components/prompt-input/contracts"
+import { VoiceDictationButton } from "@/components/voice-dictation-button"
 import { normalizePromptHistoryEntry, promptLength, type PromptHistoryComment } from "@/components/prompt-input/history"
 import { createPersistedPromptInputHistory } from "@/components/prompt-input/history-store"
 import { promptDesignPlaceholder, promptPlaceholder } from "@/components/prompt-input/placeholder"
@@ -58,6 +59,21 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
         variantControlVisible={!props.controller.model.loading}
         attachKeybind={command.keybindParts("file.attach")}
         attachShortcut={command.keybind("file.attach")}
+        micControl={
+          <VoiceDictationButton
+            class="flex size-7 items-center justify-center rounded-md text-v2-icon-icon-muted transition-colors hover:bg-v2-overlay-simple-overlay-hover hover:text-v2-text-text-base"
+            listeningClass="!text-v2-state-fg-danger hover:!text-v2-state-fg-danger"
+            ariaLabel={language.t("chat.mic.start")}
+            listeningLabel={language.t("chat.mic.stop")}
+            onResult={(text) =>
+              props.controller.onInput(
+                text,
+                [{ type: "text", content: text, start: 0, end: text.length }],
+                text.length,
+              )
+            }
+          />
+        }
         modelControl={
           <PromptInputV2ModelControl
             loading={props.controller.model.loading}
