@@ -319,23 +319,24 @@ export const SettingsMcpServersV2: Component<{
   }
 
   // Adds a catalog server when enabled, or disables the existing entry
-  // (mirroring toggleEnabled) when turned off.
+  // (mirroring toggleEnabled) when turned off. Re-enabling always sends the
+  // full preset config with an explicit `enabled: true` so an entry that only
+  // carries `{ enabled: false }` (created by a previous disable) is replaced
+  // by a complete server definition instead of being left as a type-less stub.
   const toggleDiscover = async (preset: DiscoverPreset, enabled: boolean) => {
     setMessage(undefined)
     try {
+      const existing = servers().find(([serverName]) => serverName === preset.id)?.[1]
       if (enabled) {
         const config: McpLocalConfig | McpRemoteConfig =
           preset.type === "local"
-            ? { type: "local", command: preset.command.split(/\s+/) }
-            : { type: "remote", url: preset.url, oauth: {} }
+            ? { type: "local", command: preset.command.split(/\s+/), enabled: true }
+            : { type: "remote", url: preset.url, oauth: {}, enabled: true }
         await serverSdk().client.mcp.add({ ...params(), name: preset.id, config })
+      } else if (existing && isConfiguredServer(existing)) {
+        await serverSdk().client.mcp.add({ ...params(), name: preset.id, config: { ...existing, enabled: false } })
       } else {
-        const existing = servers().find(([serverName]) => serverName === preset.id)?.[1]
-        if (existing && isConfiguredServer(existing)) {
-          await serverSdk().client.mcp.add({ ...params(), name: preset.id, config: { ...existing, enabled } })
-        } else {
-          await serverSdk().client.config.update({ ...params(), config: { mcp: { [preset.id]: { enabled } } } })
-        }
+        await serverSdk().client.config.update({ ...params(), config: { mcp: { [preset.id]: { enabled: false } } } })
       }
       void refetch()
     } catch {

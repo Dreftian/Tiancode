@@ -24,6 +24,33 @@
   align-self: flex-start;
 }
 
+/* Status filter: the base segmented control renders flush segments inside a
+   fixed 28px track, which reads as glued together. The filter widens the
+   track, gaps the pills and rounds each segment so the active one stands out. */
+.settings-v2-sub-agents-toolbar .settings-v2-sub-agents-filter {
+  width: auto;
+  height: auto;
+  padding: 4px;
+  gap: 6px;
+  border-radius: 8px;
+}
+
+.settings-v2-sub-agents-toolbar .settings-v2-sub-agents-filter [data-slot="segmented-control-v2-item"] {
+  height: 26px;
+  padding: 0 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.settings-v2-sub-agents-toolbar .settings-v2-sub-agents-filter [data-slot="segmented-control-v2-item"]:where(
+    [data-pressed]
+  ) {
+  background: var(--v2-background-bg-base);
+  color: var(--v2-text-text-accent);
+  box-shadow: 0 0 0 0.5px var(--v2-border-border-strong);
+}
+
 .settings-v2-sub-agents-group-title {
   display: flex;
   align-items: center;

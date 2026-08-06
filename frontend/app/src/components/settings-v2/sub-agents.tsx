@@ -331,6 +331,7 @@ export const SettingsSubAgentsV2: Component<{
                 aria-label={language.t("settings.subAgents.list.search.placeholder")}
               />
               <SegmentedControlV2
+                class="settings-v2-sub-agents-filter"
                 value={status()}
                 onChange={(value) => setStatus((value ?? "all") as StatusId)}
               >
