@@ -13,6 +13,7 @@ import { ControlPlaneApi } from "./groups/control-plane"
 import { EventApi } from "./groups/event"
 import { ExperimentalApi } from "./groups/experimental"
 import { FileApi } from "./groups/file"
+import { GithubApi } from "./groups/github"
 import { InstanceApi } from "./groups/instance"
 import { McpApi } from "./groups/mcp"
 import { ModelHubApi } from "./groups/model-hub"
@@ -63,6 +64,7 @@ export const InstanceHttpApi = HttpApi.make("tiancode-instance")
   .addHttpApi(ConfigApi)
   .addHttpApi(ExperimentalApi)
   .addHttpApi(FileApi)
+  .addHttpApi(GithubApi)
   .addHttpApi(InstanceApi)
   .addHttpApi(McpApi)
   .addHttpApi(ModelHubApi)

@@ -72,6 +72,36 @@ export interface Options {
   readonly stdin?: ChildProcess.CommandInput
 }
 
+export interface CommitOptions {
+  readonly token?: string
+  readonly author?: { readonly name: string; readonly email: string }
+}
+
+export interface PushOptions {
+  readonly remote?: string
+  readonly branch?: string
+  readonly force?: boolean
+  readonly token?: string
+}
+
+export interface PullOptions {
+  readonly remote?: string
+  readonly branch?: string
+  readonly token?: string
+}
+
+export interface CloneOptions {
+  readonly branch?: string
+  readonly depth?: number
+  readonly token?: string
+}
+
+export type CommitResult = {
+  readonly success: boolean
+  readonly output: string
+  readonly nothingToCommit: boolean
+}
+
 export interface Interface {
   readonly run: (args: string[], opts: Options) => Effect.Effect<Result>
   readonly branch: (cwd: string) => Effect.Effect<string | undefined>
@@ -88,6 +118,12 @@ export interface Interface {
   readonly patchUntracked: (cwd: string, file: string, options?: PatchOptions) => Effect.Effect<Patch>
   readonly statUntracked: (cwd: string, file: string) => Effect.Effect<Stat | undefined>
   readonly applyPatch: (cwd: string, patch: string) => Effect.Effect<Result>
+  readonly add: (cwd: string, files?: string[]) => Effect.Effect<Result>
+  readonly commit: (cwd: string, message: string, options?: CommitOptions) => Effect.Effect<CommitResult>
+  readonly push: (cwd: string, options?: PushOptions) => Effect.Effect<Result>
+  readonly pull: (cwd: string, options?: PullOptions) => Effect.Effect<Result>
+  readonly clone: (cwd: string, remote: string, directory: string, options?: CloneOptions) => Effect.Effect<Result>
+  readonly remoteUrl: (cwd: string) => Effect.Effect<string | undefined>
 }
 
 const kind = (code: string): Kind => {
@@ -323,6 +359,80 @@ const layer = Layer.effect(
       return yield* run(["apply", "-"], { cwd, stdin: stdin(patch) })
     })
 
+    // Credentials are injected per-command via `-c` flags so nothing is ever
+    // written into the repository or global git config. The extraheader value
+    // is scoped to github.com and matches the pattern used by
+    // cli/cmd/github.handler.ts (AUTHORIZATION: basic base64(x-access-token:...)).
+    const credentialArgs = (token: string) =>
+      [
+        "-c",
+        "credential.helper=",
+        "-c",
+        `http.https://github.com/.extraheader=AUTHORIZATION: basic ${Buffer.from(`x-access-token:${token}`, "utf8").toString("base64")}`,
+      ] as const
+
+    const authorized = (args: string[], token?: string) => (token ? [...credentialArgs(token), ...args] : args)
+
+    const writeOutput = (result: Result) =>
+      [result.text(), result.stderr.toString("utf8")].filter(Boolean).join("\n").trim()
+
+    const add = Effect.fn("Git.add")(function* (cwd: string, files: string[] = ["-A"]) {
+      return yield* run(["add", ...files], { cwd })
+    })
+
+    const commit = Effect.fn("Git.commit")(function* (cwd: string, message: string, options: CommitOptions = {}) {
+      const identity = options.author
+        ? ["-c", `user.name=${options.author.name}`, "-c", `user.email=${options.author.email}`]
+        : []
+      const result = yield* run(authorized(["commit", ...identity, "-m", message], options.token), { cwd })
+      const text = writeOutput(result)
+      const nothingToCommit = /nothing to commit|no changes added to commit|nothing added to commit/i.test(text)
+      return { success: result.exitCode === 0 || nothingToCommit, output: text, nothingToCommit } satisfies CommitResult
+    })
+
+    const push = Effect.fn("Git.push")(function* (cwd: string, options: PushOptions = {}) {
+      const remote = options.remote ?? "origin"
+      const name = options.branch ?? (yield* branch(cwd))
+      const hasUpstream = name
+        ? (yield* run(["config", "--get", `branch.${name}.remote`], { cwd })).exitCode === 0
+        : false
+      const args = ["push", ...(options.force ? ["--force-with-lease"] : [])]
+      if (name && !hasUpstream) args.push("-u", remote, name)
+      else if (name) args.push(remote, name)
+      return yield* run(authorized(args, options.token), { cwd })
+    })
+
+    // Fast-forward only: a diverged local branch fails instead of silently
+    // creating a merge commit the user did not ask for.
+    const pull = Effect.fn("Git.pull")(function* (cwd: string, options: PullOptions = {}) {
+      const args = ["pull", "--ff-only", options.remote ?? "origin", ...(options.branch ? [options.branch] : [])]
+      return yield* run(authorized(args, options.token), { cwd })
+    })
+
+    const clone = Effect.fn("Git.clone")(function* (
+      cwd: string,
+      remote: string,
+      directory: string,
+      options: CloneOptions = {},
+    ) {
+      const args = [
+        "clone",
+        "--depth",
+        String(options.depth ?? 1),
+        ...(options.branch ? ["--branch", options.branch] : []),
+        "--",
+        remote,
+        directory,
+      ]
+      return yield* run(authorized(args, options.token), { cwd })
+    })
+
+    const remoteUrl = Effect.fn("Git.remoteUrl")(function* (cwd: string) {
+      const result = yield* run(["remote", "get-url", "origin"], { cwd })
+      if (result.exitCode !== 0) return
+      return out(result) || undefined
+    })
+
     return Service.of({
       run,
       branch,
@@ -339,6 +449,12 @@ const layer = Layer.effect(
       patchUntracked,
       statUntracked,
       applyPatch,
+      add,
+      commit,
+      push,
+      pull,
+      clone,
+      remoteUrl,
     })
   }),
 )
