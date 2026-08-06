@@ -56,6 +56,8 @@ export const InstancePaths = {
   skillImport: "/skill/import",
   skillToggle: "/skill/toggle",
   agentCreate: "/agent/create",
+  agentUpdate: "/agent/:name",
+  agentDelete: "/agent/:name",
 } as const
 
 export const SkillImportInput = Schema.Struct({
@@ -82,7 +84,13 @@ export const AgentCreateInput = Schema.Struct({
   mode: Schema.Literals(["subagent", "primary"]),
   model: Schema.optional(Schema.String),
   color: Schema.optional(Schema.String),
+  prompt: Schema.optional(Schema.String),
+  injectAgentsMd: Schema.optional(Schema.Boolean),
   tools: Schema.optional(Schema.Array(Schema.String)),
+})
+
+export const AgentDeleteResponse = Schema.Struct({
+  success: Schema.Literal(true),
 })
 
 export const InstanceApi = HttpApi.make("instance")
@@ -227,6 +235,29 @@ export const InstanceApi = HttpApi.make("instance")
             identifier: "app.agents.create",
             summary: "Create an agent",
             description: "Write a new agent definition file and reload the agent list.",
+          }),
+        ),
+        HttpApiEndpoint.put("agentUpdate", InstancePaths.agentUpdate, {
+          params: { name: Schema.String },
+          query: WorkspaceRoutingQuery,
+          payload: AgentCreateInput,
+          success: described(Agent.Info, "Updated agent"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "app.agents.update",
+            summary: "Update an agent",
+            description: "Rewrite an agent definition file and reload the agent list.",
+          }),
+        ),
+        HttpApiEndpoint.delete("agentDelete", InstancePaths.agentDelete, {
+          params: { name: Schema.String },
+          query: WorkspaceRoutingQuery,
+          success: described(AgentDeleteResponse, "Agent deleted"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "app.agents.delete",
+            summary: "Delete an agent",
+            description: "Remove an agent definition file and reload the agent list.",
           }),
         ),
         HttpApiEndpoint.get("lsp", InstancePaths.lsp, {

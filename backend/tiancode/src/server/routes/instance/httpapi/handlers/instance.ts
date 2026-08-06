@@ -129,6 +129,20 @@ export const instanceHandlers = HttpApiBuilder.group(InstanceHttpApi, "instance"
       return yield* agent.get(ctx.payload.name)
     })
 
+    const updateAgent = Effect.fn("InstanceHttpApi.agentUpdate")(function* (ctx) {
+      const file = path.join(global.config, "agent", `${ctx.params.name}.md`)
+      yield* fs.writeWithDirs(file, buildAgentMarkdown({ ...ctx.payload, name: ctx.params.name })).pipe(Effect.orDie)
+      yield* agent.reload()
+      return yield* agent.get(ctx.params.name)
+    })
+
+    const deleteAgent = Effect.fn("InstanceHttpApi.agentDelete")(function* (ctx) {
+      const file = path.join(global.config, "agent", `${ctx.params.name}.md`)
+      yield* fs.remove(file).pipe(Effect.orDie)
+      yield* agent.reload()
+      return { success: true } as const
+    })
+
     const getLsp = Effect.fn("InstanceHttpApi.lsp")(function* () {
       return yield* lsp.status()
     })
@@ -151,21 +165,71 @@ export const instanceHandlers = HttpApiBuilder.group(InstanceHttpApi, "instance"
       .handle("skillImport", importSkill)
       .handle("skillToggle", toggleSkill)
       .handle("agentCreate", createAgent)
+      .handle("agentUpdate", updateAgent)
+      .handle("agentDelete", deleteAgent)
       .handle("lsp", getLsp)
       .handle("formatter", getFormatter)
   }),
 )
 
-function buildAgentMarkdown(input: { name: string; description: string; mode: "subagent" | "primary"; model?: string; color?: string }) {
+const AGENT_TOOL_CATALOG = [
+  "read",
+  "edit",
+  "glob",
+  "grep",
+  "list",
+  "bash",
+  "task",
+  "external_directory",
+  "todowrite",
+  "question",
+  "webfetch",
+  "websearch",
+  "lsp",
+  "doom_loop",
+  "skill",
+]
+
+function buildAgentMarkdown(input: {
+  name: string
+  description: string
+  mode: "subagent" | "primary"
+  model?: string
+  color?: string
+  prompt?: string
+  injectAgentsMd?: boolean
+  disable?: boolean
+  tools?: string[]
+}) {
+  const permission = buildPermission(input.tools)
   return [
     "---",
+    `name: ${JSON.stringify(input.name)}`,
     `mode: ${input.mode}`,
     `description: ${JSON.stringify(input.description)}`,
     ...(input.model ? [`model: ${input.model}`] : []),
     ...(input.color ? [`color: ${JSON.stringify(input.color)}`] : []),
+    ...(input.injectAgentsMd !== undefined ? [`injectAgentsMd: ${input.injectAgentsMd}`] : []),
+    ...(input.disable !== undefined ? [`disable: ${input.disable}`] : []),
+    ...(permission
+      ? ["permission:", ...Object.entries(permission).map(([tool, action]) => `  ${tool}: ${action}`)]
+      : []),
     "---",
     "",
-    input.description,
+    input.prompt ?? input.description,
     "",
   ].join("\n")
+}
+
+function buildPermission(tools: string[] | undefined) {
+  if (!tools) return undefined
+  const allowed = tools.map((tool) => tool.toLowerCase())
+  const permission: Record<string, "allow" | "deny"> = {}
+  for (const tool of AGENT_TOOL_CATALOG) {
+    permission[tool] = allowed.includes(tool) ? "allow" : "deny"
+  }
+  for (const tool of allowed) {
+    if (!(tool in permission)) permission[tool] = "allow"
+  }
+  return permission
 }
