@@ -29,6 +29,44 @@ export type UpdaterAPI = {
   install: () => Promise<void>
 }
 
+export type VoiceInfo = {
+  id: string
+  name: string
+  language: string
+  gender: "female" | "male"
+  // Whether kokoro-js can synthesize this voice (English voices only; the
+  // bundled espeak-ng phonemizer has no multilingual voices).
+  supported: boolean
+}
+
+export type VoicesStatus = {
+  ready: boolean
+  downloading?: boolean
+  progress?: number
+  voices: VoiceInfo[]
+  selected?: string
+  error?: string
+}
+
+export type VoicesProgress = {
+  progress: number
+  file?: string
+}
+
+export type VoicesSpeakResult = {
+  wav?: Uint8Array
+  error?: string
+}
+
+export type VoicesAPI = {
+  status: () => Promise<VoicesStatus>
+  download: () => Promise<void>
+  list: () => Promise<VoiceInfo[]>
+  speak: (text: string, voiceId?: string) => Promise<VoicesSpeakResult>
+  select: (voiceId: string) => Promise<boolean>
+  onProgress: (cb: (event: VoicesProgress) => void) => () => void
+}
+
 export type LinuxDisplayBackend = "wayland" | "auto"
 export type TitlebarTheme = {
   mode: "light" | "dark"
@@ -48,6 +86,7 @@ export type ElectronAPI = {
   awaitInitialization: () => Promise<ServerReadyData>
   wslServers: WslServersAPI
   updater: UpdaterAPI
+  voices: VoicesAPI
   consumeInitialDeepLinks: () => Promise<string[]>
   getDefaultServerUrl: () => Promise<string | null>
   setDefaultServerUrl: (url: string | null) => Promise<void>

@@ -1,0 +1,206 @@
+import { app, BrowserWindow } from "electron"
+import { join } from "node:path"
+import type { KokoroTTS } from "kokoro-js"
+import type { ProgressInfo } from "@huggingface/transformers"
+import type { VoiceInfo, VoicesSpeakResult } from "../preload/types"
+import { write as writeLog } from "./logging"
+import { getStore } from "./store"
+import { SELECTED_VOICE_KEY } from "./store-keys"
+import { float32ToWav } from "./wav"
+
+export const DEFAULT_VOICE = "af_heart"
+const KOKORO_MODEL_ID = "onnx-community/Kokoro-82M-v1.0-ONNX"
+// kokoro-js bundles an espeak-ng phonemizer with English voices only, so its
+// public generate() API accepts just the US/UK English voices (af/am/bf/bm)
+// and phonemizes everything as English. The other model voices (es, fr, hi,
+// it, ja, pt, zh) ship style vectors in the package but cannot be
+// synthesized through the JS port yet.
+const SUPPORTED_VOICE_IDS = [
+  "af_heart", "af_alloy", "af_aoede", "af_bella", "af_jessica", "af_kore", "af_nicole", "af_nova", "af_river",
+  "af_sarah", "af_sky",
+  "am_adam", "am_echo", "am_eric", "am_fenrir", "am_liam", "am_michael", "am_onyx", "am_puck", "am_santa",
+  "bf_alice", "bf_emma", "bf_isabella", "bf_lily",
+  "bm_daniel", "bm_fable", "bm_george", "bm_lewis",
+] as const
+type SupportedVoiceId = (typeof SUPPORTED_VOICE_IDS)[number]
+
+// Language and gender per Kokoro voice prefix. "af" = American English
+// female, "am" = American English male, "bf"/"bm" = British English; the
+// remaining prefixes follow espeak-ng language codes (es, fr, hi, it, ja, pt,
+// zh) and are listed for the catalog even though synthesis is English-only.
+const PREFIX_META: Record<string, { language: string; gender: "female" | "male" }> = {
+  af: { language: "en-US", gender: "female" },
+  am: { language: "en-US", gender: "male" },
+  bf: { language: "en-GB", gender: "female" },
+  bm: { language: "en-GB", gender: "male" },
+  ef: { language: "es", gender: "female" },
+  em: { language: "es", gender: "male" },
+  ff: { language: "fr", gender: "female" },
+  hf: { language: "hi", gender: "female" },
+  hm: { language: "hi", gender: "male" },
+  if: { language: "it", gender: "female" },
+  im: { language: "it", gender: "male" },
+  jf: { language: "ja", gender: "female" },
+  jm: { language: "ja", gender: "male" },
+  pf: { language: "pt", gender: "female" },
+  pm: { language: "pt", gender: "male" },
+  zf: { language: "zh", gender: "female" },
+  zm: { language: "zh", gender: "male" },
+}
+
+// All voices shipped with kokoro-js 1.2.1 (node_modules/kokoro-js/voices).
+const VOICE_IDS = [
+  ...SUPPORTED_VOICE_IDS,
+  "ef_dora", "em_alex", "em_santa",
+  "ff_siwis",
+  "hf_alpha", "hf_beta", "hm_omega", "hm_psi",
+  "if_sara", "im_nicola",
+  "jf_alpha", "jf_gongitsune", "jf_nezumi", "jf_tebukuro", "jm_kumo",
+  "pf_dora", "pm_alex", "pm_santa",
+  "zf_xiaobei", "zf_xiaoni", "zf_xiaoxiao", "zf_xiaoyi",
+  "zm_yunjian", "zm_yunxi", "zm_yunxia", "zm_yunyang",
+] as const
+
+const VOICE_CATALOG: VoiceInfo[] = VOICE_IDS.map((id) => {
+  const prefix = id.slice(0, 2)
+  const meta = PREFIX_META[prefix]
+  return {
+    id,
+    name: voiceName(id),
+    language: meta.language,
+    gender: meta.gender,
+    supported: (SUPPORTED_VOICE_IDS as readonly string[]).includes(id),
+  }
+})
+
+type VoiceState = "idle" | "downloading" | "ready" | "error"
+
+let state: VoiceState = "idle"
+let progress: number | undefined
+let failure: string | undefined
+let ttsPromise: Promise<KokoroTTS> | undefined
+
+export function getVoicesStatus() {
+  return {
+    ready: state === "ready",
+    downloading: state === "downloading" || undefined,
+    progress,
+    voices: VOICE_CATALOG,
+    selected: getSelectedVoice(),
+    ...(failure ? { error: failure } : {}),
+  }
+}
+
+export async function downloadVoices() {
+  await ensureReady()
+}
+
+export function listVoices() {
+  return VOICE_CATALOG
+}
+
+export async function speakVoice(text: string, voiceId?: string): Promise<VoicesSpeakResult> {
+  if (typeof text !== "string" || text.trim().length === 0) return { error: "Text must be a non-empty string." }
+  const voice = resolveVoice(voiceId ?? getSelectedVoice())
+  if (!voice) return { error: `Unknown voice "${voiceId}".` }
+  if (!voice.supported) {
+    return {
+      error:
+        `Voice "${voice.id}" (${voice.language}) is not supported yet: ` +
+        "kokoro-js 1.2.1 can only synthesize English voices (af, am, bf, bm).",
+    }
+  }
+  try {
+    const tts = await ensureReady()
+    const audio = await tts.generate(text, { voice: voice.id as SupportedVoiceId })
+    const samples = Array.isArray(audio.audio) ? concatSamples(audio.audio) : audio.audio
+    return { wav: new Uint8Array(float32ToWav(samples, audio.sampling_rate)) }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    writeLog("voices", "synthesis failed", { error: message }, "error")
+    return { error: message }
+  }
+}
+
+export function selectVoice(voiceId: string) {
+  const voice = resolveVoice(voiceId)
+  if (!voice) return false
+  getStore().set(SELECTED_VOICE_KEY, voice.id)
+  return true
+}
+
+function concatSamples(chunks: Float32Array[]) {
+  const total = chunks.reduce((sum, chunk) => sum + chunk.length, 0)
+  const result = new Float32Array(total)
+  let offset = 0
+  for (const chunk of chunks) {
+    result.set(chunk, offset)
+    offset += chunk.length
+  }
+  return result
+}
+
+async function ensureReady() {
+  if (!ttsPromise) {
+    state = "downloading"
+    progress = 0
+    failure = undefined
+    ttsPromise = loadTTS().then(
+      (tts) => {
+        state = "ready"
+        progress = 100
+        reportProgress({ progress: 100 })
+        return tts
+      },
+      (error) => {
+        state = "error"
+        failure = error instanceof Error ? error.message : String(error)
+        ttsPromise = undefined
+        writeLog("voices", "failed to load kokoro tts", { error: failure }, "error")
+        throw error
+      },
+    )
+  }
+  return ttsPromise
+}
+
+async function loadTTS() {
+  const { env } = await import("@huggingface/transformers")
+  // transformers.js defaults its cache next to the package dir; move it under
+  // userData so downloads survive across app launches in the packaged app.
+  env.cacheDir = join(app.getPath("userData"), "huggingface-cache")
+  const { KokoroTTS } = await import("kokoro-js")
+  return KokoroTTS.from_pretrained(KOKORO_MODEL_ID, {
+    dtype: "fp32",
+    device: "cpu",
+    progress_callback: onProgress,
+  })
+}
+
+// transformers.js 3.x reports per-file download progress only (no overall
+// percentage), so progress reflects the current file while it downloads.
+function onProgress(info: ProgressInfo) {
+  if (info.status !== "progress" || info.total <= 0) return
+  reportProgress({ progress: Math.round((info.loaded / info.total) * 100), file: info.file })
+}
+
+function reportProgress(payload: { progress: number; file?: string }) {
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (win.isDestroyed() || win.webContents.isDestroyed()) continue
+    win.webContents.send("voices-progress", payload)
+  }
+}
+
+function getSelectedVoice() {
+  const stored = getStore().get(SELECTED_VOICE_KEY)
+  return typeof stored === "string" && resolveVoice(stored) ? stored : DEFAULT_VOICE
+}
+
+function resolveVoice(id: string) {
+  return VOICE_CATALOG.find((voice) => voice.id === id)
+}
+
+function voiceName(id: string) {
+  const name = id.slice(id.indexOf("_") + 1)
+  return name.charAt(0).toUpperCase() + name.slice(1)
+}

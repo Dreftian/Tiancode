@@ -56,6 +56,14 @@ const getBase = (appId: string): Configuration => ({
     desktopName: `${appId}.desktop`,
   },
   files: ["out/**/*", "resources/**/*", "!resources/tiancode-cli*"],
+  // onnxruntime-node ships native binaries that cannot load from inside the
+  // asar; kokoro-js and phonemizer ship binary assets (voice style vectors,
+  // espeak-ng wasm) that are safer unpacked.
+  asarUnpack: [
+    "**/node_modules/onnxruntime-node/**",
+    "**/node_modules/kokoro-js/**",
+    "**/node_modules/phonemizer/**",
+  ],
   extraResources: [
     ...(channel === "dev"
       ? [

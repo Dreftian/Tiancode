@@ -24,6 +24,7 @@ import type { UpdaterController } from "./updater-controller"
 import { createUpdaterSubscriptions } from "./updater-subscriptions"
 import { createDesktopDraftStore } from "./draft-store"
 import { nativeT } from "./native-translations"
+import { downloadVoices, getVoicesStatus, listVoices, selectVoice, speakVoice } from "./voices"
 
 const pickerFilters = (ext?: string[]) => {
   if (!ext || ext.length === 0) return undefined
@@ -111,6 +112,13 @@ export function registerIpcHandlers(deps: Deps) {
     if (!bundle) throw new Error("Invalid native translation bundle")
     deps.setNativeTranslations(bundle)
   })
+  ipcMain.handle("voices-status", () => getVoicesStatus())
+  ipcMain.handle("voices-download", () => downloadVoices())
+  ipcMain.handle("voices-list", () => listVoices())
+  ipcMain.handle("voices-speak", (_event: IpcMainInvokeEvent, text: string, voiceId?: string) =>
+    speakVoice(text, voiceId),
+  )
+  ipcMain.handle("voices-select", (_event: IpcMainInvokeEvent, voiceId: string) => selectVoice(voiceId))
   ipcMain.handle("store-get", (_event: IpcMainInvokeEvent, name: string, key: string) => {
     try {
       const store = getStore(name)
