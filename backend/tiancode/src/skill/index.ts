@@ -12,6 +12,7 @@ import { FSUtil } from "@tiancode-ai/core/fs-util"
 import { Config } from "@/config/config"
 import { FrontmatterError } from "@tiancode-ai/core/v1/config/error"
 import { ConfigMarkdown } from "@/config/markdown"
+import { ConfigMarkdown as ConfigMarkdownCore } from "@tiancode-ai/core/config/markdown"
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import { Glob } from "@tiancode-ai/core/util/glob"
 import { Discovery } from "./discovery"
@@ -33,6 +34,27 @@ const CUSTOMIZE_TIANCODE_SKILL_NAME = "customize-tiancode"
 const CUSTOMIZE_TIANCODE_SKILL_DESCRIPTION =
   "Use ONLY when the user is editing or creating tiancode's own configuration: tiancode.json, tiancode.jsonc, files under .tiancode/, or files under ~/.config/tiancode/. Also use when creating or fixing tiancode agents, subagents, skills, plugins, MCP servers, or permission rules. Do not use for the user's own application code, or for any project that is not configuring tiancode itself."
 const CUSTOMIZE_TIANCODE_SKILL_BODY = SkillPlugin.CustomizeOpencodeContent
+
+// Built-in engineering workflow skills that ship with tiancode, bundled from
+// https://github.com/addyosmani/agent-skills (MIT, (c) 2025 Addy Osmani).
+// Each document is a SKILL.md-style file whose frontmatter provides the name
+// and description. They are registered before disk discovery so a user-disk
+// skill with the same name can override them.
+import { builtinAgentSkills } from "./builtin/skills"
+
+const loadBuiltinSkills = Effect.fnUntraced(function* (s: State) {
+  for (const [name, content] of Object.entries(builtinAgentSkills)) {
+    const markdown = ConfigMarkdownCore.parseOption(content)
+    if (!markdown) continue
+    if (!isSkillFrontmatter(markdown.data)) continue
+    s.skills[markdown.data.name] = {
+      name: markdown.data.name,
+      description: markdown.data.description,
+      location: `<built-in:${name}>`,
+      content: markdown.content,
+    }
+  }
+})
 
 export const Info = Schema.Struct({
   name: Schema.String,
@@ -275,14 +297,15 @@ const layer = Layer.effect(
     const state = yield* InstanceState.make(
       Effect.fn("Skill.state")(function* () {
         const s: State = { skills: {}, dirs: new Set() }
-        // Register the built-in skill BEFORE disk discovery so a user-disk
-        // skill with the same name can override it.
+        // Register the built-in skills BEFORE disk discovery so a user-disk
+        // skill with the same name can override them.
         s.skills[CUSTOMIZE_TIANCODE_SKILL_NAME] = {
           name: CUSTOMIZE_TIANCODE_SKILL_NAME,
           description: CUSTOMIZE_TIANCODE_SKILL_DESCRIPTION,
           location: "<built-in>",
           content: CUSTOMIZE_TIANCODE_SKILL_BODY,
         }
+        yield* loadBuiltinSkills(s)
         yield* loadSkills(s, yield* InstanceState.get(discovered), events)
         return s
       }),

@@ -156,7 +156,7 @@ const scenarios: Scenario[] = [
     .json(200, (body) => {
       array(body)
       check(
-        body.some((skill) => skill.name === "httpapi-exercise"),
+        body.some((skill) => isRecord(skill) && skill.name === "httpapi-exercise"),
         "imported skill should be listed after import",
       )
     }),
