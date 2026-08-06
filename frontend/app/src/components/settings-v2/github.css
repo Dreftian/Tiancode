@@ -1,0 +1,212 @@
+.settings-v2-github {
+  gap: 20px;
+}
+
+.settings-v2-github-connect {
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.settings-v2-github-description {
+  font-size: 13px;
+  font-weight: 440;
+  line-height: 1.5;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-github-token {
+  width: 100%;
+  max-width: 420px;
+}
+
+.settings-v2-github-hint {
+  font-size: 11px;
+  font-weight: 440;
+  line-height: 1.45;
+  color: var(--v2-text-text-faint);
+}
+
+.settings-v2-github-actions {
+  display: flex;
+  justify-content: flex-start;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.settings-v2-github-account {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-radius: 10px;
+  background-color: var(--v2-background-bg-layer-01);
+  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
+}
+
+.settings-v2-github-avatar {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background-color: var(--v2-background-bg-layer-02);
+  object-fit: cover;
+}
+
+.settings-v2-github-account > [data-component="icon"] {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  padding: 7px;
+  border-radius: 999px;
+  background-color: var(--v2-background-bg-layer-02);
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-github-account-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-v2-github-account-label {
+  font-size: 11px;
+  font-weight: 440;
+  line-height: 1;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-github-account-login {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 560;
+  line-height: 1.2;
+  color: var(--v2-text-text-base);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-v2-github-account-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.settings-v2-github-search {
+  max-width: 280px;
+}
+
+.settings-v2-github-repo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-block: 12px;
+  border-bottom: 0.5px solid var(--v2-border-border-base);
+}
+
+.settings-v2-github-repo:last-child {
+  border-bottom: none;
+}
+
+.settings-v2-github-repo-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-v2-github-repo-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.settings-v2-github-repo-name {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 560;
+  line-height: 1.15;
+  color: var(--v2-text-text-base);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-v2-github-repo-description {
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 440;
+  line-height: 1.4;
+  color: var(--v2-text-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-v2-github-chip {
+  flex-shrink: 0;
+  padding: 3px 7px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 640;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--v2-text-text-muted);
+  background-color: var(--v2-background-bg-layer-02);
+}
+
+.settings-v2-github-project {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 20px;
+  border-radius: 10px;
+  background-color: var(--v2-background-bg-layer-01);
+  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
+}
+
+.settings-v2-github-project-path {
+  overflow: hidden;
+  font-family: var(--v2-font-mono);
+  font-size: 12px;
+  font-weight: 480;
+  line-height: 1.35;
+  color: var(--v2-text-text-base);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-v2-github-project-remote {
+  overflow: hidden;
+  font-family: var(--v2-font-mono);
+  font-size: 11px;
+  font-weight: 440;
+  line-height: 1.35;
+  color: var(--v2-text-text-faint);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-v2-github-vcs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settings-v2-github-vcs-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-v2-github-vcs-commit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-v2-github-vcs-commit [data-component="text-input-v2"] {
+  flex: 1;
+}

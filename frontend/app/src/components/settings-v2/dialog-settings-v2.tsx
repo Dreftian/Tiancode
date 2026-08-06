@@ -13,6 +13,7 @@ import { SettingsPluginsV2 } from "./plugins"
 import { SettingsSkillsV2 } from "./skills"
 import { SettingsSubAgentsV2 } from "./sub-agents"
 import { SettingsMcpServersV2 } from "./mcp-servers"
+import { SettingsGithubV2 } from "./github"
 import "./settings-v2.css"
 import { SettingsServersV2 } from "./servers"
 import { useDialog } from "@tiancode-ai/ui/context/dialog"
@@ -97,6 +98,10 @@ export const DialogSettings: Component<{
                 <div class="flex flex-col gap-1.5">
                   <TabsV2.SectionTitle>{language.t("settings.section.extensions")}</TabsV2.SectionTitle>
                   <div class="flex flex-col gap-1.5 w-full">
+                    <TabsV2.Trigger value="github">
+                      <Icon name="github" />
+                      {language.t("settings.tab.github")}
+                    </TabsV2.Trigger>
                     <TabsV2.Trigger value="plugins">
                       <Icon name="dot-grid" />
                       {language.t("settings.tab.plugins")}
@@ -140,6 +145,9 @@ export const DialogSettings: Component<{
         </TabsV2.Content>
         <TabsV2.Content value="models-hub" class="settings-v2-panel">
           <SettingsModelsHubV2 directory={directory()} />
+        </TabsV2.Content>
+        <TabsV2.Content value="github" class="settings-v2-panel">
+          <SettingsGithubV2 directory={directory()} />
         </TabsV2.Content>
         <TabsV2.Content value="plugins" class="settings-v2-panel">
           <SettingsPluginsV2 directory={directory()} />
