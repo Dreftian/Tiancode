@@ -190,7 +190,7 @@ mcpTest.instance("BrowserOpenFailed event is not published when browser launch s
     const url = yield* Deferred.await(opened)
     const failure = yield* Deferred.await(event).pipe(Effect.timeoutOption("700 millis"))
 
-    expect(status).toEqual({ status: "connected" })
+    expect(status).toEqual({ status: "connected", tools: 0 })
     expect(failure).toEqual(Option.none())
     expect(new URL(url).origin).toBe(new URL(server.url).origin)
   }),
@@ -212,7 +212,7 @@ mcpTest.instance("browser launch receives the discovered authorization URL", () 
     const url = yield* Deferred.await(opened)
     const authorizationUrl = yield* Deferred.await(authorization)
 
-    expect(status).toEqual({ status: "connected" })
+    expect(status).toEqual({ status: "connected", tools: 0 })
     expect(authorizationUrl).toBe(url)
     expect(new URL(url).pathname).toBe("/authorize")
     expect(new URL(url).searchParams.get("client_id")).toBe("test-client")

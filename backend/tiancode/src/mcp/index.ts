@@ -80,7 +80,7 @@ function createClient(directory: string) {
   return client
 }
 
-const StatusConnected = Schema.Struct({ status: Schema.Literal("connected") }).annotate({
+const StatusConnected = Schema.Struct({ status: Schema.Literal("connected"), tools: Schema.Number }).annotate({
   identifier: "MCPStatusConnected",
 })
 const StatusDisabled = Schema.Struct({ status: Schema.Literal("disabled") }).annotate({
@@ -361,7 +361,7 @@ const layer = Layer.effect(
       return yield* connectTransport(transport, connectTimeout).pipe(
         Effect.map((client): { client: MCPClient | undefined; status: Status } => ({
           client,
-          status: { status: "connected" },
+          status: { status: "connected" } as Status,
         })),
         Effect.catch((error): Effect.Effect<{ client: MCPClient | undefined; status: Status }> => {
           const msg = error instanceof Error ? error.message : String(error)
@@ -518,7 +518,10 @@ const layer = Layer.effect(
               }
 
               const result = yield* create(key, mcp)
-              s.status[key] = result.status
+              s.status[key] =
+                result.status.status === "connected"
+                  ? { status: "connected", tools: (result.defs ?? []).length }
+                  : result.status
               if (result.mcpClient) {
                 s.clients[key] = result.mcpClient
                 s.defs[key] = result.defs!
@@ -579,7 +582,7 @@ const layer = Layer.effect(
     ) {
       const bridge = yield* EffectBridge.make()
       const previous = s.clients[name]
-      s.status[name] = { status: "connected" }
+      s.status[name] = { status: "connected", tools: listed.length }
       s.clients[name] = client
       s.defs[name] = listed
       if (instructions) s.instructions[name] = instructions
@@ -598,15 +601,20 @@ const layer = Layer.effect(
 
       for (const [key, mcp] of Object.entries(config)) {
         if (!isMcpConfigured(mcp)) continue
-        result[key] = s.status[key] ?? { status: "disabled" }
+        result[key] = connectedStatus(s, key, s.status[key] ?? { status: "disabled" })
       }
 
       for (const key of Object.keys(s.config)) {
-        result[key] = s.status[key] ?? { status: "disabled" }
+        result[key] = connectedStatus(s, key, s.status[key] ?? { status: "disabled" })
       }
 
       return result
     })
+
+    function connectedStatus(s: State, name: string, status: Status): Status {
+      if (status.status !== "connected") return status
+      return { status: "connected", tools: (s.defs[name] ?? []).length }
+    }
 
     const clients = Effect.fn("MCP.clients")(function* () {
       const s = yield* InstanceState.get(state)
