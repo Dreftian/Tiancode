@@ -142,6 +142,37 @@ const scenarios: Scenario[] = [
   http.protected.get("/command", "command.list").json(200, array, "status"),
   http.protected.get("/agent", "app.agents").json(200, array, "status"),
   http.protected.get("/skill", "app.skills").json(200, array, "status"),
+  http.protected
+    .post("/skill/import", "app.skills.import")
+    .mutating()
+    .at((ctx) => ({
+      path: "/skill/import",
+      headers: ctx.headers(),
+      body: {
+        name: "httpapi-exercise",
+        files: [{ path: "SKILL.md", content: "---\nname: httpapi-exercise\n---\nTest skill body." }],
+      },
+    }))
+    .json(200, (body) => {
+      array(body)
+      check(
+        body.some((skill) => skill.name === "httpapi-exercise"),
+        "imported skill should be listed after import",
+      )
+    }),
+  http.protected
+    .post("/agent/create", "app.agents.create")
+    .mutating()
+    .at((ctx) => ({
+      path: "/agent/create",
+      headers: ctx.headers(),
+      body: { name: "httpapi-subagent", description: "Test subagent", mode: "subagent" },
+    }))
+    .json(200, (body) => {
+      object(body)
+      check(body.name === "httpapi-subagent", "created agent should be returned")
+      check(body.mode === "subagent", "created agent mode should match")
+    }),
   http.protected.get("/lsp", "lsp.status").json(200, array),
   http.protected.get("/formatter", "formatter.status").json(200, array),
   http.protected.get("/config", "config.get").json(200, undefined, "status"),

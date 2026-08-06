@@ -8372,6 +8372,81 @@ export type AppSkillsResponses = {
 
 export type AppSkillsResponse = AppSkillsResponses[keyof AppSkillsResponses]
 
+export type AppSkillsImportData = {
+  body?: {
+    name?: string
+    files?: Array<{
+      path: string
+      content: string
+    }>
+    url?: string
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/skill/import"
+}
+
+export type AppSkillsImportErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type AppSkillsImportError = AppSkillsImportErrors[keyof AppSkillsImportErrors]
+
+export type AppSkillsImportResponses = {
+  /**
+   * List of skills after import
+   */
+  200: Array<{
+    name: string
+    description?: string
+    location: string
+    content: string
+  }>
+}
+
+export type AppSkillsImportResponse = AppSkillsImportResponses[keyof AppSkillsImportResponses]
+
+export type AppAgentsCreateData = {
+  body?: {
+    name: string
+    description: string
+    mode: "subagent" | "primary"
+    model?: string
+    color?: string
+    tools?: Array<string>
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/agent/create"
+}
+
+export type AppAgentsCreateErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type AppAgentsCreateError = AppAgentsCreateErrors[keyof AppAgentsCreateErrors]
+
+export type AppAgentsCreateResponses = {
+  /**
+   * Created agent
+   */
+  200: Agent
+}
+
+export type AppAgentsCreateResponse = AppAgentsCreateResponses[keyof AppAgentsCreateResponses]
+
 export type LspStatusData = {
   body?: never
   path?: never

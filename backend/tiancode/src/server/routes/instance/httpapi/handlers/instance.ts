@@ -2,6 +2,8 @@ import { Agent } from "@/agent/agent"
 import { Command } from "@/command"
 import * as InstanceState from "@/effect/instance-state"
 import { Format } from "@/format"
+import { Config } from "@/config/config"
+import { FSUtil } from "@tiancode-ai/core/fs-util"
 import { Global } from "@tiancode-ai/core/global"
 import { LSP } from "@/lsp/lsp"
 import { Vcs } from "@/project/vcs"
@@ -9,14 +11,18 @@ import { Skill } from "@/skill"
 import { Effect } from "effect"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
 import { InstanceHttpApi } from "../api"
-import { ApiVcsApplyError } from "../groups/instance"
+import { AgentCreateInput, ApiVcsApplyError, SkillImportInput } from "../groups/instance"
 import { markInstanceForDisposal } from "../lifecycle"
+import path from "node:path"
 
 export const instanceHandlers = HttpApiBuilder.group(InstanceHttpApi, "instance", (handlers) =>
   Effect.gen(function* () {
     const agent = yield* Agent.Service
     const command = yield* Command.Service
+    const config = yield* Config.Service
     const format = yield* Format.Service
+    const fs = yield* FSUtil.Service
+    const global = yield* Global.Service
     const lsp = yield* LSP.Service
     const skill = yield* Skill.Service
     const vcs = yield* Vcs.Service
@@ -85,6 +91,39 @@ export const instanceHandlers = HttpApiBuilder.group(InstanceHttpApi, "instance"
       return yield* skill.all()
     })
 
+    const importSkill = Effect.fn("InstanceHttpApi.skillImport")(function* (ctx) {
+      const cfg = yield* config.get()
+      const existing = cfg.skills
+      const paths = existing && !Array.isArray(existing) ? (existing.paths ?? []) : []
+      const urls = existing && !Array.isArray(existing) ? (existing.urls ?? []) : []
+      if (ctx.payload.url) {
+        if (!urls.includes(ctx.payload.url)) {
+          const next =
+            existing && !Array.isArray(existing) ? { ...existing, urls: [...urls, ctx.payload.url] } : { urls: [ctx.payload.url] }
+          yield* config.update({ ...cfg, skills: next })
+        }
+      } else {
+        const root = path.join(global.config, "skills", ctx.payload.name!)
+        for (const file of ctx.payload.files ?? []) {
+          yield* fs.writeWithDirs(path.join(root, file.path), file.content).pipe(Effect.orDie)
+        }
+        if (!paths.includes(root)) {
+          const next =
+            existing && !Array.isArray(existing) ? { ...existing, paths: [...paths, root] } : { paths: [root] }
+          yield* config.update({ ...cfg, skills: next })
+        }
+      }
+      yield* skill.reload()
+      return yield* skill.all()
+    })
+
+    const createAgent = Effect.fn("InstanceHttpApi.agentCreate")(function* (ctx) {
+      const file = path.join(global.config, "agent", `${ctx.payload.name}.md`)
+      yield* fs.writeWithDirs(file, buildAgentMarkdown(ctx.payload)).pipe(Effect.orDie)
+      yield* agent.reload()
+      return yield* agent.get(ctx.payload.name)
+    })
+
     const getLsp = Effect.fn("InstanceHttpApi.lsp")(function* () {
       return yield* lsp.status()
     })
@@ -104,7 +143,23 @@ export const instanceHandlers = HttpApiBuilder.group(InstanceHttpApi, "instance"
       .handle("command", getCommand)
       .handle("agent", getAgent)
       .handle("skill", getSkill)
+      .handle("skillImport", importSkill)
+      .handle("agentCreate", createAgent)
       .handle("lsp", getLsp)
       .handle("formatter", getFormatter)
   }),
 )
+
+function buildAgentMarkdown(input: { name: string; description: string; mode: "subagent" | "primary"; model?: string; color?: string }) {
+  return [
+    "---",
+    `mode: ${input.mode}`,
+    `description: ${JSON.stringify(input.description)}`,
+    ...(input.model ? [`model: ${input.model}`] : []),
+    ...(input.color ? [`color: ${JSON.stringify(input.color)}`] : []),
+    "---",
+    "",
+    input.description,
+    "",
+  ].join("\n")
+}

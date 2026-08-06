@@ -3,6 +3,7 @@ import { HttpApiBuilder, OpenApi } from "effect/unstable/httpapi"
 import { HttpClient, HttpMiddleware, HttpRouter, HttpServer, HttpServerResponse } from "effect/unstable/http"
 import * as Socket from "effect/unstable/socket/Socket"
 import { FSUtil } from "@tiancode-ai/core/fs-util"
+import { Global } from "@tiancode-ai/core/global"
 import * as Observability from "@tiancode-ai/core/observability"
 import { Account } from "@/account/account"
 import { Agent } from "@/agent/agent"
@@ -216,6 +217,7 @@ const app = LayerNode.group([
   Auth.node,
   Account.node,
   Config.node,
+  Global.node,
   Env.node,
   Git.node,
   Ripgrep.node,

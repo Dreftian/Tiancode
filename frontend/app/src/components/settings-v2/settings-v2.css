@@ -727,3 +727,78 @@
   line-height: 1;
   color: var(--v2-state-fg-danger);
 }
+
+.settings-v2-tab-description {
+  margin-block: -3.5px;
+  font-size: 13px;
+  font-weight: 440;
+  line-height: 20px;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-skills-message {
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 440;
+  line-height: 1;
+}
+
+.settings-v2-skills-message[data-variant="success"] {
+  background-color: color-mix(in srgb, var(--v2-state-fg-success) 12%, transparent);
+  color: var(--v2-state-fg-success);
+}
+
+.settings-v2-skills-message[data-variant="error"] {
+  background-color: color-mix(in srgb, var(--v2-state-fg-danger) 12%, transparent);
+  color: var(--v2-state-fg-danger);
+}
+
+.settings-v2-skills-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding-block: 48px;
+  font-size: 13px;
+  font-weight: 440;
+  line-height: 1;
+  color: var(--v2-text-text-muted);
+  text-align: center;
+}
+
+.settings-v2-skills-location {
+  font-size: 11px;
+  font-weight: 440;
+  line-height: 1;
+  color: var(--v2-text-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-v2-skills-url {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-v2-sub-agents-mode {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 530;
+  line-height: 1;
+  color: var(--v2-text-text-muted);
+  background-color: var(--v2-background-bg-layer-02);
+}
+
+.settings-v2-sub-agents-mode[data-mode="primary"] {
+  color: var(--v2-text-text-accent);
+}
+
+.settings-v2-sub-agents-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 16px;
+}

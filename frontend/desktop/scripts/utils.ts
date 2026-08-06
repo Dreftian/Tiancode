@@ -76,7 +76,7 @@ export async function downloadCliToResources() {
   try {
     await $`bun install --no-save --cwd ${directory} ${`${cli.package}@${CLI_VERSION}`} ${`--os=${cli.os}`} ${`--cpu=${cli.cpu}`}`
     await copyFile(
-      join(directory, "node_modules", cli.package, "bin", cli.os === "win32" ? "tiancode2.exe" : "tiancode2"),
+      join(directory, "node_modules", cli.package, "bin", cli.os === "win32" ? "opencode2.exe" : "opencode2"),
       dest,
     )
   } finally {

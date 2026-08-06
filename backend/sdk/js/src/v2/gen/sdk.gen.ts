@@ -4,11 +4,15 @@ import { client } from "./client.gen.js"
 import { buildClientParams, type Client, type Options as Options2, type TDataShape } from "./client/index.js"
 import type {
   AgentPartInput,
+  AppAgentsCreateErrors,
+  AppAgentsCreateResponses,
   AppAgentsErrors,
   AppAgentsResponses,
   AppLogErrors,
   AppLogResponses,
   AppSkillsErrors,
+  AppSkillsImportErrors,
+  AppSkillsImportResponses,
   AppSkillsResponses,
   Auth as Auth3,
   AuthRemoveErrors,
@@ -507,6 +511,101 @@ export class Auth extends HeyApiClient {
   }
 }
 
+export class Skills extends HeyApiClient {
+  /**
+   * Import a skill
+   *
+   * Write skill files into the global skills directory and reload the skill list.
+   */
+  public import<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      name?: string
+      files?: Array<{
+        path: string
+        content: string
+      }>
+      url?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "name" },
+            { in: "body", key: "files" },
+            { in: "body", key: "url" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<AppSkillsImportResponses, AppSkillsImportErrors, ThrowOnError>({
+      url: "/skill/import",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+}
+
+export class Agents extends HeyApiClient {
+  /**
+   * Create an agent
+   *
+   * Write a new agent definition file and reload the agent list.
+   */
+  public create<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      name?: string
+      description?: string
+      mode?: "subagent" | "primary"
+      model?: string
+      color?: string
+      tools?: Array<string>
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "name" },
+            { in: "body", key: "description" },
+            { in: "body", key: "mode" },
+            { in: "body", key: "model" },
+            { in: "body", key: "color" },
+            { in: "body", key: "tools" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<AppAgentsCreateResponses, AppAgentsCreateErrors, ThrowOnError>({
+      url: "/agent/create",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+}
+
 export class App extends HeyApiClient {
   /**
    * Write log
@@ -611,6 +710,16 @@ export class App extends HeyApiClient {
       ...options,
       ...params,
     })
+  }
+
+  private _skills?: Skills
+  get skills2(): Skills {
+    return (this._skills ??= new Skills({ client: this.client }))
+  }
+
+  private _agents?: Agents
+  get agents2(): Agents {
+    return (this._agents ??= new Agents({ client: this.client }))
   }
 }
 

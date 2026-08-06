@@ -66,6 +66,8 @@ export interface Interface {
   readonly list: () => Effect.Effect<Info[]>
   readonly defaultInfo: () => Effect.Effect<Info>
   readonly defaultAgent: () => Effect.Effect<string>
+  /** Re-read agent definitions from disk after creating or editing agents. */
+  readonly reload: () => Effect.Effect<void>
   readonly generate: (input: {
     description: string
     model?: { providerID: ProviderV2.ID; modelID: ModelV2.ID }
@@ -79,7 +81,7 @@ export interface Interface {
   >
 }
 
-type State = Omit<Interface, "generate">
+type State = Omit<Interface, "generate" | "reload">
 
 export class Service extends Context.Service<Service, Interface>()("@tiancode/Agent") {}
 
@@ -364,6 +366,9 @@ const layer = Layer.effect(
       }),
       defaultAgent: Effect.fn("Agent.defaultAgent")(function* () {
         return yield* InstanceState.useEffect(state, (s) => s.defaultAgent())
+      }),
+      reload: Effect.fn("Agent.reload")(function* () {
+        yield* InstanceState.invalidate(state)
       }),
       generate: Effect.fn("Agent.generate")(function* (input: {
         description: string

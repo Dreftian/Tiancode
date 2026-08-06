@@ -53,7 +53,31 @@ export const InstancePaths = {
   skill: "/skill",
   lsp: "/lsp",
   formatter: "/formatter",
+  skillImport: "/skill/import",
+  agentCreate: "/agent/create",
 } as const
+
+export const SkillImportInput = Schema.Struct({
+  name: Schema.optional(Schema.String),
+  files: Schema.optional(
+    Schema.Array(
+      Schema.Struct({
+        path: Schema.String,
+        content: Schema.String,
+      }),
+    ),
+  ),
+  url: Schema.optional(Schema.String),
+})
+
+export const AgentCreateInput = Schema.Struct({
+  name: Schema.String,
+  description: Schema.String,
+  mode: Schema.Literals(["subagent", "primary"]),
+  model: Schema.optional(Schema.String),
+  color: Schema.optional(Schema.String),
+  tools: Schema.optional(Schema.Array(Schema.String)),
+})
 
 export const InstanceApi = HttpApi.make("instance")
   .add(
@@ -164,6 +188,28 @@ export const InstanceApi = HttpApi.make("instance")
             identifier: "app.skills",
             summary: "List skills",
             description: "Get a list of all available skills in the Tiancode system.",
+          }),
+        ),
+        HttpApiEndpoint.post("skillImport", InstancePaths.skillImport, {
+          query: WorkspaceRoutingQuery,
+          payload: SkillImportInput,
+          success: described(Schema.Array(Skill.Info), "List of skills after import"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "app.skills.import",
+            summary: "Import a skill",
+            description: "Write skill files into the global skills directory and reload the skill list.",
+          }),
+        ),
+        HttpApiEndpoint.post("agentCreate", InstancePaths.agentCreate, {
+          query: WorkspaceRoutingQuery,
+          payload: AgentCreateInput,
+          success: described(Agent.Info, "Created agent"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "app.agents.create",
+            summary: "Create an agent",
+            description: "Write a new agent definition file and reload the agent list.",
           }),
         ),
         HttpApiEndpoint.get("lsp", InstancePaths.lsp, {
