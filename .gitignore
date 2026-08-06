@@ -35,3 +35,6 @@ tsconfig.tsbuildinfo
 
 # Portable desktop builds
 install/*.exe
+
+# ZCode session files
+.zcode/
