@@ -51,14 +51,14 @@ import { setNativeTranslations } from "./native-translations"
 import { ensureLoopbackNoProxy, useEnvProxy } from "./util/proxy"
 
 const APP_NAMES: Record<string, string> = {
-  dev: "OpenCode Dev",
-  beta: "OpenCode Beta",
-  prod: "OpenCode",
+  dev: "Tian Dev",
+  beta: "Tian Beta",
+  prod: "Tian",
 }
 const APP_IDS: Record<string, string> = {
-  dev: "ai.opencode.desktop.dev",
-  beta: "ai.opencode.desktop.beta",
-  prod: "ai.opencode.desktop",
+  dev: "ai.tian.desktop.dev",
+  beta: "ai.tian.desktop.beta",
+  prod: "ai.tian.desktop",
 }
 const TEST_ONBOARDING = process.env.OPENCODE_TEST_ONBOARDING === "1"
 const SIDECAR_VERSION = process.env.OPENCODE_SIDECAR_V2 === "1" ? "v2" : "v1"
@@ -109,7 +109,7 @@ const main = Effect.gen(function* () {
     process.env.XDG_STATE_HOME = join(root, "state")
     return root
   })()
-  app.setName(app.isPackaged ? APP_NAMES[CHANNEL] : "OpenCode Dev")
+  app.setName(app.isPackaged ? APP_NAMES[CHANNEL] : "Tian Dev")
   app.setAppUserModelId(appId)
   app.setPath(
     "userData",

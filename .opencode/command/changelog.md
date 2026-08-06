@@ -44,6 +44,6 @@ Rules:
 
 <changelog_input>
 
-!`bun script/raw-changelog.ts $ARGUMENTS`
+!`bun tools/script/raw-changelog.ts $ARGUMENTS`
 
 </changelog_input>
