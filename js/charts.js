@@ -172,6 +172,8 @@ function animateCharts() {
 }
 
 export function initCharts() {
+  // La leyenda se construye siempre, aunque las gráficas aún no estén visibles
+  buildDonutLegend();
   // Activar gráficas al hacer scroll hasta la sección de estadísticas
   const chartsSection = document.getElementById('stats-charts');
   if ('IntersectionObserver' in window && chartsSection) {
@@ -186,6 +188,15 @@ export function initCharts() {
       });
     }, { threshold: 0.25 });
     io.observe(chartsSection);
+    // Fallback: si el observador no dispara (scroll poco habitual, caché…),
+    // pinta el estado final para que la sección nunca quede vacía.
+    setTimeout(function () {
+      if (!chartsDone) {
+        chartsDone = true;
+        animateCounters();
+        drawCharts();
+      }
+    }, 3000);
   } else {
     chartsDone = true;
     animateCounters();
