@@ -488,7 +488,7 @@ const layer = Layer.effect(
       // Combined RAM + VRAM probe shared by the files list and system info.
       // La detección de GPU lanza nvidia-smi / PowerShell; se cachea 30s para
       // que el panel de ajustes no la re-ejecute en cada poll.
-      let memoryCache: { ram: number; vram: number } | undefined
+      let memoryCache: { ram: number; vram: VramInfo | undefined } | undefined
       let memoryCachedAt = 0
       const memory = Effect.fn("ModelHub.memory")(function* () {
         const now = Date.now()
