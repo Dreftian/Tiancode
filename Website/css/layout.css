@@ -153,15 +153,16 @@
 }
 @keyframes loader-text-in { from { opacity: 0; } to { opacity: 1; } }
 
-/* ================= Header ================= */
+/* ================= Header (glassmorphism) ================= */
 .site-header {
   position: sticky;
   top: 0;
   z-index: 60;
   background: var(--header-bg);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
   border-bottom: 1px solid var(--border);
+  transition: background 0.25s ease, border-color 0.25s ease;
 }
 .header-inner { display: flex; align-items: center; gap: 28px; height: var(--header-h); }
 
@@ -170,24 +171,50 @@
 .logo-mark img { width: 30px; height: 20px; object-fit: contain; }
 
 .main-nav { display: flex; align-items: center; gap: 26px; margin-left: 6px; }
-.main-nav a { font-size: 14.5px; font-weight: 500; color: var(--text-2); transition: color 0.18s ease; }
-.main-nav a:hover { color: var(--text); }
+.main-nav > a {
+  position: relative;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--text-2);
+  transition: color 0.18s ease;
+}
+.main-nav > a:hover { color: var(--text); }
+/* Subrayado animado (gradiente) al hacer hover */
+.main-nav > a:not(.nav-download)::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -6px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent-gradient);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.main-nav > a:not(.nav-download):hover::after { transform: scaleX(1); }
 
 .header-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
 
+/* Botones de icono con cristal (tema, idioma, menú móvil) */
 .icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 38px;
   height: 38px;
-  border-radius: 10px;
+  border-radius: 999px;
   border: 1px solid var(--border);
-  background: var(--surface);
+  background: var(--card-bg);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   color: var(--text-2);
-  transition: color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+  box-shadow: var(--shadow-sm);
+  transition: color 0.18s ease, border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
 }
-.icon-btn:hover { color: var(--text); border-color: var(--accent); transform: translateY(-1px); }
+.icon-btn:hover { color: var(--text); border-color: var(--accent); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.icon-btn:active { transform: scale(0.94); }
 .icon-btn svg { width: 17px; height: 17px; }
 
 /* Iconos de tema: luna en claro, sol en oscuro */
@@ -196,7 +223,25 @@
 [data-theme="dark"] .icon-moon { display: none; }
 
 .lang-btn { min-width: 46px; font-size: 13px; font-weight: 700; letter-spacing: 0.04em; }
-.nav-download { padding: 9px 16px; font-size: 13.5px; border-radius: 10px; }
+
+/* Botón "Descargar" del header: pill con gradiente y hover lift */
+.nav-download {
+  padding: 9px 18px;
+  font-size: 13.5px;
+  border: 0;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--accent-gradient);
+  background-size: 150% 100%;
+  box-shadow: 0 8px 20px -8px rgba(99, 102, 241, 0.55);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-position 0.3s ease;
+}
+.nav-download:hover {
+  transform: translateY(-2px);
+  background-position: 100% 0;
+  box-shadow: 0 14px 28px -8px rgba(99, 102, 241, 0.65);
+}
+.nav-download:active { transform: scale(0.97); }
 .nav-toggle { display: none; }
 
 /* ================= Menú desplegable "Recursos" ================= */
@@ -226,10 +271,12 @@
   flex-direction: column;
   gap: 2px;
   padding: 8px;
-  border-radius: 14px;
+  border-radius: 16px;
   border: 1px solid var(--border);
-  background: var(--surface);
-  box-shadow: var(--shadow-md);
+  background: var(--card-bg);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+  box-shadow: var(--shadow-lg);
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
@@ -261,23 +308,88 @@
 .nav-dropdown-sep { height: 1px; margin: 6px 4px; background: var(--border); }
 
 /* ================= Footer ================= */
-.site-footer { border-top: 1px solid var(--border); background: var(--surface-2); }
-
-.footer-grid {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
-  gap: 40px;
-  padding: 60px 0 44px;
+.site-footer { position: relative; border-top: 1px solid var(--border); background: var(--surface-2); overflow: hidden; }
+/* Halo sutil en la parte superior del footer */
+.site-footer::before {
+  content: "";
+  position: absolute;
+  inset: -160px -10% auto;
+  height: 260px;
+  background: radial-gradient(620px 220px at 50% 0%, var(--hero-glow-1), transparent 70%);
+  pointer-events: none;
 }
-.footer-brand p { margin: 14px 0 0; max-width: 300px; font-size: 14px; color: var(--text-3); }
 
-.footer-col { display: flex; flex-direction: column; gap: 10px; }
-.footer-col h4 { margin: 0 0 6px; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); }
-.footer-col a { font-size: 14px; color: var(--text-2); transition: color 0.18s ease; }
-.footer-col a:hover { color: var(--accent); }
+/* Marca + tagline arriba */
+.footer-top {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 56px 0 30px;
+}
+.footer-brand p { margin: 12px 0 0; max-width: 340px; font-size: 14.5px; color: var(--text-3); }
+.footer-version {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-2);
+  box-shadow: var(--shadow-sm);
+}
+.footer-version i { width: 7px; height: 7px; border-radius: 50%; background: #10b981; font-style: normal; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15); }
 
-.footer-bottom { border-top: 1px solid var(--border); padding: 20px 0 26px; }
-.footer-bottom p { margin: 0; font-size: 13px; color: var(--text-3); text-align: center; }
+/* 4 columnas de enlaces */
+.footer-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 36px;
+  padding: 30px 0 46px;
+  border-top: 1px solid var(--border);
+}
+.footer-col { display: flex; flex-direction: column; gap: 11px; }
+.footer-col h4 {
+  margin: 0 0 7px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.footer-col a {
+  width: fit-content;
+  font-size: 14px;
+  color: var(--text-2);
+  transition: color 0.18s ease, transform 0.18s ease;
+}
+.footer-col a:hover { color: var(--accent); transform: translateX(2px); }
+
+/* Barra inferior: © + "Hecho con ♥" */
+.footer-bottom {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 24px;
+  border-top: 1px solid var(--border);
+  padding: 20px 0 26px;
+}
+.footer-bottom p { margin: 0; font-size: 13px; color: var(--text-3); }
+.footer-made { display: inline-flex; align-items: center; gap: 7px; }
+.footer-heart { color: #f43f5e; animation: heart-beat 1.6s ease-in-out infinite; }
+@keyframes heart-beat {
+  0%, 100% { transform: scale(1); }
+  12% { transform: scale(1.22); }
+  24% { transform: scale(1); }
+}
 
 /* ================= Responsive del layout ================= */
 /* Compacta el header para pantallas medias (antes del menú hamburguesa) */
@@ -301,9 +413,11 @@
     gap: 4px;
     margin: 0;
     padding: 14px 20px 20px;
-    background: var(--surface);
+    background: var(--card-bg);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    backdrop-filter: blur(18px) saturate(160%);
     border-bottom: 1px solid var(--border);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-lg);
     display: none;
   }
   .nav-open .main-nav { display: flex; }
@@ -317,6 +431,9 @@
     padding: 0 0 0 12px;
     border: 0;
     border-radius: 0;
+    background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
     box-shadow: none;
     opacity: 1;
     visibility: visible;
@@ -331,4 +448,5 @@
 @media (max-width: 640px) {
   .container { width: min(var(--maxw), 100% - 32px); }
   .footer-grid { grid-template-columns: 1fr; }
+  .footer-bottom { justify-content: center; text-align: center; }
 }

@@ -17,21 +17,51 @@ body.page-open .home-content { display: none; }
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  font-size: 13.5px;
   font-weight: 600;
   color: var(--text-2);
-  transition: color 0.18s ease;
+  box-shadow: var(--shadow-sm);
+  transition: color 0.18s ease, border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
 }
-.page-back:hover { color: var(--accent); }
+.page-back:hover { color: var(--accent); border-color: var(--accent); transform: translateX(-3px); box-shadow: var(--shadow-md); }
 .page-back svg { width: 16px; height: 16px; }
 
-.page-head { margin-bottom: 38px; }
-.page-title { margin: 0 0 12px; font-size: clamp(28px, 4.6vw, 40px); letter-spacing: -0.02em; line-height: 1.15; }
+.page-head { margin-bottom: 42px; }
+.page-title {
+  margin: 0 0 14px;
+  font-size: clamp(2rem, 4.5vw, 2.9rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+}
 .page-sub { margin: 0; max-width: 640px; font-size: 16.5px; color: var(--text-2); }
 .page-updated { margin: 14px 0 0; font-size: 13px; color: var(--text-3); }
 
 /* Tipografía del cuerpo de las páginas (legal, docs, etc.) */
-.page-body h2 { margin: 42px 0 14px; font-size: 22px; letter-spacing: -0.01em; }
+.page-body h2 {
+  position: relative;
+  margin: 46px 0 14px;
+  padding-left: 14px;
+  font-size: 22px;
+  letter-spacing: -0.015em;
+}
+/* Barra de acento en los encabezados de sección */
+.page-body h2::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.3em;
+  bottom: 0.3em;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--accent-gradient);
+}
 .page-body h2:first-child { margin-top: 0; }
 .page-body p { margin: 0 0 14px; font-size: 15px; color: var(--text-2); }
 .page-list { margin: 0 0 16px; padding-left: 22px; font-size: 15px; color: var(--text-2); }
@@ -48,11 +78,42 @@ body.page-open .home-content { display: none; }
   white-space: nowrap;
 }
 
+/* Tablas genéricas (docs, descarga) */
+.page-body table {
+  width: 100%;
+  margin: 18px 0;
+  border-collapse: collapse;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  font-size: 14px;
+}
+.page-body table th {
+  padding: 11px 14px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+}
+.page-body table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-2);
+}
+.page-body table tr:last-child td { border-bottom: 0; }
+.page-body table tbody tr { transition: background 0.15s ease; }
+.page-body table tbody tr:hover { background: var(--accent-soft); }
+
 /* Bloques de código (licencia MIT, comandos, rutas) */
 .code-block {
+  position: relative;
   margin: 18px 0;
-  padding: 18px 20px;
-  border-radius: 12px;
+  padding: 20px 22px;
+  border-radius: 14px;
   border: 1px solid var(--border);
   background: var(--term-bg);
   font-family: var(--font-mono);
@@ -60,7 +121,10 @@ body.page-open .home-content { display: none; }
   line-height: 1.7;
   color: var(--text-2);
   overflow-x: auto;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), var(--shadow-sm);
 }
+[data-theme="light"] .code-block { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), var(--shadow-sm); }
+.code-block code { border: 0; padding: 0; background: none; color: inherit; white-space: pre; }
 
 /* Caja de nota/info con icono */
 .page-note {
@@ -93,13 +157,16 @@ body.page-open .home-content { display: none; }
   padding: 8px 14px;
   border-radius: 999px;
   border: 1px solid var(--border);
-  background: var(--surface);
+  background: var(--card-bg);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   font-size: 13.5px;
   font-weight: 500;
   color: var(--text-2);
-  transition: border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.18s ease, color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
 }
-.docs-toc a:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-2px); }
+.docs-toc a:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-2px); box-shadow: 0 10px 22px -10px rgba(99, 102, 241, 0.45); }
 .toc-num { font-weight: 700; color: var(--accent); }
 
 /* ================= FAQ (acordeón animado) ================= */
@@ -107,11 +174,14 @@ body.page-open .home-content { display: none; }
 .faq-item {
   border: 1px solid var(--border);
   border-radius: 14px;
-  background: var(--surface);
+  background: var(--card-bg);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
+.faq-item:hover { border-color: var(--border-strong); }
 .faq-item.is-open { border-color: var(--accent); box-shadow: var(--shadow-md); }
 /* Variante <details> (páginas estáticas, funciona sin JS) */
 details.faq-item[open] { border-color: var(--accent); box-shadow: var(--shadow-md); }
@@ -206,20 +276,39 @@ details.faq-item[open] .faq-a { grid-template-rows: 1fr; }
 /* ================= Página de descarga ================= */
 .dl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 34px; }
 .dl-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 12px;
   padding: 30px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  background: var(--surface);
+  background: var(--card-bg);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
   box-shadow: var(--shadow-sm);
-  transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease, box-shadow 0.25s ease;
 }
 .dl-card:hover { transform: translateY(-4px); border-color: var(--accent); box-shadow: var(--shadow-md); }
 .dl-card h3 { margin: 0; font-size: 19px; }
 .dl-card p { margin: 0; font-size: 14.5px; color: var(--text-2); }
 .dl-card .btn { margin-top: auto; }
+
+/* Icono grande de la descarga (tile con gradiente) */
+.dl-icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  color: #fff;
+  background: var(--accent-gradient);
+  box-shadow: 0 12px 26px -10px rgba(99, 102, 241, 0.6);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.dl-card:hover .dl-icon { transform: scale(1.08) rotate(-4deg); }
+.dl-icon svg { width: 26px; height: 26px; }
+
 .dl-file {
   display: inline-flex;
   align-items: center;
@@ -302,5 +391,5 @@ details.faq-item[open] .faq-a { grid-template-rows: 1fr; }
 
 @media (prefers-reduced-motion: reduce) {
   .faq-a { transition: none; }
-  .qstep:hover, .dl-card:hover, .docs-toc a:hover { transform: none; }
+  .qstep:hover, .dl-card:hover, .docs-toc a:hover, .dl-card:hover .dl-icon { transform: none; }
 }
