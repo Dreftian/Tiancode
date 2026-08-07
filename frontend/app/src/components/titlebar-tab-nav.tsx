@@ -33,6 +33,7 @@ export function TabNavItem(props: {
   pressed?: boolean
   hidden?: boolean
 }) {
+  const language = useLanguage()
   const [editing, setEditing] = createSignal(false)
   const [titleOverflowing, setTitleOverflowing] = createSignal(false)
   let tabRoot!: HTMLDivElement
