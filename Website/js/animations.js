@@ -129,6 +129,34 @@ function startParticles() {
   rafId = requestAnimationFrame(tickParticles);
 }
 
+/* ---------- Parallax sutil del hero (scroll) ---------- */
+function initParallax() {
+  if (reducedMotion) return;
+  const hero = document.getElementById('hero');
+  const heroBg = hero ? hero.querySelector('.hero-bg') : null;
+  const heroInner = hero ? hero.querySelector('.hero-inner') : null;
+  if (!heroBg || !heroInner) return;
+  let ticking = false;
+  function update() {
+    ticking = false;
+    const rect = hero.getBoundingClientRect();
+    // Solo mientras el hero esté dentro del viewport
+    if (rect.bottom < 0 || rect.top > window.innerHeight) return;
+    const progress = Math.min(Math.max(-rect.top, 0), window.innerHeight);
+    // El fondo (blobs + rejilla) se mueve más lento; el contenido, casi nada
+    heroBg.style.transform = 'translate3d(0,' + (progress * 0.12).toFixed(1) + 'px,0)';
+    heroInner.style.transform = 'translate3d(0,' + (progress * 0.05).toFixed(1) + 'px,0)';
+  }
+  function onScroll() {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(update);
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll);
+  update();
+}
+
 /* ---------- Contadores animados ---------- */
 export function animateCounters() {
   document.querySelectorAll('[data-count]').forEach(function (el) {
@@ -150,6 +178,7 @@ export function initAnimations() {
   animateLoader();
   initReveal();
   startParticles();
+  initParallax();
   // Reinicia las partículas al volver a la home
   document.addEventListener('tiancode:home', function () {
     requestAnimationFrame(startParticles);

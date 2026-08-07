@@ -62,7 +62,7 @@
 @keyframes dots-drift { to { background-position: 84px 168px; } }
 @keyframes dots-twinkle { from { opacity: 0.35; } to { opacity: 0.65; } }
 
-/* ---- Capa 1: monograma dibujado + wordmark con gradiente ---- */
+/* ---- Capa 1: logo + wordmark con gradiente ---- */
 .loader-logo {
   position: relative;
   display: flex;
@@ -75,29 +75,19 @@
   from { opacity: 0; transform: scale(0.92) translateY(8px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
-.loader-mark { width: 76px; height: 76px; filter: drop-shadow(0 14px 34px -12px rgba(99, 102, 241, 0.55)); }
+.loader-mark { display: inline-block; width: 170px; height: auto; filter: drop-shadow(0 10px 30px -12px rgba(0, 0, 0, 0.4)); }
+.loader-mark img { width: 100%; height: auto; object-fit: contain; }
 
-/* Trazo: se dibuja (dashoffset 1 -> 0, pathLength normaliza la longitud) */
-.mark-tile,
-.mark-t {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-}
-.mark-tile { animation: loader-draw 0.7s cubic-bezier(0.6, 0.05, 0.28, 0.91) 0.05s both; }
-.mark-t { animation: loader-draw 0.5s cubic-bezier(0.6, 0.05, 0.28, 0.91) 0.55s both; }
-@keyframes loader-draw { to { stroke-dashoffset: 0; } }
-
-/* Gradiente animado del monograma (ciclo de color sutil) */
-#loader-grad stop:first-child { animation: loader-hue-1 4s ease-in-out infinite; }
-#loader-grad stop:last-child { animation: loader-hue-2 4s ease-in-out infinite; }
-@keyframes loader-hue-1 {
-  0%, 100% { stop-color: #6366f1; }
-  50% { stop-color: #8b5cf6; }
-}
-@keyframes loader-hue-2 {
-  0%, 100% { stop-color: #06b6d4; }
-  50% { stop-color: #22d3ee; }
-}
+/* Logo por tema: el sitio usa data-theme="dark" por defecto (logo blanco);
+   data-theme="light" muestra el logo negro */
+.loader-mark .logo-theme-light,
+.logo-mark .logo-theme-light { display: block; }
+.loader-mark .logo-theme-dark,
+.logo-mark .logo-theme-dark { display: none; }
+[data-theme="light"] .loader-mark .logo-theme-light,
+[data-theme="light"] .logo-mark .logo-theme-light { display: none; }
+[data-theme="light"] .loader-mark .logo-theme-dark,
+[data-theme="light"] .logo-mark .logo-theme-dark { display: block; }
 
 /* Wordmark: fade-in con asentamiento + gradiente animado (shimmer) */
 .loader-word {
@@ -176,17 +166,8 @@
 .header-inner { display: flex; align-items: center; gap: 28px; height: var(--header-h); }
 
 .logo { display: inline-flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
-.logo-mark {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  color: #fff;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  box-shadow: 0 6px 14px -6px rgba(99, 102, 241, 0.6);
-}
-.logo-mark svg { width: 17px; height: 17px; }
+.logo-mark { display: inline-flex; align-items: center; }
+.logo-mark img { width: 30px; height: 20px; object-fit: contain; }
 
 .main-nav { display: flex; align-items: center; gap: 26px; margin-left: 6px; }
 .main-nav a { font-size: 14.5px; font-weight: 500; color: var(--text-2); transition: color 0.18s ease; }

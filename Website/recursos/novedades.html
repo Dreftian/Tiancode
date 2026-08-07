@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Novedades — Tiancode</title>
+  <meta name="description" content="Novedades de Tiancode 1.0.0: GitHub, MCP Servers, plugins, voces TTS, bandeja del sistema, 52+ skills, onboarding y logo nuevo.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Crect width='256' height='256' rx='56' fill='%236366f1'/%3E%3Ccircle cx='88' cy='128' r='20' fill='%23fff'/%3E%3Ccircle cx='168' cy='128' r='20' fill='%23fff'/%3E%3Crect x='116' y='138' width='24' height='26' rx='12' fill='%23fff'/%3E%3C/svg%3E">
+  <script>
+    (function () {
+      // Confirma JS disponible (revela el contenido .reveal) y aplica el tema
+      // guardado antes del primer render para evitar parpadeo.
+      document.documentElement.classList.add('js');
+      try {
+        var theme = localStorage.getItem('tiancode-theme');
+        document.documentElement.setAttribute(
+          'data-theme',
+          theme || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+        );
+      } catch (e) { /* almacenamiento no disponible */ }
+    })();
+  </script>
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/layout.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/pages.css">
+</head>
+<body>
+
+  <!-- ================= Header ================= -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="logo" aria-label="Tiancode">
+        <span class="logo-mark" aria-hidden="true">
+          <img class="logo-theme-light" src="../img/tian-white.png" alt="" draggable="false" />
+          <img class="logo-theme-dark" src="../img/tian-black.png" alt="" draggable="false" />
+        </span>
+        Tiancode
+      </a>
+
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a href="../index.html#features">Características</a>
+        <a href="../index.html#how">Cómo funciona</a>
+        <a href="../index.html#preview">Vista previa</a>
+        <a href="../index.html#stats">Estadísticas</a>
+        <a href="../index.html#skills">Skills</a>
+        <div class="nav-dropdown">
+          <button class="nav-dropdown-toggle" type="button" aria-expanded="false" aria-haspopup="true"
+                  aria-label="Abrir menú de recursos">
+            <span>Recursos</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          <div class="nav-dropdown-menu">
+            <a href="../recursos/guia.html">Guía de inicio</a>
+            <a href="../recursos/docs.html">Documentación</a>
+            <a href="../recursos/faq.html">Preguntas frecuentes</a>
+            <a href="../recursos/novedades.html">Novedades</a>
+            <a href="../recursos/portable.html">Modo portable</a>
+            <a href="../recursos/descargas.html">Descarga</a>
+            <span class="nav-dropdown-sep" aria-hidden="true"></span>
+            <a href="../legal/licencia.html">Licencia</a>
+            <a href="../legal/terminos.html">Términos</a>
+            <a href="../legal/privacidad.html">Privacidad</a>
+          </div>
+        </div>
+        <a href="../recursos/descargas.html" class="btn btn-ghost nav-download">Descargar</a>
+      </nav>
+
+      <div class="header-actions">
+        <button id="theme-toggle" class="icon-btn" type="button" aria-label="Cambiar tema claro/oscuro" aria-pressed="true">
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        </button>
+        <button id="nav-toggle" class="icon-btn nav-toggle" type="button" aria-label="Abrir menú" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <line x1="3" y1="7" x2="21" y2="7"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="17" x2="21" y2="17"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="page page--active">
+      <div class="container">
+        <div class="page-inner page-inner--wide">
+            <div class="page-toolbar reveal">
+            <a href="../index.html" class="page-back">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+              </svg>
+              <span>Volver al inicio</span>
+            </a>
+          </div>
+          <header class="page-head reveal">
+            <span class="eyebrow">Recursos</span>
+            <h1 class="page-title">Novedades</h1>
+            <p class="page-sub">Todo lo que trae Tiancode 1.0.0, la primera versión estable.</p>
+          </header>
+          <div class="page-body reveal" style="--rd:.08s">
+              <div class="news-version">
+                <h2>Versión 1.0.0</h2>
+                <span class="news-tag">Estable</span>
+                <span class="news-date">6 de agosto de 2026</span>
+              </div>
+              <div class="news-block news-block--new">
+                <h3>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                  </svg>
+                  <span>Novedades</span>
+                </h3>
+                <ul class="news-list news-list--new">
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span><strong>GitHub integrado:</strong> conecta tu cuenta, clona o crea repositorios y haz commit, push y pull sin salir de la app.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span><strong>Servidores MCP:</strong> 8 presets locales y un catálogo Discover con 15 servidores populares, con estado en vivo.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span><strong>Plugins:</strong> catálogo de apps npm (@biomejs/biome, @octokit/rest…) y plugins locales (env-guard, commit-helper…).</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span><strong>Voces TTS:</strong> lee las respuestas en voz alta con el modelo kokoro (voces femeninas primero) y dicta con el micrófono.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span><strong>52+ skills de ingeniería:</strong> frontend-design, grill-me, writing-plans, planning-and-task-breakdown y más, activables una a una.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span><strong>Bandeja del sistema:</strong> minimiza Tiancode a la bandeja y vuelve a tu conversación con un clic.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span><strong>Onboarding guiado:</strong> disclaimer, tema e idioma en el primer arranque.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span><strong>Identidad renovada:</strong> nuevo logo del robot con tres ojos y boca, en blanco y negro.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span>Modelos locales GGUF: pestaña con buscador, quantizaciones Q2_K, Q3_K_L, Q4_K_M, Q6_K, Q8_0, IQ* y F16, con el tamaño exacto de cada archivo.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span>Indicador de compatibilidad verde/azul/rojo según tu RAM, panel de Información del sistema y descargas reanudables.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span>Sub-agentes personalizables: modo primary o subagente, modelo, color, herramientas y system prompt propios.</span></li>
+                </ul>
+              </div>
+              <div class="news-block news-block--imp">
+                <h3>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+                  </svg>
+                  <span>Mejoras</span>
+                </h3>
+                <ul class="news-list news-list--imp">
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span>Distribución: instalador NSIS (Tiancode.exe, ~270 MB) y portable (Tiancode-portable.exe, ~270 MB) para Windows 10 y 11.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span>Terminal integrada más rápida, con resaltado de sintaxis.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span>Multi-proveedor: usa OpenAI, Anthropic y modelos locales en paralelo.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span>Atajos de teclado personalizables para las acciones más frecuentes.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span>Suite e2e con 216 escenarios HTTP probados sobre el backend.</span></li>
+                </ul>
+              </div>
+              <div class="news-block news-block--fix">
+                <h3>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  <span>Correcciones</span>
+                </h3>
+                <ul class="news-list news-list--fix">
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span>Corregido un cierre inesperado al cambiar de proveedor con una conversación abierta.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span>Reducido el uso de memoria al trabajar con proyectos grandes.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span>Descargas de modelos reanudables si la conexión se interrumpe.</span></li>
+                </ul>
+              </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ================= Footer ================= -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a href="../index.html" class="logo" aria-label="Tiancode">
+            <span class="logo-mark" aria-hidden="true">
+              <img class="logo-theme-light" src="../img/tian-white.png" alt="" draggable="false" />
+              <img class="logo-theme-dark" src="../img/tian-black.png" alt="" draggable="false" />
+            </span>
+            Tiancode
+          </a>
+          <p>El asistente de IA para programar, hecho para Windows.</p>
+        </div>
+        <nav class="footer-col" aria-label="Producto">
+          <h4>Producto</h4>
+          <a href="../productos/app.html">La app</a>
+          <a href="../recursos/descargas.html">Descargar</a>
+          <a href="../recursos/novedades.html">Novedades</a>
+          <a href="../recursos/portable.html">Modo portable</a>
+        </nav>
+        <nav class="footer-col" aria-label="Recursos">
+          <h4>Recursos</h4>
+          <a href="../recursos/docs.html">Documentación</a>
+          <a href="../recursos/guia.html">Guía de inicio</a>
+          <a href="../recursos/faq.html">Preguntas frecuentes</a>
+        </nav>
+        <nav class="footer-col" aria-label="Legal">
+          <h4>Legal</h4>
+          <a href="../legal/privacidad.html">Privacidad</a>
+          <a href="../legal/terminos.html">Términos</a>
+          <a href="../legal/licencia.html">Licencia</a>
+        </nav>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2026 Tiancode. Todos los derechos reservados.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Revela el contenido al cargar (sin IntersectionObserver) y activa el menú móvil
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('.reveal').forEach(function (el) { el.classList.add('is-visible'); });
+      var header = document.querySelector('.site-header');
+      var navToggle = document.getElementById('nav-toggle');
+      if (navToggle && header) {
+        navToggle.addEventListener('click', function () {
+          var open = header.classList.toggle('nav-open');
+          navToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+        document.querySelectorAll('.main-nav a').forEach(function (link) {
+          link.addEventListener('click', function () { header.classList.remove('nav-open'); });
+        });
+      }
+      var dropdown = document.querySelector('.nav-dropdown');
+      var dropdownToggle = dropdown ? dropdown.querySelector('.nav-dropdown-toggle') : null;
+      if (dropdownToggle) {
+        dropdownToggle.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var open = dropdown.classList.toggle('is-open');
+          dropdownToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+      }
+      document.addEventListener('click', function (e) {
+        if (dropdown && !dropdown.contains(e.target)) {
+          dropdown.classList.remove('is-open');
+          var toggle = dropdown.querySelector('.nav-dropdown-toggle');
+          if (toggle) toggle.setAttribute('aria-expanded', 'false');
+        }
+      });
+    });
+  </script>
+  <script type="module">
+    import { initTheme } from '../js/theme.js';
+    initTheme();
+  </script>
+</body>
+</html>

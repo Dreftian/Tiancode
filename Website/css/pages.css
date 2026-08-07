@@ -113,6 +113,12 @@ body.page-open .home-content { display: none; }
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .faq-item.is-open { border-color: var(--accent); box-shadow: var(--shadow-md); }
+/* Variante <details> (páginas estáticas, funciona sin JS) */
+details.faq-item[open] { border-color: var(--accent); box-shadow: var(--shadow-md); }
+details.faq-item .faq-q { list-style: none; cursor: pointer; }
+details.faq-item .faq-q::-webkit-details-marker { display: none; }
+details.faq-item[open] .faq-q svg { transform: rotate(180deg); color: var(--accent); }
+details.faq-item[open] .faq-a { grid-template-rows: 1fr; }
 .faq-q {
   display: flex;
   align-items: center;
