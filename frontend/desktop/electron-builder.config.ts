@@ -156,7 +156,7 @@ function getConfig() {
         appId,
         productName: "Tiancode Beta",
         protocols: { name: "Tiancode Beta", schemes: ["tiancode"] },
-        publish: { provider: "github", owner: "anomalyco", repo: "opencode-beta", channel: "latest" },
+        publish: { provider: "github", owner: "Dreftian", repo: "Tiancode", channel: "latest" },
         deb: { fpm: [metainfoFpm(appId)] },
         rpm: { packageName: "tian-beta", fpm: [metainfoFpm(appId)] },
       }
@@ -167,7 +167,7 @@ function getConfig() {
         appId,
         productName: "Tiancode",
         protocols: { name: "Tiancode", schemes: ["tiancode"] },
-        publish: { provider: "github", owner: "anomalyco", repo: "opencode", channel: "latest" },
+        publish: { provider: "github", owner: "Dreftian", repo: "Tiancode", channel: "latest" },
         deb: { fpm: [metainfoFpm(appId), legacyDesktopEntryFpm] },
         rpm: { packageName: "tian", fpm: [metainfoFpm(appId), legacyDesktopEntryFpm] },
       }

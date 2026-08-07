@@ -31,6 +31,8 @@ import {
   type SidecarListener,
 } from "./server"
 import { setupAutoUpdater, showUpdaterDialog } from "./updater"
+import { getStore } from "./store"
+import { CHECK_UPDATES_ON_START_KEY } from "./store-keys"
 import { safeWebContentsURL } from "./window-state"
 import {
   createMainWindow,
@@ -293,7 +295,10 @@ const main = Effect.gen(function* () {
     },
   })
   registerWslIpcHandlers(wslServers)
-  void updater.start()
+  // La búsqueda de actualizaciones al iniciar se puede desactivar desde
+  // Ajustes (General → Actualizaciones); ausente = activada.
+  const checkUpdatesOnStart = getStore().get(CHECK_UPDATES_ON_START_KEY) !== "false"
+  if (checkUpdatesOnStart) void updater.start()
   const updateTimer = setInterval(() => void updater.check(), 10 * 60 * 1000)
   updateTimer.unref()
   app.once("will-quit", () => clearInterval(updateTimer))

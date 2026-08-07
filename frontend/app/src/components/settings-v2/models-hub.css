@@ -245,6 +245,10 @@
   background-color: var(--v2-background-bg-layer-01);
   box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
   overflow: hidden;
+  /* Fuera del container query el panel no tiene techo de altura y empuja el
+     layout; aquí se limita y se hace scroll interno. */
+  max-height: min(52vh, 480px);
+  overflow-y: auto;
 }
 
 .settings-v2-models-hub-detail-header {
@@ -444,6 +448,27 @@
 
 .settings-v2-models-hub-runtime-chip[data-available] .settings-v2-models-hub-runtime-chip-state {
   color: var(--v2-state-fg-success, #2e9e5b);
+}
+
+.settings-v2-models-hub-runtime-install {
+  flex-shrink: 0;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 0.5px solid var(--v2-border-border-accent, #6366f1);
+  background-color: var(--v2-background-bg-accent, rgba(99, 102, 241, 0.14));
+  color: var(--v2-text-text-accent, #6366f1);
+  font-size: 10.5px;
+  font-weight: 620;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+.settings-v2-models-hub-runtime-install:hover:not(:disabled) {
+  filter: brightness(1.12);
+}
+.settings-v2-models-hub-runtime-install:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .settings-v2-models-hub-runtime-hint {

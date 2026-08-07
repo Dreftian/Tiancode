@@ -1,10 +1,11 @@
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
 import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
 import { TextInputV2 } from "@tiancode-ai/ui/v2/text-input-v2"
-import { type Component, createResource, For, Show, createSignal, createMemo, createEffect, onCleanup } from "solid-js"
+import { type Component, createResource, For, Show, createSignal, createMemo, createEffect, onCleanup, onMount } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useLanguage } from "@/context/language"
 import { useServerSDK } from "@/context/server-sdk"
+import { showToast } from "@/utils/toast"
 import { Persist, persisted } from "@/utils/persist"
 import { SettingsListV2 } from "./parts/list"
 import "./models-hub.css"
@@ -114,6 +115,57 @@ export const SettingsModelsHubV2: Component<{
     (request) => request.then((x) => x.data),
     { initialValue: [] as RuntimeInfo[] },
   )
+
+  // Instalación local de runtimes (solo escritorio): el instalador oficial se
+  // descarga dentro de las carpetas de Tiancode y se instala en silencio.
+  type RuntimeInstallState = { status: "idle" | "downloading" | "installing" | "error"; progress?: number; error?: string }
+  type RuntimeAPI = {
+    install: (kind: "ollama" | "lmstudio") => Promise<{ ok: boolean; error?: string }>
+    onState: (cb: (state: RuntimeInstallState) => void) => () => void
+  }
+  const runtimeAPI = (): RuntimeAPI | undefined => (window as { api?: { runtime?: RuntimeAPI } }).api?.runtime
+  const [runtimeInstall, setRuntimeInstall] = createSignal<RuntimeInstallState>({ status: "idle" })
+  const [activeRuntime, setActiveRuntime] = createSignal<string>()
+  onMount(() => {
+    const api = runtimeAPI()
+    if (!api) return
+    const unsub = api.onState((state) => {
+      if (state.status !== "idle") setRuntimeInstall(state)
+    })
+    onCleanup(unsub)
+  })
+  const installRuntime = async (kind: string) => {
+    const api = runtimeAPI()
+    if (!api || activeRuntime()) return
+    setActiveRuntime(kind)
+    setRuntimeInstall({ status: "installing" })
+    const result = await api.install(kind as "ollama" | "lmstudio")
+    if (!result.ok) {
+      showToast({
+        variant: "error",
+        title: language.t("settings.modelsHub.runtime.install.failed"),
+        description: result.error,
+      })
+    } else {
+      showToast({
+        variant: "success",
+        title: language.t("settings.modelsHub.runtime.install.success", {
+          name: kind === "ollama" ? "Ollama" : "LM Studio",
+        }),
+      })
+    }
+    setActiveRuntime(undefined)
+    setRuntimeInstall({ status: "idle" })
+    void runtimes.refetch()
+  }
+  const installLabel = (kind: string) => {
+    if (activeRuntime() !== kind) return language.t("settings.modelsHub.runtime.install")
+    const state = runtimeInstall()
+    if (state.status === "downloading")
+      return `${language.t("settings.modelsHub.runtime.install.downloading")} ${state.progress ?? 0}%`
+    if (state.status === "installing") return language.t("settings.modelsHub.runtime.install.installing")
+    return language.t("settings.modelsHub.runtime.install")
+  }
 
   const refreshJobs = async () => {
     try {
@@ -404,6 +456,16 @@ export const SettingsModelsHubV2: Component<{
                       ? `${language.t("settings.modelsHub.runtime.available")}${runtime.version ? ` · v${runtime.version}` : ""}`
                       : language.t("settings.modelsHub.runtime.notDetected")}
                   </span>
+                  <Show when={!runtime.available && runtimeAPI()}>
+                    <button
+                      type="button"
+                      class="settings-v2-models-hub-runtime-install"
+                      onClick={() => void installRuntime(runtime.id)}
+                      disabled={activeRuntime() !== undefined}
+                    >
+                      {installLabel(runtime.id)}
+                    </button>
+                  </Show>
                 </span>
               )}
             </For>
