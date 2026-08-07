@@ -650,10 +650,16 @@ const layer = Layer.effect(
     const add = Effect.fn("MCP.add")(function* (name: string, mcp: ConfigMCPV1.Info) {
       const s = yield* InstanceState.get(state)
       s.config[name] = mcp
-      yield* createAndStore(name, mcp)
-      // Persist in the global config so the server survives restarts.
+      // Persist in the global config so the server survives restarts, even if
+      // connecting below fails (e.g. the runtime is missing on this machine).
       const cfg = yield* cfgSvc.getGlobal()
       yield* cfgSvc.updateGlobal({ ...cfg, mcp: { ...cfg.mcp, [name]: mcp } })
+      // Best-effort connect: a failure records the error status but keeps the
+      // server enabled so the toggle in settings reflects the saved config.
+      const attempt = yield* Effect.exit(createAndStore(name, mcp))
+      if (Exit.isFailure(attempt)) {
+        s.status[name] = { status: "failed", error: Cause.pretty(attempt.cause) }
+      }
       return { status: s.status }
     })
 
