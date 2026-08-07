@@ -1,5 +1,6 @@
 export * as ServerAuth from "./auth"
 
+import { timingSafeEqual } from "node:crypto"
 import { ConfigService } from "@/effect/config-service"
 import { Flag } from "@tiancode-ai/core/flag/flag"
 import { Config as EffectConfig, Context, Option, Redacted } from "effect"
@@ -26,11 +27,12 @@ export function required(config: Info) {
 }
 
 export function authorized(credentials: DecodedCredentials, config: Info) {
-  return (
-    Option.isSome(config.password) &&
-    credentials.username === config.username &&
-    Redacted.value(credentials.password) === config.password.value
-  )
+  if (!Option.isSome(config.password)) return false
+  if (credentials.username !== config.username) return false
+  // Comparación en tiempo constante para no filtrar información por timing.
+  const expected = Buffer.from(config.password.value)
+  const actual = Buffer.from(Redacted.value(credentials.password))
+  return expected.length === actual.length && timingSafeEqual(expected, actual)
 }
 
 export function header(credentials?: Credentials) {

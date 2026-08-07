@@ -364,7 +364,7 @@ jobs:
           persist-credentials: false
 
       - name: Run tiancode
-        uses: anomalyco/opencode/github@latest${envStr}
+        uses: Dreftian/Tiancode/github@latest${envStr}
         with:
           model: ${provider}/${model}`,
         )
