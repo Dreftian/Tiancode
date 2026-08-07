@@ -1,4 +1,51 @@
+/* Brand logo. The root box keeps the source image's 3:2 aspect ratio by default
+   (16px wide for Mark), and consumer width/height utilities can override it;
+   object-fit: contain letterboxes the artwork when the box ratio differs. */
+
+[data-component="logo-mark"],
+[data-component="logo-splash"],
+[data-component="logo"] {
+  position: relative;
+  display: inline-block;
+  aspect-ratio: 3/2;
+}
+
 [data-component="logo-mark"] {
   width: 16px;
-  aspect-ratio: 4/5;
+}
+
+[data-component="logo-mark"] img,
+[data-component="logo-splash"] img,
+[data-component="logo"] img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Light theme (default until data-color-scheme applies): black logo */
+[data-component="logo-mark"] .logo-theme-dark,
+[data-component="logo-splash"] .logo-theme-dark,
+[data-component="logo"] .logo-theme-dark {
+  display: block;
+}
+
+[data-component="logo-mark"] .logo-theme-light,
+[data-component="logo-splash"] .logo-theme-light,
+[data-component="logo"] .logo-theme-light {
+  display: none;
+}
+
+/* Dark theme: white logo */
+html[data-color-scheme="dark"] [data-component="logo-mark"] .logo-theme-dark,
+html[data-color-scheme="dark"] [data-component="logo-splash"] .logo-theme-dark,
+html[data-color-scheme="dark"] [data-component="logo"] .logo-theme-dark {
+  display: none;
+}
+
+html[data-color-scheme="dark"] [data-component="logo-mark"] .logo-theme-light,
+html[data-color-scheme="dark"] [data-component="logo-splash"] .logo-theme-light,
+html[data-color-scheme="dark"] [data-component="logo"] .logo-theme-light {
+  display: block;
 }
