@@ -51,7 +51,7 @@ jobs:
 
       - name: Configure git identity
         run: |
-          git config --global user.email "bot@opencode.ai"
+          git config --global user.email "tiancode@users.noreply.github.com"
           git config --global user.name "tiancode"
 
       - name: Cache Turbo
@@ -63,6 +63,8 @@ jobs:
             turbo-${{ runner.os }}-${{ hashFiles('turbo.json', '**/package.json') }}-
             turbo-${{ runner.os }}-
 
+      - name: Lint
+        run: bunx oxlint --config .oxlintrc.json --deny-warnings=false .
       - name: Run unit tests
         timeout-minutes: 20
         run: GITHUB_ACTIONS=false bun turbo test

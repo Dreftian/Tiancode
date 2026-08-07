@@ -32,7 +32,7 @@ jobs:
       - uses: ./.github/actions/setup-bun
 
       - name: Install tiancode
-        run: curl -fsSL https://opencode.ai/install | bash
+        run: npm install -g @tiancode-ai/cli
 
       - name: Get PR details
         id: pr-details

@@ -1,9 +1,10 @@
-name: nix-hashes
+name: nix-hashes (disabled)
 
 permissions:
   contents: write
 
-on:
+on: # disabled: flake.nix fue eliminado del repo
+  #
   workflow_dispatch:
   push:
     branches: [dev, beta]
@@ -37,7 +38,8 @@ jobs:
             runner: macos-15-intel
           - system: aarch64-darwin
             runner: macos-latest
-    runs-on: ${{ matrix.runner }}
+    runs-on: # disabled: flake.nix fue eliminado del repo
+  # ${{ matrix.runner }}
 
     steps:
       - name: Checkout repository
@@ -91,7 +93,8 @@ jobs:
   update-hashes:
     needs: compute-hash
     if: github.event_name != 'pull_request'
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: # disabled: flake.nix fue eliminado del repo
+  # blacksmith-4vcpu-ubuntu-2404
 
     steps:
       - name: Checkout repository

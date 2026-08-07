@@ -1,6 +1,7 @@
-name: nix-eval
+name: nix-eval (disabled)
 
-on:
+on: # disabled: flake.nix fue eliminado del repo
+  #
   push:
     branches: [dev]
   pull_request:
@@ -16,7 +17,8 @@ permissions:
 
 jobs:
   nix-eval:
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: # disabled: flake.nix fue eliminado del repo
+  # blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 15
     steps:
       - name: Checkout repository

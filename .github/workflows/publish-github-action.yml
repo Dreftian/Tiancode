@@ -26,5 +26,5 @@ jobs:
         run: |
           git config --global user.email "tiancode@sst.dev"
           git config --global user.name "tiancode"
-          ./script/publish
+          ./backend/tools/script/publish
         working-directory: ./github

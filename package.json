@@ -26,7 +26,6 @@
     "packages": [
       "frontend/*",
       "backend/*",
-      "backend/console/*",
       "backend/stats/*",
       "backend/sdk/js",
       "backend/slack"
@@ -120,7 +119,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/anomalyco/opencode"
+    "url": "https://github.com/Dreftian/Tiancode"
   },
   "license": "MIT",
   "prettier": {

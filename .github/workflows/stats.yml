@@ -9,7 +9,7 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
   stats:
-    if: github.repository == 'anomalyco/opencode'
+    if: github.repository == 'Dreftian/Tiancode'
     runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       contents: write
@@ -22,7 +22,7 @@ jobs:
         uses: ./.github/actions/setup-bun
 
       - name: Run stats script
-        run: bun script/stats.ts
+        run: bun backend/tools/script/stats.ts
 
       - name: Commit stats
         run: |

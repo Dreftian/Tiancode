@@ -37,7 +37,7 @@ jobs:
 
       - name: Install tiancode
         if: steps.team-check.outputs.is_team != 'true'
-        run: curl -fsSL https://opencode.ai/install | bash
+        run: npm install -g @tiancode-ai/cli
 
       - name: Build prompt
         if: steps.team-check.outputs.is_team != 'true'
@@ -63,7 +63,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          COMMENT=$(bun script/duplicate-pr.ts -f pr_info.txt "Check the attached file for PR details and search for duplicates")
+          COMMENT=$(bun backend/tools/script/duplicate-pr.ts -f pr_info.txt "Check the attached file for PR details and search for duplicates")
 
           if [ "$COMMENT" != "No duplicate PRs found" ]; then
             gh pr comment "$PR_NUMBER" --body "_The following comment was made by an LLM, it may be inaccurate:_

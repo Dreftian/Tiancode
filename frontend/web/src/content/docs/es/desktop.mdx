@@ -1,0 +1,62 @@
+---
+title: App de escritorio
+description: Voz, navegador interno, actualizaciones y runtimes locales de la app de escritorio de Tiancode.
+---
+
+La app de escritorio de Tiancode (Windows 10/11, instalador o portable) incluye
+funciones de local-first además del CLI: voz, navegador interno, actualizador
+y gestión de runtimes locales.
+
+---
+
+## Voz
+
+### Dictado por micrófono
+
+El botón de micrófono del compositor transcribe tu voz **de forma local**
+(sherpa-onnx + Whisper multilingüe). La primera vez se descarga el modelo
+(~100 MB) a las carpetas de datos de Tiancode; después funciona sin conexión
+y sin enviar audio a ningún servidor.
+
+### Leer respuestas en voz alta
+
+Cada mensaje del asistente tiene un botón de altavoz para leer la respuesta
+con la voz seleccionada. En **Ajustes → Voces** puedes:
+
+- Descargar voces en español (Piper) o usar las voces en inglés integradas (Kokoro).
+- Activar/desactivar voces y elegir la activa.
+- Activar **"Leer respuestas en voz alta"**: la respuesta se lee en tiempo real
+  mientras el modelo la genera, por oraciones.
+
+## Navegador interno
+
+El botón 🌐 abre un panel con un navegador integrado para ver apps y sitios
+web en tiempo real (por ejemplo, el servidor de desarrollo del proyecto).
+Incluye barra de dirección, atrás/adelante y recarga.
+
+## Actualizaciones
+
+Tiancode busca actualizaciones en las
+[releases de GitHub](https://github.com/Dreftian/Tiancode/releases) al iniciar
+y cada 10 minutos. Puedes desactivar la búsqueda al iniciar o forzar una
+búsqueda desde **Ajustes → General → Actualizaciones** ("Buscar ahora").
+
+## Runtimes locales (Ollama y LM Studio)
+
+En **Ajustes → Modelos Locales**, si Ollama o LM Studio no están detectados,
+puedes **instalarlos directamente**: la app descarga el instalador oficial a
+las carpetas de Tiancode, lo instala en silencio y (en el caso de Ollama)
+redirige los modelos a las carpetas de Tiancode con `OLLAMA_MODELS`.
+
+## Model Hub
+
+Descarga modelos GGUF desde Hugging Face con reanudación y verificación
+sha256. Las insignias de compatibilidad indican si el modelo cabe en tu GPU
+(VRAM), en RAM o si no es compatible.
+
+## Skills automáticas
+
+Tiancode detecta el tipo de proyecto (web, API, Python, Rust, Docker, CI,
+SQL, documentación…) y **carga automáticamente las skills relevantes** en el
+prompt del agente y sus sub-agentes. Puedes desactivarlo con
+`skills.autoSelect: false` en la configuración.

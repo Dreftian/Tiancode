@@ -26,4 +26,4 @@ jobs:
         run: |
           git config --global user.email "tiancode@sst.dev"
           git config --global user.name "tiancode"
-          ./github/script/release
+          ./backend/tools/github/script/release

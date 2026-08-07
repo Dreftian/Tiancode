@@ -34,4 +34,4 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.setup-git-committer.outputs.token }}
           TIANCODE_API_KEY: ${{ secrets.TIANCODE_API_KEY }}
-        run: bun script/beta.ts
+        run: bun backend/tools/script/beta.ts

@@ -30,7 +30,7 @@ jobs:
 
       - name: Publish
         run: |
-          ./script/publish
+          ./backend/tools/script/publish
         working-directory: ./sdks/vscode
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}

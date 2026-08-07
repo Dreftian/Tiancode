@@ -38,7 +38,7 @@ jobs:
 
       - name: Install tiancode
         if: steps.author.outputs.skip != 'true'
-        run: curl -fsSL https://opencode.ai/install | bash
+        run: npm install -g @tiancode-ai/cli
 
       - name: Check duplicates and compliance
         if: steps.author.outputs.skip != 'true'
@@ -172,7 +172,7 @@ jobs:
 
       - name: Install tiancode
         if: steps.author.outputs.skip != 'true'
-        run: curl -fsSL https://opencode.ai/install | bash
+        run: npm install -g @tiancode-ai/cli
 
       - name: Recheck compliance
         if: steps.author.outputs.skip != 'true'

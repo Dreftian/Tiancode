@@ -134,6 +134,18 @@ describe.skipIf(!!process.env.CI)("i18n parity", () => {
       }
     }
   })
+
+  test("no locale defines keys absent from en (stale keys)", async () => {
+    const enKeys = new Set(Object.keys(await dictionary("../../../app/src/i18n/en")))
+    // Las variantes plurales (.zero/.one/.two/.few/.many) son específicas de
+    // cada idioma y en no las define todas; el resto sí debe coincidir.
+    const isPluralVariant = (key: string) => /\.(zero|one|two|few|many|other)$/.test(key)
+    for (const locale of appLocales) {
+      const target = await dictionary(`../../../app/src/i18n/${locale}`)
+      const extras = Object.keys(target).filter((key) => !enKeys.has(key) && !isPluralVariant(key))
+      expect(extras, `${locale} tiene claves obsoletas`).toEqual([])
+    }
+  })
 })
 
 describe("i18n plural parity", () => {
