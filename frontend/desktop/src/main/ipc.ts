@@ -25,6 +25,8 @@ import { createUpdaterSubscriptions } from "./updater-subscriptions"
 import { createDesktopDraftStore } from "./draft-store"
 import { nativeT } from "./native-translations"
 import { downloadVoices, deleteVoice, downloadVoice, getVoicesStatus, listVoices, selectVoice, setVoiceEnabled, speakVoice } from "./voices"
+import { asrChunk, asrStart, asrStop, ensureAsrModel, getAsrStatus } from "./asr"
+import { getRuntimeInstallState, installRuntime } from "./runtime-install"
 
 const pickerFilters = (ext?: string[]) => {
   if (!ext || ext.length === 0) return undefined
@@ -124,6 +126,18 @@ export function registerIpcHandlers(deps: Deps) {
   ipcMain.handle("voices-set-enabled", (_event: IpcMainInvokeEvent, voiceId: string, enabled: boolean) =>
     setVoiceEnabled(voiceId, enabled),
   )
+  ipcMain.handle("asr-status", () => getAsrStatus())
+  ipcMain.handle("asr-ensure-model", () => ensureAsrModel())
+  ipcMain.handle("asr-start", (_event: IpcMainInvokeEvent, language: "es" | "en") => {
+    asrStart(language === "es" ? "es" : "en")
+  })
+  ipcMain.on("asr-chunk", (event: IpcMainEvent, samples: Float32Array) => {
+    if (event.senderFrame !== event.sender.mainFrame) return
+    asrChunk(samples)
+  })
+  ipcMain.handle("asr-stop", () => asrStop())
+  ipcMain.handle("runtime-install-state", () => getRuntimeInstallState())
+  ipcMain.handle("runtime-install", (_event: IpcMainInvokeEvent, kind: "ollama" | "lmstudio") => installRuntime(kind))
   ipcMain.handle("store-get", (_event: IpcMainInvokeEvent, name: string, key: string) => {
     try {
       const store = getStore(name)

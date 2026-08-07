@@ -5,9 +5,11 @@ import { IconButtonV2 } from "@tiancode-ai/ui/v2/icon-button-v2"
 import { Icon } from "@tiancode-ai/ui/icon"
 import { type Component, createMemo, createResource, createSignal, For, onCleanup, onMount, Show } from "solid-js"
 import { useLanguage } from "@/context/language"
+import { useSettings } from "@/context/settings"
 import { showToast } from "@/utils/toast"
 import { isVoiceSpeaking, speakWithVoices, voicesAPI, type VoiceInfo } from "@/utils/voices"
 import { SettingsListV2 } from "./parts/list"
+import { SettingsRowV2 } from "./parts/row"
 import "./voices.css"
 
 const PAGE_SIZE = 8
@@ -53,6 +55,7 @@ const canSelect = (voice: VoiceInfo) =>
 
 export const SettingsVoicesV2: Component = () => {
   const language = useLanguage()
+  const settings = useSettings()
   const api = voicesAPI()
 
   const [status, { refetch }] = createResource(async () => api?.status())
@@ -279,6 +282,18 @@ export const SettingsVoicesV2: Component = () => {
                 <span class="settings-v2-voices-selected-name">{selectedVoice()!.name}</span>
               </div>
             </Show>
+
+            <SettingsListV2>
+              <SettingsRowV2
+                title={language.t("settings.voices.autoSpeak.title")}
+                description={language.t("settings.voices.autoSpeak.description")}
+              >
+                <Switch
+                  checked={settings.general.autoSpeak()}
+                  onChange={(value) => settings.general.setAutoSpeak(value)}
+                />
+              </SettingsRowV2>
+            </SettingsListV2>
 
             <div class="settings-v2-section">
               <h3 class="settings-v2-section-title">{language.t("settings.voices.ready.title")}</h3>

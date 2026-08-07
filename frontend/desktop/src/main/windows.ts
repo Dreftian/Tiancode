@@ -23,7 +23,8 @@ const rendererProtocol = "oc"
 const rendererHost = "renderer"
 const clipboardWritePermission = "clipboard-sanitized-write"
 const notificationPermission = "notifications"
-const rendererPermissions = new Set([clipboardWritePermission, notificationPermission])
+const mediaPermission = "media"
+const rendererPermissions = new Set([clipboardWritePermission, notificationPermission, mediaPermission])
 const oc2Theme = oc2ThemeJson as DesktopTheme
 const oc2Background = {
   light: resolveThemeVariant(oc2Theme.light, false)["background-base"],
@@ -204,6 +205,8 @@ export function createMainWindow(id: string = randomUUID()) {
           frame: false,
           titleBarStyle: "hidden" as const,
           titleBarOverlay: overlay({ mode }),
+          // Esquinas redondeadas nativas de Windows 11 para la ventana sin marco.
+          roundedCorners: true,
         }
       : {}),
     webPreferences: {
@@ -211,6 +214,8 @@ export function createMainWindow(id: string = randomUUID()) {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      // Habilita el <webview> del navegador interno (panel de preview).
+      webviewTag: true,
     },
   })
 
@@ -510,6 +515,12 @@ function allowRendererPermissions(win: BrowserWindow) {
     if (!rendererPermissions.has(permission)) return false
     if (webContents && webContents.id !== webContentsId) return false
     return isTrustedRendererUrl(details.requestingUrl) || isTrustedRendererUrl(requestingOrigin)
+  })
+  // Los dispositivos de audio (micrófono para el dictado por voz) solo se
+  // conceden al renderer de la app; nada más puede capturarlos.
+  win.webContents.session.setDevicePermissionHandler((details) => {
+    if (details.deviceType !== "audio") return false
+    return webContentsId !== undefined && isTrustedRendererUrl(details.requestingUrl)
   })
 }
 

@@ -65,6 +65,7 @@ export const voicesAPI = (): VoicesAPI | undefined => window.api?.voices
 const [speakingKey, setSpeakingKey] = createSignal<string | undefined>()
 let activeAudio: HTMLAudioElement | undefined
 let activeURL: string | undefined
+let pendingPlay: (() => void) | undefined
 
 const clearActive = () => {
   activeAudio = undefined
@@ -74,36 +75,43 @@ const clearActive = () => {
   }
 }
 
-// Stops whatever is currently playing, if anything.
+// Stops whatever is currently playing, if anything, and resolves the playback
+// promise so awaiting callers (the auto-speak queue) can react.
 export function stopSpeaking() {
   activeAudio?.pause()
+  const finish = pendingPlay
+  pendingPlay = undefined
   clearActive()
   setSpeakingKey(undefined)
+  finish?.()
 }
 
-const playWav = (key: string, wav: Uint8Array) => {
-  // The IPC layer returns a fresh ArrayBuffer-backed copy, so the cast is safe.
-  const blob = new Blob([wav as Uint8Array<ArrayBuffer>], { type: "audio/wav" })
-  const url = URL.createObjectURL(blob)
-  const audio = new Audio(url)
-  activeURL = url
-  activeAudio = audio
-  audio.onended = () => {
-    if (speakingKey() !== key) return
-    clearActive()
-    setSpeakingKey(undefined)
-  }
-  audio.onerror = () => {
-    if (speakingKey() !== key) return
-    clearActive()
-    setSpeakingKey(undefined)
-  }
-  void audio.play()
-}
+const playWav = (key: string, wav: Uint8Array) =>
+  new Promise<void>((resolve) => {
+    // The IPC layer returns a fresh ArrayBuffer-backed copy, so the cast is safe.
+    const blob = new Blob([wav as Uint8Array<ArrayBuffer>], { type: "audio/wav" })
+    const url = URL.createObjectURL(blob)
+    const audio = new Audio(url)
+    activeURL = url
+    activeAudio = audio
+    const finish = () => {
+      if (pendingPlay === finish) {
+        pendingPlay = undefined
+        clearActive()
+        setSpeakingKey(undefined)
+      }
+      resolve()
+    }
+    audio.onended = finish
+    audio.onerror = finish
+    pendingPlay = finish
+    void audio.play()
+  })
 
 // Speaks `text` with the desktop voice engine. The same `key` is used to
 // report the active playback: pass the part id of the message being read.
-// Returns an error message when synthesis fails, so callers can surface it.
+// Resolves when the audio finishes playing (or is stopped). Returns an error
+// message when synthesis fails, so callers can surface it.
 export async function speakWithVoices(key: string, text: string, voiceId?: string): Promise<string | undefined> {
   const api = voicesAPI()
   if (!api) return
@@ -113,16 +121,28 @@ export async function speakWithVoices(key: string, text: string, voiceId?: strin
   }
   stopSpeaking()
   setSpeakingKey(key)
-  const result = await api.speak(text, voiceId)
+  let result: VoicesSpeakResult
+  try {
+    result = await api.speak(text, voiceId)
+  } catch (error) {
+    // Fallo de transporte del IPC: nunca dejar una promesa sin resolver.
+    setSpeakingKey(undefined)
+    return error instanceof Error ? error.message : String(error)
+  }
   if (speakingKey() !== key) return
   if (result.error || !result.wav) {
     setSpeakingKey(undefined)
     return result.error ?? undefined
   }
-  playWav(key, result.wav)
+  await playWav(key, result.wav)
+  return
 }
 
 export const isVoiceSpeaking = (key: string) => speakingKey() === key
+
+// Id de la reproducción activa (o undefined si nada suena). La cola de
+// auto-speak lo usa para detectar si el usuario tomó el control manualmente.
+export const currentSpeakingKey = () => speakingKey()
 
 export type SpeechRecognitionLike = {
   lang: string

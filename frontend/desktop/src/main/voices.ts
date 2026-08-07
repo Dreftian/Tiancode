@@ -125,6 +125,7 @@ export async function speakVoice(text: string, voiceId?: string): Promise<Voices
   if (typeof text !== "string" || text.trim().length === 0) return { error: "Text must be a non-empty string." }
   const voice = resolveVoice(voiceId ?? getSelectedVoice())
   if (!voice) return { error: `Unknown voice "${voiceId}".` }
+  if (!isVoiceEnabled(voice.id)) return { error: `Voice "${voice.id}" is disabled.` }
   if (voice.engine === "piper") {
     try {
       // Auto-downloads the model first when the voice has not been fetched yet.
@@ -176,7 +177,10 @@ export async function deleteVoice(voiceId: string) {
   await deletePiperVoice(voice.id)
   // A deleted voice can no longer be selected; fall back to the first
   // selectable voice so getSelectedVoice() never returns a broken id.
-  if (getStore().get(SELECTED_VOICE_KEY) === voice.id) getStore().set(SELECTED_VOICE_KEY, firstSelectableVoice().id)
+  if (getStore().get(SELECTED_VOICE_KEY) === voice.id) {
+    const fallback = firstSelectableVoice()
+    getStore().set(SELECTED_VOICE_KEY, fallback ? fallback.id : VOICE_CATALOG[0].id)
+  }
 }
 
 export function setVoiceEnabled(voiceId: string, enabled: boolean) {
@@ -190,7 +194,8 @@ export function setVoiceEnabled(voiceId: string, enabled: boolean) {
   const next = enabled ? [...current, voice.id] : current.filter((id) => id !== voice.id)
   store.set(ENABLED_VOICES_KEY, next)
   if (!enabled && getStore().get(SELECTED_VOICE_KEY) === voice.id) {
-    getStore().set(SELECTED_VOICE_KEY, firstSelectableVoice().id)
+    const fallback = firstSelectableVoice()
+    getStore().set(SELECTED_VOICE_KEY, fallback ? fallback.id : VOICE_CATALOG[0].id)
   }
 }
 
@@ -258,13 +263,18 @@ function reportProgress(payload: { progress: number; file?: string }) {
 
 // The selected voice must always be enabled and (for piper) downloaded; when
 // the stored selection no longer qualifies, fall back to the first selectable
-// voice so dictation and message reading never reference a dead voice.
+// voice so dictation and message reading never reference a dead voice. If
+// every voice is disabled there is nothing selectable; the stored id is kept
+// (speakVoice reports the disabled error instead of persisting a broken pick).
 function getSelectedVoice() {
   const stored = getStore().get(SELECTED_VOICE_KEY)
   if (typeof stored === "string" && isSelectable(resolveVoice(stored))) return stored
   const fallback = firstSelectableVoice()
-  if (fallback.id !== stored) getStore().set(SELECTED_VOICE_KEY, fallback.id)
-  return fallback.id
+  if (fallback) {
+    if (fallback.id !== stored) getStore().set(SELECTED_VOICE_KEY, fallback.id)
+    return fallback.id
+  }
+  return typeof stored === "string" && resolveVoice(stored) ? stored : VOICE_CATALOG[0].id
 }
 
 function isSelectable(voice: VoiceInfo | undefined) {
@@ -274,7 +284,7 @@ function isSelectable(voice: VoiceInfo | undefined) {
 }
 
 function firstSelectableVoice() {
-  return VOICE_CATALOG.find(isSelectable) ?? VOICE_CATALOG[0]
+  return VOICE_CATALOG.find(isSelectable)
 }
 
 function readEnabledVoices(value: unknown) {

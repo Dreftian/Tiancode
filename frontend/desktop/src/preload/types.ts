@@ -92,6 +92,41 @@ export type VoicesAPI = {
   onPiperProgress: (cb: (event: VoicesPiperProgress) => void) => () => void
 }
 
+// Local speech-to-text (sherpa-onnx Whisper) for mic dictation. The renderer
+// captures audio with getUserMedia and streams PCM chunks to the main process.
+export type AsrStatus = {
+  ready: boolean
+  downloading?: boolean
+  progress?: number
+  error?: string
+}
+
+export type AsrResult = {
+  text?: string
+  error?: string
+}
+
+export type AsrAPI = {
+  status: () => Promise<AsrStatus>
+  start: (language: "es" | "en") => Promise<void>
+  chunk: (samples: Float32Array) => void
+  stop: () => Promise<AsrResult>
+  onProgress: (cb: (event: { progress: number; file?: string }) => void) => () => void
+}
+
+// Instalación local de runtimes de modelos (Ollama / LM Studio).
+export type RuntimeInstallState =
+  | { status: "idle" }
+  | { status: "downloading"; progress: number }
+  | { status: "installing" }
+  | { status: "error"; error: string }
+
+export type RuntimeAPI = {
+  install: (kind: "ollama" | "lmstudio") => Promise<{ ok: boolean; error?: string }>
+  state: () => Promise<RuntimeInstallState>
+  onState: (cb: (state: RuntimeInstallState) => void) => () => void
+}
+
 export type LinuxDisplayBackend = "wayland" | "auto"
 export type TitlebarTheme = {
   mode: "light" | "dark"
@@ -112,6 +147,8 @@ export type ElectronAPI = {
   wslServers: WslServersAPI
   updater: UpdaterAPI
   voices: VoicesAPI
+  asr: AsrAPI
+  runtime: RuntimeAPI
   consumeInitialDeepLinks: () => Promise<string[]>
   getDefaultServerUrl: () => Promise<string | null>
   setDefaultServerUrl: (url: string | null) => Promise<void>

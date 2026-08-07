@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, webUtils } from "electron"
-import type { ElectronAPI, VoicesPiperProgress, VoicesProgress, WslServersEvent } from "./types"
+import type { ElectronAPI, RuntimeInstallState, VoicesPiperProgress, VoicesProgress, WslServersEvent } from "./types"
 import type { UpdaterState } from "@tiancode-ai/app/updater"
 
 const updaterCallbacks = new Set<(state: UpdaterState) => void>()
@@ -54,6 +54,26 @@ const api: ElectronAPI = {
       const handler = (_: unknown, event: VoicesPiperProgress) => cb(event)
       ipcRenderer.on("voices-piper-progress", handler)
       return () => ipcRenderer.removeListener("voices-piper-progress", handler)
+    },
+  },
+  asr: {
+    status: () => ipcRenderer.invoke("asr-status"),
+    start: (language) => ipcRenderer.invoke("asr-start", language),
+    chunk: (samples) => ipcRenderer.send("asr-chunk", samples),
+    stop: () => ipcRenderer.invoke("asr-stop"),
+    onProgress: (cb) => {
+      const handler = (_: unknown, event: { progress: number; file?: string }) => cb(event)
+      ipcRenderer.on("asr-progress", handler)
+      return () => ipcRenderer.removeListener("asr-progress", handler)
+    },
+  },
+  runtime: {
+    install: (kind) => ipcRenderer.invoke("runtime-install", kind),
+    state: () => ipcRenderer.invoke("runtime-install-state"),
+    onState: (cb) => {
+      const handler = (_: unknown, state: RuntimeInstallState) => cb(state)
+      ipcRenderer.on("runtime-install-state", handler)
+      return () => ipcRenderer.removeListener("runtime-install-state", handler)
     },
   },
   updater: {

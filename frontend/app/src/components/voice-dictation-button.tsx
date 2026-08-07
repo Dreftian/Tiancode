@@ -2,6 +2,7 @@ import { createSignal } from "solid-js"
 import { useLanguage } from "@/context/language"
 import { showToast } from "@/utils/toast"
 import { getSpeechRecognition, speechRecognitionLang, type SpeechRecognitionLike } from "@/utils/voices"
+import { asrAPI, startLocalDictation } from "@/utils/asr"
 
 // Mic icon rendered inline; the icon set has no microphone.
 export function MicIcon(props: { class?: string }) {
@@ -17,9 +18,10 @@ export function MicIcon(props: { class?: string }) {
   )
 }
 
-// Microphone button for the chat composer. Transcribes with the Web Speech
-// API (Chromium/WebView2) and fills the prompt with the final transcript;
-// it never submits automatically so the user can review before sending.
+// Microphone button for the chat composer. Uses the Web Speech API when the
+// platform exposes it (browser), otherwise streams the mic to the local
+// sherpa-onnx recognizer in the desktop main process. It never submits
+// automatically so the user can review the transcript before sending.
 export function VoiceDictationButton(props: {
   class?: string
   listeningClass?: string
@@ -30,41 +32,76 @@ export function VoiceDictationButton(props: {
   const language = useLanguage()
   const [listening, setListening] = createSignal(false)
   let recognition: SpeechRecognitionLike | undefined
+  let stopLocal: (() => void) | undefined
 
   const stop = () => {
     recognition?.stop()
     recognition = undefined
+    if (stopLocal) {
+      void stopLocal()
+      stopLocal = undefined
+    }
     setListening(false)
   }
 
-  const start = () => {
+  const start = async () => {
     const Ctor = getSpeechRecognition()
-    if (!Ctor) {
+    if (Ctor) {
+      const rec = new Ctor()
+      recognition = rec
+      rec.lang = speechRecognitionLang(language.locale())
+      rec.continuous = false
+      rec.interimResults = false
+      rec.onresult = (event) => {
+        const transcript = event.results[0]?.[0]?.transcript
+        if (transcript) props.onResult(transcript.trim())
+        stop()
+      }
+      rec.onerror = (event) => {
+        if (event.error !== "aborted" && event.error !== "no-speech") {
+          showToast({ variant: "error", title: language.t("chat.mic.error"), description: event.error })
+        }
+        stop()
+      }
+      rec.onend = () => {
+        recognition = undefined
+        setListening(false)
+      }
+      setListening(true)
+      rec.start()
+      return
+    }
+    // Electron: dictado local con sherpa-onnx (proceso principal).
+    const api = asrAPI()
+    if (!api) {
       showToast({ variant: "error", title: language.t("chat.mic.error") })
       return
     }
-    const rec = new Ctor()
-    recognition = rec
-    rec.lang = speechRecognitionLang(language.locale())
-    rec.continuous = false
-    rec.interimResults = false
-    rec.onresult = (event) => {
-      const transcript = event.results[0]?.[0]?.transcript
-      if (transcript) props.onResult(transcript.trim())
-      stop()
+    const status = await api.status().catch(() => undefined)
+    if (status && !status.ready && !status.downloading) {
+      showToast({ variant: "info", title: language.t("chat.mic.downloading") })
     }
-    rec.onerror = (event) => {
-      if (event.error !== "aborted" && event.error !== "no-speech") {
-        showToast({ variant: "error", title: language.t("chat.mic.error"), description: event.error })
-      }
-      stop()
+    const locale = language.locale() === "es" ? "es" : "en"
+    try {
+      stopLocal = await startLocalDictation(
+        locale,
+        (text) => {
+          props.onResult(text)
+          stop()
+        },
+        (message) => {
+          showToast({ variant: "error", title: language.t("chat.mic.error"), description: message })
+          stop()
+        },
+      )
+      setListening(true)
+    } catch (error) {
+      showToast({
+        variant: "error",
+        title: language.t("chat.mic.error"),
+        description: error instanceof Error ? error.message : String(error),
+      })
     }
-    rec.onend = () => {
-      recognition = undefined
-      setListening(false)
-    }
-    setListening(true)
-    rec.start()
   }
 
   const toggle = () => {
@@ -72,7 +109,7 @@ export function VoiceDictationButton(props: {
       stop()
       return
     }
-    start()
+    void start()
   }
 
   return (

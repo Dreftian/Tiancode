@@ -29,6 +29,7 @@ export interface Settings {
     showSearch: boolean
     showStatus: boolean
     showTerminal: boolean
+    autoSpeak: boolean
     showReasoningSummaries: boolean
     shellToolPartsExpanded: boolean
     editToolPartsExpanded: boolean
@@ -190,6 +191,7 @@ const defaultSettings: Settings = {
     showSearch: false,
     showStatus: false,
     showTerminal: false,
+    autoSpeak: false,
     showReasoningSummaries: false,
     shellToolPartsExpanded: false,
     editToolPartsExpanded: false,
@@ -395,6 +397,10 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         showTerminal: withFallback(() => store.general?.showTerminal, defaultSettings.general.showTerminal),
         setShowTerminal(value: boolean) {
           setStore("general", "showTerminal", value)
+        },
+        autoSpeak: withFallback(() => store.general?.autoSpeak, defaultSettings.general.autoSpeak),
+        setAutoSpeak(value: boolean) {
+          setStore("general", "autoSpeak", value)
         },
         showReasoningSummaries: withFallback(
           () => store.general?.showReasoningSummaries,

@@ -66,6 +66,7 @@ import { useSessionKey } from "@/pages/session/session-layout"
 import { useServerSDK } from "@/context/server-sdk"
 import { usePlatform } from "@/context/platform"
 import { useSettings } from "@/context/settings"
+import { enqueueAutoSpeak, stopAutoSpeak } from "@/utils/auto-speak"
 import { useTabs } from "@/context/tabs"
 import { legacySessionHref, requireServerKey, sessionHref } from "@/utils/session-route"
 import { useSDK } from "@/context/sdk"
@@ -1031,6 +1032,22 @@ export function MessageTimeline(props: {
       const group = row().group
       if (group.type !== "part") return
       return getMsgPart(group.ref.messageID, group.ref.partID)
+    })
+    // Lectura en voz alta en tiempo real: mientras el modelo genera, el texto
+    // nuevo de la parte se encola en la cola de auto-speak. Solo aplica a
+    // respuestas recientes del asistente; activar la opción a mitad de sesión
+    // no relee mensajes antiguos.
+    createEffect(() => {
+      if (!settings.general.autoSpeak()) {
+        stopAutoSpeak()
+        return
+      }
+      const item = part()
+      if (!item || item.type !== "text" || !item.text) return
+      const rowMessage = message()
+      if (!rowMessage || rowMessage.info.role !== "assistant") return
+      if (Date.now() - rowMessage.info.time.created > 120_000) return
+      enqueueAutoSpeak(item.id, item.text)
     })
     const speak = (text: string) => {
       const id = part()?.id
