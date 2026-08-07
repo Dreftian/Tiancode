@@ -882,9 +882,14 @@ export function applyLang() {
     if (t(key) !== undefined) el.setAttribute('aria-label', t(key));
   });
 
-  // El botón muestra el idioma al que se puede cambiar
+  // El botón muestra el idioma al que se puede cambiar; el nombre accesible
+  // incluye el texto visible (requisito label-content-name-mismatch)
   const langToggle = document.getElementById('lang-toggle');
-  if (langToggle) langToggle.textContent = lang === 'es' ? 'EN' : 'ES';
+  if (langToggle) {
+    const target = lang === 'es' ? 'EN' : 'ES';
+    langToggle.textContent = target;
+    langToggle.setAttribute('aria-label', t('lang.aria') + ' (' + target + ')');
+  }
 
   // Router (título según página) y gráficas escuchan este evento
   document.dispatchEvent(new CustomEvent('tiancode:langchange'));

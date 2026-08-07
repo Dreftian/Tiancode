@@ -52,3 +52,18 @@ if (navDropdownToggle) {
 document.addEventListener('click', function (e) {
   if (navDropdown && !navDropdown.contains(e.target)) closeDropdown();
 });
+
+/* ---------- Scrollspy: resalta la sección activa en el nav ---------- */
+const spySections = document.querySelectorAll('main section[id]');
+const spyLinks = document.querySelectorAll('.main-nav a[href^="#"]');
+if ('IntersectionObserver' in window && spySections.length && spyLinks.length) {
+  const spy = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (!entry.isIntersecting) return;
+      spyLinks.forEach(function (link) {
+        link.classList.toggle('is-active', link.getAttribute('href') === '#' + entry.target.id);
+      });
+    });
+  }, { rootMargin: '-40% 0px -55% 0px' });
+  spySections.forEach(function (section) { spy.observe(section); });
+}
