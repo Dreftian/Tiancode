@@ -304,7 +304,10 @@ export const dict = {
   "prompt.menu.shellCommand": "Shell command",
   "prompt.attachment.remove": "Remove attachment",
   "prompt.action.send": "Send",
-  "prompt.action.stop": "Stop",
+    "a11y.closeTab": "Close tab",
+  "a11y.clearSearch": "Clear search",
+  "a11y.edit": "Edit",
+"prompt.action.stop": "Stop",
 
   "chat.mic.start": "Dictate with microphone",
   "chat.mic.stop": "Stop dictation",

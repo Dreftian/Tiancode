@@ -72,6 +72,7 @@ export const SettingsServersV2: Component = () => {
             />
             <Show when={store.filter}>
               <IconButtonV2
+                aria-label={language.t("a11y.clearSearch")}
                 type="button"
                 variant="ghost-muted"
                 size="small"

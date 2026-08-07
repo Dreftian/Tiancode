@@ -471,6 +471,7 @@ function SettingsKeybindsV2View(props: {
           />
           <Show when={store.filter}>
             <IconButtonV2
+              aria-label={language.t("a11y.clearSearch")}
               type="button"
               variant="ghost-muted"
               size="small"
@@ -770,6 +771,7 @@ export const SettingsKeybinds: Component<{ v2?: boolean }> = (props) => {
               class="flex-1"
             />
             <Show when={store.filter}>
+              aria-label={language.t("a11y.clearSearch")}
               <IconButton icon="circle-x" variant="ghost" onClick={() => setStore("filter", "")} />
             </Show>
           </div>

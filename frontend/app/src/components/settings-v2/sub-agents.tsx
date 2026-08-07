@@ -394,6 +394,7 @@ export const SettingsSubAgentsV2: Component<{
                             onClick={() => startEdit(agent)}
                           />
                           <IconButtonV2
+                            aria-label={language.t("a11y.edit")}
                             size="small"
                             variant="ghost-muted"
                             icon={

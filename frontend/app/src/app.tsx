@@ -300,12 +300,45 @@ function SharedProviders(props: ParentProps) {
   return (
     <>
       <BodyDesignClass />
+      <GlobalErrorCapture />
       <CommandProvider>
         <DesktopCommands />
         <HighlightsProvider>{props.children}</HighlightsProvider>
       </CommandProvider>
     </>
   )
+}
+
+// Captura errores fuera de los límites de componentes (handlers, async, IPC)
+// y los reporta al proceso principal para que queden en el log de la app.
+function GlobalErrorCapture() {
+  const platform = usePlatform()
+  let last: string | undefined
+  const record = (error: string) => {
+    if (last === error) return
+    last = error
+    void platform.recordFatalRendererError?.({
+      error,
+      url: location.href,
+      version: platform.version,
+      platform: platform.platform,
+      os: platform.os,
+    })
+  }
+  onMount(() => {
+    const onError = (event: ErrorEvent) => record(event.message)
+    const onRejection = (event: PromiseRejectionEvent) => {
+      const reason = event.reason
+      record(reason instanceof Error ? reason.message : String(reason))
+    }
+    window.addEventListener("error", onError)
+    window.addEventListener("unhandledrejection", onRejection)
+    onCleanup(() => {
+      window.removeEventListener("error", onError)
+      window.removeEventListener("unhandledrejection", onRejection)
+    })
+  })
+  return null
 }
 
 function DesktopCommands() {
