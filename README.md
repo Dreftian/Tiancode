@@ -94,8 +94,18 @@ js/
   animations.js    # Animaciones de entrada (reveal)
   charts.js        # Gráficos de la portada
   faq.js           # Acordeones de preguntas frecuentes
-img/               # Logotipos e imágenes
+img/               # Logotipos, favicon, iconos PWA e imagen OG
 ```
+
+### Infraestructura
+
+| Archivo | Propósito |
+|---|---|
+| `vercel.json` | Headers de seguridad, caché y redirects (Vercel) |
+| `robots.txt` · `sitemap.xml` | Indexación y SEO |
+| `404.html` | Página 404 con la marca |
+| `site.webmanifest` | Manifest PWA (instalable) |
+| `img/og-image.png` | Preview al compartir en redes/mensajeros |
 
 - Cambia colores, tipografía y radios en `css/tokens.css`.
 - Añade o traduce textos en `js/i18n.js`.
