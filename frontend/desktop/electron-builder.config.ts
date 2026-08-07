@@ -58,11 +58,14 @@ const getBase = (appId: string): Configuration => ({
   files: ["out/**/*", "resources/**/*", "!resources/tiancode-cli*"],
   // onnxruntime-node ships native binaries that cannot load from inside the
   // asar; kokoro-js and phonemizer ship binary assets (voice style vectors,
-  // espeak-ng wasm) that are safer unpacked.
+  // espeak-ng wasm) that are safer unpacked. sherpa-onnx is a WASM build and
+  // loads its .wasm through the patched fs, but unpacking keeps it identical
+  // to the dev environment.
   asarUnpack: [
     "**/node_modules/onnxruntime-node/**",
     "**/node_modules/kokoro-js/**",
     "**/node_modules/phonemizer/**",
+    "**/node_modules/sherpa-onnx/**",
   ],
   extraResources: [
     ...(channel === "dev"

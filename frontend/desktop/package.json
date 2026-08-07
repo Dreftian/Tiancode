@@ -36,7 +36,8 @@
     "electron-window-state": "^5.0.3",
     "kokoro-js": "1.2.1",
     "onnxruntime-node": "1.21.0",
-    "phonemizer": "1.2.1"
+    "phonemizer": "1.2.1",
+    "sherpa-onnx": "1.13.4"
   },
   "devDependencies": {
     "@actions/artifact": "4.0.0",

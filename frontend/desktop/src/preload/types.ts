@@ -29,14 +29,28 @@ export type UpdaterAPI = {
   install: () => Promise<void>
 }
 
+export type VoiceEngine = "kokoro" | "piper"
+
 export type VoiceInfo = {
   id: string
   name: string
   language: string
   gender: "female" | "male"
   // Whether kokoro-js can synthesize this voice (English voices only; the
-  // bundled espeak-ng phonemizer has no multilingual voices).
+  // bundled espeak-ng phonemizer has no multilingual voices). Piper voices
+  // are always supported once downloaded.
   supported: boolean
+  // Synthesis engine: kokoro voices ship with the app, piper voices are
+  // downloaded on demand (sherpa-onnx + espeak-ng phonemizer).
+  engine: VoiceEngine
+  // Piper only: whether the model files are present on disk.
+  downloaded?: boolean
+  // Whether the voice is enabled for selection and dictation defaults.
+  enabled?: boolean
+  // Approximate model size in MiB (piper voices only).
+  sizeMb?: number
+  // Voice model license.
+  license?: string
 }
 
 export type VoicesStatus = {
@@ -53,6 +67,13 @@ export type VoicesProgress = {
   file?: string
 }
 
+export type VoicesPiperProgress = {
+  voiceId: string
+  progress: number
+  file?: string
+  done?: boolean
+}
+
 export type VoicesSpeakResult = {
   wav?: Uint8Array
   error?: string
@@ -65,6 +86,10 @@ export type VoicesAPI = {
   speak: (text: string, voiceId?: string) => Promise<VoicesSpeakResult>
   select: (voiceId: string) => Promise<boolean>
   onProgress: (cb: (event: VoicesProgress) => void) => () => void
+  downloadVoice: (voiceId: string) => Promise<void>
+  deleteVoice: (voiceId: string) => Promise<void>
+  setEnabled: (voiceId: string, enabled: boolean) => Promise<void>
+  onPiperProgress: (cb: (event: VoicesPiperProgress) => void) => () => void
 }
 
 export type LinuxDisplayBackend = "wayland" | "auto"

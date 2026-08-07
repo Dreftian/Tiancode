@@ -3,14 +3,22 @@ import { getSpeechRecognitionCtor } from "./runtime-adapters"
 
 // Mirrors `frontend/desktop/src/preload/types.ts` so the renderer can type
 // `window.api.voices` without depending on the desktop package.
+export type VoiceEngine = "kokoro" | "piper"
+
 export type VoiceInfo = {
   id: string
   name: string
   language: string
   gender: "female" | "male"
   // Whether kokoro-js can synthesize this voice (English voices only; the
-  // bundled espeak-ng phonemizer has no multilingual voices).
+  // bundled espeak-ng phonemizer has no multilingual voices). Piper voices
+  // are always supported once downloaded.
   supported: boolean
+  engine: VoiceEngine
+  downloaded?: boolean
+  enabled?: boolean
+  sizeMb?: number
+  license?: string
 }
 
 export type VoicesStatus = {
@@ -27,6 +35,13 @@ export type VoicesProgress = {
   file?: string
 }
 
+export type VoicesPiperProgress = {
+  voiceId: string
+  progress: number
+  file?: string
+  done?: boolean
+}
+
 export type VoicesSpeakResult = {
   wav?: Uint8Array
   error?: string
@@ -39,6 +54,10 @@ export type VoicesAPI = {
   speak: (text: string, voiceId?: string) => Promise<VoicesSpeakResult>
   select: (voiceId: string) => Promise<boolean>
   onProgress: (cb: (event: VoicesProgress) => void) => () => void
+  downloadVoice: (voiceId: string) => Promise<void>
+  deleteVoice: (voiceId: string) => Promise<void>
+  setEnabled: (voiceId: string, enabled: boolean) => Promise<void>
+  onPiperProgress: (cb: (event: VoicesPiperProgress) => void) => () => void
 }
 
 export const voicesAPI = (): VoicesAPI | undefined => window.api?.voices

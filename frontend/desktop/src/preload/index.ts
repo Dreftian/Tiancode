@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, webUtils } from "electron"
-import type { ElectronAPI, VoicesProgress, WslServersEvent } from "./types"
+import type { ElectronAPI, VoicesPiperProgress, VoicesProgress, WslServersEvent } from "./types"
 import type { UpdaterState } from "@tiancode-ai/app/updater"
 
 const updaterCallbacks = new Set<(state: UpdaterState) => void>()
@@ -42,10 +42,18 @@ const api: ElectronAPI = {
     list: () => ipcRenderer.invoke("voices-list"),
     speak: (text, voiceId) => ipcRenderer.invoke("voices-speak", text, voiceId),
     select: (voiceId) => ipcRenderer.invoke("voices-select", voiceId),
+    downloadVoice: (voiceId) => ipcRenderer.invoke("voices-download-voice", voiceId),
+    deleteVoice: (voiceId) => ipcRenderer.invoke("voices-delete-voice", voiceId),
+    setEnabled: (voiceId, enabled) => ipcRenderer.invoke("voices-set-enabled", voiceId, enabled),
     onProgress: (cb) => {
       const handler = (_: unknown, event: VoicesProgress) => cb(event)
       ipcRenderer.on("voices-progress", handler)
       return () => ipcRenderer.removeListener("voices-progress", handler)
+    },
+    onPiperProgress: (cb) => {
+      const handler = (_: unknown, event: VoicesPiperProgress) => cb(event)
+      ipcRenderer.on("voices-piper-progress", handler)
+      return () => ipcRenderer.removeListener("voices-piper-progress", handler)
     },
   },
   updater: {

@@ -5,8 +5,9 @@ import type { ProgressInfo } from "@huggingface/transformers"
 import type { VoiceInfo, VoicesSpeakResult } from "../preload/types"
 import { write as writeLog } from "./logging"
 import { getStore } from "./store"
-import { SELECTED_VOICE_KEY } from "./store-keys"
+import { ENABLED_VOICES_KEY, SELECTED_VOICE_KEY } from "./store-keys"
 import { float32ToWav } from "./wav"
+import { PIPER_VOICES, deletePiperVoice, downloadPiperVoice, isPiperDownloaded, synthesizePiper } from "./piper"
 
 export const DEFAULT_VOICE = "af_heart"
 const KOKORO_MODEL_ID = "onnx-community/Kokoro-82M-v1.0-ONNX"
@@ -61,7 +62,7 @@ const VOICE_IDS = [
   "zm_yunjian", "zm_yunxi", "zm_yunxia", "zm_yunyang",
 ] as const
 
-const VOICE_CATALOG: VoiceInfo[] = VOICE_IDS.map((id) => {
+const KOKORO_CATALOG: VoiceInfo[] = VOICE_IDS.map((id) => {
   const prefix = id.slice(0, 2)
   const meta = PREFIX_META[prefix]
   return {
@@ -70,8 +71,25 @@ const VOICE_CATALOG: VoiceInfo[] = VOICE_IDS.map((id) => {
     language: meta.language,
     gender: meta.gender,
     supported: (SUPPORTED_VOICE_IDS as readonly string[]).includes(id),
+    engine: "kokoro",
+    license: "Apache 2.0",
   }
 })
+
+// Piper (sherpa-onnx) voices are downloaded on demand; all of them are
+// Spanish so the app finally speaks the languages of the bundled model.
+const PIPER_CATALOG: VoiceInfo[] = PIPER_VOICES.map((voice) => ({
+  id: voice.id,
+  name: voice.name,
+  language: voice.language,
+  gender: "female",
+  supported: true,
+  engine: "piper",
+  license: voice.license,
+  sizeMb: voice.sizeMb,
+}))
+
+const VOICE_CATALOG: VoiceInfo[] = [...KOKORO_CATALOG, ...PIPER_CATALOG]
 
 type VoiceState = "idle" | "downloading" | "ready" | "error"
 
@@ -85,7 +103,11 @@ export function getVoicesStatus() {
     ready: state === "ready",
     downloading: state === "downloading" || undefined,
     progress,
-    voices: VOICE_CATALOG,
+    voices: VOICE_CATALOG.map((voice) => ({
+      ...voice,
+      downloaded: voice.engine === "piper" ? isPiperDownloaded(voice.id) : true,
+      enabled: isVoiceEnabled(voice.id),
+    })),
     selected: getSelectedVoice(),
     ...(failure ? { error: failure } : {}),
   }
@@ -96,13 +118,24 @@ export async function downloadVoices() {
 }
 
 export function listVoices() {
-  return VOICE_CATALOG
+  return getVoicesStatus().voices
 }
 
 export async function speakVoice(text: string, voiceId?: string): Promise<VoicesSpeakResult> {
   if (typeof text !== "string" || text.trim().length === 0) return { error: "Text must be a non-empty string." }
   const voice = resolveVoice(voiceId ?? getSelectedVoice())
   if (!voice) return { error: `Unknown voice "${voiceId}".` }
+  if (voice.engine === "piper") {
+    try {
+      // Auto-downloads the model first when the voice has not been fetched yet.
+      const audio = await synthesizePiper(text, voice.id)
+      return { wav: new Uint8Array(float32ToWav(audio.samples, audio.sampleRate)) }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      writeLog("voices", "piper synthesis failed", { error: message, voice: voice.id }, "error")
+      return { error: message }
+    }
+  }
   if (!voice.supported) {
     return {
       error:
@@ -125,8 +158,40 @@ export async function speakVoice(text: string, voiceId?: string): Promise<Voices
 export function selectVoice(voiceId: string) {
   const voice = resolveVoice(voiceId)
   if (!voice) return false
+  if (!isVoiceEnabled(voice.id)) return false
+  if (voice.engine === "piper" && !isPiperDownloaded(voice.id)) return false
   getStore().set(SELECTED_VOICE_KEY, voice.id)
   return true
+}
+
+export function downloadVoice(voiceId: string) {
+  const voice = resolveVoice(voiceId)
+  if (!voice || voice.engine !== "piper") throw new Error(`Voice "${voiceId}" is not a downloadable piper voice.`)
+  return downloadPiperVoice(voice.id)
+}
+
+export async function deleteVoice(voiceId: string) {
+  const voice = resolveVoice(voiceId)
+  if (!voice || voice.engine !== "piper") throw new Error(`Voice "${voiceId}" is not a piper voice.`)
+  await deletePiperVoice(voice.id)
+  // A deleted voice can no longer be selected; fall back to the first
+  // selectable voice so getSelectedVoice() never returns a broken id.
+  if (getStore().get(SELECTED_VOICE_KEY) === voice.id) getStore().set(SELECTED_VOICE_KEY, firstSelectableVoice().id)
+}
+
+export function setVoiceEnabled(voiceId: string, enabled: boolean) {
+  const voice = resolveVoice(voiceId)
+  if (!voice) return
+  const store = getStore()
+  // The key holds the ids of enabled voices; an absent key means "all
+  // enabled", so the first toggle materializes the full catalog.
+  const stored = store.get(ENABLED_VOICES_KEY)
+  const current = stored === undefined ? VOICE_CATALOG.map((entry) => entry.id) : readEnabledVoices(stored)
+  const next = enabled ? [...current, voice.id] : current.filter((id) => id !== voice.id)
+  store.set(ENABLED_VOICES_KEY, next)
+  if (!enabled && getStore().get(SELECTED_VOICE_KEY) === voice.id) {
+    getStore().set(SELECTED_VOICE_KEY, firstSelectableVoice().id)
+  }
 }
 
 function concatSamples(chunks: Float32Array[]) {
@@ -191,9 +256,37 @@ function reportProgress(payload: { progress: number; file?: string }) {
   }
 }
 
+// The selected voice must always be enabled and (for piper) downloaded; when
+// the stored selection no longer qualifies, fall back to the first selectable
+// voice so dictation and message reading never reference a dead voice.
 function getSelectedVoice() {
   const stored = getStore().get(SELECTED_VOICE_KEY)
-  return typeof stored === "string" && resolveVoice(stored) ? stored : DEFAULT_VOICE
+  if (typeof stored === "string" && isSelectable(resolveVoice(stored))) return stored
+  const fallback = firstSelectableVoice()
+  if (fallback.id !== stored) getStore().set(SELECTED_VOICE_KEY, fallback.id)
+  return fallback.id
+}
+
+function isSelectable(voice: VoiceInfo | undefined) {
+  if (!voice) return false
+  if (!voice.supported || !isVoiceEnabled(voice.id)) return false
+  return voice.engine === "kokoro" || isPiperDownloaded(voice.id)
+}
+
+function firstSelectableVoice() {
+  return VOICE_CATALOG.find(isSelectable) ?? VOICE_CATALOG[0]
+}
+
+function readEnabledVoices(value: unknown) {
+  return Array.isArray(value) ? value.filter((id): id is string => typeof id === "string") : []
+}
+
+// Voices default to enabled; the store key only exists once the user toggles
+// at least one voice, and then lists the enabled ids exactly.
+function isVoiceEnabled(voiceId: string) {
+  const stored = getStore().get(ENABLED_VOICES_KEY)
+  if (stored === undefined) return true
+  return readEnabledVoices(stored).includes(voiceId)
 }
 
 function resolveVoice(id: string) {

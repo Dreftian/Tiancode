@@ -181,3 +181,117 @@
   line-height: 1.2;
   color: var(--v2-text-text-faint);
 }
+
+.settings-v2-voices-chip[data-variant="engine"] {
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-voices-chip[data-variant="builtin"] {
+  color: var(--v2-text-text-faint);
+}
+
+.settings-v2-voices-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 10px;
+}
+
+.settings-v2-voices-row[data-disabled] {
+  opacity: 0.55;
+}
+
+.settings-v2-voices-row[data-disabled]:hover {
+  background-color: transparent;
+}
+
+.settings-v2-voices-row-toggle {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.settings-v2-voices-row-toggle [data-component="switch"] {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px;
+}
+
+.settings-v2-voices-row-progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 110px;
+  flex-shrink: 0;
+}
+
+.settings-v2-voices-row-progress .settings-v2-voices-progress-track {
+  flex: 1;
+  height: 5px;
+}
+
+.settings-v2-voices-row-progress-label {
+  font-size: 11px;
+  font-weight: 530;
+  line-height: 1;
+  color: var(--v2-text-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.settings-v2-voices-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding-top: 12px;
+}
+
+.settings-v2-voices-pagination-label {
+  font-size: 12px;
+  font-weight: 530;
+  line-height: 1;
+  color: var(--v2-text-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-v2-voices-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 4px 10px 32px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background-color: var(--v2-background-bg-layer-02);
+}
+
+.settings-v2-voices-info-title {
+  font-size: 12px;
+  font-weight: 640;
+  line-height: 1.2;
+  color: var(--v2-text-text-base);
+}
+
+.settings-v2-voices-info-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  font-size: 12px;
+  font-weight: 440;
+  line-height: 1.2;
+}
+
+.settings-v2-voices-info-caption {
+  color: var(--v2-text-text-faint);
+}
+
+.settings-v2-voices-info-caption::after {
+  content: ":";
+}
+
+.settings-v2-voices-info-value {
+  color: var(--v2-text-text-muted);
+  font-variant-numeric: tabular-nums;
+}

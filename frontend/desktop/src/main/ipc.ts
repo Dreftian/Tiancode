@@ -24,7 +24,7 @@ import type { UpdaterController } from "./updater-controller"
 import { createUpdaterSubscriptions } from "./updater-subscriptions"
 import { createDesktopDraftStore } from "./draft-store"
 import { nativeT } from "./native-translations"
-import { downloadVoices, getVoicesStatus, listVoices, selectVoice, speakVoice } from "./voices"
+import { downloadVoices, deleteVoice, downloadVoice, getVoicesStatus, listVoices, selectVoice, setVoiceEnabled, speakVoice } from "./voices"
 
 const pickerFilters = (ext?: string[]) => {
   if (!ext || ext.length === 0) return undefined
@@ -119,6 +119,11 @@ export function registerIpcHandlers(deps: Deps) {
     speakVoice(text, voiceId),
   )
   ipcMain.handle("voices-select", (_event: IpcMainInvokeEvent, voiceId: string) => selectVoice(voiceId))
+  ipcMain.handle("voices-download-voice", (_event: IpcMainInvokeEvent, voiceId: string) => downloadVoice(voiceId))
+  ipcMain.handle("voices-delete-voice", (_event: IpcMainInvokeEvent, voiceId: string) => deleteVoice(voiceId))
+  ipcMain.handle("voices-set-enabled", (_event: IpcMainInvokeEvent, voiceId: string, enabled: boolean) =>
+    setVoiceEnabled(voiceId, enabled),
+  )
   ipcMain.handle("store-get", (_event: IpcMainInvokeEvent, name: string, key: string) => {
     try {
       const store = getStore(name)
