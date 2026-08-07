@@ -107,8 +107,8 @@ Los botones de descarga de la web apuntan a los assets publicados en [GitHub Rel
 
 | Binario | Uso |
 |---|---|
-| `Tiancode-setup-win-x64.exe` | Instalador para Windows 10/11 (NSIS) |
-| `Tiancode-portable-win-x64.exe` | Versión portable (sin instalación) |
+| `Tiancode.exe` | Instalador para Windows 10/11 (NSIS) |
+| `Tiancode-portable.exe` | Versión portable (sin instalación) |
 
 ## 📄 Licencia
 
