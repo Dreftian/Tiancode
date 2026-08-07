@@ -112,7 +112,7 @@ export const DESKTOP_NATIVE_ENGLISH = {
   "desktop.wsl.error.executeDistro": "Cannot execute commands in distro",
   "desktop.wsl.error.installWsl": "WSL installation failed",
   "desktop.wsl.error.installDistro": "Failed to install distro: {{distro}}",
-  "desktop.wsl.error.installOpencode": "Tiancode installation failed",
+  "desktop.wsl.error.installTiancode": "Tiancode installation failed",
   "desktop.wsl.error.alreadyAdded": "{{distro}} is already added",
   "desktop.wsl.error.tiancodeMissing": "tiancode is not installed in this distro",
   "desktop.wsl.error.tiancodeCannotRun": "tiancode is installed but could not run",

@@ -51,11 +51,11 @@ jobs:
 
       - name: Install Tiancode
         if: inputs.bump || inputs.version
-        run: bun i -g tiancode-ai
+        run: bun i -g @tiancode-ai/cli
 
       - id: version
         run: |
-          ./script/version.ts
+          ./backend/tools/script/version.ts
         env:
           GH_TOKEN: ${{ steps.committer.outputs.token }}
           TIANCODE_BUMP: ${{ inputs.bump }}
@@ -379,9 +379,9 @@ jobs:
         shell: pwsh
         run: |
           $files = @()
-          $files += Get-ChildItem "${{ github.workspace }}\packages\desktop\dist\*.exe" | Select-Object -ExpandProperty FullName
-          $files += Get-ChildItem "${{ github.workspace }}\packages\desktop\dist\*unpacked\*.exe" | Select-Object -ExpandProperty FullName
-          $files += Get-ChildItem "${{ github.workspace }}\packages\desktop\dist\*unpacked\resources\tiancode-cli.exe" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
+          $files += Get-ChildItem "${{ github.workspace }}\frontend\desktop\dist\*.exe" | Select-Object -ExpandProperty FullName
+          $files += Get-ChildItem "${{ github.workspace }}\frontend\desktop\dist\*unpacked\*.exe" | Select-Object -ExpandProperty FullName
+          $files += Get-ChildItem "${{ github.workspace }}\frontend\desktop\dist\*unpacked\resources\tiancode-cli.exe" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
 
           foreach ($file in $files | Select-Object -Unique) {
             $sig = Get-AuthenticodeSignature $file
@@ -472,25 +472,6 @@ jobs:
           tiancode-app-id: ${{ vars.TIANCODE_APP_ID }}
           tiancode-app-secret: ${{ secrets.TIANCODE_APP_SECRET }}
 
-      - name: Cache apt packages (AUR)
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: /var/cache/apt/archives
-          key: ${{ runner.os }}-apt-aur-${{ hashFiles('.github/workflows/publish.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-apt-aur-
-
-      - name: Setup SSH for AUR
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pacman-package-manager
-          mkdir -p ~/.ssh
-          echo "${{ secrets.AUR_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          git config --global user.email "tiancode@sst.dev"
-          git config --global user.name "tiancode"
-          ssh-keyscan -H aur.archlinux.org >> ~/.ssh/known_hosts || true
-
       - name: Upload desktop release assets
         if: needs.version.outputs.release
         env:
@@ -504,14 +485,11 @@ jobs:
           fi
           gh release upload "v${{ needs.version.outputs.version }}" "${files[@]}" --clobber --repo "${{ needs.version.outputs.repo }}"
 
-      - run: ./script/publish.ts
+      - run: ./backend/tools/script/publish.ts
         env:
           TIANCODE_VERSION: ${{ needs.version.outputs.version }}
           TIANCODE_RELEASE: ${{ needs.version.outputs.release }}
-          AUR_KEY: ${{ secrets.AUR_KEY }}
           GITHUB_TOKEN: ${{ steps.committer.outputs.token }}
           GH_REPO: ${{ needs.version.outputs.repo }}
           NPM_CONFIG_PROVENANCE: false
           LATEST_YML_DIR: /tmp/latest-yml
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}

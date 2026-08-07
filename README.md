@@ -25,15 +25,14 @@ Tiancode es un asistente de IA de escritorio (Electron + SolidJS + Bun/Effect) q
 
 | Binario | Uso |
 |---|---|
-| [`Tiancode-setup-win-x64.exe`](https://github.com/Dreftian/Tiancode/releases/latest/download/Tiancode-setup-win-x64.exe) | Instalador (NSIS) |
-| [`Tiancode-portable-win-x64.exe`](https://github.com/Dreftian/Tiancode/releases/latest/download/Tiancode-portable-win-x64.exe) | Portable (no instala) |
-| [`Tiancode-win-x64.exe`](https://github.com/Dreftian/Tiancode/releases/latest/download/Tiancode-win-x64.exe) | Ejecutable directo |
+| [`Tiancode.exe`](https://github.com/Dreftian/Tiancode/releases/latest/download/Tiancode.exe) | Instalador (NSIS) |
+| [`Tiancode-portable.exe`](https://github.com/Dreftian/Tiancode/releases/latest/download/Tiancode-portable.exe) | Portable (no instala) |
 
 ## 🚀 Uso rápido
 
 ```bash
 # Instalador
-Tiancode-setup-win-x64.exe
+Tiancode.exe
 
 # Portable (sin instalación)
 Tiancode-portable-win-x64.exe

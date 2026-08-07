@@ -47,14 +47,11 @@
 
 ```bash
 # YOLO
-curl -fsSL https://opencode.ai/install | bash
+curl -fsSL https://tiancode.vercel.app/install | bash
 
 # Package managers
-npm i -g tiancode-ai@latest        # or bun/pnpm/yarn
-scoop install tiancode             # Windows
-choco install tiancode             # Windows
-brew install anomalyco/tap/tiancode # macOS and Linux (recommended, always up to date)
-brew install tiancode              # macOS and Linux (official brew formula, updated less)
+npm i -g @tiancode-ai/cli@latest     # or bun/pnpm/yarn
+```
 sudo pacman -S tiancode            # Arch Linux (Stable)
 paru -S tiancode-bin               # Arch Linux (Latest from AUR)
 mise use -g tiancode               # Any OS
@@ -93,8 +90,8 @@ The install script respects the following priority order for the installation pa
 
 ```bash
 # Examples
-TIANCODE_INSTALL_DIR=/usr/local/bin curl -fsSL https://opencode.ai/install | bash
-XDG_BIN_DIR=$HOME/.local/bin curl -fsSL https://opencode.ai/install | bash
+TIANCODE_INSTALL_DIR=/usr/local/bin curl -fsSL https://tiancode.vercel.app/install | bash
+XDG_BIN_DIR=$HOME/.local/bin curl -fsSL https://tiancode.vercel.app/install | bash
 ```
 
 ### Agents

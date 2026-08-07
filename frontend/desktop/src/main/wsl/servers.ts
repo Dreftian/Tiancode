@@ -18,7 +18,7 @@ import { clearWslDistroState, wslServerIdToRestart } from "./policy"
 import { nativeT } from "../native-translations"
 import {
   installWslDistro,
-  installWslOpencode,
+  installWslTiancode,
   installWslRuntimeElevated,
   listInstalledWslDistros,
   listOnlineWslDistros,
@@ -26,7 +26,7 @@ import {
   probeWslDistro,
   probeWslRuntime,
   readWslCommandVersion,
-  resolveWslOpencode,
+  resolveWslTiancode,
   summarize,
 } from "./runtime"
 
@@ -49,7 +49,7 @@ type WslServersControllerOptions = {
   readServers?: () => WslServerConfig[]
   writeServers?: (servers: WslServerConfig[]) => void
   probeDistro?: typeof probeWslDistro
-  resolveOpencode?: typeof resolveWslOpencode
+  resolveTiancode?: typeof resolveWslTiancode
   readCommandVersion?: typeof readWslCommandVersion
 }
 
@@ -132,7 +132,7 @@ export function createWslServersController(
   }
 
   const checkOpencode = async (distro: string, opts?: { signal?: AbortSignal }) => {
-    const resolved = await (options?.resolveOpencode ?? resolveWslOpencode)(distro, opts)
+    const resolved = await (options?.resolveTiancode ?? resolveWslTiancode)(distro, opts)
     const version = resolved
       ? await (options?.readCommandVersion ?? readWslCommandVersion)(resolved, distro, opts)
       : null
@@ -360,11 +360,11 @@ export function createWslServersController(
       })
     },
 
-    async installOpencode(name: string) {
+    async installTiancode(name: string) {
       await runJob({ kind: "install-tiancode", distro: name, startedAt: Date.now() }, async (abort) => {
-        const result = await installWslOpencode(appVersion, name, { signal: abort.signal })
+        const result = await installWslTiancode(appVersion, name, { signal: abort.signal })
         if (result.code !== 0) {
-          throw new Error(summarize(result.stderr || result.stdout) || nativeT("desktop.wsl.error.installOpencode"))
+          throw new Error(summarize(result.stderr || result.stdout) || nativeT("desktop.wsl.error.installTiancode"))
         }
         await refreshOpencodeCheck(name, { signal: abort.signal })
         expectOpencodeVersion(state.tiancodeChecks[name]?.version ?? null, appVersion, name)

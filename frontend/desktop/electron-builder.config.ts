@@ -116,10 +116,12 @@ const getBase = (appId: string): Configuration => ({
     perMachine: false,
     installerIcon: `resources/icons/icon.ico`,
     installerHeaderIcon: `resources/icons/icon.ico`,
-    artifactName: "tiancode-desktop-win-${arch}-setup.${ext}",
+    // Los nombres de artefacto son los que enlaza la web y el latest.yml
+    // (Website/recursos/descargas.html → /releases/latest/download/Tiancode.exe).
+    artifactName: "Tiancode.${ext}",
   },
   portable: {
-    artifactName: "tiancode-desktop-win-${arch}-portable.${ext}",
+    artifactName: "Tiancode-portable.${ext}",
   },
   linux: {
     icon: `resources/icons`,
