@@ -136,12 +136,16 @@ import type {
   McpRemoveResponses,
   McpStatusErrors,
   McpStatusResponses,
+  ModelhubCancelErrors,
+  ModelhubCancelResponses,
   ModelhubDownloadErrors,
   ModelhubDownloadResponses,
   ModelhubDownloadsErrors,
   ModelhubDownloadsResponses,
   ModelhubFilesErrors,
   ModelhubFilesResponses,
+  ModelhubRuntimesErrors,
+  ModelhubRuntimesResponses,
   ModelhubSearchErrors,
   ModelhubSearchResponses,
   ModelhubSystemErrors,
@@ -3399,7 +3403,7 @@ export class Modelhub extends HeyApiClient {
   /**
    * List model GGUF files
    *
-   * List the GGUF files of a HuggingFace model with exact sizes from the repo tree.
+   * List the GGUF files of a HuggingFace model with exact sizes, sha256, per-quant fit estimation and the recommended variant.
    */
   public files<ThrowOnError extends boolean = false>(
     parameters: {
@@ -3459,9 +3463,39 @@ export class Modelhub extends HeyApiClient {
   }
 
   /**
+   * Detect local runtimes
+   *
+   * Probe local inference runtimes (Ollama, LM Studio) and report whether they are available on this machine.
+   */
+  public runtimes<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<ModelhubRuntimesResponses, ModelhubRuntimesErrors, ThrowOnError>({
+      url: "/models/runtimes",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
    * List model downloads
    *
-   * Return the registry of started model downloads with progress.
+   * Return the persisted registry of model download jobs with progress and status.
    */
   public downloads<ThrowOnError extends boolean = false>(
     parameters?: {
@@ -3491,7 +3525,7 @@ export class Modelhub extends HeyApiClient {
   /**
    * Download a GGUF model
    *
-   * Start downloading a GGUF file from HuggingFace into the local models directory.
+   * Start or resume a download of a GGUF file from HuggingFace into the local models directory.
    */
   public download<ThrowOnError extends boolean = false>(
     parameters?: {
@@ -3524,6 +3558,38 @@ export class Modelhub extends HeyApiClient {
         ...options?.headers,
         ...params.headers,
       },
+    })
+  }
+
+  /**
+   * Cancel a model download
+   *
+   * Cancel a download job and remove its partial .part file.
+   */
+  public cancel<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).delete<ModelhubCancelResponses, ModelhubCancelErrors, ThrowOnError>({
+      url: "/models/downloads/{id}",
+      ...options,
+      ...params,
     })
   }
 }

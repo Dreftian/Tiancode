@@ -1,7 +1,7 @@
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
 import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
 import { TextInputV2 } from "@tiancode-ai/ui/v2/text-input-v2"
-import { type Component, createResource, For, Show, createSignal, createMemo, onCleanup } from "solid-js"
+import { type Component, createResource, For, Show, createSignal, createMemo, createEffect, onCleanup } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useLanguage } from "@/context/language"
 import { useServerSDK } from "@/context/server-sdk"
@@ -9,7 +9,8 @@ import { Persist, persisted } from "@/utils/persist"
 import { SettingsListV2 } from "./parts/list"
 import "./models-hub.css"
 
-type Compatibility = "green" | "blue" | "red"
+type FitTier = "full_gpu" | "partial_gpu" | "ram_only" | "no_fit"
+type DownloadStatus = "downloading" | "paused" | "completed" | "failed"
 
 const PAGE_SIZE = 6
 
@@ -62,8 +63,8 @@ export const SettingsModelsHubV2: Component<{
   const [submitted, setSubmitted] = createSignal("")
   const [selected, setSelected] = createSignal<string | undefined>(undefined)
   const [page, setPage] = createSignal(0)
-  const [downloading, setDownloading] = createSignal<Record<string, boolean>>({})
-  const [downloads, setDownloads] = createSignal<Record<string, { received: number; total: number }>>({})
+  // Persisted download jobs (survive restarts), polled from the registry.
+  const [jobs, setJobs] = createSignal<DownloadJob[]>([])
 
   // Memory mode: the GPU VRAM is the preferred memory for local models and
   // system RAM backs it up only when the model overflows the GPU. Both toggles
@@ -81,11 +82,11 @@ export const SettingsModelsHubV2: Component<{
     {
       initialValue: undefined as
         | {
-            ram: number | "NaN" | "Infinity" | "-Infinity"
-            diskFree: number | "NaN" | "Infinity" | "-Infinity"
+            ram: Numish
+            diskFree: Numish
             cpu?: string
             gpu?: string
-            vram?: { total: number | "NaN" | "Infinity" | "-Infinity"; free: number | "NaN" | "Infinity" | "-Infinity" }
+            vram?: { total: Numish; free: Numish }
             modelsDir: string
           }
         | undefined,
@@ -107,6 +108,36 @@ export const SettingsModelsHubV2: Component<{
     { initialValue: [] as QuantFile[] },
   )
 
+  // Local runtimes (Ollama / LM Studio) detected on this machine.
+  const [runtimes] = createResource(
+    () => serverSdk().client.modelhub.runtimes(params()),
+    (request) => request.then((x) => x.data),
+    { initialValue: [] as RuntimeInfo[] },
+  )
+
+  const refreshJobs = async () => {
+    try {
+      const res = await serverSdk().client.modelhub.downloads(params())
+      setJobs(res.data ?? [])
+    } catch {
+      // transient failure; keep the last known registry state
+    }
+  }
+
+  // Poll the persisted download registry while the tab is mounted so status
+  // transitions (paused/completed/failed) and progress stay fresh.
+  createEffect(() => {
+    void refreshJobs()
+    const timer = setInterval(() => void refreshJobs(), 2000)
+    onCleanup(() => clearInterval(timer))
+  })
+
+  const jobsByKey = createMemo(() => {
+    const byKey: Record<string, DownloadJob> = {}
+    for (const job of jobs()) byKey[`${job.model}/${job.file}`] = job
+    return byKey
+  })
+
   const ram = createMemo(() => asNumber(system()?.ram) ?? 0)
   const vramTotal = createMemo(() => asNumber(system()?.vram?.total) ?? 0)
   const vramFree = createMemo(() => asNumber(system()?.vram?.free) ?? 0)
@@ -114,34 +145,33 @@ export const SettingsModelsHubV2: Component<{
   // LM Studio-style fit: VRAM is the primary memory, RAM backs it up when the
   // model overflows the GPU. ~10% overhead for KV cache and runtime buffers.
   // The memory-mode toggles let the user choose: GPU-first (default), or
-  // RAM-only when they prefer not to use the GPU.
-  const compat = (sizeBytes: number | "NaN" | "Infinity" | "-Infinity" | undefined): Compatibility => {
+  // RAM-only when they prefer not to use the GPU. Mirrors the backend
+  // `compatibilityFor` tiers (full_gpu / partial_gpu / ram_only / no_fit).
+  const compat = (sizeBytes: Numish | undefined): FitTier => {
     const size = asNumber(sizeBytes)
-    if (size === undefined) return "blue"
+    if (size === undefined) return "partial_gpu"
     const needed = size * 1.1
     const gpuOn = memoryPrefs.useGpu && vramTotal() > 0
     const ramOn = memoryPrefs.useRamFallback && ram() > 0
     if (gpuOn && ramOn) {
-      // Prefer free VRAM for the green tier; fall back to total when unknown.
-      const greenCap = vramFree() > 0 ? vramFree() : vramTotal()
-      if (needed <= greenCap) return "green"
-      if (needed <= vramTotal() + ram()) return "blue"
-      return "red"
+      // Prefer free VRAM for the full-offload tier; fall back to total when
+      // the free value is unknown.
+      const fullCap = vramFree() > 0 ? vramFree() : vramTotal()
+      if (needed <= fullCap) return "full_gpu"
+      if (needed <= vramTotal() + ram()) return "partial_gpu"
+      if (needed <= ram()) return "ram_only"
+      return "no_fit"
     }
     if (gpuOn) {
       const cap = vramFree() > 0 ? vramFree() : vramTotal()
-      if (needed <= cap) return "green"
-      return "red"
+      if (needed <= cap) return "full_gpu"
+      return "no_fit"
     }
     if (ramOn) {
-      const total = ram()
-      if (total === 0) return "blue"
-      const ratio = needed / total
-      if (ratio <= 0.6) return "green"
-      if (ratio <= 1) return "blue"
-      return "red"
+      if (needed <= ram()) return "ram_only"
+      return "no_fit"
     }
-    return "blue"
+    return "partial_gpu"
   }
 
   const pages = createMemo(() => Math.max(1, Math.ceil((models() ?? []).length / PAGE_SIZE)))
@@ -160,43 +190,33 @@ export const SettingsModelsHubV2: Component<{
   }
 
   const startDownload = async (model: string, file: string) => {
-    setDownloading((prev) => ({ ...prev, [`${model}/${file}`]: true }))
+    const job = jobsByKey()[`${model}/${file}`]
+    if (job?.status === "downloading") return
     try {
       await serverSdk().client.modelhub.download({ ...params(), model, file })
-      const poll = setInterval(async () => {
-        try {
-          const res = await serverSdk().client.modelhub.downloads(params())
-          const states = res.data ?? []
-          const entry = states.find((s) => s.model === model && s.file === file)
-          if (entry) {
-            setDownloads((prev) => ({
-              ...prev,
-              [`${model}/${file}`]: { received: asNumber(entry.received) ?? 0, total: asNumber(entry.total) ?? 0 },
-            }))
-            if (entry.done) {
-              clearInterval(poll)
-              setDownloading((prev) => ({ ...prev, [`${model}/${file}`]: false }))
-            }
-          }
-        } catch {
-          clearInterval(poll)
-          setDownloading((prev) => ({ ...prev, [`${model}/${file}`]: false }))
-        }
-      }, 800)
-      onCleanup(() => clearInterval(poll))
+      await refreshJobs()
     } catch {
-      setDownloading((prev) => ({ ...prev, [`${model}/${file}`]: false }))
+      // the downloads section surfaces the failed/paused state
     }
   }
 
-  const formatBytes = (bytes: number | "NaN" | "Infinity" | "-Infinity" | undefined) => {
+  const removeDownload = async (job: DownloadJob) => {
+    try {
+      await serverSdk().client.modelhub.cancel({ ...params(), id: job.id })
+      await refreshJobs()
+    } catch {
+      // keep the job listed if the request fails
+    }
+  }
+
+  const formatBytes = (bytes: Numish | undefined) => {
     const value = asNumber(bytes)
     if (value === undefined) return "—"
     const gb = value / 1e9
     return gb >= 1 ? `${gb.toFixed(2)} GB` : `${Math.round(value / 1e6)} MB`
   }
 
-  const formatDownloads = (n: number | "NaN" | "Infinity" | "-Infinity" | undefined) => {
+  const formatDownloads = (n: Numish | undefined) => {
     const value = asNumber(n)
     if (value === undefined) return ""
     if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`
@@ -204,21 +224,38 @@ export const SettingsModelsHubV2: Component<{
     return String(value)
   }
 
-  const compatibilityLabel = (c: Compatibility) => {
-    switch (c) {
-      case "green":
-        return language.t("settings.modelsHub.compat.green")
-      case "blue":
-        return language.t("settings.modelsHub.compat.blue")
-      case "red":
-        return language.t("settings.modelsHub.compat.red")
+  const fitLabel = (tier: FitTier) => {
+    switch (tier) {
+      case "full_gpu":
+        return language.t("settings.modelsHub.fit.fullGpu")
+      case "partial_gpu":
+        return language.t("settings.modelsHub.fit.partialGpu")
+      case "ram_only":
+        return language.t("settings.modelsHub.fit.ramOnly")
+      case "no_fit":
+        return language.t("settings.modelsHub.fit.noFit")
     }
   }
 
-  const downloadProgress = (model: string, file: string) => {
-    const state = downloads()[`${model}/${file}`]
-    if (!state) return undefined
-    return state.total > 0 ? Math.min(100, Math.round((state.received / state.total) * 100)) : 0
+  const downloadStatusLabel = (status: DownloadStatus) => {
+    switch (status) {
+      case "downloading":
+        return language.t("settings.modelsHub.download.downloading")
+      case "paused":
+        return language.t("settings.modelsHub.download.paused")
+      case "completed":
+        return language.t("settings.modelsHub.download.completed")
+      case "failed":
+        return language.t("settings.modelsHub.download.failed")
+    }
+  }
+
+  const downloadProgress = (job: DownloadJob | undefined) => {
+    if (!job) return undefined
+    const received = asNumber(job.received) ?? 0
+    const total = asNumber(job.total) ?? 0
+    if (total <= 0) return 0
+    return Math.min(100, Math.round((received / total) * 100))
   }
 
   // Compact, human-readable description for a model row: pipeline tag plus
@@ -348,6 +385,32 @@ export const SettingsModelsHubV2: Component<{
           </div>
         </Show>
 
+        <div class="settings-v2-models-hub-runtime">
+          <div class="settings-v2-models-hub-runtime-header">
+            <span class="settings-v2-models-hub-runtime-title">
+              {language.t("settings.modelsHub.runtime.title")}
+            </span>
+            <span class="settings-v2-models-hub-runtime-description">
+              {language.t("settings.modelsHub.runtime.description")}
+            </span>
+          </div>
+          <div class="settings-v2-models-hub-runtime-chips">
+            <For each={runtimes()}>
+              {(runtime) => (
+                <span class="settings-v2-models-hub-runtime-chip" data-available={runtime.available ? "" : undefined}>
+                  <span class="settings-v2-models-hub-runtime-chip-name">{runtime.name}</span>
+                  <span class="settings-v2-models-hub-runtime-chip-state">
+                    {runtime.available
+                      ? `${language.t("settings.modelsHub.runtime.available")}${runtime.version ? ` · v${runtime.version}` : ""}`
+                      : language.t("settings.modelsHub.runtime.notDetected")}
+                  </span>
+                </span>
+              )}
+            </For>
+          </div>
+          <p class="settings-v2-models-hub-runtime-hint">{language.t("settings.modelsHub.runtime.hint")}</p>
+        </div>
+
         <Show when={submitted() && (models() ?? []).length === 0} fallback={<></>}>
           <div class="settings-v2-skills-status">{language.t("settings.modelsHub.empty")}</div>
         </Show>
@@ -377,7 +440,7 @@ export const SettingsModelsHubV2: Component<{
                             <div class="settings-v2-models-hub-item-description">{descriptionLine}</div>
                           </Show>
                           <div class="settings-v2-models-hub-item-meta">
-                            <span class="settings-v2-models-hub-item-badge" data-compat={c}>
+                            <span class="settings-v2-models-hub-item-badge" data-compat={c} title={fitLabel(c)}>
                               {best?.quant ?? "GGUF"}
                             </span>
                             <span>{formatBytes(best?.size)}</span>
@@ -386,7 +449,7 @@ export const SettingsModelsHubV2: Component<{
                             </span>
                           </div>
                         </div>
-                        <span class="settings-v2-models-hub-dot" data-compat={c} title={compatibilityLabel(c)} />
+                        <span class="settings-v2-models-hub-dot" data-compat={c} title={fitLabel(c)} />
                       </div>
                     )
                   }}
@@ -424,37 +487,74 @@ export const SettingsModelsHubV2: Component<{
                     {(file) => {
                       const c = compat(file.size)
                       const key = `${selected()}/${file.file}`
-                      const progress = downloadProgress(selected()!, file.file)
+                      const job = jobsByKey()[key]
+                      const progress = downloadProgress(job)
                       return (
                         <div class="settings-v2-models-hub-file" data-compat={c}>
                           <div class="settings-v2-models-hub-file-copy">
-                            <div class="settings-v2-models-hub-file-name">{file.file}</div>
+                            <div class="settings-v2-models-hub-file-name">
+                              {file.file}
+                              <Show when={file.recommended}>
+                                <span class="settings-v2-models-hub-recommended">
+                                  {language.t("settings.modelsHub.recommended")}
+                                </span>
+                              </Show>
+                            </div>
                             <div class="settings-v2-models-hub-item-meta">
-                              <span class="settings-v2-models-hub-item-badge" data-compat={c}>
+                              <span class="settings-v2-models-hub-item-badge" data-compat={c} title={fitLabel(c)}>
                                 {file.quant ?? "GGUF"}
                               </span>
                               <span>{formatBytes(file.size)}</span>
                             </div>
                           </div>
                           <Show
-                            when={progress !== undefined}
+                            when={job && (job.status === "downloading" || job.status === "paused")}
                             fallback={
-                              <ButtonV2
-                                type="button"
-                                variant={c === "red" ? "danger" : c === "green" ? "contrast" : "outline"}
-                                size="small"
-                                disabled={downloading()[key]}
-                                onClick={() => void startDownload(selected()!, file.file)}
+                              <Show
+                                when={job?.status === "failed"}
+                                fallback={
+                                  <Show
+                                    when={job?.status === "completed"}
+                                    fallback={
+                                      <ButtonV2
+                                        type="button"
+                                        variant={c === "no_fit" ? "danger" : c === "full_gpu" || c === "ram_only" ? "contrast" : "outline"}
+                                        size="small"
+                                        onClick={() => void startDownload(selected()!, file.file)}
+                                      >
+                                        {language.t("settings.modelsHub.download")}
+                                      </ButtonV2>
+                                    }
+                                  >
+                                    <span class="settings-v2-models-hub-status" data-status="completed">
+                                      {language.t("settings.modelsHub.download.completed")}
+                                    </span>
+                                  </Show>
+                                }
                               >
-                                {language.t("settings.modelsHub.download")}
-                              </ButtonV2>
+                                <div class="settings-v2-models-hub-file-actions">
+                                  <span class="settings-v2-models-hub-status" data-status="failed">
+                                    {language.t("settings.modelsHub.download.failed")}
+                                  </span>
+                                  <ButtonV2 type="button" variant="outline" size="small" onClick={() => void startDownload(selected()!, file.file)}>
+                                    {language.t("settings.modelsHub.download.resume")}
+                                  </ButtonV2>
+                                </div>
+                              </Show>
                             }
                           >
-                            <div class="settings-v2-models-hub-progress">
-                              <div class="settings-v2-models-hub-progress-track">
-                                <div class="settings-v2-models-hub-progress-fill" style={{ width: `${progress}%` }} />
+                            <div class="settings-v2-models-hub-file-actions">
+                              <div class="settings-v2-models-hub-progress">
+                                <div class="settings-v2-models-hub-progress-track">
+                                  <div class="settings-v2-models-hub-progress-fill" style={{ width: `${progress}%` }} />
+                                </div>
+                                <span class="settings-v2-models-hub-progress-label">{progress}%</span>
                               </div>
-                              <span class="settings-v2-models-hub-progress-label">{progress}%</span>
+                              <Show when={job!.status === "paused"}>
+                                <ButtonV2 type="button" variant="outline" size="small" onClick={() => void startDownload(selected()!, file.file)}>
+                                  {language.t("settings.modelsHub.download.resume")}
+                                </ButtonV2>
+                              </Show>
                             </div>
                           </Show>
                         </div>
@@ -463,18 +563,73 @@ export const SettingsModelsHubV2: Component<{
                   </For>
                 </div>
                 <div class="settings-v2-models-hub-legend">
-                  <span class="settings-v2-models-hub-legend-item" data-compat="green">
-                    {language.t("settings.modelsHub.compat.green")}
+                  <span class="settings-v2-models-hub-legend-item" data-compat="full_gpu">
+                    {language.t("settings.modelsHub.fit.fullGpu")}
                   </span>
-                  <span class="settings-v2-models-hub-legend-item" data-compat="blue">
-                    {language.t("settings.modelsHub.compat.blue")}
+                  <span class="settings-v2-models-hub-legend-item" data-compat="partial_gpu">
+                    {language.t("settings.modelsHub.fit.partialGpu")}
                   </span>
-                  <span class="settings-v2-models-hub-legend-item" data-compat="red">
-                    {language.t("settings.modelsHub.compat.red")}
+                  <span class="settings-v2-models-hub-legend-item" data-compat="ram_only">
+                    {language.t("settings.modelsHub.fit.ramOnly")}
+                  </span>
+                  <span class="settings-v2-models-hub-legend-item" data-compat="no_fit">
+                    {language.t("settings.modelsHub.fit.noFit")}
                   </span>
                 </div>
               </div>
             </Show>
+          </div>
+        </Show>
+
+        <Show when={(jobs() ?? []).length > 0}>
+          <div class="settings-v2-models-hub-downloads">
+            <div class="settings-v2-models-hub-downloads-title">
+              {language.t("settings.modelsHub.downloads.title")}
+            </div>
+            <For each={jobs()}>
+              {(job) => {
+                const progress = downloadProgress(job)
+                return (
+                  <div class="settings-v2-models-hub-download" data-status={job.status}>
+                    <div class="settings-v2-models-hub-download-copy">
+                      <div class="settings-v2-models-hub-download-name">
+                        {`${job.model} · ${job.file}`}
+                        <Show when={job.error}>
+                          <span class="settings-v2-models-hub-download-error">{job.error}</span>
+                        </Show>
+                      </div>
+                      <div class="settings-v2-models-hub-item-meta">
+                        <span class="settings-v2-models-hub-status" data-status={job.status}>
+                          {downloadStatusLabel(job.status)}
+                        </span>
+                        <span>
+                          {formatBytes(job.received)}
+                          {job.status === "downloading" || job.status === "paused" ? ` / ${formatBytes(job.total)}` : ""}
+                        </span>
+                      </div>
+                    </div>
+                    <Show when={job.status === "downloading" || job.status === "paused"}>
+                      <div class="settings-v2-models-hub-progress">
+                        <div class="settings-v2-models-hub-progress-track">
+                          <div class="settings-v2-models-hub-progress-fill" style={{ width: `${progress}%` }} />
+                        </div>
+                        <span class="settings-v2-models-hub-progress-label">{progress}%</span>
+                      </div>
+                    </Show>
+                    <div class="settings-v2-models-hub-download-actions">
+                      <Show when={job.status === "paused" || job.status === "failed"}>
+                        <ButtonV2 type="button" variant="outline" size="small" onClick={() => void startDownload(job.model, job.file)}>
+                          {language.t("settings.modelsHub.download.resume")}
+                        </ButtonV2>
+                      </Show>
+                      <ButtonV2 type="button" variant="ghost" size="small" onClick={() => void removeDownload(job)}>
+                        {language.t("settings.modelsHub.download.delete")}
+                      </ButtonV2>
+                    </div>
+                  </div>
+                )
+              }}
+            </For>
           </div>
         </Show>
       </div>
@@ -482,10 +637,12 @@ export const SettingsModelsHubV2: Component<{
   )
 }
 
+type Numish = number | "NaN" | "Infinity" | "-Infinity"
+
 type Model = {
   id: string
-  downloads?: number | "NaN" | "Infinity" | "-Infinity"
-  likes?: number | "NaN" | "Infinity" | "-Infinity"
+  downloads?: Numish
+  likes?: Numish
   pipeline_tag?: string
   quantFiles: QuantFile[]
 }
@@ -493,8 +650,29 @@ type Model = {
 type QuantFile = {
   file: string
   quant?: string
-  size?: number | "NaN" | "Infinity" | "-Infinity"
+  size?: Numish
+  sha256?: string
+  fit?: { tier: FitTier; label: string }
+  recommended?: boolean
 }
 
-const asNumber = (value: number | "NaN" | "Infinity" | "-Infinity" | undefined): number | undefined =>
+type DownloadJob = {
+  id: string
+  model: string
+  file: string
+  status: DownloadStatus
+  total: Numish
+  received: Numish
+  done: boolean
+  error?: string
+}
+
+type RuntimeInfo = {
+  id: string
+  name: string
+  available: boolean
+  version?: string
+}
+
+const asNumber = (value: Numish | undefined): number | undefined =>
   typeof value === "number" ? value : undefined

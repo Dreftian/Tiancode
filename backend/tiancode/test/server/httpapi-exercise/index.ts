@@ -235,6 +235,22 @@ const scenarios: Scenario[] = [
       check(body.model === "hugging-quants/Llama-3.2-1B-Instruct-Q8_0-GGUF", "download should echo the model")
       check(body.done === false, "download should start in background")
     }),
+  http.protected
+    .get("/models/runtimes", "modelhub.runtimes")
+    .at((ctx) => ({ path: "/models/runtimes", headers: ctx.headers() }))
+    .json(200, (body) => {
+      array(body)
+      check(
+        body.some((runtime) => isRecord(runtime) && typeof runtime.available === "boolean"),
+        "runtimes should report availability",
+      )
+    }),
+  http.protected
+    .delete("/models/downloads/{id}", "modelhub.download.cancel")
+    .at((ctx) => ({ path: route("/models/downloads/{id}", { id: "missing-job" }), headers: ctx.headers() }))
+    .json(200, (body) => {
+      check(body === false, "cancelling a missing job should return false")
+    }),
   http.protected.get("/lsp", "lsp.status").json(200, array),
   http.protected.get("/formatter", "formatter.status").json(200, array),
   http.protected.get("/config", "config.get").json(200, undefined, "status"),

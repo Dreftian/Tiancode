@@ -9320,6 +9320,12 @@ export type ModelhubSearchResponses = {
       file: string
       quant?: string
       size?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      sha256?: string
+      fit?: {
+        tier: "full_gpu" | "partial_gpu" | "ram_only" | "no_fit"
+        label: string
+      }
+      recommended?: boolean
     }>
   }>
 }
@@ -9354,6 +9360,12 @@ export type ModelhubFilesResponses = {
     file: string
     quant?: string
     size?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    sha256?: string
+    fit?: {
+      tier: "full_gpu" | "partial_gpu" | "ram_only" | "no_fit"
+      label: string
+    }
+    recommended?: boolean
   }>
 }
 
@@ -9397,6 +9409,39 @@ export type ModelhubSystemResponses = {
 
 export type ModelhubSystemResponse = ModelhubSystemResponses[keyof ModelhubSystemResponses]
 
+export type ModelhubRuntimesData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/models/runtimes"
+}
+
+export type ModelhubRuntimesErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ModelhubRuntimesError = ModelhubRuntimesErrors[keyof ModelhubRuntimesErrors]
+
+export type ModelhubRuntimesResponses = {
+  /**
+   * Detected local runtimes
+   */
+  200: Array<{
+    id: string
+    name: string
+    available: boolean
+    version?: string
+  }>
+}
+
+export type ModelhubRuntimesResponse = ModelhubRuntimesResponses[keyof ModelhubRuntimesResponses]
+
 export type ModelhubDownloadsData = {
   body?: never
   path?: never
@@ -9421,8 +9466,21 @@ export type ModelhubDownloadsResponses = {
    * Active and finished downloads
    */
   200: Array<{
+    id: string
     model: string
+    owner: string
+    repo: string
     file: string
+    url: string
+    sizeBytes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    sha256?: string
+    downloadedBytes: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    status: "downloading" | "paused" | "completed" | "failed"
+    tempPath: string
+    destPath: string
+    startedAt: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    completedAt?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    error?: string
     dest: string
     total: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     received: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
@@ -9459,8 +9517,21 @@ export type ModelhubDownloadResponses = {
    * Started download
    */
   200: {
+    id: string
     model: string
+    owner: string
+    repo: string
     file: string
+    url: string
+    sizeBytes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    sha256?: string
+    downloadedBytes: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    status: "downloading" | "paused" | "completed" | "failed"
+    tempPath: string
+    destPath: string
+    startedAt: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    completedAt?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    error?: string
     dest: string
     total: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     received: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
@@ -9469,6 +9540,36 @@ export type ModelhubDownloadResponses = {
 }
 
 export type ModelhubDownloadResponse = ModelhubDownloadResponses[keyof ModelhubDownloadResponses]
+
+export type ModelhubCancelData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/models/downloads/{id}"
+}
+
+export type ModelhubCancelErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ModelhubCancelError = ModelhubCancelErrors[keyof ModelhubCancelErrors]
+
+export type ModelhubCancelResponses = {
+  /**
+   * Cancelled download
+   */
+  200: boolean
+}
+
+export type ModelhubCancelResponse = ModelhubCancelResponses[keyof ModelhubCancelResponses]
 
 export type ProjectListData = {
   body?: never
