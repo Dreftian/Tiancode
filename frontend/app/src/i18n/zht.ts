@@ -83,7 +83,7 @@ export const dict = {
   "desktop.wsl.error.executeDistro": "無法在發行版中執行命令",
   "desktop.wsl.error.installWsl": "WSL 安裝失敗",
   "desktop.wsl.error.installDistro": "無法安裝發行版：{{distro}}",
-  "desktop.wsl.error.installOpencode": "Tiancode 安裝失敗",
+  "desktop.wsl.error.installTiancode": "Tiancode 安裝失敗",
   "desktop.wsl.error.alreadyAdded": "已新增 {{distro}}",
   "desktop.wsl.error.tiancodeMissing": "此發行版中未安裝 tiancode",
   "desktop.wsl.error.tiancodeCannotRun": "已安裝 tiancode，但無法執行",

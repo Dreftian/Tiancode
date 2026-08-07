@@ -79,7 +79,7 @@ export const dict = {
   "desktop.wsl.error.executeDistro": "Não é possível executar comandos na distribuição",
   "desktop.wsl.error.installWsl": "Falha na instalação do WSL",
   "desktop.wsl.error.installDistro": "Falha ao instalar a distribuição: {{distro}}",
-  "desktop.wsl.error.installOpencode": "Falha na instalação do Tiancode",
+  "desktop.wsl.error.installTiancode": "Falha na instalação do Tiancode",
   "desktop.wsl.error.alreadyAdded": "{{distro}} já foi adicionada",
   "desktop.wsl.error.tiancodeMissing": "O tiancode não está instalado nesta distribuição",
   "desktop.wsl.error.tiancodeCannotRun": "O tiancode está instalado, mas não pôde ser executado",

@@ -80,7 +80,7 @@ export const dict = {
   "desktop.wsl.error.executeDistro": "Nije moguće izvršiti komande u distribuciji",
   "desktop.wsl.error.installWsl": "Instalacija WSL-a nije uspjela",
   "desktop.wsl.error.installDistro": "Instalacija distribucije nije uspjela: {{distro}}",
-  "desktop.wsl.error.installOpencode": "Instalacija Tiancode-a nije uspjela",
+  "desktop.wsl.error.installTiancode": "Instalacija Tiancode-a nije uspjela",
   "desktop.wsl.error.alreadyAdded": "Distribucija {{distro}} je već dodana",
   "desktop.wsl.error.tiancodeMissing": "tiancode nije instaliran u ovoj distribuciji",
   "desktop.wsl.error.tiancodeCannotRun": "tiancode je instaliran, ali se ne može pokrenuti",

@@ -69,7 +69,6 @@ import { createSessionLineage } from "@/pages/session/session-lineage"
 
 import { SessionPage, SessionRouteErrorBoundary, TargetSessionRouteContent } from "@/pages/session"
 import { NewHome } from "@/pages/home"
-import { LegacyHome } from "@/pages/home/legacy-home"
 
 const NewSession = lazy(() => import("@/pages/new-session"))
 
@@ -134,35 +133,6 @@ const TargetSessionRoute = () => (
     <TargetSessionRouteContent />
   </TargetServerRoute>
 )
-
-function LegacyTargetSessionRoute() {
-  const params = useParams<{ serverKey: string; id: string }>()
-  return (
-    <TargetServerRoute>
-      <SessionRouteErrorBoundary sessionID={params.id} serverKey={requireServerKey(params.serverKey)}>
-        <LegacyTargetSessionRedirect />
-      </SessionRouteErrorBoundary>
-    </TargetServerRoute>
-  )
-}
-
-function LegacyTargetSessionRedirect() {
-  const params = useParams<{ id: string }>()
-  const navigate = useNavigate()
-  const sync = useServerSync()
-  const current = createSessionLineage(
-    () => params.id,
-    () => sync().session.lineage,
-  )
-
-  createEffect(() => {
-    const directory = current()?.session.directory
-    if (!directory) return
-    navigate(legacySessionHref(directory, params.id), { replace: true })
-  })
-
-  return null
-}
 
 // Wraps the non-draft routes. They are gated on (and keyed to) the globally selected
 // server via ServerKey, then provide the server-scoped shell for that server.
@@ -638,14 +608,6 @@ function Routes(props: { serverScoped?: JSX.Element }) {
           <LegacyServerLayout serverScoped={props.serverScoped}>{routeProps.children}</LegacyServerLayout>
         )}
       >
-        <Show when={!settings.general.newLayoutDesigns()}>
-          {
-            <>
-              <Route path="/" component={LegacyHome} />
-              <Route path="/server/:serverKey/session/:id" component={LegacyTargetSessionRoute} />
-            </>
-          }
-        </Show>
         <Route path="/:dir" component={DirectoryLayout}>
           <Route path="/" component={() => <Navigate href="session" />} />
           <Route path="/session/:id?" component={SessionRoute} />

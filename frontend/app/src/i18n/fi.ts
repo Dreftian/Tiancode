@@ -1119,7 +1119,7 @@ export const dict = {
   "desktop.wsl.error.executeDistro": "Jakelussa ei voi suorittaa komentoja",
   "desktop.wsl.error.installWsl": "WSL:n asennus epäonnistui",
   "desktop.wsl.error.installDistro": "Jakelun asentaminen epäonnistui: {{distro}}",
-  "desktop.wsl.error.installOpencode": "Tiancoden asennus epäonnistui",
+  "desktop.wsl.error.installTiancode": "Tiancoden asennus epäonnistui",
   "desktop.wsl.error.alreadyAdded": "{{distro}} on jo lisätty",
   "desktop.wsl.error.tiancodeMissing": "tiancodea ei ole asennettu tähän jakeluun",
   "desktop.wsl.error.tiancodeCannotRun": "tiancode on asennettu, mutta sitä ei voitu suorittaa",

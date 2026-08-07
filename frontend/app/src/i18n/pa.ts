@@ -79,7 +79,7 @@ export const dict = {
   "desktop.wsl.error.executeDistro": "ڈسٹرو وچ کمانڈاں نئیں چل سکدیاں",
   "desktop.wsl.error.installWsl": "WSL دی تنصیب ناکام ہو گئی",
   "desktop.wsl.error.installDistro": "ڈسٹرو انسٹال نئیں ہو سکیا: {{distro}}",
-  "desktop.wsl.error.installOpencode": "Tiancode دی تنصیب ناکام ہو گئی",
+  "desktop.wsl.error.installTiancode": "Tiancode دی تنصیب ناکام ہو گئی",
   "desktop.wsl.error.alreadyAdded": "{{distro}} پہلے ای شامل اے",
   "desktop.wsl.error.tiancodeMissing": "اس ڈسٹرو وچ tiancode انسٹال نئیں اے",
   "desktop.wsl.error.tiancodeCannotRun": "tiancode انسٹال اے پر چل نئیں سکیا",

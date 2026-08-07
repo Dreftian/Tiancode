@@ -1134,7 +1134,7 @@ export const dict = {
   "desktop.wsl.error.executeDistro": "배포판에서 명령을 실행할 수 없습니다",
   "desktop.wsl.error.installWsl": "WSL 설치 실패",
   "desktop.wsl.error.installDistro": "배포판 설치 실패: {{distro}}",
-  "desktop.wsl.error.installOpencode": "Tiancode 설치 실패",
+  "desktop.wsl.error.installTiancode": "Tiancode 설치 실패",
   "desktop.wsl.error.alreadyAdded": "{{distro}} 배포판은 이미 추가되었습니다",
   "desktop.wsl.error.tiancodeMissing": "이 배포판에 tiancode가 설치되어 있지 않습니다",
   "desktop.wsl.error.tiancodeCannotRun": "tiancode가 설치되어 있지만 실행할 수 없습니다",

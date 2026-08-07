@@ -100,6 +100,22 @@ const require = __cjs_mod__.createRequire(import.meta.url);
         input: {
           main: "src/renderer/index.html",
         },
+        // Divide los vendors pesados para que el chunk principal se ejecute
+        // más rápido (antes 7.8MB en un solo archivo).
+        output: {
+          manualChunks(id) {
+            if (!id.includes("node_modules")) return
+            if (id.includes("effect")) return "vendor-effect"
+            if (id.includes("kobalte") || id.includes("corvu") || id.includes("dnd-kit") || id.includes("sonner"))
+              return "vendor-ui"
+            if (id.includes("@pierre") || id.includes("pierre")) return "vendor-pierre"
+            if (id.includes("framer-motion") || id.includes("motion-dom")) return "vendor-motion"
+            if (id.includes("shiki") || id.includes("@shikijs")) return "vendor-shiki"
+            if (id.includes("sentry")) return "vendor-sentry"
+            if (id.includes("solid-js") || id.includes("@solidjs") || id.includes("solid-")) return "vendor-solid"
+            if (id.includes("luxon") || id.includes("marked") || id.includes("katex")) return "vendor-markdown"
+          },
+        },
       },
     },
   },

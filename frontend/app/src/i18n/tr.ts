@@ -84,7 +84,7 @@ export const dict = {
   "desktop.wsl.error.executeDistro": "Dağıtımda komutlar çalıştırılamıyor",
   "desktop.wsl.error.installWsl": "WSL kurulamadı",
   "desktop.wsl.error.installDistro": "Dağıtım kurulamadı: {{distro}}",
-  "desktop.wsl.error.installOpencode": "Tiancode kurulamadı",
+  "desktop.wsl.error.installTiancode": "Tiancode kurulamadı",
   "desktop.wsl.error.alreadyAdded": "{{distro}} zaten eklendi",
   "desktop.wsl.error.tiancodeMissing": "tiancode bu dağıtımda kurulu değil",
   "desktop.wsl.error.tiancodeCannotRun": "tiancode kurulu ancak çalıştırılamadı",

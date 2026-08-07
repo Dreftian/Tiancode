@@ -1113,10 +1113,7 @@ export default function LegacyLayout(props: ParentProps) {
 
   function openSettings() {
     const run = ++dialogRun
-    const module = settings.general.newLayoutDesigns()
-      ? import("@/components/settings-v2")
-      : import("@/components/dialog-settings")
-    void module.then((x) => {
+    void import("@/components/settings-v2").then((x) => {
       if (dialogDead || dialogRun !== run) return
       dialog.show(() => <x.DialogSettings />)
     })
@@ -1359,9 +1356,9 @@ export default function LegacyLayout(props: ParentProps) {
 
   const showEditProjectDialog = (conn: ServerConnection.Any, project: LocalProject) => {
     const run = ++dialogRun
-    void import("@/components/dialog-edit-project").then((x) => {
+    void import("@/components/dialog-edit-project-v2").then((x) => {
       if (dialogDead || dialogRun !== run) return
-      dialog.show(() => <x.DialogEditProject server={conn} project={project} />)
+      dialog.show(() => <x.DialogEditProjectV2 server={conn} project={project} />)
     })
   }
 

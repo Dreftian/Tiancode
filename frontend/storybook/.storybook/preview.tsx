@@ -10,7 +10,6 @@ import { addons } from "storybook/preview-api"
 import { GLOBALS_UPDATED } from "storybook/internal/core-events"
 import { createJSXDecorator, definePreview } from "storybook-solidjs-vite"
 import { DialogProvider } from "@tiancode-ai/ui/context/dialog"
-import { MarkedProvider } from "@tiancode-ai/ui/context/marked"
 import { ThemeProvider, useTheme, type ColorScheme } from "@tiancode-ai/ui/theme"
 import { Font } from "@tiancode-ai/ui/font"
 
@@ -67,8 +66,7 @@ const frame = createJSXDecorator((Story, context) => {
         <Scheme value={scheme} />
         <NewLayout />
         <DialogProvider>
-          <MarkedProvider>
-            <div
+          <div
               style={{
                 "min-height": "100vh",
                 padding: "24px",
@@ -78,7 +76,6 @@ const frame = createJSXDecorator((Story, context) => {
             >
               <Story />
             </div>
-          </MarkedProvider>
         </DialogProvider>
       </ThemeProvider>
     </MetaProvider>
