@@ -1,4 +1,4 @@
-import { app } from "electron"
+import { app, BrowserWindow } from "electron"
 import { existsSync } from "node:fs"
 import { mkdir, open, rename } from "node:fs/promises"
 import { join } from "node:path"
@@ -53,7 +53,7 @@ export function getAsrStatus() {
 
 function setStatus(next: AsrStatus) {
   status = next
-  for (const win of app.getAllWindows()) {
+  for (const win of BrowserWindow.getAllWindows()) {
     if (win.isDestroyed() || win.webContents.isDestroyed()) continue
     win.webContents.send("asr-status", getAsrStatus())
   }
@@ -104,7 +104,7 @@ async function downloadFile(url: string, dest: string) {
       loaded += chunk.length
       if (total > 0) {
         const payload = { progress: Math.round((loaded / total) * 100), file: url.split("/").pop() }
-        for (const win of app.getAllWindows()) {
+        for (const win of BrowserWindow.getAllWindows()) {
           if (win.isDestroyed() || win.webContents.isDestroyed()) continue
           win.webContents.send("asr-progress", payload)
         }
@@ -122,8 +122,10 @@ async function getRecognizer(language: "es" | "en"): Promise<OfflineRecognizerLi
   if (recognizer && recognizerLanguage === language) return recognizer
   recognizer?.free()
   recognizer = undefined
-  const { createOfflineRecognizer } = await import("sherpa-onnx")
-  recognizer = createOfflineRecognizer({
+  const sherpa = (await import("sherpa-onnx")) as unknown as {
+    createOfflineRecognizer(config: unknown): OfflineRecognizerLike
+  }
+  recognizer = sherpa.createOfflineRecognizer({
     tokens: join(modelDir(), ASR_MODEL.tokens),
     encoder: join(modelDir(), ASR_MODEL.encoder),
     decoder: join(modelDir(), ASR_MODEL.decoder),
@@ -131,7 +133,7 @@ async function getRecognizer(language: "es" | "en"): Promise<OfflineRecognizerLi
     sampleRate: 16000,
     featureDim: 80,
     language,
-  }) as OfflineRecognizerLike
+  })
   recognizerLanguage = language
   return recognizer
 }

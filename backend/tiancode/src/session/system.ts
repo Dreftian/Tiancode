@@ -45,6 +45,7 @@ export function provider(model: Provider.Model) {
 export interface Interface {
   readonly environment: (model: Provider.Model) => Effect.Effect<string[]>
   readonly skills: (agent: Agent.Info) => Effect.Effect<string | undefined>
+  readonly autoSkills: (agent: Agent.Info) => Effect.Effect<string | undefined>
   readonly mcp: (agent: Agent.Info, permission?: PermissionV1.Ruleset) => Effect.Effect<string | undefined>
 }
 
@@ -112,9 +113,10 @@ const layer = Layer.effect(
 
       autoSkills: Effect.fn("SystemPrompt.autoSkills")(function* (agent: Agent.Info) {
         if (Permission.disabled(["skill"], agent.permission).has("skill")) return
+        if (!(yield* skill.autoSelect())) return
         const ctx = yield* InstanceState.context
         const catalog = yield* skill.available(agent)
-        const selected = yield* AutoSelect.autoSelectFor(ctx.worktree, catalog)
+        const selected = yield* Effect.promise(() => AutoSelect.autoSelectFor(ctx.worktree, catalog))
         if (selected.length === 0) return
         return AutoSelect.fmtAuto(selected)
       }),

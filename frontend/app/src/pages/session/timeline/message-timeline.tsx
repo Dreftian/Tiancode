@@ -1045,8 +1045,8 @@ export function MessageTimeline(props: {
       const item = part()
       if (!item || item.type !== "text" || !item.text) return
       const rowMessage = message()
-      if (!rowMessage || rowMessage.info.role !== "assistant") return
-      if (Date.now() - rowMessage.info.time.created > 120_000) return
+      if (!rowMessage || rowMessage.role !== "assistant") return
+      if (Date.now() - rowMessage.time.created > 120_000) return
       enqueueAutoSpeak(item.id, item.text)
     })
     const speak = (text: string) => {

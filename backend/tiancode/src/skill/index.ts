@@ -124,6 +124,8 @@ export interface Interface {
   readonly available: (agent?: Agent.Info) => Effect.Effect<Info[]>
   /** Enable or disable a skill by name, persisting the choice in config. */
   readonly setEnabled: (name: string, enabled: boolean) => Effect.Effect<void>
+  /** Whether automatic skill selection by project type is enabled (default: true). */
+  readonly autoSelect: () => Effect.Effect<boolean>
   /** Re-scan skills from disk/config after importing or installing new ones. */
   readonly reload: () => Effect.Effect<void>
 }
@@ -364,12 +366,17 @@ const layer = Layer.effect(
       yield* InstanceState.invalidate(state)
     })
 
+    const autoSelect = Effect.fn("Skill.autoSelect")(function* () {
+      const cfg = yield* config.get()
+      return cfg.skills?.autoSelect !== false
+    })
+
     const reload = Effect.fn("Skill.reload")(function* () {
       yield* InstanceState.invalidate(discovered)
       yield* InstanceState.invalidate(state)
     })
 
-    return Service.of({ get, require, all, dirs, available, setEnabled, reload })
+    return Service.of({ get, require, all, dirs, available, setEnabled, autoSelect, reload })
   }),
 )
 

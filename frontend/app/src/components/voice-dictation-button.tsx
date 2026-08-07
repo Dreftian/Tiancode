@@ -79,7 +79,7 @@ export function VoiceDictationButton(props: {
     }
     const status = await api.status().catch(() => undefined)
     if (status && !status.ready && !status.downloading) {
-      showToast({ variant: "info", title: language.t("chat.mic.downloading") })
+      showToast({ variant: "default", title: language.t("chat.mic.downloading") })
     }
     const locale = language.locale() === "es" ? "es" : "en"
     try {

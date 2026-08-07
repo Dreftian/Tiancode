@@ -516,12 +516,6 @@ function allowRendererPermissions(win: BrowserWindow) {
     if (webContents && webContents.id !== webContentsId) return false
     return isTrustedRendererUrl(details.requestingUrl) || isTrustedRendererUrl(requestingOrigin)
   })
-  // Los dispositivos de audio (micrófono para el dictado por voz) solo se
-  // conceden al renderer de la app; nada más puede capturarlos.
-  win.webContents.session.setDevicePermissionHandler((details) => {
-    if (details.deviceType !== "audio") return false
-    return webContentsId !== undefined && isTrustedRendererUrl(details.requestingUrl)
-  })
 }
 
 function isTrustedRendererUrl(value?: string) {

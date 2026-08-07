@@ -50,6 +50,7 @@ import { LayoutProvider } from "@/context/layout"
 import { ModelsProvider } from "@/context/models"
 import { NotificationProvider } from "@/context/notification"
 import type { VoicesAPI } from "@/utils/voices"
+import type { AsrAPI } from "@/utils/asr"
 import { PermissionProvider } from "@/context/permission"
 import { usePlatform } from "@/context/platform"
 import { PromptProvider } from "@/context/prompt"
@@ -278,6 +279,17 @@ declare global {
       storeGet?: (name: string, key: string) => Promise<string | null>
       storeSet?: (name: string, key: string, value: string) => Promise<void>
       voices?: VoicesAPI
+      asr?: AsrAPI
+      runtime?: {
+        install: (kind: "ollama" | "lmstudio") => Promise<{ ok: boolean; error?: string }>
+        onState: (
+          cb: (state: {
+            status: "idle" | "downloading" | "installing" | "error"
+            progress?: number
+            error?: string
+          }) => void,
+        ) => () => void
+      }
     }
   }
 }

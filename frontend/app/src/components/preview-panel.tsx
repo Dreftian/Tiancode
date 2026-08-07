@@ -16,6 +16,19 @@ const normalizeUrl = (value: string) => {
   return `https://${trimmed}`
 }
 
+// API mínima del elemento <webview> de Electron expuesta al renderer.
+type WebviewElement = HTMLElement & {
+  loadURL(url: string): Promise<void>
+  getURL(): string
+  getTitle(): string
+  canGoBack(): boolean
+  canGoForward(): boolean
+  goBack(): void
+  goForward(): void
+  reload(): void
+  isLoading(): boolean
+}
+
 export function PreviewPanel() {
   const language = useLanguage()
   const [open, setOpen] = createSignal(false)
@@ -26,10 +39,10 @@ export function PreviewPanel() {
   const [canGoForward, setCanGoForward] = createSignal(false)
   const [pageTitle, setPageTitle] = createSignal("")
   let container: HTMLDivElement | undefined
-  let webview: Electron.WebviewTag | undefined
+  let webview: WebviewElement | undefined
 
   const syncState = () => {
-    if (!webview || webview.isDestroyed?.()) return
+    if (!webview) return
     setLoading(webview.isLoading())
     setCanGoBack(webview.canGoBack())
     setCanGoForward(webview.canGoForward())
@@ -39,7 +52,7 @@ export function PreviewPanel() {
 
   onMount(() => {
     if (!container) return
-    const element = document.createElement("webview")
+    const element = document.createElement("webview") as unknown as WebviewElement
     element.setAttribute("partition", "persist:preview")
     element.setAttribute("src", url())
     element.setAttribute("webpreferences", "contextIsolation=yes, nodeIntegration=no, sandbox=yes")
@@ -47,7 +60,7 @@ export function PreviewPanel() {
     element.style.width = "100%"
     element.style.height = "100%"
     container.appendChild(element)
-    webview = element as unknown as Electron.WebviewTag
+    webview = element
     element.addEventListener("did-navigate", syncState)
     element.addEventListener("did-navigate-in-page", syncState)
     element.addEventListener("did-start-loading", () => setLoading(true))

@@ -7,10 +7,8 @@
 
 export * as AutoSelect from "./auto-select"
 
-import { Effect } from "effect"
 import { readdir, readFile } from "node:fs/promises"
 import { join } from "node:path"
-import { Config } from "@/config/config"
 import type { Info as SkillInfo } from "./index"
 
 const MAX_AUTO_SKILLS = 6
@@ -114,29 +112,22 @@ async function detectSignals(worktree: string): Promise<Set<string>> {
 }
 
 // Devuelve las skills del catálogo que aplican al workspace (respetando el
-// límite de contexto y las skills deshabilitadas).
-export function autoSelectFor(worktree: string, catalog: SkillInfo[]): Effect.Effect<SkillInfo[]> {
-  return Effect.fn("Skill.autoSelect")(function* () {
-    const cfg = yield* Config.get()
-    if (cfg.skills?.autoSelect === false) return []
-    const signals = yield* Effect.tryPromise({
-      try: () => detectSignals(worktree),
-      catch: () => new Set<string>(),
-    })
-    const byName = new Map(catalog.map((skill) => [skill.name, skill]))
-    const selected = new Set<string>()
-    const add = (name: string) => {
-      if (selected.size >= MAX_AUTO_SKILLS) return
-      if (selected.has(name) || !byName.has(name)) return
-      selected.add(name)
-    }
-    for (const base of BASE_SKILLS) add(base)
-    for (const rule of RULES) {
-      if (!rule.signals.some((signal) => signals.has(signal))) continue
-      for (const name of rule.skills) add(name)
-    }
-    return Array.from(selected).map((name) => byName.get(name)!).filter((skill) => skill !== undefined)
-  })
+// límite de contexto). El flag de activación lo decide el servicio Skill.
+export async function autoSelectFor(worktree: string, catalog: SkillInfo[]): Promise<SkillInfo[]> {
+  const signals = await detectSignals(worktree)
+  const byName = new Map(catalog.map((skill) => [skill.name, skill]))
+  const selected = new Set<string>()
+  const add = (name: string) => {
+    if (selected.size >= MAX_AUTO_SKILLS) return
+    if (selected.has(name) || !byName.has(name)) return
+    selected.add(name)
+  }
+  for (const base of BASE_SKILLS) add(base)
+  for (const rule of RULES) {
+    if (!rule.signals.some((signal) => signals.has(signal))) continue
+    for (const name of rule.skills) add(name)
+  }
+  return Array.from(selected).map((name) => byName.get(name)!).filter((skill) => skill !== undefined)
 }
 
 // Formatea las skills seleccionadas como un bloque de system prompt con el

@@ -110,7 +110,7 @@ export const SettingsModelsHubV2: Component<{
   )
 
   // Local runtimes (Ollama / LM Studio) detected on this machine.
-  const [runtimes] = createResource(
+  const [runtimes, { refetch: refetchRuntimes }] = createResource(
     () => serverSdk().client.modelhub.runtimes(params()),
     (request) => request.then((x) => x.data),
     { initialValue: [] as RuntimeInfo[] },
@@ -156,7 +156,7 @@ export const SettingsModelsHubV2: Component<{
     }
     setActiveRuntime(undefined)
     setRuntimeInstall({ status: "idle" })
-    void runtimes.refetch()
+    void refetchRuntimes()
   }
   const installLabel = (kind: string) => {
     if (activeRuntime() !== kind) return language.t("settings.modelsHub.runtime.install")
