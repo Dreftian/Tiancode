@@ -6,8 +6,8 @@
 
 import { reducedMotion, easeOut } from './utils.js';
 
-/* ---------- Loader (monograma + progreso ~1.35s) ---------- */
-const LOADER_MS = 1350;
+/* ---------- Loader (monograma + progreso ~0.7s) ---------- */
+const LOADER_MS = 700;
 const LOADER_TARGET = 90; // 0→90% durante la carga; 100% al ocultarse
 
 function hideLoader() {

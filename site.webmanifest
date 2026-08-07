@@ -1,0 +1,13 @@
+{
+  "name": "Tiancode — Asistente de IA para programar en Windows",
+  "short_name": "Tiancode",
+  "description": "Asistente de IA local-first para programar en Windows: agentes, skills, modelos locales GGUF, GitHub y MCP.",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#0a0a0f",
+  "theme_color": "#0a0a0f",
+  "icons": [
+    { "src": "/img/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/img/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

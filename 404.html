@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 — Página no encontrada · Tiancode</title>
+  <meta name="description" content="La página que buscas no existe. Vuelve al inicio de Tiancode o descarga la aplicación.">
+  <meta name="robots" content="noindex">
+  <link rel="icon" type="image/png" href="/img/favicon.png">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/pages.css">
+  <style>
+    body { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px; text-align: center; background: var(--bg); }
+    .nf-mark { width: 84px; height: 84px; display: grid; place-items: center; margin-bottom: 26px; }
+    .nf-mark img { width: 100%; height: 100%; object-fit: contain; }
+    .nf-code {
+      margin: 0 0 6px;
+      font-family: var(--font-mono);
+      font-size: clamp(3rem, 10vw, 5.5rem);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      background: var(--accent-gradient);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .nf-title { margin: 0 0 10px; font-size: clamp(1.15rem, 2.6vw, 1.5rem); font-weight: 700; letter-spacing: -0.02em; }
+    .nf-text { margin: 0 auto 30px; max-width: 420px; font-size: 15px; color: var(--text-2); }
+    .nf-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+  </style>
+</head>
+<body>
+  <span class="nf-mark" aria-hidden="true">
+    <img class="logo-theme-light" src="/img/tian-white.png" alt="" draggable="false">
+    <img class="logo-theme-dark" src="/img/tian-black.png" alt="" draggable="false">
+  </span>
+  <p class="nf-code">404</p>
+  <h1 class="nf-title">Esta página no existe</h1>
+  <p class="nf-text">El enlace puede estar mal escrito o la página se movió. Vuelve al inicio o descarga Tiancode directamente.</p>
+  <div class="nf-actions">
+    <a href="/" class="btn btn-primary">Volver al inicio</a>
+    <a href="/recursos/descargas.html" class="btn btn-ghost">Descargar Tiancode</a>
+  </div>
+</body>
+</html>
