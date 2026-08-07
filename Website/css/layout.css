@@ -387,6 +387,7 @@
 .footer-bottom p { margin: 0; font-size: 13px; color: var(--text-3); }
 .footer-made { display: inline-flex; align-items: center; gap: 7px; }
 .footer-heart { color: #f43f5e; animation: heart-beat 1.6s ease-in-out infinite; }
+.footer-credit { font-weight: 700; color: var(--text-2); }
 @keyframes heart-beat {
   0%, 100% { transform: scale(1); }
   12% { transform: scale(1.22); }

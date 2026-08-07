@@ -173,6 +173,7 @@ export const I18N = {
     'footer.c3': 'X / Twitter',
     'footer.c4': 'YouTube',
     'footer.made': 'Hecho con',
+    'footer.by': 'por',
 
     /* --- Navegación: menú desplegable --- */
     'nav.more': 'Recursos',
@@ -581,6 +582,7 @@ export const I18N = {
     'footer.c3': 'X / Twitter',
     'footer.c4': 'YouTube',
     'footer.made': 'Made with',
+    'footer.by': 'by',
 
     /* --- Navigation: resources dropdown --- */
     'nav.more': 'Resources',
