@@ -5,7 +5,7 @@ import type { Details } from "electron"
 import { getLogger } from "./logging"
 import { getUserShell, loadShellEnv } from "./shell-env"
 import { getStore } from "./store"
-import { DEFAULT_SERVER_URL_KEY } from "./store-keys"
+import { DEFAULT_SERVER_URL_KEY, FILE_WATCHER_KEY } from "./store-keys"
 import { serializeError } from "./util/error"
 
 export type HealthCheck = { wait: Promise<void> }
@@ -45,10 +45,13 @@ export function setDefaultServerUrl(url: string | null) {
 export function preferAppEnv(userDataPath: string) {
   const shell = process.platform === "win32" ? null : getUserShell()
   const shellEnv = shell ? loadShellEnv(shell, getLogger()) : null
+  // El watcher de archivos en tiempo real se puede apagar desde Ajustes
+  // (General → Actualización de archivos); ausente = activado.
+  const fileWatcher = getStore().get(FILE_WATCHER_KEY)
   Object.assign(process.env, {
     ...shellEnv,
     TIANCODE_EXPERIMENTAL_ICON_DISCOVERY: "true",
-    TIANCODE_EXPERIMENTAL_FILEWATCHER: "true",
+    TIANCODE_EXPERIMENTAL_FILEWATCHER: fileWatcher === false || fileWatcher === "false" ? "false" : "true",
     TIANCODE_CLIENT: "desktop",
     XDG_STATE_HOME: process.env.XDG_STATE_HOME ?? userDataPath,
   })

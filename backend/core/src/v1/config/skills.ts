@@ -12,5 +12,8 @@ export const Info = Schema.Struct({
   disabled: Schema.optional(Schema.Array(Schema.String)).annotate({
     description: "Skill names the user has disabled",
   }),
+  autoSelect: Schema.optional(Schema.Boolean).annotate({
+    description: "Automatically load the skills that match the project type (default: true)",
+  }),
 })
 export type Info = Schema.Schema.Type<typeof Info>

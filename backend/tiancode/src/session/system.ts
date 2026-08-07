@@ -17,6 +17,7 @@ import type { Provider } from "@/provider/provider"
 import type { Agent } from "@/agent/agent"
 import { Permission } from "@/permission"
 import { Skill } from "@/skill"
+import { AutoSelect } from "@/skill/auto-select"
 import { AbsolutePath } from "@tiancode-ai/core/schema"
 import { Location } from "@tiancode-ai/core/location"
 import { LocationServiceMap, locationServiceMapLayer } from "@tiancode-ai/core/location-services"
@@ -107,6 +108,15 @@ const layer = Layer.effect(
           // version of them here and a less verbose version in tool description, rather than vice versa.
           Skill.fmt(list, { verbose: true }),
         ].join("\n")
+      }),
+
+      autoSkills: Effect.fn("SystemPrompt.autoSkills")(function* (agent: Agent.Info) {
+        if (Permission.disabled(["skill"], agent.permission).has("skill")) return
+        const ctx = yield* InstanceState.context
+        const catalog = yield* skill.available(agent)
+        const selected = yield* AutoSelect.autoSelectFor(ctx.worktree, catalog)
+        if (selected.length === 0) return
+        return AutoSelect.fmtAuto(selected)
       }),
 
       mcp: Effect.fn("SystemPrompt.mcp")(function* (agent: Agent.Info, permission?: PermissionV1.Ruleset) {

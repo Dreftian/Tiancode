@@ -321,7 +321,12 @@ const layer = Layer.effect(
     const require = Effect.fn("Skill.require")(function* (name: string) {
       const s = yield* InstanceState.get(state)
       const info = s.skills[name]
-      if (info) return info
+      if (info) {
+        // Las skills deshabilitadas no se cargan ni por invocación directa de
+        // la herramienta skill (el listado del system prompt ya las filtra).
+        const blocked = yield* disabled()
+        if (!blocked.has(name)) return info
+      }
       return yield* new NotFoundError({ name, available: Object.keys(s.skills).toSorted() })
     })
 

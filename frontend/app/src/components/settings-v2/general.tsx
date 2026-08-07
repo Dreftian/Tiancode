@@ -31,6 +31,8 @@ const schemeOptions: ("system" | "light" | "dark")[] = ["system", "light", "dark
 // Electron store shared with the desktop main process via the store IPC.
 const settingsStoreName = "tiancode.settings"
 const minimizeToTrayKey = "minimizeToTray"
+const fileWatcherKey = "fileWatcher"
+const checkUpdatesOnStartKey = "checkUpdatesOnStart"
 const fontSettings = {
   ui: {
     action: "settings-ui-font",
@@ -318,6 +320,38 @@ export const SettingsGeneralV2: Component<{
     void update.catch(() => setMinimizeToTray(!checked))
   }
 
+  const [fileWatcher, { mutate: setFileWatcher }] = createResource(
+    () => desktop(),
+    () =>
+      window.api?.storeGet
+        ? window.api.storeGet(settingsStoreName, fileWatcherKey).then((value) => value !== "false")
+        : Promise.resolve(true),
+    { initialValue: true },
+  )
+
+  const onFileWatcherChange = (checked: boolean) => {
+    setFileWatcher(checked)
+    const update = window.api?.storeSet?.(settingsStoreName, fileWatcherKey, String(checked))
+    if (!update) return
+    void update.catch(() => setFileWatcher(!checked))
+  }
+
+  const [checkUpdatesOnStart, { mutate: setCheckUpdatesOnStart }] = createResource(
+    () => desktop(),
+    () =>
+      window.api?.storeGet
+        ? window.api.storeGet(settingsStoreName, checkUpdatesOnStartKey).then((value) => value !== "false")
+        : Promise.resolve(true),
+    { initialValue: true },
+  )
+
+  const onCheckUpdatesOnStartChange = (checked: boolean) => {
+    setCheckUpdatesOnStart(checked)
+    const update = window.api?.storeSet?.(settingsStoreName, checkUpdatesOnStartKey, String(checked))
+    if (!update) return
+    void update.catch(() => setCheckUpdatesOnStart(!checked))
+  }
+
   const InterfaceSection = () => (
     <LayoutTransitionToggle
       title={language.t("settings.general.row.newInterface.title")}
@@ -523,6 +557,15 @@ export const SettingsGeneralV2: Component<{
         </SettingsRowV2>
 
         <SettingsRowV2
+          title={language.t("settings.updates.row.startup.title")}
+          description={language.t("settings.updates.row.startup.description")}
+        >
+          <div data-action="settings-updates-startup">
+            <Switch checked={checkUpdatesOnStart.latest} onChange={onCheckUpdatesOnStartChange} />
+          </div>
+        </SettingsRowV2>
+
+        <SettingsRowV2
           title={language.t("settings.updates.row.check.title")}
           description={language.t("settings.updates.row.check.description")}
         >
@@ -560,6 +603,15 @@ export const SettingsGeneralV2: Component<{
               </div>
             </SettingsRowV2>
           </Show>
+
+          <SettingsRowV2
+            title={language.t("settings.general.row.fileWatcher.title")}
+            description={language.t("settings.general.row.fileWatcher.description")}
+          >
+            <div data-action="settings-file-watcher">
+              <Switch checked={fileWatcher.latest} onChange={onFileWatcherChange} />
+            </div>
+          </SettingsRowV2>
         </SettingsListV2>
       </div>
     </Show>

@@ -39,36 +39,31 @@ type CatalogApp = (typeof NpmAppCatalog)[number] | (typeof LocalPluginCatalog)[n
 
 const localPluginSpec = (name: string) => `./plugins/${name}.ts`
 
-const PluginTemplate = `// my-plugin.js — Tiancode plugin template
-// Plugins run inside the agent process and react to lifecycle events.
+const PluginTemplate = `// my-plugin.ts — Tiancode plugin template
+// Los plugins corren en el proceso del agente y reaccionan a eventos del ciclo
+// de vida. El export por defecto debe ser un objeto PluginModule con
+// "id" y "server(input) => Promise<Hooks>" (ver .tiancode/plugins/*.ts).
 
 export const MyPlugin = {
-  name: "my-plugin",
+  id: "my-plugin",
 
-  // Runs when the session becomes idle.
-  session: {
-    idle: async (session) => {
-      console.log(\`[my-plugin] session \${session.id} is idle\`)
-    },
-  },
-
-  // Runs before every tool execution. Protects .env files from edits.
-  tool: {
-    "execute.before": async (input) => {
-      if (input.tool === "edit" && input.input?.filePath?.endsWith(".env")) {
+  server: async (input) => ({
+    // Corre antes de cada ejecución de herramienta. Protege archivos .env.
+    "tool.execute.before": async (toolInput, output) => {
+      if (toolInput.tool === "edit" && output.args?.filePath?.endsWith(".env")) {
         return { deny: true, reason: ".env files are protected by my-plugin" }
       }
-      return input
+      return output
     },
-  },
 
-  // Injects environment variables into shell tool processes.
-  shell: {
-    env: async (env) => ({
-      ...env,
-      MY_PLUGIN_ENABLED: "1",
-    }),
-  },
+    // Inyecta variables de entorno en los procesos de la herramienta shell.
+    shell: {
+      env: async (env) => ({
+        ...env,
+        MY_PLUGIN_ENABLED: "1",
+      }),
+    },
+  }),
 }
 
 export default MyPlugin
