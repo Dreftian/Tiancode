@@ -1,0 +1,13 @@
+# System
+.DS_Store
+Thumbs.db
+
+# Dependencias (solo si se añade tooling local)
+node_modules/
+.bun/
+
+# Logs
+*.log
+
+# Vercel
+.vercel/
