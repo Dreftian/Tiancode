@@ -8,7 +8,7 @@ import { currentSpeakingKey, speakWithVoices, stopSpeaking, isVoiceSpeaking } fr
 const AUTO_KEY_PREFIX = "auto:"
 const MAX_AUTO_CHARS = 60_000
 // Un tramo suena ~2-4s; dividir por oraciones evita cortes a mitad de frase.
-const splitChunks = (text: string): string[] =>
+export const splitChunks = (text: string): string[] =>
   text
     .split(/(?<=[.!?…])\s+|\n+/)
     .map((chunk) => chunk.trim())

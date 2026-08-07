@@ -4,6 +4,7 @@ import { mkdir, open, rename, rm } from "node:fs/promises"
 import { join } from "node:path"
 import { spawn } from "node:child_process"
 import { write as writeLog } from "./logging"
+import { probeRuntime } from "./runtime-install-utils"
 
 // Instalación local de runtimes de modelos (Ollama / LM Studio). El instalador
 // oficial se descarga dentro de las carpetas de datos de Tiancode y se
@@ -176,15 +177,6 @@ function setUserEnv(name: string, value: string): Promise<void> {
     child.once("error", reject)
     child.once("exit", (code) => (code === 0 ? resolve() : reject(new Error(`setx exited with code ${code}`))))
   })
-}
-
-async function probeRuntime(url: string): Promise<boolean> {
-  try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(2500) })
-    return res.ok
-  } catch {
-    return false
-  }
 }
 
 function launchRuntime(def: RuntimeDef): Promise<void> {

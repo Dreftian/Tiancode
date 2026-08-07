@@ -3,6 +3,7 @@ import { existsSync } from "node:fs"
 import { mkdir, open, rename } from "node:fs/promises"
 import { join } from "node:path"
 import { write as writeLog } from "./logging"
+import { concatChunks } from "./asr-utils"
 
 // Local speech-to-text for mic dictation. Electron does not ship the Web
 // Speech API, so the renderer captures audio (getUserMedia) and streams PCM
@@ -153,16 +154,10 @@ export function asrChunk(samples: Float32Array) {
 export async function asrStop(): Promise<{ text?: string; error?: string }> {
   if (!recording) return { error: "Not recording." }
   recording = false
-  const total = chunks.reduce((sum, chunk) => sum + chunk.length, 0)
-  const samples = new Float32Array(total)
-  let offset = 0
-  for (const chunk of chunks) {
-    samples.set(chunk, offset)
-    offset += chunk.length
-  }
+  const { samples, tooShort } = concatChunks(chunks)
   chunks = []
   // Ignora clips de menos de ~0.5s (16 kHz): no hay voz detectable.
-  if (total < 8000) return { error: "No speech detected." }
+  if (tooShort) return { error: "No speech detected." }
   try {
     const rec = await getRecognizer(activeLanguage)
     rec.acceptWaveform({ sampleRate: 16000, samples })

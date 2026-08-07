@@ -9,7 +9,7 @@ import "./preview-panel.css"
 
 const DEFAULT_URL = "http://localhost:5173"
 
-const normalizeUrl = (value: string) => {
+export const normalizeUrl = (value: string) => {
   const trimmed = value.trim()
   if (!trimmed) return trimmed
   if (/^https?:\/\//i.test(trimmed)) return trimmed
