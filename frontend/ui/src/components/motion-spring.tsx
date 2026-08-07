@@ -1,5 +1,5 @@
-import { attachSpring, motionValue } from "motion"
-import type { SpringOptions } from "motion"
+import { attachSpring, motionValue } from "motion-dom"
+import type { SpringOptions } from "motion-dom"
 import { createComputed, createEffect, createSignal, onCleanup } from "solid-js"
 
 type Opt = Partial<Pick<SpringOptions, "visualDuration" | "bounce" | "stiffness" | "damping" | "mass" | "velocity">>

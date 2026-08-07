@@ -91,6 +91,9 @@ export function WslServerSettings(props: {
 
   return (
     <Show when={api}>
+      <Show when={props.servers().length > 0}>
+        <h3 class="settings-v2-section-title">{language.t("settings.desktop.section.wsl")}</h3>
+      </Show>
       <For each={props.servers()}>
         {(item) => {
           const key = ServerConnection.Key.make(item.config.id)

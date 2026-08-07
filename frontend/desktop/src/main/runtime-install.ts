@@ -18,6 +18,8 @@ type RuntimeDef = {
   url: string
   fileName: string
   silentArgs: string[]
+  probeUrl: string
+  launchPath: string[]
   modelsDir: string
 }
 
@@ -28,6 +30,11 @@ const RUNTIMES: Record<RuntimeKind, RuntimeDef> = {
     url: "https://ollama.com/download/OllamaSetup.exe",
     fileName: "OllamaSetup.exe",
     silentArgs: ["/S"],
+    probeUrl: "http://localhost:11434/api/version",
+    launchPath: [
+      join(process.env.LOCALAPPDATA ?? "", "Programs", "Ollama", "ollama app.exe"),
+      join(process.env.LOCALAPPDATA ?? "", "Programs", "Ollama", "ollama.exe"),
+    ],
     modelsDir: "ollama-models",
   },
   lmstudio: {
@@ -36,6 +43,11 @@ const RUNTIMES: Record<RuntimeKind, RuntimeDef> = {
     url: "https://lmstudio.ai/download/bionic/latest/win32/x64",
     fileName: "LM-Studio-latest-x64.exe",
     silentArgs: ["/S"],
+    probeUrl: "http://localhost:1234/v1/models",
+    launchPath: [
+      join(process.env.LOCALAPPDATA ?? "", "Programs", "LM Studio", "LM Studio.exe"),
+      join(process.env.LOCALAPPDATA ?? "", "Programs", "LM-Studio", "LM Studio.exe"),
+    ],
     modelsDir: "lmstudio-models",
   },
 }
@@ -99,6 +111,17 @@ export async function installRuntime(kind: RuntimeKind): Promise<{ ok: boolean; 
       )
     }
 
+    // Si el runtime no responde tras la instalación silenciosa, lanza el
+    // instalador en modo interactivo como respaldo (p. ej. LM Studio, cuyo
+    // flag silencioso varía entre versiones).
+    const reachable = await probeRuntime(def.probeUrl)
+    if (!reachable) {
+      writeLog("runtime", "silent install did not start the runtime; launching interactive", { kind: def.name })
+      spawn(installer, [], { stdio: "ignore", detached: true, windowsHide: false }).unref()
+    } else {
+      launchRuntime(def).catch(() => {})
+    }
+
     state = { status: "idle" }
     report()
     writeLog("runtime", "installed", { kind: def.name })
@@ -153,4 +176,26 @@ function setUserEnv(name: string, value: string): Promise<void> {
     child.once("error", reject)
     child.once("exit", (code) => (code === 0 ? resolve() : reject(new Error(`setx exited with code ${code}`))))
   })
+}
+
+async function probeRuntime(url: string): Promise<boolean> {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(2500) })
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
+function launchRuntime(def: RuntimeDef): Promise<void> {
+  for (const candidate of def.launchPath) {
+    if (!existsSync(candidate)) continue
+    return new Promise((resolve, reject) => {
+      const child = spawn(candidate, [], { stdio: "ignore", detached: true, windowsHide: true })
+      child.once("error", reject)
+      child.once("spawn", () => resolve())
+      child.unref()
+    })
+  }
+  return Promise.resolve()
 }

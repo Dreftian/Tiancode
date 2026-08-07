@@ -190,7 +190,7 @@ const defaultSettings: Settings = {
     showNavigation: false,
     showSearch: false,
     showStatus: false,
-    showTerminal: false,
+    showTerminal: true,
     autoSpeak: false,
     showReasoningSummaries: false,
     shellToolPartsExpanded: false,
