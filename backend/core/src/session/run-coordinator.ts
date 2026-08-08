@@ -96,7 +96,10 @@ export const make = <Key, E>(options: {
         const entry = active.get(key)
         if (entry?.owner === undefined) return Effect.void
         entry.stopping = true
-        entry.pendingWake = false
+        // Keep a registered wake: an admitted prompt must still be delivered after the
+        // interrupted drain settles. settle() sees the pending wake and starts a successor
+        // drain (force=false) that promotes the admitted input; dropping it here would leave
+        // the session_input row unpromoted with nothing to wake the session again.
         return Fiber.interrupt(entry.owner)
       })
 

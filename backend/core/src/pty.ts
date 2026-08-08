@@ -12,6 +12,10 @@ import { Shell } from "./shell"
 import { lazy } from "./util/lazy"
 
 const BUFFER_LIMIT = 1024 * 1024 * 2
+// Inactive attach subscribers buffer chunks until their activate frame arrives; cap the
+// buffer (drop-oldest) so a subscriber that never activates cannot accumulate unbounded
+// memory for the lifetime of the shell. activate() still drains whatever remains.
+const PENDING_LIMIT = 1024
 // Exited sessions stay observable (status, exit code, retained output) until removed explicitly.
 // Cap retention so abandoned terminals do not accumulate unbounded buffers.
 const EXITED_LIMIT = 25
@@ -205,6 +209,7 @@ const layer = Layer.effect(
           session.cursor += chunk.length
           for (const [token, subscriber] of session.subscribers.entries()) {
             if (!subscriber.active) {
+              if (subscriber.pending.length >= PENDING_LIMIT) subscriber.pending.shift()
               subscriber.pending.push(chunk)
               continue
             }
