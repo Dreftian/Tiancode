@@ -1,6 +1,13 @@
 import { Context } from "effect"
 
-const tiancodeOrigin = /^https:\/\/([a-z0-9-]+\.)*tiancode\.ai$/
+// Exact production origins the web app and marketing site are served from.
+// Enumerated from the repo: frontend/web deploys to https://opencode.ai
+// (config.mjs, SST production stage) and the server proxies the UI from
+// https://app.opencode.ai (server/shared/ui.ts); the marketing site
+// (tools/website) is hosted at https://tiancode.vercel.app. No tiancode.ai
+// domain exists in the codebase, so the previous `*.tiancode.ai` wildcard
+// matched nothing; only exact origins are allowed (no wildcards).
+const allowedSiteOrigins = new Set(["https://opencode.ai", "https://app.opencode.ai", "https://tiancode.vercel.app"])
 
 export type CorsOptions = { readonly cors?: ReadonlyArray<string> }
 
@@ -15,7 +22,7 @@ export function isAllowedCorsOrigin(input: string | undefined, opts?: CorsOption
   if (input.startsWith("oc://renderer")) return true
   if (input === "tauri://localhost" || input === "http://tauri.localhost" || input === "https://tauri.localhost")
     return true
-  if (tiancodeOrigin.test(input)) return true
+  if (allowedSiteOrigins.has(input)) return true
   return opts?.cors?.includes(input) ?? false
 }
 
