@@ -128,8 +128,11 @@ public static class Vram {
                     var qi = (DQueryInterface)Marshal.GetDelegateForFunctionPointer(Marshal.ReadIntPtr(vt, 0), typeof(DQueryInterface));
                     Guid a3Guid = IID_ADAPTER3; IntPtr a3;
                     if (qi(adapterPtr, ref a3Guid, out a3) == 0) {
+                        // IDXGIAdapter3 vtable: 0-2 IUnknown, 3-6 IDXGIObject,
+                        // 7 EnumOutputs, 8 GetDesc, 9 CheckInterfaceSupport,
+                        // 10 GetDesc1, 11 GetDesc2, 12 QueryVideoMemoryInfo.
                         var qvmi = (DQueryVideoMemoryInfo)Marshal.GetDelegateForFunctionPointer(
-                            Marshal.ReadIntPtr(Marshal.ReadIntPtr(a3), 14 * IntPtr.Size), typeof(DQueryVideoMemoryInfo));
+                            Marshal.ReadIntPtr(Marshal.ReadIntPtr(a3), 12 * IntPtr.Size), typeof(DQueryVideoMemoryInfo));
                         DXGI_QUERY_VIDEO_MEMORY_INFO info;
                         if (qvmi(a3, 0, 0, out info) == 0 && info.Budget > info.CurrentUsage)
                             free = (long)(info.Budget - info.CurrentUsage);
@@ -549,9 +552,22 @@ const layer = Layer.effect(
           Effect.catch(() => Effect.succeed(undefined)),
         )
         const cpu = os.cpus()[0]?.model.trim()
-        const gpu = yield* detectGpu()
+        const gpu = yield* cachedGpu()
         const { ram, vram } = yield* memory()
         return { ram, diskFree: diskFree ?? 0, cpu, gpu, vram, modelsDir }
+      })
+
+      // GPU name detection spawns WMI/PowerShell (~1s); cache it alongside the
+      // memory probe so the settings panel does not re-run it on every poll.
+      let gpuCache: string | undefined
+      let gpuCachedAt = 0
+      const cachedGpu = Effect.fn("ModelHub.gpu.cached")(function* () {
+        const now = Date.now()
+        if (gpuCache !== undefined && now - gpuCachedAt < 30_000) return gpuCache
+        const gpu = yield* detectGpu()
+        gpuCache = gpu
+        gpuCachedAt = now
+        return gpuCache
       })
 
       const runtimes = Effect.fn("ModelHub.runtimes")(function* () {

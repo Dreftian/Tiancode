@@ -99,7 +99,9 @@ export const SettingsVoicesV2: Component = () => {
   })
 
   const modelDownloading = () => downloading() || status()?.downloading === true
-  const progressPercent = createMemo(() => Math.max(0, Math.min(100, Math.round((status()?.progress ?? progress()) * 100))))
+  // Main reports progress in 0-100 already; status().progress stays 0 until
+  // ready, so the live event value is the one that moves during downloads.
+  const progressPercent = createMemo(() => Math.max(0, Math.min(100, Math.round(progress()))))
 
   const downloadModel = async () => {
     const current = api

@@ -112,6 +112,9 @@ async function downloadPiperVoiceInner(voiceId: string) {
   await downloadFile(`${HF_BASE}/${def.repo}/resolve/main/${def.modelFile}`, join(dir, def.modelFile), voiceId)
   await downloadFile(`${HF_BASE}/${def.repo}/resolve/main/tokens.txt`, join(dir, "tokens.txt"), voiceId)
   writeLog("voices", "downloaded piper voice", { voiceId, sizeMb: def.sizeMb })
+  // The voice is only complete once both files exist; a done event before that
+  // would make the UI refetch and show the voice as not downloaded.
+  reportProgress(voiceId, 100, undefined, true)
 }
 
 // The espeak-ng phonemizer data is shared by every piper voice. The tree API
@@ -152,7 +155,7 @@ async function downloadFile(url: string, dest: string, voiceId: string | undefin
     await handle.close()
   }
   await rename(part, dest)
-  if (voiceId) reportProgress(voiceId, 100, url.split("/").pop(), true)
+  if (voiceId) reportProgress(voiceId, 100, url.split("/").pop())
 }
 
 async function writeFile(path: string, content: string) {

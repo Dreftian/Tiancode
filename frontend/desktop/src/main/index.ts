@@ -296,10 +296,14 @@ const main = Effect.gen(function* () {
   })
   registerWslIpcHandlers(wslServers)
   // La búsqueda de actualizaciones al iniciar se puede desactivar desde
-  // Ajustes (General → Actualizaciones); ausente = activada.
+  // Ajustes (General → Actualizaciones); ausente = activada. El chequeo
+  // periódico re-lee la clave en cada tick para que el toggle aplique sin
+  // reiniciar la app.
   const checkUpdatesOnStart = getStore().get(CHECK_UPDATES_ON_START_KEY) !== "false"
   if (checkUpdatesOnStart) void updater.start()
-  const updateTimer = setInterval(() => void updater.check(), 10 * 60 * 1000)
+  const updateTimer = setInterval(() => {
+    if (getStore().get(CHECK_UPDATES_ON_START_KEY) !== "false") void updater.check()
+  }, 10 * 60 * 1000)
   updateTimer.unref()
   app.once("will-quit", () => clearInterval(updateTimer))
   yield* Effect.promise(() => startNetLog()).pipe(

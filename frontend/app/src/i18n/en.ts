@@ -313,6 +313,7 @@ export const dict = {
   "chat.mic.stop": "Stop dictation",
   "chat.mic.error": "Voice dictation could not start",
   "chat.mic.downloading": "Downloading speech recognition model (first time)…",
+  "chat.mic.downloaded": "Speech model ready",
   "chat.message.speak": "Read response aloud",
   "chat.message.stop": "Stop reading",
   "chat.message.speak.failed": "Failed to read the response aloud",
@@ -975,7 +976,8 @@ export const dict = {
     "Closing the window minimizes to the system tray instead of quitting",
   "settings.general.row.fileWatcher.title": "Real-time file updates",
   "settings.general.row.fileWatcher.description":
-    "Refreshes the file tree and git changes automatically. Applies on app restart.",
+    "Refreshes the file tree and git changes automatically.",
+  "settings.general.fileWatcher.restart.confirm": "Restart Tiancode to apply the real-time file updates change?",
 
   "settings.general.row.wayland.title": "Use native Wayland",
   "settings.general.row.wayland.description": "Disable X11 fallback on Wayland. Requires restart.",
@@ -1174,6 +1176,8 @@ export const dict = {
   "settings.skills.title": "Skills",
   "settings.skills.description": "Import skills from your computer or download published skills from the web.",
   "settings.skills.section.installed": "Installed",
+  "settings.skills.autoSelect.title": "Auto-select skills",
+  "settings.skills.autoSelect.description": "Automatically pick the skills matching your project (framework, tooling, etc.) in every conversation",
   "settings.skills.section.import": "Import skill",
   "settings.skills.empty": "No skills installed yet",
   "settings.skills.import.folder.title": "Import from folder",

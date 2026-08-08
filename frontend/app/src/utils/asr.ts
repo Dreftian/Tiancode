@@ -16,6 +16,7 @@ export type AsrResult = {
 
 export type AsrAPI = {
   status: () => Promise<AsrStatus>
+  ensure: () => Promise<void>
   start: (language: "es" | "en") => Promise<void>
   chunk: (samples: Float32Array) => void
   stop: () => Promise<AsrResult>

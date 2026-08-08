@@ -333,7 +333,20 @@ export const SettingsGeneralV2: Component<{
     setFileWatcher(checked)
     const update = window.api?.storeSet?.(settingsStoreName, fileWatcherKey, String(checked))
     if (!update) return
-    void update.catch(() => setFileWatcher(!checked))
+    void update
+      .then(() => {
+        // El watcher vive en el sidecar, que lee el flag solo al arrancar; un
+        // reinicio limpio aplica el cambio sin que el usuario tenga que hacerlo.
+        if (!window.api?.relaunchApp) return
+        if (window.confirm(language.t("settings.general.fileWatcher.restart.confirm"))) {
+          void window.api.relaunchApp()
+        } else {
+          // Rechazado: revierte el toggle y el store para que queden coherentes.
+          setFileWatcher(!checked)
+          void window.api.storeSet?.(settingsStoreName, fileWatcherKey, String(!checked))
+        }
+      })
+      .catch(() => setFileWatcher(!checked))
   }
 
   const [checkUpdatesOnStart, { mutate: setCheckUpdatesOnStart }] = createResource(

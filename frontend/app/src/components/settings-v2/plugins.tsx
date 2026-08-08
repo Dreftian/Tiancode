@@ -37,7 +37,7 @@ const LocalPluginCatalog = [
 
 type CatalogApp = (typeof NpmAppCatalog)[number] | (typeof LocalPluginCatalog)[number]
 
-const localPluginSpec = (name: string) => `./plugins/${name}.ts`
+const localPluginSpec = (name: string) => `.tiancode/plugins/${name}.ts`
 
 const PluginTemplate = `// my-plugin.ts — Tiancode plugin template
 // Los plugins corren en el proceso del agente y reaccionan a eventos del ciclo

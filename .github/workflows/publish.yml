@@ -339,6 +339,7 @@ jobs:
         timeout-minutes: 60
         env:
           TIANCODE_CHANNEL: ${{ (github.ref_name == 'beta' && 'beta') || 'prod' }}
+          TIANCODE_ARCH: ${{ contains(matrix.settings.target, 'aarch64') && 'arm64' || '' }}
           GH_TOKEN: ${{ steps.committer.outputs.token }}
           CSC_KEYCHAIN: build.keychain
           APPLE_API_KEY: ${{ runner.temp }}/apple-api-key.p8

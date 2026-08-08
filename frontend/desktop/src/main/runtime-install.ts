@@ -76,7 +76,20 @@ function runtimeDir() {
   return join(app.getPath("userData"), "runtime")
 }
 
-export async function installRuntime(kind: RuntimeKind): Promise<{ ok: boolean; error?: string }> {
+// One in-flight install per runtime so concurrent calls (two windows, or a
+// retry while one is running) share a single download+install instead of
+// racing on the same .part file.
+const inFlight = new Map<RuntimeKind, Promise<{ ok: boolean; error?: string }>>()
+
+export function installRuntime(kind: RuntimeKind): Promise<{ ok: boolean; error?: string }> {
+  const existing = inFlight.get(kind)
+  if (existing) return existing
+  const promise = installRuntimeInner(kind).finally(() => inFlight.delete(kind))
+  inFlight.set(kind, promise)
+  return promise
+}
+
+async function installRuntimeInner(kind: RuntimeKind): Promise<{ ok: boolean; error?: string }> {
   const def = RUNTIMES[kind]
   if (!def) return { ok: false, error: `Unknown runtime "${kind}"` }
   try {
@@ -112,10 +125,14 @@ export async function installRuntime(kind: RuntimeKind): Promise<{ ok: boolean; 
       )
     }
 
-    // Si el runtime no responde tras la instalación silenciosa, lanza el
-    // instalador en modo interactivo como respaldo (p. ej. LM Studio, cuyo
-    // flag silencioso varía entre versiones).
-    const reachable = await probeRuntime(def.probeUrl)
+    // La instalación silenciosa puede seguir corriendo después del timeout de
+    // runSilent (devuelve null); espera a que el runtime responda antes de
+    // lanzar el instalador interactivo, para no duplicar la instalación.
+    let reachable = await probeRuntime(def.probeUrl)
+    for (let attempt = 0; attempt < 12 && !reachable; attempt++) {
+      await sleep(5_000)
+      reachable = await probeRuntime(def.probeUrl)
+    }
     if (!reachable) {
       writeLog("runtime", "silent install did not start the runtime; launching interactive", { kind: def.name })
       spawn(installer, [], { stdio: "ignore", detached: true, windowsHide: false }).unref()
@@ -134,6 +151,10 @@ export async function installRuntime(kind: RuntimeKind): Promise<{ ok: boolean; 
     writeLog("runtime", "install failed", { kind: def.name, error: message }, "error")
     return { ok: false, error: message }
   }
+}
+
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms))
 }
 
 async function downloadFile(url: string, dest: string, onProgress: (progress: number) => void) {

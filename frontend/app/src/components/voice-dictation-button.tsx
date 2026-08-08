@@ -31,6 +31,7 @@ export function VoiceDictationButton(props: {
 }) {
   const language = useLanguage()
   const [listening, setListening] = createSignal(false)
+  const [preparing, setPreparing] = createSignal(false)
   let recognition: SpeechRecognitionLike | undefined
   let stopLocal: (() => void) | undefined
 
@@ -77,9 +78,25 @@ export function VoiceDictationButton(props: {
       showToast({ variant: "error", title: language.t("chat.mic.error") })
       return
     }
+    // El modelo Whisper (~100 MB) se descarga bajo demanda; hacerlo aquí da
+    // feedback al usuario en vez de dejarle esperando en silencio al parar.
     const status = await api.status().catch(() => undefined)
     if (status && !status.ready && !status.downloading) {
+      setPreparing(true)
       showToast({ variant: "default", title: language.t("chat.mic.downloading") })
+      try {
+        await api.ensure()
+        showToast({ variant: "success", title: language.t("chat.mic.downloaded") })
+      } catch (error) {
+        showToast({
+          variant: "error",
+          title: language.t("chat.mic.error"),
+          description: error instanceof Error ? error.message : String(error),
+        })
+        setPreparing(false)
+        return
+      }
+      setPreparing(false)
     }
     const locale = language.locale() === "es" ? "es" : "en"
     try {
@@ -115,8 +132,9 @@ export function VoiceDictationButton(props: {
   return (
     <button
       type="button"
-      aria-label={listening() ? props.listeningLabel : props.ariaLabel}
-      title={listening() ? props.listeningLabel : props.ariaLabel}
+      aria-label={listening() ? props.listeningLabel : preparing() ? language.t("chat.mic.downloading") : props.ariaLabel}
+      title={listening() ? props.listeningLabel : preparing() ? language.t("chat.mic.downloading") : props.ariaLabel}
+      disabled={preparing()}
       classList={{
         [props.class ?? ""]: !!props.class,
         [props.listeningClass ?? ""]: !!props.listeningClass && listening(),

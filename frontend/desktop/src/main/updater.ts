@@ -26,7 +26,7 @@ export function setupAutoUpdater(stop: () => Promise<void>) {
   })
 
   const store = getStore("tiancode.updater")
-  return createUpdaterController({
+  const controller = createUpdaterController({
     enabled: UPDATER_ENABLED,
     currentVersion: app.getVersion(),
     backend: {
@@ -58,6 +58,11 @@ export function setupAutoUpdater(stop: () => Promise<void>) {
     stop,
     log: (message, data) => logger.log(message, data),
   })
+
+  // Live percentage so the UI shows real progress while downloading instead
+  // of an indeterminate "Descargando…".
+  autoUpdater.on("download-progress", (progress) => controller.setDownloadProgress(progress.percent))
+  return controller
 }
 
 export async function showUpdaterDialog(controller: ReturnType<typeof setupAutoUpdater>, alertOnFail: boolean) {

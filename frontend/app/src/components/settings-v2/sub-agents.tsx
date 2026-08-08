@@ -45,10 +45,9 @@ const ModelOptions: { id: "inherit" | "custom"; label: string }[] = [
   { id: "custom", label: "settings.subAgents.form.model.custom" },
 ]
 
-const StatusOptions: { id: "all" | "enabled" | "disabled"; label: string }[] = [
+const StatusOptions: { id: "all" | "enabled"; label: string }[] = [
   { id: "all", label: "settings.subAgents.list.filter.all" },
   { id: "enabled", label: "settings.subAgents.list.filter.enabled" },
-  { id: "disabled", label: "settings.subAgents.list.filter.disabled" },
 ]
 
 // Native agents ship with English descriptions from the server (frontmatter);
@@ -63,7 +62,7 @@ const NativeAgentDescriptionKeys: Record<string, string> = {
   summary: "settings.subAgents.native.summary",
 }
 
-type StatusId = "all" | "enabled" | "disabled"
+type StatusId = "all" | "enabled"
 type FormMessage =
   | "created"
   | "failed"
@@ -142,7 +141,9 @@ export const SettingsSubAgentsV2: Component<{
     )
   }
 
-  const visibleByStatus = (agents: Agent[]) => (status() === "disabled" ? [] : agents)
+  // Agents have no per-agent enabled state today, so both filters show the
+  // same list; keep the segmented control for future use.
+  const visibleByStatus = (agents: Agent[]) => agents
   const visibleUserAgents = createMemo(() => visibleByStatus(userAgents().filter(matchesQuery)))
   const visibleBuiltinAgents = createMemo(() => visibleByStatus(builtinAgents().filter(matchesQuery)))
   const editingAgent = createMemo(

@@ -7,6 +7,7 @@ import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { useServerSDK } from "@/context/server-sdk"
 import { SettingsListV2 } from "./parts/list"
+import { SettingsRowV2 } from "./parts/row"
 import "./settings-v2.css"
 
 const PAGE_SIZE = 8
@@ -31,13 +32,18 @@ export const SettingsSkillsV2: Component<{
         serverSdk().client.app.skills(params()),
         serverSdk().client.config.get(params()),
       ])
-      return { skills: skills.data ?? [], disabled: new Set(config.data?.skills?.disabled ?? []) }
+      return {
+        skills: skills.data ?? [],
+        disabled: new Set(config.data?.skills?.disabled ?? []),
+        autoSelect: config.data?.skills?.autoSelect !== false,
+      }
     },
-    { initialValue: { skills: [], disabled: new Set<string>() } },
+    { initialValue: { skills: [], disabled: new Set<string>(), autoSelect: true } },
   )
 
   const skills = createMemo(() => data().skills)
   const disabled = createMemo(() => data().disabled)
+  const autoSelect = createMemo(() => data().autoSelect)
   const pages = createMemo(() => Math.max(1, Math.ceil(skills().length / PAGE_SIZE)))
   const pageSkills = createMemo(() => skills().slice(page() * PAGE_SIZE, (page() + 1) * PAGE_SIZE))
   const selectedSkill = createMemo(() => skills().find((skill) => skill.name === selected()))
@@ -91,6 +97,18 @@ export const SettingsSkillsV2: Component<{
     }
   }
 
+  // Auto-selección: el modelo elige automáticamente las skills según las
+  // señales del proyecto (framework, tooling…). Persiste en skills.autoSelect.
+  const toggleAutoSelect = async (enabled: boolean) => {
+    setMessage(undefined)
+    try {
+      await serverSdk().client.config.update({ ...params(), config: { skills: { autoSelect: enabled } } })
+      void refetch()
+    } catch {
+      setMessage("error")
+    }
+  }
+
   const searchGoogle = () => {
     platform.openExternal(
       `https://www.google.com/search?q=${encodeURIComponent("tiancode skills SKILL.md")}`,
@@ -130,6 +148,16 @@ export const SettingsSkillsV2: Component<{
           <div class="settings-v2-skills-list">
             <div class="settings-v2-section">
               <h3 class="settings-v2-section-title">{language.t("settings.skills.section.installed")}</h3>
+              <SettingsListV2>
+                <SettingsRowV2
+                  title={language.t("settings.skills.autoSelect.title")}
+                  description={language.t("settings.skills.autoSelect.description")}
+                >
+                  <Switch checked={autoSelect()} onChange={(checked) => void toggleAutoSelect(checked)} hideLabel>
+                    {language.t("settings.skills.autoSelect.title")}
+                  </Switch>
+                </SettingsRowV2>
+              </SettingsListV2>
               <Show
                 when={skills().length > 0}
                 fallback={<div class="settings-v2-skills-status">{language.t("settings.skills.empty")}</div>}

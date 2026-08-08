@@ -249,6 +249,7 @@ declare global {
       exportDebugLogs?: () => Promise<string>
       storeGet?: (name: string, key: string) => Promise<string | null>
       storeSet?: (name: string, key: string, value: string) => Promise<void>
+      relaunchApp?: () => Promise<void>
       voices?: VoicesAPI
       asr?: AsrAPI
       runtime?: {

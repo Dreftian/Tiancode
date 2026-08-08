@@ -12,6 +12,7 @@ const updaterHandler = (_: unknown, state: UpdaterState) => {
 
 const api: ElectronAPI = {
   killSidecar: () => ipcRenderer.invoke("kill-sidecar"),
+  relaunchApp: () => ipcRenderer.invoke("relaunch-app"),
   installCli: () => ipcRenderer.invoke("install-cli"),
   awaitInitialization: () => ipcRenderer.invoke("await-initialization"),
   wslServers: {
@@ -58,6 +59,7 @@ const api: ElectronAPI = {
   },
   asr: {
     status: () => ipcRenderer.invoke("asr-status"),
+    ensure: () => ipcRenderer.invoke("asr-ensure-model"),
     start: (language) => ipcRenderer.invoke("asr-start", language),
     chunk: (samples) => ipcRenderer.send("asr-chunk", samples),
     stop: () => ipcRenderer.invoke("asr-stop"),

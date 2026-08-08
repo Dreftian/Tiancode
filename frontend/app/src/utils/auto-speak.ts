@@ -71,6 +71,9 @@ async function pump(key: string) {
     }
   } finally {
     pumping = false
+    // Si mientras sonaba el tramo anterior llegó una parte nueva (el pump de
+    // esa parte retornó por `pumping`), relanza el drenado con la cola actual.
+    if (currentKey && queue.length > 0) void pump(currentKey)
   }
 }
 

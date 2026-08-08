@@ -108,6 +108,7 @@ export type AsrResult = {
 
 export type AsrAPI = {
   status: () => Promise<AsrStatus>
+  ensure: () => Promise<void>
   start: (language: "es" | "en") => Promise<void>
   chunk: (samples: Float32Array) => void
   stop: () => Promise<AsrResult>
@@ -142,6 +143,7 @@ export type FatalRendererError = {
 
 export type ElectronAPI = {
   killSidecar: () => Promise<void>
+  relaunchApp: () => Promise<void>
   installCli: () => Promise<string>
   awaitInitialization: () => Promise<ServerReadyData>
   wslServers: WslServersAPI

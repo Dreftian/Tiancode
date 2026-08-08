@@ -114,9 +114,12 @@ const connectedToolCount = (status: McpStatus | undefined): number | undefined =
 }
 
 // The SDK serializes some numeric fields as "NaN"/"Infinity" strings; only
-// real numbers should reach the config.
+// real numbers should reach the config. An empty field must stay undefined
+// (Number("") is 0, and timeout 0 is rejected by the API as non-positive).
 const asNumber = (value: string): number | undefined => {
-  const parsed = Number(value)
+  const trimmed = value.trim()
+  if (trimmed === "") return undefined
+  const parsed = Number(trimmed)
   return Number.isFinite(parsed) ? parsed : undefined
 }
 
@@ -306,12 +309,14 @@ export const SettingsMcpServersV2: Component<{
 
   const toggleEnabled = async (serverName: string, config: McpConfigValue, enabled: boolean) => {
     setMessage(undefined)
+    if (!isConfiguredServer(config)) {
+      // Type-less stub (server defined in an outer layer): the backend ignores
+      // it, so enabling would look dead. Open the editor to complete the config.
+      if (enabled) startEdit(serverName, config)
+      return
+    }
     try {
-      if (isConfiguredServer(config)) {
-        await serverSdk().client.mcp.add({ ...params(), name: serverName, config: { ...config, enabled } })
-      } else {
-        await serverSdk().client.config.update({ ...params(), config: { mcp: { [serverName]: { enabled } } } })
-      }
+      await serverSdk().client.mcp.add({ ...params(), name: serverName, config: { ...config, enabled } })
       void refetch()
     } catch {
       setMessage("error")

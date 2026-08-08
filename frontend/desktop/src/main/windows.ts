@@ -4,7 +4,7 @@ import type { DesktopTheme } from "@tiancode-ai/ui/theme/types"
 import oc2ThemeJson from "../../../ui/src/theme/themes/oc-2.json"
 import { randomUUID } from "node:crypto"
 import { rmSync } from "node:fs"
-import { app, BrowserWindow, dialog, net, nativeImage, nativeTheme, protocol, shell } from "electron"
+import { app, BrowserWindow, dialog, net, nativeImage, nativeTheme, protocol, session, shell } from "electron"
 import { dirname, isAbsolute, join, relative, resolve } from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
 import type { TitlebarTheme } from "../preload/types"
@@ -220,6 +220,7 @@ export function createMainWindow(id: string = randomUUID()) {
   })
 
   allowRendererPermissions(win)
+  hardenPreviewSession()
   wireWindowRecovery(win, id)
   wireNavigationPolicy(win)
 
@@ -520,6 +521,16 @@ function allowRendererPermissions(win: BrowserWindow) {
 
 function isTrustedRendererUrl(value?: string) {
   return isRendererUrl(value)
+}
+
+// The preview <webview> runs in its own session ("persist:preview") that the
+// main window's permission handlers never see, so without this Electron would
+// grant guest pages any permission they ask for. Deny everything: the preview
+// is for viewing apps/sites, not for camera/mic/geolocation.
+function hardenPreviewSession() {
+  const previewSession = session.fromPartition("persist:preview")
+  previewSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false))
+  previewSession.setPermissionCheckHandler(() => false)
 }
 
 function addRendererHeaders(value: string, headers: Record<string, any>) {

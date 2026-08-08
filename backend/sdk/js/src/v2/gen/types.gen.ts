@@ -1903,6 +1903,7 @@ export type Config = {
     paths?: Array<string>
     urls?: Array<string>
     disabled?: Array<string>
+    autoSelect?: boolean
   }
   references?: {
     [key: string]: string | ConfigV2ReferenceGit | ConfigV2ReferenceLocal

@@ -248,10 +248,13 @@ async function loadTTS() {
 }
 
 // transformers.js 3.x reports per-file download progress only (no overall
-// percentage), so progress reflects the current file while it downloads.
+// percentage), so progress reflects the current file while it downloads. The
+// module-level `progress` is updated too so voices-status stays live, not only
+// the streamed event.
 function onProgress(info: ProgressInfo) {
   if (info.status !== "progress" || info.total <= 0) return
-  reportProgress({ progress: Math.round((info.loaded / info.total) * 100), file: info.file })
+  progress = Math.round((info.loaded / info.total) * 100)
+  reportProgress({ progress, file: info.file })
 }
 
 function reportProgress(payload: { progress: number; file?: string }) {

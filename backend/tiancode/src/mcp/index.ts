@@ -654,6 +654,10 @@ const layer = Layer.effect(
       // connecting below fails (e.g. the runtime is missing on this machine).
       const cfg = yield* cfgSvc.getGlobal()
       yield* cfgSvc.updateGlobal({ ...cfg, mcp: { ...cfg.mcp, [name]: mcp } })
+      // The instance config cache still holds the pre-add state; invalidate it
+      // so GET /config and the settings list reflect the new server now, not
+      // only after the next instance reload.
+      yield* cfgSvc.invalidateInstance()
       // Best-effort connect: a failure records the error status but keeps the
       // server enabled so the toggle in settings reflects the saved config.
       const attempt = yield* Effect.exit(createAndStore(name, mcp))
@@ -665,7 +669,15 @@ const layer = Layer.effect(
 
     const connect = Effect.fn("MCP.connect")(function* (name: string) {
       const mcp = yield* requireMcpConfig(name)
-      yield* createAndStore(name, { ...mcp, enabled: true })
+      const enabled = { ...mcp, enabled: true }
+      yield* createAndStore(name, enabled)
+      // Persist enabled so a manual connect survives restarts; otherwise the
+      // entry keeps its previous disabled state and reconnects on every launch.
+      const cfg = yield* cfgSvc.getGlobal()
+      const current = cfg.mcp?.[name]
+      if (current && current.enabled !== true) {
+        yield* cfgSvc.updateGlobal({ ...cfg, mcp: { ...cfg.mcp, [name]: enabled } })
+      }
     })
 
     const disconnect = Effect.fn("MCP.disconnect")(function* (name: string) {
@@ -674,6 +686,11 @@ const layer = Layer.effect(
       yield* closeClient(s, name)
       delete s.clients[name]
       s.status[name] = { status: "disabled" }
+      const cfg = yield* cfgSvc.getGlobal()
+      const current = cfg.mcp?.[name]
+      if (current && current.enabled !== false) {
+        yield* cfgSvc.updateGlobal({ ...cfg, mcp: { ...cfg.mcp, [name]: { ...current, enabled: false } } })
+      }
     })
 
     const remove = Effect.fn("MCP.remove")(function* (name: string) {
@@ -690,6 +707,9 @@ const layer = Layer.effect(
       const next = { ...cfg.mcp }
       delete next[name]
       yield* cfgSvc.updateGlobal({ ...cfg, mcp: next })
+      // Invalidate the instance config cache so the settings list drops the
+      // server immediately instead of showing it as disabled until reload.
+      yield* cfgSvc.invalidateInstance()
     })
 
     function requestTimeout(s: State, name: string, configured: McpEntry | undefined, fallback?: number) {

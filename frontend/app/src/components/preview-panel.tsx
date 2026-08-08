@@ -1,4 +1,4 @@
-import { createSignal, onCleanup, onMount, Show } from "solid-js"
+import { createEffect, createSignal, onCleanup, Show } from "solid-js"
 import { useLanguage } from "@/context/language"
 import "./preview-panel.css"
 
@@ -7,7 +7,9 @@ import "./preview-panel.css"
 // El elemento se crea dinámicamente porque "webview" no está en los tipos JSX;
 // los eventos del navegador llegan por addEventListener.
 
-const DEFAULT_URL = "http://localhost:5173"
+// No hay una URL por defecto útil en producción (localhost:5173 solo existe
+// en dev); el panel se abre vacío y el usuario navega a donde quiera.
+const DEFAULT_URL = ""
 
 export const normalizeUrl = (value: string) => {
   const trimmed = value.trim()
@@ -40,6 +42,9 @@ export function PreviewPanel() {
   const [pageTitle, setPageTitle] = createSignal("")
   let container: HTMLDivElement | undefined
   let webview: WebviewElement | undefined
+  // URL con la que se abre el webview; capturada en el toggle (no reactiva)
+  // para que el effect de creación solo dependa de open().
+  let initialUrl = DEFAULT_URL
 
   const syncState = () => {
     if (!webview) return
@@ -50,29 +55,33 @@ export function PreviewPanel() {
     setPageTitle(webview.getTitle())
   }
 
-  onMount(() => {
-    if (!container) return
+  // The container only exists while the panel is open, so the webview must be
+  // created reactively (onMount runs once, before the first open). Closing the
+  // panel disposes the element and stops the guest page.
+  createEffect(() => {
+    if (!open() || !container) return
     const element = document.createElement("webview") as unknown as WebviewElement
     element.setAttribute("partition", "persist:preview")
-    element.setAttribute("src", url())
+    if (initialUrl) element.setAttribute("src", initialUrl)
     element.setAttribute("webpreferences", "contextIsolation=yes, nodeIntegration=no, sandbox=yes")
-    element.setAttribute("allowpopups", "false")
     element.style.width = "100%"
     element.style.height = "100%"
     container.appendChild(element)
     webview = element
+    const onTitleUpdate = () => setPageTitle(element.getTitle())
     element.addEventListener("did-navigate", syncState)
     element.addEventListener("did-navigate-in-page", syncState)
     element.addEventListener("did-start-loading", () => setLoading(true))
     element.addEventListener("did-stop-loading", syncState)
-    element.addEventListener("page-title-updated", () => setPageTitle(element.getTitle()))
+    element.addEventListener("page-title-updated", onTitleUpdate)
     onCleanup(() => {
       element.removeEventListener("did-navigate", syncState)
       element.removeEventListener("did-navigate-in-page", syncState)
       element.removeEventListener("did-start-loading", () => setLoading(true))
       element.removeEventListener("did-stop-loading", syncState)
-      element.removeEventListener("page-title-updated", () => setPageTitle(element.getTitle()))
+      element.removeEventListener("page-title-updated", onTitleUpdate)
       element.remove()
+      webview = undefined
     })
   })
 
@@ -89,6 +98,7 @@ export function PreviewPanel() {
       setOpen(false)
       return
     }
+    initialUrl = url()
     setOpen(true)
     // Al abrir con la web ya cargada, refresca el estado de navegación.
     requestAnimationFrame(syncState)
@@ -148,6 +158,7 @@ export function PreviewPanel() {
               onKeyDown={(event) => {
                 if (event.key === "Enter") navigate(input())
               }}
+              placeholder={language.t("preview.url")}
               spellcheck={false}
               aria-label={language.t("preview.url")}
             />
@@ -170,7 +181,7 @@ export function PreviewPanel() {
             </button>
           </div>
           <div class="preview-status">
-            <span>{pageTitle() || url()}</span>
+            <span>{pageTitle() || url() || language.t("preview.url")}</span>
           </div>
           <div class="preview-webview" ref={container} />
         </div>
