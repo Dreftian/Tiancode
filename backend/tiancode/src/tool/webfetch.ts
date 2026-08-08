@@ -5,10 +5,52 @@ import * as Tool from "./tool"
 import TurndownService from "turndown"
 import DESCRIPTION from "./webfetch.txt"
 import { isImageAttachment } from "@/util/media"
+import { lookup } from "node:dns/promises"
+import { isIP } from "node:net"
 
 const MAX_RESPONSE_SIZE = 5 * 1024 * 1024 // 5MB
 const DEFAULT_TIMEOUT = 30 * 1000 // 30 seconds
 const MAX_TIMEOUT = 120 * 1000 // 2 minutes
+
+// --- SSRF guard --------------------------------------------------------------
+// An agent can be steered to fetch metadata/loopback/private addresses
+// (169.254.169.254, 127.0.0.1:11434, LAN ranges), so every target hostname is
+// resolved up front and rejected when any of its addresses is not public.
+// Public sites (huggingface, github, general web) are unaffected.
+const isPrivateAddress = (address: string) => {
+  const lowered = address.toLowerCase()
+  if (lowered === "::" || lowered === "::1") return true
+  if (lowered.startsWith("fe80:")) return true // fe80::/10 link-local
+  // IPv4-mapped IPv6 (::ffff:a.b.c.d) is checked through the embedded IPv4.
+  return isPrivateIpv4(lowered.startsWith("::ffff:") ? lowered.slice(7) : lowered)
+}
+
+function isPrivateIpv4(address: string) {
+  const [a, b] = address.split(".").map((part) => Number(part))
+  // Malformed addresses never come from a real lookup; treat them as blocked.
+  if (a === undefined || Number.isNaN(a) || b === undefined || Number.isNaN(b)) return true
+  if (a === 0) return true // 0.0.0.0/8 unspecified
+  if (a === 10) return true // 10.0.0.0/8 private
+  if (a === 127) return true // 127.0.0.0/8 loopback
+  if (a === 169 && b === 254) return true // 169.254.0.0/16 link-local (incl. 169.254.169.254 metadata)
+  if (a === 172 && b >= 16 && b <= 31) return true // 172.16.0.0/12 private
+  if (a === 192 && b === 168) return true // 192.168.0.0/16 private
+  return false
+}
+
+// Resolves every address of the target and rejects non-public ones with a
+// clear message before any bytes are fetched.
+const assertPublicHost = async (url: URL) => {
+  const hostname = url.hostname
+  const ipVersion = isIP(hostname)
+  const addresses = ipVersion === 0 ? await lookup(hostname, { all: true }) : [{ address: hostname, family: ipVersion }]
+  const blocked = addresses.find(({ address }) => isPrivateAddress(address))
+  if (blocked) {
+    throw new Error(
+      `Blocked fetch of ${hostname} (${blocked.address}): loopback, private, link-local and metadata addresses are not allowed (SSRF protection)`,
+    )
+  }
+}
 
 export const Parameters = Schema.Struct({
   url: Schema.String.annotate({ description: "The URL to fetch content from" }),
@@ -35,6 +77,10 @@ export const WebFetchTool = Tool.define(
           if (!params.url.startsWith("http://") && !params.url.startsWith("https://")) {
             throw new Error("URL must start with http:// or https://")
           }
+
+          // Reject loopback/private/link-local targets before prompting or
+          // fetching; the user must never be asked to approve a blocked URL.
+          yield* Effect.promise(() => assertPublicHost(new URL(params.url)))
 
           yield* ctx.ask({
             permission: "webfetch",
