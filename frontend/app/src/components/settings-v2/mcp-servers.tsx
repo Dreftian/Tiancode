@@ -66,6 +66,11 @@ const DiscoverPresets: DiscoverPreset[] = [
   { id: "chrome-devtools", type: "local", command: "npx -y chrome-devtools-mcp@latest" },
   { id: "playwright", type: "local", command: "npx -y @playwright/mcp@latest" },
   { id: "context7", type: "local", command: "npx -y @upstash/context7-mcp" },
+  // Da visión a modelos sin ella: analiza imágenes, capturas y documentos con
+  // cualquier API de visión OpenAI-compatible (OpenAI, Gemini, Qwen-VL…).
+  // Tras activarlo, añade VISION_API_KEY (y VISION_BASE_URL/VISION_MODEL_NAME
+  // si usas otro proveedor) en Environment del editor del servidor.
+  { id: "agent-vision", type: "local", command: "npx -y @kitlau/agent-vision-mcp", requiresKey: true },
   { id: "aikido", type: "local", command: "npx -y @aikidosec/mcp", requiresKey: true },
   { id: "airwallex", type: "local", command: "npx -y @airwallex/developer-mcp@latest", requiresKey: true },
   { id: "canva", type: "remote", url: "https://mcp.canva.com/mcp" },

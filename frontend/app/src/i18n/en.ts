@@ -1386,6 +1386,8 @@ export const dict = {
   "settings.mcpServers.discover.presets.playwright.description": "Browser automation and end-to-end web testing.",
   "settings.mcpServers.discover.presets.context7.name": "Context7",
   "settings.mcpServers.discover.presets.context7.description": "Up-to-date documentation for popular libraries and frameworks.",
+  "settings.mcpServers.discover.presets.agent-vision.name": "Agent Vision",
+  "settings.mcpServers.discover.presets.agent-vision.description": "Gives non-vision models eyes: analyze images, screenshots and documents (OCR) with any OpenAI-compatible vision API (OpenAI, Gemini, Qwen-VL). After enabling, add VISION_API_KEY under Environment in the server editor.",
   "settings.mcpServers.discover.presets.aikido.name": "Aikido",
   "settings.mcpServers.discover.presets.aikido.description": "Scan code and dependencies for security issues.",
   "settings.mcpServers.discover.presets.airwallex.name": "Airwallex",
