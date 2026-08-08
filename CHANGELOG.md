@@ -4,6 +4,49 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.3] — 2026-08-08
+
+### Seguridad
+
+- **Credenciales cifradas en reposo**: las API keys (p. ej. DeepSeek) y tokens
+  OAuth ya no se guardan en texto plano en la base de datos local; se cifran
+  con AES-256-GCM bajo una clave protegida por el almacén seguro del sistema
+  (DPAPI/Keychain vía safeStorage). Las credenciales existentes se migran
+  automáticamente al actualizar.
+- **Actualizaciones**: la verificación de firma del paquete de Windows queda
+  activa para los canales beta/prod cuando el build sale firmado (CI), y se
+  desactiva el downgrade a versiones anteriores. El nombre de editor se deriva
+  del certificado de firma real, no de una constante.
+- **Model Hub**: las descargas validan el repositorio y archivo solicitados y
+  no confían en el registro persistido de trabajos — se cierra una ruta de
+  escritura arbitraria de archivos.
+- **Navegación web del agente (webfetch)**: se bloquean las IPs privadas,
+  loopback y la IP de metadatos de la nube (SSRF).
+- **Servidor local**: CORS restringido a los orígenes reales y límite de
+  intentos de autenticación (rate limiting) contra fuerza bruta.
+- **Aplicación de escritorio**: las rutas y apps del IPC se validan (apertura
+  de archivos con lista blanca, escritura solo a archivos elegidos en el
+  diálogo, restauración de respaldos solo desde la carpeta de respaldos,
+  captura solo del navegador interno, stores restringidos) y se añade una
+  política de seguridad de contenido (CSP) al renderer en producción.
+- **Modelos de voz (ASR/piper)**: los binarios descargados verifican su
+  checksum SHA-256 antes de instalarse.
+
+### Corregido
+
+- **Sesiones V2**: al interrumpir una sesión ya no se pierde un prompt
+  admitido pendiente de entregar; los resultados de herramientas en vuelo ya
+  no se marcan como fallidos por la interrupción.
+- **Sesiones (legacy)**: los reintentos de un turno ya no duplican partes del
+  mensaje ni duplican el coste facturado; el borrado de una sesión ya no
+  reporta éxito si la base de datos falla; cancelar trabajos de fondo ya no
+  puede quedar en bucle infinito.
+- **Dictado por voz**: un doble clic ya no deja el micrófono activo para
+  siempre; al salir del chat o fallar el arranque se libera el micrófono.
+- **Deep links**: los enlaces `tiancode://` ya no se re-entregan a ventanas
+  creadas después; el foco de ventana recae en la más recientemente usada.
+- **Terminal (PTY)**: los búferes de suscriptores inactivos están acotados.
+
 ## [1.0.2] — 2026-08-08
 
 ### Corregido
