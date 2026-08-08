@@ -4,6 +4,17 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.2] — 2026-08-08
+
+### Corregido
+
+- **Pantalla negra tras la actualización**: el bundle del renderer separaba
+  `solid-js` en un vendor chunk que creaba un ciclo de inicialización
+  (`Cannot access '$RAW' before initialization`), rompiendo el montaje de la
+  interfaz. El renderer vuelve a un bundle único (Rollup resuelve el grafo
+  completo) — se mantiene el split del proceso principal, que es el que
+  reduce el arranque.
+
 ## [1.0.1] — 2026-08-08
 
 ### Corregido
