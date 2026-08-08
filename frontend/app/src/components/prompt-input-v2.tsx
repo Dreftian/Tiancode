@@ -11,6 +11,7 @@ import { ModelSelectorPopoverV2 } from "@/components/dialog-select-model"
 import { DialogSelectModelUnpaidV2 } from "@/components/dialog-select-model-unpaid-v2"
 import type { PromptInputProps } from "@/components/prompt-input/contracts"
 import { VoiceDictationButton } from "@/components/voice-dictation-button"
+import { CaptureControl } from "@/components/capture-control"
 import { normalizePromptHistoryEntry, promptLength, type PromptHistoryComment } from "@/components/prompt-input/history"
 import { createPersistedPromptInputHistory } from "@/components/prompt-input/history-store"
 import { promptDesignPlaceholder, promptPlaceholder } from "@/components/prompt-input/placeholder"
@@ -73,6 +74,9 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
               )
             }
           />
+        }
+        captureControl={
+          <CaptureControl onCapture={(file) => props.controller.addAttachments([file])} />
         }
         modelControl={
           <PromptInputV2ModelControl

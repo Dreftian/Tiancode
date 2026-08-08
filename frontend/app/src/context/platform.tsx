@@ -113,6 +113,12 @@ type PlatformBase = {
   /** Read image from clipboard (desktop only) */
   readClipboardImage?(): Promise<File | null>
 
+  /** Capture a screenshot as a PNG File to attach in the chat (desktop only) */
+  captureScreenshot?(
+    kind: "screen" | "area" | "window" | "preview",
+    options?: { bounds?: { x: number; y: number; width: number; height: number }; webContentsId?: number },
+  ): Promise<File | null>
+
   /** Export collected diagnostic logs (desktop only) */
   exportDebugLogs?(): Promise<string>
 

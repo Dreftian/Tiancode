@@ -27,6 +27,7 @@ import { nativeT } from "./native-translations"
 import { downloadVoices, deleteVoice, downloadVoice, getVoicesStatus, listVoices, selectVoice, setVoiceEnabled, speakVoice } from "./voices"
 import { asrChunk, asrStart, asrStop, ensureAsrModel, getAsrStatus } from "./asr"
 import { getRuntimeInstallState, installRuntime } from "./runtime-install"
+import { captureArea, capturePreview, captureScreen, captureWindow } from "./capture"
 
 const pickerFilters = (ext?: string[]) => {
   if (!ext || ext.length === 0) return undefined
@@ -270,6 +271,14 @@ export function registerIpcHandlers(deps: Deps) {
     const size = image.getSize()
     return { buffer, width: size.width, height: size.height }
   })
+
+  // Capturas para el chat (el modelo puede analizarlas vía un MCP de visión).
+  ipcMain.handle("capture-screen", () => captureScreen())
+  ipcMain.handle("capture-area", (_event: IpcMainInvokeEvent, bounds: { x: number; y: number; width: number; height: number }) =>
+    captureArea(bounds),
+  )
+  ipcMain.handle("capture-window", (event: IpcMainInvokeEvent) => captureWindow(event.sender))
+  ipcMain.handle("capture-preview", (_event: IpcMainInvokeEvent, webContentsId: number) => capturePreview(webContentsId))
 
   ipcMain.handle("get-window-id", (event: IpcMainInvokeEvent) => {
     const win = BrowserWindow.fromWebContents(event.sender)

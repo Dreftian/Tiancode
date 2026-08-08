@@ -197,6 +197,12 @@ export type ElectronAPI = {
   openPath: (path: string, app?: string) => Promise<void>
   revealPath: (path: string) => Promise<boolean>
   readClipboardImage: () => Promise<{ buffer: ArrayBuffer; width: number; height: number } | null>
+  capture: {
+    screen: () => Promise<{ buffer: ArrayBuffer; width: number; height: number }>
+    area: (bounds: { x: number; y: number; width: number; height: number }) => Promise<{ buffer: ArrayBuffer; width: number; height: number }>
+    window: () => Promise<{ buffer: ArrayBuffer; width: number; height: number }>
+    preview: (webContentsId: number) => Promise<{ buffer: ArrayBuffer; width: number; height: number }>
+  }
   getWindowFocused: () => Promise<boolean>
   getWindowFullscreen: () => Promise<boolean>
   onWindowFullscreenChanged: (cb: (fullscreen: boolean) => void) => () => void

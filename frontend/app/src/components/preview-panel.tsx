@@ -7,6 +7,10 @@ import "./preview-panel.css"
 // El elemento se crea dinámicamente porque "webview" no está en los tipos JSX;
 // los eventos del navegador llegan por addEventListener.
 
+// webContentsId del guest, publicado para que el botón de captura de pantalla
+// pueda fotografiar lo que muestra el navegador interno.
+export const [previewWebContentsId, setPreviewWebContentsId] = createSignal<number | undefined>(undefined)
+
 // No hay una URL por defecto útil en producción (localhost:5173 solo existe
 // en dev); el panel se abre vacío y el usuario navega a donde quiera.
 const DEFAULT_URL = ""
@@ -29,6 +33,7 @@ type WebviewElement = HTMLElement & {
   goForward(): void
   reload(): void
   isLoading(): boolean
+  getWebContentsId(): number
 }
 
 export function PreviewPanel() {
@@ -68,6 +73,7 @@ export function PreviewPanel() {
     element.style.height = "100%"
     container.appendChild(element)
     webview = element
+    setPreviewWebContentsId(element.getWebContentsId())
     const onTitleUpdate = () => setPageTitle(element.getTitle())
     element.addEventListener("did-navigate", syncState)
     element.addEventListener("did-navigate-in-page", syncState)
@@ -82,6 +88,7 @@ export function PreviewPanel() {
       element.removeEventListener("page-title-updated", onTitleUpdate)
       element.remove()
       webview = undefined
+      setPreviewWebContentsId(undefined)
     })
   })
 

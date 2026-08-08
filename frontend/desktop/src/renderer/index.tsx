@@ -314,6 +314,25 @@ const createPlatform = (windowState: DesktopWindowState): Platform => {
         type: "image/png",
       })
     },
+
+    // Captura de pantalla → File PNG para adjuntar en el chat (el modelo la
+    // analiza vía un MCP de visión). El área se recorta en el main con las
+    // coordenadas CSS de la pantalla principal.
+    async captureScreenshot(kind, options) {
+      const result =
+        kind === "window"
+          ? await window.api.capture.window()
+          : kind === "preview"
+            ? await window.api.capture.preview(options?.webContentsId ?? 0)
+            : kind === "area"
+              ? await window.api.capture.area(options?.bounds ?? { x: 0, y: 0, width: 0, height: 0 })
+              : await window.api.capture.screen()
+      if (!result) return null
+      const blob = new Blob([result.buffer], { type: "image/png" })
+      return new File([blob], `screenshot-${Date.now()}.png`, {
+        type: "image/png",
+      })
+    },
   }
 }
 

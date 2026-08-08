@@ -144,6 +144,12 @@ const api: ElectronAPI = {
   openPath: (path, app) => ipcRenderer.invoke("open-path", path, app),
   revealPath: (path) => ipcRenderer.invoke("reveal-path", path),
   readClipboardImage: () => ipcRenderer.invoke("read-clipboard-image"),
+  capture: {
+    screen: () => ipcRenderer.invoke("capture-screen"),
+    area: (bounds) => ipcRenderer.invoke("capture-area", bounds),
+    window: () => ipcRenderer.invoke("capture-window"),
+    preview: (webContentsId) => ipcRenderer.invoke("capture-preview", webContentsId),
+  },
   getWindowFocused: () => ipcRenderer.invoke("get-window-focused"),
   getWindowFullscreen: () => ipcRenderer.invoke("get-window-fullscreen"),
   onWindowFullscreenChanged: (cb) => {

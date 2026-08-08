@@ -47,6 +47,8 @@ export type PromptInputV2Props = {
   // Extra action rendered between the left controls and the submit button
   // (e.g. a dictation microphone button supplied by the host app).
   micControl?: JSX.Element
+  // Extra action rendered next to micControl (e.g. the screenshot button).
+  captureControl?: JSX.Element
 }
 
 export function PromptInputV2(props: PromptInputV2Props) {
@@ -257,6 +259,7 @@ export function PromptInputV2(props: PromptInputV2Props) {
               )}
             </Show>
             {props.micControl}
+            {props.captureControl}
           </div>
           <PromptInputV2SubmitButton
             mode={state.mode}
