@@ -33,9 +33,17 @@ const detectGpu = Effect.fn("ModelHub.gpu")(function* () {
     const name = result?.stdout?.trim()
     if (name) return name
   }
-  const lspci = yield* Effect.tryPromise(() => execFileAsync("lspci")).pipe(Effect.catch(() => Effect.succeed(undefined)))
+  const lspci = yield* Effect.tryPromise(() => execFileAsync("lspci")).pipe(
+    Effect.catch(() => Effect.succeed(undefined)),
+  )
   const vga = lspci?.stdout?.split("\n").find((line) => /vga|3d|display/i.test(line))
-  return vga?.split(/\s{2,}/).slice(1).join(" ").trim() || undefined
+  return (
+    vga
+      ?.split(/\s{2,}/)
+      .slice(1)
+      .join(" ")
+      .trim() || undefined
+  )
 })
 
 // VRAM is the primary memory for local models: the GPU loads layers there
@@ -60,10 +68,7 @@ const detectVram = Effect.fn("ModelHub.vram")(function* () {
   // dedicated memory (the primary GPU on multi-GPU and hybrid laptops).
   for (const binary of NVIDIA_SMI_PATHS) {
     const result = yield* Effect.tryPromise(() =>
-      execFileAsync(binary, [
-        "--query-gpu=memory.total,memory.free,memory.used",
-        "--format=csv,noheader,nounits",
-      ]),
+      execFileAsync(binary, ["--query-gpu=memory.total,memory.free,memory.used", "--format=csv,noheader,nounits"]),
     ).pipe(Effect.catch(() => Effect.succeed(undefined)))
     let best: VramInfo | undefined
     for (const line of (result?.stdout ?? "").split("\n")) {
@@ -412,7 +417,8 @@ export interface DownloadState extends DownloadJob {
 
 // Stable, URL-safe id so a resumed download finds the same job after a
 // restart without any extra bookkeeping.
-const jobId = (model: string, file: string) => createHash("sha256").update(`${model}/${file}`).digest("hex").slice(0, 16)
+const jobId = (model: string, file: string) =>
+  createHash("sha256").update(`${model}/${file}`).digest("hex").slice(0, 16)
 
 const toDownloadState = (job: DownloadJob): DownloadState => ({
   ...job,
@@ -422,6 +428,55 @@ const toDownloadState = (job: DownloadJob): DownloadState => ({
   received: job.downloadedBytes,
   done: job.status === "completed",
 })
+
+// --- Download input validation ----------------------------------------------
+
+// `model` and `file` arrive from an HTTP payload and are persisted verbatim in
+// `.jobs.json`, so both are untrusted input. Only exact HuggingFace `owner/repo`
+// ids and relative repo paths are accepted: anything else could write outside
+// the models directory (path traversal) or build a URL for an arbitrary host.
+const MODEL_PATTERN = /^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/
+const FILE_PATTERN = /^[A-Za-z0-9._\-/]+$/
+
+// Returns a human-readable error when `model`/`file` are not safe to use as a
+// HuggingFace repo path and a local destination, undefined otherwise. The same
+// validation runs again at rehydration: persisted jobs must never be trusted.
+function validateModelDownload(model: string, file: string) {
+  if (!MODEL_PATTERN.test(model) || model.includes(".."))
+    return `Invalid model "${model}": expected exactly owner/repo of letters, digits, dots, dashes or underscores (no "..")`
+  if (
+    !FILE_PATTERN.test(file) ||
+    file.startsWith("/") ||
+    file.split("/").some((segment) => segment === "." || segment === "..")
+  )
+    return `Invalid file "${file}": expected a relative repo path without "." or ".." segments or a leading slash`
+  return undefined
+}
+
+// A validation failure is returned as a typed failed state through the job
+// error model instead of throwing: the HttpApi download endpoint declares no
+// error schema, so an effect failure would surface as an undeclared 500. The
+// state is never registered, so it does not appear in `downloads()`.
+const invalidDownloadState = (model: string, file: string, error: string) => {
+  const [owner, repo] = model.split("/")
+  const job: MutableDownloadJob = new DownloadJob({
+    id: jobId(model, file),
+    owner: owner ?? "",
+    repo: repo ?? "",
+    file,
+    url: "",
+    sizeBytes: undefined,
+    sha256: undefined,
+    downloadedBytes: 0,
+    status: "failed",
+    tempPath: "",
+    destPath: "",
+    startedAt: Date.now(),
+    completedAt: Date.now(),
+    error,
+  })
+  return toDownloadState(job)
+}
 
 export interface SystemInfo {
   readonly ram: number
@@ -447,62 +502,87 @@ export class Service extends Context.Service<Service, Interface>()("@tiancode/Mo
 const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
-      const http = HttpClient.filterStatusOk(withTransientReadRetry(yield* HttpClient.HttpClient))
-      const fs = yield* FSUtil.Service
-      const scope = yield* Scope.Scope
-      const modelsDir = path.join(Global.Path.data, "models")
-      const jobsFile = path.join(modelsDir, ".jobs.json")
+    const http = HttpClient.filterStatusOk(withTransientReadRetry(yield* HttpClient.HttpClient))
+    const fs = yield* FSUtil.Service
+    const scope = yield* Scope.Scope
+    const modelsDir = path.join(Global.Path.data, "models")
+    // Resolved once so containment checks compare like-for-like on Windows
+    // (drive letters and case) and on case-sensitive platforms.
+    const resolvedModelsDir = path.resolve(modelsDir)
+    const jobsFile = path.join(modelsDir, ".jobs.json")
 
-      const jobs = new Map<string, MutableDownloadJob>()
-      const controllers = new Map<string, AbortController>()
-      let lastPersist = 0
+    const jobs = new Map<string, MutableDownloadJob>()
+    const controllers = new Map<string, AbortController>()
+    let lastPersist = 0
 
-      // Persist the registry; throttled so progress updates do not hammer the
-      // disk, with a force flag for status transitions that must survive a
-      // crash (start, pause, complete, fail).
-      const persistJobs = Effect.fn("ModelHub.persistJobs")(function* (force = false) {
-        const now = Date.now()
-        if (!force && now - lastPersist < 2000) return
-        lastPersist = now
-        yield* fs.writeJson(jobsFile, Array.from(jobs.values())).pipe(
-          Effect.catch((error) => Effect.logError("failed to persist model hub jobs", { error })),
-        )
-      })
+    // Persist the registry; throttled so progress updates do not hammer the
+    // disk, with a force flag for status transitions that must survive a
+    // crash (start, pause, complete, fail).
+    const persistJobs = Effect.fn("ModelHub.persistJobs")(function* (force = false) {
+      const now = Date.now()
+      if (!force && now - lastPersist < 2000) return
+      lastPersist = now
+      yield* fs
+        .writeJson(jobsFile, Array.from(jobs.values()))
+        .pipe(Effect.catch((error) => Effect.logError("failed to persist model hub jobs", { error })))
+    })
 
-      // Rehydrate jobs from disk. In-flight downloads become paused — a crash
-      // or restart leaves a `.part` file behind that `download()` resumes.
-      yield* fs.ensureDir(modelsDir).pipe(Effect.orDie)
-      const stored = yield* fs.readJson(jobsFile).pipe(
-        Effect.catchReason("PlatformError", "NotFound", () => Effect.succeed(undefined)),
-        Effect.catch(() => Effect.succeed(undefined)),
-      )
-      if (stored !== undefined) {
-        for (const job of Option.getOrElse(Schema.decodeUnknownOption(Schema.Array(DownloadJob))(stored), () => [])) {
-          const mutable = { ...job, status: job.status === "downloading" ? "paused" : job.status } as MutableDownloadJob
-          const partSize = yield* Effect.tryPromise(() => stat(mutable.tempPath)).pipe(
-            Effect.map((info) => info.size),
-            Effect.catch(() => Effect.succeed(0)),
-          )
-          if (partSize > 0) mutable.downloadedBytes = partSize
-          jobs.set(mutable.id, mutable)
+    // Rehydrate jobs from disk. In-flight downloads become paused — a crash
+    // or restart leaves a `.part` file behind that `download()` resumes.
+    yield* fs.ensureDir(modelsDir).pipe(Effect.orDie)
+    const stored = yield* fs.readJson(jobsFile).pipe(
+      Effect.catchReason("PlatformError", "NotFound", () => Effect.succeed(undefined)),
+      Effect.catch(() => Effect.succeed(undefined)),
+    )
+    if (stored !== undefined) {
+      for (const job of Option.getOrElse(Schema.decodeUnknownOption(Schema.Array(DownloadJob))(stored), () => [])) {
+        // Persisted jobs are untrusted input: re-validate model+file and
+        // recompute url/tempPath/destPath instead of trusting the stored
+        // values, so a tampered `.jobs.json` cannot make the server write
+        // outside the models directory or fetch an arbitrary URL.
+        const model = `${job.owner}/${job.repo}`
+        const validationError = validateModelDownload(model, job.file)
+        const destPath = path.resolve(resolvedModelsDir, model, job.file)
+        if (validationError || !destPath.startsWith(resolvedModelsDir + path.sep)) {
+          yield* Effect.logWarning("skipping persisted model download job with invalid model or file", {
+            id: job.id,
+            model,
+            file: job.file,
+            error: validationError ?? "path escapes the models directory",
+          })
+          continue
         }
+        const mutable = {
+          ...job,
+          status: job.status === "downloading" ? "paused" : job.status,
+          url: `${HUGGINGFACE_RESOLVE}/${model}/resolve/main/${job.file}`,
+          tempPath: `${destPath}.part`,
+          destPath,
+        } as MutableDownloadJob
+        const partSize = yield* Effect.tryPromise(() => stat(mutable.tempPath)).pipe(
+          Effect.map((info) => info.size),
+          Effect.catch(() => Effect.succeed(0)),
+        )
+        if (partSize > 0) mutable.downloadedBytes = partSize
+        jobs.set(mutable.id, mutable)
       }
+    }
 
-      // Combined RAM + VRAM probe shared by the files list and system info.
-      // La detección de GPU lanza nvidia-smi / PowerShell; se cachea 30s para
-      // que el panel de ajustes no la re-ejecute en cada poll.
-      let memoryCache: { ram: number; vram: VramInfo | undefined } | undefined
-      let memoryCachedAt = 0
-      const memory = Effect.fn("ModelHub.memory")(function* () {
-        const now = Date.now()
-        if (memoryCache && now - memoryCachedAt < 30_000) return memoryCache
-        const vram = yield* detectVram()
-        memoryCache = { ram: os.totalmem(), vram }
-        memoryCachedAt = now
-        return memoryCache
-      })
+    // Combined RAM + VRAM probe shared by the files list and system info.
+    // La detección de GPU lanza nvidia-smi / PowerShell; se cachea 30s para
+    // que el panel de ajustes no la re-ejecute en cada poll.
+    let memoryCache: { ram: number; vram: VramInfo | undefined } | undefined
+    let memoryCachedAt = 0
+    const memory = Effect.fn("ModelHub.memory")(function* () {
+      const now = Date.now()
+      if (memoryCache && now - memoryCachedAt < 30_000) return memoryCache
+      const vram = yield* detectVram()
+      memoryCache = { ram: os.totalmem(), vram }
+      memoryCachedAt = now
+      return memoryCache
+    })
 
-      const search = Effect.fn("ModelHub.search")(function* (query: string, limit: number) {
+    const search = Effect.fn("ModelHub.search")(function* (query: string, limit: number) {
       const url = new URL(`${HUGGINGFACE_API}/models`)
       url.searchParams.set("search", query)
       url.searchParams.set("limit", String(limit))
@@ -510,263 +590,271 @@ const layer = Layer.effect(
       url.searchParams.set("sort", "downloads")
       url.searchParams.set("direction", "-1")
       url.searchParams.set("full", "true")
-        const data = yield* HttpClientRequest.get(url.href).pipe(
-          HttpClientRequest.acceptJson,
-          http.execute,
-          Effect.flatMap(HttpClientResponse.schemaBodyJson(Schema.Array(HfModel))),
-          Effect.catch((error) =>
-            Effect.logError("failed to search huggingface models", { query, error }).pipe(Effect.as([] as HfModel[])),
+      const data = yield* HttpClientRequest.get(url.href).pipe(
+        HttpClientRequest.acceptJson,
+        http.execute,
+        Effect.flatMap(HttpClientResponse.schemaBodyJson(Schema.Array(HfModel))),
+        Effect.catch((error) =>
+          Effect.logError("failed to search huggingface models", { query, error }).pipe(Effect.as([] as HfModel[])),
+        ),
+      )
+      return Array.from(data)
+    })
+
+    const files = Effect.fn("ModelHub.files")(function* (model: string) {
+      const url = `${HUGGINGFACE_API}/models/${model}/tree/main`
+      const data = yield* HttpClientRequest.get(url).pipe(
+        HttpClientRequest.acceptJson,
+        http.execute,
+        Effect.flatMap(HttpClientResponse.schemaBodyJson(Schema.Array(HfTreeEntry))),
+        Effect.catch((error) =>
+          Effect.logError("failed to list model files", { model, error }).pipe(Effect.as([] as HfTreeEntry[])),
+        ),
+      )
+      const { ram, vram } = yield* memory()
+      return parseQuantFiles(
+        Array.from(data).map((entry) => ({
+          rfilename: entry.path,
+          size: entry.size,
+          lfs: entry.lfs,
+        })),
+      ).map((file) => ({
+        ...file,
+        fit: fitFor(file.size, ram, vram),
+        // Q4_K_M is the community default sweet spot; flag it when present.
+        recommended: file.quant === "Q4_K_M",
+      }))
+    })
+
+    const system = Effect.fn("ModelHub.system")(function* () {
+      const diskFree = yield* Effect.tryPromise(() => statfs(modelsDir)).pipe(
+        Effect.map((stats) => Number(stats.bavail) * Number(stats.bsize)),
+        Effect.catch(() => Effect.succeed(undefined)),
+      )
+      const cpu = os.cpus()[0]?.model.trim()
+      const gpu = yield* cachedGpu()
+      const { ram, vram } = yield* memory()
+      return { ram, diskFree: diskFree ?? 0, cpu, gpu, vram, modelsDir }
+    })
+
+    // GPU name detection spawns WMI/PowerShell (~1s); cache it alongside the
+    // memory probe so the settings panel does not re-run it on every poll.
+    let gpuCache: string | undefined
+    let gpuCachedAt = 0
+    const cachedGpu = Effect.fn("ModelHub.gpu.cached")(function* () {
+      const now = Date.now()
+      if (gpuCache !== undefined && now - gpuCachedAt < 30_000) return gpuCache
+      const gpu = yield* detectGpu()
+      gpuCache = gpu
+      gpuCachedAt = now
+      return gpuCache
+    })
+
+    const runtimes = Effect.fn("ModelHub.runtimes")(function* () {
+      return yield* Effect.all(
+        RUNTIME_PROBES.map((runtime) =>
+          Effect.tryPromise(() => probeRuntime(runtime.url)).pipe(
+            Effect.catch(() => Effect.succeed({ reachable: false, version: undefined })),
+            Effect.map(({ reachable, version }) => ({
+              id: runtime.id,
+              name: runtime.name,
+              available: reachable,
+              version,
+            })),
           ),
-        )
-        return Array.from(data)
-      })
+        ),
+        { concurrency: "unbounded" },
+      )
+    })
 
-      const files = Effect.fn("ModelHub.files")(function* (model: string) {
-        const url = `${HUGGINGFACE_API}/models/${model}/tree/main`
-        const data = yield* HttpClientRequest.get(url).pipe(
-          HttpClientRequest.acceptJson,
-          http.execute,
-          Effect.flatMap(HttpClientResponse.schemaBodyJson(Schema.Array(HfTreeEntry))),
-          Effect.catch((error) =>
-            Effect.logError("failed to list model files", { model, error }).pipe(Effect.as([] as HfTreeEntry[])),
-          ),
-        )
-        const { ram, vram } = yield* memory()
-        return parseQuantFiles(
-          Array.from(data).map((entry) => ({
-            rfilename: entry.path,
-            size: entry.size,
-            lfs: entry.lfs,
-          })),
-        ).map((file) => ({
-          ...file,
-          fit: fitFor(file.size, ram, vram),
-          // Q4_K_M is the community default sweet spot; flag it when present.
-          recommended: file.quant === "Q4_K_M",
-        }))
-      })
+    const listDownloads = Effect.fn("ModelHub.downloads")(function* () {
+      return Array.from(jobs.values()).map(toDownloadState)
+    })
 
-      const system = Effect.fn("ModelHub.system")(function* () {
-        const diskFree = yield* Effect.tryPromise(() => statfs(modelsDir)).pipe(
-          Effect.map((stats) => Number(stats.bavail) * Number(stats.bsize)),
-          Effect.catch(() => Effect.succeed(undefined)),
-        )
-        const cpu = os.cpus()[0]?.model.trim()
-        const gpu = yield* cachedGpu()
-        const { ram, vram } = yield* memory()
-        return { ram, diskFree: diskFree ?? 0, cpu, gpu, vram, modelsDir }
-      })
-
-      // GPU name detection spawns WMI/PowerShell (~1s); cache it alongside the
-      // memory probe so the settings panel does not re-run it on every poll.
-      let gpuCache: string | undefined
-      let gpuCachedAt = 0
-      const cachedGpu = Effect.fn("ModelHub.gpu.cached")(function* () {
-        const now = Date.now()
-        if (gpuCache !== undefined && now - gpuCachedAt < 30_000) return gpuCache
-        const gpu = yield* detectGpu()
-        gpuCache = gpu
-        gpuCachedAt = now
-        return gpuCache
-      })
-
-      const runtimes = Effect.fn("ModelHub.runtimes")(function* () {
-        return yield* Effect.all(
-          RUNTIME_PROBES.map((runtime) =>
-            Effect.tryPromise(() => probeRuntime(runtime.url)).pipe(
-              Effect.catch(() => Effect.succeed({ reachable: false, version: undefined })),
-              Effect.map(({ reachable, version }) => ({
-                id: runtime.id,
-                name: runtime.name,
-                available: reachable,
-                version,
-              })),
-            ),
-          ),
-          { concurrency: "unbounded" },
-        )
-      })
-
-      const listDownloads = Effect.fn("ModelHub.downloads")(function* () {
-        return Array.from(jobs.values()).map(toDownloadState)
-      })
-
-      // Streams the file to `<dest>.part` and verifies the sha256 from the
-      // HuggingFace tree when known; on success the file is renamed into
-      // place. A resumed download sends `Range: bytes=<offset>-`; servers that
-      // ignore it respond 200 and the file restarts from zero.
-      const runDownload = Effect.fn("ModelHub.runDownload")(function* (job: MutableDownloadJob) {
-        const model = `${job.owner}/${job.repo}`
-        const controller = new AbortController()
-        controllers.set(job.id, controller)
-        yield* Effect.ensuring(
-          Effect.gen(function* () {
-            yield* Effect.tryPromise(() => mkdir(path.dirname(job.destPath), { recursive: true })).pipe(Effect.orDie)
-            // Resolve the exact size + sha256 from the repo tree when the job
-            // does not carry them yet.
-            if (job.sizeBytes === undefined || job.sha256 === undefined) {
-              const tree = yield* HttpClientRequest.get(`${HUGGINGFACE_API}/models/${model}/tree/main`).pipe(
-                HttpClientRequest.acceptJson,
-                http.execute,
-                Effect.flatMap(HttpClientResponse.schemaBodyJson(Schema.Array(HfTreeEntry))),
-                Effect.catch(() => Effect.succeed([] as HfTreeEntry[])),
-              )
-              const info = Array.from(tree).find((entry) => entry.path === job.file)
-              if (info?.size) job.sizeBytes = info.size
-              if (info?.lfs?.oid) job.sha256 = info.lfs.oid
-            }
-            // Reconcile the offset with the actual `.part` file on disk.
-            const partSize = yield* Effect.tryPromise(() => stat(job.tempPath)).pipe(
-              Effect.map((info) => info.size),
-              Effect.catch(() => Effect.succeed(0)),
+    // Streams the file to `<dest>.part` and verifies the sha256 from the
+    // HuggingFace tree when known; on success the file is renamed into
+    // place. A resumed download sends `Range: bytes=<offset>-`; servers that
+    // ignore it respond 200 and the file restarts from zero.
+    const runDownload = Effect.fn("ModelHub.runDownload")(function* (job: MutableDownloadJob) {
+      const model = `${job.owner}/${job.repo}`
+      const controller = new AbortController()
+      controllers.set(job.id, controller)
+      yield* Effect.ensuring(
+        Effect.gen(function* () {
+          yield* Effect.tryPromise(() => mkdir(path.dirname(job.destPath), { recursive: true })).pipe(Effect.orDie)
+          // Resolve the exact size + sha256 from the repo tree when the job
+          // does not carry them yet.
+          if (job.sizeBytes === undefined || job.sha256 === undefined) {
+            const tree = yield* HttpClientRequest.get(`${HUGGINGFACE_API}/models/${model}/tree/main`).pipe(
+              HttpClientRequest.acceptJson,
+              http.execute,
+              Effect.flatMap(HttpClientResponse.schemaBodyJson(Schema.Array(HfTreeEntry))),
+              Effect.catch(() => Effect.succeed([] as HfTreeEntry[])),
             )
-            job.downloadedBytes = partSize
-            if (job.sizeBytes !== undefined && job.downloadedBytes >= job.sizeBytes) {
-              // Crash recovery: the .part file is complete but was never
-              // renamed into place. Move it now; if that fails the job is
-              // failed rather than looping on a bad file.
-              const renamed = yield* Effect.tryPromise(() => rename(job.tempPath, job.destPath)).pipe(
-                Effect.map(() => true),
-                Effect.catch(() => Effect.succeed(false)),
-              )
-              if (!renamed) {
-                job.status = "failed"
-                job.error = "completed partial file could not be moved into place"
-                job.completedAt = Date.now()
-                yield* persistJobs(true)
-                return
-              }
-              job.status = "completed"
+            const info = Array.from(tree).find((entry) => entry.path === job.file)
+            if (info?.size) job.sizeBytes = info.size
+            if (info?.lfs?.oid) job.sha256 = info.lfs.oid
+          }
+          // Reconcile the offset with the actual `.part` file on disk.
+          const partSize = yield* Effect.tryPromise(() => stat(job.tempPath)).pipe(
+            Effect.map((info) => info.size),
+            Effect.catch(() => Effect.succeed(0)),
+          )
+          job.downloadedBytes = partSize
+          if (job.sizeBytes !== undefined && job.downloadedBytes >= job.sizeBytes) {
+            // Crash recovery: the .part file is complete but was never
+            // renamed into place. Move it now; if that fails the job is
+            // failed rather than looping on a bad file.
+            const renamed = yield* Effect.tryPromise(() => rename(job.tempPath, job.destPath)).pipe(
+              Effect.map(() => true),
+              Effect.catch(() => Effect.succeed(false)),
+            )
+            if (!renamed) {
+              job.status = "failed"
+              job.error = "completed partial file could not be moved into place"
               job.completedAt = Date.now()
               yield* persistJobs(true)
               return
             }
-            // An already-completed destination (e.g. re-adding a job after a
-            // manual cleanup) short-circuits without re-downloading.
-            if (yield* fs.existsSafe(job.destPath)) {
-              job.downloadedBytes = job.sizeBytes ?? 0
-              job.status = "completed"
-              job.completedAt = Date.now()
-              yield* persistJobs(true)
-              return
-            }
-            job.status = "downloading"
-            job.error = undefined
-            yield* persistJobs(true)
-            const outcome = yield* Effect.tryPromise(async () => {
-              const offset = job.downloadedBytes
-              const response = await fetch(job.url, {
-                headers: offset > 0 ? { Range: `bytes=${offset}-` } : undefined,
-                redirect: "follow",
-                signal: controller.signal,
-              })
-              if (!response.ok || !response.body) throw new Error(`HTTP ${response.status} downloading ${job.url}`)
-              // 206 confirms the server honored the Range; a 200 means it
-              // ignored it and the file must restart from zero.
-              const resuming = response.status === 206
-              if (!resuming) job.downloadedBytes = 0
-              const contentRange = response.headers.get("content-range")
-              const rangeTotal = contentRange ? Number(contentRange.split("/")[1]) : 0
-              job.sizeBytes = rangeTotal > 0 ? rangeTotal : Number(response.headers.get("content-length") ?? 0)
-              const progress = new Transform({
-                transform(chunk, _encoding, callback) {
-                  job.downloadedBytes += chunk.byteLength
-                  callback(null, chunk)
-                },
-              })
-              await pipeline(
-                Readable.fromWeb(response.body as never),
-                progress,
-                createWriteStream(job.tempPath, { flags: resuming ? "a" : "w" }),
-                { signal: controller.signal },
-              )
-              if (job.sha256) {
-                const digest = createHash("sha256")
-                await pipeline(createReadStream(job.tempPath), digest)
-                if (digest.digest("hex") !== job.sha256) throw new Error(`sha256 mismatch for ${job.file}`)
-              }
-              await rename(job.tempPath, job.destPath)
-            }).pipe(
-              Effect.map(() => "ok" as const),
-              Effect.catch((error) => {
-                // Cancelled jobs are removed from the registry while the
-                // fetch is aborted; never resurrect them as failed.
-                if (jobs.get(job.id) !== job) return Effect.succeed("cancelled" as const)
-                job.status = "failed"
-                job.error = error instanceof Error ? error.message : String(error)
-                job.completedAt = Date.now()
-                return persistJobs(true).pipe(
-                  Effect.flatMap(() => Effect.logError("failed to download model", { model, file: job.file, error })),
-                  Effect.as("failed" as const),
-                )
-              }),
-            )
-            if (outcome !== "ok") return
             job.status = "completed"
             job.completedAt = Date.now()
             yield* persistJobs(true)
-          }),
-          Effect.sync(() => controllers.delete(job.id)),
-        )
-      })
-
-      const download = Effect.fn("ModelHub.download")(function* (model: string, file: string) {
-        const id = jobId(model, file)
-        const existing = jobs.get(id)
-        if (existing) {
-          if (existing.status === "downloading") return toDownloadState(existing)
-          if (existing.status === "completed") {
-            if (yield* fs.existsSafe(existing.destPath)) return toDownloadState(existing)
-            // The destination was removed after completion (e.g. manual
-            // cleanup) — restart the job from scratch.
-            existing.status = "paused"
-            existing.completedAt = undefined
-            existing.downloadedBytes = 0
+            return
           }
-          // paused or failed → resume from the `.part` offset. The controller
-          // guard keeps a double-resume from forking two concurrent fetches.
-          if (controllers.has(id)) return toDownloadState(existing)
-          yield* runDownload(existing).pipe(Effect.forkIn(scope, { startImmediately: true }), Effect.asVoid)
-          return toDownloadState(existing)
+          // An already-completed destination (e.g. re-adding a job after a
+          // manual cleanup) short-circuits without re-downloading.
+          if (yield* fs.existsSafe(job.destPath)) {
+            job.downloadedBytes = job.sizeBytes ?? 0
+            job.status = "completed"
+            job.completedAt = Date.now()
+            yield* persistJobs(true)
+            return
+          }
+          job.status = "downloading"
+          job.error = undefined
+          yield* persistJobs(true)
+          const outcome = yield* Effect.tryPromise(async () => {
+            const offset = job.downloadedBytes
+            const response = await fetch(job.url, {
+              headers: offset > 0 ? { Range: `bytes=${offset}-` } : undefined,
+              redirect: "follow",
+              signal: controller.signal,
+            })
+            if (!response.ok || !response.body) throw new Error(`HTTP ${response.status} downloading ${job.url}`)
+            // 206 confirms the server honored the Range; a 200 means it
+            // ignored it and the file must restart from zero.
+            const resuming = response.status === 206
+            if (!resuming) job.downloadedBytes = 0
+            const contentRange = response.headers.get("content-range")
+            const rangeTotal = contentRange ? Number(contentRange.split("/")[1]) : 0
+            job.sizeBytes = rangeTotal > 0 ? rangeTotal : Number(response.headers.get("content-length") ?? 0)
+            const progress = new Transform({
+              transform(chunk, _encoding, callback) {
+                job.downloadedBytes += chunk.byteLength
+                callback(null, chunk)
+              },
+            })
+            await pipeline(
+              Readable.fromWeb(response.body as never),
+              progress,
+              createWriteStream(job.tempPath, { flags: resuming ? "a" : "w" }),
+              { signal: controller.signal },
+            )
+            if (job.sha256) {
+              const digest = createHash("sha256")
+              await pipeline(createReadStream(job.tempPath), digest)
+              if (digest.digest("hex") !== job.sha256) throw new Error(`sha256 mismatch for ${job.file}`)
+            }
+            await rename(job.tempPath, job.destPath)
+          }).pipe(
+            Effect.map(() => "ok" as const),
+            Effect.catch((error) => {
+              // Cancelled jobs are removed from the registry while the
+              // fetch is aborted; never resurrect them as failed.
+              if (jobs.get(job.id) !== job) return Effect.succeed("cancelled" as const)
+              job.status = "failed"
+              job.error = error instanceof Error ? error.message : String(error)
+              job.completedAt = Date.now()
+              return persistJobs(true).pipe(
+                Effect.flatMap(() => Effect.logError("failed to download model", { model, file: job.file, error })),
+                Effect.as("failed" as const),
+              )
+            }),
+          )
+          if (outcome !== "ok") return
+          job.status = "completed"
+          job.completedAt = Date.now()
+          yield* persistJobs(true)
+        }),
+        Effect.sync(() => controllers.delete(job.id)),
+      )
+    })
+
+    const download = Effect.fn("ModelHub.download")(function* (model: string, file: string) {
+      // model/file are untrusted HTTP input: reject anything that is not an
+      // exact owner/repo plus a relative repo path before building paths or
+      // URLs. Containment is enforced again via path.resolve as defense in
+      // depth against future loosening of the patterns above.
+      const validationError = validateModelDownload(model, file)
+      if (validationError) return invalidDownloadState(model, file, validationError)
+      const destPath = path.resolve(resolvedModelsDir, model, file)
+      if (!destPath.startsWith(resolvedModelsDir + path.sep))
+        return invalidDownloadState(model, file, "path escapes the models directory")
+      const id = jobId(model, file)
+      const existing = jobs.get(id)
+      if (existing) {
+        if (existing.status === "downloading") return toDownloadState(existing)
+        if (existing.status === "completed") {
+          if (yield* fs.existsSafe(existing.destPath)) return toDownloadState(existing)
+          // The destination was removed after completion (e.g. manual
+          // cleanup) — restart the job from scratch.
+          existing.status = "paused"
+          existing.completedAt = undefined
+          existing.downloadedBytes = 0
         }
-        const [owner, ...rest] = model.split("/")
-        const destPath = path.join(modelsDir, model, file)
-        const job: MutableDownloadJob = new DownloadJob({
-          id,
-          owner,
-          repo: rest.join("/"),
-          file,
-          url: `${HUGGINGFACE_RESOLVE}/${model}/resolve/main/${file}`,
-          sizeBytes: undefined,
-          sha256: undefined,
-          downloadedBytes: 0,
-          status: "downloading",
-          tempPath: `${destPath}.part`,
-          destPath,
-          startedAt: Date.now(),
-          completedAt: undefined,
-          error: undefined,
-        })
-        jobs.set(id, job)
-        yield* persistJobs(true)
-        yield* runDownload(job).pipe(Effect.forkIn(scope, { startImmediately: true }), Effect.asVoid)
-        return toDownloadState(job)
+        // paused or failed → resume from the `.part` offset. The controller
+        // guard keeps a double-resume from forking two concurrent fetches.
+        if (controllers.has(id)) return toDownloadState(existing)
+        yield* runDownload(existing).pipe(Effect.forkIn(scope, { startImmediately: true }), Effect.asVoid)
+        return toDownloadState(existing)
+      }
+      const [owner, ...rest] = model.split("/")
+      const job: MutableDownloadJob = new DownloadJob({
+        id,
+        owner,
+        repo: rest.join("/"),
+        file,
+        url: `${HUGGINGFACE_RESOLVE}/${model}/resolve/main/${file}`,
+        sizeBytes: undefined,
+        sha256: undefined,
+        downloadedBytes: 0,
+        status: "downloading",
+        tempPath: `${destPath}.part`,
+        destPath,
+        startedAt: Date.now(),
+        completedAt: undefined,
+        error: undefined,
       })
+      jobs.set(id, job)
+      yield* persistJobs(true)
+      yield* runDownload(job).pipe(Effect.forkIn(scope, { startImmediately: true }), Effect.asVoid)
+      return toDownloadState(job)
+    })
 
-      const cancelDownload = Effect.fn("ModelHub.cancelDownload")(function* (id: string) {
-        const job = jobs.get(id)
-        if (!job) return false
-        controllers.get(id)?.abort()
-        controllers.delete(id)
-        jobs.delete(id)
-        yield* Effect.tryPromise(() => rm(job.tempPath, { force: true })).pipe(Effect.catch(() => Effect.void))
-        yield* persistJobs(true)
-        return true
-      })
+    const cancelDownload = Effect.fn("ModelHub.cancelDownload")(function* (id: string) {
+      const job = jobs.get(id)
+      if (!job) return false
+      controllers.get(id)?.abort()
+      controllers.delete(id)
+      jobs.delete(id)
+      yield* Effect.tryPromise(() => rm(job.tempPath, { force: true })).pipe(Effect.catch(() => Effect.void))
+      yield* persistJobs(true)
+      return true
+    })
 
-      return Service.of({ search, files, system, runtimes, downloads: listDownloads, download, cancelDownload })
-    }),
-  )
+    return Service.of({ search, files, system, runtimes, downloads: listDownloads, download, cancelDownload })
+  }),
+)
 
 export const node = makeGlobalNode({
   service: Service,
