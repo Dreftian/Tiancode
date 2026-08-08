@@ -26,6 +26,22 @@ function sessionErrorMessage(error: SessionError) {
   return "Session error"
 }
 
+// Bounds a pending set to the most recent entries: without a cap, unanswered
+// questions and permission requests would accumulate for the process lifetime.
+const MAX_PENDING = 100
+
+// Adds `id` and returns true when it was not tracked yet. The set preserves
+// insertion order, so evicting the first entry drops the oldest pending item.
+function remember(set: Set<string>, id: string) {
+  if (set.has(id)) return false
+  set.add(id)
+  if (set.size > MAX_PENDING) {
+    const oldest = set.values().next().value
+    if (oldest !== undefined) set.delete(oldest)
+  }
+  return true
+}
+
 const tui: TuiPlugin = async (api) => {
   const active = new Set<string>()
   const errored = new Set<string>()
@@ -33,8 +49,7 @@ const tui: TuiPlugin = async (api) => {
   const permissions = new Set<string>()
 
   api.event.on("question.asked", (event) => {
-    if (questions.has(event.properties.id)) return
-    questions.add(event.properties.id)
+    if (!remember(questions, event.properties.id)) return
     notify(api, event.properties.sessionID, "Question needs input", "question")
   })
 
@@ -47,8 +62,7 @@ const tui: TuiPlugin = async (api) => {
   })
 
   api.event.on("permission.asked", (event) => {
-    if (permissions.has(event.properties.id)) return
-    permissions.add(event.properties.id)
+    if (!remember(permissions, event.properties.id)) return
     notify(api, event.properties.sessionID, "Permission needs input", "permission")
   })
 
@@ -83,6 +97,13 @@ const tui: TuiPlugin = async (api) => {
     if (!active.has(sessionID)) return
     errored.add(sessionID)
     notify(api, sessionID, sessionErrorMessage(event.properties.error), "error")
+  })
+
+  api.event.on("session.deleted", (event) => {
+    // A deleted session must not linger as active: if its ID is reused, a new
+    // session would inherit the state and emit a spurious "Session done".
+    active.delete(event.properties.sessionID)
+    errored.delete(event.properties.sessionID)
   })
 }
 

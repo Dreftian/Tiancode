@@ -82,7 +82,7 @@ export function DialogStatus() {
                       <Match when={(item.status as string) === "needs_auth"}>
                         Needs authentication (run: tiancode mcp auth {key})
                       </Match>
-                      <Match when={(item.status as string) === "needs_client_registration" && item}>
+                      <Match when={item.status === "needs_client_registration" && item}>
                         {(val) => val().error}
                       </Match>
                     </Switch>
