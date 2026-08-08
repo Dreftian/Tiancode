@@ -6,6 +6,9 @@ export function createWindowRegistry<W>(persistence: {
   cleanup: (id: string) => void
 }) {
   const windows = new Map<string, W>()
+  // IDs ordenados de más a menos recientemente enfocados; respaldo cuando se
+  // cierra la ventana enfocada.
+  const mru: string[] = []
   let quitting = false
   let lastFocusedID: string | undefined
 
@@ -30,6 +33,9 @@ export function createWindowRegistry<W>(persistence: {
     },
     focused(id: string) {
       lastFocusedID = id
+      const index = mru.indexOf(id)
+      if (index > 0) mru.splice(index, 1)
+      if (index !== 0) mru.unshift(id)
     },
     lastFocused() {
       if (!lastFocusedID) return
@@ -37,7 +43,9 @@ export function createWindowRegistry<W>(persistence: {
     },
     closed(id: string) {
       windows.delete(id)
-      if (lastFocusedID === id) lastFocusedID = windows.keys().next().value
+      const index = mru.indexOf(id)
+      if (index >= 0) mru.splice(index, 1)
+      if (lastFocusedID === id) lastFocusedID = mru[0] ?? windows.keys().next().value
       // Only a deliberate close (app keeps running with other windows open)
       // forgets a window. Closing the last window quits the app and fires
       // `closed` before `before-quit`, so treat it as a quit and keep the id

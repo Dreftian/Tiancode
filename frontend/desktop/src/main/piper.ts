@@ -1,5 +1,6 @@
 import { app, BrowserWindow } from "electron"
-import { existsSync } from "node:fs"
+import { createHash } from "node:crypto"
+import { createReadStream, existsSync } from "node:fs"
 import { mkdir, open, rename, rm } from "node:fs/promises"
 import { join } from "node:path"
 import type { VoicesPiperProgress } from "../preload/types"
@@ -154,8 +155,31 @@ async function downloadFile(url: string, dest: string, voiceId: string | undefin
   } finally {
     await handle.close()
   }
+  await verifyDownload(url, part)
   await rename(part, dest)
   if (voiceId) reportProgress(voiceId, 100, url.split("/").pop())
+}
+
+// Verifica la descarga contra el puntero LFS de HuggingFace: la URL raw
+// devuelve un puntero de texto con el oid sha256 canónico para archivos LFS.
+// Sin puntero (archivos pequeños versionados en git, p. ej. tokens.txt o los
+// diccionarios de espeak-ng-data) no hay digest publicado y la descarga se
+// acepta tal cual. Ante un fallo se elimina el temporal y se lanza el error.
+async function verifyDownload(url: string, part: string) {
+  const fileName = url.split("/").pop()
+  const res = await fetch(url.replace("/resolve/", "/raw/"), { redirect: "follow" })
+  if (!res.ok) {
+    await rm(part, { force: true })
+    throw new Error(`no se pudo obtener el puntero LFS de ${fileName}: HTTP ${res.status}`)
+  }
+  const oid = (await res.text()).match(/oid sha256:([0-9a-fA-F]{64})/)?.[1]
+  if (!oid) return
+  const hash = createHash("sha256")
+  for await (const chunk of createReadStream(part)) hash.update(chunk)
+  if (hash.digest("hex") !== oid.toLowerCase()) {
+    await rm(part, { force: true })
+    throw new Error(`la suma sha256 de ${fileName} no coincide con el puntero LFS`)
+  }
 }
 
 async function writeFile(path: string, content: string) {

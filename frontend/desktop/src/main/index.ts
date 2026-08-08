@@ -77,9 +77,15 @@ const pendingDeepLinks: string[] = []
 
 function emitDeepLinks(urls: string[]) {
   if (urls.length === 0) return
-  pendingDeepLinks.push(...urls)
   const win = getLastFocusedWindow()
-  if (win) sendDeepLinks(win, urls)
+  if (win) {
+    sendDeepLinks(win, urls)
+    return
+  }
+  // Sin ventana a la que entregar (p. ej. antes del primer arranque de
+  // ventanas): se acumulan para que la primera ventana los consuma con
+  // consume-initial-deep-links.
+  pendingDeepLinks.push(...urls)
 }
 
 async function killSidecar() {

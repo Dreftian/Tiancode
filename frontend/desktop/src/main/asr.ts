@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from "electron"
-import { existsSync } from "node:fs"
-import { mkdir, open, rename } from "node:fs/promises"
+import { createHash } from "node:crypto"
+import { createReadStream, existsSync } from "node:fs"
+import { mkdir, open, rename, rm } from "node:fs/promises"
 import { join } from "node:path"
 import { write as writeLog } from "./logging"
 import { concatChunks } from "./asr-utils"
@@ -140,7 +141,30 @@ async function downloadFileOnce(url: string, dest: string) {
   } finally {
     await handle.close()
   }
+  await verifyDownload(url, part)
   await rename(part, dest)
+}
+
+// Verifica la descarga contra el puntero LFS de HuggingFace: la URL raw
+// devuelve un puntero de texto con el oid sha256 canónico para archivos LFS.
+// Sin puntero (archivos pequeños versionados en git, p. ej. tiny-tokens.txt)
+// no hay digest publicado y la descarga se acepta tal cual. Ante un fallo se
+// elimina el temporal y se lanza el error para que downloadFile reintente.
+async function verifyDownload(url: string, part: string) {
+  const fileName = url.split("/").pop()
+  const res = await fetch(url.replace("/resolve/", "/raw/"), { redirect: "follow" })
+  if (!res.ok) {
+    await rm(part, { force: true })
+    throw new Error(`no se pudo obtener el puntero LFS de ${fileName}: HTTP ${res.status}`)
+  }
+  const oid = (await res.text()).match(/oid sha256:([0-9a-fA-F]{64})/)?.[1]
+  if (!oid) return
+  const hash = createHash("sha256")
+  for await (const chunk of createReadStream(part)) hash.update(chunk)
+  if (hash.digest("hex") !== oid.toLowerCase()) {
+    await rm(part, { force: true })
+    throw new Error(`la suma sha256 de ${fileName} no coincide con el puntero LFS`)
+  }
 }
 
 async function getRecognizer(language: "es" | "en"): Promise<OfflineRecognizerLike> {
