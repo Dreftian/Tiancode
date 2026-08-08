@@ -114,10 +114,10 @@ const getBase = (appId: string): Configuration => ({
     // instalarlo. El canal dev (sin firmar) no verifica para no romper sus
     // actualizaciones locales; además UPDATER_ENABLED lo desactiva en runtime.
     verifyUpdateCodeSignature: channel !== "dev",
-    // IMPORTANTE: debe coincidir con el Subject CN del certificado real de
-    // Azure Trusted Signing (cuenta/perfil del secreto CI). Si no coincide,
-    // electron-updater rechazará las actualizaciones firmadas de beta/prod.
-    publisherName: ["Tiancode"],
+    // publisherName se omite a propósito: electron-builder lo deriva del
+    // certificado de firma en build time, garantizando que siempre coincida con
+    // el Subject CN real de Azure Trusted Signing (cuenta/perfil viven en los
+    // secrets del CI, no en el repo).
   },
   nsis: {
     oneClick: true,
