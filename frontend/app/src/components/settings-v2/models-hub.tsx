@@ -153,6 +153,11 @@ export const SettingsModelsHubV2: Component<{
           name: kind === "ollama" ? "Ollama" : "LM Studio",
         }),
       })
+      // Provider local automático con el modelo recomendado para la GPU.
+      const recommended = recommendedModel()
+      if (recommended) {
+        await setupLocalProvider(kind, defaultRuntimeModel(kind, recommended.label))
+      }
     }
     setActiveRuntime(undefined)
     setRuntimeInstall({ status: "idle" })
@@ -165,6 +170,47 @@ export const SettingsModelsHubV2: Component<{
       return `${language.t("settings.modelsHub.runtime.install.downloading")} ${state.progress ?? 0}%`
     if (state.status === "installing") return language.t("settings.modelsHub.runtime.install.installing")
     return language.t("settings.modelsHub.runtime.install")
+  }
+
+  // Modelo GGUF recomendado según la VRAM detectada. Solo archivos de una
+  // pieza para que la descarga integrada del Model Hub funcione directamente.
+  const RECOMMENDED_GGUF = [
+    { minVram: 0, model: "Qwen/Qwen2.5-3B-Instruct-GGUF", file: "qwen2.5-3b-instruct-q4_k_m.gguf", label: "Qwen 2.5 3B", size: 2.1e9 },
+    { minVram: 8e9, model: "bartowski/Qwen2.5-7B-Instruct-GGUF", file: "Qwen2.5-7B-Instruct-Q4_K_M.gguf", label: "Qwen 2.5 7B", size: 4.7e9 },
+  ]
+  const recommendedModel = createMemo(() => {
+    const total = vramTotal()
+    if (total <= 0) return undefined
+    return RECOMMENDED_GGUF.filter((entry) => total >= entry.minVram).at(-1)
+  })
+
+  // Nombre de modelo por defecto para el runtime: Ollama usa ids "modelo:tag",
+  // LM Studio usa el nombre del archivo GGUF.
+  const defaultRuntimeModel = (runtimeId: string, fallback: string) =>
+    runtimeId === "ollama" ? `qwen2.5:${fallback.includes("7B") ? "7b" : "3b"}` : fallback
+
+  // Crea un provider local apuntando al runtime (Ollama / LM Studio) con el
+  // modelo recomendado como nombre por defecto; el usuario lo ajusta al
+  // modelo que realmente tenga instalado en el runtime.
+  const setupLocalProvider = async (runtimeId: string, modelName: string) => {
+    const baseURL = runtimeId === "ollama" ? "http://localhost:11434/v1" : "http://localhost:1234/v1"
+    try {
+      await serverSdk().client.config.update({
+        ...params(),
+        config: {
+          provider: {
+            [runtimeId]: {
+              npm: "@ai-sdk/openai-compatible",
+              options: { baseURL },
+              models: { [modelName]: { name: modelName } },
+            },
+          },
+        },
+      })
+      showToast({ variant: "success", title: language.t("settings.modelsHub.provider.ready", { name: modelName }) })
+    } catch {
+      showToast({ variant: "error", title: language.t("settings.modelsHub.provider.failed") })
+    }
   }
 
   const refreshJobs = async () => {
@@ -456,6 +502,21 @@ export const SettingsModelsHubV2: Component<{
                       ? `${language.t("settings.modelsHub.runtime.available")}${runtime.version ? ` · v${runtime.version}` : ""}`
                       : language.t("settings.modelsHub.runtime.notDetected")}
                   </span>
+                  <Show when={runtime.available}>
+                    <button
+                      type="button"
+                      class="settings-v2-models-hub-runtime-install"
+                      onClick={() => {
+                        const recommended = recommendedModel()
+                        void setupLocalProvider(
+                          runtime.id,
+                          defaultRuntimeModel(runtime.id, recommended?.label ?? "Qwen 2.5 7B"),
+                        )
+                      }}
+                    >
+                      {language.t("settings.modelsHub.provider.setup")}
+                    </button>
+                  </Show>
                   <Show when={!runtime.available && runtimeAPI()}>
                     <button
                       type="button"
@@ -472,6 +533,42 @@ export const SettingsModelsHubV2: Component<{
           </div>
           <p class="settings-v2-models-hub-runtime-hint">{language.t("settings.modelsHub.runtime.hint")}</p>
         </div>
+
+        <Show when={recommendedModel()}>
+          {(recommended) => {
+            const job = jobsByKey()[`${recommended().model}/${recommended().file}`]
+            const downloading = job?.status === "downloading"
+            const completed = job?.status === "completed"
+            return (
+              <div class="settings-v2-section">
+                <h3 class="settings-v2-section-title">{language.t("settings.modelsHub.recommended.title")}</h3>
+                <SettingsListV2>
+                  <div class="settings-v2-models-hub-recommended">
+                    <div class="settings-v2-models-hub-recommended-copy">
+                      <div class="settings-v2-models-hub-recommended-name">{recommended().label}</div>
+                      <div class="settings-v2-models-hub-recommended-meta">
+                        {formatBytes(recommended().size)} · {language.t("settings.modelsHub.recommended.forYourGpu")}
+                      </div>
+                    </div>
+                    <ButtonV2
+                      type="button"
+                      variant="contrast"
+                      size="small"
+                      disabled={downloading || completed}
+                      onClick={() => void startDownload(recommended().model, recommended().file)}
+                    >
+                      {completed
+                        ? language.t("settings.modelsHub.download.completed")
+                        : downloading
+                          ? language.t("settings.modelsHub.download.downloading")
+                          : language.t("settings.modelsHub.recommended.download")}
+                    </ButtonV2>
+                  </div>
+                </SettingsListV2>
+              </div>
+            )
+          }}
+        </Show>
 
         <Show when={submitted() && (models() ?? []).length === 0} fallback={<></>}>
           <div class="settings-v2-skills-status">{language.t("settings.modelsHub.empty")}</div>

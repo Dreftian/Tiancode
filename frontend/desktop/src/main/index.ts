@@ -31,8 +31,9 @@ import {
   type SidecarListener,
 } from "./server"
 import { setupAutoUpdater, showUpdaterDialog } from "./updater"
+import { backupNow } from "./backup"
 import { getStore } from "./store"
-import { CHECK_UPDATES_ON_START_KEY } from "./store-keys"
+import { AUTO_BACKUP_KEY, CHECK_UPDATES_ON_START_KEY, LAST_BACKUP_KEY } from "./store-keys"
 import { safeWebContentsURL } from "./window-state"
 import {
   createMainWindow,
@@ -305,6 +306,16 @@ const main = Effect.gen(function* () {
     if (getStore().get(CHECK_UPDATES_ON_START_KEY) !== "false") void updater.check()
   }, 10 * 60 * 1000)
   updateTimer.unref()
+  // Respaldo diario automático (Ajustes → General; ausente = activado). Solo
+  // datos (sesiones + configuración); los modelos se excluyen por diseño.
+  if (getStore().get(AUTO_BACKUP_KEY) !== "false") {
+    const today = new Date().toISOString().slice(0, 10)
+    if (getStore().get(LAST_BACKUP_KEY) !== today) {
+      void backupNow().then((name) => {
+        if (name) getStore().set(LAST_BACKUP_KEY, today)
+      })
+    }
+  }
   app.once("will-quit", () => clearInterval(updateTimer))
   yield* Effect.promise(() => startNetLog()).pipe(
     Effect.catch((error) =>

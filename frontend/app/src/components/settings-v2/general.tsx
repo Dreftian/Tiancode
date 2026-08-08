@@ -1,4 +1,4 @@
-import { Component, Show, createMemo, createResource } from "solid-js"
+import { Component, For, Show, createMemo, createResource } from "solid-js"
 import { createMediaQuery } from "@solid-primitives/media"
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
 import { SelectV2 } from "@tiancode-ai/ui/v2/select-v2"
@@ -10,6 +10,7 @@ import { usePlatform } from "@/context/platform"
 import { useUpdaterAction } from "../updater-action"
 import { useSettings } from "@/context/settings"
 import { ExternalLink } from "../external-link"
+import { showToast } from "@/utils/toast"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
 import { LayoutRetirementNotice } from "./interface-transition"
@@ -33,6 +34,7 @@ const settingsStoreName = "tiancode.settings"
 const minimizeToTrayKey = "minimizeToTray"
 const fileWatcherKey = "fileWatcher"
 const checkUpdatesOnStartKey = "checkUpdatesOnStart"
+const autoBackupKey = "autoBackup"
 const fontSettings = {
   ui: {
     action: "settings-ui-font",
@@ -318,6 +320,71 @@ export const SettingsGeneralV2: Component<{
     const update = window.api?.storeSet?.(settingsStoreName, minimizeToTrayKey, String(checked))
     if (!update) return
     void update.catch(() => setMinimizeToTray(!checked))
+  }
+
+  // Inicio con Windows: el estado real lo gestiona el sistema operativo (el
+  // main registra/elimina la entrada de inicio), así que se lee de ahí y el
+  // toggle aplica directamente, sin duplicar el estado en el store.
+  const [loginItem, { mutate: setLoginItem }] = createResource(
+    () => desktop() && platform.os === "windows",
+    () => (window.api?.getLoginItem ? window.api.getLoginItem() : Promise.resolve(false)),
+    { initialValue: false },
+  )
+
+  const onLoginItemChange = (checked: boolean) => {
+    if (loginItem() === checked) return
+    setLoginItem(checked)
+    const update = window.api?.setLoginItem?.(checked)
+    if (!update) return
+    void update.then((actual) => setLoginItem(actual)).catch(() => setLoginItem(!checked))
+  }
+
+  // Respaldo automático de datos (sesiones + configuración): el main copia a
+  // userData/backups una vez al día con rotación de 7 días.
+  const [autoBackup, { mutate: setAutoBackup }] = createResource(
+    () => desktop(),
+    () =>
+      window.api?.storeGet
+        ? window.api.storeGet(settingsStoreName, autoBackupKey).then((value) => value !== "false")
+        : Promise.resolve(true),
+    { initialValue: true },
+  )
+
+  const onAutoBackupChange = (checked: boolean) => {
+    setAutoBackup(checked)
+    const update = window.api?.storeSet?.(settingsStoreName, autoBackupKey, String(checked))
+    if (!update) return
+    void update.catch(() => setAutoBackup(!checked))
+  }
+
+  const [backups, { refetch: refetchBackups }] = createResource(
+    () => desktop(),
+    () => (window.api?.listBackups ? window.api.listBackups() : Promise.resolve([])),
+    { initialValue: [] as { name: string; createdAt: number }[] },
+  )
+
+  const backupNow = async () => {
+    const name = await window.api?.backupNow?.()
+    if (name) {
+      showToast({ variant: "success", title: language.t("settings.general.backup.now.success") })
+      void refetchBackups()
+    } else {
+      showToast({ variant: "error", title: language.t("settings.general.backup.now.failed") })
+    }
+  }
+
+  const restoreBackup = async (name: string) => {
+    const confirmed = window.confirm(language.t("settings.general.backup.restore.confirm", { name }))
+    if (!confirmed) return
+    try {
+      await window.api?.restoreBackup?.(name)
+      showToast({ variant: "success", title: language.t("settings.general.backup.restore.success") })
+      // Los datos de la instancia se recargan desde disco; reiniciar la app
+      // garantiza un estado totalmente limpio.
+      window.api?.relaunchApp?.()
+    } catch {
+      showToast({ variant: "error", title: language.t("settings.general.backup.restore.failed") })
+    }
   }
 
   const [fileWatcher, { mutate: setFileWatcher }] = createResource(
@@ -625,6 +692,17 @@ export const SettingsGeneralV2: Component<{
             </SettingsRowV2>
           </Show>
 
+          <Show when={platform.os === "windows"}>
+            <SettingsRowV2
+              title={language.t("settings.general.row.loginItem.title")}
+              description={language.t("settings.general.row.loginItem.description")}
+            >
+              <div data-action="settings-login-item">
+                <Switch checked={loginItem.latest} onChange={onLoginItemChange} />
+              </div>
+            </SettingsRowV2>
+          </Show>
+
           <SettingsRowV2
             title={language.t("settings.general.row.fileWatcher.title")}
             description={language.t("settings.general.row.fileWatcher.description")}
@@ -633,6 +711,59 @@ export const SettingsGeneralV2: Component<{
               <Switch checked={fileWatcher.latest} onChange={onFileWatcherChange} />
             </div>
           </SettingsRowV2>
+        </SettingsListV2>
+      </div>
+    </Show>
+  )
+
+  const DataSection = () => (
+    <Show when={desktop()}>
+      <div class="settings-v2-section">
+        <h3 class="settings-v2-section-title">{language.t("settings.general.section.data")}</h3>
+
+        <SettingsListV2>
+          <SettingsRowV2
+            title={language.t("settings.general.row.autoBackup.title")}
+            description={language.t("settings.general.row.autoBackup.description")}
+          >
+            <div data-action="settings-auto-backup">
+              <Switch checked={autoBackup.latest} onChange={onAutoBackupChange} />
+            </div>
+          </SettingsRowV2>
+
+          <SettingsRowV2
+            title={language.t("settings.general.row.backupNow.title")}
+            description={language.t("settings.general.row.backupNow.description")}
+          >
+            <ButtonV2 type="button" variant="outline" size="small" onClick={() => void backupNow()}>
+              {language.t("settings.general.row.backupNow.button")}
+            </ButtonV2>
+          </SettingsRowV2>
+
+          <Show when={backups()!.length > 0}>
+            <SettingsRowV2
+              title={language.t("settings.general.row.restore.title")}
+              description={language.t("settings.general.row.restore.description")}
+            >
+              <div class="flex flex-col items-end gap-1">
+                <For each={backups()!.slice(0, 3)}>
+                  {(backup) => (
+                    <div class="flex items-center gap-2 text-12-regular text-text-strong">
+                      <span>{new Date(backup.createdAt).toLocaleString()}</span>
+                      <ButtonV2
+                        type="button"
+                        variant="ghost"
+                        size="small"
+                        onClick={() => void restoreBackup(backup.name)}
+                      >
+                        {language.t("settings.general.row.restore.button")}
+                      </ButtonV2>
+                    </div>
+                  )}
+                </For>
+              </div>
+            </SettingsRowV2>
+          </Show>
         </SettingsListV2>
       </div>
     </Show>
@@ -662,6 +793,8 @@ export const SettingsGeneralV2: Component<{
         </Show>
 
         <DisplaySection />
+
+        <DataSection />
 
         <AdvancedSection />
       </div>

@@ -250,6 +250,12 @@ declare global {
       storeGet?: (name: string, key: string) => Promise<string | null>
       storeSet?: (name: string, key: string, value: string) => Promise<void>
       relaunchApp?: () => Promise<void>
+      notify?: (title: string, body: string) => Promise<void>
+      setLoginItem?: (enabled: boolean) => Promise<boolean>
+      getLoginItem?: () => Promise<boolean>
+      backupNow?: () => Promise<string | null>
+      listBackups?: () => Promise<{ name: string; createdAt: number }[]>
+      restoreBackup?: (name: string) => Promise<void>
       voices?: VoicesAPI
       asr?: AsrAPI
       runtime?: {

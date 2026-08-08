@@ -573,3 +573,29 @@
   align-items: center;
   gap: 8px;
 }
+
+/* Modelo recomendado según la VRAM detectada */
+.settings-v2-models-hub-recommended {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+}
+
+.settings-v2-models-hub-recommended-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.settings-v2-models-hub-recommended-name {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.settings-v2-models-hub-recommended-meta {
+  font-size: 11px;
+  opacity: 0.7;
+}

@@ -208,6 +208,10 @@ const createPlatform = (windowState: DesktopWindowState): Platform => {
       })
     },
 
+    async writeTextFile(path, content) {
+      return window.api.writeTextFile(path, content)
+    },
+
     openExternal(url: string) {
       window.api.openExternal(url)
     },
@@ -257,7 +261,6 @@ const createPlatform = (windowState: DesktopWindowState): Platform => {
 
       const notification = new Notification(title, {
         body: description ?? "",
-        icon: "https://opencode.ai/favicon-96x96-v3.png",
       })
       notification.onclick = () => {
         void window.api.showWindow()
@@ -332,6 +335,26 @@ const createPlatform = (windowState: DesktopWindowState): Platform => {
       return new File([blob], `screenshot-${Date.now()}.png`, {
         type: "image/png",
       })
+    },
+
+    setLoginItem(enabled) {
+      return window.api.setLoginItem(enabled)
+    },
+
+    getLoginItem() {
+      return window.api.getLoginItem()
+    },
+
+    backupNow() {
+      return window.api.backup.now()
+    },
+
+    listBackups() {
+      return window.api.backup.list()
+    },
+
+    restoreBackup(name) {
+      return window.api.backup.restore(name)
     },
   }
 }

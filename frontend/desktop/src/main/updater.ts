@@ -6,6 +6,7 @@ import { getLogger } from "./logging"
 import { getStore } from "./store"
 import { setAppQuitting } from "./windows"
 import { nativeT } from "./native-translations"
+import { notifyUser } from "./notifications"
 
 const { autoUpdater } = pkg
 const key = "ready"
@@ -62,6 +63,12 @@ export function setupAutoUpdater(stop: () => Promise<void>) {
   // Live percentage so the UI shows real progress while downloading instead
   // of an indeterminate "Descargando…".
   autoUpdater.on("download-progress", (progress) => controller.setDownloadProgress(progress.percent))
+
+  // Avisa cuando una actualización queda lista para instalar (solo si la app
+  // no está enfocada; el propio controlador muestra el diálogo si lo es).
+  controller.subscribe((state) => {
+    if (state.status === "ready") notifyUser(nativeT("desktop.updater.dialog.ready.title"), state.version)
+  })
   return controller
 }
 

@@ -5,6 +5,7 @@ import { join } from "node:path"
 import { spawn } from "node:child_process"
 import { write as writeLog } from "./logging"
 import { probeRuntime } from "./runtime-install-utils"
+import { notifyUser } from "./notifications"
 
 // Instalación local de runtimes de modelos (Ollama / LM Studio). El instalador
 // oficial se descarga dentro de las carpetas de datos de Tiancode y se
@@ -143,6 +144,7 @@ async function installRuntimeInner(kind: RuntimeKind): Promise<{ ok: boolean; er
     state = { status: "idle" }
     report()
     writeLog("runtime", "installed", { kind: def.name })
+    notifyUser("Tiancode", `${def.name} instalado correctamente`)
     return { ok: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)

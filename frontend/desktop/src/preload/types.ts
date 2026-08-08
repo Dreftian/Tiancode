@@ -192,6 +192,7 @@ export type ElectronAPI = {
   releasePickedFiles: (token: string) => Promise<void>
   getPathForFile: (file: File) => string
   saveFilePicker: (opts?: { title?: string; defaultPath?: string }) => Promise<string | null>
+  writeTextFile: (path: string, content: string) => Promise<boolean>
   openExternal: (url: string) => void
   openLocalFile: (url: string) => void
   openPath: (path: string, app?: string) => Promise<void>
@@ -202,6 +203,13 @@ export type ElectronAPI = {
     area: (bounds: { x: number; y: number; width: number; height: number }) => Promise<{ buffer: ArrayBuffer; width: number; height: number }>
     window: () => Promise<{ buffer: ArrayBuffer; width: number; height: number }>
     preview: (webContentsId: number) => Promise<{ buffer: ArrayBuffer; width: number; height: number }>
+  }
+  setLoginItem: (enabled: boolean) => Promise<boolean>
+  getLoginItem: () => Promise<boolean>
+  backup: {
+    now: () => Promise<string | null>
+    list: () => Promise<{ name: string; createdAt: number }[]>
+    restore: (name: string) => Promise<void>
   }
   getWindowFocused: () => Promise<boolean>
   getWindowFullscreen: () => Promise<boolean>

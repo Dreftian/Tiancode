@@ -6,6 +6,7 @@ import { IconButton } from "@tiancode-ai/ui/icon-button"
 import { Keybind } from "@tiancode-ai/ui/keybind"
 import { Spinner } from "@tiancode-ai/ui/spinner"
 import { showToast } from "@/utils/toast"
+import { buildChatMarkdown } from "@/utils/export-chat"
 import { Tooltip, TooltipKeybind } from "@tiancode-ai/ui/tooltip"
 import { getFilename } from "@tiancode-ai/core/util/path"
 import { createEffect, createMemo, createSignal, For, onMount, Show } from "solid-js"
@@ -135,6 +136,36 @@ const showRequestError = (language: ReturnType<typeof useLanguage>, err: unknown
     title: language.t("common.requestFailed"),
     description: err instanceof Error ? err.message : String(err),
   })
+}
+
+// Exporta la conversación abierta a Markdown (guardar como…).
+async function exportSessionChat(input: {
+  sessionID: string
+  sync: ReturnType<typeof useSync>
+  language: ReturnType<typeof useLanguage>
+  platform: ReturnType<typeof usePlatform>
+}) {
+  const { sessionID, sync, language, platform } = input
+  const syncData = sync()
+  const messages = syncData.data.message[sessionID] ?? []
+  const title = syncData.session.get(sessionID)?.title ?? "chat"
+  const markdown = buildChatMarkdown({
+    title,
+    messages,
+    parts: (messageID) => syncData.data.part[messageID] ?? [],
+  })
+  const safeTitle = title.replace(/[\\/:*?"<>|]/g, "-").slice(0, 60) || "chat"
+  const path = await platform.saveFilePickerDialog?.({
+    title: language.t("session.export.title"),
+    defaultPath: `${safeTitle}.md`,
+  })
+  if (!path) return
+  const ok = await platform.writeTextFile?.(path, markdown)
+  if (ok) {
+    showToast({ variant: "success", title: language.t("session.export.success") })
+  } else {
+    showToast({ variant: "error", title: language.t("session.export.failed") })
+  }
 }
 
 export function SessionHeader() {
@@ -546,6 +577,9 @@ type SessionHeaderV2ActionsState = {
 
 function SessionHeaderV2Actions(props: { state: SessionHeaderV2ActionsState }) {
   const language = useLanguage()
+  const sync = useSync()
+  const platform = usePlatform()
+  const { params } = useSessionLayout()
 
   return (
     <div class="flex items-center gap-2">
@@ -631,6 +665,25 @@ function SessionHeaderV2Actions(props: { state: SessionHeaderV2ActionsState }) {
           />
         </TooltipV2>
       </Show>
+      <TooltipV2 class="shrink-0" placement="bottom" value={language.t("session.export.button")}>
+        <IconButtonV2
+          type="button"
+          variant="ghost-muted"
+          size="large"
+          class="!w-9 shrink-0"
+          onClick={() => {
+            if (params.id) void exportSessionChat({ sessionID: params.id, sync, language, platform })
+          }}
+          aria-label={language.t("session.export.button")}
+          icon={
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+          }
+        />
+      </TooltipV2>
     </div>
   )
 }

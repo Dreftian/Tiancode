@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process"
-import { stat } from "node:fs/promises"
+import { stat, writeFile } from "node:fs/promises"
 import { basename, join } from "node:path"
 import { app, BrowserWindow, clipboard, dialog, ipcMain, shell } from "electron"
 import type { IpcMainEvent, IpcMainInvokeEvent } from "electron"
@@ -28,6 +28,7 @@ import { downloadVoices, deleteVoice, downloadVoice, getVoicesStatus, listVoices
 import { asrChunk, asrStart, asrStop, ensureAsrModel, getAsrStatus } from "./asr"
 import { getRuntimeInstallState, installRuntime } from "./runtime-install"
 import { captureArea, capturePreview, captureScreen, captureWindow } from "./capture"
+import { backupNow, listBackups, restoreBackup } from "./backup"
 
 const pickerFilters = (ext?: string[]) => {
   if (!ext || ext.length === 0) return undefined
@@ -237,6 +238,13 @@ export function registerIpcHandlers(deps: Deps) {
     },
   )
 
+  // Escribe texto en un archivo elegido por el usuario (exportar conversación
+  // a Markdown, etc.). El path viene del save-file-picker del mismo proceso.
+  ipcMain.handle("write-text-file", async (_event: IpcMainInvokeEvent, path: string, content: string) => {
+    await writeFile(path, content, "utf8")
+    return true
+  })
+
   ipcMain.on("open-external", (_event: IpcMainEvent, url: string) => {
     openExternalURL(url)
   })
@@ -279,6 +287,18 @@ export function registerIpcHandlers(deps: Deps) {
   )
   ipcMain.handle("capture-window", (event: IpcMainInvokeEvent) => captureWindow(event.sender))
   ipcMain.handle("capture-preview", (_event: IpcMainInvokeEvent, webContentsId: number) => capturePreview(webContentsId))
+
+  // Inicio con Windows: el estado lo gestiona el sistema operativo.
+  ipcMain.handle("set-login-item", (_event: IpcMainInvokeEvent, enabled: boolean) => {
+    app.setLoginItemSettings({ openAtLogin: enabled, path: process.execPath })
+    return app.getLoginItemSettings().openAtLogin
+  })
+  ipcMain.handle("get-login-item", () => app.getLoginItemSettings().openAtLogin)
+
+  // Respaldos de datos (sesiones + configuración; los modelos no se respaldan).
+  ipcMain.handle("backup-now", () => backupNow())
+  ipcMain.handle("backup-list", () => listBackups())
+  ipcMain.handle("backup-restore", (_event: IpcMainInvokeEvent, name: string) => restoreBackup(name))
 
   ipcMain.handle("get-window-id", (event: IpcMainInvokeEvent) => {
     const win = BrowserWindow.fromWebContents(event.sender)

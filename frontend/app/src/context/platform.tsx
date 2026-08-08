@@ -62,6 +62,9 @@ type PlatformBase = {
   /** Open a native save file picker dialog (desktop only) */
   saveFilePickerDialog?(opts?: SaveFilePickerOptions): Promise<string | null>
 
+  /** Write text to a path chosen via saveFilePickerDialog (desktop only) */
+  writeTextFile?(path: string, content: string): Promise<boolean>
+
   /** Storage mechanism, defaults to localStorage */
   storage?: (name?: string) => SyncStorage | AsyncStorage
 
@@ -118,6 +121,15 @@ type PlatformBase = {
     kind: "screen" | "area" | "window" | "preview",
     options?: { bounds?: { x: number; y: number; width: number; height: number }; webContentsId?: number },
   ): Promise<File | null>
+
+  /** Start/stop launching with the OS login (Windows only) */
+  setLoginItem?(enabled: boolean): Promise<boolean>
+  getLoginItem?(): Promise<boolean>
+
+  /** Data backups (sessions + config; models excluded) */
+  backupNow?(): Promise<string | null>
+  listBackups?(): Promise<{ name: string; createdAt: number }[]>
+  restoreBackup?(name: string): Promise<void>
 
   /** Export collected diagnostic logs (desktop only) */
   exportDebugLogs?(): Promise<string>
