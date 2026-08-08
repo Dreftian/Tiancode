@@ -4,6 +4,16 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.4] — 2026-08-08
+
+### Corregido
+
+- **Pantalla de Modelos (Model Hub) rota en 1.0.3**: el memo del modelo GGUF
+  recomendado leía la VRAM antes de que se inicializara su señal
+  (`Cannot access 'vramTotal' before initialization`), rompiendo la página al
+  abrirla. Los memos de VRAM/RAM ahora se declaran antes que el recomendado.
+  Se verificó que no hay más casos de este patrón en la app.
+
 ## [1.0.3] — 2026-08-08
 
 ### Seguridad

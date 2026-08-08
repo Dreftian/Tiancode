@@ -172,12 +172,18 @@ export const SettingsModelsHubV2: Component<{
     return language.t("settings.modelsHub.runtime.install")
   }
 
+  const ram = createMemo(() => asNumber(system()?.ram) ?? 0)
+  const vramTotal = createMemo(() => asNumber(system()?.vram?.total) ?? 0)
+  const vramFree = createMemo(() => asNumber(system()?.vram?.free) ?? 0)
+
   // Modelo GGUF recomendado según la VRAM detectada. Solo archivos de una
   // pieza para que la descarga integrada del Model Hub funcione directamente.
   const RECOMMENDED_GGUF = [
     { minVram: 0, model: "Qwen/Qwen2.5-3B-Instruct-GGUF", file: "qwen2.5-3b-instruct-q4_k_m.gguf", label: "Qwen 2.5 3B", size: 2.1e9 },
     { minVram: 8e9, model: "bartowski/Qwen2.5-7B-Instruct-GGUF", file: "Qwen2.5-7B-Instruct-Q4_K_M.gguf", label: "Qwen 2.5 7B", size: 4.7e9 },
   ]
+  // createMemo se ejecuta eager en la creación: los memos de VRAM/RAM deben
+  // declararse antes (ver TDZ de vramTotal en la 1.0.3).
   const recommendedModel = createMemo(() => {
     const total = vramTotal()
     if (total <= 0) return undefined
@@ -235,10 +241,6 @@ export const SettingsModelsHubV2: Component<{
     for (const job of jobs()) byKey[`${job.model}/${job.file}`] = job
     return byKey
   })
-
-  const ram = createMemo(() => asNumber(system()?.ram) ?? 0)
-  const vramTotal = createMemo(() => asNumber(system()?.vram?.total) ?? 0)
-  const vramFree = createMemo(() => asNumber(system()?.vram?.free) ?? 0)
 
   // LM Studio-style fit: VRAM is the primary memory, RAM backs it up when the
   // model overflows the GPU. ~10% overhead for KV cache and runtime buffers.
