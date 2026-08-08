@@ -1175,6 +1175,8 @@ export const dict = {
   "chat.mic.stop": "Zatrzymaj dyktowanie",
   "chat.mic.error": "Dyktowanie głosowe nie mogło się rozpocząć",
   "chat.mic.downloading": "Pobieranie modelu rozpoznawania mowy (pierwszy raz)…",
+  "settings.mcpServers.discover.activateAll": "Aktywuj wszystkie",
+  "chat.mic.downloadFailed": "Nie udało się pobrać modelu głosowego. Sprawdź połączenie internetowe i spróbuj ponownie.",
   "chat.mic.downloaded": "Model mowy gotowy",
   "chat.message.speak": "Przeczytaj odpowiedź na głos",
   "chat.message.stop": "Zatrzymaj czytanie",

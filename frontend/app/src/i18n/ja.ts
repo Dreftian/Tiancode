@@ -1152,7 +1152,8 @@ export const dict = {
   "terminal.connectTicket.statusError": "PTY接続チケットがステータス {{status}} で失敗しました",
 
   "titlebar.update": "アップデート",
-  "titlebar.updateVersion": "アップデート {{version}}",
+  "titlebar.updateVersion": "アップデート {{version}}",
+
   "a11y.closeTab": "タブを閉じる",
   "a11y.clearSearch": "検索をクリア",
   "a11y.edit": "編集",
@@ -1160,6 +1161,8 @@ export const dict = {
   "chat.mic.stop": "音声入力を停止",
   "chat.mic.error": "音声入力を開始できませんでした",
   "chat.mic.downloading": "音声認識モデルをダウンロード中（初回）…",
+  "settings.mcpServers.discover.activateAll": "すべて有効にする",
+  "chat.mic.downloadFailed": "音声モデルをダウンロードできませんでした。インターネット接続を確認してもう一度お試しください。",
   "chat.mic.downloaded": "音声モデルの準備ができました",
   "chat.message.speak": "応答を読み上げる",
   "chat.message.stop": "読み上げを停止",

@@ -410,6 +410,8 @@ export const dict = {
   "chat.mic.stop": "Detener dictado",
   "chat.mic.error": "No se pudo iniciar el dictado por voz",
   "chat.mic.downloading": "Descargando modelo de reconocimiento de voz (primera vez)…",
+  "settings.mcpServers.discover.activateAll": "Activar todos",
+  "chat.mic.downloadFailed": "No se pudo descargar el modelo de voz. Comprueba tu conexión a internet e inténtalo de nuevo.",
   "chat.mic.downloaded": "Modelo de voz listo",
   "chat.message.speak": "Leer respuesta en voz alta",
   "chat.message.stop": "Dejar de leer",

@@ -1239,6 +1239,8 @@ export const dict = {
   "chat.mic.stop": "Stop diktering",
   "chat.mic.error": "Talediktation kunne ikke starte",
   "chat.mic.downloading": "Downloader talegenkendelsesmodel (første gang)…",
+  "settings.mcpServers.discover.activateAll": "Aktivér alle",
+  "chat.mic.downloadFailed": "Kunne ikke downloade talemodellen. Tjek din internetforbindelse og prøv igen.",
   "chat.mic.downloaded": "Talemodel er klar",
   "chat.message.speak": "Læs svar højt",
   "chat.message.stop": "Stop oplæsning",

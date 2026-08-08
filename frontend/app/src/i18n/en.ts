@@ -313,6 +313,8 @@ export const dict = {
   "chat.mic.stop": "Stop dictation",
   "chat.mic.error": "Voice dictation could not start",
   "chat.mic.downloading": "Downloading speech recognition model (first time)…",
+  "settings.mcpServers.discover.activateAll": "Enable all",
+  "chat.mic.downloadFailed": "Could not download the speech model. Check your internet connection and try again.",
   "chat.mic.downloaded": "Speech model ready",
   "chat.message.speak": "Read response aloud",
   "chat.message.stop": "Stop reading",

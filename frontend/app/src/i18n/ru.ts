@@ -1253,6 +1253,8 @@ export const dict = {
   "chat.mic.stop": "Остановить диктовку",
   "chat.mic.error": "Голосовая диктовка не смогла запуститься",
   "chat.mic.downloading": "Загрузка модели распознавания речи (в первый раз)…",
+  "settings.mcpServers.discover.activateAll": "Активировать все",
+  "chat.mic.downloadFailed": "Не удалось загрузить речевую модель. Проверьте подключение к интернету и попробуйте снова.",
   "chat.mic.downloaded": "Речевая модель готова",
   "chat.message.speak": "Прочитать ответ вслух",
   "chat.message.stop": "Остановить чтение",

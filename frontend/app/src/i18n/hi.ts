@@ -1155,6 +1155,8 @@ export const dict = {
   "chat.mic.stop": "डिक्टेशन रोकें",
   "chat.mic.error": "वॉइस डिक्टेशन शुरू नहीं हो सका",
   "chat.mic.downloading": "स्पीच रिकग्निशन मॉडल डाउनलोड हो रहा है (पहली बार)…",
+  "settings.mcpServers.discover.activateAll": "सभी सक्रिय करें",
+  "chat.mic.downloadFailed": "वॉयस मॉडल डाउनलोड नहीं हो सका। अपना इंटरनेट कनेक्शन जाँचें और फिर से प्रयास करें।",
   "chat.mic.downloaded": "स्पीच मॉडल तैयार है",
   "chat.message.speak": "जवाब ज़ोर से पढ़ें",
   "chat.message.stop": "पढ़ना रोकें",

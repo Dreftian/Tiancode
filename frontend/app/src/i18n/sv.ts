@@ -1152,6 +1152,8 @@ export const dict = {
   "chat.mic.stop": "Stoppa diktamen",
   "chat.mic.error": "Röstdiktamen kunde inte starta",
   "chat.mic.downloading": "Laddar ner taligenkänningsmodell (första gången)…",
+  "settings.mcpServers.discover.activateAll": "Aktivera alla",
+  "chat.mic.downloadFailed": "Kunde inte ladda ner röstmodellen. Kontrollera internetanslutningen och försök igen.",
   "chat.mic.downloaded": "Talmodellen är klar",
   "chat.message.speak": "Läs upp svaret",
   "chat.message.stop": "Sluta läsa",

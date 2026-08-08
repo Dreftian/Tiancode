@@ -399,6 +399,15 @@ const layer = Layer.effect(
         const global = Object.keys(authEnv).length ? yield* loadGlobal(authEnv) : yield* getGlobal()
         yield* merge(Global.Path.config, global, "global")
 
+        // Agents defined as markdown files in the global config dir (the HTTP
+        // API writes them there via agentCreate/agentUpdate) are loaded before
+        // the project dir so project agents can override them.
+        result.agent = mergeDeep(result.agent ?? {}, yield* Effect.promise(() => ConfigAgent.load(Global.Path.config)))
+        result.agent = mergeDeep(
+          result.agent ?? {},
+          yield* Effect.promise(() => ConfigAgent.loadMode(Global.Path.config)),
+        )
+
         if (Flag.TIANCODE_CONFIG) {
           yield* merge(Flag.TIANCODE_CONFIG, yield* loadFile(Flag.TIANCODE_CONFIG, authEnv))
           yield* Effect.logDebug("loaded custom config", { path: Flag.TIANCODE_CONFIG })

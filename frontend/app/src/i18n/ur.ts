@@ -1156,6 +1156,8 @@ export const dict = {
   "chat.mic.stop": "املا روکیں",
   "chat.mic.error": "وائس املا شروع نہیں ہو سکی",
   "chat.mic.downloading": "اسپیچ ریکگنیشن ماڈل ڈاؤن لوڈ ہو رہا ہے (پہلی بار)…",
+  "settings.mcpServers.discover.activateAll": "سبھی فعال کریں",
+  "chat.mic.downloadFailed": "وائس ماڈل ڈاؤن لوڈ نہیں ہو سکا۔ اپنا انٹرنیٹ کنکشن چیک کر کے دوبارہ کوشش کریں۔",
   "chat.mic.downloaded": "اسپیچ ماڈل تیار ہے",
   "chat.message.speak": "جواب بلند آواز سے پڑھیں",
   "chat.message.stop": "پڑھنا روکیں",

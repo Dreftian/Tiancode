@@ -1258,6 +1258,8 @@ export const dict = {
   "chat.mic.stop": "Зупинити диктування",
   "chat.mic.error": "Голосове диктування не змогло запуститися",
   "chat.mic.downloading": "Завантаження моделі розпізнавання мовлення (вперше)…",
+  "settings.mcpServers.discover.activateAll": "Активувати всі",
+  "chat.mic.downloadFailed": "Не вдалося завантажити мовну модель. Перевірте підключення до інтернету та спробуйте ще раз.",
   "chat.mic.downloaded": "Мовна модель готова",
   "chat.message.speak": "Прочитати відповідь вголос",
   "chat.message.stop": "Зупинити читання",

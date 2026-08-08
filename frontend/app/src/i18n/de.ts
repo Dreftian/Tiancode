@@ -1176,6 +1176,8 @@ export const dict = {
   "chat.mic.stop": "Diktat beenden",
   "chat.mic.error": "Sprachdiktat konnte nicht gestartet werden",
   "chat.mic.downloading": "Spracherkennungsmodell wird heruntergeladen (erstmalig)…",
+  "settings.mcpServers.discover.activateAll": "Alle aktivieren",
+  "chat.mic.downloadFailed": "Das Sprachnmodell konnte nicht heruntergeladen werden. Überprüfe deine Internetverbindung und versuche es erneut.",
   "chat.mic.downloaded": "Sprachmodell bereit",
   "chat.message.speak": "Antwort vorlesen",
   "chat.message.stop": "Vorlesen beenden",

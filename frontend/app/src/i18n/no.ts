@@ -1258,6 +1258,8 @@ export const dict = {
   "chat.mic.stop": "Stopp diktering",
   "chat.mic.error": "Talediktering kunne ikke starte",
   "chat.mic.downloading": "Laster ned talegjenkjennelsesmodell (første gang)…",
+  "settings.mcpServers.discover.activateAll": "Aktiver alle",
+  "chat.mic.downloadFailed": "Kunne ikke laste ned talemodellen. Sjekk internettforbindelsen og prøv igjen.",
   "chat.mic.downloaded": "Talemodell er klar",
   "chat.message.speak": "Les svaret høyt",
   "chat.message.stop": "Stopp opplesing",

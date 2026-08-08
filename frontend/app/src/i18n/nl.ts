@@ -1163,6 +1163,8 @@ export const dict = {
   "chat.mic.stop": "Dicteren stoppen",
   "chat.mic.error": "Spraakdicteren kon niet worden gestart",
   "chat.mic.downloading": "Spraakherkenningsmodel downloaden (eerste keer)…",
+  "settings.mcpServers.discover.activateAll": "Alles activeren",
+  "chat.mic.downloadFailed": "Het spraakmodel kon niet worden gedownload. Controleer je internetverbinding en probeer het opnieuw.",
   "chat.mic.downloaded": "Spraakmodel is klaar",
   "chat.message.speak": "Antwoord voorlezen",
   "chat.message.stop": "Stoppen met voorlezen",

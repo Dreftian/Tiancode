@@ -354,6 +354,29 @@ export const SettingsMcpServersV2: Component<{
     }
   }
 
+  // Activa todos los presets del catálogo que estén desactivados o sin
+  // configurar: cada uno se agrega con su configuración completa y enabled
+  // true (best-effort connect), para que nada quede "desactivado" por defecto.
+  const activateAll = async () => {
+    setMessage(undefined)
+    const pending = DiscoverPresets.filter((preset) => {
+      const existing = servers().find(([serverName]) => serverName === preset.id)?.[1]
+      return existing === undefined || existing.enabled === false
+    })
+    for (const preset of pending) {
+      try {
+        const config: McpLocalConfig | McpRemoteConfig =
+          preset.type === "local"
+            ? { type: "local", command: preset.command.split(/\s+/), enabled: true }
+            : { type: "remote", url: preset.url, oauth: {}, enabled: true }
+        await serverSdk().client.mcp.add({ ...params(), name: preset.id, config })
+      } catch {
+        // Un preset que falle no detiene el resto.
+      }
+    }
+    void refetch()
+  }
+
   const connect = async (serverName: string) => {
     setMessage(undefined)
     try {
@@ -588,12 +611,15 @@ export const SettingsMcpServersV2: Component<{
             </div>
 
             <div class="settings-v2-section settings-v2-mcp-servers-discover">
-              <div class="settings-v2-mcp-servers-discover-header">
-                <h3 class="settings-v2-section-title">{language.t("settings.mcpServers.discover.title")}</h3>
-                <p class="settings-v2-mcp-servers-discover-subtitle">
-                  {language.t("settings.mcpServers.discover.description")}
-                </p>
-              </div>
+            <div class="settings-v2-mcp-servers-discover-header">
+              <h3 class="settings-v2-section-title">{language.t("settings.mcpServers.discover.title")}</h3>
+              <p class="settings-v2-mcp-servers-discover-subtitle">
+                {language.t("settings.mcpServers.discover.description")}
+              </p>
+              <ButtonV2 type="button" variant="outline" size="small" onClick={() => void activateAll()}>
+                {language.t("settings.mcpServers.discover.activateAll")}
+              </ButtonV2>
+            </div>
               <SettingsListV2>
                 <For each={DiscoverPresets}>
                   {(preset) => {

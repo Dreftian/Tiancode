@@ -91,9 +91,34 @@ export function ensureAsrModel(): Promise<void> {
   return modelPromise
 }
 
+// Downloads the model files with retries: the first use pulls ~150MB from
+// HuggingFace and flaky connections should not leave the mic permanently
+// broken (previously a single failed fetch surfaced as a bare "network" error
+// in the toast).
 async function downloadFile(url: string, dest: string) {
-  const res = await fetch(url, { redirect: "follow" })
-  if (!res.ok || !res.body) throw new Error(`GET ${url} failed: HTTP ${res.status}`)
+  let lastError: unknown
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      return await downloadFileOnce(url, dest)
+    } catch (error) {
+      lastError = error
+      if (attempt < 3) {
+        writeLog("asr", "model download failed, retrying", { url, attempt, error: String(error) })
+        await new Promise((resolve) => setTimeout(resolve, attempt * 1500))
+      }
+    }
+  }
+  throw lastError
+}
+
+async function downloadFileOnce(url: string, dest: string) {
+  let res: Response
+  try {
+    res = await fetch(url, { redirect: "follow" })
+  } catch (error) {
+    throw new Error(`network error: ${error instanceof Error ? error.message : String(error)}`)
+  }
+  if (!res.ok || !res.body) throw new Error(`HTTP ${res.status} for ${url.split("/").pop()}`)
   const part = `${dest}.part`
   await mkdir(join(dest, ".."), { recursive: true })
   const handle = await open(part, "w")

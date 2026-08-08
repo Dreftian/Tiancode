@@ -1252,6 +1252,8 @@ export const dict = {
   "chat.mic.stop": "Dikteyi durdur",
   "chat.mic.error": "Sesli dikte başlatılamadı",
   "chat.mic.downloading": "Konuşma tanıma modeli indiriliyor (ilk kez)…",
+  "settings.mcpServers.discover.activateAll": "Tümünü etkinleştir",
+  "chat.mic.downloadFailed": "Ses modeli indirilemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.",
   "chat.mic.downloaded": "Konuşma modeli hazır",
   "chat.message.speak": "Yanıtı sesli oku",
   "chat.message.stop": "Okumayı durdur",

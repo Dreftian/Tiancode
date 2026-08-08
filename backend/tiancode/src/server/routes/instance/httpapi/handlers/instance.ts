@@ -125,6 +125,9 @@ export const instanceHandlers = HttpApiBuilder.group(InstanceHttpApi, "instance"
     const createAgent = Effect.fn("InstanceHttpApi.agentCreate")(function* (ctx) {
       const file = path.join(global.config, "agent", `${ctx.payload.name}.md`)
       yield* fs.writeWithDirs(file, buildAgentMarkdown(ctx.payload)).pipe(Effect.orDie)
+      // The agent state reads the markdown files through the instance config
+      // cache, so drop it before reloading or the new agent would not appear.
+      yield* config.invalidateInstance()
       yield* agent.reload()
       return yield* agent.get(ctx.payload.name)
     })
@@ -132,6 +135,7 @@ export const instanceHandlers = HttpApiBuilder.group(InstanceHttpApi, "instance"
     const updateAgent = Effect.fn("InstanceHttpApi.agentUpdate")(function* (ctx) {
       const file = path.join(global.config, "agent", `${ctx.params.name}.md`)
       yield* fs.writeWithDirs(file, buildAgentMarkdown({ ...ctx.payload, name: ctx.params.name })).pipe(Effect.orDie)
+      yield* config.invalidateInstance()
       yield* agent.reload()
       return yield* agent.get(ctx.params.name)
     })
@@ -139,6 +143,7 @@ export const instanceHandlers = HttpApiBuilder.group(InstanceHttpApi, "instance"
     const deleteAgent = Effect.fn("InstanceHttpApi.agentDelete")(function* (ctx) {
       const file = path.join(global.config, "agent", `${ctx.params.name}.md`)
       yield* fs.remove(file).pipe(Effect.orDie)
+      yield* config.invalidateInstance()
       yield* agent.reload()
       return { success: true } as const
     })

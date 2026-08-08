@@ -1248,6 +1248,8 @@ export const dict = {
   "chat.mic.stop": "Zaustavi diktiranje",
   "chat.mic.error": "Glasovno diktiranje nije moglo započeti",
   "chat.mic.downloading": "Preuzimanje modela za prepoznavanje govora (prvi put)…",
+  "settings.mcpServers.discover.activateAll": "Aktiviraj sve",
+  "chat.mic.downloadFailed": "Model glasa nije moguće preuzeti. Provjerite internetsku vezu i pokušajte ponovo.",
   "chat.mic.downloaded": "Model govora je spreman",
   "chat.message.speak": "Pročitaj odgovor naglas",
   "chat.message.stop": "Zaustavi čitanje",

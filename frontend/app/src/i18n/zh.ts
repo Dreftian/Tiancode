@@ -1210,7 +1210,8 @@ export const dict = {
   "error.childStore.persistedProjectMetadataCreateFailed": "创建持久化项目元数据失败",
   "error.childStore.persistedProjectIconCreateFailed": "创建持久化项目图标失败",
   "error.childStore.storeCreateFailed": "创建存储失败",
-  "terminal.connectionLost.abnormalClose": "WebSocket 异常关闭：{{code}}",
+  "terminal.connectionLost.abnormalClose": "WebSocket 异常关闭：{{code}}",
+
   "a11y.closeTab": "关闭标签页",
   "a11y.clearSearch": "清除搜索",
   "a11y.edit": "编辑",
@@ -1218,6 +1219,8 @@ export const dict = {
   "chat.mic.stop": "停止听写",
   "chat.mic.error": "语音听写无法启动",
   "chat.mic.downloading": "正在下载语音识别模型（首次）…",
+  "settings.mcpServers.discover.activateAll": "全部启用",
+  "chat.mic.downloadFailed": "无法下载语音模型。请检查网络连接后重试。",
   "chat.mic.downloaded": "语音模型已就绪",
   "chat.message.speak": "朗读回复",
   "chat.message.stop": "停止朗读",

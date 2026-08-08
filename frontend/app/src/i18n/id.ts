@@ -1242,6 +1242,8 @@ export const dict = {
   "chat.mic.stop": "Hentikan dikte",
   "chat.mic.error": "Dikte suara tidak dapat dimulai",
   "chat.mic.downloading": "Mengunduh model pengenalan ucapan (pertama kali)…",
+  "settings.mcpServers.discover.activateAll": "Aktifkan semua",
+  "chat.mic.downloadFailed": "Gagal mengunduh model suara. Periksa koneksi internet Anda dan coba lagi.",
   "chat.mic.downloaded": "Model ucapan siap",
   "chat.message.speak": "Bacakan respons dengan lantang",
   "chat.message.stop": "Berhenti membaca",

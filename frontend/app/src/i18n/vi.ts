@@ -1161,6 +1161,8 @@ export const dict = {
   "chat.mic.stop": "Dừng đọc chính tả",
   "chat.mic.error": "Không thể bắt đầu đọc chính tả bằng giọng nói",
   "chat.mic.downloading": "Đang tải mô hình nhận dạng giọng nói (lần đầu)…",
+  "settings.mcpServers.discover.activateAll": "Kích hoạt tất cả",
+  "chat.mic.downloadFailed": "Không thể tải mô hình giọng nói. Kiểm tra kết nối internet và thử lại.",
   "chat.mic.downloaded": "Mô hình giọng nói đã sẵn sàng",
   "chat.message.speak": "Đọc to câu trả lời",
   "chat.message.stop": "Dừng đọc",

@@ -1230,6 +1230,8 @@ export const dict = {
   "chat.mic.stop": "หยุดการพิมพ์ตามคำพูด",
   "chat.mic.error": "ไม่สามารถเริ่มการพิมพ์ตามคำพูดได้",
   "chat.mic.downloading": "กำลังดาวน์โหลดโมเดลรู้จำเสียงพูด (ครั้งแรก)…",
+  "settings.mcpServers.discover.activateAll": "เปิดใช้งานทั้งหมด",
+  "chat.mic.downloadFailed": "ไม่สามารถดาวน์โหลดโมเดลเสียงได้ โปรดตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองอีกครั้ง",
   "chat.mic.downloaded": "โมเดลเสียงพร้อมใช้งาน",
   "chat.message.speak": "อ่านคำตอบออกเสียง",
   "chat.message.stop": "หยุดอ่าน",

@@ -1215,6 +1215,8 @@ export const dict = {
   "chat.mic.stop": "停止聽寫",
   "chat.mic.error": "無法開始語音聽寫",
   "chat.mic.downloading": "正在下載語音辨識模型（首次）…",
+  "settings.mcpServers.discover.activateAll": "全部啟用",
+  "chat.mic.downloadFailed": "無法下載語音模型。請檢查網路連線後重試。",
   "chat.mic.downloaded": "語音模型已就緒",
   "chat.message.speak": "朗讀回覆",
   "chat.message.stop": "停止朗讀",

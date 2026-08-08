@@ -87,11 +87,13 @@ export function VoiceDictationButton(props: {
       try {
         await api.ensure()
         showToast({ variant: "success", title: language.t("chat.mic.downloaded") })
-      } catch (error) {
+      } catch {
+        // El detalle técnico queda en el log del main; el toast explica cómo
+        // resolverlo (la descarga del modelo necesita internet la primera vez).
         showToast({
           variant: "error",
           title: language.t("chat.mic.error"),
-          description: error instanceof Error ? error.message : String(error),
+          description: language.t("chat.mic.downloadFailed"),
         })
         setPreparing(false)
         return

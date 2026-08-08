@@ -1153,6 +1153,8 @@ export const dict = {
   "chat.mic.stop": "ਇਮਲਾ ਰੋਕੋ",
   "chat.mic.error": "ਵੌਇਸ ਇਮਲਾ ਸ਼ੁਰੂ ਨਹੀਂ ਹੋ ਸਕਿਆ",
   "chat.mic.downloading": "ਸਪੀਚ ਰਿਕਗਨੀਸ਼ਨ ਮਾਡਲ ਡਾਊਨਲੋਡ ਹੋ ਰਿਹਾ ਹੈ (ਪਹਿਲੀ ਵਾਰ)…",
+  "settings.mcpServers.discover.activateAll": "ਸਾਰੇ ਸਰਗਰਮ ਕਰੋ",
+  "chat.mic.downloadFailed": "ਵੌਇਸ ਮਾਡਲ ਡਾਊਨਲੋਡ ਨਹੀਂ ਹੋ ਸਕਿਆ। ਆਪਣਾ ਇੰਟਰਨੈੱਟ ਕਨੈਕਸ਼ਨ ਜਾਂਚ ਕੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",
   "chat.mic.downloaded": "ਸਪੀਚ ਮਾਡਲ ਤਿਆਰ ਹੈ",
   "chat.message.speak": "ਜਵਾਬ ਉੱਚੀ ਆਵਾਜ਼ ਵਿੱਚ ਪੜ੍ਹੋ",
   "chat.message.stop": "ਪੜ੍ਹਨਾ ਬੰਦ ਕਰੋ",

@@ -1162,6 +1162,8 @@ export const dict = {
   "chat.mic.stop": "إيقاف الإملاء",
   "chat.mic.error": "تعذر بدء الإملاء الصوتي",
   "chat.mic.downloading": "جارٍ تنزيل نموذج التعرف على الكلام (لأول مرة)…",
+  "settings.mcpServers.discover.activateAll": "تفعيل الكل",
+  "chat.mic.downloadFailed": "تعذّر تنزيل نموذج التعرف على الكلام. تحقق من اتصالك بالإنترنت وحاول مرة أخرى.",
   "chat.mic.downloaded": "نموذج الكلام جاهز",
   "chat.message.speak": "قراءة الرد بصوت عالٍ",
   "chat.message.stop": "إيقاف القراءة",

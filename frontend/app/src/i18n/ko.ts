@@ -1150,7 +1150,8 @@ export const dict = {
   "desktop.wsl.error.failedPort": "포트를 가져오지 못했습니다",
 
   "desktop.picker.error.notSelected": "선택기에서 파일을 선택하지 않았습니다",
-  "desktop.picker.error.sizeLimit": "선택한 첨부 파일이 {{limit}} MB 제한을 초과합니다",
+  "desktop.picker.error.sizeLimit": "선택한 첨부 파일이 {{limit}} MB 제한을 초과합니다",
+
   "a11y.closeTab": "탭 닫기",
   "a11y.clearSearch": "검색 지우기",
   "a11y.edit": "편집",
@@ -1158,6 +1159,8 @@ export const dict = {
   "chat.mic.stop": "받아쓰기 중지",
   "chat.mic.error": "음성 받아쓰기를 시작할 수 없습니다",
   "chat.mic.downloading": "음성 인식 모델 다운로드 중(처음 한 번)…",
+  "settings.mcpServers.discover.activateAll": "모두 활성화",
+  "chat.mic.downloadFailed": "음성 모델을 다운로드하지 못했습니다. 인터넷 연결을 확인하고 다시 시도하세요.",
   "chat.mic.downloaded": "음성 모델 준비 완료",
   "chat.message.speak": "응답을 소리 내어 읽기",
   "chat.message.stop": "읽기 중지",

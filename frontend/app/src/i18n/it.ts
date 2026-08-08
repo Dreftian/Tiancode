@@ -1168,6 +1168,8 @@ export const dict = {
   "chat.mic.stop": "Interrompi dettatura",
   "chat.mic.error": "Impossibile avviare la dettatura vocale",
   "chat.mic.downloading": "Download del modello di riconoscimento vocale (prima volta)…",
+  "settings.mcpServers.discover.activateAll": "Attiva tutti",
+  "chat.mic.downloadFailed": "Impossibile scaricare il modello vocale. Controlla la connessione a internet e riprova.",
   "chat.mic.downloaded": "Modello vocale pronto",
   "chat.message.speak": "Leggi la risposta ad alta voce",
   "chat.message.stop": "Interrompi lettura",

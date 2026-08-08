@@ -1160,6 +1160,8 @@ export const dict = {
   "chat.mic.stop": "Diktəni dayandır",
   "chat.mic.error": "Səs diktəsi başlada bilmədi",
   "chat.mic.downloading": "Nitq tanıma modeli yüklənir (ilk dəfə)…",
+  "settings.mcpServers.discover.activateAll": "Hamısını aktivləşdir",
+  "chat.mic.downloadFailed": "Nitq modeli endirilə bilmədi. İnternet bağlantınızı yoxlayın və yenidən cəhd edin.",
   "chat.mic.downloaded": "Nitq modeli hazırdır",
   "chat.message.speak": "Cavabı səslə oxu",
   "chat.message.stop": "Oxumağı dayandır",

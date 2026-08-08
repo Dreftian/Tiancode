@@ -1160,6 +1160,8 @@ export const dict = {
   "chat.mic.stop": "Lopeta sanelu",
   "chat.mic.error": "Äänisanelua ei voitu aloittaa",
   "chat.mic.downloading": "Ladataan puheentunnistusmallia (ensimmäinen kerta)…",
+  "settings.mcpServers.discover.activateAll": "Ota kaikki käyttöön",
+  "chat.mic.downloadFailed": "Puhemallia ei voitu ladata. Tarkista internetyhteytesi ja yritä uudelleen.",
   "chat.mic.downloaded": "Puhemalli on valmis",
   "chat.message.speak": "Lue vastaus ääneen",
   "chat.message.stop": "Lopeta lukeminen",
