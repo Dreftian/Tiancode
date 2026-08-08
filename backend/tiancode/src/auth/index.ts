@@ -1,9 +1,10 @@
 import { LayerNode } from "@tiancode-ai/core/effect/layer-node"
 import path from "path"
-import { Effect, Layer, Record, Result, Schema, Context } from "effect"
+import { Effect, Layer, Option, Record, Result, Schema, Context } from "effect"
 import { NonNegativeInt } from "@tiancode-ai/core/schema"
 import { Global } from "@tiancode-ai/core/global"
 import { FSUtil } from "@tiancode-ai/core/fs-util"
+import { isSealed, open, readCredentialKey, seal } from "@tiancode-ai/core/credential/cipher"
 
 export const OAUTH_DUMMY_KEY = "tiancode-oauth-dummy-key"
 
@@ -54,16 +55,31 @@ const layer = Layer.effect(
   Effect.gen(function* () {
     const fsys = yield* FSUtil.Service
     const decode = Schema.decodeUnknownOption(Info)
+    // auth.json guarda las claves de proveedor en texto plano; con la clave
+    // del escritorio (TIANCODE_CREDENTIAL_KEY) cada valor se cifra con el
+    // mismo envelope AES-GCM que la tabla de credenciales.
+    const key = readCredentialKey()
+    const encode = (info: Info): unknown => (key === undefined ? info : seal(JSON.stringify(info), key))
+    const decodeStored = (value: unknown): Option.Option<Info> => {
+      if (typeof value === "string" && isSealed(value)) {
+        if (key === undefined) return Option.none()
+        const plain = open(value, key)
+        if (plain === undefined) return Option.none()
+        return decode(JSON.parse(plain))
+      }
+      return decode(value)
+    }
 
     const all = Effect.fn("Auth.all")(function* () {
       if (process.env.TIANCODE_AUTH_CONTENT) {
         try {
-          return JSON.parse(process.env.TIANCODE_AUTH_CONTENT)
+          const data = JSON.parse(process.env.TIANCODE_AUTH_CONTENT) as Record<string, unknown>
+          return Record.filterMap(data, (value) => Result.fromOption(decodeStored(value), () => undefined))
         } catch (err) {}
       }
 
       const data = (yield* fsys.readJson(file).pipe(Effect.orElseSucceed(() => ({})))) as Record<string, unknown>
-      return Record.filterMap(data, (value) => Result.fromOption(decode(value), () => undefined))
+      return Record.filterMap(data, (value) => Result.fromOption(decodeStored(value), () => undefined))
     })
 
     const get = Effect.fn("Auth.get")(function* (providerID: string) {
@@ -76,7 +92,7 @@ const layer = Layer.effect(
       if (norm !== key) delete data[key]
       delete data[norm + "/"]
       yield* fsys
-        .writeJson(file, { ...data, [norm]: info }, 0o600)
+        .writeJson(file, { ...data, [norm]: encode(info) }, 0o600)
         .pipe(Effect.mapError(fail("Failed to write auth data")))
     })
 
@@ -87,6 +103,22 @@ const layer = Layer.effect(
       delete data[norm]
       yield* fsys.writeJson(file, data, 0o600).pipe(Effect.mapError(fail("Failed to write auth data")))
     })
+
+    // Migración única: con clave disponible, re-cifra los valores que siguen
+    // en texto plano de antes de que existiera el cifrado.
+    const migrateAtRest = Effect.fn("Auth.migrateAtRest")(function* () {
+      if (key === undefined) return
+      const data = (yield* fsys.readJson(file).pipe(Effect.orElseSucceed(() => ({})))) as Record<string, unknown>
+      if (!Object.values(data).some((value) => typeof value !== "string")) return
+      yield* fsys
+        .writeJson(
+          file,
+          Record.map(data, (value) => (typeof value === "string" ? value : seal(JSON.stringify(value), key))),
+          0o600,
+        )
+        .pipe(Effect.mapError(fail("Failed to migrate auth data")))
+    })
+    yield* migrateAtRest().pipe(Effect.catch((error) => Effect.logError("failed to migrate auth data", { error })))
 
     return Service.of({ get, all, set, remove })
   }),

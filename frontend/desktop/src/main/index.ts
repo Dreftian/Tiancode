@@ -52,6 +52,7 @@ import { spawnWslSidecar } from "./wsl/sidecar"
 import { migrate } from "./migrate"
 import { cleanupStoreFiles } from "./store-cleanup"
 import { startBackgroundCli } from "./background-cli"
+import { getCredentialKey } from "./credential-key"
 import { setNativeTranslations } from "./native-translations"
 import { createTray } from "./tray"
 import { ensureLoopbackNoProxy, useEnvProxy } from "./util/proxy"
@@ -336,6 +337,13 @@ const main = Effect.gen(function* () {
 
     ensureLoopbackNoProxy()
     useEnvProxy((message, error) => logger.warn(message, error))
+
+    // Clave de cifrado de credenciales: se provisiona una vez (safeStorage) y
+    // se propaga por process.env a cualquier servidor hijo — el sidecar v1 la
+    // copia en createSidecarEnv y el daemon v2 la hereda en su spawn.
+    const credentialKey = yield* Effect.promise(() => getCredentialKey())
+    if (credentialKey !== undefined) process.env.TIANCODE_CREDENTIAL_KEY = credentialKey
+    logger.log("credential key provisioned", { enabled: credentialKey !== undefined })
 
     if (SIDECAR_VERSION === "v2") {
       logger.log("spawning v2 sidecar")

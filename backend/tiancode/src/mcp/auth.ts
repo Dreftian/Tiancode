@@ -2,9 +2,10 @@ import { LayerNode } from "@tiancode-ai/core/effect/layer-node"
 import path from "path"
 import { serviceUse } from "@tiancode-ai/core/effect/service-use"
 import { Global } from "@tiancode-ai/core/global"
-import { Effect, Layer, Context, Option, Schema } from "effect"
+import { Effect, Layer, Context, Option, Record, Result, Schema } from "effect"
 import { FSUtil } from "@tiancode-ai/core/fs-util"
 import { EffectFlock } from "@tiancode-ai/core/util/effect-flock"
+import { isSealed, open, readCredentialKey, seal } from "@tiancode-ai/core/credential/cipher"
 
 export const Tokens = Schema.Struct({
   accessToken: Schema.mutableKey(Schema.String),
@@ -31,7 +32,6 @@ export const Entry = Schema.Struct({
 })
 export type Entry = Schema.Schema.Type<typeof Entry>
 
-const decodeAuthData = Schema.decodeUnknownOption(Schema.Record(Schema.String, Entry))
 type AuthData = Record<string, Entry>
 
 const filepath = path.join(Global.Path.data, "mcp-auth.json")
@@ -61,13 +61,46 @@ const layer = Layer.effect(
   Effect.gen(function* () {
     const fs = yield* FSUtil.Service
     const flock = yield* EffectFlock.Service
+    // mcp-auth.json guarda tokens OAuth y secrets de cliente en texto plano;
+    // con la clave del escritorio (TIANCODE_CREDENTIAL_KEY) cada entrada se
+    // cifra con el mismo envelope AES-GCM que las credenciales.
+    const key = readCredentialKey()
+    const decodeEntry = (value: unknown): Option.Option<Entry> => {
+      if (typeof value === "string" && isSealed(value)) {
+        if (key === undefined) return Option.none()
+        const plain = open(value, key)
+        if (plain === undefined) return Option.none()
+        return Schema.decodeUnknownOption(Entry)(JSON.parse(plain))
+      }
+      return Schema.decodeUnknownOption(Entry)(value)
+    }
+    const persist = Effect.fn("McpAuth.persist")(function* (data: AuthData) {
+      const next = key === undefined ? data : Record.map(data, (entry) => seal(JSON.stringify(entry), key))
+      yield* fs.writeJson(filepath, next, 0o600).pipe(Effect.orDie)
+    })
 
     const read = Effect.fn("McpAuth.read")(function* () {
       return yield* fs.readJson(filepath).pipe(
-        Effect.map((data): AuthData => Option.getOrElse(decodeAuthData(data), () => ({}) as AuthData) as AuthData),
+        Effect.map(
+          (data): AuthData =>
+            Record.filterMap(data as Record<string, unknown>, (value) =>
+              Result.fromOption(decodeEntry(value), () => undefined),
+            ) as AuthData,
+        ),
         Effect.catch(() => Effect.succeed({} as AuthData)),
       )
     })
+
+    // Migración única: con clave disponible, re-cifra las entradas que siguen
+    // en texto plano de antes de que existiera el cifrado.
+    const migrateAtRest = Effect.fn("McpAuth.migrateAtRest")(function* () {
+      if (key === undefined) return
+      const raw = yield* fs.readJson(filepath).pipe(Effect.catch(() => Effect.succeed(undefined)))
+      if (raw === undefined) return
+      if (Object.values(raw as Record<string, unknown>).some((value) => typeof value !== "string"))
+        yield* persist(yield* read())
+    })
+    yield* migrateAtRest()
 
     const all = Effect.fn("McpAuth.all")(function* () {
       return yield* read().pipe(flock.withLock(lockKey), Effect.orDie)
@@ -77,7 +110,7 @@ const layer = Layer.effect(
       yield* Effect.gen(function* () {
         const next = update(yield* read())
         if (!next) return
-        yield* fs.writeJson(filepath, next, 0o600).pipe(Effect.orDie)
+        yield* persist(next)
       }).pipe(flock.withLock(lockKey), Effect.orDie)
     })
 
