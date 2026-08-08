@@ -4,6 +4,29 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.1] — 2026-08-08
+
+### Corregido
+
+- **Sub-agentes**: ya se pueden crear desde Ajustes (los agentes de la config
+  global se cargaban; ahora también se escanean los archivos markdown del
+  directorio global y la caché se invalida al crear/editar/borrar).
+- **MCP**: botón "Activar todos" en el catálogo Descubrir para activar los
+  servidores desactivados de una vez.
+- **Dictado por voz**: la descarga del modelo de voz reintenta 3 veces y el
+  error muestra un mensaje claro si falla la conexión (traducido a los 26
+  idiomas).
+- **Captura de pantalla**: el navegador interno ya se puede capturar; se
+  endurecieron los permisos del webview.
+- **Actualizador**: los binarios de Windows arm64 ya no pisan a los de x64 en
+  la release (sufijo `-arm64`), progreso de descarga en vivo y el toggle de
+  búsqueda al iniciar aplica al instante.
+- **Backups y arranque**: respaldo automático diario con rotación de 7 días,
+  exportar conversación a Markdown, proveedor local automático al instalar
+  Ollama/LM Studio e inicio con Windows.
+- **Traducciones**: los 26 idiomas de la app completos (paridad 6/6).
+- **Repositorio**: estructura reorganizada con la carpeta `tools/`.
+
 ## [1.0.0] — 2026-08-07
 
 ### Añadido
