@@ -5,6 +5,7 @@ import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { promisify } from "node:util"
 import { app } from "electron"
+import { getCredentialKey } from "./credential-key"
 
 const execFileAsync = promisify(execFile)
 const root = dirname(fileURLToPath(import.meta.url))
@@ -40,7 +41,12 @@ export async function startBackgroundCli(logger: Logger, shellStateHome?: string
   })
 
   const daemonStateHome = found?.stateHome ?? stateHome
-  const url = await run(binary, ["service", "start"], logger, { stateHome: daemonStateHome })
+  // Clave de cifrado de credenciales: el daemon la hereda al arrancar (spawn
+  // con el env del CLI) y cifra la tabla de credenciales; un daemon ya en
+  // ejecución con otra versión se reinicia solo en daemon.ts.
+  const credentialKey = await getCredentialKey()
+  logger.log("v2 CLI credential key", { enabled: credentialKey !== undefined })
+  const url = await run(binary, ["service", "start"], logger, { stateHome: daemonStateHome, credentialKey })
   const password = await run(binary, ["service", "get", "password"], logger, {
     redact: true,
     stateHome: daemonStateHome,
@@ -81,12 +87,13 @@ async function run(
   binary: string,
   args: string[],
   logger: Logger,
-  options: { redact?: boolean; stateHome?: string } = {},
+  options: { redact?: boolean; stateHome?: string; credentialKey?: string } = {},
 ) {
   logger.log("v2 CLI command started", { binary, args })
   const env = { ...process.env }
   if (options.stateHome === undefined) delete env.XDG_STATE_HOME
   else env.XDG_STATE_HOME = options.stateHome
+  if (options.credentialKey !== undefined) env.TIANCODE_CREDENTIAL_KEY = options.credentialKey
   return execFileAsync(binary, args, { env, windowsHide: true }).then(
     (result) => {
       const stdout = result.stdout.trim()
