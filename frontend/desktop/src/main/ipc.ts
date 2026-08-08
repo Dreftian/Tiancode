@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process"
 import { stat, writeFile } from "node:fs/promises"
-import { basename, join } from "node:path"
+import { basename, isAbsolute, join } from "node:path"
 import { app, BrowserWindow, clipboard, dialog, ipcMain, shell } from "electron"
 import type { IpcMainEvent, IpcMainInvokeEvent } from "electron"
 import type { DesktopMenuAction } from "@tiancode-ai/app/desktop-menu"
@@ -29,6 +29,68 @@ import { asrChunk, asrStart, asrStop, ensureAsrModel, getAsrStatus } from "./asr
 import { getRuntimeInstallState, installRuntime } from "./runtime-install"
 import { captureArea, capturePreview, captureScreen, captureWindow } from "./capture"
 import { backupNow, listBackups, restoreBackup } from "./backup"
+
+// Apps "abrir con" que acepta open-path. En macOS y Linux el renderer envía
+// el nombre tal cual; en Windows envía el path resuelto por resolveAppPath
+// para uno de estos nombres, así que ahí se re-resuelve y compara.
+const OPEN_APP_NAMES: Record<"darwin" | "win32" | "linux", readonly string[]> = {
+  darwin: [
+    "Visual Studio Code",
+    "Cursor",
+    "Zed",
+    "TextMate",
+    "Antigravity",
+    "Terminal",
+    "iTerm",
+    "Ghostty",
+    "Warp",
+    "Xcode",
+    "Android Studio",
+    "Sublime Text",
+  ],
+  win32: ["code", "cursor", "zed", "powershell", "Sublime Text"],
+  linux: ["code", "cursor", "zed", "Sublime Text"],
+}
+
+// Paths que el save-file-picker acaba de devolver al renderer: solo esos se
+// pueden escribir con write-text-file (single-use, con expiración).
+const authorizedWritePaths = new Set<string>()
+const WRITE_PATH_TTL_MS = 10 * 60 * 1000
+
+function authorizeWritePath(path: string) {
+  authorizedWritePaths.add(path)
+  setTimeout(() => authorizedWritePaths.delete(path), WRITE_PATH_TTL_MS).unref()
+}
+
+// Stores expuestos al renderer vía IPC; el resto son de uso exclusivo del
+// main (p. ej. respaldos, WSL, updater). Los stores dinámicos del renderer
+// siguen el patrón tiancode.{window,workspace,draft}.<id>.dat.
+const RENDERER_STORES = new Set(["tiancode.settings", "tiancode.global.dat", "default.dat", "tiancode.updater"])
+const RENDERER_SETTINGS_KEYS = new Set(["minimizeToTray", "fileWatcher", "checkUpdatesOnStart", "autoBackup"])
+const UPDATER_KEYS = new Set(["ready"])
+
+function isRendererStore(name: string) {
+  if (RENDERER_STORES.has(name)) return true
+  if (name.startsWith("tiancode.window.") && name.endsWith(".dat")) return true
+  if (name.startsWith("tiancode.workspace.") && name.endsWith(".dat")) return true
+  if (name.startsWith("tiancode.draft.") && name.endsWith(".dat")) return true
+  return false
+}
+
+function requireStoreAccess(name: string, op: "get" | "set" | "delete" | "clear" | "list") {
+  if (!isRendererStore(name)) throw new Error(`Store no permitido: ${name}`)
+  if ((op === "clear" || op === "list") && (name === "tiancode.settings" || name === "tiancode.updater")) {
+    throw new Error(`Store no permitido: ${name}`)
+  }
+}
+
+function requireStoreKey(name: string, op: "get" | "set" | "delete", key: string) {
+  requireStoreAccess(name, op)
+  if (name === "tiancode.settings" && !RENDERER_SETTINGS_KEYS.has(key)) throw new Error(`Clave no permitida: ${key}`)
+  if (name === "tiancode.updater" && (op !== "get" || !UPDATER_KEYS.has(key))) {
+    throw new Error("Store de actualizaciones de solo lectura")
+  }
+}
 
 const pickerFilters = (ext?: string[]) => {
   if (!ext || ext.length === 0) return undefined
@@ -62,6 +124,20 @@ type Deps = {
 export function registerIpcHandlers(deps: Deps) {
   const drafts = createDesktopDraftStore(join(app.getPath("userData"), "drafts.sqlite"))
   const updaterSubscriptions = createUpdaterSubscriptions()
+
+  // Resuelve el argumento "app" de open-path contra los nombres conocidos;
+  // en Windows el renderer envía el path resuelto y hay que re-resolver para
+  // verificar que corresponde a una de las apps permitidas.
+  const resolveOpenApp = async (app: string) => {
+    if (process.platform === "darwin") return OPEN_APP_NAMES.darwin.includes(app) ? app : null
+    if (process.platform === "win32") {
+      if (!isAbsolute(app)) return null
+      const candidates = await Promise.all(OPEN_APP_NAMES.win32.map((name) => deps.resolveAppPath(name)))
+      return candidates.find((candidate) => candidate && candidate.toLowerCase() === app.toLowerCase()) ?? null
+    }
+    return OPEN_APP_NAMES.linux.includes(app) ? app : null
+  }
+
   app.once("will-quit", updaterSubscriptions.clear)
   app.on("before-quit", () => drafts.flush())
   app.once("will-quit", () => drafts.close())
@@ -142,6 +218,7 @@ export function registerIpcHandlers(deps: Deps) {
   ipcMain.handle("runtime-install-state", () => getRuntimeInstallState())
   ipcMain.handle("runtime-install", (_event: IpcMainInvokeEvent, kind: "ollama" | "lmstudio") => installRuntime(kind))
   ipcMain.handle("store-get", (_event: IpcMainInvokeEvent, name: string, key: string) => {
+    requireStoreKey(name, "get", key)
     try {
       const store = getStore(name)
       const value = store.get(key)
@@ -152,21 +229,26 @@ export function registerIpcHandlers(deps: Deps) {
     }
   })
   ipcMain.handle("store-set", (_event: IpcMainInvokeEvent, name: string, key: string, value: string) => {
+    requireStoreKey(name, "set", key)
     getStore(name).set(key, value)
   })
   ipcMain.handle("store-delete", (_event: IpcMainInvokeEvent, name: string, key: string) => {
+    requireStoreKey(name, "delete", key)
     getStore(name).delete(key)
     void removeStoreFileIfEmpty(name)
   })
   ipcMain.handle("store-clear", (_event: IpcMainInvokeEvent, name: string) => {
+    requireStoreAccess(name, "clear")
     getStore(name).clear()
     void removeStoreFileIfEmpty(name)
   })
   ipcMain.handle("store-keys", (_event: IpcMainInvokeEvent, name: string) => {
+    requireStoreAccess(name, "list")
     const store = getStore(name)
     return Object.keys(store.store)
   })
   ipcMain.handle("store-length", (_event: IpcMainInvokeEvent, name: string) => {
+    requireStoreAccess(name, "list")
     const store = getStore(name)
     return Object.keys(store.store).length
   })
@@ -234,13 +316,17 @@ export function registerIpcHandlers(deps: Deps) {
         defaultPath: opts?.defaultPath,
       })
       if (result.canceled) return null
-      return result.filePath ?? null
+      const filePath = result.filePath
+      if (filePath) authorizeWritePath(filePath)
+      return filePath ?? null
     },
   )
 
   // Escribe texto en un archivo elegido por el usuario (exportar conversación
-  // a Markdown, etc.). El path viene del save-file-picker del mismo proceso.
+  // a Markdown, etc.). Solo se admiten paths devueltos por el save-file-picker
+  // de este proceso; el permiso se consume en el primer uso.
   ipcMain.handle("write-text-file", async (_event: IpcMainInvokeEvent, path: string, content: string) => {
+    if (!authorizedWritePaths.delete(path)) throw new Error("Path no autorizado")
     await writeFile(path, content, "utf8")
     return true
   })
@@ -254,10 +340,14 @@ export function registerIpcHandlers(deps: Deps) {
   })
 
   ipcMain.handle("open-path", async (_event: IpcMainInvokeEvent, path: string, app?: string) => {
+    const info = await stat(path).catch(() => null)
+    if (!isAbsolute(path) || !info) throw new Error("La ruta no existe o no es absoluta")
     if (!app) return shell.openPath(path)
+    const resolved = await resolveOpenApp(app)
+    if (!resolved) throw new Error("Aplicación no permitida")
     await new Promise<void>((resolve, reject) => {
       const [cmd, args] =
-        process.platform === "darwin" ? (["open", ["-a", app, path]] as const) : ([app, [path]] as const)
+        process.platform === "darwin" ? (["open", ["-a", resolved, path]] as const) : ([resolved, [path]] as const)
       execFile(cmd, args, (err) => (err ? reject(err) : resolve()))
     })
   })
@@ -286,7 +376,7 @@ export function registerIpcHandlers(deps: Deps) {
     captureArea(bounds),
   )
   ipcMain.handle("capture-window", (event: IpcMainInvokeEvent) => captureWindow(event.sender))
-  ipcMain.handle("capture-preview", (_event: IpcMainInvokeEvent, webContentsId: number) => capturePreview(webContentsId))
+  ipcMain.handle("capture-preview", (event: IpcMainInvokeEvent) => capturePreview(event.sender.id))
 
   // Inicio con Windows: el estado lo gestiona el sistema operativo.
   ipcMain.handle("set-login-item", (_event: IpcMainInvokeEvent, enabled: boolean) => {

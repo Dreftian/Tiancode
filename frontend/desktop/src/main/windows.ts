@@ -51,6 +51,10 @@ let relaunchHandler = () => {
   app.relaunch()
   app.exit(0)
 }
+// Guests del <webview> de preview (partición "persist:preview") por ventana
+// host. Solo estos webContents son capturables vía "capture-preview": el
+// renderer no aporta el id, se resuelve desde la ventana que llama.
+const previewGuests = new Map<number, number>()
 const titlebarThemes = new WeakMap<BrowserWindow, Partial<TitlebarTheme>>()
 const pinchZoomEnabled = new WeakMap<BrowserWindow, boolean>()
 const windowIDs = new WeakMap<BrowserWindow, string>()
@@ -221,6 +225,7 @@ export function createMainWindow(id: string = randomUUID()) {
 
   allowRendererPermissions(win)
   hardenPreviewSession()
+  wirePreviewGuestTracking(win)
   wireWindowRecovery(win, id)
   wireNavigationPolicy(win)
 
@@ -531,6 +536,22 @@ function hardenPreviewSession() {
   const previewSession = session.fromPartition("persist:preview")
   previewSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false))
   previewSession.setPermissionCheckHandler(() => false)
+}
+
+// Registra el guest del <webview> de preview (si lo hay) para poder capturarlo
+// después sin fiarse del id que envíe el renderer.
+function wirePreviewGuestTracking(win: BrowserWindow) {
+  win.webContents.on("did-attach-webview", (_event, guest) => {
+    if (guest.session !== session.fromPartition("persist:preview")) return
+    previewGuests.set(win.webContents.id, guest.id)
+    guest.once("destroyed", () => {
+      if (previewGuests.get(win.webContents.id) === guest.id) previewGuests.delete(win.webContents.id)
+    })
+  })
+}
+
+export function getPreviewGuestWebContentsId(hostWebContentsId: number) {
+  return previewGuests.get(hostWebContentsId) ?? null
 }
 
 function addRendererHeaders(value: string, headers: Record<string, any>) {

@@ -1,7 +1,10 @@
 import { sentryVitePlugin } from "@sentry/vite-plugin"
 import { defineConfig } from "electron-vite"
 import appPlugin from "@tiancode-ai/app/vite"
-import * as fs from "node:fs/promises"
+import { createHash } from "node:crypto"
+import { readFileSync } from "node:fs"
+import { readFile, readdir, writeFile } from "node:fs/promises"
+import { fileURLToPath } from "node:url"
 
 const TIANCODE_SERVER_DIST = "../../backend/tiancode/dist/node"
 
@@ -13,6 +16,31 @@ const channel = (() => {
 })()
 
 const nodePtyPkg = `@lydell/node-pty-${process.platform}-${process.arch}`
+
+// CSP estricto solo en el build de producción (el dev necesita HMR sin
+// restricciones). El script inline del theme-preload lo inyecta el plugin de
+// @tiancode-ai/app/vite; se permite por hash SHA-256 para no abrir
+// 'unsafe-inline'. connect-src incluye http: porque el renderer habla con el
+// sidecar local (http://127.0.0.1) y con servidores remotos configurados por
+// el usuario. media-src incluye blob: (audio TTS) y https: (vídeos de las
+// release notes).
+const rendererCsp = (() => {
+  const themePreloadPath = fileURLToPath(new URL("../app/public/oc-theme-preload.js", import.meta.url))
+  const themeHash = createHash("sha256").update(readFileSync(themePreloadPath, "utf8")).digest("base64")
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'sha256-${themeHash}'`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data:",
+    "media-src 'self' blob: https:",
+    "connect-src 'self' http: https: wss: ws:",
+    "frame-src 'self' https:",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join("; ")
+})()
 
 const sentry =
   process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT
@@ -71,9 +99,9 @@ const require = __cjs_mod__.createRequire(import.meta.url);
       {
         name: "tiancode:copy-server-assets",
         async writeBundle() {
-          for (const l of await fs.readdir(TIANCODE_SERVER_DIST)) {
+          for (const l of await readdir(TIANCODE_SERVER_DIST)) {
             if (!l.endsWith(".wasm")) continue
-            await fs.writeFile(`./out/main/chunks/${l}`, await fs.readFile(`${TIANCODE_SERVER_DIST}/${l}`))
+            await writeFile(`./out/main/chunks/${l}`, await readFile(`${TIANCODE_SERVER_DIST}/${l}`))
           }
         },
       },
@@ -91,7 +119,26 @@ const require = __cjs_mod__.createRequire(import.meta.url);
     },
   },
   renderer: {
-    plugins: [appPlugin, sentry],
+    plugins: [
+      appPlugin,
+      sentry,
+      {
+        name: "tiancode:renderer-csp",
+        apply: "build",
+        transformIndexHtml() {
+          return [
+            {
+              tag: "meta",
+              attrs: {
+                "http-equiv": "Content-Security-Policy",
+                content: rendererCsp,
+              },
+              injectTo: "head-prepend",
+            },
+          ]
+        },
+      },
+    ],
     publicDir: "../../../app/public",
     root: "src/renderer",
     build: {

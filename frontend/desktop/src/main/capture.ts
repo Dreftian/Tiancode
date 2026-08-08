@@ -1,4 +1,5 @@
 import { desktopCapturer, screen, webContents, type WebContents } from "electron"
+import { getPreviewGuestWebContentsId } from "./windows"
 
 // Capturas de pantalla para el chat: el modelo principal puede no tener
 // visión, así que la imagen se adjunta como media part y el agente la analiza
@@ -51,9 +52,12 @@ export function captureWindow(sender: WebContents): Promise<CaptureResult> {
 }
 
 // Captura el <webview> del navegador interno: el guest corre en su propio
-// webContents, así que hay que pedir su id desde el renderer.
-export function capturePreview(webContentsId: number): Promise<CaptureResult> {
-  const contents = webContents.fromId(webContentsId)
+// webContents. El id se rastrea en el main (did-attach del webview con la
+// partición "persist:preview"); el renderer ya no aporta un id arbitrario.
+export function capturePreview(hostWebContentsId: number): Promise<CaptureResult> {
+  const guestId = getPreviewGuestWebContentsId(hostWebContentsId)
+  if (guestId === null) return Promise.reject(new Error("Preview not found"))
+  const contents = webContents.fromId(guestId)
   if (!contents || contents.isDestroyed()) return Promise.reject(new Error("Preview not found"))
   return contents.capturePage().then(toPng)
 }

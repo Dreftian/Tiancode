@@ -1,7 +1,7 @@
 import { app } from "electron"
 import { cp, mkdir, readdir, rm, stat } from "node:fs/promises"
 import { existsSync } from "node:fs"
-import { join } from "node:path"
+import { join, resolve, sep } from "node:path"
 import { write as writeLog } from "./logging"
 
 // Respaldo automático de datos de la app: sesiones, configuración y estado.
@@ -10,6 +10,9 @@ import { write as writeLog } from "./logging"
 
 const BACKUP_DIR = "backups"
 const KEEP_BACKUPS = 7
+
+// backupNow genera los nombres con este patrón (ver más abajo).
+const BACKUP_NAME_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}$/
 
 // Carpetas/archivos de userData que se copian tal cual.
 const BACKUP_ENTRIES = ["config.json", "tiancode.json", "tiancode.jsonc", "session", "state", "desktop", "drafts.sqlite"]
@@ -72,8 +75,9 @@ export async function listBackups(): Promise<BackupInfo[]> {
 // vuelta el contenido del respaldo. La app debe reiniciarse después (el
 // renderer confirma antes de llamar).
 export async function restoreBackup(name: string): Promise<void> {
-  const source = join(backupsDir(), name)
-  if (!existsSync(source)) throw new Error(`Backup not found: ${name}`)
+  const source = assertValidBackupSource(name)
+  const info = await stat(source).catch(() => null)
+  if (!info || !info.isDirectory()) throw new Error(`Backup not found: ${name}`)
   const userData = app.getPath("userData")
   for (const entry of BACKUP_ENTRIES) {
     const target = join(userData, entry)
@@ -85,4 +89,14 @@ export async function restoreBackup(name: string): Promise<void> {
     await cp(from, join(userData, entry), { recursive: true, force: false })
   }
   writeLog("backup", "restored", { name })
+}
+
+// Valida el nombre de un respaldo antes de borrar nada: backupNow los nombra
+// con una marca de tiempo ISO (YYYY-MM-DDTHH-MM-SS) y deben quedar confinados
+// bajo backupsDir() — un nombre arbitrario no debe poder salirse de ahí.
+function assertValidBackupSource(name: string) {
+  if (!BACKUP_NAME_PATTERN.test(name)) throw new Error(`Invalid backup name: ${name}`)
+  const source = resolve(backupsDir(), name)
+  if (!source.startsWith(`${backupsDir()}${sep}`)) throw new Error(`Invalid backup name: ${name}`)
+  return source
 }

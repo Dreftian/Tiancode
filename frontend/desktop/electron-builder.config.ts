@@ -109,7 +109,15 @@ const getBase = (appId: string): Configuration => ({
       { target: "nsis", arch: ["x64"] },
       { target: "portable", arch: ["x64"] },
     ],
-    verifyUpdateCodeSignature: false,
+    // Los builds de beta/prod salen firmados desde CI (Azure Trusted Signing)
+    // y electron-updater debe verificar la firma del paquete antes de
+    // instalarlo. El canal dev (sin firmar) no verifica para no romper sus
+    // actualizaciones locales; además UPDATER_ENABLED lo desactiva en runtime.
+    verifyUpdateCodeSignature: channel !== "dev",
+    // IMPORTANTE: debe coincidir con el Subject CN del certificado real de
+    // Azure Trusted Signing (cuenta/perfil del secreto CI). Si no coincide,
+    // electron-updater rechazará las actualizaciones firmadas de beta/prod.
+    publisherName: ["Tiancode"],
   },
   nsis: {
     oneClick: true,
