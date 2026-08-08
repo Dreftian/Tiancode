@@ -1,4 +1,4 @@
-import { createSignal } from "solid-js"
+import { createSignal, onCleanup } from "solid-js"
 import { useLanguage } from "@/context/language"
 import { showToast } from "@/utils/toast"
 import { getSpeechRecognition, speechRecognitionLang, type SpeechRecognitionLike } from "@/utils/voices"
@@ -33,93 +33,119 @@ export function VoiceDictationButton(props: {
   const [listening, setListening] = createSignal(false)
   const [preparing, setPreparing] = createSignal(false)
   let recognition: SpeechRecognitionLike | undefined
-  let stopLocal: (() => void) | undefined
+  // Ref al último dictado local iniciado: parar siempre apunta al activo.
+  let stopLocalRef: (() => void) | undefined
+  // Arranque en curso (entre clics y la asignación de stopLocalRef): dos clics
+  // rápidos no deben iniciar dos capturas de micrófono, porque el segundo
+  // sobrescribiría el stop del primero y su stream quedaría grabando para
+  // siempre (chunks intercalados en la misma grabación del proceso principal).
+  let starting = false
+  let disposed = false
 
   const stop = () => {
     recognition?.stop()
     recognition = undefined
-    if (stopLocal) {
-      void stopLocal()
-      stopLocal = undefined
-    }
+    const stopLocal = stopLocalRef
+    stopLocalRef = undefined
+    if (stopLocal) void stopLocal()
     setListening(false)
   }
 
+  // Si el compositor se desmonta con el dictado activo (o arrancando) hay que
+  // detener la captura: si no, el indicador del micrófono del SO y el envío de
+  // chunks por IPC seguirían activos sin dueño.
+  onCleanup(() => {
+    disposed = true
+    stop()
+  })
+
   const start = async () => {
-    const Ctor = getSpeechRecognition()
-    if (Ctor) {
-      const rec = new Ctor()
-      recognition = rec
-      rec.lang = speechRecognitionLang(language.locale())
-      rec.continuous = false
-      rec.interimResults = false
-      rec.onresult = (event) => {
-        const transcript = event.results[0]?.[0]?.transcript
-        if (transcript) props.onResult(transcript.trim())
-        stop()
-      }
-      rec.onerror = (event) => {
-        if (event.error !== "aborted" && event.error !== "no-speech") {
-          showToast({ variant: "error", title: language.t("chat.mic.error"), description: event.error })
+    if (starting || listening()) return
+    starting = true
+    try {
+      const Ctor = getSpeechRecognition()
+      if (Ctor) {
+        const rec = new Ctor()
+        recognition = rec
+        rec.lang = speechRecognitionLang(language.locale())
+        rec.continuous = false
+        rec.interimResults = false
+        rec.onresult = (event) => {
+          const transcript = event.results[0]?.[0]?.transcript
+          if (transcript) props.onResult(transcript.trim())
+          stop()
         }
-        stop()
+        rec.onerror = (event) => {
+          if (event.error !== "aborted" && event.error !== "no-speech") {
+            showToast({ variant: "error", title: language.t("chat.mic.error"), description: event.error })
+          }
+          stop()
+        }
+        rec.onend = () => {
+          recognition = undefined
+          setListening(false)
+        }
+        setListening(true)
+        rec.start()
+        return
       }
-      rec.onend = () => {
-        recognition = undefined
-        setListening(false)
+      // Electron: dictado local con sherpa-onnx (proceso principal).
+      const api = asrAPI()
+      if (!api) {
+        showToast({ variant: "error", title: language.t("chat.mic.error") })
+        return
       }
-      setListening(true)
-      rec.start()
-      return
-    }
-    // Electron: dictado local con sherpa-onnx (proceso principal).
-    const api = asrAPI()
-    if (!api) {
-      showToast({ variant: "error", title: language.t("chat.mic.error") })
-      return
-    }
-    // El modelo Whisper (~100 MB) se descarga bajo demanda; hacerlo aquí da
-    // feedback al usuario en vez de dejarle esperando en silencio al parar.
-    const status = await api.status().catch(() => undefined)
-    if (status && !status.ready && !status.downloading) {
-      setPreparing(true)
-      showToast({ variant: "default", title: language.t("chat.mic.downloading") })
+      // El modelo Whisper (~100 MB) se descarga bajo demanda; hacerlo aquí da
+      // feedback al usuario en vez de dejarle esperando en silencio al parar.
+      const status = await api.status().catch(() => undefined)
+      if (status && !status.ready && !status.downloading) {
+        setPreparing(true)
+        showToast({ variant: "default", title: language.t("chat.mic.downloading") })
+        try {
+          await api.ensure()
+          showToast({ variant: "success", title: language.t("chat.mic.downloaded") })
+        } catch {
+          // El detalle técnico queda en el log del main; el toast explica cómo
+          // resolverlo (la descarga del modelo necesita internet la primera vez).
+          showToast({
+            variant: "error",
+            title: language.t("chat.mic.error"),
+            description: language.t("chat.mic.downloadFailed"),
+          })
+          setPreparing(false)
+          return
+        }
+        setPreparing(false)
+      }
+      const locale = language.locale() === "es" ? "es" : "en"
       try {
-        await api.ensure()
-        showToast({ variant: "success", title: language.t("chat.mic.downloaded") })
-      } catch {
-        // El detalle técnico queda en el log del main; el toast explica cómo
-        // resolverlo (la descarga del modelo necesita internet la primera vez).
+        stopLocalRef = await startLocalDictation(
+          locale,
+          (text) => {
+            props.onResult(text)
+            stop()
+          },
+          (message) => {
+            showToast({ variant: "error", title: language.t("chat.mic.error"), description: message })
+            stop()
+          },
+        )
+        if (disposed) {
+          // El componente se desmontó mientras el dictado arrancaba: parar en
+          // cuanto esté listo para no dejar el micrófono abierto.
+          stop()
+          return
+        }
+        setListening(true)
+      } catch (error) {
         showToast({
           variant: "error",
           title: language.t("chat.mic.error"),
-          description: language.t("chat.mic.downloadFailed"),
+          description: error instanceof Error ? error.message : String(error),
         })
-        setPreparing(false)
-        return
       }
-      setPreparing(false)
-    }
-    const locale = language.locale() === "es" ? "es" : "en"
-    try {
-      stopLocal = await startLocalDictation(
-        locale,
-        (text) => {
-          props.onResult(text)
-          stop()
-        },
-        (message) => {
-          showToast({ variant: "error", title: language.t("chat.mic.error"), description: message })
-          stop()
-        },
-      )
-      setListening(true)
-    } catch (error) {
-      showToast({
-        variant: "error",
-        title: language.t("chat.mic.error"),
-        description: error instanceof Error ? error.message : String(error),
-      })
+    } finally {
+      starting = false
     }
   }
 

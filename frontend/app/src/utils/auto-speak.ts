@@ -7,6 +7,9 @@ import { currentSpeakingKey, speakWithVoices, stopSpeaking, isVoiceSpeaking } fr
 
 const AUTO_KEY_PREFIX = "auto:"
 const MAX_AUTO_CHARS = 60_000
+// Número máximo de partes recordadas: el set crece con cada parte transmitida,
+// así que las más antiguas se descartan para no acumular memoria sin límite.
+const MAX_SEEN_PARTS = 500
 // Un tramo suena ~2-4s; dividir por oraciones evita cortes a mitad de frase.
 export const splitChunks = (text: string): string[] =>
   text
@@ -17,6 +20,20 @@ export const splitChunks = (text: string): string[] =>
 // Partes que ya se consideran leídas: al volver a activar la opción no se
 // releen mensajes antiguos (el timeline solo encola partes nuevas).
 const seenParts = new Set<string>()
+
+// Devuelve true si la parte es nueva (y la recuerda); false si ya se leyó. El
+// set conserva el orden de inserción, así que descartar la primera entrada
+// evita las más antiguas. Una parte descartada podría releerse si sigue
+// transmitiendo texto, un coste asumible en sesiones de miles de partes.
+function markSeen(partId: string) {
+  if (seenParts.has(partId)) return false
+  seenParts.add(partId)
+  if (seenParts.size > MAX_SEEN_PARTS) {
+    const oldest = seenParts.values().next().value
+    if (oldest !== undefined) seenParts.delete(oldest)
+  }
+  return true
+}
 
 let currentKey: string | undefined
 let consumed = 0
@@ -30,8 +47,7 @@ function autoKey(partId: string) {
 // Encola el texto nuevo de una parte (se llama en cada cambio del stream).
 export function enqueueAutoSpeak(partId: string, text: string) {
   const key = autoKey(partId)
-  if (!seenParts.has(partId)) {
-    seenParts.add(partId)
+  if (markSeen(partId)) {
     // Parte nueva: arranca la lectura con el texto disponible hasta ahora.
     if (!text.trim()) return
     currentKey = key

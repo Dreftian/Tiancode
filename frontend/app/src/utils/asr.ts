@@ -41,7 +41,17 @@ export async function startLocalDictation(
   const source = context.createMediaStreamSource(stream)
   const node = context.createScriptProcessor(4096, 1, 1)
   let stopped = false
-  await api.start(language)
+  try {
+    await api.start(language)
+  } catch (error) {
+    // El reconocedor no arrancó: liberar lo ya adquirido. Si no, el indicador
+    // del micrófono del SO y el nodo de captura quedarían activos para siempre.
+    node.disconnect()
+    source.disconnect()
+    void context.close().catch(() => {})
+    stream.getTracks().forEach((track) => track.stop())
+    throw error
+  }
   node.onaudioprocess = (event) => {
     if (stopped) return
     api.chunk(new Float32Array(event.inputBuffer.getChannelData(0)))
