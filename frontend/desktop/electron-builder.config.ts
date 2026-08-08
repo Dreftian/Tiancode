@@ -117,7 +117,7 @@ const getBase = (appId: string): Configuration => ({
     installerIcon: `resources/icons/icon.ico`,
     installerHeaderIcon: `resources/icons/icon.ico`,
     // Los nombres de artefacto son los que enlaza la web y el latest.yml
-    // (Website/recursos/descargas.html → /releases/latest/download/Tiancode.exe).
+    // (tools/website/recursos/descargas.html → /releases/latest/download/Tiancode.exe).
     // El CI construye arm64 y x64: sin sufijo ambos producirían "Tiancode.exe"
     // y la release se pisa a sí misma (el updater serviría arm64 a todos). El
     // job arm64 del CI setea TIANCODE_ARCH=arm64 para distinguirlos.

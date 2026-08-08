@@ -53,24 +53,36 @@ cd frontend/desktop && bun run dev
 cd backend/tiancode && bun dev
 
 # Website estática
-cd Website && bunx serve .
+cd tools/website && bunx serve .
 ```
 
 ### Estructura
 
 ```
-frontend/
-  app/          # App web (SolidJS, settings v2, chat)
-  desktop/      # Shell Electron (main process, TTS, tray, onboarding)
+skills/         # 52+ skills integrados (frontend-design, writing-plans, superpowers…)
+install/        # Instalador y portable (Tiancode.exe / Tiancode-portable.exe)
+frontend/       # App de escritorio y web
+  app/          # App web (SolidJS, settings v2, chat, capturas, respaldos)
+  desktop/      # Shell Electron (main process, TTS, tray, actualizador)
   ui/           # Design system (tokens, componentes v2)
+  session-ui/   # Componentes de sesión v2 (composer, timeline)
   web/          # Docs (Astro/Starlight)
-backend/
-  tiancode/     # Servidor (Bun/Effect, MCP, agentes, model hub, github)
+backend/        # Servidor y librerías (Bun/Effect)
+  tiancode/     # Servidor (MCP, agentes, model hub, github, skills)
   core/         # Core (git, sesiones, config)
   sdk/          # SDK generado
-Website/        # Landing estática en español
-skills/         # 52+ skills integrados
+tools/          # Soporte: website, GitHub workflows, docs de diseño
+  website/      # Landing estática en español (deploy en Vercel)
+  github/       # Workflows/plantillas de GitHub (inactivos mientras no se publiquen)
+  docs/         # Especificaciones de diseño
 ```
+
+### Convenciones del monorepo
+
+- `frontend/` y `backend/` son autocontenidos; `tools/` es soporte (no se importa desde la app).
+- Dependencias dirigidas: Schema → Core → Protocol → Server; el cliente nunca depende de Core/Server.
+- La app es **local-first**: el repo local no se empuja a GitHub (el repo remoto Dreftian/Tiancode contiene solo la website).
+- Los binarios de `install/` se publican en [GitHub Releases](https://github.com/Dreftian/Tiancode/releases) con los nombres `Tiancode.exe` / `Tiancode-portable.exe`.
 
 ## 📄 Licencia
 
