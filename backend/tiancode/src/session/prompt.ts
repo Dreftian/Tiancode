@@ -1057,13 +1057,19 @@ const layer = Layer.effect(
       const message = yield* createUserMessage(input)
       yield* sessions.touch(input.sessionID)
 
+      // Deprecated `tools` entries only add rules for tools that are not
+      // already configured, so they never replace the session's existing
+      // ruleset (e.g. user-approved `always` permissions).
+      const configured = new Set((session.permission ?? []).map((rule) => rule.permission))
       const permissions: PermissionV1.Rule[] = []
       for (const [t, enabled] of Object.entries(input.tools ?? {})) {
+        if (configured.has(t)) continue
         permissions.push({ permission: t, action: enabled ? "allow" : "deny", pattern: "*" })
       }
       if (permissions.length > 0) {
-        session.permission = permissions
-        yield* sessions.setPermission({ sessionID: session.id, permission: permissions })
+        const merged = [...(session.permission ?? []), ...permissions]
+        session.permission = merged
+        yield* sessions.setPermission({ sessionID: session.id, permission: merged })
       }
 
       if (input.noReply === true) return message

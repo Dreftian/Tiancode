@@ -447,10 +447,20 @@ export const ShellTool = Tool.define(
       let expired = false
       let aborted = false
 
+      // A failing sink (e.g. disk full) must not crash the process with an
+      // unhandled 'error' event: log it and fall back to the in-memory tail
+      // so the turn still ends gracefully.
+      const onSinkError = (error: Error) => {
+        cut = true
+        sink = undefined
+        Effect.runSync(Effect.logError("shell output sink failed", { file, error }))
+      }
+
       const closeSink = Effect.fnUntraced(function* () {
         const stream = sink
         if (!stream) return
         sink = undefined
+        stream.off("error", onSinkError)
         if (stream.destroyed || stream.closed) return
         yield* Effect.promise(
           () =>
@@ -508,6 +518,7 @@ export const ShellTool = Tool.define(
                         file = next
                         cut = true
                         sink = createWriteStream(next, { flags: "a" })
+                        sink.on("error", onSinkError)
                         full = ""
                       }),
                     ),

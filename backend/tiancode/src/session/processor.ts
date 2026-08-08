@@ -72,6 +72,10 @@ interface ProcessorContext extends Input {
   needsCompaction: boolean
   currentText: SessionV1.TextPart | undefined
   reasoningMap: Record<string, SessionV1.ReasoningPart>
+  // Parts persisted by the current attempt and the cost it added to the
+  // message, so a retried attempt can roll them back.
+  attemptParts: PartID[]
+  attemptCost: number
 }
 
 type StreamEvent = LLMEvent
@@ -111,6 +115,8 @@ const layer = Layer.effect(
         needsCompaction: false,
         currentText: undefined,
         reasoningMap: {},
+        attemptParts: [],
+        attemptCost: 0,
       }
       let aborted = false
 
@@ -288,6 +294,7 @@ const layer = Layer.effect(
               time: { start: Date.now() },
               metadata: value.providerMetadata,
             }
+            ctx.attemptParts.push(ctx.reasoningMap[value.id].id)
             yield* session.updatePart(ctx.reasoningMap[value.id])
             return
 
@@ -441,10 +448,13 @@ const layer = Layer.effect(
               metadata: value.providerMetadata,
             })
             ctx.assistantMessage.finish = value.reason
+            ctx.attemptCost += usage.cost
             ctx.assistantMessage.cost += usage.cost
             ctx.assistantMessage.tokens = usage.tokens
+            const stepFinishID = PartID.ascending()
+            ctx.attemptParts.push(stepFinishID)
             yield* session.updatePart({
-              id: PartID.ascending(),
+              id: stepFinishID,
               reason: value.reason,
               snapshot: completedSnapshot,
               messageID: ctx.assistantMessage.id,
@@ -457,8 +467,10 @@ const layer = Layer.effect(
             if (ctx.snapshot) {
               const patch = yield* snapshot.patch(ctx.snapshot)
               if (patch.files.length) {
+                const patchPartID = PartID.ascending()
+                ctx.attemptParts.push(patchPartID)
                 yield* session.updatePart({
-                  id: PartID.ascending(),
+                  id: patchPartID,
                   messageID: ctx.assistantMessage.id,
                   sessionID: ctx.sessionID,
                   type: "patch",
@@ -493,6 +505,7 @@ const layer = Layer.effect(
               time: { start: Date.now() },
               metadata: value.providerMetadata,
             }
+            ctx.attemptParts.push(ctx.currentText.id)
             yield* session.updatePart(ctx.currentText)
             return
 
@@ -631,9 +644,26 @@ const layer = Layer.effect(
         })
         ctx.needsCompaction = false
         ctx.shouldBreak = (yield* config.get()).experimental?.continue_loop_on_deny !== true
+        ctx.attemptParts = []
+        ctx.attemptCost = 0
 
         return yield* Effect.gen(function* () {
           yield* Effect.gen(function* () {
+            // On retry, roll back what the failed attempt already persisted
+            // (partial text/reasoning, step-finish, snapshot patch) and the
+            // cost it accumulated, so the re-requested stream does not
+            // duplicate parts or double-count usage. On the first attempt
+            // this is a no-op.
+            yield* Effect.forEach(ctx.attemptParts, (partID) =>
+              session.removePart({
+                sessionID: ctx.sessionID,
+                messageID: ctx.assistantMessage.id,
+                partID,
+              }),
+            )
+            ctx.attemptParts = []
+            ctx.assistantMessage.cost -= ctx.attemptCost
+            ctx.attemptCost = 0
             ctx.currentText = undefined
             ctx.reasoningMap = {}
             yield* status.set(ctx.sessionID, { type: "busy" })
