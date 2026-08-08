@@ -44,6 +44,12 @@ export function userAgent(client = "cli") {
 
 export const USER_AGENT = userAgent()
 
+// HTTPS-only upstream install script used by `upgradeCurl`. Kept at upstream
+// because the fork (Dreftian/Tiancode) publishes no CLI install artifacts or
+// install script of its own (verified against its GitHub releases). The scheme
+// is re-checked at runtime as defense in depth.
+const UPGRADE_SCRIPT_URL = "https://opencode.ai/install"
+
 export function isPreview() {
   return InstallationChannel !== "latest"
 }
@@ -142,9 +148,18 @@ const layer: Layer.Layer<Service, never, HttpClient.HttpClient | AppProcess.Serv
       return "sh"
     })
 
+    // The fork (Dreftian/Tiancode) publishes only desktop app artifacts on its
+    // GitHub releases (Tiancode.exe, latest.yml — no CLI binary, no tarball, no
+    // install script), so there is no fork endpoint to point at. The upstream
+    // opencode install script remains the channel, HTTPS-only: it installs the
+    // upstream `opencode` CLI, not `tiancode` — a product decision is needed
+    // before the fork ships its own CLI installer (see finding report).
     const upgradeCurl = Effect.fnUntraced(
       function* (target: string) {
-        const response = yield* httpOk.execute(HttpClientRequest.get("https://opencode.ai/install"))
+        if (!UPGRADE_SCRIPT_URL.startsWith("https://")) {
+          return { code: 1, stdout: "", stderr: upgradeFailure("curl") }
+        }
+        const response = yield* httpOk.execute(HttpClientRequest.get(UPGRADE_SCRIPT_URL))
         const body = yield* response.text
         const bodyBytes = new TextEncoder().encode(body)
         const shell = yield* upgradeScriptShell()
@@ -254,6 +269,8 @@ const layer: Layer.Layer<Service, never, HttpClient.HttpClient | AppProcess.Serv
           return data.version
         }
 
+        // Upstream release tags: the fork's releases only carry desktop app
+        // artifacts, so there is no fork CLI version feed to resolve from.
         const response = yield* httpOk.execute(
           HttpClientRequest.get("https://api.github.com/repos/anomalyco/opencode/releases/latest").pipe(
             HttpClientRequest.acceptJson,
