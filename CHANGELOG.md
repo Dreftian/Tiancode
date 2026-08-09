@@ -4,6 +4,23 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.7] — 2026-08-09
+
+### Corregido
+
+- **Plugins que no se podían agregar**: las actualizaciones de configuración
+  desde la app escribían en `config.json`, pero el cargador de configuración de
+  proyecto solo lee `tiancode.json`/`tiancode.jsonc` — el cambio se perdía en
+  silencio. Ahora la app escribe en el archivo de proyecto correcto (y limpia
+  el `config.json` huérfano), así que añadir/quitar plugins (y otras
+  actualizaciones de configuración) persisten de verdad.
+
+### Cambios
+
+- **Sección Plugins rediseñada**: más compacta y clara — buscador en el
+  catálogo, nombres legibles para los plugins locales auto-descubiertos,
+  estado "Instalado" correcto y refresco automático tras añadir o quitar.
+
 ## [1.0.6] — 2026-08-09
 
 ### Corregido
