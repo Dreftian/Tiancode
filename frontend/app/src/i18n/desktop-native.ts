@@ -1,33 +1,4 @@
-export const DESKTOP_NATIVE_LOCALES = [
-  "en",
-  "zh",
-  "zht",
-  "ko",
-  "de",
-  "es",
-  "fr",
-  "da",
-  "ja",
-  "pl",
-  "ru",
-  "uk",
-  "bs",
-  "ar",
-  "no",
-  "br",
-  "th",
-  "tr",
-  "hi",
-  "nl",
-  "id",
-  "vi",
-  "it",
-  "ur",
-  "pa",
-  "az",
-  "fi",
-  "sv",
-] as const
+export const DESKTOP_NATIVE_LOCALES = ["en", "en-150", "es", "ja", "zh", "ko", "ru"] as const
 
 export type DesktopNativeLocale = (typeof DESKTOP_NATIVE_LOCALES)[number]
 

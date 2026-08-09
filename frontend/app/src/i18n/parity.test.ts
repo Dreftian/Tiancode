@@ -1,45 +1,10 @@
 import { describe, expect, test } from "bun:test"
 
-const appLocales = [
-  "ar",
-  "br",
-  "bs",
-  "da",
-  "de",
-  "es",
-  "fr",
-  "ja",
-  "ko",
-  "no",
-  "pl",
-  "ru",
-  "uk",
-  "th",
-  "tr",
-  "zh",
-  "zht",
-  "hi",
-  "nl",
-  "id",
-  "vi",
-  "it",
-  "ur",
-  "pa",
-  "az",
-  "fi",
-  "sv",
-] as const
+const appLocales = ["es", "ja", "zh", "ko", "ru"] as const
 const desktopLocales = appLocales
 const pluralCategories: Partial<Record<(typeof appLocales)[number], readonly string[]>> = {
-  ar: ["zero", "two", "few", "many"],
-  br: ["many"],
-  bs: ["few"],
   es: ["many"],
-  fr: ["many"],
-  it: ["many"],
-  pl: ["few", "many"],
   ru: ["few", "many"],
-  uk: ["few", "many"],
 }
 
 const domains = [
@@ -64,6 +29,14 @@ const domains = [
 ] as const
 
 describe.skipIf(!!process.env.CI)("i18n parity", () => {
+  test("en-150 mirrors en exactly in the app and ui domains", async () => {
+    for (const domain of domains.slice(0, 2)) {
+      const source = await dictionary(domain.source)
+      const target = await dictionary(domain.target("en-150"))
+      expect({ domain: domain.name, source, target }).toEqual({ domain: domain.name, source, target: source })
+    }
+  })
+
   test("non-English locales have every English key and required plural variants", async () => {
     for (const domain of domains) {
       const source = await dictionary(domain.source)

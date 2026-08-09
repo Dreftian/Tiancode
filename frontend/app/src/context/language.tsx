@@ -17,10 +17,8 @@ import {
 export type Locale = DesktopNativeLocale
 export type Direction = "ltr" | "rtl"
 
-const RTL_LOCALES: ReadonlySet<Locale> = new Set(["ar", "ur", "pa"])
-
-function localeDirection(locale: Locale): Direction {
-  return RTL_LOCALES.has(locale) ? "rtl" : "ltr"
+function localeDirection(_locale: Locale): Direction {
+  return "ltr"
 }
 
 type RawDictionary = typeof en & typeof uiEn
@@ -40,67 +38,25 @@ const LOCALES: readonly Locale[] = DESKTOP_NATIVE_LOCALES
 
 const INTL: Record<Locale, string> = {
   en: "en",
-  zh: "zh-Hans",
-  zht: "zh-Hant",
-  ko: "ko",
-  de: "de",
+  "en-150": "en-150",
   es: "es",
-  fr: "fr",
-  da: "da",
   ja: "ja",
-  pl: "pl",
+  zh: "zh-Hans",
+  ko: "ko",
   ru: "ru",
-  uk: "uk",
-  ar: "ar",
-  no: "nb-NO",
-  br: "pt-BR",
-  th: "th",
-  bs: "bs",
-  tr: "tr",
-  hi: "hi-IN",
-  nl: "nl-NL",
-  id: "id-ID",
-  vi: "vi-VN",
-  it: "it-IT",
-  ur: "ur-PK",
-  pa: "pa-Arab-PK",
-  az: "az-Latn-AZ",
-  fi: "fi-FI",
-  sv: "sv-SE",
 }
 
 const LABEL_KEY: Partial<Record<Locale, keyof Dictionary>> = {
   en: "language.en",
   zh: "language.zh",
-  zht: "language.zht",
   ko: "language.ko",
-  de: "language.de",
   es: "language.es",
-  fr: "language.fr",
-  da: "language.da",
   ja: "language.ja",
-  pl: "language.pl",
   ru: "language.ru",
-  uk: "language.uk",
-  ar: "language.ar",
-  no: "language.no",
-  br: "language.br",
-  th: "language.th",
-  bs: "language.bs",
-  tr: "language.tr",
 }
 
 const LABEL: Partial<Record<Locale, string>> = {
-  hi: "हिन्दी",
-  nl: "Nederlands",
-  id: "Bahasa Indonesia",
-  vi: "Tiếng Việt",
-  it: "Italiano",
-  ur: "اردو",
-  pa: "پنجابی",
-  az: "Azərbaycanca",
-  fi: "Suomi",
-  sv: "Svenska",
+  "en-150": "English (Europe)",
 }
 
 const base = i18n.flatten({ ...en, ...uiEn })
@@ -110,33 +66,12 @@ const merge = (app: Promise<Source>, ui: Promise<Source>) =>
   Promise.all([app, ui]).then(([a, b]) => ({ ...base, ...i18n.flatten({ ...a.dict, ...b.dict }) }) as Dictionary)
 
 const loaders: Record<Exclude<Locale, "en">, () => Promise<Dictionary>> = {
+  "en-150": () => merge(import("@/i18n/en-150"), import("@tiancode-ai/ui/i18n/en-150")),
   zh: () => merge(import("@/i18n/zh"), import("@tiancode-ai/ui/i18n/zh")),
-  zht: () => merge(import("@/i18n/zht"), import("@tiancode-ai/ui/i18n/zht")),
   ko: () => merge(import("@/i18n/ko"), import("@tiancode-ai/ui/i18n/ko")),
-  de: () => merge(import("@/i18n/de"), import("@tiancode-ai/ui/i18n/de")),
   es: () => merge(import("@/i18n/es"), import("@tiancode-ai/ui/i18n/es")),
-  fr: () => merge(import("@/i18n/fr"), import("@tiancode-ai/ui/i18n/fr")),
-  da: () => merge(import("@/i18n/da"), import("@tiancode-ai/ui/i18n/da")),
   ja: () => merge(import("@/i18n/ja"), import("@tiancode-ai/ui/i18n/ja")),
-  pl: () => merge(import("@/i18n/pl"), import("@tiancode-ai/ui/i18n/pl")),
   ru: () => merge(import("@/i18n/ru"), import("@tiancode-ai/ui/i18n/ru")),
-  uk: () => merge(import("@/i18n/uk"), import("@tiancode-ai/ui/i18n/uk")),
-  ar: () => merge(import("@/i18n/ar"), import("@tiancode-ai/ui/i18n/ar")),
-  no: () => merge(import("@/i18n/no"), import("@tiancode-ai/ui/i18n/no")),
-  br: () => merge(import("@/i18n/br"), import("@tiancode-ai/ui/i18n/br")),
-  th: () => merge(import("@/i18n/th"), import("@tiancode-ai/ui/i18n/th")),
-  bs: () => merge(import("@/i18n/bs"), import("@tiancode-ai/ui/i18n/bs")),
-  tr: () => merge(import("@/i18n/tr"), import("@tiancode-ai/ui/i18n/tr")),
-  hi: () => merge(import("@/i18n/hi"), import("@tiancode-ai/ui/i18n/hi")),
-  nl: () => merge(import("@/i18n/nl"), import("@tiancode-ai/ui/i18n/nl")),
-  id: () => merge(import("@/i18n/id"), import("@tiancode-ai/ui/i18n/id")),
-  vi: () => merge(import("@/i18n/vi"), import("@tiancode-ai/ui/i18n/vi")),
-  it: () => merge(import("@/i18n/it"), import("@tiancode-ai/ui/i18n/it")),
-  ur: () => merge(import("@/i18n/ur"), import("@tiancode-ai/ui/i18n/ur")),
-  pa: () => merge(import("@/i18n/pa"), import("@tiancode-ai/ui/i18n/pa")),
-  az: () => merge(import("@/i18n/az"), import("@tiancode-ai/ui/i18n/az")),
-  fi: () => merge(import("@/i18n/fi"), import("@tiancode-ai/ui/i18n/fi")),
-  sv: () => merge(import("@/i18n/sv"), import("@tiancode-ai/ui/i18n/sv")),
 }
 
 function loadDict(locale: Locale) {
@@ -155,48 +90,18 @@ export function loadLocaleDict(locale: Locale) {
 }
 
 const localeMatchers: Array<{ locale: Locale; match: (language: string) => boolean }> = [
-  { locale: "en", match: (language) => language.startsWith("en") },
   {
-    locale: "zht",
+    locale: "en",
     match: (language) =>
-      language.startsWith("zh") &&
-      (language.includes("hant") || language.includes("-tw") || language.includes("-hk") || language.includes("-mo")),
+      language.startsWith("en") &&
+      (language === "en" || ["en-us", "en-ca", "en-au", "en-nz"].includes(language)),
   },
+  { locale: "en-150", match: (language) => language.startsWith("en") },
+  { locale: "es", match: (language) => language.startsWith("es") },
+  { locale: "ja", match: (language) => language.startsWith("ja") },
   { locale: "zh", match: (language) => language.startsWith("zh") },
   { locale: "ko", match: (language) => language.startsWith("ko") },
-  { locale: "de", match: (language) => language.startsWith("de") },
-  { locale: "es", match: (language) => language.startsWith("es") },
-  { locale: "fr", match: (language) => language.startsWith("fr") },
-  { locale: "da", match: (language) => language.startsWith("da") },
-  { locale: "ja", match: (language) => language.startsWith("ja") },
-  { locale: "pl", match: (language) => language.startsWith("pl") },
   { locale: "ru", match: (language) => language.startsWith("ru") },
-  { locale: "uk", match: (language) => language.startsWith("uk") },
-  { locale: "ar", match: (language) => language.startsWith("ar") },
-  {
-    locale: "no",
-    match: (language) => language.startsWith("no") || language.startsWith("nb") || language.startsWith("nn"),
-  },
-  { locale: "br", match: (language) => language.startsWith("pt") },
-  { locale: "th", match: (language) => language.startsWith("th") },
-  { locale: "bs", match: (language) => language.startsWith("bs") },
-  { locale: "tr", match: (language) => language.startsWith("tr") },
-  { locale: "hi", match: (language) => language.startsWith("hi") },
-  { locale: "nl", match: (language) => language.startsWith("nl") },
-  { locale: "id", match: (language) => language.startsWith("id") },
-  { locale: "vi", match: (language) => language.startsWith("vi") },
-  { locale: "it", match: (language) => language.startsWith("it") },
-  { locale: "ur", match: (language) => language.startsWith("ur") },
-  {
-    locale: "pa",
-    match: (language) => language.startsWith("pa") && (language.includes("arab") || language.includes("-pk")),
-  },
-  {
-    locale: "az",
-    match: (language) => language.startsWith("az") && !language.includes("arab") && !language.includes("cyrl"),
-  },
-  { locale: "fi", match: (language) => language.startsWith("fi") },
-  { locale: "sv", match: (language) => language.startsWith("sv") },
 ]
 
 function detectLocale(): Locale {
@@ -252,7 +157,7 @@ export const { use: useLanguage, provider: LanguageProvider } = createSimpleCont
     const layoutLocale = createMemo(() => {
       if (!layout.direction) return intl()
       // Kobalte derives menu direction from locale rather than accepting a direction override.
-      return layout.direction === "rtl" ? "ar" : "en"
+      return "en"
     })
 
     const [dict] = createResource(locale, loadDict, {
