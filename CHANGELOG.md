@@ -4,6 +4,26 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.5] — 2026-08-08
+
+### Corregido
+
+- **Placeholder del chat roto**: el editor mostraba `\200Bnta lo que quieras...`
+  en vez de "Pregunta lo que quieras, / para comandos, @ para contexto...". El
+  pseudo-elemento del cursor (un espacio de ancho cero) quedó con doble escape
+  durante la reestructura del repo y Chromium lo renderizaba como texto literal
+  tapando el inicio del placeholder.
+
+### Cambios
+
+- **Nuevo icono**: fondo oscuro con gradiente, el mismo gato en blanco y
+  esquinas redondeadas con transparencia (estilo moderno). Aplicado al
+  instalador, portable y todos los formatos (ICO multi-tamaño, ICNS, Linux,
+  Windows Store, iOS, Android). Script reutilizable en
+  `tools/script/regenerate-icons.py`.
+- **Idiomas reducidos a 7**: Español, Inglés (EE. UU.), Inglés (Europa),
+  Japonés, Chino, Coreano y Ruso.
+
 ## [1.0.4] — 2026-08-08
 
 ### Corregido
