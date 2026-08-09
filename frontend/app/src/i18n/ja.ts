@@ -1181,6 +1181,7 @@ export const dict = {
   "settings.general.row.fileWatcher.description": "ファイルツリーと Git の変更を自動的に更新します。",
   "settings.general.fileWatcher.restart.confirm": "リアルタイムのファイル更新設定を反映するには Tiancode を再起動しますか？",
   "session.export.button": "会話を Markdown にエクスポート",
+  "session.export.jsonButton": "JSONで書き出す",
   "session.export.title": "会話をエクスポート",
   "session.export.success": "会話をエクスポートしました",
   "session.export.failed": "会話をエクスポートできませんでした",

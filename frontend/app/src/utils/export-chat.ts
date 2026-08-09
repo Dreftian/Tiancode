@@ -1,6 +1,8 @@
 // Exporta una conversación a Markdown legible: título, mensajes con rol y
 // hora, texto en bloques de código cuando corresponde, y lista de adjuntos.
 
+import type { SessionExportData } from "./export-json"
+
 type ExportPart = { type: string; text?: string; filename?: string; name?: string }
 
 type ExportMessage = {
@@ -66,4 +68,10 @@ export function buildChatMarkdown(input: {
   }
 
   return lines.join("\n").trimEnd() + "\n"
+}
+
+// Exporta la conversación a JSON con la misma estructura que `opencode export`:
+// `{ info, messages: [{ info, parts }] }`, con sangría de dos espacios.
+export function buildChatJson(input: SessionExportData): string {
+  return JSON.stringify(input, null, 2)
 }

@@ -6,7 +6,8 @@ import { IconButton } from "@tiancode-ai/ui/icon-button"
 import { Keybind } from "@tiancode-ai/ui/keybind"
 import { Spinner } from "@tiancode-ai/ui/spinner"
 import { showToast } from "@/utils/toast"
-import { buildChatMarkdown } from "@/utils/export-chat"
+import { buildChatJson, buildChatMarkdown } from "@/utils/export-chat"
+import { fetchSessionExport, sessionExportFilename, type SessionExportClient } from "@/utils/export-json"
 import { Tooltip, TooltipKeybind } from "@tiancode-ai/ui/tooltip"
 import { getFilename } from "@tiancode-ai/core/util/path"
 import { createEffect, createMemo, createSignal, For, onMount, Show } from "solid-js"
@@ -17,6 +18,7 @@ import { useCommand } from "@/context/command"
 import { useLanguage } from "@/context/language"
 import { useLayout } from "@/context/layout"
 import { usePlatform } from "@/context/platform"
+import { useSDK } from "@/context/sdk"
 import { useServer } from "@/context/server"
 import { useSettings } from "@/context/settings"
 import { useSync } from "@/context/sync"
@@ -165,6 +167,33 @@ async function exportSessionChat(input: {
     showToast({ variant: "success", title: language.t("session.export.success") })
   } else {
     showToast({ variant: "error", title: language.t("session.export.failed") })
+  }
+}
+
+// Exporta la conversación abierta a JSON (guardar como…). La estructura es la
+// misma que la del comando `opencode export`: `{ info, messages: [{ info, parts }] }`.
+async function exportSessionChatJson(input: {
+  sessionID: string
+  client: SessionExportClient
+  directory: string
+  language: ReturnType<typeof useLanguage>
+  platform: ReturnType<typeof usePlatform>
+}) {
+  const data = await fetchSessionExport({
+    sessionID: input.sessionID,
+    directory: input.directory,
+    client: input.client,
+  })
+  const path = await input.platform.saveFilePickerDialog?.({
+    title: input.language.t("session.export.title"),
+    defaultPath: sessionExportFilename(data.info),
+  })
+  if (!path) return
+  const ok = await input.platform.writeTextFile?.(path, buildChatJson(data))
+  if (ok) {
+    showToast({ variant: "success", title: input.language.t("session.export.success") })
+  } else {
+    showToast({ variant: "error", title: input.language.t("session.export.failed") })
   }
 }
 
@@ -578,6 +607,7 @@ type SessionHeaderV2ActionsState = {
 function SessionHeaderV2Actions(props: { state: SessionHeaderV2ActionsState }) {
   const language = useLanguage()
   const sync = useSync()
+  const sdk = useSDK()
   const platform = usePlatform()
   const { params } = useSessionLayout()
 
@@ -680,6 +710,32 @@ function SessionHeaderV2Actions(props: { state: SessionHeaderV2ActionsState }) {
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+          }
+        />
+      </TooltipV2>
+      <TooltipV2 class="shrink-0" placement="bottom" value={language.t("session.export.jsonButton")}>
+        <IconButtonV2
+          type="button"
+          variant="ghost-muted"
+          size="large"
+          class="!w-9 shrink-0"
+          onClick={() => {
+            if (params.id) {
+              void exportSessionChatJson({
+                sessionID: params.id,
+                client: sdk().client,
+                directory: sdk().directory,
+                language,
+                platform,
+              }).catch((err: unknown) => showRequestError(language, err))
+            }
+          }}
+          aria-label={language.t("session.export.jsonButton")}
+          icon={
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="16 18 22 12 16 6" />
+              <polyline points="8 6 2 12 8 18" />
             </svg>
           }
         />

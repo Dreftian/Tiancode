@@ -982,6 +982,7 @@ export const dict = {
   "settings.general.fileWatcher.restart.confirm": "Restart Tiancode to apply the real-time file updates change?",
 
   "session.export.button": "Export conversation to Markdown",
+  "session.export.jsonButton": "Export JSON",
   "session.export.title": "Export conversation",
   "session.export.success": "Conversation exported",
   "session.export.failed": "Could not export the conversation",

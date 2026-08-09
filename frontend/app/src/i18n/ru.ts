@@ -1273,6 +1273,7 @@ export const dict = {
   "settings.general.row.fileWatcher.description": "Автоматически обновляет дерево файлов и изменения git.",
   "settings.general.fileWatcher.restart.confirm": "Перезапустить Tiancode, чтобы применить изменение обновления файлов в реальном времени?",
   "session.export.button": "Экспортировать разговор в Markdown",
+  "session.export.jsonButton": "Экспорт JSON",
   "session.export.title": "Экспорт разговора",
   "session.export.success": "Разговор экспортирован",
   "session.export.failed": "Не удалось экспортировать разговор",

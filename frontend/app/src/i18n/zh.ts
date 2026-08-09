@@ -1239,6 +1239,7 @@ export const dict = {
   "settings.general.row.fileWatcher.description": "自动刷新文件树和 Git 更改。",
   "settings.general.fileWatcher.restart.confirm": "要重启 Tiancode 以应用实时文件更新设置吗？",
   "session.export.button": "将对话导出为 Markdown",
+  "session.export.jsonButton": "导出 JSON",
   "session.export.title": "导出对话",
   "session.export.success": "对话已导出",
   "session.export.failed": "无法导出对话",

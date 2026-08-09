@@ -1179,6 +1179,7 @@ export const dict = {
   "settings.general.row.fileWatcher.description": "파일 트리와 Git 변경 사항을 자동으로 새로 고칩니다.",
   "settings.general.fileWatcher.restart.confirm": "실시간 파일 업데이트 변경 사항을 적용하려면 Tiancode를 다시 시작하시겠습니까?",
   "session.export.button": "대화를 Markdown으로 내보내기",
+  "session.export.jsonButton": "JSON 내보내기",
   "session.export.title": "대화 내보내기",
   "session.export.success": "대화를 내보냈습니다",
   "session.export.failed": "대화를 내보낼 수 없습니다",
