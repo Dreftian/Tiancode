@@ -4,6 +4,27 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.8] — 2026-08-09
+
+### Nuevo
+
+- **Exportar conversación en JSON**: botón junto al de Markdown en la cabecera
+  de la sesión — guarda la transcripción completa estructurada
+  (`{ info, messages: [{ info, parts }] }`) para respaldo, análisis o
+  migración.
+- **TUI: estilo de cursor configurable** (`cursor` en la config de TUI:
+  block/underline/line/default + parpadeo).
+- **TUI: copiado con `set-clipboard on` en tmux** (passthrough OSC52 sobre
+  ssh/screen).
+
+### Corregido
+
+- **Limpieza de truncación por mtime**: los archivos de salida truncados se
+  eliminan por la fecha real del archivo en vez de parsear el identificador
+  (más fiable).
+- **Compactación**: verificado que la compactación V2 ya conserva el
+  historial de tool-calls entre resúmenes repetidos (nada que corregir).
+
 ## [1.0.7] — 2026-08-09
 
 ### Corregido
