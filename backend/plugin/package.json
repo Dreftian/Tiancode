@@ -18,7 +18,7 @@
     "./v2/promise": "./src/v2/promise/index.ts"
   },
   "files": [
-    "dist"
+    "src"
   ],
   "dependencies": {
     "@ai-sdk/provider": "3.0.8",
