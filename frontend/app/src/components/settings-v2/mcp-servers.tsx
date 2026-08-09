@@ -54,10 +54,20 @@ const PresetDefinitions: { id: string; labelKey: string; command: string }[] = [
 
 // Catalog of popular MCP servers shown under "Discover". Local presets carry
 // the full command, remote presets a URL; some require an API key that must
-// be added after the server is created.
+// be added after the server is created. Presets with `args` use the full
+// command array (paths with spaces), plus optional cwd/environment.
 type DiscoverPreset =
-  | { id: string; type: "local"; command: string; requiresKey?: boolean }
-  | { id: string; type: "remote"; url: string; requiresKey?: boolean }
+  | {
+      id: string
+      type: "local"
+      command: string
+      args?: string[]
+      cwd?: string
+      environment?: Record<string, string>
+      requiresKey?: boolean
+      requiresSetup?: boolean
+    }
+  | { id: string; type: "remote"; url: string; requiresKey?: boolean; requiresSetup?: boolean }
 
 const DiscoverPresets: DiscoverPreset[] = [
   { id: "android-emulator", type: "local", command: "npx -y @mobilenext/mobile-mcp@latest" },
@@ -73,6 +83,27 @@ const DiscoverPresets: DiscoverPreset[] = [
   { id: "agent-vision", type: "local", command: "npx -y @kitlau/agent-vision-mcp", requiresKey: true },
   { id: "aikido", type: "local", command: "npx -y @aikidosec/mcp", requiresKey: true },
   { id: "airwallex", type: "local", command: "npx -y @airwallex/developer-mcp@latest", requiresKey: true },
+  // Puente MCP hacia Unreal Engine (Web Remote Control en 127.0.0.1:30010).
+  // Requiere la carpeta unreal-opencode-mcp instalada (ver README) y ajustar
+  // las rutas del proyecto y del engine en Editar si cambian de máquina.
+  {
+    id: "unreal",
+    type: "local",
+    command: "python -m unreal_mcp.server",
+    args: [
+      "C:\\Users\\Dreitz\\Desktop\\unreal-opencode-mcp-windows-0.1.0\\.venv\\Scripts\\python.exe",
+      "-m",
+      "unreal_mcp.server",
+    ],
+    cwd: "C:\\Users\\Dreitz\\Desktop\\unreal-opencode-mcp-windows-0.1.0",
+    environment: {
+      UNREAL_ENGINE_ROOT: "C:\\Program Files\\Epic Games\\UE_5.7",
+      UNREAL_MCP_RC_URL: "http://127.0.0.1:30010",
+      UNREAL_MCP_ALLOW_UNSAFE: "1",
+      UNREAL_MCP_SEARCH_ROOTS: "C:\\Projects;C:\\Users\\Public\\Documents\\Unreal Projects",
+    },
+    requiresSetup: true,
+  },
   { id: "canva", type: "remote", url: "https://mcp.canva.com/mcp" },
   { id: "circle", type: "remote", url: "https://developers.circle.com/mcp" },
   { id: "appwrite", type: "remote", url: "https://mcp.appwrite.io/" },
@@ -333,6 +364,19 @@ export const SettingsMcpServersV2: Component<{
   // full preset config with an explicit `enabled: true` so an entry that only
   // carries `{ enabled: false }` (created by a previous disable) is replaced
   // by a complete server definition instead of being left as a type-less stub.
+  // Configuración completa de un preset local: args explícitos cuando existen
+  // (rutas con espacios), cwd y environment opcionales.
+  const presetLocalConfig = (preset: DiscoverPreset): McpLocalConfig => {
+    if (preset.type !== "local") throw new Error("presetLocalConfig requires a local preset")
+    return {
+      type: "local",
+      command: preset.args ?? preset.command.split(/\s+/),
+      ...(preset.cwd ? { cwd: preset.cwd } : {}),
+      ...(preset.environment ? { environment: preset.environment } : {}),
+      enabled: true,
+    }
+  }
+
   const toggleDiscover = async (preset: DiscoverPreset, enabled: boolean) => {
     setMessage(undefined)
     try {
@@ -340,7 +384,7 @@ export const SettingsMcpServersV2: Component<{
       if (enabled) {
         const config: McpLocalConfig | McpRemoteConfig =
           preset.type === "local"
-            ? { type: "local", command: preset.command.split(/\s+/), enabled: true }
+            ? presetLocalConfig(preset)
             : { type: "remote", url: preset.url, oauth: {}, enabled: true }
         const res = await serverSdk().client.mcp.add({ ...params(), name: preset.id, config })
         // Servidor OAuth: el alta termina en "needs_auth" (best-effort
@@ -373,7 +417,7 @@ export const SettingsMcpServersV2: Component<{
         try {
           const config: McpLocalConfig | McpRemoteConfig =
             preset.type === "local"
-              ? { type: "local", command: preset.command.split(/\s+/), enabled: true }
+              ? presetLocalConfig(preset)
               : { type: "remote", url: preset.url, oauth: {}, enabled: true }
           await serverSdk().client.mcp.add({ ...params(), name: preset.id, config })
         } catch {
@@ -668,6 +712,11 @@ export const SettingsMcpServersV2: Component<{
                             <Show when={preset.requiresKey}>
                               <span class="settings-v2-mcp-servers-discover-hint">
                                 {language.t("settings.mcpServers.discover.requiresKey")}
+                              </span>
+                            </Show>
+                            <Show when={preset.requiresSetup}>
+                              <span class="settings-v2-mcp-servers-discover-hint">
+                                {language.t("settings.mcpServers.discover.requiresSetup")}
                               </span>
                             </Show>
                           </div>

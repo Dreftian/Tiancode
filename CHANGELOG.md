@@ -4,6 +4,15 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.9] — 2026-08-09
+
+### Nuevo
+
+- **Catálogo Descubrir: preset Unreal Engine** — activa el puente MCP hacia
+  Unreal (Web Remote Control) con un clic: comandos, cwd y entorno ya
+  configurados (rutas ajustables en Editar). Los presets locales ahora pueden
+  llevar argumentos completos (rutas con espacios), cwd y variables de entorno.
+
 ## [1.0.8] — 2026-08-09
 
 ### Nuevo
