@@ -631,13 +631,28 @@ const layer = Layer.effect(
       )
     })
 
+    // El loader de config de proyecto (ConfigPaths.files) solo lee
+    // `tiancode.jsonc`/`tiancode.json`, no `config.json`: escribir ahí hacía
+    // que las actualizaciones desde la app (p. ej. plugins) fueran un no-op
+    // silencioso. Escribimos en el archivo de proyecto existente (o creamos
+    // `tiancode.json`) y limpiamos el `config.json` huérfano de versiones
+    // anteriores.
+    const projectConfigFile = Effect.fn("Config.projectConfigFile")(function* (dir: string) {
+      for (const name of ["tiancode.jsonc", "tiancode.json"]) {
+        const candidate = path.join(dir, name)
+        if (yield* fs.existsSafe(candidate)) return candidate
+      }
+      return path.join(dir, "tiancode.json")
+    })
+
     const update = Effect.fn("Config.update")(function* (config: Info) {
       const dir = yield* InstanceState.directory
-      const file = path.join(dir, "config.json")
-      const existing = yield* loadFile(file)
+      const file = yield* projectConfigFile(dir)
+      const existing = yield* loadFile(file).pipe(Effect.orElseSucceed(() => ({})))
       yield* fs
         .writeFileString(file, JSON.stringify(mergeDeep(writable(existing), writable(config)), null, 2))
         .pipe(Effect.orDie)
+      yield* fs.remove(path.join(dir, "config.json")).pipe(Effect.catch(() => Effect.void))
     })
 
     const invalidate = Effect.fn("Config.invalidate")(function* () {

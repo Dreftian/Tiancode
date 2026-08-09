@@ -161,3 +161,30 @@
   line-height: 1.6;
   color: var(--v2-text-text-base);
 }
+
+/* Cabecera del catálogo con buscador integrado */
+.settings-v2-plugins-catalog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.settings-v2-plugins-catalog-header .settings-v2-section-title {
+  margin-bottom: 0;
+}
+
+.settings-v2-plugins-catalog-header .text-input-v2 {
+  max-width: 220px;
+}
+
+/* Subtítulos de grupo dentro del catálogo (npm / local) */
+.settings-v2-plugins-catalog-subtitle {
+  margin: 14px 0 6px;
+  font-size: 11px;
+  font-weight: 560;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--v2-text-text-faint);
+}

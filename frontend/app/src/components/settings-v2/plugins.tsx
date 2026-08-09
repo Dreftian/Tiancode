@@ -16,6 +16,13 @@ const pluginName = (entry: PluginEntry) => (typeof entry === "string" ? entry : 
 const pluginOrigin = (entry: PluginEntry) =>
   pluginName(entry).startsWith("@") || pluginName(entry).includes("/") ? "npm" : "local"
 
+// Nombre legible: las entradas auto-descubiertas llegan como file:///.../x.ts.
+const displayName = (entry: PluginEntry) => {
+  const name = pluginName(entry)
+  const file = name.split("/").at(-1) ?? name
+  return file.endsWith(".ts") ? file.slice(0, -3) : file
+}
+
 const NpmAppCatalog = [
   { name: "@biomejs/biome", descriptionKey: "settings.plugins.catalog.npm.biome.description" },
   { name: "@playwright/mcp", descriptionKey: "settings.plugins.catalog.npm.playwrightMcp.description" },
@@ -107,6 +114,7 @@ export const SettingsPluginsV2: Component<{
   const language = useLanguage()
   const serverSdk = useServerSDK()
   const [value, setValue] = createSignal("")
+  const [query, setQuery] = createSignal("")
 
   const params = () => (props.directory ? { directory: props.directory } : undefined)
 
@@ -118,7 +126,20 @@ export const SettingsPluginsV2: Component<{
 
   const pluginList = createMemo(() => (config()?.plugin ?? []) as PluginEntry[])
 
-  const isInstalled = (spec: string) => pluginList().some((item) => pluginName(item) === spec)
+  // El alta dispara el reinicio de la instancia (disposal+reload); el refetch
+  // inmediato vería la config vieja, así que se reintenta tras el reinicio.
+  const refetchAfterReload = () => {
+    void refetch()
+    setTimeout(() => void refetch(), 2000)
+  }
+
+  const isInstalled = (spec: string) =>
+    pluginList().some((item) => {
+      const name = pluginName(item)
+      if (name === spec) return true
+      // Los plugins locales auto-descubiertos llegan como file:///.../x.ts
+      return name.includes(`.tiancode/plugins/`) && displayName(item) === spec.split("/").at(-1)?.replace(/\.ts$/, "")
+    })
 
   const addEntry = async (entry: string) => {
     if (!entry) return
@@ -128,7 +149,7 @@ export const SettingsPluginsV2: Component<{
         config: { plugin: [...(config()?.plugin ?? []), entry] },
       })
       showToast({ variant: "success", title: language.t("settings.plugins.add.success") })
-      void refetch()
+      refetchAfterReload()
     } catch {
       showToast({ variant: "error", title: language.t("settings.plugins.add.failed") })
     }
@@ -143,14 +164,14 @@ export const SettingsPluginsV2: Component<{
 
   const removePlugin = async (entry: PluginEntry) => {
     const name = pluginName(entry)
-    if (!window.confirm(language.t("settings.plugins.remove.confirm", { name }))) return
+    if (!window.confirm(language.t("settings.plugins.remove.confirm", { name: displayName(entry) }))) return
     try {
       await serverSdk().client.config.update({
         ...params(),
         config: { plugin: pluginList().filter((item) => pluginName(item) !== name) },
       })
       showToast({ variant: "success", title: language.t("settings.plugins.remove.success") })
-      void refetch()
+      refetchAfterReload()
     } catch {
       showToast({ variant: "error", title: language.t("settings.plugins.remove.failed") })
     }
@@ -164,6 +185,18 @@ export const SettingsPluginsV2: Component<{
       showToast({ variant: "error", title: language.t("settings.plugins.add.failed") })
     }
   }
+
+  const matchesQuery = (app: CatalogApp) => {
+    const q = query().trim().toLowerCase()
+    if (!q) return true
+    return (
+      app.name.toLowerCase().includes(q) ||
+      language.t(app.descriptionKey).toLowerCase().includes(q)
+    )
+  }
+
+  const filteredNpm = createMemo(() => NpmAppCatalog.filter(matchesQuery))
+  const filteredLocal = createMemo(() => LocalPluginCatalog.filter(matchesQuery))
 
   return (
     <>
@@ -189,7 +222,10 @@ export const SettingsPluginsV2: Component<{
                 {(entry) => (
                   <div class="settings-v2-plugins-item">
                     <div class="settings-v2-plugins-item-copy">
-                      <div class="settings-v2-plugins-item-name">{pluginName(entry)}</div>
+                      <div class="settings-v2-plugins-item-name">{displayName(entry)}</div>
+                      <Show when={displayName(entry) !== pluginName(entry)}>
+                        <div class="settings-v2-plugins-item-description">{pluginName(entry)}</div>
+                      </Show>
                     </div>
                     <span class="settings-v2-plugins-chip">
                       {pluginOrigin(entry) === "npm"
@@ -212,37 +248,55 @@ export const SettingsPluginsV2: Component<{
         </div>
 
         <div class="settings-v2-section">
-          <h3 class="settings-v2-section-title">{language.t("settings.plugins.catalog.npm.title")}</h3>
-          <p class="settings-v2-plugins-catalog-description">
-            {language.t("settings.plugins.catalog.npm.description")}
-          </p>
-          <SettingsListV2>
-            <For each={NpmAppCatalog}>
-              {(app) => (
-                <CatalogRow app={app} origin="npm" installed={isInstalled(app.name)} onAdd={() => void addEntry(app.name)} />
-              )}
-            </For>
-          </SettingsListV2>
-          <p class="settings-v2-plugins-catalog-note">{language.t("settings.plugins.catalog.npm.note")}</p>
-        </div>
+          <div class="settings-v2-plugins-catalog-header">
+            <h3 class="settings-v2-section-title">{language.t("settings.plugins.catalog.title")}</h3>
+            <TextInputV2
+              type="search"
+              appearance="base"
+              value={query()}
+              onInput={(event) => setQuery(event.currentTarget.value)}
+              placeholder={language.t("settings.plugins.search.placeholder")}
+              spellcheck={false}
+              autocomplete="off"
+              aria-label={language.t("settings.plugins.search.placeholder")}
+            />
+          </div>
 
-        <div class="settings-v2-section">
-          <h3 class="settings-v2-section-title">{language.t("settings.plugins.catalog.local.title")}</h3>
-          <p class="settings-v2-plugins-catalog-description">
-            {language.t("settings.plugins.catalog.local.description")}
-          </p>
-          <SettingsListV2>
-            <For each={LocalPluginCatalog}>
-              {(app) => (
-                <CatalogRow
-                  app={app}
-                  origin="local"
-                  installed={isInstalled(localPluginSpec(app.name))}
-                  onAdd={() => void addEntry(localPluginSpec(app.name))}
-                />
-              )}
-            </For>
-          </SettingsListV2>
+          <Show when={filteredNpm().length > 0}>
+            <h4 class="settings-v2-plugins-catalog-subtitle">{language.t("settings.plugins.catalog.npm.title")}</h4>
+            <SettingsListV2>
+              <For each={filteredNpm()}>
+                {(app) => (
+                  <CatalogRow
+                    app={app}
+                    origin="npm"
+                    installed={isInstalled(app.name)}
+                    onAdd={() => void addEntry(app.name)}
+                  />
+                )}
+              </For>
+            </SettingsListV2>
+          </Show>
+
+          <Show when={filteredLocal().length > 0}>
+            <h4 class="settings-v2-plugins-catalog-subtitle">{language.t("settings.plugins.catalog.local.title")}</h4>
+            <SettingsListV2>
+              <For each={filteredLocal()}>
+                {(app) => (
+                  <CatalogRow
+                    app={app}
+                    origin="local"
+                    installed={isInstalled(localPluginSpec(app.name))}
+                    onAdd={() => void addEntry(localPluginSpec(app.name))}
+                  />
+                )}
+              </For>
+            </SettingsListV2>
+          </Show>
+
+          <Show when={filteredNpm().length === 0 && filteredLocal().length === 0}>
+            <div class="settings-v2-skills-status">{language.t("settings.plugins.catalog.empty")}</div>
+          </Show>
         </div>
 
         <div class="settings-v2-section">
