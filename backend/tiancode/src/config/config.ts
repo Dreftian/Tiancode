@@ -11,7 +11,7 @@ import { Flag } from "@tiancode-ai/core/flag/flag"
 import { Auth } from "../auth"
 import { Env } from "../env"
 import { applyEdits, modify } from "jsonc-parser"
-import { InstallationLocal, InstallationVersion } from "@tiancode-ai/core/installation/version"
+import { InstallationLocal } from "@tiancode-ai/core/installation/version"
 import { existsSync } from "fs"
 import { Account } from "@/account/account"
 import { isRecord } from "@/util/record"
@@ -450,7 +450,9 @@ const layer = Layer.effect(
               add: [
                 {
                   name: "@tiancode-ai/plugin",
-                  version: InstallationLocal ? undefined : InstallationVersion,
+                  // Sin pin: el paquete se publica en npm y la versión se
+                  // resuelve a latest (un pin por versión de app obligaría a
+                  // publicar el paquete en cada release).
                 },
               ],
             })
