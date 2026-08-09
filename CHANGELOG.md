@@ -4,6 +4,20 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.6] — 2026-08-09
+
+### Corregido
+
+- **MCP: servidores OAuth (Canva, Apollo, Appwrite, Atlan)**: la primera
+  conexión colgaba 30s y quedaba en error porque el flujo OAuth esperaba la
+  interacción del usuario. Ahora el alta resuelve al instante a "requiere
+  autenticación" y aparece el botón **Autenticar** en cada servidor, que abre
+  el navegador con la autorización OAuth del servicio (registro dinámico +
+  callback local).
+- **Catálogo Descubrir**: "Activar todos" y la activación individual ya no se
+  quedan bloqueados (los alta son paralelos y rápidos); al activar un
+  servidor OAuth se inicia su autenticación automáticamente.
+
 ## [1.0.5] — 2026-08-08
 
 ### Corregido
