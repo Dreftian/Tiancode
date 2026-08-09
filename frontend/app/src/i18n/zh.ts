@@ -1440,6 +1440,7 @@ export const dict = {
   "settings.mcpServers.status.needs_client_registration": "需要注册",
   "settings.mcpServers.status.unknown": "未知",
   "settings.mcpServers.action.connect": "连接",
+  "settings.mcpServers.action.authenticate": "认证",
   "settings.mcpServers.action.disconnect": "断开连接",
   "settings.mcpServers.action.edit": "编辑",
   "settings.mcpServers.action.export": "导出",

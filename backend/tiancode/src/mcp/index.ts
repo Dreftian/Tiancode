@@ -36,6 +36,12 @@ import { McpEvent } from "@tiancode-ai/schema/mcp-event"
 import { McpBrowser } from "./browser"
 
 const DEFAULT_TIMEOUT = 30_000
+// La primera conexión de un servidor remoto con OAuth siempre choca con el
+// 401 y el flujo OAuth (descubrimiento + registro dinámico + espera del
+// redirect) puede quedarse esperando la interacción del usuario. Acotamos el
+// intento inicial para que el alta del servidor resuelva rápido a
+// "needs_auth" y la UI ofrezca autenticar, en vez de bloquear 30s.
+const OAUTH_CONNECT_TIMEOUT = 10_000
 const CLIENT_OPTIONS = {
   capabilities: {
     // https://github.com/anomalyco/opencode/issues/11948
@@ -285,17 +291,24 @@ const layer = Layer.effect(
       ]
 
       const connectTimeout = mcp.timeout ?? DEFAULT_TIMEOUT
+      const oauthEnabled = mcp.oauth !== false
+      // Con OAuth habilitado, el primer intento siempre choca con el 401 y el
+      // flujo OAuth espera la interacción del usuario: se acota para que el
+      // alta resuelva rápido a "needs_auth" y la UI ofrezca autenticar.
+      const attemptTimeout = oauthEnabled ? Math.min(connectTimeout, OAUTH_CONNECT_TIMEOUT) : connectTimeout
       let lastStatus: Status | undefined
 
       for (const { name, transport } of transports) {
-        const result = yield* connectTransport(transport, connectTimeout).pipe(
+        const result = yield* connectTransport(transport, attemptTimeout).pipe(
           Effect.map((client) => ({ client, transportName: name })),
           Effect.catch((error) => {
             const lastError = error instanceof Error ? error : new Error(String(error))
             const isAuthError =
               error instanceof UnauthorizedError || (authProvider && lastError.message.includes("OAuth"))
+            const isOAuthTimeout =
+              oauthEnabled && authProvider !== undefined && lastError.message.includes("timed out")
 
-            if (isAuthError) {
+            if (isAuthError || isOAuthTimeout) {
               if (lastError.message.includes("registration") || lastError.message.includes("client_id")) {
                 lastStatus = {
                   status: "needs_client_registration" as const,
@@ -310,12 +323,14 @@ const layer = Layer.effect(
                   })
                   .pipe(Effect.ignore, Effect.as(undefined))
               } else {
-                pendingOAuthTransports.set(key, { transport })
+                // En un timeout el transporte ya quedó cerrado: no se registra
+                // como pendiente (authenticate() hace su propio flujo fresco).
+                if (isAuthError && !isOAuthTimeout) pendingOAuthTransports.set(key, { transport })
                 lastStatus = { status: "needs_auth" as const }
                 return events
                   .publish(TuiEvent.ToastShow, {
                     title: "MCP Authentication Required",
-                    message: `Server "${key}" requires authentication. Run: tiancode mcp auth ${key}`,
+                    message: `Server "${key}" requires authentication`,
                     variant: "warning",
                     duration: 8000,
                   })

@@ -1376,6 +1376,7 @@ export const dict = {
   "settings.mcpServers.status.needs_client_registration": "Needs registration",
   "settings.mcpServers.status.unknown": "Unknown",
   "settings.mcpServers.action.connect": "Connect",
+  "settings.mcpServers.action.authenticate": "Authenticate",
   "settings.mcpServers.action.disconnect": "Disconnect",
   "settings.mcpServers.action.edit": "Edit",
   "settings.mcpServers.action.export": "Export",

@@ -1380,6 +1380,7 @@ export const dict = {
   "settings.mcpServers.status.needs_client_registration": "등록 필요",
   "settings.mcpServers.status.unknown": "알 수 없음",
   "settings.mcpServers.action.connect": "연결",
+  "settings.mcpServers.action.authenticate": "인증",
   "settings.mcpServers.action.disconnect": "연결 끊기",
   "settings.mcpServers.action.edit": "편집",
   "settings.mcpServers.action.export": "내보내기",

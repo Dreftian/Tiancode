@@ -342,7 +342,11 @@ export const SettingsMcpServersV2: Component<{
           preset.type === "local"
             ? { type: "local", command: preset.command.split(/\s+/), enabled: true }
             : { type: "remote", url: preset.url, oauth: {}, enabled: true }
-        await serverSdk().client.mcp.add({ ...params(), name: preset.id, config })
+        const res = await serverSdk().client.mcp.add({ ...params(), name: preset.id, config })
+        // Servidor OAuth: el alta termina en "needs_auth" (best-effort
+        // connect); abrimos el flujo de autenticación directamente.
+        const added = res.data?.[preset.id] ?? res.data
+        if (added !== undefined && "status" in added && added.status === "needs_auth") void authenticate(preset.id)
       } else if (existing && isConfiguredServer(existing)) {
         await serverSdk().client.mcp.add({ ...params(), name: preset.id, config: { ...existing, enabled: false } })
       } else {
@@ -357,23 +361,26 @@ export const SettingsMcpServersV2: Component<{
   // Activa todos los presets del catálogo que estén desactivados o sin
   // configurar: cada uno se agrega con su configuración completa y enabled
   // true (best-effort connect), para que nada quede "desactivado" por defecto.
+  // Los servidores OAuth quedan en "needs_auth" con su botón de autenticar.
   const activateAll = async () => {
     setMessage(undefined)
     const pending = DiscoverPresets.filter((preset) => {
       const existing = servers().find(([serverName]) => serverName === preset.id)?.[1]
       return existing === undefined || existing.enabled === false
     })
-    for (const preset of pending) {
-      try {
-        const config: McpLocalConfig | McpRemoteConfig =
-          preset.type === "local"
-            ? { type: "local", command: preset.command.split(/\s+/), enabled: true }
-            : { type: "remote", url: preset.url, oauth: {}, enabled: true }
-        await serverSdk().client.mcp.add({ ...params(), name: preset.id, config })
-      } catch {
-        // Un preset que falle no detiene el resto.
-      }
-    }
+    await Promise.all(
+      pending.map(async (preset) => {
+        try {
+          const config: McpLocalConfig | McpRemoteConfig =
+            preset.type === "local"
+              ? { type: "local", command: preset.command.split(/\s+/), enabled: true }
+              : { type: "remote", url: preset.url, oauth: {}, enabled: true }
+          await serverSdk().client.mcp.add({ ...params(), name: preset.id, config })
+        } catch {
+          // Un preset que falle no detiene el resto.
+        }
+      }),
+    )
     void refetch()
   }
 
@@ -381,6 +388,19 @@ export const SettingsMcpServersV2: Component<{
     setMessage(undefined)
     try {
       await serverSdk().client.mcp.connect({ ...params(), name: serverName })
+      void refetch()
+    } catch {
+      setMessage("error")
+    }
+  }
+
+  // Inicia el flujo OAuth del servidor: el backend abre el navegador con la
+  // URL de autorización y espera el callback local; al completarse, el
+  // servidor queda conectado.
+  const authenticate = async (serverName: string) => {
+    setMessage(undefined)
+    try {
+      await serverSdk().client.mcp.auth.authenticate({ ...params(), name: serverName })
       void refetch()
     } catch {
       setMessage("error")
@@ -547,6 +567,16 @@ export const SettingsMcpServersV2: Component<{
                                       {serverName}
                                     </Switch>
                                   </div>
+                                  <Show when={status?.status === "needs_auth"}>
+                                    <ButtonV2
+                                      type="button"
+                                      variant="contrast"
+                                      size="small"
+                                      onClick={() => void authenticate(serverName)}
+                                    >
+                                      {language.t("settings.mcpServers.action.authenticate")}
+                                    </ButtonV2>
+                                  </Show>
                                   <Show
                                     when={connected}
                                     fallback={
