@@ -836,6 +836,7 @@ export const dict = {
   "liveView.openExternal": "在浏览器中打开",
   "liveView.capture": "捕获视图",
   "liveView.detectNotice": "检测到开发服务器: {url}",
+  "liveView.code.empty": "代理正在编辑的文件将显示在这里。",
   "liveView.code.unavailable": "代码面板不可用",
   "session.export.menu": "导出…",
   "session.export.markdown": "Markdown",

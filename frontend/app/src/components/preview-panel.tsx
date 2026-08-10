@@ -53,6 +53,9 @@ export function PreviewPanel() {
   const [pageTitle, setPageTitle] = createSignal("")
   let container: HTMLDivElement | undefined
   let webview: WebviewElement | undefined
+  // loadURL solo es válido tras el dom-ready; antes, el atributo src define la
+  // URL inicial y flushPending re-confirma al hacerse ready.
+  let ready = false
   // URL con la que se abre el webview; capturada en el toggle (no reactiva)
   // para que el effect de creación solo dependa de open().
   let initialUrl = DEFAULT_URL
@@ -64,6 +67,12 @@ export function PreviewPanel() {
     setCanGoForward(webview.canGoForward())
     setUrl(webview.getURL() || url())
     setPageTitle(webview.getTitle())
+  }
+
+  const flushPending = () => {
+    if (!webview || !ready) return
+    const pending = initialUrl
+    if (pending && pending !== webview.getURL()) void webview.loadURL(pending).catch(() => {})
   }
 
   // The container only exists while the panel is open, so the webview must be
@@ -78,6 +87,7 @@ export function PreviewPanel() {
       setOpen(false)
       return
     }
+    ready = false
     element.setAttribute("partition", "persist:preview")
     if (initialUrl) element.setAttribute("src", initialUrl)
     element.setAttribute("webpreferences", "contextIsolation=yes, nodeIntegration=no, sandbox=yes")
@@ -88,7 +98,11 @@ export function PreviewPanel() {
     // getWebContentsId solo está disponible tras el evento dom-ready del
     // webview; llamarlo antes lanza "The WebView must be attached to the DOM
     // and the dom-ready event emitted before this method can be called".
-    const onDomReady = () => setPreviewWebContentsId(element.getWebContentsId())
+    const onDomReady = () => {
+      ready = true
+      setPreviewWebContentsId(element.getWebContentsId())
+      flushPending()
+    }
     element.addEventListener("dom-ready", onDomReady)
     const onTitleUpdate = () => setPageTitle(element.getTitle())
     element.addEventListener("did-navigate", syncState)
@@ -106,6 +120,7 @@ export function PreviewPanel() {
       element.removeEventListener("page-title-updated", onTitleUpdate)
       element.remove()
       webview = undefined
+      ready = false
       setPreviewWebContentsId(undefined)
     })
   })
@@ -115,7 +130,9 @@ export function PreviewPanel() {
     if (!target) return
     setInput(target)
     setUrl(target)
-    webview?.loadURL(target).catch(() => {})
+    if (!webview) return
+    if (ready) void webview.loadURL(target).catch(() => {})
+    else webview.setAttribute("src", target)
   }
 
   const toggle = () => {

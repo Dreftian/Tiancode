@@ -1043,6 +1043,7 @@ export const dict = {
   "liveView.openExternal": "Open in browser",
   "liveView.capture": "Capture view",
   "liveView.detectNotice": "Development server detected: {url}",
+  "liveView.code.empty": "The file the agent is editing will appear here.",
   "liveView.code.unavailable": "The code panel is unavailable",
   "session.export.menu": "Export…",
   "session.export.markdown": "Markdown",

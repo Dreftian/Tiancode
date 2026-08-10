@@ -1,11 +1,10 @@
 import { sampledChecksum } from "@tiancode-ai/core/util/encode"
 import { useFileComponent } from "@tiancode-ai/ui/context/file"
+import { ResizeHandle } from "@tiancode-ai/ui/resize-handle"
 import { Icon as IconV2 } from "@tiancode-ai/ui/v2/icon"
 import { IconButtonV2 } from "@tiancode-ai/ui/v2/icon-button-v2"
-import { TabsV2 } from "@tiancode-ai/ui/v2/tabs-v2"
 import { createEffect, createMemo, createSignal, onCleanup, onMount, Show } from "solid-js"
 import { Dynamic } from "solid-js/web"
-import FileTreeV2 from "@/components/file-tree-v2"
 import { normalizeUrl, supportsPreviewPanel } from "@/components/preview-panel"
 import { useFile } from "@/context/file"
 import { useLanguage } from "@/context/language"
@@ -17,12 +16,13 @@ import { ScrollView } from "@tiancode-ai/ui/scroll-view"
 
 const LIVE_VIEW_URL = "http://127.0.0.1:8790/"
 const LIVE_VIEW_CHECK_MS = 3000
-// URL de la app servida por el propio live server cuando la raíz de la sesión
-// tiene index.html y el agente no fijó un preview_url externo.
-const PREVIEW_DEFAULT_URL = `${LIVE_VIEW_URL}preview/`
 // URL de un servidor de desarrollo local ("Local: http://localhost:5173") en
 // los logs que publica el agente; se detecta para navegar el panel solo.
 const DEV_SERVER_URL_RE = /https?:\/\/(?:localhost|127\.0\.0\.1):\d{2,5}(?:[/?#][^\s"']*)?/i
+// Ancho del pane de código dentro del panel (el preview ocupa el resto).
+const CODE_PANE_MIN = 180
+const CODE_PANE_MAX = 480
+const CODE_PANE_DEFAULT = 260
 
 // Campos del snapshot del live server que este panel consume.
 type SnapshotPayload = {
@@ -65,7 +65,10 @@ function findDevServerUrl(snapshot: SnapshotPayload | undefined) {
   return undefined
 }
 
-function SandboxCodePanel(props: { followPath?: string }) {
+// Pane de código: muestra el archivo que el agente está editando (sigue
+// current_file del snapshot) y lo abre también bajo demanda. Sin árbol: el
+// navegador de archivos y la vista Dev tools ya lo ofrecen.
+function CodePane(props: { followPath?: string }) {
   const file = useFile()
   const language = useLanguage()
   const fileComponent = useFileComponent()
@@ -95,45 +98,22 @@ function SandboxCodePanel(props: { followPath?: string }) {
     selectFile(path)
   })
 
-  // El árbol vive en el contexto de archivos del workspace: si nunca se abrió
-  // el navegador de archivos principal, la raíz no está cargada ni expandida y
-  // el panel se ve vacío. Aquí se siembra al montar (idempotente) y se vuelve a
-  // sembrar cuando cambia el directorio de la sesión (el montaje ocurre antes
-  // de que la sesión resuelva su workspace, así que onMount solo no basta).
-  const sdk = useSDK()
-  createEffect(() => {
-    if (!sdk().directory) return
-    void file.tree.list("")
-    file.tree.expand("")
-  })
-  onMount(() => {
-    void file.tree.list("")
-    file.tree.expand("")
-  })
-
   return (
-    <div class="grid size-full min-h-0 grid-cols-[minmax(10rem,0.42fr)_minmax(0,1fr)]">
-      <div class="flex min-h-0 flex-col border-r border-v2-border-border-muted">
-        <div class="flex h-8 shrink-0 items-center border-b border-v2-border-border-muted px-2 text-11-medium text-text-weak">
-          {language.t("liveView.code.workspace")}
-        </div>
-        <ScrollView class="min-h-0 flex-1">
-          <FileTreeV2
-            active={selectedPath()}
-            draggable={false}
-            onFileClick={(node) => {
-              setPinned(true)
-              selectFile(node.path)
-            }}
-          />
-        </ScrollView>
+    <div class="flex size-full min-h-0 flex-col">
+      <div class="flex h-8 shrink-0 items-center gap-2 border-b border-v2-border-border-muted px-2">
+        <span class="shrink-0 text-11-medium text-text-weak">{language.t("liveView.tab.code")}</span>
+        <Show when={selectedPath()}>
+          <span class="min-w-0 flex-1 truncate font-mono text-11-regular text-text-weak" title={selectedPath()}>
+            {selectedPath()}
+          </span>
+        </Show>
       </div>
-      <div class="min-h-0 min-w-0">
+      <div class="min-h-0 min-w-0 flex-1">
         <Show
           when={selectedPath()}
           fallback={
             <div class="flex size-full items-center justify-center px-6 text-center text-13-regular text-text-weak">
-              {language.t("session.files.selectToOpen")}
+              {language.t("liveView.code.empty")}
             </div>
           }
         >
@@ -176,7 +156,7 @@ function SandboxCodePanel(props: { followPath?: string }) {
   )
 }
 
-// Navegador del panel "App": un <webview> de Electron (partición
+// Navegador del pane "App": un <webview> de Electron (partición
 // "persist:live-view") con barra de direcciones estilo navegador. Es la
 // "vista en vivo" real: muestra la app en desarrollo, no el dashboard.
 // Cuando el agente reporta una URL (set_preview) o arranca un dev server
@@ -196,8 +176,11 @@ function LiveViewBrowser(props: {
   const [busy, setBusy] = createSignal(false)
   let container: HTMLDivElement | undefined
   let webview: WebviewElement | undefined
+  // loadURL solo es válido tras el dom-ready del webview; antes de eso se
+  // navega con el atributo src (URL inicial) y se re-confirma en dom-ready.
+  let ready = false
   // URL pendiente: el webview solo existe con la pestaña App abierta; si el
-  // agente navega mientras se ve otra pestaña, se carga al recrearlo.
+  // agente navega mientras se ve otra vista, se carga al recrearlo.
   const pendingUrlRef = { current: "" }
   // La navegación manual (URL tecleada, atrás/adelante) gana sobre la
   // auto-detección del dev server; una URL nueva del agente la reanuda.
@@ -213,6 +196,12 @@ function LiveViewBrowser(props: {
     setInput(webview.getURL() || url())
   }
 
+  const flushPending = () => {
+    if (!webview || !ready) return
+    const pending = pendingUrlRef.current
+    if (pending && pending !== webview.getURL()) void webview.loadURL(pending).catch(() => {})
+  }
+
   // El webview se crea dinámicamente (el elemento no está en los tipos JSX);
   // los eventos del navegador llegan por addEventListener, como en el
   // navegador interno (preview-panel).
@@ -220,6 +209,7 @@ function LiveViewBrowser(props: {
     if (!supportsPreviewPanel(platform.platform) || !container) return
     const element = document.createElement("webview") as unknown as WebviewElement
     if (typeof element.getWebContentsId !== "function") return
+    ready = false
     element.setAttribute("partition", "persist:live-view")
     if (pendingUrlRef.current) element.setAttribute("src", pendingUrlRef.current)
     element.setAttribute("webpreferences", "contextIsolation=yes, nodeIntegration=no, sandbox=yes")
@@ -228,8 +218,10 @@ function LiveViewBrowser(props: {
     container.appendChild(element)
     webview = element
     const onDomReady = () => {
+      ready = true
       setAttached(true)
       syncState()
+      flushPending()
     }
     element.addEventListener("dom-ready", onDomReady)
     element.addEventListener("did-navigate", syncState)
@@ -242,6 +234,7 @@ function LiveViewBrowser(props: {
       element.removeEventListener("did-navigate-in-page", syncState)
       element.remove()
       webview = undefined
+      ready = false
       setAttached(false)
     })
   })
@@ -251,7 +244,12 @@ function LiveViewBrowser(props: {
     pendingUrlRef.current = target
     setInput(target)
     setUrl(target)
-    if (webview) void webview.loadURL(target).catch(() => {})
+    if (!webview) return
+    if (ready) void webview.loadURL(target).catch(() => {})
+    // Antes del dom-ready loadURL lanza "The WebView must be attached to the
+    // DOM and the dom-ready event emitted": el atributo src define la URL
+    // inicial y flushPending re-confirma al hacerse ready.
+    else webview.setAttribute("src", target)
   }
 
   // URL del agente / dev server detectado: navega y reanuda la auto-navegación.
@@ -294,7 +292,7 @@ function LiveViewBrowser(props: {
   }
 
   return (
-    <div class="flex size-full min-h-0 flex-col">
+    <div class="flex size-full min-h-0 flex-col" role="region" aria-label={language.t("liveView.tab.app")}>
       <div class="flex h-9 shrink-0 items-center gap-1 border-b border-v2-border-border-muted px-1.5">
         <IconButtonV2
           type="button"
@@ -363,6 +361,27 @@ function LiveViewBrowser(props: {
   )
 }
 
+// Dashboard de dev tools del live server (árbol, logs, terminal, preview
+// local); se muestra en el pane derecho cuando el toggle "Dev tools" está
+// activo, en lugar del navegador de la app.
+function DevToolsPane(props: { reloadKey: number }) {
+  const language = useLanguage()
+  return (
+    <div class="flex size-full min-h-0 flex-col">
+      <Show when={props.reloadKey} keyed>
+        {(_) => (
+          <iframe
+            data-slot="sandbox-live-view"
+            src={LIVE_VIEW_URL}
+            title={language.t("liveView.tab.devTools")}
+            class="min-h-0 w-full flex-1 border-0 bg-v2-background-bg-base"
+          />
+        )}
+      </Show>
+    </div>
+  )
+}
+
 export function LiveViewPanel(props: { onCapture?: (file: File) => void }) {
   const language = useLanguage()
   const platform = usePlatform()
@@ -371,7 +390,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void }) {
   const sdk = useSDK()
   const [reloadKey, setReloadKey] = createSignal(1)
   const [unavailable, setUnavailable] = createSignal(false)
-  const [tab, setTab] = createSignal(view().liveView.tab())
+  const [codeWidth, setCodeWidth] = createSignal(CODE_PANE_DEFAULT)
   // Último snapshot del live server (preview_url, logs, current_file…).
   const [snapshot, setSnapshot] = createSignal<SnapshotPayload | undefined>(undefined)
   // URL detectada en los logs del agente (solo informativa, la navegación la
@@ -380,7 +399,11 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void }) {
   // El aviso descartado con la X no vuelve a aparecer para esa misma URL
   // (el poll lo re-derivaría en el siguiente snapshot).
   const [dismissedUrl, setDismissedUrl] = createSignal<string | undefined>(undefined)
-  let tabSelectedLocally = false
+
+  // El pane derecho alterna entre la app (navegador) y el dashboard; el valor
+  // persiste en el layout ("preview" por defecto; "code" antiguo = preview).
+  const devTools = createMemo(() => view().liveView.tab() === "devtools")
+  const toggleDevTools = () => view().liveView.setTab(devTools() ? "preview" : "devtools")
 
   // El proyecto actual del workspace: es lo que la vista en vivo debe reflejar.
   // sdk().directory ES el directorio de la sesión activa (el SDKProvider de la
@@ -389,7 +412,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void }) {
   const worktree = createMemo(() => sdk().directory || sync().project?.worktree)
 
   // URL que el panel debe mostrar: la del agente (set_preview o preview local)
-  // o, si no hay, el primer dev server detectado en los logs. La detección
+  // o, si no, el primer dev server detectado en los logs. La detección
   // queda suprimida mientras el usuario navegue a mano (manualNav en el
   // navegador); una URL nueva del agente la reanuda.
   const serverTarget = createMemo(() => {
@@ -459,21 +482,6 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void }) {
     onCleanup(() => window.clearTimeout(timer))
   })
 
-  // Desktop persistence can finish after this panel mounts. Adopt its tab until
-  // the person makes a choice, then keep that choice through unrelated layout
-  // updates instead of allowing an older persisted value to select Preview again.
-  createEffect(() => {
-    if (tabSelectedLocally) return
-    setTab(view().liveView.tab())
-  })
-
-  const selectTab = (next: string) => {
-    const value: "preview" | "code" | "devtools" = next === "code" ? "code" : next === "devtools" ? "devtools" : "preview"
-    tabSelectedLocally = true
-    setTab(value)
-    view().liveView.setTab(value)
-  }
-
   let checkTimer: number | undefined
   const checkServer = () => {
     if (checkTimer !== undefined) window.clearTimeout(checkTimer)
@@ -492,7 +500,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void }) {
     if (checkTimer !== undefined) window.clearTimeout(checkTimer)
   })
 
-  const reload = () => {
+  const reloadDevTools = () => {
     setReloadKey((key) => key + 1)
     checkServer()
   }
@@ -510,12 +518,23 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void }) {
           {language.t("liveView.sandbox")}
         </div>
         <div class="flex-1" />
-        <Show when={tab() === "devtools"}>
+        <button
+          type="button"
+          data-pressed={devTools() || undefined}
+          class="flex h-7 shrink-0 items-center gap-1 rounded-md px-2 text-12-regular text-text-weak transition-colors hover:bg-v2-overlay-simple-overlay-hover hover:text-text-base data-[pressed]:bg-v2-overlay-simple-overlay-active data-[pressed]:text-text-base"
+          onClick={toggleDevTools}
+          aria-pressed={devTools()}
+          title={language.t("liveView.tab.devTools")}
+        >
+          <IconV2 name="outline-sliders" size="small" />
+          {language.t("liveView.tab.devTools")}
+        </button>
+        <Show when={devTools()}>
           <IconButtonV2
             type="button"
             variant="ghost-muted"
             size="large"
-            onClick={reload}
+            onClick={reloadDevTools}
             aria-label={language.t("liveView.refresh")}
             title={language.t("liveView.refresh")}
             icon={<IconV2 name="reset" />}
@@ -532,40 +551,28 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void }) {
         />
       </div>
 
-      <TabsV2
-        value={tab()}
-        onChange={selectTab}
-        class="min-h-0 flex-1"
-      >
-        <TabsV2.List class="shrink-0 bg-v2-background-bg-base">
-          <TabsV2.Trigger value="preview">{language.t("liveView.tab.app")}</TabsV2.Trigger>
-          <TabsV2.Trigger value="code">{language.t("liveView.tab.code")}</TabsV2.Trigger>
-          <TabsV2.Trigger value="devtools">{language.t("liveView.tab.devTools")}</TabsV2.Trigger>
-        </TabsV2.List>
-        <TabsV2.Content value="preview" forceMount class="min-h-0 overflow-hidden" hidden={tab() !== "preview"}>
+      {/* Código | App lado a lado, estilo Qwen: el código que edita el agente
+          siempre visible junto al preview de la app. */}
+      <div class="flex min-h-0 flex-1">
+        <div class="h-full min-h-0 shrink-0 border-r border-v2-border-border-muted" style={{ width: `${codeWidth()}px` }}>
+          <CodePane followPath={snapshot()?.current_file ?? undefined} />
+        </div>
+        <div class="h-full w-1 shrink-0 cursor-col-resize bg-v2-border-border-muted" aria-hidden="true">
+          <ResizeHandle
+            direction="horizontal"
+            edge="start"
+            size={codeWidth()}
+            min={CODE_PANE_MIN}
+            max={CODE_PANE_MAX}
+            onResize={setCodeWidth}
+          />
+        </div>
+        <div class="flex min-h-0 min-w-0 flex-1 flex-col">
           <Show
-            when={supportsPreviewPanel(platform.platform)}
-            fallback={
-              <div class="flex size-full min-h-0 flex-col">
-                <Show when={reloadKey()} keyed>
-                  {(_) => (
-                    <iframe
-                      data-slot="sandbox-live-view"
-                      src={LIVE_VIEW_URL}
-                      title={language.t("liveView.tab.app")}
-                      class="min-h-0 w-full flex-1 border-0 bg-v2-background-bg-base"
-                    />
-                  )}
-                </Show>
-                <Show when={unavailable()}>
-                  <div class="shrink-0 border-t border-v2-border-border-muted px-3 py-1.5 text-11-regular text-text-faint">
-                    {language.t("liveView.unavailable")}
-                  </div>
-                </Show>
-              </div>
-            }
+            when={devTools() || !supportsPreviewPanel(platform.platform)}
+            fallback={<LiveViewBrowser targetUrl={serverTarget} onCapture={props.onCapture} />}
           >
-            <LiveViewBrowser targetUrl={serverTarget} onCapture={props.onCapture} />
+            <DevToolsPane reloadKey={reloadKey()} />
           </Show>
           <Show when={detectedUrl()}>
             {(url) => (
@@ -587,30 +594,13 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void }) {
               </div>
             )}
           </Show>
-        </TabsV2.Content>
-        <TabsV2.Content value="code" forceMount class="min-h-0 overflow-hidden" hidden={tab() !== "code"}>
-          <SandboxCodePanel followPath={snapshot()?.current_file ?? undefined} />
-        </TabsV2.Content>
-        <TabsV2.Content value="devtools" forceMount class="min-h-0 overflow-hidden" hidden={tab() !== "devtools"}>
-          <div class="flex size-full min-h-0 flex-col">
-            <Show when={reloadKey()} keyed>
-              {(_) => (
-                <iframe
-                  data-slot="sandbox-live-view"
-                  src={LIVE_VIEW_URL}
-                  title={language.t("liveView.tab.devTools")}
-                  class="min-h-0 w-full flex-1 border-0 bg-v2-background-bg-base"
-                />
-              )}
-            </Show>
-            <Show when={unavailable()}>
-              <div class="shrink-0 border-t border-v2-border-border-muted px-3 py-1.5 text-11-regular text-text-faint">
-                {language.t("liveView.unavailable")}
-              </div>
-            </Show>
-          </div>
-        </TabsV2.Content>
-      </TabsV2>
+          <Show when={unavailable()}>
+            <div class="shrink-0 border-t border-v2-border-border-muted px-3 py-1.5 text-11-regular text-text-faint">
+              {language.t("liveView.unavailable")}
+            </div>
+          </Show>
+        </div>
+      </div>
     </aside>
   )
 }

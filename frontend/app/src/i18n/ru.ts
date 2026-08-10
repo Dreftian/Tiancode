@@ -852,6 +852,7 @@ export const dict = {
   "liveView.openExternal": "Открыть в браузере",
   "liveView.capture": "Захват вида",
   "liveView.detectNotice": "Обнаружен dev-сервер: {url}",
+  "liveView.code.empty": "Файл, который редактирует агент, появится здесь.",
   "liveView.code.unavailable": "Панель кода недоступна",
   "session.export.menu": "Экспорт…",
   "session.export.markdown": "Markdown",

@@ -545,6 +545,7 @@ export const dict = {
   "liveView.openExternal": "브라우저에서 열기",
   "liveView.capture": "보기 캡처",
   "liveView.detectNotice": "개발 서버 감지: {url}",
+  "liveView.code.empty": "에이전트가 편집 중인 파일이 여기에 표시됩니다.",
   "liveView.code.unavailable": "코드 패널을 사용할 수 없습니다",
   "session.export.menu": "내보내기…",
   "session.export.markdown": "Markdown",

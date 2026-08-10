@@ -782,6 +782,7 @@ export const dict = {
   "liveView.openExternal": "ブラウザで開く",
   "liveView.capture": "ビューをキャプチャ",
   "liveView.detectNotice": "開発サーバーを検出: {url}",
+  "liveView.code.empty": "エージェントが編集中のファイルがここに表示されます。",
   "liveView.code.unavailable": "コードパネルを利用できません",
   "session.export.menu": "エクスポート…",
   "session.export.markdown": "Markdown",

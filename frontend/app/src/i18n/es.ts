@@ -1056,6 +1056,7 @@ export const dict = {
   "liveView.openExternal": "Abrir en el navegador",
   "liveView.capture": "Capturar vista",
   "liveView.detectNotice": "Servidor de desarrollo detectado: {url}",
+  "liveView.code.empty": "El archivo que edite el agente aparecerá aquí.",
   "liveView.code.unavailable": "El panel de código no está disponible",
   "session.export.menu": "Exportar…",
   "session.export.markdown": "Markdown",
