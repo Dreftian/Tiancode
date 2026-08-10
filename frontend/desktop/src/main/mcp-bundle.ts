@@ -114,12 +114,12 @@ async function registerServer(auth: SidecarAuth, entry: BundledMcp) {
 }
 
 // Registra los MCP empaquetados. Se llama justo después de que el sidecar esté
-// listo; los fallos no bloquean el arranque.
+// listo; los fallos no bloquean el arranque. SECUENCIAL: cada POST /mcp hace
+// un read-modify-write de la config global del sidecar, y lanzarlos en
+// paralelo puede corromper el archivo.
 export async function seedBundledMcpServers(auth: SidecarAuth) {
   if (!existsSync(BUNDLED_ROOT)) return
-  await Promise.all(
-    BUNDLED_MCPS.map((entry) =>
-      registerServer(auth, entry).catch(() => false),
-    ),
-  )
+  for (const entry of BUNDLED_MCPS) {
+    await registerServer(auth, entry).catch(() => false)
+  }
 }

@@ -147,8 +147,18 @@ function globalConfigFile() {
   return candidates[0]
 }
 
-function patchJsonc(input: string, patch: unknown, path: string[] = []): string {
-  if (!isRecord(patch)) {
+// Escritura atómica (tmp + rename): dos updateGlobal concurrentes (p. ej. el
+// seeder de MCP empaquetados lanzando varios POST /mcp a la vez) no pueden
+// dejar el archivo a medio escribir.
+function writeGlobalAtomic(file: string, content: string) {
+  return Effect.tryPromise(async () => {
+    const tmp = `${file}.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`
+    await fsNode.writeFile(tmp, content, "utf8")
+    await fsNode.rename(tmp, file)
+  })
+}
+
+function patchJsonc(input: string, patch: unknown, path: string[] = []): string {  if (!isRecord(patch)) {
     const edits = modify(input, path, patch, {
       formattingOptions: {
         insertSpaces: true,
@@ -668,8 +678,7 @@ const layer = Layer.effect(
       yield* InstanceState.invalidate(state)
     })
 
-    const updateGlobal = Effect.fn("Config.updateGlobal")(function* (config: Info) {
-      const file = globalConfigFile()
+    const updateGlobal = Effect.fn("Config.updateGlobal")(function* (config: Info) {      const file = globalConfigFile()
       const before = (yield* readConfigFile(file)) ?? "{}"
       const patch = writableGlobal(config)
 
@@ -680,21 +689,20 @@ const layer = Layer.effect(
         const merged = mergeDeep(writable(existing), patch)
         const serialized = JSON.stringify(merged, null, 2)
         changed = serialized !== before
-        if (changed) yield* fs.writeFileString(file, serialized).pipe(Effect.orDie)
+        if (changed) yield* writeGlobalAtomic(file, serialized).pipe(Effect.orDie)
         next = merged
       } else {
         const updated = patchJsonc(before, patch)
         next = ConfigParse.schema(ConfigV1.Info, ConfigParse.jsonc(updated, file), file)
         changed = updated !== before
-        if (changed) yield* fs.writeFileString(file, updated).pipe(Effect.orDie)
+        if (changed) yield* writeGlobalAtomic(file, updated).pipe(Effect.orDie)
       }
 
       if (changed) yield* invalidate()
       return { info: next, changed }
     })
 
-    return Service.of({
-      get,
+    return Service.of({      get,
       getGlobal,
       getConsoleState,
       update,
