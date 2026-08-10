@@ -8,7 +8,6 @@ import { app } from "electron"
 
 const execFileAsync = promisify(execFile)
 const root = dirname(fileURLToPath(import.meta.url))
-const stateHome = process.env.XDG_STATE_HOME
 const desktopStateNames = ["ai.tiancode.desktop.dev", "ai.tiancode.desktop.beta", "ai.tiancode.desktop"]
 
 type Logger = {
@@ -17,6 +16,7 @@ type Logger = {
 }
 
 export async function startBackgroundCli(logger: Logger, shellStateHome?: string) {
+  const stateHome = process.env.XDG_STATE_HOME
   const bundled = app.isPackaged
     ? join(process.resourcesPath, executableName())
     : join(root, "../../resources", executableName())

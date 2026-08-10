@@ -53,6 +53,8 @@ import type {
   UserMessage,
 } from "@tiancode-ai/sdk/v2"
 import { showToast } from "@/utils/toast"
+import { buildChatJson, buildChatMarkdown } from "@/utils/export-chat"
+import { fetchSessionExport, sessionExportFilename } from "@/utils/export-json"
 import { isVoiceSpeaking, speakWithVoices, voicesAPI } from "@/utils/voices"
 import { getDirectory, getFilename } from "@tiancode-ai/core/util/path"
 import { Popover as KobaltePopover } from "@kobalte/core/popover"
@@ -655,6 +657,63 @@ export function MessageTimeline(props: {
     }
     if (err instanceof Error) return err.message
     return language.t("common.requestFailed")
+  }
+
+  const exportFailed = (err: unknown) => {
+    showToast({
+      variant: "error",
+      title: language.t("session.export.failed"),
+      description: errorMessage(err),
+    })
+  }
+
+  const exportMarkdown = async () => {
+    const id = sessionID()
+    if (!id) return
+
+    const data = sync()
+    const title = data.session.get(id)?.title ?? "chat"
+    const markdown = buildChatMarkdown({
+      title,
+      messages: data.data.message[id] ?? [],
+      parts: (messageID) => data.data.part[messageID] ?? [],
+    })
+    const safeTitle = title.replace(/[\\/:*?"<>|]/g, "-").slice(0, 60) || "chat"
+    const path = await platform.saveFilePickerDialog?.({
+      title: language.t("session.export.title"),
+      defaultPath: `${safeTitle}.md`,
+    })
+    if (!path) return
+
+    const written = await platform.writeTextFile?.(path, markdown)
+    if (written) {
+      showToast({ variant: "success", title: language.t("session.export.success") })
+      return
+    }
+    showToast({ variant: "error", title: language.t("session.export.failed") })
+  }
+
+  const exportJson = async () => {
+    const id = sessionID()
+    if (!id) return
+
+    const data = await fetchSessionExport({
+      sessionID: id,
+      directory: sdk().directory,
+      client: sdk().client,
+    })
+    const path = await platform.saveFilePickerDialog?.({
+      title: language.t("session.export.title"),
+      defaultPath: sessionExportFilename(data.info),
+    })
+    if (!path) return
+
+    const written = await platform.writeTextFile?.(path, buildChatJson(data))
+    if (written) {
+      showToast({ variant: "success", title: language.t("session.export.success") })
+      return
+    }
+    showToast({ variant: "error", title: language.t("session.export.failed") })
   }
 
   const shareMutation = useMutation(() => ({
@@ -1597,6 +1656,24 @@ export function MessageTimeline(props: {
                                     </DropdownMenu.ItemLabel>
                                   </DropdownMenu.Item>
                                 </Show>
+                                <DropdownMenu.Sub gutter={4} overlap>
+                                  <DropdownMenu.SubTrigger>
+                                    <DropdownMenu.ItemLabel>{language.t("session.export.menu")}</DropdownMenu.ItemLabel>
+                                    <Icon name="chevron-right" size="small" />
+                                  </DropdownMenu.SubTrigger>
+                                  <DropdownMenu.Portal>
+                                    <DropdownMenu.SubContent>
+                                      <DropdownMenu.Item onSelect={() => void exportMarkdown().catch(exportFailed)}>
+                                        <DropdownMenu.ItemLabel>
+                                          {language.t("session.export.markdown")}
+                                        </DropdownMenu.ItemLabel>
+                                      </DropdownMenu.Item>
+                                      <DropdownMenu.Item onSelect={() => void exportJson().catch(exportFailed)}>
+                                        <DropdownMenu.ItemLabel>{language.t("session.export.json")}</DropdownMenu.ItemLabel>
+                                      </DropdownMenu.Item>
+                                    </DropdownMenu.SubContent>
+                                  </DropdownMenu.Portal>
+                                </DropdownMenu.Sub>
                                 <DropdownMenu.Item onSelect={() => void archiveSession(id)}>
                                   <DropdownMenu.ItemLabel>{language.t("common.archive")}</DropdownMenu.ItemLabel>
                                 </DropdownMenu.Item>
@@ -1668,6 +1745,19 @@ export function MessageTimeline(props: {
                                   {language.t("session.share.action.share")}...
                                 </MenuV2.Item>
                               </Show>
+                              <MenuV2.Sub gutter={0} overlap>
+                                <MenuV2.SubTrigger>{language.t("session.export.menu")}</MenuV2.SubTrigger>
+                                <MenuV2.Portal>
+                                  <MenuV2.SubContent>
+                                    <MenuV2.Item onSelect={() => void exportMarkdown().catch(exportFailed)}>
+                                      {language.t("session.export.markdown")}
+                                    </MenuV2.Item>
+                                    <MenuV2.Item onSelect={() => void exportJson().catch(exportFailed)}>
+                                      {language.t("session.export.json")}
+                                    </MenuV2.Item>
+                                  </MenuV2.SubContent>
+                                </MenuV2.Portal>
+                              </MenuV2.Sub>
                               <MenuV2.Item onSelect={() => void archiveSession(id)}>
                                 {language.t("common.archive")}
                               </MenuV2.Item>
@@ -1860,6 +1950,71 @@ export function MessageTimeline(props: {
                           </KobaltePopover.Content>
                         </KobaltePopover.Portal>
                       </KobaltePopover>
+                    </Show>
+                    <Show when={parentID()}>
+                      <Show
+                        when={settings.general.newLayoutDesigns()}
+                        fallback={
+                          <DropdownMenu gutter={4} placement="bottom-end">
+                            <DropdownMenu.Trigger
+                              as={IconButton}
+                              icon="dot-grid"
+                              variant="ghost"
+                              class="size-6 rounded-md data-[expanded]:bg-surface-base-active"
+                              aria-label={language.t("common.moreOptions")}
+                            />
+                            <DropdownMenu.Portal>
+                              <DropdownMenu.Content style={{ "min-width": "104px" }}>
+                                <DropdownMenu.Sub gutter={4} overlap>
+                                  <DropdownMenu.SubTrigger>
+                                    <DropdownMenu.ItemLabel>{language.t("session.export.menu")}</DropdownMenu.ItemLabel>
+                                    <Icon name="chevron-right" size="small" />
+                                  </DropdownMenu.SubTrigger>
+                                  <DropdownMenu.Portal>
+                                    <DropdownMenu.SubContent>
+                                      <DropdownMenu.Item onSelect={() => void exportMarkdown().catch(exportFailed)}>
+                                        <DropdownMenu.ItemLabel>
+                                          {language.t("session.export.markdown")}
+                                        </DropdownMenu.ItemLabel>
+                                      </DropdownMenu.Item>
+                                      <DropdownMenu.Item onSelect={() => void exportJson().catch(exportFailed)}>
+                                        <DropdownMenu.ItemLabel>{language.t("session.export.json")}</DropdownMenu.ItemLabel>
+                                      </DropdownMenu.Item>
+                                    </DropdownMenu.SubContent>
+                                  </DropdownMenu.Portal>
+                                </DropdownMenu.Sub>
+                              </DropdownMenu.Content>
+                            </DropdownMenu.Portal>
+                          </DropdownMenu>
+                        }
+                      >
+                        <MenuV2 gutter={6} placement="bottom-end">
+                          <MenuV2.Trigger
+                            as={IconButtonV2}
+                            icon={<IconV2 name="outline-dots" />}
+                            variant="ghost-muted"
+                            size="large"
+                            aria-label={language.t("common.moreOptions")}
+                          />
+                          <MenuV2.Portal>
+                            <MenuV2.Content style={{ width: "120px", "min-width": "120px" }}>
+                              <MenuV2.Sub gutter={0} overlap>
+                                <MenuV2.SubTrigger>{language.t("session.export.menu")}</MenuV2.SubTrigger>
+                                <MenuV2.Portal>
+                                  <MenuV2.SubContent>
+                                    <MenuV2.Item onSelect={() => void exportMarkdown().catch(exportFailed)}>
+                                      {language.t("session.export.markdown")}
+                                    </MenuV2.Item>
+                                    <MenuV2.Item onSelect={() => void exportJson().catch(exportFailed)}>
+                                      {language.t("session.export.json")}
+                                    </MenuV2.Item>
+                                  </MenuV2.SubContent>
+                                </MenuV2.Portal>
+                              </MenuV2.Sub>
+                            </MenuV2.Content>
+                          </MenuV2.Portal>
+                        </MenuV2>
+                      </Show>
                     </Show>
                   </div>
                 )}

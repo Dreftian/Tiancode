@@ -14,7 +14,7 @@
   },
   "scripts": {
     "typecheck": "tsgo -b",
-    "lint": "oxlint",
+    "lint": "oxlint --config ../../.oxlintrc.json",
     "typecheck:e2e": "tsgo -p e2e/tsconfig.json",
     "start": "vite",
     "dev": "vite",

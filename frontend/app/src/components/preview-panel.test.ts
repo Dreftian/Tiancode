@@ -1,5 +1,12 @@
 import { describe, expect, test } from "bun:test"
-import { normalizeUrl } from "./preview-panel"
+import { normalizeUrl, supportsPreviewPanel } from "./preview-panel"
+
+describe("preview availability", () => {
+  test("only enables the webview in the desktop renderer", () => {
+    expect(supportsPreviewPanel("desktop")).toBe(true)
+    expect(supportsPreviewPanel("web")).toBe(false)
+  })
+})
 
 describe("preview normalizeUrl", () => {
   test("deja intactas las URLs con protocolo", () => {

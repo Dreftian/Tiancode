@@ -8,7 +8,7 @@ import { useDialog } from "@tiancode-ai/ui/context/dialog"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { useUpdaterAction } from "../updater-action"
-import { useSettings } from "@/context/settings"
+import { petKinds, petPositions, useSettings } from "@/context/settings"
 import { ExternalLink } from "../external-link"
 import { showToast } from "@/utils/toast"
 import { SettingsListV2 } from "./parts/list"
@@ -29,6 +29,17 @@ import {
 import "./settings-v2.css"
 
 const schemeOptions: ("system" | "light" | "dark")[] = ["system", "light", "dark"]
+const petKindLabels = {
+  cat: "settings.general.pets.kind.cat",
+  dog: "settings.general.pets.kind.dog",
+  rabbit: "settings.general.pets.kind.rabbit",
+} as const
+const petPositionLabels = {
+  "bottom-right": "settings.general.pets.position.bottomRight",
+  "bottom-left": "settings.general.pets.position.bottomLeft",
+  "top-right": "settings.general.pets.position.topRight",
+  "top-left": "settings.general.pets.position.topLeft",
+} as const
 // Electron store shared with the desktop main process via the store IPC.
 const settingsStoreName = "tiancode.settings"
 const minimizeToTrayKey = "minimizeToTray"
@@ -568,6 +579,20 @@ export const SettingsGeneralV2: Component<{
           </div>
         </SettingsRowV2>
 
+        <Show when={desktop()}>
+          <SettingsRowV2
+            title={language.t("settings.general.row.showBrowser.title")}
+            description={language.t("settings.general.row.showBrowser.description")}
+          >
+            <div data-action="settings-show-browser">
+              <Switch
+                checked={settings.general.showBrowser()}
+                onChange={(checked) => settings.general.setShowBrowser(checked)}
+              />
+            </div>
+          </SettingsRowV2>
+        </Show>
+
         <SettingsRowV2
           title={language.t("settings.general.row.showCustomAgents.title")}
           description={language.t("settings.general.row.showCustomAgents.description")}
@@ -579,6 +604,57 @@ export const SettingsGeneralV2: Component<{
             />
           </div>
         </SettingsRowV2>
+      </SettingsListV2>
+    </div>
+  )
+
+  const PetsSection = () => (
+    <div class="settings-v2-section">
+      <h3 class="settings-v2-section-title">{language.t("settings.general.section.pets")}</h3>
+
+      <SettingsListV2>
+        <SettingsRowV2
+          title={language.t("settings.general.row.petEnabled.title")}
+          description={language.t("settings.general.row.petEnabled.description")}
+        >
+          <div data-action="settings-pet-enabled">
+            <Switch checked={settings.general.petEnabled()} onChange={settings.general.setPetEnabled} />
+          </div>
+        </SettingsRowV2>
+
+        <Show when={settings.general.petEnabled()}>
+          <SettingsRowV2
+            title={language.t("settings.general.row.petKind.title")}
+            description={language.t("settings.general.row.petKind.description")}
+          >
+            <SelectV2
+              appearance="inline"
+              data-action="settings-pet-kind"
+              options={[...petKinds]}
+              current={settings.general.petKind()}
+              placement="bottom-end"
+              gutter={6}
+              label={(option) => language.t(petKindLabels[option])}
+              onSelect={(option) => option && settings.general.setPetKind(option)}
+            />
+          </SettingsRowV2>
+
+          <SettingsRowV2
+            title={language.t("settings.general.row.petPosition.title")}
+            description={language.t("settings.general.row.petPosition.description")}
+          >
+            <SelectV2
+              appearance="inline"
+              data-action="settings-pet-position"
+              options={[...petPositions]}
+              current={settings.general.petPosition()}
+              placement="bottom-end"
+              gutter={6}
+              label={(option) => language.t(petPositionLabels[option])}
+              onSelect={(option) => option && settings.general.setPetPosition(option)}
+            />
+          </SettingsRowV2>
+        </Show>
       </SettingsListV2>
     </div>
   )
@@ -787,6 +863,8 @@ export const SettingsGeneralV2: Component<{
         <NotificationsSection />
 
         <SoundsSection controller={sounds} />
+
+        <PetsSection />
 
         <Show when={desktop()}>
           <UpdatesSection />

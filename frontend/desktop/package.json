@@ -1,7 +1,7 @@
 {
   "name": "@tiancode-ai/desktop",
   "private": true,
-  "version": "1.0.11",
+  "version": "1.0.12",
   "type": "module",
   "license": "MIT",
   "homepage": "https://opencode.ai",
@@ -11,7 +11,7 @@
   },
   "scripts": {
     "typecheck": "tsgo -b",
-    "lint": "oxlint",
+    "lint": "oxlint --config ../../.oxlintrc.json",
     "predev": "bun ./scripts/predev.ts",
     "dev": "electron-vite dev",
     "prebuild": "bun ./scripts/prebuild.ts",

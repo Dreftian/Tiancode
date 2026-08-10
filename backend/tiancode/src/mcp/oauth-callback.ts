@@ -130,34 +130,37 @@ export async function ensureRunning(redirectUri?: string): Promise<void> {
   })
 }
 
-export function waitForCallback(oauthState: string, mcpName?: string): Promise<string> {
+export function waitForCallback(oauthState: string, mcpName?: string, timeoutMs = CALLBACK_TIMEOUT_MS): Promise<string> {
   if (mcpName) mcpNameToState.set(mcpName, oauthState)
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       if (pendingAuths.has(oauthState)) {
         pendingAuths.delete(oauthState)
-        if (mcpName) mcpNameToState.delete(mcpName)
+        cleanupStateIndex(oauthState)
         reject(new Error("OAuth callback timeout - authorization took too long"))
         stopIfIdle()
       }
-    }, CALLBACK_TIMEOUT_MS)
+    }, timeoutMs)
 
     pendingAuths.set(oauthState, { resolve, reject, timeout })
   })
 }
 
-export function cancelPending(mcpName: string): void {
-  // Look up the oauthState for this mcpName via the reverse index
-  const oauthState = mcpNameToState.get(mcpName)
-  const key = oauthState ?? mcpName
-  const pending = pendingAuths.get(key)
+export function cancelPendingState(oauthState: string): void {
+  const pending = pendingAuths.get(oauthState)
   if (pending) {
     clearTimeout(pending.timeout)
-    pendingAuths.delete(key)
-    mcpNameToState.delete(mcpName)
+    pendingAuths.delete(oauthState)
+    cleanupStateIndex(oauthState)
     pending.reject(new Error("Authorization cancelled"))
     stopIfIdle()
   }
+}
+
+export function cancelPending(mcpName: string): void {
+  // Keep the name-based API for callers that do not own an instance-local
+  // OAuth state. Instance-scoped callers should use cancelPendingState.
+  cancelPendingState(mcpNameToState.get(mcpName) ?? mcpName)
 }
 
 export async function isPortInUse(port: number = OAUTH_CALLBACK_PORT): Promise<boolean> {

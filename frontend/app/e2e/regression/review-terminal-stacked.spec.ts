@@ -210,10 +210,10 @@ test("keeps the review tree and terminal sized when both panels are open", async
   await filter.fill("")
   await expectTree(page, 2_773, "action.yml")
 
-  await page.getByRole("button", { name: "Toggle file tree" }).click()
+  await page.locator("#review-panel").getByRole("button", { name: "Toggle file tree" }).click()
   await expect(page.locator('[data-slot="session-review-v2-sidebar"]')).toHaveCount(0)
   await expect(page.locator('#review-panel [data-component="file-tree-v2"]')).toHaveCount(0)
-  await page.getByRole("button", { name: "Toggle file tree" }).click()
+  await page.locator("#review-panel").getByRole("button", { name: "Toggle file tree" }).click()
   await expectTree(page, 2_773, "action.yml")
 
   await page.keyboard.press("Control+Backquote")

@@ -461,8 +461,11 @@ it.instance("connect and disconnect fail for unknown servers", () =>
         expect(Cause.squash(exit.cause)).toMatchObject({ _tag: "MCP.NotFoundError", name: "missing" })
       }
     }
-    expect(yield* mcp.status()).toEqual({})
-    expect(yield* mcp.tools()).toEqual({})
+    // MCP.add persists configuration globally, so earlier lifecycle tests can
+    // legitimately leave configured servers visible to a fresh instance.
+    // Unknown connect/disconnect must not create a new status or tool entry.
+    expect((yield* mcp.status()).missing).toBeUndefined()
+    expect(Object.keys(yield* mcp.tools()).filter((key) => key.startsWith("missing_"))).toEqual([])
   }),
 )
 

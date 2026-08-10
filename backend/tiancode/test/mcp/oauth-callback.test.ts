@@ -112,3 +112,29 @@ describe("McpOAuthCallback.ensureRunning", () => {
     expect(await canConnect("::1", port)).toBe(false)
   })
 })
+
+describe("McpOAuthCallback cancellation", () => {
+  afterEach(async () => {
+    await McpOAuthCallback.stop()
+  })
+
+  test("cancels the owned OAuth state without cancelling another flow with the same server name", async () => {
+    const first = McpOAuthCallback.waitForCallback("first-state", "shared-server").catch((error) => error)
+    const second = McpOAuthCallback.waitForCallback("second-state", "shared-server").catch((error) => error)
+
+    McpOAuthCallback.cancelPendingState("first-state")
+    expect(await first).toBeInstanceOf(Error)
+
+    McpOAuthCallback.cancelPendingState("second-state")
+    expect(await second).toBeInstanceOf(Error)
+  })
+
+  test("keeps a newer server-name index when an earlier OAuth state times out", async () => {
+    const first = McpOAuthCallback.waitForCallback("first-timeout", "shared-server", 10).catch((error) => error)
+    const second = McpOAuthCallback.waitForCallback("second-pending", "shared-server").catch((error) => error)
+
+    expect(await first).toBeInstanceOf(Error)
+    McpOAuthCallback.cancelPending("shared-server")
+    expect(await second).toBeInstanceOf(Error)
+  })
+})

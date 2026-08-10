@@ -1,5 +1,7 @@
 import { createEffect, createSignal, onCleanup, Show } from "solid-js"
 import { useLanguage } from "@/context/language"
+import { usePlatform } from "@/context/platform"
+import { useSettings } from "@/context/settings"
 import "./preview-panel.css"
 
 // Navegador interno: panel flotante con un <webview> para ver apps y sitios
@@ -22,6 +24,8 @@ export const normalizeUrl = (value: string) => {
   return `https://${trimmed}`
 }
 
+export const supportsPreviewPanel = (platform: "web" | "desktop") => platform === "desktop"
+
 // API mínima del elemento <webview> de Electron expuesta al renderer.
 type WebviewElement = HTMLElement & {
   loadURL(url: string): Promise<void>
@@ -38,6 +42,8 @@ type WebviewElement = HTMLElement & {
 
 export function PreviewPanel() {
   const language = useLanguage()
+  const platform = usePlatform()
+  const settings = useSettings()
   const [open, setOpen] = createSignal(false)
   const [url, setUrl] = createSignal(DEFAULT_URL)
   const [input, setInput] = createSignal(DEFAULT_URL)
@@ -64,8 +70,14 @@ export function PreviewPanel() {
   // created reactively (onMount runs once, before the first open). Closing the
   // panel disposes the element and stops the guest page.
   createEffect(() => {
-    if (!open() || !container) return
+    if (!supportsPreviewPanel(platform.platform) || !open() || !container) return
     const element = document.createElement("webview") as unknown as WebviewElement
+    // Electron registers the custom element only when webviewTag is enabled.
+    // Keep the renderer safe if a desktop embedder disables it.
+    if (typeof element.getWebContentsId !== "function") {
+      setOpen(false)
+      return
+    }
     element.setAttribute("partition", "persist:preview")
     if (initialUrl) element.setAttribute("src", initialUrl)
     element.setAttribute("webpreferences", "contextIsolation=yes, nodeIntegration=no, sandbox=yes")
@@ -77,13 +89,14 @@ export function PreviewPanel() {
     const onTitleUpdate = () => setPageTitle(element.getTitle())
     element.addEventListener("did-navigate", syncState)
     element.addEventListener("did-navigate-in-page", syncState)
-    element.addEventListener("did-start-loading", () => setLoading(true))
+    const onStartLoading = () => setLoading(true)
+    element.addEventListener("did-start-loading", onStartLoading)
     element.addEventListener("did-stop-loading", syncState)
     element.addEventListener("page-title-updated", onTitleUpdate)
     onCleanup(() => {
       element.removeEventListener("did-navigate", syncState)
       element.removeEventListener("did-navigate-in-page", syncState)
-      element.removeEventListener("did-start-loading", () => setLoading(true))
+      element.removeEventListener("did-start-loading", onStartLoading)
       element.removeEventListener("did-stop-loading", syncState)
       element.removeEventListener("page-title-updated", onTitleUpdate)
       element.remove()
@@ -112,7 +125,8 @@ export function PreviewPanel() {
   }
 
   return (
-    <>
+    <Show when={supportsPreviewPanel(platform.platform) && settings.general.showBrowser()}>
+      <>
       <Show when={!open()}>
         <button
           type="button"
@@ -193,6 +207,7 @@ export function PreviewPanel() {
           <div class="preview-webview" ref={container} />
         </div>
       </Show>
-    </>
+      </>
+    </Show>
   )
 }

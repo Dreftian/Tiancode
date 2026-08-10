@@ -114,7 +114,7 @@ export type Status = Schema.Schema.Type<typeof Status>
 
 // Store transports for OAuth servers to allow finishing auth
 type TransportWithAuth = StreamableHTTPClientTransport | SSEClientTransport
-const pendingOAuthTransports = new Map<string, { transport: TransportWithAuth; provider?: McpOAuthPendingProvider }>()
+type PendingOAuthTransport = { transport: TransportWithAuth; provider?: McpOAuthPendingProvider; oauthState: string }
 
 // Prompt cache types
 type PromptInfo = Awaited<ReturnType<MCPClient["listPrompts"]>>["prompts"][number]
@@ -151,6 +151,7 @@ interface State {
   clients: Record<string, MCPClient>
   defs: Record<string, MCPToolDef[]>
   instructions: Record<string, string>
+  pendingOAuthTransports: Map<string, PendingOAuthTransport>
 }
 
 export interface ServerInstructions {
@@ -325,7 +326,6 @@ const layer = Layer.effect(
               } else {
                 // En un timeout el transporte ya quedó cerrado: no se registra
                 // como pendiente (authenticate() hace su propio flujo fresco).
-                if (isAuthError && !isOAuthTimeout) pendingOAuthTransports.set(key, { transport })
                 lastStatus = { status: "needs_auth" as const }
                 return events
                   .publish(TuiEvent.ToastShow, {
@@ -516,6 +516,7 @@ const layer = Layer.effect(
           clients: {},
           defs: {},
           instructions: {},
+          pendingOAuthTransports: new Map(),
         }
 
         yield* Effect.forEach(
@@ -570,7 +571,17 @@ const layer = Layer.effect(
                 }),
               { concurrency: "unbounded" },
             )
-            pendingOAuthTransports.clear()
+            const pendingOAuthTransports = Array.from(s.pendingOAuthTransports.values())
+            s.pendingOAuthTransports.clear()
+            yield* Effect.forEach(
+              pendingOAuthTransports,
+              (pending) =>
+                Effect.gen(function* () {
+                  McpOAuthCallback.cancelPendingState(pending.oauthState)
+                  yield* Effect.tryPromise(() => pending.transport.close()).pipe(Effect.ignore)
+                }),
+              { concurrency: "unbounded" },
+            )
           }),
         )
 
@@ -930,8 +941,12 @@ const layer = Layer.effect(
       }).pipe(
         Effect.catch((error) => {
           if (error instanceof UnauthorizedError && capturedUrl) {
-            pendingOAuthTransports.set(mcpName, { transport, provider: authProvider })
-            return Effect.succeed({ authorizationUrl: capturedUrl.toString(), oauthState } satisfies AuthResult)
+            const authorizationUrl = capturedUrl.toString()
+            return Effect.gen(function* () {
+              const s = yield* InstanceState.get(state)
+              s.pendingOAuthTransports.set(mcpName, { transport, provider: authProvider, oauthState })
+              return { authorizationUrl, oauthState } satisfies AuthResult
+            })
           }
           return Effect.die(error)
         }),
@@ -986,7 +1001,8 @@ const layer = Layer.effect(
 
     const finishAuth = Effect.fn("MCP.finishAuth")(function* (mcpName: string, authorizationCode: string) {
       yield* requireMcpConfig(mcpName)
-      const pending = pendingOAuthTransports.get(mcpName)
+      const s = yield* InstanceState.get(state)
+      const pending = s.pendingOAuthTransports.get(mcpName)
       if (!pending) throw new Error(`No pending OAuth flow for MCP server: ${mcpName}`)
 
       const error = yield* Effect.tryPromise({
@@ -1003,7 +1019,7 @@ const layer = Layer.effect(
 
       yield* Effect.promise(() => pending.provider?.commit() ?? Promise.resolve())
       yield* auth.clearCodeVerifier(mcpName)
-      pendingOAuthTransports.delete(mcpName)
+      s.pendingOAuthTransports.delete(mcpName)
 
       const mcpConfig = yield* requireMcpConfig(mcpName)
 
@@ -1011,9 +1027,18 @@ const layer = Layer.effect(
     })
 
     const removeAuth = Effect.fn("MCP.removeAuth")(function* (mcpName: string) {
+      const pending = (yield* InstanceState.has(state))
+        ? (yield* InstanceState.get(state)).pendingOAuthTransports.get(mcpName)
+        : undefined
       yield* auth.remove(mcpName)
-      McpOAuthCallback.cancelPending(mcpName)
-      pendingOAuthTransports.delete(mcpName)
+      if (!pending) {
+        McpOAuthCallback.cancelPending(mcpName)
+        return
+      }
+      const s = yield* InstanceState.get(state)
+      s.pendingOAuthTransports.delete(mcpName)
+      McpOAuthCallback.cancelPendingState(pending.oauthState)
+      yield* Effect.tryPromise(() => pending.transport.close()).pipe(Effect.ignore)
     })
 
     const supportsOAuth = Effect.fn("MCP.supportsOAuth")(function* (mcpName: string) {

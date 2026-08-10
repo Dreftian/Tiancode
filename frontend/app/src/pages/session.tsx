@@ -447,13 +447,18 @@ export default function Page() {
   )
 
   const isDesktop = createMediaQuery("(min-width: 768px)")
+  const sandboxSideAvailable = createMediaQuery("(min-width: 900px)")
   const size = createSizing()
   const desktopReviewOpen = createMemo(() => isDesktop() && view().reviewPanel.opened())
   const desktopV2ReviewOpen = createMemo(() => newSessionDesign() && desktopReviewOpen() && !!params.id)
   const terminalOpen = createMemo(() => view().terminal.opened())
   const liveViewOpen = createMemo(() => view().liveView.opened())
-  // La terminal y la vista en vivo comparten el dock inferior: es el mismo hueco.
-  const bottomDockOpen = createMemo(() => terminalOpen() || liveViewOpen())
+  const desktopSandboxOpen = createMemo(() => sandboxSideAvailable() && newSessionDesign() && liveViewOpen())
+  const bottomDockOpen = createMemo(() => terminalOpen() || (!sandboxSideAvailable() && liveViewOpen()))
+  createEffect(() => {
+    if (sandboxSideAvailable() || !terminalOpen() || !liveViewOpen()) return
+    view().liveView.close()
+  })
   const desktopFileTreeOpen = createMemo(
     () =>
       isDesktop() &&
@@ -463,7 +468,7 @@ export default function Page() {
       }),
   )
   const desktopSessionResizeOpen = createMemo(() =>
-    newSessionDesign() ? desktopV2ReviewOpen() : desktopReviewOpen(),
+    desktopSandboxOpen() || (newSessionDesign() ? desktopV2ReviewOpen() : desktopReviewOpen()),
   )
   const desktopSidePanelOpen = createMemo(() => desktopSessionResizeOpen() || desktopFileTreeOpen())
   let panelRow: HTMLDivElement | undefined
@@ -508,7 +513,7 @@ export default function Page() {
   const bottomDockHeight = createMemo(() => Math.min(layout.terminal.height(), dockMaxHeight()))
   const closeBottomDock = () => {
     view().terminal.close()
-    view().liveView.close()
+    if (!sandboxSideAvailable()) view().liveView.close()
   }
   const desktopV2PanelLayout = createMemo(() =>
     sessionPanelLayout({
@@ -2373,6 +2378,11 @@ export default function Page() {
               </div>
             </div>
           </Show>
+          <Show when={desktopSandboxOpen()}>
+            <div class="min-w-[360px] h-full flex flex-1 flex-col">
+              <LiveViewPanel />
+            </div>
+          </Show>
         </div>
 
         <Show when={newSessionDesign() && bottomDockOpen()}>
@@ -2395,7 +2405,7 @@ export default function Page() {
             <Show when={terminalOpen()}>
               <TerminalPanelV2 stacked />
             </Show>
-            <Show when={!terminalOpen() && liveViewOpen()}>
+            <Show when={!terminalOpen() && !sandboxSideAvailable() && liveViewOpen()}>
               <LiveViewPanel />
             </Show>
           </div>

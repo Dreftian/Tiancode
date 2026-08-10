@@ -62,7 +62,13 @@ export const SettingsSkillsV2: Component<{
         entries.push({ path, content: await file.text() })
       }
       const root = entries[0].path.split("/")[0] || "skill"
-      await runImport({ name: root, files: entries.map(({ path, content }) => ({ path, content })) })
+      await runImport({
+        name: root,
+        files: entries.map(({ path, content }) => ({
+          path: path.startsWith(`${root}/`) ? path.slice(root.length + 1) : path,
+          content,
+        })),
+      })
     }
     input.click()
   }

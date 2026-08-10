@@ -5,11 +5,10 @@ import { fileURLToPath } from "node:url"
 const root = dirname(fileURLToPath(import.meta.url))
 
 export function createTray(options: { onShow: () => void; onQuit: () => void }) {
-  // electron-builder packs resources/** inside app.asar (files in
-  // electron-builder.config.ts), so the packaged path goes through it; a bare
-  // resourcesPath/icons path would leave the tray icon empty.
+  // electron-builder copies runtime icons beside app.asar so native Windows
+  // APIs can load a physical file instead of an archive entry.
   const icon = app.isPackaged
-    ? join(process.resourcesPath, "app.asar", "resources", "icons", "icon.png")
+    ? join(process.resourcesPath, "icons", "icon.png")
     : join(root, "../../resources/icons/icon.png")
   const tray = new Tray(icon)
   tray.setToolTip(app.getName())

@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process"
+import { existsSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { promisify } from "node:util"
@@ -8,7 +9,7 @@ import type { Configuration } from "electron-builder"
 const execFileAsync = promisify(execFile)
 const packageDir = path.dirname(fileURLToPath(import.meta.url))
 const rootDir = path.resolve(packageDir, "../..")
-const signScript = path.join(rootDir, "script", "sign-windows.ps1")
+export const windowsSignScript = path.join(rootDir, "backend", "tools", "script", "sign-windows.ps1")
 // The Electron 42 packaging update briefly installed Linux launchers/icons under
 // "tiancode-desktop". Keep that hidden desktop entry around so existing GNOME/KDE
 // pins still resolve after the canonical app id changes back to ai.tiancode.desktop.
@@ -24,7 +25,7 @@ async function signWindows(configuration: { path: string }) {
 
   await execFileAsync(
     "pwsh",
-    ["-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", signScript, configuration.path],
+    ["-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", windowsSignScript, configuration.path],
     { cwd: rootDir },
   )
 }
@@ -55,7 +56,7 @@ const getBase = (appId: string): Configuration => ({
   extraMetadata: {
     desktopName: `${appId}.desktop`,
   },
-  files: ["out/**/*", "resources/**/*", "!resources/tiancode-cli*"],
+  files: ["out/**/*", "resources/**/*", "!resources/tiancode-cli*", "!resources/icons/**/*"],
   // onnxruntime-node ships native binaries that cannot load from inside the
   // asar; kokoro-js and phonemizer ship binary assets (voice style vectors,
   // espeak-ng wasm) that are safer unpacked. sherpa-onnx is a WASM build and
@@ -68,6 +69,12 @@ const getBase = (appId: string): Configuration => ({
     "**/node_modules/sherpa-onnx/**",
   ],
   extraResources: [
+    // BrowserWindow and Tray load their icons through native Windows APIs. Keep
+    // them outside app.asar so every runtime surface can read a real file.
+    {
+      from: "resources/icons",
+      to: "icons",
+    },
     ...(channel === "dev"
       ? [
           {
@@ -77,11 +84,15 @@ const getBase = (appId: string): Configuration => ({
           },
         ]
       : []),
-    {
-      from: "native/",
-      to: "native/",
-      filter: ["index.js", "index.d.ts", "build/Release/mac_window.node", "swift-build/**"],
-    },
+    ...(existsSync(path.join(packageDir, "native"))
+      ? [
+          {
+            from: "native/",
+            to: "native/",
+            filter: ["index.js", "index.d.ts", "build/Release/mac_window.node", "swift-build/**"],
+          },
+        ]
+      : []),
   ],
   mac: {
     category: "public.app-category.developer-tools",

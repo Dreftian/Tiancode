@@ -1,0 +1,121 @@
+.pet-companion {
+  position: fixed;
+  z-index: 70;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100vw - 32px);
+  padding: 6px 9px;
+  border: 1px solid var(--v2-border-border-subtle, rgba(15, 23, 42, 0.14));
+  border-radius: 999px;
+  color: var(--v2-text-text-primary, #0f172a);
+  background: color-mix(in srgb, var(--v2-background-bg-base, #fff) 92%, transparent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  pointer-events: none;
+  user-select: none;
+}
+
+.pet-companion--bottom-right {
+  right: 16px;
+  bottom: 16px;
+}
+
+.pet-companion--bottom-left {
+  bottom: 16px;
+  left: 16px;
+}
+
+.pet-companion--top-right {
+  top: 52px;
+  right: 16px;
+}
+
+.pet-companion--top-left {
+  top: 52px;
+  left: 16px;
+}
+
+.pet-companion-glyph {
+  display: inline-block;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.pet-companion-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  color: #fff;
+  background: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.pet-companion-label {
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pet-companion[data-status="running"] .pet-companion-glyph {
+  animation: pet-companion-bob 1.1s ease-in-out infinite;
+}
+
+.pet-companion[data-status="running"] .pet-companion-status {
+  background: #2563eb;
+  animation: pet-companion-pulse 1.1s ease-in-out infinite;
+}
+
+.pet-companion[data-status="needs-input"] .pet-companion-glyph {
+  animation: pet-companion-wiggle 0.7s ease-in-out infinite;
+}
+
+.pet-companion[data-status="needs-input"] .pet-companion-status {
+  background: #d97706;
+}
+
+.pet-companion[data-status="blocked"] .pet-companion-glyph {
+  filter: grayscale(1);
+}
+
+.pet-companion[data-status="blocked"] .pet-companion-status {
+  background: #dc2626;
+}
+
+.pet-companion[data-status="ready"] {
+  opacity: 0.78;
+}
+
+@keyframes pet-companion-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes pet-companion-wiggle {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-8deg); }
+  75% { transform: rotate(8deg); }
+}
+
+@keyframes pet-companion-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.16); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pet-companion *,
+  .pet-companion {
+    animation: none !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .pet-companion--bottom-right,
+  .pet-companion--bottom-left {
+    bottom: 76px;
+  }
+}

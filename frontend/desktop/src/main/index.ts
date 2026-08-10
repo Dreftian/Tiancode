@@ -56,6 +56,7 @@ import { getCredentialKey } from "./credential-key"
 import { setNativeTranslations } from "./native-translations"
 import { createTray } from "./tray"
 import { ensureLoopbackNoProxy, useEnvProxy } from "./util/proxy"
+import { migrateDesktopXdgPaths } from "./xdg-paths"
 
 const APP_NAMES: Record<string, string> = {
   dev: "Tiancode Dev",
@@ -184,7 +185,7 @@ const main = Effect.gen(function* () {
     return
   }
 
-  const shellEnv = preferAppEnv(app.getPath("userData"))
+  const appEnvironment = preferAppEnv(app.getPath("userData"))
 
   app.on("second-instance", (_event: Event, argv: string[]) => {
     const urls = argv.filter((arg: string) => arg.startsWith("tiancode://"))
@@ -259,6 +260,8 @@ const main = Effect.gen(function* () {
       }),
     ),
   )
+  const xdgMigration = yield* Effect.promise(() => migrateDesktopXdgPaths(appEnvironment.xdg))
+  if (xdgMigration.migrated) logger.log("migrated desktop XDG data", xdgMigration)
   app.setAsDefaultProtocolClient("tiancode")
   registerRendererProtocol()
   setDockIcon()
@@ -347,7 +350,7 @@ const main = Effect.gen(function* () {
 
     if (SIDECAR_VERSION === "v2") {
       logger.log("spawning v2 sidecar")
-      const sidecar = yield* Effect.promise(() => startBackgroundCli(logger, shellEnv?.XDG_STATE_HOME))
+      const sidecar = yield* Effect.promise(() => startBackgroundCli(logger, appEnvironment.shellEnv?.XDG_STATE_HOME))
       yield* Deferred.succeed(serverReady, {
         url: sidecar.url,
         username: sidecar.username,

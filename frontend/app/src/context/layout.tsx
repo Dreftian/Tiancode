@@ -88,6 +88,12 @@ export type HomeProjectSelection = { server: ServerConnection.Key; directory?: s
 export type ReviewDiffStyle = "unified" | "split"
 export type ReviewChangeMode = "git" | "branch" | "turn"
 export type ReviewPanelSource = "context-button" | "other"
+export type LiveViewTab = "preview" | "code"
+
+function sandboxSideViewport() {
+  if (typeof window === "undefined") return true
+  return window.matchMedia("(min-width: 900px)").matches
+}
 
 export type LayoutRoute =
   | { type: "home" }
@@ -283,6 +289,7 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         },
         liveView: {
           opened: false,
+          tab: "preview" as LiveViewTab,
         },
         review: {
           diffStyle: "split" as ReviewDiffStyle,
@@ -822,13 +829,12 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         })
         const terminalOpened = createMemo(() => store.terminal?.opened ?? false)
         const liveViewOpened = createMemo(() => store.liveView?.opened ?? false)
+        const liveViewTab = createMemo<LiveViewTab>(() => (store.liveView?.tab === "code" ? "code" : "preview"))
         const reviewPanelOpened = createMemo(() => store.review?.panelOpened ?? DEFAULT_REVIEW_PANEL_OPENED)
         const reviewPanelSource = createMemo(() => (reviewPanelOpened() ? ephemeral.reviewPanelSource : "other"))
 
         function setTerminalOpened(next: boolean) {
-          // La terminal y la vista en vivo comparten el dock inferior del diseño
-          // nuevo: abrir una cierra la otra para que nunca se superpongan.
-          if (next) setLiveViewOpened(false)
+          if (next && !sandboxSideViewport()) setLiveViewOpened(false)
 
           const current = store.terminal
           if (!current) {
@@ -842,8 +848,12 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         }
 
         function setLiveViewOpened(next: boolean) {
-          // Misma exclusión mutua que arriba, desde el lado de la vista en vivo.
-          if (next) setTerminalOpened(false)
+          if (next && !sandboxSideViewport()) setTerminalOpened(false)
+
+          if (next) {
+            setReviewPanelOpened(false, "other")
+            setStore("fileTree", "opened", false)
+          }
 
           const current = store.liveView
           if (!current) {
@@ -856,7 +866,19 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
           setStore("liveView", "opened", next)
         }
 
+        function setLiveViewTab(next: LiveViewTab) {
+          const current = store.liveView
+          if (!current) {
+            setStore("liveView", { opened: false, tab: next })
+            return
+          }
+          if (current.tab === next) return
+          setStore("liveView", "tab", next)
+        }
+
         function setReviewPanelOpened(next: boolean, source: ReviewPanelSource) {
+          if (next) setLiveViewOpened(false)
+
           const nextSource = next ? source : "other"
           const current = store.review
           if (!current) {
@@ -911,6 +933,7 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
           },
           liveView: {
             opened: liveViewOpened,
+            tab: liveViewTab,
             open() {
               setLiveViewOpened(true)
             },
@@ -919,6 +942,9 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
             },
             toggle() {
               setLiveViewOpened(!liveViewOpened())
+            },
+            setTab(tab: LiveViewTab) {
+              setLiveViewTab(tab)
             },
           },
           reviewPanel: {

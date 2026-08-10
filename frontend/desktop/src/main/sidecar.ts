@@ -2,6 +2,7 @@ import * as tls from "node:tls"
 
 import { serializeError } from "./util/error"
 import { ensureLoopbackNoProxy, useEnvProxy } from "./util/proxy"
+import { applyDesktopXdgPaths } from "./xdg-paths"
 
 type NodeTlsWithSystemCertificates = typeof tls & {
   getCACertificates: (type: "default" | "system") => string[]
@@ -79,10 +80,10 @@ async function stop() {
 }
 
 function prepareSidecarEnv(password: string, userDataPath: string) {
+  applyDesktopXdgPaths(userDataPath)
   Object.assign(process.env, {
     TIANCODE_SERVER_USERNAME: "tiancode",
     TIANCODE_SERVER_PASSWORD: password,
-    XDG_STATE_HOME: process.env.XDG_STATE_HOME ?? userDataPath,
   })
 }
 

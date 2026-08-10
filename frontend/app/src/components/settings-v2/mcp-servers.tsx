@@ -19,6 +19,7 @@ import { useServerSDK } from "@/context/server-sdk"
 import { showToast } from "@/utils/toast"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
+import { formatMcpCommand, parseMcpCommand } from "./mcp-command"
 import "./mcp-servers.css"
 
 type McpConfigValue = McpLocalConfig | McpRemoteConfig | { enabled: boolean }
@@ -83,49 +84,14 @@ const DiscoverPresets: DiscoverPreset[] = [
   { id: "agent-vision", type: "local", command: "npx -y @kitlau/agent-vision-mcp", requiresKey: true },
   { id: "aikido", type: "local", command: "npx -y @aikidosec/mcp", requiresKey: true },
   { id: "airwallex", type: "local", command: "npx -y @airwallex/developer-mcp@latest", requiresKey: true },
-  // Puente MCP hacia Unreal Engine (Web Remote Control en 127.0.0.1:30010).
-  // Requiere la carpeta unreal-opencode-mcp instalada (ver README) y ajustar
-  // las rutas del proyecto y del engine en Editar si cambian de máquina.
+  // The Python package and Unreal project must be installed by the user.
+  // Keep the preset portable: the editor can add machine-specific paths.
   {
     id: "unreal",
     type: "local",
     command: "python -m unreal_mcp.server",
-    args: [
-      "C:\\Users\\Dreitz\\Desktop\\unreal-opencode-mcp-windows-0.1.0\\.venv\\Scripts\\python.exe",
-      "-m",
-      "unreal_mcp.server",
-    ],
-    cwd: "C:\\Users\\Dreitz\\Desktop\\unreal-opencode-mcp-windows-0.1.0",
-    environment: {
-      UNREAL_ENGINE_ROOT: "C:\\Program Files\\Epic Games\\UE_5.7",
-      UNREAL_MCP_RC_URL: "http://127.0.0.1:30010",
-      UNREAL_MCP_ALLOW_UNSAFE: "1",
-      UNREAL_MCP_SEARCH_ROOTS: "C:\\Projects;C:\\Users\\Public\\Documents\\Unreal Projects",
-    },
     requiresSetup: true,
   },
-  // Suite local AI-MCP-SUITE (escritorio): cada integración es un server.py
-  // con su config.json (MCP_CONFIG). Rutas ajustables en Editar por máquina.
-  ...(
-    [
-      { id: "photoshop", folder: "Photoshop" },
-      { id: "indesign", folder: "InDesign" },
-      { id: "illustrator", folder: "Illustrator" },
-      { id: "coreldraw", folder: "CorelDRAW" },
-      { id: "opera_gx", folder: "OperaGX" },
-      { id: "unreal_cli", folder: "GameDev/UnrealEngine" },
-      { id: "unity", folder: "GameDev/Unity" },
-      { id: "godot", folder: "GameDev/Godot" },
-      { id: "android_studio", folder: "AndroidStudio" },
-    ] as const
-  ).map(({ id, folder }) => ({
-    id,
-    type: "local" as const,
-    command: "python server.py",
-    args: ["python", `C:/Users/Dreitz/Desktop/AI-MCP-SUITE/${folder}/server.py`],
-    environment: { MCP_CONFIG: `C:/Users/Dreitz/Desktop/AI-MCP-SUITE/${folder}/config.json` },
-    requiresSetup: true,
-  })),
   { id: "canva", type: "remote", url: "https://mcp.canva.com/mcp" },
   { id: "circle", type: "remote", url: "https://developers.circle.com/mcp" },
   { id: "appwrite", type: "remote", url: "https://mcp.appwrite.io/" },
@@ -281,7 +247,7 @@ export const SettingsMcpServersV2: Component<{
 
   const buildConfig = (): McpLocalConfig | McpRemoteConfig => {
     if (type() === "local") {
-      const argv = command().trim().split(/\s+/).filter(Boolean)
+      const argv = parseMcpCommand(command())
       const env = parsePairs(environment())
       return {
         type: "local",
@@ -332,7 +298,7 @@ export const SettingsMcpServersV2: Component<{
     }
     if (config.type === "local") {
       setType("local")
-      setCommand(config.command.join(" "))
+      setCommand(formatMcpCommand(config.command))
       setEnvironment(pairsToText(config.environment))
       setCwd(config.cwd ?? "")
       setUrl("")
@@ -392,7 +358,7 @@ export const SettingsMcpServersV2: Component<{
     if (preset.type !== "local") throw new Error("presetLocalConfig requires a local preset")
     return {
       type: "local",
-      command: preset.args ?? preset.command.split(/\s+/),
+      command: preset.args ?? parseMcpCommand(preset.command),
       ...(preset.cwd ? { cwd: preset.cwd } : {}),
       ...(preset.environment ? { environment: preset.environment } : {}),
       enabled: true,

@@ -19,6 +19,16 @@ export interface SoundSettings {
   errors: string
 }
 
+export const petKinds = ["cat", "dog", "rabbit"] as const
+export type PetKind = (typeof petKinds)[number]
+export const petPositions = ["bottom-right", "bottom-left", "top-right", "top-left"] as const
+export type PetPosition = (typeof petPositions)[number]
+export const defaultPetSettings = {
+  enabled: false,
+  kind: "cat" as PetKind,
+  position: "bottom-right" as PetPosition,
+}
+
 export interface Settings {
   general: {
     autoSave: boolean
@@ -29,6 +39,10 @@ export interface Settings {
     showSearch: boolean
     showStatus: boolean
     showTerminal: boolean
+    showBrowser: boolean
+    petEnabled: boolean
+    petKind: PetKind
+    petPosition: PetPosition
     autoSpeak: boolean
     showReasoningSummaries: boolean
     shellToolPartsExpanded: boolean
@@ -191,6 +205,10 @@ const defaultSettings: Settings = {
     showSearch: false,
     showStatus: false,
     showTerminal: true,
+    showBrowser: true,
+    petEnabled: defaultPetSettings.enabled,
+    petKind: defaultPetSettings.kind,
+    petPosition: defaultPetSettings.position,
     autoSpeak: false,
     showReasoningSummaries: false,
     shellToolPartsExpanded: false,
@@ -384,6 +402,22 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         showTerminal: withFallback(() => store.general?.showTerminal, defaultSettings.general.showTerminal),
         setShowTerminal(value: boolean) {
           setStore("general", "showTerminal", value)
+        },
+        showBrowser: withFallback(() => store.general?.showBrowser, defaultSettings.general.showBrowser),
+        setShowBrowser(value: boolean) {
+          setStore("general", "showBrowser", value)
+        },
+        petEnabled: withFallback(() => store.general?.petEnabled, defaultSettings.general.petEnabled),
+        setPetEnabled(value: boolean) {
+          setStore("general", "petEnabled", value)
+        },
+        petKind: withFallback(() => store.general?.petKind, defaultSettings.general.petKind),
+        setPetKind(value: PetKind) {
+          setStore("general", "petKind", value)
+        },
+        petPosition: withFallback(() => store.general?.petPosition, defaultSettings.general.petPosition),
+        setPetPosition(value: PetPosition) {
+          setStore("general", "petPosition", value)
         },
         autoSpeak: withFallback(() => store.general?.autoSpeak, defaultSettings.general.autoSpeak),
         setAutoSpeak(value: boolean) {
