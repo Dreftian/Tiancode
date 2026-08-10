@@ -161,6 +161,13 @@ export const SettingsSubAgentsV2: Component<{
   createEffect(() => {
     if (userPage() > userTotal()) setUserPage(userTotal())
   })
+  // Al cambiar la búsqueda o el filtro se vuelve a la primera página: seguir
+  // en la página 5 de una lista filtrada desorienta.
+  createEffect(() => {
+    query()
+    status()
+    setUserPage(1)
+  })
 
   const editingAgent = createMemo(
     () => agentList().find((agent) => agent.name === editing()) ?? null,

@@ -7,6 +7,7 @@ import { getStore } from "./store"
 import { setAppQuitting } from "./windows"
 import { nativeT } from "./native-translations"
 import { notifyUser } from "./notifications"
+import { backupNow } from "./backup"
 
 const { autoUpdater } = pkg
 const key = "ready"
@@ -34,6 +35,9 @@ export function setupAutoUpdater(stop: () => Promise<void>) {
       checkForUpdates: () => autoUpdater.checkForUpdates(),
       downloadUpdate: () => autoUpdater.downloadUpdate(),
       quitAndInstall: () => {
+        // Política de actualizaciones no destructivas: respaldo de todo el
+        // estado (claves, config, sesiones, MCP OAuth) antes de instalar.
+        void backupNow()
         // quitAndInstall closes all windows before emitting before-quit, so
         // flag the quit first to keep window ids persisted for restore.
         setAppQuitting()

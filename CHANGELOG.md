@@ -4,6 +4,34 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.25] — 2026-08-10
+### Corregido
+
+- **Pantalla negra en Ajustes → Plugins**: la página pedía el contexto de
+  archivo del workspace, que no existe cuando los ajustes se abren desde la
+  home o sin sesión, y el render se abortaba con "File context must be used
+  within a context provider". El contexto ahora es opcional: crear un plugin
+  en el workspace sigue funcionando y solo se omite "abrir en el editor"
+  cuando no hay editor.
+- **Paginación de Sub-Agents y Servidores MCP**: el indicador de página se
+  mostraba literal ("Página {current} de {total}") porque el motor de i18n
+  interpola con llaves dobles (`{{param}}`). Corregidas 6 claves en los 7
+  idiomas (paginación, toggles de plugins, versión, alta de plugin y confirmar
+  respaldo).
+- **Página de paginación al filtrar**: buscar en Sub-Agents o Servidores MCP
+  ya no te deja en la página 5 de una lista filtrada — se vuelve a la
+  página 1.
+- **Respaldo automático antes de actualizar**: al instalar una actualización
+  se crea un respaldo completo del estado (claves, configuración, sesiones,
+  OAuth MCP) antes de reiniciar, reforzando la política de actualizaciones no
+  destructivas.
+
+### Interno
+
+- Hooks `prepackage*` que copian los iconos del canal antes de empaquetar, de
+  modo que un `package:win` directo nunca genere un ejecutable con el icono
+  por defecto de Electron.
+
 ## [1.0.24] — 2026-08-10
 ### Nuevo
 

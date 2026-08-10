@@ -11,6 +11,7 @@ import {
   Show,
   createSignal,
   createMemo,
+  createEffect,
   onMount,
   onCleanup,
 } from "solid-js"
@@ -227,6 +228,12 @@ export const SettingsMcpServersV2: Component<{
     const query = search().trim().toLowerCase()
     if (!query) return servers()
     return servers().filter(([serverName]) => serverName.toLowerCase().includes(query))
+  })
+
+  // Al cambiar la búsqueda se vuelve a la primera página de cada grupo.
+  createEffect(() => {
+    search()
+    setGroupPages({})
   })
 
   // Paginación: cada grupo se pagina por separado para no perder la agrupación

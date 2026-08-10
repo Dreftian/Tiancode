@@ -118,7 +118,16 @@ export const SettingsPluginsV2: Component<{
 }> = (props) => {
   const language = useLanguage()
   const serverSdk = useServerSDK()
-  const file = useFile()
+  // El diálogo de ajustes puede abrirse fuera del FileProvider (p. ej. desde la
+  // home o sin sesión activa), donde no hay editor de workspace. El contexto de
+  // archivo es opcional: solo se usa al abrir el plugin recién creado en el
+  // editor; sin él, el alta sigue funcionando y el toast indica la ruta.
+  let file: ReturnType<typeof useFile> | undefined
+  try {
+    file = useFile()
+  } catch {
+    file = undefined
+  }
   const layout = useLayout()
   const { workspaceKey } = useSessionLayout()
   const [value, setValue] = createSignal("")
@@ -287,6 +296,7 @@ export const SettingsPluginsV2: Component<{
   // file opener del command palette); si el contexto no está disponible, el
   // toast de creación ya indica la ruta.
   const openInEditor = (path: string) => {
+    if (!file) return
     try {
       const value = file.tab(path)
       const tabs = layout.tabs(workspaceKey())
