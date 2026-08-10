@@ -11,7 +11,7 @@
     <div class="brand">
       <span class="dot" id="conn-dot"></span>
       Live Frontend
-      <span class="conn-text" id="conn-text">connecting</span>
+      <span class="conn-text" id="conn-text">conectando</span>
     </div>
     <div class="session-info">
       <select id="session-select" title="Active session"></select>
@@ -23,35 +23,35 @@
 
   <main id="layout">
     <aside id="sidebar">
-      <div class="pane-head">Files <span class="muted" id="file-count"></span></div>
+      <div class="pane-head">Archivos <span class="muted" id="file-count"></span></div>
       <div id="file-tree" class="tree"></div>
-      <div id="tree-empty" class="empty hidden">No session — call <code>create_session</code> from the agent.</div>
+      <div id="tree-empty" class="empty hidden">Sin sesión — pide al agente crear una web o app y aparecerá aquí.</div>
     </aside>
 
     <section id="center">
       <div id="preview-pane" class="pane">
         <div class="pane-head">
-          Preview
-          <a id="preview-link" href="#" target="_blank" rel="noopener" class="muted hidden">open in tab</a>
+          Vista previa
+          <a id="preview-link" href="#" target="_blank" rel="noopener" class="muted hidden">abrir en pestaña</a>
         </div>
-        <iframe id="preview-frame" title="Preview"
+        <iframe id="preview-frame" title="Vista previa"
                 sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"></iframe>
         <div id="preview-empty" class="empty hidden">
-          No preview URL set — call <code>set_preview</code> with your dev server URL.
+          Sin vista previa — el sitio del proyecto aparecerá aquí en tiempo real al crear los archivos.
         </div>
       </div>
 
       <div id="screenshot-pane" class="pane hidden">
-        <div class="pane-head">Latest capture <span class="muted" id="screenshot-meta"></span></div>
-        <img id="screenshot-img" alt="Latest desktop capture">
-        <div id="screenshot-empty" class="empty hidden">Desktop captures appear here via <code>publish_screenshot</code>.</div>
+        <div class="pane-head">Última captura <span class="muted" id="screenshot-meta"></span></div>
+        <img id="screenshot-img" alt="Última captura de escritorio">
+        <div id="screenshot-empty" class="empty hidden">Las capturas de escritorio aparecerán aquí.</div>
       </div>
 
       <div id="code-pane" class="pane">
-        <div class="pane-head"><span id="code-file" class="mono">current file</span></div>
+        <div class="pane-head"><span id="code-file" class="mono">archivo actual</span></div>
         <pre id="code-view" class="code"></pre>
         <div id="code-empty" class="empty hidden">
-          No file selected — call <code>set_current_file</code> or click a file in the tree.
+          Sin archivo seleccionado — haz clic en un archivo del árbol.
         </div>
       </div>
     </section>
@@ -60,10 +60,10 @@
       <div id="log-pane" class="pane">
         <div class="pane-head">
           Terminal <span class="muted" id="log-count"></span>
-          <button id="log-clear" class="ghost" type="button">clear</button>
+          <button id="log-clear" class="ghost" type="button">limpiar</button>
         </div>
         <div id="log-view" class="terminal"></div>
-        <div id="log-empty" class="empty hidden">Log lines appear here via <code>publish_log</code>.</div>
+        <div id="log-empty" class="empty hidden">Las líneas de registro aparecerán aquí.</div>
       </div>
     </aside>
   </main>

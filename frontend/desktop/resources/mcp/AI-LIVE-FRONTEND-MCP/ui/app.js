@@ -70,7 +70,7 @@ function renderTop(snap) {
     el.sessionSelect.innerHTML = "";
     el.rootPath.textContent = "";
     el.modeBadge.textContent = "web";
-    el.phaseChip.textContent = "idle";
+    el.phaseChip.textContent = "inactivo";
     el.phaseChip.className = "chip";
     return;
   }
@@ -338,12 +338,12 @@ function connectEvents() {
   es.onopen = () => {
     el.connDot.classList.add("on");
     el.connDot.classList.remove("off");
-    el.connText.textContent = "live";
+    el.connText.textContent = "en vivo";
   };
   es.onerror = () => {
     el.connDot.classList.remove("on");
     el.connDot.classList.add("off");
-    el.connText.textContent = "reconnecting";
+    el.connText.textContent = "reconectando";
     // EventSource auto-reconnects; nothing else to do here.
   };
 }

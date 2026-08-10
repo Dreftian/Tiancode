@@ -28,6 +28,12 @@ export type { ProjectAvatarVariant }
 
 const AVATAR_COLOR_KEYS = ["pink", "mint", "orange", "purple", "cyan", "lime"] as const
 const DEFAULT_SIDEBAR_WIDTH = 344
+// La vista en vivo (estilo Xcode) arranca dominante: ~56% del ancho de la
+// ventana la primera vez; 0 = todavía sin definir (se calcula al abrir).
+const DEFAULT_LIVE_VIEW_WIDTH = 0
+const LIVE_VIEW_WIDTH_MIN = 420
+const LIVE_VIEW_WIDTH_MAX = 920
+const clampLvWidth = (width: number) => Math.min(LIVE_VIEW_WIDTH_MAX, Math.max(LIVE_VIEW_WIDTH_MIN, width))
 const DEFAULT_FILE_TREE_WIDTH = 200
 const DEFAULT_SESSION_WIDTH = 600
 const DEFAULT_TERMINAL_HEIGHT = 280
@@ -290,6 +296,7 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         liveView: {
           opened: false,
           tab: "preview" as LiveViewTab,
+          width: DEFAULT_LIVE_VIEW_WIDTH,
         },
         review: {
           diffStyle: "split" as ReviewDiffStyle,
@@ -830,6 +837,12 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         const terminalOpened = createMemo(() => store.terminal?.opened ?? false)
         const liveViewOpened = createMemo(() => store.liveView?.opened ?? false)
         const liveViewTab = createMemo<LiveViewTab>(() => (store.liveView?.tab === "code" ? "code" : "preview"))
+        const liveViewWidth = createMemo(() => {
+          const width = store.liveView?.width
+          if (typeof width === "number" && width > 0) return width
+          // Primera apertura: el preview domina como en Xcode.
+          return clampLvWidth(Math.round((typeof window !== "undefined" ? window.innerWidth : 1280) * 0.56))
+        })
         const reviewPanelOpened = createMemo(() => store.review?.panelOpened ?? DEFAULT_REVIEW_PANEL_OPENED)
         const reviewPanelSource = createMemo(() => (reviewPanelOpened() ? ephemeral.reviewPanelSource : "other"))
 
@@ -853,6 +866,8 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
           if (next) {
             setReviewPanelOpened(false, "other")
             setStore("fileTree", "opened", false)
+            // Persiste el ancho calculado la primera vez que se abre.
+            if (liveViewWidth() !== (store.liveView?.width ?? 0)) setStore("liveView", "width", liveViewWidth())
           }
 
           const current = store.liveView
@@ -934,6 +949,7 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
           liveView: {
             opened: liveViewOpened,
             tab: liveViewTab,
+            width: liveViewWidth,
             open() {
               setLiveViewOpened(true)
             },
@@ -945,6 +961,9 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
             },
             setTab(tab: LiveViewTab) {
               setLiveViewTab(tab)
+            },
+            resize(width: number) {
+              setStore("liveView", "width", clampLvWidth(Math.round(width)))
             },
           },
           reviewPanel: {

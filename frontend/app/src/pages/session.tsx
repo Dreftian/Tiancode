@@ -2379,8 +2379,27 @@ export default function Page() {
             </div>
           </Show>
           <Show when={desktopSandboxOpen()}>
-            <div class="min-w-[360px] h-full flex flex-1 flex-col">
-              <LiveViewPanel />
+            <div
+              class="h-full flex shrink-0 flex-col"
+              style={{ width: `${view().liveView.width()}px` }}
+            >
+              <div class="h-full min-h-0 w-1.5 shrink-0 cursor-col-resize" onPointerDown={() => size.start()}>
+                <ResizeHandle
+                  direction="horizontal"
+                  edge="start"
+                  size={view().liveView.width()}
+                  min={420}
+                  max={920}
+                  collapseThreshold={300}
+                  onResize={(width) => {
+                    size.touch()
+                    view().liveView.resize(width)
+                  }}
+                />
+              </div>
+              <div class="min-h-0 min-w-0 flex-1">
+                <LiveViewPanel />
+              </div>
             </div>
           </Show>
         </div>

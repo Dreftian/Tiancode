@@ -863,6 +863,42 @@ class DashboardHandler(BaseHTTPRequestHandler):
             emit_event(self.state, session_id, "session_created", session_summary(session))
             self._send_json(200, {"ok": True, "session": session_summary(session)})
             return
+        if path == "/api/create_session":
+            # Usado por el panel "Vista en vivo" de la app para reflejar el
+            # proyecto actual sin depender del agente. Reutiliza una sesión
+            # existente con la misma raíz; nunca pisa la sesión del agente.
+            root_text = body.get("root_text")
+            if not isinstance(root_text, str) or not root_text.strip():
+                self._send_json(400, {"error": "root_text required"})
+                return
+            try:
+                root = Path(root_text).expanduser().resolve()
+            except Exception:
+                root = None
+            if root is not None:
+                with self.state.lock:
+                    existing = next(
+                        (s for s in self.state.sessions.values() if Path(s["root"]).resolve() == root),
+                        None,
+                    )
+                if existing is not None:
+                    with self.state.lock:
+                        self.state.current_id = existing["session_id"]
+                    self._send_json(200, {"ok": True, "created": False, "session": session_summary(existing)})
+                    return
+            try:
+                session = new_session(
+                    self.state,
+                    root_text,
+                    body.get("mode", "web") if body.get("mode") in ("web", "desktop") else "web",
+                    body.get("label"),
+                    None,
+                )
+            except McpError as exc:
+                self._send_json(400, {"error": exc.message})
+                return
+            self._send_json(200, {"ok": True, "created": True, "session": session_summary(session)})
+            return
         self._send_json(404, {"error": "not found"})
 
     def do_OPTIONS(self):

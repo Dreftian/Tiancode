@@ -8,6 +8,8 @@ import { Dynamic } from "solid-js/web"
 import FileTreeV2 from "@/components/file-tree-v2"
 import { useFile } from "@/context/file"
 import { useLanguage } from "@/context/language"
+import { useSDK } from "@/context/sdk"
+import { useSync } from "@/context/sync"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { ScrollView } from "@tiancode-ai/ui/scroll-view"
 
@@ -101,10 +103,54 @@ function SandboxCodePanel() {
 export function LiveViewPanel() {
   const language = useLanguage()
   const { view } = useSessionLayout()
+  const sync = useSync()
+  const sdk = useSDK()
   const [reloadKey, setReloadKey] = createSignal(1)
   const [unavailable, setUnavailable] = createSignal(false)
   const [tab, setTab] = createSignal(view().liveView.tab())
   let tabSelectedLocally = false
+
+  // El proyecto actual del workspace: es lo que la vista en vivo debe reflejar.
+  const worktree = createMemo(() => sync().project?.worktree ?? sdk().directory)
+
+  // Refleja el proyecto actual: si el servidor aún no tiene sesión, crea una
+  // con la raíz del workspace (best-effort, no pisa sesiones del agente).
+  // El dashboard responde con Access-Control-Allow-Origin: *, por eso el fetch
+  // es normal (no-cors devolvería respuestas opaque e ilegibles).
+  const syncWorkspaceSession = () => {
+    const root = worktree()
+    if (!root || root === "main") return
+    const controller = new AbortController()
+    const timer = window.setTimeout(() => controller.abort(), LIVE_VIEW_CHECK_MS)
+    void fetch(`${LIVE_VIEW_URL}api/sessions`, { signal: controller.signal })
+      .then((res) => (res.ok ? res.json() : undefined))
+      .then((payload) => {
+        const count = payload?.count ?? payload?.sessions?.length
+        if (typeof count === "number" && count > 0) return
+        return fetch(`${LIVE_VIEW_URL}api/create_session`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ root_text: root, mode: "web", label: "Vista en vivo" }),
+        })
+      })
+      .catch(() => undefined)
+      .finally(() => window.clearTimeout(timer))
+  }
+  onMount(syncWorkspaceSession)
+
+  // El worktree puede tardar en resolverse al arrancar (proyecto aún sin
+  // cargar): se reintenta mientras el panel esté montado, sin molestar si el
+  // agente ya creó su propia sesión.
+  const autoSessionTimer = window.setInterval(syncWorkspaceSession, 10_000)
+  onCleanup(() => window.clearInterval(autoSessionTimer))
+
+  // Al cambiar de proyecto (p. ej. nueva sesión en otra carpeta), re-sincroniza
+  // si el servidor no tiene sesión aún.
+  createEffect(() => {
+    void worktree()
+    const timer = window.setTimeout(syncWorkspaceSession, 800)
+    onCleanup(() => window.clearTimeout(timer))
+  })
 
   // Desktop persistence can finish after this panel mounts. Adopt its tab until
   // the person makes a choice, then keep that choice through unrelated layout
