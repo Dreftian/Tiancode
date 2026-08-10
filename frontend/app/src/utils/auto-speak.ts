@@ -10,12 +10,28 @@ const MAX_AUTO_CHARS = 60_000
 // Número máximo de partes recordadas: el set crece con cada parte transmitida,
 // así que las más antiguas se descartan para no acumular memoria sin límite.
 const MAX_SEEN_PARTS = 500
-// Un tramo suena ~2-4s; dividir por oraciones evita cortes a mitad de frase.
-export const splitChunks = (text: string): string[] =>
-  text
+// Un tramo suena ~2-4s; dividir por oraciones evita cortes a mitad de frase,
+// pero tramos muy cortos encadenan pausas de síntesis. Se agrupan oraciones
+// hasta ~180 caracteres para que la lectura sea continua y fluida.
+const MAX_CHUNK_CHARS = 180
+export const splitChunks = (text: string): string[] => {
+  const sentences = text
     .split(/(?<=[.!?…])\s+|\n+/)
     .map((chunk) => chunk.trim())
     .filter((chunk) => chunk.length > 0)
+  const chunks: string[] = []
+  let current = ""
+  for (const sentence of sentences) {
+    if (current && current.length + sentence.length > MAX_CHUNK_CHARS) {
+      chunks.push(current)
+      current = sentence
+    } else {
+      current = current ? `${current} ${sentence}` : sentence
+    }
+  }
+  if (current) chunks.push(current)
+  return chunks
+}
 
 // Partes que ya se consideran leídas: al volver a activar la opción no se
 // releen mensajes antiguos (el timeline solo encola partes nuevas).

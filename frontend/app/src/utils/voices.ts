@@ -143,12 +143,26 @@ export function isSpanishText(text: string) {
   return es > en
 }
 
+// Voz femenina de español por defecto (piper sharvard, hablante F): si el
+// texto es español y no hay ninguna voz de español descargada, se descarga
+// automáticamente la primera vez (como la voz "Sol" de Codex).
+const DEFAULT_ES_FEMALE_VOICE = "piper-es_ES-sharvard-medium"
+let spanishDownloadTriggered = false
+
 // Si el texto es español y hay una voz de español descargada, la usa; en otro
-// caso devuelve undefined y se usa la voz seleccionada por el usuario.
+// caso dispara la descarga de la voz por defecto (una sola vez) y devuelve
+// undefined para usar la voz seleccionada mientras tanto.
 async function resolveSpanishVoice(text: string): Promise<string | undefined> {
   if (!isSpanishText(text)) return undefined
   const list = await voicesList()
-  return list.find((voice) => voice.language.toLowerCase().startsWith("es") && voice.downloaded)?.id
+  const downloaded = list.find((voice) => voice.language.toLowerCase().startsWith("es") && voice.downloaded)
+  if (downloaded) return downloaded.id
+  if (!spanishDownloadTriggered) {
+    spanishDownloadTriggered = true
+    const api = voicesAPI()
+    void api?.downloadVoice?.(DEFAULT_ES_FEMALE_VOICE).catch(() => {})
+  }
+  return undefined
 }
 
 // Speaks `text` with the desktop voice engine. The same `key` is used to

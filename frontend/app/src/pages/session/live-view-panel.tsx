@@ -32,6 +32,14 @@ function SandboxCodePanel() {
     void file.load(path)
   }
 
+  // El árbol vive en el contexto de archivos del workspace: si nunca se abrió
+  // el navegador de archivos principal, la raíz no está cargada ni expandida y
+  // el panel se ve vacío. Aquí se siembra al montar (idempotente).
+  onMount(() => {
+    void file.list("")
+    file.expand("")
+  })
+
   return (
     <div class="grid size-full min-h-0 grid-cols-[minmax(10rem,0.42fr)_minmax(0,1fr)]">
       <div class="flex min-h-0 flex-col border-r border-v2-border-border-muted">
