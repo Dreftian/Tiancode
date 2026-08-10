@@ -8166,6 +8166,37 @@ export type FileStatusResponses = {
 
 export type FileStatusResponse = FileStatusResponses[keyof FileStatusResponses]
 
+export type FileWriteData = {
+  body?: {
+    path: string
+    content: string
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/fs/write"
+}
+
+export type FileWriteErrors = {
+  /**
+   * BadRequest | InvalidRequestError
+   */
+  400: EffectHttpApiErrorBadRequest | InvalidRequestError
+}
+
+export type FileWriteError = FileWriteErrors[keyof FileWriteErrors]
+
+export type FileWriteResponses = {
+  /**
+   * Written file path
+   */
+  200: string
+}
+
+export type FileWriteResponse = FileWriteResponses[keyof FileWriteResponses]
+
 export type GithubConnectData = {
   body?: GithubConnectPayload
   path?: never
@@ -8758,9 +8789,9 @@ export type AppSkillsImportData = {
 
 export type AppSkillsImportErrors = {
   /**
-   * Bad request
+   * BadRequest | InvalidRequestError
    */
-  400: BadRequestError
+  400: EffectHttpApiErrorBadRequest | InvalidRequestError
 }
 
 export type AppSkillsImportError = AppSkillsImportErrors[keyof AppSkillsImportErrors]
@@ -8836,9 +8867,9 @@ export type AppAgentsCreateData = {
 
 export type AppAgentsCreateErrors = {
   /**
-   * Bad request
+   * BadRequest | InvalidRequestError
    */
-  400: BadRequestError
+  400: EffectHttpApiErrorBadRequest | InvalidRequestError
 }
 
 export type AppAgentsCreateError = AppAgentsCreateErrors[keyof AppAgentsCreateErrors]
@@ -8866,9 +8897,9 @@ export type AppAgentsDeleteData = {
 
 export type AppAgentsDeleteErrors = {
   /**
-   * Bad request
+   * BadRequest | InvalidRequestError
    */
-  400: BadRequestError
+  400: EffectHttpApiErrorBadRequest | InvalidRequestError
 }
 
 export type AppAgentsDeleteError = AppAgentsDeleteErrors[keyof AppAgentsDeleteErrors]
@@ -8907,9 +8938,9 @@ export type AppAgentsUpdateData = {
 
 export type AppAgentsUpdateErrors = {
   /**
-   * Bad request
+   * BadRequest | InvalidRequestError
    */
-  400: BadRequestError
+  400: EffectHttpApiErrorBadRequest | InvalidRequestError
 }
 
 export type AppAgentsUpdateError = AppAgentsUpdateErrors[keyof AppAgentsUpdateErrors]

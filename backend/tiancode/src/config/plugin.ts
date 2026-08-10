@@ -37,6 +37,11 @@ export function pluginOptions(plugin: ConfigPluginV1.Spec): ConfigPluginV1.Optio
   return Array.isArray(plugin) ? plugin[1] : undefined
 }
 
+// Disabled plugins stay in config but are excluded from loading.
+export function isEnabled(plugin: ConfigPluginV1.Spec): boolean {
+  return pluginOptions(plugin)?.enabled !== false
+}
+
 // Path-like specs are resolved relative to the config file that declared them so merges later on do not
 // accidentally reinterpret `./plugin.ts` relative to some other directory.
 export async function resolvePluginSpec(

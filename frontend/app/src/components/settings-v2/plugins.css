@@ -188,3 +188,90 @@
   text-transform: uppercase;
   color: var(--v2-text-text-faint);
 }
+
+/* Toolbar de la lista instalada: título + búsqueda + filtro de origen. */
+.settings-v2-plugins-list-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.settings-v2-plugins-list-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-v2-plugins-list-controls [data-component="text-input-v2"] {
+  max-width: 220px;
+}
+
+.settings-v2-plugins-filter [data-component="segmented-control-v2"] {
+  flex-shrink: 0;
+}
+
+/* Fila de nombre con chips (origen, versión, estado). */
+.settings-v2-plugins-item-name-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.settings-v2-plugins-item-name-row .settings-v2-plugins-item-name {
+  margin-right: 2px;
+}
+
+.settings-v2-plugins-chip[data-variant="disabled"] {
+  color: var(--v2-text-text-faint);
+}
+
+/* Item desactivado: nombre atenuado. */
+.settings-v2-plugins-item[data-disabled] .settings-v2-plugins-item-name {
+  color: var(--v2-text-text-faint);
+  text-decoration: line-through;
+  text-decoration-thickness: 0.5px;
+}
+
+/* Acciones de la tarjeta (toggle + eliminar). */
+.settings-v2-plugins-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* Chips de hooks detectados en plugins locales. */
+.settings-v2-plugins-hooks {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.settings-v2-plugins-hooks-label {
+  font-size: 11px;
+  font-weight: 530;
+  color: var(--v2-text-text-faint);
+  margin-right: 2px;
+}
+
+.settings-v2-plugins-hook {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: var(--v2-font-mono);
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: var(--v2-text-text-muted);
+  background-color: var(--v2-background-bg-layer-02);
+}
+
+/* Acciones de la cabecera de la plantilla. */
+.settings-v2-plugins-template-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}

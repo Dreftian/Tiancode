@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { pluginOrigin } from "./plugins"
+import { pluginOrigin } from "./plugins-origin"
 
 describe("plugin origin", () => {
   test("labels file plugin specs as local", () => {

@@ -2,7 +2,7 @@ import { FileSystem } from "@tiancode-ai/core/filesystem"
 import { NonNegativeInt } from "@tiancode-ai/core/schema"
 import { LSP } from "@/lsp/lsp"
 import { Schema } from "effect"
-import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
+import { HttpApi, HttpApiEndpoint, HttpApiError, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
 import { Authorization } from "../middleware/authorization"
 import { InstanceContextMiddleware } from "../middleware/instance-context"
 import {
@@ -15,6 +15,11 @@ import { described } from "./metadata"
 export const FileQuery = Schema.Struct({
   ...WorkspaceRoutingQueryFields,
   path: Schema.String,
+})
+
+export const FileWritePayload = Schema.Struct({
+  path: Schema.String,
+  content: Schema.String,
 })
 
 export const FindTextQuery = Schema.Struct({
@@ -99,6 +104,7 @@ export const FilePaths = {
   list: "/file",
   content: "/file/content",
   status: "/file/status",
+  write: "/fs/write",
 } as const
 
 export const FileApi = HttpApi.make("file")
@@ -163,6 +169,18 @@ export const FileApi = HttpApi.make("file")
             identifier: "file.status",
             summary: "Get file status",
             description: "Get the git status of all files in the project.",
+          }),
+        ),
+        HttpApiEndpoint.post("write", FilePaths.write, {
+          query: WorkspaceRoutingQuery,
+          payload: FileWritePayload,
+          success: described(Schema.String, "Written file path"),
+          error: HttpApiError.BadRequest,
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "file.write",
+            summary: "Write file",
+            description: "Write text content to a file in the project directory, creating parent directories as needed.",
           }),
         ),
       )
