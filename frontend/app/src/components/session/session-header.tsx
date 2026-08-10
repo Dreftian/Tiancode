@@ -306,6 +306,9 @@ export function SessionHeader() {
     terminalKeybind: terminalTooltipKeybind(command),
     terminalOpened: view().terminal.opened(),
     onTerminalToggle: toggleTerminal,
+    liveViewLabel: language.t("command.liveView.toggle"),
+    liveViewOpened: view().liveView.opened(),
+    onLiveViewToggle: () => view().liveView.toggle(),
     panelLabel: language.t("command.fileTree.toggle"),
     panelKeybind: fileTreeTooltipKeybind(command),
     panelOpened: layout.fileTree.opened(),
@@ -598,6 +601,9 @@ type SessionHeaderV2ActionsState = {
   terminalKeybind: string[]
   terminalOpened: boolean
   onTerminalToggle: () => void
+  liveViewLabel: string
+  liveViewOpened: boolean
+  onLiveViewToggle: () => void
   panelLabel: string
   panelKeybind: string[]
   panelOpened: boolean
@@ -641,6 +647,20 @@ function SessionHeaderV2Actions(props: { state: SessionHeaderV2ActionsState }) {
           aria-expanded={props.state.terminalOpened}
           aria-controls="terminal-panel"
           icon={<Icon name={props.state.terminalOpened ? "terminal-active" : "terminal"} size="small" />}
+        />
+      </TooltipV2>
+      <TooltipV2 class="shrink-0" placement="bottom" value={props.state.liveViewLabel}>
+        <IconButtonV2
+          type="button"
+          variant="ghost-muted"
+          size="large"
+          class="!w-9 shrink-0"
+          state={props.state.liveViewOpened ? "pressed" : undefined}
+          onClick={props.state.onLiveViewToggle}
+          aria-label={props.state.liveViewLabel}
+          aria-expanded={props.state.liveViewOpened}
+          aria-controls="live-view-panel"
+          icon={<IconV2 name="monitor" />}
         />
       </TooltipV2>
       <TooltipV2

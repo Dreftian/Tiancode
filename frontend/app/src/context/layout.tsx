@@ -281,6 +281,9 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
           height: DEFAULT_TERMINAL_HEIGHT,
           opened: false,
         },
+        liveView: {
+          opened: false,
+        },
         review: {
           diffStyle: "split" as ReviewDiffStyle,
           panelOpened: DEFAULT_REVIEW_PANEL_OPENED,
@@ -818,10 +821,15 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
           if (typeof file === "string") return file
         })
         const terminalOpened = createMemo(() => store.terminal?.opened ?? false)
+        const liveViewOpened = createMemo(() => store.liveView?.opened ?? false)
         const reviewPanelOpened = createMemo(() => store.review?.panelOpened ?? DEFAULT_REVIEW_PANEL_OPENED)
         const reviewPanelSource = createMemo(() => (reviewPanelOpened() ? ephemeral.reviewPanelSource : "other"))
 
         function setTerminalOpened(next: boolean) {
+          // La terminal y la vista en vivo comparten el dock inferior del diseño
+          // nuevo: abrir una cierra la otra para que nunca se superpongan.
+          if (next) setLiveViewOpened(false)
+
           const current = store.terminal
           if (!current) {
             setStore("terminal", { height: DEFAULT_TERMINAL_HEIGHT, opened: next })
@@ -831,6 +839,21 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
           const value = current.opened ?? false
           if (value === next) return
           setStore("terminal", "opened", next)
+        }
+
+        function setLiveViewOpened(next: boolean) {
+          // Misma exclusión mutua que arriba, desde el lado de la vista en vivo.
+          if (next) setTerminalOpened(false)
+
+          const current = store.liveView
+          if (!current) {
+            setStore("liveView", { opened: next })
+            return
+          }
+
+          const value = current.opened ?? false
+          if (value === next) return
+          setStore("liveView", "opened", next)
         }
 
         function setReviewPanelOpened(next: boolean, source: ReviewPanelSource) {
@@ -884,6 +907,18 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
             },
             toggle() {
               setTerminalOpened(!terminalOpened())
+            },
+          },
+          liveView: {
+            opened: liveViewOpened,
+            open() {
+              setLiveViewOpened(true)
+            },
+            close() {
+              setLiveViewOpened(false)
+            },
+            toggle() {
+              setLiveViewOpened(!liveViewOpened())
             },
           },
           reviewPanel: {

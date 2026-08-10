@@ -35,7 +35,9 @@ const rendererCsp = (() => {
     "font-src 'self' data:",
     "media-src 'self' blob: data: https:",
     "connect-src 'self' http: https: wss: ws:",
-    "frame-src 'self' https:",
+    // frame-src permite el dashboard de la vista en vivo que sirve el MCP local
+    // "live_frontend" en http://127.0.0.1:8790.
+    "frame-src 'self' https: http://127.0.0.1:*",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

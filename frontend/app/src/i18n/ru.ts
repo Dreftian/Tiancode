@@ -152,6 +152,7 @@ export const dict = {
   "command.context.addSelection": "Добавить выделение в контекст",
   "command.context.addSelection.description": "Добавить выбранные строки из текущего файла",
   "command.input.focus": "Перейти к полю ввода",
+  "command.liveView.toggle": "Живой просмотр",
   "command.terminal.toggle": "Переключить терминал",
   "command.fileTree.toggle": "Переключить дерево файлов",
   "command.review.toggle": "Переключить обзор",
@@ -838,6 +839,10 @@ export const dict = {
   "lsp.label.connected": "{{count}} LSP",
 
   "prompt.loading": "Загрузка запроса...",
+  "liveView.title": "Живой просмотр",
+  "liveView.refresh": "Перезагрузить",
+  "liveView.unavailable": "Сервер живого просмотра не отвечает (127.0.0.1:8790)",
+  "session.header.liveView": "Живой просмотр",
   "terminal.loading": "Загрузка терминала...",
   "terminal.title": "Терминал",
   "terminal.title.numbered": "Терминал {{number}}",

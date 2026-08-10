@@ -4,6 +4,20 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.11] — 2026-08-10
+
+### Nuevo
+
+- **Vista en vivo del trabajo de la IA**: botón junto al de terminal en la
+  cabecera de la sesión — abre un panel que muestra en tiempo real (vía el
+  MCP live_frontend) el árbol de archivos, fases, logs y la vista previa web
+  de lo que el agente está construyendo.
+- **Apertura automática**: al pedir crear una web, app, documento, hoja de
+  cálculo o interfaz, el panel de vista en vivo se abre solo.
+- **Terminal debajo del chat**: en el diseño nuevo el terminal ahora es un
+  dock inferior a ancho completo (estilo Codex/Claude) en lugar de ocupar la
+  columna lateral.
+
 ## [1.0.10] — 2026-08-09
 
 ### Nuevo

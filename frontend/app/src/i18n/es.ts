@@ -153,6 +153,7 @@ export const dict = {
   "command.context.addSelection": "Añadir selección al contexto",
   "command.context.addSelection.description": "Añadir las líneas seleccionadas del archivo actual",
   "command.input.focus": "Enfocar entrada",
+  "command.liveView.toggle": "Vista en vivo",
   "command.terminal.toggle": "Mostrar u ocultar terminal",
   "command.fileTree.toggle": "Mostrar u ocultar árbol de archivos",
   "command.review.toggle": "Mostrar u ocultar revisión",
@@ -864,6 +865,10 @@ export const dict = {
   "lsp.label.connected": "{{count}} LSP",
 
   "prompt.loading": "Cargando prompt...",
+  "liveView.title": "Vista en vivo",
+  "liveView.refresh": "Recargar",
+  "liveView.unavailable": "El servidor de vista en vivo no responde (127.0.0.1:8790)",
+  "session.header.liveView": "Vista en vivo",
   "terminal.loading": "Cargando terminal...",
   "terminal.title": "Terminal",
   "terminal.title.numbered": "Terminal {{number}}",

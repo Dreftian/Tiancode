@@ -165,6 +165,8 @@ export const dict = {
 
   "command.input.focus": "聚焦输入框",
 
+  "command.liveView.toggle": "实时视图",
+
   "command.terminal.toggle": "切换终端",
 
   "command.fileTree.toggle": "切换文件树",
@@ -820,6 +822,11 @@ export const dict = {
   "lsp.label.connected": "{{count}} LSP",
 
   "prompt.loading": "正在加载提示...",
+
+  "liveView.title": "实时视图",
+  "liveView.refresh": "刷新",
+  "liveView.unavailable": "实时视图服务器无响应（127.0.0.1:8790）",
+  "session.header.liveView": "实时视图",
 
   "terminal.loading": "正在加载终端...",
   "terminal.title": "终端",

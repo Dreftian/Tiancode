@@ -56,6 +56,7 @@ export const dict = {
   "command.context.addSelection": "Add selection to context",
   "command.context.addSelection.description": "Add selected lines from the current file",
   "command.input.focus": "Focus input",
+  "command.liveView.toggle": "Live view",
   "command.terminal.toggle": "Toggle terminal",
   "command.fileTree.toggle": "Toggle file tree",
   "command.review.toggle": "Toggle review",
@@ -803,6 +804,10 @@ export const dict = {
   "lsp.label.connected": "{{count}} LSP",
 
   "prompt.loading": "Loading prompt...",
+  "liveView.title": "Live view",
+  "liveView.refresh": "Reload",
+  "liveView.unavailable": "The live view server is not responding (127.0.0.1:8790)",
+  "session.header.liveView": "Live view",
   "terminal.loading": "Loading terminal...",
   "terminal.title": "Terminal",
   "terminal.title.numbered": "Terminal {{number}}",
