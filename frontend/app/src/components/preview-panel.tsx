@@ -2,6 +2,7 @@ import { createEffect, createSignal, onCleanup, Show } from "solid-js"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { useSettings } from "@/context/settings"
+import { welcomePageUrl } from "@/utils/webview-welcome"
 import "./preview-panel.css"
 
 // Navegador interno: panel flotante con un <webview> para ver apps y sitios
@@ -107,10 +108,16 @@ export function PreviewPanel() {
     }
     ready = false
     element.setAttribute("partition", "persist:preview")
-    if (initialUrl) element.setAttribute("src", initialUrl)
+    // Página local de bienvenida por defecto (un about:blank se ve blanco).
+    element.setAttribute("src", initialUrl || welcomePageUrl(language.t("preview.empty")))
     element.setAttribute("webpreferences", "contextIsolation=yes, nodeIntegration=no, sandbox=yes")
+    // Confinado a su caja: un webview sin tamaño válido al crearse se compone
+    // sobre toda la ventana. absolute dentro del contenedor lo fija al panel.
+    element.style.position = "absolute"
+    element.style.inset = "0"
     element.style.width = "100%"
     element.style.height = "100%"
+    element.style.border = "none"
     container.appendChild(element)
     webview = element
     // getWebContentsId solo está disponible tras el evento dom-ready del

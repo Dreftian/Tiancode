@@ -426,6 +426,7 @@ export const dict = {
   "preview.reload": "Recargar",
   "preview.go": "Ir",
   "preview.url": "Dirección web",
+  "preview.empty": "El navegador aparecerá aquí…",
 
   "prompt.toast.pasteUnsupported.title": "Adjunto no compatible",
   "prompt.toast.attachmentDuplicate.title": "Este archivo ya se ha subido",
@@ -1055,7 +1056,8 @@ export const dict = {
   "liveView.url": "URL de la app o del servidor de desarrollo…",
   "liveView.openExternal": "Abrir en el navegador",
   "liveView.capture": "Capturar vista",
-  "liveView.detectNotice": "Servidor de desarrollo detectado: {url}",
+  "liveView.detectNotice": "Servidor de desarrollo detectado: {{url}}",
+  "liveView.appEmpty": "La página del agente aparecerá aquí cuando abra un servidor de desarrollo.",
   "liveView.code.empty": "El archivo que edite el agente aparecerá aquí.",
   "liveView.code.unavailable": "El panel de código no está disponible",
   "session.export.menu": "Exportar…",

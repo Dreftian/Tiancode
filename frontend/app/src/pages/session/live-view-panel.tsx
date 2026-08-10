@@ -6,6 +6,7 @@ import { IconButtonV2 } from "@tiancode-ai/ui/v2/icon-button-v2"
 import { createEffect, createMemo, createSignal, onCleanup, onMount, Show } from "solid-js"
 import { Dynamic } from "solid-js/web"
 import { normalizeUrl, supportsPreviewPanel } from "@/components/preview-panel"
+import { welcomePageUrl } from "@/utils/webview-welcome"
 import { useFile } from "@/context/file"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
@@ -174,6 +175,7 @@ function LiveViewBrowser(props: {
   const [canGoForward, setCanGoForward] = createSignal(false)
   const [attached, setAttached] = createSignal(false)
   const [busy, setBusy] = createSignal(false)
+  const welcomeUrl = () => welcomePageUrl(language.t("liveView.appEmpty"))
   let container: HTMLDivElement | undefined
   let webview: WebviewElement | undefined
   // loadURL solo es válido tras el dom-ready del webview; antes de eso se
@@ -211,10 +213,18 @@ function LiveViewBrowser(props: {
     if (typeof element.getWebContentsId !== "function") return
     ready = false
     element.setAttribute("partition", "persist:live-view")
-    if (pendingUrlRef.current) element.setAttribute("src", pendingUrlRef.current)
+    // Página local de bienvenida por defecto: un about:blank se ve blanco y un
+    // webview sin URL inicial puede componerse en negro sobre el panel.
+    element.setAttribute("src", pendingUrlRef.current || welcomeUrl())
     element.setAttribute("webpreferences", "contextIsolation=yes, nodeIntegration=no, sandbox=yes")
+    // Confinado a su caja: un webview sin tamaño válido al crearse se compone
+    // sobre TODA la ventana (cubre el header y el pane Código). absolute
+    // dentro de un contenedor relative+overflow-hidden lo fija al pane App.
+    element.style.position = "absolute"
+    element.style.inset = "0"
     element.style.width = "100%"
     element.style.height = "100%"
+    element.style.border = "none"
     container.appendChild(element)
     webview = element
     const onDomReady = () => {
@@ -356,7 +366,7 @@ function LiveViewBrowser(props: {
           icon={<IconV2 name="monitor" />}
         />
       </div>
-      <div class="min-h-0 flex-1" ref={container} />
+      <div class="relative min-h-0 flex-1 overflow-hidden" ref={container} />
     </div>
   )
 }

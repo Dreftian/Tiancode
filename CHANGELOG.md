@@ -4,6 +4,20 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.27] — 2026-08-10
+### Corregido
+
+- **Sandbox ("Vista en vivo" y "Código") en pantalla negra**: el `<webview>` de
+  la vista en vivo se componía sobre toda la ventana cuando no tenía una caja
+  válida al crearse, cubriendo el panel completo (cabecera incluida). Ahora el
+  webview queda confinado a su pane (contenedor `relative overflow-hidden` +
+  `absolute inset-0`), igual en el navegador interno.
+- **Vista en vivo sin servidor**: cuando el agente aún no abre un servidor de
+  desarrollo, el pane App muestra una página de bienvenida local en lugar de un
+  about:blank/negro.
+- **Aviso de servidor detectado**: el texto "Servidor de desarrollo detectado:
+  {url}" se mostraba literal por las llaves simples — corregido a `{{url}}`.
+
 ## [1.0.26] — 2026-08-10
 ### Corregido
 

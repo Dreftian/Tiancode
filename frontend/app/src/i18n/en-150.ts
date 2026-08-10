@@ -329,6 +329,7 @@ export const dict = {
   "preview.reload": "Reload",
   "preview.go": "Go",
   "preview.url": "Web address",
+  "preview.empty": "The browser will appear here…",
 
   "prompt.toast.pasteUnsupported.title": "Unsupported attachment",
   "prompt.toast.pasteUnsupported.description": "Only images, PDFs, or text files can be attached here.",
@@ -1042,7 +1043,8 @@ export const dict = {
   "liveView.url": "URL of the app or dev server…",
   "liveView.openExternal": "Open in browser",
   "liveView.capture": "Capture view",
-  "liveView.detectNotice": "Development server detected: {url}",
+  "liveView.detectNotice": "Development server detected: {{url}}",
+  "liveView.appEmpty": "The agent's page will appear here when it starts a dev server.",
   "liveView.code.empty": "The file the agent is editing will appear here.",
   "liveView.code.unavailable": "The code panel is unavailable",
   "session.export.menu": "Export…",
