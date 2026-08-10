@@ -543,6 +543,15 @@ function hardenGuestSessions() {
   }
 }
 
+// Limpia el almacenamiento persistente de los webviews (navegador interno y
+// vista en vivo): cookies, caché, localStorage y datos de sesión de las
+// particiones guest, sin tocar la sesión del renderer principal.
+export function clearWebviewData() {
+  return Promise.all(
+    ["persist:preview", "persist:live-view"].map((partition) => session.fromPartition(partition).clearStorageData()),
+  )
+}
+
 // Registra los guests de los <webview> de preview (si los hay) para poder
 // capturarlos después sin fiarse del id que envíe el renderer. Cada partición
 // tiene su propio mapa: el navegador interno y el panel "Vista en vivo"

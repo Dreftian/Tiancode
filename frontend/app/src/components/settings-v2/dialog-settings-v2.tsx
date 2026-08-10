@@ -13,6 +13,9 @@ import { SettingsPluginsV2 } from "./plugins"
 import { SettingsSkillsV2 } from "./skills"
 import { SettingsSubAgentsV2 } from "./sub-agents"
 import { SettingsMcpServersV2 } from "./mcp-servers"
+import { SettingsBrowserV2 } from "./browser"
+import { SettingsPetsV2 } from "./pets"
+import { SettingsComputerUseV2 } from "./computer-use"
 import { SettingsGithubV2 } from "./github"
 import { SettingsVoicesV2 } from "./voices"
 import "./settings-v2.css"
@@ -125,6 +128,23 @@ export const DialogSettings: Component<{
                     </TabsV2.Trigger>
                   </div>
                 </div>
+                <div class="flex flex-col gap-1.5">
+                  <TabsV2.SectionTitle>{language.t("settings.section.integrations")}</TabsV2.SectionTitle>
+                  <div class="flex flex-col gap-1.5 w-full">
+                    <TabsV2.Trigger value="browser">
+                      <Icon name="square-arrow-top-right" />
+                      {language.t("settings.tab.browser")}
+                    </TabsV2.Trigger>
+                    <TabsV2.Trigger value="pets">
+                      <Icon name="bubble-5" />
+                      {language.t("settings.tab.pets")}
+                    </TabsV2.Trigger>
+                    <TabsV2.Trigger value="computer-use">
+                      <Icon name="window-cursor" />
+                      {language.t("settings.tab.computerUse")}
+                    </TabsV2.Trigger>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="settings-v2-nav-footer">
@@ -168,6 +188,15 @@ export const DialogSettings: Component<{
         </TabsV2.Content>
         <TabsV2.Content value="mcp-servers" class="settings-v2-panel">
           <SettingsMcpServersV2 directory={directory()} />
+        </TabsV2.Content>
+        <TabsV2.Content value="browser" class="settings-v2-panel">
+          <SettingsBrowserV2 />
+        </TabsV2.Content>
+        <TabsV2.Content value="pets" class="settings-v2-panel">
+          <SettingsPetsV2 />
+        </TabsV2.Content>
+        <TabsV2.Content value="computer-use" class="settings-v2-panel">
+          <SettingsComputerUseV2 directory={directory()} />
         </TabsV2.Content>
       </TabsV2>
     </Dialog>

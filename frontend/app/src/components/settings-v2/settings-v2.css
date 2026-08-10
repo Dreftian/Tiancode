@@ -1223,3 +1223,106 @@
   min-width: 72px;
   text-align: center;
 }
+
+/* Notas informativas de las páginas Navegador y Uso de la PC. */
+.settings-v2-note {
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 440;
+  line-height: 1.5;
+  color: var(--v2-text-text-faint);
+}
+
+/* Chip de estado (Uso de la PC): Conectado / Desconectado. */
+.settings-v2-chip {
+  padding: 3px 7px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 640;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-v2-chip[data-tone="green"] {
+  color: var(--v2-state-fg-success);
+  background-color: color-mix(in srgb, var(--v2-state-fg-success) 14%, transparent);
+}
+
+.settings-v2-chip[data-tone="muted"] {
+  color: var(--v2-text-text-muted);
+  background-color: var(--v2-background-bg-layer-02);
+}
+
+/* Tarjetas seleccionables de mascota (estilo Codex). */
+.settings-v2-pets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.settings-v2-pets-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--v2-border-border-muted);
+  border-radius: 10px;
+  background-color: var(--v2-background-bg-layer-01);
+  text-align: start;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
+}
+
+.settings-v2-pets-card:hover {
+  border-color: var(--v2-border-border-strong);
+  background-color: var(--v2-background-bg-layer-02);
+}
+
+.settings-v2-pets-card[data-selected] {
+  border-color: var(--v2-border-border-focus);
+  background-color: color-mix(in srgb, var(--v2-text-text-accent) 8%, var(--v2-background-bg-layer-01));
+}
+
+.settings-v2-pets-card-glyph {
+  flex-shrink: 0;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.settings-v2-pets-card-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-v2-pets-card-name {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--v2-text-text-base);
+}
+
+.settings-v2-pets-card-selected {
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 640;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--v2-text-text-accent);
+  background-color: color-mix(in srgb, var(--v2-text-text-accent) 14%, transparent);
+}
+
+.settings-v2-pets-card-description {
+  font-size: 11px;
+  font-weight: 440;
+  line-height: 1.4;
+  color: var(--v2-text-text-faint);
+}

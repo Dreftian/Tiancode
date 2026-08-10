@@ -59,6 +59,10 @@ export function PreviewPanel() {
   // URL con la que se abre el webview; capturada en el toggle (no reactiva)
   // para que el effect de creación solo dependa de open().
   let initialUrl = DEFAULT_URL
+  // Navegación iniciada desde la barra de direcciones (loadURL propia): el
+  // evento will-navigate la dispara también y no debe tratarse como un clic
+  // de enlace cuando "Destino al abrir enlaces" es "Navegador del sistema".
+  let programmatic = false
 
   const syncState = () => {
     if (!webview) return
@@ -72,7 +76,21 @@ export function PreviewPanel() {
   const flushPending = () => {
     if (!webview || !ready) return
     const pending = initialUrl
-    if (pending && pending !== webview.getURL()) void webview.loadURL(pending).catch(() => {})
+    if (pending && pending !== webview.getURL()) {
+      programmatic = true
+      void webview.loadURL(pending).catch(() => {})
+    }
+  }
+
+  // "Destino al abrir enlaces" = "Navegador del sistema": los clics en enlaces
+  // dentro del navegador integrado (will-navigate) y los target=_blank
+  // (new-window) salen al navegador del sistema en lugar de navegar el panel.
+  // Las navegaciones propias de la barra de direcciones quedan exentas.
+  const openGuestNavigation = (event: Event) => {
+    const url = (event as Event & { url?: string }).url
+    if (programmatic || !url || settings.general.browserLinks() !== "system") return
+    event.preventDefault()
+    platform.openExternal(url)
   }
 
   // The container only exists while the panel is open, so the webview must be
@@ -107,10 +125,15 @@ export function PreviewPanel() {
     const onTitleUpdate = () => setPageTitle(element.getTitle())
     element.addEventListener("did-navigate", syncState)
     element.addEventListener("did-navigate-in-page", syncState)
-    const onStartLoading = () => setLoading(true)
+    const onStartLoading = () => {
+      programmatic = false
+      setLoading(true)
+    }
     element.addEventListener("did-start-loading", onStartLoading)
     element.addEventListener("did-stop-loading", syncState)
     element.addEventListener("page-title-updated", onTitleUpdate)
+    element.addEventListener("will-navigate", openGuestNavigation)
+    element.addEventListener("new-window", openGuestNavigation)
     onCleanup(() => {
       element.removeEventListener("dom-ready", onDomReady)
       element.removeEventListener("did-navigate", syncState)
@@ -118,6 +141,8 @@ export function PreviewPanel() {
       element.removeEventListener("did-start-loading", onStartLoading)
       element.removeEventListener("did-stop-loading", syncState)
       element.removeEventListener("page-title-updated", onTitleUpdate)
+      element.removeEventListener("will-navigate", openGuestNavigation)
+      element.removeEventListener("new-window", openGuestNavigation)
       element.remove()
       webview = undefined
       ready = false
@@ -131,6 +156,7 @@ export function PreviewPanel() {
     setInput(target)
     setUrl(target)
     if (!webview) return
+    programmatic = true
     if (ready) void webview.loadURL(target).catch(() => {})
     else webview.setAttribute("src", target)
   }

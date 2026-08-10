@@ -19,6 +19,7 @@ import {
   setPinchZoomEnabled,
   setTitlebar,
   updateTitlebar,
+  clearWebviewData,
 } from "./windows"
 import type { UpdaterController } from "./updater-controller"
 import { createUpdaterSubscriptions } from "./updater-subscriptions"
@@ -378,6 +379,10 @@ export function registerIpcHandlers(deps: Deps) {
   ipcMain.handle("capture-window", (event: IpcMainInvokeEvent) => captureWindow(event.sender))
   ipcMain.handle("capture-preview", (event: IpcMainInvokeEvent) => capturePreview(event.sender.id))
   ipcMain.handle("capture-live-view", (event: IpcMainInvokeEvent) => captureLiveView(event.sender.id))
+
+  // Borra el almacenamiento de los webviews del navegador interno y la vista
+  // en vivo (cookies, caché, localStorage) desde la página de ajustes.
+  ipcMain.handle("clear-webview-data", () => clearWebviewData())
 
   // Inicio con Windows: el estado lo gestiona el sistema operativo.
   ipcMain.handle("set-login-item", (_event: IpcMainInvokeEvent, enabled: boolean) => {

@@ -129,7 +129,15 @@ export const SettingsPluginsV2: Component<{
     file = undefined
   }
   const layout = useLayout()
-  const { workspaceKey } = useSessionLayout()
+  // El layout de sesión también es opcional: depende del contexto SDK de la
+  // sesión, que no existe en el diálogo de ajustes (abierto desde la home).
+  // Sin él, solo se omite la pestaña del workspace al abrir el archivo.
+  let workspaceKey: (() => string) | undefined
+  try {
+    workspaceKey = useSessionLayout().workspaceKey
+  } catch {
+    workspaceKey = undefined
+  }
   const [value, setValue] = createSignal("")
   const [query, setQuery] = createSignal("")
   const [origin, setOrigin] = createSignal<OriginFilter>("all")
@@ -296,7 +304,7 @@ export const SettingsPluginsV2: Component<{
   // file opener del command palette); si el contexto no está disponible, el
   // toast de creación ya indica la ruta.
   const openInEditor = (path: string) => {
-    if (!file) return
+    if (!file || !workspaceKey) return
     try {
       const value = file.tab(path)
       const tabs = layout.tabs(workspaceKey())

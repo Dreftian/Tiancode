@@ -40,6 +40,8 @@ export interface Settings {
     showStatus: boolean
     showTerminal: boolean
     showBrowser: boolean
+    browserLinks: "integrated" | "system"
+    computerUseAutoApprove: boolean
     petEnabled: boolean
     petKind: PetKind
     petPosition: PetPosition
@@ -206,6 +208,8 @@ const defaultSettings: Settings = {
     showStatus: false,
     showTerminal: true,
     showBrowser: true,
+    browserLinks: "integrated",
+    computerUseAutoApprove: false,
     petEnabled: defaultPetSettings.enabled,
     petKind: defaultPetSettings.kind,
     petPosition: defaultPetSettings.position,
@@ -406,6 +410,17 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         showBrowser: withFallback(() => store.general?.showBrowser, defaultSettings.general.showBrowser),
         setShowBrowser(value: boolean) {
           setStore("general", "showBrowser", value)
+        },
+        browserLinks: withFallback(() => store.general?.browserLinks, defaultSettings.general.browserLinks),
+        setBrowserLinks(value: "integrated" | "system") {
+          setStore("general", "browserLinks", value)
+        },
+        computerUseAutoApprove: withFallback(
+          () => store.general?.computerUseAutoApprove,
+          defaultSettings.general.computerUseAutoApprove,
+        ),
+        setComputerUseAutoApprove(value: boolean) {
+          setStore("general", "computerUseAutoApprove", value)
         },
         petEnabled: withFallback(() => store.general?.petEnabled, defaultSettings.general.petEnabled),
         setPetEnabled(value: boolean) {

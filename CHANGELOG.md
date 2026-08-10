@@ -4,6 +4,33 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.26] — 2026-08-10
+### Corregido
+
+- **Pantalla negra en Ajustes → Plugins (causa real)**: la página también
+  pedía el contexto SDK de la sesión (`useSessionLayout`) que no existe en el
+  diálogo de ajustes, y el render se abortaba. Ahora es opcional: la página
+  carga siempre; solo se omite "abrir en el editor" sin sesión activa.
+- **Icono invisible en la barra de tareas**: los tamaños pequeños del icono
+  (16-48px) usaban el fondo casi negro del diseño y quedaban como un cuadrado
+  invisible sobre la taskbar oscura. El ICO pequeño y el tray usan ahora una
+  variante clara (fondo gris medio con el gato blanco) que se distingue.
+
+### Nuevo
+
+- **Sección "Navegador" en Ajustes** (debajo de Servidores MCP): controla el
+  navegador integrado (webview) — permiso de uso, destino de los enlaces
+  (navegador integrado o del sistema), y botón "Borrar datos de navegación"
+  que limpia el almacenamiento de las particiones del navegador y la vista en
+  vivo.
+- **Sección "Mascotas" en Ajustes**: las mascotas pasan de General a su propia
+  página con tarjetas seleccionables (gato, perro, conejo), activación y
+  posición, igual que en Codex.
+- **Sección "Uso de la PC" en Ajustes**: lista las aplicaciones locales
+  integradas por MCP con su estado de conexión real, y un interruptor
+  "Permitir control de aplicaciones" que aprueba automáticamente las acciones
+  de computer use (permiso `computer_use: allow`) cuando el modelo las soporta.
+
 ## [1.0.25] — 2026-08-10
 ### Corregido
 

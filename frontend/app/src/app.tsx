@@ -253,6 +253,7 @@ declare global {
       notify?: (title: string, body: string) => Promise<void>
       setLoginItem?: (enabled: boolean) => Promise<boolean>
       getLoginItem?: () => Promise<boolean>
+      clearWebviewData?: () => Promise<void>
       backupNow?: () => Promise<string | null>
       listBackups?: () => Promise<{ name: string; createdAt: number }[]>
       restoreBackup?: (name: string) => Promise<void>

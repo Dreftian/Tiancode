@@ -207,6 +207,7 @@ export type ElectronAPI = {
   }
   setLoginItem: (enabled: boolean) => Promise<boolean>
   getLoginItem: () => Promise<boolean>
+  clearWebviewData: () => Promise<void>
   backup: {
     now: () => Promise<string | null>
     list: () => Promise<{ name: string; createdAt: number }[]>

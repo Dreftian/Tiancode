@@ -154,6 +154,7 @@ const api: ElectronAPI = {
   },
   setLoginItem: (enabled) => ipcRenderer.invoke("set-login-item", enabled),
   getLoginItem: () => ipcRenderer.invoke("get-login-item"),
+  clearWebviewData: () => ipcRenderer.invoke("clear-webview-data"),
   backup: {
     now: () => ipcRenderer.invoke("backup-now"),
     list: () => ipcRenderer.invoke("backup-list"),

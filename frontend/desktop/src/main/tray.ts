@@ -6,10 +6,12 @@ const root = dirname(fileURLToPath(import.meta.url))
 
 export function createTray(options: { onShow: () => void; onQuit: () => void }) {
   // electron-builder copies runtime icons beside app.asar so native Windows
-  // APIs can load a physical file instead of an archive entry.
+  // APIs can load a physical file instead of an archive entry. icon-tray.png
+  // es la variante clara (fondo gris medio) para que el tray se distinga en
+  // la barra de tareas oscura; la variante oscura es invisible a 16px.
   const icon = app.isPackaged
-    ? join(process.resourcesPath, "icons", "icon.png")
-    : join(root, "../../resources/icons/icon.png")
+    ? join(process.resourcesPath, "icons", "icon-tray.png")
+    : join(root, "../../resources/icons/icon-tray.png")
   const tray = new Tray(icon)
   tray.setToolTip(app.getName())
   tray.setContextMenu(
