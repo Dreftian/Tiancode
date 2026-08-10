@@ -4,6 +4,35 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.24] — 2026-08-10
+### Nuevo
+
+- **Lectura del anuncio completa y sincronizada**: la voz en vivo ya no lee el
+  anuncio del asistente por fragmentos (sonaba cortado y desincronizado); ahora
+  espera la pausa natural del stream y lee el anuncio entero de una vez. Al
+  enviar una petición, la lectura en curso se corta y el siguiente anuncio
+  arranca limpio.
+- **Menú contextual en proyectos con clic derecho** (home): se abre el mismo
+  menú del botón ⋯ al hacer clic derecho sobre un proyecto (port del upstream
+  anomalyco/opencode v1.18.16).
+- **Registro de proyectos nuevos en el servidor** (home): al añadir una carpeta
+  que aún no es un proyecto, se registra en el servidor (initGit si está vacía)
+  para que aparezca en el selector y en las sesiones (port upstream v1.18.16).
+- **Selector de carpeta con respaldo local**: si la búsqueda del servidor no
+  devuelve resultados, el picker rellena con el listado/coincidencia local en
+  lugar de quedarse vacío (port upstream v1.18.16).
+
+### Corregido
+
+- **Config tolerante a claves desconocidas**: un `tiancode.json`/`tiancode.jsonc`
+  con campos de otras herramientas o de versiones futuras ya no impide cargar la
+  configuración (las claves extra se ignoran; port upstream v1.18.16).
+- **Estado de carga de botones con tokens del tema**: el fondo del estado
+  "loading" ya usa variables del tema (compatible con tema claro/oscuro; port
+  upstream v1.18.16).
+- **Chino simplificado**: "令牌" (token) reemplazado por "词元" en el desglose
+  de contexto (port upstream v1.18.16).
+
 ## [1.0.11] — 2026-08-10
 ### Corregido
 
