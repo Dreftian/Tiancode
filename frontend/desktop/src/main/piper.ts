@@ -208,7 +208,8 @@ export async function synthesizePiper(text: string, voiceId: string): Promise<Pi
   if (!def) throw new Error(`Unknown piper voice "${voiceId}"`)
   if (!isPiperDownloaded(voiceId)) await downloadPiperVoice(voiceId)
   const tts = await getTts(def)
-  const result = tts.generate({ text, sid: def.sid ?? 0, speed: 1 })
+  // speed > 1 acelera el habla en sherpa-onnx; el 1.0 por defecto se percibe lento.
+  const result = tts.generate({ text, sid: def.sid ?? 0, speed: 1.15 })
   return { samples: result.samples, sampleRate: result.sampleRate }
 }
 

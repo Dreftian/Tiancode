@@ -188,6 +188,20 @@ def normalize_preview_url(url):
     return url
 
 
+def preview_default_url(session: dict) -> str | None:
+    """URL local del preview en vivo (estilo Xcode) para sesiones web.
+
+    Si la sesión no fija un preview_url externo y la raíz tiene index.html,
+    el dashboard muestra el sitio servido por este mismo servidor en
+    /preview/, refrescándose solo conforme cambian los archivos.
+    """
+    if session["mode"] != "web":
+        return None
+    if (Path(session["root"]) / "index.html").is_file():
+        return "/preview/"
+    return None
+
+
 def coerce_process_id(value) -> str:
     if isinstance(value, str):
         return value
@@ -256,6 +270,7 @@ def session_summary(session: dict) -> dict:
         "mode": session["mode"],
         "root": session["root"],
         "preview_url": session["preview_url"],
+        "preview_default": preview_default_url(session),
         "phase": dict(session["phase"]),
         "file_count": len(session["files"]),
         "created_at": session["created_at"],
@@ -302,6 +317,7 @@ def build_snapshot(state: LiveState, session: dict) -> dict:
         "mode": session["mode"],
         "label": session["label"],
         "preview_url": session["preview_url"],
+        "preview_default": preview_default_url(session),
         "phase": dict(session["phase"]),
         "current_file": session["current_file"],
         "current_code": session["current_code"],
@@ -711,6 +727,37 @@ class DashboardHandler(BaseHTTPRequestHandler):
             return
         self._send_bytes(200, content_type, body)
 
+    def _serve_preview(self, path: str) -> None:
+        """Sirve archivos de la raíz de la sesión actual bajo /preview/.
+
+        Es el "vista en vivo" local: el iframe del dashboard apunta aquí y el
+        sitio se refresca solo conforme el agente crea/edita archivos. Rutas
+        sin extensión que no existen caen a index.html (SPA fallback).
+        """
+        with self.state.lock:
+            session = self.state.sessions.get(self.state.current_id)
+        if session is None:
+            self._send_bytes(404, "text/plain; charset=utf-8", b"No active session")
+            return
+        root = Path(session["root"]).resolve()
+        rel = path[len("/preview"):].lstrip("/") or "index.html"
+        target = (root / rel).resolve()
+        root_norm = os.path.normcase(str(root))
+        target_norm = os.path.normcase(str(target))
+        if not target_norm.startswith(root_norm) or not target.is_file():
+            if Path(rel).suffix == "" and (root / "index.html").is_file():
+                target = root / "index.html"
+            else:
+                self._send_bytes(404, "text/plain; charset=utf-8", b"Not found")
+                return
+        content_type = CONTENT_TYPES.get(target.suffix.lower(), "application/octet-stream")
+        try:
+            body = target.read_bytes()
+        except OSError:
+            self._send_bytes(500, "text/plain; charset=utf-8", b"Read error")
+            return
+        self._send_bytes(200, content_type, body)
+
     def _serve_events(self) -> None:
         state = self.state
         self.send_response(200)
@@ -756,6 +803,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if path == "/events":
             self._serve_events()
+            return
+        if path == "/preview" or path.startswith("/preview/"):
+            self._serve_preview(path)
             return
         if path == "/api/health":
             self._send_json(200, {

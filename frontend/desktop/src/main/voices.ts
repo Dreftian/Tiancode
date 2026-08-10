@@ -146,7 +146,8 @@ export async function speakVoice(text: string, voiceId?: string): Promise<Voices
   }
   try {
     const tts = await ensureReady()
-    const audio = await tts.generate(text, { voice: voice.id as SupportedVoiceId })
+    // speed > 1 acelera el habla; 1.0 por defecto se percibe lento.
+    const audio = await tts.generate(text, { voice: voice.id as SupportedVoiceId, speed: 1.15 })
     const samples = Array.isArray(audio.audio) ? concatSamples(audio.audio) : audio.audio
     return { wav: new Uint8Array(float32ToWav(samples, audio.sampling_rate)) }
   } catch (error) {

@@ -145,7 +145,10 @@ function renderNodes(dirs, files, current, parentPath) {
 }
 
 function renderPreview(snap) {
-  const url = snap ? snap.preview_url : null;
+  // Sin preview_url externo, la sesión web con index.html se muestra en
+  // /preview/ (servido por este mismo servidor, estilo Xcode: se refresca
+  // solo conforme cambian los archivos).
+  const url = snap ? (snap.preview_url || snap.preview_default) : null;
   if (url) {
     el.previewFrame.classList.remove("hidden");
     el.previewEmpty.classList.add("hidden");
@@ -157,6 +160,18 @@ function renderPreview(snap) {
     el.previewEmpty.classList.remove("hidden");
     el.previewLink.classList.add("hidden");
   }
+}
+
+// Recarga el iframe del preview local (/preview/) tras cambios de archivos,
+// debounced para no recargar a cada evento; el preview externo no se toca.
+let previewReloadTimer = null;
+function schedulePreviewReload() {
+  const frame = el.previewFrame;
+  if (frame.classList.contains("hidden") || !frame.src || frame.src.indexOf("/preview/") === -1) return;
+  if (previewReloadTimer) clearTimeout(previewReloadTimer);
+  previewReloadTimer = setTimeout(() => {
+    if (!frame.classList.contains("hidden")) frame.src = frame.src;
+  }, 400);
 }
 
 function renderScreenshot(snap) {
@@ -289,6 +304,7 @@ function applyUpdate(event) {
       snap.files = upsertFile(snap.files, data);
       snap.file_count = snap.files.length;
       renderTree(snap);
+      schedulePreviewReload();
       break;
     case "file_removed":
       snap.files = snap.files.filter((f) => f.rel !== data.rel);

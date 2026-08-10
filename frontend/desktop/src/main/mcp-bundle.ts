@@ -1,4 +1,5 @@
-import { existsSync } from "node:fs"
+import { existsSync, readdirSync } from "node:fs"
+import { execFileSync } from "node:child_process"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { app } from "electron"
@@ -35,6 +36,40 @@ const BUNDLED_MCPS: BundledMcp[] = [
 
 type SidecarAuth = { url: string; username: string; password: string }
 
+// En Windows, `python` del PATH suele ser el stub de Microsoft Store
+// (WindowsApps\python.exe), que no ejecuta nada y deja los servidores MCP
+// sin responder. Se resuelve un intérprete REAL: primero el launcher `py -3`
+// (devuelve el Python instalado) y luego las rutas estándar de python.org.
+let pythonCommand: string[] | undefined
+function resolvePythonCommand(): string[] {
+  if (pythonCommand) return pythonCommand
+  const candidates: string[][] = [["py", "-3"]]
+  if (process.platform === "win32") {
+    const roots = [
+      join(process.env.LOCALAPPDATA ?? "", "Programs", "Python"),
+      join(process.env.ProgramFiles ?? "", "Python"),
+    ]
+    for (const root of roots) {
+      if (!existsSync(root)) continue
+      const dirs = readdirSync(root).filter((name) => /^Python3\d+$/.test(name)).sort().reverse()
+      for (const dir of dirs) {
+        const exe = join(root, dir, "python.exe")
+        if (existsSync(exe)) candidates.push([exe])
+      }
+    }
+  }
+  const usable = candidates.find(([cmd, ...args]) => {
+    try {
+      execFileSync(cmd, [...args, "--version"], { stdio: "ignore", timeout: 5000 })
+      return true
+    } catch {
+      return false
+    }
+  })
+  pythonCommand = usable ?? ["python"]
+  return pythonCommand
+}
+
 async function registerServer(auth: SidecarAuth, entry: BundledMcp) {
   const dir = join(BUNDLED_ROOT, entry.dir)
   const script = join(dir, entry.script)
@@ -48,7 +83,7 @@ async function registerServer(auth: SidecarAuth, entry: BundledMcp) {
       name: entry.name,
       config: {
         type: "local",
-        command: ["python", script],
+        command: [...resolvePythonCommand(), script],
         environment: { [entry.env]: configFile },
         enabled: true,
         timeout: 60000,
