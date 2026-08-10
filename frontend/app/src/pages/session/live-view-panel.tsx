@@ -15,7 +15,7 @@ import { useSync } from "@/context/sync"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { ScrollView } from "@tiancode-ai/ui/scroll-view"
 
-const LIVE_VIEW_URL = "http://127.0.0.1:8790/"
+export const LIVE_VIEW_URL = "http://127.0.0.1:8790/"
 const LIVE_VIEW_CHECK_MS = 3000
 // URL de un servidor de desarrollo local ("Local: http://localhost:5173") en
 // los logs que publica el agente; se detecta para navegar el panel solo.
@@ -25,8 +25,9 @@ const CODE_PANE_MIN = 180
 const CODE_PANE_MAX = 480
 const CODE_PANE_DEFAULT = 260
 
-// Campos del snapshot del live server que este panel consume.
-type SnapshotPayload = {
+// Campos del snapshot del live server que este panel consume (y el vigía de
+// apertura automática del sandbox, live-view-auto-open).
+export type SnapshotPayload = {
   preview_url?: string | null
   preview_default?: string | null
   current_file?: string | null
@@ -49,7 +50,7 @@ type WebviewElement = HTMLElement & {
 
 // URL que el servidor quiere mostrar: la fijada por el agente (set_preview) o,
 // si no, el preview local (/preview/) para sesiones web con index.html.
-function resolveReportedUrl(snapshot: SnapshotPayload | undefined) {
+export function resolveReportedUrl(snapshot: SnapshotPayload | undefined) {
   if (!snapshot) return undefined
   if (snapshot.preview_url) return snapshot.preview_url
   if (snapshot.preview_default) return `${LIVE_VIEW_URL}${snapshot.preview_default.replace(/^\//, "")}`
@@ -58,13 +59,28 @@ function resolveReportedUrl(snapshot: SnapshotPayload | undefined) {
 
 // Primer servidor de desarrollo local mencionado en los logs del agente
 // (p. ej. "Local: http://localhost:5173" al arrancar npm run dev).
-function findDevServerUrl(snapshot: SnapshotPayload | undefined) {
+export function findDevServerUrl(snapshot: SnapshotPayload | undefined) {
   for (const entry of snapshot?.logs ?? []) {
     const match = DEV_SERVER_URL_RE.exec(entry.line ?? "")
     if (match) return match[0].replace(/\/$/, "")
   }
   return undefined
 }
+
+// URL que el sandbox debe mostrar: la fijada por el agente (set_preview o
+// preview local) o, si no, el primer dev server detectado en los logs. Es la
+// misma detección que usa el panel y la que dispara la apertura automática
+// del sandbox cuando el agente navega (useLiveViewAutoOpen).
+export function serverTargetOf(snapshot: SnapshotPayload | undefined) {
+  const reported = resolveReportedUrl(snapshot)
+  if (reported) return reported
+  return findDevServerUrl(snapshot)
+}
+
+// URL detectada en los tool-calls del chat (p. ej. la IA abrió la web con
+// chrome-devtools_new_page): el sandbox la muestra aunque el live server no
+// tenga sesión. La fija useLiveViewAutoOpen y la navega LiveViewBrowser.
+export const [liveViewExternalUrl, setLiveViewExternalUrl] = createSignal<string | undefined>(undefined)
 
 // Pane de código: muestra el archivo que el agente está editando (sigue
 // current_file del snapshot) y lo abre también bajo demanda. Sin árbol: el
@@ -262,9 +278,11 @@ function LiveViewBrowser(props: {
     else webview.setAttribute("src", target)
   }
 
-  // URL del agente / dev server detectado: navega y reanuda la auto-navegación.
+  // URL del agente / dev server detectado / tool-call del chat: navega y
+  // reanuda la auto-navegación. La URL externa (tool-call) gana sobre el
+  // snapshot del live server.
   createEffect(() => {
-    const target = props.targetUrl?.()
+    const target = liveViewExternalUrl() ?? props.targetUrl?.()
     if (!target || target === lastTargetUrl) return
     lastTargetUrl = target
     manualNav = false
@@ -425,11 +443,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void }) {
   // o, si no, el primer dev server detectado en los logs. La detección
   // queda suprimida mientras el usuario navegue a mano (manualNav en el
   // navegador); una URL nueva del agente la reanuda.
-  const serverTarget = createMemo(() => {
-    const reported = resolveReportedUrl(snapshot())
-    if (reported) return reported
-    return findDevServerUrl(snapshot())
-  })
+  const serverTarget = createMemo(() => serverTargetOf(snapshot()))
 
   // Aviso transitorio cuando la navegación vino de la detección de logs (no
   // de una URL fijada por el agente); se descarta con la X.

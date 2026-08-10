@@ -4,6 +4,39 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.28] — 2026-08-10
+### Corregido
+
+- **La app de la IA aparece siempre en el sandbox, no en el navegador flotante**:
+  cuando el agente navega a mitad de sesión (fija una URL con `set_preview` o
+  arranca un dev server visible en los logs), el sandbox "Vista en vivo"
+  (pane Código + pane App) se abre automáticamente si estaba cerrado y muestra
+  la URL en su webview (`persist:live-view`). Antes, la navegación solo se
+  reflejaba con el panel abierto y el usuario terminaba abriendo el navegador
+  interno flotante (`persist:preview`), que ahora queda reservado al clic
+  explícito del usuario. El cierre manual del sandbox sigue mandando: solo una
+  URL nueva del agente vuelve a abrirlo.
+- **Las páginas que la IA abre con sus herramientas también van al sandbox**:
+  si el agente usa una tool de navegación (p. ej. `chrome-devtools_new_page`
+  con una URL http o file), la URL se detecta en los tool-calls del chat y el
+  sandbox se abre mostrándola al costado, aunque el servidor de vista en vivo
+  no tenga sesión.
+
+### Nuevo
+
+- **La mascota dice lo que hace la IA** (estilo Codex): burbuja de texto junto
+  al compañero con la acción en curso — el anuncio del asistente se muestra en
+  vivo mientras trabaja, su estado al esperar tu entrada, y un mensaje de
+  reposo cuando está libre.
+- **Voz femenina por defecto más fluida**: la voz del anuncio (piper
+  es_ES-sharvard, hablante femenina) se descarga sola la primera vez y ahora
+  suena más natural — velocidad 1.2 y pausas entre frases recortadas
+  (silenceScale 0.12). En Ajustes → Voces lleva el chip "Predeterminada".
+  (Nota técnica: la voz Kokoro estilo ElevenLabs aún no puede hablar español
+  en este empaquetado — el fonemizador de kokoro-js solo tiene inglés y el
+  motor sherpa-onnx wasm aborta con el modelo multilingüe; documentado para
+  desbloquear en el futuro.)
+
 ## [1.0.27] — 2026-08-10
 ### Corregido
 

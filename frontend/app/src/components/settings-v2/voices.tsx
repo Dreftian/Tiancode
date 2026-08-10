@@ -368,6 +368,11 @@ export const SettingsVoicesV2: Component = () => {
                                     {language.t("settings.voices.voice.engine.piper")}
                                   </span>
                                 </Show>
+                                <Show when={voice.default === true}>
+                                  <span class="settings-v2-voices-chip" data-variant="default">
+                                    {language.t("settings.voices.voice.default")}
+                                  </span>
+                                </Show>
                                 <Show when={voice.engine === "kokoro" && !voice.supported}>
                                   <span class="settings-v2-voices-unsupported">
                                     {language.t("settings.voices.voice.unsupported")}

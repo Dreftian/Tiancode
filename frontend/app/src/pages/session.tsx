@@ -96,6 +96,7 @@ import { reviewDiffDirectory, reviewDiffNeedsLoad, reviewRootDirectory } from "@
 import { TerminalPanel } from "@/pages/session/terminal-panel"
 import { TerminalPanelV2 } from "@/pages/session/terminal-panel-v2"
 import { LiveViewPanel } from "@/pages/session/live-view-panel"
+import { useLiveViewAutoOpen } from "@/pages/session/live-view-auto-open"
 import { useComposerCommands } from "@/pages/session/use-composer-commands"
 import { useSessionCommands } from "@/pages/session/use-session-commands"
 import { useSessionHashScroll } from "@/pages/session/use-session-hash-scroll"
@@ -1184,6 +1185,12 @@ export default function Page() {
       .join("")
     if (BUILD_INTENT_REGEX.test(text)) view().liveView.open()
   }
+
+  // Navegación del agente a mitad de sesión (set_preview o dev server en los
+  // logs): abre el sandbox si está cerrado para que la app aparezca en el
+  // panel "Vista en vivo", no en el navegador flotante (que solo se abre por
+  // clic del usuario).
+  useLiveViewAutoOpen({ enabled: () => newSessionDesign() && !!params.id })
 
   useComposerCommands()
   useSessionCommands({

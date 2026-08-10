@@ -10,6 +10,12 @@ import { float32ToWav } from "./wav"
 import { PIPER_VOICES, deletePiperVoice, downloadPiperVoice, isPiperDownloaded, synthesizePiper } from "./piper"
 
 export const DEFAULT_VOICE = "af_heart"
+// Voz femenina de español por defecto: piper sharvard (hablante F, 22kHz), la
+// más natural de las voces piper de español y la que usa el anuncio automático
+// (ver resolveSpanishVoice en frontend/app). Kokoro no puede sintetizar
+// español hoy: kokoro-js 1.2.1 solo fonemiza inglés y el soporte kokoro del
+// wasm de sherpa-onnx aborta al cargar el modelo multilingüe.
+const DEFAULT_ES_FEMALE_VOICE = "piper-es_ES-sharvard-medium"
 const KOKORO_MODEL_ID = "onnx-community/Kokoro-82M-v1.0-ONNX"
 // kokoro-js bundles an espeak-ng phonemizer with English voices only, so its
 // public generate() API accepts just the US/UK English voices (af/am/bf/bm)
@@ -78,6 +84,10 @@ const KOKORO_CATALOG: VoiceInfo[] = VOICE_IDS.map((id) => {
 
 // Piper (sherpa-onnx) voices are downloaded on demand; all of them are
 // Spanish so the app finally speaks the languages of the bundled model.
+// sharvard es la voz femenina por defecto (la que usa el anuncio automático);
+// las voces kokoro-js no pueden hablar español porque su fonemizador espeak-ng
+// empaquetado solo trae inglés, y el motor kokoro de sherpa-onnx (wasm) aún no
+// puede cargar el modelo multilingüe (aborta en la creación de la sesión).
 const PIPER_CATALOG: VoiceInfo[] = PIPER_VOICES.map((voice) => ({
   id: voice.id,
   name: voice.name,
@@ -85,6 +95,7 @@ const PIPER_CATALOG: VoiceInfo[] = PIPER_VOICES.map((voice) => ({
   gender: "female",
   supported: true,
   engine: "piper",
+  default: voice.id === DEFAULT_ES_FEMALE_VOICE,
   license: voice.license,
   sizeMb: voice.sizeMb,
 }))

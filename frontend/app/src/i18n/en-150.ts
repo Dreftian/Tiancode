@@ -1670,6 +1670,7 @@ export const dict = {
   "settings.voices.voice.delete": "Delete",
   "settings.voices.voice.delete.confirm": "Delete the downloaded files for {{name}}?",
   "settings.voices.voice.builtin": "Built-in",
+  "settings.voices.voice.default": "Default",
   "settings.voices.voice.engine.kokoro": "Kokoro",
   "settings.voices.voice.engine.piper": "Piper",
   "settings.voices.voice.license": "License",

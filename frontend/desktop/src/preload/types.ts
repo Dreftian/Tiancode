@@ -43,6 +43,8 @@ export type VoiceInfo = {
   // Synthesis engine: kokoro voices ship with the app, piper voices are
   // downloaded on demand (sherpa-onnx + espeak-ng phonemizer).
   engine: VoiceEngine
+  // Whether this is the app's default voice for Spanish announcements.
+  default?: boolean
   // Piper only: whether the model files are present on disk.
   downloaded?: boolean
   // Whether the voice is enabled for selection and dictation defaults.

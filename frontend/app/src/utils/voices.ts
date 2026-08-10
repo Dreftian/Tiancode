@@ -15,6 +15,8 @@ export type VoiceInfo = {
   // are always supported once downloaded.
   supported: boolean
   engine: VoiceEngine
+  // Whether this is the app's default voice for Spanish announcements.
+  default?: boolean
   downloaded?: boolean
   enabled?: boolean
   sizeMb?: number
@@ -146,6 +148,14 @@ export function isSpanishText(text: string) {
 // Voz femenina de español por defecto (piper sharvard, hablante F): si el
 // texto es español y no hay ninguna voz de español descargada, se descarga
 // automáticamente la primera vez (como la voz "Sol" de Codex).
+//
+// Nota: kokoro no puede sintetizar español hoy. El motor kokoro-js (voces
+// af/am/bf/bm) solo fonemiza inglés porque su espeak-ng empaquetado no trae
+// voces multilingües, y el soporte kokoro del wasm de sherpa-onnx aborta al
+// cargar el modelo multilingüe (csukuangfj/kokoro-multi-lang-v1_0) en la
+// creación de la sesión de onnxruntime. Hasta que uno de los dos motores
+// soporte español, la voz femenina de piper sharvard (con velocidad 1.2 y
+// pausas recortadas) es la predeterminada del anuncio automático.
 const DEFAULT_ES_FEMALE_VOICE = "piper-es_ES-sharvard-medium"
 let spanishDownloadTriggered = false
 

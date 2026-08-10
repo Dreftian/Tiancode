@@ -1730,6 +1730,7 @@ export const dict = {
   "settings.voices.voice.delete": "删除",
   "settings.voices.voice.delete.confirm": "要删除 {{name}} 的已下载文件吗？",
   "settings.voices.voice.builtin": "内置",
+  "settings.voices.voice.default": "默认",
   "settings.voices.voice.engine.kokoro": "Kokoro",
   "settings.voices.voice.engine.piper": "Piper",
   "settings.voices.voice.license": "许可证",

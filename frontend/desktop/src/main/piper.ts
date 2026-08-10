@@ -208,8 +208,11 @@ export async function synthesizePiper(text: string, voiceId: string): Promise<Pi
   if (!def) throw new Error(`Unknown piper voice "${voiceId}"`)
   if (!isPiperDownloaded(voiceId)) await downloadPiperVoice(voiceId)
   const tts = await getTts(def)
-  // speed > 1 acelera el habla en sherpa-onnx; el 1.0 por defecto se percibe lento.
-  const result = tts.generate({ text, sid: def.sid ?? 0, speed: 1.15 })
+  // La fluidez del piper se ajusta con dos palancas de sherpa-onnx: speed 1.2
+  // (el 1.15 por defecto se percibe lento y el 1.0 aún más) y silenceScale 0.12
+  // (recorta las pausas largas entre frases, la mayor fuente de rigidez
+  // robótica del modelo; el 0.2 por defecto deja las pausas casi intactas).
+  const result = tts.generate({ text, sid: def.sid ?? 0, speed: 1.2, silenceScale: 0.12 })
   return { samples: result.samples, sampleRate: result.sampleRate }
 }
 
@@ -257,6 +260,9 @@ function reportProgress(voiceId: string, progress: number, file?: string, done?:
 
 type OfflineTtsLike = {
   sampleRate: number
-  generate(config: { text: string; sid?: number; speed?: number }): { samples: Float32Array; sampleRate: number }
+  generate(config: { text: string; sid?: number; speed?: number; silenceScale?: number }): {
+    samples: Float32Array
+    sampleRate: number
+  }
   free(): void
 }
