@@ -85,7 +85,11 @@ export function PreviewPanel() {
     element.style.height = "100%"
     container.appendChild(element)
     webview = element
-    setPreviewWebContentsId(element.getWebContentsId())
+    // getWebContentsId solo está disponible tras el evento dom-ready del
+    // webview; llamarlo antes lanza "The WebView must be attached to the DOM
+    // and the dom-ready event emitted before this method can be called".
+    const onDomReady = () => setPreviewWebContentsId(element.getWebContentsId())
+    element.addEventListener("dom-ready", onDomReady)
     const onTitleUpdate = () => setPageTitle(element.getTitle())
     element.addEventListener("did-navigate", syncState)
     element.addEventListener("did-navigate-in-page", syncState)
@@ -94,6 +98,7 @@ export function PreviewPanel() {
     element.addEventListener("did-stop-loading", syncState)
     element.addEventListener("page-title-updated", onTitleUpdate)
     onCleanup(() => {
+      element.removeEventListener("dom-ready", onDomReady)
       element.removeEventListener("did-navigate", syncState)
       element.removeEventListener("did-navigate-in-page", syncState)
       element.removeEventListener("did-start-loading", onStartLoading)

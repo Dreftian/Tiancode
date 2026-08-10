@@ -29,7 +29,9 @@ const rendererCsp = (() => {
   const themeHash = createHash("sha256").update(readFileSync(themePreloadPath, "utf8")).digest("base64")
   return [
     "default-src 'self'",
-    `script-src 'self' 'sha256-${themeHash}'`,
+    // wasm-unsafe-eval: la terminal (ghostty) compila su wasm en runtime
+    // (igual que la CSP web); sin esto el terminal no carga.
+    `script-src 'self' 'wasm-unsafe-eval' 'sha256-${themeHash}'`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",

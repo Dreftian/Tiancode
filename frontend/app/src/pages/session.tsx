@@ -2401,7 +2401,10 @@ export default function Page() {
               onCollapse={closeBottomDock}
             />
           </div>
-          <div class="min-h-0 shrink-0" style={{ height: `${bottomDockHeight()}px` }}>
+          <div
+            class="min-h-0 shrink-0 border-t border-[var(--v2-border-border-base)]"
+            style={{ height: `${bottomDockHeight()}px` }}
+          >
             <Show when={terminalOpen()}>
               <TerminalPanelV2 stacked />
             </Show>

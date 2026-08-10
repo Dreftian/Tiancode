@@ -1095,7 +1095,9 @@ export function MessageTimeline(props: {
     // Lectura en voz alta en tiempo real: mientras el modelo genera, el texto
     // nuevo de la parte se encola en la cola de auto-speak. Solo aplica a
     // respuestas recientes del asistente; activar la opción a mitad de sesión
-    // no relee mensajes antiguos.
+    // no relee mensajes antiguos. Solo se lee el PRIMER tramo de texto de cada
+    // mensaje: es el anuncio de lo que va a hacer; el resto del contexto no se
+    // lee en voz alta.
     createEffect(() => {
       if (!settings.general.autoSpeak()) {
         stopAutoSpeak()
@@ -1106,6 +1108,8 @@ export function MessageTimeline(props: {
       const rowMessage = message()
       if (!rowMessage || rowMessage.role !== "assistant") return
       if (Date.now() - rowMessage.time.created > 120_000) return
+      const firstText = getMsgParts(rowMessage.id).find((candidate) => candidate.type === "text")
+      if (firstText?.id !== item.id) return
       enqueueAutoSpeak(item.id, item.text)
     })
     const speak = (text: string) => {

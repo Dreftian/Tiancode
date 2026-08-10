@@ -108,6 +108,49 @@ const playWav = (key: string, wav: Uint8Array) =>
     void audio.play()
   })
 
+// Cache de la lista de voces para la selección por idioma (la lista es pequeña).
+let voicesCache: VoiceInfo[] | undefined
+async function voicesList(): Promise<VoiceInfo[]> {
+  if (voicesCache) return voicesCache
+  const api = voicesAPI()
+  if (!api?.list) return []
+  voicesCache = await api.list().catch(() => [])
+  return voicesCache
+}
+
+// Detección ligera de español para elegir la voz correcta: primero señales
+// inequívocas (ñ, ¿, ¡) y luego una comparación de palabras frecuentes.
+const SPANISH_CHARS = /[¿¡ñ]/
+const ES_WORDS = new Set([
+  "voy", "vamos", "crear", "hacer", "para", "que", "una", "con", "del", "los", "las",
+  "este", "esta", "ahora", "luego", "después", "entonces", "también", "puedo",
+  "quiero", "necesito", "primero", "pero", "porque", "más", "bien",
+])
+const EN_WORDS = new Set([
+  "i", "will", "the", "to", "and", "of", "for", "with", "this", "that", "you",
+  "your", "we", "are", "going", "create", "make", "build", "first", "then",
+  "now", "can", "want", "need", "but", "because", "more", "well",
+])
+export function isSpanishText(text: string) {
+  if (SPANISH_CHARS.test(text)) return true
+  const words = text.toLowerCase().match(/[a-záéíóúñü]+/g) ?? []
+  let es = 0
+  let en = 0
+  for (const word of words) {
+    if (ES_WORDS.has(word)) es++
+    if (EN_WORDS.has(word)) en++
+  }
+  return es > en
+}
+
+// Si el texto es español y hay una voz de español descargada, la usa; en otro
+// caso devuelve undefined y se usa la voz seleccionada por el usuario.
+async function resolveSpanishVoice(text: string): Promise<string | undefined> {
+  if (!isSpanishText(text)) return undefined
+  const list = await voicesList()
+  return list.find((voice) => voice.language.toLowerCase().startsWith("es") && voice.downloaded)?.id
+}
+
 // Speaks `text` with the desktop voice engine. The same `key` is used to
 // report the active playback: pass the part id of the message being read.
 // Resolves when the audio finishes playing (or is stopped). Returns an error
@@ -121,9 +164,12 @@ export async function speakWithVoices(key: string, text: string, voiceId?: strin
   }
   stopSpeaking()
   setSpeakingKey(key)
+  // El texto en español usa una voz de español descargada cuando existe; el
+  // inglés y el resto usan la voz seleccionada por el usuario.
+  const effectiveVoice = voiceId ?? (await resolveSpanishVoice(text))
   let result: VoicesSpeakResult
   try {
-    result = await api.speak(text, voiceId)
+    result = await api.speak(text, effectiveVoice)
   } catch (error) {
     // Fallo de transporte del IPC: nunca dejar una promesa sin resolver.
     setSpeakingKey(undefined)

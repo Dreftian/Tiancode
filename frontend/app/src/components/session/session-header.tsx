@@ -589,9 +589,9 @@ function SessionHeaderV2Actions(props: { state: SessionHeaderV2ActionsState }) {
       <TooltipV2 class="shrink-0" placement="bottom" value={props.state.liveViewLabel}>
         <IconButtonV2
           type="button"
-          variant="ghost-muted"
+          variant="ghost"
           size="large"
-          class="!w-9 shrink-0"
+          class="!w-9 shrink-0 [&_svg]:text-v2-icon-icon-accent"
           state={props.state.liveViewOpened ? "pressed" : undefined}
           onClick={props.state.onLiveViewToggle}
           aria-label={props.state.liveViewLabel}
