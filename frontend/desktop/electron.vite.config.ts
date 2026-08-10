@@ -22,8 +22,8 @@ const nodePtyPkg = `@lydell/node-pty-${process.platform}-${process.arch}`
 // @tiancode-ai/app/vite; se permite por hash SHA-256 para no abrir
 // 'unsafe-inline'. connect-src incluye http: porque el renderer habla con el
 // sidecar local (http://127.0.0.1) y con servidores remotos configurados por
-// el usuario. media-src incluye blob: (audio TTS) y https: (vídeos de las
-// release notes).
+// el usuario. media-src incluye blob: y data: (audio TTS desde data: URIs) y
+// https: (vídeos de las release notes).
 const rendererCsp = (() => {
   const themePreloadPath = fileURLToPath(new URL("../app/public/oc-theme-preload.js", import.meta.url))
   const themeHash = createHash("sha256").update(readFileSync(themePreloadPath, "utf8")).digest("base64")
@@ -33,7 +33,7 @@ const rendererCsp = (() => {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
-    "media-src 'self' blob: https:",
+    "media-src 'self' blob: data: https:",
     "connect-src 'self' http: https: wss: ws:",
     "frame-src 'self' https:",
     "object-src 'none'",
