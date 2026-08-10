@@ -1,0 +1,94 @@
+{
+  "mcp": {
+    "photoshop": {
+      "type": "local",
+      "command": [
+        "C:\\Users\\Dreitz\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+        "C:\\Users\\Dreitz\\Desktop\\Tiancode\\frontend\\desktop\\resources\\mcp\\AI-MCP-SUITE\\Photoshop\\server.py"
+      ],
+      "environment": {
+        "MCP_CONFIG": "{\"photoshop_exe\": \"C:/Program Files/Adobe/Adobe Photoshop 2024/Photoshop.exe\", \"uxp_bridge_url\": \"http://127.0.0.1:24000\", \"scripts_dir\": \"%USERPROFILE%/AppData/Roaming/Adobe/Adobe Photoshop 2024/Presets/Scripts\"}"
+      }
+    },
+    "indesign": {
+      "type": "local",
+      "command": [
+        "C:\\Users\\Dreitz\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+        "C:\\Users\\Dreitz\\Desktop\\Tiancode\\frontend\\desktop\\resources\\mcp\\AI-MCP-SUITE\\InDesign\\server.py"
+      ],
+      "environment": {
+        "MCP_CONFIG": "{\"indesign_exe\": \"C:/Program Files/Adobe/Adobe InDesign 2024/InDesign.exe\", \"scripts_dir\": \"%USERPROFILE%/AppData/Roaming/Adobe/InDesign/Version 19.0/en_US/Scripts/Scripts Panel\", \"uxp_bridge_url\": \"http://127.0.0.1:24001\"}"
+      }
+    },
+    "illustrator": {
+      "type": "local",
+      "command": [
+        "C:\\Users\\Dreitz\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+        "C:\\Users\\Dreitz\\Desktop\\Tiancode\\frontend\\desktop\\resources\\mcp\\AI-MCP-SUITE\\Illustrator\\server.py"
+      ],
+      "environment": {
+        "MCP_CONFIG": "{\"illustrator_exe\": \"C:/Program Files/Adobe/Adobe Illustrator 2024/Support Files/Contents/Windows/Illustrator.exe\", \"scripts_dir\": \"%USERPROFILE%/AppData/Roaming/Adobe/Adobe Illustrator 2024 Settings/en_US/Scripts\"}"
+      }
+    },
+    "coreldraw": {
+      "type": "local",
+      "command": [
+        "C:\\Users\\Dreitz\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+        "C:\\Users\\Dreitz\\Desktop\\Tiancode\\frontend\\desktop\\resources\\mcp\\AI-MCP-SUITE\\CorelDRAW\\server.py"
+      ],
+      "environment": {
+        "MCP_CONFIG": "{\"prog_id\": \"CorelDRAW.Application\"}"
+      }
+    },
+    "operagx": {
+      "type": "local",
+      "command": [
+        "C:\\Users\\Dreitz\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+        "C:\\Users\\Dreitz\\Desktop\\Tiancode\\frontend\\desktop\\resources\\mcp\\AI-MCP-SUITE\\OperaGX\\server.py"
+      ],
+      "environment": {
+        "MCP_CONFIG": "{\"cdp_port\": 9222, \"browser_exe\": \"C:/Program Files/Opera GX/opera.exe\"}"
+      }
+    },
+    "gamedev-unrealengine": {
+      "type": "local",
+      "command": [
+        "C:\\Users\\Dreitz\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+        "C:\\Users\\Dreitz\\Desktop\\Tiancode\\frontend\\desktop\\resources\\mcp\\AI-MCP-SUITE\\GameDev\\UnrealEngine\\server.py"
+      ],
+      "environment": {
+        "MCP_CONFIG": "{\"engine_root\": \"C:/Program Files/Epic Games/UE_5.4\", \"project_path\": \"%USERPROFILE%/Documents/Unreal Projects\", \"uat_script\": \"C:/Program Files/Epic Games/UE_5.4/Engine/Build/BatchFiles/RunUAT.bat\"}"
+      }
+    },
+    "gamedev-unity": {
+      "type": "local",
+      "command": [
+        "C:\\Users\\Dreitz\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+        "C:\\Users\\Dreitz\\Desktop\\Tiancode\\frontend\\desktop\\resources\\mcp\\AI-MCP-SUITE\\GameDev\\Unity\\server.py"
+      ],
+      "environment": {
+        "MCP_CONFIG": "{\"unity_exe\": \"C:/Program Files/Unity/Hub/Editor/6000.0.32f1/Editor/Unity.exe\", \"project_path\": \"%USERPROFILE%/Documents/Unity Projects\"}"
+      }
+    },
+    "gamedev-godot": {
+      "type": "local",
+      "command": [
+        "C:\\Users\\Dreitz\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+        "C:\\Users\\Dreitz\\Desktop\\Tiancode\\frontend\\desktop\\resources\\mcp\\AI-MCP-SUITE\\GameDev\\Godot\\server.py"
+      ],
+      "environment": {
+        "MCP_CONFIG": "{\"godot_exe\": \"C:/Program Files/Godot/Godot_v4.3-stable_win64.exe\", \"project_path\": \"%USERPROFILE%/Documents/Godot Projects\"}"
+      }
+    },
+    "androidstudio": {
+      "type": "local",
+      "command": [
+        "C:\\Users\\Dreitz\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+        "C:\\Users\\Dreitz\\Desktop\\Tiancode\\frontend\\desktop\\resources\\mcp\\AI-MCP-SUITE\\AndroidStudio\\server.py"
+      ],
+      "environment": {
+        "MCP_CONFIG": "{\"android_sdk_root\": \"%LOCALAPPDATA%/Android/Sdk\", \"gradle_wrapper_dir\": \"%USERPROFILE%/Documents/Android Studio Projects\", \"studio_exe\": \"C:/Program Files/Android/Android Studio/bin/studio64.exe\", \"adb_path\": \"\"}"
+      }
+    }
+  }
+}

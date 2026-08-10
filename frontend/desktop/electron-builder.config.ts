@@ -75,6 +75,12 @@ const getBase = (appId: string): Configuration => ({
       from: "resources/icons",
       to: "icons",
     },
+    // MCP empaquetados (vista en vivo + suite): se sirven desde
+    // resources/mcp tanto en instalado como en portable.
+    {
+      from: "resources/mcp",
+      to: "mcp",
+    },
     ...(channel === "dev"
       ? [
           {

@@ -1,0 +1,12 @@
+{
+  "dashboard_host": "127.0.0.1",
+  "dashboard_port": 8790,
+  "poll_interval_seconds": 0.5,
+  "max_file_bytes": 1000000,
+  "max_event_history": 500,
+  "desktop_capture_interval_seconds": 2,
+  "auto_open_dashboard": false,
+  "max_tracked_files": 2000,
+  "log_limit": 2000,
+  "ignored_dirs": [".git", "node_modules", ".venv", "venv", "__pycache__", ".next", ".turbo"]
+}

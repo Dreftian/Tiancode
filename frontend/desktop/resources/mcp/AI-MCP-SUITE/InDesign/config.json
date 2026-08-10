@@ -1,0 +1,5 @@
+{
+  "indesign_exe": "C:/Program Files/Adobe/Adobe InDesign 2024/InDesign.exe",
+  "scripts_dir": "%USERPROFILE%/AppData/Roaming/Adobe/InDesign/Version 19.0/en_US/Scripts/Scripts Panel",
+  "uxp_bridge_url": "http://127.0.0.1:24001"
+}

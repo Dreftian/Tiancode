@@ -1,0 +1,6 @@
+{
+  "android_sdk_root": "%LOCALAPPDATA%/Android/Sdk",
+  "gradle_wrapper_dir": "%USERPROFILE%/Documents/Android Studio Projects",
+  "studio_exe": "C:/Program Files/Android/Android Studio/bin/studio64.exe",
+  "adb_path": ""
+}

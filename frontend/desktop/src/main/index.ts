@@ -53,6 +53,7 @@ import { migrate } from "./migrate"
 import { cleanupStoreFiles } from "./store-cleanup"
 import { startBackgroundCli } from "./background-cli"
 import { getCredentialKey } from "./credential-key"
+import { seedBundledMcpServers } from "./mcp-bundle"
 import { setNativeTranslations } from "./native-translations"
 import { createTray } from "./tray"
 import { ensureLoopbackNoProxy, useEnvProxy } from "./util/proxy"
@@ -356,6 +357,11 @@ const main = Effect.gen(function* () {
         username: sidecar.username,
         password: sidecar.password,
       })
+      // MCP empaquetados con la app: se registran con las rutas del binario
+      // actual (instalado o portable) sin bloquear el arranque.
+      void seedBundledMcpServers({ url: sidecar.url, username: sidecar.username, password: sidecar.password }).catch(
+        (error) => logger.warn("bundled mcp seeding failed", error),
+      )
 
       if (process.platform === "win32") {
         void wslServers.initialize().catch((error) => logger.error("wsl server initialization failed", error))
