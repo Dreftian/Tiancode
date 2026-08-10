@@ -51,10 +51,13 @@ let relaunchHandler = () => {
   app.relaunch()
   app.exit(0)
 }
-// Guests del <webview> de preview (partición "persist:preview") por ventana
-// host. Solo estos webContents son capturables vía "capture-preview": el
-// renderer no aporta el id, se resuelve desde la ventana que llama.
+// Guests de los <webview> capturables por ventana host, por partición:
+// "persist:preview" es el navegador interno (capture-preview) y
+// "persist:live-view" es el panel "Vista en vivo" de la sesión
+// (capture-live-view). El renderer no aporta el id: se resuelve desde la
+// ventana que llama.
 const previewGuests = new Map<number, number>()
+const liveViewGuests = new Map<number, number>()
 const titlebarThemes = new WeakMap<BrowserWindow, Partial<TitlebarTheme>>()
 const pinchZoomEnabled = new WeakMap<BrowserWindow, boolean>()
 const windowIDs = new WeakMap<BrowserWindow, string>()
@@ -224,7 +227,7 @@ export function createMainWindow(id: string = randomUUID()) {
   })
 
   allowRendererPermissions(win)
-  hardenPreviewSession()
+  hardenGuestSessions()
   wirePreviewGuestTracking(win)
   wireWindowRecovery(win, id)
   wireNavigationPolicy(win)
@@ -528,30 +531,46 @@ function isTrustedRendererUrl(value?: string) {
   return isRendererUrl(value)
 }
 
-// The preview <webview> runs in its own session ("persist:preview") that the
-// main window's permission handlers never see, so without this Electron would
-// grant guest pages any permission they ask for. Deny everything: the preview
-// is for viewing apps/sites, not for camera/mic/geolocation.
-function hardenPreviewSession() {
-  const previewSession = session.fromPartition("persist:preview")
-  previewSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false))
-  previewSession.setPermissionCheckHandler(() => false)
+// Los <webview> de preview corren en particiones propias que los handlers de
+// permisos de la ventana principal nunca ven, así que sin esto Electron
+// concedería a las páginas guest cualquier permiso que pidieran. Se deniega
+// todo: el preview es para ver apps/sitios, no para cámara/mic/geolocalización.
+function hardenGuestSessions() {
+  for (const partition of ["persist:preview", "persist:live-view"]) {
+    const guestSession = session.fromPartition(partition)
+    guestSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false))
+    guestSession.setPermissionCheckHandler(() => false)
+  }
 }
 
-// Registra el guest del <webview> de preview (si lo hay) para poder capturarlo
-// después sin fiarse del id que envíe el renderer.
+// Registra los guests de los <webview> de preview (si los hay) para poder
+// capturarlos después sin fiarse del id que envíe el renderer. Cada partición
+// tiene su propio mapa: el navegador interno y el panel "Vista en vivo"
+// pueden existir a la vez en la misma ventana sin pisarse.
 function wirePreviewGuestTracking(win: BrowserWindow) {
   win.webContents.on("did-attach-webview", (_event, guest) => {
-    if (guest.session !== session.fromPartition("persist:preview")) return
-    previewGuests.set(win.webContents.id, guest.id)
-    guest.once("destroyed", () => {
-      if (previewGuests.get(win.webContents.id) === guest.id) previewGuests.delete(win.webContents.id)
-    })
+    if (guest.session === session.fromPartition("persist:preview")) {
+      previewGuests.set(win.webContents.id, guest.id)
+      guest.once("destroyed", () => {
+        if (previewGuests.get(win.webContents.id) === guest.id) previewGuests.delete(win.webContents.id)
+      })
+      return
+    }
+    if (guest.session === session.fromPartition("persist:live-view")) {
+      liveViewGuests.set(win.webContents.id, guest.id)
+      guest.once("destroyed", () => {
+        if (liveViewGuests.get(win.webContents.id) === guest.id) liveViewGuests.delete(win.webContents.id)
+      })
+    }
   })
 }
 
 export function getPreviewGuestWebContentsId(hostWebContentsId: number) {
   return previewGuests.get(hostWebContentsId) ?? null
+}
+
+export function getLiveViewGuestWebContentsId(hostWebContentsId: number) {
+  return liveViewGuests.get(hostWebContentsId) ?? null
 }
 
 function addRendererHeaders(value: string, headers: Record<string, any>) {

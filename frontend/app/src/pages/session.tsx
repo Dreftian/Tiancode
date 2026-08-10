@@ -49,7 +49,10 @@ import { useLanguage } from "@/context/language"
 import { useLayout } from "@/context/layout"
 import { ModelsProvider } from "@/context/models"
 import { useNotification } from "@/context/notification"
-import { PromptProvider, usePrompt } from "@/context/prompt"
+import { PromptProvider, usePrompt, type ImageAttachmentPart } from "@/context/prompt"
+import { attachmentMime } from "@/components/prompt-input/files"
+import { createBlobReference } from "@/utils/draft-store"
+import { uuid } from "@/utils/uuid"
 import { usePlatform } from "@/context/platform"
 import { SDKProvider, useSDK } from "@/context/sdk"
 import { useServerSDK } from "@/context/server-sdk"
@@ -376,6 +379,24 @@ export default function Page() {
   const reviewFile = () => view().review.file()
   const sessionOwnership = createSessionOwnership(sessionKey)
   const newSessionDesign = createMemo(() => settings.general.newLayoutDesigns())
+
+  // Adjunta una captura del panel "Vista en vivo" al prompt como media part,
+  // igual que las capturas del composer (el modelo la analiza vía un MCP de
+  // visión aunque no tenga visión nativa).
+  const attachLiveViewCapture = async (file: File) => {
+    const mime = await attachmentMime(file)
+    if (!mime) return
+    const target = prompt.capture()
+    const attachment: ImageAttachmentPart = {
+      type: "image",
+      id: uuid(),
+      filename: file.name,
+      sourcePath: platform.getPathForFile?.(file),
+      mime,
+      blob: await createBlobReference(file),
+    }
+    target.set([...target.current(), attachment], target.cursor())
+  }
 
   createEffect(() => {
     if (!prompt.ready()) return
@@ -2398,7 +2419,7 @@ export default function Page() {
                 />
               </div>
               <div class="min-h-0 min-w-0 flex-1">
-                <LiveViewPanel />
+                <LiveViewPanel onCapture={attachLiveViewCapture} />
               </div>
             </div>
           </Show>
@@ -2428,7 +2449,7 @@ export default function Page() {
               <TerminalPanelV2 stacked />
             </Show>
             <Show when={!terminalOpen() && !sandboxSideAvailable() && liveViewOpen()}>
-              <LiveViewPanel />
+              <LiveViewPanel onCapture={attachLiveViewCapture} />
             </Show>
           </div>
         </Show>

@@ -57,6 +57,18 @@ const icons = {
     viewBox: "0 0 16 16",
     body: `<path d="M5 6.5L8 9.5L11 6.5" stroke="currentColor"/>`,
   },
+  "arrow-left": {
+    viewBox: "0 0 16 16",
+    body: `<path d="M13.5 8H2.5M2.5 8L7 3.5M2.5 8L7 12.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>`,
+  },
+  "arrow-right": {
+    viewBox: "0 0 16 16",
+    body: `<path d="M2.5 8H13.5M13.5 8L9 3.5M13.5 8L9 12.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>`,
+  },
+  globe: {
+    viewBox: "0 0 16 16",
+    body: `<circle cx="8" cy="8" r="5.5" stroke="currentColor"/><path d="M2.5 8H13.5M8 2.5C9.5 3.9 10.3 5.9 10.3 8C10.3 10.1 9.5 12.1 8 13.5C6.5 12.1 5.7 10.1 5.7 8C5.7 5.9 6.5 3.9 8 2.5Z" stroke="currentColor"/>`,
+  },
   collapse: {
     viewBox: "0 0 16 16",
     body: `<path d="M8 1V6M11 3L8 6L5 3" stroke="currentColor"/><path d="M8 15V10M11 13L8 10L5 13" stroke="currentColor"/><path d="M4 8H6" stroke="currentColor"/><path d="M7 8H9" stroke="currentColor"/><path d="M10 8H12" stroke="currentColor"/>`,

@@ -327,9 +327,11 @@ const createPlatform = (windowState: DesktopWindowState): Platform => {
           ? await window.api.capture.window()
           : kind === "preview"
             ? await window.api.capture.preview(options?.webContentsId ?? 0)
-            : kind === "area"
-              ? await window.api.capture.area(options?.bounds ?? { x: 0, y: 0, width: 0, height: 0 })
-              : await window.api.capture.screen()
+            : kind === "liveView"
+              ? await window.api.capture.liveView()
+              : kind === "area"
+                ? await window.api.capture.area(options?.bounds ?? { x: 0, y: 0, width: 0, height: 0 })
+                : await window.api.capture.screen()
       if (!result) return null
       const blob = new Blob([result.buffer], { type: "image/png" })
       return new File([blob], `screenshot-${Date.now()}.png`, {

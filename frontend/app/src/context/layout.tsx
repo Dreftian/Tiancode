@@ -94,7 +94,7 @@ export type HomeProjectSelection = { server: ServerConnection.Key; directory?: s
 export type ReviewDiffStyle = "unified" | "split"
 export type ReviewChangeMode = "git" | "branch" | "turn"
 export type ReviewPanelSource = "context-button" | "other"
-export type LiveViewTab = "preview" | "code"
+export type LiveViewTab = "preview" | "code" | "devtools"
 
 function sandboxSideViewport() {
   if (typeof window === "undefined") return true
@@ -836,7 +836,10 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         })
         const terminalOpened = createMemo(() => store.terminal?.opened ?? false)
         const liveViewOpened = createMemo(() => store.liveView?.opened ?? false)
-        const liveViewTab = createMemo<LiveViewTab>(() => (store.liveView?.tab === "code" ? "code" : "preview"))
+        const liveViewTab = createMemo<LiveViewTab>(() => {
+          const stored = store.liveView?.tab
+          return stored === "code" || stored === "devtools" ? stored : "preview"
+        })
         const liveViewWidth = createMemo(() => {
           const width = store.liveView?.width
           if (typeof width === "number" && width > 0) return width

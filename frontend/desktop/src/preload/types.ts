@@ -203,6 +203,7 @@ export type ElectronAPI = {
     area: (bounds: { x: number; y: number; width: number; height: number }) => Promise<{ buffer: ArrayBuffer; width: number; height: number }>
     window: () => Promise<{ buffer: ArrayBuffer; width: number; height: number }>
     preview: (webContentsId: number) => Promise<{ buffer: ArrayBuffer; width: number; height: number }>
+    liveView: () => Promise<{ buffer: ArrayBuffer; width: number; height: number }>
   }
   setLoginItem: (enabled: boolean) => Promise<boolean>
   getLoginItem: () => Promise<boolean>

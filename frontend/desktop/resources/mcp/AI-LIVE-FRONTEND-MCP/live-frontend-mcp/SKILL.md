@@ -24,7 +24,10 @@ dashboard (http://127.0.0.1:8790/) while you build.
 2. **Point the preview.** Call `set_preview` with the URL of the running dev
    server (e.g. `http://localhost:5173`) so the dashboard iframe shows the
    app. Prefer reporting the preview URL early — it is the first thing the
-   user looks at.
+   user looks at. In the Tiancode desktop app, `set_preview` also navigates
+   the "Vista en vivo" panel automatically; if no preview URL is set, the
+   panel detects the first local dev-server URL (`http://localhost:PORT`)
+   among the published logs — report the URL when you start the server.
 3. **Announce the phase.** Call `set_phase` whenever you start or finish a
    stage: `"scaffolding"`, `"building"`, `"styling"`, `"fixing"`, ... with
    `status` `"working"` while in progress, `"done"` when complete, and

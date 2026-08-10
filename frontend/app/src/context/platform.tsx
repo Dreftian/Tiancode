@@ -118,7 +118,7 @@ type PlatformBase = {
 
   /** Capture a screenshot as a PNG File to attach in the chat (desktop only) */
   captureScreenshot?(
-    kind: "screen" | "area" | "window" | "preview",
+    kind: "screen" | "area" | "window" | "preview" | "liveView",
     options?: { bounds?: { x: number; y: number; width: number; height: number }; webContentsId?: number },
   ): Promise<File | null>
 

@@ -27,7 +27,7 @@ import { nativeT } from "./native-translations"
 import { downloadVoices, deleteVoice, downloadVoice, getVoicesStatus, listVoices, selectVoice, setVoiceEnabled, speakVoice } from "./voices"
 import { asrChunk, asrStart, asrStop, ensureAsrModel, getAsrStatus } from "./asr"
 import { getRuntimeInstallState, installRuntime } from "./runtime-install"
-import { captureArea, capturePreview, captureScreen, captureWindow } from "./capture"
+import { captureArea, captureLiveView, capturePreview, captureScreen, captureWindow } from "./capture"
 import { backupNow, listBackups, restoreBackup } from "./backup"
 
 // Apps "abrir con" que acepta open-path. En macOS y Linux el renderer envía
@@ -377,6 +377,7 @@ export function registerIpcHandlers(deps: Deps) {
   )
   ipcMain.handle("capture-window", (event: IpcMainInvokeEvent) => captureWindow(event.sender))
   ipcMain.handle("capture-preview", (event: IpcMainInvokeEvent) => capturePreview(event.sender.id))
+  ipcMain.handle("capture-live-view", (event: IpcMainInvokeEvent) => captureLiveView(event.sender.id))
 
   // Inicio con Windows: el estado lo gestiona el sistema operativo.
   ipcMain.handle("set-login-item", (_event: IpcMainInvokeEvent, enabled: boolean) => {

@@ -150,6 +150,7 @@ const api: ElectronAPI = {
     area: (bounds) => ipcRenderer.invoke("capture-area", bounds),
     window: () => ipcRenderer.invoke("capture-window"),
     preview: (webContentsId) => ipcRenderer.invoke("capture-preview", webContentsId),
+    liveView: () => ipcRenderer.invoke("capture-live-view"),
   },
   setLoginItem: (enabled) => ipcRenderer.invoke("set-login-item", enabled),
   getLoginItem: () => ipcRenderer.invoke("get-login-item"),
