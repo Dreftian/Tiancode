@@ -104,6 +104,28 @@ const DiscoverPresets: DiscoverPreset[] = [
     },
     requiresSetup: true,
   },
+  // Suite local AI-MCP-SUITE (escritorio): cada integración es un server.py
+  // con su config.json (MCP_CONFIG). Rutas ajustables en Editar por máquina.
+  ...(
+    [
+      { id: "photoshop", folder: "Photoshop" },
+      { id: "indesign", folder: "InDesign" },
+      { id: "illustrator", folder: "Illustrator" },
+      { id: "coreldraw", folder: "CorelDRAW" },
+      { id: "opera_gx", folder: "OperaGX" },
+      { id: "unreal_cli", folder: "GameDev/UnrealEngine" },
+      { id: "unity", folder: "GameDev/Unity" },
+      { id: "godot", folder: "GameDev/Godot" },
+      { id: "android_studio", folder: "AndroidStudio" },
+    ] as const
+  ).map(({ id, folder }) => ({
+    id,
+    type: "local" as const,
+    command: "python server.py",
+    args: ["python", `C:/Users/Dreitz/Desktop/AI-MCP-SUITE/${folder}/server.py`],
+    environment: { MCP_CONFIG: `C:/Users/Dreitz/Desktop/AI-MCP-SUITE/${folder}/config.json` },
+    requiresSetup: true,
+  })),
   { id: "canva", type: "remote", url: "https://mcp.canva.com/mcp" },
   { id: "circle", type: "remote", url: "https://developers.circle.com/mcp" },
   { id: "appwrite", type: "remote", url: "https://mcp.appwrite.io/" },

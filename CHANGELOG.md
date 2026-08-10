@@ -4,6 +4,15 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.10] — 2026-08-09
+
+### Nuevo
+
+- **Catálogo Descubrir: presets AI-MCP-SUITE** — los 9 integradores de la
+  suite local (Photoshop, InDesign, Illustrator, CorelDRAW, Opera GX, Unreal
+  CLI, Unity, Godot, Android Studio) se activan con un clic, con comandos y
+  entorno preconfigurados (rutas ajustables en Editar).
+
 ## [1.0.9] — 2026-08-09
 
 ### Nuevo
