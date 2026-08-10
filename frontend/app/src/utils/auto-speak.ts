@@ -1,7 +1,12 @@
-// Lectura en voz alta en tiempo real: mientras el modelo genera una respuesta,
-// el texto nuevo se divide en tramos y se encola para reproducirse con la voz
-// seleccionada. Cada tramo suena cuando termina el anterior; si el usuario
-// habla un mensaje manualmente o desactiva la opción, la cola se descarta.
+// Lectura en voz alta del anuncio del asistente, sincronizada con el stream.
+//
+// Mientras el modelo genera una respuesta, su primer tramo de texto es el
+// anuncio de lo que va a hacer. Leerlo por fragmentos suena cortado y
+// desincronizado ("Voy a" → pausa → "crear la web"), así que se espera a que
+// el texto deje de crecer (pausa del stream) y se lee el anuncio COMPLETO de
+// una vez. El resto del mensaje no se lee. Si el usuario envía una petición o
+// desactiva la opción, la lectura se corta (stopAutoSpeak) y el siguiente
+// anuncio arranca limpio.
 
 import { currentSpeakingKey, speakWithVoices, stopSpeaking, isVoiceSpeaking } from "./voices"
 
@@ -10,34 +15,21 @@ const MAX_AUTO_CHARS = 60_000
 // Número máximo de partes recordadas: el set crece con cada parte transmitida,
 // así que las más antiguas se descartan para no acumular memoria sin límite.
 const MAX_SEEN_PARTS = 500
-// Un tramo suena ~2-4s; dividir por oraciones evita cortes a mitad de frase,
-// pero tramos muy cortos encadenan pausas de síntesis. Se agrupan oraciones
-// hasta ~180 caracteres para que la lectura sea continua y fluida.
-const MAX_CHUNK_CHARS = 180
-export const splitChunks = (text: string): string[] => {
-  const sentences = text
-    .split(/(?<=[.!?…])\s+|\n+/)
-    .map((chunk) => chunk.trim())
-    .filter((chunk) => chunk.length > 0)
-  const chunks: string[] = []
-  let current = ""
-  for (const sentence of sentences) {
-    if (current && current.length + sentence.length > MAX_CHUNK_CHARS) {
-      chunks.push(current)
-      current = sentence
-    } else {
-      current = current ? `${current} ${sentence}` : sentence
-    }
-  }
-  if (current) chunks.push(current)
-  return chunks
-}
+// Pausa del stream que indica que el anuncio está completo (el modelo suele
+// pausar entre el plan y la ejecución).
+const STABILIZE_MS = 1400
+// Si el modelo genera sin pausas, se lee lo acumulado pasada esta espera.
+const MAX_WAIT_MS = 8000
 
 // Partes que ya se consideran leídas: al volver a activar la opción no se
 // releen mensajes antiguos (el timeline solo encola partes nuevas).
 const seenParts = new Set<string>()
 
-// Devuelve true si la parte es nueva (y la recuerda); false si ya se leyó. El
+// Partes cuyo anuncio ya se leyó: el resto del texto de la misma parte no se
+// vuelve a leer (solo anuncio).
+const announcedParts = new Set<string>()
+
+// Devuelve true si la parte es nueva (y la recuerda); false si ya se vio. El
 // set conserva el orden de inserción, así que descartar la primera entrada
 // evita las más antiguas. Una parte descartada podría releerse si sigue
 // transmitiendo texto, un coste asumible en sesiones de miles de partes.
@@ -51,70 +43,83 @@ function markSeen(partId: string) {
   return true
 }
 
-let currentKey: string | undefined
-let consumed = 0
-let queue: string[] = []
-let pumping = false
-
 function autoKey(partId: string) {
   return `${AUTO_KEY_PREFIX}${partId}`
 }
 
-// Encola el texto nuevo de una parte (se llama en cada cambio del stream).
+let currentKey: string | undefined
+let pendingText = ""
+let stabilizeTimer: ReturnType<typeof setTimeout> | undefined
+let maxWaitTimer: ReturnType<typeof setTimeout> | undefined
+
+// Encola el texto nuevo de la parte (se llama en cada cambio del stream).
 export function enqueueAutoSpeak(partId: string, text: string) {
   const key = autoKey(partId)
   if (markSeen(partId)) {
-    // Parte nueva: arranca la lectura con el texto disponible hasta ahora.
+    // Parte nueva: el anuncio empieza a formarse. Se espera a que el stream
+    // haga una pausa para leerlo completo, no en fragmentos.
     if (!text.trim()) return
     currentKey = key
-    consumed = 0
-    queue = []
-  } else if (currentKey !== key) {
+    pendingText = text
+    scheduleStabilize(key)
     return
   }
+  if (currentKey !== key) return
+  if (announcedParts.has(partId)) return
   if (text.length > MAX_AUTO_CHARS) return
-  const fresh = text.slice(consumed)
-  consumed = text.length
-  if (!fresh.trim()) return
-  queue.push(...splitChunks(fresh))
-  void pump(key)
+  if (text === pendingText) return
+  pendingText = text
+  scheduleStabilize(key)
 }
 
-async function pump(key: string) {
-  if (pumping) return
-  pumping = true
-  try {
-    while (queue.length > 0) {
-      if (currentKey !== key) return
-      // Si el usuario empezó a leer algo manualmente, se descarta la cola.
-      const active = currentSpeakingKey()
-      if (active && active !== key) {
-        queue = []
-        return
-      }
-      const chunk = queue[0]
-      const error = await speakWithVoices(key, chunk)
-      if (error) {
-        queue = []
-        return
-      }
-      if (currentKey !== key) return
-      queue.shift()
+function scheduleStabilize(key: string) {
+  if (stabilizeTimer !== undefined) clearTimeout(stabilizeTimer)
+  stabilizeTimer = setTimeout(() => {
+    stabilizeTimer = undefined
+    if (maxWaitTimer !== undefined) {
+      clearTimeout(maxWaitTimer)
+      maxWaitTimer = undefined
     }
-  } finally {
-    pumping = false
-    // Si mientras sonaba el tramo anterior llegó una parte nueva (el pump de
-    // esa parte retornó por `pumping`), relanza el drenado con la cola actual.
-    if (currentKey && queue.length > 0) void pump(currentKey)
+    void readAnnouncement(key)
+  }, STABILIZE_MS)
+  if (maxWaitTimer === undefined) {
+    maxWaitTimer = setTimeout(() => {
+      maxWaitTimer = undefined
+      if (stabilizeTimer !== undefined) {
+        clearTimeout(stabilizeTimer)
+        stabilizeTimer = undefined
+      }
+      void readAnnouncement(key)
+    }, MAX_WAIT_MS)
   }
 }
 
-// Detiene la lectura automática y limpia la cola (sin olvidar las partes ya
+async function readAnnouncement(key: string) {
+  if (currentKey !== key) return
+  const partId = key.slice(AUTO_KEY_PREFIX.length)
+  if (announcedParts.has(partId)) return
+  const text = pendingText
+  if (!text.trim()) return
+  // Si el usuario empezó a leer algo manualmente, se descarta la lectura.
+  const active = currentSpeakingKey()
+  if (active && active !== key) return
+  const error = await speakWithVoices(key, text)
+  if (error) return
+  announcedParts.add(partId)
+}
+
+// Detiene la lectura automática y limpia el estado (sin olvidar las partes ya
 // leídas, para que reactivar la opción no relea mensajes antiguos).
 export function stopAutoSpeak() {
   if (currentKey && isVoiceSpeaking(currentKey)) stopSpeaking()
   currentKey = undefined
-  consumed = 0
-  queue = []
-  pumping = false
+  pendingText = ""
+  if (stabilizeTimer !== undefined) {
+    clearTimeout(stabilizeTimer)
+    stabilizeTimer = undefined
+  }
+  if (maxWaitTimer !== undefined) {
+    clearTimeout(maxWaitTimer)
+    maxWaitTimer = undefined
+  }
 }

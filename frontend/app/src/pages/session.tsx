@@ -79,6 +79,7 @@ import { createTimelineModel } from "@/pages/session/timeline/model"
 import { type DiffStyle, SessionReviewTab, type SessionReviewTabProps } from "@/pages/session/review-tab"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { restorePromptModel, syncPromptModel, syncSessionModel } from "@/pages/session/session-model-helpers"
+import { stopAutoSpeak } from "@/utils/auto-speak"
 import {
   clampSessionPanelWidth,
   SESSION_PANEL_WIDTH_MIN,
@@ -2266,6 +2267,11 @@ export default function Page() {
                         comments.clear()
                         resumeScroll()
                         maybeOpenLiveView()
+                        // Sincronización de voz: al enviar una petición se corta
+                        // la lectura del anuncio anterior; la voz del nuevo
+                        // anuncio arranca limpia cuando el modelo empieza a
+                        // responder.
+                        stopAutoSpeak()
                       },
                       get edit() {
                         return editingFollowup()
