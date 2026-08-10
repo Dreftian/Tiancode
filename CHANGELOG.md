@@ -5,6 +5,14 @@ Todas las versiones notables de Tiancode se documentan aquí.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
 ## [1.0.11] — 2026-08-10
+### Corregido
+
+- **Terminal roto por la CSP (desde v1.0.3)**: la terminal (ghostty) carga su
+  wasm desde una URL `data:` y la política `connect-src` del renderer de
+  escritorio no lo permitía — la terminal no cargaba. Añadido `data:` a
+  `connect-src` (la web ya lo tenía).
+
+
 
 ### Nuevo
 

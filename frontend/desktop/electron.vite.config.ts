@@ -34,7 +34,9 @@ const rendererCsp = (() => {
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
     "media-src 'self' blob: data: https:",
-    "connect-src 'self' http: https: wss: ws:",
+    // data: en connect-src: la terminal (ghostty) carga su wasm desde una URL
+    // data:application/wasm;base64 embebida (igual que la CSP web).
+    "connect-src 'self' data: http: https: wss: ws:",
     // frame-src permite el dashboard de la vista en vivo que sirve el MCP local
     // "live_frontend" en http://127.0.0.1:8790.
     "frame-src 'self' https: http://127.0.0.1:*",
