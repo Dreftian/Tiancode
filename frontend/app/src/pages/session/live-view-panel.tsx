@@ -36,8 +36,8 @@ function SandboxCodePanel() {
   // el navegador de archivos principal, la raíz no está cargada ni expandida y
   // el panel se ve vacío. Aquí se siembra al montar (idempotente).
   onMount(() => {
-    void file.list("")
-    file.expand("")
+    void file.tree.list("")
+    file.tree.expand("")
   })
 
   return (
