@@ -8,10 +8,11 @@ import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
 import { TextInputV2 } from "@tiancode-ai/ui/v2/text-input-v2"
 import { TextareaV2 } from "@tiancode-ai/ui/v2/textarea-v2"
 import type { Agent, PermissionRule } from "@tiancode-ai/sdk/v2/client"
-import { type Component, createMemo, createResource, createSignal, For, Show } from "solid-js"
+import { type Component, createEffect, createMemo, createResource, createSignal, For, Show } from "solid-js"
 import { useLanguage } from "@/context/language"
 import { useServerSDK } from "@/context/server-sdk"
 import { SettingsListV2 } from "./parts/list"
+import { SettingsPagerV2 } from "./parts/pager"
 import { SettingsRowV2 } from "./parts/row"
 import "./sub-agents.css"
 
@@ -146,6 +147,21 @@ export const SettingsSubAgentsV2: Component<{
   const visibleByStatus = (agents: Agent[]) => agents
   const visibleUserAgents = createMemo(() => visibleByStatus(userAgents().filter(matchesQuery)))
   const visibleBuiltinAgents = createMemo(() => visibleByStatus(builtinAgents().filter(matchesQuery)))
+
+  // Paginación de la lista de agentes de usuario: pocas filas en pantalla,
+  // sin scroll largo. La página se re-ajusta si la lista se encoge.
+  const USER_PAGE_SIZE = 8
+  const [userPage, setUserPage] = createSignal(1)
+  const userTotal = () => Math.max(1, Math.ceil(visibleUserAgents().length / USER_PAGE_SIZE))
+  const pageUserAgents = createMemo(() => {
+    const page = Math.min(userPage(), userTotal())
+    const start = (page - 1) * USER_PAGE_SIZE
+    return { items: visibleUserAgents().slice(start, start + USER_PAGE_SIZE), page, total: userTotal() }
+  })
+  createEffect(() => {
+    if (userPage() > userTotal()) setUserPage(userTotal())
+  })
+
   const editingAgent = createMemo(
     () => agentList().find((agent) => agent.name === editing()) ?? null,
   )
@@ -358,7 +374,7 @@ export const SettingsSubAgentsV2: Component<{
                   <span class="settings-v2-sub-agents-group-count">{visibleUserAgents().length}</span>
                 </div>
                 <SettingsListV2>
-                  <For each={visibleUserAgents()}>
+                  <For each={pageUserAgents().items}>
                     {(agent) => (
                       <div
                         class="settings-v2-sub-agents-item"
@@ -422,6 +438,13 @@ export const SettingsSubAgentsV2: Component<{
                     )}
                   </For>
                 </SettingsListV2>
+                <Show when={pageUserAgents().total > 1}>
+                  <SettingsPagerV2
+                    page={pageUserAgents().page}
+                    totalPages={pageUserAgents().total}
+                    onPage={setUserPage}
+                  />
+                </Show>
               </Show>
 
               <Show when={visibleBuiltinAgents().length > 0}>

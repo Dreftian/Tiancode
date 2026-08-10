@@ -15,6 +15,7 @@ import {
   onCleanup,
 } from "solid-js"
 import { useLanguage } from "@/context/language"
+import { SettingsPagerV2 } from "./parts/pager"
 import { useServerSDK } from "@/context/server-sdk"
 import { showToast } from "@/utils/toast"
 import { SettingsListV2 } from "./parts/list"
@@ -101,11 +102,16 @@ const DiscoverPresets: DiscoverPreset[] = [
   { id: "awsknowledge", type: "remote", url: "https://knowledge-mcp.global.api.aws" },
 ]
 
-// Servers are grouped by status (Connected, Errors, Disabled, Unknown) in
-// this order; groups with no members are omitted.
-type GroupKey = "connected" | "errors" | "disabled" | "unknown"
+// Servers are grouped by status (Connected, Errors, Require Key, Disabled,
+// Unknown) in this order; groups with no members are omitted. Los servidores
+// del catálogo que necesitan una clave API no se muestran en "Desactivados":
+// van a su propio grupo informativo.
+type GroupKey = "connected" | "errors" | "requiresKey" | "disabled" | "unknown"
 
-const statusGroup = (status: McpStatus | undefined): GroupKey => {
+// Presets del catálogo por id, para saber qué servidor "requiere clave".
+const presetById = new Map(DiscoverPresets.map((preset) => [preset.id, preset]))
+
+const statusGroup = (name: string, status: McpStatus | undefined): GroupKey => {
   switch (status?.status) {
     case "connected":
       return "connected"
@@ -114,7 +120,7 @@ const statusGroup = (status: McpStatus | undefined): GroupKey => {
     case "needs_client_registration":
       return "errors"
     case "disabled":
-      return "disabled"
+      return presetById.get(name)?.requiresKey ? "requiresKey" : "disabled"
     default:
       return "unknown"
   }
@@ -123,11 +129,15 @@ const statusGroup = (status: McpStatus | undefined): GroupKey => {
 const GroupLabels: Record<GroupKey, string> = {
   connected: "settings.mcpServers.group.connected",
   errors: "settings.mcpServers.group.errors",
+  requiresKey: "settings.mcpServers.group.requiresKey",
   disabled: "settings.mcpServers.group.disabled",
   unknown: "settings.mcpServers.group.unknown",
 }
 
-const GroupOrder: GroupKey[] = ["connected", "errors", "disabled", "unknown"]
+const GroupOrder: GroupKey[] = ["connected", "errors", "requiresKey", "disabled", "unknown"]
+
+// Auto-activación predeterminada de la sección MCP: una vez por sesión de app.
+let autoActivated = false
 
 // The SDK serializes some numeric fields as "NaN"/"Infinity" strings; only
 // real numbers should be shown as a tool count.
@@ -180,25 +190,37 @@ export const SettingsMcpServersV2: Component<{
 
   const params = () => (props.directory ? { directory: props.directory } : undefined)
 
-  const [data, { refetch }] = createResource(
+  // Config y estado por separado: el poll de estado (10 s) no re-renderiza la
+  // config ni remonta filas; solo actualiza los indicadores en vivo.
+  const [configData, { refetch: refetchConfig }] = createResource(
     async () => {
-      const [config, status] = await Promise.all([
-        serverSdk().client.config.get(params()),
-        serverSdk().client.mcp.status(params()),
-      ])
-      return { config: config.data ?? {}, status: status.data ?? {} }
+      const result = await serverSdk().client.config.get(params())
+      return result.data ?? {}
     },
-    { initialValue: { config: {} as Record<string, McpConfigValue>, status: {} as Record<string, McpStatus> } },
+    { initialValue: {} as Record<string, unknown> },
   )
+  const [statusData, { refetch: refetchStatus }] = createResource(
+    async () => {
+      const result = await serverSdk().client.mcp.status(params())
+      return result.data ?? {}
+    },
+    { initialValue: {} as Record<string, McpStatus> },
+  )
+  const refetchAll = () => {
+    void refetchConfig()
+    void refetchStatus()
+  }
 
   // Poll status so connection state and tool counts stay live while the
   // dialog is open; the interval is torn down with the component.
   onMount(() => {
-    const interval = setInterval(() => void refetch(), 10_000)
+    const interval = setInterval(() => void refetchStatus(), 10_000)
     onCleanup(() => clearInterval(interval))
   })
 
-  const servers = createMemo(() => Object.entries(data().config.mcp ?? {}) as [string, McpConfigValue][])
+  const servers = createMemo(
+    () => Object.entries((configData().mcp ?? {}) as Record<string, McpConfigValue>) as [string, McpConfigValue][],
+  )
   const editingConfig = createMemo(() => servers().find(([serverName]) => serverName === editing())?.[1])
 
   const visibleServers = createMemo(() => {
@@ -207,14 +229,40 @@ export const SettingsMcpServersV2: Component<{
     return servers().filter(([serverName]) => serverName.toLowerCase().includes(query))
   })
 
+  // Paginación: cada grupo se pagina por separado para no perder la agrupación
+  // por estado al pasar de página.
+  const GROUP_PAGE_SIZE = 10
+  const [groupPages, setGroupPages] = createSignal<Record<string, number>>({})
+  const groupPage = (key: GroupKey) => Math.max(1, groupPages()[key] ?? 1)
+  const setGroupPage = (key: GroupKey, page: number) =>
+    setGroupPages((current) => ({ ...current, [key]: Math.max(1, page) }))
+  const pageItems = (items: [string, McpConfigValue][], key: GroupKey) => {
+    const total = Math.max(1, Math.ceil(items.length / GROUP_PAGE_SIZE))
+    const page = Math.min(groupPage(key), total)
+    const start = (page - 1) * GROUP_PAGE_SIZE
+    return { items: items.slice(start, start + GROUP_PAGE_SIZE), page, total }
+  }
+
   const groupedServers = createMemo(() =>
     GroupOrder.flatMap((key) => {
       const items = visibleServers()
-        .filter(([serverName]) => statusGroup(data().status[serverName]) === key)
+        .filter(([serverName]) => statusGroup(serverName, statusData()[serverName]) === key)
         .sort(([a], [b]) => a.localeCompare(b))
-      return items.length === 0 ? [] : [{ key, items }]
+      if (items.length === 0) return []
+      const paged = pageItems(items, key)
+      return [{ key, count: items.length, items: paged.items, page: paged.page, total: paged.total }]
     }),
   )
+
+  // Paginación del catálogo Discover (lista larga con descripciones).
+  const DISCOVER_PAGE_SIZE = 8
+  const [discoverPage, setDiscoverPage] = createSignal(1)
+  const discoverTotal = () => Math.max(1, Math.ceil(DiscoverPresets.length / DISCOVER_PAGE_SIZE))
+  const discoverItems = createMemo(() => {
+    const page = Math.min(discoverPage(), discoverTotal())
+    const start = (page - 1) * DISCOVER_PAGE_SIZE
+    return { items: DiscoverPresets.slice(start, start + DISCOVER_PAGE_SIZE), page, total: discoverTotal() }
+  })
 
   const statusInfo = (status: McpStatus | undefined): { key: string; tone: string } => {
     switch (status?.status) {
@@ -323,7 +371,7 @@ export const SettingsMcpServersV2: Component<{
     try {
       await serverSdk().client.mcp.add({ ...params(), name: serverName, config: buildConfig() })
       setMessage("success")
-      void refetch()
+      refetchAll()
     } catch {
       setMessage("error")
     } finally {
@@ -341,7 +389,7 @@ export const SettingsMcpServersV2: Component<{
     }
     try {
       await serverSdk().client.mcp.add({ ...params(), name: serverName, config: { ...config, enabled } })
-      void refetch()
+      refetchAll()
     } catch {
       setMessage("error")
     }
@@ -384,19 +432,19 @@ export const SettingsMcpServersV2: Component<{
       } else {
         await serverSdk().client.config.update({ ...params(), config: { mcp: { [preset.id]: { enabled: false } } } })
       }
-      void refetch()
+      refetchAll()
     } catch {
       setMessage("error")
     }
   }
 
-  // Activa todos los presets del catálogo que estén desactivados o sin
-  // configurar: cada uno se agrega con su configuración completa y enabled
-  // true (best-effort connect), para que nada quede "desactivado" por defecto.
+  // Activa un conjunto de presets que estén desactivados o sin configurar:
+  // cada uno se agrega con su configuración completa y enabled true
+  // (best-effort connect), para que nada quede "desactivado" por defecto.
   // Los servidores OAuth quedan en "needs_auth" con su botón de autenticar.
-  const activateAll = async () => {
+  const activatePresets = async (presets: DiscoverPreset[]) => {
     setMessage(undefined)
-    const pending = DiscoverPresets.filter((preset) => {
+    const pending = presets.filter((preset) => {
       const existing = servers().find(([serverName]) => serverName === preset.id)?.[1]
       return existing === undefined || existing.enabled === false
     })
@@ -413,14 +461,28 @@ export const SettingsMcpServersV2: Component<{
         }
       }),
     )
-    void refetch()
+    refetchAll()
   }
+
+  const activateAll = () => void activatePresets(DiscoverPresets)
+
+  // Auto-activación predeterminada: la primera vez que se abre la sección MCP
+  // (una vez por sesión de app) se activan los presets que no requieren clave
+  // API ni setup local, para que todo lo activable esté activo por defecto.
+  // Los que requieren clave quedan fuera y se muestran en su grupo propio.
+  onMount(() => {
+    if (autoActivated) return
+    autoActivated = true
+    void activatePresets(
+      DiscoverPresets.filter((preset) => !preset.requiresKey && !preset.requiresSetup),
+    )
+  })
 
   const connect = async (serverName: string) => {
     setMessage(undefined)
     try {
       await serverSdk().client.mcp.connect({ ...params(), name: serverName })
-      void refetch()
+      refetchAll()
     } catch {
       setMessage("error")
     }
@@ -433,7 +495,7 @@ export const SettingsMcpServersV2: Component<{
     setMessage(undefined)
     try {
       await serverSdk().client.mcp.auth.authenticate({ ...params(), name: serverName })
-      void refetch()
+      refetchAll()
     } catch {
       setMessage("error")
     }
@@ -443,7 +505,7 @@ export const SettingsMcpServersV2: Component<{
     setMessage(undefined)
     try {
       await serverSdk().client.mcp.disconnect({ ...params(), name: serverName })
-      void refetch()
+      refetchAll()
     } catch {
       setMessage("error")
     }
@@ -455,7 +517,7 @@ export const SettingsMcpServersV2: Component<{
     try {
       await serverSdk().client.mcp.remove({ ...params(), name: serverName })
       if (editing() === serverName) resetForm()
-      void refetch()
+      refetchAll()
     } catch {
       setMessage("error")
     }
@@ -538,13 +600,13 @@ export const SettingsMcpServersV2: Component<{
                       <Show when={groupedServers().length > 1}>
                         <div class="settings-v2-mcp-servers-group-title">
                           <span>{language.t(GroupLabels[group.key])}</span>
-                          <span class="settings-v2-mcp-servers-group-count">{group.items.length}</span>
+                          <span class="settings-v2-mcp-servers-group-count">{group.count}</span>
                         </div>
                       </Show>
                       <SettingsListV2>
                         <For each={group.items}>
                           {([serverName, config]) => {
-                            const status = data().status[serverName]
+                            const status = statusData()[serverName]
                             const info = statusInfo(status)
                             const connected = status?.status === "connected"
                             const typeLabel = isConfiguredServer(config) ? config.type : undefined
@@ -661,6 +723,13 @@ export const SettingsMcpServersV2: Component<{
                           }}
                         </For>
                       </SettingsListV2>
+                      <Show when={group.total > 1}>
+                        <SettingsPagerV2
+                          page={group.page}
+                          totalPages={group.total}
+                          onPage={(page) => setGroupPage(group.key, page)}
+                        />
+                      </Show>
                     </div>
                   )}
                 </For>
@@ -683,7 +752,7 @@ export const SettingsMcpServersV2: Component<{
               </ButtonV2>
             </div>
               <SettingsListV2>
-                <For each={DiscoverPresets}>
+                <For each={discoverItems().items}>
                   {(preset) => {
                     const existing = servers().find(([serverName]) => serverName === preset.id)?.[1]
                     const checked = existing !== undefined && existing.enabled !== false
@@ -720,6 +789,13 @@ export const SettingsMcpServersV2: Component<{
                   }}
                 </For>
               </SettingsListV2>
+              <Show when={discoverItems().total > 1}>
+                <SettingsPagerV2
+                  page={discoverItems().page}
+                  totalPages={discoverItems().total}
+                  onPage={setDiscoverPage}
+                />
+              </Show>
             </div>
           </div>
 
