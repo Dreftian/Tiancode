@@ -74,23 +74,43 @@ async function registerServer(auth: SidecarAuth, entry: BundledMcp) {
   const dir = join(BUNDLED_ROOT, entry.dir)
   const script = join(dir, entry.script)
   const configFile = join(dir, entry.configFile)
-  if (!existsSync(script)) return false
+  // Upsert SIEMPRE (el POST /mcp reemplaza la entrada con el mismo nombre):
+  // una config vieja puede apuntar a un script del repo que todavía existe o
+  // a "python" del PATH (stub de la Store), y en ambos casos quedaría rota
+  // si solo se corrigiese cuando el script falta.
   const basic = Buffer.from(`${auth.username}:${auth.password}`).toString("base64")
-  const res = await fetch(`${auth.url}/mcp`, {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: `Basic ${basic}` },
-    body: JSON.stringify({
-      name: entry.name,
-      config: {
-        type: "local",
-        command: [...resolvePythonCommand(), script],
-        environment: { [entry.env]: configFile },
-        enabled: true,
-        timeout: 60000,
-      },
-    }),
+  const body = JSON.stringify({
+    name: entry.name,
+    config: {
+      type: "local",
+      command: [...resolvePythonCommand(), script],
+      environment: { [entry.env]: configFile },
+      enabled: true,
+      timeout: 60000,
+    },
   })
-  return res.ok
+  // El sidecar tarda un par de segundos en aceptar HTTP tras el spawn; se
+  // reintenta con backoff en vez de asumir que el primer POST llega.
+  let lastStatus = 0
+  for (let attempt = 0; attempt < 10; attempt++) {
+    if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 500 * attempt))
+    try {
+      const res = await fetch(`${auth.url}/mcp`, {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Basic ${basic}` },
+        body,
+      })
+      if (res.ok) {
+        console.log(`[mcp-bundle] registered ${entry.name}`)
+        return true
+      }
+      lastStatus = res.status
+    } catch {
+      lastStatus = 0
+    }
+  }
+  console.warn(`[mcp-bundle] failed to register ${entry.name} (last status ${lastStatus})`)
+  return false
 }
 
 // Registra los MCP empaquetados. Se llama justo después de que el sidecar esté

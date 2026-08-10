@@ -427,6 +427,13 @@ const main = Effect.gen(function* () {
       ),
     )
 
+    // MCP empaquetados con la app (vista en vivo + suite): se registran con
+    // las rutas del binario actual (instalado o portable) tras confirmar la
+    // salud del sidecar, sin bloquear el arranque.
+    void seedBundledMcpServers({ url, username: "tiancode", password }).catch((error) =>
+      logger.warn("bundled mcp seeding failed", error),
+    )
+
     logger.log("loading task finished")
   }).pipe(forwardInitializationFailure(serverReady), Effect.forkChild)
 
