@@ -39,3 +39,4 @@ install/*.exe
 # ZCode session files
 .zcode/
 dist-1.0.3*/
+dist-1.0.*/
