@@ -12,7 +12,7 @@ test("uses the repository Windows signing script", async () => {
 })
 
 const channels = [
-  { channel: "dev", appId: "ai.tiancode.desktop.dev" },
+  { channel: "dev", appId: "ai.tiancode.desktop.codex" },
   { channel: "beta", appId: "ai.tiancode.desktop.beta" },
   { channel: "prod", appId: "ai.tiancode.desktop" },
 ] as const

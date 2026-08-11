@@ -60,12 +60,12 @@ import { ensureLoopbackNoProxy, useEnvProxy } from "./util/proxy"
 import { migrateDesktopXdgPaths } from "./xdg-paths"
 
 const APP_NAMES: Record<string, string> = {
-  dev: "Tiancode Dev",
+  dev: "Tiancode Codex",
   beta: "Tiancode Beta",
   prod: "Tiancode",
 }
 const APP_IDS: Record<string, string> = {
-  dev: "ai.tiancode.desktop.dev",
+  dev: "ai.tiancode.desktop.codex",
   beta: "ai.tiancode.desktop.beta",
   prod: "ai.tiancode.desktop",
 }
@@ -108,7 +108,7 @@ const main = Effect.gen(function* () {
 
   process.env.TIANCODE_DISABLE_EMBEDDED_WEB_UI = "true"
 
-  const appId = app.isPackaged ? APP_IDS[CHANNEL] : "ai.tiancode.desktop.dev"
+  const appId = app.isPackaged ? APP_IDS[CHANNEL] : "ai.tiancode.desktop.codex"
   const onboardingTestRoot = ((): string | undefined => {
     if (!TEST_ONBOARDING) return
 
@@ -124,7 +124,7 @@ const main = Effect.gen(function* () {
     process.env.XDG_STATE_HOME = join(root, "state")
     return root
   })()
-  app.setName(app.isPackaged ? APP_NAMES[CHANNEL] : "Tiancode Dev")
+  app.setName(app.isPackaged ? APP_NAMES[CHANNEL] : "Tiancode Codex")
   app.setAppUserModelId(appId)
   app.setPath(
     "userData",

@@ -37,7 +37,7 @@ const channel = (() => {
 })()
 
 const APP_IDS = {
-  dev: "ai.tiancode.desktop.dev",
+  dev: "ai.tiancode.desktop.codex",
   beta: "ai.tiancode.desktop.beta",
   prod: "ai.tiancode.desktop",
 } as const
@@ -175,7 +175,7 @@ function getConfig() {
       return {
         ...base,
         appId,
-        productName: "Tiancode Dev",
+        productName: "Tiancode Codex",
         deb: { fpm: [metainfoFpm(appId)] },
         rpm: { packageName: "tian-dev", fpm: [metainfoFpm(appId)] },
       }

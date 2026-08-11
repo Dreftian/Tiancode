@@ -8,7 +8,7 @@ import { app } from "electron"
 
 const execFileAsync = promisify(execFile)
 const root = dirname(fileURLToPath(import.meta.url))
-const desktopStateNames = ["ai.tiancode.desktop.dev", "ai.tiancode.desktop.beta", "ai.tiancode.desktop"]
+const desktopStateNames = ["ai.tiancode.desktop.dev", "ai.tiancode.desktop.beta", "ai.tiancode.desktop", "ai.tiancode.desktop.codex"]
 
 type Logger = {
   log(message: string, meta?: Record<string, unknown>): void
