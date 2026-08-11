@@ -3,11 +3,12 @@ import { resolveThemeVariant } from "@tiancode-ai/ui/theme/resolve"
 import type { DesktopTheme } from "@tiancode-ai/ui/theme/types"
 import oc2ThemeJson from "../../../ui/src/theme/themes/oc-2.json"
 import { randomUUID } from "node:crypto"
-import { rmSync } from "node:fs"
+import { existsSync, rmSync } from "node:fs"
 import { app, BrowserWindow, dialog, net, nativeImage, nativeTheme, protocol, session, shell } from "electron"
 import { dirname, isAbsolute, join, relative, resolve } from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
 import type { TitlebarTheme } from "../preload/types"
+import { APP_NAMES, CHANNEL } from "./constants"
 import { exportDebugLogs, write as writeLog } from "./logging"
 import { getStore, removeStoreFile } from "./store"
 import { PINCH_ZOOM_ENABLED_KEY, MINIMIZE_TO_TRAY_KEY, WINDOW_IDS_KEY } from "./store-keys"
@@ -174,7 +175,12 @@ export function getLastFocusedWindow() {
 
 export function restoreMainWindows() {
   const ids = registry.persisted()
-  return (ids.length ? ids : [randomUUID()]).map((id) => createMainWindow(id))
+  // Un id huérfano (ventana que murió sin `closed`, p. ej. un cierre forzado
+  // o un crash) no tiene su .dat de ventana: restaurarlo abriría ventanas
+  // fantasma idénticas en cada arranque.
+  const alive = ids.filter((id) => existsSync(join(app.getPath("userData"), windowDataFile(id))))
+  if (alive.length !== ids.length) registry.prune(alive)
+  return (alive.length ? alive : [randomUUID()]).map((id) => createMainWindow(id))
 }
 
 export function setDockIcon() {
@@ -198,7 +204,7 @@ export function createMainWindow(id: string = randomUUID()) {
     height: state.height,
     show: false,
     autoHideMenuBar: true,
-    title: "Tiancode",
+    title: APP_NAMES[CHANNEL],
     icon: iconPath(),
     backgroundColor: backgroundColor ?? defaultBackgroundColor(),
     ...(process.platform === "darwin"

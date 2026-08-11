@@ -125,6 +125,12 @@ const require = __cjs_mod__.createRequire(import.meta.url);
     },
   },
   renderer: {
+    // El canal visible del renderer (badge del titlebar, features dev-only)
+    // debe ser explícito en el build: sin esto quedaba undefined salvo que el
+    // entorno definiera VITE_TIANCODE_CHANNEL, y el badge dependía del azar.
+    define: {
+      "import.meta.env.VITE_TIANCODE_CHANNEL": JSON.stringify(channel),
+    },
     plugins: [
       appPlugin,
       sentry,

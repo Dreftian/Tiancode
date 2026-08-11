@@ -195,8 +195,8 @@ function getConfig() {
       return {
         ...base,
         appId,
-        productName: "Tiancode",
-        protocols: { name: "Tiancode", schemes: ["tiancode"] },
+        productName: "Tiancode Codex",
+        protocols: { name: "Tiancode Codex", schemes: ["tiancode"] },
         publish: { provider: "github", owner: "Dreftian", repo: "Tiancode", channel: "latest" },
         deb: { fpm: [metainfoFpm(appId), legacyDesktopEntryFpm] },
         rpm: { packageName: "tian", fpm: [metainfoFpm(appId), legacyDesktopEntryFpm] },

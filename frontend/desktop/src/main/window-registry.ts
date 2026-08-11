@@ -31,6 +31,10 @@ export function createWindowRegistry<W>(persistence: {
       const ids = persisted()
       if (!ids.includes(id)) persistence.write([...ids, id])
     },
+    // Reescribe la lista persistida (p. ej. para podar ids huérfanos).
+    prune(ids: string[]) {
+      persistence.write(ids)
+    },
     focused(id: string) {
       lastFocusedID = id
       const index = mru.indexOf(id)

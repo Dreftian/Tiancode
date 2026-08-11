@@ -12,7 +12,7 @@ import contextMenu from "electron-context-menu"
 
 import type { ServerReadyData } from "../preload/types"
 import { checkAppExists, resolveAppPath } from "./apps"
-import { CHANNEL } from "./constants"
+import { APP_NAMES, CHANNEL } from "./constants"
 import { registerIpcHandlers, sendDeepLinks, sendMenuCommand } from "./ipc"
 import { forwardInitializationFailure } from "./initialization"
 import { exportDebugLogs, initCrashReporter, initLogging, startNetLog, write as writeLog } from "./logging"
@@ -59,11 +59,6 @@ import { createTray } from "./tray"
 import { ensureLoopbackNoProxy, useEnvProxy } from "./util/proxy"
 import { migrateDesktopXdgPaths } from "./xdg-paths"
 
-const APP_NAMES: Record<string, string> = {
-  dev: "Tiancode Codex",
-  beta: "Tiancode Beta",
-  prod: "Tiancode",
-}
 const APP_IDS: Record<string, string> = {
   dev: "ai.tiancode.desktop.codex",
   beta: "ai.tiancode.desktop.beta",
