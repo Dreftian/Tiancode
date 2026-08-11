@@ -7,7 +7,23 @@ import { normalizeUrl } from "@/components/preview-panel"
 import { welcomePageUrl } from "@/utils/webview-welcome"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
+import { useSDK } from "@/context/sdk"
+import { useServer } from "@/context/server"
+import { authTokenFromCredentials } from "@/utils/server"
 import type { PreviewViewSelection, PreviewViewState } from "@/context/platform"
+
+// Estado del dev server gestionado por el agente (DevServerManager, /preview).
+type DevServerState = {
+  status: "idle" | "starting" | "ready" | "error" | "stopped"
+  url: string | null
+  port: number | null
+  framework: string | null
+  packageManager: string | null
+  command: string | null
+  errors: { file: string | null; line: number | null; message: string }[]
+  startedAt: number | null
+  errorMessage: string | null
+}
 
 // Panel "App" de la vista en vivo con WebContentsView: la página se dibuja
 // fuera del DOM del renderer (bounds reportados del contenedor real vía IPC),
@@ -66,6 +82,8 @@ export function LivePreview(props: {
   const language = useLanguage()
   const platform = usePlatform()
   const preview = () => platform.previewView
+  const sdk = useSDK()
+  const server = useServer()
 
   const [state, setState] = createSignal<PreviewViewState | null>(null)
   const [urlInput, setUrlInput] = createSignal("")
@@ -79,6 +97,8 @@ export function LivePreview(props: {
   const [zoom, setZoom] = createSignal(1)
   const [deviceId, setDeviceId] = createSignal<DeviceId>("fit")
   const [customSize, setCustomSize] = createSignal({ width: DEVICE_PRESETS.mobile.width, height: DEVICE_PRESETS.mobile.height })
+  // Dev server gestionado por el agente (DevServerManager del backend).
+  const [devServer, setDevServer] = createSignal<DevServerState | null>(null)
 
   let container: HTMLDivElement | undefined
   // La navegación manual (URL tecleada, atrás/adelante) gana sobre la
@@ -154,6 +174,48 @@ export function LivePreview(props: {
     void preview()?.setSelectMode(active)
   }
 
+  // Dev server gestionado por el agente (DevServerManager): estado, logs y
+  // acciones se leen del HttpApi /preview del servidor del agente.
+  const devServerDirectory = () => {
+    const dir = sdk().directory
+    return dir && dir !== "main" ? dir : undefined
+  }
+  const devServerHeaders = () => {
+    const http = server.current?.http
+    const password = http?.password
+    return password
+      ? { Authorization: `Basic ${authTokenFromCredentials({ username: http.username ?? "tiancode", password })}` }
+      : undefined
+  }
+  const fetchDevServer = async () => {
+    const dir = devServerDirectory()
+    const headers = devServerHeaders()
+    const url = server.current?.http.url
+    if (!dir || !headers || !url) return
+    try {
+      const res = await fetch(`${url}/preview/status?directory=${encodeURIComponent(dir)}`, { headers })
+      if (res.ok) setDevServer((await res.json()) as DevServerState)
+    } catch {
+      // Servidor del agente no disponible: se conserva el último estado.
+    }
+  }
+  const devServerAction = async (action: "start" | "stop" | "restart") => {
+    const dir = devServerDirectory()
+    const headers = devServerHeaders()
+    const url = server.current?.http.url
+    if (!dir || !headers || !url) return
+    try {
+      const res = await fetch(`${url}/preview/${action}?directory=${encodeURIComponent(dir)}`, {
+        method: "POST",
+        headers: { ...headers, "content-type": "application/json" },
+        body: "{}",
+      })
+      if (res.ok) setDevServer((await res.json()) as DevServerState)
+    } catch {
+      // Sin servidor del agente: la UI queda como está.
+    }
+  }
+
   onMount(() => {
     const view = preview()
     if (!view || !container) return
@@ -190,7 +252,10 @@ export function LivePreview(props: {
     observer.observe(container)
     window.addEventListener("resize", reportBounds)
     window.addEventListener("fullscreenchange", reportBounds)
+    void fetchDevServer()
+    const devTimer = window.setInterval(fetchDevServer, 2000)
     onCleanup(() => {
+      window.clearInterval(devTimer)
       observer.disconnect()
       window.removeEventListener("resize", reportBounds)
       window.removeEventListener("fullscreenchange", reportBounds)
@@ -208,6 +273,24 @@ export function LivePreview(props: {
     if (!target || target === lastTargetUrl) return
     lastTargetUrl = target
     navigateTo(target)
+  })
+
+  // Dev server gestionado por el agente: cuando queda listo y el panel aún
+  // muestra la página de bienvenida, navega a la URL del servidor (HMR).
+  createEffect(() => {
+    const serverUrl = devServer()?.url
+    if (!serverUrl) return
+    const current = state()?.url
+    if (!current || current.startsWith("data:")) navigateTo(serverUrl)
+  })
+
+  // Errores de compilación del dev server → banner en el panel.
+  createEffect(() => {
+    const dev = devServer()
+    if (dev?.status !== "error") return
+    if (dev.errors[0] && !fail()) {
+      setFail({ code: 0, description: dev.errors[0].message, url: dev.errors[0].file ?? "" })
+    }
   })
 
   // Cambio de dispositivo (preset/custom/fit): re-posiciona la vista.
@@ -248,10 +331,29 @@ export function LivePreview(props: {
   }
 
   const statusTone = () => {
+    const dev = devServer()
+    if (dev) {
+      if (dev.status === "ready") return "bg-[var(--v2-state-fg-success)]"
+      if (dev.status === "starting") return "bg-[var(--v2-state-fg-warning)]"
+      if (dev.status === "error") return "bg-[var(--v2-state-fg-danger)]"
+      return "bg-[var(--v2-state-fg-info)]"
+    }
     if (fail()) return "bg-[var(--v2-state-fg-danger)]"
     if (state()?.loading) return "bg-[var(--v2-state-fg-warning)]"
     return "bg-[var(--v2-state-fg-success)]"
   }
+
+  const devServerStatusLabel = () => {
+    const dev = devServer()
+    if (!dev) return undefined
+    if (dev.status === "starting") return language.t("livePreview.starting")
+    if (dev.status === "ready") return language.t("livePreview.ready")
+    if (dev.status === "stopped") return language.t("livePreview.stopped")
+    if (dev.status === "error") return language.t("livePreview.serverError")
+    return language.t("livePreview.idle")
+  }
+
+  const devServerRunning = () => devServer()?.status === "ready" || devServer()?.status === "starting"
 
   return (
     <div class="flex size-full min-h-0 flex-col" role="region" aria-label={language.t("liveView.tab.app")}>
@@ -320,13 +422,36 @@ export function LivePreview(props: {
         />
       </div>
 
-      {/* Fila 2: estado, dispositivo, zoom, seleccionar, consola. */}
+      {/* Fila 2: estado, dev server, dispositivo, zoom, seleccionar, consola. */}
       <div class="flex h-8 shrink-0 items-center gap-1 border-b border-v2-border-border-muted px-1.5">
         <span
           class={`size-1.5 shrink-0 rounded-full ${statusTone()}`}
-          title={url() || undefined}
+          title={devServerStatusLabel() ?? (url() || undefined)}
           aria-hidden="true"
         />
+        <Show when={devServerDirectory()}>
+          <ToolButton
+            title={language.t("livePreview.start")}
+            disabled={devServerRunning()}
+            onClick={() => void devServerAction("start")}
+          >
+            ▶
+          </ToolButton>
+          <ToolButton
+            title={language.t("livePreview.stop")}
+            disabled={devServer()?.status !== "ready" && devServer()?.status !== "starting"}
+            onClick={() => void devServerAction("stop")}
+          >
+            ■
+          </ToolButton>
+          <ToolButton
+            title={language.t("livePreview.restart")}
+            disabled={!devServerRunning()}
+            onClick={() => void devServerAction("restart")}
+          >
+            ↻
+          </ToolButton>
+        </Show>
         <SelectV2
           appearance="base"
           class="w-32 shrink-0"
