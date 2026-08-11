@@ -18,13 +18,14 @@ const PREVIEW_PARTITION = "persist:live-view"
 const MIN_ZOOM = 0.25
 const MAX_ZOOM = 5
 
-// Solo páginas locales del preview: el navegador interno navega a cualquier
-// http(s) (como el webview anterior), más la página de bienvenida data:.
-// Cualquier otro esquema (file:, custom:, …) se rechaza.
+// Solo páginas del preview: http(s) (dev servers y webs), la página de
+// bienvenida data: y archivos locales file: (el agente suele generar HTML
+// estático que el panel abre directamente desde el disco, p. ej.
+// file:///C:/proyecto/index.html). Cualquier otro esquema se rechaza.
 function isPreviewUrl(value: string) {
   try {
     const protocol = new URL(value).protocol
-    return protocol === "http:" || protocol === "https:" || protocol === "data:" || protocol === "about:"
+    return protocol === "http:" || protocol === "https:" || protocol === "data:" || protocol === "about:" || protocol === "file:"
   } catch {
     return false
   }
