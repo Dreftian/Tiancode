@@ -1820,6 +1820,7 @@ export const dict = {
   "settings.voices.voice.builtin": "Integrada",
   "settings.voices.voice.default": "Predeterminada",
   "settings.voices.voice.engine.kokoro": "Kokoro",
+  "settings.voices.voice.engine.kokoroEs": "Kokoro ES",
   "settings.voices.voice.engine.piper": "Piper",
   "settings.voices.voice.license": "Licencia",
   "settings.voices.voice.enabled": "Habilitada",

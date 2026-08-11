@@ -8,14 +8,14 @@ import { getStore } from "./store"
 import { ENABLED_VOICES_KEY, SELECTED_VOICE_KEY } from "./store-keys"
 import { float32ToWav } from "./wav"
 import { PIPER_VOICES, deletePiperVoice, downloadPiperVoice, isPiperDownloaded, synthesizePiper } from "./piper"
+import { deleteKokoroEs, downloadKokoroEs, isKokoroEsDownloaded, synthesizeKokoroEs } from "./kokoro-es"
 
 export const DEFAULT_VOICE = "af_heart"
-// Voz femenina de español por defecto: piper sharvard (hablante F, 22kHz), la
-// más natural de las voces piper de español y la que usa el anuncio automático
-// (ver resolveSpanishVoice en frontend/app). Kokoro no puede sintetizar
-// español hoy: kokoro-js 1.2.1 solo fonemiza inglés y el soporte kokoro del
-// wasm de sherpa-onnx aborta al cargar el modelo multilingüe.
-const DEFAULT_ES_FEMALE_VOICE = "piper-es_ES-sharvard-medium"
+// Voz femenina de español por defecto: kokoro ef_dora (el mismo style vector
+// de la voz "Sol" de Codex/ChatGPT), sintetizada con el motor kokoro de
+// sherpa-onnx + espeak-ng (ver kokoro-es.ts). Es la que usa el anuncio
+// automático en español (resolveSpanishVoice en frontend/app).
+const DEFAULT_ES_FEMALE_VOICE = "ef_dora"
 const KOKORO_MODEL_ID = "onnx-community/Kokoro-82M-v1.0-ONNX"
 // kokoro-js bundles an espeak-ng phonemizer with English voices only, so its
 // public generate() API accepts just the US/UK English voices (af/am/bf/bm)
@@ -71,23 +71,26 @@ const VOICE_IDS = [
 const KOKORO_CATALOG: VoiceInfo[] = VOICE_IDS.map((id) => {
   const prefix = id.slice(0, 2)
   const meta = PREFIX_META[prefix]
+  // ef_dora se sintetiza con el motor kokoro de sherpa-onnx (español real);
+  // las demás voces multilingües del paquete kokoro-js siguen sin soporte.
+  const isKokoroEs = id === "ef_dora"
   return {
     id,
     name: voiceName(id),
     language: meta.language,
     gender: meta.gender,
-    supported: (SUPPORTED_VOICE_IDS as readonly string[]).includes(id),
-    engine: "kokoro",
+    supported: isKokoroEs || (SUPPORTED_VOICE_IDS as readonly string[]).includes(id),
+    engine: isKokoroEs ? "kokoro-es" : "kokoro",
+    default: isKokoroEs,
     license: "Apache 2.0",
   }
 })
 
 // Piper (sherpa-onnx) voices are downloaded on demand; all of them are
 // Spanish so the app finally speaks the languages of the bundled model.
-// sharvard es la voz femenina por defecto (la que usa el anuncio automático);
-// las voces kokoro-js no pueden hablar español porque su fonemizador espeak-ng
-// empaquetado solo trae inglés, y el motor kokoro de sherpa-onnx (wasm) aún no
-// puede cargar el modelo multilingüe (aborta en la creación de la sesión).
+// La voz femenina de español por defecto es kokoro ef_dora (ver kokoro-es.ts):
+// el motor kokoro de sherpa-onnx (wasm) sí carga el modelo multilingüe int8 y
+// fonemiza español con el espeak-ng-data compartido del piper.
 const PIPER_CATALOG: VoiceInfo[] = PIPER_VOICES.map((voice) => ({
   id: voice.id,
   name: voice.name,
@@ -116,7 +119,8 @@ export function getVoicesStatus() {
     progress,
     voices: VOICE_CATALOG.map((voice) => ({
       ...voice,
-      downloaded: voice.engine === "piper" ? isPiperDownloaded(voice.id) : true,
+      downloaded:
+        voice.engine === "piper" ? isPiperDownloaded(voice.id) : voice.engine === "kokoro-es" ? isKokoroEsDownloaded() : true,
       enabled: isVoiceEnabled(voice.id),
     })),
     selected: getSelectedVoice(),
@@ -145,6 +149,17 @@ export async function speakVoice(text: string, voiceId?: string): Promise<Voices
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       writeLog("voices", "piper synthesis failed", { error: message, voice: voice.id }, "error")
+      return { error: message }
+    }
+  }
+  if (voice.engine === "kokoro-es") {
+    try {
+      // Auto-downloads the multilingual model on first use (kokoro ef_dora).
+      const audio = await synthesizeKokoroEs(text)
+      return { wav: new Uint8Array(float32ToWav(audio.samples, audio.sampleRate)) }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      writeLog("voices", "kokoro es synthesis failed", { error: message, voice: voice.id }, "error")
       return { error: message }
     }
   }
@@ -179,14 +194,19 @@ export function selectVoice(voiceId: string) {
 
 export function downloadVoice(voiceId: string) {
   const voice = resolveVoice(voiceId)
-  if (!voice || voice.engine !== "piper") throw new Error(`Voice "${voiceId}" is not a downloadable piper voice.`)
-  return downloadPiperVoice(voice.id)
+  if (!voice || (voice.engine !== "piper" && voice.engine !== "kokoro-es")) {
+    throw new Error(`Voice "${voiceId}" is not a downloadable voice.`)
+  }
+  return voice.engine === "kokoro-es" ? downloadKokoroEs(voice.id) : downloadPiperVoice(voice.id)
 }
 
 export async function deleteVoice(voiceId: string) {
   const voice = resolveVoice(voiceId)
-  if (!voice || voice.engine !== "piper") throw new Error(`Voice "${voiceId}" is not a piper voice.`)
-  await deletePiperVoice(voice.id)
+  if (!voice || (voice.engine !== "piper" && voice.engine !== "kokoro-es")) {
+    throw new Error(`Voice "${voiceId}" is not a piper voice.`)
+  }
+  if (voice.engine === "kokoro-es") await deleteKokoroEs()
+  else await deletePiperVoice(voice.id)
   // A deleted voice can no longer be selected; fall back to the first
   // selectable voice so getSelectedVoice() never returns a broken id.
   if (getStore().get(SELECTED_VOICE_KEY) === voice.id) {
@@ -295,6 +315,7 @@ function getSelectedVoice() {
 function isSelectable(voice: VoiceInfo | undefined) {
   if (!voice) return false
   if (!voice.supported || !isVoiceEnabled(voice.id)) return false
+  if (voice.engine === "kokoro-es") return isKokoroEsDownloaded()
   return voice.engine === "kokoro" || isPiperDownloaded(voice.id)
 }
 

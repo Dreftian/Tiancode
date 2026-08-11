@@ -209,7 +209,7 @@ export const SettingsVoicesV2: Component = () => {
   }
 
   const probe = async (voice: VoiceInfo) => {
-    const text = voice.engine === "piper" ? PROBE_TEXT_ES : PROBE_TEXT_EN
+    const text = voice.engine === "piper" || voice.engine === "kokoro-es" ? PROBE_TEXT_ES : PROBE_TEXT_EN
     const error = await speakWithVoices(voiceProbeKey(voice.id), text, voice.id)
     if (error) {
       showToast({ variant: "error", title: language.t("settings.voices.voice.probe.failed"), description: error })
@@ -363,9 +363,13 @@ export const SettingsVoicesV2: Component = () => {
                                       : "settings.voices.gender.male",
                                   )}
                                 </span>
-                                <Show when={voice.engine === "piper"}>
+                                <Show when={voice.engine === "piper" || voice.engine === "kokoro-es"}>
                                   <span class="settings-v2-voices-chip" data-variant="engine">
-                                    {language.t("settings.voices.voice.engine.piper")}
+                                    {language.t(
+                                      voice.engine === "kokoro-es"
+                                        ? "settings.voices.voice.engine.kokoroEs"
+                                        : "settings.voices.voice.engine.piper",
+                                    )}
                                   </span>
                                 </Show>
                                 <Show when={voice.default === true}>
@@ -406,7 +410,7 @@ export const SettingsVoicesV2: Component = () => {
                               </Switch>
                             </div>
                             <Show
-                              when={voice.engine === "piper"}
+                              when={voice.engine === "piper" || voice.engine === "kokoro-es"}
                               fallback={
                                 <span class="settings-v2-voices-chip" data-variant="builtin">
                                   {language.t("settings.voices.voice.builtin")}
@@ -481,7 +485,9 @@ export const SettingsVoicesV2: Component = () => {
                                   {language.t(
                                     voice.engine === "piper"
                                       ? "settings.voices.voice.engine.piper"
-                                      : "settings.voices.voice.engine.kokoro",
+                                      : voice.engine === "kokoro-es"
+                                        ? "settings.voices.voice.engine.kokoroEs"
+                                        : "settings.voices.voice.engine.kokoro",
                                   )}
                                 </span>
                                 <span class="settings-v2-voices-info-value">{languageLabel(voice.language)}</span>

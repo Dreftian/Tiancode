@@ -3,7 +3,7 @@ import { getSpeechRecognitionCtor } from "./runtime-adapters"
 
 // Mirrors `frontend/desktop/src/preload/types.ts` so the renderer can type
 // `window.api.voices` without depending on the desktop package.
-export type VoiceEngine = "kokoro" | "piper"
+export type VoiceEngine = "kokoro" | "piper" | "kokoro-es"
 
 export type VoiceInfo = {
   id: string
@@ -145,26 +145,20 @@ export function isSpanishText(text: string) {
   return es > en
 }
 
-// Voz femenina de español por defecto (piper sharvard, hablante F): si el
-// texto es español y no hay ninguna voz de español descargada, se descarga
-// automáticamente la primera vez (como la voz "Sol" de Codex).
-//
-// Nota: kokoro no puede sintetizar español hoy. El motor kokoro-js (voces
-// af/am/bf/bm) solo fonemiza inglés porque su espeak-ng empaquetado no trae
-// voces multilingües, y el soporte kokoro del wasm de sherpa-onnx aborta al
-// cargar el modelo multilingüe (csukuangfj/kokoro-multi-lang-v1_0) en la
-// creación de la sesión de onnxruntime. Hasta que uno de los dos motores
-// soporte español, la voz femenina de piper sharvard (con velocidad 1.2 y
-// pausas recortadas) es la predeterminada del anuncio automático.
-const DEFAULT_ES_FEMALE_VOICE = "piper-es_ES-sharvard-medium"
+// Voz femenina de español por defecto (kokoro ef_dora, el mismo style vector
+// de la voz "Sol" de Codex/ChatGPT): si el texto es español y no hay ninguna
+// voz de español descargada, se descarga automáticamente la primera vez.
+const DEFAULT_ES_FEMALE_VOICE = "ef_dora"
 let spanishDownloadTriggered = false
 
-// Si el texto es español y hay una voz de español descargada, la usa; en otro
-// caso dispara la descarga de la voz por defecto (una sola vez) y devuelve
-// undefined para usar la voz seleccionada mientras tanto.
+// Si el texto es español: usa ef_dora si está descargada; si no, dispara su
+// descarga (una sola vez) y usa cualquier otra voz de español descargada
+// mientras tanto; sin ninguna, devuelve undefined (voz seleccionada).
 async function resolveSpanishVoice(text: string): Promise<string | undefined> {
   if (!isSpanishText(text)) return undefined
   const list = await voicesList()
+  const dora = list.find((voice) => voice.id === "ef_dora" && voice.downloaded)
+  if (dora) return dora.id
   const downloaded = list.find((voice) => voice.language.toLowerCase().startsWith("es") && voice.downloaded)
   if (downloaded) return downloaded.id
   if (!spanishDownloadTriggered) {

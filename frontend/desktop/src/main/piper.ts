@@ -81,7 +81,7 @@ function voiceDir(voiceId: string) {
   return join(app.getPath("userData"), "piper-voices", voiceId)
 }
 
-function sharedDataDir() {
+export function sharedDataDir() {
   return join(app.getPath("userData"), "piper-voices", SHARED_DATA_DIR)
 }
 
@@ -121,7 +121,7 @@ async function downloadPiperVoiceInner(voiceId: string) {
 // The espeak-ng phonemizer data is shared by every piper voice. The tree API
 // lists the full recursive file set in one call; a ".complete" marker turns
 // the directory into a downloaded-once cache that survives partial failures.
-async function ensureSharedData() {
+export async function ensureSharedData() {
   const dataDir = sharedDataDir()
   if (existsSync(join(dataDir, COMPLETE_MARKER))) return
   await mkdir(dataDir, { recursive: true })
@@ -137,7 +137,7 @@ async function ensureSharedData() {
   await writeFile(join(dataDir, COMPLETE_MARKER), "")
 }
 
-async function downloadFile(url: string, dest: string, voiceId: string | undefined) {
+export async function downloadFile(url: string, dest: string, voiceId: string | undefined) {
   const res = await fetch(url, { redirect: "follow" })
   if (!res.ok || !res.body) throw new Error(`GET ${url} failed: HTTP ${res.status}`)
   const part = `${dest}.part`
@@ -250,7 +250,7 @@ function evictTts(voiceId: string) {
   ttsCache.delete(voiceId)
 }
 
-function reportProgress(voiceId: string, progress: number, file?: string, done?: boolean) {
+export function reportProgress(voiceId: string, progress: number, file?: string, done?: boolean) {
   const payload: VoicesPiperProgress = { voiceId, progress, file, done }
   for (const win of BrowserWindow.getAllWindows()) {
     if (win.isDestroyed() || win.webContents.isDestroyed()) continue

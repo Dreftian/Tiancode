@@ -1705,6 +1705,7 @@ export const dict = {
   "settings.voices.voice.builtin": "기본 제공",
   "settings.voices.voice.default": "기본값",
   "settings.voices.voice.engine.kokoro": "Kokoro",
+  "settings.voices.voice.engine.kokoroEs": "Kokoro ES",
   "settings.voices.voice.engine.piper": "Piper",
   "settings.voices.voice.license": "라이선스",
   "settings.voices.voice.enabled": "사용",

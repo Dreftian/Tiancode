@@ -29,7 +29,7 @@ export type UpdaterAPI = {
   install: () => Promise<void>
 }
 
-export type VoiceEngine = "kokoro" | "piper"
+export type VoiceEngine = "kokoro" | "piper" | "kokoro-es"
 
 export type VoiceInfo = {
   id: string
