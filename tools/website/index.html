@@ -254,20 +254,20 @@
           </div>
           <ul class="hero-chips reveal" aria-label="Características rápidas">
             <li class="hero-chip">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-              <span data-i18n="hero.chip1">Servidores MCP</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              <span data-i18n="hero.chip1">Vista previa en vivo</span>
             </li>
             <li class="hero-chip">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></svg>
-              <span data-i18n="hero.chip2">GitHub integrado</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4l7 17 2.5-7.5L21 11 4 4z"/><line x1="13.5" y1="13.5" x2="20" y2="20"/></svg>
+              <span data-i18n="hero.chip2">Selección de elementos</span>
             </li>
             <li class="hero-chip">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-              <span data-i18n="hero.chip3">Voces TTS</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              <span data-i18n="hero.chip3">Dev server automático</span>
             </li>
             <li class="hero-chip">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-              <span data-i18n="hero.chip4">52+ skills</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="2" x2="9" y2="4"/><line x1="15" y1="2" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="22"/><line x1="15" y1="20" x2="15" y2="22"/><line x1="2" y1="9" x2="4" y2="9"/><line x1="2" y1="15" x2="4" y2="15"/><line x1="20" y1="9" x2="22" y2="9"/><line x1="20" y1="15" x2="22" y2="15"/></svg>
+              <span data-i18n="hero.chip4">Modelos locales</span>
             </li>
           </ul>
           <p class="hero-note reveal" data-i18n="hero.note">Instalador y versión portable · Windows 10 y 11</p>
@@ -303,6 +303,26 @@
                   <span class="win-input-btn">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                   </span>
+                </div>
+              </div>
+              <div class="hero-win-code">
+                <div class="hero-code-head">App.jsx</div>
+                <pre class="hero-code"><span class="hc-k">export default</span> <span class="hc-f">function</span> App() {
+  <span class="hc-k">return</span> (
+    <span class="hc-t">&lt;main</span> <span class="hc-a">className</span>=<span class="hc-s">"app"</span><span class="hc-t">&gt;</span>
+      <span class="hc-t">&lt;Hero</span> <span class="hc-t">/&gt;</span>
+      <span class="hc-t">&lt;Features</span> <span class="hc-t">/&gt;</span>
+      <span class="hc-t">&lt;LivePreview</span> <span class="hc-t">/&gt;</span>
+    <span class="hc-t">&lt;/main&gt;</span>
+  )
+}</pre>
+              </div>
+              <div class="hero-win-preview">
+                <div class="hero-prev-head"><span class="appwin-dots"><span></span><span></span><span></span></span><span class="hero-prev-url">localhost:5173</span></div>
+                <div class="hero-prev-body">
+                  <span class="hero-prev-title">Tu app, en vivo</span>
+                  <span class="hero-prev-sub">El agente escribe · tú miras</span>
+                  <div class="hero-prev-cards"><span></span><span></span><span></span></div>
                 </div>
               </div>
             </div>
@@ -341,6 +361,37 @@
                 <p class="term-line" data-i18n="mock.line4">▸ Fix aplicado · tests TDD en verde ✓</p>
               </div>
             </div>
+          </article>
+
+          <!-- Vista previa en vivo (tarjeta grande con mock de preview) -->
+          <article class="feature-card card-7 reveal" style="--rd:.05s">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+              </svg>
+            </span>
+            <h3 data-i18n="f.preview.title">Vista previa en vivo</h3>
+            <p data-i18n="f.preview.desc">El agente arranca el dev server y la app se dibuja en un panel integrado: cambia el código y el resultado se actualiza solo, sin abrir el navegador.</p>
+            <div class="term" aria-hidden="true">
+              <div class="term-bar"><span></span><span></span><span></span></div>
+              <div class="term-body">
+                <p class="term-line term-prompt">◉ http://localhost:5173 — Live Preview</p>
+                <p class="term-line term-accent">✓ Dev server detectado · página cargada en el panel</p>
+                <p class="term-line">↻ App.jsx modificado → HMR aplicado al instante</p>
+                <p class="term-line term-accent">⚠ Error de sintaxis → el agente lo corrige y recarga</p>
+              </div>
+            </div>
+          </article>
+
+          <!-- Selección de elementos -->
+          <article class="feature-card card-4 reveal" style="--rd:.1s">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 4l7 17 2.5-7.5L21 11 4 4z"/><line x1="13.5" y1="13.5" x2="20" y2="20"/>
+              </svg>
+            </span>
+            <h3 data-i18n="f.select.title">Selección de elementos</h3>
+            <p data-i18n="f.select.desc">Haz clic en cualquier elemento del preview para obtener su selector y ruta, y pídele cambios precisos al agente.</p>
           </article>
 
           <article class="feature-card card-5 reveal" style="--rd:.05s">
@@ -438,10 +489,29 @@
         <div class="section-head reveal">
           <span class="eyebrow">Novedades</span>
           <h2 class="section-title">Todo lo nuevo en Tiancode</h2>
-          <p class="section-sub">GitHub, MCP Servers, plugins, voces, sub-agentes y más — la app crece con tu flujo de trabajo real.</p>
+          <p class="section-sub">Vista en vivo, GitHub, MCP Servers, plugins, voces, sub-agentes y más — la app crece con tu flujo de trabajo real.</p>
         </div>
 
         <div class="new-grid">
+          <!-- Vista en vivo / Live Preview -->
+          <article class="new-card new-card--wide reveal" style="--rd:0s">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+              </svg>
+            </span>
+            <h3>Vista en vivo · Live Preview</h3>
+            <p>El panel "Vista en vivo" de la sesión muestra la app que el agente está construyendo dentro de la propia ventana, sin abrir Chrome, Edge ni ningún navegador externo. El agente arranca el dev server (Vite, Next y más), el preview se actualiza solo con HMR, y los errores de compilación aparecen en la consola integrada para que el agente los corrija al instante. Incluye barra de navegación, selector de dispositivo (desktop, tablet, móvil), zoom, captura al chat y modo seleccionar: haz clic en cualquier elemento del preview para obtener su selector y pedir cambios precisos.</p>
+            <div class="new-chips">
+              <span class="new-chip new-chip--brand">Preview embebido</span>
+              <span class="new-chip new-chip--brand">HMR</span>
+              <span class="new-chip">Dev server automático</span>
+              <span class="new-chip">Selección de elementos</span>
+              <span class="new-chip">Consola integrada</span>
+              <span class="new-chip">Dispositivos responsive</span>
+            </div>
+          </article>
+
           <!-- GitHub -->
           <article class="new-card reveal" style="--rd:0s">
             <span class="feature-icon" aria-hidden="true">
@@ -667,7 +737,7 @@
         <div class="section-head reveal">
           <span class="eyebrow" data-i18n="nav.preview">Vista previa</span>
           <h2 class="section-title" data-i18n="preview.title">Vista previa de la app</h2>
-          <p class="section-sub" data-i18n="preview.sub">Así se ve Tiancode 1.0.0: la ventana principal con su terminal, el diálogo de configuración, los modelos locales y las skills.</p>
+          <p class="section-sub" data-i18n="preview.sub">Así se ve Tiancode: el chat con el agente, el editor y la vista en vivo de la app que construye — con barra de navegación, consola y selección de elementos.</p>
         </div>
 
         <div class="preview-grid">
