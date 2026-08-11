@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, webUtils } from "electron"
-import type { ElectronAPI, RuntimeInstallState, VoicesPiperProgress, VoicesProgress, WslServersEvent } from "./types"
+import type { ElectronAPI, PreviewViewEvent, RuntimeInstallState, VoicesPiperProgress, VoicesProgress, WslServersEvent } from "./types"
 import type { UpdaterState } from "@tiancode-ai/app/updater"
 
 const updaterCallbacks = new Set<(state: UpdaterState) => void>()
@@ -155,6 +155,24 @@ const api: ElectronAPI = {
   setLoginItem: (enabled) => ipcRenderer.invoke("set-login-item", enabled),
   getLoginItem: () => ipcRenderer.invoke("get-login-item"),
   clearWebviewData: () => ipcRenderer.invoke("clear-webview-data"),
+  previewView: {
+    setBounds: (bounds) => ipcRenderer.invoke("preview-view:set-bounds", bounds),
+    setVisible: (visible) => ipcRenderer.invoke("preview-view:set-visible", visible),
+    navigate: (url) => ipcRenderer.invoke("preview-view:navigate", url),
+    reload: () => ipcRenderer.invoke("preview-view:reload"),
+    back: () => ipcRenderer.invoke("preview-view:back"),
+    forward: () => ipcRenderer.invoke("preview-view:forward"),
+    setZoom: (factor) => ipcRenderer.invoke("preview-view:set-zoom", factor),
+    getState: () => ipcRenderer.invoke("preview-view:get-state"),
+    capture: () => ipcRenderer.invoke("preview-view:capture"),
+    setSelectMode: (enabled) => ipcRenderer.invoke("preview-view:set-select-mode", enabled),
+    getSelection: () => ipcRenderer.invoke("preview-view:get-selection"),
+    onEvent: (cb) => {
+      const handler = (_: unknown, event: PreviewViewEvent) => cb(event)
+      ipcRenderer.on("preview-view-event", handler)
+      return () => ipcRenderer.removeListener("preview-view-event", handler)
+    },
+  },
   backup: {
     now: () => ipcRenderer.invoke("backup-now"),
     list: () => ipcRenderer.invoke("backup-list"),

@@ -1,5 +1,6 @@
 import { desktopCapturer, screen, webContents, type WebContents } from "electron"
 import { getLiveViewGuestWebContentsId, getPreviewGuestWebContentsId } from "./windows"
+import { getPreviewViewWebContents } from "./preview-view"
 
 // Capturas de pantalla para el chat: el modelo principal puede no tener
 // visión, así que la imagen se adjunta como media part y el agente la analiza
@@ -58,9 +59,12 @@ export function capturePreview(hostWebContentsId: number): Promise<CaptureResult
   return captureGuest(getPreviewGuestWebContentsId(hostWebContentsId))
 }
 
-// Captura el <webview> del panel "Vista en vivo" de la sesión (partición
-// "persist:live-view"); mismo mecanismo que capturePreview.
+// Captura la vista "Vista en vivo" de la sesión: si el panel usa el
+// WebContentsView del preview (preview-view.ts) se captura ese webContents;
+// si no (webview tag aún presente), el guest con partición "persist:live-view".
 export function captureLiveView(hostWebContentsId: number): Promise<CaptureResult> {
+  const viewContents = getPreviewViewWebContents(hostWebContentsId)
+  if (viewContents) return viewContents.capturePage().then(toPng)
   return captureGuest(getLiveViewGuestWebContentsId(hostWebContentsId))
 }
 

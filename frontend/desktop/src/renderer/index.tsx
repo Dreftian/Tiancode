@@ -287,6 +287,9 @@ const createPlatform = (windowState: DesktopWindowState): Platform => {
 
     wslServers: wslServersApi,
 
+    // Vista en vivo del panel de sesión (WebContentsView del main).
+    previewView: window.api.previewView,
+
     getDisplayBackend: async () => {
       return window.api.getDisplayBackend().catch(() => null)
     },

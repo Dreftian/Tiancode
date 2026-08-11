@@ -28,6 +28,51 @@ export type FatalRendererErrorLog = {
   os?: DesktopOS
 }
 
+// Vista en vivo del panel de sesión (desktop): WebContentsView del preview
+// controlado desde el main (frontend/desktop/src/main/preview-view.ts). El
+// renderer reporta bounds del contenedor real y recibe eventos de estado,
+// consola, errores de carga y selección de elementos.
+export type PreviewViewState = {
+  url: string
+  loading: boolean
+  canGoBack: boolean
+  canGoForward: boolean
+  visible: boolean
+  selectMode: boolean
+}
+
+export type PreviewViewSelection = {
+  tag: string
+  text: string
+  className: string
+  id: string
+  selector: string
+  url: string
+  pathname: string
+  dims: { width: number; height: number }
+  rect: { x: number; y: number; width: number; height: number }
+}
+
+export type PreviewViewEvent =
+  | { type: "state"; state: PreviewViewState }
+  | { type: "console"; message: { level: number; message: string; line: number; sourceId: string } }
+  | { type: "fail"; fail: { code: number; description: string; url: string; isMainFrame: boolean } }
+
+export type PreviewViewPlatform = {
+  setBounds(bounds: { x: number; y: number; width: number; height: number }): Promise<void>
+  setVisible(visible: boolean): Promise<void>
+  navigate(url: string): Promise<void>
+  reload(): Promise<void>
+  back(): Promise<void>
+  forward(): Promise<void>
+  setZoom(factor: number): Promise<void>
+  getState(): Promise<PreviewViewState | null>
+  capture(): Promise<{ buffer: ArrayBuffer; width: number; height: number }>
+  setSelectMode(enabled: boolean): Promise<void>
+  getSelection(): Promise<PreviewViewSelection | null>
+  onEvent(cb: (event: PreviewViewEvent) => void): () => void
+}
+
 type PlatformBase = {
   /** App version */
   version?: string
@@ -121,6 +166,9 @@ type PlatformBase = {
     kind: "screen" | "area" | "window" | "preview" | "liveView",
     options?: { bounds?: { x: number; y: number; width: number; height: number }; webContentsId?: number },
   ): Promise<File | null>
+
+  /** Preview view (panel "Vista en vivo"; desktop only) */
+  previewView?: PreviewViewPlatform
 
   /** Start/stop launching with the OS login (Windows only) */
   setLoginItem?(enabled: boolean): Promise<boolean>

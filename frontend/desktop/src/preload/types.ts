@@ -143,6 +143,49 @@ export type FatalRendererError = {
   os?: string
 }
 
+// Vista en vivo del panel de sesión: estado del WebContentsView del preview
+// (frontend/desktop/src/main/preview-view.ts).
+export type PreviewViewState = {
+  url: string
+  loading: boolean
+  canGoBack: boolean
+  canGoForward: boolean
+  visible: boolean
+  selectMode: boolean
+}
+
+export type PreviewViewSelection = {
+  tag: string
+  text: string
+  className: string
+  id: string
+  selector: string
+  url: string
+  pathname: string
+  dims: { width: number; height: number }
+  rect: { x: number; y: number; width: number; height: number }
+}
+
+export type PreviewViewEvent =
+  | { type: "state"; state: PreviewViewState }
+  | { type: "console"; message: { level: number; message: string; line: number; sourceId: string } }
+  | { type: "fail"; fail: { code: number; description: string; url: string; isMainFrame: boolean } }
+
+export type PreviewViewAPI = {
+  setBounds: (bounds: { x: number; y: number; width: number; height: number }) => Promise<void>
+  setVisible: (visible: boolean) => Promise<void>
+  navigate: (url: string) => Promise<void>
+  reload: () => Promise<void>
+  back: () => Promise<void>
+  forward: () => Promise<void>
+  setZoom: (factor: number) => Promise<void>
+  getState: () => Promise<PreviewViewState | null>
+  capture: () => Promise<{ buffer: ArrayBuffer; width: number; height: number }>
+  setSelectMode: (enabled: boolean) => Promise<void>
+  getSelection: () => Promise<PreviewViewSelection | null>
+  onEvent: (cb: (event: PreviewViewEvent) => void) => () => void
+}
+
 export type ElectronAPI = {
   killSidecar: () => Promise<void>
   relaunchApp: () => Promise<void>
@@ -210,6 +253,7 @@ export type ElectronAPI = {
   setLoginItem: (enabled: boolean) => Promise<boolean>
   getLoginItem: () => Promise<boolean>
   clearWebviewData: () => Promise<void>
+  previewView: PreviewViewAPI
   backup: {
     now: () => Promise<string | null>
     list: () => Promise<{ name: string; createdAt: number }[]>

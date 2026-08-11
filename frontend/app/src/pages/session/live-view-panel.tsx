@@ -5,14 +5,14 @@ import { Icon as IconV2 } from "@tiancode-ai/ui/v2/icon"
 import { IconButtonV2 } from "@tiancode-ai/ui/v2/icon-button-v2"
 import { createEffect, createMemo, createSignal, onCleanup, onMount, Show } from "solid-js"
 import { Dynamic } from "solid-js/web"
-import { normalizeUrl, supportsPreviewPanel } from "@/components/preview-panel"
-import { welcomePageUrl } from "@/utils/webview-welcome"
+import { supportsPreviewPanel } from "@/components/preview-panel"
 import { useFile } from "@/context/file"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { useSDK } from "@/context/sdk"
 import { useSync } from "@/context/sync"
 import { useSessionLayout } from "@/pages/session/session-layout"
+import { LivePreview } from "@/pages/session/live-preview/live-preview"
 import { ScrollView } from "@tiancode-ai/ui/scroll-view"
 
 export const LIVE_VIEW_URL = "http://127.0.0.1:8790/"
@@ -32,20 +32,6 @@ export type SnapshotPayload = {
   preview_default?: string | null
   current_file?: string | null
   logs?: { line?: string }[]
-}
-
-// API mínima del elemento <webview> de Electron expuesta al renderer.
-type WebviewElement = HTMLElement & {
-  loadURL(url: string): Promise<void>
-  getURL(): string
-  getTitle(): string
-  canGoBack(): boolean
-  canGoForward(): boolean
-  goBack(): void
-  goForward(): void
-  reload(): void
-  isLoading(): boolean
-  getWebContentsId(): number
 }
 
 // URL que el servidor quiere mostrar: la fijada por el agente (set_preview) o,
@@ -79,7 +65,7 @@ export function serverTargetOf(snapshot: SnapshotPayload | undefined) {
 
 // URL detectada en los tool-calls del chat (p. ej. la IA abrió la web con
 // chrome-devtools_new_page): el sandbox la muestra aunque el live server no
-// tenga sesión. La fija useLiveViewAutoOpen y la navega LiveViewBrowser.
+// tenga sesión. La fija useLiveViewAutoOpen y la navega LivePreview.
 export const [liveViewExternalUrl, setLiveViewExternalUrl] = createSignal<string | undefined>(undefined)
 
 // Pane de código: muestra el archivo que el agente está editando (sigue
@@ -173,221 +159,6 @@ function CodePane(props: { followPath?: string }) {
   )
 }
 
-// Navegador del pane "App": un <webview> de Electron (partición
-// "persist:live-view") con barra de direcciones estilo navegador. Es la
-// "vista en vivo" real: muestra la app en desarrollo, no el dashboard.
-// Cuando el agente reporta una URL (set_preview) o arranca un dev server
-// visible en los logs, el panel navega solo (targetUrl).
-function LiveViewBrowser(props: {
-  targetUrl?: () => string | undefined
-  onCapture?: (file: File) => void
-}) {
-  const language = useLanguage()
-  const platform = usePlatform()
-  const [url, setUrl] = createSignal("")
-  const [input, setInput] = createSignal("")
-  const [loading, setLoading] = createSignal(false)
-  const [canGoBack, setCanGoBack] = createSignal(false)
-  const [canGoForward, setCanGoForward] = createSignal(false)
-  const [attached, setAttached] = createSignal(false)
-  const [busy, setBusy] = createSignal(false)
-  const welcomeUrl = () => welcomePageUrl(language.t("liveView.appEmpty"))
-  let container: HTMLDivElement | undefined
-  let webview: WebviewElement | undefined
-  // loadURL solo es válido tras el dom-ready del webview; antes de eso se
-  // navega con el atributo src (URL inicial) y se re-confirma en dom-ready.
-  let ready = false
-  // URL pendiente: el webview solo existe con la pestaña App abierta; si el
-  // agente navega mientras se ve otra vista, se carga al recrearlo.
-  const pendingUrlRef = { current: "" }
-  // La navegación manual (URL tecleada, atrás/adelante) gana sobre la
-  // auto-detección del dev server; una URL nueva del agente la reanuda.
-  let manualNav = false
-  let lastTargetUrl: string | undefined
-
-  const syncState = () => {
-    if (!webview) return
-    setLoading(webview.isLoading())
-    setCanGoBack(webview.canGoBack())
-    setCanGoForward(webview.canGoForward())
-    setUrl(webview.getURL() || url())
-    setInput(webview.getURL() || url())
-  }
-
-  const flushPending = () => {
-    if (!webview || !ready) return
-    const pending = pendingUrlRef.current
-    if (pending && pending !== webview.getURL()) void webview.loadURL(pending).catch(() => {})
-  }
-
-  // El webview se crea dinámicamente (el elemento no está en los tipos JSX);
-  // los eventos del navegador llegan por addEventListener, como en el
-  // navegador interno (preview-panel).
-  createEffect(() => {
-    if (!supportsPreviewPanel(platform.platform) || !container) return
-    const element = document.createElement("webview") as unknown as WebviewElement
-    if (typeof element.getWebContentsId !== "function") return
-    ready = false
-    element.setAttribute("partition", "persist:live-view")
-    // Página local de bienvenida por defecto: un about:blank se ve blanco y un
-    // webview sin URL inicial puede componerse en negro sobre el panel.
-    element.setAttribute("src", pendingUrlRef.current || welcomeUrl())
-    element.setAttribute("webpreferences", "contextIsolation=yes, nodeIntegration=no, sandbox=yes")
-    // Confinado a su caja: un webview sin tamaño válido al crearse se compone
-    // sobre TODA la ventana (cubre el header y el pane Código). absolute
-    // dentro de un contenedor relative+overflow-hidden lo fija al pane App.
-    element.style.position = "absolute"
-    element.style.inset = "0"
-    element.style.width = "100%"
-    element.style.height = "100%"
-    element.style.border = "none"
-    container.appendChild(element)
-    webview = element
-    const onDomReady = () => {
-      ready = true
-      setAttached(true)
-      syncState()
-      flushPending()
-    }
-    element.addEventListener("dom-ready", onDomReady)
-    element.addEventListener("did-navigate", syncState)
-    element.addEventListener("did-navigate-in-page", syncState)
-    element.addEventListener("did-start-loading", () => setLoading(true))
-    element.addEventListener("did-stop-loading", syncState)
-    onCleanup(() => {
-      element.removeEventListener("dom-ready", onDomReady)
-      element.removeEventListener("did-navigate", syncState)
-      element.removeEventListener("did-navigate-in-page", syncState)
-      element.remove()
-      webview = undefined
-      ready = false
-      setAttached(false)
-    })
-  })
-
-  const navigateTo = (target: string) => {
-    if (!target) return
-    pendingUrlRef.current = target
-    setInput(target)
-    setUrl(target)
-    if (!webview) return
-    if (ready) void webview.loadURL(target).catch(() => {})
-    // Antes del dom-ready loadURL lanza "The WebView must be attached to the
-    // DOM and the dom-ready event emitted": el atributo src define la URL
-    // inicial y flushPending re-confirma al hacerse ready.
-    else webview.setAttribute("src", target)
-  }
-
-  // URL del agente / dev server detectado / tool-call del chat: navega y
-  // reanuda la auto-navegación. La URL externa (tool-call) gana sobre el
-  // snapshot del live server.
-  createEffect(() => {
-    const target = liveViewExternalUrl() ?? props.targetUrl?.()
-    if (!target || target === lastTargetUrl) return
-    lastTargetUrl = target
-    manualNav = false
-    navigateTo(target)
-  })
-
-  const navigateFromInput = () => {
-    const target = normalizeUrl(input())
-    if (!target) return
-    manualNav = true
-    navigateTo(target)
-  }
-
-  const goBack = () => {
-    manualNav = true
-    webview?.goBack()
-  }
-
-  const goForward = () => {
-    manualNav = true
-    webview?.goForward()
-  }
-
-  const capture = async () => {
-    if (busy() || !attached()) return
-    setBusy(true)
-    try {
-      const file = await platform.captureScreenshot?.("liveView")
-      if (file) props.onCapture?.(file)
-    } catch {
-      // Sin captura disponible: la UI sigue usable.
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <div class="flex size-full min-h-0 flex-col" role="region" aria-label={language.t("liveView.tab.app")}>
-      <div class="flex h-9 shrink-0 items-center gap-1 border-b border-v2-border-border-muted px-1.5">
-        <IconButtonV2
-          type="button"
-          variant="ghost-muted"
-          size="small"
-          disabled={!canGoBack()}
-          onClick={goBack}
-          aria-label={language.t("preview.back")}
-          title={language.t("preview.back")}
-          icon={<IconV2 name="arrow-left" />}
-        />
-        <IconButtonV2
-          type="button"
-          variant="ghost-muted"
-          size="small"
-          disabled={!canGoForward()}
-          onClick={goForward}
-          aria-label={language.t("preview.forward")}
-          title={language.t("preview.forward")}
-          icon={<IconV2 name="arrow-right" />}
-        />
-        <IconButtonV2
-          type="button"
-          variant="ghost-muted"
-          size="small"
-          onClick={() => webview?.reload()}
-          aria-label={language.t("liveView.refresh")}
-          title={language.t("liveView.refresh")}
-          icon={<IconV2 name="reset" />}
-        />
-        <input
-          class="h-7 min-w-0 flex-1 rounded-md border border-v2-border-border-muted bg-v2-background-bg-base px-2 text-12-regular text-text-base outline-none focus:border-v2-border-border-strong"
-          value={input()}
-          onInput={(event) => setInput(event.currentTarget.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") navigateFromInput()
-          }}
-          placeholder={language.t("liveView.url")}
-          spellcheck={false}
-          aria-label={language.t("liveView.url")}
-        />
-        <Show when={url()}>
-          <IconButtonV2
-            type="button"
-            variant="ghost-muted"
-            size="small"
-            onClick={() => platform.openExternal(url())}
-            aria-label={language.t("liveView.openExternal")}
-            title={language.t("liveView.openExternal")}
-            icon={<IconV2 name="outline-square-arrow" />}
-          />
-        </Show>
-        <IconButtonV2
-          type="button"
-          variant="ghost-muted"
-          size="small"
-          disabled={!attached() || busy()}
-          onClick={() => void capture()}
-          aria-label={language.t("liveView.capture")}
-          title={language.t("liveView.capture")}
-          icon={<IconV2 name="monitor" />}
-        />
-      </div>
-      <div class="relative min-h-0 flex-1 overflow-hidden" ref={container} />
-    </div>
-  )
-}
 
 // Dashboard de dev tools del live server (árbol, logs, terminal, preview
 // local); se muestra en el pane derecho cuando el toggle "Dev tools" está
@@ -422,7 +193,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void }) {
   // Último snapshot del live server (preview_url, logs, current_file…).
   const [snapshot, setSnapshot] = createSignal<SnapshotPayload | undefined>(undefined)
   // URL detectada en los logs del agente (solo informativa, la navegación la
-  // hace LiveViewBrowser con targetUrl).
+  // hace LivePreview con targetUrl).
   const [detectedUrl, setDetectedUrl] = createSignal<string | undefined>(undefined)
   // El aviso descartado con la X no vuelve a aparecer para esa misma URL
   // (el poll lo re-derivaría en el siguiente snapshot).
@@ -442,8 +213,10 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void }) {
   // URL que el panel debe mostrar: la del agente (set_preview o preview local)
   // o, si no, el primer dev server detectado en los logs. La detección
   // queda suprimida mientras el usuario navegue a mano (manualNav en el
-  // navegador); una URL nueva del agente la reanuda.
+  // navegador); una URL nueva del agente la reanuda. La URL de un tool-call
+  // del chat (liveViewExternalUrl) gana sobre el snapshot del live server.
   const serverTarget = createMemo(() => serverTargetOf(snapshot()))
+  const browserTarget = () => liveViewExternalUrl() ?? serverTarget()
 
   // Aviso transitorio cuando la navegación vino de la detección de logs (no
   // de una URL fijada por el agente); se descarta con la X.
@@ -594,7 +367,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void }) {
         <div class="flex min-h-0 min-w-0 flex-1 flex-col">
           <Show
             when={devTools() || !supportsPreviewPanel(platform.platform)}
-            fallback={<LiveViewBrowser targetUrl={serverTarget} onCapture={props.onCapture} />}
+            fallback={<LivePreview targetUrl={browserTarget} onCapture={props.onCapture} />}
           >
             <DevToolsPane reloadKey={reloadKey()} />
           </Show>

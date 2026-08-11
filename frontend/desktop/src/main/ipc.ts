@@ -30,6 +30,7 @@ import { asrChunk, asrStart, asrStop, ensureAsrModel, getAsrStatus } from "./asr
 import { getRuntimeInstallState, installRuntime } from "./runtime-install"
 import { captureArea, captureLiveView, capturePreview, captureScreen, captureWindow } from "./capture"
 import { backupNow, listBackups, restoreBackup } from "./backup"
+import { registerPreviewViewIpc } from "./preview-view"
 
 // Apps "abrir con" que acepta open-path. En macOS y Linux el renderer envía
 // el nombre tal cual; en Windows envía el path resuelto por resolveAppPath
@@ -125,6 +126,11 @@ type Deps = {
 export function registerIpcHandlers(deps: Deps) {
   const drafts = createDesktopDraftStore(join(app.getPath("userData"), "drafts.sqlite"))
   const updaterSubscriptions = createUpdaterSubscriptions()
+
+  // Vista en vivo del panel "Vista en vivo": WebContentsView controlado por
+  // el renderer (bounds del contenedor real, navegación, selección de
+  // elementos). Canales exclusivos preview-view:*; nada existente cambia.
+  registerPreviewViewIpc()
 
   // Resuelve el argumento "app" de open-path contra los nombres conocidos;
   // en Windows el renderer envía el path resuelto y hay que re-resolver para
