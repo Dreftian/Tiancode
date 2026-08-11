@@ -981,6 +981,8 @@ export const dict = {
   "settings.general.pets.position.topRight": "Arriba a la derecha",
   "settings.general.pets.position.topLeft": "Arriba a la izquierda",
   "pets.status.ready": "Listo",
+  "pets.status.resting": "Descansando",
+
   "pets.status.running": "Trabajando",
   "pets.status.needsInput": "Necesita tu atención",
   "pets.status.blocked": "Bloqueado",

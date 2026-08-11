@@ -886,6 +886,8 @@ export const dict = {
   "settings.general.pets.position.topRight": "右上",
   "settings.general.pets.position.topLeft": "左上",
   "pets.status.ready": "準備完了",
+  "pets.status.resting": "休憩中",
+
   "pets.status.running": "作業中",
   "pets.status.needsInput": "入力待ち",
   "pets.status.blocked": "ブロック中",

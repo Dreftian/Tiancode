@@ -969,6 +969,8 @@ export const dict = {
   "settings.general.pets.position.topRight": "Вверху справа",
   "settings.general.pets.position.topLeft": "Вверху слева",
   "pets.status.ready": "Готово",
+  "pets.status.resting": "Отдыхаю",
+
   "pets.status.running": "В работе",
   "pets.status.needsInput": "Нужен ввод",
   "pets.status.blocked": "Заблокировано",

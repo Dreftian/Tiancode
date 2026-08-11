@@ -1055,6 +1055,8 @@ export const dict = {
   "settings.general.pets.position.topRight": "오른쪽 위",
   "settings.general.pets.position.topLeft": "왼쪽 위",
   "pets.status.ready": "준비됨",
+  "pets.status.resting": "휴식 중",
+
   "pets.status.running": "작업 중",
   "pets.status.needsInput": "입력 필요",
   "pets.status.blocked": "차단됨",

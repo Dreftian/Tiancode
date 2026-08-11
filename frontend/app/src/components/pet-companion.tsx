@@ -71,13 +71,16 @@ export function PetCompanion() {
     return announcementText(session, last.id)
   })
   // Mientras trabaja se prefiere el anuncio en vivo; sin anuncio todavía
-  // (p. ej. razonando) se muestra la etiqueta genérica del estado.
+  // (p. ej. razonando) se muestra la etiqueta genérica del estado. Un dict de
+  // idioma incompleto nunca debe crashear la app: si la clave falta, el
+  // translator devuelve undefined y se usa el estado como texto final.
   const bubbleText = createMemo(() => {
-    if (status() === "running") return actionText() || language.t(statusLabels.running)
-    return language.t(statusLabels[status()])
+    if (status() === "running") return actionText() || language.t(statusLabels.running) || statusLabels.running
+    const key = statusLabels[status()]
+    return language.t(key) ?? key
   })
   const label = createMemo(() => {
-    const text = bubbleText()
+    const text = bubbleText() ?? ""
     return text.length > 240 ? text.slice(0, 240) : text
   })
 

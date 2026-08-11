@@ -4,6 +4,16 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.29] — 2026-08-10
+### Corregido
+
+- **Crash al abrir la app** ("Cannot read properties of undefined (reading
+  'length')" en la mascota): la clave de idioma `pets.status.resting`
+  (estado de reposo) no llegó a los 7 locales y el traductor devolvía
+  `undefined`. Añadida en los 7 idiomas, y la burbuja de la mascota ahora
+  tolera una clave faltante (nunca más puede tumbar el render de la app por un
+  dict incompleto).
+
 ## [1.0.28] — 2026-08-10
 ### Corregido
 
