@@ -70,7 +70,27 @@ function resolvePythonCommand(): string[] {
   return pythonCommand
 }
 
+// Si el usuario desactivó un servidor bundled desde Settings (mcp.<name>.
+// enabled=false), el seeding NO lo reactiva: el toggle del usuario manda.
+async function isUserDisabled(auth: SidecarAuth, name: string): Promise<boolean> {
+  const basic = Buffer.from(`${auth.username}:${auth.password}`).toString("base64")
+  try {
+    const res = await fetch(`${auth.url}/config`, {
+      headers: { authorization: `Basic ${basic}` },
+    })
+    if (!res.ok) return false
+    const info = (await res.json()) as { mcp?: Record<string, { enabled?: boolean }> }
+    return info.mcp?.[name]?.enabled === false
+  } catch {
+    return false
+  }
+}
+
 async function registerServer(auth: SidecarAuth, entry: BundledMcp) {
+  if (await isUserDisabled(auth, entry.name)) {
+    console.log(`[mcp-bundle] ${entry.name} disabled by user, skipping`)
+    return true
+  }
   const dir = join(BUNDLED_ROOT, entry.dir)
   const script = join(dir, entry.script)
   const configFile = join(dir, entry.configFile)

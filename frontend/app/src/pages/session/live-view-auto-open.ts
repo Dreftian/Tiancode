@@ -10,8 +10,11 @@ const LIVE_VIEW_POLL_MS = 5_000
 const LIVE_VIEW_CHECK_MS = 3_000
 
 // Tools del chat que navegan a una página (el agente la abrió para probarla):
-// se muestra en el sandbox aunque el live server no tenga sesión.
-const NAVIGATION_TOOL_RE = /new_page|navigate|browse|preview|open_page|open_url/i
+// se muestra en el sandbox aunque el live server no tenga sesión. Cubre los
+// MCPs de navegador (chrome-devtools_new_page, playwright browser_goto,
+// browser_navigate, browser_visit), el dashboard live_frontend (set_preview)
+// y las tools del agente (preview_start).
+const NAVIGATION_TOOL_RE = /new_page|navigate|browse|preview|open_page|open_url|goto|visit|launch/i
 const URL_IN_TOOL_RE = /(?:https?:\/\/[^\s"')\]]+|file:\/\/\/?[^\s"')\]]+)/
 
 function navigationUrlOf(tool: string, input: unknown): string | undefined {
