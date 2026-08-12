@@ -14,6 +14,11 @@ import "./preview-panel.css"
 // pueda fotografiar lo que muestra el navegador interno.
 export const [previewWebContentsId, setPreviewWebContentsId] = createSignal<number | undefined>(undefined)
 
+// Estado de apertura compartido: la vista en vivo (sandbox) cierra el
+// navegador flotante cuando el agente navega, para que no compita con el
+// panel de código + preview.
+export const [previewPanelOpen, setPreviewPanelOpen] = createSignal(false)
+
 // No hay una URL por defecto útil en producción (localhost:5173 solo existe
 // en dev); el panel se abre vacío y el usuario navega a donde quiera.
 const DEFAULT_URL = ""
@@ -45,7 +50,7 @@ export function PreviewPanel() {
   const language = useLanguage()
   const platform = usePlatform()
   const settings = useSettings()
-  const [open, setOpen] = createSignal(false)
+  const [open, setOpen] = [previewPanelOpen, setPreviewPanelOpen]
   const [url, setUrl] = createSignal(DEFAULT_URL)
   const [input, setInput] = createSignal(DEFAULT_URL)
   const [loading, setLoading] = createSignal(false)

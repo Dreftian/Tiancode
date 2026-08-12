@@ -2,6 +2,7 @@ import { createEffect, onCleanup } from "solid-js"
 import { useParams } from "@solidjs/router"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { useServerSync } from "@/context/server-sync"
+import { setPreviewPanelOpen } from "@/components/preview-panel"
 import { LIVE_VIEW_URL, setLiveViewExternalUrl, serverTargetOf } from "@/pages/session/live-view-panel"
 
 // Intervalos del vigía: el poll corre solo mientras el sandbox está cerrado
@@ -16,24 +17,46 @@ const LIVE_VIEW_CHECK_MS = 3_000
 // y las tools del agente (preview_start).
 const NAVIGATION_TOOL_RE = /new_page|navigate|browse|preview|open_page|open_url|goto|visit|launch/i
 const URL_IN_TOOL_RE = /(?:https?:\/\/[^\s"')\]]+|file:\/\/\/?[^\s"')\]]+)/
+// Path absoluto de Windows a un HTML local (p. ej. el agente la abre con
+// Start-Process "C:\carpeta\index.html"): se convierte a file:// para que el
+// panel la muestre igual que cualquier otra navegación del agente.
+const WIN_HTML_PATH_RE = /[A-Za-z]:[\\/][^"'()\]]*\.html?/i
+
+function winPathToFileUrl(raw: string) {
+  const collapsed = raw.replace(/\\\\/g, "/").replace(/\\/g, "/").replace(/\/{2,}/g, "/")
+  return `file:///${encodeURI(collapsed)}`
+}
 
 function navigationUrlOf(tool: string, input: unknown): string | undefined {
-  if (!NAVIGATION_TOOL_RE.test(tool)) return undefined
   let serialized = ""
   if (typeof input === "string") serialized = input
   else if (input && typeof input === "object") serialized = JSON.stringify(input)
-  const match = URL_IN_TOOL_RE.exec(serialized)
-  return match?.[0] ?? undefined
+  if (NAVIGATION_TOOL_RE.test(tool)) {
+    const match = URL_IN_TOOL_RE.exec(serialized)
+    if (match) return match[0]
+  }
+  const file = WIN_HTML_PATH_RE.exec(serialized)
+  if (file) return winPathToFileUrl(file[0])
+  return undefined
+}
+
+// La app construida por el agente aparece SIEMPRE en el panel de código +
+// preview: se cierra el navegador flotante (no compite), se fuerza la pestaña
+// App (no Dev tools) y se abre el sandbox.
+function showLiveView(view: ReturnType<typeof useSessionLayout>["view"]) {
+  setPreviewPanelOpen(false)
+  view().liveView.setTab("preview")
+  view().liveView.open()
 }
 
 // Abre el sandbox ("Vista en vivo") cuando el agente navega: fija una URL con
 // set_preview, arranca un dev server visible en los logs, o abre una página
-// con una tool del chat (p. ej. chrome-devtools_new_page). La app que
-// construye la IA aparece así SIEMPRE en el panel de código + preview, y el
-// navegador flotante (preview-panel) queda reservado al clic explícito del
-// usuario. Sin esto, una navegación a mitad de sesión no abría el sandbox (el
-// panel solo existe montado) y el usuario terminaba viendo la app en el
-// navegador interno o en Chrome.
+// con una tool del chat (p. ej. chrome-devtools_new_page, Start-Process con
+// un HTML local). La app que construye la IA aparece así SIEMPRE en el panel
+// de código + preview, y el navegador flotante (preview-panel) queda
+// reservado al clic explícito del usuario. Sin esto, una navegación a mitad
+// de sesión no abría el sandbox (el panel solo existe montado) y el usuario
+// terminaba viendo la app en el navegador interno o en Chrome.
 export function useLiveViewAutoOpen(input: { enabled: () => boolean }) {
   const { view } = useSessionLayout()
   const serverSync = useServerSync()
@@ -56,7 +79,7 @@ export function useLiveViewAutoOpen(input: { enabled: () => boolean }) {
           if (!target || target === lastAutoOpenedUrl) return
           lastAutoOpenedUrl = target
           setLiveViewExternalUrl(undefined)
-          view().liveView.open()
+          showLiveView(view)
         })
         .catch(() => undefined)
         .finally(() => window.clearTimeout(timer))
@@ -68,8 +91,9 @@ export function useLiveViewAutoOpen(input: { enabled: () => boolean }) {
   })
 
   // Tool-call del chat con URL de navegación (p. ej. la IA abrió la web con
-  // chrome-devtools_new_page): el sandbox la muestra al costado aunque el live
-  // server no tenga sesión, y la URL queda fijada para cuando se monte el pane.
+  // chrome-devtools_new_page o Start-Process con un HTML local): el sandbox
+  // la muestra al costado aunque el live server no tenga sesión, y la URL
+  // queda fijada para cuando se monte el pane.
   createEffect(() => {
     if (!input.enabled() || !params.id) return
     const messages = serverSync().session.data.message[params.id]
@@ -85,7 +109,7 @@ export function useLiveViewAutoOpen(input: { enabled: () => boolean }) {
         if (url === lastAutoOpenedUrl) return
         lastAutoOpenedUrl = url
         setLiveViewExternalUrl(url)
-        view().liveView.open()
+        showLiveView(view)
         return
       }
     }
