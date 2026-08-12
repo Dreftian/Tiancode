@@ -37,7 +37,14 @@ export function detectPackageManager(dir: string) {
 
 export async function detectProject(dir: string): Promise<DetectedProject | null> {
   const manifest = Bun.file(join(dir, "package.json"))
-  if (!(await manifest.exists())) return null
+  if (!(await manifest.exists())) {
+    // Proyecto estático: sin gestor ni scripts, solo HTML servido localmente
+    // (el agente genera webs con index.html puro y las abre directamente).
+    if (existsSync(join(dir, "index.html"))) {
+      return { framework: "html", packageManager: "static", script: "", port: 4173 }
+    }
+    return null
+  }
 
   let pkg: Record<string, unknown>
   try {

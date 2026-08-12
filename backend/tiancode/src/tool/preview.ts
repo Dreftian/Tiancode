@@ -37,7 +37,7 @@ export const PreviewStartTool = Tool.define(
   "preview_start",
   Effect.succeed({
     description:
-      "Detecta el proyecto web del workspace (Vite, Next, etc.) y arranca su servidor de desarrollo. Espera hasta que el servidor esté listo y devuelve su URL y puerto. Usa preview_status para leer los errores de compilación.",
+      "Detecta el proyecto web del workspace (Vite, Next, etc.) y arranca su servidor de desarrollo; también sirve proyectos estáticos con index.html (usa python http.server). Espera hasta que el servidor esté listo y devuelve su URL y puerto. Usa preview_status para leer los errores de compilación. Es la forma correcta de abrir la web del usuario dentro de la app; NO uses Start-Process para abrir webs, usa esta tool.",
     parameters: NoArgs,
     execute: () =>
       Effect.gen(function* () {

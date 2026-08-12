@@ -37,6 +37,14 @@ function navigationUrlOf(tool: string, input: unknown): string | undefined {
   }
   const file = WIN_HTML_PATH_RE.exec(serialized)
   if (file) return winPathToFileUrl(file[0])
+  // Tools de shell: el agente suele abrir la web levantando un servidor y
+  // navegando con Start-Process/start (p. ej. "Start-Process
+  // 'http://localhost:8000'"). Es una navegación del agente: el panel la
+  // muestra igual que cualquier tool de navegación.
+  if (/shell|bash|powershell|cmd|exec|run/i.test(tool)) {
+    const match = URL_IN_TOOL_RE.exec(serialized)
+    if (match) return match[0]
+  }
   return undefined
 }
 
