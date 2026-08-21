@@ -49,7 +49,10 @@ import { useLanguage } from "@/context/language"
 import { useLayout } from "@/context/layout"
 import { ModelsProvider } from "@/context/models"
 import { useNotification } from "@/context/notification"
-import { PromptProvider, usePrompt } from "@/context/prompt"
+import { PromptProvider, usePrompt, type ImageAttachmentPart } from "@/context/prompt"
+import { attachmentMime } from "@/components/prompt-input/files"
+import { createBlobReference } from "@/utils/draft-store"
+import { uuid } from "@/utils/uuid"
 import { usePlatform } from "@/context/platform"
 import { SDKProvider, useSDK } from "@/context/sdk"
 import { useServerSDK } from "@/context/server-sdk"
@@ -76,6 +79,7 @@ import { createTimelineModel } from "@/pages/session/timeline/model"
 import { type DiffStyle, SessionReviewTab, type SessionReviewTabProps } from "@/pages/session/review-tab"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { restorePromptModel, syncPromptModel, syncSessionModel } from "@/pages/session/session-model-helpers"
+import { stopAutoSpeak } from "@/utils/auto-speak"
 import {
   clampSessionPanelWidth,
   SESSION_PANEL_WIDTH_MIN,
@@ -83,6 +87,7 @@ import {
 } from "@/pages/session/session-panel-width"
 import { SessionSidePanel } from "@/pages/session/session-side-panel"
 import { sessionPanelLayout } from "@/pages/session/session-panel-layout"
+import { clampLiveViewWidth, liveViewWidthBounds } from "@/pages/session/live-view-width"
 import { SessionReviewEmptyChangesV2 } from "@tiancode-ai/session-ui/v2/session-review-empty-changes-v2"
 import { SessionReviewEmptyNoGitV2 } from "@tiancode-ai/session-ui/v2/session-review-empty-no-git-v2"
 import { SessionReviewV2SidebarToggle } from "@tiancode-ai/session-ui/v2/session-review-v2"
@@ -91,6 +96,8 @@ import { createReviewPanelV2State } from "@/pages/session/v2/review-panel-v2-sta
 import { reviewDiffDirectory, reviewDiffNeedsLoad, reviewRootDirectory } from "@/pages/session/v2/review-diff-kinds"
 import { TerminalPanel } from "@/pages/session/terminal-panel"
 import { TerminalPanelV2 } from "@/pages/session/terminal-panel-v2"
+import { LiveViewPanel } from "@/pages/session/live-view-panel"
+import { useLiveViewAutoOpen } from "@/pages/session/live-view-auto-open"
 import { useComposerCommands } from "@/pages/session/use-composer-commands"
 import { useSessionCommands } from "@/pages/session/use-session-commands"
 import { useSessionHashScroll } from "@/pages/session/use-session-hash-scroll"
@@ -376,6 +383,24 @@ export default function Page() {
   const sessionOwnership = createSessionOwnership(sessionKey)
   const newSessionDesign = createMemo(() => settings.general.newLayoutDesigns())
 
+  // Adjunta una captura del panel "Vista en vivo" al prompt como media part,
+  // igual que las capturas del composer (el modelo la analiza vía un MCP de
+  // visión aunque no tenga visión nativa).
+  const attachLiveViewCapture = async (file: File) => {
+    const mime = await attachmentMime(file)
+    if (!mime) return
+    const target = prompt.capture()
+    const attachment: ImageAttachmentPart = {
+      type: "image",
+      id: uuid(),
+      filename: file.name,
+      sourcePath: platform.getPathForFile?.(file),
+      mime,
+      blob: await createBlobReference(file),
+    }
+    target.set([...target.current(), attachment], target.cursor())
+  }
+
   createEffect(() => {
     if (!prompt.ready()) return
     untrack(() => {
@@ -446,14 +471,23 @@ export default function Page() {
   )
 
   const isDesktop = createMediaQuery("(min-width: 768px)")
+  const sandboxSideAvailable = createMediaQuery("(min-width: 900px)")
   const size = createSizing()
   const desktopReviewOpen = createMemo(() => isDesktop() && view().reviewPanel.opened())
   const desktopV2ReviewOpen = createMemo(() => newSessionDesign() && desktopReviewOpen() && !!params.id)
   const terminalOpen = createMemo(() => view().terminal.opened())
-  const desktopTerminalOpen = createMemo(() => isDesktop() && terminalOpen())
-  const desktopInlineTerminalOnlyOpen = createMemo(
-    () => newSessionDesign() && desktopTerminalOpen() && !desktopV2ReviewOpen(),
-  )
+  const liveViewOpen = createMemo(() => view().liveView.opened())
+  const desktopSandboxOpen = createMemo(() => sandboxSideAvailable() && newSessionDesign() && liveViewOpen())
+  // When the Sandbox is expanded it owns the whole session surface. Keeping
+  // it in this row (instead of a portal) means it still follows the app
+  // window, its rounded frame stays visible, and no off-screen panel is
+  // produced while the desktop window is resized.
+  const desktopSandboxExpanded = createMemo(() => desktopSandboxOpen() && view().liveView.expanded())
+  const bottomDockOpen = createMemo(() => terminalOpen() || (!sandboxSideAvailable() && liveViewOpen()))
+  createEffect(() => {
+    if (sandboxSideAvailable() || !terminalOpen() || !liveViewOpen()) return
+    view().liveView.close()
+  })
   const desktopFileTreeOpen = createMemo(
     () =>
       isDesktop() &&
@@ -463,7 +497,7 @@ export default function Page() {
       }),
   )
   const desktopSessionResizeOpen = createMemo(() =>
-    newSessionDesign() ? desktopV2ReviewOpen() || desktopTerminalOpen() : desktopReviewOpen(),
+    desktopSandboxOpen() || (newSessionDesign() ? desktopV2ReviewOpen() : desktopReviewOpen()),
   )
   const desktopSidePanelOpen = createMemo(() => desktopSessionResizeOpen() || desktopFileTreeOpen())
   let panelRow: HTMLDivElement | undefined
@@ -501,11 +535,25 @@ export default function Page() {
     if (desktopSessionResizeOpen()) return `${sessionPanelResizedWidth()}px`
     return `calc(100% - ${layout.fileTree.width()}px)`
   })
+  const liveViewWidthBoundsForRow = createMemo(() => liveViewWidthBounds({ available: sessionPanelAvailable() }))
+  // A saved width is a preference, never a requirement. Clamp it against the
+  // measured session row at render time so shrinking the desktop window keeps
+  // both the conversation and the Sandbox visible.
+  const liveViewResizedWidth = createMemo(() =>
+    clampLiveViewWidth({ width: view().liveView.width(), available: sessionPanelAvailable() }),
+  )
   const centered = createMemo(() => isDesktop() && (newSessionDesign() || !desktopReviewOpen()))
+  // La altura del dock inferior (terminal o vista en vivo) se limita al 60% de
+  // la ventana para que el chat siempre conserve espacio visible.
+  const dockMaxHeight = () => (typeof window === "undefined" ? 600 : window.innerHeight * 0.6)
+  const bottomDockHeight = createMemo(() => Math.min(layout.terminal.height(), dockMaxHeight()))
+  const closeBottomDock = () => {
+    view().terminal.close()
+    if (!sandboxSideAvailable()) view().liveView.close()
+  }
   const desktopV2PanelLayout = createMemo(() =>
     sessionPanelLayout({
       review: desktopV2ReviewOpen(),
-      terminal: desktopTerminalOpen(),
       files: desktopFileTreeOpen(),
     }),
   )
@@ -1135,6 +1183,27 @@ export default function Page() {
     if (isChildSession()) return
     inputRef?.focus()
   }
+
+  // Heurística de intención: si el prompt pide construir una web, una app, un
+  // documento o una hoja de cálculo, abrimos automáticamente la vista en vivo
+  // (que por exclusión mutua del dock inferior cierra la terminal). Es solo un
+  // regex barato sobre el texto plano del prompt, sin llamadas adicionales.
+  const BUILD_INTENT_REGEX =
+    /\b(website|websites|pagina|página|web|landing|frontend|app|apps|aplicacion|aplicación|excel|hoja de calculo|hoja de cálculo|documento|documentos|docs|doc|construye|construir|crea|crear|build|make|interfaz|ui)\b/i
+  const maybeOpenLiveView = () => {
+    if (!newSessionDesign()) return
+    const text = prompt
+      .current()
+      .map((part) => ("content" in part ? part.content : ""))
+      .join("")
+    if (BUILD_INTENT_REGEX.test(text)) view().liveView.open()
+  }
+
+  // Navegación del agente a mitad de sesión (set_preview o dev server en los
+  // logs): abre el sandbox si está cerrado para que la app aparezca en el
+  // panel "Vista en vivo", no en el navegador flotante (que solo se abre por
+  // clic del usuario).
+  useLiveViewAutoOpen({ enabled: () => newSessionDesign() && !!params.id })
 
   useComposerCommands()
   useSessionCommands({
@@ -2217,6 +2286,12 @@ export default function Page() {
                       onSubmit: () => {
                         comments.clear()
                         resumeScroll()
+                        maybeOpenLiveView()
+                        // Sincronización de voz: al enviar una petición se corta
+                        // la lectura del anuncio anterior; la voz del nuevo
+                        // anuncio arranca limpia cuando el modelo empieza a
+                        // responder.
+                        stopAutoSpeak()
                       },
                       get edit() {
                         return editingFollowup()
@@ -2245,80 +2320,83 @@ export default function Page() {
   return (
     <SessionRouteFrame>
       <SessionHeader />
-      <div
-        ref={panelRow}
-        class="flex-1 min-h-0 flex flex-col md:flex-row"
-        classList={{
-          "gap-2 p-2": settings.general.newLayoutDesigns(),
-        }}
-      >
-        <Show when={!isDesktop() && !!params.id && !settings.general.newLayoutDesigns()}>{mobileTabs()}</Show>
-
+      {/* El panel lateral y el dock inferior (terminal / vista en vivo) son
+          dos zonas apiladas: la fila con el chat y la revisión arriba, y el
+          dock a ancho completo debajo. */}
+      <div class="flex-1 min-h-0 flex flex-col">
         <div
+          ref={panelRow}
+          class="flex-1 min-h-0 overflow-hidden flex flex-col md:flex-row"
           classList={{
-            "@container relative shrink-0 flex flex-col min-h-0 h-full flex-1 md:flex-none transition-[width]": true,
-            "duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[width] motion-reduce:transition-none":
-              !size.active() && !ui.reviewSnap && !desktopInlineTerminalOnlyOpen(),
-          }}
-          style={{
-            width: sessionPanelWidth(),
+            "gap-2 p-2": settings.general.newLayoutDesigns(),
           }}
         >
-          {settings.general.newLayoutDesigns() ? (
-            <Show when={sessionPanelKey()} keyed>
-              {(_) => (
-                <SessionPanelFrame newLayout raised={!!params.id}>
-                  <ErrorBoundary fallback={sessionErrorFallback}>{sessionPanelContent()}</ErrorBoundary>
+          <Show when={!desktopSandboxExpanded()}>
+            <Show when={!isDesktop() && !!params.id && !settings.general.newLayoutDesigns()}>{mobileTabs()}</Show>
+
+            <div
+              classList={{
+                "@container relative shrink-0 flex flex-col min-h-0 h-full flex-1 md:flex-none transition-[width]": true,
+                "duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[width] motion-reduce:transition-none":
+                  !size.active() && !ui.reviewSnap,
+              }}
+              style={{
+                width: sessionPanelWidth(),
+              }}
+            >
+              {settings.general.newLayoutDesigns() ? (
+                <Show when={sessionPanelKey()} keyed>
+                  {(_) => (
+                    <SessionPanelFrame newLayout raised={!!params.id}>
+                      <ErrorBoundary fallback={sessionErrorFallback}>{sessionPanelContent()}</ErrorBoundary>
+                    </SessionPanelFrame>
+                  )}
+                </Show>
+              ) : (
+                <SessionPanelFrame newLayout={false} raised={!!params.id}>
+                  {sessionPanelContent()}
                 </SessionPanelFrame>
               )}
-            </Show>
-          ) : (
-            <SessionPanelFrame newLayout={false} raised={!!params.id}>
-              {sessionPanelContent()}
-            </SessionPanelFrame>
-          )}
 
-          <Show when={desktopSessionResizeOpen()}>
-            <div onPointerDown={() => size.start()}>
-              <ResizeHandle
-                classList={{
-                  "-end-1": settings.general.newLayoutDesigns(),
-                }}
-                direction="horizontal"
-                size={sessionPanelResizedWidth()}
-                min={SESSION_PANEL_WIDTH_MIN}
-                max={sessionPanelMax()}
-                onResize={(width) => {
-                  size.touch()
-                  layout.session.resize(width)
-                }}
-              />
+              <Show when={desktopSessionResizeOpen()}>
+                <div onPointerDown={() => size.start()}>
+                  <ResizeHandle
+                    classList={{
+                      "-end-1": settings.general.newLayoutDesigns(),
+                    }}
+                    direction="horizontal"
+                    size={sessionPanelResizedWidth()}
+                    min={SESSION_PANEL_WIDTH_MIN}
+                    max={sessionPanelMax()}
+                    onResize={(width) => {
+                      size.touch()
+                      layout.session.resize(width)
+                    }}
+                  />
+                </div>
+              </Show>
             </div>
-          </Show>
-        </div>
 
-        <Show when={!newSessionDesign() && desktopSidePanelOpen()}>
-          <Suspense>
-            <SessionSidePanel
-              canReview={canReview}
-              diffs={reviewDiffs}
-              diffsReady={reviewReady}
-              empty={reviewEmptyText}
-              hasReview={hasReview}
-              reviewHasFocusableContent={hasReview}
-              reviewCount={reviewCount}
-              reviewPanel={reviewPanel}
-              activeDiff={activeReviewFile()}
-              focusReviewDiff={focusReviewDiff}
-              reviewSnap={ui.reviewSnap}
-              size={size}
-            />
-          </Suspense>
-        </Show>
-        <Show when={newSessionDesign()}>
-          <Show when={isDesktop() ? desktopV2PanelLayout().visible : terminalOpen()}>
-            <div class="min-w-0 h-full flex flex-1 flex-col">
-              <Show when={isDesktop() && (desktopV2ReviewOpen() || desktopFileTreeOpen())}>
+            <Show when={!newSessionDesign() && desktopSidePanelOpen()}>
+              <Suspense>
+                <SessionSidePanel
+                  canReview={canReview}
+                  diffs={reviewDiffs}
+                  diffsReady={reviewReady}
+                  empty={reviewEmptyText}
+                  hasReview={hasReview}
+                  reviewHasFocusableContent={hasReview}
+                  reviewCount={reviewCount}
+                  reviewPanel={reviewPanel}
+                  activeDiff={activeReviewFile()}
+                  focusReviewDiff={focusReviewDiff}
+                  reviewSnap={ui.reviewSnap}
+                  size={size}
+                />
+              </Suspense>
+            </Show>
+            <Show when={newSessionDesign() && desktopV2PanelLayout().visible}>
+              <div class="min-w-0 h-full flex flex-1 flex-col">
                 <div class="min-h-0 flex-1">
                   <Suspense>
                     <SessionSidePanel
@@ -2336,7 +2414,7 @@ export default function Page() {
                           disabled={disabled}
                           onToggle={reviewV2State.toggleSidebar}
                         />
-                      )}
+                        )}
                       fileBrowserState={reviewV2State}
                       activeDiff={activeReviewFile()}
                       focusReviewDiff={focusReviewDiff}
@@ -2346,36 +2424,66 @@ export default function Page() {
                     />
                   </Suspense>
                 </div>
-              </Show>
-              <Show when={desktopV2PanelLayout().stacked}>
-                <div class="relative h-2 shrink-0" onPointerDown={() => size.start()}>
+              </div>
+            </Show>
+            <Show when={desktopSandboxOpen()}>
+              <div
+                class="h-full min-h-0 min-w-0 flex-1 flex flex-row"
+              >
+                <div class="h-full min-h-0 w-1.5 shrink-0 cursor-col-resize" onPointerDown={() => size.start()}>
                   <ResizeHandle
-                    class="!relative !inset-auto !h-full !w-full !transform-none"
-                    direction="vertical"
-                    size={layout.terminal.height()}
-                    min={100}
-                    max={typeof window === "undefined" ? 600 : window.innerHeight * 0.6}
-                    collapseThreshold={50}
-                    onResize={(height) => {
+                    direction="horizontal"
+                    edge="start"
+                    size={liveViewResizedWidth()}
+                    min={liveViewWidthBoundsForRow().min}
+                    max={liveViewWidthBoundsForRow().max}
+                    collapseThreshold={300}
+                    onResize={(width) => {
                       size.touch()
-                      layout.terminal.resize(height)
+                      view().liveView.resize(width)
                     }}
-                    onCollapse={() => view().terminal.close()}
                   />
                 </div>
-              </Show>
-              <Show when={terminalOpen()}>
-                <div
-                  classList={{
-                    "min-h-0 shrink-0": desktopV2PanelLayout().stacked,
-                    "min-h-0 flex-1": !desktopV2PanelLayout().stacked,
-                  }}
-                >
-                  <TerminalPanelV2 stacked={desktopV2PanelLayout().stacked} />
+                <div class="min-h-0 min-w-0 flex-1 h-full">
+                  <LiveViewPanel onCapture={attachLiveViewCapture} expandable />
                 </div>
-              </Show>
+              </div>
+            </Show>
+          </Show>
+          <Show when={desktopSandboxExpanded()}>
+            <div class="h-full min-h-0 min-w-0 flex-1 overflow-hidden">
+              <LiveViewPanel onCapture={attachLiveViewCapture} expandable />
             </div>
           </Show>
+        </div>
+
+        <Show when={newSessionDesign() && bottomDockOpen()}>
+          <div class="relative h-2 shrink-0" onPointerDown={() => size.start()}>
+            <ResizeHandle
+              class="!relative !inset-auto !h-full !w-full !transform-none"
+              direction="vertical"
+              size={layout.terminal.height()}
+              min={100}
+              max={dockMaxHeight()}
+              collapseThreshold={50}
+              onResize={(height) => {
+                size.touch()
+                layout.terminal.resize(height)
+              }}
+              onCollapse={closeBottomDock}
+            />
+          </div>
+          <div
+            class="min-h-0 shrink-0 border-t border-[var(--v2-border-border-base)]"
+            style={{ height: `${bottomDockHeight()}px` }}
+          >
+            <Show when={terminalOpen()}>
+              <TerminalPanelV2 stacked />
+            </Show>
+            <Show when={!terminalOpen() && !sandboxSideAvailable() && liveViewOpen()}>
+              <LiveViewPanel onCapture={attachLiveViewCapture} />
+            </Show>
+          </div>
         </Show>
       </div>
 

@@ -14,6 +14,7 @@ import { InstanceState } from "@/effect/instance-state"
 import { trimDiff } from "./edit"
 import { assertExternalDirectoryEffect } from "./external-directory"
 import * as Bom from "@/util/bom"
+import { CodeSanitizer } from "@/util/code-sanitizer"
 
 const MAX_PROJECT_DIAGNOSTICS_FILES = 5
 
@@ -43,9 +44,10 @@ export const WriteTool = Tool.define(
             : path.join(instance.directory, params.filePath)
           yield* assertExternalDirectoryEffect(ctx, filepath)
 
+          const sanitized = CodeSanitizer.sanitize(params.content)
           const exists = yield* fs.existsSafe(filepath)
           const source = exists ? yield* Bom.readFile(fs, filepath) : { bom: false, text: "" }
-          const next = Bom.split(params.content)
+          const next = Bom.split(sanitized.content)
           const desiredBom = source.bom || next.bom
           const contentOld = source.text
           const contentNew = next.text

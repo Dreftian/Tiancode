@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Live Frontend — Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header id="topbar">
+    <div class="brand">
+      <span class="dot" id="conn-dot"></span>
+      Live Frontend
+      <span class="conn-text" id="conn-text">conectando</span>
+    </div>
+    <div class="session-info">
+      <select id="session-select" title="Active session"></select>
+      <span class="chip" id="phase-chip">idle</span>
+      <span class="badge" id="mode-badge">web</span>
+      <span class="root" id="root-path"></span>
+    </div>
+  </header>
+
+  <main id="layout">
+    <aside id="sidebar">
+      <div class="pane-head">Archivos <span class="muted" id="file-count"></span></div>
+      <div id="file-tree" class="tree"></div>
+      <div id="tree-empty" class="empty hidden">Sin sesión — pide al agente crear una web o app y aparecerá aquí.</div>
+    </aside>
+
+    <section id="center">
+      <div id="preview-pane" class="pane">
+        <div class="pane-head">
+          Vista previa
+          <a id="preview-link" href="#" target="_blank" rel="noopener" class="muted hidden">abrir en pestaña</a>
+        </div>
+        <iframe id="preview-frame" title="Vista previa"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"></iframe>
+        <div id="preview-empty" class="empty hidden">
+          Sin vista previa — el sitio del proyecto aparecerá aquí en tiempo real al crear los archivos.
+        </div>
+      </div>
+
+      <div id="screenshot-pane" class="pane hidden">
+        <div class="pane-head">Última captura <span class="muted" id="screenshot-meta"></span></div>
+        <img id="screenshot-img" alt="Última captura de escritorio">
+        <div id="screenshot-empty" class="empty hidden">Las capturas de escritorio aparecerán aquí.</div>
+      </div>
+
+      <div id="code-pane" class="pane">
+        <div class="pane-head"><span id="code-file" class="mono">archivo actual</span></div>
+        <pre id="code-view" class="code"></pre>
+        <div id="code-empty" class="empty hidden">
+          Sin archivo seleccionado — haz clic en un archivo del árbol.
+        </div>
+      </div>
+    </section>
+
+    <aside id="right">
+      <div id="log-pane" class="pane">
+        <div class="pane-head">
+          Terminal <span class="muted" id="log-count"></span>
+          <button id="log-clear" class="ghost" type="button">limpiar</button>
+        </div>
+        <div id="log-view" class="terminal"></div>
+        <div id="log-empty" class="empty hidden">Las líneas de registro aparecerán aquí.</div>
+      </div>
+    </aside>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

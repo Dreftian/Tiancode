@@ -204,6 +204,30 @@ export function createHomeSessionsController(home: HomeController) {
           tabs.select(tab)
         })
       },
+      delete: async (session: Session) => {
+        const conn = home.server.focused()
+        const ctx = home.server.focusedContext()
+        if (!conn || !ctx) return
+        const [, setStore] = ctx.sync.child(session.directory)
+        try {
+          await ctx.sdk.client.session.delete({ sessionID: session.id, directory: session.directory })
+          setStore(
+            produce((draft) => {
+              const match = Binary.search(draft.session, session.id, (item) => item.id)
+              if (match.found) draft.session.splice(match.index, 1)
+            }),
+          )
+          showToast({
+            variant: "success",
+            title: language.t("session.delete.title") ?? "Sesión eliminada",
+          })
+        } catch (cause) {
+          showToast({
+            title: language.t("session.delete.failed.title") ?? "Error al eliminar sesión",
+            description: errorMessage(cause, language.t("session.delete.failed.title")),
+          })
+        }
+      },
       archive: async (session: Session) => {
         const conn = home.server.focused()
         const ctx = home.server.focusedContext()

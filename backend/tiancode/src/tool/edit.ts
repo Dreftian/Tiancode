@@ -18,6 +18,7 @@ import { Snapshot } from "@/snapshot"
 import { assertExternalDirectoryEffect } from "./external-directory"
 import { FSUtil } from "@tiancode-ai/core/fs-util"
 import * as Bom from "@/util/bom"
+import { CodeSanitizer } from "@/util/code-sanitizer"
 
 function normalizeLineEndings(text: string): string {
   return text.replaceAll("\r\n", "\n")
@@ -128,7 +129,8 @@ export const EditTool = Tool.define(
 
               const ending = detectLineEnding(contentOld)
               const old = convertToLineEnding(normalizeLineEndings(params.oldString), ending)
-              const replacement = convertToLineEnding(normalizeLineEndings(params.newString), ending)
+              const sanitizedNewString = CodeSanitizer.sanitize(params.newString).content
+              const replacement = convertToLineEnding(normalizeLineEndings(sanitizedNewString), ending)
 
               const next = Bom.split(replace(contentOld, old, replacement, params.replaceAll))
               const desiredBom = source.bom || next.bom

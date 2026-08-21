@@ -7,6 +7,7 @@ import { useServerSync } from "./server-sync"
 import { useServerSDK } from "./server-sdk"
 import { RECENTLY_CLOSED_DISPLAY_LIMIT, ServerConnection, useServer } from "./server"
 import { usePlatform } from "./platform"
+import { normalizeLiveViewState } from "./layout-live-view"
 import { Project } from "@tiancode-ai/sdk/v2"
 import { normalizeProjectInfo } from "./global-sync/utils"
 import { Persist, persisted, removePersisted } from "@/utils/persist"
@@ -28,6 +29,14 @@ export type { ProjectAvatarVariant }
 
 const AVATAR_COLOR_KEYS = ["pink", "mint", "orange", "purple", "cyan", "lime"] as const
 const DEFAULT_SIDEBAR_WIDTH = 344
+// La vista en vivo (estilo Xcode) arranca dominante: ~56% del ancho de la
+// ventana la primera vez; 0 = todavía sin definir (se calcula al abrir).
+const DEFAULT_LIVE_VIEW_WIDTH = 0
+// Runtime layout applies a viewport-aware cap in `live-view-width.ts`. These
+// persistent bounds only protect stored preferences between renderer mounts.
+const LIVE_VIEW_WIDTH_MIN = 320
+const LIVE_VIEW_WIDTH_MAX = 1600
+const clampLvWidth = (width: number) => Math.min(LIVE_VIEW_WIDTH_MAX, Math.max(LIVE_VIEW_WIDTH_MIN, width))
 const DEFAULT_FILE_TREE_WIDTH = 200
 const DEFAULT_SESSION_WIDTH = 600
 const DEFAULT_TERMINAL_HEIGHT = 280
@@ -88,6 +97,12 @@ export type HomeProjectSelection = { server: ServerConnection.Key; directory?: s
 export type ReviewDiffStyle = "unified" | "split"
 export type ReviewChangeMode = "git" | "branch" | "turn"
 export type ReviewPanelSource = "context-button" | "other"
+export type LiveViewTab = "preview" | "code"
+
+function sandboxSideViewport() {
+  if (typeof window === "undefined") return true
+  return window.matchMedia("(min-width: 900px)").matches
+}
 
 export type LayoutRoute =
   | { type: "home" }
@@ -196,6 +211,8 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
 
       const review = value.review
       const fileTree = value.fileTree
+      const liveView = value.liveView
+      const migratedLiveView = normalizeLiveViewState(liveView)
       const migratedFileTree = (() => {
         if (!isRecord(fileTree)) return fileTree
         if (fileTree.tab === "changes" || fileTree.tab === "all") return fileTree
@@ -251,6 +268,7 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         migratedSidebar === sidebar &&
         migratedReview === review &&
         migratedFileTree === fileTree &&
+        migratedLiveView === liveView &&
         migratedSessionTabs === value.sessionTabs &&
         sessionView === value.sessionView
       ) {
@@ -262,6 +280,7 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         sidebar: migratedSidebar,
         review: migratedReview,
         fileTree: migratedFileTree,
+        liveView: migratedLiveView,
         sessionTabs: migratedSessionTabs,
         sessionView,
       }
@@ -280,6 +299,12 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         terminal: {
           height: DEFAULT_TERMINAL_HEIGHT,
           opened: false,
+        },
+        liveView: {
+          opened: false,
+          tab: "preview" as LiveViewTab,
+          width: DEFAULT_LIVE_VIEW_WIDTH,
+          expanded: false,
         },
         review: {
           diffStyle: "split" as ReviewDiffStyle,
@@ -818,10 +843,24 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
           if (typeof file === "string") return file
         })
         const terminalOpened = createMemo(() => store.terminal?.opened ?? false)
+        const liveViewOpened = createMemo(() => store.liveView?.opened ?? false)
+        const liveViewTab = createMemo<LiveViewTab>(() => {
+          const stored = store.liveView?.tab
+          return stored === "code" ? stored : "preview"
+        })
+        const liveViewExpanded = createMemo(() => store.liveView?.expanded ?? false)
+        const liveViewWidth = createMemo(() => {
+          const width = store.liveView?.width
+          if (typeof width === "number" && width > 0) return width
+          // Primera apertura: el preview domina como en Xcode.
+          return clampLvWidth(Math.round((typeof window !== "undefined" ? window.innerWidth : 1280) * 0.56))
+        })
         const reviewPanelOpened = createMemo(() => store.review?.panelOpened ?? DEFAULT_REVIEW_PANEL_OPENED)
         const reviewPanelSource = createMemo(() => (reviewPanelOpened() ? ephemeral.reviewPanelSource : "other"))
 
         function setTerminalOpened(next: boolean) {
+          if (next && !sandboxSideViewport()) setLiveViewOpened(false)
+
           const current = store.terminal
           if (!current) {
             setStore("terminal", { height: DEFAULT_TERMINAL_HEIGHT, opened: next })
@@ -833,7 +872,53 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
           setStore("terminal", "opened", next)
         }
 
+        function setLiveViewOpened(next: boolean) {
+          if (next && !sandboxSideViewport()) setTerminalOpened(false)
+
+          if (next) {
+            setReviewPanelOpened(false, "other")
+            setStore("fileTree", "opened", false)
+            // Persiste el ancho calculado la primera vez que se abre.
+            if (liveViewWidth() !== (store.liveView?.width ?? 0)) setStore("liveView", "width", liveViewWidth())
+          }
+
+          const current = store.liveView
+          if (!current) {
+            setStore("liveView", { opened: next })
+            return
+          }
+
+          const value = current.opened ?? false
+          if (value === next) return
+          setStore("liveView", "opened", next)
+        }
+
+        function setLiveViewTab(next: LiveViewTab) {
+          const current = store.liveView
+          if (!current) {
+            setStore("liveView", { opened: false, tab: next })
+            return
+          }
+          if (current.tab === next) return
+          setStore("liveView", "tab", next)
+        }
+
+        function setLiveViewExpanded(next: boolean) {
+          if (next) setTerminalOpened(false)
+
+          const current = store.liveView
+          if (!current) {
+            setStore("liveView", { opened: false, expanded: next })
+            return
+          }
+
+          if ((current.expanded ?? false) === next) return
+          setStore("liveView", "expanded", next)
+        }
+
         function setReviewPanelOpened(next: boolean, source: ReviewPanelSource) {
+          if (next) setLiveViewOpened(false)
+
           const nextSource = next ? source : "other"
           const current = store.review
           if (!current) {
@@ -884,6 +969,36 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
             },
             toggle() {
               setTerminalOpened(!terminalOpened())
+            },
+          },
+          liveView: {
+            opened: liveViewOpened,
+            tab: liveViewTab,
+            width: liveViewWidth,
+            expanded: liveViewExpanded,
+            open() {
+              setLiveViewOpened(true)
+            },
+            close() {
+              setLiveViewOpened(false)
+            },
+            toggle() {
+              setLiveViewOpened(!liveViewOpened())
+            },
+            setTab(tab: LiveViewTab) {
+              setLiveViewTab(tab)
+            },
+            expand() {
+              setLiveViewExpanded(true)
+            },
+            restore() {
+              setLiveViewExpanded(false)
+            },
+            toggleExpanded() {
+              setLiveViewExpanded(!liveViewExpanded())
+            },
+            resize(width: number) {
+              setStore("liveView", "width", clampLvWidth(Math.round(width)))
             },
           },
           reviewPanel: {

@@ -303,6 +303,11 @@ const layer = Layer.effect(
             (stream._tag === "Failure" && Cause.hasInterrupts(stream.cause)) ||
             (settled._tag === "Failure" && Cause.hasInterrupts(settled.cause))
           ) {
+            // Clear interrupts the tool fibers and awaits their end, so an in-flight
+            // uninterruptible tool-result publish always lands before failUnsettledTools
+            // marks the remaining unsettled tools failed. Ordering matters: both run on the
+            // same publication semaphore, so without the await a completed tool's success
+            // could be durably replaced by the interrupted record.
             yield* FiberSet.clear(toolFibers)
             yield* withPublication(publisher.failUnsettledTools("Tool execution interrupted"))
             if (publisher.hasActiveAssistant())
@@ -311,6 +316,14 @@ const layer = Layer.effect(
           if (settled._tag === "Failure" && !Cause.hasInterrupts(settled.cause)) {
             const failure = Cause.squash(settled.cause)
             const message = failure instanceof Error ? failure.message : String(failure)
+            // FiberSet.join completes on the first fiber failure while other tool fibers may
+            // still be settling. Interrupt and await them before failing unsettled tools: a
+            // fiber inside its uninterruptibleMask finishes its tool-result publish before the
+            // interrupt is delivered, so every completed settle is durably recorded first.
+            // Without this, failUnsettledTools can win the publication semaphore, durably
+            // replace a completed tool's success with a Failed record, and the fiber dies with
+            // "Duplicate tool result".
+            yield* FiberSet.clear(toolFibers)
             yield* withPublication(publisher.failUnsettledTools(`Tool execution failed: ${message}`))
           }
           const stepSettlement = publisher.stepSettlement()

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modo portable — Tiancode</title>
+  <meta name="description" content="Modo portable de Tiancode: sin instalación, con tu configuración, agentes, skills y conversaciones a cuestas en un USB.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Tiancode">
+  <meta property="og:title" content="Modo portable — Tiancode">
+  <meta property="og:description" content="Modo portable de Tiancode: sin instalación, con tu configuración, agentes, skills y conversaciones a cuestas en un USB.">
+  <meta property="og:url" content="https://tiancode.vercel.app/recursos/portable.html">
+  <meta property="og:image" content="https://tiancode.vercel.app/img/og-image.png">
+  <meta property="og:locale" content="es_ES">
+  <meta property="og:locale:alternate" content="en_US">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Modo portable — Tiancode">
+  <meta name="twitter:description" content="Modo portable de Tiancode: sin instalación, con tu configuración, agentes, skills y conversaciones a cuestas en un USB.">
+  <meta name="twitter:image" content="https://tiancode.vercel.app/img/og-image.png">
+  <link rel="canonical" href="https://tiancode.vercel.app/recursos/portable.html">
+  <link rel="icon" type="image/png" href="img/favicon.png">
+  <script>
+    (function () {
+      // Confirma JS disponible (revela el contenido .reveal) y aplica el tema
+      // guardado antes del primer render para evitar parpadeo.
+      document.documentElement.classList.add('js');
+      try {
+        var theme = localStorage.getItem('tiancode-theme');
+        document.documentElement.setAttribute(
+          'data-theme',
+          theme || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+        );
+      } catch (e) { /* almacenamiento no disponible */ }
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/layout.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/pages.css">
+</head>
+<body>
+
+  <!-- ================= Header ================= -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="logo" aria-label="Tiancode">
+        <span class="logo-mark" aria-hidden="true">
+          <img class="logo-theme-light" src="../img/tian-white.png" alt="" draggable="false" />
+          <img class="logo-theme-dark" src="../img/tian-black.png" alt="" draggable="false" />
+        </span>
+        Tiancode
+      </a>
+
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a href="../index.html#features">Características</a>
+        <a href="../index.html#how">Cómo funciona</a>
+        <a href="../index.html#preview">Vista previa</a>
+        <a href="../index.html#stats">Estadísticas</a>
+        <a href="../index.html#skills">Skills</a>
+        <div class="nav-dropdown">
+          <button class="nav-dropdown-toggle" type="button" aria-expanded="false" aria-haspopup="true"
+                  aria-label="Abrir menú de recursos">
+            <span>Recursos</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          <div class="nav-dropdown-menu">
+            <a href="../recursos/guia.html">Guía de inicio</a>
+            <a href="../recursos/docs.html">Documentación</a>
+            <a href="../recursos/faq.html">Preguntas frecuentes</a>
+            <a href="../recursos/novedades.html">Novedades</a>
+            <a href="../recursos/portable.html">Modo portable</a>
+            <a href="../recursos/descargas.html">Descarga</a>
+            <span class="nav-dropdown-sep" aria-hidden="true"></span>
+            <a href="../legal/licencia.html">Licencia</a>
+            <a href="../legal/terminos.html">Términos</a>
+            <a href="../legal/privacidad.html">Privacidad</a>
+          </div>
+        </div>
+        <a href="../recursos/descargas.html" class="btn btn-ghost nav-download">Descargar</a>
+      </nav>
+
+      <div class="header-actions">
+        <button id="theme-toggle" class="icon-btn" type="button" aria-label="Cambiar tema claro/oscuro" aria-pressed="true">
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        </button>
+        <button id="nav-toggle" class="icon-btn nav-toggle" type="button" aria-label="Abrir menú" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <line x1="3" y1="7" x2="21" y2="7"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="17" x2="21" y2="17"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="page page--active">
+      <div class="container">
+        <div class="page-inner page-inner--wide">
+            <div class="page-toolbar reveal">
+            <a href="../index.html" class="page-back">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+              </svg>
+              <span>Volver al inicio</span>
+            </a>
+          </div>
+          <header class="page-head reveal">
+            <span class="eyebrow">Recursos</span>
+            <h1 class="page-title">Modo portable</h1>
+            <p class="page-sub">Tiancode donde lo necesites: sin instalación, con tu configuración a cuestas.</p>
+          </header>
+          <div class="page-body reveal" style="--rd:.08s">
+              <p>La versión portable (Tiancode-portable.exe, ~270 MB) ejecuta la aplicación completa sin instalarla. Es la misma Tiancode, pero todo — el ejecutable, la configuración y los modelos — vive en la carpeta que tú elijas.</p>
+              <h2>Por qué elegir la versión portable</h2>
+              <ul class="page-list">
+                <li>Sin instalación y sin permisos de administrador.</li>
+                <li>Llévale en un USB y úsale en cualquier PC con Windows 10 u 11.</li>
+                <li>Tu configuración, agentes, skills, voces y conversaciones viajan contigo.</li>
+                <li>No deja rastro en el equipo anfitrión: todo vive en su carpeta.</li>
+                <li>Actualizar es tan simple como sustituir un archivo.</li>
+              </ul>
+              <h2>Primeros pasos</h2>
+              <div class="qsteps-grid">
+                <div class="qstep reveal" style="--rd:0s">
+                  <span class="qstep-num" aria-hidden="true">1</span>
+                  <div>
+                    <h3>Descarga</h3>
+                    <p>Obtén Tiancode-portable.exe desde la página de descarga.</p>
+                  </div>
+                </div>
+                <div class="qstep reveal" style="--rd:.05s">
+                  <span class="qstep-num" aria-hidden="true">2</span>
+                  <div>
+                    <h3>Coloca</h3>
+                    <p>Crea una carpeta (por ejemplo D:\Tiancode o tu USB) y pon el ejecutable dentro.</p>
+                  </div>
+                </div>
+                <div class="qstep reveal" style="--rd:.1s">
+                  <span class="qstep-num" aria-hidden="true">3</span>
+                  <div>
+                    <h3>Ejecuta</h3>
+                    <p>Lanza el exe: Tiancode detecta el modo portable y guarda sus datos en esa misma carpeta.</p>
+                  </div>
+                </div>
+                <div class="qstep reveal" style="--rd:.15s">
+                  <span class="qstep-num" aria-hidden="true">4</span>
+                  <div>
+                    <h3>Programa</h3>
+                    <p>Descarga modelos, configura tus proveedores y GitHub, y sigue programando donde quieras.</p>
+                  </div>
+                </div>
+              </div>
+              <div class="page-note reveal" role="note" style="--rd:.2s">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+                <p>Consejo: los modelos GGUF y el modelo de voz kokoro pueden ocupar varios gigabytes. Si viajas con poco espacio, guarda los modelos en tu equipo y usa la versión portable solo para la configuración y las conversaciones.</p>
+              </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ================= Footer ================= -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <a href="../index.html" class="logo" aria-label="Tiancode">
+            <span class="logo-mark" aria-hidden="true">
+              <img class="logo-theme-light" src="../img/tian-white.png" alt="" draggable="false" />
+              <img class="logo-theme-dark" src="../img/tian-black.png" alt="" draggable="false" />
+            </span>
+            Tiancode
+          </a>
+          <p>El asistente de IA para programar, hecho para Windows.</p>
+        </div>
+        <span class="footer-version"><i aria-hidden="true"></i>v1.0.0 · MIT</span>
+      </div>
+      <div class="footer-grid">
+        <nav class="footer-col" aria-label="Producto">
+          <h2>Producto</h2>
+          <a href="../productos/app.html">La app</a>
+          <a href="../recursos/descargas.html">Descargar</a>
+          <a href="../recursos/novedades.html">Novedades</a>
+          <a href="../recursos/portable.html">Modo portable</a>
+        </nav>
+        <nav class="footer-col" aria-label="Recursos">
+          <h2>Recursos</h2>
+          <a href="../recursos/docs.html">Documentación</a>
+          <a href="../recursos/guia.html">Guía de inicio</a>
+          <a href="../recursos/faq.html">Preguntas frecuentes</a>
+        </nav>
+        <nav class="footer-col" aria-label="Legal">
+          <h2>Legal</h2>
+          <a href="../legal/privacidad.html">Privacidad</a>
+          <a href="../legal/terminos.html">Términos</a>
+          <a href="../legal/licencia.html">Licencia</a>
+        </nav>
+        <nav class="footer-col" aria-label="Comunidad">
+          <h2>Comunidad</h2>
+          <a href="https://github.com/" rel="noopener noreferrer" target="_blank">GitHub</a>
+          <a href="https://discord.com/" rel="noopener noreferrer" target="_blank">Discord</a>
+          <a href="https://x.com/" rel="noopener noreferrer" target="_blank">X / Twitter</a>
+          <a href="https://www.youtube.com/" rel="noopener noreferrer" target="_blank">YouTube</a>
+        </nav>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2026 Tiancode. Todos los derechos reservados.</p>
+        <p class="footer-made">Hecho con <span class="footer-heart" aria-hidden="true">♥</span> por <span class="footer-credit">Dreitz</span></p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Revela el contenido al cargar (sin IntersectionObserver) y activa el menú móvil
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('.reveal').forEach(function (el) { el.classList.add('is-visible'); });
+      var header = document.querySelector('.site-header');
+      var navToggle = document.getElementById('nav-toggle');
+      if (navToggle && header) {
+        navToggle.addEventListener('click', function () {
+          var open = header.classList.toggle('nav-open');
+          navToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+        document.querySelectorAll('.main-nav a').forEach(function (link) {
+          link.addEventListener('click', function () { header.classList.remove('nav-open'); });
+        });
+      }
+      var dropdown = document.querySelector('.nav-dropdown');
+      var dropdownToggle = dropdown ? dropdown.querySelector('.nav-dropdown-toggle') : null;
+      if (dropdownToggle) {
+        dropdownToggle.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var open = dropdown.classList.toggle('is-open');
+          dropdownToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+      }
+      document.addEventListener('click', function (e) {
+        if (dropdown && !dropdown.contains(e.target)) {
+          dropdown.classList.remove('is-open');
+          var toggle = dropdown.querySelector('.nav-dropdown-toggle');
+          if (toggle) toggle.setAttribute('aria-expanded', 'false');
+        }
+      });
+    });
+  </script>
+  <script type="module">
+    import { initTheme } from '../js/theme.js';
+    initTheme();
+  </script>
+</body>
+</html>

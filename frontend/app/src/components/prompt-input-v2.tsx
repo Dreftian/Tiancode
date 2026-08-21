@@ -6,11 +6,13 @@ import { Icon } from "@tiancode-ai/ui/v2/icon"
 import { KeybindV2 } from "@tiancode-ai/ui/v2/keybind-v2"
 import { TooltipV2 } from "@tiancode-ai/ui/v2/tooltip-v2"
 import type { ReferenceInfo } from "@tiancode-ai/sdk/v2/client"
-import { createEffect, createMemo, on, Show } from "solid-js"
+import { createEffect, createMemo, createSignal, on, onCleanup, onMount, Show } from "solid-js"
 import { ModelSelectorPopoverV2 } from "@/components/dialog-select-model"
 import { DialogSelectModelUnpaidV2 } from "@/components/dialog-select-model-unpaid-v2"
 import type { PromptInputProps } from "@/components/prompt-input/contracts"
 import { VoiceDictationButton } from "@/components/voice-dictation-button"
+import { CaptureControl } from "@/components/capture-control"
+import { PromptOptimizerButton } from "@/components/prompt-optimizer-button"
 import { normalizePromptHistoryEntry, promptLength, type PromptHistoryComment } from "@/components/prompt-input/history"
 import { createPersistedPromptInputHistory } from "@/components/prompt-input/history-store"
 import { promptDesignPlaceholder, promptPlaceholder } from "@/components/prompt-input/placeholder"
@@ -49,13 +51,29 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
   const dialog = useDialog()
   const command = useCommand()
   const language = useLanguage()
+  const [isOptimizingPrompt, setIsOptimizingPrompt] = createSignal(false)
+
+  onMount(() => {
+    const handleOptimizing = (e: Event) => {
+      const detail = (e as CustomEvent<{ active?: boolean }>).detail
+      setIsOptimizingPrompt(!!detail?.active)
+    }
+    window.addEventListener("tiancode:prompt-optimizing", handleOptimizing)
+    onCleanup(() => window.removeEventListener("tiancode:prompt-optimizing", handleOptimizing))
+  })
 
   return (
     <div class="flex flex-col gap-3">
+      <style>{`
+        .trae-optimizing-composer {
+          box-shadow: 0 0 0 1.5px rgba(56, 189, 248, 0.6), 0 0 20px rgba(168, 85, 247, 0.25) !important;
+          transition: box-shadow 0.3s ease;
+        }
+      `}</style>
       <PromptInputV2
         controller={props.controller}
         borderUnderlay={props.borderUnderlay}
-        class={props.class}
+        class={`${props.class ?? ""} ${isOptimizingPrompt() ? "trae-optimizing-composer" : ""}`}
         variantControlVisible={!props.controller.model.loading}
         attachKeybind={command.keybindParts("file.attach")}
         attachShortcut={command.keybind("file.attach")}
@@ -66,6 +84,21 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
             ariaLabel={language.t("chat.mic.start")}
             listeningLabel={language.t("chat.mic.stop")}
             onResult={(text) =>
+              props.controller.onInput(
+                text,
+                [{ type: "text", content: text, start: 0, end: text.length }],
+                text.length,
+              )
+            }
+          />
+        }
+        captureControl={
+          <CaptureControl onCapture={(file) => props.controller.addAttachments([file])} />
+        }
+        optimizeControl={
+          <PromptOptimizerButton
+            input={() => props.controller.value()}
+            onOptimized={(text) =>
               props.controller.onInput(
                 text,
                 [{ type: "text", content: text, start: 0, end: text.length }],

@@ -18,6 +18,12 @@ export const CloudflareAIGatewayPlugin = define({
         const { createUnified } = yield* Effect.promise(() => import("ai-gateway-provider/providers/unified")).pipe(
           Effect.orDie,
         )
+        const { createOpenAI } = yield* Effect.promise(() => import("ai-gateway-provider/providers/openai")).pipe(
+          Effect.orDie,
+        )
+        const { createAnthropic } = yield* Effect.promise(() =>
+          import("ai-gateway-provider/providers/anthropic"),
+        ).pipe(Effect.orDie)
         const gateway = createAiGateway({
           accountId: config.accountId,
           gateway: config.gatewayId,
@@ -25,8 +31,16 @@ export const CloudflareAIGatewayPlugin = define({
           options: gatewayOptions(evt.options, metadata),
         } as any)
         const unified = createUnified({ apiKey: config.apiKey })
+        const openai = createOpenAI({ apiKey: config.apiKey })
+        const anthropic = createAnthropic({ apiKey: config.apiKey })
         evt.sdk = {
           languageModel(modelID: string) {
+            if (modelID.startsWith("openai/")) {
+              return gateway(openai(modelID.slice("openai/".length)))
+            }
+            if (modelID.startsWith("anthropic/")) {
+              return gateway(anthropic(modelID.slice("anthropic/".length)))
+            }
             return gateway(unified(modelID))
           },
         }

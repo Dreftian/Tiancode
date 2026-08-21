@@ -37,22 +37,14 @@ export function schema<S extends EffectSchema.Decoder<unknown, never>>(
   data: unknown,
   source: string,
 ): DeepMutable<S["Type"]> {
-  const extra = topLevelExtraKeys(schema, data)
-  if (extra.length) {
-    throw new InvalidError({
-      path: source,
-      issues: [
-        {
-          code: "unrecognized_keys",
-          keys: extra,
-          path: [],
-          message: `Unrecognized key${extra.length === 1 ? "" : "s"}: ${extra.join(", ")}`,
-        },
-      ],
-    })
-  }
-
-  const decoded = EffectSchema.decodeUnknownExit(schema)(data, { errors: "all", propertyOrder: "original" })
+  // Las claves desconocidas se ignoran en vez de rechazar el archivo: la
+  // config del usuario puede llevar campos de otras herramientas o de
+  // versiones futuras, y fallar la carga rompería su configuración.
+  const decoded = EffectSchema.decodeUnknownExit(schema)(data, {
+    errors: "all",
+    onExcessProperty: "ignore",
+    propertyOrder: "original",
+  })
   if (Exit.isSuccess(decoded)) return decoded.value as DeepMutable<S["Type"]>
   const error = Cause.squash(decoded.cause)
 
@@ -69,11 +61,4 @@ export function schema<S extends EffectSchema.Decoder<unknown, never>>(
     },
     { cause: error },
   )
-}
-
-function topLevelExtraKeys(schema: EffectSchema.Top, data: unknown) {
-  if (typeof data !== "object" || data === null || Array.isArray(data)) return []
-  if (schema.ast._tag !== "Objects" || schema.ast.indexSignatures.length > 0) return []
-  const known = new Set(schema.ast.propertySignatures.map((item) => String(item.name)))
-  return Object.keys(data).filter((key) => !known.has(key))
 }

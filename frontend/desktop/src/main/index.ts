@@ -12,7 +12,7 @@ import contextMenu from "electron-context-menu"
 
 import type { ServerReadyData } from "../preload/types"
 import { checkAppExists, resolveAppPath } from "./apps"
-import { CHANNEL } from "./constants"
+import { APP_NAMES, CHANNEL } from "./constants"
 import { registerIpcHandlers, sendDeepLinks, sendMenuCommand } from "./ipc"
 import { forwardInitializationFailure } from "./initialization"
 import { exportDebugLogs, initCrashReporter, initLogging, startNetLog, write as writeLog } from "./logging"
@@ -31,6 +31,9 @@ import {
   type SidecarListener,
 } from "./server"
 import { setupAutoUpdater, showUpdaterDialog } from "./updater"
+import { backupNow } from "./backup"
+import { getStore } from "./store"
+import { AUTO_BACKUP_KEY, CHECK_UPDATES_ON_START_KEY, LAST_BACKUP_KEY } from "./store-keys"
 import { safeWebContentsURL } from "./window-state"
 import {
   createMainWindow,
@@ -49,21 +52,20 @@ import { spawnWslSidecar } from "./wsl/sidecar"
 import { migrate } from "./migrate"
 import { cleanupStoreFiles } from "./store-cleanup"
 import { startBackgroundCli } from "./background-cli"
+import { getCredentialKey } from "./credential-key"
+import { seedBundledMcpServers } from "./mcp-bundle"
 import { setNativeTranslations } from "./native-translations"
 import { createTray } from "./tray"
 import { ensureLoopbackNoProxy, useEnvProxy } from "./util/proxy"
+import { migrateDesktopXdgPaths } from "./xdg-paths"
 
-const APP_NAMES: Record<string, string> = {
-  dev: "Tiancode Dev",
-  beta: "Tiancode Beta",
-  prod: "Tiancode",
-}
 const APP_IDS: Record<string, string> = {
-  dev: "ai.tiancode.desktop.dev",
+  dev: "ai.tiancode.desktop.codex",
   beta: "ai.tiancode.desktop.beta",
   prod: "ai.tiancode.desktop",
 }
 const TEST_ONBOARDING = process.env.TIANCODE_TEST_ONBOARDING === "1"
+const TEST_ONBOARDING_ROOT = process.env.TIANCODE_TEST_ONBOARDING_ROOT
 const SIDECAR_VERSION = process.env.TIANCODE_SIDECAR_V2 === "1" ? "v2" : "v1"
 const jsCallStackFeature = "DocumentPolicyIncludeJSCallStacksInCrashReports"
 
@@ -74,9 +76,15 @@ const pendingDeepLinks: string[] = []
 
 function emitDeepLinks(urls: string[]) {
   if (urls.length === 0) return
-  pendingDeepLinks.push(...urls)
   const win = getLastFocusedWindow()
-  if (win) sendDeepLinks(win, urls)
+  if (win) {
+    sendDeepLinks(win, urls)
+    return
+  }
+  // Sin ventana a la que entregar (p. ej. antes del primer arranque de
+  // ventanas): se acumulan para que la primera ventana los consuma con
+  // consume-initial-deep-links.
+  pendingDeepLinks.push(...urls)
 }
 
 async function killSidecar() {
@@ -96,12 +104,12 @@ const main = Effect.gen(function* () {
 
   process.env.TIANCODE_DISABLE_EMBEDDED_WEB_UI = "true"
 
-  const appId = app.isPackaged ? APP_IDS[CHANNEL] : "ai.tiancode.desktop.dev"
+  const appId = app.isPackaged ? APP_IDS[CHANNEL] : "ai.tiancode.desktop.codex"
   const onboardingTestRoot = ((): string | undefined => {
     if (!TEST_ONBOARDING) return
 
-    const root = join(tmpdir(), `tiancode-onboarding-${randomUUID()}`)
-    rmSync(root, { recursive: true, force: true })
+    const root = TEST_ONBOARDING_ROOT || join(tmpdir(), `tiancode-onboarding-${randomUUID()}`)
+    if (!TEST_ONBOARDING_ROOT) rmSync(root, { recursive: true, force: true })
     ;["data", "config", "cache", "state", "desktop", "session"].forEach((dir) =>
       mkdirSync(join(root, dir), { recursive: true }),
     )
@@ -112,8 +120,12 @@ const main = Effect.gen(function* () {
     process.env.XDG_STATE_HOME = join(root, "state")
     return root
   })()
-  app.setName(app.isPackaged ? APP_NAMES[CHANNEL] : "Tiancode Dev")
-  app.setAppUserModelId(appId)
+  app.setName(app.isPackaged ? APP_NAMES[CHANNEL] : "Tiancode Codex")
+  if (process.platform === "win32") {
+    app.setAppUserModelId(appId)
+  } else {
+    app.setAppUserModelId(appId)
+  }
   app.setPath(
     "userData",
     onboardingTestRoot ? join(onboardingTestRoot, "desktop") : join(app.getPath("appData"), appId),
@@ -174,7 +186,7 @@ const main = Effect.gen(function* () {
     return
   }
 
-  const shellEnv = preferAppEnv(app.getPath("userData"))
+  const appEnvironment = preferAppEnv(app.getPath("userData"))
 
   app.on("second-instance", (_event: Event, argv: string[]) => {
     const urls = argv.filter((arg: string) => arg.startsWith("tiancode://"))
@@ -249,6 +261,8 @@ const main = Effect.gen(function* () {
       }),
     ),
   )
+  const xdgMigration = yield* Effect.promise(() => migrateDesktopXdgPaths(appEnvironment.xdg))
+  if (xdgMigration.migrated) logger.log("migrated desktop XDG data", xdgMigration)
   app.setAsDefaultProtocolClient("tiancode")
   registerRendererProtocol()
   setDockIcon()
@@ -293,9 +307,26 @@ const main = Effect.gen(function* () {
     },
   })
   registerWslIpcHandlers(wslServers)
-  void updater.start()
-  const updateTimer = setInterval(() => void updater.check(), 10 * 60 * 1000)
+  // La búsqueda de actualizaciones al iniciar se puede desactivar desde
+  // Ajustes (General → Actualizaciones); ausente = activada. El chequeo
+  // periódico re-lee la clave en cada tick para que el toggle aplique sin
+  // reiniciar la app.
+  const checkUpdatesOnStart = getStore().get(CHECK_UPDATES_ON_START_KEY) !== "false"
+  if (checkUpdatesOnStart) void updater.start()
+  const updateTimer = setInterval(() => {
+    if (getStore().get(CHECK_UPDATES_ON_START_KEY) !== "false") void updater.check()
+  }, 10 * 60 * 1000)
   updateTimer.unref()
+  // Respaldo diario automático (Ajustes → General; ausente = activado). Solo
+  // datos (sesiones + configuración); los modelos se excluyen por diseño.
+  if (getStore().get(AUTO_BACKUP_KEY) !== "false") {
+    const today = new Date().toISOString().slice(0, 10)
+    if (getStore().get(LAST_BACKUP_KEY) !== today) {
+      void backupNow().then((name) => {
+        if (name) getStore().set(LAST_BACKUP_KEY, today)
+      })
+    }
+  }
   app.once("will-quit", () => clearInterval(updateTimer))
   yield* Effect.promise(() => startNetLog()).pipe(
     Effect.catch((error) =>
@@ -311,14 +342,26 @@ const main = Effect.gen(function* () {
     ensureLoopbackNoProxy()
     useEnvProxy((message, error) => logger.warn(message, error))
 
+    // Clave de cifrado de credenciales: se provisiona una vez (safeStorage) y
+    // se propaga por process.env a cualquier servidor hijo — el sidecar v1 la
+    // copia en createSidecarEnv y el daemon v2 la hereda en su spawn.
+    const credentialKey = yield* Effect.promise(() => getCredentialKey())
+    if (credentialKey !== undefined) process.env.TIANCODE_CREDENTIAL_KEY = credentialKey
+    logger.log("credential key provisioned", { enabled: credentialKey !== undefined })
+
     if (SIDECAR_VERSION === "v2") {
       logger.log("spawning v2 sidecar")
-      const sidecar = yield* Effect.promise(() => startBackgroundCli(logger, shellEnv?.XDG_STATE_HOME))
+      const sidecar = yield* Effect.promise(() => startBackgroundCli(logger, appEnvironment.shellEnv?.XDG_STATE_HOME))
       yield* Deferred.succeed(serverReady, {
         url: sidecar.url,
         username: sidecar.username,
         password: sidecar.password,
       })
+      // MCP empaquetados con la app: se registran con las rutas del binario
+      // actual (instalado o portable) sin bloquear el arranque.
+      void seedBundledMcpServers({ url: sidecar.url, username: sidecar.username, password: sidecar.password }).catch(
+        (error) => logger.warn("bundled mcp seeding failed", error),
+      )
 
       if (process.platform === "win32") {
         void wslServers.initialize().catch((error) => logger.error("wsl server initialization failed", error))
@@ -382,6 +425,13 @@ const main = Effect.gen(function* () {
           logger.error("sidecar health check failed", e.toString())
         }),
       ),
+    )
+
+    // MCP empaquetados con la app (vista en vivo + suite): se registran con
+    // las rutas del binario actual (instalado o portable) tras confirmar la
+    // salud del sidecar, sin bloquear el arranque.
+    void seedBundledMcpServers({ url, username: "tiancode", password }).catch((error) =>
+      logger.warn("bundled mcp seeding failed", error),
     )
 
     logger.log("loading task finished")

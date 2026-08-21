@@ -1,6 +1,6 @@
-/* Brand logo. The root box keeps the source image's 3:2 aspect ratio by default
-   (16px wide for Mark), and consumer width/height utilities can override it;
-   object-fit: contain letterboxes the artwork when the box ratio differs. */
+/* Brand logo. The source has a centred cat face in a 3:2 canvas. Marks and
+   splash screens crop that outer padding so the face remains recognisable in
+   compact controls; the wider Logo keeps the full lockup-style canvas. */
 
 [data-component="logo-mark"],
 [data-component="logo-splash"],
@@ -12,6 +12,11 @@
 
 [data-component="logo-mark"] {
   width: 16px;
+  aspect-ratio: 1;
+}
+
+[data-component="logo-splash"] {
+  aspect-ratio: 1;
 }
 
 [data-component="logo-mark"] img,
@@ -22,6 +27,12 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+[data-component="logo-mark"] img,
+[data-component="logo-splash"] img {
+  object-fit: cover;
+  object-position: center;
 }
 
 /* Light theme (default until data-color-scheme applies): black logo */

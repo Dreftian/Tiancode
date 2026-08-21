@@ -53,6 +53,8 @@ import type {
   UserMessage,
 } from "@tiancode-ai/sdk/v2"
 import { showToast } from "@/utils/toast"
+import { buildChatJson, buildChatMarkdown } from "@/utils/export-chat"
+import { fetchSessionExport, sessionExportFilename } from "@/utils/export-json"
 import { isVoiceSpeaking, speakWithVoices, voicesAPI } from "@/utils/voices"
 import { getDirectory, getFilename } from "@tiancode-ai/core/util/path"
 import { Popover as KobaltePopover } from "@kobalte/core/popover"
@@ -66,6 +68,7 @@ import { useSessionKey } from "@/pages/session/session-layout"
 import { useServerSDK } from "@/context/server-sdk"
 import { usePlatform } from "@/context/platform"
 import { useSettings } from "@/context/settings"
+import { enqueueAutoSpeak, isCompletedAutoSpeakMessage, stopAutoSpeak } from "@/utils/auto-speak"
 import { useTabs } from "@/context/tabs"
 import { legacySessionHref, requireServerKey, sessionHref } from "@/utils/session-route"
 import { useSDK } from "@/context/sdk"
@@ -656,6 +659,63 @@ export function MessageTimeline(props: {
     return language.t("common.requestFailed")
   }
 
+  const exportFailed = (err: unknown) => {
+    showToast({
+      variant: "error",
+      title: language.t("session.export.failed"),
+      description: errorMessage(err),
+    })
+  }
+
+  const exportMarkdown = async () => {
+    const id = sessionID()
+    if (!id) return
+
+    const data = sync()
+    const title = data.session.get(id)?.title ?? "chat"
+    const markdown = buildChatMarkdown({
+      title,
+      messages: data.data.message[id] ?? [],
+      parts: (messageID) => data.data.part[messageID] ?? [],
+    })
+    const safeTitle = title.replace(/[\\/:*?"<>|]/g, "-").slice(0, 60) || "chat"
+    const path = await platform.saveFilePickerDialog?.({
+      title: language.t("session.export.title"),
+      defaultPath: `${safeTitle}.md`,
+    })
+    if (!path) return
+
+    const written = await platform.writeTextFile?.(path, markdown)
+    if (written) {
+      showToast({ variant: "success", title: language.t("session.export.success") })
+      return
+    }
+    showToast({ variant: "error", title: language.t("session.export.failed") })
+  }
+
+  const exportJson = async () => {
+    const id = sessionID()
+    if (!id) return
+
+    const data = await fetchSessionExport({
+      sessionID: id,
+      directory: sdk().directory,
+      client: sdk().client,
+    })
+    const path = await platform.saveFilePickerDialog?.({
+      title: language.t("session.export.title"),
+      defaultPath: sessionExportFilename(data.info),
+    })
+    if (!path) return
+
+    const written = await platform.writeTextFile?.(path, buildChatJson(data))
+    if (written) {
+      showToast({ variant: "success", title: language.t("session.export.success") })
+      return
+    }
+    showToast({ variant: "error", title: language.t("session.export.failed") })
+  }
+
   const shareMutation = useMutation(() => ({
     mutationFn: (id: string) => serverSDK().client.session.share({ sessionID: id }),
     onError: (err) => {
@@ -723,6 +783,7 @@ export function MessageTimeline(props: {
         }),
       )
   }
+
   const selectShareUrlText: JSX.EventHandler<HTMLDivElement, MouseEvent> = (event) => {
     const selection = window.getSelection()
     if (!selection) return
@@ -839,24 +900,21 @@ export function MessageTimeline(props: {
 
   const deleteSession = async (sessionID: string) => {
     const session = sync().session.get(sessionID)
-    if (!session) return false
-
     const sessions = (sync().data.session ?? []).filter((s) => !s.parentID && !s.time?.archived)
     const index = sessions.findIndex((s) => s.id === sessionID)
     const nextSession = index === -1 ? undefined : (sessions[index + 1] ?? sessions[index - 1])
 
-    const result = await sdk()
-      .api.session.remove({ sessionID })
-      .then(() => true)
-      .catch((err) => {
-        showToast({
-          title: language.t("session.delete.failed.title"),
-          description: errorMessage(err),
-        })
-        return false
-      })
+    if (!session) {
+      navigateAfterSessionRemoval(sessionID, undefined, nextSession?.id)
+      notifySessionTabsRemoved({ directory: sdk().directory, sessionIDs: [sessionID] })
+      return true
+    }
 
-    if (!result) return false
+    try {
+      await sdk().api.session.remove({ sessionID })
+    } catch {
+      // ignore 404 / sync errors
+    }
 
     const removed = new Set<string>([sessionID])
     const byParent = new Map<string, string[]>()
@@ -1031,6 +1089,36 @@ export function MessageTimeline(props: {
       const group = row().group
       if (group.type !== "part") return
       return getMsgPart(group.ref.messageID, group.ref.partID)
+    })
+
+    // La voz solo recibe texto de asistente que ya quedo confirmado. Razonamiento,
+    // deltas de streaming y herramientas nunca pasan al motor TTS: el primer
+    // bloque textual visible de un turno se enuncia una vez que ese turno se
+    // completa, no durante el pensamiento o la ejecucion transitoria.
+    createEffect(() => {
+      const auto = settings.general.autoSpeak()
+      const speakReason = settings.general.speakReasoning()
+      if (!auto && !speakReason) {
+        stopAutoSpeak()
+        return
+      }
+      const item = part()
+      if (!item) return
+      const rowMessage = message()
+      if (!rowMessage || rowMessage.role !== "assistant") return
+
+      // Si speakReasoning está activo y es una parte de razonamiento o plan de acción:
+      if (speakReason && item.type === "reasoning" && item.text) {
+        enqueueAutoSpeak(item.id, item.text)
+        return
+      }
+
+      // Flujo de autoSpeak para el primer texto descriptivo / anuncio del asistente:
+      if (!auto || item.type !== "text" || !item.text) return
+      if (rowMessage.error || item.synthetic || item.ignored) return
+      const firstText = getMsgParts(rowMessage.id).find((candidate) => candidate.type === "text")
+      if (firstText?.id !== item.id) return
+      enqueueAutoSpeak(item.id, item.text)
     })
     const speak = (text: string) => {
       const id = part()?.id
@@ -1580,6 +1668,24 @@ export function MessageTimeline(props: {
                                     </DropdownMenu.ItemLabel>
                                   </DropdownMenu.Item>
                                 </Show>
+                                <DropdownMenu.Sub gutter={4} overlap>
+                                  <DropdownMenu.SubTrigger>
+                                    <DropdownMenu.ItemLabel>{language.t("session.export.menu")}</DropdownMenu.ItemLabel>
+                                    <Icon name="chevron-right" size="small" />
+                                  </DropdownMenu.SubTrigger>
+                                  <DropdownMenu.Portal>
+                                    <DropdownMenu.SubContent>
+                                      <DropdownMenu.Item onSelect={() => void exportMarkdown().catch(exportFailed)}>
+                                        <DropdownMenu.ItemLabel>
+                                          {language.t("session.export.markdown")}
+                                        </DropdownMenu.ItemLabel>
+                                      </DropdownMenu.Item>
+                                      <DropdownMenu.Item onSelect={() => void exportJson().catch(exportFailed)}>
+                                        <DropdownMenu.ItemLabel>{language.t("session.export.json")}</DropdownMenu.ItemLabel>
+                                      </DropdownMenu.Item>
+                                    </DropdownMenu.SubContent>
+                                  </DropdownMenu.Portal>
+                                </DropdownMenu.Sub>
                                 <DropdownMenu.Item onSelect={() => void archiveSession(id)}>
                                   <DropdownMenu.ItemLabel>{language.t("common.archive")}</DropdownMenu.ItemLabel>
                                 </DropdownMenu.Item>
@@ -1651,6 +1757,19 @@ export function MessageTimeline(props: {
                                   {language.t("session.share.action.share")}...
                                 </MenuV2.Item>
                               </Show>
+                              <MenuV2.Sub gutter={0} overlap>
+                                <MenuV2.SubTrigger>{language.t("session.export.menu")}</MenuV2.SubTrigger>
+                                <MenuV2.Portal>
+                                  <MenuV2.SubContent>
+                                    <MenuV2.Item onSelect={() => void exportMarkdown().catch(exportFailed)}>
+                                      {language.t("session.export.markdown")}
+                                    </MenuV2.Item>
+                                    <MenuV2.Item onSelect={() => void exportJson().catch(exportFailed)}>
+                                      {language.t("session.export.json")}
+                                    </MenuV2.Item>
+                                  </MenuV2.SubContent>
+                                </MenuV2.Portal>
+                              </MenuV2.Sub>
                               <MenuV2.Item onSelect={() => void archiveSession(id)}>
                                 {language.t("common.archive")}
                               </MenuV2.Item>
@@ -1843,6 +1962,71 @@ export function MessageTimeline(props: {
                           </KobaltePopover.Content>
                         </KobaltePopover.Portal>
                       </KobaltePopover>
+                    </Show>
+                    <Show when={parentID()}>
+                      <Show
+                        when={settings.general.newLayoutDesigns()}
+                        fallback={
+                          <DropdownMenu gutter={4} placement="bottom-end">
+                            <DropdownMenu.Trigger
+                              as={IconButton}
+                              icon="dot-grid"
+                              variant="ghost"
+                              class="size-6 rounded-md data-[expanded]:bg-surface-base-active"
+                              aria-label={language.t("common.moreOptions")}
+                            />
+                            <DropdownMenu.Portal>
+                              <DropdownMenu.Content style={{ "min-width": "104px" }}>
+                                <DropdownMenu.Sub gutter={4} overlap>
+                                  <DropdownMenu.SubTrigger>
+                                    <DropdownMenu.ItemLabel>{language.t("session.export.menu")}</DropdownMenu.ItemLabel>
+                                    <Icon name="chevron-right" size="small" />
+                                  </DropdownMenu.SubTrigger>
+                                  <DropdownMenu.Portal>
+                                    <DropdownMenu.SubContent>
+                                      <DropdownMenu.Item onSelect={() => void exportMarkdown().catch(exportFailed)}>
+                                        <DropdownMenu.ItemLabel>
+                                          {language.t("session.export.markdown")}
+                                        </DropdownMenu.ItemLabel>
+                                      </DropdownMenu.Item>
+                                      <DropdownMenu.Item onSelect={() => void exportJson().catch(exportFailed)}>
+                                        <DropdownMenu.ItemLabel>{language.t("session.export.json")}</DropdownMenu.ItemLabel>
+                                      </DropdownMenu.Item>
+                                    </DropdownMenu.SubContent>
+                                  </DropdownMenu.Portal>
+                                </DropdownMenu.Sub>
+                              </DropdownMenu.Content>
+                            </DropdownMenu.Portal>
+                          </DropdownMenu>
+                        }
+                      >
+                        <MenuV2 gutter={6} placement="bottom-end">
+                          <MenuV2.Trigger
+                            as={IconButtonV2}
+                            icon={<IconV2 name="outline-dots" />}
+                            variant="ghost-muted"
+                            size="large"
+                            aria-label={language.t("common.moreOptions")}
+                          />
+                          <MenuV2.Portal>
+                            <MenuV2.Content style={{ width: "120px", "min-width": "120px" }}>
+                              <MenuV2.Sub gutter={0} overlap>
+                                <MenuV2.SubTrigger>{language.t("session.export.menu")}</MenuV2.SubTrigger>
+                                <MenuV2.Portal>
+                                  <MenuV2.SubContent>
+                                    <MenuV2.Item onSelect={() => void exportMarkdown().catch(exportFailed)}>
+                                      {language.t("session.export.markdown")}
+                                    </MenuV2.Item>
+                                    <MenuV2.Item onSelect={() => void exportJson().catch(exportFailed)}>
+                                      {language.t("session.export.json")}
+                                    </MenuV2.Item>
+                                  </MenuV2.SubContent>
+                                </MenuV2.Portal>
+                              </MenuV2.Sub>
+                            </MenuV2.Content>
+                          </MenuV2.Portal>
+                        </MenuV2>
+                      </Show>
                     </Show>
                   </div>
                 )}

@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process"
+import { existsSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { promisify } from "node:util"
@@ -8,7 +9,7 @@ import type { Configuration } from "electron-builder"
 const execFileAsync = promisify(execFile)
 const packageDir = path.dirname(fileURLToPath(import.meta.url))
 const rootDir = path.resolve(packageDir, "../..")
-const signScript = path.join(rootDir, "script", "sign-windows.ps1")
+export const windowsSignScript = path.join(rootDir, "backend", "tools", "script", "sign-windows.ps1")
 // The Electron 42 packaging update briefly installed Linux launchers/icons under
 // "tiancode-desktop". Keep that hidden desktop entry around so existing GNOME/KDE
 // pins still resolve after the canonical app id changes back to ai.tiancode.desktop.
@@ -24,7 +25,7 @@ async function signWindows(configuration: { path: string }) {
 
   await execFileAsync(
     "pwsh",
-    ["-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", signScript, configuration.path],
+    ["-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", windowsSignScript, configuration.path],
     { cwd: rootDir },
   )
 }
@@ -36,7 +37,7 @@ const channel = (() => {
 })()
 
 const APP_IDS = {
-  dev: "ai.tiancode.desktop.dev",
+  dev: "ai.tiancode.desktop.codex",
   beta: "ai.tiancode.desktop.beta",
   prod: "ai.tiancode.desktop",
 } as const
@@ -55,7 +56,14 @@ const getBase = (appId: string): Configuration => ({
   extraMetadata: {
     desktopName: `${appId}.desktop`,
   },
-  files: ["out/**/*", "resources/**/*", "!resources/tiancode-cli*"],
+  files: [
+    "out/**/*",
+    "resources/**/*",
+    "!resources/tiancode-cli*",
+    "!resources/icons/**/*",
+    "!resources/mcp/**/__pycache__/**",
+    "!resources/mcp/**/*.pyc",
+  ],
   // onnxruntime-node ships native binaries that cannot load from inside the
   // asar; kokoro-js and phonemizer ship binary assets (voice style vectors,
   // espeak-ng wasm) that are safer unpacked. sherpa-onnx is a WASM build and
@@ -68,6 +76,22 @@ const getBase = (appId: string): Configuration => ({
     "**/node_modules/sherpa-onnx/**",
   ],
   extraResources: [
+    // BrowserWindow and Tray load their icons through native Windows APIs. Keep
+    // them outside app.asar so every runtime surface can read a real file.
+    {
+      from: "resources/icons",
+      to: "icons",
+    },
+    // MCP empaquetados (vista en vivo + suite): se sirven desde
+    // resources/mcp tanto en instalado como en portable.
+    {
+      from: "resources/mcp",
+      to: "mcp",
+      // This generated example contains absolute paths from its authoring
+      // machine. The app registers the suite at startup with the installed
+      // resource paths, so do not ship an unusable configuration alongside it.
+      filter: ["**/*", "!AI-MCP-SUITE/opencode.json", "!**/__pycache__/**", "!**/*.pyc"],
+    },
     ...(channel === "dev"
       ? [
           {
@@ -77,11 +101,15 @@ const getBase = (appId: string): Configuration => ({
           },
         ]
       : []),
-    {
-      from: "native/",
-      to: "native/",
-      filter: ["index.js", "index.d.ts", "build/Release/mac_window.node", "swift-build/**"],
-    },
+    ...(existsSync(path.join(packageDir, "native"))
+      ? [
+          {
+            from: "native/",
+            to: "native/",
+            filter: ["index.js", "index.d.ts", "build/Release/mac_window.node", "swift-build/**"],
+          },
+        ]
+      : []),
   ],
   mac: {
     category: "public.app-category.developer-tools",
@@ -109,17 +137,31 @@ const getBase = (appId: string): Configuration => ({
       { target: "nsis", arch: ["x64"] },
       { target: "portable", arch: ["x64"] },
     ],
-    verifyUpdateCodeSignature: false,
+    // Los builds de beta/prod salen firmados desde CI (Azure Trusted Signing)
+    // y electron-updater debe verificar la firma del paquete antes de
+    // instalarlo. El canal dev (sin firmar) no verifica para no romper sus
+    // actualizaciones locales; además UPDATER_ENABLED lo desactiva en runtime.
+    verifyUpdateCodeSignature: channel !== "dev",
+    // publisherName se omite a propósito: electron-builder lo deriva del
+    // certificado de firma en build time, garantizando que siempre coincida con
+    // el Subject CN real de Azure Trusted Signing (cuenta/perfil viven en los
+    // secrets del CI, no en el repo).
   },
   nsis: {
     oneClick: true,
     perMachine: false,
     installerIcon: `resources/icons/icon.ico`,
     installerHeaderIcon: `resources/icons/icon.ico`,
-    artifactName: "tiancode-desktop-win-${arch}-setup.${ext}",
+    uninstallerIcon: `resources/icons/icon.ico`,
+    // Los nombres de artefacto son los que enlaza la web y el latest.yml
+    // (tools/website/recursos/descargas.html → /releases/latest/download/Tiancode.exe).
+    // El CI construye arm64 y x64: sin sufijo ambos producirían "Tiancode.exe"
+    // y la release se pisa a sí misma (el updater serviría arm64 a todos). El
+    // job arm64 del CI setea TIANCODE_ARCH=arm64 para distinguirlos.
+    artifactName: process.env.TIANCODE_ARCH === "arm64" ? "Tiancode-arm64.${ext}" : "Tiancode.${ext}",
   },
   portable: {
-    artifactName: "tiancode-desktop-win-${arch}-portable.${ext}",
+    artifactName: process.env.TIANCODE_ARCH === "arm64" ? "Tiancode-portable-arm64.${ext}" : "Tiancode-portable.${ext}",
   },
   linux: {
     icon: `resources/icons`,
@@ -145,7 +187,7 @@ function getConfig() {
       return {
         ...base,
         appId,
-        productName: "Tiancode Dev",
+        productName: "Tiancode",
         deb: { fpm: [metainfoFpm(appId)] },
         rpm: { packageName: "tian-dev", fpm: [metainfoFpm(appId)] },
       }
@@ -156,7 +198,7 @@ function getConfig() {
         appId,
         productName: "Tiancode Beta",
         protocols: { name: "Tiancode Beta", schemes: ["tiancode"] },
-        publish: { provider: "github", owner: "anomalyco", repo: "opencode-beta", channel: "latest" },
+        publish: { provider: "github", owner: "Dreftian", repo: "Tiancode", channel: "latest" },
         deb: { fpm: [metainfoFpm(appId)] },
         rpm: { packageName: "tian-beta", fpm: [metainfoFpm(appId)] },
       }
@@ -167,7 +209,7 @@ function getConfig() {
         appId,
         productName: "Tiancode",
         protocols: { name: "Tiancode", schemes: ["tiancode"] },
-        publish: { provider: "github", owner: "anomalyco", repo: "opencode", channel: "latest" },
+        publish: { provider: "github", owner: "Dreftian", repo: "Tiancode", channel: "latest" },
         deb: { fpm: [metainfoFpm(appId), legacyDesktopEntryFpm] },
         rpm: { packageName: "tian", fpm: [metainfoFpm(appId), legacyDesktopEntryFpm] },
       }

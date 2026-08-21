@@ -2,82 +2,60 @@ import { app, BrowserWindow } from "electron"
 import { join } from "node:path"
 import type { KokoroTTS } from "kokoro-js"
 import type { ProgressInfo } from "@huggingface/transformers"
-import type { VoiceInfo, VoicesSpeakResult } from "../preload/types"
+import type { VoiceInfo, VoicesSpeakOptions, VoicesSpeakResult } from "../preload/types"
 import { write as writeLog } from "./logging"
 import { getStore } from "./store"
 import { ENABLED_VOICES_KEY, SELECTED_VOICE_KEY } from "./store-keys"
 import { float32ToWav } from "./wav"
 import { PIPER_VOICES, deletePiperVoice, downloadPiperVoice, isPiperDownloaded, synthesizePiper } from "./piper"
+import { deleteKokoroEs, downloadKokoroEs, isKokoroEsDownloaded, isKokoroEsReadyForSynthesis, synthesizeKokoroEs } from "./kokoro-es"
+
 
 export const DEFAULT_VOICE = "af_heart"
+// Voz femenina de español por defecto: kokoro ef_dora (el mismo style vector
+// de la voz "Sol" de Codex/ChatGPT), sintetizada con el motor kokoro de
+// sherpa-onnx + espeak-ng (ver kokoro-es.ts). Es la que usa el anuncio
+// automático en español (resolveSpanishVoice en frontend/app).
+const DEFAULT_ES_FEMALE_VOICE = "ef_dora"
 const KOKORO_MODEL_ID = "onnx-community/Kokoro-82M-v1.0-ONNX"
-// kokoro-js bundles an espeak-ng phonemizer with English voices only, so its
-// public generate() API accepts just the US/UK English voices (af/am/bf/bm)
-// and phonemizes everything as English. The other model voices (es, fr, hi,
-// it, ja, pt, zh) ship style vectors in the package but cannot be
-// synthesized through the JS port yet.
+// kokoro-js bundles US/UK English female voices, and kokoro-es / piper
+// provide high-quality neural Spanish female voices (ef_dora / Elena / Sofía / Lucía).
 const SUPPORTED_VOICE_IDS = [
-  "af_heart", "af_alloy", "af_aoede", "af_bella", "af_jessica", "af_kore", "af_nicole", "af_nova", "af_river",
-  "af_sarah", "af_sky",
-  "am_adam", "am_echo", "am_eric", "am_fenrir", "am_liam", "am_michael", "am_onyx", "am_puck", "am_santa",
-  "bf_alice", "bf_emma", "bf_isabella", "bf_lily",
-  "bm_daniel", "bm_fable", "bm_george", "bm_lewis",
+  "af_heart", "af_alloy", "af_nova", "af_bella", "af_sarah", "af_sky",
+  "bf_isabella", "bf_emma", "bf_alice", "bf_lily",
 ] as const
 type SupportedVoiceId = (typeof SUPPORTED_VOICE_IDS)[number]
 
-// Language and gender per Kokoro voice prefix. "af" = American English
-// female, "am" = American English male, "bf"/"bm" = British English; the
-// remaining prefixes follow espeak-ng language codes (es, fr, hi, it, ja, pt,
-// zh) and are listed for the catalog even though synthesis is English-only.
-const PREFIX_META: Record<string, { language: string; gender: "female" | "male" }> = {
+// Only curated female voices for English and Spanish
+const PREFIX_META: Record<string, { language: string; gender: "female" }> = {
   af: { language: "en-US", gender: "female" },
-  am: { language: "en-US", gender: "male" },
   bf: { language: "en-GB", gender: "female" },
-  bm: { language: "en-GB", gender: "male" },
   ef: { language: "es", gender: "female" },
-  em: { language: "es", gender: "male" },
-  ff: { language: "fr", gender: "female" },
-  hf: { language: "hi", gender: "female" },
-  hm: { language: "hi", gender: "male" },
-  if: { language: "it", gender: "female" },
-  im: { language: "it", gender: "male" },
-  jf: { language: "ja", gender: "female" },
-  jm: { language: "ja", gender: "male" },
-  pf: { language: "pt", gender: "female" },
-  pm: { language: "pt", gender: "male" },
-  zf: { language: "zh", gender: "female" },
-  zm: { language: "zh", gender: "male" },
 }
 
-// All voices shipped with kokoro-js 1.2.1 (node_modules/kokoro-js/voices).
+// Curated high quality female voices list
 const VOICE_IDS = [
   ...SUPPORTED_VOICE_IDS,
-  "ef_dora", "em_alex", "em_santa",
-  "ff_siwis",
-  "hf_alpha", "hf_beta", "hm_omega", "hm_psi",
-  "if_sara", "im_nicola",
-  "jf_alpha", "jf_gongitsune", "jf_nezumi", "jf_tebukuro", "jm_kumo",
-  "pf_dora", "pm_alex", "pm_santa",
-  "zf_xiaobei", "zf_xiaoni", "zf_xiaoxiao", "zf_xiaoyi",
-  "zm_yunjian", "zm_yunxi", "zm_yunxia", "zm_yunyang",
+  "ef_dora",
 ] as const
 
 const KOKORO_CATALOG: VoiceInfo[] = VOICE_IDS.map((id) => {
   const prefix = id.slice(0, 2)
-  const meta = PREFIX_META[prefix]
+  const meta = PREFIX_META[prefix] ?? { language: "en-US", gender: "female" as const }
+  const isKokoroEs = id === "ef_dora"
   return {
     id,
     name: voiceName(id),
     language: meta.language,
-    gender: meta.gender,
-    supported: (SUPPORTED_VOICE_IDS as readonly string[]).includes(id),
-    engine: "kokoro",
+    gender: "female",
+    supported: isKokoroEs || (SUPPORTED_VOICE_IDS as readonly string[]).includes(id),
+    engine: isKokoroEs ? "kokoro-es" : "kokoro",
+    default: isKokoroEs,
     license: "Apache 2.0",
   }
 })
 
-// Piper (sherpa-onnx) voices are downloaded on demand; all of them are
-// Spanish so the app finally speaks the languages of the bundled model.
+// Piper (sherpa-onnx) voices are downloaded on demand (Spanish female voices).
 const PIPER_CATALOG: VoiceInfo[] = PIPER_VOICES.map((voice) => ({
   id: voice.id,
   name: voice.name,
@@ -85,6 +63,7 @@ const PIPER_CATALOG: VoiceInfo[] = PIPER_VOICES.map((voice) => ({
   gender: "female",
   supported: true,
   engine: "piper",
+  default: voice.id === DEFAULT_ES_FEMALE_VOICE,
   license: voice.license,
   sizeMb: voice.sizeMb,
 }))
@@ -97,6 +76,10 @@ let state: VoiceState = "idle"
 let progress: number | undefined
 let failure: string | undefined
 let ttsPromise: Promise<KokoroTTS> | undefined
+let synthesisBusy = false
+
+const MAX_SPEECH_CHARS = 2_000
+const MAX_AUDIO_SAMPLES = 2_000_000
 
 export function getVoicesStatus() {
   return {
@@ -105,7 +88,8 @@ export function getVoicesStatus() {
     progress,
     voices: VOICE_CATALOG.map((voice) => ({
       ...voice,
-      downloaded: voice.engine === "piper" ? isPiperDownloaded(voice.id) : true,
+      downloaded:
+        voice.engine === "piper" ? isPiperDownloaded(voice.id) : voice.engine === "kokoro-es" ? isKokoroEsDownloaded() : true,
       enabled: isVoiceEnabled(voice.id),
     })),
     selected: getSelectedVoice(),
@@ -121,18 +105,52 @@ export function listVoices() {
   return getVoicesStatus().voices
 }
 
-export async function speakVoice(text: string, voiceId?: string): Promise<VoicesSpeakResult> {
-  if (typeof text !== "string" || text.trim().length === 0) return { error: "Text must be a non-empty string." }
+export async function speakVoice(text: string, voiceId?: string, options?: VoicesSpeakOptions): Promise<VoicesSpeakResult> {
+  const normalized = typeof text === "string" ? text.replace(/\s+/g, " ").trim() : ""
+  if (!normalized) return { error: "Text must be a non-empty string." }
+  if (normalized.length > MAX_SPEECH_CHARS) return { error: "Text is too long to synthesize safely." }
   const voice = resolveVoice(voiceId ?? getSelectedVoice())
   if (!voice) return { error: `Unknown voice "${voiceId}".` }
+  if (!isVoiceEnabled(voice.id)) return { error: `Voice "${voice.id}" is disabled.` }
+  if (options?.automatic && !isVoiceReadyForAutomaticSpeech(voice)) {
+    return { error: "The selected local voice is not ready for automatic speech." }
+  }
+  if (synthesisBusy) return { error: "Speech synthesis is already in progress." }
+
+  synthesisBusy = true
+  try {
+    const timeoutPromise = new Promise<VoicesSpeakResult>((_, reject) => {
+      const timer = setTimeout(() => reject(new Error("Voice synthesis timed out")), 15000)
+      if (typeof timer === "object" && "unref" in timer) timer.unref()
+    })
+    return await Promise.race([synthesizeVoice(normalized, voice), timeoutPromise])
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    writeLog("voices", "synthesis exception caught", { error: message, voiceId }, "error")
+    return { error: message }
+  } finally {
+    synthesisBusy = false
+  }
+}
+
+async function synthesizeVoice(text: string, voice: VoiceInfo): Promise<VoicesSpeakResult> {
   if (voice.engine === "piper") {
     try {
-      // Auto-downloads the model first when the voice has not been fetched yet.
       const audio = await synthesizePiper(text, voice.id)
-      return { wav: new Uint8Array(float32ToWav(audio.samples, audio.sampleRate)) }
+      return wavResult(audio.samples, audio.sampleRate)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       writeLog("voices", "piper synthesis failed", { error: message, voice: voice.id }, "error")
+      return { error: message }
+    }
+  }
+  if (voice.engine === "kokoro-es") {
+    try {
+      const audio = await synthesizeKokoroEs(text)
+      return wavResult(audio.samples, audio.sampleRate)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      writeLog("voices", "kokoro es synthesis failed", { error: message, voice: voice.id }, "error")
       return { error: message }
     }
   }
@@ -145,9 +163,9 @@ export async function speakVoice(text: string, voiceId?: string): Promise<Voices
   }
   try {
     const tts = await ensureReady()
-    const audio = await tts.generate(text, { voice: voice.id as SupportedVoiceId })
-    const samples = Array.isArray(audio.audio) ? concatSamples(audio.audio) : audio.audio
-    return { wav: new Uint8Array(float32ToWav(samples, audio.sampling_rate)) }
+    // speed > 1 acelera el habla; 1.0 por defecto se percibe lento.
+    const audio = await tts.generate(text, { voice: voice.id as SupportedVoiceId, speed: 1.15 })
+    return wavResult(audio.audio, audio.sampling_rate)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     writeLog("voices", "synthesis failed", { error: message }, "error")
@@ -155,28 +173,51 @@ export async function speakVoice(text: string, voiceId?: string): Promise<Voices
   }
 }
 
+function isVoiceReadyForAutomaticSpeech(voice: VoiceInfo) {
+  if (voice.engine === "piper") return isPiperDownloaded(voice.id)
+  if (voice.engine === "kokoro-es") return isKokoroEsReadyForSynthesis()
+  return state === "ready"
+}
+
+function wavResult(samples: Float32Array, sampleRate: number): VoicesSpeakResult {
+  if (samples.length > MAX_AUDIO_SAMPLES) return { error: "Generated audio is too large to play safely." }
+  return { wav: new Uint8Array(float32ToWav(samples, sampleRate)) }
+}
+
 export function selectVoice(voiceId: string) {
   const voice = resolveVoice(voiceId)
   if (!voice) return false
-  if (!isVoiceEnabled(voice.id)) return false
-  if (voice.engine === "piper" && !isPiperDownloaded(voice.id)) return false
+  if (!isVoiceEnabled(voice.id)) setVoiceEnabled(voice.id, true)
   getStore().set(SELECTED_VOICE_KEY, voice.id)
+  if (voice.engine === "piper" && !isPiperDownloaded(voice.id)) {
+    void downloadPiperVoice(voice.id)
+  } else if (voice.engine === "kokoro-es" && !isKokoroEsDownloaded()) {
+    void downloadKokoroEs(voice.id)
+  }
   return true
 }
 
 export function downloadVoice(voiceId: string) {
   const voice = resolveVoice(voiceId)
-  if (!voice || voice.engine !== "piper") throw new Error(`Voice "${voiceId}" is not a downloadable piper voice.`)
-  return downloadPiperVoice(voice.id)
+  if (!voice || (voice.engine !== "piper" && voice.engine !== "kokoro-es")) {
+    throw new Error(`Voice "${voiceId}" is not a downloadable voice.`)
+  }
+  return voice.engine === "kokoro-es" ? downloadKokoroEs(voice.id) : downloadPiperVoice(voice.id)
 }
 
 export async function deleteVoice(voiceId: string) {
   const voice = resolveVoice(voiceId)
-  if (!voice || voice.engine !== "piper") throw new Error(`Voice "${voiceId}" is not a piper voice.`)
-  await deletePiperVoice(voice.id)
+  if (!voice || (voice.engine !== "piper" && voice.engine !== "kokoro-es")) {
+    throw new Error(`Voice "${voiceId}" is not a piper voice.`)
+  }
+  if (voice.engine === "kokoro-es") await deleteKokoroEs()
+  else await deletePiperVoice(voice.id)
   // A deleted voice can no longer be selected; fall back to the first
   // selectable voice so getSelectedVoice() never returns a broken id.
-  if (getStore().get(SELECTED_VOICE_KEY) === voice.id) getStore().set(SELECTED_VOICE_KEY, firstSelectableVoice().id)
+  if (getStore().get(SELECTED_VOICE_KEY) === voice.id) {
+    const fallback = firstSelectableVoice()
+    getStore().set(SELECTED_VOICE_KEY, fallback ? fallback.id : VOICE_CATALOG[0].id)
+  }
 }
 
 export function setVoiceEnabled(voiceId: string, enabled: boolean) {
@@ -190,19 +231,9 @@ export function setVoiceEnabled(voiceId: string, enabled: boolean) {
   const next = enabled ? [...current, voice.id] : current.filter((id) => id !== voice.id)
   store.set(ENABLED_VOICES_KEY, next)
   if (!enabled && getStore().get(SELECTED_VOICE_KEY) === voice.id) {
-    getStore().set(SELECTED_VOICE_KEY, firstSelectableVoice().id)
+    const fallback = firstSelectableVoice()
+    getStore().set(SELECTED_VOICE_KEY, fallback ? fallback.id : VOICE_CATALOG[0].id)
   }
-}
-
-function concatSamples(chunks: Float32Array[]) {
-  const total = chunks.reduce((sum, chunk) => sum + chunk.length, 0)
-  const result = new Float32Array(total)
-  let offset = 0
-  for (const chunk of chunks) {
-    result.set(chunk, offset)
-    offset += chunk.length
-  }
-  return result
 }
 
 async function ensureReady() {
@@ -243,10 +274,13 @@ async function loadTTS() {
 }
 
 // transformers.js 3.x reports per-file download progress only (no overall
-// percentage), so progress reflects the current file while it downloads.
+// percentage), so progress reflects the current file while it downloads. The
+// module-level `progress` is updated too so voices-status stays live, not only
+// the streamed event.
 function onProgress(info: ProgressInfo) {
   if (info.status !== "progress" || info.total <= 0) return
-  reportProgress({ progress: Math.round((info.loaded / info.total) * 100), file: info.file })
+  progress = Math.round((info.loaded / info.total) * 100)
+  reportProgress({ progress, file: info.file })
 }
 
 function reportProgress(payload: { progress: number; file?: string }) {
@@ -256,33 +290,41 @@ function reportProgress(payload: { progress: number; file?: string }) {
   }
 }
 
-// The selected voice must always be enabled and (for piper) downloaded; when
-// the stored selection no longer qualifies, fall back to the first selectable
-// voice so dictation and message reading never reference a dead voice.
 function getSelectedVoice() {
   const stored = getStore().get(SELECTED_VOICE_KEY)
-  if (typeof stored === "string" && isSelectable(resolveVoice(stored))) return stored
+  if (typeof stored === "string") {
+    const voice = resolveVoice(stored)
+    if (voice && isSelectable(voice)) return stored
+  }
   const fallback = firstSelectableVoice()
-  if (fallback.id !== stored) getStore().set(SELECTED_VOICE_KEY, fallback.id)
-  return fallback.id
+  if (fallback) {
+    if (fallback.id !== stored) getStore().set(SELECTED_VOICE_KEY, fallback.id)
+    return fallback.id
+  }
+  return "ef_dora"
 }
 
 function isSelectable(voice: VoiceInfo | undefined) {
   if (!voice) return false
   if (!voice.supported || !isVoiceEnabled(voice.id)) return false
+  if (voice.engine === "kokoro-es") return isKokoroEsDownloaded()
   return voice.engine === "kokoro" || isPiperDownloaded(voice.id)
 }
 
 function firstSelectableVoice() {
-  return VOICE_CATALOG.find(isSelectable) ?? VOICE_CATALOG[0]
+  const femaleEs = VOICE_CATALOG.find((v) => v.id === "ef_dora" && isSelectable(v))
+  if (femaleEs) return femaleEs
+  const femaleEn = VOICE_CATALOG.find((v) => v.id === "af_heart" && isSelectable(v))
+  if (femaleEn) return femaleEn
+  const anyFemale = VOICE_CATALOG.find((v) => v.gender === "female" && isSelectable(v))
+  if (anyFemale) return anyFemale
+  return VOICE_CATALOG.find(isSelectable)
 }
 
 function readEnabledVoices(value: unknown) {
   return Array.isArray(value) ? value.filter((id): id is string => typeof id === "string") : []
 }
 
-// Voices default to enabled; the store key only exists once the user toggles
-// at least one voice, and then lists the enabled ids exactly.
 function isVoiceEnabled(voiceId: string) {
   const stored = getStore().get(ENABLED_VOICES_KEY)
   if (stored === undefined) return true

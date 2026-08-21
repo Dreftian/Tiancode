@@ -8,8 +8,9 @@ import { AbsolutePath, RelativePath } from "@tiancode-ai/core/schema"
 import { Effect, Layer, Option } from "effect"
 import ignore from "ignore"
 import path from "path"
-import { HttpApiBuilder } from "effect/unstable/httpapi"
+import { HttpApiBuilder, HttpApiError } from "effect/unstable/httpapi"
 import { InstanceHttpApi } from "../api"
+import { FileWritePayload } from "../groups/file"
 
 export const fileHandlers = HttpApiBuilder.group(InstanceHttpApi, "file", (handlers) =>
   Effect.gen(function* () {
@@ -128,6 +129,14 @@ export const fileHandlers = HttpApiBuilder.group(InstanceHttpApi, "file", (handl
       return []
     })
 
+    const write = Effect.fn("FileHttpApi.write")(function* (ctx: { payload: typeof FileWritePayload.Type }) {
+      const directory = (yield* InstanceState.context).directory
+      const file = path.resolve(directory, ctx.payload.path)
+      if (!FSUtil.contains(directory, file)) return yield* new HttpApiError.BadRequest({})
+      yield* FSUtil.Service.use((fs) => fs.writeWithDirs(file, ctx.payload.content)).pipe(Effect.orDie)
+      return ctx.payload.path
+    })
+
     return handlers
       .handle("findText", findText)
       .handle("findFile", findFile)
@@ -135,5 +144,6 @@ export const fileHandlers = HttpApiBuilder.group(InstanceHttpApi, "file", (handl
       .handle("list", list)
       .handle("content", content)
       .handle("status", status)
+      .handle("write", write)
   }),
 ).pipe(Layer.provide(locationServiceMapLayer))

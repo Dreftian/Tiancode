@@ -1025,6 +1025,64 @@ export default function LegacyLayout(props: ParentProps) {
         keybind: "mod+shift+t",
         onSelect: () => cycleTheme(1),
       },
+      {
+        id: "preview.toggle",
+        title: "Alternar Vista Previa en Vivo (Live Preview)",
+        category: language.t("command.category.view"),
+        keybind: "mod+shift+v",
+        onSelect: () => {
+          window.dispatchEvent(new CustomEvent("tiancode:preview-toggle"))
+        },
+      },
+      {
+        id: "prompt.optimize",
+        title: "Optimizar Prompt / Instrucción (Estilo Trae)",
+        category: "Prompt",
+        keybind: "mod+shift+o",
+        onSelect: () => {
+          const btn = document.querySelector(".trae-optimizer-btn") as HTMLButtonElement | null
+          btn?.click()
+        },
+      },
+      {
+        id: "voice.dictation",
+        title: "Alternar Dictado por Voz",
+        category: "Voz",
+        keybind: "mod+shift+m",
+        onSelect: () => {
+          window.dispatchEvent(new CustomEvent("tiancode:voice-dictation-toggle"))
+        },
+      },
+      {
+        id: "pet.toggle",
+        title: "Alternar Mascota de Escritorio",
+        category: language.t("command.category.view"),
+        keybind: "mod+shift+p",
+        onSelect: () => {
+          window.dispatchEvent(new CustomEvent("tiancode:pet-toggle"))
+        },
+      },
+      {
+        id: "mcp.health",
+        title: "Diagnóstico y Salud de Servidores MCP",
+        category: "MCP",
+        keybind: "mod+shift+c",
+        onSelect: () => openSettings(),
+      },
+      {
+        id: "skills.open",
+        title: "Gestor de Habilidades y Auto-Harness (Skills)",
+        category: "Agente",
+        keybind: "mod+shift+k",
+        onSelect: () => openSettings(),
+      },
+      {
+        id: "rlm.tree",
+        title: "Árbol de Recursión RLM de Sub-Agentes",
+        category: "Agente",
+        keybind: "mod+shift+r",
+        onSelect: () => openSettings(),
+      },
     ]
 
     Array.from({ length: 9 }, (_, i) => {
@@ -1112,10 +1170,7 @@ export default function LegacyLayout(props: ParentProps) {
 
   function openSettings() {
     const run = ++dialogRun
-    const module = settings.general.newLayoutDesigns()
-      ? import("@/components/settings-v2")
-      : import("@/components/dialog-settings")
-    void module.then((x) => {
+    void import("../components/settings-v2/dialog-settings-v2").then((x) => {
       if (dialogDead || dialogRun !== run) return
       dialog.show(() => <x.DialogSettings />)
     })
@@ -1358,9 +1413,9 @@ export default function LegacyLayout(props: ParentProps) {
 
   const showEditProjectDialog = (conn: ServerConnection.Any, project: LocalProject) => {
     const run = ++dialogRun
-    void import("@/components/dialog-edit-project").then((x) => {
+    void import("@/components/dialog-edit-project-v2").then((x) => {
       if (dialogDead || dialogRun !== run) return
-      dialog.show(() => <x.DialogEditProject server={conn} project={project} />)
+      dialog.show(() => <x.DialogEditProjectV2 server={conn} project={project} />)
     })
   }
 
@@ -2248,7 +2303,7 @@ export default function LegacyLayout(props: ParentProps) {
       settingsKeybind={() => command.keybind("settings.open")}
       onOpenSettings={openSettings}
       helpLabel={() => language.t("sidebar.help")}
-      onOpenHelp={() => platform.openExternal("https://opencode.ai/desktop-feedback")}
+      onOpenHelp={() => platform.openExternal("https://tiancode.vercel.app/")}
       renderPanel={() =>
         mobile ? <SidebarPanel project={currentProject} mobile /> : <SidebarPanel project={currentProject} merged />
       }

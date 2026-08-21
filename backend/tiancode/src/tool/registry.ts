@@ -15,7 +15,10 @@ import { TodoWriteTool } from "./todo"
 import { WebFetchTool } from "./webfetch"
 import { WriteTool } from "./write"
 import { InvalidTool } from "./invalid"
+import { PreviewLogsTool, PreviewRestartTool, PreviewStartTool, PreviewStatusTool, PreviewStopTool } from "./preview"
 import { SkillTool } from "./skill"
+import { MemoryTool } from "./memory"
+import { SkillCreateTool } from "./skill-create"
 import * as Tool from "./tool"
 import { Config } from "@/config/config"
 import { type ToolContext as PluginToolContext, type ToolDefinition } from "@tiancode-ai/plugin"
@@ -54,6 +57,14 @@ import { ModelV2 } from "@tiancode-ai/core/model"
 import { MCP } from "@/mcp"
 import { PermissionV1 } from "@tiancode-ai/core/v1/permission"
 import { McpCatalog } from "@/mcp/catalog"
+import { Global } from "@tiancode-ai/core/global"
+import { LocationServiceMap, locationServiceMapLayer } from "@tiancode-ai/core/location-services"
+
+const locationServiceMapNode = LayerNode.make({
+  service: LocationServiceMap.Service,
+  layer: locationServiceMapLayer,
+  deps: [],
+})
 
 export function webSearchEnabled(providerID: ProviderV2.ID, flags = { exa: false, parallel: false }) {
   return providerID === ProviderV2.ID.tiancode || flags.exa || flags.parallel
@@ -109,6 +120,13 @@ const layer = Layer.effect(
     const greptool = yield* GrepTool
     const patchtool = yield* ApplyPatchTool
     const skilltool = yield* SkillTool
+    const memorytool = yield* MemoryTool
+    const skillcreatetool = yield* SkillCreateTool
+    const previewStart = yield* PreviewStartTool
+    const previewStop = yield* PreviewStopTool
+    const previewRestart = yield* PreviewRestartTool
+    const previewStatus = yield* PreviewStatusTool
+    const previewLogs = yield* PreviewLogsTool
     const agent = yield* Agent.Service
     const codeMode = flags.experimentalCodeMode ? yield* Effect.promise(() => import("./code-mode")) : undefined
     const codeModeTool = codeMode ? yield* codeMode.CodeModeTool : undefined
@@ -214,10 +232,17 @@ const layer = Layer.effect(
           todo: Tool.init(todo),
           search: Tool.init(websearch),
           skill: Tool.init(skilltool),
+          memory: Tool.init(memorytool),
+          skillCreate: Tool.init(skillcreatetool),
           patch: Tool.init(patchtool),
           question: Tool.init(question),
           lsp: Tool.init(lsptool),
           plan: Tool.init(plan),
+          previewStart: Tool.init(previewStart),
+          previewStop: Tool.init(previewStop),
+          previewRestart: Tool.init(previewRestart),
+          previewStatus: Tool.init(previewStatus),
+          previewLogs: Tool.init(previewLogs),
           ...(codeModeTool ? { execute: Tool.init(codeModeTool) } : {}),
         })
 
@@ -237,10 +262,17 @@ const layer = Layer.effect(
             tool.todo,
             tool.search,
             tool.skill,
+            tool.memory,
+            tool.skillCreate,
             tool.patch,
             ...(tool.execute ? [tool.execute] : []),
             ...(flags.experimentalLspTool ? [tool.lsp] : []),
             ...(flags.experimentalPlanMode && flags.client === "cli" ? [tool.plan] : []),
+            tool.previewStart,
+            tool.previewStop,
+            tool.previewRestart,
+            tool.previewStatus,
+            tool.previewLogs,
           ],
           task: tool.task,
           read: tool.read,
@@ -444,6 +476,8 @@ export const node = LayerNode.make({
     MCP.node,
     Database.node,
     Ripgrep.node,
+    Global.node,
+    locationServiceMapNode,
   ],
 })
 

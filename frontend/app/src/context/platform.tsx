@@ -28,6 +28,52 @@ export type FatalRendererErrorLog = {
   os?: DesktopOS
 }
 
+// Vista en vivo del panel de sesión (desktop): WebContentsView del preview
+// controlado desde el main (frontend/desktop/src/main/preview-view.ts). El
+// renderer reporta bounds del contenedor real y recibe eventos de estado,
+// consola, errores de carga y selección de elementos.
+export type PreviewViewState = {
+  url: string
+  loading: boolean
+  canGoBack: boolean
+  canGoForward: boolean
+  visible: boolean
+  selectMode: boolean
+}
+
+export type PreviewViewSelection = {
+  tag: string
+  text: string
+  className: string
+  id: string
+  selector: string
+  url: string
+  pathname: string
+  dims: { width: number; height: number }
+  rect: { x: number; y: number; width: number; height: number }
+}
+
+export type PreviewViewEvent =
+  | { type: "state"; state: PreviewViewState }
+  | { type: "loaded"; url: string }
+  | { type: "console"; message: { level: number; message: string; line: number; sourceId: string } }
+  | { type: "fail"; fail: { code: number; description: string; url: string; isMainFrame: boolean } }
+
+export type PreviewViewPlatform = {
+  setBounds(bounds: { x: number; y: number; width: number; height: number }): Promise<void>
+  setVisible(visible: boolean): Promise<void>
+  navigate(url: string): Promise<void>
+  reload(): Promise<void>
+  back(): Promise<void>
+  forward(): Promise<void>
+  setZoom(factor: number): Promise<void>
+  getState(): Promise<PreviewViewState | null>
+  capture(): Promise<{ buffer: ArrayBuffer; width: number; height: number }>
+  setSelectMode(enabled: boolean): Promise<void>
+  getSelection(): Promise<PreviewViewSelection | null>
+  onEvent(cb: (event: PreviewViewEvent) => void): () => void
+}
+
 type PlatformBase = {
   /** App version */
   version?: string
@@ -61,6 +107,9 @@ type PlatformBase = {
 
   /** Open a native save file picker dialog (desktop only) */
   saveFilePickerDialog?(opts?: SaveFilePickerOptions): Promise<string | null>
+
+  /** Write text to a path chosen via saveFilePickerDialog (desktop only) */
+  writeTextFile?(path: string, content: string): Promise<boolean>
 
   /** Storage mechanism, defaults to localStorage */
   storage?: (name?: string) => SyncStorage | AsyncStorage
@@ -112,6 +161,24 @@ type PlatformBase = {
 
   /** Read image from clipboard (desktop only) */
   readClipboardImage?(): Promise<File | null>
+
+  /** Capture a screenshot as a PNG File to attach in the chat (desktop only) */
+  captureScreenshot?(
+    kind: "screen" | "area" | "window" | "preview" | "liveView",
+    options?: { bounds?: { x: number; y: number; width: number; height: number }; webContentsId?: number },
+  ): Promise<File | null>
+
+  /** Preview view (panel "Vista en vivo"; desktop only) */
+  previewView?: PreviewViewPlatform
+
+  /** Start/stop launching with the OS login (Windows only) */
+  setLoginItem?(enabled: boolean): Promise<boolean>
+  getLoginItem?(): Promise<boolean>
+
+  /** Data backups (sessions + config; models excluded) */
+  backupNow?(): Promise<string | null>
+  listBackups?(): Promise<{ name: string; createdAt: number }[]>
+  restoreBackup?(name: string): Promise<void>
 
   /** Export collected diagnostic logs (desktop only) */
   exportDebugLogs?(): Promise<string>

@@ -647,6 +647,10 @@ function TitlebarUpdateIconButton(props: { state: TitlebarUpdatePillState }) {
 
 function ChannelIndicator(props: { debugTools?: { visible: boolean; toggle: () => void } }) {
   const channel = import.meta.env.VITE_TIANCODE_CHANNEL
+  if (!channel) return null
+  // El canal de desarrollo se llama "Codex" (renombrado por el usuario); beta
+  // conserva su etiqueta. El badge se muestra en todos los canales.
+  const label = channel === "beta" ? "BETA" : "CODEX"
   if (channel === "dev" && props.debugTools) {
     return (
       <button
@@ -656,18 +660,14 @@ function ChannelIndicator(props: { debugTools?: { visible: boolean; toggle: () =
         aria-label="Toggle debug tools"
         aria-pressed={props.debugTools.visible}
       >
-        DEV
+        {label}
       </button>
     )
   }
 
   return (
-    <>
-      {["beta", "dev"].includes(channel) && (
-        <div class="bg-icon-interactive-base text-[#FFF] font-medium px-2 rounded-sm uppercase font-mono">
-          {channel.toUpperCase()}
-        </div>
-      )}
-    </>
+    <div class="bg-icon-interactive-base text-[#FFF] font-medium px-2 rounded-sm uppercase font-mono">
+      {label}
+    </div>
   )
 }

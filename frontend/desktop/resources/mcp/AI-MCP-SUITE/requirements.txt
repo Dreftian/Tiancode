@@ -1,0 +1,9 @@
+# AI-MCP-SUITE is intentionally dependency-free.
+#
+# The suite runs on Python 3.10+ using only the standard library:
+#   asyncio, base64, hashlib, json, os, re, socket, struct, subprocess,
+#   sys, threading, urllib, time
+#
+# Optional (Windows only) -- enables the CorelDRAW COM tools
+# (CorelDRAW/server.py):
+#   pywin32

@@ -60,3 +60,12 @@ describe("electron vite publicDir", () => {
     expect(existsSync(join(resolved, "oc-theme-preload.js"))).toBe(true)
   })
 })
+
+describe("production renderer CSP", () => {
+  test("permits only canonical loopback HTTP preview hosts", async () => {
+    const config = await Bun.file(join(root, "electron.vite.config.ts")).text()
+    const frameSource = config.match(/"frame-src ([^"]+)"/)?.[1]
+    expect(frameSource).toBe("'self' https: http://127.0.0.1:* http://localhost:*")
+    expect(config).not.toContain("http://[::1]:*")
+  })
+})

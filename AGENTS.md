@@ -18,6 +18,14 @@ Valid types are `feat`, `fix`, `docs`, `chore`, `refactor`, and `test`. Scopes a
 
 Examples: `fix(tui): simplify thinking toggle styling`, `docs: update contributing guide`, `chore(sdk): regenerate types`.
 
+## App Updates and Releases
+
+- Every user-facing app change ships with a **version bump** in `frontend/desktop/package.json` (patch by default, e.g. 1.0.2 → 1.0.3): the auto-updater only offers releases with a NEW version — replacing assets under the same version is not detected (the updater ignores `latest.yml` entries whose version equals the installed one).
+- **Rule (user mandate):** any modification or implementation the user requests ships as a **new default version** (bump + new release) — never as a silent asset replacement. The new version is the new default for fresh installs.
+- **Updates must be non-destructive:** a user who already installed an older version receives the update with their **active provider keys preserved** and **all configuration intact** (settings, sessions, backups, MCP auth). Migrations must read legacy formats and re-seal/convert **in place** — they never delete, reset, or re-prompt for user data. The installer must not touch user data (`userData`, state, data dirs).
+- Release assets must stay named `Tiancode.exe` / `Tiancode-portable.exe` (see `artifactName` in `frontend/desktop/electron-builder.config.ts`); build with `TIANCODE_CHANNEL=prod`.
+- After rebuilding, upload the new `latest.yml` + installer/portable assets to the GitHub release, and verify the installed app offers the update before declaring the release done.
+
 ## Style Guide
 
 ### General Principles

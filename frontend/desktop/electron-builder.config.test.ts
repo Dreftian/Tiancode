@@ -1,10 +1,26 @@
 import { expect, test } from "bun:test"
 import type { Configuration } from "electron-builder"
+import { resolve } from "node:path"
 
 const legacyDesktopEntry = "resources/linux/tiancode-desktop.desktop"
 
+test("rebuilds the desktop before packaging a release", async () => {
+  const pkg = (await Bun.file("package.json").json()) as { scripts?: Record<string, string> }
+
+  expect(pkg.scripts?.["prepare:release"]).toContain("bun run build")
+  expect(pkg.scripts?.prepackage).toBe("bun run prepare:release")
+  expect(pkg.scripts?.["prepackage:win"]).toBe("bun run prepare:release")
+})
+
+test("uses the repository Windows signing script", async () => {
+  const module = await import("./electron-builder.config.ts?sign-script")
+
+  expect(module.windowsSignScript).toBe(resolve(import.meta.dir, "../../backend/tools/script/sign-windows.ps1"))
+  expect(await Bun.file(module.windowsSignScript).exists()).toBe(true)
+})
+
 const channels = [
-  { channel: "dev", appId: "ai.tiancode.desktop.dev" },
+  { channel: "dev", appId: "ai.tiancode.desktop.codex" },
   { channel: "beta", appId: "ai.tiancode.desktop.beta" },
   { channel: "prod", appId: "ai.tiancode.desktop" },
 ] as const
@@ -71,6 +87,38 @@ test("bundles the CLI outside the dev app archive", async () => {
     to: "",
     filter: ["tiancode-cli*"],
   })
+})
+
+test("keeps runtime icons outside the app archive", async () => {
+  const previous = process.env.TIANCODE_CHANNEL
+  process.env.TIANCODE_CHANNEL = "prod"
+  const module = await import("./electron-builder.config.ts?runtime-icons")
+  const config = module.default as Configuration
+  if (previous === undefined) delete process.env.TIANCODE_CHANNEL
+  else process.env.TIANCODE_CHANNEL = previous
+
+  expect(config.files).toContain("!resources/icons/**/*")
+  expect(config.extraResources).toContainEqual({
+    from: "resources/icons",
+    to: "icons",
+  })
+})
+
+test("ships bundled MCP sources without generated config or bytecode caches", async () => {
+  const previous = process.env.TIANCODE_CHANNEL
+  process.env.TIANCODE_CHANNEL = "prod"
+  const module = await import("./electron-builder.config.ts?mcp-resource")
+  const config = module.default as Configuration
+  if (previous === undefined) delete process.env.TIANCODE_CHANNEL
+  else process.env.TIANCODE_CHANNEL = previous
+
+  expect(config.extraResources).toContainEqual({
+    from: "resources/mcp",
+    to: "mcp",
+    filter: ["**/*", "!AI-MCP-SUITE/opencode.json", "!**/__pycache__/**", "!**/*.pyc"],
+  })
+  expect(config.files).toContain("!resources/mcp/**/__pycache__/**")
+  expect(config.files).toContain("!resources/mcp/**/*.pyc")
 })
 
 for (const channel of ["beta", "prod"] as const) {

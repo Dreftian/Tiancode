@@ -1,0 +1,5 @@
+{
+  "photoshop_exe": "C:/Program Files/Adobe/Adobe Photoshop 2024/Photoshop.exe",
+  "uxp_bridge_url": "http://127.0.0.1:24000",
+  "scripts_dir": "%USERPROFILE%/AppData/Roaming/Adobe/Adobe Photoshop 2024/Presets/Scripts"
+}

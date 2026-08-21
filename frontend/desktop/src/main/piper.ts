@@ -1,5 +1,6 @@
 import { app, BrowserWindow } from "electron"
-import { existsSync } from "node:fs"
+import { createHash } from "node:crypto"
+import { createReadStream, existsSync } from "node:fs"
 import { mkdir, open, rename, rm } from "node:fs/promises"
 import { join } from "node:path"
 import type { VoicesPiperProgress } from "../preload/types"
@@ -25,28 +26,8 @@ export type PiperVoiceDef = {
 
 export const PIPER_VOICES: PiperVoiceDef[] = [
   {
-    id: "piper-es_ES-mls_9972-low",
-    name: "MLS 9972 (Spanish)",
-    language: "es-ES",
-    repo: "csukuangfj/vits-piper-es_ES-mls_9972-low",
-    modelFile: "es_ES-mls_9972-low.onnx",
-    sampleRate: 16000,
-    sizeMb: 63,
-    license: "CC BY 4.0",
-  },
-  {
-    id: "piper-es_ES-mls_10246-low",
-    name: "MLS 10246 (Spanish)",
-    language: "es-ES",
-    repo: "csukuangfj/vits-piper-es_ES-mls_10246-low",
-    modelFile: "es_ES-mls_10246-low.onnx",
-    sampleRate: 16000,
-    sizeMb: 63,
-    license: "CC BY 4.0",
-  },
-  {
     id: "piper-es_ES-sharvard-medium",
-    name: "Sharvard (Spanish)",
+    name: "Sharvard (España)",
     language: "es-ES",
     repo: "csukuangfj/vits-piper-es_ES-sharvard-medium",
     modelFile: "es_ES-sharvard-medium.onnx",
@@ -57,13 +38,93 @@ export const PIPER_VOICES: PiperVoiceDef[] = [
   },
   {
     id: "piper-es_AR-daniela-high",
-    name: "Daniela (Spanish, Argentina)",
+    name: "Daniela (Argentina)",
     language: "es-AR",
     repo: "csukuangfj/vits-piper-es_AR-daniela-high",
     modelFile: "es_AR-daniela-high.onnx",
     sampleRate: 22050,
     sizeMb: 114,
     license: "CC BY-SA 4.0",
+  },
+  {
+    id: "piper-es_ES-mls_9972-low",
+    name: "MLS 9972 (España)",
+    language: "es-ES",
+    repo: "csukuangfj/vits-piper-es_ES-mls_9972-low",
+    modelFile: "es_ES-mls_9972-low.onnx",
+    sampleRate: 16000,
+    sizeMb: 63,
+    license: "CC BY 4.0",
+  },
+  {
+    id: "piper-es_ES-mls_10246-low",
+    name: "MLS 10246 (España)",
+    language: "es-ES",
+    repo: "csukuangfj/vits-piper-es_ES-mls_10246-low",
+    modelFile: "es_ES-mls_10246-low.onnx",
+    sampleRate: 16000,
+    sizeMb: 63,
+    license: "CC BY 4.0",
+  },
+  {
+    id: "piper-es_MX-ald-medium",
+    name: "Sofia / Ald (México)",
+    language: "es-MX",
+    repo: "csukuangfj/vits-piper-es_MX-ald-medium",
+    modelFile: "es_MX-ald-medium.onnx",
+    sampleRate: 22050,
+    sizeMb: 75,
+    license: "CC BY 4.0",
+  },
+  {
+    id: "piper-es_MX-claude-high",
+    name: "Lucia / Claude (México)",
+    language: "es-MX",
+    repo: "csukuangfj/vits-piper-es_MX-claude-high",
+    modelFile: "es_MX-claude-high.onnx",
+    sampleRate: 22050,
+    sizeMb: 110,
+    license: "CC BY-SA 4.0",
+  },
+  {
+    id: "piper-es_ES-carlfm-x_low",
+    name: "Carlota (España)",
+    language: "es-ES",
+    repo: "csukuangfj/vits-piper-es_ES-carlfm-x_low",
+    modelFile: "es_ES-carlfm-x_low.onnx",
+    sampleRate: 16000,
+    sizeMb: 45,
+    license: "CC BY 4.0",
+  },
+  {
+    id: "piper-es_ES-davefx-medium",
+    name: "Elena (España)",
+    language: "es-ES",
+    repo: "csukuangfj/vits-piper-es_ES-davefx-medium",
+    modelFile: "es_ES-davefx-medium.onnx",
+    sampleRate: 22050,
+    sizeMb: 78,
+    license: "CC BY 4.0",
+  },
+  {
+    id: "piper-es_ES-paloma-medium",
+    name: "Paloma (España)",
+    language: "es-ES",
+    repo: "csukuangfj/vits-piper-es_ES-paloma-medium",
+    modelFile: "es_ES-paloma-medium.onnx",
+    sampleRate: 22050,
+    sizeMb: 80,
+    license: "CC BY 4.0",
+  },
+  {
+    id: "piper-es_ES-tania-medium",
+    name: "Tania (España)",
+    language: "es-ES",
+    repo: "csukuangfj/vits-piper-es_ES-tania-medium",
+    modelFile: "es_ES-tania-medium.onnx",
+    sampleRate: 22050,
+    sizeMb: 78,
+    license: "CC BY 4.0",
   },
 ]
 
@@ -80,8 +141,12 @@ function voiceDir(voiceId: string) {
   return join(app.getPath("userData"), "piper-voices", voiceId)
 }
 
-function sharedDataDir() {
+export function sharedDataDir() {
   return join(app.getPath("userData"), "piper-voices", SHARED_DATA_DIR)
+}
+
+export function isSharedDataDownloaded() {
+  return existsSync(join(sharedDataDir(), COMPLETE_MARKER))
 }
 
 export function isPiperDownloaded(voiceId: string) {
@@ -112,14 +177,17 @@ async function downloadPiperVoiceInner(voiceId: string) {
   await downloadFile(`${HF_BASE}/${def.repo}/resolve/main/${def.modelFile}`, join(dir, def.modelFile), voiceId)
   await downloadFile(`${HF_BASE}/${def.repo}/resolve/main/tokens.txt`, join(dir, "tokens.txt"), voiceId)
   writeLog("voices", "downloaded piper voice", { voiceId, sizeMb: def.sizeMb })
+  // The voice is only complete once both files exist; a done event before that
+  // would make the UI refetch and show the voice as not downloaded.
+  reportProgress(voiceId, 100, undefined, true)
 }
 
 // The espeak-ng phonemizer data is shared by every piper voice. The tree API
 // lists the full recursive file set in one call; a ".complete" marker turns
 // the directory into a downloaded-once cache that survives partial failures.
-async function ensureSharedData() {
+export async function ensureSharedData() {
   const dataDir = sharedDataDir()
-  if (existsSync(join(dataDir, COMPLETE_MARKER))) return
+  if (isSharedDataDownloaded()) return
   await mkdir(dataDir, { recursive: true })
   const res = await fetch(`${HF_API}/${PIPER_VOICES[0].repo}/tree/main/${SHARED_DATA_DIR}?recursive=true`)
   if (!res.ok) throw new Error(`Failed to list ${SHARED_DATA_DIR}: HTTP ${res.status}`)
@@ -133,7 +201,7 @@ async function ensureSharedData() {
   await writeFile(join(dataDir, COMPLETE_MARKER), "")
 }
 
-async function downloadFile(url: string, dest: string, voiceId: string | undefined) {
+export async function downloadFile(url: string, dest: string, voiceId: string | undefined) {
   const res = await fetch(url, { redirect: "follow" })
   if (!res.ok || !res.body) throw new Error(`GET ${url} failed: HTTP ${res.status}`)
   const part = `${dest}.part`
@@ -151,8 +219,31 @@ async function downloadFile(url: string, dest: string, voiceId: string | undefin
   } finally {
     await handle.close()
   }
+  await verifyDownload(url, part)
   await rename(part, dest)
-  if (voiceId) reportProgress(voiceId, 100, url.split("/").pop(), true)
+  if (voiceId) reportProgress(voiceId, 100, url.split("/").pop())
+}
+
+// Verifica la descarga contra el puntero LFS de HuggingFace: la URL raw
+// devuelve un puntero de texto con el oid sha256 canónico para archivos LFS.
+// Sin puntero (archivos pequeños versionados en git, p. ej. tokens.txt o los
+// diccionarios de espeak-ng-data) no hay digest publicado y la descarga se
+// acepta tal cual. Ante un fallo se elimina el temporal y se lanza el error.
+async function verifyDownload(url: string, part: string) {
+  const fileName = url.split("/").pop()
+  const res = await fetch(url.replace("/resolve/", "/raw/"), { redirect: "follow" })
+  if (!res.ok) {
+    await rm(part, { force: true })
+    throw new Error(`no se pudo obtener el puntero LFS de ${fileName}: HTTP ${res.status}`)
+  }
+  const oid = (await res.text()).match(/oid sha256:([0-9a-fA-F]{64})/)?.[1]
+  if (!oid) return
+  const hash = createHash("sha256")
+  for await (const chunk of createReadStream(part)) hash.update(chunk)
+  if (hash.digest("hex") !== oid.toLowerCase()) {
+    await rm(part, { force: true })
+    throw new Error(`la suma sha256 de ${fileName} no coincide con el puntero LFS`)
+  }
 }
 
 async function writeFile(path: string, content: string) {
@@ -180,9 +271,25 @@ export async function synthesizePiper(text: string, voiceId: string): Promise<Pi
   const def = resolvePiperVoice(voiceId)
   if (!def) throw new Error(`Unknown piper voice "${voiceId}"`)
   if (!isPiperDownloaded(voiceId)) await downloadPiperVoice(voiceId)
+  
+  // Limpia caracteres de control invisibles o emojis que puedan trabar a espeak-ng
+  const sanitized = text
+    .replace(/[^\p{L}\p{N}\p{P}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+  if (!sanitized) throw new Error("Texto vacío tras limpieza para síntesis.")
+
   const tts = await getTts(def)
-  const result = tts.generate({ text, sid: def.sid ?? 0, speed: 1 })
-  return { samples: result.samples, sampleRate: result.sampleRate }
+  try {
+    const result = tts.generate({ text: sanitized, sid: def.sid ?? 0, speed: 1.2, silenceScale: 0.12 })
+    if (!result || !result.samples || result.samples.length === 0) {
+      throw new Error("Audio vacío generado por el motor Piper.")
+    }
+    return { samples: result.samples, sampleRate: result.sampleRate }
+  } catch (error) {
+    evictTts(def.id)
+    throw error
+  }
 }
 
 async function getTts(def: PiperVoiceDef): Promise<OfflineTtsLike> {
@@ -219,7 +326,7 @@ function evictTts(voiceId: string) {
   ttsCache.delete(voiceId)
 }
 
-function reportProgress(voiceId: string, progress: number, file?: string, done?: boolean) {
+export function reportProgress(voiceId: string, progress: number, file?: string, done?: boolean) {
   const payload: VoicesPiperProgress = { voiceId, progress, file, done }
   for (const win of BrowserWindow.getAllWindows()) {
     if (win.isDestroyed() || win.webContents.isDestroyed()) continue
@@ -229,6 +336,9 @@ function reportProgress(voiceId: string, progress: number, file?: string, done?:
 
 type OfflineTtsLike = {
   sampleRate: number
-  generate(config: { text: string; sid?: number; speed?: number }): { samples: Float32Array; sampleRate: number }
+  generate(config: { text: string; sid?: number; speed?: number; silenceScale?: number }): {
+    samples: Float32Array
+    sampleRate: number
+  }
   free(): void
 }

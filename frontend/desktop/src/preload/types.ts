@@ -7,6 +7,7 @@ export type {
   WslInstalledDistro,
   WslJob,
   WslOnlineDistro,
+  WslTiancodeCheck,
   WslOpencodeCheck,
   WslRuntimeCheck,
   WslServerConfig,
@@ -29,7 +30,7 @@ export type UpdaterAPI = {
   install: () => Promise<void>
 }
 
-export type VoiceEngine = "kokoro" | "piper"
+export type VoiceEngine = "kokoro" | "piper" | "kokoro-es"
 
 export type VoiceInfo = {
   id: string
@@ -43,6 +44,8 @@ export type VoiceInfo = {
   // Synthesis engine: kokoro voices ship with the app, piper voices are
   // downloaded on demand (sherpa-onnx + espeak-ng phonemizer).
   engine: VoiceEngine
+  // Whether this is the app's default voice for Spanish announcements.
+  default?: boolean
   // Piper only: whether the model files are present on disk.
   downloaded?: boolean
   // Whether the voice is enabled for selection and dictation defaults.
@@ -79,17 +82,60 @@ export type VoicesSpeakResult = {
   error?: string
 }
 
+export type VoicesSpeakOptions = {
+  // Automatic narration must never start a model download or compete with a
+  // user-initiated probe. It is best-effort and can be skipped when the
+  // selected local voice is not ready.
+  automatic?: boolean
+}
+
 export type VoicesAPI = {
   status: () => Promise<VoicesStatus>
   download: () => Promise<void>
   list: () => Promise<VoiceInfo[]>
-  speak: (text: string, voiceId?: string) => Promise<VoicesSpeakResult>
+  speak: (text: string, voiceId?: string, options?: VoicesSpeakOptions) => Promise<VoicesSpeakResult>
   select: (voiceId: string) => Promise<boolean>
   onProgress: (cb: (event: VoicesProgress) => void) => () => void
   downloadVoice: (voiceId: string) => Promise<void>
   deleteVoice: (voiceId: string) => Promise<void>
   setEnabled: (voiceId: string, enabled: boolean) => Promise<void>
   onPiperProgress: (cb: (event: VoicesPiperProgress) => void) => () => void
+}
+
+// Local speech-to-text (sherpa-onnx Whisper) for mic dictation. The renderer
+// captures audio with getUserMedia and streams PCM chunks to the main process.
+export type AsrStatus = {
+  ready: boolean
+  downloading?: boolean
+  progress?: number
+  error?: string
+}
+
+export type AsrResult = {
+  text?: string
+  error?: string
+}
+
+export type AsrAPI = {
+  status: () => Promise<AsrStatus>
+  ensure: () => Promise<void>
+  start: (language: "es" | "en") => Promise<void>
+  chunk: (samples: Float32Array) => void
+  stop: () => Promise<AsrResult>
+  onProgress: (cb: (event: { progress: number; file?: string }) => void) => () => void
+}
+
+// Instalación local de runtimes de modelos (Ollama / LM Studio).
+export type RuntimeInstallState =
+  | { status: "idle" }
+  | { status: "downloading"; progress: number }
+  | { status: "installing" }
+  | { status: "error"; error: string }
+
+export type RuntimeAPI = {
+  install: (kind: "ollama" | "lmstudio") => Promise<{ ok: boolean; error?: string }>
+  state: () => Promise<RuntimeInstallState>
+  onState: (cb: (state: RuntimeInstallState) => void) => () => void
 }
 
 export type LinuxDisplayBackend = "wayland" | "auto"
@@ -105,13 +151,60 @@ export type FatalRendererError = {
   os?: string
 }
 
+// Vista en vivo del panel de sesión: estado del WebContentsView del preview
+// (frontend/desktop/src/main/preview-view.ts).
+export type PreviewViewState = {
+  url: string
+  loading: boolean
+  canGoBack: boolean
+  canGoForward: boolean
+  visible: boolean
+  selectMode: boolean
+}
+
+export type PreviewViewSelection = {
+  tag: string
+  text: string
+  className: string
+  id: string
+  selector: string
+  url: string
+  pathname: string
+  dims: { width: number; height: number }
+  rect: { x: number; y: number; width: number; height: number }
+}
+
+export type PreviewViewEvent =
+  | { type: "state"; state: PreviewViewState }
+  | { type: "loaded"; url: string }
+  | { type: "console"; message: { level: number; message: string; line: number; sourceId: string } }
+  | { type: "fail"; fail: { code: number; description: string; url: string; isMainFrame: boolean } }
+
+export type PreviewViewAPI = {
+  setBounds: (bounds: { x: number; y: number; width: number; height: number }) => Promise<void>
+  setVisible: (visible: boolean) => Promise<void>
+  navigate: (url: string) => Promise<void>
+  reload: () => Promise<void>
+  back: () => Promise<void>
+  forward: () => Promise<void>
+  setZoom: (factor: number) => Promise<void>
+  getState: () => Promise<PreviewViewState | null>
+  capture: () => Promise<{ buffer: ArrayBuffer; width: number; height: number }>
+  setSelectMode: (enabled: boolean) => Promise<void>
+  getSelection: () => Promise<PreviewViewSelection | null>
+  onEvent: (cb: (event: PreviewViewEvent) => void) => () => void
+}
+
 export type ElectronAPI = {
   killSidecar: () => Promise<void>
+  relaunchApp: () => Promise<void>
   installCli: () => Promise<string>
   awaitInitialization: () => Promise<ServerReadyData>
   wslServers: WslServersAPI
   updater: UpdaterAPI
   voices: VoicesAPI
+  asr: AsrAPI
+  runtime: RuntimeAPI
   consumeInitialDeepLinks: () => Promise<string[]>
   getDefaultServerUrl: () => Promise<string | null>
   setDefaultServerUrl: (url: string | null) => Promise<void>
@@ -153,11 +246,28 @@ export type ElectronAPI = {
   releasePickedFiles: (token: string) => Promise<void>
   getPathForFile: (file: File) => string
   saveFilePicker: (opts?: { title?: string; defaultPath?: string }) => Promise<string | null>
+  writeTextFile: (path: string, content: string) => Promise<boolean>
   openExternal: (url: string) => void
   openLocalFile: (url: string) => void
   openPath: (path: string, app?: string) => Promise<void>
   revealPath: (path: string) => Promise<boolean>
   readClipboardImage: () => Promise<{ buffer: ArrayBuffer; width: number; height: number } | null>
+  capture: {
+    screen: () => Promise<{ buffer: ArrayBuffer; width: number; height: number }>
+    area: (bounds: { x: number; y: number; width: number; height: number }) => Promise<{ buffer: ArrayBuffer; width: number; height: number }>
+    window: () => Promise<{ buffer: ArrayBuffer; width: number; height: number }>
+    preview: (webContentsId: number) => Promise<{ buffer: ArrayBuffer; width: number; height: number }>
+    liveView: () => Promise<{ buffer: ArrayBuffer; width: number; height: number }>
+  }
+  setLoginItem: (enabled: boolean) => Promise<boolean>
+  getLoginItem: () => Promise<boolean>
+  clearWebviewData: () => Promise<void>
+  previewView: PreviewViewAPI
+  backup: {
+    now: () => Promise<string | null>
+    list: () => Promise<{ name: string; createdAt: number }[]>
+    restore: (name: string) => Promise<void>
+  }
   getWindowFocused: () => Promise<boolean>
   getWindowFullscreen: () => Promise<boolean>
   onWindowFullscreenChanged: (cb: (fullscreen: boolean) => void) => () => void
@@ -177,4 +287,17 @@ export type ElectronAPI = {
   setForceFocus: (enabled: boolean) => Promise<void>
   recordFatalRendererError: (error: FatalRendererError) => Promise<void>
   setNativeTranslations: (bundle: DesktopNativeBundle) => Promise<void>
+  pet: {
+    update: (partial: Partial<DesktopPetState>) => Promise<DesktopPetState>
+    toggle: () => Promise<boolean>
+    getState: () => Promise<DesktopPetState>
+  }
+}
+
+export type DesktopPetState = {
+  kind: "cat" | "dog" | "rabbit"
+  status: "ready" | "running" | "needs-input" | "blocked"
+  text: string
+  petted?: boolean
+  visible: boolean
 }

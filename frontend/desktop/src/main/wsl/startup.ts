@@ -4,7 +4,7 @@ export function wslServerIdsToStartOnInitialize(servers: { id: string }[]) {
   return servers.map((server) => server.id)
 }
 
-export function expectOpencodeVersion(installed: string | null, expected: string, distro = "Debian") {
+export function expectTiancodeVersion(installed: string | null, expected: string, distro = "Debian") {
   if (installed === expected) return
   throw new Error(
     nativeT("desktop.wsl.error.updateVersion", {
@@ -14,6 +14,7 @@ export function expectOpencodeVersion(installed: string | null, expected: string
     }),
   )
 }
+export const expectOpencodeVersion = expectTiancodeVersion
 
 export const pendingRestartAfterWslInstall = (runtime: { available: boolean }) => !runtime.available
 

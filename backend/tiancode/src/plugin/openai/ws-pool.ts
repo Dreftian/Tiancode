@@ -149,6 +149,12 @@ export function createWebSocketFetch(options?: CreateWebSocketFetchOptions) {
         throw error
       }
 
+      if (isMessageSizeError(error)) {
+        entry.fallback = true
+        invalidate(entry)
+        return httpFetch(input, httpInit)
+      }
+
       recordStreamFailure(entry)
       invalidate(entry)
       if (entry.fallback) return httpFetch(input, httpInit)
@@ -158,6 +164,19 @@ export function createWebSocketFetch(options?: CreateWebSocketFetchOptions) {
         }),
       )
     }
+  }
+
+  function isMessageSizeError(error: unknown) {
+    if (!error) return false
+    const msg = (error instanceof Error ? error.message : String(error)).toLowerCase()
+    return (
+      msg.includes("message too big") ||
+      msg.includes("max payload size") ||
+      msg.includes("payload too large") ||
+      msg.includes("1009") ||
+      msg.includes("message size limit") ||
+      msg.includes("frame size exceeded")
+    )
   }
 
   function recordStreamFailure(entry: PoolEntry) {

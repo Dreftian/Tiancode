@@ -5,6 +5,7 @@
   "type": "module",
   "license": "MIT",
   "bin": {
+    "tiancode": "./bin/lildax.cjs",
     "lildax": "./bin/lildax.cjs"
   },
   "files": [

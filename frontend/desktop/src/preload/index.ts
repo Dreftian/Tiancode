@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, webUtils } from "electron"
-import type { ElectronAPI, VoicesPiperProgress, VoicesProgress, WslServersEvent } from "./types"
+import type { ElectronAPI, PreviewViewEvent, RuntimeInstallState, VoicesPiperProgress, VoicesProgress, WslServersEvent } from "./types"
 import type { UpdaterState } from "@tiancode-ai/app/updater"
 
 const updaterCallbacks = new Set<(state: UpdaterState) => void>()
@@ -12,6 +12,7 @@ const updaterHandler = (_: unknown, state: UpdaterState) => {
 
 const api: ElectronAPI = {
   killSidecar: () => ipcRenderer.invoke("kill-sidecar"),
+  relaunchApp: () => ipcRenderer.invoke("relaunch-app"),
   installCli: () => ipcRenderer.invoke("install-cli"),
   awaitInitialization: () => ipcRenderer.invoke("await-initialization"),
   wslServers: {
@@ -30,6 +31,7 @@ const api: ElectronAPI = {
     installWsl: () => ipcRenderer.invoke("wsl-servers-install-wsl"),
     installDistro: (name) => ipcRenderer.invoke("wsl-servers-install-distro", name),
     probeAddable: (distros) => ipcRenderer.invoke("wsl-servers-probe-addable", distros),
+    installTiancode: (name) => ipcRenderer.invoke("wsl-servers-install-tiancode", name),
     installOpencode: (name) => ipcRenderer.invoke("wsl-servers-install-tiancode", name),
     openTerminal: (name) => ipcRenderer.invoke("wsl-servers-open-terminal", name),
     addServer: (distro) => ipcRenderer.invoke("wsl-servers-add", distro),
@@ -40,7 +42,7 @@ const api: ElectronAPI = {
     status: () => ipcRenderer.invoke("voices-status"),
     download: () => ipcRenderer.invoke("voices-download"),
     list: () => ipcRenderer.invoke("voices-list"),
-    speak: (text, voiceId) => ipcRenderer.invoke("voices-speak", text, voiceId),
+    speak: (text, voiceId, options) => ipcRenderer.invoke("voices-speak", text, voiceId, options),
     select: (voiceId) => ipcRenderer.invoke("voices-select", voiceId),
     downloadVoice: (voiceId) => ipcRenderer.invoke("voices-download-voice", voiceId),
     deleteVoice: (voiceId) => ipcRenderer.invoke("voices-delete-voice", voiceId),
@@ -54,6 +56,27 @@ const api: ElectronAPI = {
       const handler = (_: unknown, event: VoicesPiperProgress) => cb(event)
       ipcRenderer.on("voices-piper-progress", handler)
       return () => ipcRenderer.removeListener("voices-piper-progress", handler)
+    },
+  },
+  asr: {
+    status: () => ipcRenderer.invoke("asr-status"),
+    ensure: () => ipcRenderer.invoke("asr-ensure-model"),
+    start: (language) => ipcRenderer.invoke("asr-start", language),
+    chunk: (samples) => ipcRenderer.send("asr-chunk", samples),
+    stop: () => ipcRenderer.invoke("asr-stop"),
+    onProgress: (cb) => {
+      const handler = (_: unknown, event: { progress: number; file?: string }) => cb(event)
+      ipcRenderer.on("asr-progress", handler)
+      return () => ipcRenderer.removeListener("asr-progress", handler)
+    },
+  },
+  runtime: {
+    install: (kind) => ipcRenderer.invoke("runtime-install", kind),
+    state: () => ipcRenderer.invoke("runtime-install-state"),
+    onState: (cb) => {
+      const handler = (_: unknown, state: RuntimeInstallState) => cb(state)
+      ipcRenderer.on("runtime-install-state", handler)
+      return () => ipcRenderer.removeListener("runtime-install-state", handler)
     },
   },
   updater: {
@@ -117,11 +140,45 @@ const api: ElectronAPI = {
   releasePickedFiles: (token) => ipcRenderer.invoke("release-picked-files", token),
   getPathForFile: (file) => webUtils.getPathForFile(file),
   saveFilePicker: (opts) => ipcRenderer.invoke("save-file-picker", opts),
+  writeTextFile: (path, content) => ipcRenderer.invoke("write-text-file", path, content),
   openExternal: (url) => ipcRenderer.send("open-external", url),
   openLocalFile: (url) => ipcRenderer.send("open-local-file", url),
   openPath: (path, app) => ipcRenderer.invoke("open-path", path, app),
   revealPath: (path) => ipcRenderer.invoke("reveal-path", path),
   readClipboardImage: () => ipcRenderer.invoke("read-clipboard-image"),
+  capture: {
+    screen: () => ipcRenderer.invoke("capture-screen"),
+    area: (bounds) => ipcRenderer.invoke("capture-area", bounds),
+    window: () => ipcRenderer.invoke("capture-window"),
+    preview: (webContentsId) => ipcRenderer.invoke("capture-preview", webContentsId),
+    liveView: () => ipcRenderer.invoke("capture-live-view"),
+  },
+  setLoginItem: (enabled) => ipcRenderer.invoke("set-login-item", enabled),
+  getLoginItem: () => ipcRenderer.invoke("get-login-item"),
+  clearWebviewData: () => ipcRenderer.invoke("clear-webview-data"),
+  previewView: {
+    setBounds: (bounds) => ipcRenderer.invoke("preview-view:set-bounds", bounds),
+    setVisible: (visible) => ipcRenderer.invoke("preview-view:set-visible", visible),
+    navigate: (url) => ipcRenderer.invoke("preview-view:navigate", url),
+    reload: () => ipcRenderer.invoke("preview-view:reload"),
+    back: () => ipcRenderer.invoke("preview-view:back"),
+    forward: () => ipcRenderer.invoke("preview-view:forward"),
+    setZoom: (factor) => ipcRenderer.invoke("preview-view:set-zoom", factor),
+    getState: () => ipcRenderer.invoke("preview-view:get-state"),
+    capture: () => ipcRenderer.invoke("preview-view:capture"),
+    setSelectMode: (enabled) => ipcRenderer.invoke("preview-view:set-select-mode", enabled),
+    getSelection: () => ipcRenderer.invoke("preview-view:get-selection"),
+    onEvent: (cb) => {
+      const handler = (_: unknown, event: PreviewViewEvent) => cb(event)
+      ipcRenderer.on("preview-view-event", handler)
+      return () => ipcRenderer.removeListener("preview-view-event", handler)
+    },
+  },
+  backup: {
+    now: () => ipcRenderer.invoke("backup-now"),
+    list: () => ipcRenderer.invoke("backup-list"),
+    restore: (name) => ipcRenderer.invoke("backup-restore", name),
+  },
   getWindowFocused: () => ipcRenderer.invoke("get-window-focused"),
   getWindowFullscreen: () => ipcRenderer.invoke("get-window-fullscreen"),
   onWindowFullscreenChanged: (cb) => {
@@ -153,6 +210,11 @@ const api: ElectronAPI = {
   setForceFocus: (enabled) => ipcRenderer.invoke("set-force-focus", enabled),
   recordFatalRendererError: (error) => ipcRenderer.invoke("record-fatal-renderer-error", error),
   setNativeTranslations: (bundle) => ipcRenderer.invoke("set-native-translations", bundle),
+  pet: {
+    update: (partial) => ipcRenderer.invoke("desktop-pet-update", partial),
+    toggle: () => ipcRenderer.invoke("desktop-pet-toggle"),
+    getState: () => ipcRenderer.invoke("desktop-pet-get-state"),
+  },
 }
 
 contextBridge.exposeInMainWorld("api", api)

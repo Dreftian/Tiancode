@@ -11,7 +11,7 @@ import { Flag } from "@tiancode-ai/core/flag/flag"
 import { Auth } from "../auth"
 import { Env } from "../env"
 import { applyEdits, modify } from "jsonc-parser"
-import { InstallationLocal, InstallationVersion } from "@tiancode-ai/core/installation/version"
+import { InstallationLocal } from "@tiancode-ai/core/installation/version"
 import { existsSync } from "fs"
 import { Account } from "@/account/account"
 import { isRecord } from "@/util/record"
@@ -128,6 +128,7 @@ export interface Interface {
   readonly update: (config: Info) => Effect.Effect<void>
   readonly updateGlobal: (config: Info) => Effect.Effect<{ info: Info; changed: boolean }>
   readonly invalidate: () => Effect.Effect<void>
+  readonly invalidateInstance: () => Effect.Effect<void>
   readonly directories: () => Effect.Effect<string[]>
   readonly waitForDependencies: () => Effect.Effect<void>
 }
@@ -146,8 +147,18 @@ function globalConfigFile() {
   return candidates[0]
 }
 
-function patchJsonc(input: string, patch: unknown, path: string[] = []): string {
-  if (!isRecord(patch)) {
+// Escritura atómica (tmp + rename): dos updateGlobal concurrentes (p. ej. el
+// seeder de MCP empaquetados lanzando varios POST /mcp a la vez) no pueden
+// dejar el archivo a medio escribir.
+function writeGlobalAtomic(file: string, content: string) {
+  return Effect.tryPromise(async () => {
+    const tmp = `${file}.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`
+    await fsNode.writeFile(tmp, content, "utf8")
+    await fsNode.rename(tmp, file)
+  })
+}
+
+function patchJsonc(input: string, patch: unknown, path: string[] = []): string {  if (!isRecord(patch)) {
     const edits = modify(input, path, patch, {
       formattingOptions: {
         insertSpaces: true,
@@ -398,6 +409,15 @@ const layer = Layer.effect(
         const global = Object.keys(authEnv).length ? yield* loadGlobal(authEnv) : yield* getGlobal()
         yield* merge(Global.Path.config, global, "global")
 
+        // Agents defined as markdown files in the global config dir (the HTTP
+        // API writes them there via agentCreate/agentUpdate) are loaded before
+        // the project dir so project agents can override them.
+        result.agent = mergeDeep(result.agent ?? {}, yield* Effect.promise(() => ConfigAgent.load(Global.Path.config)))
+        result.agent = mergeDeep(
+          result.agent ?? {},
+          yield* Effect.promise(() => ConfigAgent.loadMode(Global.Path.config)),
+        )
+
         if (Flag.TIANCODE_CONFIG) {
           yield* merge(Flag.TIANCODE_CONFIG, yield* loadFile(Flag.TIANCODE_CONFIG, authEnv))
           yield* Effect.logDebug("loaded custom config", { path: Flag.TIANCODE_CONFIG })
@@ -440,7 +460,9 @@ const layer = Layer.effect(
               add: [
                 {
                   name: "@tiancode-ai/plugin",
-                  version: InstallationLocal ? undefined : InstallationVersion,
+                  // Sin pin: el paquete se publica en npm y la versión se
+                  // resuelve a latest (un pin por versión de app obligaría a
+                  // publicar el paquete en cada release).
                 },
               ],
             })
@@ -621,21 +643,42 @@ const layer = Layer.effect(
       )
     })
 
+    // El loader de config de proyecto (ConfigPaths.files) solo lee
+    // `tiancode.jsonc`/`tiancode.json`, no `config.json`: escribir ahí hacía
+    // que las actualizaciones desde la app (p. ej. plugins) fueran un no-op
+    // silencioso. Escribimos en el archivo de proyecto existente (o creamos
+    // `tiancode.json`) y limpiamos el `config.json` huérfano de versiones
+    // anteriores.
+    const projectConfigFile = Effect.fn("Config.projectConfigFile")(function* (dir: string) {
+      for (const name of ["tiancode.jsonc", "tiancode.json"]) {
+        const candidate = path.join(dir, name)
+        if (yield* fs.existsSafe(candidate)) return candidate
+      }
+      return path.join(dir, "tiancode.json")
+    })
+
     const update = Effect.fn("Config.update")(function* (config: Info) {
       const dir = yield* InstanceState.directory
-      const file = path.join(dir, "config.json")
-      const existing = yield* loadFile(file)
+      const file = yield* projectConfigFile(dir)
+      const existing = yield* loadFile(file).pipe(Effect.orElseSucceed(() => ({})))
       yield* fs
         .writeFileString(file, JSON.stringify(mergeDeep(writable(existing), writable(config)), null, 2))
         .pipe(Effect.orDie)
+      yield* fs.remove(path.join(dir, "config.json")).pipe(Effect.catch(() => Effect.void))
     })
 
     const invalidate = Effect.fn("Config.invalidate")(function* () {
       yield* invalidateGlobal
     })
 
-    const updateGlobal = Effect.fn("Config.updateGlobal")(function* (config: Info) {
-      const file = globalConfigFile()
+    // Drops the cached per-instance state so the next get() reloads the merged
+    // config from disk. Lighter than an instance reload: MCP.add/remove use it
+    // so settings reflect the change without tearing down sessions.
+    const invalidateInstance = Effect.fn("Config.invalidateInstance")(function* () {
+      yield* InstanceState.invalidate(state)
+    })
+
+    const updateGlobal = Effect.fn("Config.updateGlobal")(function* (config: Info) {      const file = globalConfigFile()
       const before = (yield* readConfigFile(file)) ?? "{}"
       const patch = writableGlobal(config)
 
@@ -646,26 +689,26 @@ const layer = Layer.effect(
         const merged = mergeDeep(writable(existing), patch)
         const serialized = JSON.stringify(merged, null, 2)
         changed = serialized !== before
-        if (changed) yield* fs.writeFileString(file, serialized).pipe(Effect.orDie)
+        if (changed) yield* writeGlobalAtomic(file, serialized).pipe(Effect.orDie)
         next = merged
       } else {
         const updated = patchJsonc(before, patch)
         next = ConfigParse.schema(ConfigV1.Info, ConfigParse.jsonc(updated, file), file)
         changed = updated !== before
-        if (changed) yield* fs.writeFileString(file, updated).pipe(Effect.orDie)
+        if (changed) yield* writeGlobalAtomic(file, updated).pipe(Effect.orDie)
       }
 
       if (changed) yield* invalidate()
       return { info: next, changed }
     })
 
-    return Service.of({
-      get,
+    return Service.of({      get,
       getGlobal,
       getConsoleState,
       update,
       updateGlobal,
       invalidate,
+      invalidateInstance,
       directories,
       waitForDependencies,
     })

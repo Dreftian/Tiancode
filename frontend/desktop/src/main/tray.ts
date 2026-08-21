@@ -1,17 +1,28 @@
-import { Menu, Tray, app } from "electron"
+import { Menu, Tray, app, nativeImage } from "electron"
+import { existsSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 
 const root = dirname(fileURLToPath(import.meta.url))
 
+export function resolveTrayIconPath(): string {
+  const candidates = [
+    app.isPackaged ? join(process.resourcesPath, "icons", "icon-tray.png") : join(root, "../../resources/icons/icon-tray.png"),
+    app.isPackaged ? join(process.resourcesPath, "icons", "icon.ico") : join(root, "../../resources/icons/icon.ico"),
+    app.isPackaged ? join(process.resourcesPath, "icons", "icon.png") : join(root, "../../resources/icons/icon.png"),
+    app.isPackaged ? join(process.resourcesPath, "icon.ico") : join(root, "../../icons/prod/icon.ico"),
+    app.isPackaged ? join(process.resourcesPath, "icon.png") : join(root, "../../icons/prod/icon.png"),
+  ]
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) return candidate
+  }
+  return candidates[0]
+}
+
 export function createTray(options: { onShow: () => void; onQuit: () => void }) {
-  // electron-builder packs resources/** inside app.asar (files in
-  // electron-builder.config.ts), so the packaged path goes through it; a bare
-  // resourcesPath/icons path would leave the tray icon empty.
-  const icon = app.isPackaged
-    ? join(process.resourcesPath, "app.asar", "resources", "icons", "icon.png")
-    : join(root, "../../resources/icons/icon.png")
-  const tray = new Tray(icon)
+  const iconPath = resolveTrayIconPath()
+  const image = nativeImage.createFromPath(iconPath)
+  const tray = new Tray(image.isEmpty() ? iconPath : image)
   tray.setToolTip(app.getName())
   tray.setContextMenu(
     Menu.buildFromTemplate([
@@ -20,8 +31,6 @@ export function createTray(options: { onShow: () => void; onQuit: () => void }) 
       { label: "Quit", click: () => options.onQuit() },
     ]),
   )
-  // Left-click on Windows shows the window directly; on Linux the context menu
-  // is the primary interaction and click events are unreliable across DEs.
   if (process.platform === "win32") tray.on("click", () => options.onShow())
   return tray
 }

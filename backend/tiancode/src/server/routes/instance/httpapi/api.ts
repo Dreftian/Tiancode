@@ -18,6 +18,7 @@ import { InstanceApi } from "./groups/instance"
 import { McpApi } from "./groups/mcp"
 import { ModelHubApi } from "./groups/model-hub"
 import { PermissionApi } from "./groups/permission"
+import { PreviewApi } from "./groups/preview"
 import { ProjectApi } from "./groups/project"
 import { ProjectCopyApi } from "./groups/project-copy"
 import { ProviderApi } from "./groups/provider"
@@ -73,6 +74,7 @@ export const InstanceHttpApi = HttpApi.make("tiancode-instance")
   .addHttpApi(PtyApi)
   .addHttpApi(QuestionApi)
   .addHttpApi(PermissionApi)
+  .addHttpApi(PreviewApi)
   .addHttpApi(ProviderApi)
   .addHttpApi(SessionApi)
   .addHttpApi(SyncApi)

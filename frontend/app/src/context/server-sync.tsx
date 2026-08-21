@@ -594,8 +594,17 @@ export function createServerSyncContextInner(serverSDK: ServerSDK) {
       eventType === "agent.updated"
     )
       queue.push(key)
-    if (eventType === "mcp.status.changed") void queryClient.invalidateQueries(queryOptionsApi.mcp(key))
-    if (eventType === "mcp.resources.changed") void queryClient.invalidateQueries(queryOptionsApi.mcpResources(key))
+    // The backend publishes `mcp.tools.changed` (and the legacy client contract
+    // also expects `mcp.status.changed`/`mcp.resources.changed`); treat all
+    // three as a signal to refresh MCP state so the UI never stays stale.
+    if (
+      eventType === "mcp.tools.changed" ||
+      eventType === "mcp.status.changed" ||
+      eventType === "mcp.resources.changed"
+    ) {
+      void queryClient.invalidateQueries(queryOptionsApi.mcp(key))
+      void queryClient.invalidateQueries(queryOptionsApi.mcpResources(key))
+    }
     const [store, setStore] = existing
     applyDirectoryEvent({
       event,

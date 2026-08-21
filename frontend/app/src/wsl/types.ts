@@ -23,7 +23,7 @@ export type WslDistroProbe = {
   error: string | null
 }
 
-export type WslOpencodeCheck = {
+export type WslTiancodeCheck = {
   distro: string
   resolvedPath: string | null
   version: string | null
@@ -31,6 +31,7 @@ export type WslOpencodeCheck = {
   matchesDesktop: boolean | null
   error: string | null
 }
+export type WslOpencodeCheck = WslTiancodeCheck
 
 export type WslServerConfig = {
   id: string
@@ -61,7 +62,7 @@ export type WslServersState = {
   installed: WslInstalledDistro[]
   online: WslOnlineDistro[]
   distroProbes: Record<string, WslDistroProbe>
-  tiancodeChecks: Record<string, WslOpencodeCheck>
+  tiancodeChecks: Record<string, WslTiancodeCheck>
   pendingRestart: boolean
   servers: WslServerItem[]
   job: WslJob | null
@@ -77,7 +78,8 @@ export type WslServersPlatform = {
   installWsl(): Promise<void>
   installDistro(name: string): Promise<void>
   probeAddable(distros: string[]): Promise<void>
-  installOpencode(name: string): Promise<void>
+  installTiancode(name: string): Promise<void>
+  installOpencode?(name: string): Promise<void>
   openTerminal(name: string): Promise<void>
   addServer(distro: string): Promise<WslServerConfig>
   removeServer(id: string): Promise<void>

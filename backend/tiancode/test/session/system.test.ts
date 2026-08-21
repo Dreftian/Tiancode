@@ -78,6 +78,7 @@ const it = testEffect(
           dirs: () => Effect.succeed([]),
           available: () => Effect.succeed(skills),
           setEnabled: () => Effect.void,
+          autoSelect: () => Effect.succeed(false),
           reload: () => Effect.void,
         }),
       ),

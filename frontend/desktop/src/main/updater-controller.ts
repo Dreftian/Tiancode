@@ -70,6 +70,11 @@ export function createUpdaterController(input: {
       listener(state)
       return () => listeners.delete(listener)
     },
+    // Live download progress from the autoUpdater "download-progress" event.
+    setDownloadProgress(percent: number) {
+      if (state.status !== "downloading") return
+      transition({ status: "downloading", version: state.version, percent: Math.round(percent) })
+    },
     async start() {
       const ready = await input.persistence.get()
       if (ready?.version === input.currentVersion) await input.persistence.clear()

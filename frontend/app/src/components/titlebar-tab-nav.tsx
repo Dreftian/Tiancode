@@ -33,6 +33,7 @@ export function TabNavItem(props: {
   pressed?: boolean
   hidden?: boolean
 }) {
+  const language = useLanguage()
   const [editing, setEditing] = createSignal(false)
   const [titleOverflowing, setTitleOverflowing] = createSignal(false)
   let tabRoot!: HTMLDivElement
@@ -280,6 +281,7 @@ export function TabNavItem(props: {
 
       <div data-slot="tab-close">
         <IconButtonV2
+          aria-label={language.t("a11y.closeTab")}
           size="small"
           variant="ghost-muted"
           class="hover-reveal relative z-10 group-hover:opacity-100 group-data-[active=true]:opacity-100 group-data-[editing=true]:opacity-100"

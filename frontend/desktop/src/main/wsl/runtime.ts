@@ -264,11 +264,25 @@ export async function installWslDistro(name: string, opts?: RunWslOptions) {
   )
 }
 
-export async function installWslOpencode(version: string, distro: string, opts?: RunWslOptions) {
+// Instala el CLI de Tiancode dentro de la distro WSL (vía npm) y lo enlaza en
+// ~/.tiancode/bin/tiancode, la ruta que resuelve resolveWslTiancode.
+export async function installWslTiancode(_version: string, distro: string, opts?: RunWslOptions) {
   return runInteractiveCommand(
     resolveSystem32Command("wsl.exe"),
     wslArgs(
-      ["bash", "-lc", `curl -fsSL https://opencode.ai/install | bash -s -- --version ${shellEscape(version)}`],
+      [
+        "bash",
+        "-lc",
+        [
+          "if ! command -v node >/dev/null 2>&1 || ! command -v npm >/dev/null 2>&1; then",
+          "  echo 'Node.js y npm son necesarios dentro de WSL (instálalos con: sudo apt install nodejs npm)';",
+          "  exit 1;",
+          "fi",
+          "npm install -g --no-audit --no-fund @tiancode-ai/cli@latest >/dev/null 2>&1",
+          "mkdir -p \"$HOME/.tiancode/bin\"",
+          "ln -sf \"$(command -v tiancode || command -v lildax)\" \"$HOME/.tiancode/bin/tiancode\"",
+        ].join(" "),
+      ],
       distro,
     ),
     withTimeout(opts, DEFAULT_WSL_INSTALL_TIMEOUT_MS),
@@ -307,7 +321,7 @@ export async function probeWslDistro(name: string, opts?: RunWslOptions): Promis
   }
 }
 
-export async function resolveWslOpencode(distro: string, opts?: RunWslOptions) {
+export async function resolveWslTiancode(distro: string, opts?: RunWslOptions) {
   return firstLine(
     (
       await runWslSh(

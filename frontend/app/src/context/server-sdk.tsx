@@ -222,11 +222,16 @@ function createServerSdkContextBase(server: ServerConnection.Any, scope: ServerS
   let queue: Queued[] = []
   let buffer: Queued[] = []
   let timer: ReturnType<typeof setTimeout> | undefined
+  let rafId: number | undefined
   let last = 0
 
   const flush = () => {
     if (timer) clearTimeout(timer)
     timer = undefined
+    if (rafId !== undefined && typeof cancelAnimationFrame === "function") {
+      cancelAnimationFrame(rafId)
+      rafId = undefined
+    }
 
     if (queue.length === 0) return
 
@@ -245,8 +250,15 @@ function createServerSdkContextBase(server: ServerConnection.Any, scope: ServerS
   }
 
   const schedule = () => {
-    if (timer) return
+    if (timer || rafId !== undefined) return
     const elapsed = Date.now() - last
+    if (typeof requestAnimationFrame === "function" && elapsed >= FLUSH_FRAME_MS) {
+      rafId = requestAnimationFrame(() => {
+        rafId = undefined
+        flush()
+      })
+      return
+    }
     timer = setTimeout(flush, Math.max(0, FLUSH_FRAME_MS - elapsed))
   }
 

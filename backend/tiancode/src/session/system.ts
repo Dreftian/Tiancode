@@ -17,11 +17,13 @@ import type { Provider } from "@/provider/provider"
 import type { Agent } from "@/agent/agent"
 import { Permission } from "@/permission"
 import { Skill } from "@/skill"
+import { AutoSelect } from "@/skill/auto-select"
 import { AbsolutePath } from "@tiancode-ai/core/schema"
 import { Location } from "@tiancode-ai/core/location"
 import { LocationServiceMap, locationServiceMapLayer } from "@tiancode-ai/core/location-services"
 import { Reference } from "@tiancode-ai/core/reference"
 import { MCP } from "@/mcp"
+import { Memory } from "@tiancode-ai/core/memory"
 import { PermissionV1 } from "@tiancode-ai/core/v1/permission"
 
 export function provider(model: Provider.Model) {
@@ -37,14 +39,17 @@ export function provider(model: Provider.Model) {
   if (model.api.id.includes("gemini-")) return [PROMPT_GEMINI]
   if (model.api.id.includes("claude")) return [PROMPT_ANTHROPIC]
   if (model.api.id.toLowerCase().includes("trinity")) return [PROMPT_TRINITY]
-  if (model.api.id.toLowerCase().includes("kimi")) return [PROMPT_KIMI]
+  if (model.api.id.toLowerCase().includes("kimi") || model.providerID === "moonshotai" || model.providerID === "kimi")
+    return [PROMPT_KIMI]
   return [PROMPT_DEFAULT]
 }
 
 export interface Interface {
   readonly environment: (model: Provider.Model) => Effect.Effect<string[]>
   readonly skills: (agent: Agent.Info) => Effect.Effect<string | undefined>
+  readonly autoSkills: (agent: Agent.Info) => Effect.Effect<string | undefined>
   readonly mcp: (agent: Agent.Info, permission?: PermissionV1.Ruleset) => Effect.Effect<string | undefined>
+  readonly memory: () => Effect.Effect<string | undefined>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@tiancode/SystemPrompt") {}
@@ -109,6 +114,16 @@ const layer = Layer.effect(
         ].join("\n")
       }),
 
+      autoSkills: Effect.fn("SystemPrompt.autoSkills")(function* (agent: Agent.Info) {
+        if (Permission.disabled(["skill"], agent.permission).has("skill")) return
+        if (!(yield* skill.autoSelect())) return
+        const ctx = yield* InstanceState.context
+        const catalog = yield* skill.available(agent)
+        const selected = yield* Effect.promise(() => AutoSelect.autoSelectFor(ctx.worktree, catalog))
+        if (selected.length === 0) return
+        return AutoSelect.fmtAuto(selected)
+      }),
+
       mcp: Effect.fn("SystemPrompt.mcp")(function* (agent: Agent.Info, permission?: PermissionV1.Ruleset) {
         const ruleset = Permission.merge(agent.permission, permission ?? [])
         const instructions = (yield* mcp.instructions()).filter(
@@ -125,6 +140,14 @@ const layer = Layer.effect(
           ]),
           "</mcp_instructions>",
         ].join("\n")
+      }),
+
+      memory: Effect.fn("SystemPrompt.memory")(function* () {
+        const ctx = yield* InstanceState.context
+        return yield* Effect.gen(function* () {
+          const mem = yield* Memory.Service
+          return yield* mem.format()
+        }).pipe(Effect.provide(locations.get(Location.Ref.make({ directory: AbsolutePath.make(ctx.directory) }))))
       }),
     })
   }),

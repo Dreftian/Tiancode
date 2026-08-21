@@ -160,6 +160,12 @@ const ICON_MAPS: IconMaps = {
     "dependabot.yml": "Dependabot",
     "lerna.json": "Lerna",
     "nx.json": "Nx",
+    "pnpm-workspace.yaml": "Pnpm",
+    "biome.json": "Biome",
+    "biome.jsonc": "Biome",
+    "tauri.conf.json": "Tauri",
+    "components.json": "Settings",
+    "uv.lock": "Uv",
   },
   fileExtensions: {
     // Test files
@@ -172,7 +178,7 @@ const ICON_MAPS: IconMaps = {
     "spec.jsx": "TestJsx",
     "test.jsx": "TestJsx",
 
-    // JavaScript/TypeScript
+    // JavaScript/TypeScript & Frameworks
     "js.map": "JavascriptMap",
     "d.ts": "TypescriptDef",
     ts: "Typescript",
@@ -181,6 +187,9 @@ const ICON_MAPS: IconMaps = {
     jsx: "React",
     mjs: "Javascript",
     cjs: "Javascript",
+    vue: "Vue",
+    svelte: "Svelte",
+    astro: "Astro",
 
     // Web languages
     html: "Html",
@@ -198,6 +207,7 @@ const ICON_MAPS: IconMaps = {
     yaml: "Yaml",
     toml: "Toml",
     hjson: "Hjson",
+    prisma: "Prisma",
 
     // Documentation
     md: "Markdown",

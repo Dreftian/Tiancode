@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Live Frontend Demo — app under construction</title>
+  <style>
+    :root {
+      --bg: #0f1219; --panel: #171c26; --border: #273043; --text: #e8eef7;
+      --muted: #8b99ad; --accent: #6ea8ff; --green: #43d07c; --amber: #e0a63c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; background: var(--bg); color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      display: grid; place-items: center; padding: 32px;
+    }
+    .card {
+      width: min(640px, 100%); background: var(--panel); border: 1px solid var(--border);
+      border-radius: 14px; padding: 28px; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+    }
+    h1 { margin: 0 0 6px; font-size: 22px; letter-spacing: 0.02em; }
+    .tag {
+      display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px;
+      font-weight: 600; background: rgba(110, 168, 255, 0.14); color: var(--accent);
+      border: 1px solid rgba(110, 168, 255, 0.4); margin-bottom: 18px;
+    }
+    p.lead { color: var(--muted); font-size: 14px; line-height: 1.6; margin: 0 0 22px; }
+    .clock { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--green); margin-bottom: 18px; }
+    .controls { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    button {
+      background: var(--accent); color: #08111f; border: 0; border-radius: 8px;
+      padding: 10px 16px; font-size: 14px; font-weight: 700; cursor: pointer;
+    }
+    button.secondary { background: var(--panel); color: var(--text); border: 1px solid var(--border); }
+    .build {
+      background: #0b0f16; border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px; font-family: ui-monospace, Consolas, monospace; font-size: 12.5px;
+      line-height: 1.7; height: 170px; overflow: auto; white-space: pre-wrap; color: var(--muted);
+    }
+    .build .ok { color: var(--green); }
+    .build .warn { color: var(--amber); }
+    .hint { margin-top: 20px; font-size: 12.5px; color: var(--muted); line-height: 1.7; }
+    code { background: #0b0f16; border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Live Frontend Demo</h1>
+    <span class="tag" id="version-tag">v0.1.0</span>
+    <p class="lead">
+      This page stands in for the app you are building. Point the MCP
+      dashboard preview at it with <code>set_preview</code> and edit this
+      file while a session is active — the dashboard file tree, code pane and
+      watcher will react in real time.
+    </p>
+    <div class="clock" id="clock">--:--:--</div>
+    <div class="controls">
+      <button id="bump" type="button">Bump version</button>
+      <button id="simulate" class="secondary" type="button">Simulate build step</button>
+    </div>
+    <div class="build" id="build-log">// simulated build output appears here when you click "Simulate build step"
+</div>
+    <div class="hint">
+      Tips:
+      <ul>
+        <li>Run the demo locally, e.g. <code>python -m http.server 8080 -d examples/demo</code>, then
+            call <code>set_preview</code> with <code>http://localhost:8080/</code>.</li>
+        <li>Edit <code>index.html</code> or <code>app.js</code> in the dashboard tree — the watcher
+            picks changes up within <code>poll_interval_seconds</code>.</li>
+        <li>For a desktop-mode demo, create the session with <code>mode: "desktop"</code> and
+            publish captures with <code>publish_screenshot</code>.</li>
+      </ul>
+    </div>
+  </div>
+  <script>
+    "use strict";
+    var version = "0.1.0";
+    var clockEl = document.getElementById("clock");
+    var versionTag = document.getElementById("version-tag");
+    var buildLog = document.getElementById("build-log");
+    var buildStep = 0;
+
+    function tick() {
+      clockEl.textContent = new Date().toLocaleTimeString([], { hour12: false });
+    }
+    tick();
+    setInterval(tick, 1000);
+
+    function bumpVersion() {
+      var parts = version.split(".").map(Number);
+      parts[2] = (parts[2] || 0) + 1;
+      version = parts.join(".");
+      versionTag.textContent = "v" + version;
+      appendLine("version bumped to v" + version, "ok");
+    }
+
+    function appendLine(text, cls) {
+      var line = document.createElement("div");
+      if (cls) line.className = cls;
+      line.textContent = text;
+      buildLog.appendChild(line);
+      buildLog.scrollTop = buildLog.scrollHeight;
+    }
+
+    function simulateBuild() {
+      buildStep += 1;
+      var steps = [
+        "[vite] page reloaded in 12ms",
+        "[vite] hmr update /src/App.js (1 module)",
+        "[esbuild] bundle 42.1kb -> dist/assets/app.js",
+        "[eslint] 0 errors, 0 warnings",
+        "[test] 3 suites passed in 412ms",
+        "[vite] server restarted (config changed)"
+      ];
+      appendLine("$ npm run build --step " + buildStep, "warn");
+      appendLine(steps[(buildStep - 1) % steps.length], "ok");
+    }
+
+    document.getElementById("bump").addEventListener("click", bumpVersion);
+    document.getElementById("simulate").addEventListener("click", simulateBuild);
+  </script>
+</body>
+</html>

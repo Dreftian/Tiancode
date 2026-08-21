@@ -6,685 +6,801 @@ import config from "virtual:starlight/user-config";
 import CopyIcon from "../assets/lander/copy.svg";
 import CheckIcon from "../assets/lander/check.svg";
 import TuiScreenshot from "../assets/lander/screenshot-splash.png";
-import VscodeScreenshot from "../assets/lander/screenshot-vscode.png";
-import GithubScreenshot from "../assets/lander/screenshot-github.png";
 
-const { data } = Astro.locals.starlightRoute.entry;
-const { title = data.title, tagline, image, actions = [] } = data.hero || {};
-
-const imageAttrs = {
-    loading: 'eager' as const,
-    decoding: 'async' as const,
-    width: 400,
-    alt: image?.alt || '',
-};
-
-const github = (config.social || []).filter(s => s.icon === 'github')[0];
-const discord = (config.social || []).filter(s => s.icon === 'discord')[0];
+const github = (config.social || []).filter(s => s.icon === 'github')[0] || { href: "https://github.com/Dreftian/Tiancode" };
+const discord = (config.social || []).filter(s => s.icon === 'discord')[0] || { href: "https://discord.gg/tiancode" };
 const locale = Astro.currentLocale || 'root';
-const t = Astro.locals.t as (key: string) => string;
-const docsHref = getRelativeLocaleUrl(locale, "")
-const docsCliHref = getRelativeLocaleUrl(locale, "cli")
-const docsIdeHref = getRelativeLocaleUrl(locale, "ide")
-const docsGithubHref = getRelativeLocaleUrl(locale, "github")
+const docsHref = getRelativeLocaleUrl(locale, "");
+const docsCliHref = getRelativeLocaleUrl(locale, "cli");
+const docsIdeHref = getRelativeLocaleUrl(locale, "ide");
+const docsGithubHref = getRelativeLocaleUrl(locale, "github");
 
-const command = "curl -fsSL"
-const protocol = "https://"
-const url = "opencode.ai/install"
-const bash = "| bash"
-
-let darkImage: ImageMetadata | undefined;
-let lightImage: ImageMetadata | undefined;
-let rawHtml: string | undefined;
-if (image) {
-    if ('file' in image) {
-        darkImage = image.file;
-    } else if ('dark' in image) {
-        darkImage = image.dark;
-        lightImage = image.light;
-    } else {
-        rawHtml = image.html;
-  }
-}
+const version = "1.0.58";
 ---
-<div class="hero">
-    <section class="top">
-      <div class="logo">
-        {darkImage && (
-          <Image
-            src={darkImage}
-            {...imageAttrs}
-            class:list={{ 'light:sl-hidden': Boolean(lightImage) }}
-          />
-        )}
-        {lightImage && <Image src={lightImage} {...imageAttrs} class="dark:sl-hidden" />}
-      </div>
-      <h1>{t('app.lander.hero.title')}</h1>
-    </section>
 
-    <section class="cta">
-      <div class="col1">
-        <a href={docsHref}>{t('app.lander.cta.getStarted')}</a>
-      </div>
-      <div class="col2">
-      <button class="command" data-command={`${command} ${protocol}${url} ${bash}`}>
-          <code>
-            <span>{command}&nbsp;</span><span class="protocol">{protocol}</span><span class="highlight">{url}</span>&nbsp;{bash}
-          </code>
-          <span class="copy">
-            <CopyIcon />
-            <CheckIcon />
-          </span>
-        </button>
-      </div>
-    </section>
+<div class="tian-lander">
+  <!-- Top Navigation / Pill Header -->
+  <section class="hero-top">
+    <div class="version-badge">
+      <span class="pulse-indicator"></span>
+      <span class="badge-text">Tiancode v{version} Released</span>
+      <span class="badge-sub">Persistent LTM • Auto-Skills • AST Graph</span>
+    </div>
 
-    <section class="content">
-      <ul>
-        <li><b>{t('app.lander.features.native_tui.title')}</b>: {t('app.lander.features.native_tui.description')}</li>
-        <li><b>{t('app.lander.features.lsp_enabled.title')}</b>: {t('app.lander.features.lsp_enabled.description')}</li>
-        <li><b>{t('app.lander.features.multi_session.title')}</b>: {t('app.lander.features.multi_session.description')}</li>
-        <li><b>{t('app.lander.features.shareable_links.title')}</b>: {t('app.lander.features.shareable_links.description')}</li>
-        <li><b>GitHub Copilot</b>: {t('app.lander.features.github_copilot.description')}</li>
-        <li><b>ChatGPT Plus/Pro</b>: {t('app.lander.features.chatgpt_plus_pro.description')}</li>
-        <li><b>{t('app.lander.features.use_any_model.title')}</b>: {t('app.lander.features.use_any_model.prefix')} <a href="https://models.dev">Models.dev</a>, {t('app.lander.features.use_any_model.suffix')}</li>
-      </ul>
-    </section>
+    <div class="hero-brand">
+      <h1 class="glitch-title">TIANCODE</h1>
+      <p class="hero-tagline">The Autonomous, Self-Evolving AI Coding Agent for High-Velocity Software Teams</p>
+      <p class="hero-description">
+        Runs locally or on your servers. Remembers project quirks across sessions, autonomously distills reusable skills, traces code graphs, and executes fullstack workflows without telemetry.
+      </p>
+    </div>
 
-    <section class="alternatives">
-      <div class="col1">
-        <h3>npm</h3>
-        <button class="command" data-command="npm install -g tiancode-ai">
-          <code>
-            <span>npm install -g</span> <span class="highlight">tiancode-ai</span>
-          </code>
-          <span class="copy">
-            <CopyIcon />
-            <CheckIcon />
-          </span>
-        </button>
-      </div>
-      <div class="col2">
-        <h3>Bun</h3>
-        <button class="command" data-command="bun install -g tiancode-ai">
-          <code>
-            <span>bun install -g</span> <span class="highlight">tiancode-ai</span>
-          </code>
-          <span class="copy">
-            <CopyIcon />
-            <CheckIcon />
-          </span>
-        </button>
-      </div>
-      <div class="col3">
-        <h3>Homebrew</h3>
-        <button class="command" data-command="brew install tiancode">
-          <code>
-            <span>brew install</span> <span class="highlight">tiancode</span>
-          </code>
-          <span class="copy">
-            <CopyIcon />
-            <CheckIcon />
-          </span>
-        </button>
-      </div>
-      <div class="col4">
-        <h3>Paru</h3>
-        <button class="command" data-command="paru -S tiancode-bin">
-          <code>
-            <span>paru -S</span> <span class="highlight">tiancode-bin</span>
-          </code>
-          <span class="copy">
-            <CopyIcon />
-            <CheckIcon />
-          </span>
-        </button>
-      </div>
-      <div class="col4">
-        <h3>Mise</h3>
-        <button class="command" data-command="mise use -g github:anomalyco/opencode">
-          <code>
-            <span>mise use -g</span> <span class="highlight">github:anomalyco/opencode</span>
-          </code>
-          <span class="copy">
-            <CopyIcon />
-            <CheckIcon />
-          </span>
-        </button>
-      </div>
-    </section>
-
-    <section class="images">
-      <div class="left">
-        <figure>
-          <figcaption>{t('app.lander.images.tui.caption')}</figcaption>
-          <a href={docsCliHref}>
-            <Image src={TuiScreenshot} alt={t('app.lander.images.tui.alt')} />
-          </a>
-        </figure>
-      </div>
-      <div class="right">
-        <div class="row1">
-          <figure>
-            <figcaption>{t('app.lander.images.vscode.caption')}</figcaption>
-            <a href={docsIdeHref}>
-              <Image src={VscodeScreenshot} alt={t('app.lander.images.vscode.alt')} />
-            </a>
-          </figure>
+    <!-- Quick Install / Action Hub -->
+    <div class="install-hub">
+      <div class="command-box">
+        <div class="terminal-header">
+          <div class="dots">
+            <span class="dot red"></span>
+            <span class="dot yellow"></span>
+            <span class="dot green"></span>
+          </div>
+          <div class="tab-list">
+            <button class="tab-btn active" data-tab="curl">curl</button>
+            <button class="tab-btn" data-tab="bun">bun</button>
+            <button class="tab-btn" data-tab="npm">npm</button>
+            <button class="tab-btn" data-tab="brew">brew</button>
+            <button class="tab-btn" data-tab="powershell">powershell</button>
+          </div>
         </div>
-        <div class="row2">
-          <figure>
-            <figcaption>{t('app.lander.images.github.caption')}</figcaption>
-            <a href={docsGithubHref}>
-              <Image src={GithubScreenshot} alt={t('app.lander.images.github.alt')} />
-            </a>
-          </figure>
+
+        <div class="terminal-body">
+          <div class="tab-content active" id="tab-curl">
+            <code><span class="prompt">$</span> curl -fsSL https://tiancode.dev/install | bash</code>
+            <button class="copy-action" data-command="curl -fsSL https://tiancode.dev/install | bash">
+              <CopyIcon /><CheckIcon />
+            </button>
+          </div>
+          <div class="tab-content" id="tab-bun">
+            <code><span class="prompt">$</span> bun install -g tiancode-ai</code>
+            <button class="copy-action" data-command="bun install -g tiancode-ai">
+              <CopyIcon /><CheckIcon />
+            </button>
+          </div>
+          <div class="tab-content" id="tab-npm">
+            <code><span class="prompt">$</span> npm install -g tiancode-ai</code>
+            <button class="copy-action" data-command="npm install -g tiancode-ai">
+              <CopyIcon /><CheckIcon />
+            </button>
+          </div>
+          <div class="tab-content" id="tab-brew">
+            <code><span class="prompt">$</span> brew install tiancode</code>
+            <button class="copy-action" data-command="brew install tiancode">
+              <CopyIcon /><CheckIcon />
+            </button>
+          </div>
+          <div class="tab-content" id="tab-powershell">
+            <code><span class="prompt">PS&gt;</span> irm https://tiancode.dev/install.ps1 | iex</code>
+            <button class="copy-action" data-command="irm https://tiancode.dev/install.ps1 | iex">
+              <CopyIcon /><CheckIcon />
+            </button>
+          </div>
         </div>
       </div>
-    </section>
 
-    <section class="footer">
-      <div class="col1">
-        <a href={github.href} target="_blank" rel="noopener noreferrer">GitHub</a>
+      <div class="cta-actions">
+        <a href={docsHref} class="btn-primary">Explore Documentation &rarr;</a>
+        <a href="https://github.com/Dreftian/Tiancode/releases" class="btn-secondary" target="_blank" rel="noopener noreferrer">
+          Download Desktop App (v{version})
+        </a>
       </div>
-      <div class="col2">
-        <a href={discord.href} target="_blank" rel="noopener noreferrer">Discord</a>
+    </div>
+  </section>
+
+  <!-- Interactive Agent Capabilities Showcase -->
+  <section class="showcase-section">
+    <div class="section-title">
+      <h2>Architected for Real-World Autonomy</h2>
+      <p>Tiancode moves beyond single-turn copilot chats into continuous, stateful software engineering.</p>
+    </div>
+
+    <div class="interactive-preview">
+      <div class="preview-nav">
+        <button class="preview-tab active" data-preview="memory">
+          <span class="tab-icon">🧠</span> Long-Term Memory (LTM)
+        </button>
+        <button class="preview-tab" data-preview="skills">
+          <span class="tab-icon">⚡</span> Autonomous Skills (/learn)
+        </button>
+        <button class="preview-tab" data-preview="graph">
+          <span class="tab-icon">🔍</span> AST & Code Graph
+        </button>
+        <button class="preview-tab" data-preview="desktop">
+          <span class="tab-icon">🖥️</span> Native Desktop & TUI
+        </button>
       </div>
-      <div class="col3">
-      <span>&copy;2025 <a href="https://anoma.ly" target="_blank" rel="noopener noreferrer">Anomaly Innovations</a></span>
+
+      <div class="preview-display">
+        <!-- Tab 1: Memory -->
+        <div class="preview-pane active" id="prev-memory">
+          <div class="code-header">
+            <span class="file-name">.tiancode/MEMORY.md & USER.md (Persistent Context)</span>
+            <span class="file-tag">Zero Amnesia</span>
+          </div>
+          <pre class="code-block"><code><span class="comment"># Tiancode Persistent Long-Term Memory (LTM)</span>
+<span class="section">## ARCHITECTURE</span>
+- [2026-08-15] Uses Effect-TS layered nodes in backend/core and backend/tiancode
+- [2026-08-15] Backend API port is 4000; Vite dev server runs on 5173
+- [2026-08-15] SQLite WAL mode enabled with Drizzle schema migrations
+
+<span class="section">## USER PREFERENCES</span>
+- [2026-08-15] Prefer bun over npm for package management
+- [2026-08-15] Always generate strict TypeScript with explicit return types
+- [2026-08-15] Avoid try/catch where Effect generators can be used</code></pre>
+        </div>
+
+        <!-- Tab 2: Skills -->
+        <div class="preview-pane" id="prev-skills">
+          <div class="code-header">
+            <span class="file-name">.tiancode/skills/docker-deploy/SKILL.md (Auto-Distilled)</span>
+            <span class="file-tag">Self-Evolving</span>
+          </div>
+          <pre class="code-block"><code><span class="keyword">---</span>
+<span class="property">name</span>: <span class="string">docker-deploy</span>
+<span class="property">description</span>: <span class="string">Builds multi-stage Docker container and deploys to registry</span>
+<span class="keyword">---</span>
+
+<span class="comment"># Automated Docker Deployment Workflow</span>
+1. Run lint & typecheck: `bun run typecheck`
+2. Build multi-arch image: `docker buildx build --platform linux/amd64 -t app:latest .`
+3. Execute smoke healthcheck endpoint on `:8080/health`
+4. Post notification to deployment channel upon completion.</code></pre>
+        </div>
+
+        <!-- Tab 3: AST Graph -->
+        <div class="preview-pane" id="prev-graph">
+          <div class="code-header">
+            <span class="file-name">Tiancode Code Graph & Symbol Resolver</span>
+            <span class="file-tag">Deep Context</span>
+          </div>
+          <pre class="code-block"><code><span class="keyword">&lt;code_graph</span> <span class="property">file</span>=<span class="string">"backend/core/src/memory.ts"</span><span class="keyword">&gt;</span>
+  <span class="keyword">&lt;exports&gt;</span>
+    <span class="tag">&lt;symbol</span> <span class="property">kind</span>=<span class="string">"class"</span> <span class="property">line</span>=<span class="string">"22"</span><span class="tag">&gt;</span>Memory.Service<span class="tag">&lt;/symbol&gt;</span>
+    <span class="tag">&lt;symbol</span> <span class="property">kind</span>=<span class="string">"function"</span> <span class="property">line</span>=<span class="string">"64"</span><span class="tag">&gt;</span>Memory.recall<span class="tag">&lt;/symbol&gt;</span>
+  <span class="keyword">&lt;/exports&gt;</span>
+  <span class="keyword">&lt;dependents&gt;</span>
+    <span class="tag">&lt;file&gt;</span>backend/tiancode/src/session/system.ts<span class="tag">&lt;/file&gt;</span>
+    <span class="tag">&lt;file&gt;</span>backend/tiancode/src/tool/memory.ts<span class="tag">&lt;/file&gt;</span>
+  <span class="keyword">&lt;/dependents&gt;</span>
+<span class="keyword">&lt;/code_graph&gt;</span></code></pre>
+        </div>
+
+        <!-- Tab 4: Desktop -->
+        <div class="preview-pane" id="prev-desktop">
+          <div class="screenshot-wrapper">
+            <Image src={TuiScreenshot} alt="Tiancode Native Interface" />
+          </div>
+        </div>
       </div>
-    </section>
+    </div>
+  </section>
+
+  <!-- Feature Grid -->
+  <section class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">🧠</div>
+      <h3>Persistent Multi-Tier Memory (LTM)</h3>
+      <p>No more restarting from scratch. Tiancode remembers your coding style, architectural gotchas, build quirks, and past solutions across every session.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <h3>Self-Evolution & Dynamic Skills</h3>
+      <p>When Tiancode solves a difficult task, it can distill the entire workflow into a persistent, reusable skill with <code>/learn</code> for instant future reuse.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon">🔍</div>
+      <h3>AST & Code Graph Engine</h3>
+      <p>Semantic understanding of your entire repository. Traces call trees, imports, and downstream dependencies to eliminate regressions before they happen.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon">🌐</div>
+      <h3>Clean Web Scraping & Firecrawl</h3>
+      <p>Extracts pristine, LLM-ready markdown from web pages and documentation, stripping cookie banners, ads, and navigation noise automatically.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon">🛡️</div>
+      <h3>Local Privacy & Sandboxed Execution</h3>
+      <p>Your code stays on your machine. Zero telemetry, full support for local models (Ollama, LM Studio), and optional Docker sandbox execution.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon">🤖</div>
+      <h3>Universal Multi-Model Support</h3>
+      <p>Seamlessly switch between Claude 3.7 Sonnet, GPT-4.5 / o3, Gemini 2.5 Pro, DeepSeek R1, Qwen 2.5 Coder, or your private local weights.</p>
+    </div>
+  </section>
+
+  <!-- Download & Platform Matrix -->
+  <section class="download-section">
+    <div class="section-title">
+      <h2>Get Started with Tiancode</h2>
+      <p>Available as a standalone desktop app, high-performance terminal TUI, or CLI daemon.</p>
+    </div>
+
+    <div class="platforms-grid">
+      <div class="platform-card">
+        <h4>Windows</h4>
+        <p>Windows 10 / 11 (x64 / ARM64)</p>
+        <div class="platform-links">
+          <a href="https://github.com/Dreftian/Tiancode/releases" class="p-btn">Tiancode.exe</a>
+          <a href="https://github.com/Dreftian/Tiancode/releases" class="p-btn secondary">Portable</a>
+        </div>
+      </div>
+
+      <div class="platform-card">
+        <h4>macOS</h4>
+        <p>Apple Silicon & Intel (12.0+)</p>
+        <div class="platform-links">
+          <a href="https://github.com/Dreftian/Tiancode/releases" class="p-btn">.dmg (Universal)</a>
+          <a href={docsCliHref} class="p-btn secondary">brew install</a>
+        </div>
+      </div>
+
+      <div class="platform-card">
+        <h4>Linux & Server</h4>
+        <p>Ubuntu, Debian, Fedora, Arch</p>
+        <div class="platform-links">
+          <a href="https://github.com/Dreftian/Tiancode/releases" class="p-btn">.deb / AppImage</a>
+          <a href={docsCliHref} class="p-btn secondary">curl install</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Modern Footer -->
+  <footer class="tian-footer">
+    <div class="footer-col brand-col">
+      <span class="footer-logo">TIANCODE</span>
+      <p>Autonomous AI pair programmer and agentic workspace.</p>
+      <span class="copyright">&copy; 2026 Tiancode AI. MIT License.</span>
+    </div>
+    <div class="footer-col">
+      <h5>Documentation</h5>
+      <a href={docsHref}>Overview</a>
+      <a href={docsCliHref}>CLI & TUI</a>
+      <a href={docsIdeHref}>Desktop & IDE</a>
+      <a href={docsGithubHref}>GitHub Actions</a>
+    </div>
+    <div class="footer-col">
+      <h5>Community</h5>
+      <a href={github.href} target="_blank" rel="noopener noreferrer">GitHub Repository</a>
+      <a href={discord.href} target="_blank" rel="noopener noreferrer">Discord Server</a>
+      <a href="https://models.dev" target="_blank" rel="noopener noreferrer">Models.dev</a>
+    </div>
+  </footer>
 </div>
 
 <style>
-.hero {
-  --padding: 3rem;
-  --vertical-padding: 1.5rem;
-  --heading-font-size: var(--sl-text-3xl);
+.tian-lander {
+  --primary-accent: hsl(60, 90%, 65%);
+  --primary-glow: hsla(60, 90%, 65%, 0.15);
+  --surface-bg: hsla(0, 0%, 100%, 0.03);
+  --surface-border: hsla(0, 0%, 100%, 0.1);
+  --text-main: hsl(0, 0%, 95%);
+  --text-muted: hsl(0, 0%, 65%);
 
-  margin: 1rem;
-  border: 2px solid var(--sl-color-border);
-}
-@media (max-width: 30rem) {
-  .hero {
-    --padding: 1rem;
-    --vertical-padding: 0.75rem;
-    --heading-font-size: var(--sl-text-2xl);
-
-    margin: 0.5rem;
-  }
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem 1.5rem;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text-main);
 }
 
-section.top {
-  padding: var(--padding);
-
-  h1 {
-    margin-top: calc(var(--vertical-padding) / 8);
-    font-size: var(--heading-font-size);
-    line-height: 1.25;
-    text-transform: uppercase;
-  }
-
-  img {
-    height: auto;
-    width: clamp(200px, 70vw, 400px);
-  }
+/* Version Pill */
+.hero-top {
+  text-align: center;
+  padding: 3rem 1rem 4rem 1rem;
 }
 
-section.cta {
+.version-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.9rem;
+  background: var(--surface-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: 9999px;
+  font-size: 0.82rem;
+  margin-bottom: 2rem;
+  backdrop-filter: blur(12px);
+}
+
+.pulse-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 10px #22c55e;
+}
+
+.badge-text {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.badge-sub {
+  color: var(--text-muted);
+  border-left: 1px solid var(--surface-border);
+  padding-left: 0.5rem;
+}
+
+.hero-brand h1.glitch-title {
+  font-size: clamp(2.5rem, 7vw, 4.8rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  margin: 0 0 1rem 0;
+  background: linear-gradient(180deg, #ffffff 40%, rgba(255, 255, 255, 0.6) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-tagline {
+  font-size: clamp(1.15rem, 2.5vw, 1.5rem);
+  font-weight: 600;
+  color: var(--primary-accent);
+  margin: 0 0 1rem 0;
+  letter-spacing: -0.01em;
+}
+
+.hero-description {
+  font-size: 1.05rem;
+  color: var(--text-muted);
+  max-width: 720px;
+  margin: 0 auto 2.5rem auto;
+  line-height: 1.6;
+}
+
+/* Install Terminal Hub */
+.install-hub {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.command-box {
+  background: hsl(0, 0%, 7%);
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  text-align: left;
+}
+
+.terminal-header {
   display: flex;
-  flex-direction: row;
-  justify-content: flex-start;
-  align-items: stretch;
-  border-top: 2px solid var(--sl-color-border);
-
-  @media (max-width: 50rem) {
-    flex-direction: column;
-  }
-
-  & > div {
-    line-height: 1.4;
-    padding: var(--vertical-padding) var(--padding);
-
-    a {
-      font-size: 1rem;
-    }
-  }
-  & > div.col1 {
-    flex: 0 0 auto;
-    text-align: center;
-    text-transform: uppercase;
-
-    @media (max-width: 50rem) {
-      padding-bottom: calc(var(--vertical-padding) + 4px);
-    }
-  }
-  & > div.col2 {
-    flex: 1;
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-
-  & > div + div {
-    border-left: 2px solid var(--sl-color-border);
-
-    @media (max-width: 50rem) {
-      border-left: none;
-      border-top: 2px solid var(--sl-color-border);
-    }
-  }
-
-  .command {
-    all: unset;
-    display: flex;
-    align-items: center;
-    gap: 0.625rem;
-    justify-content: center;
-    cursor: pointer;
-    width: 100%;
-
-    code {
-      color: var(--sl-color-text-secondary);
-      font-size: 1.125rem;
-
-      @media (max-width: 24rem) {
-        font-size: 0.875rem;
-      }
-      @media (max-width: 30rem) {
-        span.protocol {
-          display: none;
-        }
-      }
-      @media (max-width: 43rem) {
-        text-align: center;
-        span:first-child {
-          display: block;
-        }
-      }
-    }
-    code .highlight {
-      color: var(--sl-color-text);
-      font-weight: 500;
-    }
-
-    .copy {
-      line-height: 1;
-      padding: 0;
-      @media (max-width: 43rem) {
-        display: none;
-      }
-    }
-    .copy svg {
-      width: 1rem;
-      height: 1rem;
-      vertical-align: middle;
-    }
-    .copy svg:first-child {
-      color: var(--sl-color-text-dimmed);
-    }
-    .copy svg:last-child {
-      color: var(--sl-color-text);
-      display: none;
-    }
-    &.success .copy {
-      pointer-events: none;
-    }
-    &.success .copy svg:first-child {
-      display: none;
-    }
-    &.success .copy svg:last-child {
-      display: inline;
-    }
-  }
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1rem;
+  background: hsl(0, 0%, 10%);
+  border-bottom: 1px solid var(--surface-border);
 }
 
-section.content {
-  border-top: 2px solid var(--sl-color-border);
-  padding: var(--padding);
-
-  ul {
-    padding-left: 1rem;
-
-    li + li {
-      margin-top: calc(var(--vertical-padding) / 2);
-    }
-
-    li b {
-      text-transform: uppercase;
-    }
-  }
+.dots {
+  display: flex;
+  gap: 6px;
 }
 
-section.images {
-  --images-height: 600px;
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.dot.red { background: #ef4444; }
+.dot.yellow { background: #f59e0b; }
+.dot.green { background: #10b981; }
+
+.tab-list {
+  display: flex;
+  gap: 4px;
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab-btn:hover,
+.tab-btn.active {
+  color: var(--text-main);
+  background: hsl(0, 0%, 16%);
+}
+
+.terminal-body {
+  padding: 1rem 1.25rem;
+}
+
+.tab-content {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.95rem;
+}
+
+.tab-content.active {
+  display: flex;
+}
+
+.prompt {
+  color: var(--primary-accent);
+  margin-right: 0.5rem;
+}
+
+.copy-action {
+  background: hsl(0, 0%, 14%);
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
+  padding: 0.4rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+}
+
+.copy-action:hover {
+  background: hsl(0, 0%, 20%);
+  color: var(--text-main);
+}
+
+.copy-action svg:last-child {
+  display: none;
+}
+
+.copy-action.success svg:first-child {
+  display: none;
+}
+
+.copy-action.success svg:last-child {
+  display: block;
+  color: #22c55e;
+}
+
+.cta-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.btn-primary {
+  background: #ffffff;
+  color: #000000;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: var(--surface-bg);
+  color: var(--text-main);
+  border: 1px solid var(--surface-border);
+  font-weight: 500;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  text-decoration: none;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: hsla(0, 0%, 100%, 0.08);
+  border-color: var(--text-muted);
+}
+
+/* Showcase Section */
+.showcase-section {
+  padding: 4rem 0;
+}
+
+.section-title {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.section-title h2 {
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.5rem 0;
+}
+
+.section-title p {
+  color: var(--text-muted);
+  font-size: 1.05rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.interactive-preview {
+  background: hsl(0, 0%, 6%);
+  border: 1px solid var(--surface-border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.preview-nav {
+  display: flex;
+  border-bottom: 1px solid var(--surface-border);
+  background: hsl(0, 0%, 8%);
+  overflow-x: auto;
+}
+
+.preview-tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 0.9rem 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.preview-tab:hover {
+  color: var(--text-main);
+  background: hsl(0, 0%, 10%);
+}
+
+.preview-tab.active {
+  color: var(--text-main);
+  background: hsl(0, 0%, 12%);
+  border-bottom-color: var(--primary-accent);
+}
+
+.preview-pane {
+  display: none;
+  padding: 1.5rem;
+}
+
+.preview-pane.active {
+  display: block;
+}
+
+.code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--surface-border);
+  font-size: 0.85rem;
+}
+
+.file-name {
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
+.file-tag {
+  background: var(--primary-glow);
+  color: var(--primary-accent);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.code-block {
+  margin: 0;
+  padding: 1.2rem;
+  background: hsl(0, 0%, 4%);
+  border-radius: 8px;
+  font-family: 'Fira Code', ui-monospace, monospace;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  overflow-x: auto;
+}
+
+.code-block .comment { color: hsl(0, 0%, 45%); }
+.code-block .section { color: hsl(200, 90%, 65%); font-weight: 600; }
+.code-block .keyword { color: hsl(330, 85%, 65%); }
+.code-block .property { color: hsl(45, 90%, 60%); }
+.code-block .string { color: hsl(120, 70%, 60%); }
+.code-block .tag { color: hsl(180, 80%, 60%); }
+
+.screenshot-wrapper {
+  text-align: center;
+  padding: 1rem;
+}
+
+.screenshot-wrapper img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid var(--surface-border);
+}
+
+/* Feature Grid */
+.features-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: var(--images-height);
-  border-top: 2px solid var(--sl-color-border);
-
-  & > div.left {
-    display: flex;
-    grid-row: 1;
-    grid-column: 1;
-  }
-
-  & > div.right {
-    display: grid;
-    grid-template-rows: 1fr 1fr;
-    grid-row: 1;
-    grid-column: 2;
-    border-left: 2px solid var(--sl-color-border);
-
-    & > div.row1 {
-      display: flex;
-      grid-row: 1;
-      border-bottom: 2px solid var(--sl-color-border);
-      height: calc(var(--images-height) / 2);
-    }
-
-    & > div.row2 {
-      display: flex;
-      grid-row: 2;
-      height: calc(var(--images-height) / 2);
-    }
-  }
-
-  figure {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: calc(var(--padding) / 4);
-    padding: calc(var(--padding) / 2);
-    border-width: 0;
-    border-style: solid;
-    border-color: var(--sl-color-border);
-    min-height: 0;
-    overflow: hidden;
-
-    & > div, figcaption {
-      display: flex;
-      align-items: center;
-    }
-
-    & > div {
-      flex: 1;
-      min-height: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    a {
-      display: flex;
-      flex: 1;
-      min-height: 0;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-    }
-
-    figcaption {
-      letter-spacing: -0.03125rem;
-      text-transform: uppercase;
-      color: var(--sl-color-text-dimmed);
-      flex-shrink: 0;
-
-      @media (max-width: 30rem) {
-        font-size: 0.75rem;
-      }
-    }
-  }
-
-  & > div.left figure {
-    height: var(--images-height);
-    box-sizing: border-box;
-  }
-
-  & > div.right figure {
-    height: calc(var(--images-height) / 2);
-    box-sizing: border-box;
-  }
-
-  & > div.left img {
-    width: 100%;
-    height: 100%;
-    min-width: 0;
-    object-fit: contain;
-  }
-
-  & > div.right img {
-    width: 100%;
-    height: calc(100% - 2rem);
-    object-fit: contain;
-    display: block;
-  }
-
-  @media (max-width: 30rem) {
-    & {
-      --images-height: auto;
-      grid-template-columns: 1fr;
-      grid-template-rows: auto auto;
-    }
-
-    & > div.left {
-      grid-row: 1;
-      grid-column: 1;
-    }
-
-    & > div.right {
-      grid-row: 2;
-      grid-column: 1;
-      border-left: none;
-      border-top: 2px solid var(--sl-color-border);
-
-      & > div.row1,
-      & > div.row2 {
-        height: auto;
-      }
-    }
-
-    & > div.left figure,
-    & > div.right figure {
-      height: auto;
-    }
-
-    & > div.left img,
-    & > div.right img {
-      width: 100%;
-      height: auto;
-      max-height: none;
-    }
-  }
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+  padding: 4rem 0;
 }
 
-section.alternatives {
-  border-top: 2px solid var(--sl-color-border);
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
+.feature-card {
+  background: var(--surface-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  padding: 1.8rem;
+  backdrop-filter: blur(8px);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
 
-  @media (max-width: 40rem) {
+.feature-card:hover {
+  transform: translateY(-2px);
+  border-color: hsla(0, 0%, 100%, 0.25);
+}
+
+.feature-icon {
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+}
+
+.feature-card h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  color: var(--text-main);
+}
+
+.feature-card p {
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* Download Section */
+.download-section {
+  padding: 4rem 0;
+}
+
+.platforms-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.platform-card {
+  background: hsl(0, 0%, 7%);
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  padding: 1.8rem;
+  text-align: center;
+}
+
+.platform-card h4 {
+  font-size: 1.2rem;
+  margin: 0 0 0.4rem 0;
+}
+
+.platform-card p {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin: 0 0 1.2rem 0;
+}
+
+.platform-links {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.p-btn {
+  background: var(--text-main);
+  color: #000;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+
+.p-btn:hover {
+  opacity: 0.9;
+}
+
+.p-btn.secondary {
+  background: hsl(0, 0%, 14%);
+  color: var(--text-main);
+}
+
+.p-btn.secondary:hover {
+  background: hsl(0, 0%, 20%);
+}
+
+/* Footer */
+.tian-footer {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 2rem;
+  border-top: 1px solid var(--surface-border);
+  padding-top: 3rem;
+  margin-top: 4rem;
+}
+
+@media (max-width: 48rem) {
+  .tian-footer {
     grid-template-columns: 1fr;
-    grid-template-rows: auto;
-  }
-
-  & > div {
-    display: flex;
-    flex-direction: column;
-    padding: calc(var(--vertical-padding) / 2) calc(var(--padding) / 2) calc(var(--vertical-padding) / 2 + 0.125rem);
-    text-align: left;
-    gap: 0.5rem;
-
-    @media (max-width: 30rem) {
-      gap: 0.3125rem;
-    }
-
-    @media (max-width: 40rem) {
-      text-align: left;
-    }
-  }
-
-  & > div.col1 {
-    border-bottom: 2px solid var(--sl-color-border);
-
-    @media (max-width: 40rem) {
-      border-bottom: none;
-    }
-  }
-
-  & > div.col2 {
-    border-left: 2px solid var(--sl-color-border);
-    border-bottom: 2px solid var(--sl-color-border);
-
-    @media (max-width: 40rem) {
-      border-left: none;
-      border-bottom: none;
-      border-top: 2px solid var(--sl-color-border);
-    }
-  }
-
-  & > div.col3 {
-    @media (max-width: 40rem) {
-      border-top: 2px solid var(--sl-color-border);
-    }
-  }
-
-  & > div.col4 {
-    border-left: 2px solid var(--sl-color-border);
-    @media (max-width: 40rem) {
-      border-left: none;
-      border-top: 2px solid var(--sl-color-border);
-    }
-  }
-
-  h3 {
-    letter-spacing: -0.03125rem;
-    text-transform: uppercase;
-    color: var(--sl-color-text-dimmed);
-    font-weight: normal;
-    font-size: 1rem;
-    flex-shrink: 0;
-
-    @media (max-width: 30rem) {
-      font-size: 0.75rem;
-    }
-  }
-
-  .command {
-    all: unset;
-    display: flex;
-    align-items: center;
-    gap: 0.625rem;
-    justify-content: flex-start;
-    cursor: pointer;
-    width: 100%;
-
-    @media (max-width: 40rem) {
-      justify-content: flex-start;
-    }
-
-    @media (max-width: 30rem) {
-      justify-content: center;
-    }
-
-    code {
-      color: var(--sl-color-text-secondary);
-      font-size: 1rem;
-
-      @media (max-width: 24rem) {
-        font-size: 0.875rem;
-      }
-    }
-
-    code .highlight {
-      color: var(--sl-color-text);
-      font-weight: 500;
-    }
-
-    .copy {
-      line-height: 1;
-      padding: 0;
-
-      @media (max-width: 40rem) {
-        display: none;
-      }
-    }
-
-    .copy svg {
-      width: 1rem;
-      height: 1rem;
-      vertical-align: middle;
-    }
-
-    .copy svg:first-child {
-      color: var(--sl-color-text-dimmed);
-    }
-
-    .copy svg:last-child {
-      color: var(--sl-color-text);
-      display: none;
-    }
-
-    &.success .copy {
-      pointer-events: none;
-    }
-
-    &.success .copy svg:first-child {
-      display: none;
-    }
-
-    &.success .copy svg:last-child {
-      display: inline;
-    }
   }
 }
 
-section.footer {
-  border-top: 2px solid var(--sl-color-border);
-  display: flex;
-  flex-direction: row;
+.footer-logo {
+  font-weight: 800;
+  font-size: 1.2rem;
+  letter-spacing: 0.05em;
+  display: block;
+  margin-bottom: 0.5rem;
+}
 
-  & > div {
-    flex: 1;
-    text-align: center;
-    text-transform: uppercase;
-    padding: var(--vertical-padding) 0.5rem;
-  }
+.brand-col p {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  margin: 0 0 1rem 0;
+  max-width: 320px;
+}
 
-  & > div + div {
-    border-left: 2px solid var(--sl-color-border);
-  }
+.copyright {
+  color: hsl(0, 0%, 40%);
+  font-size: 0.78rem;
+}
 
-  /* Below 800px: first two columns shrink to content, third expands */
-  @media (max-width: 50rem) {
-    & > div.col1,
-    & > div.col2 {
-      flex: 0 0 auto;
-      padding-left: calc(var(--padding) / 2);
-      padding-right: calc(var(--padding) / 2);
-    }
+.footer-col h5 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0 0 1rem 0;
+  color: var(--text-main);
+}
 
-    & > div.col3 {
-      flex: 1;
-    }
-  }
+.footer-col a {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-decoration: none;
+  margin-bottom: 0.6rem;
+  transition: color 0.2s ease;
+}
 
-  /* Mobile: third column on its own row */
-  @media (max-width: 30rem) {
-    flex-wrap: wrap;
-
-    & > div.col1,
-    & > div.col2 {
-      flex: 1;
-    }
-
-    & > div.col3 {
-      flex: 1 0 100%;
-      border-left: none;
-      border-top: 2px solid var(--sl-color-border);
-    }
-  }
+.footer-col a:hover {
+  color: var(--text-main);
 }
 </style>
 
@@ -695,10 +811,9 @@ section.footer {
   }
   .main-frame {
     padding-top: 0;
-
-    .main-pane > main {
-      padding: 0;
-    }
+  }
+  .main-pane > main {
+    padding: 0;
   }
   main > .content-panel .sl-markdown-content {
     margin-top: 0;
@@ -707,15 +822,47 @@ section.footer {
 </style>
 
 <script>
-  const buttons = document.querySelectorAll("button.command") as NodeListOf<HTMLButtonElement>
+  // Tab switching for install commands
+  const tabBtns = document.querySelectorAll(".tab-btn") as NodeListOf<HTMLButtonElement>;
+  const tabContents = document.querySelectorAll(".tab-content") as NodeListOf<HTMLElement>;
 
-  buttons.forEach(button => {
+  tabBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const targetTab = btn.dataset.tab;
+      tabBtns.forEach((b) => b.classList.remove("active"));
+      tabContents.forEach((c) => c.classList.remove("active"));
+
+      btn.classList.add("active");
+      const activeContent = document.getElementById(`tab-${targetTab}`);
+      if (activeContent) activeContent.classList.add("active");
+    });
+  });
+
+  // Tab switching for preview showcase
+  const previewTabs = document.querySelectorAll(".preview-tab") as NodeListOf<HTMLButtonElement>;
+  const previewPanes = document.querySelectorAll(".preview-pane") as NodeListOf<HTMLElement>;
+
+  previewTabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const targetPreview = tab.dataset.preview;
+      previewTabs.forEach((t) => t.classList.remove("active"));
+      previewPanes.forEach((p) => p.classList.remove("active"));
+
+      tab.classList.add("active");
+      const activePane = document.getElementById(`prev-${targetPreview}`);
+      if (activePane) activePane.classList.add("active");
+    });
+  });
+
+  // Copy buttons
+  const copyButtons = document.querySelectorAll(".copy-action") as NodeListOf<HTMLButtonElement>;
+  copyButtons.forEach((button) => {
     button.addEventListener("click", () => {
-      navigator.clipboard.writeText(button.dataset.command!)
-      button.classList.toggle("success")
+      navigator.clipboard.writeText(button.dataset.command || "");
+      button.classList.add("success");
       setTimeout(() => {
-        button.classList.toggle("success");
-      }, 1500)
-    })
-  })
+        button.classList.remove("success");
+      }, 2000);
+    });
+  });
 </script>

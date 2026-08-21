@@ -25,15 +25,14 @@ Tiancode es un asistente de IA de escritorio (Electron + SolidJS + Bun/Effect) q
 
 | Binario | Uso |
 |---|---|
-| [`Tiancode-setup-win-x64.exe`](https://github.com/Dreftian/Tiancode/releases/latest/download/Tiancode-setup-win-x64.exe) | Instalador (NSIS) |
-| [`Tiancode-portable-win-x64.exe`](https://github.com/Dreftian/Tiancode/releases/latest/download/Tiancode-portable-win-x64.exe) | Portable (no instala) |
-| [`Tiancode-win-x64.exe`](https://github.com/Dreftian/Tiancode/releases/latest/download/Tiancode-win-x64.exe) | Ejecutable directo |
+| [`Tiancode.exe`](https://github.com/Dreftian/Tiancode/releases/latest/download/Tiancode.exe) | Instalador (NSIS) |
+| [`Tiancode-portable.exe`](https://github.com/Dreftian/Tiancode/releases/latest/download/Tiancode-portable.exe) | Portable (no instala) |
 
 ## 🚀 Uso rápido
 
 ```bash
 # Instalador
-Tiancode-setup-win-x64.exe
+Tiancode.exe
 
 # Portable (sin instalación)
 Tiancode-portable-win-x64.exe
@@ -54,24 +53,59 @@ cd frontend/desktop && bun run dev
 cd backend/tiancode && bun dev
 
 # Website estática
-cd Website && bunx serve .
+cd tools/website && bunx serve .
 ```
+
+### Vista previa integrada
+
+La tool `preview_start` publica la web dentro de **Vista en vivo**; no abre
+el navegador del sistema. Detecta scripts comunes, `index.html` y JSX/TSX
+sin configurar. Las webs estaticas y el fallback JSX incorporan recarga local
+automatica al cambiar los archivos.
+
+Para cualquier runtime que exponga una web local (Python, Go, .NET, PHP,
+Ruby, etc.), anade un `tiancode.preview.json` en la raiz del proyecto. El
+comando es un array, no una cadena de shell, y la URL debe ser local:
+
+```json
+{
+  "framework": "python",
+  "command": ["py", "-3", "-m", "http.server", "8000"],
+  "url": "http://127.0.0.1:8000",
+  "workingDirectory": "."
+}
+```
+
+El adaptador solo sirve para runtimes HTTP. Una aplicacion nativa se muestra
+mediante su captura o flujo de escritorio, no se hace pasar por una web.
 
 ### Estructura
 
 ```
-frontend/
-  app/          # App web (SolidJS, settings v2, chat)
-  desktop/      # Shell Electron (main process, TTS, tray, onboarding)
+skills/         # 52+ skills integrados (frontend-design, writing-plans, superpowers…)
+install/        # Instalador y portable (Tiancode.exe / Tiancode-portable.exe)
+frontend/       # App de escritorio y web
+  app/          # App web (SolidJS, settings v2, chat, capturas, respaldos)
+  desktop/      # Shell Electron (main process, TTS, tray, actualizador)
   ui/           # Design system (tokens, componentes v2)
+  session-ui/   # Componentes de sesión v2 (composer, timeline)
   web/          # Docs (Astro/Starlight)
-backend/
-  tiancode/     # Servidor (Bun/Effect, MCP, agentes, model hub, github)
+backend/        # Servidor y librerías (Bun/Effect)
+  tiancode/     # Servidor (MCP, agentes, model hub, github, skills)
   core/         # Core (git, sesiones, config)
   sdk/          # SDK generado
-Website/        # Landing estática en español
-skills/         # 52+ skills integrados
+tools/          # Soporte: website, GitHub workflows, docs de diseño
+  website/      # Landing estática en español (deploy en Vercel)
+  github/       # Workflows/plantillas de GitHub (inactivos mientras no se publiquen)
+  docs/         # Especificaciones de diseño
 ```
+
+### Convenciones del monorepo
+
+- `frontend/` y `backend/` son autocontenidos; `tools/` es soporte (no se importa desde la app).
+- Dependencias dirigidas: Schema → Core → Protocol → Server; el cliente nunca depende de Core/Server.
+- La app es **local-first**: el repo local no se empuja a GitHub (el repo remoto Dreftian/Tiancode contiene solo la website).
+- Los binarios de `install/` se publican en [GitHub Releases](https://github.com/Dreftian/Tiancode/releases) con los nombres `Tiancode.exe` / `Tiancode-portable.exe`.
 
 ## 📄 Licencia
 

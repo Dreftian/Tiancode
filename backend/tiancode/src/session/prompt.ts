@@ -1057,13 +1057,19 @@ const layer = Layer.effect(
       const message = yield* createUserMessage(input)
       yield* sessions.touch(input.sessionID)
 
+      // Deprecated `tools` entries only add rules for tools that are not
+      // already configured, so they never replace the session's existing
+      // ruleset (e.g. user-approved `always` permissions).
+      const configured = new Set((session.permission ?? []).map((rule) => rule.permission))
       const permissions: PermissionV1.Rule[] = []
       for (const [t, enabled] of Object.entries(input.tools ?? {})) {
+        if (configured.has(t)) continue
         permissions.push({ permission: t, action: enabled ? "allow" : "deny", pattern: "*" })
       }
       if (permissions.length > 0) {
-        session.permission = permissions
-        yield* sessions.setPermission({ sessionID: session.id, permission: permissions })
+        const merged = [...(session.permission ?? []), ...permissions]
+        session.permission = merged
+        yield* sessions.setPermission({ sessionID: session.id, permission: merged })
       }
 
       if (input.noReply === true) return message
@@ -1254,18 +1260,22 @@ const layer = Layer.effect(
 
             yield* plugin.trigger("experimental.chat.messages.transform", {}, { messages: msgs })
 
-            const [skills, env, instructions, mcpInstructions, modelMsgs] = yield* Effect.all([
+            const [skills, autoSkills, env, instructions, mcpInstructions, memoryPrompt, modelMsgs] = yield* Effect.all([
               sys.skills(agent),
+              sys.autoSkills(agent),
               sys.environment(model),
               instruction.system().pipe(Effect.orDie),
               sys.mcp(agent, session.permission),
+              sys.memory(),
               MessageV2.toModelMessagesEffect(msgs, model),
             ])
             const system = [
               ...env,
               ...instructions,
+              ...(memoryPrompt ? [memoryPrompt] : []),
               ...(mcpInstructions ? [mcpInstructions] : []),
               ...(skills ? [skills] : []),
+              ...(autoSkills ? [autoSkills] : []),
             ]
             const format = lastUser.format ?? { type: "text" as const }
             if (format.type === "json_schema") system.push(STRUCTURED_OUTPUT_SYSTEM_PROMPT)
@@ -1314,6 +1324,7 @@ const layer = Layer.effect(
                 yield* sessions.updateMessage(handle.message)
                 return "break" as const
               }
+              return "break" as const
             }
 
             if (result === "stop") return "break" as const

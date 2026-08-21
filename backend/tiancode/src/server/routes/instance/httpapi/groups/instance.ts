@@ -5,7 +5,7 @@ import { LSP } from "@/lsp/lsp"
 import { Vcs } from "@/project/vcs"
 import { Skill } from "@/skill"
 import { Schema } from "effect"
-import { HttpApi, HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from "effect/unstable/httpapi"
+import { HttpApi, HttpApiEndpoint, HttpApiError, HttpApiGroup, HttpApiSchema, OpenApi } from "effect/unstable/httpapi"
 import { Authorization } from "../middleware/authorization"
 import { InstanceContextMiddleware } from "../middleware/instance-context"
 import {
@@ -208,6 +208,7 @@ export const InstanceApi = HttpApi.make("instance")
           query: WorkspaceRoutingQuery,
           payload: SkillImportInput,
           success: described(Schema.Array(Skill.Info), "List of skills after import"),
+          error: HttpApiError.BadRequest,
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "app.skills.import",
@@ -230,6 +231,7 @@ export const InstanceApi = HttpApi.make("instance")
           query: WorkspaceRoutingQuery,
           payload: AgentCreateInput,
           success: described(Agent.Info, "Created agent"),
+          error: HttpApiError.BadRequest,
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "app.agents.create",
@@ -242,6 +244,7 @@ export const InstanceApi = HttpApi.make("instance")
           query: WorkspaceRoutingQuery,
           payload: AgentCreateInput,
           success: described(Agent.Info, "Updated agent"),
+          error: HttpApiError.BadRequest,
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "app.agents.update",
@@ -253,6 +256,7 @@ export const InstanceApi = HttpApi.make("instance")
           params: { name: Schema.String },
           query: WorkspaceRoutingQuery,
           success: described(AgentDeleteResponse, "Agent deleted"),
+          error: HttpApiError.BadRequest,
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "app.agents.delete",

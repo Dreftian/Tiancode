@@ -6,6 +6,8 @@ import { getLogger } from "./logging"
 import { getStore } from "./store"
 import { setAppQuitting } from "./windows"
 import { nativeT } from "./native-translations"
+import { notifyUser } from "./notifications"
+import { backupNow } from "./backup"
 
 const { autoUpdater } = pkg
 const key = "ready"
@@ -15,7 +17,7 @@ export function setupAutoUpdater(stop: () => Promise<void>) {
   autoUpdater.logger = logger
   autoUpdater.channel = "latest"
   autoUpdater.allowPrerelease = false
-  autoUpdater.allowDowngrade = true
+  autoUpdater.allowDowngrade = false
   autoUpdater.autoDownload = false
   autoUpdater.autoInstallOnAppQuit = false
   logger.log("auto updater configured", {
@@ -26,13 +28,16 @@ export function setupAutoUpdater(stop: () => Promise<void>) {
   })
 
   const store = getStore("tiancode.updater")
-  return createUpdaterController({
+  const controller = createUpdaterController({
     enabled: UPDATER_ENABLED,
     currentVersion: app.getVersion(),
     backend: {
       checkForUpdates: () => autoUpdater.checkForUpdates(),
       downloadUpdate: () => autoUpdater.downloadUpdate(),
       quitAndInstall: () => {
+        // Política de actualizaciones no destructivas: respaldo de todo el
+        // estado (claves, config, sesiones, MCP OAuth) antes de instalar.
+        void backupNow()
         // quitAndInstall closes all windows before emitting before-quit, so
         // flag the quit first to keep window ids persisted for restore.
         setAppQuitting()
@@ -58,6 +63,17 @@ export function setupAutoUpdater(stop: () => Promise<void>) {
     stop,
     log: (message, data) => logger.log(message, data),
   })
+
+  // Live percentage so the UI shows real progress while downloading instead
+  // of an indeterminate "Descargando…".
+  autoUpdater.on("download-progress", (progress) => controller.setDownloadProgress(progress.percent))
+
+  // Avisa cuando una actualización queda lista para instalar (solo si la app
+  // no está enfocada; el propio controlador muestra el diálogo si lo es).
+  controller.subscribe((state) => {
+    if (state.status === "ready") notifyUser(nativeT("desktop.updater.dialog.ready.title"), state.version)
+  })
+  return controller
 }
 
 export async function showUpdaterDialog(controller: ReturnType<typeof setupAutoUpdater>, alertOnFail: boolean) {

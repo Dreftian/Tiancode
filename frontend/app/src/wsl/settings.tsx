@@ -91,6 +91,9 @@ export function WslServerSettings(props: {
 
   return (
     <Show when={api}>
+      <Show when={props.servers().length > 0}>
+        <h3 class="settings-v2-section-title">{language.t("settings.desktop.section.wsl")}</h3>
+      </Show>
       <For each={props.servers()}>
         {(item) => {
           const key = ServerConnection.Key.make(item.config.id)
@@ -122,7 +125,7 @@ export function WslServerSettings(props: {
                     <ButtonV2
                       size="small"
                       disabled={busy() || request.isPending}
-                      onClick={() => api && request.mutate(() => api.installOpencode(item.config.distro))}
+                      onClick={() => api && request.mutate(() => api.installTiancode(item.config.distro))}
                     >
                       {busy() ? language.t("wsl.server.updating") : language.t(label())}
                     </ButtonV2>

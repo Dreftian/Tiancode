@@ -3,11 +3,12 @@ import { resolveThemeVariant } from "@tiancode-ai/ui/theme/resolve"
 import type { DesktopTheme } from "@tiancode-ai/ui/theme/types"
 import oc2ThemeJson from "../../../ui/src/theme/themes/oc-2.json"
 import { randomUUID } from "node:crypto"
-import { rmSync } from "node:fs"
-import { app, BrowserWindow, dialog, net, nativeImage, nativeTheme, protocol, shell } from "electron"
+import { existsSync, rmSync } from "node:fs"
+import { app, BrowserWindow, dialog, net, nativeImage, type NativeImage, nativeTheme, protocol, session, shell } from "electron"
 import { dirname, isAbsolute, join, relative, resolve } from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
 import type { TitlebarTheme } from "../preload/types"
+import { APP_NAMES, CHANNEL } from "./constants"
 import { exportDebugLogs, write as writeLog } from "./logging"
 import { getStore, removeStoreFile } from "./store"
 import { PINCH_ZOOM_ENABLED_KEY, MINIMIZE_TO_TRAY_KEY, WINDOW_IDS_KEY } from "./store-keys"
@@ -23,7 +24,8 @@ const rendererProtocol = "oc"
 const rendererHost = "renderer"
 const clipboardWritePermission = "clipboard-sanitized-write"
 const notificationPermission = "notifications"
-const rendererPermissions = new Set([clipboardWritePermission, notificationPermission])
+const mediaPermission = "media"
+const rendererPermissions = new Set([clipboardWritePermission, notificationPermission, mediaPermission])
 const oc2Theme = oc2ThemeJson as DesktopTheme
 const oc2Background = {
   light: resolveThemeVariant(oc2Theme.light, false)["background-base"],
@@ -50,6 +52,13 @@ let relaunchHandler = () => {
   app.relaunch()
   app.exit(0)
 }
+// Guests de los <webview> capturables por ventana host, por partición:
+// "persist:preview" es el navegador interno (capture-preview) y
+// "persist:live-view" es el panel "Vista en vivo" de la sesión
+// (capture-live-view). El renderer no aporta el id: se resuelve desde la
+// ventana que llama.
+const previewGuests = new Map<number, number>()
+const liveViewGuests = new Map<number, number>()
 const titlebarThemes = new WeakMap<BrowserWindow, Partial<TitlebarTheme>>()
 const pinchZoomEnabled = new WeakMap<BrowserWindow, boolean>()
 const windowIDs = new WeakMap<BrowserWindow, string>()
@@ -94,7 +103,48 @@ function iconPath() {
   return join(iconsDir(), `icon.${ext}`)
 }
 
-function tone() {
+function resolveWindowIcon(): NativeImage | undefined {
+  const ext = process.platform === "win32" ? "ico" : "png"
+  const candidates = [
+    join(iconsDir(), `icon.${ext}`),
+    join(iconsDir(), "icon.ico"),
+    join(iconsDir(), "icon.png"),
+    app.isPackaged ? join(process.resourcesPath, "icons", `icon.${ext}`) : join(root, `../../resources/icons/icon.${ext}`),
+    app.isPackaged ? join(process.resourcesPath, "icons", "icon.ico") : join(root, "../../resources/icons/icon.ico"),
+    app.isPackaged ? join(process.resourcesPath, "icons", "icon.png") : join(root, "../../resources/icons/icon.png"),
+    join(app.getAppPath(), `resources/icons/icon.${ext}`),
+    join(app.getAppPath(), "resources/icons/icon.ico"),
+    join(app.getAppPath(), "resources/icons/icon.png"),
+    join(root, `../../icons/${CHANNEL}/icon.${ext}`),
+    join(root, `../../icons/${CHANNEL}/icon.ico`),
+    join(root, `../../icons/${CHANNEL}/icon.png`),
+    join(root, `../../icons/prod/icon.${ext}`),
+    join(root, "../../icons/prod/icon.ico"),
+    join(root, "../../icons/prod/icon.png"),
+    join(root, "../../icons/dev/icon.ico"),
+    join(root, "../../icons/dev/icon.png"),
+  ]
+  for (const candidate of candidates) {
+    try {
+      if (candidate && existsSync(candidate)) {
+        const img = nativeImage.createFromPath(candidate)
+        if (!img.isEmpty()) return img
+      }
+    } catch {
+      // Continue to next candidate
+    }
+  }
+  return undefined
+}
+
+function windowIcon() {
+  const icon = resolveWindowIcon()
+  if (icon) return icon
+  writeLog("window", "failed to load application icon", { path: iconPath() }, "error")
+  return undefined
+}
+
+function tone(): "dark" | "light" {
   return nativeTheme.shouldUseDarkColors ? "dark" : "light"
 }
 
@@ -166,7 +216,12 @@ export function getLastFocusedWindow() {
 
 export function restoreMainWindows() {
   const ids = registry.persisted()
-  return (ids.length ? ids : [randomUUID()]).map((id) => createMainWindow(id))
+  // Un id huérfano (ventana que murió sin `closed`, p. ej. un cierre forzado
+  // o un crash) no tiene su .dat de ventana: restaurarlo abriría ventanas
+  // fantasma idénticas en cada arranque.
+  const alive = ids.filter((id) => existsSync(join(app.getPath("userData"), windowDataFile(id))))
+  if (alive.length !== ids.length) registry.prune(alive)
+  return (alive.length ? alive : [randomUUID()]).map((id) => createMainWindow(id))
 }
 
 export function setDockIcon() {
@@ -183,6 +238,7 @@ export function createMainWindow(id: string = randomUUID()) {
   })
 
   const mode = tone()
+  const icon = windowIcon()
   const win = new BrowserWindow({
     x: state.x,
     y: state.y,
@@ -190,8 +246,8 @@ export function createMainWindow(id: string = randomUUID()) {
     height: state.height,
     show: false,
     autoHideMenuBar: true,
-    title: "Tiancode",
-    icon: iconPath(),
+    title: APP_NAMES[CHANNEL],
+    icon,
     backgroundColor: backgroundColor ?? defaultBackgroundColor(),
     ...(process.platform === "darwin"
       ? {
@@ -204,6 +260,8 @@ export function createMainWindow(id: string = randomUUID()) {
           frame: false,
           titleBarStyle: "hidden" as const,
           titleBarOverlay: overlay({ mode }),
+          // Esquinas redondeadas nativas de Windows 11 para la ventana sin marco.
+          roundedCorners: true,
         }
       : {}),
     webPreferences: {
@@ -211,10 +269,20 @@ export function createMainWindow(id: string = randomUUID()) {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      // Habilita el <webview> del navegador interno (panel de preview).
+      webviewTag: true,
     },
   })
 
+  // BrowserWindow gets the same decoded image as the executable and tray.
+  // This is important on Windows after an in-place update: it prevents a
+  // stale string-path association from leaving the taskbar with the previous
+  // app icon until Explorer refreshes its cache.
+  if (icon) win.setIcon(icon)
+
   allowRendererPermissions(win)
+  hardenGuestSessions()
+  wirePreviewGuestTracking(win)
   wireWindowRecovery(win, id)
   wireNavigationPolicy(win)
 
@@ -515,6 +583,57 @@ function allowRendererPermissions(win: BrowserWindow) {
 
 function isTrustedRendererUrl(value?: string) {
   return isRendererUrl(value)
+}
+
+// Los <webview> de preview corren en particiones propias que los handlers de
+// permisos de la ventana principal nunca ven, así que sin esto Electron
+// concedería a las páginas guest cualquier permiso que pidieran. Se deniega
+// todo: el preview es para ver apps/sitios, no para cámara/mic/geolocalización.
+function hardenGuestSessions() {
+  for (const partition of ["persist:preview", "persist:live-view"]) {
+    const guestSession = session.fromPartition(partition)
+    guestSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false))
+    guestSession.setPermissionCheckHandler(() => false)
+  }
+}
+
+// Limpia el almacenamiento persistente de los webviews (navegador interno y
+// vista en vivo): cookies, caché, localStorage y datos de sesión de las
+// particiones guest, sin tocar la sesión del renderer principal.
+export function clearWebviewData() {
+  return Promise.all(
+    ["persist:preview", "persist:live-view"].map((partition) => session.fromPartition(partition).clearStorageData()),
+  )
+}
+
+// Registra los guests de los <webview> de preview (si los hay) para poder
+// capturarlos después sin fiarse del id que envíe el renderer. Cada partición
+// tiene su propio mapa: el navegador interno y el panel "Vista en vivo"
+// pueden existir a la vez en la misma ventana sin pisarse.
+function wirePreviewGuestTracking(win: BrowserWindow) {
+  win.webContents.on("did-attach-webview", (_event, guest) => {
+    if (guest.session === session.fromPartition("persist:preview")) {
+      previewGuests.set(win.webContents.id, guest.id)
+      guest.once("destroyed", () => {
+        if (previewGuests.get(win.webContents.id) === guest.id) previewGuests.delete(win.webContents.id)
+      })
+      return
+    }
+    if (guest.session === session.fromPartition("persist:live-view")) {
+      liveViewGuests.set(win.webContents.id, guest.id)
+      guest.once("destroyed", () => {
+        if (liveViewGuests.get(win.webContents.id) === guest.id) liveViewGuests.delete(win.webContents.id)
+      })
+    }
+  })
+}
+
+export function getPreviewGuestWebContentsId(hostWebContentsId: number) {
+  return previewGuests.get(hostWebContentsId) ?? null
+}
+
+export function getLiveViewGuestWebContentsId(hostWebContentsId: number) {
+  return liveViewGuests.get(hostWebContentsId) ?? null
 }
 
 function addRendererHeaders(value: string, headers: Record<string, any>) {

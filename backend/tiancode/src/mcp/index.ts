@@ -36,6 +36,17 @@ import { McpEvent } from "@tiancode-ai/schema/mcp-event"
 import { McpBrowser } from "./browser"
 
 const DEFAULT_TIMEOUT = 30_000
+// Arrancar decenas de procesos MCP a la vez compite con el renderer y con los
+// gestores de paquetes (npx, uvx, etc.). No cambiamos la configuración del
+// usuario: sólo dos conexiones de arranque pueden preparar recursos a la vez.
+const STARTUP_CONCURRENCY = 2
+const SHUTDOWN_CONCURRENCY = 2
+// La primera conexión de un servidor remoto con OAuth siempre choca con el
+// 401 y el flujo OAuth (descubrimiento + registro dinámico + espera del
+// redirect) puede quedarse esperando la interacción del usuario. Acotamos el
+// intento inicial para que el alta del servidor resuelva rápido a
+// "needs_auth" y la UI ofrezca autenticar, en vez de bloquear 30s.
+const OAUTH_CONNECT_TIMEOUT = 10_000
 const CLIENT_OPTIONS = {
   capabilities: {
     // https://github.com/anomalyco/opencode/issues/11948
@@ -108,7 +119,7 @@ export type Status = Schema.Schema.Type<typeof Status>
 
 // Store transports for OAuth servers to allow finishing auth
 type TransportWithAuth = StreamableHTTPClientTransport | SSEClientTransport
-const pendingOAuthTransports = new Map<string, { transport: TransportWithAuth; provider?: McpOAuthPendingProvider }>()
+type PendingOAuthTransport = { transport: TransportWithAuth; provider?: McpOAuthPendingProvider; oauthState: string }
 
 // Prompt cache types
 type PromptInfo = Awaited<ReturnType<MCPClient["listPrompts"]>>["prompts"][number]
@@ -145,6 +156,7 @@ interface State {
   clients: Record<string, MCPClient>
   defs: Record<string, MCPToolDef[]>
   instructions: Record<string, string>
+  pendingOAuthTransports: Map<string, PendingOAuthTransport>
 }
 
 export interface ServerInstructions {
@@ -212,6 +224,79 @@ const layer = Layer.effect(
 
     type Transport = StdioClientTransport | StreamableHTTPClientTransport | SSEClientTransport
 
+    const descendants = Effect.fnUntraced(
+      function* (pid: number) {
+        if (process.platform === "win32") return [] as number[]
+        const pids: number[] = []
+        const queue = [pid]
+        for (let index = 0; index < queue.length; index++) {
+          const current = queue[index]
+          const handle = yield* spawner.spawn(ChildProcess.make("pgrep", ["-P", String(current)], { stdin: "ignore" }))
+          const text = yield* Stream.mkString(Stream.decodeText(handle.stdout))
+          yield* handle.exitCode
+          for (const tok of text.split("\n")) {
+            const cpid = parseInt(tok, 10)
+            if (!isNaN(cpid) && !pids.includes(cpid)) {
+              pids.push(cpid)
+              queue.push(cpid)
+            }
+          }
+        }
+        return pids
+      },
+      Effect.scoped,
+      Effect.catch(() => Effect.succeed([] as number[])),
+    )
+
+    // On Windows a signal sent to the stdio parent leaves npm/npx, Python and
+    // browser children running. taskkill /T is the native process-tree
+    // primitive, and its arguments are passed directly (never through a shell).
+    const terminateLocalProcessTree = Effect.fnUntraced(
+      function* (pid: number) {
+        if (process.platform === "win32") {
+          const handle = yield* spawner.spawn(
+            ChildProcess.make("taskkill", ["/pid", String(pid), "/T", "/F"], {
+              stdin: "ignore",
+              stdout: "ignore",
+              stderr: "ignore",
+            }),
+          )
+          yield* handle.exitCode.pipe(Effect.ignore)
+          return
+        }
+
+        yield* Effect.forEach(
+          yield* descendants(pid),
+          (child) =>
+            Effect.sync(() => {
+              try {
+                process.kill(child, "SIGTERM")
+              } catch {
+                // The child may have already exited between pgrep and kill.
+              }
+            }),
+          { concurrency: SHUTDOWN_CONCURRENCY, discard: true },
+        )
+      },
+      Effect.scoped,
+      Effect.catch(() => Effect.void),
+    )
+
+    const closeTransport = Effect.fnUntraced(function* (transport: Transport) {
+      if (transport instanceof StdioClientTransport && typeof transport.pid === "number") {
+        yield* terminateLocalProcessTree(transport.pid)
+      }
+      yield* Effect.tryPromise(() => transport.close()).pipe(Effect.ignore)
+    })
+
+    const closeMcpClient = Effect.fnUntraced(function* (client: MCPClient) {
+      const transport = client.transport
+      if (transport instanceof StdioClientTransport && typeof transport.pid === "number") {
+        yield* terminateLocalProcessTree(transport.pid)
+      }
+      yield* Effect.tryPromise(() => client.close()).pipe(Effect.ignore)
+    })
+
     /**
      * Connect a client via the given transport with resource safety:
      * on failure the transport is closed; on success the caller owns it.
@@ -228,7 +313,7 @@ const layer = Layer.effect(
             },
             catch: (e) => (e instanceof Error ? e : new Error(String(e))),
           }),
-        (t, exit) => (Exit.isFailure(exit) ? Effect.tryPromise(() => t.close()).pipe(Effect.ignore) : Effect.void),
+        (t, exit) => (Exit.isFailure(exit) ? closeTransport(t) : Effect.void),
       )
     })
 
@@ -285,17 +370,24 @@ const layer = Layer.effect(
       ]
 
       const connectTimeout = mcp.timeout ?? DEFAULT_TIMEOUT
+      const oauthEnabled = mcp.oauth !== false
+      // Con OAuth habilitado, el primer intento siempre choca con el 401 y el
+      // flujo OAuth espera la interacción del usuario: se acota para que el
+      // alta resuelva rápido a "needs_auth" y la UI ofrezca autenticar.
+      const attemptTimeout = oauthEnabled ? Math.min(connectTimeout, OAUTH_CONNECT_TIMEOUT) : connectTimeout
       let lastStatus: Status | undefined
 
       for (const { name, transport } of transports) {
-        const result = yield* connectTransport(transport, connectTimeout).pipe(
+        const result = yield* connectTransport(transport, attemptTimeout).pipe(
           Effect.map((client) => ({ client, transportName: name })),
           Effect.catch((error) => {
             const lastError = error instanceof Error ? error : new Error(String(error))
             const isAuthError =
               error instanceof UnauthorizedError || (authProvider && lastError.message.includes("OAuth"))
+            const isOAuthTimeout =
+              oauthEnabled && authProvider !== undefined && lastError.message.includes("timed out")
 
-            if (isAuthError) {
+            if (isAuthError || isOAuthTimeout) {
               if (lastError.message.includes("registration") || lastError.message.includes("client_id")) {
                 lastStatus = {
                   status: "needs_client_registration" as const,
@@ -310,12 +402,13 @@ const layer = Layer.effect(
                   })
                   .pipe(Effect.ignore, Effect.as(undefined))
               } else {
-                pendingOAuthTransports.set(key, { transport })
+                // En un timeout el transporte ya quedó cerrado: no se registra
+                // como pendiente (authenticate() hace su propio flujo fresco).
                 lastStatus = { status: "needs_auth" as const }
                 return events
                   .publish(TuiEvent.ToastShow, {
                     title: "MCP Authentication Required",
-                    message: `Server "${key}" requires authentication. Run: tiancode mcp auth ${key}`,
+                    message: `Server "${key}" requires authentication`,
                     variant: "warning",
                     duration: 8000,
                   })
@@ -416,30 +509,6 @@ const layer = Layer.effect(
     )
     const cfgSvc = yield* Config.Service
 
-    const descendants = Effect.fnUntraced(
-      function* (pid: number) {
-        if (process.platform === "win32") return [] as number[]
-        const pids: number[] = []
-        const queue = [pid]
-        for (let index = 0; index < queue.length; index++) {
-          const current = queue[index]
-          const handle = yield* spawner.spawn(ChildProcess.make("pgrep", ["-P", String(current)], { stdin: "ignore" }))
-          const text = yield* Stream.mkString(Stream.decodeText(handle.stdout))
-          yield* handle.exitCode
-          for (const tok of text.split("\n")) {
-            const cpid = parseInt(tok, 10)
-            if (!isNaN(cpid) && !pids.includes(cpid)) {
-              pids.push(cpid)
-              queue.push(cpid)
-            }
-          }
-        }
-        return pids
-      },
-      Effect.scoped,
-      Effect.catch(() => Effect.succeed([] as number[])),
-    )
-
     function watch(s: State, name: string, client: MCPClient, bridge: EffectBridge.Shape, timeout?: number) {
       client.onclose = () => {
         if (s.clients[name] !== client) return
@@ -501,6 +570,7 @@ const layer = Layer.effect(
           clients: {},
           defs: {},
           instructions: {},
+          pendingOAuthTransports: new Map(),
         }
 
         yield* Effect.forEach(
@@ -529,7 +599,7 @@ const layer = Layer.effect(
                 watch(s, key, result.mcpClient, bridge, mcp.timeout)
               }
             }),
-          { concurrency: "unbounded" },
+          { concurrency: STARTUP_CONCURRENCY, discard: true },
         )
 
         yield* Effect.addFinalizer(() =>
@@ -540,22 +610,20 @@ const layer = Layer.effect(
             s.instructions = {}
             yield* Effect.forEach(
               clients,
-              (client) =>
-                Effect.gen(function* () {
-                  const pid = client.transport instanceof StdioClientTransport ? client.transport.pid : null
-                  if (typeof pid === "number") {
-                    const pids = yield* descendants(pid)
-                    for (const dpid of pids) {
-                      try {
-                        process.kill(dpid, "SIGTERM")
-                      } catch {}
-                    }
-                  }
-                  yield* Effect.tryPromise(() => client.close()).pipe(Effect.ignore)
-                }),
-              { concurrency: "unbounded" },
+              closeMcpClient,
+              { concurrency: SHUTDOWN_CONCURRENCY, discard: true },
             )
-            pendingOAuthTransports.clear()
+            const pendingOAuthTransports = Array.from(s.pendingOAuthTransports.values())
+            s.pendingOAuthTransports.clear()
+            yield* Effect.forEach(
+              pendingOAuthTransports,
+              (pending) =>
+                Effect.gen(function* () {
+                  McpOAuthCallback.cancelPendingState(pending.oauthState)
+                  yield* Effect.tryPromise(() => pending.transport.close()).pipe(Effect.ignore)
+                }),
+              { concurrency: SHUTDOWN_CONCURRENCY, discard: true },
+            )
           }),
         )
 
@@ -569,7 +637,7 @@ const layer = Layer.effect(
       delete s.defs[name]
       delete s.instructions[name]
       if (!client) return Effect.void
-      return Effect.tryPromise(() => client.close()).pipe(Effect.ignore)
+      return closeMcpClient(client)
     }
 
     const storeClient = Effect.fnUntraced(function* (
@@ -588,7 +656,7 @@ const layer = Layer.effect(
       if (instructions) s.instructions[name] = instructions
       else delete s.instructions[name]
       watch(s, name, client, bridge, timeout)
-      if (previous) yield* Effect.tryPromise(() => previous.close()).pipe(Effect.ignore)
+      if (previous) yield* closeMcpClient(previous)
       return s.status[name]
     })
 
@@ -654,6 +722,10 @@ const layer = Layer.effect(
       // connecting below fails (e.g. the runtime is missing on this machine).
       const cfg = yield* cfgSvc.getGlobal()
       yield* cfgSvc.updateGlobal({ ...cfg, mcp: { ...cfg.mcp, [name]: mcp } })
+      // The instance config cache still holds the pre-add state; invalidate it
+      // so GET /config and the settings list reflect the new server now, not
+      // only after the next instance reload.
+      yield* cfgSvc.invalidateInstance()
       // Best-effort connect: a failure records the error status but keeps the
       // server enabled so the toggle in settings reflects the saved config.
       const attempt = yield* Effect.exit(createAndStore(name, mcp))
@@ -665,7 +737,16 @@ const layer = Layer.effect(
 
     const connect = Effect.fn("MCP.connect")(function* (name: string) {
       const mcp = yield* requireMcpConfig(name)
-      yield* createAndStore(name, { ...mcp, enabled: true })
+      const enabled = { ...mcp, enabled: true }
+      yield* createAndStore(name, enabled)
+      // A missing enabled field already means enabled on startup. Persist only
+      // an explicit user-disabled entry so reconnecting a legacy/default entry
+      // never rewrites its saved configuration or credentials.
+      const cfg = yield* cfgSvc.getGlobal()
+      const current = cfg.mcp?.[name]
+      if (current?.enabled === false) {
+        yield* cfgSvc.updateGlobal({ ...cfg, mcp: { ...cfg.mcp, [name]: enabled } })
+      }
     })
 
     const disconnect = Effect.fn("MCP.disconnect")(function* (name: string) {
@@ -674,6 +755,11 @@ const layer = Layer.effect(
       yield* closeClient(s, name)
       delete s.clients[name]
       s.status[name] = { status: "disabled" }
+      const cfg = yield* cfgSvc.getGlobal()
+      const current = cfg.mcp?.[name]
+      if (current && current.enabled !== false) {
+        yield* cfgSvc.updateGlobal({ ...cfg, mcp: { ...cfg.mcp, [name]: { ...current, enabled: false } } })
+      }
     })
 
     const remove = Effect.fn("MCP.remove")(function* (name: string) {
@@ -690,6 +776,9 @@ const layer = Layer.effect(
       const next = { ...cfg.mcp }
       delete next[name]
       yield* cfgSvc.updateGlobal({ ...cfg, mcp: next })
+      // Invalidate the instance config cache so the settings list drops the
+      // server immediately instead of showing it as disabled until reload.
+      yield* cfgSvc.invalidateInstance()
     })
 
     function requestTimeout(s: State, name: string, configured: McpEntry | undefined, fallback?: number) {
@@ -895,8 +984,12 @@ const layer = Layer.effect(
       }).pipe(
         Effect.catch((error) => {
           if (error instanceof UnauthorizedError && capturedUrl) {
-            pendingOAuthTransports.set(mcpName, { transport, provider: authProvider })
-            return Effect.succeed({ authorizationUrl: capturedUrl.toString(), oauthState } satisfies AuthResult)
+            const authorizationUrl = capturedUrl.toString()
+            return Effect.gen(function* () {
+              const s = yield* InstanceState.get(state)
+              s.pendingOAuthTransports.set(mcpName, { transport, provider: authProvider, oauthState })
+              return { authorizationUrl, oauthState } satisfies AuthResult
+            })
           }
           return Effect.die(error)
         }),
@@ -951,7 +1044,8 @@ const layer = Layer.effect(
 
     const finishAuth = Effect.fn("MCP.finishAuth")(function* (mcpName: string, authorizationCode: string) {
       yield* requireMcpConfig(mcpName)
-      const pending = pendingOAuthTransports.get(mcpName)
+      const s = yield* InstanceState.get(state)
+      const pending = s.pendingOAuthTransports.get(mcpName)
       if (!pending) throw new Error(`No pending OAuth flow for MCP server: ${mcpName}`)
 
       const error = yield* Effect.tryPromise({
@@ -968,7 +1062,7 @@ const layer = Layer.effect(
 
       yield* Effect.promise(() => pending.provider?.commit() ?? Promise.resolve())
       yield* auth.clearCodeVerifier(mcpName)
-      pendingOAuthTransports.delete(mcpName)
+      s.pendingOAuthTransports.delete(mcpName)
 
       const mcpConfig = yield* requireMcpConfig(mcpName)
 
@@ -976,9 +1070,18 @@ const layer = Layer.effect(
     })
 
     const removeAuth = Effect.fn("MCP.removeAuth")(function* (mcpName: string) {
+      const pending = (yield* InstanceState.has(state))
+        ? (yield* InstanceState.get(state)).pendingOAuthTransports.get(mcpName)
+        : undefined
       yield* auth.remove(mcpName)
-      McpOAuthCallback.cancelPending(mcpName)
-      pendingOAuthTransports.delete(mcpName)
+      if (!pending) {
+        McpOAuthCallback.cancelPending(mcpName)
+        return
+      }
+      const s = yield* InstanceState.get(state)
+      s.pendingOAuthTransports.delete(mcpName)
+      McpOAuthCallback.cancelPendingState(pending.oauthState)
+      yield* Effect.tryPromise(() => pending.transport.close()).pipe(Effect.ignore)
     })
 
     const supportsOAuth = Effect.fn("MCP.supportsOAuth")(function* (mcpName: string) {

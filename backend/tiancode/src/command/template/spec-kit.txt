@@ -1,0 +1,19 @@
+You are running Tiancode's local Spec Kit workflow. The requested phase and
+input are:
+
+$ARGUMENTS
+
+First load the built-in `tiancode-spec-kit` skill and follow its artifact
+contract. This is not the external `specify` CLI: do not install it, call
+GitHub, create issues, or invent an integration.
+
+Interpret the first word as one of `specify`, `plan`, `tasks`, `implement`, or
+`converge`. If it is absent, start with `specify`; if it is unknown or the
+feature name cannot be inferred safely, ask one concise question. Use a
+lower-kebab feature name and store durable work at `specs/<feature>/`.
+
+For `specify`, `plan`, `tasks`, and `converge`, change only the artifact set.
+For `implement`, first read the prior artifacts, execute the ordered unchecked
+tasks, and record real verification evidence before marking a task complete.
+Keep unresolved choices and failed checks visible rather than guessing or
+claiming success.

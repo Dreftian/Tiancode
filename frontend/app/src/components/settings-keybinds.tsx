@@ -55,9 +55,9 @@ const groupKey: Record<KeybindGroup, GroupKey> = {
 function groupFor(id: string): KeybindGroup {
   if (id === PALETTE_ID) return "General"
   if (id.startsWith("terminal.")) return "Terminal"
-  if (id.startsWith("model.") || id.startsWith("agent.") || id.startsWith("mcp.")) return "Model and agent"
-  if (id.startsWith("file.") || id.startsWith("fileTree.")) return "Navigation"
-  if (id.startsWith("prompt.")) return "Prompt"
+  if (id.startsWith("model.") || id.startsWith("agent.") || id.startsWith("mcp.") || id.startsWith("skills.") || id.startsWith("rlm.")) return "Model and agent"
+  if (id.startsWith("file.") || id.startsWith("fileTree.") || id.startsWith("preview.")) return "Navigation"
+  if (id.startsWith("prompt.") || id.startsWith("voice.")) return "Prompt"
   if (
     id.startsWith("session.") ||
     id.startsWith("message.") ||
@@ -471,6 +471,7 @@ function SettingsKeybindsV2View(props: {
           />
           <Show when={store.filter}>
             <IconButtonV2
+              aria-label={language.t("a11y.clearSearch")}
               type="button"
               variant="ghost-muted"
               size="small"
@@ -770,6 +771,7 @@ export const SettingsKeybinds: Component<{ v2?: boolean }> = (props) => {
               class="flex-1"
             />
             <Show when={store.filter}>
+              aria-label={language.t("a11y.clearSearch")}
               <IconButton icon="circle-x" variant="ghost" onClick={() => setStore("filter", "")} />
             </Show>
           </div>

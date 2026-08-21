@@ -20,6 +20,8 @@ export function IconButtonV2(props: ComponentProps<"button"> & IconButtonV2Props
   return (
     <Kobalte
       {...rest}
+      // Sin aria-label explícito, el nombre accesible cae al tooltip (title).
+      aria-label={rest["aria-label"] ?? rest.title}
       data-component="icon-button-v2"
       // data-icon={props.icon}
       data-size={split.size || "normal"}

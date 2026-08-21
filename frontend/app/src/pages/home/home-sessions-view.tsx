@@ -53,6 +53,7 @@ export type HomeSessionsViewProps = {
   isOpenTab: (record: HomeSessionRecord) => boolean
   onCreateSession: () => void
   onOpenSession: (session: Session, options?: OpenSessionOptions) => void
+  onDeleteSession?: (session: Session) => Promise<void>
   onArchiveSession: (session: Session) => Promise<void>
   onSetHoverTarget: (element: HTMLElement) => void
   onSetThumbTrack: (element: HTMLDivElement) => void
@@ -453,29 +454,29 @@ function HomeSessionRow(props: HomeSessionsViewProps & { record: HomeSessionReco
           <HomeSessionProjectName name={props.record.projectName} />
         </Show>
       </button>
-      <Show when={SHOW_HOME_SESSION_ARCHIVE}>
-        <div
-          class={`
-            hover-reveal absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-1
-            group-hover/session:opacity-100 focus-within:opacity-100
-          `}
-        >
-          <TooltipV2 class="flex shrink-0 items-center" placement="bottom" value={props.language.t("common.archive")}>
-            <IconButtonV2
-              data-action="home-session-archive"
-              variant="ghost-muted"
-              size="large"
-              icon={<IconV2 name="archive" />}
-              aria-label={props.language.t("common.archive")}
-              onClick={(event) => {
-                event.preventDefault()
-                event.stopPropagation()
-                void props.onArchiveSession(props.record.session)
-              }}
-            />
-          </TooltipV2>
-        </div>
-      </Show>
+      <div
+        class={`
+          absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-1
+          opacity-0 group-hover/session:opacity-100 focus-within:opacity-100 transition-opacity z-10
+        `}
+      >
+        <TooltipV2 class="flex shrink-0 items-center" placement="bottom" value={props.language.t("session.delete.title") ?? "Eliminar sesión"}>
+          <IconButtonV2
+            data-action="home-session-delete"
+            variant="ghost-muted"
+            size="large"
+            icon={<IconV2 name="trash" class="text-v2-icon-icon-muted hover:text-v2-state-fg-danger" />}
+            aria-label={props.language.t("session.delete.title") ?? "Eliminar sesión"}
+            onClick={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              if (window.confirm(props.language.t("session.delete.confirm", { name: title() }))) {
+                void props.onDeleteSession?.(props.record.session)
+              }
+            }}
+          />
+        </TooltipV2>
+      </div>
     </div>
   )
 }

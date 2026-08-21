@@ -69,6 +69,7 @@ export const SettingsModelsV2: Component = () => {
           />
           <Show when={list.filter()}>
             <IconButtonV2
+              aria-label={language.t("a11y.clearSearch")}
               type="button"
               variant="ghost-muted"
               size="small"

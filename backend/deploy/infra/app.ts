@@ -9,6 +9,7 @@ const DISCORD_SUPPORT_CHANNEL_ID = new sst.Secret("DISCORD_SUPPORT_CHANNEL_ID")
 const FEISHU_APP_ID = new sst.Secret("FEISHU_APP_ID")
 const FEISHU_APP_SECRET = new sst.Secret("FEISHU_APP_SECRET")
 const bucket = new sst.cloudflare.Bucket("Bucket")
+const session = new sst.cloudflare.Kv("SESSION")
 
 export const api = new sst.cloudflare.Worker("Api", {
   domain: `api.${domain}`,
@@ -52,6 +53,7 @@ export const api = new sst.cloudflare.Worker("Api", {
 new sst.cloudflare.x.Astro("Web", {
   domain: "docs." + domain,
   path: "frontend/web",
+  link: [session],
   environment: {
     // For astro config
     SST_STAGE: $app.stage,

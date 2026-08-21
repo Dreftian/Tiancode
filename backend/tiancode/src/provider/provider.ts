@@ -1422,11 +1422,13 @@ const layer = Layer.effect(
         }
 
         // extend database from config
-        for (const [providerID, provider] of configProviders) {
+        for (const [id, provider] of configProviders) {
+          const providerID = ProviderV2.ID.make(id)
+          if (disabled.has(providerID)) continue
           const existing = database[providerID]
           const parsed: Info = {
-            id: ProviderV2.ID.make(providerID),
-            name: provider.name ?? existing?.name ?? providerID,
+            id: providerID,
+            name: provider.name ?? existing?.name ?? id,
             env: provider.env ?? existing?.env ?? [],
             options: mergeDeep(existing?.options ?? {}, provider.options ?? {}),
             source: "config",
@@ -1574,7 +1576,8 @@ const layer = Layer.effect(
             continue
           }
           const result = yield* fn(data)
-          if (result && (result.autoload || providers[providerID])) {
+          const isConfigured = Boolean(cfg.provider?.[providerID]) || (cfg.enabled_providers ? cfg.enabled_providers.includes(providerID) : false)
+          if (result && (providers[providerID] || (result.autoload && isConfigured))) {
             if (result.getModel) modelLoaders[providerID] = result.getModel
             if (result.vars) varsLoaders[providerID] = result.vars
             if (result.discoverModels) discoveryLoaders[providerID] = result.discoverModels
@@ -1587,6 +1590,7 @@ const layer = Layer.effect(
         // load config - re-apply with updated data
         for (const [id, provider] of configProviders) {
           const providerID = ProviderV2.ID.make(id)
+          if (disabled.has(providerID)) continue
           const partial: Partial<Info> = { source: "config" }
           if (provider.env) partial.env = provider.env
           if (provider.name) partial.name = provider.name

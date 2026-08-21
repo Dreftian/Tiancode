@@ -39,3 +39,9 @@ install/*.exe
 # ZCode session files
 .zcode/
 frontend/desktop/resources/tiancode-cli.exe
+dist-1.0.3*/
+dist-1.0.*/
+temp_thumb_*.png
+preview_master_icon.png
+__pycache__/
+*.pyc

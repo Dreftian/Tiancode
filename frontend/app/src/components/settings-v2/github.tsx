@@ -1,7 +1,6 @@
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
 import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
 import { TextInputV2 } from "@tiancode-ai/ui/v2/text-input-v2"
-import { Icon } from "@tiancode-ai/ui/icon"
 import type { GithubRepo } from "@tiancode-ai/sdk/v2/client"
 import { useNavigate } from "@solidjs/router"
 import { useDialog } from "@tiancode-ai/ui/context/dialog"
@@ -14,15 +13,25 @@ import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
 import "./github.css"
 
-// Error bodies come in several shapes (`{ _tag, message }`,
-// `{ name, data: { message } }`, plain `{ message }`); extract the message
-// so the banner can show the real reason instead of a generic fallback.
 const errorText = (error: unknown): string | undefined => {
   if (error === null || typeof error !== "object") return undefined
   const obj = error as { message?: unknown; data?: { message?: unknown } }
   if (typeof obj.message === "string" && obj.message) return obj.message
   if (obj.data && typeof obj.data.message === "string" && obj.data.message) return obj.data.message
   return undefined
+}
+
+function GitHubLogo(props: { size?: number }) {
+  const s = props.size ?? 48
+  return (
+    <svg viewBox="0 0 98 96" width={s} height={s} fill="currentColor" aria-hidden="true">
+      <path
+        fill-rule="evenodd"
+        clip-rule="evenodd"
+        d="M48.854 0C21.839 0 0 22 0 49.217c0 21.756 13.993 40.172 33.405 46.69 2.427.49 3.316-1.059 3.316-2.36 0-1.141-.08-5.052-.08-9.127-13.59 2.934-16.42-5.867-16.42-5.867-2.184-5.704-5.42-7.17-5.42-7.17-4.448-3.015.324-3.015.324-3.015 4.934.326 7.523 5.052 7.523 5.052 4.367 7.496 11.404 5.378 14.235 4.074.404-3.178 1.699-5.378 3.074-6.6-10.839-1.141-22.243-5.378-22.243-24.283 0-5.378 1.94-9.778 5.014-13.2-.485-1.222-2.184-6.275.486-13.038 0 0 4.125-1.304 13.426 5.052a46.97 46.97 0 0 1 12.215-1.63c4.125 0 8.33.571 12.213 1.63 9.302-6.356 13.427-5.052 13.427-5.052 2.67 6.763.97 11.816.485 13.038 3.155 3.422 5.015 7.822 5.015 13.2 0 18.905-11.404 23.06-22.324 24.283 1.78 1.548 3.316 4.481 3.316 9.126 0 6.6-.08 11.897-.08 13.526 0 1.304.89 2.853 3.316 2.364 19.412-6.52 33.405-24.935 33.405-46.691C97.707 22 75.788 0 48.854 0z"
+      />
+    </svg>
+  )
 }
 
 export const SettingsGithubV2: Component<{
@@ -46,9 +55,6 @@ export const SettingsGithubV2: Component<{
   const login = () => status()?.data?.login
   const avatarUrl = () => status()?.data?.avatarUrl
 
-  // Repo list, project info and remote state only matter once a GitHub
-  // account is connected; re-fetching the status after connect/disconnect
-  // flips the source and re-runs these automatically.
   const [repos, { refetch: refetchRepos }] = createResource(
     () => connected(),
     (isConnected) => (isConnected ? serverSdk().client.github.repos(params()) : undefined),
@@ -138,7 +144,7 @@ export const SettingsGithubV2: Component<{
       if (directory) {
         showToast({ variant: "success", title: language.t("settings.github.repo.clone.success", { directory }) })
         dialog.close()
-        navigate(`/${base64Encode(directory)}/session`)
+        navigate(`/${base64Encode(directory)}`)
       }
     } catch (error) {
       setBanner(errorText(error) ?? language.t("settings.github.repo.clone.failed"))
@@ -148,24 +154,25 @@ export const SettingsGithubV2: Component<{
   }
 
   const createRepo = async () => {
-    const name = createName().trim()
-    if (!name || creating()) return
+    const value = createName().trim()
+    if (!value || creating()) return
     setCreating(true)
     setBanner(undefined)
     try {
       const result = await serverSdk().client.github.createRepo({
         ...params(),
-        githubCreateRepoPayload: { name, private: createPrivate() },
+        githubCreateRepoPayload: { name: value, private: createPrivate() },
       })
       if (result.error) {
-        setBanner(errorText(result.error) ?? language.t("settings.github.create.failed"))
+        setBanner(errorText(result.error) ?? language.t("settings.github.repo.create.failed"))
         return
       }
       setCreateName("")
-      showToast({ variant: "success", title: language.t("settings.github.create.success") })
+      setCreatePrivate(false)
+      showToast({ variant: "success", title: language.t("settings.github.repo.create.success", { name: value }) })
       void refetchRepos()
     } catch (error) {
-      setBanner(errorText(error) ?? language.t("settings.github.create.failed"))
+      setBanner(errorText(error) ?? language.t("settings.github.repo.create.failed"))
     } finally {
       setCreating(false)
     }
@@ -183,12 +190,11 @@ export const SettingsGithubV2: Component<{
       }
       setCommitMessage("")
       showToast({ variant: "success", title: language.t("settings.github.commit.success") })
+      void refetchRemote()
     } catch {
       showToast({ variant: "error", title: language.t("settings.github.commit.failed") })
     } finally {
       setCommitting(false)
-      void refetchRemote()
-      void refetchCurrent()
     }
   }
 
@@ -229,218 +235,188 @@ export const SettingsGithubV2: Component<{
   }
 
   return (
-    <>
-      <div class="settings-v2-tab-header">
-        <h2 class="settings-v2-tab-title">{language.t("settings.github.title")}</h2>
-        <p class="settings-v2-tab-description">{language.t("settings.github.description")}</p>
-      </div>
+    <div class="gh-container">
+      <Show when={banner()}>
+        <div class="settings-v2-skills-message" data-variant="error">
+          {banner()}
+        </div>
+      </Show>
 
-      <div class="settings-v2-tab-body settings-v2-github">
-        <Show when={banner()}>
-          <div class="settings-v2-skills-message" data-variant="error">
-            {banner()}
+      <Show
+        when={connected()}
+        fallback={
+          /* Vista Desconectada: Centrada, informativa y profesional */
+          <div class="gh-hero-card">
+            <div class="gh-logo-wrapper">
+              <GitHubLogo size={64} />
+            </div>
+            <h2 class="gh-hero-title">Conectar con GitHub</h2>
+            <p class="gh-hero-desc">
+              Sincroniza tus repositorios, clona proyectos directamente en Tiancode, realiza commits atómicos
+              y empuja cambios de forma automatizada mediante tus agentes y flujos de trabajo.
+            </p>
+
+            <div class="gh-token-box">
+              <span class="gh-token-label">Personal Access Token (PAT)</span>
+              <TextInputV2
+                type="password"
+                appearance="base"
+                class="gh-token-input"
+                value={token()}
+                onInput={(event) => setToken(event.currentTarget.value)}
+                placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                spellcheck={false}
+                autocomplete="off"
+                disabled={status.loading}
+                aria-label="GitHub Personal Access Token"
+              />
+              <span class="gh-token-hint">
+                Requiere permisos <code>repo</code> y <code>read:user</code>. Puedes generarlo en Settings &gt; Developer settings de GitHub.
+              </span>
+            </div>
+
+            <ButtonV2
+              type="button"
+              variant="contrast"
+              size="normal"
+              class="gh-btn-connect"
+              disabled={connecting() || !token().trim() || status.loading}
+              onClick={() => void connect()}
+            >
+              {connecting() ? "Conectando con GitHub..." : "Vincular Cuenta de GitHub"}
+            </ButtonV2>
           </div>
-        </Show>
+        }
+      >
+        {/* Vista Conectada: Tarjeta de perfil extendida + VCS + Repositorios */}
+        <div class="gh-connected-wrapper">
+          {/* Header de Perfil Centrado y Extendido */}
+          <div class="gh-profile-card">
+            <div class="gh-profile-left">
+              <Show when={avatarUrl()} fallback={<GitHubLogo size={48} />}>
+                <img class="gh-profile-avatar" src={avatarUrl()} alt={login() ?? ""} />
+              </Show>
+              <div class="gh-profile-copy">
+                <div class="gh-profile-badge-row">
+                  <span class="gh-badge-connected">✓ Cuenta Vinculada</span>
+                  <span class="gh-badge-repos">{repoList().length} repositorios</span>
+                </div>
+                <h3 class="gh-profile-username">@{login()}</h3>
+                <a
+                  href={`https://github.com/${login()}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="gh-profile-link"
+                >
+                  Ver perfil en GitHub.com ↗
+                </a>
+              </div>
+            </div>
 
-        <Show when={status.loading}>
-          <div class="settings-v2-skills-status">{language.t("settings.github.loading")}</div>
-        </Show>
+            <div class="gh-profile-actions">
+              <ButtonV2 type="button" variant="outline" size="small" onClick={() => void refetchStatus()}>
+                Actualizar Estado
+              </ButtonV2>
+              <ButtonV2 type="button" variant="ghost" size="small" onClick={() => void disconnect()}>
+                Desvincular
+              </ButtonV2>
+            </div>
+          </div>
 
-        <Show
-          when={!status.loading && connected()}
-          fallback={
-            <Show when={!status.loading}>
-              <div class="settings-v2-section settings-v2-github-connect">
-                <h3 class="settings-v2-section-title">{language.t("settings.github.connect.title")}</h3>
-                <p class="settings-v2-github-description">{language.t("settings.github.connect.description")}</p>
-                <TextInputV2
-                  type="password"
-                  appearance="base"
-                  class="settings-v2-github-token"
-                  value={token()}
-                  onInput={(event) => setToken(event.currentTarget.value)}
-                  placeholder={language.t("settings.github.connect.token.placeholder")}
-                  spellcheck={false}
-                  autocomplete="off"
-                  aria-label={language.t("settings.github.connect.token.placeholder")}
-                />
-                <span class="settings-v2-github-hint">{language.t("settings.github.connect.hint")}</span>
-                <div class="settings-v2-github-actions">
+          {/* Estado de VCS del Proyecto Actual */}
+          <Show when={hasProject()}>
+            <div class="gh-vcs-card">
+              <div class="gh-vcs-header">
+                <div>
+                  <h4 class="gh-vcs-title">Control de Versiones (VCS)</h4>
+                  <p class="gh-vcs-path">{projectPath()}</p>
+                </div>
+                <div class="gh-vcs-buttons">
                   <ButtonV2
                     type="button"
-                    variant="contrast"
+                    variant="outline"
                     size="small"
-                    disabled={connecting() || !token().trim()}
-                    onClick={() => void connect()}
+                    disabled={pulling() || !hasRemote()}
+                    onClick={() => void pull()}
                   >
-                    {connecting()
-                      ? language.t("settings.github.connecting")
-                      : language.t("settings.github.connect.button")}
+                    {pulling() ? "Trayendo cambios..." : "⬇ Pull"}
+                  </ButtonV2>
+                  <ButtonV2
+                    type="button"
+                    variant="outline"
+                    size="small"
+                    disabled={pushing() || !hasRemote()}
+                    onClick={() => void push()}
+                  >
+                    {pushing() ? "Empujando cambios..." : "⬆ Push"}
                   </ButtonV2>
                 </div>
               </div>
-            </Show>
-          }
-        >
-          <div class="settings-v2-github-account">
-            <Show when={avatarUrl()} fallback={<Icon name="github" />}>
-              <img class="settings-v2-github-avatar" src={avatarUrl()} alt={login() ?? ""} />
-            </Show>
-            <div class="settings-v2-github-account-copy">
-              <span class="settings-v2-github-account-label">{language.t("settings.github.connected.title")}</span>
-              <span class="settings-v2-github-account-login">{login()}</span>
-            </div>
-            <div class="settings-v2-github-account-actions">
-              <ButtonV2 type="button" variant="outline" size="small" onClick={() => void refetchStatus()}>
-                {language.t("settings.github.refresh")}
-              </ButtonV2>
-              <ButtonV2 type="button" variant="ghost" size="small" onClick={() => void disconnect()}>
-                {language.t("settings.github.disconnect.button")}
-              </ButtonV2>
-            </div>
-          </div>
 
-          <div class="settings-v2-section">
-            <h3 class="settings-v2-section-title">{language.t("settings.github.repos.title")}</h3>
-            <TextInputV2
-              type="text"
-              appearance="base"
-              class="settings-v2-github-search"
-              value={search()}
-              onInput={(event) => setSearch(event.currentTarget.value)}
-              placeholder={language.t("settings.github.repos.search.placeholder")}
-              showClearButton={search().length > 0}
-              onClearClick={() => setSearch("")}
-              spellcheck={false}
-              autocomplete="off"
-              aria-label={language.t("settings.github.repos.search.placeholder")}
-            />
-            <Show
-              when={visibleRepos().length > 0}
-              fallback={<div class="settings-v2-skills-status">{language.t("settings.github.repos.empty")}</div>}
-            >
-              <SettingsListV2>
-                <For each={visibleRepos()}>
-                  {(repo) => (
-                    <div class="settings-v2-github-repo">
-                      <div class="settings-v2-github-repo-copy">
-                        <div class="settings-v2-github-repo-name-row">
-                          <span class="settings-v2-github-repo-name">{repo.fullName}</span>
-                          <span class="settings-v2-github-chip" data-variant="type">
-                            {language.t(repo.private ? "settings.github.repo.private" : "settings.github.repo.public")}
-                          </span>
-                        </div>
-                        <Show when={repo.description}>
-                          <div class="settings-v2-github-repo-description">{repo.description}</div>
-                        </Show>
-                      </div>
+              <div class="gh-commit-bar">
+                <TextInputV2
+                  type="text"
+                  appearance="base"
+                  value={commitMessage()}
+                  onInput={(e) => setCommitMessage(e.currentTarget.value)}
+                  placeholder="Mensaje de commit (ej. feat: nueva funcionalidad)..."
+                />
+                <ButtonV2
+                  type="button"
+                  variant="contrast"
+                  size="small"
+                  disabled={committing() || !commitMessage().trim()}
+                  onClick={() => void commit()}
+                >
+                  {committing() ? "Guardando..." : "Commit"}
+                </ButtonV2>
+              </div>
+            </div>
+          </Show>
+
+          {/* Explorador de Repositorios */}
+          <div class="gh-repos-section">
+            <div class="gh-repos-header">
+              <h4 class="gh-section-title">Tus Repositorios de GitHub</h4>
+              <TextInputV2
+                type="text"
+                appearance="base"
+                class="gh-repos-search"
+                value={search()}
+                onInput={(event) => setSearch(event.currentTarget.value)}
+                placeholder="Buscar en tus repositorios..."
+                showClearButton={search().length > 0}
+                onClearClick={() => setSearch("")}
+              />
+            </div>
+
+            <div class="gh-repos-grid">
+              <For each={visibleRepos()}>
+                {(repo) => (
+                  <div class="gh-repo-card">
+                    <div class="gh-repo-top">
+                      <span class="gh-repo-name">{repo.fullName}</span>
+                      <span class="gh-repo-vis">{repo.private ? "Privado" : "Público"}</span>
+                    </div>
+                    <p class="gh-repo-desc">{repo.description || "Sin descripción proporcionada."}</p>
+                    <div class="gh-repo-bottom">
                       <ButtonV2
                         type="button"
                         variant="outline"
                         size="small"
-                        disabled={cloning() !== undefined}
+                        disabled={cloning() === repo.fullName}
                         onClick={() => void cloneRepo(repo)}
                       >
-                        {cloning() === repo.fullName
-                          ? language.t("settings.github.repo.cloning")
-                          : language.t("settings.github.repo.clone")}
+                        {cloning() === repo.fullName ? "Clonando..." : "Clonar y Abrir"}
                       </ButtonV2>
                     </div>
-                  )}
-                </For>
-              </SettingsListV2>
-            </Show>
-          </div>
-
-          <div class="settings-v2-section">
-            <h3 class="settings-v2-section-title">{language.t("settings.github.create.title")}</h3>
-            <SettingsListV2>
-              <SettingsRowV2 title={language.t("settings.github.create.name")} description="">
-                <TextInputV2
-                  type="text"
-                  appearance="base"
-                  value={createName()}
-                  onInput={(event) => setCreateName(event.currentTarget.value)}
-                  placeholder={language.t("settings.github.create.name.placeholder")}
-                  spellcheck={false}
-                  autocomplete="off"
-                  aria-label={language.t("settings.github.create.name")}
-                />
-              </SettingsRowV2>
-              <SettingsRowV2 title={language.t("settings.github.create.private")} description="">
-                <div class="flex items-center">
-                  <Switch checked={createPrivate()} onChange={setCreatePrivate} hideLabel>
-                    {language.t("settings.github.create.private")}
-                  </Switch>
-                </div>
-              </SettingsRowV2>
-            </SettingsListV2>
-            <div class="settings-v2-github-actions">
-              <ButtonV2
-                type="button"
-                variant="contrast"
-                size="small"
-                disabled={creating() || !createName().trim()}
-                onClick={() => void createRepo()}
-              >
-                {language.t("settings.github.create.button")}
-              </ButtonV2>
+                  </div>
+                )}
+              </For>
             </div>
           </div>
-
-          <Show when={hasProject()}>
-            <div class="settings-v2-section">
-              <h3 class="settings-v2-section-title">{language.t("settings.github.project.title")}</h3>
-              <div class="settings-v2-github-project">
-                <div class="settings-v2-github-project-path" title={projectPath()}>
-                  {projectPath()}
-                </div>
-                <Show when={remoteUrl()}>
-                  <div class="settings-v2-github-project-remote" title={remoteUrl()}>
-                    {remoteUrl()}
-                  </div>
-                </Show>
-              </div>
-              <Show
-                when={hasRemote()}
-                fallback={<span class="settings-v2-github-hint">{language.t("settings.github.project.noRemote")}</span>}
-              >
-                <div class="settings-v2-github-vcs">
-                  <div class="settings-v2-github-vcs-row">
-                    <ButtonV2 type="button" variant="outline" size="small" disabled={pulling()} onClick={() => void pull()}>
-                      {language.t("settings.github.pull.button")}
-                    </ButtonV2>
-                    <ButtonV2 type="button" variant="contrast" size="small" disabled={pushing()} onClick={() => void push()}>
-                      {language.t("settings.github.push.button")}
-                    </ButtonV2>
-                  </div>
-                  <div class="settings-v2-github-vcs-commit">
-                    <TextInputV2
-                      type="text"
-                      appearance="base"
-                      value={commitMessage()}
-                      onInput={(event) => setCommitMessage(event.currentTarget.value)}
-                      placeholder={language.t("settings.github.commit.placeholder")}
-                      spellcheck={false}
-                      autocomplete="off"
-                      aria-label={language.t("settings.github.commit.placeholder")}
-                    />
-                    <ButtonV2
-                      type="button"
-                      variant="outline"
-                      size="small"
-                      disabled={committing() || !commitMessage().trim()}
-                      onClick={() => void commit()}
-                    >
-                      {language.t("settings.github.commit.button")}
-                    </ButtonV2>
-                  </div>
-                </div>
-              </Show>
-            </div>
-          </Show>
-        </Show>
-      </div>
-    </>
+        </div>
+      </Show>
+    </div>
   )
 }

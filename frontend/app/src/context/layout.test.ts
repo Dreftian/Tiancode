@@ -1,6 +1,27 @@
 import { describe, expect, test } from "bun:test"
 import { createRoot, createSignal } from "solid-js"
+import { normalizeLiveViewState } from "./layout-live-view"
 import { createSessionKeyReader, ensureSessionKey, pruneSessionKeys } from "./layout-helpers"
+
+describe("live view layout migration", () => {
+  test("moves the retired Dev tools tab to Preview without losing its width or open state", () => {
+    expect(normalizeLiveViewState({ opened: true, tab: "devtools", width: 840 })).toEqual({
+      opened: true,
+      tab: "preview",
+      width: 840,
+      expanded: false,
+    })
+  })
+
+  test("keeps an expanded Sandbox persisted across app restarts", () => {
+    expect(normalizeLiveViewState({ opened: true, tab: "code", width: 840, expanded: true })).toEqual({
+      opened: true,
+      tab: "code",
+      width: 840,
+      expanded: true,
+    })
+  })
+})
 
 describe("layout session-key helpers", () => {
   test("couples touch and scroll seed in order", () => {

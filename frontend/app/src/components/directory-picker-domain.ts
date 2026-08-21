@@ -379,7 +379,16 @@ export function createDirectorySearch(args: { sdk: ServerSDK; base: () => string
         .then((result) => result.data.map((entry) => entry.path))
         .catch(() => [])
       if (!active()) return []
-      return results.map((path) => joinPickerPath(input.directory, path)).slice(0, 50)
+      if (results.length) {
+        return results.map((path) => joinPickerPath(input.directory, path)).slice(0, 50)
+      }
+      // El servidor no devolvió resultados (p. ej. sin índices): se rellena con
+      // el listado/coincidencia local para que el picker siga funcionando.
+      const fallback = query
+        ? await match(input.directory, query, 50)
+        : (await directories(input.directory)).map((item) => item.absolute)
+      if (!active()) return []
+      return fallback
     }
     const segments = query.replace(/^\/+/, "").split("/")
     const head = segments.slice(0, -1).filter((part) => part && part !== ".")

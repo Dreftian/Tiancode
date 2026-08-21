@@ -9,7 +9,7 @@ import { LSP } from "@/lsp/lsp"
 import { Vcs } from "@/project/vcs"
 import { Skill } from "@/skill"
 import { Effect } from "effect"
-import { HttpApiBuilder } from "effect/unstable/httpapi"
+import { HttpApiBuilder, HttpApiError } from "effect/unstable/httpapi"
 import { InstanceHttpApi } from "../api"
 import { AgentCreateInput, ApiVcsApplyError, SkillImportInput } from "../groups/instance"
 import { markInstanceForDisposal } from "../lifecycle"
@@ -91,7 +91,10 @@ export const instanceHandlers = HttpApiBuilder.group(InstanceHttpApi, "instance"
       return yield* skill.all()
     })
 
-    const importSkill = Effect.fn("InstanceHttpApi.skillImport")(function* (ctx) {      const cfg = yield* config.get()
+    const importSkill = Effect.fn("InstanceHttpApi.skillImport")(function* (ctx: {
+      payload: typeof SkillImportInput.Type
+    }) {
+      const cfg = yield* config.get()
       const existing = cfg.skills
       const paths = existing && !Array.isArray(existing) ? (existing.paths ?? []) : []
       const urls = existing && !Array.isArray(existing) ? (existing.urls ?? []) : []
@@ -102,9 +105,13 @@ export const instanceHandlers = HttpApiBuilder.group(InstanceHttpApi, "instance"
           yield* config.update({ ...cfg, skills: next })
         }
       } else {
-        const root = path.join(global.config, "skills", ctx.payload.name!)
-        for (const file of ctx.payload.files ?? []) {
-          yield* fs.writeWithDirs(path.join(root, file.path), file.content).pipe(Effect.orDie)
+        if (!ctx.payload.name || !ctx.payload.files?.length) return yield* new HttpApiError.BadRequest({})
+        const root = skillImportRoot(global.config, ctx.payload.name)
+        if (!root) return yield* new HttpApiError.BadRequest({})
+        const files = ctx.payload.files.map((file) => ({ ...file, target: skillImportDestination(root, file.path) }))
+        if (files.some((file) => !file.target)) return yield* new HttpApiError.BadRequest({})
+        for (const file of files) {
+          yield* fs.writeWithDirs(file.target!, file.content).pipe(Effect.orDie)
         }
         if (!paths.includes(root)) {
           const next =
@@ -123,22 +130,30 @@ export const instanceHandlers = HttpApiBuilder.group(InstanceHttpApi, "instance"
     })
 
     const createAgent = Effect.fn("InstanceHttpApi.agentCreate")(function* (ctx) {
-      const file = path.join(global.config, "agent", `${ctx.payload.name}.md`)
+      const file = agentDefinitionPath(global.config, ctx.payload.name)
+      if (!file) return yield* new HttpApiError.BadRequest({})
       yield* fs.writeWithDirs(file, buildAgentMarkdown(ctx.payload)).pipe(Effect.orDie)
+      // The agent state reads the markdown files through the instance config
+      // cache, so drop it before reloading or the new agent would not appear.
+      yield* config.invalidateInstance()
       yield* agent.reload()
       return yield* agent.get(ctx.payload.name)
     })
 
     const updateAgent = Effect.fn("InstanceHttpApi.agentUpdate")(function* (ctx) {
-      const file = path.join(global.config, "agent", `${ctx.params.name}.md`)
+      const file = agentDefinitionPath(global.config, ctx.params.name)
+      if (!file) return yield* new HttpApiError.BadRequest({})
       yield* fs.writeWithDirs(file, buildAgentMarkdown({ ...ctx.payload, name: ctx.params.name })).pipe(Effect.orDie)
+      yield* config.invalidateInstance()
       yield* agent.reload()
       return yield* agent.get(ctx.params.name)
     })
 
     const deleteAgent = Effect.fn("InstanceHttpApi.agentDelete")(function* (ctx) {
-      const file = path.join(global.config, "agent", `${ctx.params.name}.md`)
+      const file = agentDefinitionPath(global.config, ctx.params.name)
+      if (!file) return yield* new HttpApiError.BadRequest({})
       yield* fs.remove(file).pipe(Effect.orDie)
+      yield* config.invalidateInstance()
       yield* agent.reload()
       return { success: true } as const
     })
@@ -171,6 +186,30 @@ export const instanceHandlers = HttpApiBuilder.group(InstanceHttpApi, "instance"
       .handle("formatter", getFormatter)
   }),
 )
+
+export function skillImportDestination(root: string, filePath: string) {
+  if (filePath.split(/[\\/]+/).includes("..") || path.isAbsolute(filePath) || path.win32.isAbsolute(filePath)) return
+  const target = path.resolve(root, filePath)
+  const relative = path.relative(root, target)
+  if (!relative || relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) return
+  return target
+}
+
+export function skillImportRoot(config: string, name: string) {
+  const skills = path.join(config, "skills")
+  return skillImportDestination(skills, name)
+}
+
+export function agentDefinitionPath(config: string, name: string) {
+  if (
+    !name.trim() ||
+    name.split(/[\\/]+/).includes("..") ||
+    path.isAbsolute(name) ||
+    path.win32.isAbsolute(name)
+  )
+    return
+  return skillImportDestination(path.join(config, "agent"), `${name}.md`)
+}
 
 const AGENT_TOOL_CATALOG = [
   "read",

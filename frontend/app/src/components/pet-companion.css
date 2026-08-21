@@ -1,0 +1,187 @@
+.pet-companion {
+  position: fixed;
+  z-index: 70;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100vw - 32px);
+  padding: 6px 9px;
+  border: 1px solid var(--v2-border-border-subtle, rgba(15, 23, 42, 0.14));
+  border-radius: 999px;
+  color: var(--v2-text-text-primary, #0f172a);
+  background: color-mix(in srgb, var(--v2-background-bg-base, #fff) 92%, transparent);
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+}
+
+.pet-companion:hover {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+}
+
+.pet-companion[data-petted] .pet-companion-glyph {
+  animation: pet-companion-heart 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes pet-companion-heart {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.35) rotate(-10deg); }
+  70% { transform: scale(1.2) rotate(10deg); }
+  100% { transform: scale(1); }
+}
+
+.pet-companion--bottom-right {
+  right: 16px;
+  bottom: 16px;
+}
+
+.pet-companion--bottom-left {
+  bottom: 16px;
+  left: 16px;
+}
+
+.pet-companion--top-right {
+  top: 52px;
+  right: 16px;
+}
+
+.pet-companion--top-left {
+  top: 52px;
+  left: 16px;
+}
+
+/* En las posiciones derechas la burbuja queda a la izquierda del glifo para
+   no salirse por el borde de la ventana; la cola apunta hacia la derecha. */
+.pet-companion--bottom-right,
+.pet-companion--top-right {
+  flex-direction: row-reverse;
+}
+
+.pet-companion-glyph {
+  display: inline-block;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.pet-companion-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  color: #fff;
+  background: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Burbuja estilo Codex: la acción actual de la IA, truncada a dos líneas con
+   ellipsis. El texto llega ya colapsado a una sola línea desde el componente
+   y se actualiza en vivo con el stream. */
+.pet-companion-bubble {
+  position: relative;
+  min-width: 0;
+  max-width: min(240px, calc(100vw - 150px));
+  padding: 5px 10px;
+  border: 1px solid var(--v2-border-border-subtle, rgba(15, 23, 42, 0.14));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--v2-background-bg-base, #fff) 96%, transparent);
+  color: var(--v2-text-text-secondary, #334155);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+/* Cola de la burbuja apuntando al glifo (burbuja a la derecha del glifo). */
+.pet-companion-bubble::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -5px;
+  width: 8px;
+  height: 8px;
+  transform: translateY(-50%) rotate(45deg);
+  background: inherit;
+  border-left: 1px solid var(--v2-border-border-subtle, rgba(15, 23, 42, 0.14));
+  border-bottom: 1px solid var(--v2-border-border-subtle, rgba(15, 23, 42, 0.14));
+}
+
+/* Con row-reverse la burbuja queda a la izquierda del glifo: cola a la
+   derecha. */
+.pet-companion--bottom-right .pet-companion-bubble::before,
+.pet-companion--top-right .pet-companion-bubble::before {
+  left: auto;
+  right: -5px;
+  border-left: none;
+  border-bottom: none;
+  border-top: 1px solid var(--v2-border-border-subtle, rgba(15, 23, 42, 0.14));
+  border-right: 1px solid var(--v2-border-border-subtle, rgba(15, 23, 42, 0.14));
+}
+
+.pet-companion[data-status="running"] .pet-companion-glyph {
+  animation: pet-companion-bob 1.1s ease-in-out infinite;
+}
+
+.pet-companion[data-status="running"] .pet-companion-status {
+  background: #2563eb;
+  animation: pet-companion-pulse 1.1s ease-in-out infinite;
+}
+
+.pet-companion[data-status="needs-input"] .pet-companion-glyph {
+  animation: pet-companion-wiggle 0.7s ease-in-out infinite;
+}
+
+.pet-companion[data-status="needs-input"] .pet-companion-status {
+  background: #d97706;
+}
+
+.pet-companion[data-status="blocked"] .pet-companion-glyph {
+  filter: grayscale(1);
+}
+
+.pet-companion[data-status="blocked"] .pet-companion-status {
+  background: #dc2626;
+}
+
+.pet-companion[data-status="ready"] {
+  opacity: 0.78;
+}
+
+@keyframes pet-companion-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes pet-companion-wiggle {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-8deg); }
+  75% { transform: rotate(8deg); }
+}
+
+@keyframes pet-companion-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.16); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pet-companion *,
+  .pet-companion {
+    animation: none !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .pet-companion--bottom-right,
+  .pet-companion--bottom-left {
+    bottom: 76px;
+  }
+}

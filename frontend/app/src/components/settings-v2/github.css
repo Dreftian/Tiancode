@@ -1,212 +1,290 @@
-.settings-v2-github {
-  gap: 20px;
-}
+/* GitHub Integration Settings - Centered & Extended UI */
 
-.settings-v2-github-connect {
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.settings-v2-github-description {
-  font-size: 13px;
-  font-weight: 440;
-  line-height: 1.5;
-  color: var(--v2-text-text-muted);
-}
-
-.settings-v2-github-token {
+.gh-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   width: 100%;
-  max-width: 420px;
 }
 
-.settings-v2-github-hint {
-  font-size: 11px;
-  font-weight: 440;
-  line-height: 1.45;
-  color: var(--v2-text-text-faint);
-}
-
-.settings-v2-github-actions {
+/* Centered Hero Card for Disconnected State */
+.gh-hero-card {
   display: flex;
-  justify-content: flex-start;
-  gap: 8px;
-  padding-top: 4px;
-}
-
-.settings-v2-github-account {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 20px;
-  border-radius: 10px;
-  background-color: var(--v2-background-bg-layer-01);
-  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
-}
-
-.settings-v2-github-avatar {
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
-  border-radius: 999px;
-  background-color: var(--v2-background-bg-layer-02);
-  object-fit: cover;
-}
-
-.settings-v2-github-account > [data-component="icon"] {
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
-  padding: 7px;
-  border-radius: 999px;
-  background-color: var(--v2-background-bg-layer-02);
-  color: var(--v2-text-text-muted);
-}
-
-.settings-v2-github-account-copy {
-  display: flex;
-  min-width: 0;
   flex-direction: column;
-  gap: 2px;
-}
-
-.settings-v2-github-account-label {
-  font-size: 11px;
-  font-weight: 440;
-  line-height: 1;
-  color: var(--v2-text-text-muted);
-}
-
-.settings-v2-github-account-login {
-  overflow: hidden;
-  font-size: 13px;
-  font-weight: 560;
-  line-height: 1.2;
-  color: var(--v2-text-text-base);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.settings-v2-github-account-actions {
-  display: flex;
-  flex-shrink: 0;
   align-items: center;
+  text-align: center;
+  max-width: 580px;
+  margin: 30px auto;
+  padding: 36px 32px;
+  background: var(--v2-background-bg-layer-02, #18191e);
+  border: 1px solid var(--v2-border-border-muted, rgba(255, 255, 255, 0.08));
+  border-radius: 16px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
+}
+
+.gh-logo-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  margin-bottom: 18px;
+  color: #f1f5f9;
+  box-shadow: 0 0 30px rgba(255, 255, 255, 0.08);
+}
+
+.gh-hero-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 8px;
+}
+
+.gh-hero-desc {
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+.gh-token-box {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  text-align: left;
   gap: 6px;
-  margin-left: auto;
+  margin-bottom: 20px;
 }
 
-.settings-v2-github-search {
-  max-width: 280px;
+.gh-token-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #cbd5e1;
 }
 
-.settings-v2-github-repo {
+.gh-token-input {
+  width: 100%;
+}
+
+.gh-token-hint {
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.gh-token-hint code {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 4px;
+  border-radius: 4px;
+  color: #93c5fd;
+}
+
+.gh-btn-connect {
+  width: 100%;
+}
+
+/* Connected State */
+.gh-connected-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.gh-profile-card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding-block: 12px;
-  border-bottom: 0.5px solid var(--v2-border-border-base);
+  justify-content: space-between;
+  padding: 20px 24px;
+  background: var(--v2-background-bg-layer-02, #18191e);
+  border: 1px solid var(--v2-border-border-muted, rgba(255, 255, 255, 0.08));
+  border-radius: 14px;
 }
 
-.settings-v2-github-repo:last-child {
-  border-bottom: none;
-}
-
-.settings-v2-github-repo-copy {
+.gh-profile-left {
   display: flex;
-  min-width: 0;
-  flex: 1;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 18px;
 }
 
-.settings-v2-github-repo-name-row {
+.gh-profile-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 2px solid rgba(59, 130, 246, 0.5);
+}
+
+.gh-profile-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.gh-profile-badge-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 0;
 }
 
-.settings-v2-github-repo-name {
-  overflow: hidden;
-  font-size: 13px;
-  font-weight: 560;
-  line-height: 1.15;
-  color: var(--v2-text-text-base);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.settings-v2-github-repo-description {
-  overflow: hidden;
+.gh-badge-connected {
+  padding: 2px 8px;
+  background: rgba(34, 197, 94, 0.2);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #4ade80;
+  border-radius: 6px;
   font-size: 11px;
-  font-weight: 440;
-  line-height: 1.4;
-  color: var(--v2-text-text-muted);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-weight: 600;
 }
 
-.settings-v2-github-chip {
-  flex-shrink: 0;
-  padding: 3px 7px;
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 640;
-  letter-spacing: 0.02em;
-  font-variant-numeric: tabular-nums;
-  color: var(--v2-text-text-muted);
-  background-color: var(--v2-background-bg-layer-02);
+.gh-badge-repos {
+  padding: 2px 8px;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  color: #60a5fa;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
 }
 
-.settings-v2-github-project {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 14px 20px;
-  border-radius: 10px;
-  background-color: var(--v2-background-bg-layer-01);
-  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
+.gh-profile-username {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
 }
 
-.settings-v2-github-project-path {
-  overflow: hidden;
-  font-family: var(--v2-font-mono);
+.gh-profile-link {
   font-size: 12px;
-  font-weight: 480;
-  line-height: 1.35;
-  color: var(--v2-text-text-base);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: #60a5fa;
+  text-decoration: none;
 }
 
-.settings-v2-github-project-remote {
-  overflow: hidden;
-  font-family: var(--v2-font-mono);
-  font-size: 11px;
-  font-weight: 440;
-  line-height: 1.35;
-  color: var(--v2-text-text-faint);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.gh-profile-link:hover {
+  text-decoration: underline;
 }
 
-.settings-v2-github-vcs {
+.gh-profile-actions {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 10px;
 }
 
-.settings-v2-github-vcs-row {
+/* VCS Card */
+.gh-vcs-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 20px;
+  background: var(--v2-background-bg-layer-02, #18191e);
+  border: 1px solid var(--v2-border-border-muted, rgba(255, 255, 255, 0.08));
+  border-radius: 12px;
+}
+
+.gh-vcs-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+}
+
+.gh-vcs-title {
+  font-size: 14px;
+  font-weight: 650;
+  color: #f1f5f9;
+}
+
+.gh-vcs-path {
+  font-size: 11px;
+  color: #94a3b8;
+  font-family: monospace;
+}
+
+.gh-vcs-buttons {
+  display: flex;
   gap: 8px;
 }
 
-.settings-v2-github-vcs-commit {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.gh-commit-bar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
 }
 
-.settings-v2-github-vcs-commit [data-component="text-input-v2"] {
-  flex: 1;
+/* Repos Grid */
+.gh-repos-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gh-repos-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.gh-section-title {
+  font-size: 15px;
+  font-weight: 650;
+  color: #ffffff;
+}
+
+.gh-repos-search {
+  max-width: 280px;
+}
+
+.gh-repos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.gh-repo-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px;
+  background: var(--v2-background-bg-layer-02, #18191e);
+  border: 1px solid var(--v2-border-border-muted, rgba(255, 255, 255, 0.08));
+  border-radius: 10px;
+}
+
+.gh-repo-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.gh-repo-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #f1f5f9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gh-repo-vis {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+}
+
+.gh-repo-desc {
+  font-size: 11.5px;
+  color: #94a3b8;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.gh-repo-bottom {
+  display: flex;
+  justify-content: flex-end;
 }

@@ -41,6 +41,7 @@ export interface IdTokenClaims {
   email?: string
   "https://api.openai.com/auth"?: {
     chatgpt_account_id?: string
+    workspace_compute_residency?: string
   }
 }
 
@@ -71,6 +72,19 @@ export function extractAccountId(tokens: TokenResponse): string | undefined {
   if (tokens.access_token) {
     const claims = parseJwtClaims(tokens.access_token)
     return claims ? extractAccountIdFromClaims(claims) : undefined
+  }
+  return undefined
+}
+
+export function extractComputeResidency(tokens: TokenResponse): string | undefined {
+  if (tokens.id_token) {
+    const claims = parseJwtClaims(tokens.id_token)
+    const residency = claims?.["https://api.openai.com/auth"]?.workspace_compute_residency
+    if (residency) return residency
+  }
+  if (tokens.access_token) {
+    const claims = parseJwtClaims(tokens.access_token)
+    return claims?.["https://api.openai.com/auth"]?.workspace_compute_residency
   }
   return undefined
 }
@@ -406,6 +420,9 @@ export async function CodexAuthPlugin(input: PluginInput, options: CodexAuthPlug
             if (authWithAccount.accountId) {
               headers.set("ChatGPT-Account-Id", authWithAccount.accountId)
             }
+            if ((authWithAccount as any).residency) {
+              headers.set("OpenAI-Compute-Residency", (authWithAccount as any).residency)
+            }
 
             const parsed =
               requestInput instanceof URL
@@ -446,12 +463,14 @@ export async function CodexAuthPlugin(input: PluginInput, options: CodexAuthPlug
                 const tokens = await callbackPromise
                 stopOAuthServer()
                 const accountId = extractAccountId(tokens)
+                const residency = extractComputeResidency(tokens)
                 return {
                   type: "success" as const,
                   refresh: tokens.refresh_token,
                   access: tokens.access_token,
                   expires: Date.now() + (tokens.expires_in ?? 3600) * 1000,
                   accountId,
+                  residency,
                 }
               },
             }
@@ -527,6 +546,7 @@ export async function CodexAuthPlugin(input: PluginInput, options: CodexAuthPlug
                       access: tokens.access_token,
                       expires: Date.now() + (tokens.expires_in ?? 3600) * 1000,
                       accountId: extractAccountId(tokens),
+                      residency: extractComputeResidency(tokens),
                     }
                   }
 

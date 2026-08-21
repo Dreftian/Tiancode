@@ -319,7 +319,7 @@ async function markDiffProbe(page: Page) {
     .locator(`[data-timeline-part-id="${editPartID}"]`)
     .first()
     .evaluate((element) => {
-      const tool = element as HTMLElement
+      const tool = element as unknown as HTMLElement
       const file = tool.querySelector<HTMLElement>('[data-component="file"][data-mode="diff"]')
       const row = tool.closest<HTMLElement>("[data-timeline-key]")
       const frame = tool.closest<HTMLElement>("[data-timeline-row]")
@@ -340,7 +340,7 @@ async function readDiffProbe(page: Page) {
     .locator(`[data-timeline-part-id="${editPartID}"]`)
     .first()
     .evaluate((element) => {
-      const tool = element as HTMLElement
+      const tool = element as unknown as HTMLElement
       const file = tool.querySelector<HTMLElement>('[data-component="file"][data-mode="diff"]')
       const row = tool.closest<HTMLElement>("[data-timeline-key]")
       const frame = tool.closest<HTMLElement>("[data-timeline-row]")

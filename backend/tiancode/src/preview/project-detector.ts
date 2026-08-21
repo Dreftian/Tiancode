@@ -1,0 +1,219 @@
+// Detección del proyecto web y del comando de desarrollo. Detecta el
+// package manager por el lockfile y el framework por las dependencias;
+// prefiere el script `dev` del package.json cuando existe.
+
+import { existsSync } from "node:fs"
+import { readFile } from "node:fs/promises"
+import { isAbsolute, join, relative, resolve, sep } from "node:path"
+
+export type DetectedProject = {
+  framework: string | null
+  packageManager: string
+  script: string
+  port: number
+  entry?: string
+  command?: string[]
+  url?: string
+  workingDirectory?: string
+  error?: string
+}
+
+const DEV_SCRIPTS = ["dev", "develop", "start", "serve"] as const
+const BARE_JSX_ENTRIES = [
+  "src/main.tsx",
+  "src/main.jsx",
+  "src/index.tsx",
+  "src/index.jsx",
+  "src/App.tsx",
+  "src/App.jsx",
+  "main.tsx",
+  "main.jsx",
+  "index.tsx",
+  "index.jsx",
+  "App.tsx",
+  "App.jsx",
+] as const
+
+// Puertos por defecto de los frameworks/bundlers más comunes; el stdout del
+// servidor o el escaneo de puertos confirman el puerto real.
+const FRAMEWORK_PORTS: Record<string, number> = {
+  vite: 5173,
+  next: 3000,
+  astro: 4321,
+  angular: 4200,
+  nuxt: 3000,
+  svelte: 5173,
+  vue: 5173,
+  react: 3000,
+  gatsby: 8000,
+  docusaurus: 3000,
+  html: 4173,
+}
+
+const PREVIEW_CONFIG = "tiancode.preview.json"
+const LOCAL_PREVIEW_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]", "::1"])
+
+export function detectPackageManager(dir: string) {
+  if (existsSync(join(dir, "pnpm-lock.yaml"))) return "pnpm"
+  if (existsSync(join(dir, "yarn.lock"))) return "yarn"
+  if (existsSync(join(dir, "bun.lockb")) || existsSync(join(dir, "bun.lock"))) return "bun"
+  return "npm"
+}
+
+// This module is included in the desktop sidecar's Node bundle as well as the
+// Bun CLI. Keep project discovery on Node APIs: `Bun.file()` made every
+// preview fail in the installed desktop application before it could even read
+// an explicit tiancode.preview.json adapter.
+async function readProjectText(path: string) {
+  try {
+    return await readFile(path, "utf8")
+  } catch {
+    return
+  }
+}
+
+async function findBareJsxEntry(dir: string) {
+  const index = await readProjectText(join(dir, "index.html"))
+  if (index !== undefined) {
+    const match = /<script\b[^>]*\bsrc\s*=\s*["']([^"']+\.(?:jsx|tsx)(?:[?#][^"']*)?)["']/i.exec(index)
+    if (match?.[1] && !/^(?:https?:)?\/\//i.test(match[1])) {
+      const candidate = resolve(dir, match[1].split(/[?#]/, 1)[0].replace(/^[/\\]+/, ""))
+      const entry = relative(dir, candidate)
+      if (entry && entry !== ".." && !entry.startsWith(`..${sep}`) && !isAbsolute(entry) && existsSync(candidate)) {
+        return entry.split(sep).join("/")
+      }
+    }
+  }
+
+  return BARE_JSX_ENTRIES.find((entry) => existsSync(join(dir, entry)))
+}
+
+function bareJsxProject(entry: string): DetectedProject {
+  return { framework: "jsx", packageManager: "bare-jsx", script: "", port: 4173, entry }
+}
+
+function invalidConfiguredProject(error: string): DetectedProject {
+  return { framework: "custom", packageManager: "custom", script: "", port: 0, error }
+}
+
+async function detectConfiguredProject(dir: string): Promise<DetectedProject | undefined> {
+  const text = await readProjectText(join(dir, PREVIEW_CONFIG))
+  if (text === undefined) return
+
+  let config: Record<string, unknown>
+  try {
+    const value = JSON.parse(text) as unknown
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
+      return invalidConfiguredProject(`${PREVIEW_CONFIG} debe contener un objeto JSON.`)
+    }
+    config = value as Record<string, unknown>
+  } catch {
+    return invalidConfiguredProject(`No se pudo leer ${PREVIEW_CONFIG}.`)
+  }
+
+  if (!Array.isArray(config.command) || config.command.length === 0 || config.command.some((item) => typeof item !== "string" || !item.trim() || item.includes("\0"))) {
+    return invalidConfiguredProject(`${PREVIEW_CONFIG}.command debe ser un array no vacío de argumentos, no un comando de shell.`)
+  }
+  if (typeof config.url !== "string" || !config.url.trim()) {
+    return invalidConfiguredProject(`${PREVIEW_CONFIG}.url debe ser una URL HTTP local.`)
+  }
+
+  let url: URL
+  try {
+    url = new URL(config.url)
+  } catch {
+    return invalidConfiguredProject(`${PREVIEW_CONFIG}.url no es una URL válida.`)
+  }
+  if ((url.protocol !== "http:" && url.protocol !== "https:") || !LOCAL_PREVIEW_HOSTS.has(url.hostname.toLowerCase()) || url.username || url.password) {
+    return invalidConfiguredProject(`${PREVIEW_CONFIG}.url debe usar http(s) en localhost, 127.0.0.1 o ::1.`)
+  }
+
+  const inputDirectory = config.workingDirectory ?? "."
+  if (typeof inputDirectory !== "string" || !inputDirectory.trim()) {
+    return invalidConfiguredProject(`${PREVIEW_CONFIG}.workingDirectory debe ser una ruta relativa dentro del proyecto.`)
+  }
+  const resolvedDirectory = resolve(dir, inputDirectory)
+  const directoryRelativePath = relative(dir, resolvedDirectory)
+  if (directoryRelativePath === ".." || directoryRelativePath.startsWith(`..${sep}`) || isAbsolute(directoryRelativePath) || !existsSync(resolvedDirectory)) {
+    return invalidConfiguredProject(`${PREVIEW_CONFIG}.workingDirectory debe existir dentro del proyecto.`)
+  }
+
+  return {
+    framework: typeof config.framework === "string" && config.framework.trim() ? config.framework.trim() : "custom",
+    packageManager: "custom",
+    script: "",
+    port: Number(url.port || (url.protocol === "https:" ? 443 : 80)),
+    command: config.command.map((item) => item.trim()),
+    url: url.toString(),
+    workingDirectory: directoryRelativePath ? directoryRelativePath.split(sep).join("/") : ".",
+  }
+}
+
+export async function detectProject(dir: string): Promise<DetectedProject | null> {
+  const configured = await detectConfiguredProject(dir)
+  if (configured) return configured
+
+  const manifest = await readProjectText(join(dir, "package.json"))
+  if (manifest === undefined) {
+    const entry = await findBareJsxEntry(dir)
+    if (entry) return bareJsxProject(entry)
+
+    // Proyecto estático: sin gestor ni scripts, solo HTML servido localmente
+    // (el agente genera webs con index.html puro y las abre directamente).
+    if (existsSync(join(dir, "index.html"))) {
+      return { framework: "html", packageManager: "static", script: "", port: 4173 }
+    }
+    return null
+  }
+
+  let pkg: Record<string, unknown>
+  try {
+    pkg = JSON.parse(manifest) as Record<string, unknown>
+  } catch {
+    return null
+  }
+
+  const packageManager =
+    typeof pkg.packageManager === "string" && pkg.packageManager.startsWith("pnpm")
+      ? "pnpm"
+      : typeof pkg.packageManager === "string" && pkg.packageManager.startsWith("yarn")
+        ? "yarn"
+        : typeof pkg.packageManager === "string" && pkg.packageManager.startsWith("bun")
+          ? "bun"
+          : detectPackageManager(dir)
+
+  const deps: Record<string, unknown> = {
+    ...(typeof pkg.dependencies === "object" && pkg.dependencies !== null ? (pkg.dependencies as object) : {}),
+    ...(typeof pkg.devDependencies === "object" && pkg.devDependencies !== null ? (pkg.devDependencies as object) : {}),
+  }
+
+  let framework: string | null = null
+  if (deps.vite) framework = "vite"
+  else if (deps.next) framework = "next"
+  else if (deps.astro) framework = "astro"
+  else if (deps.angular || deps["@angular/core"]) framework = "angular"
+  else if (deps.nuxt) framework = "nuxt"
+  else if (deps.svelte) framework = "svelte"
+  else if (deps.vue) framework = "vue"
+  else if (deps.react) framework = "react"
+  else if (deps.gatsby) framework = "gatsby"
+  else if (deps["@docusaurus/core"]) framework = "docusaurus"
+  else if (existsSync(join(dir, "index.html"))) framework = "html"
+
+  const scripts = (typeof pkg.scripts === "object" && pkg.scripts !== null ? pkg.scripts : {}) as Record<string, unknown>
+  // The script name, not its command, is passed to the package manager. The
+  // fallback order covers the conventional React/JSX and static-site commands
+  // without guessing a missing `dev` script.
+  const script = DEV_SCRIPTS.find((key) => typeof scripts[key] === "string")
+  if (!script) {
+    const entry = await findBareJsxEntry(dir)
+    if (entry) return bareJsxProject(entry)
+
+    if (framework === "html") return { framework, packageManager: "static", script: "", port: FRAMEWORK_PORTS.html }
+    return null
+  }
+
+  const port = (framework && FRAMEWORK_PORTS[framework]) || 5173
+
+  return { framework, packageManager, script, port }
+}

@@ -94,52 +94,51 @@ export const SettingsProvidersV2: Component<{
     return true
   }
 
-  const disableProvider = async (providerID: string, name: string) => {
-    if (protocol() !== "v1") return
-    const before = serverSync().data.config.disabled_providers ?? []
-    const next = before.includes(providerID) ? before : [...before, providerID]
-    serverSync().set("config", "disabled_providers", next)
-
-    await serverSync()
-      .updateConfig({ disabled_providers: next })
-      .then(() => {
-        showToast({
-          variant: "success",
-          icon: "circle-check",
-          title: language.t("provider.disconnect.toast.disconnected.title", { provider: name }),
-          description: language.t("provider.disconnect.toast.disconnected.description", { provider: name }),
-        })
-      })
-      .catch((err: unknown) => {
-        serverSync().set("config", "disabled_providers", before)
-        const message = err instanceof Error ? err.message : String(err)
-        showToast({ title: language.t("common.requestFailed"), description: message })
-      })
-  }
-
   const disconnect = async (providerID: string, name: string) => {
-    if (isConfigCustom(providerID)) {
+    try {
+      // 1. Remove auth credentials
       await serverSdk()
         .client.auth.remove({ providerID })
         .catch(() => undefined)
-      await disableProvider(providerID, name)
-      return
+
+      // 2. Remove from config.provider and add to disabled_providers
+      const currentConfig = serverSync().data.config
+      const currentProviders = { ...(currentConfig.provider ?? {}) }
+      let configChanged = false
+      if (currentProviders[providerID]) {
+        delete currentProviders[providerID]
+        configChanged = true
+      }
+      const beforeDisabled = currentConfig.disabled_providers ?? []
+      const nextDisabled = beforeDisabled.includes(providerID) ? beforeDisabled : [...beforeDisabled, providerID]
+      if (!beforeDisabled.includes(providerID)) {
+        configChanged = true
+      }
+
+      if (configChanged) {
+        serverSync().set("config", "provider", currentProviders)
+        serverSync().set("config", "disabled_providers", nextDisabled)
+        await serverSync()
+          .updateConfig({
+            provider: currentProviders,
+            disabled_providers: nextDisabled,
+          })
+          .catch(() => undefined)
+      }
+
+      // 3. Dispose global instance and refresh providers in UI
+      await serverSdk().client.global.dispose().catch(() => undefined)
+
+      showToast({
+        variant: "success",
+        icon: "circle-check",
+        title: language.t("provider.disconnect.toast.disconnected.title", { provider: name }),
+        description: language.t("provider.disconnect.toast.disconnected.description", { provider: name }),
+      })
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err)
+      showToast({ title: language.t("common.requestFailed"), description: message })
     }
-    await serverSdk()
-      .client.auth.remove({ providerID })
-      .then(async () => {
-        await serverSdk().client.global.dispose()
-        showToast({
-          variant: "success",
-          icon: "circle-check",
-          title: language.t("provider.disconnect.toast.disconnected.title", { provider: name }),
-          description: language.t("provider.disconnect.toast.disconnected.description", { provider: name }),
-        })
-      })
-      .catch((err: unknown) => {
-        const message = err instanceof Error ? err.message : String(err)
-        showToast({ title: language.t("common.requestFailed"), description: message })
-      })
   }
 
   return (

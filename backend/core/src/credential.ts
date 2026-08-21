@@ -7,6 +7,7 @@ import { Integration } from "@tiancode-ai/schema/integration"
 import { Database } from "./database/database"
 import { makeGlobalNode } from "./effect/app-node"
 import { CredentialTable } from "./credential/sql"
+import { isSealed, open, readCredentialKey, seal } from "./credential/cipher"
 
 export const ID = Credential.ID
 export type ID = Credential.ID
@@ -52,15 +53,47 @@ const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const { db } = yield* Database.Service
+    const key = readCredentialKey()
     const decode = Schema.decodeUnknownSync(Value)
+    const encode = (value: Value): Credential.Value | string =>
+      key === undefined ? value : seal(JSON.stringify(value), key)
     const stored = (row: typeof CredentialTable.$inferSelect) => {
       if (!row.integration_id) return
+      const raw = row.value
+      if (typeof raw === "string") {
+        if (!isSealed(raw) || key === undefined) return
+        const plain = open(raw, key)
+        if (plain === undefined) return
+        return new Info({
+          id: row.id,
+          integrationID: row.integration_id,
+          label: row.label,
+          value: decode(JSON.parse(plain)),
+        })
+      }
       return new Info({
         id: row.id,
         integrationID: row.integration_id,
         label: row.label,
-        value: decode(row.value),
+        value: decode(raw),
       })
+    }
+
+    // One-time migration: when the server runs with a key (desktop-provisioned),
+    // re-seal any rows still stored as plaintext from before encryption existed.
+    if (key !== undefined) {
+      const migrateAtRest = Effect.fn("Credential.migrateAtRest")(function* () {
+        const rows = yield* db.select().from(CredentialTable).all().pipe(Effect.orDie)
+        yield* Effect.forEach(rows, (row) => {
+          if (typeof row.value === "string") return Effect.void
+          return db
+            .update(CredentialTable)
+            .set({ value: seal(JSON.stringify(row.value), key) })
+            .where(eq(CredentialTable.id, row.id))
+            .run()
+        }, { discard: true }).pipe(Effect.catch((error) => Effect.logError("failed to migrate credentials at rest", { error })))
+      })
+      yield* migrateAtRest()
     }
 
     return Service.of({
@@ -111,7 +144,7 @@ const layer = Layer.effect(
                   id: credential.id,
                   integration_id: credential.integrationID,
                   label: credential.label,
-                  value: credential.value,
+                  value: encode(credential.value),
                 })
                 .run()
             }),
@@ -123,7 +156,7 @@ const layer = Layer.effect(
         if (!updates.label && !updates.value) return
         yield* db
           .update(CredentialTable)
-          .set({ label: updates.label, value: updates.value })
+          .set({ label: updates.label, value: updates.value === undefined ? undefined : encode(updates.value) })
           .where(eq(CredentialTable.id, id))
           .run()
           .pipe(Effect.orDie)

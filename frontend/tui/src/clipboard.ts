@@ -23,7 +23,11 @@ function command(command: string, args: string[] = [], input?: string) {
 function writeOsc52(text: string) {
   if (!process.stdout.isTTY) return
   const sequence = `\x1b]52;c;${Buffer.from(text).toString("base64")}\x07`
-  process.stdout.write(process.env.TMUX || process.env.STY ? `\x1bPtmux;\x1b${sequence}\x1b\\` : sequence)
+  const passthrough = `\x1bPtmux;\x1b${sequence}\x1b\\`
+  // Inside tmux send both the plain sequence (tmux itself is the OSC52 client
+  // with `set-clipboard on`) and the passthrough (for the outer terminal over
+  // ssh); inside screen only the passthrough reaches the outer terminal.
+  process.stdout.write(process.env.TMUX ? sequence + passthrough : process.env.STY ? passthrough : sequence)
 }
 
 export async function read() {

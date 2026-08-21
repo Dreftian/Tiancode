@@ -29,3 +29,37 @@ export declare module "solid-js" {
     }
   }
 }
+
+interface Window {
+  __TIANCODE__?: {
+    deepLinks?: string[]
+  }
+  api?: {
+    setTitlebar?: (theme: { mode: "light" | "dark"; scheme?: "system" | "light" | "dark" }) => Promise<void>
+    exportDebugLogs?: () => Promise<string>
+    storeGet?: (name: string, key: string) => Promise<string | null>
+    storeSet?: (name: string, key: string, value: string) => Promise<void>
+    relaunchApp?: () => Promise<void>
+    notify?: (title: string, body: string) => Promise<void>
+    setLoginItem?: (enabled: boolean) => Promise<boolean>
+    getLoginItem?: () => Promise<boolean>
+    clearWebviewData?: () => Promise<void>
+    backupNow?: () => Promise<string | null>
+    listBackups?: () => Promise<{ name: string; createdAt: number }[]>
+    restoreBackup?: (name: string) => Promise<void>
+    isFirstLaunchOnboardingPending?: () => Promise<boolean>
+    finishFirstLaunchOnboarding?: (createDefaultProject?: boolean) => Promise<string | null>
+    voices?: any
+    asr?: any
+    runtime?: {
+      install: (kind: "ollama" | "lmstudio") => Promise<{ ok: boolean; error?: string }>
+      onState: (
+        cb: (state: {
+          status: "idle" | "downloading" | "installing" | "error"
+          progress?: number
+          error?: string
+        }) => void,
+      ) => () => void
+    }
+  }
+}

@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documentación — Tiancode</title>
+  <meta name="description" content="Documentación oficial de Tiancode: instalación, agentes, sub-agentes, skills, modelos locales, GitHub, MCP Servers, plugins, voces TTS y bandeja del sistema.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Tiancode">
+  <meta property="og:title" content="Documentación — Tiancode">
+  <meta property="og:description" content="Documentación oficial de Tiancode: instalación, agentes, sub-agentes, skills, modelos locales, GitHub, MCP Servers, plugins, voces TTS y bandeja del sistema.">
+  <meta property="og:url" content="https://tiancode.vercel.app/recursos/docs.html">
+  <meta property="og:image" content="https://tiancode.vercel.app/img/og-image.png">
+  <meta property="og:locale" content="es_ES">
+  <meta property="og:locale:alternate" content="en_US">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Documentación — Tiancode">
+  <meta name="twitter:description" content="Documentación oficial de Tiancode: instalación, agentes, sub-agentes, skills, modelos locales, GitHub, MCP Servers, plugins, voces TTS y bandeja del sistema.">
+  <meta name="twitter:image" content="https://tiancode.vercel.app/img/og-image.png">
+  <link rel="canonical" href="https://tiancode.vercel.app/recursos/docs.html">
+  <link rel="icon" type="image/png" href="img/favicon.png">
+  <script>
+    (function () {
+      // Confirma JS disponible (revela el contenido .reveal) y aplica el tema
+      // guardado antes del primer render para evitar parpadeo.
+      document.documentElement.classList.add('js');
+      try {
+        var theme = localStorage.getItem('tiancode-theme');
+        document.documentElement.setAttribute(
+          'data-theme',
+          theme || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+        );
+      } catch (e) { /* almacenamiento no disponible */ }
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/layout.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/pages.css">
+</head>
+<body>
+
+  <!-- ================= Header ================= -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="logo" aria-label="Tiancode">
+        <span class="logo-mark" aria-hidden="true">
+          <img class="logo-theme-light" src="../img/tian-white.png" alt="" draggable="false" />
+          <img class="logo-theme-dark" src="../img/tian-black.png" alt="" draggable="false" />
+        </span>
+        Tiancode
+      </a>
+
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a href="../index.html#features">Características</a>
+        <a href="../index.html#how">Cómo funciona</a>
+        <a href="../index.html#preview">Vista previa</a>
+        <a href="../index.html#stats">Estadísticas</a>
+        <a href="../index.html#skills">Skills</a>
+        <div class="nav-dropdown">
+          <button class="nav-dropdown-toggle" type="button" aria-expanded="false" aria-haspopup="true"
+                  aria-label="Abrir menú de recursos">
+            <span>Recursos</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          <div class="nav-dropdown-menu">
+            <a href="../recursos/guia.html">Guía de inicio</a>
+            <a href="../recursos/docs.html">Documentación</a>
+            <a href="../recursos/faq.html">Preguntas frecuentes</a>
+            <a href="../recursos/novedades.html">Novedades</a>
+            <a href="../recursos/portable.html">Modo portable</a>
+            <a href="../recursos/descargas.html">Descarga</a>
+            <span class="nav-dropdown-sep" aria-hidden="true"></span>
+            <a href="../legal/licencia.html">Licencia</a>
+            <a href="../legal/terminos.html">Términos</a>
+            <a href="../legal/privacidad.html">Privacidad</a>
+          </div>
+        </div>
+        <a href="../recursos/descargas.html" class="btn btn-ghost nav-download">Descargar</a>
+      </nav>
+
+      <div class="header-actions">
+        <button id="theme-toggle" class="icon-btn" type="button" aria-label="Cambiar tema claro/oscuro" aria-pressed="true">
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        </button>
+        <button id="nav-toggle" class="icon-btn nav-toggle" type="button" aria-label="Abrir menú" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <line x1="3" y1="7" x2="21" y2="7"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="17" x2="21" y2="17"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="page page--active">
+      <div class="container">
+        <div class="page-inner page-inner--wide">
+            <div class="page-toolbar reveal">
+            <a href="../index.html" class="page-back">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+              </svg>
+              <span>Volver al inicio</span>
+            </a>
+          </div>
+          <header class="page-head reveal">
+            <span class="eyebrow">Recursos</span>
+            <h1 class="page-title">Documentación</h1>
+            <p class="page-sub">La guía oficial de Tiancode: instalación, agentes, skills, modelos locales, GitHub, MCP, plugins, voces, configuración, comandos y solución de problemas.</p>
+          </header>
+          <div class="page-body reveal" style="--rd:.08s">
+              <nav class="docs-toc reveal" aria-label="Contenido de la documentación">
+                <span class="toc-label">Contenido</span>
+                <a href="#d-instalacion"><span class="toc-num">1</span><span>Instalación</span></a>
+                <a href="#d-agentes"><span class="toc-num">2</span><span>Agentes y sub-agentes</span></a>
+                <a href="#d-skills"><span class="toc-num">3</span><span>Skills</span></a>
+                <a href="#d-modelos"><span class="toc-num">4</span><span>Modelos locales</span></a>
+                <a href="#d-github"><span class="toc-num">5</span><span>GitHub</span></a>
+                <a href="#d-mcp"><span class="toc-num">6</span><span>Servidores MCP</span></a>
+                <a href="#d-plugins"><span class="toc-num">7</span><span>Plugins</span></a>
+                <a href="#d-voces"><span class="toc-num">8</span><span>Voces TTS</span></a>
+                <a href="#d-tray"><span class="toc-num">9</span><span>Bandeja del sistema</span></a>
+                <a href="#d-configuracion"><span class="toc-num">10</span><span>Configuración</span></a>
+                <a href="#d-comandos"><span class="toc-num">11</span><span>Comandos</span></a>
+                <a href="#d-problemas"><span class="toc-num">12</span><span>Solución de problemas</span></a>
+              </nav>
+              <h2 id="d-instalacion">1. Instalación</h2>
+              <p>Tiancode 1.0.0 se distribuye en dos formatos para Windows 10 y 11 (64 bits):</p>
+              <ul class="page-list">
+                <li>Instalador NSIS (Tiancode.exe, ~270 MB): instalación clásica con asistente, accesos directos y actualizaciones sencillas.</li>
+                <li>Versión portable (Tiancode-portable.exe, ~270 MB): sin instalación, se ejecuta desde cualquier carpeta o USB.</li>
+              </ul>
+              <p>Requisitos mínimos: Windows 10 u 11 de 64 bits, 4 GB de RAM y 1 GB de espacio libre. Para modelos locales se recomiendan 8 GB de RAM o más. En el primer arranque, un onboarding te muestra el disclaimer de uso responsable de la IA y te deja elegir tema e idioma.</p>
+              <h2 id="d-agentes">2. Agentes y sub-agentes</h2>
+              <p>Los agentes son asistentes de IA especializados que trabajan en tu proyecto. Puedes tener varios agentes en la misma conversación, delegar tareas a sub-agentes y asignar a cada uno un rol (senior-dev, reviewer, arquitecto…).</p>
+              <pre class="code-block"><code>$ tiancode --agent senior-dev</code></pre>
+              <p>Cada agente mantiene su propio contexto y puede ejecutar comandos en la terminal integrada para verificar su trabajo antes de proponer cambios. Los sub-agentes se crean desde Configuración → Sub-Agentes: eliges el modo (primary o subagente), el modelo, uno de los 8 colores, las herramientas permitidas (con permisos finos entre lectura y escritura) y un system prompt propio. La barra de título tiene toggles para mostrar u ocultar la terminal y el panel de archivos.</p>
+              <h2 id="d-skills">3. Skills</h2>
+              <p>Tiancode incluye 52+ skills de ingeniería de software listas para usar: entrevistas de requisitos, TDD, code review, auditoría de seguridad, optimización de rendimiento, CI/CD, refactorización, depuración asistida, frontend-design, grill-me, writing-plans, planning-and-task-breakdown, using-git-worktrees y más.</p>
+              <p>La pestaña Skills las lista con paginación, muestra sus detalles en markdown al costado y permite activar o desactivar cada skill con un toggle. También puedes crear las tuyas propias añadiendo archivos a la carpeta de skills: cada skill define el flujo de trabajo que sigue el agente.</p>
+              <h2 id="d-modelos">4. Modelos locales</h2>
+              <p>Desde la pestaña Modelos Locales puedes buscar y descargar modelos GGUF directamente desde HuggingFace, al estilo LM Studio. El flujo completo:</p>
+              <ol class="page-list">
+                <li>Abre Configuración → Modelos Locales y explora el catálogo, por ejemplo llama-3.1-8b-instruct.</li>
+                <li>Filtra con el buscador y elige una cuantización: Q2_K, Q3_K_L, Q4_K_M, Q6_K, Q8_0, la familia IQ* o F16. La app muestra el tamaño exacto de cada archivo.</li>
+                <li>Comprueba el indicador de compatibilidad (verde, azul o rojo) y el panel de Información del sistema, que detecta automáticamente tu RAM, disco libre, GPU y CPU.</li>
+                <li>Descarga el archivo: verás una barra de progreso y la descarga se reanuda si la conexión se corta. El espacio libre en disco se verifica antes de empezar.</li>
+                <li>Selecciona el modelo local como proveedor activo y empieza a conversar sin conexión.</li>
+              </ol>
+              <pre class="code-block"><code>%APPDATA%\Tiancode\models\llama-3.1-8b-instruct.Q4_K_M.gguf</code></pre>
+              <p>La ejecución usa el backend de llama.cpp: funciona en CPU y aprovecha las GPUs NVIDIA o AMD cuando están disponibles.</p>
+              <h2 id="d-github">5. GitHub</h2>
+              <p>Configuración → GitHub conecta tu cuenta sin salir de la app. Después de iniciar sesión una vez:</p>
+              <ul class="page-list">
+                <li>Lista tus repositorios y el estado del remoto directamente en la app.</li>
+                <li>Clona repositorios existentes o crea otros nuevos desde una plantilla.</li>
+                <li>Haz commit, push y pull desde la conversación, sin navegador.</li>
+                <li>Desconecta la cuenta cuando quieras; el token se guarda solo en tu equipo.</li>
+              </ul>
+              <h2 id="d-mcp">6. Servidores MCP</h2>
+              <p>La pestaña MCP Servers conecta herramientas externas mediante el Model Context Protocol. Incluye 8 presets locales listos para usar: filesystem, fetch, memory, sequential-thinking, time, playwright, context7 y git. El catálogo Discover añade 15 servidores populares:</p>
+              <ul class="page-list">
+                <li>Locales: android-emulator, node-repl, ios-simulator, chrome-devtools, playwright, context7, aikido (con clave) y airwallex (con clave).</li>
+                <li>Remotos: canva, circle, appwrite, apollo, graphos-tools, atlan y awsknowledge.</li>
+              </ul>
+              <p>Cada servidor muestra su estado en vivo, agrupado en Conectado, Errores, Desactivado y Desconocido, junto con el número de herramientas que expone. Los servidores remotos se conectan por URL y algunos requieren una clave API que se añade después de crearlos.</p>
+              <h2 id="d-plugins">7. Plugins</h2>
+              <p>La pestaña Plugins instala apps desde npm o plugins locales con un clic. El catálogo incluye @biomejs/biome, @playwright/mcp, @octokit/rest, @slack/web-api, @notionhq/client, @sentry/cli, agent-notify y @chime-io/plugin-claude, además de plugins locales como env-guard, commit-helper, notify-idle y shell-env.</p>
+              <h2 id="d-voces">8. Voces TTS</h2>
+              <p>Configuración → Voces descarga el modelo de voz kokoro (solo escritorio) y te deja elegir la voz con una vista previa. Las voces femeninas aparecen primero, con idiomas como español, inglés, francés, hindi, italiano, japonés, portugués y chino. Con la voz seleccionada, la app puede leer las respuestas en voz alta, y el botón de micrófono del campo de mensaje te permite dictar en lugar de escribir.</p>
+              <h2 id="d-tray">9. Bandeja del sistema</h2>
+              <p>En Configuración → General, activa «Minimizar a bandeja»: al minimizar o cerrar, Tiancode se queda en la bandeja del sistema y vuelves a tu conversación con un clic en el icono, sin perder el contexto.</p>
+              <h2 id="d-configuracion">10. Configuración</h2>
+              <p>El diálogo de configuración (1240 px) usa un sidebar compacto con 12 pestañas: General, Atajos, Servidores, Proveedores, Modelos, Modelos Locales, GitHub, Voces, Plugins, Skills, Sub-Agentes y MCP Servers. En la barra de título de la ventana, junto a los botones de minimizar, hay toggles para mostrar u ocultar el terminal y el panel de archivos.</p>
+              <h2 id="d-comandos">11. Comandos</h2>
+              <p>La CLI de Tiancode expone comandos útiles desde cualquier terminal:</p>
+              <pre class="code-block"><code>tiancode                     # Abre la aplicación
+tiancode --agent senior-dev  # Inicia un agente concreto
+tiancode --portable          # Fuerza el modo portable
+tiancode --models            # Abre la gestión de modelos locales
+tiancode --version           # Muestra la versión instalada</code></pre>
+              <h2 id="d-problemas">12. Solución de problemas</h2>
+              <ul class="page-list">
+                <li>El modelo local va lento: elige una cuantización menor (Q4 en lugar de Q8) o un modelo más pequeño.</li>
+                <li>La descarga de modelos falla: comprueba la conexión y el espacio libre en la carpeta de modelos.</li>
+                <li>No conecta con el proveedor: revisa la clave API en Configuración → Proveedores.</li>
+                <li>GitHub no sincroniza: revisa la conexión en Configuración → GitHub y, si hace falta, vuelve a conectar la cuenta.</li>
+                <li>Un servidor MCP aparece en «Errores»: revisa el comando o la URL del servidor y su requisito de clave API.</li>
+                <li>Las voces no se escuchan: comprueba que el modelo de voz está descargado en Configuración → Voces.</li>
+                <li>La app no arranca en modo portable: asegúrate de tener permisos de escritura en la carpeta.</li>
+                <li>¿Sigue el problema? Abre una incidencia adjuntando los logs de la carpeta de datos.</li>
+              </ul>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ================= Footer ================= -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <a href="../index.html" class="logo" aria-label="Tiancode">
+            <span class="logo-mark" aria-hidden="true">
+              <img class="logo-theme-light" src="../img/tian-white.png" alt="" draggable="false" />
+              <img class="logo-theme-dark" src="../img/tian-black.png" alt="" draggable="false" />
+            </span>
+            Tiancode
+          </a>
+          <p>El asistente de IA para programar, hecho para Windows.</p>
+        </div>
+        <span class="footer-version"><i aria-hidden="true"></i>v1.0.0 · MIT</span>
+      </div>
+      <div class="footer-grid">
+        <nav class="footer-col" aria-label="Producto">
+          <h2>Producto</h2>
+          <a href="../productos/app.html">La app</a>
+          <a href="../recursos/descargas.html">Descargar</a>
+          <a href="../recursos/novedades.html">Novedades</a>
+          <a href="../recursos/portable.html">Modo portable</a>
+        </nav>
+        <nav class="footer-col" aria-label="Recursos">
+          <h2>Recursos</h2>
+          <a href="../recursos/docs.html">Documentación</a>
+          <a href="../recursos/guia.html">Guía de inicio</a>
+          <a href="../recursos/faq.html">Preguntas frecuentes</a>
+        </nav>
+        <nav class="footer-col" aria-label="Legal">
+          <h2>Legal</h2>
+          <a href="../legal/privacidad.html">Privacidad</a>
+          <a href="../legal/terminos.html">Términos</a>
+          <a href="../legal/licencia.html">Licencia</a>
+        </nav>
+        <nav class="footer-col" aria-label="Comunidad">
+          <h2>Comunidad</h2>
+          <a href="https://github.com/" rel="noopener noreferrer" target="_blank">GitHub</a>
+          <a href="https://discord.com/" rel="noopener noreferrer" target="_blank">Discord</a>
+          <a href="https://x.com/" rel="noopener noreferrer" target="_blank">X / Twitter</a>
+          <a href="https://www.youtube.com/" rel="noopener noreferrer" target="_blank">YouTube</a>
+        </nav>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2026 Tiancode. Todos los derechos reservados.</p>
+        <p class="footer-made">Hecho con <span class="footer-heart" aria-hidden="true">♥</span> por <span class="footer-credit">Dreitz</span></p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Revela el contenido al cargar (sin IntersectionObserver) y activa el menú móvil
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('.reveal').forEach(function (el) { el.classList.add('is-visible'); });
+      var header = document.querySelector('.site-header');
+      var navToggle = document.getElementById('nav-toggle');
+      if (navToggle && header) {
+        navToggle.addEventListener('click', function () {
+          var open = header.classList.toggle('nav-open');
+          navToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+        document.querySelectorAll('.main-nav a').forEach(function (link) {
+          link.addEventListener('click', function () { header.classList.remove('nav-open'); });
+        });
+      }
+      var dropdown = document.querySelector('.nav-dropdown');
+      var dropdownToggle = dropdown ? dropdown.querySelector('.nav-dropdown-toggle') : null;
+      if (dropdownToggle) {
+        dropdownToggle.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var open = dropdown.classList.toggle('is-open');
+          dropdownToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+      }
+      document.addEventListener('click', function (e) {
+        if (dropdown && !dropdown.contains(e.target)) {
+          dropdown.classList.remove('is-open');
+          var toggle = dropdown.querySelector('.nav-dropdown-toggle');
+          if (toggle) toggle.setAttribute('aria-expanded', 'false');
+        }
+      });
+    });
+  </script>
+  <script type="module">
+    import { initTheme } from '../js/theme.js';
+    initTheme();
+  </script>
+</body>
+</html>

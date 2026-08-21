@@ -5,7 +5,7 @@ import { Switch } from "@tiancode-ai/ui/switch"
 import { Tabs } from "@tiancode-ai/ui/tabs"
 import { showToast } from "@/utils/toast"
 import { useNavigate } from "@solidjs/router"
-import { type Accessor, createEffect, createMemo, For, type JSXElement, onCleanup, Show } from "solid-js"
+import { type Accessor, createEffect, createMemo, createSignal, For, type JSXElement, onCleanup, Show } from "solid-js"
 import { createStore } from "solid-js/store"
 import { ServerHealthIndicator, ServerRow } from "@/components/server/server-row"
 import { useLanguage } from "@/context/language"
@@ -297,6 +297,23 @@ export function StatusPopoverBody(props: { shown: Accessor<boolean> }) {
   const pluginCount = createMemo(() => plugins().length)
   const pluginEmpty = createMemo(() => pluginEmptyMessage(language.t("dialog.plugins.empty"), "tiancode.json"))
 
+  const [showOnlyActive, setShowOnlyActive] = createSignal(true)
+  const sortedMcpNames = createMemo(() => {
+    const names = mcpNames()
+    return [...names].sort((a, b) => {
+      const activeA = mcpStatus(a) === "connected" ? 1 : 0
+      const activeB = mcpStatus(b) === "connected" ? 1 : 0
+      if (activeA !== activeB) return activeB - activeA
+      return a.localeCompare(b)
+    })
+  })
+  const visibleMcpNames = createMemo(() => {
+    const sorted = sortedMcpNames()
+    if (!showOnlyActive()) return sorted
+    const active = sorted.filter((name) => mcpStatus(name) === "connected")
+    return active.length > 0 ? active : sorted
+  })
+
   return (
     <div class="flex items-center gap-1 w-[360px] rounded-xl shadow-[var(--shadow-lg-border-base)]">
       <Tabs
@@ -399,61 +416,75 @@ export function StatusPopoverBody(props: { shown: Accessor<boolean> }) {
 
         <Tabs.Content value="mcp">
           <div class="flex flex-col px-2 pb-2">
-            <div class="flex flex-col p-3 bg-background-base rounded-sm min-h-14">
+            <div class="flex flex-col p-2 bg-background-base rounded-sm min-h-14">
+              <div class="flex items-center justify-between px-2 pb-1.5 border-b border-border-weak-base/30 mb-1">
+                <span class="text-11-medium text-text-weak">
+                  {mcpConnected()} / {mcpNames().length} {language.t("status.popover.tab.mcp")}
+                </span>
+                <button
+                  type="button"
+                  class="text-[11px] px-1.5 py-0.5 rounded bg-surface-raised-base hover:bg-surface-raised-base-hover text-text-weak hover:text-text-base transition-colors"
+                  onClick={() => setShowOnlyActive(!showOnlyActive())}
+                >
+                  {showOnlyActive() ? "Ver todos" : "Solo activos"}
+                </button>
+              </div>
               <Show
-                when={mcpNames().length > 0}
+                when={visibleMcpNames().length > 0}
                 fallback={
-                  <div class="text-14-regular text-text-base text-center my-auto">{language.t("dialog.mcp.empty")}</div>
+                  <div class="text-14-regular text-text-base text-center my-auto py-4">{language.t("dialog.mcp.empty")}</div>
                 }
               >
-                <For each={mcpNames()}>
-                  {(name) => {
-                    const status = () => mcpStatus(name)
-                    const enabled = () => status() === "connected"
-                    return (
-                      <button
-                        type="button"
-                        class="flex items-center gap-2 w-full min-h-8 pl-3 pr-2 py-1 rounded-md hover:bg-surface-raised-base-hover transition-colors text-left"
-                        onClick={() => {
-                          if (toggleMcp.isPending) return
-                          toggleMcp.mutate(name)
-                        }}
-                        disabled={toggleMcp.isPending && toggleMcp.variables === name}
-                      >
-                        <div
-                          classList={{
-                            "size-1.5 rounded-full shrink-0": true,
-                            "bg-icon-success-base": status() === "connected",
-                            "bg-icon-critical-base": status() === "failed",
-                            "bg-border-weak-base": status() === "disabled",
-                            "bg-icon-warning-base":
-                              status() === "needs_auth" || status() === "needs_client_registration",
+                <div class="flex flex-col max-h-[320px] overflow-y-auto pr-1">
+                  <For each={visibleMcpNames()}>
+                    {(name) => {
+                      const status = () => mcpStatus(name)
+                      const enabled = () => status() === "connected"
+                      return (
+                        <button
+                          type="button"
+                          class="flex items-center gap-2 w-full min-h-8 pl-2 pr-1.5 py-1 rounded-md hover:bg-surface-raised-base-hover transition-colors text-left"
+                          onClick={() => {
+                            if (toggleMcp.isPending) return
+                            toggleMcp.mutate(name)
                           }}
-                        />
-                        <span class="flex flex-col min-w-0 flex-1">
-                          <span class="flex items-center gap-2 min-w-0">
-                            <span class="text-14-regular text-text-base truncate">{name}</span>
-                          </span>
-                          <Show when={status() === "needs_auth"}>
-                            <span class="text-11-regular text-text-weaker truncate">
-                              {language.t("mcp.auth.clickToAuthenticate")}
-                            </span>
-                          </Show>
-                        </span>
-                        <div onClick={(event) => event.stopPropagation()}>
-                          <Switch
-                            checked={enabled()}
-                            disabled={toggleMcp.isPending && toggleMcp.variables === name}
-                            onChange={() => {
-                              if (toggleMcp.isPending) return
-                              toggleMcp.mutate(name)
+                          disabled={toggleMcp.isPending && toggleMcp.variables === name}
+                        >
+                          <div
+                            classList={{
+                              "size-1.5 rounded-full shrink-0": true,
+                              "bg-icon-success-base": status() === "connected",
+                              "bg-icon-critical-base": status() === "failed",
+                              "bg-border-weak-base": status() === "disabled",
+                              "bg-icon-warning-base":
+                                status() === "needs_auth" || status() === "needs_client_registration",
                             }}
                           />
-                        </div>
-                      </button>
-                    )
-                  }}
-                </For>
+                          <span class="flex flex-col min-w-0 flex-1">
+                            <span class="flex items-center gap-2 min-w-0">
+                              <span class="text-13-regular text-text-base truncate">{name}</span>
+                            </span>
+                            <Show when={status() === "needs_auth"}>
+                              <span class="text-10-regular text-text-weaker truncate">
+                                {language.t("mcp.auth.clickToAuthenticate")}
+                              </span>
+                            </Show>
+                          </span>
+                          <div onClick={(event) => event.stopPropagation()}>
+                            <Switch
+                              checked={enabled()}
+                              disabled={toggleMcp.isPending && toggleMcp.variables === name}
+                              onChange={() => {
+                                if (toggleMcp.isPending) return
+                                toggleMcp.mutate(name)
+                              }}
+                            />
+                          </div>
+                        </button>
+                      )
+                    }}
+                  </For>
+                </div>
               </Show>
             </div>
           </div>

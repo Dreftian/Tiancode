@@ -8,7 +8,8 @@
   flex-direction: row;
   align-items: center;
   padding: 0;
-  width: 232px;
+  width: auto;
+  min-width: fit-content;
   max-width: 100%;
   height: 28px;
   background: var(--v2-background-bg-layer-01);

@@ -154,6 +154,9 @@ export const { use: useModels, provider: ModelsProvider } = createSimpleContext(
       (p) => p,
       { initialValue: [] },
     )
+
+    const connectedProviderIds = createMemo(() => new Set(providers.connected().map((p) => p.id)))
+
     return {
       ready,
       list,
@@ -161,7 +164,15 @@ export const { use: useModels, provider: ModelsProvider } = createSimpleContext(
       visible,
       setVisibility,
       recent: {
-        list: () => recentModels()!,
+        list: () => {
+          const avail = available()
+          const connectedSet = connectedProviderIds()
+          return (recentModels() ?? []).filter(
+            (r) =>
+              connectedSet.has(r.providerID) &&
+              avail.some((m) => m.id === r.modelID && m.provider.id === r.providerID),
+          )
+        },
         push,
       },
       variant: {

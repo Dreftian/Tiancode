@@ -190,6 +190,11 @@
   color: var(--v2-text-text-faint);
 }
 
+.settings-v2-voices-chip[data-variant="default"] {
+  color: var(--v2-text-text-contrast);
+  background-color: var(--v2-background-bg-accent);
+}
+
 .settings-v2-voices-filters {
   display: flex;
   flex-wrap: wrap;

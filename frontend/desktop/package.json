@@ -1,26 +1,33 @@
 {
   "name": "@tiancode-ai/desktop",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.92",
   "type": "module",
   "license": "MIT",
-  "homepage": "https://opencode.ai",
+  "homepage": "https://tiancode.ai",
   "author": {
     "name": "Tiancode",
-    "email": "hello@opencode.ai"
+    "email": "hello@tiancode.ai"
   },
   "scripts": {
     "typecheck": "tsgo -b",
-    "lint": "oxlint",
+    "lint": "oxlint --config ../../.oxlintrc.json",
     "predev": "bun ./scripts/predev.ts",
     "dev": "electron-vite dev",
     "prebuild": "bun ./scripts/prebuild.ts",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "package": "electron-builder --config electron-builder.config.ts",
+    "prepare:release": "bun run build && bun run verify:bundled-mcps && bun ./scripts/copy-icons.ts",
+    "prepackage": "bun run prepare:release",
     "package:mac": "electron-builder --mac --config electron-builder.config.ts",
+    "prepackage:mac": "bun run prepare:release",
     "package:win": "electron-builder --win --config electron-builder.config.ts",
+    "prepackage:win": "bun run prepare:release",
+    "verify:win-release": "bun ./scripts/verify-win-release.ts",
+    "verify:bundled-mcps": "bun ./scripts/verify-bundled-mcps.ts",
     "package:linux": "electron-builder --linux --config electron-builder.config.ts",
+    "prepackage:linux": "bun run prepare:release",
     "native:build": "bun install --cwd native"
   },
   "main": "./out/main/index.js",

@@ -124,6 +124,8 @@ export interface Interface {
   readonly available: (agent?: Agent.Info) => Effect.Effect<Info[]>
   /** Enable or disable a skill by name, persisting the choice in config. */
   readonly setEnabled: (name: string, enabled: boolean) => Effect.Effect<void>
+  /** Whether automatic skill selection by project type is enabled (default: true). */
+  readonly autoSelect: () => Effect.Effect<boolean>
   /** Re-scan skills from disk/config after importing or installing new ones. */
   readonly reload: () => Effect.Effect<void>
 }
@@ -229,8 +231,16 @@ const discoverSkills = Effect.fnUntraced(function* (
   }
 
   const configDirs = yield* config.directories()
-  for (const dir of configDirs) {
-    yield* scan(state, dir, TIANCODE_SKILL_PATTERN)
+  const candidateDirs = new Set([
+    ...configDirs,
+    global.config,
+    path.join(worktree, ".tiancode"),
+    path.join(directory, ".tiancode"),
+  ])
+  for (const dir of candidateDirs) {
+    if (yield* fsys.isDir(dir)) {
+      yield* scan(state, dir, TIANCODE_SKILL_PATTERN)
+    }
   }
 
   const cfg = yield* config.get()
@@ -321,7 +331,12 @@ const layer = Layer.effect(
     const require = Effect.fn("Skill.require")(function* (name: string) {
       const s = yield* InstanceState.get(state)
       const info = s.skills[name]
-      if (info) return info
+      if (info) {
+        // Las skills deshabilitadas no se cargan ni por invocación directa de
+        // la herramienta skill (el listado del system prompt ya las filtra).
+        const blocked = yield* disabled()
+        if (!blocked.has(name)) return info
+      }
       return yield* new NotFoundError({ name, available: Object.keys(s.skills).toSorted() })
     })
 
@@ -359,12 +374,17 @@ const layer = Layer.effect(
       yield* InstanceState.invalidate(state)
     })
 
+    const autoSelect = Effect.fn("Skill.autoSelect")(function* () {
+      const cfg = yield* config.get()
+      return cfg.skills?.autoSelect !== false
+    })
+
     const reload = Effect.fn("Skill.reload")(function* () {
       yield* InstanceState.invalidate(discovered)
       yield* InstanceState.invalidate(state)
     })
 
-    return Service.of({ get, require, all, dirs, available, setEnabled, reload })
+    return Service.of({ get, require, all, dirs, available, setEnabled, autoSelect, reload })
   }),
 )
 

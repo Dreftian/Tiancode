@@ -1,0 +1,85 @@
+/* Overlay de selección de área para capturas de pantalla: fondo oscuro,
+   imagen de la pantalla centrada y rectángulo arrastrable. */
+
+.capture-area-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: color-mix(in srgb, var(--color-background-base, #000) 55%, transparent);
+  cursor: crosshair;
+  outline: none;
+}
+
+.capture-area-stage {
+  position: relative;
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 96px);
+  line-height: 0;
+  box-shadow: 0 0 0 1px var(--color-border-border-subtle, rgba(128, 128, 128, 0.4));
+}
+
+.capture-area-stage img {
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 96px);
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.capture-area-rect {
+  position: absolute;
+  border: 1.5px solid #4f8cff;
+  background: rgba(79, 140, 255, 0.12);
+  pointer-events: none;
+}
+
+.capture-area-size {
+  position: absolute;
+  top: -22px;
+  left: 0;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #4f8cff;
+  color: #fff;
+  font-size: 11px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.capture-area-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.capture-area-btn {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border-border-subtle, rgba(128, 128, 128, 0.5));
+  background: var(--color-background-bg-base, #1c1c1f);
+  color: var(--color-text-text-base, #eee);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.capture-area-btn:hover {
+  background: var(--color-background-bg-elevated, #26262a);
+}
+
+.capture-area-btn-primary {
+  background: var(--color-accent-accent, #4f8cff);
+  border-color: transparent;
+  color: #fff;
+}
+
+.capture-area-btn-primary:hover {
+  background: var(--color-accent-accent-hover, #3d7af0);
+}
+
+.capture-area-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

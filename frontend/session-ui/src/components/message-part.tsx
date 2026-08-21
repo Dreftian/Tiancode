@@ -62,7 +62,7 @@ import { AnimatedCountList } from "./tool-count-summary"
 import { ToolStatusTitle } from "./tool-status-title"
 import { patchFiles } from "./apply-patch-file"
 import { partDefaultOpen } from "./part-default-open"
-import { animate } from "motion"
+import { animate } from "framer-motion"
 import { attached, inline, kind, typeLabel } from "./message-file"
 import { readPartText } from "./message-part-text"
 import { SessionProgressIndicatorV2 } from "../v2/components/session-progress-indicator-v2"
@@ -2197,6 +2197,20 @@ ToolRegistry.register({
     })
     const [copied, setCopied] = createSignal(false)
 
+    const lineCount = createMemo(() => (text() ? text().split("\n").length : 0))
+    const byteSize = createMemo(() => (text() ? new TextEncoder().encode(text()).length : 0))
+    const isLarge = createMemo(() => lineCount() > 50 || byteSize() > 4096)
+    const [expandedFull, setExpandedFull] = createSignal(false)
+    const displayText = createMemo(() => {
+      const full = text()
+      if (!full || !isLarge() || expandedFull()) return full
+      const lines = full.split("\n")
+      const head = lines.slice(0, 25).join("\n")
+      const tail = lines.slice(-20).join("\n")
+      const omitted = lines.length - 45
+      return `${head}\n\n... [ ${omitted} líneas compactadas • Haz clic en 'Ver salida completa' ] ...\n\n${tail}`
+    })
+
     const handleCopy = async () => {
       const content = text()
       if (!content) return
@@ -2225,7 +2239,19 @@ ToolRegistry.register({
         )}
       >
         <div data-component="bash-output" dir="ltr">
-          <div data-slot="bash-copy">
+          <div data-slot="bash-copy" class="flex items-center gap-2">
+            <Show when={isLarge()}>
+              <span class="text-xs text-text-weak px-1.5 py-0.5 rounded bg-v2-overlay-simple-overlay-hover">
+                {lineCount()} líneas • {Math.round(byteSize() / 1024)} KB
+              </span>
+              <button
+                type="button"
+                class="text-xs text-text-interactive hover:underline cursor-pointer font-medium"
+                onClick={() => setExpandedFull((v) => !v)}
+              >
+                {expandedFull() ? "Compactar salida" : "Ver salida completa"}
+              </button>
+            </Show>
             <TooltipV2 value={copied() ? i18n.t("ui.message.copied") : i18n.t("ui.message.copy")} placement="top">
               <IconButtonV2
                 icon={<IconV2 name={copied() ? "check" : "outline-copy"} size="small" />}
@@ -2245,7 +2271,7 @@ ToolRegistry.register({
             aria-label={i18n.t("ui.scrollView.ariaLabel")}
           >
             <pre data-slot="bash-pre">
-              <code>{text()}</code>
+              <code>{displayText()}</code>
             </pre>
           </div>
         </div>

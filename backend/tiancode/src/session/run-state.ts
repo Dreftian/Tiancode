@@ -138,7 +138,12 @@ const cancelBackgroundJobs = Effect.fn("SessionRunState.cancelBackgroundJobs")(f
         ),
       { concurrency: "unbounded", discard: true },
     )
-    batch = jobs.filter(matches)
+    const remaining = jobs.filter(matches)
+    // `matches` only shrinks on success, so an unchanged batch means the last
+    // pass cancelled nothing; without this bound a persistently failing
+    // `cancel` would spin forever.
+    if (remaining.length >= batch.length) break
+    batch = remaining
   }
 })
 
