@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    Tiancode — Website i18n
    Diccionarios ES/EN (data-i18n), estado de idioma y aplicación
    de traducciones. Emite el evento 'tiancode:langchange' para

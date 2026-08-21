@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es" data-theme="dark">
 <head>
   <meta charset="UTF-8">
@@ -167,10 +167,10 @@
       </a>
 
       <nav class="main-nav" aria-label="Navegación principal">
-        <a href="#showcase" data-i18n="nav.showcase">Studio</a>
         <a href="#features" data-i18n="nav.features">Características</a>
-        <a href="#how" data-i18n="nav.how">Cómo funciona</a>
+        <a href="#new">Novedades</a>
         <a href="#preview" data-i18n="nav.preview">Vista previa</a>
+        <a href="#how" data-i18n="nav.how">Cómo funciona</a>
         <a href="#stats" data-i18n="nav.stats">Estadísticas</a>
         <a href="#skills" data-i18n="nav.skills">Skills</a>
         <div class="nav-dropdown">
@@ -295,23 +295,40 @@
             </div>
             <div class="hero-win-body">
               <div class="hero-win-side">
-                <span class="skel-side-head"></span>
-                <span class="skel" style="width:82%;height:10px"></span>
-                <span class="skel" style="width:64%;height:10px;margin-left:10px"></span>
-                <span class="skel" style="width:88%;height:10px;margin-left:10px"></span>
-                <span class="skel" style="width:70%;height:10px"></span>
-                <span class="skel" style="width:52%;height:10px;margin-left:10px"></span>
-                <span class="skel" style="width:78%;height:10px"></span>
+                <span class="hero-side-title">Explorador</span>
+                <div class="hero-side-item hero-side-folder">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                  <span>src/</span>
+                </div>
+                <div class="hero-side-item is-active" style="margin-left:8px;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  <span>auth.ts</span>
+                </div>
+                <div class="hero-side-item" style="margin-left:8px;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  <span>server.ts</span>
+                </div>
+                <div class="hero-side-item hero-side-folder">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                  <span>tests/</span>
+                </div>
               </div>
               <div class="hero-win-main">
-                <div class="bubble bubble--agent" data-i18n="mu.chat.agent">He revisado el módulo: la validación ahora está separada en dos funciones, con tests para cada caso.</div>
-                <div class="bubble bubble--user" data-i18n="mu.chat.user">Refactoriza el validador de auth.js</div>
-                <span class="skel" style="width:94%;height:12px"></span>
-                <span class="skel" style="width:78%;height:12px"></span>
-                <span class="skel" style="width:86%;height:12px"></span>
-                <span class="skel" style="width:56%;height:12px"></span>
+                <div class="hero-chat-prompt">
+                  Refactoriza el validador de auth.ts para usar validación estricta con Zod
+                </div>
+                <div class="hero-chat-response">
+                  <span>He actualizado el esquema y protegido los tipos de sesión:</span>
+                  <div class="hero-code-snippet">
+                    <code><span style="color:#60a5fa">export const</span> UserSchema = z.object({<br>&nbsp;&nbsp;id: z.string().uuid(),<br>&nbsp;&nbsp;role: z.enum([<span style="color:#f472b6">'admin'</span>, <span style="color:#f472b6">'dev'</span>])<br>});</code>
+                  </div>
+                  <div class="hero-win-status">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>36 tests pasados · 0 errores TypeScript</span>
+                  </div>
+                </div>
                 <div class="win-input">
-                  <span class="skel"></span>
+                  <span class="win-input-field">Escribe un comando o dicta por voz...</span>
                   <span class="win-input-btn">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                   </span>
@@ -321,227 +338,6 @@
           </div>
           <span class="hero-float-chip hero-float-chip--1"><span data-i18n="hero.fl1">Modelos locales GGUF</span></span>
           <span class="hero-float-chip hero-float-chip--2"><span data-i18n="hero.fl2">15 servidores MCP</span></span>
-        </div>
-      </div>
-    </section>
-
-    <!-- ================= Studio Interactivo / Showcase ================= -->
-    <section id="showcase" class="section showcase-section">
-      <div class="container">
-        <div class="section-head reveal showcase-header">
-          <span class="eyebrow">Studio Interactivo</span>
-          <h2 class="section-title">Experimenta la potencia de Tiancode en vivo</h2>
-          <p class="section-sub">Explora el flujo de trabajo real: agentes inteligentes, modelos locales GGUF, Live Preview DOM, suite MCP y dictado offline.</p>
-        </div>
-
-        <div class="showcase-tabs-nav reveal">
-          <button class="showcase-tab-btn is-active" type="button" data-target-panel="panel-agent">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            <span>Agente &amp; AST Graph</span>
-          </button>
-          <button class="showcase-tab-btn" type="button" data-target-panel="panel-models">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            <span>Modelos GGUF &amp; VRAM</span>
-          </button>
-          <button class="showcase-tab-btn" type="button" data-target-panel="panel-preview">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-            <span>Live Preview DOM</span>
-          </button>
-          <button class="showcase-tab-btn" type="button" data-target-panel="panel-mcp">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            <span>NotebookLM &amp; MCP</span>
-          </button>
-          <button class="showcase-tab-btn" type="button" data-target-panel="panel-voice">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-            <span>Voz &amp; Kokoro TTS</span>
-          </button>
-        </div>
-
-        <div class="showcase-window reveal">
-          <div class="hero-win-bar">
-            <span class="appwin-dots"><span></span><span></span><span></span></span>
-            <span class="hero-win-title">Tiancode Interactive Studio — v1.0.92</span>
-            <span class="hero-win-pill">Live Demo</span>
-          </div>
-
-          <!-- Panel 1: Agent & AST -->
-          <div id="panel-agent" class="showcase-panel is-active">
-            <div class="agent-workspace">
-              <aside class="agent-sidebar">
-                <span class="skel-side-head"></span>
-                <ul class="agent-file-tree">
-                  <li class="agent-file-item is-selected">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
-                    <span>src/auth.ts</span>
-                  </li>
-                  <li class="agent-file-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
-                    <span>src/routes/session.ts</span>
-                  </li>
-                  <li class="agent-file-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
-                    <span>src/crypto/jwt.ts</span>
-                  </li>
-                </ul>
-              </aside>
-              <div class="agent-main-chat">
-                <div class="agent-step-badge">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                  <span>AST CodeGraph · 3 archivos analizados con auto-reparación</span>
-                </div>
-                <div class="code-diff-block">
-                  <div class="diff-line diff-del"><span>-</span> <span>export async function verifyToken(token: string): Promise&lt;boolean&gt; {</span></div>
-                  <div class="diff-line diff-del"><span>-</span> <span>  return jwt.verify(token, process.env.SECRET);</span></div>
-                  <div class="diff-line diff-add"><span>+</span> <span>export async function verifyToken(token: string): Promise&lt;SessionUser&gt; {</span></div>
-                  <div class="diff-line diff-add"><span>+</span> <span>  const payload = await jwtVerify(token, getKey(), { algorithms: ['ES256'] });</span></div>
-                  <div class="diff-line diff-add"><span>+</span> <span>  return validateSessionSchema(payload);</span></div>
-                </div>
-                <div style="font-size:12px;color:var(--text-3);display:flex;gap:16px;flex-wrap:wrap;">
-                  <span>▸ 2 vulnerabilidades corregidas</span>
-                  <span>▸ 36/36 tests unitarios en verde ✓</span>
-                  <span style="color:#10b981;">▸ 0 errores de lint</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Panel 2: Models & VRAM -->
-          <div id="panel-models" class="showcase-panel">
-            <div class="models-hub-view">
-              <div class="models-vram-bar">
-                <div class="vram-header">
-                  <span>Asignación de Memoria VRAM / GPU</span>
-                  <span style="color:#10b981;font-weight:700;">8.4 GB / 12.0 GB VRAM (🟢 100% GPU Offload)</span>
-                </div>
-                <div class="vram-meter-track">
-                  <div class="vram-meter-fill"></div>
-                </div>
-              </div>
-              <div class="models-grid-showcase">
-                <div class="model-card-showcase">
-                  <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <strong style="font-size:14px;">Qwen 2.5 Coder 32B</strong>
-                    <span class="hero-win-pill" style="font-size:9px;">Q4_K_M</span>
-                  </div>
-                  <p style="margin:0;font-size:12px;color:var(--text-2);">Modelo especializado en generación de código, refactorizaciones complejas y arquitecturas.</p>
-                  <span style="font-size:11.5px;color:var(--accent-2);font-weight:600;">⚡ 54.2 tokens/seg</span>
-                </div>
-                <div class="model-card-showcase">
-                  <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <strong style="font-size:14px;">DeepSeek Coder V2</strong>
-                    <span class="hero-win-pill" style="font-size:9px;">Q8_0</span>
-                  </div>
-                  <p style="margin:0;font-size:12px;color:var(--text-2);">Precisión matemática superior para algoritmos, análisis estático y TDD.</p>
-                  <span style="font-size:11.5px;color:var(--accent-2);font-weight:600;">⚡ 68.1 tokens/seg</span>
-                </div>
-                <div class="model-card-showcase">
-                  <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <strong style="font-size:14px;">Llama 3.3 70B Instruct</strong>
-                    <span class="hero-win-pill" style="font-size:9px;">IQ4_XS</span>
-                  </div>
-                  <p style="margin:0;font-size:12px;color:var(--text-2);">Razonamiento conversacional profundo, diseño de API y redacción técnica.</p>
-                  <span style="font-size:11.5px;color:var(--accent-2);font-weight:600;">⚡ 32.4 tokens/seg</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Panel 3: Live Preview -->
-          <div id="panel-preview" class="showcase-panel">
-            <div class="live-preview-split">
-              <div class="live-code-pane">
-                <span style="color:var(--text-3);font-size:11px;">// src/components/HeroCard.tsx</span>
-                <pre style="margin:0;color:var(--text);line-height:1.6;"><code>&lt;<span style="color:#60a5fa">div</span> className="<span style="color:#f472b6">glow-card p-6</span>"&gt;
-  &lt;<span style="color:#60a5fa">h3</span> className="<span style="color:#f472b6">text-xl font-bold</span>"&gt;
-    Tiancode Live Preview
-  &lt;/<span style="color:#60a5fa">h3</span>&gt;
-  &lt;<span style="color:#60a5fa">p</span> className="<span style="color:#f472b6">text-sm text-slate-400</span>"&gt;
-    HMR instantáneo sin parpadeos.
-  &lt;/<span style="color:#60a5fa">p</span>&gt;
-&lt;/<span style="color:#60a5fa">div</span>&gt;</code></pre>
-              </div>
-              <div class="live-render-pane">
-                <div class="preview-browser-bar">
-                  <span class="appwin-dots"><span></span><span></span><span></span></span>
-                  <span style="flex:1;text-align:center;">http://localhost:3000/app</span>
-                  <span style="color:#10b981;font-size:10px;font-weight:700;">HMR 4ms</span>
-                </div>
-                <div class="preview-rendered-ui">
-                  <div class="inspector-highlight-box">&lt;HeroCard /&gt; · 320x180</div>
-                  <div style="padding:16px 20px;border-radius:12px;background:var(--accent-soft);border:1px solid var(--accent);text-align:center;">
-                    <strong style="display:block;margin-bottom:4px;font-size:14px;">Tiancode Live Preview</strong>
-                    <span style="font-size:12px;color:var(--text-2);">HMR instantáneo sin parpadeos.</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Panel 4: MCP Suite -->
-          <div id="panel-mcp" class="showcase-panel">
-            <div class="mcp-suite-view">
-              <div class="mcp-tool-card">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                  <strong>Google NotebookLM</strong>
-                  <span class="mcp-badge-status"><i></i> Activo</span>
-                </div>
-                <p style="margin:0;font-size:12px;color:var(--text-2);">Síntesis documental, búsqueda de fuentes estructuradas y generación de resúmenes.</p>
-                <span style="font-size:11px;color:var(--text-3);">12 fuentes indexadas · 0.2ms</span>
-              </div>
-              <div class="mcp-tool-card">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                  <strong>Playwright Browser</strong>
-                  <span class="mcp-badge-status"><i></i> Activo</span>
-                </div>
-                <p style="margin:0;font-size:12px;color:var(--text-2);">Navegación web automatizada, scraping dinámico y tests de regresión visual.</p>
-                <span style="font-size:11px;color:var(--text-3);">Headless Chromium · 0.4ms</span>
-              </div>
-              <div class="mcp-tool-card">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                  <strong>Chrome DevTools</strong>
-                  <span class="mcp-badge-status"><i></i> Activo</span>
-                </div>
-                <p style="margin:0;font-size:12px;color:var(--text-2);">Auditoría de rendimiento, análisis de red e inspección remota del DOM.</p>
-                <span style="font-size:11px;color:var(--text-3);">CDP Protocol · 0.1ms</span>
-              </div>
-              <div class="mcp-tool-card">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                  <strong>Adobe Photoshop &amp; Unity</strong>
-                  <span class="mcp-badge-status"><i></i> Activo</span>
-                </div>
-                <p style="margin:0;font-size:12px;color:var(--text-2);">Automatización de assets gráficos, sprites y pipelines de videojuegos.</p>
-                <span style="font-size:11px;color:var(--text-3);">IPC Bridge · 0.5ms</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Panel 5: Voice Studio -->
-          <div id="panel-voice" class="showcase-panel">
-            <div class="voice-studio-view">
-              <div class="voice-wave-container" aria-label="Visualizador de onda de audio en tiempo real">
-                <span class="voice-wave-bar"></span>
-                <span class="voice-wave-bar"></span>
-                <span class="voice-wave-bar"></span>
-                <span class="voice-wave-bar"></span>
-                <span class="voice-wave-bar"></span>
-                <span class="voice-wave-bar"></span>
-                <span class="voice-wave-bar"></span>
-                <span class="voice-wave-bar"></span>
-              </div>
-              <div style="text-align:center;max-width:480px;">
-                <div class="hero-badge" style="margin-bottom:12px;">
-                  <span class="badge-dot"></span>
-                  <span>Kokoro TTS &amp; Sherpa-ONNX Whisper (Offline)</span>
-                </div>
-                <p style="margin:0;font-size:14px;color:var(--text-2);">
-                  "Refactoriza la función de autenticación y asegura compatibilidad con JWT."
-                </p>
-                <span style="display:block;margin-top:8px;font-size:11.5px;color:#10b981;font-weight:600;">
-                  Transcrito en 120ms sin conexión a internet
-                </span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </section>
@@ -894,329 +690,223 @@
       </div>
     </section>
 
-    <!-- ================= Vista previa de la app (mockups HTML/CSS) ================= -->
-    <section id="preview" class="section">
+    <!-- ================= Vista previa interactiva de la app ================= -->
+    <section id="preview" class="section showcase-section">
       <div class="container">
-        <div class="section-head reveal">
+        <div class="section-head reveal showcase-header">
           <span class="eyebrow" data-i18n="nav.preview">Vista previa</span>
-          <h2 class="section-title" data-i18n="preview.title">Vista previa de la app</h2>
-          <p class="section-sub" data-i18n="preview.sub">Así se ve Tiancode 1.0.0: la ventana principal con su terminal, el diálogo de configuración, los modelos locales y las skills.</p>
+          <h2 class="section-title">Experimenta la potencia de Tiancode en vivo</h2>
+          <p class="section-sub">Explora el flujo de trabajo real: agentes inteligentes, modelos locales GGUF, Live Preview DOM, suite MCP y dictado offline.</p>
         </div>
 
-        <div class="preview-grid">
+        <div class="showcase-tabs-nav reveal">
+          <button class="showcase-tab-btn is-active" type="button" data-target-panel="panel-agent">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span>Agente &amp; AST Graph</span>
+          </button>
+          <button class="showcase-tab-btn" type="button" data-target-panel="panel-models">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Modelos GGUF &amp; VRAM</span>
+          </button>
+          <button class="showcase-tab-btn" type="button" data-target-panel="panel-preview">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            <span>Live Preview DOM</span>
+          </button>
+          <button class="showcase-tab-btn" type="button" data-target-panel="panel-mcp">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span>NotebookLM &amp; MCP</span>
+          </button>
+          <button class="showcase-tab-btn" type="button" data-target-panel="panel-voice">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            <span>Voz &amp; Kokoro TTS</span>
+          </button>
+        </div>
 
-          <!-- Mockup 1: ventana principal (chat + explorador + terminal) -->
-          <div class="preview-item preview-item--wide reveal" style="--rd:0s">
-            <p class="preview-cap" data-i18n="mu.cap.chat">Ventana principal: chat, explorador y terminal con toggles en el titlebar</p>
-            <div class="appwin" aria-hidden="true">
-              <div class="appwin-titlebar">
-                <span class="appwin-dots"><span></span><span></span><span></span></span>
-                <span class="appwin-title" data-i18n="mu.win.title">Tiancode — senior-dev</span>
-                <span class="appwin-actions">
-                  <span class="titlebar-toggle is-on" data-i18n-aria="mu.tt.term" aria-label="Mostrar/ocultar terminal">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
-                  </span>
-                  <span class="titlebar-toggle is-on" data-i18n-aria="mu.tt.panel" aria-label="Mostrar/ocultar panel">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
-                  </span>
-                  <span class="win-btn" data-i18n-aria="mu.win.min" aria-label="Minimizar">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                  </span>
-                  <span class="win-btn" data-i18n-aria="mu.win.max" aria-label="Maximizar">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
-                  </span>
-                  <span class="win-btn" data-i18n-aria="mu.win.close" aria-label="Cerrar">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
-                  </span>
-                </span>
-              </div>
-              <div class="appwin-body">
-                <div class="apanel">
-                  <div class="apanel-title" data-i18n="mu.panel">Explorador</div>
-                  <div class="apanel-file apanel-file--dir">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-                    src
-                  </div>
-                  <div class="apanel-file apanel-file--nested is-open">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                    auth.js
-                  </div>
-                  <div class="apanel-file apanel-file--nested">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                    app.js
-                  </div>
-                  <div class="apanel-file apanel-file--nested">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                    utils.js
-                  </div>
-                  <div class="apanel-file apanel-file--dir">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-                    tests
-                  </div>
-                  <div class="apanel-file apanel-file--dir">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-                    node_modules
-                  </div>
-                </div>
-                <div class="chat">
-                  <div class="bubble bubble--user" data-i18n="mu.chat.user">Refactoriza el validador de auth.js</div>
-                  <div class="bubble bubble--agent" data-i18n="mu.chat.agent">He revisado el módulo: la validación ahora está separada en dos funciones, con tests para cada caso.</div>
-                  <div class="bubble--code">function validate(input) {
-  return rules.every(r =&gt; r(input))
-}</div>
-                </div>
-              </div>
-              <div class="appwin-term">
-                <span class="term-dot"></span>
-                <span data-i18n="mu.term">$ npm test — 12 tests en verde · build ok</span>
-              </div>
-            </div>
+        <div class="showcase-window reveal">
+          <div class="hero-win-bar">
+            <span class="appwin-dots"><span></span><span></span><span></span></span>
+            <span class="hero-win-title">Tiancode Interactive Studio — v1.0.92</span>
+            <span class="hero-win-pill">Live Demo</span>
           </div>
 
-          <!-- Mockup 2: diálogo de configuración -->
-          <div class="preview-item reveal" style="--rd:.05s">
-            <p class="preview-cap" data-i18n="mu.cap.set">Diálogo de configuración (1240 px) con sidebar compacto</p>
-            <div class="appwin appwin--dialog" aria-hidden="true">
-              <div class="appwin-titlebar">
-                <span class="appwin-dots"><span></span><span></span><span></span></span>
-                <span class="appwin-title" data-i18n="mu.set.title">Configuración</span>
-                <span class="appwin-actions">
-                  <span class="win-btn" data-i18n-aria="mu.win.close" aria-label="Cerrar">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
-                  </span>
-                </span>
-              </div>
-              <div class="appwin-body--dialog">
-                <div class="set-sidebar">
-                  <span class="set-tab is-active">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                    <span data-i18n="mu.tab.general">General</span>
-                  </span>
-                  <span class="set-tab">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
-                    <span data-i18n="mu.tab.providers">Proveedores</span>
-                  </span>
-                  <span class="set-tab">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                    <span data-i18n="mu.tab.skills">Skills</span>
-                  </span>
-                  <span class="set-tab">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    <span data-i18n="mu.tab.subagents">Sub-Agentes</span>
-                  </span>
-                  <span class="set-tab">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                    <span data-i18n="mu.tab.models">Modelos Locales</span>
-                  </span>
+          <!-- Panel 1: Agent & AST -->
+          <div id="panel-agent" class="showcase-panel is-active">
+            <div class="agent-workspace">
+              <aside class="agent-sidebar">
+                <span class="hero-side-title">Workspace</span>
+                <ul class="agent-file-tree">
+                  <li class="agent-file-item is-selected">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                    <span>src/auth.ts</span>
+                  </li>
+                  <li class="agent-file-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                    <span>src/routes/session.ts</span>
+                  </li>
+                  <li class="agent-file-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                    <span>src/crypto/jwt.ts</span>
+                  </li>
+                </ul>
+              </aside>
+              <div class="agent-main-chat">
+                <div class="agent-step-badge">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span>AST CodeGraph · 3 archivos analizados con auto-reparación</span>
                 </div>
-                <div class="set-pane">
-                  <div class="set-row">
-                    <span class="set-label" data-i18n="mu.set.theme">Tema</span>
-                    <span class="set-seg">
-                      <span class="is-on" data-i18n="mu.set.themeDark">Oscuro</span>
-                      <span data-i18n="mu.set.themeLight">Claro</span>
-                    </span>
-                  </div>
-                  <div class="set-row">
-                    <span class="set-label" data-i18n="mu.set.lang">Idioma</span>
-                    <span class="set-seg">
-                      <span class="is-on" data-i18n="mu.set.langEs">Español</span>
-                      <span data-i18n="mu.set.langEn">English</span>
-                    </span>
-                  </div>
-                  <div class="set-row">
-                    <span class="set-label" data-i18n="mu.set.data">Carpeta de datos</span>
-                    <span class="set-path">%APPDATA%\Tiancode</span>
-                  </div>
-                  <div class="set-actions">
-                    <span class="set-btn set-btn--ghost" data-i18n="mu.set.cancel">Cancelar</span>
-                    <span class="set-btn set-btn--primary" data-i18n="mu.set.save">Guardar</span>
-                  </div>
+                <div class="code-diff-block">
+                  <div class="diff-line diff-del"><span>-</span> <span>export async function verifyToken(token: string): Promise&lt;boolean&gt; {</span></div>
+                  <div class="diff-line diff-del"><span>-</span> <span>  return jwt.verify(token, process.env.SECRET);</span></div>
+                  <div class="diff-line diff-add"><span>+</span> <span>export async function verifyToken(token: string): Promise&lt;SessionUser&gt; {</span></div>
+                  <div class="diff-line diff-add"><span>+</span> <span>  const payload = await jwtVerify(token, getKey(), { algorithms: ['ES256'] });</span></div>
+                  <div class="diff-line diff-add"><span>+</span> <span>  return validateSessionSchema(payload);</span></div>
+                </div>
+                <div style="font-size:12px;color:var(--text-3);display:flex;gap:16px;flex-wrap:wrap;">
+                  <span>▸ 2 vulnerabilidades corregidas</span>
+                  <span>▸ 36/36 tests unitarios en verde ✓</span>
+                  <span style="color:#10b981;">▸ 0 errores de lint</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Mockup 3: pestaña Modelos Locales -->
-          <div class="preview-item reveal" style="--rd:.1s">
-            <p class="preview-cap" data-i18n="mu.cap.ml">Pestaña Modelos Locales: compatibilidad según RAM y sistema</p>
-            <div class="appwin appwin--dialog" aria-hidden="true">
-              <div class="appwin-titlebar">
-                <span class="appwin-dots"><span></span><span></span><span></span></span>
-                <span class="appwin-title" data-i18n="mu.set.title">Configuración</span>
-                <span class="appwin-actions">
-                  <span class="win-btn" data-i18n-aria="mu.win.close" aria-label="Cerrar">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
-                  </span>
-                </span>
-              </div>
-              <div class="appwin-body--dialog">
-                <div class="set-sidebar">
-                  <span class="set-tab">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                    <span data-i18n="mu.tab.general">General</span>
-                  </span>
-                  <span class="set-tab">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
-                    <span data-i18n="mu.tab.providers">Proveedores</span>
-                  </span>
-                  <span class="set-tab">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                    <span data-i18n="mu.tab.skills">Skills</span>
-                  </span>
-                  <span class="set-tab">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    <span data-i18n="mu.tab.subagents">Sub-Agentes</span>
-                  </span>
-                  <span class="set-tab is-active">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                    <span data-i18n="mu.tab.models">Modelos Locales</span>
-                  </span>
+          <!-- Panel 2: Models & VRAM -->
+          <div id="panel-models" class="showcase-panel">
+            <div class="models-hub-view">
+              <div class="models-vram-bar">
+                <div class="vram-header">
+                  <span>Asignación de Memoria VRAM / GPU</span>
+                  <span style="color:#10b981;font-weight:700;">8.4 GB / 12.0 GB VRAM (🟢 100% GPU Offload)</span>
                 </div>
-                <div class="set-pane">
-                  <div class="ml-search">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <span data-i18n="mu.ml.search">Buscar modelos en HuggingFace…</span>
+                <div class="vram-meter-track">
+                  <div class="vram-meter-fill"></div>
+                </div>
+              </div>
+              <div class="models-grid-showcase">
+                <div class="model-card-showcase">
+                  <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <strong style="font-size:14px;">Qwen 2.5 Coder 32B</strong>
+                    <span class="hero-win-pill" style="font-size:9px;">Q4_K_M</span>
                   </div>
-                  <table class="ml-table">
-                    <thead>
-                      <tr>
-                        <th data-i18n="mu.ml.colModel">Modelo</th>
-                        <th data-i18n="mu.ml.colQuant">Quant</th>
-                        <th data-i18n="mu.ml.colSize">Tamaño</th>
-                        <th data-i18n="mu.ml.colCompat">Compatibilidad</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td class="ml-model">llama-3.1-8b-instruct</td>
-                        <td class="ml-quant">Q4_K_M</td>
-                        <td class="ml-size">4.92 GB</td>
-                        <td><span class="ml-badge ml-badge--ok" data-i18n="mu.ml.ok">Cómodo</span></td>
-                      </tr>
-                      <tr>
-                        <td class="ml-model">qwen2.5-coder-7b</td>
-                        <td class="ml-quant">Q8_0</td>
-                        <td class="ml-size">8.54 GB</td>
-                        <td><span class="ml-badge ml-badge--mid" data-i18n="mu.ml.mid">Ajustado</span></td>
-                      </tr>
-                      <tr>
-                        <td class="ml-model">deepseek-r1-32b</td>
-                        <td class="ml-quant">Q4_K_M</td>
-                        <td class="ml-size">19.9 GB</td>
-                        <td><span class="ml-badge ml-badge--no" data-i18n="mu.ml.no">No cabe</span></td>
-                      </tr>
-                      <tr>
-                        <td class="ml-model">mistral-7b-instruct</td>
-                        <td class="ml-quant">IQ4_XS</td>
-                        <td class="ml-size">4.14 GB</td>
-                        <td><span class="ml-badge ml-badge--ok" data-i18n="mu.ml.ok">Cómodo</span></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                  <div class="ml-legend">
-                    <span><i class="lg-ok"></i><span data-i18n="mu.ml.ok">Cómodo</span></span>
-                    <span><i class="lg-mid"></i><span data-i18n="mu.ml.mid">Ajustado</span></span>
-                    <span><i class="lg-no"></i><span data-i18n="mu.ml.no">No cabe</span></span>
+                  <p style="margin:0;font-size:12px;color:var(--text-2);">Modelo especializado en generación de código, refactorizaciones complejas y arquitecturas.</p>
+                  <span style="font-size:11.5px;color:var(--accent-2);font-weight:600;">⚡ 54.2 tokens/seg</span>
+                </div>
+                <div class="model-card-showcase">
+                  <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <strong style="font-size:14px;">DeepSeek Coder V2</strong>
+                    <span class="hero-win-pill" style="font-size:9px;">Q8_0</span>
                   </div>
-                  <div class="ml-sys">
-                    <p class="ml-sys-title">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
-                      <span data-i18n="mu.ml.info">Información del sistema</span>
-                    </p>
-                    <div class="ml-sys-grid">
-                      <div class="ml-sys-item"><span data-i18n="mu.ml.ram">RAM</span><b>32 GB DDR5</b></div>
-                      <div class="ml-sys-item"><span data-i18n="mu.ml.disk">Disco libre</span><b data-i18n="mu.ml.diskVal">214 GB libres</b></div>
-                      <div class="ml-sys-item"><span data-i18n="mu.ml.gpu">GPU</span><b>NVIDIA RTX 4060 · 8 GB</b></div>
-                      <div class="ml-sys-item"><span data-i18n="mu.ml.cpu">CPU</span><b>AMD Ryzen 7 5800X</b></div>
-                    </div>
+                  <p style="margin:0;font-size:12px;color:var(--text-2);">Precisión matemática superior para algoritmos, análisis estático y TDD.</p>
+                  <span style="font-size:11.5px;color:var(--accent-2);font-weight:600;">⚡ 68.1 tokens/seg</span>
+                </div>
+                <div class="model-card-showcase">
+                  <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <strong style="font-size:14px;">Llama 3.3 70B Instruct</strong>
+                    <span class="hero-win-pill" style="font-size:9px;">IQ4_XS</span>
                   </div>
-                  <div class="ml-dl">
-                    <div class="ml-dl-label">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                      <span data-i18n="mu.ml.dl">Descargando llama-3.1-8b-instruct.Q4_K_M.gguf… 68%</span>
-                    </div>
-                    <div class="ml-dl-track"><div class="ml-dl-fill"></div></div>
+                  <p style="margin:0;font-size:12px;color:var(--text-2);">Razonamiento conversacional profundo, diseño de API y redacción técnica.</p>
+                  <span style="font-size:11.5px;color:var(--accent-2);font-weight:600;">⚡ 32.4 tokens/seg</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Panel 3: Live Preview -->
+          <div id="panel-preview" class="showcase-panel">
+            <div class="live-preview-split">
+              <div class="live-code-pane">
+                <span style="color:var(--text-3);font-size:11px;">// src/components/HeroCard.tsx</span>
+                <pre style="margin:0;color:var(--text);line-height:1.6;"><code>&lt;<span style="color:#60a5fa">div</span> className="<span style="color:#f472b6">glow-card p-6</span>"&gt;
+  &lt;<span style="color:#60a5fa">h3</span> className="<span style="color:#f472b6">text-xl font-bold</span>"&gt;
+    Tiancode Live Preview
+  &lt;/<span style="color:#60a5fa">h3</span>&gt;
+  &lt;<span style="color:#60a5fa">p</span> className="<span style="color:#f472b6">text-sm text-slate-400</span>"&gt;
+    HMR instantáneo sin parpadeos.
+  &lt;/<span style="color:#60a5fa">p</span>&gt;
+&lt;/<span style="color:#60a5fa">div</span>&gt;</code></pre>
+              </div>
+              <div class="live-render-pane">
+                <div class="preview-browser-bar">
+                  <span class="appwin-dots"><span></span><span></span><span></span></span>
+                  <span style="flex:1;text-align:center;">http://localhost:3000/app</span>
+                  <span style="color:#10b981;font-size:10px;font-weight:700;">HMR 4ms</span>
+                </div>
+                <div class="preview-rendered-ui">
+                  <div class="inspector-highlight-box">&lt;HeroCard /&gt; · 320x180</div>
+                  <div style="padding:16px 20px;border-radius:12px;background:var(--accent-soft);border:1px solid var(--accent);text-align:center;">
+                    <strong style="display:block;margin-bottom:4px;font-size:14px;">Tiancode Live Preview</strong>
+                    <span style="font-size:12px;color:var(--text-2);">HMR instantáneo sin parpadeos.</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Mockup 4: pestaña Skills -->
-          <div class="preview-item reveal" style="--rd:.15s">
-            <p class="preview-cap" data-i18n="mu.cap.sk">Pestaña Skills: toggles, paginación y detalles markdown</p>
-            <div class="appwin appwin--dialog" aria-hidden="true">
-              <div class="appwin-titlebar">
-                <span class="appwin-dots"><span></span><span></span><span></span></span>
-                <span class="appwin-title" data-i18n="mu.set.title">Configuración</span>
-                <span class="appwin-actions">
-                  <span class="win-btn" data-i18n-aria="mu.win.close" aria-label="Cerrar">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
-                  </span>
-                </span>
-              </div>
-              <div class="appwin-body appwin-body--sk">
-                <div class="sk-pane">
-                  <div class="sk-toolbar">
-                    <span class="sk-title" data-i18n="mu.sk.avail">Skills disponibles</span>
-                    <span class="sk-page" data-i18n="mu.sk.page">Página 1 de 4</span>
-                    <span class="sk-nav">
-                      <span>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-                      </span>
-                      <span class="is-on">1</span>
-                      <span>2</span>
-                      <span>3</span>
-                      <span>4</span>
-                      <span>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-                      </span>
-                    </span>
-                  </div>
-                  <div class="sk-body">
-                    <div class="sk-list">
-                      <div class="sk-item is-on">
-                        <span class="sk-item-name">interview-me</span>
-                        <span class="sk-item-desc" data-i18n="mu.sk.d1">Entrevista de requisitos</span>
-                        <span class="sk-toggle" data-i18n-aria="mu.sk.toggle" aria-label="Activar o desactivar skill"></span>
-                      </div>
-                      <div class="sk-item">
-                        <span class="sk-item-name">spec-driven-development</span>
-                        <span class="sk-item-desc" data-i18n="mu.sk.d2">Especificación guiada</span>
-                        <span class="sk-toggle" data-i18n-aria="mu.sk.toggle" aria-label="Activar o desactivar skill"></span>
-                      </div>
-                      <div class="sk-item is-on">
-                        <span class="sk-item-name">test-driven-development</span>
-                        <span class="sk-item-desc" data-i18n="mu.sk.d3">Tests primero, implementación después</span>
-                        <span class="sk-toggle" data-i18n-aria="mu.sk.toggle" aria-label="Activar o desactivar skill"></span>
-                      </div>
-                      <div class="sk-item">
-                        <span class="sk-item-name">code-review-and-quality</span>
-                        <span class="sk-item-desc" data-i18n="mu.sk.d4">Revisión de calidad del código</span>
-                        <span class="sk-toggle" data-i18n-aria="mu.sk.toggle" aria-label="Activar o desactivar skill"></span>
-                      </div>
-                      <div class="sk-item is-on">
-                        <span class="sk-item-name">security-and-hardening</span>
-                        <span class="sk-item-desc" data-i18n="mu.sk.d5">Endurecimiento de seguridad</span>
-                        <span class="sk-toggle" data-i18n-aria="mu.sk.toggle" aria-label="Activar o desactivar skill"></span>
-                      </div>
-                      <div class="sk-item">
-                        <span class="sk-item-name">performance-optimization</span>
-                        <span class="sk-item-desc" data-i18n="mu.sk.d6">Optimización de rendimiento</span>
-                        <span class="sk-toggle" data-i18n-aria="mu.sk.toggle" aria-label="Activar o desactivar skill"></span>
-                      </div>
-                    </div>
-                    <div class="sk-detail">
-                      <p class="sk-detail-title">test-driven-development.md</p>
-                      <p data-i18n="mu.sk.md">Cuando la activas, el agente sigue el flujo TDD: red, green, refactor.</p>
-                    </div>
-                  </div>
+          <!-- Panel 4: MCP Suite -->
+          <div id="panel-mcp" class="showcase-panel">
+            <div class="mcp-suite-view">
+              <div class="mcp-tool-card">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <strong>Google NotebookLM</strong>
+                  <span class="mcp-badge-status"><i></i> Activo</span>
                 </div>
+                <p style="margin:0;font-size:12px;color:var(--text-2);">Síntesis documental, búsqueda de fuentes estructuradas y generación de resúmenes.</p>
+                <span style="font-size:11px;color:var(--text-3);">12 fuentes indexadas · 0.2ms</span>
+              </div>
+              <div class="mcp-tool-card">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <strong>Playwright Browser</strong>
+                  <span class="mcp-badge-status"><i></i> Activo</span>
+                </div>
+                <p style="margin:0;font-size:12px;color:var(--text-2);">Navegación web automatizada, scraping dinámico y tests de regresión visual.</p>
+                <span style="font-size:11px;color:var(--text-3);">Headless Chromium · 0.4ms</span>
+              </div>
+              <div class="mcp-tool-card">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <strong>Chrome DevTools</strong>
+                  <span class="mcp-badge-status"><i></i> Activo</span>
+                </div>
+                <p style="margin:0;font-size:12px;color:var(--text-2);">Auditoría de rendimiento, análisis de red e inspección remota del DOM.</p>
+                <span style="font-size:11px;color:var(--text-3);">CDP Protocol · 0.1ms</span>
+              </div>
+              <div class="mcp-tool-card">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <strong>Adobe Photoshop &amp; Unity</strong>
+                  <span class="mcp-badge-status"><i></i> Activo</span>
+                </div>
+                <p style="margin:0;font-size:12px;color:var(--text-2);">Automatización de assets gráficos, sprites y pipelines de videojuegos.</p>
+                <span style="font-size:11px;color:var(--text-3);">IPC Bridge · 0.5ms</span>
               </div>
             </div>
           </div>
 
+          <!-- Panel 5: Voice Studio -->
+          <div id="panel-voice" class="showcase-panel">
+            <div class="voice-studio-view">
+              <div class="voice-wave-container" aria-label="Visualizador de onda de audio en tiempo real">
+                <span class="voice-wave-bar"></span>
+                <span class="voice-wave-bar"></span>
+                <span class="voice-wave-bar"></span>
+                <span class="voice-wave-bar"></span>
+                <span class="voice-wave-bar"></span>
+                <span class="voice-wave-bar"></span>
+                <span class="voice-wave-bar"></span>
+                <span class="voice-wave-bar"></span>
+              </div>
+              <div style="text-align:center;max-width:480px;">
+                <div class="hero-badge" style="margin-bottom:12px;">
+                  <span class="badge-dot"></span>
+                  <span>Kokoro TTS &amp; Sherpa-ONNX Whisper (Offline)</span>
+                </div>
+                <p style="margin:0;font-size:14px;color:var(--text-2);">
+                  "Refactoriza la función de autenticación y asegura compatibilidad con JWT."
+                </p>
+                <span style="display:block;margin-top:8px;font-size:11.5px;color:#10b981;font-weight:600;">
+                  Transcrito en 120ms sin conexión a internet
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>

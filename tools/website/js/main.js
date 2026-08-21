@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    Tiancode — Website main
    Punto de entrada: inicia todos los módulos y las
    interacciones del header (tema, idioma, menú móvil y

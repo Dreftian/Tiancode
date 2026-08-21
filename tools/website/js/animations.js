@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    Tiancode — Website animations
    Loader, animaciones de entrada (IntersectionObserver),
    partículas del hero y contadores animados.
