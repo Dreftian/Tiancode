@@ -56,7 +56,14 @@ const getBase = (appId: string): Configuration => ({
   extraMetadata: {
     desktopName: `${appId}.desktop`,
   },
-  files: ["out/**/*", "resources/**/*", "!resources/tiancode-cli*", "!resources/icons/**/*"],
+  files: [
+    "out/**/*",
+    "resources/**/*",
+    "!resources/tiancode-cli*",
+    "!resources/icons/**/*",
+    "!resources/mcp/**/__pycache__/**",
+    "!resources/mcp/**/*.pyc",
+  ],
   // onnxruntime-node ships native binaries that cannot load from inside the
   // asar; kokoro-js and phonemizer ship binary assets (voice style vectors,
   // espeak-ng wasm) that are safer unpacked. sherpa-onnx is a WASM build and
@@ -80,6 +87,10 @@ const getBase = (appId: string): Configuration => ({
     {
       from: "resources/mcp",
       to: "mcp",
+      // This generated example contains absolute paths from its authoring
+      // machine. The app registers the suite at startup with the installed
+      // resource paths, so do not ship an unusable configuration alongside it.
+      filter: ["**/*", "!AI-MCP-SUITE/opencode.json", "!**/__pycache__/**", "!**/*.pyc"],
     },
     ...(channel === "dev"
       ? [
@@ -141,6 +152,7 @@ const getBase = (appId: string): Configuration => ({
     perMachine: false,
     installerIcon: `resources/icons/icon.ico`,
     installerHeaderIcon: `resources/icons/icon.ico`,
+    uninstallerIcon: `resources/icons/icon.ico`,
     // Los nombres de artefacto son los que enlaza la web y el latest.yml
     // (tools/website/recursos/descargas.html → /releases/latest/download/Tiancode.exe).
     // El CI construye arm64 y x64: sin sufijo ambos producirían "Tiancode.exe"
@@ -175,7 +187,7 @@ function getConfig() {
       return {
         ...base,
         appId,
-        productName: "Tiancode Codex",
+        productName: "Tiancode",
         deb: { fpm: [metainfoFpm(appId)] },
         rpm: { packageName: "tian-dev", fpm: [metainfoFpm(appId)] },
       }
@@ -195,8 +207,8 @@ function getConfig() {
       return {
         ...base,
         appId,
-        productName: "Tiancode Codex",
-        protocols: { name: "Tiancode Codex", schemes: ["tiancode"] },
+        productName: "Tiancode",
+        protocols: { name: "Tiancode", schemes: ["tiancode"] },
         publish: { provider: "github", owner: "Dreftian", repo: "Tiancode", channel: "latest" },
         deb: { fpm: [metainfoFpm(appId), legacyDesktopEntryFpm] },
         rpm: { packageName: "tian", fpm: [metainfoFpm(appId), legacyDesktopEntryFpm] },

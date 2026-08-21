@@ -40,3 +40,7 @@ install/*.exe
 .zcode/
 dist-1.0.3*/
 dist-1.0.*/
+temp_thumb_*.png
+preview_master_icon.png
+__pycache__/
+*.pyc

@@ -4,7 +4,7 @@ import type { DesktopTheme } from "@tiancode-ai/ui/theme/types"
 import oc2ThemeJson from "../../../ui/src/theme/themes/oc-2.json"
 import { randomUUID } from "node:crypto"
 import { existsSync, rmSync } from "node:fs"
-import { app, BrowserWindow, dialog, net, nativeImage, nativeTheme, protocol, session, shell } from "electron"
+import { app, BrowserWindow, dialog, net, nativeImage, type NativeImage, nativeTheme, protocol, session, shell } from "electron"
 import { dirname, isAbsolute, join, relative, resolve } from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
 import type { TitlebarTheme } from "../preload/types"
@@ -103,7 +103,48 @@ function iconPath() {
   return join(iconsDir(), `icon.${ext}`)
 }
 
-function tone() {
+function resolveWindowIcon(): NativeImage | undefined {
+  const ext = process.platform === "win32" ? "ico" : "png"
+  const candidates = [
+    join(iconsDir(), `icon.${ext}`),
+    join(iconsDir(), "icon.ico"),
+    join(iconsDir(), "icon.png"),
+    app.isPackaged ? join(process.resourcesPath, "icons", `icon.${ext}`) : join(root, `../../resources/icons/icon.${ext}`),
+    app.isPackaged ? join(process.resourcesPath, "icons", "icon.ico") : join(root, "../../resources/icons/icon.ico"),
+    app.isPackaged ? join(process.resourcesPath, "icons", "icon.png") : join(root, "../../resources/icons/icon.png"),
+    join(app.getAppPath(), `resources/icons/icon.${ext}`),
+    join(app.getAppPath(), "resources/icons/icon.ico"),
+    join(app.getAppPath(), "resources/icons/icon.png"),
+    join(root, `../../icons/${CHANNEL}/icon.${ext}`),
+    join(root, `../../icons/${CHANNEL}/icon.ico`),
+    join(root, `../../icons/${CHANNEL}/icon.png`),
+    join(root, `../../icons/prod/icon.${ext}`),
+    join(root, "../../icons/prod/icon.ico"),
+    join(root, "../../icons/prod/icon.png"),
+    join(root, "../../icons/dev/icon.ico"),
+    join(root, "../../icons/dev/icon.png"),
+  ]
+  for (const candidate of candidates) {
+    try {
+      if (candidate && existsSync(candidate)) {
+        const img = nativeImage.createFromPath(candidate)
+        if (!img.isEmpty()) return img
+      }
+    } catch {
+      // Continue to next candidate
+    }
+  }
+  return undefined
+}
+
+function windowIcon() {
+  const icon = resolveWindowIcon()
+  if (icon) return icon
+  writeLog("window", "failed to load application icon", { path: iconPath() }, "error")
+  return undefined
+}
+
+function tone(): "dark" | "light" {
   return nativeTheme.shouldUseDarkColors ? "dark" : "light"
 }
 
@@ -197,6 +238,7 @@ export function createMainWindow(id: string = randomUUID()) {
   })
 
   const mode = tone()
+  const icon = windowIcon()
   const win = new BrowserWindow({
     x: state.x,
     y: state.y,
@@ -205,7 +247,7 @@ export function createMainWindow(id: string = randomUUID()) {
     show: false,
     autoHideMenuBar: true,
     title: APP_NAMES[CHANNEL],
-    icon: iconPath(),
+    icon,
     backgroundColor: backgroundColor ?? defaultBackgroundColor(),
     ...(process.platform === "darwin"
       ? {
@@ -231,6 +273,12 @@ export function createMainWindow(id: string = randomUUID()) {
       webviewTag: true,
     },
   })
+
+  // BrowserWindow gets the same decoded image as the executable and tray.
+  // This is important on Windows after an in-place update: it prevents a
+  // stale string-path association from leaving the taskbar with the previous
+  // app icon until Explorer refreshes its cache.
+  if (icon) win.setIcon(icon)
 
   allowRendererPermissions(win)
   hardenGuestSessions()

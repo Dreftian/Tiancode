@@ -60,7 +60,7 @@ const extractHooks = (source: string): string[] => {
   return [...found].sort()
 }
 
-// Catálogo "Descubrir": paquetes npm verificados (opencode-*) y los plugins de
+// Catálogo "Descubrir": paquetes npm verificados y los plugins de
 // ejemplo locales del repositorio (.tiancode/plugins).
 type CatalogEntry = { id: string; kind: "npm" | "local"; spec: string }
 

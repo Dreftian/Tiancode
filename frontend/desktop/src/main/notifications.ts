@@ -1,14 +1,13 @@
 import { BrowserWindow, Notification } from "electron"
+import { resolveTrayIconPath } from "./tray"
 
-// Notificaciones nativas del sistema. Solo se muestran cuando ninguna ventana
-// de la app está enfocada, para no interrumpir al usuario mientras trabaja en
-// Tiancode; al hacer clic la ventana principal vuelve al frente.
-
+// Notificaciones nativas del sistema con el icono oficial de Tiancode.
 export function notifyUser(title: string, body: string) {
   if (!Notification.isSupported()) return
   const anyFocused = BrowserWindow.getAllWindows().some((win) => !win.isDestroyed() && win.isFocused())
   if (anyFocused) return
-  const notification = new Notification({ title, body, silent: false })
+  const icon = resolveTrayIconPath()
+  const notification = new Notification({ title, body, icon, silent: false })
   notification.on("click", () => {
     const win = BrowserWindow.getAllWindows().find((candidate) => !candidate.isDestroyed())
     if (!win) return

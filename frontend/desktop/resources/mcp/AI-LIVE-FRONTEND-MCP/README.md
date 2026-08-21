@@ -84,12 +84,13 @@ defaults:
 | `max_file_bytes`             | 1000000  | Cap for file content reads / screenshots       |
 | `max_event_history`          | 500      | Bounded event history per session              |
 | `desktop_capture_interval_seconds` | 2   | Hint for the app-side capture cadence (desktop)|
-| `auto_open_dashboard`        | false    | Open the dashboard in a browser on startup     |
 | `max_tracked_files`          | 2000     | Cap on tracked entries in the file tree        |
 | `log_limit`                  | 2000     | Bounded log lines per session                  |
 | `ignored_dirs`               | .git, node_modules, ... | Directories excluded from watching    |
 
 An empty `dashboard_host` disables the HTTP server (stdio MCP still works).
+The server never opens a system browser; Tiancode renders the dashboard and
+the preview in its embedded surfaces.
 
 ## Running the server directly
 

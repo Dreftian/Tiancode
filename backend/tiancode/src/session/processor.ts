@@ -707,7 +707,15 @@ const layer = Layer.effect(
           )
 
           if (ctx.needsCompaction) return "compact"
-          if (ctx.blocked || ctx.assistantMessage.error) return "stop"
+          if (
+            ctx.blocked ||
+            ctx.assistantMessage.error ||
+            (ctx.assistantMessage.finish &&
+              !["tool-calls", "unknown"].includes(ctx.assistantMessage.finish) &&
+              Object.keys(ctx.toolcalls).length === 0)
+          ) {
+            return "stop"
+          }
           return "continue"
         })
       })

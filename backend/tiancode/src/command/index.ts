@@ -9,6 +9,7 @@ import { MCP } from "../mcp"
 import { Skill } from "../skill"
 import PROMPT_INITIALIZE from "./template/initialize.txt"
 import PROMPT_REVIEW from "./template/review.txt"
+import PROMPT_SPEC_KIT from "./template/spec-kit.txt"
 import { LegacyEvent } from "@tiancode-ai/schema/legacy-event"
 
 type State = {
@@ -46,6 +47,7 @@ export function hints(template: string) {
 export const Default = {
   INIT: "init",
   REVIEW: "review",
+  SPEC_KIT: "spec-kit",
 } as const
 
 export interface Interface {
@@ -85,6 +87,15 @@ const layer = Layer.effect(
         },
         subtask: true,
         hints: hints(PROMPT_REVIEW),
+      }
+      commands[Default.SPEC_KIT] = {
+        name: Default.SPEC_KIT,
+        description: "specify, plan, task, verify, or implement a feature",
+        source: "command",
+        get template() {
+          return PROMPT_SPEC_KIT
+        },
+        hints: hints(PROMPT_SPEC_KIT),
       }
 
       for (const [name, command] of Object.entries(cfg.command ?? {})) {

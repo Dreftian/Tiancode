@@ -26,11 +26,17 @@ function toPng(image: Electron.NativeImage): CaptureResult {
 
 async function capturePrimary(): Promise<Electron.NativeImage> {
   const display = screen.getPrimaryDisplay()
+  const scale = display.scaleFactor || 1
+  const width = Math.max(1280, Math.round(display.size.width * scale))
+  const height = Math.max(720, Math.round(display.size.height * scale))
   const sources = await desktopCapturer.getSources({
     types: ["screen"],
-    thumbnailSize: { width: display.size.width, height: display.size.height },
+    thumbnailSize: { width, height },
   })
-  const primary = sources.find((source) => source.display_id === "0") ?? sources[0]
+  const primary =
+    sources.find((source) => source.display_id === String(display.id)) ??
+    sources.find((source) => source.display_id === "0") ??
+    sources[0]
   if (!primary) throw new Error("No screen found")
   return primary.thumbnail
 }
@@ -44,7 +50,17 @@ export async function captureScreen(): Promise<CaptureResult> {
 // completa; lo usa el selector de área del renderer.
 export async function captureArea(bounds: { x: number; y: number; width: number; height: number }): Promise<CaptureResult> {
   if (bounds.width <= 0 || bounds.height <= 0) throw new Error("Empty area")
-  return toPng((await capturePrimary()).crop(bounds))
+  const display = screen.getPrimaryDisplay()
+  const scale = display.scaleFactor || 1
+  const full = await capturePrimary()
+  const fullSize = full.getSize()
+  const scaledBounds = {
+    x: Math.min(Math.max(0, Math.round(bounds.x * scale)), fullSize.width - 1),
+    y: Math.min(Math.max(0, Math.round(bounds.y * scale)), fullSize.height - 1),
+    width: Math.min(Math.max(1, Math.round(bounds.width * scale)), fullSize.width),
+    height: Math.min(Math.max(1, Math.round(bounds.height * scale)), fullSize.height),
+  }
+  return toPng(full.crop(scaledBounds))
 }
 
 // Captura la ventana de la app (el contenido del renderer que envía el IPC).

@@ -31,13 +31,8 @@ export function isFirstLaunchOnboardingPending() {
 }
 
 export async function finishFirstLaunchOnboarding(createDefaultProject: boolean) {
-  if (!isFirstLaunchOnboardingPending()) {
-    writeLog("onboarding", "first launch onboarding already completed")
-    return null
-  }
-
   const defaultProject = createDefaultProject ? join(app.getPath("documents"), DEFAULT_PROJECT_DIR) : null
-  if (defaultProject) await mkdir(defaultProject, { recursive: true })
+  if (defaultProject && !existsSync(defaultProject)) await mkdir(defaultProject, { recursive: true }).catch(() => {})
 
   getStore().set(FIRST_LAUNCH_ONBOARDING_COMPLETE_KEY, true)
   writeLog("onboarding", "first launch onboarding completed", { createDefaultProject, defaultProject })

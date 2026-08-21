@@ -55,9 +55,9 @@ const groupKey: Record<KeybindGroup, GroupKey> = {
 function groupFor(id: string): KeybindGroup {
   if (id === PALETTE_ID) return "General"
   if (id.startsWith("terminal.")) return "Terminal"
-  if (id.startsWith("model.") || id.startsWith("agent.") || id.startsWith("mcp.")) return "Model and agent"
-  if (id.startsWith("file.") || id.startsWith("fileTree.")) return "Navigation"
-  if (id.startsWith("prompt.")) return "Prompt"
+  if (id.startsWith("model.") || id.startsWith("agent.") || id.startsWith("mcp.") || id.startsWith("skills.") || id.startsWith("rlm.")) return "Model and agent"
+  if (id.startsWith("file.") || id.startsWith("fileTree.") || id.startsWith("preview.")) return "Navigation"
+  if (id.startsWith("prompt.") || id.startsWith("voice.")) return "Prompt"
   if (
     id.startsWith("session.") ||
     id.startsWith("message.") ||

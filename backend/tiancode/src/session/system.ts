@@ -23,6 +23,7 @@ import { Location } from "@tiancode-ai/core/location"
 import { LocationServiceMap, locationServiceMapLayer } from "@tiancode-ai/core/location-services"
 import { Reference } from "@tiancode-ai/core/reference"
 import { MCP } from "@/mcp"
+import { Memory } from "@tiancode-ai/core/memory"
 import { PermissionV1 } from "@tiancode-ai/core/v1/permission"
 
 export function provider(model: Provider.Model) {
@@ -38,7 +39,8 @@ export function provider(model: Provider.Model) {
   if (model.api.id.includes("gemini-")) return [PROMPT_GEMINI]
   if (model.api.id.includes("claude")) return [PROMPT_ANTHROPIC]
   if (model.api.id.toLowerCase().includes("trinity")) return [PROMPT_TRINITY]
-  if (model.api.id.toLowerCase().includes("kimi")) return [PROMPT_KIMI]
+  if (model.api.id.toLowerCase().includes("kimi") || model.providerID === "moonshotai" || model.providerID === "kimi")
+    return [PROMPT_KIMI]
   return [PROMPT_DEFAULT]
 }
 
@@ -47,6 +49,7 @@ export interface Interface {
   readonly skills: (agent: Agent.Info) => Effect.Effect<string | undefined>
   readonly autoSkills: (agent: Agent.Info) => Effect.Effect<string | undefined>
   readonly mcp: (agent: Agent.Info, permission?: PermissionV1.Ruleset) => Effect.Effect<string | undefined>
+  readonly memory: () => Effect.Effect<string | undefined>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@tiancode/SystemPrompt") {}
@@ -137,6 +140,14 @@ const layer = Layer.effect(
           ]),
           "</mcp_instructions>",
         ].join("\n")
+      }),
+
+      memory: Effect.fn("SystemPrompt.memory")(function* () {
+        const ctx = yield* InstanceState.context
+        return yield* Effect.gen(function* () {
+          const mem = yield* Memory.Service
+          return yield* mem.format()
+        }).pipe(Effect.provide(locations.get(Location.Ref.make({ directory: AbsolutePath.make(ctx.directory) }))))
       }),
     })
   }),

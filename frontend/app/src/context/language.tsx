@@ -66,12 +66,12 @@ const merge = (app: Promise<Source>, ui: Promise<Source>) =>
   Promise.all([app, ui]).then(([a, b]) => ({ ...base, ...i18n.flatten({ ...a.dict, ...b.dict }) }) as Dictionary)
 
 const loaders: Record<Exclude<Locale, "en">, () => Promise<Dictionary>> = {
-  "en-150": () => merge(import("@/i18n/en-150"), import("@tiancode-ai/ui/i18n/en-150")),
-  zh: () => merge(import("@/i18n/zh"), import("@tiancode-ai/ui/i18n/zh")),
-  ko: () => merge(import("@/i18n/ko"), import("@tiancode-ai/ui/i18n/ko")),
-  es: () => merge(import("@/i18n/es"), import("@tiancode-ai/ui/i18n/es")),
-  ja: () => merge(import("@/i18n/ja"), import("@tiancode-ai/ui/i18n/ja")),
-  ru: () => merge(import("@/i18n/ru"), import("@tiancode-ai/ui/i18n/ru")),
+  "en-150": () => merge(import("../i18n/en-150"), import("@tiancode-ai/ui/i18n/en-150")),
+  zh: () => merge(import("../i18n/zh"), import("@tiancode-ai/ui/i18n/zh")),
+  ko: () => merge(import("../i18n/ko"), import("@tiancode-ai/ui/i18n/ko")),
+  es: () => merge(import("../i18n/es"), import("@tiancode-ai/ui/i18n/es")),
+  ja: () => merge(import("../i18n/ja"), import("@tiancode-ai/ui/i18n/ja")),
+  ru: () => merge(import("../i18n/ru"), import("@tiancode-ai/ui/i18n/ru")),
 }
 
 function loadDict(locale: Locale) {

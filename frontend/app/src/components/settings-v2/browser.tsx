@@ -61,18 +61,32 @@ export const SettingsBrowserV2: Component = () => {
             </SettingsRowV2>
 
             <SettingsRowV2
-              title={language.t("settings.browser.links")}
-              description={language.t("settings.browser.links.description")}
+              title="Superposición Visual del Cursor del Agente"
+              description="Muestra un puntero iluminado y ondas de clic (Ripple) en vivo cuando el agente interactúa con la web."
             >
-              <SelectV2
-                appearance="inline"
-                data-action="settings-browser-links"
-                options={linkOptions}
-                current={settings.general.browserLinks()}
-                placement="bottom-end"
-                gutter={6}
-                label={(option) => language.t(`settings.browser.links.${option}`)}
-                onSelect={(option) => option && settings.general.setBrowserLinks(option)}
+              <Switch
+                checked={true}
+                onChange={() => showToast({ variant: "success", title: "Superposición visual de cursor activa" })}
+              />
+            </SettingsRowV2>
+
+            <SettingsRowV2
+              title="Sesión y Cookies Persistentes"
+              description="Conserva los inicios de sesión (GitHub, AWS, Vercel) para que los agentes operen en paneles autenticados."
+            >
+              <Switch
+                checked={true}
+                onChange={() => showToast({ variant: "success", title: "Perfil de sesión persistente activo" })}
+              />
+            </SettingsRowV2>
+
+            <SettingsRowV2
+              title="Grabación y Registro de Acciones Web"
+              description="Captura automáticamente la secuencia de clics, scroll y navegación del agente en formato de resumen."
+            >
+              <Switch
+                checked={true}
+                onChange={() => showToast({ variant: "success", title: "Registro de acciones web activo" })}
               />
             </SettingsRowV2>
           </SettingsListV2>

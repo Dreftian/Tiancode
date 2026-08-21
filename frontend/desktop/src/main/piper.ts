@@ -26,28 +26,8 @@ export type PiperVoiceDef = {
 
 export const PIPER_VOICES: PiperVoiceDef[] = [
   {
-    id: "piper-es_ES-mls_9972-low",
-    name: "MLS 9972 (Spanish)",
-    language: "es-ES",
-    repo: "csukuangfj/vits-piper-es_ES-mls_9972-low",
-    modelFile: "es_ES-mls_9972-low.onnx",
-    sampleRate: 16000,
-    sizeMb: 63,
-    license: "CC BY 4.0",
-  },
-  {
-    id: "piper-es_ES-mls_10246-low",
-    name: "MLS 10246 (Spanish)",
-    language: "es-ES",
-    repo: "csukuangfj/vits-piper-es_ES-mls_10246-low",
-    modelFile: "es_ES-mls_10246-low.onnx",
-    sampleRate: 16000,
-    sizeMb: 63,
-    license: "CC BY 4.0",
-  },
-  {
     id: "piper-es_ES-sharvard-medium",
-    name: "Sharvard (Spanish)",
+    name: "Sharvard (España)",
     language: "es-ES",
     repo: "csukuangfj/vits-piper-es_ES-sharvard-medium",
     modelFile: "es_ES-sharvard-medium.onnx",
@@ -58,13 +38,93 @@ export const PIPER_VOICES: PiperVoiceDef[] = [
   },
   {
     id: "piper-es_AR-daniela-high",
-    name: "Daniela (Spanish, Argentina)",
+    name: "Daniela (Argentina)",
     language: "es-AR",
     repo: "csukuangfj/vits-piper-es_AR-daniela-high",
     modelFile: "es_AR-daniela-high.onnx",
     sampleRate: 22050,
     sizeMb: 114,
     license: "CC BY-SA 4.0",
+  },
+  {
+    id: "piper-es_ES-mls_9972-low",
+    name: "MLS 9972 (España)",
+    language: "es-ES",
+    repo: "csukuangfj/vits-piper-es_ES-mls_9972-low",
+    modelFile: "es_ES-mls_9972-low.onnx",
+    sampleRate: 16000,
+    sizeMb: 63,
+    license: "CC BY 4.0",
+  },
+  {
+    id: "piper-es_ES-mls_10246-low",
+    name: "MLS 10246 (España)",
+    language: "es-ES",
+    repo: "csukuangfj/vits-piper-es_ES-mls_10246-low",
+    modelFile: "es_ES-mls_10246-low.onnx",
+    sampleRate: 16000,
+    sizeMb: 63,
+    license: "CC BY 4.0",
+  },
+  {
+    id: "piper-es_MX-ald-medium",
+    name: "Sofia / Ald (México)",
+    language: "es-MX",
+    repo: "csukuangfj/vits-piper-es_MX-ald-medium",
+    modelFile: "es_MX-ald-medium.onnx",
+    sampleRate: 22050,
+    sizeMb: 75,
+    license: "CC BY 4.0",
+  },
+  {
+    id: "piper-es_MX-claude-high",
+    name: "Lucia / Claude (México)",
+    language: "es-MX",
+    repo: "csukuangfj/vits-piper-es_MX-claude-high",
+    modelFile: "es_MX-claude-high.onnx",
+    sampleRate: 22050,
+    sizeMb: 110,
+    license: "CC BY-SA 4.0",
+  },
+  {
+    id: "piper-es_ES-carlfm-x_low",
+    name: "Carlota (España)",
+    language: "es-ES",
+    repo: "csukuangfj/vits-piper-es_ES-carlfm-x_low",
+    modelFile: "es_ES-carlfm-x_low.onnx",
+    sampleRate: 16000,
+    sizeMb: 45,
+    license: "CC BY 4.0",
+  },
+  {
+    id: "piper-es_ES-davefx-medium",
+    name: "Elena (España)",
+    language: "es-ES",
+    repo: "csukuangfj/vits-piper-es_ES-davefx-medium",
+    modelFile: "es_ES-davefx-medium.onnx",
+    sampleRate: 22050,
+    sizeMb: 78,
+    license: "CC BY 4.0",
+  },
+  {
+    id: "piper-es_ES-paloma-medium",
+    name: "Paloma (España)",
+    language: "es-ES",
+    repo: "csukuangfj/vits-piper-es_ES-paloma-medium",
+    modelFile: "es_ES-paloma-medium.onnx",
+    sampleRate: 22050,
+    sizeMb: 80,
+    license: "CC BY 4.0",
+  },
+  {
+    id: "piper-es_ES-tania-medium",
+    name: "Tania (España)",
+    language: "es-ES",
+    repo: "csukuangfj/vits-piper-es_ES-tania-medium",
+    modelFile: "es_ES-tania-medium.onnx",
+    sampleRate: 22050,
+    sizeMb: 78,
+    license: "CC BY 4.0",
   },
 ]
 
@@ -83,6 +143,10 @@ function voiceDir(voiceId: string) {
 
 export function sharedDataDir() {
   return join(app.getPath("userData"), "piper-voices", SHARED_DATA_DIR)
+}
+
+export function isSharedDataDownloaded() {
+  return existsSync(join(sharedDataDir(), COMPLETE_MARKER))
 }
 
 export function isPiperDownloaded(voiceId: string) {
@@ -123,7 +187,7 @@ async function downloadPiperVoiceInner(voiceId: string) {
 // the directory into a downloaded-once cache that survives partial failures.
 export async function ensureSharedData() {
   const dataDir = sharedDataDir()
-  if (existsSync(join(dataDir, COMPLETE_MARKER))) return
+  if (isSharedDataDownloaded()) return
   await mkdir(dataDir, { recursive: true })
   const res = await fetch(`${HF_API}/${PIPER_VOICES[0].repo}/tree/main/${SHARED_DATA_DIR}?recursive=true`)
   if (!res.ok) throw new Error(`Failed to list ${SHARED_DATA_DIR}: HTTP ${res.status}`)
@@ -207,13 +271,25 @@ export async function synthesizePiper(text: string, voiceId: string): Promise<Pi
   const def = resolvePiperVoice(voiceId)
   if (!def) throw new Error(`Unknown piper voice "${voiceId}"`)
   if (!isPiperDownloaded(voiceId)) await downloadPiperVoice(voiceId)
+  
+  // Limpia caracteres de control invisibles o emojis que puedan trabar a espeak-ng
+  const sanitized = text
+    .replace(/[^\p{L}\p{N}\p{P}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+  if (!sanitized) throw new Error("Texto vacío tras limpieza para síntesis.")
+
   const tts = await getTts(def)
-  // La fluidez del piper se ajusta con dos palancas de sherpa-onnx: speed 1.2
-  // (el 1.15 por defecto se percibe lento y el 1.0 aún más) y silenceScale 0.12
-  // (recorta las pausas largas entre frases, la mayor fuente de rigidez
-  // robótica del modelo; el 0.2 por defecto deja las pausas casi intactas).
-  const result = tts.generate({ text, sid: def.sid ?? 0, speed: 1.2, silenceScale: 0.12 })
-  return { samples: result.samples, sampleRate: result.sampleRate }
+  try {
+    const result = tts.generate({ text: sanitized, sid: def.sid ?? 0, speed: 1.2, silenceScale: 0.12 })
+    if (!result || !result.samples || result.samples.length === 0) {
+      throw new Error("Audio vacío generado por el motor Piper.")
+    }
+    return { samples: result.samples, sampleRate: result.sampleRate }
+  } catch (error) {
+    evictTts(def.id)
+    throw error
+  }
 }
 
 async function getTts(def: PiperVoiceDef): Promise<OfflineTtsLike> {

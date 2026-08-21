@@ -19,7 +19,21 @@ export interface SoundSettings {
   errors: string
 }
 
-export const petKinds = ["cat", "dog", "rabbit"] as const
+export const petKinds = [
+  "dewey",
+  "fireball",
+  "hoots",
+  "rocky",
+  "seedy",
+  "stacky",
+  "bsod",
+  "nullsignal",
+  "cat",
+  "dog",
+  "rabbit",
+  "panda",
+  "fox",
+] as const
 export type PetKind = (typeof petKinds)[number]
 export const petPositions = ["bottom-right", "bottom-left", "top-right", "top-left"] as const
 export type PetPosition = (typeof petPositions)[number]
@@ -27,6 +41,62 @@ export const defaultPetSettings = {
   enabled: false,
   kind: "cat" as PetKind,
   position: "bottom-right" as PetPosition,
+}
+
+export interface IntelligenceSettings {
+  userMemory: boolean
+  projectMemory: boolean
+  codeGraph: boolean
+  cleanWebScraping: boolean
+  monacoDiffs: boolean
+  autoSkillLearn: boolean
+  guardrails: boolean
+  sandboxExecution: "host" | "docker" | "e2b"
+}
+
+export const defaultIntelligenceSettings: IntelligenceSettings = {
+  userMemory: true,
+  projectMemory: true,
+  codeGraph: true,
+  cleanWebScraping: true,
+  monacoDiffs: true,
+  autoSkillLearn: true,
+  guardrails: false,
+  sandboxExecution: "host",
+}
+
+export interface EcosystemSettings {
+  llamacoder: boolean
+  tauri: boolean
+  treeSitter: boolean
+  fragments: boolean
+  boltDiy: boolean
+  openInterpreter: boolean
+  e2b: boolean
+  pipelines: boolean
+  monaco: boolean
+  openDesign: boolean
+  firecrawl: boolean
+  claudeSkills: boolean
+  claudeMem: boolean
+  graphify: boolean
+}
+
+export const defaultEcosystemSettings: EcosystemSettings = {
+  llamacoder: true,
+  tauri: true,
+  treeSitter: true,
+  fragments: true,
+  boltDiy: true,
+  openInterpreter: true,
+  e2b: true,
+  pipelines: true,
+  monaco: true,
+  openDesign: true,
+  firecrawl: true,
+  claudeSkills: true,
+  claudeMem: true,
+  graphify: true,
 }
 
 export interface Settings {
@@ -43,9 +113,11 @@ export interface Settings {
     browserLinks: "integrated" | "system"
     computerUseAutoApprove: boolean
     petEnabled: boolean
+    petDesktop: boolean
     petKind: PetKind
     petPosition: PetPosition
     autoSpeak: boolean
+    speakReasoning: boolean
     showReasoningSummaries: boolean
     shellToolPartsExpanded: boolean
     editToolPartsExpanded: boolean
@@ -69,6 +141,8 @@ export interface Settings {
   }
   notifications: NotificationSettings
   sounds: SoundSettings
+  intelligence: IntelligenceSettings
+  ecosystem: EcosystemSettings
 }
 
 export const monoDefault = "System Mono"
@@ -211,9 +285,11 @@ const defaultSettings: Settings = {
     browserLinks: "integrated",
     computerUseAutoApprove: false,
     petEnabled: defaultPetSettings.enabled,
+    petDesktop: true,
     petKind: defaultPetSettings.kind,
     petPosition: defaultPetSettings.position,
     autoSpeak: false,
+    speakReasoning: false,
     showReasoningSummaries: false,
     shellToolPartsExpanded: false,
     editToolPartsExpanded: false,
@@ -243,6 +319,8 @@ const defaultSettings: Settings = {
     errorsEnabled: true,
     errors: "nope-03",
   },
+  intelligence: defaultIntelligenceSettings,
+  ecosystem: defaultEcosystemSettings,
 }
 
 function withFallback<T>(read: () => T | undefined, fallback: T) {
@@ -426,6 +504,10 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         setPetEnabled(value: boolean) {
           setStore("general", "petEnabled", value)
         },
+        petDesktop: withFallback(() => store.general?.petDesktop, defaultSettings.general.petDesktop),
+        setPetDesktop(value: boolean) {
+          setStore("general", "petDesktop", value)
+        },
         petKind: withFallback(() => store.general?.petKind, defaultSettings.general.petKind),
         setPetKind(value: PetKind) {
           setStore("general", "petKind", value)
@@ -437,6 +519,10 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         autoSpeak: withFallback(() => store.general?.autoSpeak, defaultSettings.general.autoSpeak),
         setAutoSpeak(value: boolean) {
           setStore("general", "autoSpeak", value)
+        },
+        speakReasoning: withFallback(() => store.general?.speakReasoning, defaultSettings.general.speakReasoning),
+        setSpeakReasoning(value: boolean) {
+          setStore("general", "speakReasoning", value)
         },
         showReasoningSummaries: withFallback(
           () => store.general?.showReasoningSummaries,
@@ -582,6 +668,122 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         errors: withFallback(() => store.sounds?.errors, defaultSettings.sounds.errors),
         setErrors(value: string) {
           setStore("sounds", "errors", value)
+        },
+      },
+      intelligence: {
+        userMemory: withFallback(
+          () => store.intelligence?.userMemory,
+          defaultSettings.intelligence.userMemory,
+        ),
+        setUserMemory(value: boolean) {
+          setStore("intelligence", "userMemory", value)
+        },
+        projectMemory: withFallback(
+          () => store.intelligence?.projectMemory,
+          defaultSettings.intelligence.projectMemory,
+        ),
+        setProjectMemory(value: boolean) {
+          setStore("intelligence", "projectMemory", value)
+        },
+        codeGraph: withFallback(
+          () => store.intelligence?.codeGraph,
+          defaultSettings.intelligence.codeGraph,
+        ),
+        setCodeGraph(value: boolean) {
+          setStore("intelligence", "codeGraph", value)
+        },
+        cleanWebScraping: withFallback(
+          () => store.intelligence?.cleanWebScraping,
+          defaultSettings.intelligence.cleanWebScraping,
+        ),
+        setCleanWebScraping(value: boolean) {
+          setStore("intelligence", "cleanWebScraping", value)
+        },
+        monacoDiffs: withFallback(
+          () => store.intelligence?.monacoDiffs,
+          defaultSettings.intelligence.monacoDiffs,
+        ),
+        setMonacoDiffs(value: boolean) {
+          setStore("intelligence", "monacoDiffs", value)
+        },
+        autoSkillLearn: withFallback(
+          () => store.intelligence?.autoSkillLearn,
+          defaultSettings.intelligence.autoSkillLearn,
+        ),
+        setAutoSkillLearn(value: boolean) {
+          setStore("intelligence", "autoSkillLearn", value)
+        },
+        guardrails: withFallback(
+          () => store.intelligence?.guardrails,
+          defaultSettings.intelligence.guardrails,
+        ),
+        setGuardrails(value: boolean) {
+          setStore("intelligence", "guardrails", value)
+        },
+        sandboxExecution: withFallback(
+          () => store.intelligence?.sandboxExecution,
+          defaultSettings.intelligence.sandboxExecution,
+        ),
+        setSandboxExecution(value: "host" | "docker" | "e2b") {
+          setStore("intelligence", "sandboxExecution", value)
+        },
+      },
+      ecosystem: {
+        llamacoder: withFallback(() => store.ecosystem?.llamacoder, defaultSettings.ecosystem.llamacoder),
+        setLlamacoder(value: boolean) {
+          setStore("ecosystem", "llamacoder", value)
+        },
+        tauri: withFallback(() => store.ecosystem?.tauri, defaultSettings.ecosystem.tauri),
+        setTauri(value: boolean) {
+          setStore("ecosystem", "tauri", value)
+        },
+        treeSitter: withFallback(() => store.ecosystem?.treeSitter, defaultSettings.ecosystem.treeSitter),
+        setTreeSitter(value: boolean) {
+          setStore("ecosystem", "treeSitter", value)
+        },
+        fragments: withFallback(() => store.ecosystem?.fragments, defaultSettings.ecosystem.fragments),
+        setFragments(value: boolean) {
+          setStore("ecosystem", "fragments", value)
+        },
+        boltDiy: withFallback(() => store.ecosystem?.boltDiy, defaultSettings.ecosystem.boltDiy),
+        setBoltDiy(value: boolean) {
+          setStore("ecosystem", "boltDiy", value)
+        },
+        openInterpreter: withFallback(() => store.ecosystem?.openInterpreter, defaultSettings.ecosystem.openInterpreter),
+        setOpenInterpreter(value: boolean) {
+          setStore("ecosystem", "openInterpreter", value)
+        },
+        e2b: withFallback(() => store.ecosystem?.e2b, defaultSettings.ecosystem.e2b),
+        setE2b(value: boolean) {
+          setStore("ecosystem", "e2b", value)
+        },
+        pipelines: withFallback(() => store.ecosystem?.pipelines, defaultSettings.ecosystem.pipelines),
+        setPipelines(value: boolean) {
+          setStore("ecosystem", "pipelines", value)
+        },
+        monaco: withFallback(() => store.ecosystem?.monaco, defaultSettings.ecosystem.monaco),
+        setMonaco(value: boolean) {
+          setStore("ecosystem", "monaco", value)
+        },
+        openDesign: withFallback(() => store.ecosystem?.openDesign, defaultSettings.ecosystem.openDesign),
+        setOpenDesign(value: boolean) {
+          setStore("ecosystem", "openDesign", value)
+        },
+        firecrawl: withFallback(() => store.ecosystem?.firecrawl, defaultSettings.ecosystem.firecrawl),
+        setFirecrawl(value: boolean) {
+          setStore("ecosystem", "firecrawl", value)
+        },
+        claudeSkills: withFallback(() => store.ecosystem?.claudeSkills, defaultSettings.ecosystem.claudeSkills),
+        setClaudeSkills(value: boolean) {
+          setStore("ecosystem", "claudeSkills", value)
+        },
+        claudeMem: withFallback(() => store.ecosystem?.claudeMem, defaultSettings.ecosystem.claudeMem),
+        setClaudeMem(value: boolean) {
+          setStore("ecosystem", "claudeMem", value)
+        },
+        graphify: withFallback(() => store.ecosystem?.graphify, defaultSettings.ecosystem.graphify),
+        setGraphify(value: boolean) {
+          setStore("ecosystem", "graphify", value)
         },
       },
     }

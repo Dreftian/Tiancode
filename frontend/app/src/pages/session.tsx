@@ -87,6 +87,7 @@ import {
 } from "@/pages/session/session-panel-width"
 import { SessionSidePanel } from "@/pages/session/session-side-panel"
 import { sessionPanelLayout } from "@/pages/session/session-panel-layout"
+import { clampLiveViewWidth, liveViewWidthBounds } from "@/pages/session/live-view-width"
 import { SessionReviewEmptyChangesV2 } from "@tiancode-ai/session-ui/v2/session-review-empty-changes-v2"
 import { SessionReviewEmptyNoGitV2 } from "@tiancode-ai/session-ui/v2/session-review-empty-no-git-v2"
 import { SessionReviewV2SidebarToggle } from "@tiancode-ai/session-ui/v2/session-review-v2"
@@ -477,6 +478,11 @@ export default function Page() {
   const terminalOpen = createMemo(() => view().terminal.opened())
   const liveViewOpen = createMemo(() => view().liveView.opened())
   const desktopSandboxOpen = createMemo(() => sandboxSideAvailable() && newSessionDesign() && liveViewOpen())
+  // When the Sandbox is expanded it owns the whole session surface. Keeping
+  // it in this row (instead of a portal) means it still follows the app
+  // window, its rounded frame stays visible, and no off-screen panel is
+  // produced while the desktop window is resized.
+  const desktopSandboxExpanded = createMemo(() => desktopSandboxOpen() && view().liveView.expanded())
   const bottomDockOpen = createMemo(() => terminalOpen() || (!sandboxSideAvailable() && liveViewOpen()))
   createEffect(() => {
     if (sandboxSideAvailable() || !terminalOpen() || !liveViewOpen()) return
@@ -529,6 +535,13 @@ export default function Page() {
     if (desktopSessionResizeOpen()) return `${sessionPanelResizedWidth()}px`
     return `calc(100% - ${layout.fileTree.width()}px)`
   })
+  const liveViewWidthBoundsForRow = createMemo(() => liveViewWidthBounds({ available: sessionPanelAvailable() }))
+  // A saved width is a preference, never a requirement. Clamp it against the
+  // measured session row at render time so shrinking the desktop window keeps
+  // both the conversation and the Sandbox visible.
+  const liveViewResizedWidth = createMemo(() =>
+    clampLiveViewWidth({ width: view().liveView.width(), available: sessionPanelAvailable() }),
+  )
   const centered = createMemo(() => isDesktop() && (newSessionDesign() || !desktopReviewOpen()))
   // La altura del dock inferior (terminal o vista en vivo) se limita al 60% de
   // la ventana para que el chat siempre conserve espacio visible.
@@ -2313,127 +2326,133 @@ export default function Page() {
       <div class="flex-1 min-h-0 flex flex-col">
         <div
           ref={panelRow}
-          class="flex-1 min-h-0 flex flex-col md:flex-row"
+          class="flex-1 min-h-0 overflow-hidden flex flex-col md:flex-row"
           classList={{
             "gap-2 p-2": settings.general.newLayoutDesigns(),
           }}
         >
-          <Show when={!isDesktop() && !!params.id && !settings.general.newLayoutDesigns()}>{mobileTabs()}</Show>
+          <Show when={!desktopSandboxExpanded()}>
+            <Show when={!isDesktop() && !!params.id && !settings.general.newLayoutDesigns()}>{mobileTabs()}</Show>
 
-          <div
-            classList={{
-              "@container relative shrink-0 flex flex-col min-h-0 h-full flex-1 md:flex-none transition-[width]": true,
-              "duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[width] motion-reduce:transition-none":
-                !size.active() && !ui.reviewSnap,
-            }}
-            style={{
-              width: sessionPanelWidth(),
-            }}
-          >
-            {settings.general.newLayoutDesigns() ? (
-              <Show when={sessionPanelKey()} keyed>
-                {(_) => (
-                  <SessionPanelFrame newLayout raised={!!params.id}>
-                    <ErrorBoundary fallback={sessionErrorFallback}>{sessionPanelContent()}</ErrorBoundary>
-                  </SessionPanelFrame>
-                )}
+            <div
+              classList={{
+                "@container relative shrink-0 flex flex-col min-h-0 h-full flex-1 md:flex-none transition-[width]": true,
+                "duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[width] motion-reduce:transition-none":
+                  !size.active() && !ui.reviewSnap,
+              }}
+              style={{
+                width: sessionPanelWidth(),
+              }}
+            >
+              {settings.general.newLayoutDesigns() ? (
+                <Show when={sessionPanelKey()} keyed>
+                  {(_) => (
+                    <SessionPanelFrame newLayout raised={!!params.id}>
+                      <ErrorBoundary fallback={sessionErrorFallback}>{sessionPanelContent()}</ErrorBoundary>
+                    </SessionPanelFrame>
+                  )}
+                </Show>
+              ) : (
+                <SessionPanelFrame newLayout={false} raised={!!params.id}>
+                  {sessionPanelContent()}
+                </SessionPanelFrame>
+              )}
+
+              <Show when={desktopSessionResizeOpen()}>
+                <div onPointerDown={() => size.start()}>
+                  <ResizeHandle
+                    classList={{
+                      "-end-1": settings.general.newLayoutDesigns(),
+                    }}
+                    direction="horizontal"
+                    size={sessionPanelResizedWidth()}
+                    min={SESSION_PANEL_WIDTH_MIN}
+                    max={sessionPanelMax()}
+                    onResize={(width) => {
+                      size.touch()
+                      layout.session.resize(width)
+                    }}
+                  />
+                </div>
               </Show>
-            ) : (
-              <SessionPanelFrame newLayout={false} raised={!!params.id}>
-                {sessionPanelContent()}
-              </SessionPanelFrame>
-            )}
+            </div>
 
-            <Show when={desktopSessionResizeOpen()}>
-              <div onPointerDown={() => size.start()}>
-                <ResizeHandle
-                  classList={{
-                    "-end-1": settings.general.newLayoutDesigns(),
-                  }}
-                  direction="horizontal"
-                  size={sessionPanelResizedWidth()}
-                  min={SESSION_PANEL_WIDTH_MIN}
-                  max={sessionPanelMax()}
-                  onResize={(width) => {
-                    size.touch()
-                    layout.session.resize(width)
-                  }}
+            <Show when={!newSessionDesign() && desktopSidePanelOpen()}>
+              <Suspense>
+                <SessionSidePanel
+                  canReview={canReview}
+                  diffs={reviewDiffs}
+                  diffsReady={reviewReady}
+                  empty={reviewEmptyText}
+                  hasReview={hasReview}
+                  reviewHasFocusableContent={hasReview}
+                  reviewCount={reviewCount}
+                  reviewPanel={reviewPanel}
+                  activeDiff={activeReviewFile()}
+                  focusReviewDiff={focusReviewDiff}
+                  reviewSnap={ui.reviewSnap}
+                  size={size}
                 />
+              </Suspense>
+            </Show>
+            <Show when={newSessionDesign() && desktopV2PanelLayout().visible}>
+              <div class="min-w-0 h-full flex flex-1 flex-col">
+                <div class="min-h-0 flex-1">
+                  <Suspense>
+                    <SessionSidePanel
+                      canReview={canReview}
+                      diffs={reviewDiffs}
+                      diffsReady={reviewReady}
+                      empty={reviewEmptyText}
+                      hasReview={hasReview}
+                      reviewHasFocusableContent={() => hasReview() || reviewV2State.sidebarOpened()}
+                      reviewCount={reviewCount}
+                      reviewPanel={reviewPanelV2}
+                      reviewSidebarToggle={(disabled) => (
+                        <SessionReviewV2SidebarToggle
+                          opened={reviewV2State.sidebarOpened()}
+                          disabled={disabled}
+                          onToggle={reviewV2State.toggleSidebar}
+                        />
+                        )}
+                      fileBrowserState={reviewV2State}
+                      activeDiff={activeReviewFile()}
+                      focusReviewDiff={focusReviewDiff}
+                      reviewSnap={ui.reviewSnap}
+                      size={size}
+                      stacked={desktopV2PanelLayout().stacked}
+                    />
+                  </Suspense>
+                </div>
               </div>
             </Show>
-          </div>
-
-          <Show when={!newSessionDesign() && desktopSidePanelOpen()}>
-            <Suspense>
-              <SessionSidePanel
-                canReview={canReview}
-                diffs={reviewDiffs}
-                diffsReady={reviewReady}
-                empty={reviewEmptyText}
-                hasReview={hasReview}
-                reviewHasFocusableContent={hasReview}
-                reviewCount={reviewCount}
-                reviewPanel={reviewPanel}
-                activeDiff={activeReviewFile()}
-                focusReviewDiff={focusReviewDiff}
-                reviewSnap={ui.reviewSnap}
-                size={size}
-              />
-            </Suspense>
-          </Show>
-          <Show when={newSessionDesign() && desktopV2PanelLayout().visible}>
-            <div class="min-w-0 h-full flex flex-1 flex-col">
-              <div class="min-h-0 flex-1">
-                <Suspense>
-                  <SessionSidePanel
-                    canReview={canReview}
-                    diffs={reviewDiffs}
-                    diffsReady={reviewReady}
-                    empty={reviewEmptyText}
-                    hasReview={hasReview}
-                    reviewHasFocusableContent={() => hasReview() || reviewV2State.sidebarOpened()}
-                    reviewCount={reviewCount}
-                    reviewPanel={reviewPanelV2}
-                    reviewSidebarToggle={(disabled) => (
-                      <SessionReviewV2SidebarToggle
-                        opened={reviewV2State.sidebarOpened()}
-                        disabled={disabled}
-                        onToggle={reviewV2State.toggleSidebar}
-                      />
-                    )}
-                    fileBrowserState={reviewV2State}
-                    activeDiff={activeReviewFile()}
-                    focusReviewDiff={focusReviewDiff}
-                    reviewSnap={ui.reviewSnap}
-                    size={size}
-                    stacked={desktopV2PanelLayout().stacked}
+            <Show when={desktopSandboxOpen()}>
+              <div
+                class="h-full min-h-0 min-w-0 flex-1 flex flex-row"
+              >
+                <div class="h-full min-h-0 w-1.5 shrink-0 cursor-col-resize" onPointerDown={() => size.start()}>
+                  <ResizeHandle
+                    direction="horizontal"
+                    edge="start"
+                    size={liveViewResizedWidth()}
+                    min={liveViewWidthBoundsForRow().min}
+                    max={liveViewWidthBoundsForRow().max}
+                    collapseThreshold={300}
+                    onResize={(width) => {
+                      size.touch()
+                      view().liveView.resize(width)
+                    }}
                   />
-                </Suspense>
+                </div>
+                <div class="min-h-0 min-w-0 flex-1 h-full">
+                  <LiveViewPanel onCapture={attachLiveViewCapture} expandable />
+                </div>
               </div>
-            </div>
+            </Show>
           </Show>
-          <Show when={desktopSandboxOpen()}>
-            <div
-              class="h-full flex shrink-0 flex-col"
-              style={{ width: `${view().liveView.width()}px` }}
-            >
-              <div class="h-full min-h-0 w-1.5 shrink-0 cursor-col-resize" onPointerDown={() => size.start()}>
-                <ResizeHandle
-                  direction="horizontal"
-                  edge="start"
-                  size={view().liveView.width()}
-                  min={420}
-                  max={920}
-                  collapseThreshold={300}
-                  onResize={(width) => {
-                    size.touch()
-                    view().liveView.resize(width)
-                  }}
-                />
-              </div>
-              <div class="min-h-0 min-w-0 flex-1">
-                <LiveViewPanel onCapture={attachLiveViewCapture} />
-              </div>
+          <Show when={desktopSandboxExpanded()}>
+            <div class="h-full min-h-0 min-w-0 flex-1 overflow-hidden">
+              <LiveViewPanel onCapture={attachLiveViewCapture} expandable />
             </div>
           </Show>
         </div>

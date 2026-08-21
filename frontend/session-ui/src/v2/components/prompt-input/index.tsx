@@ -49,6 +49,8 @@ export type PromptInputV2Props = {
   micControl?: JSX.Element
   // Extra action rendered next to micControl (e.g. the screenshot button).
   captureControl?: JSX.Element
+  // Trae-style prompt optimization button
+  optimizeControl?: JSX.Element
 }
 
 export function PromptInputV2(props: PromptInputV2Props) {
@@ -200,9 +202,9 @@ export function PromptInputV2(props: PromptInputV2Props) {
           </Show>
         </div>
 
-        <div class="flex h-11 items-center px-2">
+        <div class="flex h-11 items-center justify-between px-2">
           <div
-            class="flex min-w-0 flex-1 items-center gap-1"
+            class="flex min-w-0 items-center gap-1"
             aria-hidden={state.mode === "shell"}
             inert={state.mode === "shell" ? true : undefined}
             style={buttons()}
@@ -258,18 +260,25 @@ export function PromptInputV2(props: PromptInputV2Props) {
                 </Show>
               )}
             </Show>
-            {props.micControl}
-            {props.captureControl}
           </div>
-          <PromptInputV2SubmitButton
-            mode={state.mode}
-            stopping={view.submit.stopping()}
-            disabled={!props.controller.canSubmit()}
-            sendLabel={i18n.t("ui.promptInput.send")}
-            stopLabel={i18n.t("ui.promptInput.stop")}
-            onSubmit={props.controller.submit}
-            onStop={props.controller.stop}
-          />
+          <div class="flex shrink-0 items-center gap-1.5 ml-auto">
+            <Show when={state.mode === "normal"}>
+              <div class="flex items-center gap-1" style={buttons()}>
+                {props.captureControl}
+                {props.micControl}
+                {props.optimizeControl}
+              </div>
+            </Show>
+            <PromptInputV2SubmitButton
+              mode={state.mode}
+              stopping={view.submit.stopping()}
+              disabled={!props.controller.canSubmit()}
+              sendLabel={i18n.t("ui.promptInput.send")}
+              stopLabel={i18n.t("ui.promptInput.stop")}
+              onSubmit={props.controller.submit}
+              onStop={props.controller.stop}
+            />
+          </div>
         </div>
       </form>
     </div>

@@ -10,6 +10,12 @@ import { Effect } from "effect"
 
 const DEFAULT_TIMEOUT = 30_000
 const MAX_LIST_PAGES = 1_000
+const EXTERNAL_BROWSER_SERVER = /(?:^|[_-])(?:chrome[_-]?devtools|playwright)(?:[_-]|$)/i
+const EXTERNAL_BROWSER_NAVIGATION = /(?:^|[_-])(?:new[_-]?page|navigate(?:[_-]?page)?|goto|open)(?:[_-]|$)/i
+const LOCAL_PREVIEW_URL = /(?:file:\/\/|https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])(?::\d{1,5})?(?:[/?#]|$))/i
+
+export const EXTERNAL_PREVIEW_NAVIGATION_ERROR =
+  "La navegacion de una vista previa local con un navegador externo esta bloqueada. Usa preview_start y revisa Vista en vivo dentro de Tiancode."
 
 const TolerantListToolsResultSchema = ListToolsResultSchema.extend({
   tools: ToolSchema.omit({ outputSchema: true }).array(),
@@ -39,7 +45,7 @@ export function defs(client: Client, timeout?: number) {
   return listTools(client, timeout ?? DEFAULT_TIMEOUT).pipe(Effect.catch(() => Effect.void))
 }
 
-export function convertTool(mcpTool: MCPToolDef, client: Client, timeout?: number): Tool {
+export function convertTool(mcpTool: MCPToolDef, client: Client, timeout?: number, toolKey = mcpTool.name): Tool {
   const inputSchema: JSONSchema7 = {
     ...(mcpTool.inputSchema as JSONSchema7),
     type: "object",
@@ -51,6 +57,7 @@ export function convertTool(mcpTool: MCPToolDef, client: Client, timeout?: numbe
     description: mcpTool.description ?? "",
     inputSchema: jsonSchema(inputSchema),
     execute: async (args: unknown, options) => {
+      if (blocksExternalPreviewNavigation(toolKey, args)) throw new Error(EXTERNAL_PREVIEW_NAVIGATION_ERROR)
       const result = await client.callTool(
         {
           name: mcpTool.name,
@@ -80,6 +87,22 @@ export function convertTool(mcpTool: MCPToolDef, client: Client, timeout?: numbe
       }
     },
   })
+}
+
+// Chrome DevTools and Playwright launch or control an external browser. A
+// localhost/file target is Tiancode's embedded preview contract, so reject the
+// navigation before the MCP server can create its own browser window. Inspection
+// calls and non-local URLs remain available for intentional browser workflows.
+export function blocksExternalPreviewNavigation(toolKey: string, args: unknown) {
+  if (!EXTERNAL_BROWSER_SERVER.test(toolKey) || !EXTERNAL_BROWSER_NAVIGATION.test(toolKey)) return false
+  return containsLocalPreviewUrl(args)
+}
+
+function containsLocalPreviewUrl(value: unknown): boolean {
+  if (typeof value === "string") return LOCAL_PREVIEW_URL.test(value)
+  if (Array.isArray(value)) return value.some(containsLocalPreviewUrl)
+  if (!value || typeof value !== "object") return false
+  return Object.values(value).some(containsLocalPreviewUrl)
 }
 
 export function fetch<T extends { name: string }>(

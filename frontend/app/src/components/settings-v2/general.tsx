@@ -157,7 +157,7 @@ const AppearanceSection: Component<{ controller: AppearanceSettingsController }>
           description={
             <>
               {language.t("settings.general.row.theme.description")}{" "}
-              <ExternalLink class="settings-v2-link" href="https://opencode.ai/docs/themes/">
+              <ExternalLink class="settings-v2-link" href="https://tiancode.ai/docs/themes/">
                 {language.t("common.learnMore")}
               </ExternalLink>
             </>
@@ -445,6 +445,23 @@ export const SettingsGeneralV2: Component<{
     <div class="settings-v2-section">
       <SettingsListV2>
         <LanguageSetting />
+
+        <SettingsRowV2
+          title={language.intl().toLowerCase().startsWith("es") ? "Asistente de Bienvenida e Inicialización" : "Welcome & Setup Wizard"}
+          description={language.intl().toLowerCase().startsWith("es") ? "Vuelve a abrir la pantalla de bienvenida, selección de idioma, temas y descargo de responsabilidad." : "Re-open the initial setup wizard to change language, themes, and disclaimer preferences."}
+        >
+          <ButtonV2
+            type="button"
+            variant="outline"
+            size="small"
+            onClick={() => {
+              dialog.close()
+              window.dispatchEvent(new CustomEvent("tiancode:open-welcome-setup"))
+            }}
+          >
+            {language.intl().toLowerCase().startsWith("es") ? "Abrir Asistente" : "Open Wizard"}
+          </ButtonV2>
+        </SettingsRowV2>
 
         <PermissionScopeSetting controller={permissionScope} />
 

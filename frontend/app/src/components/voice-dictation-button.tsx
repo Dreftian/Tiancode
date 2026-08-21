@@ -63,6 +63,57 @@ export function VoiceDictationButton(props: {
     if (starting || listening()) return
     starting = true
     try {
+      // 1. Electron Desktop: dictado local offline con sherpa-onnx / Whisper (proceso principal)
+      const api = asrAPI()
+      if (api) {
+        // El modelo Whisper (~100 MB) se descarga bajo demanda con feedback
+        const status = await api.status().catch(() => undefined)
+        if (status && !status.ready && !status.downloading) {
+          setPreparing(true)
+          showToast({ variant: "default", title: language.t("chat.mic.downloading") })
+          try {
+            await api.ensure()
+            showToast({ variant: "success", title: language.t("chat.mic.downloaded") })
+          } catch {
+            showToast({
+              variant: "error",
+              title: language.t("chat.mic.error"),
+              description: language.t("chat.mic.downloadFailed"),
+            })
+            setPreparing(false)
+            return
+          }
+          setPreparing(false)
+        }
+        const locale = language.locale() === "es" ? "es" : "en"
+        try {
+          stopLocalRef = await startLocalDictation(
+            locale,
+            (text) => {
+              props.onResult(text)
+              stop()
+            },
+            (message) => {
+              showToast({ variant: "error", title: language.t("chat.mic.error"), description: message })
+              stop()
+            },
+          )
+          if (disposed) {
+            stop()
+            return
+          }
+          setListening(true)
+        } catch (error) {
+          showToast({
+            variant: "error",
+            title: language.t("chat.mic.error"),
+            description: error instanceof Error ? error.message : String(error),
+          })
+        }
+        return
+      }
+
+      // 2. Web Browser: Web Speech API
       const Ctor = getSpeechRecognition()
       if (Ctor) {
         const rec = new Ctor()
@@ -77,7 +128,8 @@ export function VoiceDictationButton(props: {
         }
         rec.onerror = (event) => {
           if (event.error !== "aborted" && event.error !== "no-speech") {
-            showToast({ variant: "error", title: language.t("chat.mic.error"), description: event.error })
+            const desc = event.error === "network" ? "Servicio de voz no disponible o sin conexión" : event.error
+            showToast({ variant: "error", title: language.t("chat.mic.error"), description: desc })
           }
           stop()
         }
@@ -89,61 +141,8 @@ export function VoiceDictationButton(props: {
         rec.start()
         return
       }
-      // Electron: dictado local con sherpa-onnx (proceso principal).
-      const api = asrAPI()
-      if (!api) {
-        showToast({ variant: "error", title: language.t("chat.mic.error") })
-        return
-      }
-      // El modelo Whisper (~100 MB) se descarga bajo demanda; hacerlo aquí da
-      // feedback al usuario en vez de dejarle esperando en silencio al parar.
-      const status = await api.status().catch(() => undefined)
-      if (status && !status.ready && !status.downloading) {
-        setPreparing(true)
-        showToast({ variant: "default", title: language.t("chat.mic.downloading") })
-        try {
-          await api.ensure()
-          showToast({ variant: "success", title: language.t("chat.mic.downloaded") })
-        } catch {
-          // El detalle técnico queda en el log del main; el toast explica cómo
-          // resolverlo (la descarga del modelo necesita internet la primera vez).
-          showToast({
-            variant: "error",
-            title: language.t("chat.mic.error"),
-            description: language.t("chat.mic.downloadFailed"),
-          })
-          setPreparing(false)
-          return
-        }
-        setPreparing(false)
-      }
-      const locale = language.locale() === "es" ? "es" : "en"
-      try {
-        stopLocalRef = await startLocalDictation(
-          locale,
-          (text) => {
-            props.onResult(text)
-            stop()
-          },
-          (message) => {
-            showToast({ variant: "error", title: language.t("chat.mic.error"), description: message })
-            stop()
-          },
-        )
-        if (disposed) {
-          // El componente se desmontó mientras el dictado arrancaba: parar en
-          // cuanto esté listo para no dejar el micrófono abierto.
-          stop()
-          return
-        }
-        setListening(true)
-      } catch (error) {
-        showToast({
-          variant: "error",
-          title: language.t("chat.mic.error"),
-          description: error instanceof Error ? error.message : String(error),
-        })
-      }
+
+      showToast({ variant: "error", title: language.t("chat.mic.error") })
     } finally {
       starting = false
     }

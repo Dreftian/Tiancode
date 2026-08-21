@@ -459,7 +459,10 @@ export function useServerManagementController(options: { onSelect?: () => void; 
 
   const editing = createMemo(() => {
     if (!store.editServer.id) return
-    return items().find((x) => x.type === "http" && x.http.url === store.editServer.id)
+    return items().find(
+      (x) =>
+        x.type === "http" && (x.http.url === store.editServer.id || ServerConnection.key(x) === store.editServer.id),
+    )
   })
 
   const resetForm = () => {
@@ -500,11 +503,12 @@ export function useServerManagementController(options: { onSelect?: () => void; 
       addMutation.mutate(store.addServer.url)
       return
     }
-    const original = editing()
-    if (!original) return
-    if (editMutation.isPending) return
-    setStore("editServer", { error: "" })
-    editMutation.mutate({ original, value: store.editServer.value })
+
+    if (mode() === "edit") {
+      if (editMutation.isPending) return
+      setStore("editServer", { error: "" })
+      editMutation.mutate({ original: editing()!, value: store.editServer.value })
+    }
   }
 
   const isFormMode = createMemo(() => mode() !== "list")
@@ -523,6 +527,7 @@ export function useServerManagementController(options: { onSelect?: () => void; 
 
   createEffect(() => {
     if (!store.editServer.id) return
+    if (items().length === 0) return
     if (editing()) return
     resetEdit()
   })

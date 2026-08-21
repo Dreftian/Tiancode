@@ -56,6 +56,29 @@ cd backend/tiancode && bun dev
 cd tools/website && bunx serve .
 ```
 
+### Vista previa integrada
+
+La tool `preview_start` publica la web dentro de **Vista en vivo**; no abre
+el navegador del sistema. Detecta scripts comunes, `index.html` y JSX/TSX
+sin configurar. Las webs estaticas y el fallback JSX incorporan recarga local
+automatica al cambiar los archivos.
+
+Para cualquier runtime que exponga una web local (Python, Go, .NET, PHP,
+Ruby, etc.), anade un `tiancode.preview.json` en la raiz del proyecto. El
+comando es un array, no una cadena de shell, y la URL debe ser local:
+
+```json
+{
+  "framework": "python",
+  "command": ["py", "-3", "-m", "http.server", "8000"],
+  "url": "http://127.0.0.1:8000",
+  "workingDirectory": "."
+}
+```
+
+El adaptador solo sirve para runtimes HTTP. Una aplicacion nativa se muestra
+mediante su captura o flujo de escritorio, no se hace pasar por una web.
+
 ### Estructura
 
 ```

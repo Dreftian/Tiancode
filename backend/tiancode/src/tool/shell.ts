@@ -21,6 +21,7 @@ import { ChildProcess } from "effect/unstable/process"
 import { ChildProcessSpawner } from "effect/unstable/process/ChildProcessSpawner"
 import { ShellPrompt, type Parameters } from "./shell/prompt"
 import { BashArity } from "@/permission/arity"
+import { opensLocalPreviewOutsideTiancode } from "./shell/preview-guard"
 
 export { Parameters } from "./shell/prompt"
 
@@ -619,6 +620,18 @@ export const ShellTool = Tool.define(
           parameters: prompt.parameters,
           execute: (params: Parameters, ctx: Tool.Context) =>
             Effect.gen(function* () {
+              if (opensLocalPreviewOutsideTiancode(params.command)) {
+                return {
+                  title: "Vista previa externa bloqueada",
+                  metadata: {
+                    output: "Usa preview_start: Tiancode mostrará la URL local dentro de Vista en vivo.",
+                    exit: null,
+                    truncated: false,
+                  },
+                  output:
+                    "No se abrió un navegador externo para una URL local de preview. Usa preview_start y revisa Vista en vivo; solo abre un navegador externo si el usuario lo pide explícitamente.",
+                }
+              }
               const instanceCtx = yield* InstanceState.context
               const cwd = params.workdir
                 ? yield* resolvePath(params.workdir, instanceCtx.directory, shell)

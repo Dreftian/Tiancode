@@ -3,12 +3,18 @@
 "use strict";
 
 const $ = (id) => document.getElementById(id);
+const FALLBACK_POLL_INTERVAL = 5000;
+const EVENT_STALE_AFTER = FALLBACK_POLL_INTERVAL + 3000;
 
 const state = {
   snapshot: null,          // latest full snapshot from SSE
   logsRendered: 0,         // how many log lines are already in the DOM
   treeRenderedKey: "",     // signature of the last rendered tree
   logScrolledToBottom: true,
+  eventSource: null,
+  fallbackPollTimer: null,
+  staleEventTimer: null,
+  lastEventAt: 0,
 };
 
 const el = {
@@ -265,6 +271,49 @@ function renderAll() {
   renderSessions(snap);
 }
 
+function applySnapshot(snapshot) {
+  if (
+    state.snapshot &&
+    snapshot &&
+    state.snapshot.session_id === snapshot.session_id &&
+    typeof state.snapshot.updated_at === "number" &&
+    typeof snapshot.updated_at === "number" &&
+    snapshot.updated_at < state.snapshot.updated_at
+  ) return;
+  state.snapshot = snapshot;
+  renderAll();
+}
+
+function parseEventPayload(value) {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return undefined;
+  }
+}
+
+function refreshSnapshot() {
+  return fetch("/api/snapshot", { cache: "no-store" })
+    .then((res) => (res.ok ? res.json() : undefined))
+    .then((payload) => {
+      if (!payload || !Object.prototype.hasOwnProperty.call(payload, "session")) return;
+      applySnapshot(payload.session);
+    })
+    .catch(() => {});
+}
+
+function stopFallbackPoll() {
+  if (state.fallbackPollTimer == null) return;
+  clearInterval(state.fallbackPollTimer);
+  state.fallbackPollTimer = null;
+}
+
+function startFallbackPoll() {
+  if (state.fallbackPollTimer != null) return;
+  refreshSnapshot();
+  state.fallbackPollTimer = setInterval(refreshSnapshot, FALLBACK_POLL_INTERVAL);
+}
+
 /* ---------------- SSE event application ---------------- */
 
 function applyUpdate(event) {
@@ -312,7 +361,8 @@ function applyUpdate(event) {
       renderTree(snap);
       break;
     case "tree_changed":
-      break; // next snapshot event re-renders the tree
+      refreshSnapshot();
+      break;
     default:
       break;
   }
@@ -327,15 +377,30 @@ function upsertFile(files, data) {
 /* ---------------- SSE connection ---------------- */
 
 function connectEvents() {
+  if (!("EventSource" in window)) {
+    startFallbackPoll();
+    return;
+  }
   const es = new EventSource("/events");
+  state.eventSource = es;
   es.addEventListener("snapshot", (e) => {
-    state.snapshot = JSON.parse(e.data);
-    renderAll();
+    const snapshot = parseEventPayload(e.data);
+    if (snapshot === undefined) return;
+    state.lastEventAt = Date.now();
+    applySnapshot(snapshot);
+    stopFallbackPoll();
   });
   es.addEventListener("update", (e) => {
-    applyUpdate(JSON.parse(e.data));
+    const update = parseEventPayload(e.data);
+    if (!update) return;
+    state.lastEventAt = Date.now();
+    applyUpdate(update);
+    stopFallbackPoll();
+    if (update.type === "session_created") refreshSnapshot();
   });
   es.onopen = () => {
+    state.lastEventAt = Date.now();
+    stopFallbackPoll();
     el.connDot.classList.add("on");
     el.connDot.classList.remove("off");
     el.connText.textContent = "en vivo";
@@ -344,7 +409,7 @@ function connectEvents() {
     el.connDot.classList.remove("on");
     el.connDot.classList.add("off");
     el.connText.textContent = "reconectando";
-    // EventSource auto-reconnects; nothing else to do here.
+    startFallbackPoll();
   };
 }
 
@@ -388,3 +453,13 @@ el.logView.addEventListener("scroll", () => {
 /* ---------------- boot ---------------- */
 
 connectEvents();
+state.staleEventTimer = setInterval(() => {
+  if (!state.eventSource || Date.now() - state.lastEventAt <= EVENT_STALE_AFTER) return;
+  startFallbackPoll();
+}, FALLBACK_POLL_INTERVAL);
+
+window.addEventListener("pagehide", () => {
+  state.eventSource?.close();
+  stopFallbackPoll();
+  if (state.staleEventTimer != null) clearInterval(state.staleEventTimer);
+});

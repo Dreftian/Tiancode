@@ -7,6 +7,7 @@ export type {
   WslInstalledDistro,
   WslJob,
   WslOnlineDistro,
+  WslTiancodeCheck,
   WslOpencodeCheck,
   WslRuntimeCheck,
   WslServerConfig,
@@ -81,11 +82,18 @@ export type VoicesSpeakResult = {
   error?: string
 }
 
+export type VoicesSpeakOptions = {
+  // Automatic narration must never start a model download or compete with a
+  // user-initiated probe. It is best-effort and can be skipped when the
+  // selected local voice is not ready.
+  automatic?: boolean
+}
+
 export type VoicesAPI = {
   status: () => Promise<VoicesStatus>
   download: () => Promise<void>
   list: () => Promise<VoiceInfo[]>
-  speak: (text: string, voiceId?: string) => Promise<VoicesSpeakResult>
+  speak: (text: string, voiceId?: string, options?: VoicesSpeakOptions) => Promise<VoicesSpeakResult>
   select: (voiceId: string) => Promise<boolean>
   onProgress: (cb: (event: VoicesProgress) => void) => () => void
   downloadVoice: (voiceId: string) => Promise<void>
@@ -168,6 +176,7 @@ export type PreviewViewSelection = {
 
 export type PreviewViewEvent =
   | { type: "state"; state: PreviewViewState }
+  | { type: "loaded"; url: string }
   | { type: "console"; message: { level: number; message: string; line: number; sourceId: string } }
   | { type: "fail"; fail: { code: number; description: string; url: string; isMainFrame: boolean } }
 
@@ -278,4 +287,17 @@ export type ElectronAPI = {
   setForceFocus: (enabled: boolean) => Promise<void>
   recordFatalRendererError: (error: FatalRendererError) => Promise<void>
   setNativeTranslations: (bundle: DesktopNativeBundle) => Promise<void>
+  pet: {
+    update: (partial: Partial<DesktopPetState>) => Promise<DesktopPetState>
+    toggle: () => Promise<boolean>
+    getState: () => Promise<DesktopPetState>
+  }
+}
+
+export type DesktopPetState = {
+  kind: "cat" | "dog" | "rabbit"
+  status: "ready" | "running" | "needs-input" | "blocked"
+  text: string
+  petted?: boolean
+  visible: boolean
 }

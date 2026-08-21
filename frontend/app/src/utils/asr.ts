@@ -35,7 +35,13 @@ export async function startLocalDictation(
   const api = asrAPI()
   if (!api) throw new Error("Local dictation is unavailable")
   const stream = await navigator.mediaDevices.getUserMedia({
-    audio: { channelCount: 1, sampleRate: 16000 },
+    audio: {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+      channelCount: 1,
+      sampleRate: 16000,
+    },
   })
   const context = new AudioContext({ sampleRate: 16000 })
   const source = context.createMediaStreamSource(stream)

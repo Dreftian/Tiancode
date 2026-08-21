@@ -14,7 +14,8 @@ Transport: MCP over stdio (JSON-RPC 2.0, newline-delimited) via the
 vendored runtime in mcp_runtime.py. Stdlib only — no pip dependencies.
 
 Config file: path from env LIVE_FRONTEND_CONFIG (JSON), otherwise
-./config.json next to this script, otherwise built-in defaults.
+./config.json next to this script, otherwise built-in defaults. The dashboard
+is always embedded; this server never opens a system browser.
 """
 
 from __future__ import annotations
@@ -29,11 +30,10 @@ import sys
 import threading
 import time
 import uuid
-import webbrowser
 from collections import deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
 from mcp_runtime import INVALID_PARAMS, McpError, Server as McpServer
 
@@ -51,7 +51,6 @@ DEFAULT_CONFIG = {
     "max_file_bytes": 1000000,
     "max_event_history": 500,
     "desktop_capture_interval_seconds": 2,
-    "auto_open_dashboard": False,
     # extensions with sane defaults (kept out of the dashboard)
     "max_tracked_files": 2000,
     "log_limit": 2000,
@@ -60,6 +59,7 @@ DEFAULT_CONFIG = {
 
 CONTENT_TYPES = {
     ".html": "text/html; charset=utf-8",
+    ".htm": "text/html; charset=utf-8",
     ".css": "text/css; charset=utf-8",
     ".js": "text/javascript; charset=utf-8",
     ".json": "application/json; charset=utf-8",
@@ -71,9 +71,68 @@ CONTENT_TYPES = {
 }
 
 SNAPSHOT_INTERVAL = 3.0       # seconds between full snapshot pushes on SSE
+SSE_KEEPALIVE_INTERVAL = 15.0 # seconds between SSE comments when otherwise idle
 MAX_EVENTS_PER_TICK = 100     # above this, emit a single tree_changed event
 MAX_SSE_LOG_LINES = 1000      # logs included in a snapshot payload
 MAX_RECENT_EVENTS = 200       # events included in a snapshot payload
+
+PREVIEW_RELOAD_SCRIPT = """(() => {
+  const current = document.currentScript;
+  const sessionId = current ? new URL(current.src).searchParams.get("session") : null;
+  if (!sessionId) return;
+
+  let reloadTimer = 0;
+  let snapshotInitialized = false;
+  let fileRevision = "";
+  const reload = () => {
+    if (reloadTimer) return;
+    reloadTimer = window.setTimeout(() => window.location.reload(), 120);
+  };
+  const applies = (event) => event && event.session_id === sessionId && (
+    event.type === "tree_changed" || event.type === "file_added" ||
+    event.type === "file_modified" || event.type === "file_removed" ||
+    event.type === "file_changed"
+  );
+  const events = new EventSource("/events");
+  events.addEventListener("update", (message) => {
+    try {
+      const event = JSON.parse(message.data);
+      if (applies(event)) reload();
+    } catch (_) {}
+  });
+
+  const revisionOf = (session) => {
+    if (!Array.isArray(session.files)) return null;
+    return session.files
+      .filter((entry) => entry && typeof entry.rel === "string")
+      .map((entry) => `${entry.rel}:${entry.size ?? ""}:${entry.mtime ?? ""}`)
+      .sort()
+      .join("|");
+  };
+
+  const poll = window.setInterval(() => {
+    fetch("/api/snapshot", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((payload) => {
+        const session = payload && payload.session;
+        if (!session || session.session_id !== sessionId) return;
+        const next = revisionOf(session);
+        if (next === null) return;
+        if (!snapshotInitialized) {
+          snapshotInitialized = true;
+          fileRevision = next;
+          return;
+        }
+        if (next !== fileRevision) reload();
+      })
+      .catch(() => {});
+  }, 3000);
+  window.addEventListener("pagehide", () => {
+    events.close();
+    window.clearInterval(poll);
+  }, { once: true });
+})();
+"""
 
 
 # ---------------------------------------------------------------------------
@@ -687,6 +746,17 @@ class DashboardServer(ThreadingHTTPServer):
         self.state = state
 
 
+def inject_preview_reload(body: bytes, session_id: str) -> bytes:
+    """Add a same-origin reload client without changing user project files."""
+    if b"__tiancode__/reload.js" in body:
+        return body
+    tag = f'<script src="/preview/__tiancode__/reload.js?session={quote(session_id)}" defer></script>'.encode("utf-8")
+    closing_body = body.lower().rfind(b"</body>")
+    if closing_body >= 0:
+        return body[:closing_body] + tag + body[closing_body:]
+    return body + tag
+
+
 class DashboardHandler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
     server_version = "LiveFrontendDashboard/1.0"
@@ -727,6 +797,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
             return
         self._send_bytes(200, content_type, body)
 
+    def _serve_preview_reload(self) -> None:
+        self._send_bytes(200, "text/javascript; charset=utf-8", PREVIEW_RELOAD_SCRIPT.encode("utf-8"))
+
     def _serve_preview(self, path: str) -> None:
         """Sirve archivos de la raíz de la sesión actual bajo /preview/.
 
@@ -742,9 +815,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         root = Path(session["root"]).resolve()
         rel = path[len("/preview"):].lstrip("/") or "index.html"
         target = (root / rel).resolve()
-        root_norm = os.path.normcase(str(root))
-        target_norm = os.path.normcase(str(target))
-        if not target_norm.startswith(root_norm) or not target.is_file():
+        if root not in target.parents or not target.is_file():
             if Path(rel).suffix == "" and (root / "index.html").is_file():
                 target = root / "index.html"
             else:
@@ -756,6 +827,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
         except OSError:
             self._send_bytes(500, "text/plain; charset=utf-8", b"Read error")
             return
+        if target.suffix.lower() in (".html", ".htm"):
+            body = inject_preview_reload(body, session["session_id"])
         self._send_bytes(200, content_type, body)
 
     def _serve_events(self) -> None:
@@ -765,6 +838,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-cache")
         self.send_header("Connection", "keep-alive")
         self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("X-Accel-Buffering", "no")
         self.end_headers()
         subscriber: queue.Queue = queue.Queue(maxsize=1000)
         with state.lock:
@@ -775,8 +849,19 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self.wfile.write(f"event: {event_name}\ndata: {data}\n\n".encode("utf-8"))
             self.wfile.flush()
 
+        def keep_alive() -> None:
+            self.wfile.write(b": keep-alive\n\n")
+            self.wfile.flush()
+
         try:
-            last_snapshot = 0.0
+            self.wfile.write(b"retry: 1000\n\n")
+            self.wfile.flush()
+            with state.lock:
+                session = state.sessions.get(state.current_id)
+                snapshot = build_snapshot(state, session) if session else None
+            send("snapshot", snapshot)
+            last_snapshot = time.monotonic()
+            last_keep_alive = last_snapshot
             while True:
                 try:
                     event = subscriber.get(timeout=0.5)
@@ -791,6 +876,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
                         snapshot = build_snapshot(state, session) if session else None
                     send("snapshot", snapshot)
                     last_snapshot = now
+                if now - last_keep_alive >= SSE_KEEPALIVE_INTERVAL:
+                    keep_alive()
+                    last_keep_alive = now
         except (BrokenPipeError, ConnectionResetError, OSError, TimeoutError):
             pass
         finally:
@@ -803,6 +891,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if path == "/events":
             self._serve_events()
+            return
+        if path == "/preview/__tiancode__/reload.js":
+            self._serve_preview_reload()
             return
         if path == "/preview" or path.startswith("/preview/"):
             self._serve_preview(path)
@@ -925,8 +1016,6 @@ def start_dashboard(state: LiveState) -> str | None:
     state.dashboard_url = url
     threading.Thread(target=server.serve_forever, daemon=True, name="dashboard-http").start()
     LOG.info("Dashboard listening at %s", url)
-    if state.config.get("auto_open_dashboard"):
-        threading.Timer(0.8, lambda: webbrowser.open(url)).start()
     return url
 
 

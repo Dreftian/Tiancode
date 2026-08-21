@@ -65,6 +65,7 @@ const APP_IDS: Record<string, string> = {
   prod: "ai.tiancode.desktop",
 }
 const TEST_ONBOARDING = process.env.TIANCODE_TEST_ONBOARDING === "1"
+const TEST_ONBOARDING_ROOT = process.env.TIANCODE_TEST_ONBOARDING_ROOT
 const SIDECAR_VERSION = process.env.TIANCODE_SIDECAR_V2 === "1" ? "v2" : "v1"
 const jsCallStackFeature = "DocumentPolicyIncludeJSCallStacksInCrashReports"
 
@@ -107,8 +108,8 @@ const main = Effect.gen(function* () {
   const onboardingTestRoot = ((): string | undefined => {
     if (!TEST_ONBOARDING) return
 
-    const root = join(tmpdir(), `tiancode-onboarding-${randomUUID()}`)
-    rmSync(root, { recursive: true, force: true })
+    const root = TEST_ONBOARDING_ROOT || join(tmpdir(), `tiancode-onboarding-${randomUUID()}`)
+    if (!TEST_ONBOARDING_ROOT) rmSync(root, { recursive: true, force: true })
     ;["data", "config", "cache", "state", "desktop", "session"].forEach((dir) =>
       mkdirSync(join(root, dir), { recursive: true }),
     )
@@ -120,7 +121,11 @@ const main = Effect.gen(function* () {
     return root
   })()
   app.setName(app.isPackaged ? APP_NAMES[CHANNEL] : "Tiancode Codex")
-  app.setAppUserModelId(appId)
+  if (process.platform === "win32") {
+    app.setAppUserModelId(appId)
+  } else {
+    app.setAppUserModelId(appId)
+  }
   app.setPath(
     "userData",
     onboardingTestRoot ? join(onboardingTestRoot, "desktop") : join(app.getPath("appData"), appId),

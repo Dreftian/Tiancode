@@ -317,6 +317,10 @@ jobs:
           TIANCODE_CHANNEL: ${{ (github.ref_name == 'beta' && 'beta') || 'prod' }}
           RUST_TARGET: ${{ matrix.settings.target }}
 
+      - name: Verify bundled MCP configuration
+        run: bun run verify:bundled-mcps
+        working-directory: frontend/desktop
+
       - name: Build
         run: bun run build
         working-directory: frontend/desktop
@@ -390,6 +394,13 @@ jobs:
               throw "Invalid signature for ${file}: $($sig.Status)"
             }
           }
+
+      - name: Verify Windows release manifest
+        if: runner.os == 'Windows'
+        working-directory: frontend/desktop
+        run: bun run verify:win-release
+        env:
+          TIANCODE_ARCH: ${{ contains(matrix.settings.target, 'aarch64') && 'arm64' || '' }}
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:

@@ -1,16 +1,21 @@
 import { IconButtonV2 } from "@tiancode-ai/ui/v2/icon-button-v2"
 import { Icon as IconV2 } from "@tiancode-ai/ui/v2/icon"
 import { SelectV2 } from "@tiancode-ai/ui/v2/select-v2"
-import { ScrollView } from "@tiancode-ai/ui/scroll-view"
-import { createEffect, createSignal, For, onCleanup, onMount, Show } from "solid-js"
+import { createEffect, createSignal, onCleanup, onMount, Show } from "solid-js"
+import { createStore } from "solid-js/store"
+import { Persist, persisted } from "@/utils/persist"
 import { normalizeUrl } from "@/components/preview-panel"
-import { welcomePageUrl } from "@/utils/webview-welcome"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { useSDK } from "@/context/sdk"
 import { useServer } from "@/context/server"
 import { authTokenFromCredentials } from "@/utils/server"
-import type { PreviewViewSelection, PreviewViewState } from "@/context/platform"
+import type { PreviewViewState } from "@/context/platform"
+import { previewActionUrl, previewStatusUrl, type PreviewAction } from "./live-preview-url"
+import { PREVIEW_RETRY_MAX_ATTEMPTS, isRetryablePreviewLoadFailure, previewRetryDelay, samePreviewUrl } from "./live-preview-retry"
+import { iframePreviewUrl, usesIframePreview } from "./live-preview-transport"
+import { orientedPreviewDimensions } from "./preview-experience"
+import { fittedPreviewViewport } from "./preview-viewport"
 
 // Estado del dev server gestionado por el agente (DevServerManager, /preview).
 type DevServerState = {
@@ -25,31 +30,40 @@ type DevServerState = {
   errorMessage: string | null
 }
 
-// Panel "App" de la vista en vivo con WebContentsView: la página se dibuja
-// fuera del DOM del renderer (bounds reportados del contenedor real vía IPC),
-// así que todo lo que se superponga a la vista (avisos, inspector, consola)
-// vive FUERA del contenedor, en la columna flex del panel.
+// La vista previa local se muestra en un iframe dentro del renderer. Esto hace
+// que sus píxeles respeten el borde, el tamaño y el modo expandido del Sandbox.
+// WebContentsView queda como fallback para destinos no locales.
 
-const CONSOLE_MAX = 200
 const ZOOM_MIN = 0.25
 const ZOOM_MAX = 5
 const ZOOM_STEP = 0.2
 const CUSTOM_MIN = 80
 const CUSTOM_MAX = 4096
+const HIDDEN_PREVIEW_BOUNDS = { x: 0, y: 0, width: 0, height: 0 }
+
+export function isBlankPreviewUrl(url: string | undefined) {
+  return !url || url.startsWith("about:blank")
+}
+
+// Older desktop builds used a data URL as an empty-state webview. It is not a
+// project preview and leaves a long, confusing URL in the toolbar after an
+// upgrade, so it must never be revealed as the current application.
+export function isWelcomePreviewUrl(url: string | undefined) {
+  return url?.startsWith("data:text/html;charset=utf-8,") ?? false
+}
 
 const DEVICE_PRESETS = {
   desktop: { width: 1440, height: 900 },
   laptop: { width: 1280, height: 800 },
+  tv: { width: 1920, height: 1080 },
   tablet: { width: 768, height: 1024 },
+  androidTablet: { width: 800, height: 1280 },
   mobile: { width: 390, height: 844 },
+  androidPhone: { width: 412, height: 915 },
 } as const
 
 type DeviceId = "fit" | keyof typeof DEVICE_PRESETS | "custom"
-
-type ConsoleEntry = { id: number; level: number; message: string; line: number; sourceId: string }
-
-// Secuencia de ids de la consola (solo para claves de <For> por instancia).
-let consoleSeq = 0
+type IframeHistoryMode = "push" | "traverse"
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max)
 
@@ -77,7 +91,12 @@ function ToolButton(props: {
 
 export function LivePreview(props: {
   targetUrl?: () => string | undefined
+  autoStartKey?: () => string | undefined
+  onManagedTarget?: (url: string | undefined) => void
   onCapture?: (file: File) => void
+  onOpenSource?: (path: string) => void
+  externalDevice?: () => "fluid" | "mobile" | "tablet" | "laptop" | undefined
+  onDeviceChange?: (mode: "fluid" | "mobile" | "tablet" | "laptop") => void
 }) {
   const language = useLanguage()
   const platform = usePlatform()
@@ -87,16 +106,59 @@ export function LivePreview(props: {
 
   const [state, setState] = createSignal<PreviewViewState | null>(null)
   const [urlInput, setUrlInput] = createSignal("")
-  const [busy, setBusy] = createSignal(false)
   const [fail, setFail] = createSignal<{ code: number; description: string; url: string } | null>(null)
-  const [consoleOpen, setConsoleOpen] = createSignal(false)
-  const [consoleEntries, setConsoleEntries] = createSignal<ConsoleEntry[]>([])
-  const [selectMode, setSelectMode] = createSignal(false)
-  const [selection, setSelection] = createSignal<PreviewViewSelection | null>(null)
-  const [copied, setCopied] = createSignal(false)
-  const [zoom, setZoom] = createSignal(1)
-  const [deviceId, setDeviceId] = createSignal<DeviceId>("fit")
-  const [customSize, setCustomSize] = createSignal({ width: DEVICE_PRESETS.mobile.width, height: DEVICE_PRESETS.mobile.height })
+  const [previewPrefs, setPreviewPrefs] = persisted(
+    Persist.global("live-preview.preferences"),
+    createStore({
+      deviceId: "fit" as DeviceId,
+      customWidth: 1600,
+      customHeight: 900,
+      zoom: 1,
+    }),
+  )
+  const zoom = () => previewPrefs.zoom
+  const setZoom = (value: number | ((prev: number) => number)) => {
+    const next = typeof value === "function" ? value(previewPrefs.zoom) : value
+    setPreviewPrefs("zoom", clamp(next, ZOOM_MIN, ZOOM_MAX))
+  }
+  const deviceId = () => previewPrefs.deviceId
+  const setDeviceId = (id: DeviceId) => setPreviewPrefs("deviceId", id)
+  const [inspectActive, setInspectActive] = createSignal(false)
+
+  createEffect(() => {
+    const ext = props.externalDevice?.()
+    if (!ext) return
+    if (ext === "mobile" && deviceId() !== "mobile") {
+      setDeviceId("mobile")
+      setZoom(1)
+    } else if (ext === "tablet" && deviceId() !== "tablet") {
+      setDeviceId("tablet")
+      setZoom(1)
+    } else if (ext === "laptop" && deviceId() !== "laptop") {
+      setDeviceId("laptop")
+      setZoom(1)
+    } else if (ext === "fluid" && deviceId() !== "fit") {
+      setDeviceId("fit")
+      setZoom(1)
+    }
+  })
+
+  const [rotated, setRotated] = createSignal(false)
+  const customSize = () => ({ width: previewPrefs.customWidth, height: previewPrefs.customHeight })
+  const setCustomSize = (
+    value:
+      | { width: number; height: number }
+      | ((prev: { width: number; height: number }) => { width: number; height: number }),
+  ) => {
+    const next = typeof value === "function" ? value(customSize()) : value
+    setPreviewPrefs("customWidth", clamp(next.width, CUSTOM_MIN, CUSTOM_MAX))
+    setPreviewPrefs("customHeight", clamp(next.height, CUSTOM_MIN, CUSTOM_MAX))
+  }
+  const [previewSurfaceVisible, setPreviewSurfaceVisible] = createSignal(false)
+  const [iframeUrl, setIframeUrl] = createSignal<string>()
+  const [iframeLoading, setIframeLoading] = createSignal(false)
+  const [nativePreviewActive, setNativePreviewActive] = createSignal(false)
+  const [availableViewport, setAvailableViewport] = createSignal({ width: 0, height: 0 })
   // Dev server gestionado por el agente (DevServerManager del backend).
   const [devServer, setDevServer] = createSignal<DevServerState | null>(null)
 
@@ -104,74 +166,254 @@ export function LivePreview(props: {
   // La navegación manual (URL tecleada, atrás/adelante) gana sobre la
   // auto-detección del dev server; una URL nueva del agente la reanuda.
   let lastTargetUrl: string | undefined
+  let requestedUrl: string | undefined
+  let failedUrl: string | undefined
+  let retryAttempts = 0
+  let retryTimer: number | undefined
+  let lastAutoStartKey: string | undefined
+  let previewVisible = false
+  let previewMounted = true
+  let boundsReady = false
+  let previewContentReady = false
+  let boundsFrame: number | undefined
+  let lastBounds: string | undefined
+  let lastNativeZoom: number | undefined
+  let iframe: HTMLIFrameElement | undefined
+  let iframeHistory: string[] = []
+  let iframeHistoryIndex = -1
+
+  const revealPreview = () => {
+    if (!previewMounted || !nativePreviewActive() || previewVisible || !boundsReady || !previewContentReady) return
+    previewVisible = true
+    setPreviewSurfaceVisible(true)
+    void preview()?.setVisible(true)
+  }
+
+  const clearRetry = () => {
+    if (retryTimer === undefined) return
+    window.clearTimeout(retryTimer)
+    retryTimer = undefined
+  }
+
+  const scheduleRetry = (target: string) => {
+    if (retryTimer !== undefined || retryAttempts >= PREVIEW_RETRY_MAX_ATTEMPTS) return
+    const attempt = retryAttempts++
+    retryTimer = window.setTimeout(() => {
+      retryTimer = undefined
+      if (!samePreviewUrl(requestedUrl, target)) return
+      if (usesIframePreview(target)) {
+        reloadIframe()
+        return
+      }
+      void preview()?.navigate(target)
+    }, previewRetryDelay(attempt))
+  }
 
   // Tamaño que debe ocupar la vista: null = llenar el contenedor (fit).
-  const deviceSize = () => {
+  const unrotatedDeviceSize = () => {
     const id = deviceId()
     if (id === "fit") return null
     if (id === "custom") return customSize()
     return DEVICE_PRESETS[id]
   }
 
+  const deviceSize = () => orientedPreviewDimensions(unrotatedDeviceSize() ?? undefined, rotated()) ?? null
+
+  const deviceFrame = () => {
+    const id = deviceId()
+    if (id === "fit") return 0
+    if (id === "mobile" || id === "androidPhone") return 12
+    if (id === "tablet" || id === "androidTablet") return 10
+    if (id === "tv") return 8
+    return 8
+  }
+
+  const previewViewport = () => fittedPreviewViewport(availableViewport(), deviceSize() ?? undefined, zoom(), deviceFrame())
+
+  const measureViewport = () => {
+    if (!container) return
+    const rect = container.getBoundingClientRect()
+    const next = { width: Math.round(rect.width), height: Math.round(rect.height) }
+    setAvailableViewport((current) => current.width === next.width && current.height === next.height ? current : next)
+  }
+
   // Bounds del WebContentsView: rect del contenedor real del panel, o el
   // dispositivo centrado dentro de él. El main escala por el zoom de ventana.
   const reportBounds = () => {
+    if (!nativePreviewActive() || iframeUrl()) return
     const view = preview()
     if (!view || !container) return
     const rect = container.getBoundingClientRect()
-    const device = deviceSize()
-    if (!device) {
-      void view.setBounds({ x: rect.x, y: rect.y, width: rect.width, height: rect.height })
+    if (rect.width < 1 || rect.height < 1) {
+      boundsReady = false
+      lastBounds = undefined
+      previewVisible = false
+      setPreviewSurfaceVisible(false)
+      // La superficie nativa vive por encima del DOM. También borramos sus
+      // bounds para que una vista residual no cubra el panel al colapsarse.
+      void view.setBounds(HIDDEN_PREVIEW_BOUNDS)
       return
     }
-    const width = Math.min(device.width, rect.width)
-    const height = Math.min(device.height, rect.height)
-    void view.setBounds({
-      x: rect.x + Math.round((rect.width - width) / 2),
-      y: rect.y + Math.round((rect.height - height) / 2),
+    const device = deviceSize()
+    const viewport = previewViewport()
+    const width = Math.max(1, Math.round(device ? viewport.width - viewport.frame * 2 : rect.width))
+    const height = Math.max(1, Math.round(device ? viewport.height - viewport.frame * 2 : rect.height))
+    const nextZoom = device ? viewport.scale : zoom()
+    if (nextZoom !== lastNativeZoom) {
+      lastNativeZoom = nextZoom
+      void view.setZoom(nextZoom)
+    }
+    const bounds = {
+      x: Math.round(device ? rect.x + (rect.width - width) / 2 : rect.x),
+      y: Math.round(device ? rect.y + (rect.height - height) / 2 : rect.y),
       width,
       height,
+    }
+    const key = `${bounds.x}:${bounds.y}:${bounds.width}:${bounds.height}`
+    if (key === lastBounds) {
+      boundsReady = true
+      revealPreview()
+      return
+    }
+    lastBounds = key
+    void view.setBounds(bounds).then(() => {
+      if (!previewMounted) return
+      boundsReady = true
+      revealPreview()
+    }).catch(() => {
+      lastBounds = undefined
     })
   }
 
-  const navigateTo = (target: string) => {
+  const queueBounds = () => {
+    if (boundsFrame !== undefined) return
+    boundsFrame = window.requestAnimationFrame(() => {
+      boundsFrame = undefined
+      measureViewport()
+      reportBounds()
+    })
+  }
+
+  const hideNativePreview = () => {
+    setNativePreviewActive(false)
+    previewVisible = false
+    boundsReady = false
+    previewContentReady = false
+    lastBounds = undefined
+    lastNativeZoom = undefined
+    setPreviewSurfaceVisible(false)
+    const view = preview()
+    if (!view) return
+    // A WebContentsView is composed above the DOM. Clear its bounds before
+    // hiding it so a previous native preview can never cover this iframe.
+    void view.setBounds(HIDDEN_PREVIEW_BOUNDS)
+    void view.setVisible(false)
+  }
+
+  const updateIframeState = (target: string, loading: boolean) => {
+    setState({
+      url: target,
+      loading,
+      canGoBack: iframeHistoryIndex > 0,
+      canGoForward: iframeHistoryIndex < iframeHistory.length - 1,
+      visible: true,
+      selectMode: false,
+    })
+  }
+
+  const navigateTo = (target: string, historyMode: IframeHistoryMode = "push") => {
     if (!target) return
-    setUrlInput(target)
+    const iframeTarget = iframePreviewUrl(target)
+    const nextTarget = iframeTarget ?? target
+    if (!samePreviewUrl(requestedUrl, nextTarget)) {
+      retryAttempts = 0
+      failedUrl = undefined
+      clearRetry()
+    }
+    requestedUrl = nextTarget
+    setUrlInput(nextTarget)
+    if (iframeTarget) {
+      if (historyMode === "push" && !samePreviewUrl(iframeHistory[iframeHistoryIndex], iframeTarget)) {
+        iframeHistory = [...iframeHistory.slice(0, iframeHistoryIndex + 1), iframeTarget]
+        iframeHistoryIndex = iframeHistory.length - 1
+      }
+      setIframeLoading(true)
+      setIframeUrl(iframeTarget)
+      updateIframeState(iframeTarget, true)
+      hideNativePreview()
+      return
+    }
+    setIframeUrl(undefined)
+    setIframeLoading(false)
+    setNativePreviewActive(true)
+    queueBounds()
     void preview()?.navigate(target)
   }
 
-  const capture = async () => {
-    if (busy()) return
-    setBusy(true)
-    try {
-      const file = await platform.captureScreenshot?.("liveView")
-      if (file) props.onCapture?.(file)
-    } catch {
-      // Sin captura disponible: la UI sigue usable.
-    } finally {
-      setBusy(false)
+  function reloadIframe() {
+    const target = iframeUrl()
+    if (!target) return
+    setIframeLoading(true)
+    setFail(null)
+    updateIframeState(target, true)
+    if (iframe) {
+      try {
+        iframe.contentWindow?.postMessage({ type: "tiancode:reload", timestamp: Date.now() }, "*")
+      } catch {
+        // ignore
+      }
+      try {
+        iframe.contentWindow?.location.reload()
+      } catch {
+        // Cross-origin fallback: replace source with cache-busting timestamp
+      }
+      try {
+        const u = new URL(target)
+        u.searchParams.set("_t", String(Date.now()))
+        iframe.src = u.toString()
+      } catch {
+        iframe.src = target
+      }
+      return
     }
+    setIframeUrl(undefined)
+    window.requestAnimationFrame(() => setIframeUrl(target))
   }
 
-  const copyText = (text: string) => {
-    void navigator.clipboard.writeText(text).then(() => {
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 1500)
-    })
+  const completeIframeLoad = () => {
+    const target = iframeUrl()
+    if (!target) return
+    setIframeLoading(false)
+    updateIframeState(target, false)
+    retryAttempts = 0
+    failedUrl = undefined
+    clearRetry()
+    setFail(null)
+  }
+
+  const failIframeLoad = () => {
+    const target = iframeUrl()
+    if (!target) return
+    setIframeLoading(false)
+    updateIframeState(target, false)
+    failedUrl = target
+    setFail({ code: 0, description: language.t("livePreview.serverError"), url: target })
+    scheduleRetry(target)
   }
 
   const zoomStep = (delta: number) => {
     const next = clamp(zoom() + delta, ZOOM_MIN, ZOOM_MAX)
     setZoom(next)
+    if (iframeUrl()) return
     void preview()?.setZoom(next)
   }
 
-  // Modo seleccionar: el main inyecta el overlay en la página; al hacer clic
-  // el script publica un marcador en la consola y el panel lee la selección.
-  // Esc o un clic válido salen del modo (marcador "exit").
-  const setSelectActive = (active: boolean) => {
-    setSelectMode(active)
-    void preview()?.setSelectMode(active)
+  const retryPreview = () => {
+    setFail(null)
+    if (devServer()?.status === "error" || devServer()?.status === "stopped") {
+      void devServerAction(devServer()?.status === "stopped" ? "start" : "restart")
+    }
+    reloadPreview()
   }
 
   // Dev server gestionado por el agente (DevServerManager): estado, logs y
@@ -191,21 +433,21 @@ export function LivePreview(props: {
     const dir = devServerDirectory()
     const headers = devServerHeaders()
     const url = server.current?.http.url
-    if (!dir || !headers || !url) return
+    if (!dir || !url) return
     try {
-      const res = await fetch(`${url}/preview/status?directory=${encodeURIComponent(dir)}`, { headers })
+      const res = await fetch(previewStatusUrl(url, dir), { headers })
       if (res.ok) setDevServer((await res.json()) as DevServerState)
     } catch {
       // Servidor del agente no disponible: se conserva el último estado.
     }
   }
-  const devServerAction = async (action: "start" | "stop" | "restart") => {
+  const devServerAction = async (action: PreviewAction) => {
     const dir = devServerDirectory()
     const headers = devServerHeaders()
     const url = server.current?.http.url
-    if (!dir || !headers || !url) return
+    if (!dir || !url) return
     try {
-      const res = await fetch(`${url}/preview/${action}?directory=${encodeURIComponent(dir)}`, {
+      const res = await fetch(previewActionUrl(url, action, dir), {
         method: "POST",
         headers: { ...headers, "content-type": "application/json" },
         body: "{}",
@@ -218,50 +460,140 @@ export function LivePreview(props: {
 
   onMount(() => {
     const view = preview()
-    if (!view || !container) return
-    reportBounds()
-    void view.setVisible(true)
+    const surface = container
+    // Fetching the managed runtime must not depend on Electron's optional
+    // WebContentsView. Local loopback previews use an iframe and can mount
+    // before the native ref is available.
+    void fetchDevServer()
+    const devTimer = window.setInterval(fetchDevServer, 2000)
+    const observer = surface ? new ResizeObserver(queueBounds) : undefined
+    if (surface) {
+      measureViewport()
+      observer?.observe(surface)
+    }
+    const handleReload = (event?: Event) => {
+      const customEvent = event as CustomEvent<{ path?: string }> | undefined
+      const path = customEvent?.detail?.path
+      if (iframeUrl()) {
+        reloadIframe()
+        if (iframe?.contentWindow) {
+          try {
+            iframe.contentWindow.postMessage({ type: "tiancode:file-change", path, timestamp: Date.now() }, "*")
+          } catch {
+            // ignore
+          }
+        }
+      }
+      if (preview()) {
+        void preview()?.reload()
+      }
+    }
+    window.addEventListener("tiancode:preview-reload", handleReload)
+
+    if (!view || !surface) {
+      onCleanup(() => {
+        window.clearInterval(devTimer)
+        observer?.disconnect()
+        window.removeEventListener("resize", queueBounds)
+        window.removeEventListener("fullscreenchange", queueBounds)
+        window.removeEventListener("tiancode:preview-reload", handleReload)
+        clearRetry()
+      })
+      return
+    }
+    // The native surface is shared outside the renderer. A prior tab can have
+    // left it visible, so hide it before this panel decides which transport it
+    // needs; otherwise it can cover a local iframe for one or more frames.
+    void view.setBounds(HIDDEN_PREVIEW_BOUNDS)
+    void view.setVisible(false)
+    queueBounds()
     void view.getState().then((snapshot) => {
+      if (!previewMounted || iframeUrl()) return
+      // A stale welcome data URL belongs to the old empty-state transport. The
+      // DOM placeholder is responsive and lets the managed runtime win.
+      if (isWelcomePreviewUrl(snapshot?.url)) {
+        setState(null)
+        setUrlInput("")
+        return
+      }
       if (snapshot) setState(snapshot)
-      // Sin URL cargada aún: página de bienvenida para no ver negro.
-      if (!snapshot?.url) void view.navigate(welcomeUrl())
+      if (isBlankPreviewUrl(snapshot?.url)) {
+        // Siempre se carga una página conocida antes de revelar la superficie;
+        // si ya llegó un destino del agente, ese destino gana a la bienvenida.
+        return
+      }
+      if (!snapshot?.loading) {
+        previewContentReady = true
+        revealPreview()
+      }
     })
     const unsubscribe = view.onEvent((event) => {
+      // The native view can still report a delayed event after a local target
+      // switches to the iframe. Never let that stale event overwrite iframe UI.
+      if (iframeUrl()) return
       if (event.type === "state") {
+        if (isWelcomePreviewUrl(event.state.url)) {
+          setState(null)
+          setUrlInput("")
+          return
+        }
         setState(event.state)
         if (event.state.url) setUrlInput(event.state.url)
         if (event.state.loading) setFail(null)
         return
       }
-      if (event.type === "fail") {
-        setFail({ code: event.fail.code, description: event.fail.description, url: event.fail.url })
+      if (event.type === "loaded") {
+        // Electron crea el WebContentsView en about:blank. No es contenido del
+        // preview y revelarlo deja el rectángulo negro que el panel debe evitar.
+        if (isBlankPreviewUrl(event.url) || isWelcomePreviewUrl(event.url)) return
+        previewContentReady = true
+        revealPreview()
+        if (samePreviewUrl(requestedUrl, event.url)) {
+          retryAttempts = 0
+          failedUrl = undefined
+          clearRetry()
+        }
+        setFail(null)
         return
       }
-      // Consola de la página: ring buffer acotado + marcador de selección.
-      setConsoleEntries((entries) => [
-        ...entries.slice(-(CONSOLE_MAX - 1)),
-        { id: ++consoleSeq, level: event.message.level, message: event.message.message, line: event.message.line, sourceId: event.message.sourceId },
-      ])
-      if (event.message.message.startsWith("[tiancode-selection]")) {
-        const selected = event.message.message.includes("selected")
-        setSelectActive(false)
-        if (selected) void view.getSelection().then((value) => value && setSelection(value))
+      if (event.type === "fail") {
+        if (!event.fail.isMainFrame || event.fail.code === -3) return
+        // Una URL fallida nunca se deja como un rectángulo negro. La UI
+        // conserva el diagnóstico y el retry vuelve a revelar la página sólo
+        // tras un `loaded` real.
+        previewContentReady = false
+        previewVisible = false
+        setPreviewSurfaceVisible(false)
+        void view.setVisible(false)
+        setFail({ code: event.fail.code, description: event.fail.description, url: event.fail.url })
+        if (isRetryablePreviewLoadFailure(event.fail)) {
+          failedUrl = event.fail.url
+          scheduleRetry(event.fail.url)
+        }
+        return
       }
     })
-    const observer = new ResizeObserver(reportBounds)
-    observer.observe(container)
-    window.addEventListener("resize", reportBounds)
-    window.addEventListener("fullscreenchange", reportBounds)
-    void fetchDevServer()
-    const devTimer = window.setInterval(fetchDevServer, 2000)
     onCleanup(() => {
       window.clearInterval(devTimer)
-      observer.disconnect()
-      window.removeEventListener("resize", reportBounds)
-      window.removeEventListener("fullscreenchange", reportBounds)
+      observer?.disconnect()
+      window.removeEventListener("resize", queueBounds)
+      window.removeEventListener("fullscreenchange", queueBounds)
+      previewMounted = false
       unsubscribe()
+      clearRetry()
+      previewVisible = false
+      setPreviewSurfaceVisible(false)
+      setNativePreviewActive(false)
+      setIframeUrl(undefined)
+      setIframeLoading(false)
+      iframe = undefined
+      boundsReady = false
+      previewContentReady = false
+      lastBounds = undefined
+      if (boundsFrame !== undefined) window.cancelAnimationFrame(boundsFrame)
       // Panel cerrado o pestaña distinta: la vista se oculta (no se destruye,
       // conserva su sesión y URL hasta que la ventana cierre).
+      void view.setBounds(HIDDEN_PREVIEW_BOUNDS)
       void view.setVisible(false)
     })
   })
@@ -275,32 +607,56 @@ export function LivePreview(props: {
     navigateTo(target)
   })
 
-  // Dev server gestionado por el agente: cuando queda listo y el panel aún
-  // muestra la página de bienvenida, navega a la URL del servidor (HMR).
+  // Inicia el preview gestionado cuando el agente crea una entrada web ejecutable.
   createEffect(() => {
-    const serverUrl = devServer()?.url
-    if (!serverUrl) return
+    const key = props.autoStartKey?.()
+    const status = devServer()?.status
+    if (!key || key === lastAutoStartKey || status === "starting" || status === "ready") return
+    lastAutoStartKey = key
+    void devServerAction("start")
+  })
+
+  // Un servidor listo se publica como destino canónico y reemplaza la
+  // bienvenida o un primer intento fallido. Así el runtime gestionado gana al
+  // /preview/ estático del dashboard sin sobrescribir una navegación manual.
+  createEffect(() => {
+    const managed = devServer()
+    const serverUrl = managed?.status === "ready" ? managed.url : undefined
+    if (!serverUrl) {
+      if (managed?.status === "error" || managed?.status === "stopped") props.onManagedTarget?.(undefined)
+      return
+    }
+    props.onManagedTarget?.(serverUrl)
     const current = state()?.url
     if (!current || current.startsWith("data:")) navigateTo(serverUrl)
+    if (samePreviewUrl(failedUrl, serverUrl)) navigateTo(serverUrl)
   })
 
   // Errores de compilación del dev server → banner en el panel.
   createEffect(() => {
     const dev = devServer()
     if (dev?.status !== "error") return
-    if (dev.errors[0] && !fail()) {
-      setFail({ code: 0, description: dev.errors[0].message, url: dev.errors[0].file ?? "" })
-    }
+    const error = dev.errors[0]
+    const description = error?.message ?? dev.errorMessage
+    if (!description || fail()) return
+    setFail({ code: 0, description, url: error?.file ?? dev.command ?? "" })
   })
 
   // Cambio de dispositivo (preset/custom/fit): re-posiciona la vista.
   createEffect(() => {
     void deviceSize()
-    reportBounds()
+    void rotated()
+    void zoom()
+    queueBounds()
   })
 
-  const welcomeUrl = () => welcomePageUrl(language.t("liveView.appEmpty"))
   const url = () => state()?.url ?? ""
+  const previewPlaceholder = () => {
+    const failure = fail()
+    if (failure) return failure.description
+    if (devServer()?.status === "starting" || state()?.loading) return language.t("livePreview.starting")
+    return language.t("liveView.appEmpty")
+  }
 
   const navigateFromInput = () => {
     const target = normalizeUrl(urlInput())
@@ -309,19 +665,71 @@ export function LivePreview(props: {
   }
 
   const goBack = () => {
+    if (iframeUrl()) {
+      if (iframeHistoryIndex < 1) return
+      iframeHistoryIndex -= 1
+      navigateTo(iframeHistory[iframeHistoryIndex], "traverse")
+      return
+    }
     void preview()?.back()
   }
 
   const goForward = () => {
+    if (iframeUrl()) {
+      if (iframeHistoryIndex >= iframeHistory.length - 1) return
+      iframeHistoryIndex += 1
+      navigateTo(iframeHistory[iframeHistoryIndex], "traverse")
+      return
+    }
     void preview()?.forward()
+  }
+
+  const reloadPreview = () => {
+    if (iframeUrl()) {
+      reloadIframe()
+      return
+    }
+    void preview()?.reload()
+  }
+
+  const previewFrameStyle = () => {
+    const device = deviceSize()
+    const viewport = previewViewport()
+    if (!device) return { width: "100%", height: "100%" }
+    return {
+      width: `${viewport.width}px`,
+      height: `${viewport.height}px`,
+    }
+  }
+
+  const iframeStyle = () => {
+    const device = deviceSize()
+    const viewport = previewViewport()
+    if (!device) {
+      return {
+        width: "100%",
+        height: "100%",
+      }
+    }
+    return {
+      width: `${device.width}px`,
+      height: `${device.height}px`,
+      left: `${viewport.frame}px`,
+      top: `${viewport.frame}px`,
+      transform: `scale(${viewport.scale})`,
+      "transform-origin": "top left",
+    }
   }
 
   const deviceOptions = () => [
     { id: "fit" as const, label: language.t("livePreview.fit") },
+    { id: "mobile" as const, label: `${language.t("livePreview.device.mobile")} 390×844` },
+    { id: "androidPhone" as const, label: `${language.t("livePreview.device.android")} 412×915` },
+    { id: "tablet" as const, label: `${language.t("livePreview.device.tablet")} 768×1024` },
+    { id: "androidTablet" as const, label: `${language.t("livePreview.device.androidTablet")} 800×1280` },
+    { id: "tv" as const, label: `${language.t("livePreview.device.tv")} 1920×1080` },
     { id: "desktop" as const, label: `${language.t("livePreview.device.desktop")} 1440×900` },
     { id: "laptop" as const, label: `${language.t("livePreview.device.laptop")} 1280×800` },
-    { id: "tablet" as const, label: `${language.t("livePreview.device.tablet")} 768×1024` },
-    { id: "mobile" as const, label: `${language.t("livePreview.device.mobile")} 390×844` },
     { id: "custom" as const, label: language.t("livePreview.device.custom") },
   ]
 
@@ -358,7 +766,7 @@ export function LivePreview(props: {
   return (
     <div class="flex size-full min-h-0 flex-col" role="region" aria-label={language.t("liveView.tab.app")}>
       {/* Fila 1: navegación (igual que el webview anterior). */}
-      <div class="flex h-9 shrink-0 items-center gap-1 border-b border-v2-border-border-muted px-1.5">
+      <div class="flex min-w-0 shrink-0 items-center gap-1 border-b border-v2-border-border-muted px-1.5 py-1">
         <IconButtonV2
           type="button"
           variant="ghost-muted"
@@ -383,7 +791,7 @@ export function LivePreview(props: {
           type="button"
           variant="ghost-muted"
           size="small"
-          onClick={() => void preview()?.reload()}
+          onClick={reloadPreview}
           aria-label={language.t("liveView.refresh")}
           title={language.t("liveView.refresh")}
           icon={<IconV2 name="reset" />}
@@ -399,70 +807,65 @@ export function LivePreview(props: {
           spellcheck={false}
           aria-label={language.t("liveView.url")}
         />
-        <Show when={url()}>
-          <IconButtonV2
-            type="button"
-            variant="ghost-muted"
-            size="small"
-            onClick={() => platform.openExternal(url())}
-            aria-label={language.t("liveView.openExternal")}
-            title={language.t("liveView.openExternal")}
-            icon={<IconV2 name="outline-square-arrow" />}
-          />
-        </Show>
-        <IconButtonV2
-          type="button"
-          variant="ghost-muted"
-          size="small"
-          disabled={busy()}
-          onClick={() => void capture()}
-          aria-label={language.t("liveView.capture")}
-          title={language.t("liveView.capture")}
-          icon={<IconV2 name="monitor" />}
-        />
       </div>
 
-      {/* Fila 2: estado, dev server, dispositivo, zoom, seleccionar, consola. */}
-      <div class="flex h-8 shrink-0 items-center gap-1 border-b border-v2-border-border-muted px-1.5">
+      {/* Fila 2: estado, tamaño de dispositivo y escala. */}
+      <div class="flex min-w-0 shrink-0 flex-wrap items-center gap-1 border-b border-v2-border-border-muted px-1.5 py-1">
         <span
           class={`size-1.5 shrink-0 rounded-full ${statusTone()}`}
           title={devServerStatusLabel() ?? (url() || undefined)}
           aria-hidden="true"
         />
-        <Show when={devServerDirectory()}>
-          <ToolButton
-            title={language.t("livePreview.start")}
-            disabled={devServerRunning()}
-            onClick={() => void devServerAction("start")}
-          >
-            ▶
-          </ToolButton>
-          <ToolButton
-            title={language.t("livePreview.stop")}
-            disabled={devServer()?.status !== "ready" && devServer()?.status !== "starting"}
-            onClick={() => void devServerAction("stop")}
-          >
-            ■
-          </ToolButton>
-          <ToolButton
-            title={language.t("livePreview.restart")}
-            disabled={!devServerRunning()}
-            onClick={() => void devServerAction("restart")}
-          >
-            ↻
-          </ToolButton>
-        </Show>
+        <span class="max-w-28 shrink truncate text-11-regular text-text-weak">{devServerStatusLabel() ?? language.t("livePreview.fit")}</span>
         <SelectV2
           appearance="base"
-          class="w-32 shrink-0"
+          class="w-32 max-w-full shrink"
           options={deviceOptions()}
           current={deviceOptions().find((option) => option.id === deviceId())}
           placement="bottom-end"
           gutter={4}
           value={(option) => option.id}
           label={(option) => option.label}
-          onSelect={(option) => option && setDeviceId(option.id)}
+          onSelect={(option) => {
+            if (!option) return
+            setDeviceId(option.id)
+            if (option.id === "fit") {
+              setRotated(false)
+              props.onDeviceChange?.("fluid")
+            } else if (option.id === "mobile" || option.id === "androidPhone") {
+              props.onDeviceChange?.("mobile")
+            } else if (option.id === "tablet" || option.id === "androidTablet") {
+              props.onDeviceChange?.("tablet")
+            } else if (option.id === "laptop" || option.id === "desktop" || option.id === "tv") {
+              props.onDeviceChange?.("laptop")
+            }
+          }}
         />
+        <ToolButton
+          pressed={rotated()}
+          disabled={deviceId() === "fit"}
+          title={language.t("livePreview.rotate")}
+          onClick={() => setRotated(!rotated())}
+        >
+          ↻
+        </ToolButton>
+
+        {/* Visual Design-to-Code Canvas / Element Picker (pen.dev style) */}
+        <button
+          type="button"
+          data-pressed={inspectActive() || undefined}
+          title="Inspector Visual de Elementos (Diseño a Código)"
+          onClick={() => setInspectActive(!inspectActive())}
+          class={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium border transition-all cursor-pointer ${
+            inspectActive()
+              ? "bg-cyan-500/20 text-cyan-300 border-cyan-400 shadow-[0_0_8px_rgba(56,189,248,0.3)]"
+              : "bg-v2-background-bg-base text-text-weak border-v2-border-border-muted hover:text-text-base hover:border-v2-border-border-strong"
+          }`}
+        >
+          <span>🎯</span>
+          <span>Diseño a Código</span>
+        </button>
+
         <Show when={deviceId() === "custom"}>
           <input
             type="number"
@@ -486,39 +889,18 @@ export function LivePreview(props: {
             aria-label={language.t("livePreview.custom.height")}
           />
         </Show>
-        <div class="flex items-center">
-          <ToolButton title={language.t("livePreview.zoomOut")} onClick={() => zoomStep(-ZOOM_STEP)}>
+        <div class="flex shrink-0 items-center">
+          <ToolButton disabled={deviceId() === "fit"} title={language.t("livePreview.zoomOut")} onClick={() => zoomStep(-ZOOM_STEP)}>
             −
           </ToolButton>
           <span class="min-w-10 text-center text-11-regular text-text-weak tabular-nums">
-            {Math.round(zoom() * 100)}%
+            {Math.round(previewViewport().scale * 100)}%
           </span>
-          <ToolButton title={language.t("livePreview.zoomIn")} onClick={() => zoomStep(ZOOM_STEP)}>
+          <ToolButton disabled={deviceId() === "fit"} title={language.t("livePreview.zoomIn")} onClick={() => zoomStep(ZOOM_STEP)}>
             +
           </ToolButton>
         </div>
-        <div class="flex-1" />
-        <ToolButton
-          pressed={selectMode()}
-          title={language.t("livePreview.select")}
-          onClick={() => setSelectActive(!selectMode())}
-        >
-          {language.t("livePreview.select")}
-        </ToolButton>
-        <ToolButton
-          pressed={consoleOpen()}
-          title={language.t("livePreview.console")}
-          onClick={() => setConsoleOpen(!consoleOpen())}
-        >
-          {language.t("livePreview.console")}
-        </ToolButton>
       </div>
-
-      <Show when={selectMode()}>
-        <div class="flex shrink-0 items-center gap-2 border-b border-v2-border-border-muted px-3 py-1.5 text-11-regular text-[var(--v2-state-fg-info)]">
-          {language.t("livePreview.selectHint")}
-        </div>
-      </Show>
 
       <Show when={fail()}>
         {(failed) => (
@@ -526,6 +908,13 @@ export function LivePreview(props: {
             <span class="min-w-0 flex-1 truncate" title={failed().description}>
               {language.t("livePreview.loadFailed", { url: failed().url, description: failed().description })}
             </span>
+            <button
+              type="button"
+              class="shrink-0 text-11-medium text-[var(--v2-state-fg-info)] hover:text-text-base"
+              onClick={retryPreview}
+            >
+              {language.t("livePreview.retry")}
+            </button>
             <button
               type="button"
               class="shrink-0 text-text-faint hover:text-text-base"
@@ -539,95 +928,68 @@ export function LivePreview(props: {
       </Show>
 
       {/* Contenedor real del preview: sus bounds (getBoundingClientRect) son
-          los del WebContentsView. Nada de la UI del panel se superpone aquí. */}
-      <div class="relative min-h-0 flex-1 overflow-hidden bg-v2-background-bg-base" ref={container} />
-
-      <Show when={selection()}>
-        {(selected) => (
-          <div class="shrink-0 border-t border-v2-border-border-muted bg-v2-background-bg-base px-3 py-2">
-            <div class="flex items-center gap-2">
-              <span class="shrink-0 text-11-medium text-text-weak">{language.t("livePreview.selection.title")}</span>
-              <span class="min-w-0 flex-1 truncate font-mono text-11-regular text-text-base">
-                {selected().tag}
-                <Show when={selected().text} fallback={null}>
-                  {" "}· {selected().text}
-                </Show>
-              </span>
-              <button
-                type="button"
-                class="shrink-0 text-text-faint hover:text-text-base"
-                onClick={() => setSelection(null)}
-                aria-label={language.t("common.close")}
+          los del WebContentsView. El placeholder sólo aparece al ocultarlo. */}
+      <div class="relative min-h-0 flex-1 overflow-hidden bg-v2-background-bg-base" ref={container}>
+        <Show when={iframeUrl()} keyed>
+          {(target) => (
+            <div class={`absolute inset-0 flex items-center justify-center overflow-hidden ${deviceSize() ? "p-3" : "p-0"}`}>
+              <div
+                class={`relative shrink-0 overflow-hidden bg-white ${
+                  deviceSize()
+                    ? "border border-black/70 shadow-[0_12px_40px_rgba(0,0,0,0.35)]"
+                    : "size-full"
+                } ${
+                  deviceId() === "mobile" || deviceId() === "androidPhone"
+                    ? "rounded-[1.8rem] ring-4 ring-neutral-800"
+                    : deviceId() === "tablet" || deviceId() === "androidTablet"
+                      ? "rounded-2xl ring-4 ring-neutral-800"
+                      : deviceId() === "tv"
+                        ? "rounded-md border-4 border-neutral-900 shadow-2xl"
+                        : deviceSize()
+                          ? "rounded-lg"
+                          : "rounded-none"
+                }`}
+                style={previewFrameStyle()}
               >
-                <IconV2 name="xmark-small" size="small" />
-              </button>
+                <Show when={deviceId() === "mobile"}>
+                  <div class="pointer-events-none absolute left-1/2 top-1 z-10 h-1.5 w-16 -translate-x-1/2 rounded-full bg-black/80" aria-hidden="true" />
+                </Show>
+                <Show when={deviceId() === "androidPhone"}>
+                  <div class="pointer-events-none absolute left-1/2 top-1.5 z-10 h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-black ring-1 ring-neutral-700" aria-hidden="true" />
+                </Show>
+                <Show when={deviceId() === "tv"}>
+                  <div class="pointer-events-none absolute bottom-0.5 left-1/2 z-10 h-1 w-6 -translate-x-1/2 rounded-full bg-neutral-600/60" aria-hidden="true" />
+                </Show>
+                <iframe
+                  ref={(element) => {
+                    iframe = element
+                  }}
+                  data-slot="live-preview-iframe"
+                  src={target}
+                  title={language.t("liveView.tab.app")}
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-downloads"
+                  referrerpolicy="no-referrer"
+                  class="absolute border-0 bg-white"
+                  style={iframeStyle()}
+                  onLoad={completeIframeLoad}
+                  onError={failIframeLoad}
+                />
+              </div>
+              <Show when={iframeLoading()}>
+                <div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-v2-background-bg-base px-6 text-center text-12-regular text-text-weak">
+                  {language.t("livePreview.starting")}
+                </div>
+              </Show>
             </div>
-            <div class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 font-mono text-11-regular text-text-weak">
-              <span class="truncate" title={selected().selector}>
-                {language.t("livePreview.selection.selector")}: {selected().selector}
-              </span>
-              <span>
-                {language.t("livePreview.selection.size")}: {selected().dims.width}×{selected().dims.height}
-              </span>
-              <span class="truncate" title={selected().pathname}>
-                {language.t("livePreview.selection.route")}: {selected().pathname}
-              </span>
-            </div>
-            <div class="mt-1.5 flex items-center gap-1">
-              <ToolButton title={language.t("livePreview.selection.copySelector")} onClick={() => copyText(selected().selector)}>
-                {copied() ? language.t("livePreview.selection.copied") : language.t("livePreview.selection.copySelector")}
-              </ToolButton>
-              <ToolButton title={language.t("livePreview.selection.copyData")} onClick={() => copyText(JSON.stringify(selected(), null, 2))}>
-                {language.t("livePreview.selection.copyData")}
-              </ToolButton>
-            </div>
+          )}
+        </Show>
+        <Show when={!iframeUrl() && !previewSurfaceVisible()}>
+          <div class="absolute inset-0 flex items-center justify-center px-6 text-center text-12-regular text-text-weak">
+            {previewPlaceholder()}
           </div>
-        )}
-      </Show>
+        </Show>
+      </div>
 
-      <Show when={consoleOpen()}>
-        <div class="shrink-0 border-t border-v2-border-border-muted">
-          <div class="flex h-7 items-center justify-between border-b border-v2-border-border-muted px-2">
-            <span class="text-11-medium text-text-weak">{language.t("livePreview.console")}</span>
-            <button
-              type="button"
-              class="text-11-regular text-text-weak transition-colors hover:text-text-base"
-              onClick={() => setConsoleEntries([])}
-            >
-              {language.t("livePreview.console.clear")}
-            </button>
-          </div>
-          <Show
-            when={consoleEntries().length > 0}
-            fallback={
-              <div class="flex h-10 items-center justify-center px-3 text-11-regular text-text-faint">
-                {language.t("livePreview.console.empty")}
-              </div>
-            }
-          >
-            <ScrollView class="max-h-36">
-              <div class="min-w-max px-2 py-1">
-                <For each={consoleEntries()}>
-                  {(entry) => (
-                    <div
-                      class={`whitespace-pre-wrap break-all font-mono text-11-regular ${
-                        entry.level >= 3
-                          ? "text-[var(--v2-state-fg-danger)]"
-                          : entry.level === 2
-                            ? "text-[var(--v2-state-fg-warning)]"
-                            : "text-text-weak"
-                      }`}
-                      title={entry.sourceId ? `${entry.sourceId}:${entry.line}` : undefined}
-                    >
-                      {entry.message}
-                    </div>
-                  )}
-                </For>
-              </div>
-            </ScrollView>
-          </Show>
-        </div>
-      </Show>
     </div>
   )
 }

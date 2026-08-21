@@ -8,6 +8,7 @@ import { execFileSync, spawn, spawnSync, type ChildProcess } from "node:child_pr
 import { existsSync, readdirSync } from "node:fs"
 import { join } from "node:path"
 import net from "node:net"
+import { startBareJsxPreview, startStaticPreview, type BareJsxPreview, type StaticPreview } from "./bare-jsx-preview"
 import { parseBuildError } from "./error-parser"
 import { detectProject, type DetectedProject } from "./project-detector"
 import type { PreviewError, PreviewState } from "./types"
@@ -16,10 +17,11 @@ const LOG_MAX = 500
 const ERROR_MAX = 20
 const READY_TIMEOUT_MS = 45_000
 const PORT_SCAN_RANGE = 20
+const HTTP_TIMEOUT_MS = 1_000
+const READINESS_POLL_MS = 250
 
 // "Local: http://localhost:5173/", "localhost:5173", "listening on 5173"
-const URL_RE = /https?:\/\/(?:localhost|127\.0\.0\.1):(\d{2,5})/i
-const PORT_RE = /(?:localhost|127\.0\.0\.1):(\d{2,5})/i
+const URL_RE = /(https?:\/\/(?:localhost|127\.0\.0\.1|\[::1\]|0\.0\.0\.0):(\d{2,5}))/i
 // Salida de python -m http.server ("Serving HTTP on 127.0.0.1 port 8000").
 const PYTHON_SERVING_RE = /Serving HTTP on .* port (\d{2,5})/i
 
@@ -60,9 +62,12 @@ type Managed = {
   directory: string
   detected: DetectedProject
   process: ChildProcess | null
+  bareJsx: BareJsxPreview | null
+  staticPreview: StaticPreview | null
   state: PreviewState
   logs: string[]
   readyTimer: ReturnType<typeof setTimeout> | null
+  readinessUrls: Set<string>
 }
 
 const servers = new Map<string, Managed>()
@@ -95,7 +100,11 @@ function idleState(detected: DetectedProject | null): PreviewState {
     packageManager: detected?.packageManager ?? null,
     command: detected
       ? detected.packageManager === "static"
-        ? "python -m http.server"
+        ? "Tiancode static preview"
+        : detected.packageManager === "bare-jsx"
+          ? "Tiancode JSX preview"
+          : detected.packageManager === "custom"
+            ? "tiancode.preview.json"
         : `${detected.packageManager} run ${detected.script}`
       : null,
     errors: [],
@@ -121,13 +130,6 @@ function portOpen(port: number) {
       resolve(false)
     })
   })
-}
-
-async function findOpenPort(start: number) {
-  for (let port = start; port < start + PORT_SCAN_RANGE; port++) {
-    if (await portOpen(port)) return port
-  }
-  return null
 }
 
 // Para los servidores cuyo puerto controlamos nosotros (python estático):
@@ -165,6 +167,53 @@ function setStatus(managed: Managed, state: Partial<PreviewState>) {
   managed.state = { ...managed.state, ...state }
 }
 
+function isStarting(managed: Managed) {
+  return servers.get(managed.directory) === managed && managed.state.status === "starting"
+}
+
+function wait(milliseconds: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, milliseconds))
+}
+
+async function respondsToHttp(url: string) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), HTTP_TIMEOUT_MS)
+  try {
+    const response = await fetch(url, { redirect: "manual", signal: controller.signal })
+    return response.status >= 200 && response.status < 400
+  } catch {
+    return false
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+function beginReadinessCheck(managed: Managed, url: string, port: number, timeoutMessage?: string) {
+  if (!isStarting(managed) || managed.readinessUrls.has(url)) return
+  managed.readinessUrls.add(url)
+  void (async () => {
+    const deadline = Date.now() + READY_TIMEOUT_MS
+    while (isStarting(managed)) {
+      if (await respondsToHttp(url)) {
+        if (isStarting(managed)) {
+          setStatus(managed, { url, port, status: "ready", errorMessage: null })
+          clearReadyTimer(managed)
+        }
+        return
+      }
+      if (Date.now() >= deadline) {
+        managed.readinessUrls.delete(url)
+        if (timeoutMessage && isStarting(managed)) {
+          setStatus(managed, { status: "error", errorMessage: timeoutMessage })
+          clearReadyTimer(managed)
+        }
+        return
+      }
+      await wait(READINESS_POLL_MS)
+    }
+  })()
+}
+
 function pushLog(managed: Managed, chunk: string) {
   const lines = chunk.split(/\r?\n/)
   for (const line of lines) {
@@ -177,11 +226,13 @@ function pushLog(managed: Managed, chunk: string) {
 function onOutput(managed: Managed, chunk: string) {
   pushLog(managed, chunk)
 
-  // URL del dev server en stdout ("Local: http://localhost:5173").
+  // La URL de stdout solo propone una candidata. La vista no queda lista
+  // hasta que esa URL responda por HTTP, no solo porque haya abierto un TCP.
   const urlMatch = URL_RE.exec(chunk)
   if (urlMatch) {
-    const port = Number(urlMatch[1])
-    setStatus(managed, { url: `http://localhost:${port}`, port, status: "ready", errorMessage: null })
+    const port = Number(urlMatch[2])
+    const url = urlMatch[1].replace("0.0.0.0", "127.0.0.1")
+    beginReadinessCheck(managed, url, port, "La URL local publicada por el servidor no respondió por HTTP.")
     return
   }
 
@@ -189,7 +240,7 @@ function onOutput(managed: Managed, chunk: string) {
   const pythonMatch = PYTHON_SERVING_RE.exec(chunk)
   if (pythonMatch) {
     const port = Number(pythonMatch[1])
-    setStatus(managed, { url: `http://localhost:${port}`, port, status: "ready", errorMessage: null })
+    beginReadinessCheck(managed, `http://127.0.0.1:${port}`, port, "El servidor estático no respondió por HTTP.")
     return
   }
 
@@ -202,21 +253,16 @@ function onOutput(managed: Managed, chunk: string) {
   }
 }
 
-function schedulePortScan(managed: Managed) {
-  const scan = async () => {
-    const port = await findOpenPort(managed.detected.port)
-    if (!port) {
-      setStatus(managed, {
-        status: "error",
-        errorMessage: "El servidor de desarrollo no respondió en ningún puerto.",
-      })
-      return
-    }
-    if (managed.state.status !== "ready") {
-      setStatus(managed, { url: `http://localhost:${port}`, port, status: "ready", errorMessage: null })
-    }
-  }
-  const timer = setTimeout(() => void scan(), 8000)
+function scheduleReadinessTimeout(managed: Managed) {
+  if (!isStarting(managed)) return
+  const timer = setTimeout(() => {
+    if (!isStarting(managed)) return
+    setStatus(managed, {
+      status: "error",
+      errorMessage:
+        "El servidor de desarrollo no publicó una URL HTTP local. Añade un script que anuncie su URL o configura tiancode.preview.json.",
+    })
+  }, READY_TIMEOUT_MS)
   managed.readyTimer = timer
   timer.unref()
 }
@@ -229,14 +275,78 @@ function clearReadyTimer(managed: Managed) {
 async function spawnServer(managed: Managed) {
   const { packageManager } = managed.detected
   const isWin = process.platform === "win32"
+  setStatus(managed, {
+    status: "starting",
+    url: null,
+    port: null,
+    errors: [],
+    errorMessage: null,
+    startedAt: Date.now(),
+  })
 
   // Proyecto estático: python -m http.server en un puerto libre que
   // controlamos nosotros (el framework elige su propio puerto). Ojo: en
   // Windows, python no emite su mensaje de arranque por los pipes cuando lo
   // lanza node/bun, así que el readiness se resuelve escaneando el puerto.
-  if (packageManager === "static") {
+  if (packageManager === "bare-jsx") {
+    if (!managed.detected.entry) {
+      setStatus(managed, { status: "error", errorMessage: "No se encontró la entrada JSX del proyecto." })
+      return
+    }
     const port = await findFreePort(managed.detected.port)
-    if (!port) {
+    if (port === null) {
+      setStatus(managed, { status: "error", errorMessage: "No hay puertos libres para la vista previa JSX." })
+      return
+    }
+    try {
+      const preview = await startBareJsxPreview(managed.directory, managed.detected.entry, port)
+      managed.bareJsx = preview
+      preview.server.on("error", (error) => {
+        setStatus(managed, { status: "error", errorMessage: error.message })
+      })
+      preview.server.on("close", () => {
+        managed.bareJsx = null
+        if (managed.state.status === "starting" || managed.state.status === "ready") setStatus(managed, { status: "stopped" })
+      })
+      if (await respondsToHttp(preview.url)) {
+        setStatus(managed, { url: preview.url, port, status: "ready", errorMessage: null })
+      } else {
+        beginReadinessCheck(managed, preview.url, port, "La vista previa JSX no respondio por HTTP.")
+      }
+    } catch (error) {
+      setStatus(managed, { status: "error", errorMessage: error instanceof Error ? error.message : String(error) })
+    }
+    return
+  }
+
+  if (packageManager === "static") {
+    const localPort = await findFreePort(managed.detected.port)
+    if (!localPort) {
+      setStatus(managed, { status: "error", errorMessage: "No hay puertos libres para el servidor estatico." })
+      return
+    }
+    try {
+      const preview = await startStaticPreview(managed.directory, localPort)
+      managed.staticPreview = preview
+      preview.server.on("error", (error) => {
+        setStatus(managed, { status: "error", errorMessage: error.message })
+      })
+      preview.server.on("close", () => {
+        managed.staticPreview = null
+        if (managed.state.status === "starting" || managed.state.status === "ready") setStatus(managed, { status: "stopped" })
+      })
+      if (await respondsToHttp(preview.url)) {
+        setStatus(managed, { url: preview.url, port: localPort, status: "ready", errorMessage: null })
+      } else {
+        beginReadinessCheck(managed, preview.url, localPort, "La vista previa estatica no respondio por HTTP.")
+      }
+      return
+    } catch (error) {
+      pushLog(managed, `El servidor estatico local fallo: ${error instanceof Error ? error.message : String(error)}`)
+    }
+
+    const port = (await findFreePort(managed.detected.port)) ?? -1
+    if (port < 0) {
       setStatus(managed, { status: "error", errorMessage: "No hay puertos libres para el servidor estático." })
       return
     }
@@ -248,7 +358,6 @@ async function spawnServer(managed: Managed) {
       stdio: ["ignore", "pipe", "pipe"],
     })
     managed.process = child
-    setStatus(managed, { status: "starting", errorMessage: null })
     child.stdout?.on("data", (data: Buffer) => onOutput(managed, data.toString()))
     child.stderr?.on("data", (data: Buffer) => onOutput(managed, data.toString()))
     child.on("error", (error) => {
@@ -262,26 +371,38 @@ async function spawnServer(managed: Managed) {
         setStatus(managed, { status: "stopped" })
       }
     })
-    // Readiness por puerto: el mensaje de python no llega por el pipe en
-    // Windows, pero el server sí escucha en el puerto elegido.
-    const portTimer = setInterval(async () => {
-      if (managed.state.status === "stopped" || managed.state.status === "error") {
-        clearInterval(portTimer)
-        return
-      }
-      if (await portOpen(port)) {
-        clearInterval(portTimer)
-        setStatus(managed, { url: `http://localhost:${port}`, port, status: "ready", errorMessage: null })
-      }
-    }, 800)
-    portTimer.unref()
-    managed.readyTimer = setTimeout(() => {
-      clearInterval(portTimer)
-      if (managed.state.status === "starting") {
-        setStatus(managed, { status: "error", errorMessage: "El servidor estático no respondió." })
-      }
-    }, READY_TIMEOUT_MS)
-    managed.readyTimer.unref()
+    beginReadinessCheck(managed, `http://127.0.0.1:${port}`, port, "El servidor estático no respondió por HTTP.")
+    return
+  }
+
+  if (packageManager === "custom") {
+    const command = managed.detected.command
+    const url = managed.detected.url
+    const workingDirectory = managed.detected.workingDirectory
+    if (!command || !url || !workingDirectory) {
+      setStatus(managed, { status: "error", errorMessage: managed.detected.error ?? "El adaptador de preview no es valido." })
+      return
+    }
+    const child = spawn(command[0], command.slice(1), {
+      cwd: join(managed.directory, workingDirectory),
+      env: scrubEnv(),
+      detached: !isWin,
+      windowsHide: true,
+      stdio: ["ignore", "pipe", "pipe"],
+    })
+    managed.process = child
+    child.stdout?.on("data", (data: Buffer) => onOutput(managed, data.toString()))
+    child.stderr?.on("data", (data: Buffer) => onOutput(managed, data.toString()))
+    child.on("error", (error) => {
+      setStatus(managed, { status: "error", errorMessage: error.message })
+      clearReadyTimer(managed)
+    })
+    child.on("exit", () => {
+      clearReadyTimer(managed)
+      managed.process = null
+      if (managed.state.status === "starting" || managed.state.status === "ready") setStatus(managed, { status: "stopped" })
+    })
+    beginReadinessCheck(managed, url, managed.detected.port, "El adaptador de preview no respondio por HTTP.")
     return
   }
 
@@ -299,7 +420,6 @@ async function spawnServer(managed: Managed) {
   })
 
   managed.process = child
-  setStatus(managed, { status: "starting", errorMessage: null })
 
   child.stdout?.on("data", (data: Buffer) => onOutput(managed, data.toString()))
   child.stderr?.on("data", (data: Buffer) => onOutput(managed, data.toString()))
@@ -315,7 +435,7 @@ async function spawnServer(managed: Managed) {
     }
   })
 
-  schedulePortScan(managed)
+  scheduleReadinessTimeout(managed)
 }
 
 export function getPreviewState(directory: string) {
@@ -337,7 +457,7 @@ export async function startPreviewServer(directory: string) {
   if (!detected) {
     const state = idleState(null)
     state.status = "error"
-    state.errorMessage = "No se encontró un proyecto web (package.json con script dev, o index.html) en este directorio."
+    state.errorMessage = "No se encontró un proyecto web (package.json con script, index.html o una entrada JSX/TSX convencional) en este directorio."
     return state
   }
 
@@ -345,9 +465,12 @@ export async function startPreviewServer(directory: string) {
     directory,
     detected,
     process: null,
+    bareJsx: null,
+    staticPreview: null,
     state: idleState(detected),
     logs: [],
     readyTimer: null,
+    readinessUrls: new Set(),
   }
   servers.set(directory, managed)
   await spawnServer(managed)
@@ -358,7 +481,12 @@ export function stopPreviewServer(directory: string) {
   const managed = servers.get(directory)
   if (!managed) return idleState(null)
   if (managed.process) killTree(managed.process)
+  managed.bareJsx?.close()
+  managed.bareJsx = null
+  managed.staticPreview?.close()
+  managed.staticPreview = null
   clearReadyTimer(managed)
+  managed.readinessUrls.clear()
   managed.process = null
   setStatus(managed, { status: "stopped", url: null, port: null })
   return managed.state

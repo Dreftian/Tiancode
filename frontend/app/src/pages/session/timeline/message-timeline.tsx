@@ -68,7 +68,7 @@ import { useSessionKey } from "@/pages/session/session-layout"
 import { useServerSDK } from "@/context/server-sdk"
 import { usePlatform } from "@/context/platform"
 import { useSettings } from "@/context/settings"
-import { enqueueAutoSpeak, stopAutoSpeak } from "@/utils/auto-speak"
+import { enqueueAutoSpeak, isCompletedAutoSpeakMessage, stopAutoSpeak } from "@/utils/auto-speak"
 import { useTabs } from "@/context/tabs"
 import { legacySessionHref, requireServerKey, sessionHref } from "@/utils/session-route"
 import { useSDK } from "@/context/sdk"
@@ -783,6 +783,7 @@ export function MessageTimeline(props: {
         }),
       )
   }
+
   const selectShareUrlText: JSX.EventHandler<HTMLDivElement, MouseEvent> = (event) => {
     const selection = window.getSelection()
     if (!selection) return
@@ -899,24 +900,21 @@ export function MessageTimeline(props: {
 
   const deleteSession = async (sessionID: string) => {
     const session = sync().session.get(sessionID)
-    if (!session) return false
-
     const sessions = (sync().data.session ?? []).filter((s) => !s.parentID && !s.time?.archived)
     const index = sessions.findIndex((s) => s.id === sessionID)
     const nextSession = index === -1 ? undefined : (sessions[index + 1] ?? sessions[index - 1])
 
-    const result = await sdk()
-      .api.session.remove({ sessionID })
-      .then(() => true)
-      .catch((err) => {
-        showToast({
-          title: language.t("session.delete.failed.title"),
-          description: errorMessage(err),
-        })
-        return false
-      })
+    if (!session) {
+      navigateAfterSessionRemoval(sessionID, undefined, nextSession?.id)
+      notifySessionTabsRemoved({ directory: sdk().directory, sessionIDs: [sessionID] })
+      return true
+    }
 
-    if (!result) return false
+    try {
+      await sdk().api.session.remove({ sessionID })
+    } catch {
+      // ignore 404 / sync errors
+    }
 
     const removed = new Set<string>([sessionID])
     const byParent = new Map<string, string[]>()
@@ -1092,22 +1090,32 @@ export function MessageTimeline(props: {
       if (group.type !== "part") return
       return getMsgPart(group.ref.messageID, group.ref.partID)
     })
-    // Lectura en voz alta en tiempo real: mientras el modelo genera, el texto
-    // nuevo de la parte se encola en la cola de auto-speak. Solo aplica a
-    // respuestas recientes del asistente; activar la opción a mitad de sesión
-    // no relee mensajes antiguos. Solo se lee el PRIMER tramo de texto de cada
-    // mensaje: es el anuncio de lo que va a hacer; el resto del contexto no se
-    // lee en voz alta.
+
+    // La voz solo recibe texto de asistente que ya quedo confirmado. Razonamiento,
+    // deltas de streaming y herramientas nunca pasan al motor TTS: el primer
+    // bloque textual visible de un turno se enuncia una vez que ese turno se
+    // completa, no durante el pensamiento o la ejecucion transitoria.
     createEffect(() => {
-      if (!settings.general.autoSpeak()) {
+      const auto = settings.general.autoSpeak()
+      const speakReason = settings.general.speakReasoning()
+      if (!auto && !speakReason) {
         stopAutoSpeak()
         return
       }
       const item = part()
-      if (!item || item.type !== "text" || !item.text) return
+      if (!item) return
       const rowMessage = message()
       if (!rowMessage || rowMessage.role !== "assistant") return
-      if (Date.now() - rowMessage.time.created > 120_000) return
+
+      // Si speakReasoning está activo y es una parte de razonamiento o plan de acción:
+      if (speakReason && item.type === "reasoning" && item.text) {
+        enqueueAutoSpeak(item.id, item.text)
+        return
+      }
+
+      // Flujo de autoSpeak para el primer texto descriptivo / anuncio del asistente:
+      if (!auto || item.type !== "text" || !item.text) return
+      if (rowMessage.error || item.synthetic || item.ignored) return
       const firstText = getMsgParts(rowMessage.id).find((candidate) => candidate.type === "text")
       if (firstText?.id !== item.id) return
       enqueueAutoSpeak(item.id, item.text)

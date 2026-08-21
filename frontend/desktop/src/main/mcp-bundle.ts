@@ -21,17 +21,21 @@ type BundledMcp = {
   env: string
 }
 
+// Servidores MCP empaquetados con la app. live_frontend se registra como Core
+// para la vista previa en vivo, y los servidores especializados de la suite
+// (Photoshop, InDesign, Illustrator, CorelDRAW, OperaGX, Unreal, Unity, Godot, Android Studio)
+// se registran para que el usuario pueda activarlos y usarlos con 1 clic.
 const BUNDLED_MCPS: BundledMcp[] = [
   { name: "live_frontend", dir: "AI-LIVE-FRONTEND-MCP", script: "live_server.py", configFile: "config.json", env: "LIVE_FRONTEND_CONFIG" },
-  { name: "photoshop", dir: "AI-MCP-SUITE/Photoshop", script: "server.py", configFile: "config.json", env: "MCP_CONFIG" },
-  { name: "indesign", dir: "AI-MCP-SUITE/InDesign", script: "server.py", configFile: "config.json", env: "MCP_CONFIG" },
-  { name: "illustrator", dir: "AI-MCP-SUITE/Illustrator", script: "server.py", configFile: "config.json", env: "MCP_CONFIG" },
-  { name: "coreldraw", dir: "AI-MCP-SUITE/CorelDRAW", script: "server.py", configFile: "config.json", env: "MCP_CONFIG" },
-  { name: "opera_gx", dir: "AI-MCP-SUITE/OperaGX", script: "server.py", configFile: "config.json", env: "MCP_CONFIG" },
-  { name: "unreal_cli", dir: "AI-MCP-SUITE/GameDev/UnrealEngine", script: "server.py", configFile: "config.json", env: "MCP_CONFIG" },
-  { name: "unity", dir: "AI-MCP-SUITE/GameDev/Unity", script: "server.py", configFile: "config.json", env: "MCP_CONFIG" },
-  { name: "godot", dir: "AI-MCP-SUITE/GameDev/Godot", script: "server.py", configFile: "config.json", env: "MCP_CONFIG" },
-  { name: "android_studio", dir: "AI-MCP-SUITE/AndroidStudio", script: "server.py", configFile: "config.json", env: "MCP_CONFIG" },
+  { name: "photoshop", dir: "AI-MCP-SUITE/Photoshop", script: "server.py", configFile: "config.json", env: "PHOTOSHOP_CONFIG" },
+  { name: "indesign", dir: "AI-MCP-SUITE/InDesign", script: "server.py", configFile: "config.json", env: "INDESIGN_CONFIG" },
+  { name: "illustrator", dir: "AI-MCP-SUITE/Illustrator", script: "server.py", configFile: "config.json", env: "ILLUSTRATOR_CONFIG" },
+  { name: "coreldraw", dir: "AI-MCP-SUITE/CorelDRAW", script: "server.py", configFile: "config.json", env: "CORELDRAW_CONFIG" },
+  { name: "opera_gx", dir: "AI-MCP-SUITE/OperaGX", script: "server.py", configFile: "config.json", env: "OPERAGX_CONFIG" },
+  { name: "unreal_cli", dir: "AI-MCP-SUITE/GameDev/UnrealEngine", script: "server.py", configFile: "config.json", env: "UNREAL_CONFIG" },
+  { name: "unity", dir: "AI-MCP-SUITE/GameDev/Unity", script: "server.py", configFile: "config.json", env: "UNITY_CONFIG" },
+  { name: "godot", dir: "AI-MCP-SUITE/GameDev/Godot", script: "server.py", configFile: "config.json", env: "GODOT_CONFIG" },
+  { name: "android_studio", dir: "AI-MCP-SUITE/AndroidStudio", script: "server.py", configFile: "config.json", env: "ANDROIDSTUDIO_CONFIG" },
 ]
 
 type SidecarAuth = { url: string; username: string; password: string }
@@ -70,25 +74,28 @@ function resolvePythonCommand(): string[] {
   return pythonCommand
 }
 
-// Si el usuario desactivó un servidor bundled desde Settings (mcp.<name>.
-// enabled=false), el seeding NO lo reactiva: el toggle del usuario manda.
-async function isUserDisabled(auth: SidecarAuth, name: string): Promise<boolean> {
+// Los bundles son integraciones opcionales: una entrada existente conserva la
+// decisión del usuario, mientras que una instalación nueva los registra
+// desactivados. Así no se levantan diez procesos Python sólo por abrir la app.
+async function bundledEnabled(auth: SidecarAuth, name: string): Promise<boolean | undefined> {
   const basic = Buffer.from(`${auth.username}:${auth.password}`).toString("base64")
   try {
     const res = await fetch(`${auth.url}/config`, {
       headers: { authorization: `Basic ${basic}` },
     })
-    if (!res.ok) return false
+    if (!res.ok) return undefined
     const info = (await res.json()) as { mcp?: Record<string, { enabled?: boolean }> }
-    return info.mcp?.[name]?.enabled === false
+    const existing = info.mcp?.[name]
+    return existing ? existing.enabled !== false : undefined
   } catch {
-    return false
+    return undefined
   }
 }
 
 async function registerServer(auth: SidecarAuth, entry: BundledMcp) {
-  if (await isUserDisabled(auth, entry.name)) {
-    console.log(`[mcp-bundle] ${entry.name} disabled by user, skipping`)
+  const enabled = await bundledEnabled(auth, entry.name)
+  if (enabled === false) {
+    console.log(`[mcp-bundle] ${entry.name} already disabled, skipping`)
     return true
   }
   const dir = join(BUNDLED_ROOT, entry.dir)
@@ -105,7 +112,7 @@ async function registerServer(auth: SidecarAuth, entry: BundledMcp) {
       type: "local",
       command: [...resolvePythonCommand(), script],
       environment: { [entry.env]: configFile },
-      enabled: true,
+      enabled: enabled ?? false,
       timeout: 60000,
     },
   })
@@ -121,7 +128,7 @@ async function registerServer(auth: SidecarAuth, entry: BundledMcp) {
         body,
       })
       if (res.ok) {
-        console.log(`[mcp-bundle] registered ${entry.name}`)
+        console.log(`[mcp-bundle] registered ${entry.name}${enabled ? "" : " (disabled by default)"}`)
         return true
       }
       lastStatus = res.status
@@ -133,11 +140,45 @@ async function registerServer(auth: SidecarAuth, entry: BundledMcp) {
   return false
 }
 
+// Purga servidores MCP residuales que apunten a scripts temporales que ya no existen
+async function pruneStaleTempServers(auth: SidecarAuth) {
+  const basic = Buffer.from(`${auth.username}:${auth.password}`).toString("base64")
+  try {
+    const res = await fetch(`${auth.url}/config`, {
+      headers: { authorization: `Basic ${basic}` },
+    })
+    if (!res.ok) return
+    const info = (await res.json()) as { mcp?: Record<string, { type?: string; command?: string | string[] }> }
+    if (!info.mcp) return
+
+    for (const [name, cfg] of Object.entries(info.mcp)) {
+      if (cfg?.type === "local" && cfg.command) {
+        const cmdParts = Array.isArray(cfg.command) ? cfg.command : [cfg.command]
+        const scriptArg = cmdParts.find((part) => /\\AppData\\Local\\Temp\\|\\Temp\\/i.test(part) && /\.py$/i.test(part))
+        if (scriptArg && !existsSync(scriptArg)) {
+          console.log(`[mcp-bundle] Pruning stale temp MCP server: ${name} (${scriptArg})`)
+          try {
+            await fetch(`${auth.url}/mcp/${encodeURIComponent(name)}`, {
+              method: "DELETE",
+              headers: { authorization: `Basic ${basic}` },
+            })
+          } catch {
+            // best-effort
+          }
+        }
+      }
+    }
+  } catch {
+    // best-effort
+  }
+}
+
 // Registra los MCP empaquetados. Se llama justo después de que el sidecar esté
 // listo; los fallos no bloquean el arranque. SECUENCIAL: cada POST /mcp hace
 // un read-modify-write de la config global del sidecar, y lanzarlos en
 // paralelo puede corromper el archivo.
 export async function seedBundledMcpServers(auth: SidecarAuth) {
+  await pruneStaleTempServers(auth).catch(() => {})
   if (!existsSync(BUNDLED_ROOT)) return
   for (const entry of BUNDLED_MCPS) {
     await registerServer(auth, entry).catch(() => false)

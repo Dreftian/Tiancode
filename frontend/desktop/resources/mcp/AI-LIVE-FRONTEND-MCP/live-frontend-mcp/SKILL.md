@@ -28,6 +28,11 @@ dashboard (http://127.0.0.1:8790/) while you build.
    the "Vista en vivo" panel automatically; if no preview URL is set, the
    panel detects the first local dev-server URL (`http://localhost:PORT`)
    among the published logs — report the URL when you start the server.
+   Do not launch Chrome, the system browser, `Start-Process`, `explorer`, or
+   browser-automation tools to show a preview. The embedded panel is the
+   preview surface; only open an external browser when the user explicitly
+   asks for one. For a Tiancode-managed project, use `preview_start` instead
+   of a shell launcher and let its ready state open the embedded panel.
 3. **Announce the phase.** Call `set_phase` whenever you start or finish a
    stage: `"scaffolding"`, `"building"`, `"styling"`, `"fixing"`, ... with
    `status` `"working"` while in progress, `"done"` when complete, and
@@ -56,8 +61,21 @@ dashboard (http://127.0.0.1:8790/) while you build.
 - `publish_screenshot` payloads are capped at `max_file_bytes` (1 MB).
 - The server auto-watches the session root (0.5 s poll) — no need to report
   every edit; `file_changed` is for events the watcher cannot see.
-- If the dashboard is not open yet, mention the URL
-  (http://127.0.0.1:8790/) when you create the session.
+- If the dashboard is not open yet, Tiancode attaches it to Vista en vivo;
+  do not open its URL in a system browser.
+
+## Default responsive design
+
+- Validate every website or web app in both a desktop and mobile viewport in
+  the embedded panel before declaring it finished. Keep the content usable at
+  narrow widths; do not merely shrink the desktop layout.
+- Start with a deliberate hierarchy, a compact token set (type, spacing,
+  color and radius), visible interaction states and semantic HTML. Use the
+  generated project’s existing design system when it has one.
+- Treat diagrams as a complementary deliverable: generate a clear SVG/HTML
+  diagram or a project-native design artifact when the task calls for one,
+  instead of pretending that a browser preview can render a native desktop or
+  mobile binary.
 
 ## When not to use
 

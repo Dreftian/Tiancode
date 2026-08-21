@@ -3,6 +3,7 @@ import type {
   WslInstalledDistro,
   WslJob,
   WslOnlineDistro,
+  WslTiancodeCheck,
   WslOpencodeCheck,
   WslRuntimeCheck,
   WslServerConfig,
@@ -13,7 +14,7 @@ import type {
 } from "../../preload/types"
 import { WSL_SERVERS_KEY } from "../store-keys"
 import { getStore } from "../store"
-import { expectOpencodeVersion, pendingRestartAfterWslInstall, wslServerIdsToStartOnInitialize } from "./startup"
+import { expectTiancodeVersion, pendingRestartAfterWslInstall, wslServerIdsToStartOnInitialize } from "./startup"
 import { clearWslDistroState, wslServerIdToRestart } from "./policy"
 import { nativeT } from "../native-translations"
 import {
@@ -50,6 +51,7 @@ type WslServersControllerOptions = {
   writeServers?: (servers: WslServerConfig[]) => void
   probeDistro?: typeof probeWslDistro
   resolveTiancode?: typeof resolveWslTiancode
+  resolveOpencode?: typeof resolveWslTiancode
   readCommandVersion?: typeof readWslCommandVersion
 }
 
@@ -122,7 +124,7 @@ export function createWslServersController(
     updateServer(id, (item) => ({ ...item, runtime }))
   }
 
-  const setOpencodeCheck = (distro: string, check: WslOpencodeCheck) => {
+  const setTiancodeCheck = (distro: string, check: WslTiancodeCheck) => {
     setState({
       tiancodeChecks: {
         ...state.tiancodeChecks,
@@ -131,16 +133,17 @@ export function createWslServersController(
     })
   }
 
-  const checkOpencode = async (distro: string, opts?: { signal?: AbortSignal }) => {
-    const resolved = await (options?.resolveTiancode ?? resolveWslTiancode)(distro, opts)
+  const checkTiancode = async (distro: string, opts?: { signal?: AbortSignal }) => {
+    const resolveFn = options?.resolveTiancode ?? options?.resolveOpencode ?? resolveWslTiancode
+    const resolved = await resolveFn(distro, opts)
     const version = resolved
       ? await (options?.readCommandVersion ?? readWslCommandVersion)(resolved, distro, opts)
       : null
     return tiancodeCheck(distro, resolved, version, appVersion)
   }
 
-  const refreshOpencodeCheck = async (distro: string, opts?: { signal?: AbortSignal }) => {
-    setOpencodeCheck(distro, await checkOpencode(distro, opts))
+  const refreshTiancodeCheck = async (distro: string, opts?: { signal?: AbortSignal }) => {
+    setTiancodeCheck(distro, await checkTiancode(distro, opts))
   }
 
   const probeAddableDistros = async (distros: string[], opts?: { signal?: AbortSignal }) => {
@@ -158,7 +161,7 @@ export function createWslServersController(
       unique
         .filter((distro) => distroProbeReady(state.distroProbes[distro]))
         .filter((distro) => !state.tiancodeChecks[distro])
-        .map(async (distro) => [distro, await checkOpencode(distro, opts)] as const),
+        .map(async (distro) => [distro, await checkTiancode(distro, opts)] as const),
     )
     if (tiancodeChecks.length) {
       setState({ tiancodeChecks: { ...state.tiancodeChecks, ...Object.fromEntries(tiancodeChecks) } })
@@ -169,11 +172,11 @@ export function createWslServersController(
     return state.servers.some((item) => item.config.id === id && item.config.distro === distro)
   }
 
-  const refreshOpencodeCheckBackground = (id: string, distro: string) => {
-    void checkOpencode(distro)
+  const refreshTiancodeCheckBackground = (id: string, distro: string) => {
+    void checkTiancode(distro)
       .then((check) => {
         if (!hasServer(id, distro)) return
-        setOpencodeCheck(distro, check)
+        setTiancodeCheck(distro, check)
       })
       .catch((error) => {
         const message = error instanceof Error ? error.message : String(error)
@@ -181,13 +184,13 @@ export function createWslServersController(
       })
   }
 
-  const refreshOpencodeChecks = async () => {
+  const refreshTiancodeChecks = async () => {
     await Promise.all(
       state.servers.map((item) =>
-        checkOpencode(item.config.distro)
+        checkTiancode(item.config.distro)
           .then((check) => {
             if (!hasServer(item.config.id, item.config.distro)) return
-            setOpencodeCheck(item.config.distro, check)
+            setTiancodeCheck(item.config.distro, check)
           })
           .catch((error) => {
             const message = error instanceof Error ? error.message : String(error)
@@ -252,7 +255,7 @@ export function createWslServersController(
         setRuntime(id, { kind: "failed", message })
         logger?.error("wsl sidecar exited", { id, distro: item.config.distro, code, signal })
       })
-      refreshOpencodeCheckBackground(id, item.config.distro)
+      refreshTiancodeCheckBackground(id, item.config.distro)
       logger?.log("wsl sidecar ready", { id, distro: item.config.distro, url: sidecar.url })
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
@@ -304,7 +307,7 @@ export function createWslServersController(
 
     async initialize() {
       refreshFromStore()
-      void refreshOpencodeChecks()
+      void refreshTiancodeChecks()
       for (const id of wslServerIdsToStartOnInitialize(state.servers.map((item) => item.config))) void startServer(id)
     },
 
@@ -366,8 +369,8 @@ export function createWslServersController(
         if (result.code !== 0) {
           throw new Error(summarize(result.stderr || result.stdout) || nativeT("desktop.wsl.error.installTiancode"))
         }
-        await refreshOpencodeCheck(name, { signal: abort.signal })
-        expectOpencodeVersion(state.tiancodeChecks[name]?.version ?? null, appVersion, name)
+        await refreshTiancodeCheck(name, { signal: abort.signal })
+        expectTiancodeVersion(state.tiancodeChecks[name]?.version ?? null, appVersion, name)
         const id = wslServerIdToRestart(state.servers, name)
         if (id) await startServer(id)
       })
@@ -469,7 +472,7 @@ function tiancodeCheck(
   resolvedPath: string | null,
   version: string | null,
   expectedVersion: string,
-): WslOpencodeCheck {
+): WslTiancodeCheck {
   if (!resolvedPath) {
     return {
       distro,
@@ -514,6 +517,7 @@ export type {
   WslOnlineDistro,
   WslRuntimeCheck,
   WslDistroProbe,
+  WslTiancodeCheck,
   WslOpencodeCheck,
   WslServerConfig,
   WslServerItem,

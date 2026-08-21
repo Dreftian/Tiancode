@@ -108,7 +108,6 @@ the `LIVE_FRONTEND_CONFIG` environment variable. All fields are optional;
 see README.md for the full table. Common tweaks:
 
 * `"dashboard_port": 8790` — change if the port is taken.
-* `"auto_open_dashboard": true` — open the browser automatically.
 * `"poll_interval_seconds": 0.5` — watcher frequency.
 
 ## Troubleshooting
@@ -117,7 +116,7 @@ see README.md for the full table. Common tweaks:
 | ------- | --- |
 | `validate.py` says "port 8790 is busy" | Another live-frontend instance (e.g. the old server from the deleted folder) holds the port. Stop it, or change `dashboard_port` in the temp/real config. |
 | Tools respond but the dashboard shows nothing | Make sure a session exists (`create_session`); the dashboard is empty until then. |
-| Preview iframe is blank | The dev server must allow being framed; use the "open in tab" link in the pane header as a fallback. |
+| Preview is blank | Check the runtime URL and its build errors in Tiancode; the preview stays embedded and does not open a browser automatically. |
 | Server exits immediately | stdin closed — that is the normal shutdown signal for stdio MCP servers. |
 
 ## Uninstall

@@ -17,6 +17,8 @@ import { WriteTool } from "./write"
 import { InvalidTool } from "./invalid"
 import { PreviewLogsTool, PreviewRestartTool, PreviewStartTool, PreviewStatusTool, PreviewStopTool } from "./preview"
 import { SkillTool } from "./skill"
+import { MemoryTool } from "./memory"
+import { SkillCreateTool } from "./skill-create"
 import * as Tool from "./tool"
 import { Config } from "@/config/config"
 import { type ToolContext as PluginToolContext, type ToolDefinition } from "@tiancode-ai/plugin"
@@ -55,6 +57,14 @@ import { ModelV2 } from "@tiancode-ai/core/model"
 import { MCP } from "@/mcp"
 import { PermissionV1 } from "@tiancode-ai/core/v1/permission"
 import { McpCatalog } from "@/mcp/catalog"
+import { Global } from "@tiancode-ai/core/global"
+import { LocationServiceMap, locationServiceMapLayer } from "@tiancode-ai/core/location-services"
+
+const locationServiceMapNode = LayerNode.make({
+  service: LocationServiceMap.Service,
+  layer: locationServiceMapLayer,
+  deps: [],
+})
 
 export function webSearchEnabled(providerID: ProviderV2.ID, flags = { exa: false, parallel: false }) {
   return providerID === ProviderV2.ID.tiancode || flags.exa || flags.parallel
@@ -110,6 +120,8 @@ const layer = Layer.effect(
     const greptool = yield* GrepTool
     const patchtool = yield* ApplyPatchTool
     const skilltool = yield* SkillTool
+    const memorytool = yield* MemoryTool
+    const skillcreatetool = yield* SkillCreateTool
     const previewStart = yield* PreviewStartTool
     const previewStop = yield* PreviewStopTool
     const previewRestart = yield* PreviewRestartTool
@@ -220,6 +232,8 @@ const layer = Layer.effect(
           todo: Tool.init(todo),
           search: Tool.init(websearch),
           skill: Tool.init(skilltool),
+          memory: Tool.init(memorytool),
+          skillCreate: Tool.init(skillcreatetool),
           patch: Tool.init(patchtool),
           question: Tool.init(question),
           lsp: Tool.init(lsptool),
@@ -248,6 +262,8 @@ const layer = Layer.effect(
             tool.todo,
             tool.search,
             tool.skill,
+            tool.memory,
+            tool.skillCreate,
             tool.patch,
             ...(tool.execute ? [tool.execute] : []),
             ...(flags.experimentalLspTool ? [tool.lsp] : []),
@@ -460,6 +476,8 @@ export const node = LayerNode.make({
     MCP.node,
     Database.node,
     Ripgrep.node,
+    Global.node,
+    locationServiceMapNode,
   ],
 })
 

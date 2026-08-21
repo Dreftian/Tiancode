@@ -47,6 +47,7 @@ import sql_queries from "../../../../../skills/sql-queries.md" with { type: "tex
 import system_design from "../../../../../skills/system-design.md" with { type: "text" }
 import tech_debt from "../../../../../skills/tech-debt.md" with { type: "text" }
 import testing_strategy from "../../../../../skills/testing-strategy.md" with { type: "text" }
+import tiancode_spec_kit from "../../../../../skills/tiancode-spec-kit.md" with { type: "text" }
 import to_spec from "../../../../../skills/to-spec.md" with { type: "text" }
 import using_git_worktrees from "../../../../../skills/using-git-worktrees.md" with { type: "text" }
 import verification_before_completion from "../../../../../skills/verification-before-completion.md" with { type: "text" }
@@ -101,6 +102,7 @@ export const builtinAgentSkills: Record<string, string> = {
   "system-design": system_design,
   "tech-debt": tech_debt,
   "testing-strategy": testing_strategy,
+  "tiancode-spec-kit": tiancode_spec_kit,
   "to-spec": to_spec,
   "using-git-worktrees": using_git_worktrees,
   "verification-before-completion": verification_before_completion,

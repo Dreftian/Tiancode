@@ -31,6 +31,7 @@ const api: ElectronAPI = {
     installWsl: () => ipcRenderer.invoke("wsl-servers-install-wsl"),
     installDistro: (name) => ipcRenderer.invoke("wsl-servers-install-distro", name),
     probeAddable: (distros) => ipcRenderer.invoke("wsl-servers-probe-addable", distros),
+    installTiancode: (name) => ipcRenderer.invoke("wsl-servers-install-tiancode", name),
     installOpencode: (name) => ipcRenderer.invoke("wsl-servers-install-tiancode", name),
     openTerminal: (name) => ipcRenderer.invoke("wsl-servers-open-terminal", name),
     addServer: (distro) => ipcRenderer.invoke("wsl-servers-add", distro),
@@ -41,7 +42,7 @@ const api: ElectronAPI = {
     status: () => ipcRenderer.invoke("voices-status"),
     download: () => ipcRenderer.invoke("voices-download"),
     list: () => ipcRenderer.invoke("voices-list"),
-    speak: (text, voiceId) => ipcRenderer.invoke("voices-speak", text, voiceId),
+    speak: (text, voiceId, options) => ipcRenderer.invoke("voices-speak", text, voiceId, options),
     select: (voiceId) => ipcRenderer.invoke("voices-select", voiceId),
     downloadVoice: (voiceId) => ipcRenderer.invoke("voices-download-voice", voiceId),
     deleteVoice: (voiceId) => ipcRenderer.invoke("voices-delete-voice", voiceId),
@@ -209,6 +210,11 @@ const api: ElectronAPI = {
   setForceFocus: (enabled) => ipcRenderer.invoke("set-force-focus", enabled),
   recordFatalRendererError: (error) => ipcRenderer.invoke("record-fatal-renderer-error", error),
   setNativeTranslations: (bundle) => ipcRenderer.invoke("set-native-translations", bundle),
+  pet: {
+    update: (partial) => ipcRenderer.invoke("desktop-pet-update", partial),
+    toggle: () => ipcRenderer.invoke("desktop-pet-toggle"),
+    getState: () => ipcRenderer.invoke("desktop-pet-get-state"),
+  },
 }
 
 contextBridge.exposeInMainWorld("api", api)

@@ -7,7 +7,19 @@ import { type Component, createMemo, createResource, createSignal, For, onCleanu
 import { useLanguage } from "@/context/language"
 import { useSettings } from "@/context/settings"
 import { showToast } from "@/utils/toast"
-import { isVoiceSpeaking, speakWithVoices, voicesAPI, type VoiceInfo } from "@/utils/voices"
+import {
+  isVoiceSpeaking,
+  speakWithVoices,
+  voicesAPI,
+  type VoiceInfo,
+  getVoiceSpeed,
+  setVoiceSpeed,
+  getBargeInEnabled,
+  setBargeInEnabled,
+  enableBargeInListener,
+  currentSpeakingKey,
+} from "@/utils/voices"
+import { AudioWaveform } from "@/components/audio-waveform"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
 import "./voices.css"
@@ -17,13 +29,12 @@ const PROBE_TEXT_EN = "Hello! This is Tiancode speaking."
 const PROBE_TEXT_ES = "Hola, soy la voz de Tiancode en español."
 const voiceProbeKey = (voiceID: string) => `voice:${voiceID}`
 
-type VoiceFilter = "all" | "female" | "male" | "spanish"
+type VoiceFilter = "all" | "spanish" | "english"
 
-const FILTERS: { id: VoiceFilter; key: string }[] = [
-  { id: "all", key: "settings.voices.filter.all" },
-  { id: "female", key: "settings.voices.filter.female" },
-  { id: "male", key: "settings.voices.filter.male" },
-  { id: "spanish", key: "settings.voices.filter.spanish" },
+const FILTERS: { id: VoiceFilter; label: string }[] = [
+  { id: "all", label: "Todas (Femeninas ES / EN)" },
+  { id: "spanish", label: "🇪🇸 Español Neural" },
+  { id: "english", label: "🇺🇸 Inglés Neural" },
 ]
 
 // Short map of the voice languages shipped with the bundled kokoro model and
@@ -48,10 +59,8 @@ const LANGUAGE_LABELS: Record<string, string> = {
 
 const languageLabel = (code: string) => LANGUAGE_LABELS[code.toLowerCase()] ?? code
 
-// A voice can be selected only when it is supported, enabled and (for piper)
-// already downloaded; everything else stays visible for management.
-const canSelect = (voice: VoiceInfo) =>
-  voice.supported && voice.enabled !== false && (voice.engine === "kokoro" || voice.downloaded === true)
+// A voice can be selected when it is supported and enabled.
+const canSelect = (voice: VoiceInfo) => voice.supported && voice.enabled !== false
 
 export const SettingsVoicesV2: Component = () => {
   const language = useLanguage()
@@ -131,9 +140,9 @@ export const SettingsVoicesV2: Component = () => {
     const current = filter()
     return sortedVoices().filter((voice) => {
       if (current === "all") return true
-      if (current === "female") return voice.gender === "female"
-      if (current === "male") return voice.gender !== "female"
-      return voice.language.toLowerCase().startsWith("es")
+      if (current === "spanish") return voice.language.toLowerCase().startsWith("es")
+      if (current === "english") return voice.language.toLowerCase().startsWith("en")
+      return true
     })
   })
 
@@ -151,6 +160,9 @@ export const SettingsVoicesV2: Component = () => {
     if (!current || !canSelect(voice) || selected() === voice.id) return
     try {
       await current.select(voice.id)
+      if ((voice.engine === "piper" || voice.engine === "kokoro-es") && voice.downloaded !== true) {
+        void downloadVoice(voice)
+      }
       void refetch()
     } catch {
       // Selection is advisory; the status refetch shows the persisted value.
@@ -209,9 +221,32 @@ export const SettingsVoicesV2: Component = () => {
   }
 
   const probe = async (voice: VoiceInfo) => {
-    const text = voice.engine === "piper" || voice.engine === "kokoro-es" ? PROBE_TEXT_ES : PROBE_TEXT_EN
+    const isEs = voice.language.toLowerCase().startsWith("es")
+    const text = isEs ? PROBE_TEXT_ES : PROBE_TEXT_EN
+
+    // 1. Try local engine synthesis
     const error = await speakWithVoices(voiceProbeKey(voice.id), text, voice.id)
     if (error) {
+      // 2. Immediate audio preview sample or Web Speech API fallback for testing before install
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel()
+        const utterance = new SpeechSynthesisUtterance(text)
+        utterance.lang = voice.language
+        const availableVoices = window.speechSynthesis.getVoices()
+        const match = availableVoices.find(
+          (v) =>
+            v.lang.toLowerCase().startsWith(voice.language.slice(0, 2).toLowerCase()) &&
+            (voice.gender === "female" ? /female|mujer|monica|helena|sabina|lucia|zira/i.test(v.name) : true),
+        )
+        if (match) utterance.voice = match
+        window.speechSynthesis.speak(utterance)
+        showToast({
+          variant: "default",
+          title: `Probando voz: ${voice.name}`,
+          description: "Reproduciendo muestra de voz previa.",
+        })
+        return
+      }
       showToast({ variant: "error", title: language.t("settings.voices.voice.probe.failed"), description: error })
     }
   }
@@ -276,29 +311,80 @@ export const SettingsVoicesV2: Component = () => {
             </div>
           </Show>
 
-          <Show when={!status.loading && status()?.ready}>
-            <Show when={selectedVoice()}>
-              <div class="settings-v2-voices-selected">
-                <Icon name="circle-check" size="small" />
-                <span class="settings-v2-voices-selected-label">{language.t("settings.voices.select.title")}</span>
-                <span class="settings-v2-voices-selected-name">{selectedVoice()!.name}</span>
+          <Show when={selectedVoice()}>
+            <div class="settings-v2-voices-selected">
+              <Icon name="circle-check" size="small" />
+              <span class="settings-v2-voices-selected-label">{language.t("settings.voices.select.title")}</span>
+              <span class="settings-v2-voices-selected-name">{selectedVoice()!.name}</span>
+            </div>
+          </Show>
+
+          <SettingsListV2>
+            <SettingsRowV2
+              title={language.t("settings.voices.autoSpeak.title")}
+              description={language.t("settings.voices.autoSpeak.description")}
+            >
+              <Switch
+                checked={settings.general.autoSpeak()}
+                onChange={(value) => settings.general.setAutoSpeak(value)}
+              />
+            </SettingsRowV2>
+
+            <SettingsRowV2
+              title={language.t("settings.voices.speakReasoning.title") ?? "Leer pensamientos y plan en vivo"}
+              description={language.t("settings.voices.speakReasoning.description") ?? "Narra con la voz predeterminada femenina el razonamiento y pasos que la IA planifica hacer antes de ejecutarlos."}
+            >
+              <Switch
+                checked={settings.general.speakReasoning()}
+                onChange={(value) => settings.general.setSpeakReasoning(value)}
+              />
+            </SettingsRowV2>
+
+            <SettingsRowV2
+              title="Velocidad de Reproducción"
+              description="Ajusta la velocidad de narración para una reproducción más rápida o pausada."
+            >
+              <div class="flex items-center gap-1">
+                <For each={[0.75, 1.0, 1.25, 1.5, 2.0]}>
+                  {(rate) => (
+                    <ButtonV2
+                      type="button"
+                      variant={getVoiceSpeed() === rate ? "contrast" : "ghost"}
+                      size="small"
+                      onClick={() => setVoiceSpeed(rate)}
+                    >
+                      {rate}x
+                    </ButtonV2>
+                  )}
+                </For>
               </div>
-            </Show>
+            </SettingsRowV2>
 
-            <SettingsListV2>
-              <SettingsRowV2
-                title={language.t("settings.voices.autoSpeak.title")}
-                description={language.t("settings.voices.autoSpeak.description")}
-              >
-                <Switch
-                  checked={settings.general.autoSpeak()}
-                  onChange={(value) => settings.general.setAutoSpeak(value)}
-                />
-              </SettingsRowV2>
-            </SettingsListV2>
+            <SettingsRowV2
+              title="Interrupción por Voz (Barge-In / Dúplex)"
+              description="Corta automáticamente la voz de la IA cuando comienzas a hablar por el micrófono."
+            >
+              <Switch
+                checked={getBargeInEnabled()}
+                onChange={(val) => {
+                  setBargeInEnabled(val)
+                  if (val) void enableBargeInListener()
+                }}
+              />
+            </SettingsRowV2>
 
-            <div class="settings-v2-section">
-              <h3 class="settings-v2-section-title">{language.t("settings.voices.ready.title")}</h3>
+            <SettingsRowV2
+              title="Monitor de Espectro de Audio"
+              description="Visualizador de onda sonora reactivo durante la síntesis y dictado por micrófono."
+            >
+              <div class="w-48">
+                <AudioWaveform active={currentSpeakingKey() !== undefined} height={26} barsCount={24} />
+              </div>
+            </SettingsRowV2>
+          </SettingsListV2>
+
+          <div class="settings-v2-section">
+            <h3 class="settings-v2-section-title">{language.t("settings.voices.ready.title")}</h3>
 
               <div class="settings-v2-voices-filters">
                 <For each={FILTERS}>
@@ -312,18 +398,33 @@ export const SettingsVoicesV2: Component = () => {
                         setPage(0)
                       }}
                     >
-                      {language.t(item.key)}
+                      {item.label}
                     </ButtonV2>
                   )}
                 </For>
               </div>
 
               <Show
-                when={filteredVoices().length > 0}
+                when={filteredVoices().length > 0 || status.loading}
                 fallback={<div class="settings-v2-skills-status">{language.t("settings.voices.voices.empty")}</div>}
               >
                 <SettingsListV2>
-                  <For each={pageVoices()}>
+                  <Show
+                    when={filteredVoices().length > 0}
+                    fallback={
+                      <For each={[1, 2, 3, 4]}>
+                        {() => (
+                          <div class="settings-v2-voices-row opacity-40 pointer-events-none">
+                            <span class="settings-v2-voices-row-radio" />
+                            <div class="settings-v2-voices-row-copy">
+                              <span class="settings-v2-voices-row-name">Cargando catálogo de voces...</span>
+                            </div>
+                          </div>
+                        )}
+                      </For>
+                    }
+                  >
+                    <For each={pageVoices()}>
                     {(voice) => {
                       const selectable = canSelect(voice)
                       const downloadProgress = piperProgress()[voice.id]
@@ -519,6 +620,7 @@ export const SettingsVoicesV2: Component = () => {
                       )
                     }}
                   </For>
+                  </Show>
                 </SettingsListV2>
                 <Show when={pages() > 1}>
                   <div class="settings-v2-voices-pagination">
@@ -548,8 +650,7 @@ export const SettingsVoicesV2: Component = () => {
               </Show>
             </div>
           </Show>
-        </Show>
-      </div>
-    </>
-  )
-}
+        </div>
+      </>
+    )
+  }

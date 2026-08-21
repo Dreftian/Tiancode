@@ -1025,6 +1025,64 @@ export default function LegacyLayout(props: ParentProps) {
         keybind: "mod+shift+t",
         onSelect: () => cycleTheme(1),
       },
+      {
+        id: "preview.toggle",
+        title: "Alternar Vista Previa en Vivo (Live Preview)",
+        category: language.t("command.category.view"),
+        keybind: "mod+shift+v",
+        onSelect: () => {
+          window.dispatchEvent(new CustomEvent("tiancode:preview-toggle"))
+        },
+      },
+      {
+        id: "prompt.optimize",
+        title: "Optimizar Prompt / Instrucción (Estilo Trae)",
+        category: "Prompt",
+        keybind: "mod+shift+o",
+        onSelect: () => {
+          const btn = document.querySelector(".trae-optimizer-btn") as HTMLButtonElement | null
+          btn?.click()
+        },
+      },
+      {
+        id: "voice.dictation",
+        title: "Alternar Dictado por Voz",
+        category: "Voz",
+        keybind: "mod+shift+m",
+        onSelect: () => {
+          window.dispatchEvent(new CustomEvent("tiancode:voice-dictation-toggle"))
+        },
+      },
+      {
+        id: "pet.toggle",
+        title: "Alternar Mascota de Escritorio",
+        category: language.t("command.category.view"),
+        keybind: "mod+shift+p",
+        onSelect: () => {
+          window.dispatchEvent(new CustomEvent("tiancode:pet-toggle"))
+        },
+      },
+      {
+        id: "mcp.health",
+        title: "Diagnóstico y Salud de Servidores MCP",
+        category: "MCP",
+        keybind: "mod+shift+c",
+        onSelect: () => openSettings(),
+      },
+      {
+        id: "skills.open",
+        title: "Gestor de Habilidades y Auto-Harness (Skills)",
+        category: "Agente",
+        keybind: "mod+shift+k",
+        onSelect: () => openSettings(),
+      },
+      {
+        id: "rlm.tree",
+        title: "Árbol de Recursión RLM de Sub-Agentes",
+        category: "Agente",
+        keybind: "mod+shift+r",
+        onSelect: () => openSettings(),
+      },
     ]
 
     Array.from({ length: 9 }, (_, i) => {
@@ -1112,7 +1170,7 @@ export default function LegacyLayout(props: ParentProps) {
 
   function openSettings() {
     const run = ++dialogRun
-    void import("@/components/settings-v2").then((x) => {
+    void import("../components/settings-v2/dialog-settings-v2").then((x) => {
       if (dialogDead || dialogRun !== run) return
       dialog.show(() => <x.DialogSettings />)
     })

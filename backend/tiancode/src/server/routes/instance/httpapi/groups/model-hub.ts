@@ -65,6 +65,10 @@ export const ModelDownloadJob = Schema.Struct({
   total: Schema.Number,
   received: Schema.Number,
   done: Schema.Boolean,
+  speedBytesPerSec: Schema.optional(Schema.Number),
+  percent: Schema.optional(Schema.Number),
+  remainingBytes: Schema.optional(Schema.Number),
+  etaSeconds: Schema.optional(Schema.Number),
 })
 
 export const ModelRuntimeInfo = Schema.Struct({
@@ -72,6 +76,7 @@ export const ModelRuntimeInfo = Schema.Struct({
   name: Schema.String,
   available: Schema.Boolean,
   version: Schema.optional(Schema.String),
+  models: Schema.optional(Schema.Array(Schema.String)),
 })
 
 export const ModelHubApi = HttpApi.make("model-hub")

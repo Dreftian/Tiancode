@@ -72,6 +72,16 @@ describe("skill auto-select", () => {
     expect(selected).toContain("test-driven-development")
   })
 
+  test("sitio HTML y adaptador de preview también cargan el diseño frontend", async () => {
+    const dir = await project({
+      "index.html": "<!doctype html><title>Demo</title>",
+      "tiancode.preview.json": JSON.stringify({ command: ["python", "-m", "http.server"], url: "http://127.0.0.1:8000" }),
+    })
+    const selected = names(await autoSelectFor(dir, catalog))
+    expect(selected).toContain("frontend-design")
+    expect(selected).toContain("frontend-ui-engineering")
+  })
+
   test("proyecto python detecta pyproject.toml", async () => {
     const dir = await project({ "pyproject.toml": "[project]\nname = \"demo\"\n" })
     const selected = names(await autoSelectFor(dir, catalog))

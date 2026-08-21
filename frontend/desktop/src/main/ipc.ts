@@ -31,6 +31,7 @@ import { getRuntimeInstallState, installRuntime } from "./runtime-install"
 import { captureArea, captureLiveView, capturePreview, captureScreen, captureWindow } from "./capture"
 import { backupNow, listBackups, restoreBackup } from "./backup"
 import { registerPreviewViewIpc } from "./preview-view"
+import { registerDesktopPetIpc } from "./desktop-pet"
 
 // Apps "abrir con" que acepta open-path. En macOS y Linux el renderer envía
 // el nombre tal cual; en Windows envía el path resuelto por resolveAppPath
@@ -132,6 +133,9 @@ export function registerIpcHandlers(deps: Deps) {
   // elementos). Canales exclusivos preview-view:*; nada existente cambia.
   registerPreviewViewIpc()
 
+  // Mascota de escritorio independiente
+  registerDesktopPetIpc()
+
   // Resuelve el argumento "app" de open-path contra los nombres conocidos;
   // en Windows el renderer envía el path resuelto y hay que re-resolver para
   // verificar que corresponde a una de las apps permitidas.
@@ -203,8 +207,8 @@ export function registerIpcHandlers(deps: Deps) {
   ipcMain.handle("voices-status", () => getVoicesStatus())
   ipcMain.handle("voices-download", () => downloadVoices())
   ipcMain.handle("voices-list", () => listVoices())
-  ipcMain.handle("voices-speak", (_event: IpcMainInvokeEvent, text: string, voiceId?: string) =>
-    speakVoice(text, voiceId),
+  ipcMain.handle("voices-speak", (_event: IpcMainInvokeEvent, text: string, voiceId?: string, options?: { automatic?: boolean }) =>
+    speakVoice(text, voiceId, options),
   )
   ipcMain.handle("voices-select", (_event: IpcMainInvokeEvent, voiceId: string) => selectVoice(voiceId))
   ipcMain.handle("voices-download-voice", (_event: IpcMainInvokeEvent, voiceId: string) => downloadVoice(voiceId))

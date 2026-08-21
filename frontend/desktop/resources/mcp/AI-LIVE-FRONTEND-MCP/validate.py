@@ -199,7 +199,6 @@ def main() -> int:
                 "max_file_bytes": 1000000,
                 "max_event_history": 500,
                 "desktop_capture_interval_seconds": 2,
-                "auto_open_dashboard": False,
             }), encoding="utf-8")
 
             demo_root = tmp_dir / "demo"
@@ -295,7 +294,13 @@ def main() -> int:
                 status, body = http_get(base_url, asset)
                 if status != 200 or not body:
                     raise RuntimeError(f"GET {asset} returned {status}")
-            print(f"dashboard HTTP: OK ({base_url}/, styles.css, app.js, /api/health)")
+            status, body = http_get(base_url, "/preview/")
+            if status != 200 or b"__tiancode__/reload.js" not in body:
+                raise RuntimeError("GET /preview/ did not inject the local reload client")
+            status, body = http_get(base_url, "/preview/__tiancode__/reload.js")
+            if status != 200 or b"EventSource" not in body:
+                raise RuntimeError("GET /preview/__tiancode__/reload.js returned an invalid client")
+            print(f"dashboard HTTP: OK ({base_url}/, assets, /api/health, static live reload)")
 
             # 5. SSE + watcher: subscribe and confirm the snapshot, THEN modify
             #    a file, so the file_modified event is guaranteed to be seen.

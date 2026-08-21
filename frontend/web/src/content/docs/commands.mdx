@@ -13,6 +13,36 @@ Custom commands are in addition to the built-in commands like `/init`, `/undo`, 
 
 ---
 
+## Spec Kit workflow
+
+Tiancode includes `/spec-kit` for substantial changes that benefit from a
+durable specification before code is edited. It creates a versioned local
+artifact set at `specs/<feature>/`:
+
+```text frame="none"
+spec.md           # intent, scope, assumptions, and acceptance criteria
+plan.md           # architecture, risks, delivery order, and validation
+tasks.md          # ordered tasks with dependencies and exact checks
+verification.md   # real command/manual evidence, including failures
+```
+
+Run a phase explicitly, or omit it to start with a specification:
+
+```bash frame="none"
+/spec-kit specify offline-sync
+/spec-kit plan offline-sync
+/spec-kit tasks offline-sync
+/spec-kit implement offline-sync
+/spec-kit converge offline-sync
+```
+
+The workflow is local to Tiancode. It does not install GitHub's Spec Kit CLI,
+create issues, publish changes, or invent external integrations. `implement`
+only changes product code after the preceding artifacts are concrete; a task is
+checked off only after its recorded verification actually passes.
+
+---
+
 ## Create command files
 
 Create markdown files in the `commands/` directory to define custom commands.

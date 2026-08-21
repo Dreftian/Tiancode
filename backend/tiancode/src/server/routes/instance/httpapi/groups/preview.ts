@@ -1,6 +1,8 @@
 import { Schema } from "effect"
 import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
-import { WorkspaceRoutingQuery, WorkspaceRoutingQueryFields } from "../middleware/workspace-routing"
+import { Authorization } from "../middleware/authorization"
+import { InstanceContextMiddleware } from "../middleware/instance-context"
+import { WorkspaceRoutingMiddleware, WorkspaceRoutingQuery, WorkspaceRoutingQueryFields } from "../middleware/workspace-routing"
 import { described } from "./metadata"
 
 const root = "/preview"
@@ -82,5 +84,8 @@ export const PreviewApi = HttpApi.make("preview")
             summary: "Logs recientes del dev server",
           }),
         ),
-      ),
+      )
+      .middleware(InstanceContextMiddleware)
+      .middleware(WorkspaceRoutingMiddleware)
+      .middleware(Authorization),
   )

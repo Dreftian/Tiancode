@@ -31,7 +31,7 @@ const RUNTIMES: Record<RuntimeKind, RuntimeDef> = {
     name: "Ollama",
     url: "https://ollama.com/download/OllamaSetup.exe",
     fileName: "OllamaSetup.exe",
-    silentArgs: ["/S"],
+    silentArgs: ["/VERYSILENT", "/NORESTART", "/SP-", "/SUPPRESSMSGBOXES"],
     probeUrl: "http://localhost:11434/api/version",
     launchPath: [
       join(process.env.LOCALAPPDATA ?? "", "Programs", "Ollama", "ollama app.exe"),
@@ -44,7 +44,7 @@ const RUNTIMES: Record<RuntimeKind, RuntimeDef> = {
     name: "LM Studio",
     url: "https://lmstudio.ai/download/bionic/latest/win32/x64",
     fileName: "LM-Studio-latest-x64.exe",
-    silentArgs: ["/S"],
+    silentArgs: ["/VERYSILENT", "/NORESTART", "/SP-", "/SUPPRESSMSGBOXES", "/S", "/silent", "--silent"],
     probeUrl: "http://localhost:1234/v1/models",
     launchPath: [
       join(process.env.LOCALAPPDATA ?? "", "Programs", "LM Studio", "LM Studio.exe"),
@@ -126,25 +126,18 @@ async function installRuntimeInner(kind: RuntimeKind): Promise<{ ok: boolean; er
       )
     }
 
-    // La instalación silenciosa puede seguir corriendo después del timeout de
-    // runSilent (devuelve null); espera a que el runtime responda antes de
-    // lanzar el instalador interactivo, para no duplicar la instalación.
+    // Espera silenciosamente a que el runtime arranque o lanza el ejecutable en background.
+    await launchRuntime(def).catch(() => {})
     let reachable = await probeRuntime(def.probeUrl)
-    for (let attempt = 0; attempt < 12 && !reachable; attempt++) {
-      await sleep(5_000)
+    for (let attempt = 0; attempt < 8 && !reachable; attempt++) {
+      await sleep(3_000)
       reachable = await probeRuntime(def.probeUrl)
-    }
-    if (!reachable) {
-      writeLog("runtime", "silent install did not start the runtime; launching interactive", { kind: def.name })
-      spawn(installer, [], { stdio: "ignore", detached: true, windowsHide: false }).unref()
-    } else {
-      launchRuntime(def).catch(() => {})
     }
 
     state = { status: "idle" }
     report()
     writeLog("runtime", "installed", { kind: def.name })
-    notifyUser("Tiancode", `${def.name} instalado correctamente`)
+    notifyUser("Tiancode", `${def.name} se instaló correctamente en segundo plano`)
     return { ok: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)

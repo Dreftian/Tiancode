@@ -39,9 +39,12 @@ const rendererCsp = (() => {
     // data: en connect-src: la terminal (ghostty) carga su wasm desde una URL
     // data:application/wasm;base64 embebida (igual que la CSP web).
     "connect-src 'self' data: http: https: wss: ws:",
-    // frame-src permite el dashboard de la vista en vivo que sirve el MCP local
-    // "live_frontend" en http://127.0.0.1:8790.
-    "frame-src 'self' https: http://127.0.0.1:*",
+    // La vista previa integrada carga sólo servicios loopback administrados. Los
+    // proyectos y herramientas publican indistintamente 127.0.0.1, localhost o
+    // ::1, así que los tres orígenes deben poder usarse dentro del iframe.
+    // Chromium does not match IPv6 literals in CSP host sources. The preview
+    // transport canonicalizes ::1 to localhost before assigning iframe.src.
+    "frame-src 'self' https: http://127.0.0.1:* http://localhost:*",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
@@ -125,9 +128,12 @@ const require = __cjs_mod__.createRequire(import.meta.url);
     },
   },
   renderer: {
-    // El canal visible del renderer (badge del titlebar, features dev-only)
-    // debe ser explícito en el build: sin esto quedaba undefined salvo que el
-    // entorno definiera VITE_TIANCODE_CHANNEL, y el badge dependía del azar.
+    resolve: {
+      alias: {
+        "@": fileURLToPath(new URL("../app/src", import.meta.url)),
+        "@tiancode-ai/app": fileURLToPath(new URL("../app/src", import.meta.url)),
+      },
+    },
     define: {
       "import.meta.env.VITE_TIANCODE_CHANNEL": JSON.stringify(channel),
     },
@@ -159,10 +165,6 @@ const require = __cjs_mod__.createRequire(import.meta.url);
         input: {
           main: "src/renderer/index.html",
         },
-        // Sin manualChunks: separar solid-js en un vendor chunk creaba un ciclo
-        // de inicialización entre chunks ("Cannot access '$RAW' before
-        // initialization") que rompía el montaje del renderer en producción.
-        // Rollup resuelve el grafo completo en un solo bundle del renderer.
       },
     },
   },

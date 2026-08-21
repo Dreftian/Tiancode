@@ -22,6 +22,9 @@
 [data-component="tabs-v2"] [data-slot="tabs-v2-content"] {
   flex: 1;
   overflow: auto;
+  background-color: var(--v2-background-bg-base);
+  min-height: 0;
+  contain: content;
 }
 
 [data-component="tabs-v2"] [data-slot="tabs-v2-list"] {

@@ -1,4 +1,4 @@
-import { Component, createMemo, createSignal, startTransition } from "solid-js"
+import { Component, createMemo, createSignal, Show } from "solid-js"
 import { Dialog } from "@tiancode-ai/ui/v2/dialog-v2"
 import { TabsV2 } from "@tiancode-ai/ui/v2/tabs-v2"
 import { Icon } from "@tiancode-ai/ui/icon"
@@ -9,7 +9,6 @@ import { SettingsKeybinds } from "../settings-keybinds"
 import { SettingsProvidersV2 } from "./providers"
 import { SettingsModelsV2 } from "./models"
 import { SettingsModelsHubV2 } from "./models-hub"
-import { SettingsPluginsV2 } from "./plugins"
 import { SettingsSkillsV2 } from "./skills"
 import { SettingsSubAgentsV2 } from "./sub-agents"
 import { SettingsMcpServersV2 } from "./mcp-servers"
@@ -17,6 +16,8 @@ import { SettingsBrowserV2 } from "./browser"
 import { SettingsPetsV2 } from "./pets"
 import { SettingsComputerUseV2 } from "./computer-use"
 import { SettingsGithubV2 } from "./github"
+import { SettingsIntelligenceV2 } from "./intelligence"
+import { SettingsEcosystemV2 } from "./ecosystem"
 import { SettingsVoicesV2 } from "./voices"
 import "./settings-v2.css"
 import { SettingsServersV2 } from "./servers"
@@ -36,7 +37,7 @@ export const DialogSettings: Component<{
   const tabs = useTabs()
   const serverSync = useServerSync()
   const [tab, setTab] = createSignal(props.defaultValue ?? "general")
-  const directory = createMemo(() => {
+  const rawDirectory = () => {
     const route = layout.route()
     if (route.type === "dir-new-sesssion") return route.dir
     if (route.type === "draft") {
@@ -45,7 +46,8 @@ export const DialogSettings: Component<{
     }
     if (route.type === "session") return serverSync().session.get(route.sessionId)?.directory
     return undefined
-  })
+  }
+  const directory = createMemo(rawDirectory, undefined, { equals: (a, b) => a === b })
 
   const showProviders = () => {
     void dialog.show(() => <DialogSettings sessionID={props.sessionID} defaultValue="providers" />)
@@ -57,7 +59,7 @@ export const DialogSettings: Component<{
         orientation="vertical"
         variant="settings"
         value={tab()}
-        onChange={(value) => void startTransition(() => setTab(value))}
+        onChange={(value) => setTab(value)}
         class="settings-v2"
       >
         <TabsV2.List>
@@ -70,6 +72,14 @@ export const DialogSettings: Component<{
                     <TabsV2.Trigger value="general">
                       <Icon name="sliders" />
                       {language.t("settings.tab.general")}
+                    </TabsV2.Trigger>
+                    <TabsV2.Trigger value="intelligence">
+                      <Icon name="brain" />
+                      {language.t("settings.tab.intelligence") || "Intelligence"}
+                    </TabsV2.Trigger>
+                    <TabsV2.Trigger value="ecosystem">
+                      <Icon name="dot-grid" />
+                      Ecosistema IA
                     </TabsV2.Trigger>
                     <TabsV2.Trigger value="shortcuts">
                       <Icon name="keyboard" />
@@ -109,10 +119,6 @@ export const DialogSettings: Component<{
                     <TabsV2.Trigger value="voices">
                       <Icon name="prompt" />
                       {language.t("settings.tab.voices")}
-                    </TabsV2.Trigger>
-                    <TabsV2.Trigger value="plugins">
-                      <Icon name="dot-grid" />
-                      {language.t("settings.tab.plugins")}
                     </TabsV2.Trigger>
                     <TabsV2.Trigger value="skills">
                       <Icon name="code-lines" />
@@ -156,6 +162,12 @@ export const DialogSettings: Component<{
         <TabsV2.Content value="general" class="settings-v2-panel">
           <SettingsGeneralV2 sessionID={props.sessionID} />
         </TabsV2.Content>
+        <TabsV2.Content value="intelligence" class="settings-v2-panel">
+          <SettingsIntelligenceV2 />
+        </TabsV2.Content>
+        <TabsV2.Content value="ecosystem" class="settings-v2-panel">
+          <SettingsEcosystemV2 />
+        </TabsV2.Content>
         <TabsV2.Content value="shortcuts" class="settings-v2-panel">
           <SettingsKeybinds v2 />
         </TabsV2.Content>
@@ -176,9 +188,6 @@ export const DialogSettings: Component<{
         </TabsV2.Content>
         <TabsV2.Content value="voices" class="settings-v2-panel">
           <SettingsVoicesV2 />
-        </TabsV2.Content>
-        <TabsV2.Content value="plugins" class="settings-v2-panel">
-          <SettingsPluginsV2 directory={directory()} />
         </TabsV2.Content>
         <TabsV2.Content value="skills" class="settings-v2-panel">
           <SettingsSkillsV2 directory={directory()} />

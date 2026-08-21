@@ -3,7 +3,6 @@ import { defineConfig } from "astro/config"
 import starlight from "@astrojs/starlight"
 import solidJs from "@astrojs/solid-js"
 import cloudflare from "@astrojs/cloudflare"
-import theme from "toolbeam-docs-theme"
 import config from "./config.mjs"
 import { rehypeHeadingIds } from "@astrojs/markdown-remark"
 import rehypeAutolinkHeadings from "rehype-autolink-headings"
@@ -16,7 +15,16 @@ export default defineConfig({
   output: "server",
   adapter: cloudflare({
     imageService: "passthrough",
+    platformProxy: {
+      configPath: process.env.SST_WRANGLER_PATH,
+    },
   }),
+  session: {
+    driver: "cloudflare-kv-binding",
+    options: {
+      binding: "SESSION",
+    },
+  },
   devToolbar: {
     enabled: false,
   },
@@ -165,7 +173,19 @@ export default defineConfig({
       markdown: {
         headingLinks: false,
       },
-      customCss: ["./src/styles/custom.css"],
+      pagination: false,
+      customCss: [
+        "@fontsource/ibm-plex-mono/400.css",
+        "@fontsource/ibm-plex-mono/400-italic.css",
+        "@fontsource/ibm-plex-mono/500.css",
+        "@fontsource/ibm-plex-mono/600.css",
+        "@fontsource/ibm-plex-mono/700.css",
+        "toolbeam-docs-theme/styles/theme.css",
+        "toolbeam-docs-theme/styles/tsdoc.css",
+        "toolbeam-docs-theme/styles/markdown.css",
+        "toolbeam-docs-theme/styles/headings.css",
+        "./src/styles/custom.css",
+      ],
       logo: {
         light: "./src/assets/logo-light.png",
         dark: "./src/assets/logo-dark.png",
@@ -300,13 +320,9 @@ export default defineConfig({
         Header: "./src/components/Header.astro",
         Footer: "./src/components/Footer.astro",
         LanguageSelect: "./src/components/LanguageSelect.astro",
+        PageTitle: "toolbeam-docs-theme/overrides/PageTitle.astro",
         SiteTitle: "./src/components/SiteTitle.astro",
       },
-      plugins: [
-        theme({
-          headerLinks: config.headerLinks,
-        }),
-      ],
     }),
   ],
 })

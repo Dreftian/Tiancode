@@ -231,8 +231,16 @@ const discoverSkills = Effect.fnUntraced(function* (
   }
 
   const configDirs = yield* config.directories()
-  for (const dir of configDirs) {
-    yield* scan(state, dir, TIANCODE_SKILL_PATTERN)
+  const candidateDirs = new Set([
+    ...configDirs,
+    global.config,
+    path.join(worktree, ".tiancode"),
+    path.join(directory, ".tiancode"),
+  ])
+  for (const dir of candidateDirs) {
+    if (yield* fsys.isDir(dir)) {
+      yield* scan(state, dir, TIANCODE_SKILL_PATTERN)
+    }
   }
 
   const cfg = yield* config.get()

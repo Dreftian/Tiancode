@@ -15,13 +15,14 @@ import {
 } from "@modelcontextprotocol/sdk/types.js"
 import { LayerNode } from "@tiancode-ai/core/effect/layer-node"
 import { Cause, Effect, Exit } from "effect"
+import { Config } from "@/config/config"
 import type { MCP as MCPNS } from "../../src/mcp/index"
 import { MCP } from "../../src/mcp/index"
 import { McpOAuthCallback } from "../../src/mcp/oauth-callback"
 import { TestInstance } from "../fixture/fixture"
 import { pollWithTimeout, testEffect } from "../lib/effect"
 
-const it = testEffect(LayerNode.compile(MCP.node))
+const it = testEffect(LayerNode.compile(LayerNode.group([MCP.node, Config.node])))
 const stdioFixture = path.join(import.meta.dir, "../fixture/mcp-lifecycle-stdio.ts")
 
 type Page<T> = { items: T[]; nextCursor?: string }
@@ -216,6 +217,51 @@ it.instance(
   { init: (directory) => Effect.promise(() => Bun.$`mkdir -p ${path.join(directory, "plugins/sub")}`.quiet()) },
 )
 
+it.instance("disconnect terminates a local stdio server process tree", () =>
+  Effect.gen(function* () {
+    const test = yield* TestInstance
+    const pidFile = path.join(test.directory, "mcp-disconnect-parent.pid")
+    const childPidFile = path.join(test.directory, "mcp-disconnect-child.pid")
+    const mcp = yield* MCP.Service
+    const result = yield* mcp.add("disconnect-stdio-tree", {
+      type: "local",
+      command: [process.execPath, stdioFixture, "--report-pid", "--child"],
+      environment: {
+        MCP_LIFECYCLE_PID_FILE: pidFile,
+        MCP_LIFECYCLE_CHILD_PID_FILE: childPidFile,
+      },
+    })
+
+    expect(statusName(result.status, "disconnect-stdio-tree")).toBe("connected")
+    const pids = yield* pollWithTimeout(
+      Effect.promise(async () => {
+        const files = [pidFile, childPidFile]
+        if (!(await Promise.all(files.map((file) => Bun.file(file).exists()))).every(Boolean)) return
+        return Promise.all(files.map(async (file) => Number(await Bun.file(file).text())))
+      }),
+      "stdio fixture did not publish its process tree",
+    )
+
+    yield* mcp.disconnect("disconnect-stdio-tree")
+    yield* Effect.forEach(
+      pids,
+      (pid) =>
+        pollWithTimeout(
+          Effect.sync(() => {
+            try {
+              process.kill(pid, 0)
+              return undefined
+            } catch {
+              return true
+            }
+          }),
+          "disconnected stdio fixture process tree was not terminated",
+        ),
+      { discard: true },
+    )
+  }),
+)
+
 it.instance("tools() reuses cached definitions until a protocol notification", () =>
   Effect.gen(function* () {
     const server = yield* lifecycleServer({ capabilities: { tools: { listChanged: true } } })
@@ -324,6 +370,19 @@ it.instance("disconnect removes protocol data and reconnect establishes a new se
     yield* mcp.connect("reconnect-server")
     expect((yield* mcp.status())["reconnect-server"]?.status).toBe("connected")
     expect(Object.keys(yield* mcp.tools())).toEqual(["reconnect-server_test_tool"])
+  }),
+)
+
+it.instance("connect preserves an implicitly enabled server configuration", () =>
+  Effect.gen(function* () {
+    const server = yield* lifecycleServer()
+    const config = yield* Config.Service
+    const mcp = yield* MCP.Service
+    yield* mcp.add("implicit-enabled", remote(server.url))
+
+    yield* mcp.connect("implicit-enabled")
+
+    expect((yield* config.getGlobal()).mcp?.["implicit-enabled"]?.enabled).toBeUndefined()
   }),
 )
 
@@ -527,6 +586,50 @@ it.instance("local stdio timeout terminates the real server process", () =>
         }
       }),
       "stdio fixture process was not terminated",
+    )
+  }),
+)
+
+it.instance("local stdio timeout terminates the complete server process tree", () =>
+  Effect.gen(function* () {
+    const test = yield* TestInstance
+    const pidFile = path.join(test.directory, "mcp-parent.pid")
+    const childPidFile = path.join(test.directory, "mcp-child.pid")
+    const mcp = yield* MCP.Service
+    const result = yield* mcp.add("hanging-stdio-tree", {
+      type: "local",
+      command: [process.execPath, stdioFixture, "--hang", "--child"],
+      environment: {
+        MCP_LIFECYCLE_PID_FILE: pidFile,
+        MCP_LIFECYCLE_CHILD_PID_FILE: childPidFile,
+      },
+      timeout: 100,
+    })
+
+    expect(statusName(result.status, "hanging-stdio-tree")).toBe("failed")
+    const pids = yield* pollWithTimeout(
+      Effect.promise(async () => {
+        const files = [pidFile, childPidFile]
+        if (!(await Promise.all(files.map((file) => Bun.file(file).exists()))).every(Boolean)) return
+        return Promise.all(files.map(async (file) => Number(await Bun.file(file).text())))
+      }),
+      "stdio fixture did not publish its process tree",
+    )
+    yield* Effect.forEach(
+      pids,
+      (pid) =>
+        pollWithTimeout(
+          Effect.sync(() => {
+            try {
+              process.kill(pid, 0)
+              return undefined
+            } catch {
+              return true
+            }
+          }),
+          "stdio fixture process tree was not terminated",
+        ),
+      { discard: true },
     )
   }),
 )

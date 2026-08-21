@@ -55,6 +55,7 @@ export type PreviewViewSelection = {
 
 export type PreviewViewEvent =
   | { type: "state"; state: PreviewViewState }
+  | { type: "loaded"; url: string }
   | { type: "console"; message: { level: number; message: string; line: number; sourceId: string } }
   | { type: "fail"; fail: { code: number; description: string; url: string; isMainFrame: boolean } }
 

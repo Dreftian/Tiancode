@@ -125,7 +125,7 @@ export function WslServerSettings(props: {
                     <ButtonV2
                       size="small"
                       disabled={busy() || request.isPending}
-                      onClick={() => api && request.mutate(() => api.installOpencode(item.config.distro))}
+                      onClick={() => api && request.mutate(() => api.installTiancode(item.config.distro))}
                     >
                       {busy() ? language.t("wsl.server.updating") : language.t(label())}
                     </ButtonV2>

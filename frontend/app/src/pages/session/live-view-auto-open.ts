@@ -1,54 +1,51 @@
 import { createEffect, onCleanup } from "solid-js"
-import { useParams } from "@solidjs/router"
-import { useSessionLayout } from "@/pages/session/session-layout"
-import { useServerSync } from "@/context/server-sync"
 import { setPreviewPanelOpen } from "@/components/preview-panel"
-import { LIVE_VIEW_URL, setLiveViewExternalUrl, serverTargetOf } from "@/pages/session/live-view-panel"
+import { useSDK } from "@/context/sdk"
+import { useServer } from "@/context/server"
+import { useSessionLayout } from "@/pages/session/session-layout"
+import { previewStatusUrl } from "@/pages/session/live-preview/live-preview-url"
+import { LIVE_VIEW_URL, serverTargetOf, setLiveViewManagedTarget } from "@/pages/session/live-view-panel"
+import { authTokenFromCredentials } from "@/utils/server"
 
 // Intervalos del vigía: el poll corre solo mientras el sandbox está cerrado
 // (cuando está abierto, el propio panel consulta el snapshot y navega).
 const LIVE_VIEW_POLL_MS = 5_000
 const LIVE_VIEW_CHECK_MS = 3_000
 
-// Tools del chat que navegan a una página (el agente la abrió para probarla):
-// se muestra en el sandbox aunque el live server no tenga sesión. Cubre los
-// MCPs de navegador (chrome-devtools_new_page, playwright browser_goto,
-// browser_navigate, browser_visit), el dashboard live_frontend (set_preview)
-// y las tools del agente (preview_start).
-const NAVIGATION_TOOL_RE = /new_page|navigate|browse|preview|open_page|open_url|goto|visit|launch/i
-const URL_IN_TOOL_RE = /(?:https?:\/\/[^\s"')\]]+|file:\/\/\/?[^\s"')\]]+)/
-// Path absoluto de Windows a un HTML local (p. ej. el agente la abre con
-// Start-Process "C:\carpeta\index.html"): se convierte a file:// para que el
-// panel la muestre igual que cualquier otra navegación del agente.
-const WIN_HTML_PATH_RE = /[A-Za-z]:[\\/][^"'()\]]*\.html?/i
-
-function winPathToFileUrl(raw: string) {
-  const collapsed = raw.replace(/\\\\/g, "/").replace(/\\/g, "/").replace(/\/{2,}/g, "/")
-  return `file:///${encodeURI(collapsed)}`
+type ManagedPreviewState = {
+  status?: unknown
+  url?: unknown
+  startedAt?: unknown
 }
 
-function navigationUrlOf(tool: string, input: unknown): string | undefined {
-  let serialized = ""
-  if (typeof input === "string") serialized = input
-  else if (input && typeof input === "object") serialized = JSON.stringify(input)
-  if (NAVIGATION_TOOL_RE.test(tool)) {
-    const match = URL_IN_TOOL_RE.exec(serialized)
-    if (match) return match[0]
-  }
-  const file = WIN_HTML_PATH_RE.exec(serialized)
-  if (file) return winPathToFileUrl(file[0])
-  // Tools de shell: el agente suele abrir la web levantando un servidor y
-  // navegando con Start-Process/start (p. ej. "Start-Process
-  // 'http://localhost:8000'"). Es una navegación del agente: el panel la
-  // muestra igual que cualquier tool de navegación.
-  if (/shell|bash|powershell|cmd|exec|run/i.test(tool)) {
-    const match = URL_IN_TOOL_RE.exec(serialized)
-    if (match) return match[0]
-  }
-  return undefined
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null
 }
 
-// La app construida por el agente aparece SIEMPRE en el panel de código +
+function embeddedUrl(value: unknown) {
+  if (typeof value !== "string") return
+  try {
+    const url = new URL(value)
+    if (url.protocol === "http:" || url.protocol === "https:") return url.href
+  } catch {
+    // Una respuesta inválida no debe abrir ni sustituir la vista actual.
+  }
+}
+
+// El estado administrado es la señal canónica después de preview_start. No se
+// infieren URLs de Start-Process, shells ni herramientas de navegador: esas
+// tools pueden abrir software externo y no representan un preview embebido.
+export function managedPreviewTargetOf(value: unknown) {
+  if (!isRecord(value)) return
+  const state = value as ManagedPreviewState
+  if (state.status !== "ready") return
+  const url = embeddedUrl(state.url)
+  if (!url) return
+  const stamp = typeof state.startedAt === "number" ? state.startedAt : url
+  return { url, key: `managed:${url}:${stamp}` }
+}
+
+// La app construida por el agente aparece siempre en el panel de código +
 // preview: se cierra el navegador flotante (no compite), se fuerza la pestaña
 // App (no Dev tools) y se abre el sandbox.
 function showLiveView(view: ReturnType<typeof useSessionLayout>["view"]) {
@@ -57,69 +54,82 @@ function showLiveView(view: ReturnType<typeof useSessionLayout>["view"]) {
   view().liveView.open()
 }
 
-// Abre el sandbox ("Vista en vivo") cuando el agente navega: fija una URL con
-// set_preview, arranca un dev server visible en los logs, o abre una página
-// con una tool del chat (p. ej. chrome-devtools_new_page, Start-Process con
-// un HTML local). La app que construye la IA aparece así SIEMPRE en el panel
-// de código + preview, y el navegador flotante (preview-panel) queda
-// reservado al clic explícito del usuario. Sin esto, una navegación a mitad
-// de sesión no abría el sandbox (el panel solo existe montado) y el usuario
-// terminaba viendo la app en el navegador interno o en Chrome.
+// Abre el sandbox cuando hay un preview publicado por el Live Frontend MCP o
+// cuando preview_start confirma que un servidor administrado ya responde.
+// Nunca usa una navegación genérica del chat como señal, por lo que pedir una
+// vista previa no provoca que Tiancode trate Chrome/Start-Process como ruta de
+// visualización.
 export function useLiveViewAutoOpen(input: { enabled: () => boolean }) {
   const { view } = useSessionLayout()
-  const serverSync = useServerSync()
-  const params = useParams()
-  // Última URL del agente que abrió el sandbox: una URL nueva lo reabre, pero
-  // la misma URL no vuelve a abrirlo (el cierre manual del usuario manda
-  // hasta que el agente navegue a otra parte).
-  let lastAutoOpenedUrl: string | undefined
+  const sdk = useSDK()
+  const server = useServer()
+  let lastAutoOpenedKey: string | undefined
 
   createEffect(() => {
     if (!input.enabled() || view().liveView.opened()) return
 
-    const poll = () => {
-      const controller = new AbortController()
-      const timer = window.setTimeout(() => controller.abort(), LIVE_VIEW_CHECK_MS)
-      void fetch(`${LIVE_VIEW_URL}api/snapshot`, { signal: controller.signal })
-        .then((res) => (res.ok ? res.json() : undefined))
-        .then((payload) => {
-          const target = serverTargetOf(payload?.session)
-          if (!target || target === lastAutoOpenedUrl) return
-          lastAutoOpenedUrl = target
-          setLiveViewExternalUrl(undefined)
-          showLiveView(view)
-        })
-        .catch(() => undefined)
-        .finally(() => window.clearTimeout(timer))
+    const directory = sdk().directory
+    const http = server.current?.http
+    const headers = http?.password
+      ? { Authorization: `Basic ${authTokenFromCredentials({ username: http.username ?? "tiancode", password: http.password })}` }
+      : undefined
+    let dashboardRequest: AbortController | undefined
+    let managedRequest: AbortController | undefined
+    let polling = false
+
+    const clearManagedTarget = () => {
+      if (!directory || directory === "main") return
+      setLiveViewManagedTarget((current) => (current?.directory === directory ? undefined : current))
     }
 
-    poll()
-    const interval = window.setInterval(poll, LIVE_VIEW_POLL_MS)
-    onCleanup(() => window.clearInterval(interval))
-  })
+    const open = (key: string, managedUrl?: string) => {
+      if (key === lastAutoOpenedKey) return
+      lastAutoOpenedKey = key
+      if (managedUrl && directory && directory !== "main") setLiveViewManagedTarget({ directory, url: managedUrl })
+      if (!managedUrl) clearManagedTarget()
+      showLiveView(view)
+    }
 
-  // Tool-call del chat con URL de navegación (p. ej. la IA abrió la web con
-  // chrome-devtools_new_page o Start-Process con un HTML local): el sandbox
-  // la muestra al costado aunque el live server no tenga sesión, y la URL
-  // queda fijada para cuando se monte el pane.
-  createEffect(() => {
-    if (!input.enabled() || !params.id) return
-    const messages = serverSync().session.data.message[params.id]
-    if (!messages || messages.length === 0) return
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const parts = serverSync().session.data.part[messages[i].id]
-      if (!parts || parts.length === 0) continue
-      for (let j = parts.length - 1; j >= 0; j--) {
-        const part = parts[j]
-        if (part.type !== "tool") continue
-        const url = navigationUrlOf(part.tool, part.state.input)
-        if (!url) continue
-        if (url === lastAutoOpenedUrl) return
-        lastAutoOpenedUrl = url
-        setLiveViewExternalUrl(url)
-        showLiveView(view)
-        return
+    const poll = async () => {
+      if (polling) return
+      polling = true
+      try {
+        if (directory && directory !== "main" && http?.url) {
+          managedRequest?.abort()
+          managedRequest = new AbortController()
+          const managedTimer = window.setTimeout(() => managedRequest?.abort(), LIVE_VIEW_CHECK_MS)
+          const payload = await fetch(previewStatusUrl(http.url, directory), { headers, signal: managedRequest.signal })
+            .then((res) => (res.ok ? res.json() : undefined))
+            .catch(() => undefined)
+          window.clearTimeout(managedTimer)
+          const target = managedPreviewTargetOf(payload)
+          if (target) {
+            open(target.key, target.url)
+            return
+          }
+          clearManagedTarget()
+        }
+
+        dashboardRequest?.abort()
+        dashboardRequest = new AbortController()
+        const dashboardTimer = window.setTimeout(() => dashboardRequest?.abort(), LIVE_VIEW_CHECK_MS)
+        const payload = await fetch(`${LIVE_VIEW_URL}api/snapshot`, { signal: dashboardRequest.signal })
+          .then((res) => (res.ok ? res.json() : undefined))
+          .catch(() => undefined)
+        window.clearTimeout(dashboardTimer)
+        const target = serverTargetOf(payload?.session)
+        if (target) open(`live:${target}`)
+      } finally {
+        polling = false
       }
     }
+
+    void poll()
+    const interval = window.setInterval(() => void poll(), LIVE_VIEW_POLL_MS)
+    onCleanup(() => {
+      window.clearInterval(interval)
+      dashboardRequest?.abort()
+      managedRequest?.abort()
+    })
   })
 }

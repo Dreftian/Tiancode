@@ -24,6 +24,8 @@ import { Pty } from "./pty"
 import { QuestionV2 } from "./question"
 import { Reference } from "./reference"
 import { ReferenceGuidance } from "./reference/guidance"
+import { Memory } from "./memory"
+import { CodeGraph } from "./graph"
 import * as SessionRunnerLLM from "./session/runner/llm"
 import { SessionRunnerModel } from "./session/runner/model"
 import { SessionTodo } from "./session/todo"
@@ -58,6 +60,8 @@ export const locationServices = LayerNode.group([
   Watcher.node,
   Pty.node,
   SkillV2.node,
+  Memory.node,
+  CodeGraph.node,
   SystemContextRegistry.node,
   SystemContextBuiltIns.node,
   LocationMutation.node,

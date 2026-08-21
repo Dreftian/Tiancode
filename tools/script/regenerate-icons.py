@@ -1,35 +1,41 @@
 #!/usr/bin/env python3
-"""Regenera el set completo de iconos de Tiancode a partir del diseño original.
+"""Regenerate Tiancode icons from a high-legibility cat-face design.
 
-El diseño fuente es `frontend/desktop/icons/original-white-icon.png` (gato
-line-art negro sobre fondo blanco). Este script produce la variante moderna:
-fondo oscuro con gradiente vertical, el mismo gato en blanco, y esquinas
-redondeadas con transparencia (estilo icono moderno de escritorio).
+The previous source was a thin abstract smile. It lost its identity in the
+Windows taskbar. This generator deliberately uses large ears, eyes, nose and
+cheeks so the app is recognisable as a cat at 16 and 32 pixels.
 
-Genera y sobreescribe:
-- resources/icons/** (iconos de build: png, ico multi-frame, icns, store logos)
-- icons/{prod,beta,dev}/** (fuentes por canal que copy-icons.ts copia al build)
+It writes the desktop build assets for every channel and the transparent logo
+assets consumed by the Solid interface.
 
-Uso: python tools/script/regenerate-icons.py
+Usage: python tools/script/regenerate-icons.py
 """
+
 import io
 import os
-import shutil
 import struct
 
 import numpy as np
 from PIL import Image, ImageDraw
 
+
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DESKTOP = os.path.join(ROOT, "frontend", "desktop")
-SOURCE = os.path.join(DESKTOP, "icons", "original-white-icon.png")
-TARGETS = [os.path.join(DESKTOP, "resources", "icons"), *(os.path.join(DESKTOP, "icons", c) for c in ("prod", "beta", "dev"))]
+TARGETS = [
+    os.path.join(DESKTOP, "resources", "icons"),
+    *(os.path.join(DESKTOP, "icons", channel) for channel in ("prod", "beta", "dev")),
+]
+LOGO_TARGETS = [
+    (os.path.join(ROOT, "frontend", "icons", "tian-black.png"), (20, 23, 34, 255)),
+    (os.path.join(ROOT, "frontend", "icons", "tian-white.png"), (248, 250, 252, 255)),
+    (os.path.join(ROOT, "frontend", "ui", "src", "assets", "logo", "tian-black.png"), (20, 23, 34, 255)),
+    (os.path.join(ROOT, "frontend", "ui", "src", "assets", "logo", "tian-white.png"), (248, 250, 252, 255)),
+]
 
-MASTER = 2048  # tamaño de trabajo (4x) para bordes suaves
+MASTER = 2048
 RADIUS_RATIO = 0.215
-TOP = np.array([26, 26, 32], dtype=float)  # #1a1a20
-BOTTOM = np.array([12, 12, 16], dtype=float)  # #0c0c10
-LINE_THRESHOLD = 235
+TOP = np.array([36, 36, 38], dtype=float)
+BOTTOM = np.array([14, 14, 16], dtype=float)
 
 MAIN_SIZES = [("icon.png", 512), ("128x128.png", 128), ("128x128@2x.png", 256), ("64x64.png", 64), ("32x32.png", 32)]
 STORE_SIZES = [30, 44, 71, 89, 107, 142, 150, 284, 310]
@@ -37,56 +43,91 @@ ICO_SIZES = [16, 24, 32, 48, 64, 128, 256]
 ICNS_TYPES = {"ic11": 32, "ic12": 64, "ic07": 128, "ic08": 256, "ic13": 256, "ic09": 512, "ic14": 512}
 
 
+def draw_cat(image, face, outline, eye, inner_ear, cutout=False):
+    """Draw a cat face whose key features survive downscaling in high-contrast B&W."""
+    draw = ImageDraw.Draw(image)
+    size = image.size[0]
+    point = lambda x, y: (round(size * x), round(size * y))
+    box = lambda x0, y0, x1, y1: (round(size * x0), round(size * y0), round(size * x1), round(size * y1))
+    thin = max(2, round(size * 0.022))
+
+    # The outline keeps the ears and face joined on light and dark surfaces.
+    draw.polygon([point(.17, .50), point(.28, .10), point(.50, .47)], fill=outline)
+    draw.polygon([point(.83, .50), point(.72, .10), point(.50, .47)], fill=outline)
+    draw.ellipse(box(.15, .29, .85, .89), fill=outline)
+    draw.polygon([point(.23, .47), point(.29, .17), point(.47, .45)], fill=face)
+    draw.polygon([point(.77, .47), point(.71, .17), point(.53, .45)], fill=face)
+    draw.ellipse(box(.19, .33, .81, .85), fill=face)
+
+    # Inner ears establish the cat silhouette before the smaller details do.
+    draw.polygon([point(.285, .28), point(.305, .18), point(.405, .40)], fill=inner_ear)
+    draw.polygon([point(.715, .28), point(.695, .18), point(.595, .40)], fill=inner_ear)
+
+    # Large almond eyes are intentionally high contrast at 16 and 32 pixels.
+    draw.polygon([point(.255, .54), point(.365, .455), point(.468, .535), point(.365, .61)], fill=eye)
+    draw.polygon([point(.745, .54), point(.635, .455), point(.532, .535), point(.635, .61)], fill=eye)
+    detail = (0, 0, 0, 0) if cutout else outline
+    draw.ellipse(box(.342, .482, .392, .588), fill=detail)
+    draw.ellipse(box(.608, .482, .658, .588), fill=detail)
+
+    # A compact muzzle adds expression without relying on one-pixel strokes.
+    draw.polygon([point(.455, .655), point(.545, .655), point(.5, .71)], fill=detail)
+    draw.line([point(.5, .704), point(.5, .735)], fill=detail, width=thin)
+    draw.arc(box(.41, .705, .50, .78), 0, 100, fill=detail, width=thin)
+    draw.arc(box(.50, .705, .59, .78), 80, 180, fill=detail, width=thin)
+
+    cheek = (0, 0, 0, 0) if cutout else (225, 225, 228, 180)
+    draw.ellipse(box(.275, .645, .43, .76), fill=cheek)
+    draw.ellipse(box(.57, .645, .725, .76), fill=cheek)
+    for y, offset in ((.67, .0), (.72, .025), (.765, .05)):
+        draw.line([point(.37, y), point(.12, y + offset)], fill=detail, width=thin)
+        draw.line([point(.63, y), point(.88, y + offset)], fill=detail, width=thin)
+
+
 def build_master():
-    """Devuelve (master redondeado RGBA 2048, full-bleed RGBA 2048)."""
-    src = np.array(Image.open(SOURCE).convert("L").resize((MASTER, MASTER), Image.LANCZOS), dtype=float)
+    """Return rounded app art, full-bleed art, and a transparent tray mark in B&W."""
     t = np.linspace(0, 1, MASTER)[:, None, None]
     gradient = TOP[None, None, :] * (1 - t) + BOTTOM[None, None, :] * t
-    art = np.where((src < LINE_THRESHOLD)[..., None], 255.0, gradient)
+    coordinates = np.linspace(-1, 1, MASTER)
+    x, y = np.meshgrid(coordinates, coordinates)
+    glow = np.exp(-((x * .82) ** 2 + ((y + .08) * 1.05) ** 2) * 2.4)[..., None]
+    art = np.clip(gradient + glow * np.array([22, 22, 24]), 0, 255)
     alpha = Image.new("L", (MASTER, MASTER), 0)
     ImageDraw.Draw(alpha).rounded_rectangle(
         [0, 0, MASTER - 1, MASTER - 1], radius=int(MASTER * RADIUS_RATIO), fill=255
     )
     rounded = Image.fromarray(np.dstack([art, np.array(alpha)]).astype(np.uint8), "RGBA")
     full = Image.fromarray(np.dstack([art, np.full((MASTER, MASTER), 255, np.uint8)]).astype(np.uint8), "RGBA")
-    return rounded, full
+
+    # High-contrast Black and White design for modern desktop experience
+    draw_cat(rounded, (245, 246, 248, 255), (14, 14, 16, 255), (255, 255, 255, 255), (205, 208, 215, 255))
+    draw_cat(full, (245, 246, 248, 255), (14, 14, 16, 255), (255, 255, 255, 255), (205, 208, 215, 255))
+
+    # A transparent light cat for tray and notification area
+    tray = Image.new("RGBA", (MASTER, MASTER), (0, 0, 0, 0))
+    draw_cat(tray, (245, 246, 248, 255), (32, 34, 38, 255), (14, 14, 16, 255), (205, 208, 215, 255))
+    return rounded, full, tray
 
 
-def boost_small(img, size):
-    """Aclara los tonos medios en tamaños pequeños para que el gato se distinga."""
-    if size > 32:
-        return img
-    a = np.array(img).astype(np.float32)
-    lum = a[..., :3].mean(axis=2)
-    mask = lum < 235
-    # estira 40..255 -> 0..255
-    stretched = np.clip((a[..., :3] - 40) * (255 / 215), 0, 255)
-    a[..., :3] = np.where(mask[..., None], stretched, a[..., :3])
-    return Image.fromarray(a.astype(np.uint8), "RGBA")
+def build_logo(color):
+    """Return a transparent 3:2 UI logo with a square cat centered in it."""
+    logo = Image.new("RGBA", (1536, 1024), (0, 0, 0, 0))
+    mark = Image.new("RGBA", (1024, 1024), (0, 0, 0, 0))
+    draw_cat(mark, color, color, (0, 0, 0, 0), color, cutout=True)
+    logo.alpha_composite(mark, (256, 0))
+    return logo
 
 
-def light_variant(img, size):
-    """Variante clara para tamaños pequeños (ICO <=48 y tray): sustituye el
-    fondo casi negro por un gris medio vertical para que el icono se distinga
-    en la barra de tareas oscura de Windows (el fondo oscuro original se ve
-    como un cuadrado negro a 16-32px)."""
-    if size > 64:
-        return img
-    a = np.array(img).astype(np.float32)
-    lum = a[..., :3].mean(axis=2)
-    visible = a[..., 3] > 10
-    cat = visible & (lum > 200)  # el gato es blanco
-    bg = visible & ~cat
-    # gradiente gris medio: #41414c arriba -> #33333d abajo
-    light = np.linspace(0, 1, img.size[1])[:, None, None]
-    t = np.array([65, 65, 76], dtype=float)
-    b = np.array([51, 51, 61], dtype=float)
-    a[..., :3] = np.where(bg[..., None], t * (1 - light) + b * light, a[..., :3])
-    return Image.fromarray(a.astype(np.uint8), "RGBA")
+def validate_small_icon(image):
+    """Make a regeneration fail if the two readable eyes disappear at 32 px."""
+    pixels = np.array(image.resize((32, 32), Image.LANCZOS))
+    bright = (pixels[..., :3].mean(axis=2) > 210) & (pixels[..., 3] > 220)
+    if bright[12:20, 7:15].sum() < 3 or bright[12:20, 17:25].sum() < 3:
+        raise RuntimeError("The 32px icon lost the cat eyes")
 
 
 def bmp_entry(img):
-    """Entrada ICO en BMP 32bpp (bottom-up) + máscara AND."""
+    """ICO BMP entry in 32 bpp (bottom-up) plus AND mask."""
     w, h = img.size
     rows = []
     for y in range(h - 1, -1, -1):
@@ -102,35 +143,37 @@ def bmp_entry(img):
 
 
 def png_bytes(img):
-    buf = io.BytesIO()
-    img.save(buf, "PNG")
-    return buf.getvalue()
+    buffer = io.BytesIO()
+    img.save(buffer, "PNG")
+    return buffer.getvalue()
 
 
 def write_ico(path, images):
-    """ICO multi-frame: PNG para >=256, BMP para el resto (compatible Windows)."""
+    """Write a broadly compatible multi-frame ICO file."""
     entries, data = [], b""
     base = 6 + 16 * len(images)
-    for im in images:
-        raw = png_bytes(im) if im.size[0] >= 256 else bmp_entry(im)
-        dim = 0 if im.size[0] >= 256 else im.size[0]
-        entries.append(struct.pack("<BBBBHHII", dim, dim, 0, 0, 1, 32, len(raw), base + len(data)))
+    for image in images:
+        raw = png_bytes(image) if image.size[0] >= 256 else bmp_entry(image)
+        dimension = 0 if image.size[0] >= 256 else image.size[0]
+        entries.append(struct.pack("<BBBBHHII", dimension, dimension, 0, 0, 1, 32, len(raw), base + len(data)))
         data += raw
-    with open(path, "wb") as f:
-        f.write(struct.pack("<HHH", 0, 1, len(images)) + b"".join(entries) + data)
+    with open(path, "wb") as file:
+        file.write(struct.pack("<HHH", 0, 1, len(images)) + b"".join(entries) + data)
 
 
 def write_icns(path, images):
     chunks = b""
-    for typ, im in images.items():
-        png = png_bytes(im)
-        chunks += typ.encode() + struct.pack(">I", len(png) + 8) + png
-    with open(path, "wb") as f:
-        f.write(b"icns" + struct.pack(">I", len(chunks) + 8) + chunks)
+    for kind, image in images.items():
+        png = png_bytes(image)
+        chunks += kind.encode() + struct.pack(">I", len(png) + 8) + png
+    with open(path, "wb") as file:
+        file.write(b"icns" + struct.pack(">I", len(chunks) + 8) + chunks)
 
 
 def main():
-    rounded, full = build_master()
+    rounded, full, tray = build_master()
+    validate_small_icon(rounded)
+
     for target in TARGETS:
         os.makedirs(target, exist_ok=True)
         for name, size in MAIN_SIZES:
@@ -139,32 +182,34 @@ def main():
         for size in STORE_SIZES:
             full.resize((size, size), Image.LANCZOS).save(os.path.join(target, f"Square{size}x{size}Logo.png"))
         full.resize((50, 50), Image.LANCZOS).save(os.path.join(target, "StoreLogo.png"))
-        write_ico(
-            os.path.join(target, "icon.ico"),
-            [light_variant(rounded.resize((s, s), Image.LANCZOS), s) if s <= 48 else rounded.resize((s, s), Image.LANCZOS) for s in ICO_SIZES],
-        )
-        # Tray: variante clara (la barra de tareas oscura vuelve invisible el
-        # fondo casi negro original a tamaño 16px).
-        light_variant(rounded.resize((64, 64), Image.LANCZOS), 64).save(os.path.join(target, "icon-tray.png"))
-        write_icns(os.path.join(target, "icon.icns"), {typ: full.resize((s, s), Image.LANCZOS) for typ, s in ICNS_TYPES.items()})
-        # iOS (full-bleed; iOS aplica su propia máscara)
-        ios_dir = os.path.join(target, "ios")
-        if os.path.isdir(ios_dir):
-            for name in os.listdir(ios_dir):
-                p = os.path.join(ios_dir, name)
+        write_ico(os.path.join(target, "icon.ico"), [rounded.resize((size, size), Image.LANCZOS) for size in ICO_SIZES])
+        tray.resize((64, 64), Image.LANCZOS).save(os.path.join(target, "icon-tray.png"))
+        write_icns(os.path.join(target, "icon.icns"), {kind: full.resize((size, size), Image.LANCZOS) for kind, size in ICNS_TYPES.items()})
+
+        ios = os.path.join(target, "ios")
+        if os.path.isdir(ios):
+            for name in os.listdir(ios):
+                file = os.path.join(ios, name)
                 if name.lower().endswith(".png"):
-                    size = Image.open(p).size
-                    full.resize(size, Image.LANCZOS).save(p)
-        # Android mipmaps (full-bleed)
-        for mip in ("mipmap-mdpi", "mipmap-hdpi", "mipmap-xhdpi", "mipmap-xxhdpi", "mipmap-xxxhdpi"):
-            d = os.path.join(target, "android", mip)
-            if os.path.isdir(d):
-                for name in os.listdir(d):
-                    p = os.path.join(d, name)
+                    full.resize(Image.open(file).size, Image.LANCZOS).save(file)
+
+        for mipmap in ("mipmap-mdpi", "mipmap-hdpi", "mipmap-xhdpi", "mipmap-xxhdpi", "mipmap-xxxhdpi"):
+            directory = os.path.join(target, "android", mipmap)
+            if os.path.isdir(directory):
+                for name in os.listdir(directory):
+                    file = os.path.join(directory, name)
                     if name.lower().endswith(".png"):
-                        size = Image.open(p).size
-                        full.resize(size, Image.LANCZOS).save(p)
+                        full.resize(Image.open(file).size, Image.LANCZOS).save(file)
         print("ok", target)
+
+    for path, color in LOGO_TARGETS:
+        build_logo(color).save(path)
+        print("ok", path)
+
+    # Keep the legacy source filename useful for people who open the icon
+    # folder manually: it now contains the current white cat mark.
+    source = build_logo((255, 255, 255, 255)).crop((256, 0, 1280, 1024)).resize((512, 512), Image.LANCZOS)
+    source.save(os.path.join(DESKTOP, "icons", "original-white-icon.png"))
 
 
 if __name__ == "__main__":

@@ -233,6 +233,33 @@ function convertHTMLToMarkdown(html: string): string {
     codeBlockStyle: "fenced",
     emDelimiter: "*",
   })
-  turndownService.remove(["script", "style", "meta", "link"])
-  return turndownService.turndown(html)
+  // Firecrawl-style intelligent boilerplate removal
+  turndownService.remove([
+    "script",
+    "style",
+    "meta",
+    "link",
+    "noscript",
+    "iframe",
+    "object",
+    "embed",
+    "nav",
+    "footer",
+    "aside",
+    "dialog",
+    "form",
+  ])
+
+  // Custom table rule to ensure tables stay clean markdown
+  turndownService.addRule("tableKeep", {
+    filter: ["table", "thead", "tbody", "tr", "th", "td"],
+    replacement: (content, node) => {
+      if (node.nodeName === "TABLE") return `\n\n${content.trim()}\n\n`
+      if (node.nodeName === "TR") return `\n|${content}`
+      if (node.nodeName === "TH" || node.nodeName === "TD") return ` ${content.trim().replace(/\n/g, " ")} |`
+      return content
+    },
+  })
+
+  return turndownService.turndown(html).replace(/\n{3,}/g, "\n\n").trim()
 }

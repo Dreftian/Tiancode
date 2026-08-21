@@ -257,7 +257,7 @@ export interface QuantFile {
 
 export function parseQuantFiles(siblings: readonly HfSibling[] | undefined): QuantFile[] {
   return (siblings ?? [])
-    .filter((sibling) => sibling.rfilename.endsWith(".gguf"))
+    .filter((sibling) => sibling.rfilename.toLowerCase().endsWith(".gguf"))
     .map((sibling) => {
       const match = sibling.rfilename.match(QUANT_PATTERN)
       const size = sibling.lfs?.size ?? sibling.size
@@ -363,16 +363,49 @@ export interface RuntimeInfo {
   readonly name: string
   readonly available: boolean
   readonly version: string | undefined
+  readonly models?: string[]
 }
 
-// Short probe so the settings panel never hangs on a dead runtime; a reachable
-// server without a version field (LM Studio's OpenAI-compatible /v1/models)
-// still counts as available.
-const probeRuntime = async (url: string): Promise<{ reachable: boolean; version?: string }> => {
-  const response = await fetch(url, { signal: AbortSignal.timeout(1000) })
-  if (!response.ok) return { reachable: false }
-  const body = await response.json().catch(() => undefined)
-  return { reachable: true, version: typeof body?.version === "string" ? body.version : undefined }
+// Short probe so the settings panel never hangs on a dead runtime; reports
+// available models in Ollama and LM Studio.
+const probeRuntime = async (
+  runtime: (typeof RUNTIME_PROBES)[number],
+): Promise<{ reachable: boolean; version?: string; models?: string[] }> => {
+  try {
+    const response = await fetch(runtime.url, { signal: AbortSignal.timeout(1500) })
+    if (!response.ok) return { reachable: false }
+    const body = await response.json().catch(() => undefined)
+    const version = typeof body?.version === "string" ? body.version : undefined
+    let models: string[] = []
+    if (runtime.id === "ollama") {
+      try {
+        const tagsRes = await fetch("http://localhost:11434/api/tags", { signal: AbortSignal.timeout(1500) })
+        if (tagsRes.ok) {
+          const tagsBody = await tagsRes.json()
+          if (Array.isArray(tagsBody?.models)) {
+            models = tagsBody.models.map((m: { name?: string }) => m?.name).filter(Boolean)
+          }
+        }
+      } catch {
+        // ignore
+      }
+    } else if (runtime.id === "lmstudio") {
+      try {
+        const modelsRes = await fetch("http://localhost:1234/v1/models", { signal: AbortSignal.timeout(1500) })
+        if (modelsRes.ok) {
+          const modelsBody = await modelsRes.json()
+          if (Array.isArray(modelsBody?.data)) {
+            models = modelsBody.data.map((m: { id?: string }) => m?.id).filter(Boolean)
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+    return { reachable: true, version, models }
+  } catch {
+    return { reachable: false }
+  }
 }
 
 // --- Download registry (persisted jobs) ------------------------------------------
@@ -399,6 +432,7 @@ export class DownloadJob extends Schema.Class<DownloadJob>("ModelHub.DownloadJob
   startedAt: Schema.Number,
   completedAt: Schema.optional(Schema.Number),
   error: Schema.optional(Schema.String),
+  speedBytesPerSec: Schema.optional(Schema.Number),
 }) {}
 
 // Mutable working entry kept in the registry while a download runs.
@@ -413,6 +447,10 @@ export interface DownloadState extends DownloadJob {
   readonly total: number
   readonly received: number
   readonly done: boolean
+  readonly speedBytesPerSec?: number
+  readonly percent?: number
+  readonly remainingBytes?: number
+  readonly etaSeconds?: number
 }
 
 // Stable, URL-safe id so a resumed download finds the same job after a
@@ -420,14 +458,26 @@ export interface DownloadState extends DownloadJob {
 const jobId = (model: string, file: string) =>
   createHash("sha256").update(`${model}/${file}`).digest("hex").slice(0, 16)
 
-const toDownloadState = (job: DownloadJob): DownloadState => ({
-  ...job,
-  model: `${job.owner}/${job.repo}`,
-  dest: job.destPath,
-  total: job.sizeBytes ?? 0,
-  received: job.downloadedBytes,
-  done: job.status === "completed",
-})
+const toDownloadState = (job: DownloadJob): DownloadState => {
+  const total = job.sizeBytes ?? 0
+  const received = job.downloadedBytes
+  const remainingBytes = Math.max(0, total - received)
+  const percent = total > 0 ? Math.min(100, Math.round((received / total) * 100)) : 0
+  const speed = job.status === "downloading" ? (job.speedBytesPerSec ?? 0) : 0
+  const etaSeconds = speed > 0 && remainingBytes > 0 ? Math.round(remainingBytes / speed) : undefined
+  return {
+    ...job,
+    model: `${job.owner}/${job.repo}`,
+    dest: job.destPath,
+    total,
+    received,
+    done: job.status === "completed",
+    speedBytesPerSec: speed,
+    percent,
+    remainingBytes,
+    etaSeconds,
+  }
+}
 
 // --- Download input validation ----------------------------------------------
 
@@ -583,22 +633,70 @@ const layer = Layer.effect(
     })
 
     const search = Effect.fn("ModelHub.search")(function* (query: string, limit: number) {
-      const url = new URL(`${HUGGINGFACE_API}/models`)
-      url.searchParams.set("search", query)
-      url.searchParams.set("limit", String(limit))
-      url.searchParams.set("filter", "gguf")
-      url.searchParams.set("sort", "downloads")
-      url.searchParams.set("direction", "-1")
-      url.searchParams.set("full", "true")
-      const data = yield* HttpClientRequest.get(url.href).pipe(
-        HttpClientRequest.acceptJson,
-        http.execute,
-        Effect.flatMap(HttpClientResponse.schemaBodyJson(Schema.Array(HfModel))),
-        Effect.catch((error) =>
-          Effect.logError("failed to search huggingface models", { query, error }).pipe(Effect.as([] as HfModel[])),
-        ),
+      const q = query.trim()
+      if (!q) return []
+
+      const targetLimit = Math.max(limit, 40)
+
+      // 1. Consulta con filtro explícito de gguf
+      const url1 = new URL(`${HUGGINGFACE_API}/models`)
+      url1.searchParams.set("search", q)
+      url1.searchParams.set("limit", String(targetLimit))
+      url1.searchParams.set("filter", "gguf")
+      url1.searchParams.set("sort", "downloads")
+      url1.searchParams.set("direction", "-1")
+      url1.searchParams.set("full", "true")
+
+      // 2. Consulta secundaria de texto completo (captura repositorios como unsloth/ o bartowski/ no etiquetados)
+      const url2 = new URL(`${HUGGINGFACE_API}/models`)
+      url2.searchParams.set("search", q.toLowerCase().includes("gguf") ? q : `${q} gguf`)
+      url2.searchParams.set("limit", String(targetLimit))
+      url2.searchParams.set("sort", "downloads")
+      url2.searchParams.set("direction", "-1")
+      url2.searchParams.set("full", "true")
+
+      const [res1, res2] = yield* Effect.all(
+        [
+          HttpClientRequest.get(url1.href).pipe(
+            HttpClientRequest.acceptJson,
+            http.execute,
+            Effect.flatMap(HttpClientResponse.schemaBodyJson(Schema.Array(HfModel))),
+            Effect.catch(() => Effect.succeed([] as HfModel[])),
+          ),
+          HttpClientRequest.get(url2.href).pipe(
+            HttpClientRequest.acceptJson,
+            http.execute,
+            Effect.flatMap(HttpClientResponse.schemaBodyJson(Schema.Array(HfModel))),
+            Effect.catch(() => Effect.succeed([] as HfModel[])),
+          ),
+        ],
+        { concurrency: "unbounded" },
       )
-      return Array.from(data)
+
+      const seen = new Set<string>()
+      const combined: HfModel[] = []
+      for (const m of [...res1, ...res2]) {
+        if (!seen.has(m.id)) {
+          seen.add(m.id)
+          combined.push(m)
+        }
+      }
+
+      // Si el usuario buscó una ruta exacta "autor/repositorio" no listada en el top
+      if (q.includes("/") && !seen.has(q)) {
+        const directUrl = `${HUGGINGFACE_API}/models/${q}`
+        const directModel = yield* HttpClientRequest.get(directUrl).pipe(
+          HttpClientRequest.acceptJson,
+          http.execute,
+          Effect.flatMap(HttpClientResponse.schemaBodyJson(HfModel)),
+          Effect.catch(() => Effect.succeed(undefined)),
+        )
+        if (directModel && !seen.has(directModel.id)) {
+          combined.unshift(directModel)
+        }
+      }
+
+      return combined
     })
 
     const files = Effect.fn("ModelHub.files")(function* (model: string) {
@@ -653,13 +751,14 @@ const layer = Layer.effect(
     const runtimes = Effect.fn("ModelHub.runtimes")(function* () {
       return yield* Effect.all(
         RUNTIME_PROBES.map((runtime) =>
-          Effect.tryPromise(() => probeRuntime(runtime.url)).pipe(
-            Effect.catch(() => Effect.succeed({ reachable: false, version: undefined })),
-            Effect.map(({ reachable, version }) => ({
+          Effect.tryPromise(() => probeRuntime(runtime)).pipe(
+            Effect.catch(() => Effect.succeed({ reachable: false, version: undefined, models: [] as string[] })),
+            Effect.map(({ reachable, version, models }) => ({
               id: runtime.id,
               name: runtime.name,
               available: reachable,
               version,
+              models: models ?? [],
             })),
           ),
         ),
@@ -748,16 +847,30 @@ const layer = Layer.effect(
             const contentRange = response.headers.get("content-range")
             const rangeTotal = contentRange ? Number(contentRange.split("/")[1]) : 0
             job.sizeBytes = rangeTotal > 0 ? rangeTotal : Number(response.headers.get("content-length") ?? 0)
+            let lastSampleTime = Date.now()
+            let lastSampleBytes = job.downloadedBytes
+            job.speedBytesPerSec = 0
             const progress = new Transform({
               transform(chunk, _encoding, callback) {
                 job.downloadedBytes += chunk.byteLength
+                const now = Date.now()
+                const elapsed = now - lastSampleTime
+                if (elapsed >= 500) {
+                  const bytesSince = job.downloadedBytes - lastSampleBytes
+                  const currentSpeed = (bytesSince / elapsed) * 1000
+                  job.speedBytesPerSec = job.speedBytesPerSec
+                    ? Math.round(job.speedBytesPerSec * 0.25 + currentSpeed * 0.75)
+                    : Math.round(currentSpeed)
+                  lastSampleTime = now
+                  lastSampleBytes = job.downloadedBytes
+                }
                 callback(null, chunk)
               },
             })
             await pipeline(
               Readable.fromWeb(response.body as never),
               progress,
-              createWriteStream(job.tempPath, { flags: resuming ? "a" : "w" }),
+              createWriteStream(job.tempPath, { flags: resuming ? "a" : "w", highWaterMark: 8 * 1024 * 1024 }),
               { signal: controller.signal },
             )
             if (job.sha256) {
@@ -766,6 +879,7 @@ const layer = Layer.effect(
               if (digest.digest("hex") !== job.sha256) throw new Error(`sha256 mismatch for ${job.file}`)
             }
             await rename(job.tempPath, job.destPath)
+            job.speedBytesPerSec = 0
           }).pipe(
             Effect.map(() => "ok" as const),
             Effect.catch((error) => {
@@ -773,6 +887,7 @@ const layer = Layer.effect(
               // fetch is aborted; never resurrect them as failed.
               if (jobs.get(job.id) !== job) return Effect.succeed("cancelled" as const)
               job.status = "failed"
+              job.speedBytesPerSec = 0
               job.error = error instanceof Error ? error.message : String(error)
               job.completedAt = Date.now()
               return persistJobs(true).pipe(
@@ -783,10 +898,16 @@ const layer = Layer.effect(
           )
           if (outcome !== "ok") return
           job.status = "completed"
+          job.speedBytesPerSec = 0
           job.completedAt = Date.now()
           yield* persistJobs(true)
         }),
-        Effect.sync(() => controllers.delete(job.id)),
+        Effect.sync(() => {
+          controllers.delete(job.id)
+          if (job.status !== "downloading") {
+            job.speedBytesPerSec = 0
+          }
+        }),
       )
     })
 
@@ -834,6 +955,7 @@ const layer = Layer.effect(
         startedAt: Date.now(),
         completedAt: undefined,
         error: undefined,
+        speedBytesPerSec: 0,
       })
       jobs.set(id, job)
       yield* persistJobs(true)
@@ -848,6 +970,10 @@ const layer = Layer.effect(
       controllers.delete(id)
       jobs.delete(id)
       yield* Effect.tryPromise(() => rm(job.tempPath, { force: true })).pipe(Effect.catch(() => Effect.void))
+      yield* Effect.tryPromise(() => rm(job.destPath, { force: true })).pipe(Effect.catch(() => Effect.void))
+      yield* Effect.tryPromise(() => rm(path.dirname(job.destPath), { recursive: true, force: true })).pipe(
+        Effect.catch(() => Effect.void),
+      )
       yield* persistJobs(true)
       return true
     })

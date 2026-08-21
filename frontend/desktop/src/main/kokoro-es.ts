@@ -11,7 +11,7 @@ import { app } from "electron"
 import { existsSync } from "node:fs"
 import { mkdir, rm, writeFile } from "node:fs/promises"
 import { join } from "node:path"
-import { downloadFile, ensureSharedData, reportProgress, sharedDataDir, type PiperAudio } from "./piper"
+import { downloadFile, ensureSharedData, isSharedDataDownloaded, reportProgress, sharedDataDir, type PiperAudio } from "./piper"
 import { write as writeLog } from "./logging"
 
 const HF_BASE = "https://huggingface.co"
@@ -27,6 +27,18 @@ function kokoroEsDir() {
 export function isKokoroEsDownloaded() {
   const dir = kokoroEsDir()
   return existsSync(join(dir, COMPLETE_MARKER)) && existsSync(join(dir, "model.int8.onnx"))
+}
+
+// Automatic narration must never turn into an implicit network operation. The
+// visible voice download marker alone is not enough because its shared
+// phonemizer data and a few runtime files are fetched separately.
+export function isKokoroEsReadyForSynthesis() {
+  const dir = kokoroEsDir()
+  return (
+    isKokoroEsDownloaded() &&
+    isSharedDataDownloaded() &&
+    ["voices.bin", "tokens.txt", "lexicon-us-en.txt", join(DICT_DIR, COMPLETE_MARKER)].every((file) => existsSync(join(dir, file)))
+  )
 }
 
 // El espeak-ng-data lo comparte el piper (ya descargado con todos los idiomas,
@@ -120,7 +132,21 @@ async function getKokoroEsTts() {
 
 // speed > 1 acelera el habla (misma fluidez que el piper y las kokoro-js).
 export async function synthesizeKokoroEs(text: string): Promise<PiperAudio> {
-  const tts = await getKokoroEsTts()
-  const result = tts.generate({ text, speed: 1.15 })
-  return { samples: result.samples, sampleRate: result.sampleRate }
+  const sanitized = text
+    .replace(/[^\p{L}\p{N}\p{P}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+  if (!sanitized) throw new Error("Texto vacío tras limpieza para síntesis.")
+
+  try {
+    const tts = await getKokoroEsTts()
+    const result = tts.generate({ text: sanitized, speed: 1.15 })
+    if (!result || !result.samples || result.samples.length === 0) {
+      throw new Error("Audio vacío generado por el motor Kokoro-ES.")
+    }
+    return { samples: result.samples, sampleRate: result.sampleRate }
+  } catch (error) {
+    ttsPromise = undefined
+    throw error
+  }
 }

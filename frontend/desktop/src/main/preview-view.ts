@@ -2,6 +2,7 @@ import { BrowserWindow, WebContentsView, ipcMain } from "electron"
 import type { WebContents } from "electron"
 import type { PreviewViewEvent, PreviewViewSelection, PreviewViewState } from "../preload/types"
 import { write as writeLog } from "./logging"
+import { EMPTY_PREVIEW_VIEW_BOUNDS, isUsablePreviewViewBounds, type PreviewViewBounds } from "./preview-view-bounds"
 
 // Vista en vivo real del panel "Vista en vivo" de la sesión: un
 // WebContentsView con la partición "persist:live-view" (misma sesión de
@@ -39,9 +40,11 @@ function isPreviewUrl(value: string) {
 const SELECT_ENTER_SCRIPT = `(() => {
   if (window.__tiancodeSelectActive) return "active"
   const overlay = document.createElement("div")
+  overlay.id = "__tiancode_inspect_overlay"
   overlay.style.cssText = "position:fixed;inset:0;z-index:2147483647;cursor:crosshair;"
   const outline = document.createElement("div")
-  outline.style.cssText = "position:fixed;display:none;z-index:2147483646;pointer-events:none;border:2px solid #4f8cff;background:rgba(79,140,255,.12);border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,.35);"
+  outline.id = "__tiancode_inspect_outline"
+  outline.style.cssText = "position:fixed;display:none;z-index:2147483646;pointer-events:none;border:2px solid #38bdf8;background:rgba(56,189,248,.08);border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,.35);"
   document.documentElement.appendChild(overlay)
   document.documentElement.appendChild(outline)
   const selectorFor = (el) => {
@@ -123,7 +126,10 @@ const SELECT_ENTER_SCRIPT = `(() => {
 })()`
 
 const SELECT_EXIT_SCRIPT = `(() => {
-  if (!window.__tiancodeSelectActive) return "inactive"
+  const overlay = document.getElementById("__tiancode_inspect_overlay")
+  const outline = document.getElementById("__tiancode_inspect_outline")
+  if (overlay) overlay.remove()
+  if (outline) outline.remove()
   document.querySelectorAll("[style*='z-index:2147483647']").forEach((el) => el.remove())
   document.querySelectorAll("[style*='z-index:2147483646']").forEach((el) => el.remove())
   window.__tiancodeSelectActive = false
@@ -136,6 +142,7 @@ type PreviewViewEntry = {
   view: WebContentsView
   win: BrowserWindow
   state: PreviewViewState
+  bounds?: PreviewViewBounds
 }
 
 // Por ventana host (webContents.id del renderer): cada ventana tiene su
@@ -164,6 +171,18 @@ function destroyPreviewView(hostId: number) {
   if (!entry.view.webContents.isDestroyed()) entry.view.webContents.close()
 }
 
+// A WebContentsView is drawn above the renderer. Clearing its bounds before
+// hiding guarantees a stale native surface cannot cover a resized or closed
+// live-view panel.
+function hidePreview(entry: PreviewViewEntry, clearBounds = false) {
+  if (clearBounds) {
+    entry.bounds = undefined
+    entry.view.setBounds(EMPTY_PREVIEW_VIEW_BOUNDS)
+  }
+  entry.view.setVisible(false)
+  sendState(entry)
+}
+
 function getOrCreatePreviewView(hostId: number, win: BrowserWindow) {
   const existing = previewViews.get(hostId)
   if (existing && !existing.view.webContents.isDestroyed()) return existing
@@ -176,6 +195,7 @@ function getOrCreatePreviewView(hostId: number, win: BrowserWindow) {
       sandbox: true,
     },
   })
+  view.setBackgroundColor("#ffffff")
   const entry: PreviewViewEntry = { view, win, state: { url: "", loading: false, canGoBack: false, canGoForward: false, visible: false, selectMode: false } }
   previewViews.set(hostId, entry)
 
@@ -198,6 +218,13 @@ function getOrCreatePreviewView(hostId: number, win: BrowserWindow) {
     // sigue activo se vuelve a inyectar en la página nueva.
     if (entry.state.selectMode) void injectSelectScript(entry, true)
   })
+  contents.on("did-finish-load", () => {
+    if (entry.win.isDestroyed() || entry.win.webContents.isDestroyed()) return
+    entry.win.webContents.send("preview-view-event", {
+      type: "loaded",
+      url: contents.getURL(),
+    } satisfies PreviewViewEvent)
+  })
   contents.on("did-navigate", () => sendState(entry))
   contents.on("did-navigate-in-page", () => sendState(entry))
   contents.on("did-fail-load", (_event, code, description, url, isMainFrame) => {
@@ -209,6 +236,7 @@ function getOrCreatePreviewView(hostId: number, win: BrowserWindow) {
     } satisfies PreviewViewEvent)
   })
   contents.on("console-message", (_event, level, message, line, sourceId) => {
+    if (isBenignPreviewConsole(message)) return
     if (entry.win.isDestroyed() || entry.win.webContents.isDestroyed()) return
     entry.win.webContents.send("preview-view-event", {
       type: "console",
@@ -247,21 +275,43 @@ function clampZoom(value: number) {
 export function registerPreviewViewIpc() {
   // El renderer reporta el rect del contenedor real del panel (CSS px); el
   // main lo escala por el zoom factor de la ventana para los DIP del view.
-  ipcMain.handle("preview-view:set-bounds", (event, bounds: { x: number; y: number; width: number; height: number }) => {
+  ipcMain.handle("preview-view:set-bounds", (event, bounds: PreviewViewBounds) => {
     const entry = previewFor(event.sender)
-    if (!entry || bounds.width <= 0 || bounds.height <= 0) return
+    if (!entry) return
+    if (!isUsablePreviewViewBounds(bounds)) {
+      hidePreview(entry, true)
+      return
+    }
     const zoom = entry.win.webContents.getZoomFactor()
-    entry.view.setBounds({
+    const next = {
       x: Math.round(bounds.x * zoom),
       y: Math.round(bounds.y * zoom),
       width: Math.round(bounds.width * zoom),
       height: Math.round(bounds.height * zoom),
-    })
+    }
+    if (!isUsablePreviewViewBounds(next)) {
+      hidePreview(entry, true)
+      return
+    }
+    if (
+      entry.bounds?.x === next.x &&
+      entry.bounds.y === next.y &&
+      entry.bounds.width === next.width &&
+      entry.bounds.height === next.height
+    ) {
+      return
+    }
+    entry.bounds = next
+    entry.view.setBounds(next)
   })
 
   ipcMain.handle("preview-view:set-visible", (event, visible: boolean) => {
     const entry = previewFor(event.sender)
     if (!entry) return
+    if (visible && !isUsablePreviewViewBounds(entry.bounds)) {
+      hidePreview(entry, true)
+      return
+    }
     entry.view.setVisible(visible)
     sendState(entry)
   })
@@ -332,6 +382,10 @@ export function registerPreviewViewIpc() {
       return null
     }
   })
+}
+
+function isBenignPreviewConsole(message: string) {
+  return /resizeobserver loop (?:completed with undelivered notifications|limit exceeded)/i.test(message)
 }
 
 // El script inyectado es nuestro (misma app), pero la página del usuario

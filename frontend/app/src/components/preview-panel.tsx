@@ -185,27 +185,9 @@ export function PreviewPanel() {
   }
 
   return (
-    <Show when={supportsPreviewPanel(platform.platform) && settings.general.showBrowser()}>
-      <>
-      <Show when={!open()}>
-        <button
-          type="button"
-          class="preview-toggle"
-          data-preview-toggle
-          onClick={toggle}
-          aria-label={language.t("preview.open")}
-          title={language.t("preview.open")}
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="2" y1="12" x2="22" y2="12" />
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-          </svg>
-        </button>
-      </Show>
-      <Show when={open()}>
-        <div class="preview-panel" data-preview-panel role="region" aria-label={language.t("preview.title")}>
-          <div class="preview-bar">
+    <Show when={supportsPreviewPanel(platform.platform) && settings.general.showBrowser() && open()}>
+      <div class="preview-panel" data-preview-panel role="region" aria-label={language.t("preview.title")}>
+        <div class="preview-bar">
             <button
               type="button"
               class="preview-btn"
@@ -266,8 +248,6 @@ export function PreviewPanel() {
           </div>
           <div class="preview-webview" ref={container} />
         </div>
-      </Show>
-      </>
     </Show>
   )
 }

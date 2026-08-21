@@ -387,19 +387,20 @@ export const getUsage = (input: { model: Provider.Model; usage: Usage; metadata?
       ? input.model.cost.experimentalOver200K
       : input.model.cost)
   const totalNanoAiu = input.metadata?.["copilot"]?.["totalNanoAiu"]
+  const safeRate = (val: unknown) => (typeof val === "number" && Number.isFinite(val) && val >= 0 ? val : 0)
   return {
     cost:
       typeof totalNanoAiu === "number" && Number.isFinite(totalNanoAiu) && totalNanoAiu >= 0
         ? new Decimal(totalNanoAiu).div(100_000_000_000).toNumber()
         : safe(
             new Decimal(0)
-              .add(new Decimal(tokens.input).mul(costInfo?.input ?? 0).div(1_000_000))
-              .add(new Decimal(tokens.output).mul(costInfo?.output ?? 0).div(1_000_000))
-              .add(new Decimal(tokens.cache.read).mul(costInfo?.cache?.read ?? 0).div(1_000_000))
-              .add(new Decimal(tokens.cache.write).mul(costInfo?.cache?.write ?? 0).div(1_000_000))
+              .add(new Decimal(tokens.input).mul(safeRate(costInfo?.input)).div(1_000_000))
+              .add(new Decimal(tokens.output).mul(safeRate(costInfo?.output)).div(1_000_000))
+              .add(new Decimal(tokens.cache.read).mul(safeRate(costInfo?.cache?.read)).div(1_000_000))
+              .add(new Decimal(tokens.cache.write).mul(safeRate(costInfo?.cache?.write)).div(1_000_000))
               // TODO: update models.dev to have better pricing model, for now:
               // charge reasoning tokens at the same rate as output tokens
-              .add(new Decimal(tokens.reasoning).mul(costInfo?.output ?? 0).div(1_000_000))
+              .add(new Decimal(tokens.reasoning).mul(safeRate(costInfo?.output)).div(1_000_000))
               .toNumber(),
           ),
     tokens,

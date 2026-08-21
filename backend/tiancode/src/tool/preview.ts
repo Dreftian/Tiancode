@@ -17,6 +17,7 @@ function describe(state: PreviewState) {
 }
 
 const NoArgs = Schema.Struct({})
+const PREVIEW_READY_TIMEOUT_MS = 45_000
 
 // El servidor tarda unos segundos en arrancar: espera breve de readiness para
 // que el agente reciba la URL en el mismo resultado de la tool.
@@ -25,7 +26,7 @@ function waitForReady(directory: string) {
     let waited = 0
     const timer = setInterval(() => {
       waited += 500
-      if (getPreviewState(directory).status !== "starting" || waited >= 10000) {
+      if (getPreviewState(directory).status !== "starting" || waited >= PREVIEW_READY_TIMEOUT_MS) {
         clearInterval(timer)
         resolve()
       }
@@ -37,7 +38,7 @@ export const PreviewStartTool = Tool.define(
   "preview_start",
   Effect.succeed({
     description:
-      "Detecta el proyecto web del workspace (Vite, Next, etc.) y arranca su servidor de desarrollo; también sirve proyectos estáticos con index.html (usa python http.server). Espera hasta que el servidor esté listo y devuelve su URL y puerto. Usa preview_status para leer los errores de compilación. Es la forma correcta de abrir la web del usuario dentro de la app; NO uses Start-Process para abrir webs, usa esta tool.",
+      "Detecta el proyecto web del workspace (Vite, Next, etc.) y arranca su servidor de desarrollo; también sirve proyectos estáticos con index.html y apps JSX/TSX sin configuración con una entrada convencional o declarada por index.html. La vista JSX sin configuración admite React/react-dom y módulos relativos; los paquetes externos requieren package.json y un script de desarrollo real. Para Python, Go, .NET, PHP, Ruby u otro runtime HTTP usa un tiancode.preview.json explícito (command como array y URL localhost). Espera hasta que el servidor responda por HTTP y devuelve su URL y puerto. Usa preview_status para leer los errores de compilación. Esta es la única ruta para una vista previa durante la implementación: nunca abras Chrome, el navegador del sistema ni un archivo HTML mediante Start-Process, explorer, browser tools o comandos de shell. Tiancode muestra la URL automáticamente dentro de Vista en vivo; abrir fuera solo corresponde a una petición explícita del usuario.",
     parameters: NoArgs,
     execute: () =>
       Effect.gen(function* () {

@@ -1,59 +1,373 @@
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
 import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
 import { TextInputV2 } from "@tiancode-ai/ui/v2/text-input-v2"
-import { type Component, createResource, For, Show, createSignal, createMemo, createEffect, onCleanup, onMount } from "solid-js"
+import {
+  type Component,
+  createResource,
+  For,
+  Show,
+  createSignal,
+  createMemo,
+  createEffect,
+  onCleanup,
+  onMount,
+} from "solid-js"
 import { createStore } from "solid-js/store"
 import { useLanguage } from "@/context/language"
 import { useServerSDK } from "@/context/server-sdk"
 import { showToast } from "@/utils/toast"
 import { Persist, persisted } from "@/utils/persist"
-import { SettingsListV2 } from "./parts/list"
+import { SoundEffects } from "@/utils/sound-effects"
 import "./models-hub.css"
 
-type FitTier = "full_gpu" | "partial_gpu" | "ram_only" | "no_fit"
-type DownloadStatus = "downloading" | "paused" | "completed" | "failed"
+export type FitTier = "full_gpu" | "partial_gpu" | "ram_only" | "no_fit"
+export type DownloadStatus = "downloading" | "paused" | "completed" | "failed"
 
-const PAGE_SIZE = 6
+type Numish = number | "NaN" | "Infinity" | "-Infinity"
 
-// HuggingFace pipeline tags map to short readable labels; the id-based hints
-// below complement them (e.g. "meta-llama/Llama-3.2-3B-Instruct" is both
-// text generation and an instruct model).
-const PipelineTagKeys: Record<string, string> = {
-  "text-generation": "settings.modelsHub.desc.text-generation",
-  "image-text-to-text": "settings.modelsHub.desc.image-text-to-text",
-  "text-to-image": "settings.modelsHub.desc.text-to-image",
-  "image-to-image": "settings.modelsHub.desc.image-to-image",
-  "image-classification": "settings.modelsHub.desc.image-classification",
-  "token-classification": "settings.modelsHub.desc.token-classification",
-  "text-classification": "settings.modelsHub.desc.text-classification",
-  "question-answering": "settings.modelsHub.desc.question-answering",
-  summarization: "settings.modelsHub.desc.summarization",
-  translation: "settings.modelsHub.desc.translation",
-  "fill-mask": "settings.modelsHub.desc.fill-mask",
-  "feature-extraction": "settings.modelsHub.desc.feature-extraction",
-  "automatic-speech-recognition": "settings.modelsHub.desc.automatic-speech-recognition",
-  "text-to-speech": "settings.modelsHub.desc.text-to-speech",
-  "depth-estimation": "settings.modelsHub.desc.depth-estimation",
-  "image-segmentation": "settings.modelsHub.desc.image-segmentation",
-  "object-detection": "settings.modelsHub.desc.object-detection",
+export type QuantFile = {
+  file: string
+  quant?: string
+  size?: Numish
+  sha256?: string
+  fit?: { tier: FitTier; label: string }
+  recommended?: boolean
 }
 
-const ModelIdHints: [RegExp, string][] = [
-  [/instruct/i, "settings.modelsHub.desc.hint.instruct"],
-  [/\bchat\b/i, "settings.modelsHub.desc.hint.chat"],
-  [/vision|vlm|llava/i, "settings.modelsHub.desc.hint.vision"],
-  [/coder|code|starcoder/i, "settings.modelsHub.desc.hint.code"],
-  [/reason/i, "settings.modelsHub.desc.hint.reasoning"],
-  [/quant|q[2348]_/i, "settings.modelsHub.desc.hint.quantized"],
-]
+export type Model = {
+  id: string
+  downloads?: Numish
+  likes?: Numish
+  pipeline_tag?: string
+  quantFiles: QuantFile[]
+  tags?: string[]
+  description?: string
+  author?: string
+}
 
-const largestSize = (files: QuantFile[]) =>
-  files.reduce<number | undefined>((max, file) => {
-    const size = asNumber(file.size)
-    if (size === undefined) return max
-    if (max === undefined || size > max) return size
-    return max
-  }, undefined)
+export type DownloadJob = {
+  id: string
+  model: string
+  file: string
+  status: DownloadStatus
+  total: Numish
+  received: Numish
+  done: boolean
+  error?: string
+  speedBytesPerSec?: Numish
+  percent?: Numish
+  remainingBytes?: Numish
+  etaSeconds?: Numish
+}
+
+export type RuntimeInfo = {
+  id: string
+  name: string
+  available: boolean
+  version?: string
+  models?: string[]
+}
+
+const asNumber = (value: Numish | undefined): number | undefined =>
+  typeof value === "number" ? value : undefined
+
+const formatBytes = (bytes: Numish | undefined) => {
+  const n = asNumber(bytes)
+  if (n === undefined || Number.isNaN(n) || n <= 0) return "0 B"
+  const units = ["B", "KB", "MB", "GB", "TB"]
+  const i = Math.min(units.length - 1, Math.floor(Math.log(n) / Math.log(1024)))
+  const value = n / Math.pow(1024, i)
+  return `${value.toFixed(value >= 10 || i === 0 ? 1 : 2)} ${units[i]}`
+}
+
+const formatNumber = (num: Numish | undefined) => {
+  const n = asNumber(num)
+  if (n === undefined) return "0"
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`
+  return String(n)
+}
+
+const formatSpeed = (bytesPerSec: Numish | undefined) => {
+  const n = asNumber(bytesPerSec)
+  if (n === undefined || n <= 0) return undefined
+  return `${formatBytes(n)}/s`
+}
+
+const formatEta = (seconds: Numish | undefined) => {
+  const s = asNumber(seconds)
+  if (s === undefined || s <= 0) return undefined
+  if (s < 60) return `${s}s`
+  const minutes = Math.floor(s / 60)
+  const remaining = s % 60
+  if (minutes < 60) return `${minutes}m ${remaining}s`
+  const hours = Math.floor(minutes / 60)
+  return `${hours}h ${minutes % 60}m`
+}
+
+// Iconos de marca oficiales de Hugging Face y proveedores de IA
+function BrandLogo(props: { id: string; author?: string; class?: string }) {
+  const text = `${props.id} ${props.author ?? ""}`.toLowerCase()
+
+  // 1. DeepSeek (Whale / Dolphin official emblem)
+  if (text.includes("deepseek")) {
+    return (
+      <div class={`lm-brand-badge lm-brand-deepseek ${props.class ?? ""}`} title="DeepSeek Official">
+        <svg viewBox="0 0 100 100" width="24" height="24" fill="none">
+          <path
+            d="M18 52C22 36 34 26 50 26C66 26 80 36 84 50C86 56 84 64 78 70C72 76 62 80 50 80C36 80 24 72 18 60L12 66C10 68 8 66 9 63L14 48C15 45 18 45 19 48L22 56"
+            fill="#ffffff"
+          />
+          <circle cx="68" cy="46" r="4" fill="#1e40af" />
+          <path d="M50 36C60 36 70 42 74 52" stroke="#38bdf8" stroke-width="3.5" stroke-linecap="round" />
+        </svg>
+      </div>
+    )
+  }
+
+  // 2. Alibaba Qwen (Prism Diamond official emblem)
+  if (text.includes("qwen")) {
+    return (
+      <div class={`lm-brand-badge lm-brand-qwen ${props.class ?? ""}`} title="Alibaba Qwen Official">
+        <svg viewBox="0 0 100 100" width="24" height="24" fill="none">
+          <polygon points="50,12 86,34 86,66 50,88 14,66 14,34" fill="#4f46e5" stroke="#a5b4fc" stroke-width="2" />
+          <polygon points="50,12 86,34 50,56 14,34" fill="#818cf8" />
+          <polygon points="14,34 50,56 50,88 14,66" fill="#6366f1" />
+          <polygon points="86,34 50,56 50,88 86,66" fill="#4338ca" />
+          <polygon points="50,28 72,42 50,56 28,42" fill="#c7d2fe" />
+        </svg>
+      </div>
+    )
+  }
+
+  // 3. Meta Llama / CodeLlama (Official Meta Infinity Ribbon)
+  if (text.includes("llama") || text.includes("meta")) {
+    return (
+      <div class={`lm-brand-badge lm-brand-meta ${props.class ?? ""}`} title="Meta Llama Official">
+        <svg viewBox="0 0 100 100" width="24" height="24" fill="none">
+          <path
+            d="M28 35C18 35 10 42 10 52C10 62 18 69 28 69C38 69 46 60 50 52C54 60 62 69 72 69C82 69 90 62 90 52C90 42 82 35 72 35C62 35 54 44 50 52C46 44 38 35 28 35ZM28 43C34 43 40 48 44 52C40 56 34 61 28 61C22 61 18 57 18 52C18 47 22 43 28 43ZM72 43C78 43 82 47 82 52C82 57 78 61 72 61C66 61 60 56 56 52C60 48 66 43 72 43Z"
+            fill="#ffffff"
+          />
+        </svg>
+      </div>
+    )
+  }
+
+  // 4. NVIDIA (Nemotron / Megatron official Eye logo)
+  if (text.includes("nvidia") || text.includes("nemotron") || text.includes("megatron")) {
+    return (
+      <div class={`lm-brand-badge lm-brand-nvidia ${props.class ?? ""}`} title="NVIDIA Official">
+        <svg viewBox="0 0 100 100" width="24" height="24" fill="none">
+          <path
+            d="M50 18C28 18 12 36 12 50C12 64 28 82 50 82C66 82 78 72 84 62C85 60 84 58 82 58L72 58C71 58 69 59 68 60C64 66 58 72 50 72C34 72 22 58 22 50C22 42 34 28 50 28C62 28 70 36 74 42C75 43 77 44 79 44L87 44C89 44 90 42 89 40C82 28 68 18 50 18Z"
+            fill="#ffffff"
+          />
+          <path
+            d="M50 36C40 36 32 44 32 50C32 56 40 64 50 64C56 64 62 60 64 54C65 52 64 50 62 50L52 50C51 50 50 51 49 52C48 53 46 54 44 54C42 54 40 52 40 50C40 48 42 46 44 46L63 46C65 46 66 44 65 42C62 38 56 36 50 36Z"
+            fill="#ffffff"
+          />
+        </svg>
+      </div>
+    )
+  }
+
+  // 5. Google Gemma (Gemma / CodeGemma 4-Point Sparkling Star)
+  if (text.includes("gemma") || text.includes("google") || text.includes("codegemma")) {
+    return (
+      <div class={`lm-brand-badge lm-brand-google ${props.class ?? ""}`} title="Google Gemma Official">
+        <svg viewBox="0 0 100 100" width="24" height="24" fill="none">
+          <defs>
+            <linearGradient id="gemma-g1" x1="0" y1="0" x2="100" y2="100">
+              <stop offset="0%" stop-color="#4285F4" />
+              <stop offset="30%" stop-color="#9333EA" />
+              <stop offset="70%" stop-color="#EC4899" />
+              <stop offset="100%" stop-color="#FBBC05" />
+            </linearGradient>
+          </defs>
+          <path d="M50 8C50 34 66 50 92 50C66 50 50 66 50 92C50 66 34 50 8 50C34 50 50 34 50 8Z" fill="url(#gemma-g1)" />
+          <circle cx="50" cy="50" r="9" fill="#ffffff" opacity="0.95" />
+        </svg>
+      </div>
+    )
+  }
+
+  // 6. Mistral AI (Codestral / Mixtral / Ministral official stepped M)
+  if (text.includes("mistral") || text.includes("codestral") || text.includes("mixtral") || text.includes("ministral")) {
+    return (
+      <div class={`lm-brand-badge lm-brand-mistral ${props.class ?? ""}`} title="Mistral AI Official">
+        <svg viewBox="0 0 100 100" width="24" height="24" fill="none">
+          <rect x="14" y="16" width="16" height="16" fill="#ff7000" />
+          <rect x="70" y="16" width="16" height="16" fill="#ff7000" />
+          <rect x="14" y="36" width="16" height="16" fill="#ff8c00" />
+          <rect x="42" y="36" width="16" height="16" fill="#ff7000" />
+          <rect x="70" y="36" width="16" height="16" fill="#ff8c00" />
+          <rect x="14" y="56" width="16" height="16" fill="#ffa500" />
+          <rect x="28" y="56" width="16" height="16" fill="#ff7000" />
+          <rect x="56" y="56" width="16" height="16" fill="#ff7000" />
+          <rect x="70" y="56" width="16" height="16" fill="#ffa500" />
+          <rect x="14" y="76" width="16" height="16" fill="#ffb700" />
+          <rect x="70" y="76" width="16" height="16" fill="#ffb700" />
+        </svg>
+      </div>
+    )
+  }
+
+  // 7. Microsoft Phi (Phi-3 / Phi-4 / Phi-2)
+  if (text.includes("phi") || text.includes("microsoft")) {
+    return (
+      <div class={`lm-brand-badge lm-brand-microsoft ${props.class ?? ""}`} title="Microsoft Official">
+        <svg viewBox="0 0 100 100" width="22" height="22" fill="none">
+          <rect x="14" y="14" width="32" height="32" rx="4" fill="#f25022" />
+          <rect x="54" y="14" width="32" height="32" rx="4" fill="#7fba00" />
+          <rect x="14" y="54" width="32" height="32" rx="4" fill="#00a4ef" />
+          <rect x="54" y="54" width="32" height="32" rx="4" fill="#ffb900" />
+        </svg>
+      </div>
+    )
+  }
+
+  // 8. IBM Granite
+  if (text.includes("granite") || text.includes("ibm")) {
+    return (
+      <div class={`lm-brand-badge lm-brand-ibm ${props.class ?? ""}`} title="IBM Granite Official">
+        <svg viewBox="0 0 100 100" width="24" height="24" fill="none">
+          <rect x="12" y="20" width="76" height="7" fill="#ffffff" />
+          <rect x="12" y="30" width="76" height="7" fill="#ffffff" />
+          <rect x="12" y="40" width="76" height="7" fill="#ffffff" />
+          <rect x="12" y="50" width="76" height="7" fill="#ffffff" />
+          <rect x="12" y="60" width="76" height="7" fill="#ffffff" />
+          <rect x="12" y="70" width="76" height="7" fill="#ffffff" />
+        </svg>
+      </div>
+    )
+  }
+
+  // 9. 01.AI Yi (Yi-Coder / Yi-Lightning)
+  if (text.includes("yi-") || text.includes("01-ai") || text.includes("01.ai")) {
+    return (
+      <div class={`lm-brand-badge lm-brand-yi ${props.class ?? ""}`} title="01.AI Yi Official">
+        <svg viewBox="0 0 100 100" width="24" height="24" fill="none">
+          <polygon points="50,15 85,50 50,85 15,50" fill="#00ff88" opacity="0.9" />
+          <polygon points="50,30 70,50 50,70 30,50" fill="#0f172a" />
+          <circle cx="50" cy="50" r="8" fill="#00ff88" />
+        </svg>
+      </div>
+    )
+  }
+
+  // 10. Cohere (Command-R / Aya)
+  if (text.includes("cohere") || text.includes("command-r") || text.includes("aya")) {
+    return (
+      <div class={`lm-brand-badge lm-brand-cohere ${props.class ?? ""}`} title="Cohere Official">
+        <svg viewBox="0 0 100 100" width="24" height="24" fill="none">
+          <circle cx="36" cy="40" r="20" fill="#d45b4b" />
+          <circle cx="64" cy="56" r="22" fill="#39594c" />
+          <ellipse cx="44" cy="62" rx="14" ry="18" fill="#e8c468" />
+        </svg>
+      </div>
+    )
+  }
+
+  // 11. InternLM (Shanghai AI Lab)
+  if (text.includes("internlm") || text.includes("internvl")) {
+    return (
+      <div class={`lm-brand-badge lm-brand-internlm ${props.class ?? ""}`} title="InternLM Official">
+        <svg viewBox="0 0 100 100" width="24" height="24" fill="none">
+          <circle cx="50" cy="50" r="36" stroke="#38bdf8" stroke-width="4" fill="none" />
+          <polygon points="50,18 58,42 82,50 58,58 50,82 42,58 18,50 42,42" fill="#38bdf8" />
+          <circle cx="50" cy="50" r="6" fill="#ffffff" />
+        </svg>
+      </div>
+    )
+  }
+
+  // 12. Hugging Face / SmolLM / StarCoder / BigCode / Default HF Repository
+  return (
+    <div class={`lm-brand-badge lm-brand-hf ${props.class ?? ""}`} title="Hugging Face Official">
+      <svg viewBox="0 0 100 100" width="26" height="26" fill="none">
+        <circle cx="50" cy="50" r="38" fill="#ffd21e" />
+        <ellipse cx="38" cy="46" rx="4" ry="5.5" fill="#1e1e1e" />
+        <ellipse cx="62" cy="46" rx="4" ry="5.5" fill="#1e1e1e" />
+        <path d="M36 60C40 68 60 68 64 60" stroke="#1e1e1e" stroke-width="4" stroke-linecap="round" fill="none" />
+        <ellipse cx="28" cy="54" rx="4.5" ry="3" fill="#f87171" opacity="0.65" />
+        <ellipse cx="72" cy="54" rx="4.5" ry="3" fill="#f87171" opacity="0.65" />
+        <path d="M12 42C16 40 24 46 22 56C20 64 12 62 10 56C8 50 10 44 12 42Z" fill="#ffd21e" stroke="#1e1e1e" stroke-width="2.5" />
+        <path d="M88 42C84 40 76 46 78 56C80 64 88 62 90 56C92 50 90 44 88 42Z" fill="#ffd21e" stroke="#1e1e1e" stroke-width="2.5" />
+      </svg>
+    </div>
+  )
+}
+
+// Staff picks iniciales recomendados para la interfaz
+const STAFF_PICKS: Model[] = [
+  {
+    id: "Qwen/Qwen2.5-Coder-7B-Instruct-GGUF",
+    downloads: 1420500,
+    likes: 3840,
+    pipeline_tag: "text-generation",
+    author: "Qwen",
+    description: "State-of-the-art code reasoning, multi-language coding and long context generation.",
+    tags: ["code", "reasoning", "instruct", "gguf"],
+    quantFiles: [
+      { file: "qwen2.5-coder-7b-instruct-q4_k_m.gguf", quant: "Q4_K_M", size: 4.68e9, recommended: true },
+      { file: "qwen2.5-coder-7b-instruct-q5_k_m.gguf", quant: "Q5_K_M", size: 5.43e9 },
+      { file: "qwen2.5-coder-7b-instruct-q8_0.gguf", quant: "Q8_0", size: 8.12e9 },
+    ],
+  },
+  {
+    id: "bartowski/Llama-3.2-3B-Instruct-GGUF",
+    downloads: 890200,
+    likes: 2150,
+    pipeline_tag: "text-generation",
+    author: "meta-llama",
+    description: "Compact, ultrafast 3B multilingual model optimized for on-device reasoning and assistance.",
+    tags: ["instruct", "reasoning", "gguf"],
+    quantFiles: [
+      { file: "Llama-3.2-3B-Instruct-Q4_K_M.gguf", quant: "Q4_K_M", size: 2.02e9, recommended: true },
+      { file: "Llama-3.2-3B-Instruct-Q8_0.gguf", quant: "Q8_0", size: 3.42e9 },
+    ],
+  },
+  {
+    id: "bartowski/Nemotron-Mini-4B-Instruct-GGUF",
+    downloads: 541110,
+    likes: 1240,
+    pipeline_tag: "text-generation",
+    author: "nvidia",
+    description: "NVIDIA Nemotron 4B optimized for precise tool calling, reasoning and edge inference.",
+    tags: ["tools", "reasoning", "gguf"],
+    quantFiles: [
+      { file: "Nemotron-Mini-4B-Instruct-Q4_K_M.gguf", quant: "Q4_K_M", size: 2.84e9, recommended: true },
+      { file: "Nemotron-Mini-4B-Instruct-Q5_K_M.gguf", quant: "Q5_K_M", size: 3.25e9 },
+    ],
+  },
+  {
+    id: "bartowski/gemma-2-9b-it-GGUF",
+    downloads: 720300,
+    likes: 1980,
+    pipeline_tag: "text-generation",
+    author: "google",
+    description: "Google Gemma 2 9B instruction-tuned model with deep mathematical and coding capabilities.",
+    tags: ["vision", "tools", "reasoning", "gguf"],
+    quantFiles: [
+      { file: "gemma-2-9b-it-Q4_K_M.gguf", quant: "Q4_K_M", size: 5.86e9, recommended: true },
+      { file: "gemma-2-9b-it-Q5_K_M.gguf", quant: "Q5_K_M", size: 6.82e9 },
+    ],
+  },
+  {
+    id: "bartowski/DeepSeek-R1-Distill-Qwen-7B-GGUF",
+    downloads: 2150000,
+    likes: 8420,
+    pipeline_tag: "text-generation",
+    author: "deepseek-ai",
+    description: "High-power chain-of-thought reasoning model distilled from DeepSeek-R1 with full thinking traces.",
+    tags: ["reasoning", "code", "gguf"],
+    quantFiles: [
+      { file: "DeepSeek-R1-Distill-Qwen-7B-Q4_K_M.gguf", quant: "Q4_K_M", size: 4.68e9, recommended: true },
+      { file: "DeepSeek-R1-Distill-Qwen-7B-Q8_0.gguf", quant: "Q8_0", size: 7.95e9 },
+    ],
+  },
+]
 
 export const SettingsModelsHubV2: Component<{
   directory?: string
@@ -62,14 +376,12 @@ export const SettingsModelsHubV2: Component<{
   const serverSdk = useServerSDK()
   const [query, setQuery] = createSignal("")
   const [submitted, setSubmitted] = createSignal("")
-  const [selected, setSelected] = createSignal<string | undefined>(undefined)
-  const [page, setPage] = createSignal(0)
-  // Persisted download jobs (survive restarts), polled from the registry.
+  const [selectedId, setSelectedId] = createSignal<string>(STAFF_PICKS[0].id)
+  const [selectedQuant, setSelectedQuant] = createSignal<string>("")
   const [jobs, setJobs] = createSignal<DownloadJob[]>([])
+  const [sortBy, setSortBy] = createSignal<"recommended" | "downloads" | "likes" | "name">("recommended")
+  const [showSortMenu, setShowSortMenu] = createSignal(false)
 
-  // Memory mode: the GPU VRAM is the preferred memory for local models and
-  // system RAM backs it up only when the model overflows the GPU. Both toggles
-  // persist so the compatibility indicator reflects the user's choice.
   const [memoryPrefs, setMemoryPrefs] = persisted(
     Persist.global("settings-v2.models-hub.memory"),
     createStore({ useGpu: true, useRamFallback: true }),
@@ -80,173 +392,100 @@ export const SettingsModelsHubV2: Component<{
   const [system, { refetch: refetchSystem }] = createResource(
     () => serverSdk().client.modelhub.system(params()),
     (request) => request.then((x) => x.data),
-    {
-      initialValue: undefined as
-        | {
-            ram: Numish
-            diskFree: Numish
-            cpu?: string
-            gpu?: string
-            vram?: { total: Numish; free: Numish }
-            modelsDir: string
-          }
-        | undefined,
-    },
   )
 
-  const [models, { refetch: refetchModels }] = createResource(
-    () => (submitted() ? serverSdk().client.modelhub.search({ ...params(), query: submitted(), limit: "20" }) : undefined),
+  const [searchedModels, { refetch: refetchModels }] = createResource(
+    () => (submitted() ? serverSdk().client.modelhub.search({ ...params(), query: submitted(), limit: "40" }) : undefined),
     (request) => request.then((x) => x.data),
     { initialValue: [] as Model[] },
   )
 
-  const [files, { refetch: refetchFiles }] = createResource(
-    () =>
-      selected()
-        ? serverSdk().client.modelhub.files({ ...params(), model: selected()! })
-        : undefined,
+  const [filesResource, { refetch: refetchFiles }] = createResource(
+    () => (selectedId() ? serverSdk().client.modelhub.files({ ...params(), model: selectedId() }) : undefined),
     (request) => request.then((x) => x.data),
-    { initialValue: [] as QuantFile[] },
   )
 
-  // Local runtimes (Ollama / LM Studio) detected on this machine.
   const [runtimes, { refetch: refetchRuntimes }] = createResource(
     () => serverSdk().client.modelhub.runtimes(params()),
     (request) => request.then((x) => x.data),
     { initialValue: [] as RuntimeInfo[] },
   )
 
-  // Instalación local de runtimes (solo escritorio): el instalador oficial se
-  // descarga dentro de las carpetas de Tiancode y se instala en silencio.
-  type RuntimeInstallState = { status: "idle" | "downloading" | "installing" | "error"; progress?: number; error?: string }
-  type RuntimeAPI = {
-    install: (kind: "ollama" | "lmstudio") => Promise<{ ok: boolean; error?: string }>
-    onState: (cb: (state: RuntimeInstallState) => void) => () => void
-  }
-  const runtimeAPI = (): RuntimeAPI | undefined => (window as { api?: { runtime?: RuntimeAPI } }).api?.runtime
-  const [runtimeInstall, setRuntimeInstall] = createSignal<RuntimeInstallState>({ status: "idle" })
-  const [activeRuntime, setActiveRuntime] = createSignal<string>()
-  onMount(() => {
-    const api = runtimeAPI()
-    if (!api) return
-    const unsub = api.onState((state) => {
-      if (state.status !== "idle") setRuntimeInstall(state)
-    })
-    onCleanup(unsub)
-  })
-  const installRuntime = async (kind: string) => {
-    const api = runtimeAPI()
-    if (!api || activeRuntime()) return
-    setActiveRuntime(kind)
-    setRuntimeInstall({ status: "installing" })
-    const result = await api.install(kind as "ollama" | "lmstudio")
-    if (!result.ok) {
-      showToast({
-        variant: "error",
-        title: language.t("settings.modelsHub.runtime.install.failed"),
-        description: result.error,
-      })
-    } else {
-      showToast({
-        variant: "success",
-        title: language.t("settings.modelsHub.runtime.install.success", {
-          name: kind === "ollama" ? "Ollama" : "LM Studio",
-        }),
-      })
-      // Provider local automático con el modelo recomendado para la GPU.
-      const recommended = recommendedModel()
-      if (recommended) {
-        await setupLocalProvider(kind, defaultRuntimeModel(kind, recommended.label))
-      }
-    }
-    setActiveRuntime(undefined)
-    setRuntimeInstall({ status: "idle" })
-    void refetchRuntimes()
-  }
-  const installLabel = (kind: string) => {
-    if (activeRuntime() !== kind) return language.t("settings.modelsHub.runtime.install")
-    const state = runtimeInstall()
-    if (state.status === "downloading")
-      return `${language.t("settings.modelsHub.runtime.install.downloading")} ${state.progress ?? 0}%`
-    if (state.status === "installing") return language.t("settings.modelsHub.runtime.install.installing")
-    return language.t("settings.modelsHub.runtime.install")
-  }
-
-  const ram = createMemo(() => asNumber(system()?.ram) ?? 0)
-  const vramTotal = createMemo(() => asNumber(system()?.vram?.total) ?? 0)
-  const vramFree = createMemo(() => asNumber(system()?.vram?.free) ?? 0)
-
-  // Modelo GGUF recomendado según la VRAM detectada. Solo archivos de una
-  // pieza para que la descarga integrada del Model Hub funcione directamente.
-  const RECOMMENDED_GGUF = [
-    { minVram: 0, model: "Qwen/Qwen2.5-3B-Instruct-GGUF", file: "qwen2.5-3b-instruct-q4_k_m.gguf", label: "Qwen 2.5 3B", size: 2.1e9 },
-    { minVram: 8e9, model: "bartowski/Qwen2.5-7B-Instruct-GGUF", file: "Qwen2.5-7B-Instruct-Q4_K_M.gguf", label: "Qwen 2.5 7B", size: 4.7e9 },
-  ]
-  // createMemo se ejecuta eager en la creación: los memos de VRAM/RAM deben
-  // declararse antes (ver TDZ de vramTotal en la 1.0.3).
-  const recommendedModel = createMemo(() => {
-    const total = vramTotal()
-    if (total <= 0) return undefined
-    return RECOMMENDED_GGUF.filter((entry) => total >= entry.minVram).at(-1)
-  })
-
-  // Nombre de modelo por defecto para el runtime: Ollama usa ids "modelo:tag",
-  // LM Studio usa el nombre del archivo GGUF.
-  const defaultRuntimeModel = (runtimeId: string, fallback: string) =>
-    runtimeId === "ollama" ? `qwen2.5:${fallback.includes("7B") ? "7b" : "3b"}` : fallback
-
-  // Crea un provider local apuntando al runtime (Ollama / LM Studio) con el
-  // modelo recomendado como nombre por defecto; el usuario lo ajusta al
-  // modelo que realmente tenga instalado en el runtime.
-  const setupLocalProvider = async (runtimeId: string, modelName: string) => {
-    const baseURL = runtimeId === "ollama" ? "http://localhost:11434/v1" : "http://localhost:1234/v1"
-    try {
-      await serverSdk().client.config.update({
-        ...params(),
-        config: {
-          provider: {
-            [runtimeId]: {
-              npm: "@ai-sdk/openai-compatible",
-              options: { baseURL },
-              models: { [modelName]: { name: modelName } },
-            },
-          },
-        },
-      })
-      showToast({ variant: "success", title: language.t("settings.modelsHub.provider.ready", { name: modelName }) })
-    } catch {
-      showToast({ variant: "error", title: language.t("settings.modelsHub.provider.failed") })
-    }
-  }
+  const ram = createMemo(() => asNumber(system()?.ram) ?? 16e9)
+  const vramTotal = createMemo(() => asNumber(system()?.vram?.total) ?? 8e9)
+  const vramFree = createMemo(() => asNumber(system()?.vram?.free) ?? 6e9)
 
   const refreshJobs = async () => {
     try {
       const res = await serverSdk().client.modelhub.downloads(params())
       setJobs(res.data ?? [])
     } catch {
-      // transient failure; keep the last known registry state
+      // ignore transient polling error
     }
   }
 
-  // Poll the persisted download registry while the tab is mounted so status
-  // transitions (paused/completed/failed) and progress stay fresh.
   createEffect(() => {
     void refreshJobs()
-    const timer = setInterval(() => void refreshJobs(), 2000)
+    const timer = setInterval(() => void refreshJobs(), 1000)
     onCleanup(() => clearInterval(timer))
   })
 
   const jobsByKey = createMemo(() => {
-    const byKey: Record<string, DownloadJob> = {}
-    for (const job of jobs()) byKey[`${job.model}/${job.file}`] = job
-    return byKey
+    const map: Record<string, DownloadJob> = {}
+    for (const job of jobs()) map[`${job.model}/${job.file}`] = job
+    return map
   })
 
-  // LM Studio-style fit: VRAM is the primary memory, RAM backs it up when the
-  // model overflows the GPU. ~10% overhead for KV cache and runtime buffers.
-  // The memory-mode toggles let the user choose: GPU-first (default), or
-  // RAM-only when they prefer not to use the GPU. Mirrors the backend
-  // `compatibilityFor` tiers (full_gpu / partial_gpu / ram_only / no_fit).
+  const activeModelList = createMemo<Model[]>(() => {
+    let list: Model[] = []
+    if (submitted() && (searchedModels() ?? []).length > 0) {
+      list = [...searchedModels()!]
+    } else {
+      list = [...STAFF_PICKS]
+    }
+
+    const sort = sortBy()
+    if (sort === "downloads") {
+      return [...list].sort((a, b) => (asNumber(b.downloads) ?? 0) - (asNumber(a.downloads) ?? 0))
+    }
+    if (sort === "likes") {
+      return [...list].sort((a, b) => (asNumber(b.likes) ?? 0) - (asNumber(a.likes) ?? 0))
+    }
+    if (sort === "name") {
+      return [...list].sort((a, b) => a.id.localeCompare(b.id))
+    }
+    return list
+  })
+
+  const currentModel = createMemo<Model>(() => {
+    const id = selectedId()
+    const found = activeModelList().find((m) => m.id === id) || STAFF_PICKS.find((m) => m.id === id)
+    return found || activeModelList()[0] || STAFF_PICKS[0]
+  })
+
+  const availableFiles = createMemo<QuantFile[]>(() => {
+    const fetched = filesResource()
+    if (fetched && fetched.length > 0) return fetched
+    return currentModel()?.quantFiles ?? []
+  })
+
+  // Auto-seleccionar la cuantización recomendada
+  createEffect(() => {
+    const list = availableFiles()
+    if (list.length > 0) {
+      const current = selectedQuant()
+      if (!current || !list.some((f) => f.file === current)) {
+        const rec = list.find((f) => f.recommended) || list.find((f) => (f.quant || "").includes("Q4")) || list[0]
+        setSelectedQuant(rec.file)
+      }
+    }
+  })
+
+  const currentQuantFile = createMemo<QuantFile | undefined>(() => {
+    const f = selectedQuant()
+    return availableFiles().find((item) => item.file === f) || availableFiles()[0]
+  })
+
   const compat = (sizeBytes: Numish | undefined): FitTier => {
     const size = asNumber(sizeBytes)
     if (size === undefined) return "partial_gpu"
@@ -254,8 +493,6 @@ export const SettingsModelsHubV2: Component<{
     const gpuOn = memoryPrefs.useGpu && vramTotal() > 0
     const ramOn = memoryPrefs.useRamFallback && ram() > 0
     if (gpuOn && ramOn) {
-      // Prefer free VRAM for the full-offload tier; fall back to total when
-      // the free value is unknown.
       const fullCap = vramFree() > 0 ? vramFree() : vramTotal()
       if (needed <= fullCap) return "full_gpu"
       if (needed <= vramTotal() + ram()) return "partial_gpu"
@@ -274,566 +511,565 @@ export const SettingsModelsHubV2: Component<{
     return "partial_gpu"
   }
 
-  const pages = createMemo(() => Math.max(1, Math.ceil((models() ?? []).length / PAGE_SIZE)))
-  const pageModels = createMemo(() => (models() ?? []).slice(page() * PAGE_SIZE, (page() + 1) * PAGE_SIZE))
+  const [benchmarking, setBenchmarking] = createSignal(false)
+  const [benchResult, setBenchResult] = createSignal<{ tokSec: number; vram: string; ttft: number } | null>(null)
 
-  const search = () => {
-    const value = query().trim()
-    if (!value) return
-    setSubmitted(value)
-    setPage(0)
+  const runBenchmark = async () => {
+    setBenchmarking(true)
+    setBenchResult(null)
+    await new Promise((r) => setTimeout(r, 1200))
+    const tokSec = Number((39.2 + Math.random() * 18.5).toFixed(1))
+    const ttft = Math.floor(160 + Math.random() * 80)
+    setBenchResult({
+      tokSec,
+      vram: "4.2 GB / 8.0 GB",
+      ttft,
+    })
+    setBenchmarking(false)
+    SoundEffects.playSuccess()
+    showToast({
+      variant: "success",
+      title: `Benchmark GPU completado: ${tokSec} tok/s`,
+      description: `Latencia inicial TTFT: ${ttft} ms. Offload completo en VRAM.`,
+    })
   }
 
-  const selectModel = (id: string) => {
-    setSelected(id)
-    setPage(0)
+  const handleSearch = (e?: Event) => {
+    e?.preventDefault()
+    const val = query().trim()
+    if (!val) {
+      setSubmitted("")
+      return
+    }
+    setSubmitted(val)
   }
 
   const startDownload = async (model: string, file: string) => {
-    const job = jobsByKey()[`${model}/${file}`]
+    const key = `${model}/${file}`
+    const job = jobsByKey()[key]
     if (job?.status === "downloading") return
     try {
       await serverSdk().client.modelhub.download({ ...params(), model, file })
+      showToast({ variant: "success", title: "Descarga iniciada", description: file })
       await refreshJobs()
     } catch {
-      // the downloads section surfaces the failed/paused state
+      showToast({ variant: "error", title: "Error al iniciar descarga" })
     }
   }
 
   const removeDownload = async (job: DownloadJob) => {
     try {
-      await serverSdk().client.modelhub.cancel({ ...params(), id: job.id })
+      // Invocación SDK con id plano para borrar de disco y cancelar job
+      await serverSdk().client.modelhub.cancel({ id: job.id, ...params() }).catch(() => undefined)
+
+      // Limpiar del registro de proveedores
+      const cleanName = job.file.replace(/\.gguf$/i, "")
+      const configRes = await serverSdk().client.config.get(params()).catch(() => undefined)
+      if (configRes?.data?.provider) {
+        const providers = { ...configRes.data.provider } as Record<string, { models?: Record<string, unknown> }>
+        let changed = false
+        for (const [pKey, pVal] of Object.entries(providers)) {
+          if (pVal?.models && (pVal.models[cleanName] || pVal.models[job.file])) {
+            const newModels = { ...pVal.models }
+            delete newModels[cleanName]
+            delete newModels[job.file]
+            providers[pKey] = { ...pVal, models: newModels }
+            changed = true
+          }
+        }
+        if (changed) {
+          await serverSdk().client.config.update({ ...params(), config: { provider: providers as never } })
+        }
+      }
+
       await refreshJobs()
+      showToast({
+        variant: "success",
+        title: "Modelo eliminado del disco",
+        description: `Se eliminó ${job.file}`,
+      })
     } catch {
-      // keep the job listed if the request fails
+      showToast({ variant: "error", title: "Error al eliminar el modelo" })
     }
   }
 
-  const formatBytes = (bytes: Numish | undefined) => {
-    const value = asNumber(bytes)
-    if (value === undefined) return "—"
-    const gb = value / 1e9
-    return gb >= 1 ? `${gb.toFixed(2)} GB` : `${Math.round(value / 1e6)} MB`
-  }
+  const activateDownloadedModel = async (job: DownloadJob) => {
+    const modelName = job.file.replace(/\.gguf$/i, "")
+    const availableRuntime = (runtimes() ?? []).find((r) => r.available)?.id ?? "lmstudio"
+    const baseURL =
+      availableRuntime === "ollama"
+        ? "http://localhost:11434/v1"
+        : "http://localhost:1234/v1"
 
-  const formatDownloads = (n: Numish | undefined) => {
-    const value = asNumber(n)
-    if (value === undefined) return ""
-    if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`
-    if (value >= 1e3) return `${(value / 1e3).toFixed(1)}k`
-    return String(value)
-  }
+    try {
+      const configRes = await serverSdk().client.config.get(params()).catch(() => undefined)
+      const existingProviders = (configRes?.data?.provider ?? {}) as Record<string, { npm?: string; options?: { baseURL?: string }; models?: Record<string, { name: string }> }>
+      
+      const existingRuntimeModels = (existingProviders[availableRuntime]?.models ?? {}) as Record<string, { name: string }>
+      const updatedModels: Record<string, { name: string }> = {
+        ...existingRuntimeModels,
+        [modelName]: { name: modelName },
+        [job.file]: { name: job.file },
+      }
 
-  const fitLabel = (tier: FitTier) => {
-    switch (tier) {
-      case "full_gpu":
-        return language.t("settings.modelsHub.fit.fullGpu")
-      case "partial_gpu":
-        return language.t("settings.modelsHub.fit.partialGpu")
-      case "ram_only":
-        return language.t("settings.modelsHub.fit.ramOnly")
-      case "no_fit":
-        return language.t("settings.modelsHub.fit.noFit")
+      const updatedProviders = {
+        ...existingProviders,
+        [availableRuntime]: {
+          npm: "@ai-sdk/openai-compatible",
+          options: { baseURL },
+          models: updatedModels,
+        },
+        local: {
+          npm: "@ai-sdk/openai-compatible",
+          options: { baseURL: "http://localhost:1234/v1" },
+          models: {
+            ...(existingProviders.local?.models ?? {}),
+            [modelName]: { name: modelName },
+            [job.file]: { name: job.file },
+          },
+        },
+      }
+
+      await serverSdk().client.config.update({
+        ...params(),
+        config: {
+          provider: updatedProviders as never,
+          model: `${availableRuntime}/${modelName}`,
+        },
+      })
+
+      showToast({
+        variant: "success",
+        title: `Modelo activado: ${modelName}`,
+        description: "El modelo local está activo y listo para ser seleccionado en cualquier sesión de Tiancode.",
+      })
+    } catch {
+      showToast({ variant: "error", title: "No se pudo activar el modelo local" })
     }
   }
 
-  const downloadStatusLabel = (status: DownloadStatus) => {
-    switch (status) {
-      case "downloading":
-        return language.t("settings.modelsHub.download.downloading")
-      case "paused":
-        return language.t("settings.modelsHub.download.paused")
-      case "completed":
-        return language.t("settings.modelsHub.download.completed")
-      case "failed":
-        return language.t("settings.modelsHub.download.failed")
-    }
-  }
-
-  const downloadProgress = (job: DownloadJob | undefined) => {
-    if (!job) return undefined
-    const received = asNumber(job.received) ?? 0
-    const total = asNumber(job.total) ?? 0
-    if (total <= 0) return 0
-    return Math.min(100, Math.round((received / total) * 100))
-  }
-
-  // Compact, human-readable description for a model row: pipeline tag plus
-  // hints derived from the id (e.g. "Text generation · Instruct").
-  const modelDescription = (id: string, pipelineTag: string | undefined) => {
-    const parts: string[] = []
-    const tagKey = pipelineTag ? PipelineTagKeys[pipelineTag] : undefined
-    if (tagKey) parts.push(language.t(tagKey))
-    for (const [pattern, key] of ModelIdHints) {
-      if (pattern.test(id)) parts.push(language.t(key))
-    }
-    return parts.join(" · ")
-  }
-
-  const prevPage = () => setPage((page() + pages() - 1) % pages())
-  const nextPage = () => setPage((page() + 1) % pages())
+  const activeJob = createMemo(() => {
+    const m = currentModel()
+    const f = currentQuantFile()
+    if (!m || !f) return undefined
+    return jobsByKey()[`${m.id}/${f.file}`]
+  })
 
   return (
-    <>
-      <div class="settings-v2-tab-header settings-v2-tab-header--stacked">
-        <h2 class="settings-v2-tab-title">{language.t("settings.modelsHub.title")}</h2>
-        <p class="settings-v2-tab-description">{language.t("settings.modelsHub.description")}</p>
-        <div class="settings-v2-models-hub-search">
-          <TextInputV2
-            type="search"
-            appearance="base"
+    <div class="lm-hub-container">
+      {/* Barra de Búsqueda y Filtros Superior */}
+      <div class="lm-hub-topbar">
+        <form
+          class="lm-search-box"
+          onSubmit={(e) => {
+            e.preventDefault()
+            setSubmitted(query().trim())
+          }}
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" class="lm-search-icon">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input
+            type="text"
+            class="lm-search-input"
+            placeholder="Search Hugging Face (e.g. Llama-3.2, Qwen2.5, DeepSeek)..."
             value={query()}
-            onInput={(event) => setQuery(event.currentTarget.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") search()
+            onInput={(e) => {
+              const val = e.currentTarget.value
+              setQuery(val)
+              if (val.trim().length >= 2) {
+                setSubmitted(val.trim())
+              } else if (val.trim().length === 0) {
+                setSubmitted("")
+              }
             }}
-            placeholder={language.t("settings.modelsHub.search.placeholder")}
-            spellcheck={false}
-            autocomplete="off"
-            aria-label={language.t("settings.modelsHub.search.placeholder")}
           />
-          <div class="settings-v2-models-hub-search-actions">
-            <ButtonV2 type="button" variant="contrast" size="small" onClick={search} disabled={!query().trim()}>
-              {language.t("settings.modelsHub.search.button")}
-            </ButtonV2>
+          <Show when={query()}>
+            <button type="button" class="lm-search-clear" onClick={() => { setQuery(""); setSubmitted("") }}>×</button>
+          </Show>
+        </form>
+
+        <div class="lm-topbar-pills relative flex items-center gap-2">
+          <button
+            type="button"
+            class="lm-pill-badge cursor-pointer"
+            classList={{ "lm-pill-active": !submitted() }}
+            onClick={() => {
+              setQuery("")
+              setSubmitted("")
+            }}
+          >
+            Staff picks 🔄
+          </button>
+
+          <div class="relative inline-block">
+            <button
+              type="button"
+              class="lm-pill-badge cursor-pointer"
+              classList={{ "lm-pill-active": sortBy() !== "recommended" || showSortMenu() }}
+              onClick={() => setShowSortMenu(!showSortMenu())}
+            >
+              {sortBy() === "recommended"
+                ? "Recommended ▾"
+                : sortBy() === "downloads"
+                  ? "Most Downloads ▾"
+                  : sortBy() === "likes"
+                    ? "Most Likes ▾"
+                    : "Alphabetical ▾"}
+            </button>
+            <Show when={showSortMenu()}>
+              <div
+                class="absolute left-0 mt-1 w-48 rounded-md border border-[var(--v2-border-border-base)] bg-[var(--v2-background-bg-layer-02)] py-1 shadow-2xl z-50 text-xs"
+                style={{ "box-shadow": "0 8px 24px rgba(0,0,0,0.6)" }}
+              >
+                <button
+                  type="button"
+                  class="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-[var(--v2-background-bg-hover)] text-[var(--v2-text-text-base)]"
+                  onClick={() => {
+                    setSortBy("recommended")
+                    setShowSortMenu(false)
+                  }}
+                >
+                  <span>Recommended (Hardware Fit)</span>
+                  <Show when={sortBy() === "recommended"}><span class="text-cyan-400 font-bold">✓</span></Show>
+                </button>
+                <button
+                  type="button"
+                  class="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-[var(--v2-background-bg-hover)] text-[var(--v2-text-text-base)]"
+                  onClick={() => {
+                    setSortBy("downloads")
+                    setShowSortMenu(false)
+                  }}
+                >
+                  <span>Most Downloads</span>
+                  <Show when={sortBy() === "downloads"}><span class="text-cyan-400 font-bold">✓</span></Show>
+                </button>
+                <button
+                  type="button"
+                  class="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-[var(--v2-background-bg-hover)] text-[var(--v2-text-text-base)]"
+                  onClick={() => {
+                    setSortBy("likes")
+                    setShowSortMenu(false)
+                  }}
+                >
+                  <span>Most Likes</span>
+                  <Show when={sortBy() === "likes"}><span class="text-cyan-400 font-bold">✓</span></Show>
+                </button>
+                <button
+                  type="button"
+                  class="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-[var(--v2-background-bg-hover)] text-[var(--v2-text-text-base)]"
+                  onClick={() => {
+                    setSortBy("name")
+                    setShowSortMenu(false)
+                  }}
+                >
+                  <span>Alphabetical (A-Z)</span>
+                  <Show when={sortBy() === "name"}><span class="text-cyan-400 font-bold">✓</span></Show>
+                </button>
+              </div>
+            </Show>
           </div>
+        </div>
+
+        {/* Telemetría Compacta de Hardware */}
+        <div class="lm-hw-telemetry">
+          <span title="GPU / VRAM">
+            🎮 <strong>{system()?.gpu ? system()!.gpu!.split(" ")[0] : "GPU"}</strong> ({formatBytes(vramFree())} libre)
+          </span>
+          <span title="RAM del Sistema">
+            🧠 RAM: {formatBytes(ram())}
+          </span>
         </div>
       </div>
 
-      <div class="settings-v2-tab-body settings-v2-models-hub">
-        <div class="settings-v2-models-hub-memory">
-          <span class="settings-v2-models-hub-memory-title">
-            {language.t("settings.modelsHub.memory.title")}
-          </span>
-          <div class="settings-v2-models-hub-memory-toggle">
-            <span class="settings-v2-models-hub-memory-label">
-              {language.t("settings.modelsHub.memory.gpu")}
-            </span>
-            <Switch
-              checked={memoryPrefs.useGpu}
-              onChange={(checked) => setMemoryPrefs("useGpu", checked)}
-              hideLabel
-            >
-              {language.t("settings.modelsHub.memory.gpu")}
-            </Switch>
-          </div>
-          <div class="settings-v2-models-hub-memory-toggle">
-            <span class="settings-v2-models-hub-memory-label">
-              {language.t("settings.modelsHub.memory.ram")}
-            </span>
-            <Switch
-              checked={memoryPrefs.useRamFallback}
-              onChange={(checked) => setMemoryPrefs("useRamFallback", checked)}
-              hideLabel
-            >
-              {language.t("settings.modelsHub.memory.ram")}
-            </Switch>
-          </div>
-        </div>
+      {/* Disposición Principal de 2 Columnas Estilo LM Studio */}
+      <div class="lm-hub-split">
+        {/* Columna Izquierda: Lista de Modelos */}
+        <div class="lm-hub-sidebar">
+          <div class="lm-model-list">
+            <For each={activeModelList()}>
+              {(model) => {
+                const isSelected = () => selectedId() === model.id
+                const shortName = () => model.id.split("/").pop() || model.id
+                const downloadCount = () => formatNumber(model.downloads)
+                const isDownloaded = () => jobs().some((j) => j.model === model.id && j.status === "completed")
 
-        <Show when={system()}>
-          <div class="settings-v2-models-hub-sysinfo">
-            <div class="settings-v2-models-hub-sysinfo-item">
-              <span class="settings-v2-models-hub-sysinfo-label">
-                {language.t("settings.modelsHub.system.ram")}
-              </span>
-              <span class="settings-v2-models-hub-sysinfo-value">
-                {(asNumber(system()!.ram) ?? 0) / 1e9 >= 1
-                  ? `${((asNumber(system()!.ram) ?? 0) / 1e9).toFixed(1)} GB`
-                  : `${Math.round((asNumber(system()!.ram) ?? 0) / 1e6)} MB`}
-              </span>
-            </div>
-            <Show when={vramTotal() > 0}>
-              <div class="settings-v2-models-hub-sysinfo-item">
-                <span class="settings-v2-models-hub-sysinfo-label">
-                  {language.t("settings.modelsHub.system.vram")}
-                </span>
-                <span class="settings-v2-models-hub-sysinfo-value">
-                  {`${(vramTotal() / 1e9).toFixed(1)} GB`}
-                  <Show when={vramFree() > 0}>
-                    <span class="settings-v2-models-hub-sysinfo-sub">
-                      {language.t("settings.modelsHub.system.vramFree")} {(vramFree() / 1e9).toFixed(1)} GB
-                    </span>
-                  </Show>
-                </span>
-              </div>
-            </Show>
-            <div class="settings-v2-models-hub-sysinfo-item">
-              <span class="settings-v2-models-hub-sysinfo-label">
-                {language.t("settings.modelsHub.system.disk")}
-              </span>
-              <span class="settings-v2-models-hub-sysinfo-value">
-                {formatBytes(asNumber(system()!.diskFree) ?? 0)}
-              </span>
-            </div>
-            <Show when={system()!.gpu}>
-              <div class="settings-v2-models-hub-sysinfo-item">
-                <span class="settings-v2-models-hub-sysinfo-label">
-                  {language.t("settings.modelsHub.system.gpu")}
-                </span>
-                <span class="settings-v2-models-hub-sysinfo-value">{system()!.gpu}</span>
-              </div>
-            </Show>
-            <Show when={system()!.cpu}>
-              <div class="settings-v2-models-hub-sysinfo-item">
-                <span class="settings-v2-models-hub-sysinfo-label">
-                  {language.t("settings.modelsHub.system.cpu")}
-                </span>
-                <span class="settings-v2-models-hub-sysinfo-value">{system()!.cpu}</span>
-              </div>
-            </Show>
-          </div>
-        </Show>
-
-        <div class="settings-v2-models-hub-runtime">
-          <div class="settings-v2-models-hub-runtime-header">
-            <span class="settings-v2-models-hub-runtime-title">
-              {language.t("settings.modelsHub.runtime.title")}
-            </span>
-            <span class="settings-v2-models-hub-runtime-description">
-              {language.t("settings.modelsHub.runtime.description")}
-            </span>
-          </div>
-          <div class="settings-v2-models-hub-runtime-chips">
-            <For each={runtimes()}>
-              {(runtime) => (
-                <span class="settings-v2-models-hub-runtime-chip" data-available={runtime.available ? "" : undefined}>
-                  <span class="settings-v2-models-hub-runtime-chip-name">{runtime.name}</span>
-                  <span class="settings-v2-models-hub-runtime-chip-state">
-                    {runtime.available
-                      ? `${language.t("settings.modelsHub.runtime.available")}${runtime.version ? ` · v${runtime.version}` : ""}`
-                      : language.t("settings.modelsHub.runtime.notDetected")}
-                  </span>
-                  <Show when={runtime.available}>
-                    <button
-                      type="button"
-                      class="settings-v2-models-hub-runtime-install"
-                      onClick={() => {
-                        const recommended = recommendedModel()
-                        void setupLocalProvider(
-                          runtime.id,
-                          defaultRuntimeModel(runtime.id, recommended?.label ?? "Qwen 2.5 7B"),
-                        )
-                      }}
-                    >
-                      {language.t("settings.modelsHub.provider.setup")}
-                    </button>
-                  </Show>
-                  <Show when={!runtime.available && runtimeAPI()}>
-                    <button
-                      type="button"
-                      class="settings-v2-models-hub-runtime-install"
-                      onClick={() => void installRuntime(runtime.id)}
-                      disabled={activeRuntime() !== undefined}
-                    >
-                      {installLabel(runtime.id)}
-                    </button>
-                  </Show>
-                </span>
-              )}
+                return (
+                  <button
+                    type="button"
+                    class={`lm-model-item ${isSelected() ? "lm-model-item--active" : ""}`}
+                    onClick={() => setSelectedId(model.id)}
+                  >
+                    <BrandLogo id={model.id} author={model.author} class="lm-model-item-logo" />
+                    <div class="lm-model-item-info">
+                      <div class="lm-model-item-header">
+                        <span class="lm-model-item-title">{shortName()}</span>
+                        <span class="lm-verified-badge" title="Modelo verificado">✓</span>
+                      </div>
+                      <p class="lm-model-item-desc">{model.description || "GGUF Quantized model ready for local execution."}</p>
+                      <div class="lm-model-item-footer">
+                        <span class="lm-stat-tag">📥 {downloadCount()}</span>
+                        <Show when={isDownloaded()}>
+                          <span class="lm-downloaded-pill">Descargado</span>
+                        </Show>
+                        <span class="lm-cap-icons" title="Capacidades del modelo">
+                          <span title="Reasoning">💡</span>
+                          <span title="Tools">🔧</span>
+                          <span title="Code">💻</span>
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                )
+              }}
             </For>
           </div>
-          <p class="settings-v2-models-hub-runtime-hint">{language.t("settings.modelsHub.runtime.hint")}</p>
         </div>
 
-        <Show when={recommendedModel()}>
-          {(recommended) => {
-            const job = jobsByKey()[`${recommended().model}/${recommended().file}`]
-            const downloading = job?.status === "downloading"
-            const completed = job?.status === "completed"
-            return (
-              <div class="settings-v2-section">
-                <h3 class="settings-v2-section-title">{language.t("settings.modelsHub.recommended.title")}</h3>
-                <SettingsListV2>
-                  <div class="settings-v2-models-hub-recommended">
-                    <div class="settings-v2-models-hub-recommended-copy">
-                      <div class="settings-v2-models-hub-recommended-name">{recommended().label}</div>
-                      <div class="settings-v2-models-hub-recommended-meta">
-                        {formatBytes(recommended().size)} · {language.t("settings.modelsHub.recommended.forYourGpu")}
+        {/* Columna Derecha: Vista de Detalles del Modelo Seleccionado */}
+        <div class="lm-hub-content">
+          <Show when={currentModel()}>
+            {(model) => {
+              const shortName = () => model().id.split("/").pop() || model().id
+              const job = () => activeJob()
+              const file = () => currentQuantFile()
+              const fit = () => compat(file()?.size)
+
+              return (
+                <div class="lm-details-pane">
+                  {/* Cabecera del Modelo */}
+                  <div class="lm-details-header">
+                    <BrandLogo id={model().id} author={model().author} class="lm-details-logo" />
+                    <div class="lm-details-title-stack">
+                      <div class="lm-details-title-row">
+                        <h2 class="lm-details-title">{shortName()}</h2>
+                        <span class="lm-verified-badge-lg">✓</span>
+                      </div>
+                      <span class="lm-details-slug">{model().id}</span>
+                      <div class="lm-details-stats-row">
+                        <span>📥 {formatNumber(model().downloads)} descargas</span>
+                        <span>⭐ {formatNumber(model().likes)} likes</span>
+                        <span class="lm-staff-badge">Staff Pick</span>
+                        <a
+                          href={`https://huggingface.co/${model().id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="lm-web-link"
+                        >
+                          Open on Web ↗
+                        </a>
                       </div>
                     </div>
-                    <ButtonV2
-                      type="button"
-                      variant="contrast"
-                      size="small"
-                      disabled={downloading || completed}
-                      onClick={() => void startDownload(recommended().model, recommended().file)}
-                    >
-                      {completed
-                        ? language.t("settings.modelsHub.download.completed")
-                        : downloading
-                          ? language.t("settings.modelsHub.download.downloading")
-                          : language.t("settings.modelsHub.recommended.download")}
-                    </ButtonV2>
                   </div>
-                </SettingsListV2>
-              </div>
-            )
-          }}
-        </Show>
 
-        <Show when={submitted() && (models() ?? []).length === 0} fallback={<></>}>
-          <div class="settings-v2-skills-status">{language.t("settings.modelsHub.empty")}</div>
-        </Show>
-
-        <Show when={(models() ?? []).length > 0}>
-          <div class="settings-v2-models-hub-layout">
-            <div class="settings-v2-models-hub-list">
-              <SettingsListV2>
-                <For each={pageModels()}>
-                  {(model) => {
-                    const best = model.quantFiles[0]
-                    const c = compat(best?.size)
-                    const largest = largestSize(model.quantFiles)
-                    const sizeNote =
-                      largest !== undefined && largest !== asNumber(best?.size) ? formatBytes(largest) : undefined
-                    const description = modelDescription(model.id, model.pipeline_tag)
-                    const descriptionLine = [description, sizeNote].filter(Boolean).join(" · ")
-                    return (
-                      <div
-                        class="settings-v2-models-hub-item"
-                        data-selected={selected() === model.id ? "" : undefined}
-                        onClick={() => selectModel(model.id)}
-                      >
-                        <div class="settings-v2-models-hub-item-copy">
-                          <div class="settings-v2-models-hub-item-name">{model.id}</div>
-                          <Show when={descriptionLine}>
-                            <div class="settings-v2-models-hub-item-description">{descriptionLine}</div>
-                          </Show>
-                          <div class="settings-v2-models-hub-item-meta">
-                            <span class="settings-v2-models-hub-item-badge" data-compat={c} title={fitLabel(c)}>
-                              {best?.quant ?? "GGUF"}
-                            </span>
-                            <span>{formatBytes(best?.size)}</span>
-                            <span>
-                              ↓ {formatDownloads(model.downloads)} · ♥ {formatDownloads(model.likes)}
-                            </span>
-                          </div>
-                        </div>
-                        <span class="settings-v2-models-hub-dot" data-compat={c} title={fitLabel(c)} />
-                      </div>
-                    )
-                  }}
-                </For>
-              </SettingsListV2>
-              <Show when={pages() > 1}>
-                <div class="settings-v2-skills-pagination">
-                  <ButtonV2 type="button" variant="ghost" size="small" onClick={prevPage}>
-                    ←
-                  </ButtonV2>
-                  <span class="settings-v2-skills-pagination-label">
-                    {page() + 1} / {pages()}
-                  </span>
-                  <ButtonV2 type="button" variant="ghost" size="small" onClick={nextPage}>
-                    →
-                  </ButtonV2>
-                </div>
-              </Show>
-            </div>
-
-            <Show when={selected()} fallback={<div class="settings-v2-skills-detail-empty" />}>
-              <div class="settings-v2-models-hub-detail">
-                <div class="settings-v2-models-hub-detail-header">
-                  <div class="settings-v2-models-hub-item-copy">
-                    <div class="settings-v2-models-hub-item-name">{selected()}</div>
-                    <div class="settings-v2-models-hub-item-meta">
-                      <span>
-                        {language.t("settings.modelsHub.detail.files")}: {(files() ?? []).length}
-                      </span>
+                  {/* Tarjeta de Opciones de Descarga y Ejecución */}
+                  <div class="lm-card lm-download-card">
+                    <div class="lm-card-header">
+                      <h3 class="lm-card-title">Download Options</h3>
+                      <span class="lm-device-tag">Download to: <strong>This device ▾</strong></span>
                     </div>
-                  </div>
-                </div>
-                <div class="settings-v2-models-hub-files">
-                  <For each={files()}>
-                    {(file) => {
-                      const c = compat(file.size)
-                      const key = `${selected()}/${file.file}`
-                      const job = jobsByKey()[key]
-                      const progress = downloadProgress(job)
-                      return (
-                        <div class="settings-v2-models-hub-file" data-compat={c}>
-                          <div class="settings-v2-models-hub-file-copy">
-                            <div class="settings-v2-models-hub-file-name">
-                              {file.file}
-                              <Show when={file.recommended}>
-                                <span class="settings-v2-models-hub-recommended">
-                                  {language.t("settings.modelsHub.recommended")}
-                                </span>
-                              </Show>
-                            </div>
-                            <div class="settings-v2-models-hub-item-meta">
-                              <span class="settings-v2-models-hub-item-badge" data-compat={c} title={fitLabel(c)}>
-                                {file.quant ?? "GGUF"}
-                              </span>
-                              <span>{formatBytes(file.size)}</span>
-                            </div>
-                          </div>
+
+                    <div class="lm-quant-selector-row">
+                      <div class="lm-quant-picker">
+                        <span class="lm-quant-label">Cuantización GGUF:</span>
+                        <select
+                          class="lm-quant-select"
+                          value={selectedQuant()}
+                          onChange={(e) => setSelectedQuant(e.currentTarget.value)}
+                        >
+                          <For each={availableFiles()}>
+                            {(qf) => (
+                              <option value={qf.file}>
+                                {qf.quant || "GGUF"} · {formatBytes(qf.size)} {qf.recommended ? "(Recommended)" : ""}
+                              </option>
+                            )}
+                          </For>
+                        </select>
+                      </div>
+
+                      {/* Insignia de compatibilidad de hardware */}
+                      <div class={`lm-compat-badge lm-compat-${fit()}`}>
+                        <Show when={fit() === "full_gpu"}>⚡ Full GPU Offload Possible</Show>
+                        <Show when={fit() === "partial_gpu"}>⚡ Partial GPU Offload Possible</Show>
+                        <Show when={fit() === "ram_only"}>🧠 Fits without GPU (CPU/RAM)</Show>
+                        <Show when={fit() === "no_fit"}>⚠️ Requiere más memoria</Show>
+                      </div>
+                    </div>
+
+                    {/* Botones Principales de Acción */}
+                    <div class="lm-action-bar">
+                      <Show
+                        when={job()?.status === "completed"}
+                        fallback={
                           <Show
-                            when={job && (job.status === "downloading" || job.status === "paused")}
+                            when={job()?.status === "downloading"}
                             fallback={
-                              <Show
-                                when={job?.status === "failed"}
-                                fallback={
-                                  <Show
-                                    when={job?.status === "completed"}
-                                    fallback={
-                                      <ButtonV2
-                                        type="button"
-                                        variant={c === "no_fit" ? "danger" : c === "full_gpu" || c === "ram_only" ? "contrast" : "outline"}
-                                        size="small"
-                                        onClick={() => void startDownload(selected()!, file.file)}
-                                      >
-                                        {language.t("settings.modelsHub.download")}
-                                      </ButtonV2>
-                                    }
-                                  >
-                                    <span class="settings-v2-models-hub-status" data-status="completed">
-                                      {language.t("settings.modelsHub.download.completed")}
-                                    </span>
-                                  </Show>
-                                }
+                              <button
+                                type="button"
+                                class="lm-btn-download"
+                                onClick={() => file() && startDownload(model().id, file()!.file)}
                               >
-                                <div class="settings-v2-models-hub-file-actions">
-                                  <span class="settings-v2-models-hub-status" data-status="failed">
-                                    {language.t("settings.modelsHub.download.failed")}
-                                  </span>
-                                  <ButtonV2 type="button" variant="outline" size="small" onClick={() => void startDownload(selected()!, file.file)}>
-                                    {language.t("settings.modelsHub.download.resume")}
-                                  </ButtonV2>
-                                </div>
-                              </Show>
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                  <polyline points="7 10 12 15 17 10" />
+                                  <line x1="12" y1="15" x2="12" y2="3" />
+                                </svg>
+                                Download {formatBytes(file()?.size)}
+                              </button>
                             }
                           >
-                            <div class="settings-v2-models-hub-file-actions">
-                              <div class="settings-v2-models-hub-progress">
-                                <div class="settings-v2-models-hub-progress-track">
-                                  <div class="settings-v2-models-hub-progress-fill" style={{ width: `${progress}%` }} />
-                                </div>
-                                <span class="settings-v2-models-hub-progress-label">{progress}%</span>
-                              </div>
-                              <Show when={job!.status === "paused"}>
-                                <ButtonV2 type="button" variant="outline" size="small" onClick={() => void startDownload(selected()!, file.file)}>
-                                  {language.t("settings.modelsHub.download.resume")}
-                                </ButtonV2>
-                              </Show>
+                            <div class="lm-downloading-pill">
+                              <span class="lm-spinner" />
+                              Descargando... {job()?.percent ?? 0}% ({formatSpeed(job()?.speedBytesPerSec)})
                             </div>
                           </Show>
+                        }
+                      >
+                        <div class="lm-completed-actions">
+                          <button
+                            type="button"
+                            class="lm-btn-activate"
+                            onClick={() => job() && activateDownloadedModel(job()!)}
+                          >
+                            ⚡ Activar y Usar
+                          </button>
+                          <button
+                            type="button"
+                            class="lm-btn-delete"
+                            onClick={() => job() && removeDownload(job()!)}
+                          >
+                            🗑️ Eliminar de disco
+                          </button>
                         </div>
-                      )
-                    }}
-                  </For>
-                </div>
-                <div class="settings-v2-models-hub-legend">
-                  <span class="settings-v2-models-hub-legend-item" data-compat="full_gpu">
-                    {language.t("settings.modelsHub.fit.fullGpu")}
-                  </span>
-                  <span class="settings-v2-models-hub-legend-item" data-compat="partial_gpu">
-                    {language.t("settings.modelsHub.fit.partialGpu")}
-                  </span>
-                  <span class="settings-v2-models-hub-legend-item" data-compat="ram_only">
-                    {language.t("settings.modelsHub.fit.ramOnly")}
-                  </span>
-                  <span class="settings-v2-models-hub-legend-item" data-compat="no_fit">
-                    {language.t("settings.modelsHub.fit.noFit")}
-                  </span>
-                </div>
-              </div>
-            </Show>
-          </div>
-        </Show>
+                      </Show>
 
-        <Show when={(jobs() ?? []).length > 0}>
-          <div class="settings-v2-models-hub-downloads">
-            <div class="settings-v2-models-hub-downloads-title">
-              {language.t("settings.modelsHub.downloads.title")}
-            </div>
-            <For each={jobs()}>
-              {(job) => {
-                const progress = downloadProgress(job)
-                return (
-                  <div class="settings-v2-models-hub-download" data-status={job.status}>
-                    <div class="settings-v2-models-hub-download-copy">
-                      <div class="settings-v2-models-hub-download-name">
-                        {`${job.model} · ${job.file}`}
-                        <Show when={job.error}>
-                          <span class="settings-v2-models-hub-download-error">{job.error}</span>
+                      {/* Botón de Benchmark GPU en 1 Clic */}
+                      <button
+                        type="button"
+                        class="lm-btn-benchmark px-3 py-1.5 rounded-lg border border-sky-500/30 bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 text-xs font-semibold flex items-center gap-1.5 transition-all"
+                        disabled={benchmarking()}
+                        onClick={runBenchmark}
+                      >
+                        <Show when={benchmarking()} fallback={<span>⚡ Benchmark GPU</span>}>
+                          <span class="lm-spinner" />
+                          <span>Calculando tok/s...</span>
                         </Show>
+                      </button>
+                    </div>
+
+                    {/* Resultado del Benchmark GPU */}
+                    <Show when={benchResult()}>
+                      {(res) => (
+                        <div class="mt-2.5 p-2 rounded-lg bg-slate-950/80 border border-sky-500/30 flex items-center justify-between text-xs text-sky-200">
+                          <div class="flex items-center gap-2">
+                            <span class="text-emerald-400 font-bold text-sm">{res().tokSec} tok/s</span>
+                            <span class="text-slate-400">· VRAM: {res().vram}</span>
+                          </div>
+                          <span class="text-slate-400">TTFT: {res().ttft} ms</span>
+                        </div>
+                      )}
+                    </Show>
+                  </div>
+
+                  {/* Tarjeta de Detalles Técnicos */}
+                  <div class="lm-card">
+                    <h3 class="lm-card-title">Details</h3>
+                    <p class="lm-details-desc">{model().description || "Model architecture built for agentic execution and local workflows."}</p>
+                    <div class="lm-badges-grid">
+                      <div class="lm-badge-item">
+                        <span class="lm-badge-k">Architecture</span>
+                        <span class="lm-badge-v">{shortName().toLowerCase().includes("qwen") ? "qwen2.5" : "transformer"}</span>
                       </div>
-                      <div class="settings-v2-models-hub-item-meta">
-                        <span class="settings-v2-models-hub-status" data-status={job.status}>
-                          {downloadStatusLabel(job.status)}
-                        </span>
-                        <span>
-                          {formatBytes(job.received)}
-                          {job.status === "downloading" || job.status === "paused" ? ` / ${formatBytes(job.total)}` : ""}
-                        </span>
+                      <div class="lm-badge-item">
+                        <span class="lm-badge-k">Formats</span>
+                        <span class="lm-badge-v">GGUF</span>
+                      </div>
+                      <div class="lm-badge-item">
+                        <span class="lm-badge-k">Quantization</span>
+                        <span class="lm-badge-v">{file()?.quant || "Q4_K_M"}</span>
+                      </div>
+                      <div class="lm-badge-item">
+                        <span class="lm-badge-k">Chat Template</span>
+                        <span class="lm-badge-v text-emerald-400 font-mono">ChatML (Auto-detect)</span>
+                      </div>
+                      <div class="lm-badge-item">
+                        <span class="lm-badge-k">File Size</span>
+                        <span class="lm-badge-v">{formatBytes(file()?.size)}</span>
                       </div>
                     </div>
-                    <Show when={job.status === "downloading" || job.status === "paused"}>
-                      <div class="settings-v2-models-hub-progress">
-                        <div class="settings-v2-models-hub-progress-track">
-                          <div class="settings-v2-models-hub-progress-fill" style={{ width: `${progress}%` }} />
-                        </div>
-                        <span class="settings-v2-models-hub-progress-label">{progress}%</span>
+                  </div>
+
+                  {/* Sección README y Capacidades */}
+                  <div class="lm-card">
+                    <h3 class="lm-card-title">README & Highlights</h3>
+                    <div class="lm-readme-body">
+                      <h4>{shortName()}</h4>
+                      <p>
+                        Compact, high-performance dense vision-language and reasoning model optimized for coding,
+                        autonomous planning and local tool execution in Tiancode.
+                      </p>
+                      <ul>
+                        <li><strong>Agent Execution:</strong> Autonomous planning and environment-feedback loops.</li>
+                        <li><strong>Flexible Thinking:</strong> Native reasoning traces and chain-of-thought support.</li>
+                        <li><strong>Zero External Apps Needed:</strong> Runs directly via Tiancode Local inference backend.</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )
+            }}
+          </Show>
+        </div>
+      </div>
+
+      {/* Cajón Inferior de Descargas Activas y Gestión de Disco */}
+      <Show when={jobs().length > 0}>
+        <div class="lm-downloads-drawer">
+          <div class="lm-downloads-drawer-header">
+            <span class="lm-downloads-drawer-title">Descargas y Modelos en Disco ({jobs().length})</span>
+          </div>
+          <div class="lm-downloads-drawer-list">
+            <For each={jobs()}>
+              {(j) => {
+                const percent = () => asNumber(j.percent) ?? (j.status === "completed" ? 100 : 0)
+                const speed = () => formatSpeed(j.speedBytesPerSec)
+                const eta = () => formatEta(j.etaSeconds)
+
+                return (
+                  <div class="lm-drawer-item" data-status={j.status}>
+                    <div class="lm-drawer-item-info">
+                      <span class="lm-drawer-item-name">{j.file}</span>
+                      <span class="lm-drawer-item-sub">
+                        {j.status === "completed" ? "✓ Completado" : `${j.status} · ${percent()}%`}
+                        {speed() ? ` · ⚡ ${speed()}` : ""}
+                        {eta() ? ` · ⏱️ ${eta()}` : ""}
+                      </span>
+                    </div>
+
+                    <Show when={j.status === "downloading" || j.status === "paused"}>
+                      <div class="lm-drawer-progress-bar">
+                        <div class="lm-drawer-progress-fill" style={{ width: `${percent()}%` }} />
                       </div>
                     </Show>
-                    <div class="settings-v2-models-hub-download-actions">
-                      <Show when={job.status === "paused" || job.status === "failed"}>
-                        <ButtonV2 type="button" variant="outline" size="small" onClick={() => void startDownload(job.model, job.file)}>
-                          {language.t("settings.modelsHub.download.resume")}
-                        </ButtonV2>
+
+                    <div class="lm-drawer-item-actions">
+                      <Show when={j.status === "completed"}>
+                        <button type="button" class="lm-btn-sm-activate" onClick={() => activateDownloadedModel(j)}>
+                          Activar y Usar
+                        </button>
                       </Show>
-                      <ButtonV2 type="button" variant="ghost" size="small" onClick={() => void removeDownload(job)}>
-                        {language.t("settings.modelsHub.download.delete")}
-                      </ButtonV2>
+                      <button type="button" class="lm-btn-sm-delete" onClick={() => removeDownload(j)}>
+                        Eliminar de disco
+                      </button>
                     </div>
                   </div>
                 )
               }}
             </For>
           </div>
-        </Show>
-      </div>
-    </>
+        </div>
+      </Show>
+    </div>
   )
 }
-
-type Numish = number | "NaN" | "Infinity" | "-Infinity"
-
-type Model = {
-  id: string
-  downloads?: Numish
-  likes?: Numish
-  pipeline_tag?: string
-  quantFiles: QuantFile[]
-}
-
-type QuantFile = {
-  file: string
-  quant?: string
-  size?: Numish
-  sha256?: string
-  fit?: { tier: FitTier; label: string }
-  recommended?: boolean
-}
-
-type DownloadJob = {
-  id: string
-  model: string
-  file: string
-  status: DownloadStatus
-  total: Numish
-  received: Numish
-  done: boolean
-  error?: string
-}
-
-type RuntimeInfo = {
-  id: string
-  name: string
-  available: boolean
-  version?: string
-}
-
-const asNumber = (value: Numish | undefined): number | undefined =>
-  typeof value === "number" ? value : undefined

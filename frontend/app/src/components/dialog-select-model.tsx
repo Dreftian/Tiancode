@@ -378,19 +378,19 @@ function ModelSelectorPopoverV2View(props: {
       <MenuV2.Portal>
         <MenuV2.Content
           ref={(element: HTMLDivElement) => (contentRef = element)}
-          class="w-[284px] overflow-hidden rounded-md border-0 bg-v2-background-bg-layer-01 !p-0 shadow-[var(--v2-elevation-floating)] focus:outline-none"
+          class="w-[380px] overflow-hidden rounded-lg border border-v2-border-border-muted bg-v2-background-bg-layer-01 !p-0 shadow-[var(--v2-elevation-floating)] focus:outline-none"
           onPointerDownOutside={dismiss.preventTriggerRestore}
           onFocusOutside={dismiss.preventTriggerRestore}
           onCloseAutoFocus={dismiss.onCloseAutoFocus}
         >
-          <div class="flex flex-col p-0.5">
-            <div class="flex h-7 items-center gap-2 rounded-sm pl-3 pr-2.5 text-v2-icon-icon-muted">
+          <div class="flex flex-col p-1.5">
+            <div class="flex h-8 items-center gap-2 rounded-md bg-v2-background-bg-base pl-3 pr-2.5 text-v2-icon-icon-muted border border-v2-border-border-muted">
               <Icon name="magnifying-glass" size="small" class="shrink-0" />
               <input
                 ref={(el) => (searchRef = el)}
                 value={store.search}
                 placeholder={language.t("dialog.model.search.placeholder")}
-                class="h-7 min-w-0 flex-1 border-0 bg-transparent text-[13px] font-[440] leading-5 tracking-[-0.04px] text-v2-text-text-base outline-none placeholder:text-v2-text-text-faint"
+                class="h-8 min-w-0 flex-1 border-0 bg-transparent text-[13px] font-[450] leading-5 text-v2-text-text-base outline-none placeholder:text-v2-text-text-faint"
                 spellcheck={false}
                 autocorrect="off"
                 autocomplete="off"
@@ -437,7 +437,7 @@ function ModelSelectorPopoverV2View(props: {
             </div>
           </div>
           <div class="h-px bg-v2-border-border-muted" />
-          <ScrollView data-slot="model-selector-scroll" class="max-h-[220px] min-h-0">
+          <ScrollView data-slot="model-selector-scroll" class="max-h-[380px] min-h-0">
             <div class="flex flex-col p-0.5 pt-0">
               <Show
                 when={models().length > 0}

@@ -20,6 +20,7 @@
     "random": "echo 'Random script'",
     "sso": "aws sso login --sso-session=opencode --no-browser",
     "translate:app": "bun run backend/tools/script/translate-app.ts",
+    "clean:builds": "powershell -Command \"Remove-Item -Recurse -Force -ErrorAction SilentlyContinue frontend/desktop/dist, frontend/desktop/dist-final, frontend/desktop/out\"",
     "test": "echo 'do not run tests from root' && exit 1"
   },
   "workspaces": {

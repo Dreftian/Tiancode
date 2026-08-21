@@ -279,8 +279,56 @@ code { font-family: var(--mono); background: var(--bg-panel-2); padding: 1px 5px
 
 /* ---------- responsive ---------- */
 
+/* The dashboard usually lives inside Tiancode's resizable Sandbox, so these
+   breakpoints target the iframe width rather than a full desktop monitor. */
 @media (max-width: 1100px) {
-  #layout { grid-template-columns: 220px minmax(0, 1fr); }
-  #right { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--border); max-height: 300px; }
+  #layout {
+    grid-template-columns: minmax(170px, 220px) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+  #right {
+    grid-column: 1 / -1;
+    border-left: 0;
+    border-top: 1px solid var(--border);
+    max-height: min(34vh, 280px);
+  }
   .root { max-width: 140px; }
+}
+
+@media (max-width: 720px) {
+  #topbar {
+    align-items: flex-start;
+    height: auto;
+    min-height: 44px;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    padding: 8px 10px;
+  }
+  .session-info { width: 100%; }
+  #session-select { max-width: min(54vw, 220px); }
+  .root { display: none; }
+  #layout {
+    display: flex;
+    height: auto;
+    min-height: calc(100vh - 76px);
+    flex-direction: column;
+  }
+  #sidebar, #center, #right {
+    flex: none;
+    width: 100%;
+    border-left: 0;
+    border-right: 0;
+  }
+  #sidebar { max-height: 220px; border-bottom: 1px solid var(--border); }
+  #center { min-height: 560px; }
+  #right { max-height: 240px; border-top: 1px solid var(--border); }
+  #preview-pane { min-height: 260px; }
+  #code-pane { min-height: 240px; }
+}
+
+@media (max-width: 440px) {
+  .chip { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  #mode-badge { display: none; }
+  .pane-head { padding-inline: 10px; }
+  .code, .terminal { font-size: 11px; }
 }

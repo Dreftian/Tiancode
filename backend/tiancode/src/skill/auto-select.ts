@@ -86,6 +86,16 @@ async function detectSignals(worktree: string): Promise<Set<string>> {
     if (/typescript|tsx/.test(deps)) signals.add("typescript")
   }
   if (has("tsconfig.json")) signals.add("typescript")
+  if (
+    has("index.html") ||
+    has("tiancode.preview.json") ||
+    has("vite.config.ts") ||
+    has("vite.config.js") ||
+    has("astro.config.mjs") ||
+    entries.some((entry) => /^(?:main|index|App)\.(?:jsx|tsx)$/.test(entry.name))
+  ) {
+    signals.add("web-frontend")
+  }
   if (has("pyproject.toml") || has("requirements.txt") || has("setup.py")) {
     signals.add("python")
     const py = await readText("pyproject.toml")

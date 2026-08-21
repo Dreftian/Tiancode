@@ -33,6 +33,7 @@ import { KeybindV2 } from "@tiancode-ai/ui/v2/keybind-v2"
 import { TooltipV2 } from "@tiancode-ai/ui/v2/tooltip-v2"
 import { fileTreeTooltipKeybind, reviewTooltipKeybind, terminalTooltipKeybind } from "../command-tooltip-keybind"
 import { useTitlebarRightMount } from "../titlebar"
+import { previewPanelOpen, setPreviewPanelOpen, supportsPreviewPanel } from "../preview-panel"
 
 const OPEN_APPS = [
   "vscode",
@@ -249,6 +250,10 @@ export function SessionHeader() {
     liveViewLabel: language.t("liveView.sandbox"),
     liveViewOpened: view().liveView.opened(),
     onLiveViewToggle: () => view().liveView.toggle(),
+    browserVisible: supportsPreviewPanel(platform.platform) && settings.general.showBrowser(),
+    browserOpened: previewPanelOpen(),
+    browserLabel: language.t("preview.open"),
+    onBrowserToggle: () => setPreviewPanelOpen(!previewPanelOpen()),
     panelLabel: language.t("command.fileTree.toggle"),
     panelKeybind: fileTreeTooltipKeybind(command),
     panelOpened: layout.fileTree.opened(),
@@ -547,6 +552,10 @@ type SessionHeaderV2ActionsState = {
   liveViewLabel: string
   liveViewOpened: boolean
   onLiveViewToggle: () => void
+  browserVisible: boolean
+  browserOpened: boolean
+  browserLabel: string
+  onBrowserToggle: () => void
   panelLabel: string
   panelKeybind: string[]
   panelOpened: boolean
@@ -600,6 +609,7 @@ function SessionHeaderV2Actions(props: { state: SessionHeaderV2ActionsState }) {
           icon={<IconV2 name="monitor" />}
         />
       </TooltipV2>
+
       <Show when={props.state.reviewVisible}>
         <TooltipV2
           class="shrink-0"

@@ -9469,6 +9469,7 @@ export type ModelhubRuntimesResponses = {
     name: string
     available: boolean
     version?: string
+    models?: Array<string>
   }>
 }
 
@@ -9517,6 +9518,10 @@ export type ModelhubDownloadsResponses = {
     total: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     received: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     done: boolean
+    speedBytesPerSec?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    percent?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    remainingBytes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    etaSeconds?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
   }>
 }
 
@@ -9568,6 +9573,10 @@ export type ModelhubDownloadResponses = {
     total: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     received: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     done: boolean
+    speedBytesPerSec?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    percent?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    remainingBytes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    etaSeconds?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
   }
 }
 
@@ -10198,6 +10207,208 @@ export type PermissionReplyResponses = {
 }
 
 export type PermissionReplyResponse = PermissionReplyResponses[keyof PermissionReplyResponses]
+
+export type PreviewStatusData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/preview"
+}
+
+export type PreviewStatusErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type PreviewStatusError = PreviewStatusErrors[keyof PreviewStatusErrors]
+
+export type PreviewStatusResponses = {
+  /**
+   * Estado del dev server del proyecto
+   */
+  200: {
+    status: "idle" | "starting" | "ready" | "error" | "stopped"
+    url: string
+    port: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    framework: string
+    packageManager: string
+    command: string
+    errors: Array<{
+      file: string
+      line: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      message: string
+    }>
+    startedAt: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    errorMessage: string
+  }
+}
+
+export type PreviewStatusResponse = PreviewStatusResponses[keyof PreviewStatusResponses]
+
+export type PreviewStartData = {
+  body?: {
+    [key: string]: unknown
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/preview/start"
+}
+
+export type PreviewStartErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type PreviewStartError = PreviewStartErrors[keyof PreviewStartErrors]
+
+export type PreviewStartResponses = {
+  /**
+   * Servidor iniciado
+   */
+  200: {
+    status: "idle" | "starting" | "ready" | "error" | "stopped"
+    url: string
+    port: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    framework: string
+    packageManager: string
+    command: string
+    errors: Array<{
+      file: string
+      line: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      message: string
+    }>
+    startedAt: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    errorMessage: string
+  }
+}
+
+export type PreviewStartResponse = PreviewStartResponses[keyof PreviewStartResponses]
+
+export type PreviewStopData = {
+  body?: {
+    [key: string]: unknown
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/preview/stop"
+}
+
+export type PreviewStopErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type PreviewStopError = PreviewStopErrors[keyof PreviewStopErrors]
+
+export type PreviewStopResponses = {
+  /**
+   * Servidor detenido
+   */
+  200: {
+    status: "idle" | "starting" | "ready" | "error" | "stopped"
+    url: string
+    port: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    framework: string
+    packageManager: string
+    command: string
+    errors: Array<{
+      file: string
+      line: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      message: string
+    }>
+    startedAt: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    errorMessage: string
+  }
+}
+
+export type PreviewStopResponse = PreviewStopResponses[keyof PreviewStopResponses]
+
+export type PreviewRestartData = {
+  body?: {
+    [key: string]: unknown
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/preview/restart"
+}
+
+export type PreviewRestartErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type PreviewRestartError = PreviewRestartErrors[keyof PreviewRestartErrors]
+
+export type PreviewRestartResponses = {
+  /**
+   * Servidor reiniciado
+   */
+  200: {
+    status: "idle" | "starting" | "ready" | "error" | "stopped"
+    url: string
+    port: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    framework: string
+    packageManager: string
+    command: string
+    errors: Array<{
+      file: string
+      line: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      message: string
+    }>
+    startedAt: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    errorMessage: string
+  }
+}
+
+export type PreviewRestartResponse = PreviewRestartResponses[keyof PreviewRestartResponses]
+
+export type PreviewLogsData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/preview/logs"
+}
+
+export type PreviewLogsErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type PreviewLogsError = PreviewLogsErrors[keyof PreviewLogsErrors]
+
+export type PreviewLogsResponses = {
+  /**
+   * Logs recientes del dev server
+   */
+  200: Array<string>
+}
+
+export type PreviewLogsResponse = PreviewLogsResponses[keyof PreviewLogsResponses]
 
 export type ProviderListData = {
   body?: never

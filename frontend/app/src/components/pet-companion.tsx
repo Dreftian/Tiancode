@@ -1,17 +1,13 @@
-import { createMemo, Show } from "solid-js"
+import { createEffect, createMemo, createSignal, Show } from "solid-js"
 import { useParams } from "@solidjs/router"
 import type { Part as MessagePart, TextPart } from "@tiancode-ai/sdk/v2"
 import { useLanguage } from "@/context/language"
 import { useServerSync } from "@/context/server-sync"
-import { useSettings } from "@/context/settings"
+import { petKinds, useSettings } from "@/context/settings"
+import { Pet3DIcon } from "@/components/pet-3d-icons"
 import { resolvePetCompanionStatus, type PetCompanionStatus } from "./pet-companion-state"
+import { speakAutomaticallyWithVoices } from "@/utils/voices"
 import "./pet-companion.css"
-
-const petGlyph = {
-  cat: "🐱",
-  dog: "🐶",
-  rabbit: "🐰",
-} as const
 
 // Texto de la burbuja por estado. El estado "ready" (sesión inactiva o sin
 // sesión abierta) muestra un mensaje de reposo; "running" muestra la acción
@@ -83,27 +79,53 @@ export function PetCompanion() {
     const text = bubbleText() ?? ""
     return text.length > 240 ? text.slice(0, 240) : text
   })
+  const [petted, setPetted] = createSignal(false)
+  const onPet = (e: MouseEvent) => {
+    e.stopPropagation()
+    setPetted(true)
+    setTimeout(() => setPetted(false), 900)
+  }
 
-  return (
-    <Show when={settings.general.petEnabled()}>
-      <div
-        class={`pet-companion pet-companion--${settings.general.petPosition()}`}
-        data-pet-companion
-        data-status={status()}
-        role="status"
-        aria-live="polite"
-        aria-label={label()}
-      >
-        <span class="pet-companion-glyph" aria-hidden="true">
-          {petGlyph[settings.general.petKind()]}
-        </span>
-        <span class="pet-companion-status" aria-hidden="true">
-          {statusGlyph[status()]}
-        </span>
-        <span class="pet-companion-bubble" aria-hidden="true">
-          {bubbleText()}
-        </span>
-      </div>
-    </Show>
-  )
+  // Sincronización continua con la Mascota Flotante de Escritorio en Windows
+  createEffect(() => {
+    const api = (window as unknown as { api?: { pet?: { update: (state: unknown) => Promise<unknown> } } })?.api
+    if (api?.pet) {
+      void api.pet.update({
+        kind: settings.general.petKind(),
+        status: status(),
+        text: bubbleText(),
+        petted: petted(),
+        visible: settings.general.petEnabled() && (settings.general.petDesktop() !== false),
+      })
+    }
+  })
+
+  // Cuando la IA planifica o da contexto de lo que va a hacer, la mascota lo narra con voz femenina
+  let lastSpoken = ""
+  createEffect(() => {
+    const isPetActive = settings.general.petEnabled()
+    const currentAction = actionText().trim()
+    if (
+      isPetActive &&
+      currentAction &&
+      currentAction !== lastSpoken &&
+      currentAction.length > 5 &&
+      status() === "running"
+    ) {
+      lastSpoken = currentAction
+      void speakAutomaticallyWithVoices(`pet:${params.id}:${currentAction.slice(0, 30)}`, currentAction)
+    }
+  })
+
+  const cycleNextPet = (e: MouseEvent) => {
+    e.stopPropagation()
+    const currentIndex = petKinds.indexOf(settings.general.petKind())
+    const nextKind = petKinds[(currentIndex + 1) % petKinds.length]
+    settings.general.setPetKind(nextKind)
+  }
+
+  // La mascota se muestra exclusivamente en el escritorio de Windows (Mascota Flotante Externa),
+  // manteniendo el interior de la ventana de Tiancode 100% limpio y despejado.
+  // La sincronización en vivo de estados, pensamientos y acariciar continúa operando hacia el escritorio.
+  return null
 }

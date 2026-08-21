@@ -2,6 +2,8 @@ import { describe, expect } from "bun:test"
 import { LayerNode } from "@tiancode-ai/core/effect/layer-node"
 import { Effect, Layer } from "effect"
 import { Skill } from "../../src/skill"
+import { Default, hints } from "../../src/command"
+import PROMPT_SPEC_KIT from "../../src/command/template/spec-kit.txt"
 import { Discovery } from "../../src/skill/discovery"
 import { RuntimeFlags } from "../../src/effect/runtime-flags"
 import { EventV2Bridge } from "../../src/event-v2-bridge"
@@ -64,6 +66,28 @@ const withHome = <A, E, R>(home: string, self: Effect.Effect<A, E, R>) =>
   )
 
 describe("skill", () => {
+  it.effect("keeps the Spec Kit command argument-aware", () =>
+    Effect.sync(() => {
+      expect(Default.SPEC_KIT).toBe("spec-kit")
+      expect(hints(PROMPT_SPEC_KIT)).toEqual(["$ARGUMENTS"])
+      expect(PROMPT_SPEC_KIT).toContain("tiancode-spec-kit")
+    }),
+  )
+
+  itWithoutExternalSkills.live("loads Tiancode Spec Kit as a built-in skill", () =>
+    provideTmpdirInstance(
+      () =>
+        Effect.gen(function* () {
+          const skill = yield* Skill.Service
+          const item = yield* skill.require("tiancode-spec-kit")
+          expect(item.location).toBe("<built-in:tiancode-spec-kit>")
+          expect(item.content).toContain("Artifact contract")
+          expect(item.content).toContain("verification.md")
+        }),
+      { git: true },
+    ),
+  )
+
   it.effect("formats verbose locations as XML-safe filesystem paths", () =>
     Effect.sync(() => {
       const output = Skill.fmt(

@@ -1,11 +1,13 @@
 import "@/index.css"
 import * as Sentry from "@sentry/solid"
 import { I18nProvider } from "@tiancode-ai/ui/context"
-import { DialogProvider } from "@tiancode-ai/ui/context/dialog"
+import { DialogProvider, useDialog } from "@tiancode-ai/ui/context/dialog"
 import { FileComponentProvider } from "@tiancode-ai/ui/context/file"
 import { File } from "@tiancode-ai/session-ui/file"
 import { Font } from "@tiancode-ai/ui/font"
 import { Splash } from "@tiancode-ai/ui/logo"
+import { AntigravitySplash } from "@/components/antigravity-splash"
+import { DialogWelcomeSetup, FIRST_LAUNCH_KEY } from "@/components/dialog-welcome-setup"
 import { ThemeProvider } from "@tiancode-ai/ui/theme/context"
 import { MetaProvider } from "@solidjs/meta"
 import {
@@ -65,6 +67,7 @@ import LegacyLayout from "@/pages/layout"
 import NewLayout from "@/pages/layout-new"
 import { ErrorPage } from "./pages/error"
 import { useCheckServerHealth } from "./utils/server-health"
+import { isBenignRendererError } from "./utils/renderer-error"
 import { legacySessionHref, legacySessionServer, requireServerKey, sessionHref } from "./utils/session-route"
 import { createSessionLineage } from "@/pages/session/session-lineage"
 
@@ -138,12 +141,13 @@ const TargetSessionRoute = () => (
 // Wraps the non-draft routes. They are gated on (and keyed to) the globally selected
 // server via ServerKey, then provide the server-scoped shell for that server.
 function SelectedServerProviders(props: ParentProps) {
+  const server = useServer()
   return (
-    <ServerKey>
+    <Show when={server.current} keyed>
       <ServerSDKProvider>
         <ServerSyncProvider>{props.children}</ServerSyncProvider>
       </ServerSDKProvider>
-    </ServerKey>
+    </Show>
   )
 }
 
@@ -257,6 +261,8 @@ declare global {
       backupNow?: () => Promise<string | null>
       listBackups?: () => Promise<{ name: string; createdAt: number }[]>
       restoreBackup?: (name: string) => Promise<void>
+      isFirstLaunchOnboardingPending?: () => Promise<boolean>
+      finishFirstLaunchOnboarding?: (createDefaultProject?: boolean) => Promise<string | null>
       voices?: VoicesAPI
       asr?: AsrAPI
       runtime?: {
@@ -303,8 +309,6 @@ function BodyDesignClass() {
   return null
 }
 
-// Server-agnostic providers shared across every route. These live in the shared
-// shell (router root) so they stay mounted regardless of the active server/route.
 function SharedProviders(props: ParentProps) {
   return (
     <>
@@ -318,12 +322,11 @@ function SharedProviders(props: ParentProps) {
   )
 }
 
-// Captura errores fuera de los límites de componentes (handlers, async, IPC)
-// y los reporta al proceso principal para que queden en el log de la app.
 function GlobalErrorCapture() {
   const platform = usePlatform()
   let last: string | undefined
   const record = (error: string) => {
+    if (isBenignRendererError(error)) return
     if (last === error) return
     last = error
     void platform.recordFatalRendererError?.({
@@ -335,10 +338,21 @@ function GlobalErrorCapture() {
     })
   }
   onMount(() => {
-    const onError = (event: ErrorEvent) => record(event.message)
+    const onError = (event: ErrorEvent) => {
+      if (isBenignRendererError(event.message)) {
+        event.preventDefault()
+        return
+      }
+      record(event.message)
+    }
     const onRejection = (event: PromiseRejectionEvent) => {
       const reason = event.reason
-      record(reason instanceof Error ? reason.message : String(reason))
+      const message = reason instanceof Error ? reason.message : String(reason)
+      if (isBenignRendererError(message)) {
+        event.preventDefault()
+        return
+      }
+      record(message)
     }
     window.addEventListener("error", onError)
     window.addEventListener("unhandledrejection", onRejection)
@@ -406,8 +420,6 @@ function NewAppLayout(props: ParentProps<{ serverScoped?: JSX.Element }>) {
   )
 }
 
-// The draft page only renders the prompt composer, so it drops TerminalProvider.
-// FileProvider and CommentsProvider stay because PromptInput uses file search and comment context.
 function DraftProviders(props: ParentProps) {
   return (
     <FileProvider>
@@ -458,11 +470,11 @@ export function AppBaseProviders(
 function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; startup?: Promise<void> }>) {
   const server = useServer()
   const checkServerHealth = useCheckServerHealth()
+  const dialog = useDialog()
 
   const [checkMode, setCheckMode] = createSignal<"blocking" | "background">("blocking")
+  const [splashFinished, setSplashFinished] = createSignal(false)
 
-  // performs repeated health check with a grace period for
-  // non-http connections, otherwise fails instantly
   const [startupHealthCheck, healthCheckActions] = createResource(() =>
     props.disableHealthCheck
       ? true
@@ -494,11 +506,33 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
   const startupChecking = createMemo(
     () => startupHealthCheck.latest === true && ["unresolved", "pending"].includes(startup.state),
   )
-  const loading = createMemo(() => checking() || startupChecking())
+  const [firstLaunchActive, setFirstLaunchActive] = createSignal(false)
+  const loading = createMemo(() => checking() || startupChecking() || !splashFinished())
+
+  onMount(() => {
+    const handleOpen = () => setFirstLaunchActive(true)
+    window.addEventListener("tiancode:open-welcome-setup", handleOpen)
+    onCleanup(() => window.removeEventListener("tiancode:open-welcome-setup", handleOpen))
+  })
+
+  const handleSplashDone = async () => {
+    setSplashFinished(true)
+    try {
+      const isElectronPending = (await window.api?.isFirstLaunchOnboardingPending?.()) === true
+      const isLocalPending = !localStorage.getItem(FIRST_LAUNCH_KEY)
+      if (isElectronPending || isLocalPending) {
+        setFirstLaunchActive(true)
+      }
+    } catch {
+      if (!localStorage.getItem(FIRST_LAUNCH_KEY)) {
+        setFirstLaunchActive(true)
+      }
+    }
+  }
 
   return (
     <>
-      <Show when={!checking()}>
+      <Show when={!checking() && splashFinished() && !firstLaunchActive()}>
         <Show
           when={startupHealthCheck.latest}
           fallback={
@@ -517,10 +551,16 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
           {props.children}
         </Show>
       </Show>
-      <Show when={loading()}>
-        <div class="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background-base">
-          <Splash class="w-16 h-20 opacity-50 animate-pulse" />
+
+      {/* Standalone First Launch Setup Screen (shown before the app is visible) */}
+      <Show when={firstLaunchActive()}>
+        <div class="fixed inset-0 z-[99998] flex items-center justify-center bg-[#070b14]/90 backdrop-blur-md p-4 select-none">
+          <DialogWelcomeSetup onDone={() => setFirstLaunchActive(false)} />
         </div>
+      </Show>
+
+      <Show when={loading()}>
+        <AntigravitySplash version="1.0.90" onComplete={() => void handleSplashDone()} />
       </Show>
     </>
   )
@@ -592,9 +632,6 @@ export function AppInterface(props: {
   startup?: Promise<void>
   serverScoped?: JSX.Element
 }) {
-  // The visual new layout lives in the router root so it remains mounted across
-  // route changes. Draft and session routes override only their server-bound data
-  // providers beneath it.
   const ServerShell = (shellProps: ParentProps) => (
     <QueryProvider>
       <SharedProviders>
@@ -685,3 +722,4 @@ function NewLayoutLegacySessionRedirect() {
     </Show>
   )
 }
+
