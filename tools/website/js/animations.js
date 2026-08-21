@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    Tiancode — Website animations
    Loader, animaciones de entrada (IntersectionObserver),
    partículas del hero y contadores animados.
@@ -108,6 +108,25 @@ function tickParticles() {
   const dpr = window.devicePixelRatio || 1;
   particlesCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
   particlesCtx.clearRect(0, 0, cssW, cssH);
+
+  // Proximity connection lines
+  for (let i = 0; i < parts.length; i++) {
+    for (let j = i + 1; j < parts.length; j++) {
+      const dx = parts[i].x - parts[j].x;
+      const dy = parts[i].y - parts[j].y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 88) {
+        const lineAlpha = (1 - dist / 88) * 0.16;
+        particlesCtx.beginPath();
+        particlesCtx.moveTo(parts[i].x, parts[i].y);
+        particlesCtx.lineTo(parts[j].x, parts[j].y);
+        particlesCtx.strokeStyle = 'rgba(99, 102, 241, ' + lineAlpha.toFixed(3) + ')';
+        particlesCtx.lineWidth = 0.8;
+        particlesCtx.stroke();
+      }
+    }
+  }
+
   parts.forEach(function (p) {
     p.x += p.vx;
     p.y += p.vy;
@@ -129,6 +148,53 @@ function startParticles() {
   rafId = requestAnimationFrame(tickParticles);
 }
 
+/* ---------- 3D Mouse Tilt interactivo (Hero & Cards) ---------- */
+function init3DTilt() {
+  if (reducedMotion) return;
+  const heroVisual = document.querySelector('.hero-visual');
+  const heroWindow = document.querySelector('.hero-window');
+  const heroSection = document.getElementById('hero');
+
+  if (heroSection && heroWindow) {
+    let mouseX = 0, mouseY = 0;
+    let currRx = 0, currRy = 0;
+    let isHovering = false;
+
+    heroSection.addEventListener('mousemove', function (e) {
+      const rect = heroSection.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width - 0.5;
+      const y = (e.clientY - rect.top) / rect.height - 0.5;
+      mouseX = x;
+      mouseY = y;
+      isHovering = true;
+
+      const winRect = heroWindow.getBoundingClientRect();
+      const gx = ((e.clientX - winRect.left) / winRect.width) * 100;
+      const gy = ((e.clientY - winRect.top) / winRect.height) * 100;
+      heroWindow.style.setProperty('--glare-x', gx.toFixed(1) + '%');
+      heroWindow.style.setProperty('--glare-y', gy.toFixed(1) + '%');
+    });
+
+    heroSection.addEventListener('mouseleave', function () {
+      isHovering = false;
+      mouseX = 0;
+      mouseY = 0;
+    });
+
+    function tiltLoop() {
+      const targetRx = isHovering ? -mouseY * 16 : 0;
+      const targetRy = isHovering ? mouseX * 18 : 0;
+      currRx += (targetRx - currRx) * 0.1;
+      currRy += (targetRy - currRy) * 0.1;
+
+      heroWindow.style.setProperty('--tilt-rx', currRx.toFixed(2) + 'deg');
+      heroWindow.style.setProperty('--tilt-ry', currRy.toFixed(2) + 'deg');
+      requestAnimationFrame(tiltLoop);
+    }
+    requestAnimationFrame(tiltLoop);
+  }
+}
+
 /* ---------- Parallax sutil del hero (scroll) ---------- */
 function initParallax() {
   if (reducedMotion) return;
@@ -140,10 +206,8 @@ function initParallax() {
   function update() {
     ticking = false;
     const rect = hero.getBoundingClientRect();
-    // Solo mientras el hero esté dentro del viewport
     if (rect.bottom < 0 || rect.top > window.innerHeight) return;
     const progress = Math.min(Math.max(-rect.top, 0), window.innerHeight);
-    // El fondo (blobs + rejilla) se mueve más lento; el contenido, casi nada
     heroBg.style.transform = 'translate3d(0,' + (progress * 0.12).toFixed(1) + 'px,0)';
     heroInner.style.transform = 'translate3d(0,' + (progress * 0.05).toFixed(1) + 'px,0)';
   }
@@ -179,7 +243,7 @@ export function initAnimations() {
   initReveal();
   startParticles();
   initParallax();
-  // Reinicia las partículas al volver a la home
+  init3DTilt();
   document.addEventListener('tiancode:home', function () {
     requestAnimationFrame(startParticles);
   });
