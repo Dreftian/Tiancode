@@ -193,6 +193,21 @@ function init3DTilt() {
     }
     requestAnimationFrame(tiltLoop);
   }
+
+  // 3D Card Hover Tilt
+  document.querySelectorAll('.feature-card, .new-card, .showcase-window').forEach(function (card) {
+    card.addEventListener('mousemove', function (e) {
+      const rect = card.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width - 0.5;
+      const y = (e.clientY - rect.top) / rect.height - 0.5;
+      const rx = -y * 6;
+      const ry = x * 6;
+      card.style.transform = 'perspective(800px) rotateX(' + rx.toFixed(2) + 'deg) rotateY(' + ry.toFixed(2) + 'deg) translateY(-5px)';
+    });
+    card.addEventListener('mouseleave', function () {
+      card.style.transform = '';
+    });
+  });
 }
 
 /* ---------- Parallax sutil del hero (scroll) ---------- */

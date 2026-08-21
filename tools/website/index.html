@@ -351,9 +351,9 @@
           <p class="section-sub" data-i18n="features.sub">Una app de escritorio compacta y potente, diseñada para el flujo de trabajo real de desarrolladores.</p>
         </div>
 
-                <div class="features-grid">
+        <div class="features-grid">
           <!-- Agentes (tarjeta grande con terminal simulada) -->
-          <article class="feature-card card-7 reveal" style="--rd:0s">
+          <article class="feature-card card-7 reveal" data-feature-id="agents" style="--rd:0s">
             <span class="feature-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -370,9 +370,10 @@
                 <p class="term-line" data-i18n="mock.line4">▸ Fix aplicado · tests TDD en verde ✓</p>
               </div>
             </div>
+            <span class="card-action-bar">Explorar simulación interactiva <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span>
           </article>
 
-          <article class="feature-card card-5 reveal" style="--rd:.05s">
+          <article class="feature-card card-5 reveal" data-feature-id="models" style="--rd:.05s">
             <span class="feature-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -381,9 +382,10 @@
             </span>
             <h3 data-i18n="f.models.title">Modelos locales GGUF</h3>
             <p data-i18n="f.models.desc">Descarga y ejecuta modelos de IA locales desde HuggingFace, al estilo LM Studio. Sin nube, sin límites.</p>
+            <span class="card-action-bar">Ver asignación VRAM y tokens <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span>
           </article>
 
-          <article class="feature-card card-4 reveal" style="--rd:.05s">
+          <article class="feature-card card-4 reveal" data-feature-id="github" style="--rd:.05s">
             <span class="feature-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/>
@@ -391,9 +393,10 @@
             </span>
             <h3>GitHub integrado</h3>
             <p>Conecta tu cuenta de GitHub, clona o crea repositorios y haz commit, push y pull sin salir de la app ni abrir el navegador.</p>
+            <span class="card-action-bar">Ver flujo Git Worktrees <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span>
           </article>
 
-          <article class="feature-card card-4 reveal" style="--rd:.1s">
+          <article class="feature-card card-4 reveal" data-feature-id="mcp" style="--rd:.1s">
             <span class="feature-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
@@ -401,9 +404,10 @@
             </span>
             <h3>Servidores MCP</h3>
             <p>Conecta herramientas externas con Model Context Protocol: presets locales, un catálogo Discover con 15 servidores populares y estado en vivo.</p>
+            <span class="card-action-bar">Ver catálogo MCP <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span>
           </article>
 
-          <article class="feature-card card-4 reveal" style="--rd:.1s">
+          <article class="feature-card card-4 reveal" data-feature-id="skills" style="--rd:.1s">
             <span class="feature-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
@@ -411,20 +415,22 @@
             </span>
             <h3 data-i18n="f.skills.title">52+ skills de ingeniería</h3>
             <p data-i18n="f.skills.desc">Entrevistas de requisitos, TDD, code review, seguridad, rendimiento, CI/CD, planning y frontend — listos para usar.</p>
+            <span class="card-action-bar">Ver lista de skills <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span>
           </article>
 
-          <article class="feature-card card-3 reveal" style="--rd:.1s">
+          <article class="feature-card card-3 reveal" data-feature-id="providers" style="--rd:.1s">
             <span class="feature-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"/>
               </svg>
             </span>
             <h3 data-i18n="f.providers.title">Multi-proveedor</h3>
             <p data-i18n="f.providers.desc">Conecta OpenAI, Anthropic y otros proveedores — o combínalos con modelos locales.</p>
+            <span class="card-action-bar">Ver proveedores <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span>
           </article>
 
-          <article class="feature-card card-3 reveal" style="--rd:.12s">
+          <article class="feature-card card-3 reveal" data-feature-id="terminal" style="--rd:.12s">
             <span class="feature-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
@@ -432,9 +438,10 @@
             </span>
             <h3 data-i18n="f.terminal.title">Terminal integrada</h3>
             <p data-i18n="f.terminal.desc">Ejecuta comandos, aplica cambios y ve resultados sin salir de la conversación.</p>
+            <span class="card-action-bar">Ver comandos <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span>
           </article>
 
-          <article class="feature-card card-3 reveal" style="--rd:.14s">
+          <article class="feature-card card-3 reveal" data-feature-id="portable" style="--rd:.14s">
             <span class="feature-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
@@ -443,9 +450,10 @@
             </span>
             <h3 data-i18n="f.portable.title">Modo portable</h3>
             <p data-i18n="f.portable.desc">Lleva Tiancode en un USB: sin instalación, configurado y listo en cualquier PC Windows.</p>
+            <span class="card-action-bar">Guía portable <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span>
           </article>
 
-          <article class="feature-card card-3 reveal" style="--rd:.16s">
+          <article class="feature-card card-3 reveal" data-feature-id="more" style="--rd:.16s">
             <span class="feature-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/>
@@ -456,6 +464,7 @@
             </span>
             <h3 data-i18n="f.more.title">Y mucho más</h3>
             <p data-i18n="f.more.desc">Atajos de teclado personalizables, tema claro y oscuro, autocompletado y ajustes finos para cada skill.</p>
+            <span class="card-action-bar">Explorar atajos <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span>
           </article>
         </div>
       </div>
@@ -472,185 +481,177 @@
 
         <div class="new-grid">
           <!-- GitHub -->
-          <article class="new-card reveal" style="--rd:0s">
-            <span class="feature-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/>
-              </svg>
-            </span>
-            <h3>GitHub integrado</h3>
-            <p>La pestaña GitHub de Configuración conecta tu cuenta sin salir de la app: inicia sesión una vez y Tiancode lista tus repositorios, muestra el estado del remoto y trabaja con tu proyecto como si estuvieras en la web de GitHub. Clona repositorios existentes, crea otros nuevos desde una plantilla y haz commit, push y pull directamente desde la conversación — sin navegador, sin cambiar de ventana.</p>
-            <div class="new-chips">
-              <span class="new-chip">Conectar cuenta</span>
-              <span class="new-chip">Clonar repos</span>
-              <span class="new-chip">Crear repos</span>
-              <span class="new-chip">Commit</span>
-              <span class="new-chip">Push</span>
-              <span class="new-chip">Pull</span>
-              <span class="new-chip">Estado del remoto</span>
+          <article class="new-card reveal" data-feature-id="github" style="--rd:0s">
+            <div>
+              <span class="feature-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/>
+                </svg>
+              </span>
+              <h3>GitHub integrado</h3>
+              <p>Conecta tu cuenta de GitHub, lista repositorios, clona proyectos y haz commit, push y pull directamente desde la app.</p>
+              <div class="new-chips">
+                <span class="new-chip">Conectar cuenta</span>
+                <span class="new-chip">Clonar repos</span>
+                <span class="new-chip">Commit &amp; Push</span>
+              </div>
             </div>
+            <span class="card-action-bar">Ver flujo GitHub <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span>
           </article>
 
           <!-- MCP Servers -->
-          <article class="new-card reveal" style="--rd:.04s">
-            <span class="feature-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              </svg>
-            </span>
-            <h3>Servidores MCP</h3>
-            <p>Conecta herramientas externas mediante el Model Context Protocol. La pestaña MCP Servers trae 8 presets locales listos para usar y un catálogo Discover con 15 servidores populares — locales como Playwright o Chrome DevTools y remotos como Canva, Circle o AWS Knowledge. Cada servidor muestra su estado en vivo con grupos de Conectado, Errores, Desactivado y Desconocido, y el número de herramientas disponibles.</p>
-            <div class="new-chips">
-              <span class="new-chip new-chip--brand">filesystem</span>
-              <span class="new-chip new-chip--brand">fetch</span>
-              <span class="new-chip new-chip--brand">memory</span>
-              <span class="new-chip new-chip--brand">sequential-thinking</span>
-              <span class="new-chip new-chip--brand">time</span>
-              <span class="new-chip new-chip--brand">playwright</span>
-              <span class="new-chip new-chip--brand">context7</span>
-              <span class="new-chip new-chip--brand">git</span>
-              <span class="new-chip">+15 en Discover: canva, circle, appwrite, apollo, awsknowledge…</span>
+          <article class="new-card reveal" data-feature-id="mcp" style="--rd:.04s">
+            <div>
+              <span class="feature-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+              </span>
+              <h3>Servidores MCP</h3>
+              <p>8 presets locales y catálogo Discover con 15 servidores: Playwright, Chrome CDP, Canva, Circle y NotebookLM con estado en vivo.</p>
+              <div class="new-chips">
+                <span class="new-chip new-chip--brand">filesystem</span>
+                <span class="new-chip new-chip--brand">playwright</span>
+                <span class="new-chip new-chip--brand">notebooklm</span>
+                <span class="new-chip">+15 Discover</span>
+              </div>
+              <div class="new-status" aria-label="Estados en vivo de los servidores MCP">
+                <span><i class="st-ok"></i>Conectado</span>
+                <span><i class="st-err"></i>Errores</span>
+                <span><i class="st-off"></i>Desactivado</span>
+              </div>
             </div>
-            <div class="new-status" aria-label="Estados en vivo de los servidores MCP">
-              <span><i class="st-ok"></i>Conectado</span>
-              <span><i class="st-err"></i>Errores</span>
-              <span><i class="st-off"></i>Desactivado</span>
-              <span><i class="st-unk"></i>Desconocido</span>
-            </div>
+            <span class="card-action-bar">Ver catálogo MCP <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span>
           </article>
 
           <!-- 52+ skills -->
-          <article class="new-card reveal" style="--rd:.08s">
-            <span class="feature-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <article class="new-card reveal" data-feature-id="skills" style="--rd:.08s">
+            <div>
+              <span class="feature-icon" aria-hidden="true">
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-              </svg>
-            </span>
-            <h3>52+ skills de ingeniería</h3>
-            <p>El catálogo integrado creció hasta 52+ skills reales de ingeniería de software, las mismas que usa la línea de comandos de Tiancode. Actívalas una a una con un toggle: cada skill define el flujo de trabajo que sigue el agente, desde planificar una tarea hasta auditar la seguridad de tu código.</p>
-            <div class="new-chips">
-              <span class="new-chip">frontend-design</span>
-              <span class="new-chip">writing-plans</span>
-              <span class="new-chip">grill-me</span>
-              <span class="new-chip">test-driven-development</span>
-              <span class="new-chip">planning-and-task-breakdown</span>
-              <span class="new-chip">using-git-worktrees</span>
-              <span class="new-chip">security-and-hardening</span>
-              <span class="new-chip">performance-optimization</span>
-              <span class="new-chip">code-review-and-quality</span>
-              <span class="new-chip">verification-before-completion</span>
-              <span class="new-chip">research</span>
-              <span class="new-chip">skill-creator</span>
-              <span class="new-chip new-chip--brand">+40 más</span>
+              </span>
+              <h3>52+ skills de ingeniería</h3>
+              <p>El catálogo integrado incluye TDD, code review, seguridad, rendimiento, planificación y frontend listos con un solo clic.</p>
+              <div class="new-chips">
+                <span class="new-chip">frontend-design</span>
+                <span class="new-chip">test-driven-development</span>
+                <span class="new-chip">security-and-hardening</span>
+                <span class="new-chip new-chip--brand">+40 más</span>
+              </div>
             </div>
+            <span class="card-action-bar">Explorar skills <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span>
           </article>
 
           <!-- Plugins -->
-          <article class="new-card reveal" style="--rd:.1s">
-            <span class="feature-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>
-              </svg>
-            </span>
-            <h3>Plugins</h3>
-            <p>Extiende Tiancode con apps npm o plugins locales en un clic: un catálogo integrado con @biomejs/biome, @octokit/rest, @slack/web-api, @notionhq/client y utilidades propias como env-guard o commit-helper.</p>
-            <div class="new-chips">
-              <span class="new-chip">@biomejs/biome</span>
-              <span class="new-chip">@octokit/rest</span>
-              <span class="new-chip">@slack/web-api</span>
-              <span class="new-chip">env-guard</span>
-              <span class="new-chip">commit-helper</span>
-              <span class="new-chip">shell-env</span>
+          <article class="new-card reveal" data-feature-id="plugins" style="--rd:.1s">
+            <div>
+              <span class="feature-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>
+                </svg>
+              </span>
+              <h3>Plugins</h3>
+              <p>Extiende Tiancode con apps npm o plugins locales: Biome linter, Octokit, Slack, Notion y env-guard en un clic.</p>
+              <div class="new-chips">
+                <span class="new-chip">@biomejs/biome</span>
+                <span class="new-chip">@octokit/rest</span>
+                <span class="new-chip">env-guard</span>
+              </div>
             </div>
+            <span class="card-action-bar">Ver plugins <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span>
           </article>
 
           <!-- Sub-Agentes -->
-          <article class="new-card reveal" style="--rd:.12s">
-            <span class="feature-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-              </svg>
-            </span>
-            <h3>Sub-agentes</h3>
-            <p>Crea subagentes estilo ZCode: elige el modo (primary o subagente), el modelo, un color de los 8 disponibles y un system prompt propio. Controla qué herramientas puede usar cada uno, con permisos finos entre las de lectura y las sensibles de escritura.</p>
-            <div class="new-chips">
-              <span class="new-chip">8 colores</span>
-              <span class="new-chip">9 herramientas</span>
-              <span class="new-chip">Permisos por herramienta</span>
-              <span class="new-chip">System prompt</span>
+          <article class="new-card reveal" data-feature-id="subagents" style="--rd:.12s">
+            <div>
+              <span class="feature-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+              </span>
+              <h3>Sub-agentes</h3>
+              <p>Crea subagentes especializados con color personalizado, permisos granulares de lectura/escritura y prompts aislados.</p>
+              <div class="new-chips">
+                <span class="new-chip">8 colores</span>
+                <span class="new-chip">Permisos finos</span>
+                <span class="new-chip">System prompt</span>
+              </div>
             </div>
+            <span class="card-action-bar">Ver orquestación <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span>
           </article>
 
           <!-- Voces TTS -->
-          <article class="new-card reveal" style="--rd:.14s">
-            <span class="feature-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
-              </svg>
-            </span>
-            <h3>Voces TTS</h3>
-            <p>Escucha las respuestas en voz alta con el modelo de voz kokoro incluido: voces femeninas primero, en español, inglés, francés, hindi, italiano, japonés, portugués y chino. Y dicta en vez de escribir con el botón de micrófono.</p>
-            <div class="new-chips">
-              <span class="new-chip">Español</span>
-              <span class="new-chip">English</span>
-              <span class="new-chip">Français</span>
-              <span class="new-chip">हिन्दी</span>
-              <span class="new-chip">Italiano</span>
-              <span class="new-chip">日本語</span>
-              <span class="new-chip">Português</span>
-              <span class="new-chip">中文</span>
+          <article class="new-card reveal" data-feature-id="voice" style="--rd:.14s">
+            <div>
+              <span class="feature-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+              </span>
+              <h3>Voces TTS</h3>
+              <p>Escucha respuestas en voz alta con Kokoro TTS offline en 8 idiomas y dicta código con Whisper ONNX sin internet.</p>
+              <div class="new-chips">
+                <span class="new-chip">Español</span>
+                <span class="new-chip">English</span>
+                <span class="new-chip">Français</span>
+                <span class="new-chip">+5 idiomas</span>
+              </div>
             </div>
+            <span class="card-action-bar">Probar sintetizador <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span>
           </article>
 
           <!-- Bandeja del sistema -->
-          <article class="new-card reveal" style="--rd:.16s">
-            <span class="feature-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="15" width="18" height="4" rx="1"/><line x1="6" y1="15" x2="6" y2="11"/><line x1="12" y1="15" x2="12" y2="7"/><line x1="18" y1="15" x2="18" y2="9"/>
-              </svg>
-            </span>
-            <h3>Bandeja del sistema</h3>
-            <p>Minimiza Tiancode a la bandeja del sistema y sigue teniéndolo a mano: un clic en el icono y vuelves a tu conversación exactamente donde la dejaste, sin perder el contexto.</p>
-            <div class="new-chips">
-              <span class="new-chip">Minimizar a bandeja</span>
-              <span class="new-chip">Acceso rápido</span>
+          <article class="new-card reveal" data-feature-id="tray" style="--rd:.16s">
+            <div>
+              <span class="feature-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="15" width="18" height="4" rx="1"/><line x1="6" y1="15" x2="6" y2="11"/><line x1="12" y1="15" x2="12" y2="7"/><line x1="18" y1="15" x2="18" y2="9"/>
+                </svg>
+              </span>
+              <h3>Bandeja del sistema</h3>
+              <p>Minimiza Tiancode a la bandeja de Windows con consumo reducido (&lt;18 MB) y restaura la ventana al instante.</p>
+              <div class="new-chips">
+                <span class="new-chip">Segundo plano</span>
+                <span class="new-chip">Atajo global</span>
+              </div>
             </div>
+            <span class="card-action-bar">Ver integración <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span>
           </article>
 
           <!-- Onboarding -->
-          <article class="new-card reveal" style="--rd:.18s">
-            <span class="feature-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 2L2 7l10 5 10-5-10-5z"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
-              </svg>
-            </span>
-            <h3>Onboarding guiado</h3>
-            <p>El primer arranque te recibe con un asistente: lee el disclaimer de uso responsable de la IA, elige tu tema (claro u oscuro) y tu idioma antes de escribir tu primera línea de código.</p>
-            <div class="new-chips">
-              <span class="new-chip">Disclaimer</span>
-              <span class="new-chip">Tema claro/oscuro</span>
-              <span class="new-chip">Idioma</span>
+          <article class="new-card reveal" data-feature-id="onboarding" style="--rd:.18s">
+            <div>
+              <span class="feature-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
+                </svg>
+              </span>
+              <h3>Onboarding guiado</h3>
+              <p>Asistente de primer arranque: disclaimer ético, selección de tema (claro/oscuro) e idioma antes de codear.</p>
+              <div class="new-chips">
+                <span class="new-chip">Disclaimer</span>
+                <span class="new-chip">Tema &amp; Idioma</span>
+              </div>
             </div>
+            <span class="card-action-bar">Ver asistente <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span>
           </article>
 
           <!-- Identidad renovada -->
-          <article class="new-card reveal" style="--rd:.2s">
-            <span class="feature-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/>
-              </svg>
-            </span>
-            <h3>Identidad renovada</h3>
-            <p>Tiancode estrena logo: el robot con tres ojos y boca, en blanco y negro, listo para brillar en cualquier tema — claro u oscuro.</p>
-            <svg class="new-mark" viewBox="0 0 256 256" fill="none" aria-hidden="true">
-              <path d="M229.81 168.288s-.338-2.075-.536-2.056l-37.653 3.633a6.119 6.119 0 00-5.533 5.681l-1.034 14.826-29.13 2.078-1.982-13.437c-.441-2.989-3.051-5.242-6.072-5.242h-39.74c-3.02 0-5.63 2.253-6.071 5.242l-1.983 13.437-29.13-2.078-1.034-14.826a6.12 6.12 0 00-5.533-5.682l-37.672-3.632c-.195-.019-.337 2.058-.532 2.058l-.05 8.148 31.904 5.145 1.044 14.959c.212 3.028 2.655 5.477 5.685 5.694l40.119 2.862c.152.01.301.017.451.017 3.015 0 5.621-2.254 6.062-5.243l2.039-13.826h29.143l2.039 13.826c.44 2.988 3.049 5.242 6.068 5.242.148 0 .296-.006.44-.016l40.124-2.862c3.029-.217 5.473-2.666 5.685-5.694l1.043-14.959 31.891-5.167-.052-8.128z" fill="currentColor"/>
-              <path d="M26.175 106.847v61.441c.112.001.224.005.336.016l37.667 3.631a4.057 4.057 0 013.657 3.756l1.162 16.628 32.857 2.344 2.264-15.346c.293-1.99 2-3.465 4.012-3.465h39.741a4.055 4.055 0 014.011 3.465l2.264 15.346 32.858-2.344 1.161-16.628a4.058 4.058 0 013.657-3.756l37.653-3.631a3.72 3.72 0 01.335-.016v-4.903l.015-.005v-56.533c5.304-6.678 10.327-14.043 14.175-20.24-5.881-10.01-13.086-18.957-20.788-27.246-7.143 3.595-14.081 7.668-20.634 12.003-3.279-3.26-6.973-5.926-10.6-8.713-3.564-2.863-7.581-4.962-11.391-7.407 1.134-8.447 1.695-16.763 1.921-25.442-9.83-4.947-20.313-8.227-30.916-10.583-4.233 7.115-8.104 14.82-11.476 22.352-3.998-.668-8.015-.916-12.037-.964v-.006c-.029 0-.055.006-.078.006-.025 0-.051-.006-.076-.006v.006c-4.03.048-8.044.296-12.043.964-3.37-7.532-7.239-15.237-11.478-22.352-10.598 2.356-21.082 5.636-30.91 10.583.224 8.68.785 16.995 1.922 25.442-3.817 2.446-7.828 4.544-11.394 7.407-3.622 2.787-7.322 5.453-10.602 8.713-6.553-4.335-13.489-8.408-20.634-12.003C25.084 67.65 17.883 76.596 12 86.607c4.623 7.257 9.582 14.551 14.175 20.24z" fill="currentColor"/>
-              <path d="M196.018 179.681l-1.167 16.716a4.057 4.057 0 01-3.758 3.763l-40.122 2.863a4.057 4.057 0 01-4.301-3.455l-2.301-15.604h-32.738l-2.301 15.604a4.053 4.053 0 01-4.301 3.455l-40.122-2.863a4.058 4.058 0 01-3.758-3.763l-1.166-16.716-33.87-3.266c.015 3.64.062 7.628.062 8.422 0 35.772 45.378 52.965 101.756 53.163h.138c56.379-.198 101.741-17.391 101.741-53.163 0-.808.049-4.78.065-8.422l-33.857 3.266z" fill="currentColor"/>
-              <path d="M97.304 131.788c0 12.542-10.162 22.702-22.7 22.702-12.532 0-22.697-10.16-22.697-22.702 0-12.534 10.165-22.688 22.697-22.688 12.538 0 22.7 10.154 22.7 22.688z" fill="var(--bg)"/>
-              <path d="M91.842 133.134c0 8.319-6.743 15.062-15.068 15.062-8.32 0-15.068-6.743-15.068-15.062 0-8.319 6.747-15.067 15.068-15.067 8.325 0 15.068 6.748 15.068 15.067z" fill="currentColor"/>
-              <path d="M127.998 156.555c-4.035 0-7.306-2.974-7.306-6.64v-20.898c0-3.663 3.271-6.64 7.306-6.64 4.036 0 7.314 2.977 7.314 6.64v20.898c0 3.666-3.278 6.64-7.314 6.64z" fill="currentColor"/><path d="M158.697 131.788c0 12.542 10.162 22.702 22.702 22.702 12.53 0 22.694-10.16 22.694-22.702 0-12.534-10.164-22.688-22.694-22.688-12.54 0-22.702 10.154-22.702 22.688z" fill="var(--bg)"/>
-              <path d="M164.16 133.134c0 8.319 6.74 15.062 15.059 15.062 8.328 0 15.068-6.743 15.068-15.062 0-8.319-6.74-15.067-15.068-15.067-8.319 0-15.059 6.748-15.059 15.067z" fill="currentColor"/>
-            </svg>
+          <article class="new-card reveal" data-feature-id="identity" style="--rd:.2s">
+            <div>
+              <span class="feature-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/>
+                </svg>
+              </span>
+              <h3>Identidad renovada</h3>
+              <p>Tiancode estrena logo vectorizado: el robot con tres ojos y boca, optimizado para alto contraste en tema claro y oscuro.</p>
+              <div class="new-chips">
+                <span class="new-chip">Vector SVG</span>
+                <span class="new-chip">Tema dual</span>
+              </div>
+            </div>
+            <span class="card-action-bar">Ver diseño <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span>
           </article>
         </div>
       </div>
@@ -754,18 +755,19 @@
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                   <span>AST CodeGraph · 3 archivos analizados con auto-reparación</span>
                 </div>
-                <div class="code-diff-block">
+                <div class="code-diff-block" id="ast-diff-block">
                   <div class="diff-line diff-del"><span>-</span> <span>export async function verifyToken(token: string): Promise&lt;boolean&gt; {</span></div>
                   <div class="diff-line diff-del"><span>-</span> <span>  return jwt.verify(token, process.env.SECRET);</span></div>
                   <div class="diff-line diff-add"><span>+</span> <span>export async function verifyToken(token: string): Promise&lt;SessionUser&gt; {</span></div>
                   <div class="diff-line diff-add"><span>+</span> <span>  const payload = await jwtVerify(token, getKey(), { algorithms: ['ES256'] });</span></div>
                   <div class="diff-line diff-add"><span>+</span> <span>  return validateSessionSchema(payload);</span></div>
                 </div>
-                <div style="font-size:12px;color:var(--text-3);display:flex;gap:16px;flex-wrap:wrap;">
-                  <span>▸ 2 vulnerabilidades corregidas</span>
+                <div style="font-size:12px;color:var(--text-3);display:flex;gap:16px;flex-wrap:wrap;align-items:center;">
+                  <span id="ast-status-text">▸ 2 vulnerabilidades corregidas</span>
                   <span>▸ 36/36 tests unitarios en verde ✓</span>
                   <span style="color:#10b981;">▸ 0 errores de lint</span>
                 </div>
+                <button type="button" id="ast-fix-btn" class="btn btn-primary btn-sm" style="align-self:flex-start;margin-top:4px;font-size:12px;padding:6px 14px;">⚡ Simular Auto-Reparación AST</button>
               </div>
             </div>
           </div>
@@ -776,36 +778,43 @@
               <div class="models-vram-bar">
                 <div class="vram-header">
                   <span>Asignación de Memoria VRAM / GPU</span>
-                  <span style="color:#10b981;font-weight:700;">8.4 GB / 12.0 GB VRAM (🟢 100% GPU Offload)</span>
+                  <span id="vram-status-badge" style="color:#10b981;font-weight:700;">8.4 GB / 12.0 GB VRAM (🟢 100% GPU Offload)</span>
                 </div>
                 <div class="vram-meter-track">
-                  <div class="vram-meter-fill"></div>
+                  <div id="vram-fill" class="vram-meter-fill" style="width: 70%;"></div>
+                </div>
+                <div class="vram-slider-control">
+                  <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-2);margin-top:6px;">
+                    <span>Ajustar VRAM GPU asignada:</span>
+                    <strong id="vram-slider-val" style="color:var(--accent);">12 GB VRAM</strong>
+                  </div>
+                  <input type="range" id="vram-slider-input" class="vram-slider-input" min="4" max="24" value="12" step="1">
                 </div>
               </div>
               <div class="models-grid-showcase">
-                <div class="model-card-showcase">
+                <div class="model-card-showcase" data-feature-id="models">
                   <div style="display:flex;justify-content:space-between;align-items:center;">
                     <strong style="font-size:14px;">Qwen 2.5 Coder 32B</strong>
                     <span class="hero-win-pill" style="font-size:9px;">Q4_K_M</span>
                   </div>
                   <p style="margin:0;font-size:12px;color:var(--text-2);">Modelo especializado en generación de código, refactorizaciones complejas y arquitecturas.</p>
-                  <span style="font-size:11.5px;color:var(--accent-2);font-weight:600;">⚡ 54.2 tokens/seg</span>
+                  <span id="model-qwen-speed" style="font-size:11.5px;color:var(--accent-2);font-weight:600;">⚡ 54.2 tokens/seg</span>
                 </div>
-                <div class="model-card-showcase">
+                <div class="model-card-showcase" data-feature-id="models">
                   <div style="display:flex;justify-content:space-between;align-items:center;">
                     <strong style="font-size:14px;">DeepSeek Coder V2</strong>
                     <span class="hero-win-pill" style="font-size:9px;">Q8_0</span>
                   </div>
                   <p style="margin:0;font-size:12px;color:var(--text-2);">Precisión matemática superior para algoritmos, análisis estático y TDD.</p>
-                  <span style="font-size:11.5px;color:var(--accent-2);font-weight:600;">⚡ 68.1 tokens/seg</span>
+                  <span id="model-deepseek-speed" style="font-size:11.5px;color:var(--accent-2);font-weight:600;">⚡ 68.1 tokens/seg</span>
                 </div>
-                <div class="model-card-showcase">
+                <div class="model-card-showcase" data-feature-id="models">
                   <div style="display:flex;justify-content:space-between;align-items:center;">
                     <strong style="font-size:14px;">Llama 3.3 70B Instruct</strong>
                     <span class="hero-win-pill" style="font-size:9px;">IQ4_XS</span>
                   </div>
                   <p style="margin:0;font-size:12px;color:var(--text-2);">Razonamiento conversacional profundo, diseño de API y redacción técnica.</p>
-                  <span style="font-size:11.5px;color:var(--accent-2);font-weight:600;">⚡ 32.4 tokens/seg</span>
+                  <span id="model-llama-speed" style="font-size:11.5px;color:var(--accent-2);font-weight:600;">⚡ 32.4 tokens/seg</span>
                 </div>
               </div>
             </div>
@@ -816,7 +825,7 @@
             <div class="live-preview-split">
               <div class="live-code-pane">
                 <span style="color:var(--text-3);font-size:11px;">// src/components/HeroCard.tsx</span>
-                <pre style="margin:0;color:var(--text);line-height:1.6;"><code>&lt;<span style="color:#60a5fa">div</span> className="<span style="color:#f472b6">glow-card p-6</span>"&gt;
+                <pre style="margin:0;color:var(--text);line-height:1.6;"><code id="live-code-sample">&lt;<span style="color:#60a5fa">div</span> className="<span style="color:#f472b6">glow-card p-6</span>"&gt;
   &lt;<span style="color:#60a5fa">h3</span> className="<span style="color:#f472b6">text-xl font-bold</span>"&gt;
     Tiancode Live Preview
   &lt;/<span style="color:#60a5fa">h3</span>&gt;
@@ -829,13 +838,13 @@
                 <div class="preview-browser-bar">
                   <span class="appwin-dots"><span></span><span></span><span></span></span>
                   <span style="flex:1;text-align:center;">http://localhost:3000/app</span>
-                  <span style="color:#10b981;font-size:10px;font-weight:700;">HMR 4ms</span>
+                  <span id="hmr-counter-badge" style="color:#10b981;font-size:10px;font-weight:700;">HMR 4ms</span>
                 </div>
-                <div class="preview-rendered-ui">
-                  <div class="inspector-highlight-box">&lt;HeroCard /&gt; · 320x180</div>
-                  <div style="padding:16px 20px;border-radius:12px;background:var(--accent-soft);border:1px solid var(--accent);text-align:center;">
-                    <strong style="display:block;margin-bottom:4px;font-size:14px;">Tiancode Live Preview</strong>
-                    <span style="font-size:12px;color:var(--text-2);">HMR instantáneo sin parpadeos.</span>
+                <div class="preview-rendered-ui" id="preview-interactive-box" style="cursor:pointer;" title="Click para interactuar con el componente">
+                  <div class="inspector-highlight-box">&lt;HeroCard /&gt; · 320x180 (Click para alternar estilo)</div>
+                  <div id="preview-render-inner" style="padding:16px 20px;border-radius:12px;background:var(--accent-soft);border:1px solid var(--accent);text-align:center;transition:all 0.2s ease;">
+                    <strong id="preview-render-title" style="display:block;margin-bottom:4px;font-size:14px;">Tiancode Live Preview</strong>
+                    <span id="preview-render-sub" style="font-size:12px;color:var(--text-2);">HMR instantáneo sin parpadeos.</span>
                   </div>
                 </div>
               </div>
@@ -845,7 +854,7 @@
           <!-- Panel 4: MCP Suite -->
           <div id="panel-mcp" class="showcase-panel">
             <div class="mcp-suite-view">
-              <div class="mcp-tool-card">
+              <div class="mcp-tool-card" data-feature-id="mcp">
                 <div style="display:flex;justify-content:space-between;align-items:center;">
                   <strong>Google NotebookLM</strong>
                   <span class="mcp-badge-status"><i></i> Activo</span>
@@ -853,7 +862,7 @@
                 <p style="margin:0;font-size:12px;color:var(--text-2);">Síntesis documental, búsqueda de fuentes estructuradas y generación de resúmenes.</p>
                 <span style="font-size:11px;color:var(--text-3);">12 fuentes indexadas · 0.2ms</span>
               </div>
-              <div class="mcp-tool-card">
+              <div class="mcp-tool-card" data-feature-id="mcp">
                 <div style="display:flex;justify-content:space-between;align-items:center;">
                   <strong>Playwright Browser</strong>
                   <span class="mcp-badge-status"><i></i> Activo</span>
@@ -861,7 +870,7 @@
                 <p style="margin:0;font-size:12px;color:var(--text-2);">Navegación web automatizada, scraping dinámico y tests de regresión visual.</p>
                 <span style="font-size:11px;color:var(--text-3);">Headless Chromium · 0.4ms</span>
               </div>
-              <div class="mcp-tool-card">
+              <div class="mcp-tool-card" data-feature-id="mcp">
                 <div style="display:flex;justify-content:space-between;align-items:center;">
                   <strong>Chrome DevTools</strong>
                   <span class="mcp-badge-status"><i></i> Activo</span>
@@ -869,7 +878,7 @@
                 <p style="margin:0;font-size:12px;color:var(--text-2);">Auditoría de rendimiento, análisis de red e inspección remota del DOM.</p>
                 <span style="font-size:11px;color:var(--text-3);">CDP Protocol · 0.1ms</span>
               </div>
-              <div class="mcp-tool-card">
+              <div class="mcp-tool-card" data-feature-id="mcp">
                 <div style="display:flex;justify-content:space-between;align-items:center;">
                   <strong>Adobe Photoshop &amp; Unity</strong>
                   <span class="mcp-badge-status"><i></i> Activo</span>
@@ -883,7 +892,7 @@
           <!-- Panel 5: Voice Studio -->
           <div id="panel-voice" class="showcase-panel">
             <div class="voice-studio-view">
-              <div class="voice-wave-container" aria-label="Visualizador de onda de audio en tiempo real">
+              <div class="voice-wave-container" id="voice-wave-bars" aria-label="Visualizador de onda de audio en tiempo real">
                 <span class="voice-wave-bar"></span>
                 <span class="voice-wave-bar"></span>
                 <span class="voice-wave-bar"></span>
@@ -893,17 +902,21 @@
                 <span class="voice-wave-bar"></span>
                 <span class="voice-wave-bar"></span>
               </div>
-              <div style="text-align:center;max-width:480px;">
+              <div style="text-align:center;max-width:480px;display:flex;flex-direction:column;align-items:center;">
                 <div class="hero-badge" style="margin-bottom:12px;">
                   <span class="badge-dot"></span>
                   <span>Kokoro TTS &amp; Sherpa-ONNX Whisper (Offline)</span>
                 </div>
-                <p style="margin:0;font-size:14px;color:var(--text-2);">
+                <p id="voice-speech-phrase" style="margin:0;font-size:14px;color:var(--text-2);line-height:1.6;">
                   "Refactoriza la función de autenticación y asegura compatibilidad con JWT."
                 </p>
                 <span style="display:block;margin-top:8px;font-size:11.5px;color:#10b981;font-weight:600;">
                   Transcrito en 120ms sin conexión a internet
                 </span>
+                <button type="button" id="voice-play-demo-btn" class="voice-play-btn" style="margin-top:16px;">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  <span id="voice-play-demo-text">▶ Probar Voz Kokoro</span>
+                </button>
               </div>
             </div>
           </div>
@@ -1046,6 +1059,24 @@
             <span>Incidentes y observabilidad</span>
           </li>
         </ul>
+
+        <!-- Inspector interactivo de skill seleccionada -->
+        <div id="skill-inspector" class="skill-inspector-box" style="display:none;" aria-live="polite">
+          <div class="skill-inspector-head">
+            <div class="skill-inspector-title">
+              <span class="feature-icon" style="width:36px;height:36px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></span>
+              <span id="skill-inspector-name">Test-Driven Development (TDD)</span>
+            </div>
+            <span class="skill-inspector-badge" id="skill-inspector-badge">⚡ Skill Oficial Tiancode</span>
+          </div>
+          <p id="skill-inspector-desc" style="margin:0;font-size:14px;color:var(--text-2);line-height:1.6;">
+            Aplica ciclo estricto Red-Green-Refactor escribiendo primero los tests fallidos antes de tocar el código de producción.
+          </p>
+          <div class="skill-inspector-prompt">
+            <div style="font-size:11px;color:var(--text-3);margin-bottom:6px;">COMANDO / INVOCACIÓN:</div>
+            <code id="skill-inspector-cmd">tiancode --skill test-driven-development --run "Implementa validación de tokens"</code>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -1864,6 +1895,41 @@ tiancode --version           # Muestra la versión instalada</code></pre>
       </div>
     </div>
   </footer>
+
+  <!-- ================= Modal Interactivo de Características ================= -->
+  <div id="feature-modal" class="feature-modal-backdrop" aria-hidden="true">
+    <div class="feature-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="feature-modal-head">
+        <div class="feature-modal-head-left">
+          <div class="feature-modal-icon" id="modal-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <div>
+            <h3 class="feature-modal-title" id="modal-title">Título</h3>
+            <span class="feature-modal-category" id="modal-category">Categoría</span>
+          </div>
+        </div>
+        <button type="button" class="feature-modal-close" id="modal-close" aria-label="Cerrar modal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="feature-modal-body">
+        <p class="feature-modal-desc" id="modal-desc">Descripción</p>
+        <div class="feature-modal-code-box">
+          <div class="feature-modal-code-header">
+            <span id="modal-code-title">Terminal / Configuración</span>
+            <span>CLI / JSON</span>
+          </div>
+          <pre class="feature-modal-code-pre"><code id="modal-code-content">$ tiancode --help</code></pre>
+        </div>
+        <div class="feature-modal-chips-grid" id="modal-chips"></div>
+      </div>
+      <div class="feature-modal-footer">
+        <a href="#preview" class="btn btn-secondary btn-sm" id="modal-studio-btn">Ver en Studio</a>
+        <a href="recursos/descargas.html" class="btn btn-primary btn-sm">Descargar Tiancode</a>
+      </div>
+    </div>
+  </div>
 
   <script type="module" src="js/main.js"></script>
 </body>
