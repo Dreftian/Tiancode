@@ -19,6 +19,7 @@ import { SettingsGithubV2 } from "./github"
 import { SettingsIntelligenceV2 } from "./intelligence"
 import { SettingsEcosystemV2 } from "./ecosystem"
 import { SettingsVoicesV2 } from "./voices"
+import { SettingsPluginsV2 } from "./plugins"
 import "./settings-v2.css"
 import { SettingsServersV2 } from "./servers"
 import { useDialog } from "@tiancode-ai/ui/context/dialog"
@@ -132,6 +133,10 @@ export const DialogSettings: Component<{
                       <Icon name="mcp" />
                       {language.t("settings.tab.mcpServers")}
                     </TabsV2.Trigger>
+                    <TabsV2.Trigger value="plugins">
+                      <Icon name="plugin" />
+                      {language.t("settings.tab.plugins")}
+                    </TabsV2.Trigger>
                   </div>
                 </div>
                 <div class="flex flex-col gap-1.5">
@@ -197,6 +202,9 @@ export const DialogSettings: Component<{
         </TabsV2.Content>
         <TabsV2.Content value="mcp-servers" class="settings-v2-panel">
           <SettingsMcpServersV2 directory={directory()} />
+        </TabsV2.Content>
+        <TabsV2.Content value="plugins" class="settings-v2-panel">
+          <SettingsPluginsV2 directory={directory()} />
         </TabsV2.Content>
         <TabsV2.Content value="browser" class="settings-v2-panel">
           <SettingsBrowserV2 />

@@ -103,9 +103,12 @@ export function DesktopFirstLaunchOnboarding(props: { initialUrl: string; onLoad
       <div class="onboarding-overlay" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
         <div class="onboarding-card">
           <div class="onboarding-card-header">
-            <span class="onboarding-kicker">
-              {language.t("onboarding.step", { current: step() === "disclaimer" ? 1 : 2, total: 2 })}
-            </span>
+            <div style={{ display: "flex", "align-items": "center", gap: "10px", "margin-bottom": "4px" }}>
+              <CatMascotIcon />
+              <span class="onboarding-kicker">
+                {language.t("onboarding.step", { current: step() === "disclaimer" ? 1 : 2, total: 2 })}
+              </span>
+            </div>
             <h1 id="onboarding-title" class="onboarding-title">
               {step() === "disclaimer"
                 ? language.t("onboarding.title")
@@ -240,3 +243,25 @@ function GlobeIcon() {
     </svg>
   )
 }
+
+function CatMascotIcon() {
+  return (
+    <div style={{ width: "28px", height: "28px", "border-radius": "8px", background: "linear-gradient(135deg, #00d2ff, #3b82f6)", padding: "1px", display: "flex", "align-items": "center", "justify-content": "center", "flex-shrink": 0 }}>
+      <div style={{ width: "100%", height: "100%", background: "#070b16", "border-radius": "7px", display: "flex", "align-items": "center", "justify-content": "center", padding: "3px" }}>
+        <svg viewBox="0 0 100 100" style={{ width: "100%", height: "100%", fill: "white" }}>
+          <polygon points="18,12 36,44 14,48" fill="currentColor" />
+          <polygon points="82,12 86,48 64,44" fill="currentColor" />
+          <path d="M22,38 C32,24 68,24 78,38 C88,52 88,78 72,90 C58,98 42,98 28,90 C12,78 12,52 22,38 Z" fill="currentColor" />
+          <polygon points="34,44 44,54 34,64 24,54" fill="#070b16" />
+          <polygon points="66,44 76,54 66,64 56,54" fill="#070b16" />
+          <polygon points="50,62 44,56 56,56" fill="#070b16" />
+          <line x1="8" y1="62" x2="26" y2="64" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+          <line x1="6" y1="70" x2="26" y2="70" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+          <line x1="92" y1="62" x2="74" y2="64" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+          <line x1="94" y1="70" x2="74" y2="70" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+        </svg>
+      </div>
+    </div>
+  )
+}
+
