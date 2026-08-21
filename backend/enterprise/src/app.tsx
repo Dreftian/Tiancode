@@ -2,7 +2,6 @@ import { Router } from "@solidjs/router"
 import { FileRoutes } from "@solidjs/start/router"
 import { Font } from "@tiancode-ai/ui/font"
 import { MetaProvider } from "@solidjs/meta"
-import { MarkedProvider } from "@tiancode-ai/ui/context/marked"
 import { DialogProvider } from "@tiancode-ai/ui/context/dialog"
 import { I18nProvider } from "@tiancode-ai/ui/context"
 import { pluralCategory, pluralKey, type UiI18nParams, type UiI18nPluralKey } from "@tiancode-ai/ui/context/i18n"
@@ -80,13 +79,11 @@ export default function App() {
       root={(props) => (
         <MetaProvider>
           <DialogProvider>
-            <MarkedProvider>
-              <Favicon />
-              <Font />
-              <UiI18nBridge>
-                <Suspense>{props.children}</Suspense>
-              </UiI18nBridge>
-            </MarkedProvider>
+            <Favicon />
+            <Font />
+            <UiI18nBridge>
+              <Suspense>{props.children}</Suspense>
+            </UiI18nBridge>
           </DialogProvider>
         </MetaProvider>
       )}
