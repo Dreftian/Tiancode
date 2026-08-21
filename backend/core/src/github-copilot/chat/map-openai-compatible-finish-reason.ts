@@ -13,6 +13,10 @@ export function mapOpenAICompatibleFinishReason(
     case "function_call":
     case "tool_calls":
       return "tool-calls"
+    case "error":
+    case "network_error":
+    case "network-error":
+      return "error"
     default:
       return "other"
   }

@@ -375,11 +375,13 @@ const fromRequest = Effect.fn("OpenAIChat.fromRequest")(function* (request: LLMR
 // Streaming parsers are small state machines: every event returns a new state
 // plus the common `LLMEvent`s produced by that event. Tool calls are accumulated
 // because OpenAI streams JSON arguments across multiple deltas.
-const mapFinishReason = (reason: string | null | undefined): FinishReason => {
+const mapFinishReason = (reason: string | null | undefined): FinishReason | undefined => {
+  if (!reason || reason === "null") return undefined
   if (reason === "stop") return "stop"
   if (reason === "length") return "length"
   if (reason === "content_filter") return "content-filter"
   if (reason === "function_call" || reason === "tool_calls") return "tool-calls"
+  if (reason === "error" || reason === "network_error" || reason === "network-error") return "error"
   return "unknown"
 }
 
