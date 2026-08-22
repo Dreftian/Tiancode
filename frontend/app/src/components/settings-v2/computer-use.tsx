@@ -11,11 +11,10 @@ import { showToast } from "@/utils/toast"
 import { Persist, persisted } from "@/utils/persist"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
-import { SettingsPluginsV2 } from "./plugins"
 
 type McpConfigValue = McpLocalConfig | McpRemoteConfig | { enabled: boolean }
 type PermissionMap = Record<string, "ask" | "allow" | "deny">
-type ComputerUseTab = "control" | "vision" | "plugins" | "bridges"
+type ComputerUseTab = "toolkit" | "profiles" | "vision" | "bridges"
 
 const isLocalServer = (config: McpConfigValue): config is McpLocalConfig =>
   "type" in config && config.type === "local"
@@ -27,16 +26,20 @@ export const SettingsComputerUseV2: Component<{
   const serverSdk = useServerSDK()
   const settings = useSettings()
   const [saving, setSaving] = createSignal(false)
-  const [activeTab, setActiveTab] = createSignal<ComputerUseTab>("control")
+  const [activeTab, setActiveTab] = createSignal<ComputerUseTab>("toolkit")
 
   // Persistent advanced OS Agent settings
   const [osPrefs, setOsPrefs] = persisted(
     Persist.global("tiancode.computer-use.preferences"),
     createStore({
+      profile: "developer" as "developer" | "designer" | "automation" | "safe",
       visualOverlay: true,
       safeZoneProtected: true,
+      clipboardSync: true,
+      autoFocusWindows: true,
       speedPreset: "balanced" as "turbo" | "balanced" | "safe",
       displayTarget: "primary" as "primary" | "active" | "all",
+      screenshotOcr: true,
     }),
   )
 
@@ -85,6 +88,7 @@ export const SettingsComputerUseV2: Component<{
       await serverSdk().client.config.update({ ...params(), config: { permission } })
       settings.general.setComputerUseAutoApprove(enabled)
       void refetchConfig()
+      showToast({ variant: "success", title: "Permisos de Uso de PC actualizados" })
     } catch {
       showToast({ variant: "error", title: language.t("settings.computerUse.save.failed") })
     } finally {
@@ -92,14 +96,21 @@ export const SettingsComputerUseV2: Component<{
     }
   }
 
+  const profileOptions = () => [
+    { id: "developer" as const, label: "🚀 Modo Desarrollador (Foco en IDE, Terminal y Git)" },
+    { id: "designer" as const, label: "🎨 Modo Diseñador UI (Foco en Figma, Pixels y Layouts)" },
+    { id: "automation" as const, label: "⚡ Modo Automatización E2E (Flujos guiados continuos)" },
+    { id: "safe" as const, label: "🛡️ Modo Seguro (Confirmación obligatoria para cada acción)" },
+  ]
+
   const speedOptions = () => [
-    { id: "turbo" as const, label: "Turbo (30ms - Rápido)" },
-    { id: "balanced" as const, label: "Balanceado (150ms - Humano)" },
-    { id: "safe" as const, label: "Cauteloso (500ms - Paso a paso)" },
+    { id: "turbo" as const, label: "Turbo (30ms - Rápido para scripts y macros)" },
+    { id: "balanced" as const, label: "Balanceado (150ms - Cadencia humana estándar)" },
+    { id: "safe" as const, label: "Paso a paso (500ms - Verificación visual frame a frame)" },
   ]
 
   const displayOptions = () => [
-    { id: "primary" as const, label: "Monitor Principal (1920×1080)" },
+    { id: "primary" as const, label: "Monitor Principal (1920×1080 / 4K)" },
     { id: "active" as const, label: "Ventana Activa en Foco" },
     { id: "all" as const, label: "Escritorio Completo (Multi-Monitor)" },
   ]
@@ -115,25 +126,76 @@ export const SettingsComputerUseV2: Component<{
             value={activeTab()}
             onChange={(val) => val && setActiveTab(val as ComputerUseTab)}
           >
-            <SegmentedControlItemV2 value="control">Control de PC</SegmentedControlItemV2>
-            <SegmentedControlItemV2 value="vision">Visión & Pantalla</SegmentedControlItemV2>
-            <SegmentedControlItemV2 value="plugins">Plugins & Hooks</SegmentedControlItemV2>
-            <SegmentedControlItemV2 value="bridges">Bridges Locales</SegmentedControlItemV2>
+            <SegmentedControlItemV2 value="toolkit">🛠️ Herramientas de PC</SegmentedControlItemV2>
+            <SegmentedControlItemV2 value="profiles">⚙️ Perfiles & Permisos</SegmentedControlItemV2>
+            <SegmentedControlItemV2 value="vision">👁️ Visión & Pantalla</SegmentedControlItemV2>
+            <SegmentedControlItemV2 value="bridges">🔌 Bridges Locales</SegmentedControlItemV2>
           </SegmentedControlV2>
         </div>
         <p class="settings-v2-tab-description">
-          {activeTab() === "control" && "Configura permisos de ejecución autónoma, cadencia de clics y zonas seguras para el agente en Windows."}
+          {activeTab() === "toolkit" && "Herramientas de productividad del agente: sincronización de portapapeles, foco de ventanas y capturas de pantalla de depuración."}
+          {activeTab() === "profiles" && "Perfiles de automatización para programadores, cadencia de interacción y protección de aplicaciones sensibles."}
           {activeTab() === "vision" && "Ajustes de captura óptica de pantalla, indicador visual de clics y resolución adaptativa del agente."}
-          {activeTab() === "plugins" && "Extiende el agente con paquetes npm o archivos de plugin locales que se enganchan a los eventos del ciclo de vida."}
           {activeTab() === "bridges" && "Conexión directa con aplicaciones instaladas en tu PC para automatización y control de escritorio."}
         </p>
       </div>
 
       <div class="settings-v2-tab-body">
-        <Show when={activeTab() === "control"}>
+        <Show when={activeTab() === "toolkit"}>
           <div class="settings-v2-section">
-            <h3 class="settings-v2-section-title">{language.t("settings.computerUse.section.permissions")}</h3>
+            <h3 class="settings-v2-section-title">Herramientas de Productividad del Agente</h3>
             <SettingsListV2>
+              <SettingsRowV2
+                title="Sincronización Inteligente de Portapapeles"
+                description="Permite que el agente lea o escriba código y snippets directamente desde/hacia el portapapeles de Windows."
+              >
+                <Switch
+                  checked={osPrefs.clipboardSync}
+                  onChange={(checked) => setOsPrefs("clipboardSync", checked)}
+                />
+              </SettingsRowV2>
+
+              <SettingsRowV2
+                title="Auto-Foco de Ventanas en Errores de Código"
+                description="Trae automáticamente la terminal o el IDE al frente cuando se detecta un fallo de compilación o test roto."
+              >
+                <Switch
+                  checked={osPrefs.autoFocusWindows}
+                  onChange={(checked) => setOsPrefs("autoFocusWindows", checked)}
+                />
+              </SettingsRowV2>
+
+              <SettingsRowV2
+                title="Captura Óptica con Reconocimiento OCR"
+                description="Extrae texto, trazas de error y elementos de interfaz directamente de capturas de pantalla para alimentar el contexto."
+              >
+                <Switch
+                  checked={osPrefs.screenshotOcr}
+                  onChange={(checked) => setOsPrefs("screenshotOcr", checked)}
+                />
+              </SettingsRowV2>
+            </SettingsListV2>
+          </div>
+        </Show>
+
+        <Show when={activeTab() === "profiles"}>
+          <div class="settings-v2-section">
+            <h3 class="settings-v2-section-title">Perfil de Operación & Permisos</h3>
+            <SettingsListV2>
+              <SettingsRowV2
+                title="Perfil de Operación del Agente"
+                description="Adapta la conducta del agente según la tarea que estés realizando (programación, diseño o automatización)."
+              >
+                <SelectV2
+                  appearance="base"
+                  options={profileOptions()}
+                  current={profileOptions().find((o) => o.id === osPrefs.profile)}
+                  value={(o) => o.id}
+                  label={(o) => o.label}
+                  onSelect={(o) => o && setOsPrefs("profile", o.id)}
+                />
+              </SettingsRowV2>
+
               <SettingsRowV2
                 title={language.t("settings.computerUse.autoApprove")}
                 description={language.t("settings.computerUse.autoApprove.description")}
@@ -145,7 +207,7 @@ export const SettingsComputerUseV2: Component<{
 
               <SettingsRowV2
                 title="Zona Segura (Protección de Aplicaciones Críticas)"
-                description="Bloquea clics automáticos en gestores de contraseñas, banca y ventanas con privilegios elevados de Administrador."
+                description="Bloquea automáticamente clics o interacciones en gestores de contraseñas, banca online y ventanas elevadas de Administrador."
               >
                 <Switch
                   checked={osPrefs.safeZoneProtected}
@@ -203,10 +265,6 @@ export const SettingsComputerUseV2: Component<{
           </div>
         </Show>
 
-        <Show when={activeTab() === "plugins"}>
-          <SettingsPluginsV2 directory={props.directory} />
-        </Show>
-
         <Show when={activeTab() === "bridges"}>
           <div class="settings-v2-section">
             <h3 class="settings-v2-section-title">{language.t("settings.computerUse.section.apps")}</h3>
@@ -239,4 +297,3 @@ export const SettingsComputerUseV2: Component<{
     </>
   )
 }
-
