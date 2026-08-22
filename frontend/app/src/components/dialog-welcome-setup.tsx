@@ -52,7 +52,7 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
   }
 
   const isEs = () => selectedLocale() === "es"
-  const version = () => platform.version || "1.0.93"
+  const version = () => platform.version || "1.0.95"
 
   return (
     <div class="relative w-full max-w-[560px] rounded-3xl bg-[#090d1a]/95 border border-white/12 shadow-[0_24px_64px_rgba(0,0,0,0.7)] p-7 flex flex-col gap-6 text-slate-100 backdrop-blur-2xl animate-fade-in z-10 select-none overflow-hidden">

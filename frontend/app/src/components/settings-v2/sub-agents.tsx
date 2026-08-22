@@ -21,6 +21,24 @@ import "./sub-agents.css"
 
 const SPECIALIZED_PRESETS = [
   {
+    name: "software-architect",
+    role: "Software & System Architect",
+    description: "Diseño modular de sistemas, patrones de diseño limpios, domain-driven design y arquitectura desacoplada.",
+    prompt: "Eres un arquitecto de software senior de élite. Diseñas sistemas limpios, modulares y altamente escalables. Evalúas trade-offs arquitectónicos, defines límites de módulos y garantizas que el código cumpla con los principios SOLID y clean architecture.",
+    color: "#3B82F6",
+    icon: "🏛️",
+    tools: ["Read", "Grep", "Glob", "Write", "Edit"],
+  },
+  {
+    name: "fullstack-coder",
+    role: "Fullstack Senior Engineer",
+    description: "Implementación ágil de features completas de frontend, backend, APIs y bases de datos.",
+    prompt: "Eres un ingeniero fullstack senior. Implementas requerimientos de inicio a fin con código robusto, tipado estricto en TypeScript/Rust/Go/Python, integración fluida de APIs y componentes limpios.",
+    color: "#8B5CF6",
+    icon: "⚡",
+    tools: ["Read", "Grep", "Glob", "Edit", "Write", "Bash"],
+  },
+  {
     name: "devsecops-auditor",
     role: "DevSecOps Auditor",
     description: "Auditoría estricta de dependencias, CVEs, fugas de secretos y seguridad estática de código.",
@@ -37,6 +55,15 @@ const SPECIALIZED_PRESETS = [
     color: "#EC4899",
     icon: "🎨",
     tools: ["Read", "Grep", "Glob", "Edit", "Write"],
+  },
+  {
+    name: "performance-optimizer",
+    role: "Performance & Bundle Optimizer",
+    description: "Perfilado de rendimiento, reducción de latencia, optimización de bundles y tiempos de carga.",
+    prompt: "Eres un especialista senior en rendimiento y optimización. Identificas cuellos de botella de CPU y memoria, optimizas bundles, eliminas re-renders innecesarios y aceleras tiempos de respuesta.",
+    color: "#F97316",
+    icon: "🚀",
+    tools: ["Read", "Grep", "Glob", "Edit", "Bash"],
   },
   {
     name: "database-architect",

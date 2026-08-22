@@ -9,7 +9,7 @@
 
 ### *El Asistente de IA Autónomo y Local-First para Programar en Windows*
 
-[![Versión](https://img.shields.io/badge/versión-v1.0.93-00d2ff.svg?style=flat-square)](https://github.com/Dreftian/Tiancode/releases/latest)
+[![Versión](https://img.shields.io/badge/versión-v1.0.95-00d2ff.svg?style=flat-square)](https://github.com/Dreftian/Tiancode/releases/latest)
 [![Plataforma](https://img.shields.io/badge/plataforma-Windows%2010%20%7C%2011%20(64--bit)-0078D4?style=flat-square&logo=windows)](https://github.com/Dreftian/Tiancode/releases/latest)
 [![Sitio Web](https://img.shields.io/badge/sitio%20web-tiancode.vercel.app-10b981.svg?style=flat-square&logo=vercel)](https://tiancode.vercel.app/)
 [![Licencia](https://img.shields.io/badge/licencia-MIT-blue.svg?style=flat-square)](LICENSE)
