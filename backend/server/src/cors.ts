@@ -1,4 +1,5 @@
 import { Context } from "effect"
+import { Flag } from "@tiancode-ai/core/flag/flag"
 
 // Exact production origins the web app and marketing site are served from.
 // Enumerated from the repo: frontend/web deploys to https://opencode.ai
@@ -17,8 +18,15 @@ export const CorsConfig = Context.Reference<CorsOptions | undefined>("@tiancode/
 
 export function isAllowedCorsOrigin(input: string | undefined, opts?: CorsOptions) {
   if (!input) return true
-  if (input.startsWith("http://localhost:")) return true
-  if (input.startsWith("http://127.0.0.1:")) return true
+  if (input.startsWith("http://localhost:") || input.startsWith("http://127.0.0.1:")) {
+    // Cualquier página servida desde un puerto local (un dev server del
+    // proyecto, o una web maliciosa con servidor propio en localhost) comparte
+    // este prefijo: solo se admiten orígenes loopback cuando el servidor está
+    // autenticado con password. Sin password, el flujo local es same-origin
+    // (el UI embebido lo sirve el propio servidor) o requiere listar el
+    // origen en server.cors.
+    return Flag.TIANCODE_SERVER_PASSWORD !== undefined
+  }
   if (input.startsWith("oc://renderer")) return true
   if (input === "tauri://localhost" || input === "http://tauri.localhost" || input === "https://tauri.localhost")
     return true

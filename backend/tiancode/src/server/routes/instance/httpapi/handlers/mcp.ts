@@ -1,20 +1,27 @@
 import { MCP } from "@/mcp"
+import { Config } from "@/config/config"
 import { Effect, Schema } from "effect"
 import { HttpApiBuilder, HttpApiError } from "effect/unstable/httpapi"
 import { InstanceHttpApi } from "../api"
 import { McpServerNotFoundError } from "../errors"
 import { AddPayload, AuthCallbackPayload, StatusMap, UnsupportedOAuthError } from "../groups/mcp"
+import { unredactMcpEntry } from "@/server/redact-config"
 
 export const mcpHandlers = HttpApiBuilder.group(InstanceHttpApi, "mcp", (handlers) =>
   Effect.gen(function* () {
     const mcp = yield* MCP.Service
+    const configSvc = yield* Config.Service
 
     const status = Effect.fn("McpHttpApi.status")(function* () {
       return yield* mcp.status()
     })
 
     const add = Effect.fn("McpHttpApi.add")(function* (ctx: { payload: typeof AddPayload.Type }) {
-      const result = (yield* mcp.add(ctx.payload.name, ctx.payload.config)).status
+      // El formulario del editor se precarga desde un GET /config redactado:
+      // los placeholders se restauran contra la entrada existente antes de
+      // persistir.
+      const existing = (yield* configSvc.get()).mcp?.[ctx.payload.name]
+      const result = (yield* mcp.add(ctx.payload.name, unredactMcpEntry(ctx.payload.config, existing))).status
       return yield* Schema.decodeUnknownEffect(StatusMap)(
         "status" in result ? { [ctx.payload.name]: result } : result,
       ).pipe(Effect.mapError(() => new HttpApiError.BadRequest({})))

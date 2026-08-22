@@ -361,7 +361,35 @@ const layer = Layer.effect(
           result.plugin_origins = plugins
         })
 
+        // Proveniencia de las entradas MCP. La config de proyecto
+        // (tiancode.json/.jsonc en el repo, incluido .tiancode/) puede venir
+        // de un repo clonado: sus MCPs no se ejecutan hasta aprobación
+        // explícita — activarlos desde la app los escribe en la config global
+        // (MCP.add → updateGlobal), que es la aprobación. Un nombre ya
+        // definido por una fuente confiable no puede redefinirse desde el
+        // proyecto (evita pisar el comando de un MCP aprobado).
+        const mcpOrigins = new Map<string, { trusted: boolean }>()
+        const projectPrefixes = [ctx.directory, ctx.worktree].filter(Boolean).map((dir) => dir.toLowerCase())
+        const isProjectSource = (source: string) => {
+          const lowered = source.toLowerCase()
+          return projectPrefixes.some((prefix) => lowered.startsWith(prefix))
+        }
+
         const merge = (source: string, next: Info, kind?: ConfigPlugin.Scope) => {
+          if (next.mcp) {
+            const filteredMcp: NonNullable<Info["mcp"]> = {}
+            for (const [name, entry] of Object.entries(next.mcp)) {
+              const origin = mcpOrigins.get(name)
+              if (kind === "local" || (!kind && isProjectSource(source))) {
+                if (origin?.trusted) continue
+                mcpOrigins.set(name, { trusted: false })
+              } else {
+                mcpOrigins.set(name, { trusted: true })
+              }
+              filteredMcp[name] = entry
+            }
+            next = { ...next, mcp: filteredMcp }
+          }
           result = mergeConfigConcatArrays(result, next)
           return mergePluginOrigins(source, next.plugin, kind)
         }
@@ -555,6 +583,25 @@ const layer = Layer.effect(
               source: managed.source,
             }),
           )
+        }
+
+        // MCPs definidos solo por config de proyecto (p. ej. un repo clonado):
+        // deshabilitados hasta que el usuario los active desde la app. Se
+        // listan en el log para que el estado "disabled" sea explicable.
+        if (result.mcp) {
+          const gatedNames = Object.entries(result.mcp)
+            .filter(([name]) => mcpOrigins.get(name)?.trusted === false)
+            .map(([name]) => name)
+          if (gatedNames.length > 0) {
+            yield* Effect.logWarning("project-defined MCP servers disabled pending approval", {
+              servers: gatedNames,
+            })
+            const gatedMcp: NonNullable<Info["mcp"]> = {}
+            for (const [name, entry] of Object.entries(result.mcp)) {
+              gatedMcp[name] = mcpOrigins.get(name)?.trusted === false ? { ...entry, enabled: false } : entry
+            }
+            result.mcp = gatedMcp
+          }
         }
 
         for (const [name, mode] of Object.entries(result.mode ?? {})) {

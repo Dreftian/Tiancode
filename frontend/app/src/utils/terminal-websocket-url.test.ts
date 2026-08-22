@@ -21,16 +21,13 @@ describe("terminalWebSocketURL", () => {
     expect(url.searchParams.has("auth_token")).toBe(false)
   })
 
-  test("uses query auth without embedding credentials in websocket URL for v1", () => {
+  test("never embeds credentials in the URL for v1", () => {
     const url = terminalWebSocketURL({
       protocol: "v1",
       url: "http://127.0.0.1:49365",
       id: "pty_test",
       directory: "/tmp/project",
-      cursor: 0,
-      sameOrigin: false,
-      username: "tiancode",
-      password: "secret",
+      cursor: 10,
     })
 
     expect(url.protocol).toBe("ws:")
@@ -38,43 +35,23 @@ describe("terminalWebSocketURL", () => {
     expect(url.password).toBe("")
     expect(url.pathname).toBe("/pty/pty_test/connect")
     expect(url.searchParams.get("directory")).toBe("/tmp/project")
-    expect(url.searchParams.get("auth_token")).toBe(btoa("tiancode:secret"))
-  })
-
-  test("omits query auth for same-origin saved credentials for v1", () => {
-    const url = terminalWebSocketURL({
-      protocol: "v1",
-      url: "https://app.example.test",
-      id: "pty_test",
-      directory: "/tmp/project",
-      cursor: 10,
-      sameOrigin: true,
-      username: "tiancode",
-      password: "secret",
-    })
-
-    expect(url.protocol).toBe("wss:")
-    expect(url.pathname).toBe("/pty/pty_test/connect")
-    expect(url.searchParams.get("directory")).toBe("/tmp/project")
+    expect(url.searchParams.get("cursor")).toBe("10")
     expect(url.searchParams.has("auth_token")).toBe(false)
   })
 
-  test("uses query auth for same-origin credentials from auth_token for v1", () => {
+  test("attaches the single-use ticket for v1 when present", () => {
     const url = terminalWebSocketURL({
       protocol: "v1",
       url: "https://app.example.test",
       id: "pty_test",
       directory: "/tmp/project",
-      cursor: 10,
-      sameOrigin: true,
-      username: "tiancode",
-      password: "secret",
-      authToken: true,
+      cursor: 0,
+      ticket: "one-time-ticket",
     })
 
     expect(url.protocol).toBe("wss:")
     expect(url.pathname).toBe("/pty/pty_test/connect")
-    expect(url.searchParams.get("directory")).toBe("/tmp/project")
-    expect(url.searchParams.get("auth_token")).toBe(btoa("tiancode:secret"))
+    expect(url.searchParams.get("ticket")).toBe("one-time-ticket")
+    expect(url.searchParams.has("auth_token")).toBe(false)
   })
 })

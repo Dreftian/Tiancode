@@ -11,7 +11,6 @@ import { matchKeybind, parseKeybind } from "@/context/command"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { useSDK } from "@/context/sdk"
-import { useServerSDK } from "@/context/server-sdk"
 import { terminalFontFamily, useSettings } from "@/context/settings"
 import type { LocalPTY } from "@/context/terminal"
 import { disposeIfDisposable, getHoveredLinkText, setOptionIfSupported } from "@/utils/runtime-adapters"
@@ -175,15 +174,8 @@ export const Terminal = (props: TerminalProps) => {
   const settings = useSettings()
   const theme = useTheme()
   const language = useLanguage()
-  // Terminal captures its connection for the PTY lifetime, so callers must key it per server/session.
-  const connection = useServerSDK()().server
   const directory = sdk().directory
   const url = sdk().url
-  const auth = connection.http
-  const username = auth?.username ?? "tiancode"
-  const password = auth?.password ?? ""
-  const authToken = connection.type === "http" ? connection.authToken : false
-  const sameOrigin = new URL(url, location.href).origin === location.origin
   let container!: HTMLDivElement
   const [local, others] = splitProps(props, [
     "pty",
@@ -617,10 +609,6 @@ export const Terminal = (props: TerminalProps) => {
             directory,
             cursor: seek,
             ticket,
-            sameOrigin,
-            username,
-            password,
-            authToken,
           }),
         )
         socket.binaryType = "arraybuffer"

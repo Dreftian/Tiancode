@@ -1,5 +1,8 @@
-import { authTokenFromCredentials } from "@/utils/server"
-
+// La URL del WebSocket nunca lleva credenciales: la autenticación va por el
+// ticket de un solo uso (emitido por pty.connectToken). Un auth_token en la
+// querystring quedaría registrado en network.netlog y se exporta en el zip de
+// debug; si el servidor no emite tickets, la conexión simplemente falla con
+// 401 en vez de filtrar el password.
 export function terminalWebSocketURL(input: {
   protocol?: "v1" | "v2"
   url: string
@@ -7,10 +10,6 @@ export function terminalWebSocketURL(input: {
   directory: string
   cursor: number
   ticket?: string
-  sameOrigin?: boolean
-  username?: string
-  password?: string
-  authToken?: boolean
 }) {
   const isV1 = input.protocol === "v1"
   const next = new URL(`${input.url}${isV1 ? `/pty/${input.id}/connect` : `/api/pty/${input.id}/connect`}`)
@@ -21,15 +20,6 @@ export function terminalWebSocketURL(input: {
   }
   next.searchParams.set("cursor", String(input.cursor))
   next.protocol = next.protocol === "https:" ? "wss:" : "ws:"
-  if (input.ticket) {
-    next.searchParams.set("ticket", input.ticket)
-    return next
-  }
-  if (isV1 && input.password && (!input.sameOrigin || input.authToken)) {
-    next.searchParams.set(
-      "auth_token",
-      authTokenFromCredentials({ username: input.username, password: input.password }),
-    )
-  }
+  if (input.ticket) next.searchParams.set("ticket", input.ticket)
   return next
 }
