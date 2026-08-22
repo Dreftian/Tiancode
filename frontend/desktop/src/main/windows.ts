@@ -282,6 +282,7 @@ export function createMainWindow(id: string = randomUUID()) {
 
   allowRendererPermissions(win)
   hardenGuestSessions()
+  wireWebviewHardening(win)
   wirePreviewGuestTracking(win)
   wireWindowRecovery(win, id)
   wireNavigationPolicy(win)
@@ -610,6 +611,24 @@ export function clearWebviewData() {
 // capturarlos después sin fiarse del id que envíe el renderer. Cada partición
 // tiene su propio mapa: el navegador interno y el panel "Vista en vivo"
 // pueden existir a la vez en la misma ventana sin pisarse.
+// Los <webview> solo son legítimos en las dos particiones conocidas del
+// preview; se fuerza la partición y se eliminan preload/allowpopups para que
+// ni un renderer comprometido pueda elevar un guest a la sesión principal o
+// abrir ventanas desde él.
+function wireWebviewHardening(win: BrowserWindow) {
+  win.webContents.on("will-attach-webview", (_event, webPreferences, params) => {
+    if (params.partition !== "persist:preview" && params.partition !== "persist:live-view") {
+      params.partition = "persist:preview"
+    }
+    delete params.preload
+    delete params.allowpopups
+    delete webPreferences.preload
+    webPreferences.nodeIntegration = false
+    webPreferences.contextIsolation = true
+    webPreferences.sandbox = true
+  })
+}
+
 function wirePreviewGuestTracking(win: BrowserWindow) {
   win.webContents.on("did-attach-webview", (_event, guest) => {
     if (guest.session === session.fromPartition("persist:preview")) {

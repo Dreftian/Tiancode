@@ -310,7 +310,7 @@
     },
     "backend/plugin": {
       "name": "@tiancode-ai/plugin",
-      "version": "1.18.14",
+      "version": "1.18.15",
       "dependencies": {
         "@ai-sdk/provider": "3.0.8",
         "@tiancode-ai/sdk": "workspace:*",
@@ -500,7 +500,7 @@
     },
     "backend/tiancode": {
       "name": "tiancode",
-      "version": "1.0.0",
+      "version": "1.0.2",
       "bin": {
         "tiancode": "./bin/tiancode",
       },
@@ -666,6 +666,7 @@
         "@tiancode-ai/session-ui": "workspace:*",
         "@tiancode-ai/ui": "workspace:*",
         "diff": "catalog:",
+        "dompurify": "catalog:",
         "effect": "catalog:",
         "fuzzysort": "catalog:",
         "ghostty-web": "github:anomalyco/ghostty-web#83c0a07b8628b748aed073b232cb4b52a6ca11c1",
@@ -698,7 +699,7 @@
     },
     "frontend/desktop": {
       "name": "@tiancode-ai/desktop",
-      "version": "1.0.0",
+      "version": "1.0.94",
       "dependencies": {
         "@huggingface/transformers": "3.8.1",
         "@zip.js/zip.js": "2.7.62",
@@ -913,6 +914,7 @@
         "ai": "catalog:",
         "astro": "5.7.13",
         "diff": "catalog:",
+        "dompurify": "catalog:",
         "js-base64": "3.7.7",
         "lang-map": "0.4.0",
         "luxon": "catalog:",

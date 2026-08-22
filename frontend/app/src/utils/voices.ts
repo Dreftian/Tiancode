@@ -112,8 +112,19 @@ const [bargeInEnabled, setBargeInState] = createSignal<boolean>(
   typeof localStorage !== "undefined" ? localStorage.getItem(BARGE_IN_KEY) === "true" : true,
 )
 const [customVoices, setCustomVoicesState] = createSignal<VoiceInfo[]>(
-  typeof localStorage !== "undefined" ? JSON.parse(localStorage.getItem(CUSTOM_VOICES_KEY) ?? "[]") : [],
+  typeof localStorage !== "undefined" ? parseCustomVoices(localStorage.getItem(CUSTOM_VOICES_KEY)) : [],
 )
+
+// Un valor corrupto en localStorage no debe tumbar el arranque del módulo.
+function parseCustomVoices(raw: string | null): VoiceInfo[] {
+  if (!raw) return []
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    return Array.isArray(parsed) ? (parsed as VoiceInfo[]) : []
+  } catch {
+    return []
+  }
+}
 
 export const getVoiceSpeed = () => voiceSpeed()
 export const setVoiceSpeed = (val: number) => {

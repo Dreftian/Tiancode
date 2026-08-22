@@ -78,3 +78,19 @@ export function resolveNetworkOptionsNoConfig(args: NetworkOptions, config?: Con
 
   return { hostname, port, mdns, mdnsDomain, cors }
 }
+
+// Ningún comando debe exponer el HttpApi fuera de loopback sin password: lo
+// aplican serve, web y acp justo antes de Server.listen (web/acp antes solo
+// avisaban por pantalla y escuchaban igualmente).
+export const ensureSecuredListen = Effect.fn("Cli.ensureSecuredListen")(function* (opts: { hostname: string }) {
+  const { Flag } = yield* Effect.promise(() => import("@tiancode-ai/core/flag/flag"))
+  const loopback = opts.hostname === "127.0.0.1" || opts.hostname === "localhost" || opts.hostname === "::1"
+  if (!loopback && !Flag.TIANCODE_SERVER_PASSWORD) {
+    return yield* Effect.die(
+      new Error(
+        `Refusing to listen on ${opts.hostname} without TIANCODE_SERVER_PASSWORD. ` +
+          "Set a password or use --hostname 127.0.0.1.",
+      ),
+    )
+  }
+})

@@ -438,14 +438,27 @@ const layer = Layer.effect(
       const [cmd, ...args] = mcp.command
       const baseDir = yield* InstanceState.directory
       const cwd = mcp.cwd ? path.resolve(baseDir, mcp.cwd) : baseDir
+      // Los secretos del proceso (password del HttpApi y clave de cifrado de
+      // credenciales) solo se heredan a los MCP propios lanzados vía el binario
+      // "tiancode"; cualquier otro comando —incluidos MCPs definidos por config
+      // de proyectos clonados— recibe un entorno sin ellos.
+      const { TIANCODE_SERVER_PASSWORD, TIANCODE_CREDENTIAL_KEY, ...inheritableEnv } = process.env
+      const ownEnv =
+        cmd === "tiancode"
+          ? {
+              BUN_BE_BUN: "1",
+              ...(TIANCODE_SERVER_PASSWORD ? { TIANCODE_SERVER_PASSWORD } : {}),
+              ...(TIANCODE_CREDENTIAL_KEY ? { TIANCODE_CREDENTIAL_KEY } : {}),
+            }
+          : {}
       const transport = new StdioClientTransport({
         stderr: "pipe",
         command: cmd,
         args,
         cwd,
         env: {
-          ...process.env,
-          ...(cmd === "tiancode" ? { BUN_BE_BUN: "1" } : {}),
+          ...inheritableEnv,
+          ...ownEnv,
           ...mcp.environment,
         },
       })

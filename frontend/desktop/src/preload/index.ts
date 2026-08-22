@@ -13,7 +13,6 @@ const updaterHandler = (_: unknown, state: UpdaterState) => {
 const api: ElectronAPI = {
   killSidecar: () => ipcRenderer.invoke("kill-sidecar"),
   relaunchApp: () => ipcRenderer.invoke("relaunch-app"),
-  installCli: () => ipcRenderer.invoke("install-cli"),
   awaitInitialization: () => ipcRenderer.invoke("await-initialization"),
   wslServers: {
     getState: () => ipcRenderer.invoke("wsl-servers-get-state"),

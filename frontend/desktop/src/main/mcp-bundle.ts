@@ -106,12 +106,25 @@ async function registerServer(auth: SidecarAuth, entry: BundledMcp) {
   // a "python" del PATH (stub de la Store), y en ambos casos quedaría rota
   // si solo se corrigiese cuando el script falta.
   const basic = Buffer.from(`${auth.username}:${auth.password}`).toString("base64")
+  // Orígenes con permiso de CORS en el dashboard del live_frontend (lectura de
+  // /preview): el renderer empaquetado (oc://renderer, default del servidor) y,
+  // en desarrollo, el servidor de Vite.
+  const liveOrigins = [
+    "oc://renderer",
+    ...(() => {
+      const devUrl = process.env.ELECTRON_RENDERER_URL
+      return devUrl && URL.canParse(devUrl) ? [new URL(devUrl).origin] : []
+    })(),
+  ].join(",")
   const body = JSON.stringify({
     name: entry.name,
     config: {
       type: "local",
       command: [...resolvePythonCommand(), script],
-      environment: { [entry.env]: configFile },
+      environment: {
+        [entry.env]: configFile,
+        ...(entry.name === "live_frontend" ? { LIVE_FRONTEND_ALLOWED_ORIGIN: liveOrigins } : {}),
+      },
       enabled: enabled ?? false,
       timeout: 60000,
     },

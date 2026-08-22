@@ -35,7 +35,10 @@ export async function spawnWslSidecar(
     `export TIANCODE_SERVER_USERNAME=${shellEscape(username)}`,
     `export TIANCODE_SERVER_PASSWORD=${shellEscape(password)}`,
     'export XDG_STATE_HOME="$HOME/.local/state"',
-    `exec ${shellEscape(tiancode)} --print-logs --log-level ${app.isPackaged ? "WARN" : "INFO"} serve --hostname 0.0.0.0 --port ${port}`,
+    // Loopback dentro de la distro: con networkingMode=mirrored o port-proxy,
+    // un 0.0.0.0 en WSL puede ser alcanzable desde la LAN. El health check ya
+    // usa http://127.0.0.1, así que no hay razón para exponer más.
+    `exec ${shellEscape(tiancode)} --print-logs --log-level ${app.isPackaged ? "WARN" : "INFO"} serve --hostname 127.0.0.1 --port ${port}`,
   ].join("\n")
   const child = spawn("wsl", wslArgs(["bash", "-se"], distro), {
     stdio: ["pipe", "pipe", "pipe"],

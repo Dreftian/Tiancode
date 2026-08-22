@@ -36,7 +36,13 @@ export function getDefaultServerUrl(): string | null {
 
 export function setDefaultServerUrl(url: string | null) {
   if (url) {
-    getStore().set(DEFAULT_SERVER_URL_KEY, url)
+    // Solo servidores http(s): evita persistir cualquier cadena arbitraria
+    // como endpoint del servidor de la app.
+    const parsed = URL.canParse(url) ? new URL(url) : undefined
+    if (!parsed || (parsed.protocol !== "http:" && parsed.protocol !== "https:")) {
+      throw new Error("URL de servidor inválida")
+    }
+    getStore().set(DEFAULT_SERVER_URL_KEY, parsed.href)
     return
   }
 

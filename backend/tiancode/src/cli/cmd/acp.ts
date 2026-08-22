@@ -3,7 +3,7 @@ import { effectCmd } from "../effect-cmd"
 import { AgentSideConnection, ndJsonStream } from "@agentclientprotocol/sdk"
 import { ServerAuth } from "@/server/auth"
 import { createOpencodeClient } from "@tiancode-ai/sdk/v2"
-import { withNetworkOptions, resolveNetworkOptions } from "../network"
+import { withNetworkOptions, resolveNetworkOptions, ensureSecuredListen } from "../network"
 import { ACPProfile } from "@/acp/profile"
 
 export const AcpCommand = effectCmd({
@@ -22,6 +22,8 @@ export const AcpCommand = effectCmd({
     ACPProfile.mark("cli.acp.handler")
     process.env.TIANCODE_CLIENT = "acp"
     const opts = yield* resolveNetworkOptions(args)
+    // Igual que serve: nunca escuchar fuera de loopback sin password.
+    yield* ensureSecuredListen(opts)
     const server = yield* Effect.promise(() => ACPProfile.measure("cli.acp.server.listen", () => Server.listen(opts)))
 
     const sdk = createOpencodeClient({

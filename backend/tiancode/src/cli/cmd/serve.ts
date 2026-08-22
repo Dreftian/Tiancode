@@ -1,6 +1,6 @@
 import { Effect } from "effect"
 import { effectCmd } from "../effect-cmd"
-import { withNetworkOptions, resolveNetworkOptions } from "../network"
+import { withNetworkOptions, resolveNetworkOptions, ensureSecuredListen } from "../network"
 import { Flag } from "@tiancode-ai/core/flag/flag"
 
 export const ServeCommand = effectCmd({
@@ -21,16 +21,7 @@ export const ServeCommand = effectCmd({
     // (p. ej. --hostname 0.0.0.0) o activa --mdns, y en ese caso siempre se
     // exige TIANCODE_SERVER_PASSWORD. No exponer un servidor sin password
     // fuera de loopback (p. ej. mDNS → 0.0.0.0).
-    const hostname = opts.hostname
-    const loopback = hostname === "127.0.0.1" || hostname === "localhost" || hostname === "::1"
-    if (!loopback && !Flag.TIANCODE_SERVER_PASSWORD) {
-      return yield* Effect.die(
-        new Error(
-          `Refusing to listen on ${hostname} without TIANCODE_SERVER_PASSWORD. ` +
-            "Set a password or use --hostname 127.0.0.1.",
-        ),
-      )
-    }
+    yield* ensureSecuredListen(opts)
     const server = yield* Effect.promise(() => Server.listen(opts))
     console.log(`tiancode server listening on http://${server.hostname}:${server.port}`)
 

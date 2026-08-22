@@ -1,4 +1,5 @@
 import { type Component, createMemo, Show } from "solid-js"
+import DOMPurify from "dompurify"
 
 /**
  * Editorial Diagram Design Renderer
@@ -43,6 +44,11 @@ export const EditorialDiagram: Component<{
   rawSvg?: string
 }> = (props) => {
   const isArchitecture = () => (props.type ?? "architecture") === "architecture"
+  // El SVG puede venir de salida del modelo: sin sanitizar, un <svg onload=...>
+  // sería XSS directo en el renderer (que tiene window.api expuesto).
+  const safeSvg = createMemo(() =>
+    props.rawSvg ? DOMPurify.sanitize(props.rawSvg, { USE_PROFILES: { svg: true, svgFilters: true } }) : "",
+  )
 
   return (
     <div class="relative w-full rounded-xl border border-white/10 bg-[#0a0f1d] p-5 text-slate-100 shadow-xl overflow-hidden my-4 select-none backdrop-blur-md">
@@ -68,8 +74,8 @@ export const EditorialDiagram: Component<{
       </Show>
 
       {/* Raw SVG Diagram if provided */}
-      <Show when={props.rawSvg}>
-        <div class="w-full flex items-center justify-center overflow-x-auto py-2" innerHTML={props.rawSvg} />
+      <Show when={safeSvg()}>
+        <div class="w-full flex items-center justify-center overflow-x-auto py-2" innerHTML={safeSvg()} />
       </Show>
 
       {/* Structured Nodes Canvas */}

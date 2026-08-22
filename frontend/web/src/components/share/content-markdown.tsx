@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify"
 import { marked } from "marked"
 import { codeToHtml } from "shiki"
 import markedShiki from "marked-shiki"
@@ -37,7 +38,14 @@ export function ContentMarkdown(props: Props) {
   const [html] = createResource(
     () => strip(props.text),
     async (markdown) => {
-      return markedWithShiki.parse(markdown)
+      // marked ≥5 no sanitiza: sin DOMPurify, cualquier HTML crudo del mensaje
+      // compartido (p. ej. <img onerror=...> replicado por el modelo) ejecutaría
+      // JS en el navegador de quien abra el link de share. Mismo patrón que
+      // session-ui (markdown-cache.tsx): sanitize SIEMPRE antes del innerHTML.
+      return DOMPurify.sanitize(await markedWithShiki.parse(markdown), {
+        FORBID_TAGS: ["style"],
+        FORBID_CONTENTS: ["style", "script"],
+      })
     },
   )
   const [expanded, setExpanded] = createSignal(false)

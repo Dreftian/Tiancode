@@ -109,8 +109,14 @@ export namespace FSUtil {
 
       const writeJson = Effect.fn("FileSystem.writeJson")(function* (path: string, data: unknown, mode?: number) {
         const content = JSON.stringify(data, null, 2)
-        yield* fs.writeFileString(path, content)
-        if (mode) yield* fs.chmod(path, mode)
+        // Escritura atómica (tmp + rename): un crash a mitad de escritura de
+        // auth.json/mcp-auth.json no debe truncar credenciales. El modo
+        // restrictivo se aplica al tmp ANTES del rename para que el contenido
+        // (API keys) nunca pase por un archivo legible por otros usuarios.
+        const tmp = `${path}.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`
+        yield* fs.writeFileString(tmp, content)
+        if (mode) yield* fs.chmod(tmp, mode)
+        yield* fs.rename(tmp, path)
       })
 
       const ensureDir = Effect.fn("FileSystem.ensureDir")(function* (path: string) {

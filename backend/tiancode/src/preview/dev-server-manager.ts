@@ -73,13 +73,20 @@ type Managed = {
 const servers = new Map<string, Managed>()
 
 // Variables que no deben filtrarse al dev server (evita que Vite herede el
-// puerto de Electron o el modo "run as node" y otros bugs raros).
+// puerto de Electron o el modo "run as node" y otros bugs raros). Los
+// secretos del proceso (password del HttpApi y clave de cifrado de
+// credenciales) también se excluyen: un package.json/vite.config del
+// proyecto no es confiable y no debe poder descifrar auth.json ni controlar
+// el servidor.
 const SCRUB_ENV = new Set([
   "PORT",
   "ELECTRON_RUN_AS_NODE",
   "ELECTRON_RENDERER_URL",
   "ELECTRON_RENDERER_PORT",
   "VITE_DEV_SERVER_URL",
+  "TIANCODE_SERVER_PASSWORD",
+  "TIANCODE_SERVER_USERNAME",
+  "TIANCODE_CREDENTIAL_KEY",
 ])
 
 function scrubEnv() {

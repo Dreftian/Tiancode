@@ -153,7 +153,9 @@ function globalConfigFile() {
 function writeGlobalAtomic(file: string, content: string) {
   return Effect.tryPromise(async () => {
     const tmp = `${file}.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`
-    await fsNode.writeFile(tmp, content, "utf8")
+    // 0o600 en el tmp: el contenido puede llevar apiKey de proveedores y no
+    // debe quedar legible por otros usuarios durante la ventana de escritura.
+    await fsNode.writeFile(tmp, content, { encoding: "utf8", mode: 0o600 })
     await fsNode.rename(tmp, file)
   })
 }

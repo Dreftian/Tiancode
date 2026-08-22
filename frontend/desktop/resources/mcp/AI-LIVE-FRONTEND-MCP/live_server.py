@@ -44,6 +44,18 @@ UI_DIR = PKG_DIR / "ui"
 SERVER_NAME = "live-frontend-mcp"
 VERSION = "1.0.0"
 
+# CORS restringido: el dashboard sirve archivos locales del proyecto bajo
+# /preview/, así que responder Access-Control-Allow-Origin: * permitiría a
+# cualquier web abierta en el navegador del usuario leer archivos del disco
+# vía fetch. Solo se refleja el Origin del request cuando pertenece a esta
+# lista (el renderer empaquetado de la app es oc://renderer; en dev,
+# mcp-bundle.ts añade el origen de Vite vía LIVE_FRONTEND_ALLOWED_ORIGIN).
+ALLOWED_ORIGINS = {
+    origin.strip()
+    for origin in (os.environ.get("LIVE_FRONTEND_ALLOWED_ORIGIN") or "oc://renderer").split(",")
+    if origin.strip()
+}
+
 DEFAULT_CONFIG = {
     "dashboard_host": "127.0.0.1",
     "dashboard_port": 8790,
@@ -770,11 +782,18 @@ class DashboardHandler(BaseHTTPRequestHandler):
     def state(self) -> LiveState:
         return self.server.state
 
+    def _cors_headers(self) -> None:
+        """Refleja el Origin solo si está en la allowlist (nunca `*`)."""
+        origin = self.headers.get("Origin")
+        if origin and origin in ALLOWED_ORIGINS:
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
+
     def _send_bytes(self, status: int, content_type: str, body: bytes) -> None:
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self._cors_headers()
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(body)
@@ -837,7 +856,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "text/event-stream; charset=utf-8")
         self.send_header("Cache-Control", "no-cache")
         self.send_header("Connection", "keep-alive")
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self._cors_headers()
         self.send_header("X-Accel-Buffering", "no")
         self.end_headers()
         subscriber: queue.Queue = queue.Queue(maxsize=1000)
@@ -922,6 +941,13 @@ class DashboardHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = urlparse(self.path).path
+        # Solo JSON real: un POST cross-origin con application/json exige
+        # preflight (que solo pasa para orígenes allowlisted), y los formularios
+        # text/plain/multipart de una web maliciosa quedan rechazados aquí.
+        content_type = (self.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+        if content_type != "application/json":
+            self._send_json(415, {"error": "Content-Type must be application/json"})
+            return
         length = int(self.headers.get("Content-Length") or 0)
         raw = self.rfile.read(length) if length else b""
         try:
@@ -993,10 +1019,14 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self._send_json(404, {"error": "not found"})
 
     def do_OPTIONS(self):
-        self.send_response(204)
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        origin = self.headers.get("Origin")
+        allowed = origin is not None and origin in ALLOWED_ORIGINS
+        self.send_response(204 if allowed else 403)
+        if allowed:
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
+            self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+            self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
 
 
