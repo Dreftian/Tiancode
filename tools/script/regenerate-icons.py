@@ -79,45 +79,41 @@ def make_standalone_emblem(src_img, color_rgb):
 
 
 def make_master_app_icon(src_img):
-    """Generate the official app icon: vibrant cyan→indigo gradient squircle
-    with the white emblem. High contrast on both light and dark taskbars —
-    the previous obsidian design disappeared on dark themes."""
+    """Generate the official dark squircle app icon: deep obsidian background
+    with the WHITE emblem (the brand mark is a white face on a dark plate —
+    the cyan/blue gradient backgrounds never belonged to the brand). A subtle
+    cyan rim keeps the dark plate readable on dark taskbars; the DIB small
+    frames in write_ico fix the white-square rendering."""
     size = 1024
     bg = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(bg)
 
-    radius = 228
-    margin = 24
+    radius = 220
+    margin = 40
 
-    # Gradient background: cyan (top-left) → sky → indigo (bottom-right).
-    grad = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    grad_arr = np.zeros((size, size, 4), dtype=np.uint8)
-    top = np.array([34, 211, 238], dtype=float)   # cyan-400
-    mid = np.array([56, 152, 255], dtype=float)   # sky
-    bottom = np.array([99, 102, 241], dtype=float)  # indigo-500
-    for y in range(size):
-        t = y / (size - 1)
-        color = top * (1 - t) * (1 - t) + mid * 2 * t * (1 - t) + bottom * t * t
-        grad_arr[y, :, :3] = color
-    grad_arr[..., 3] = 255
-    grad = Image.fromarray(grad_arr, "RGBA")
+    # Base dark container with deep luxury obsidian
+    draw.rounded_rectangle(
+        [margin, margin, size - margin, size - margin],
+        radius=radius,
+        fill=(15, 23, 42, 255),
+        outline=(56, 189, 248, 130),
+        width=10,
+    )
 
-    # Rounded-square mask
-    mask = Image.new("L", (size, size), 0)
-    mask_draw = ImageDraw.Draw(mask)
-    mask_draw.rounded_rectangle([margin, margin, size - margin, size - margin], radius=radius, fill=255)
-    bg.paste(grad, (0, 0), mask)
+    # Inner dark layer
+    inner_margin = margin + 14
+    draw.rounded_rectangle(
+        [inner_margin, inner_margin, size - inner_margin, size - inner_margin],
+        radius=radius - 8,
+        fill=(10, 15, 29, 255),
+        outline=(255, 255, 255, 30),
+        width=3,
+    )
 
-    # Soft diagonal highlight (top-left) for depth, clipped to the squircle
-    highlight = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    hl_draw = ImageDraw.Draw(highlight)
-    hl_draw.ellipse([-size * 0.35, -size * 0.45, size * 0.75, size * 0.55], fill=(255, 255, 255, 46))
-    hl_alpha = Image.composite(highlight.split()[3], Image.new("L", (size, size), 0), mask)
-    bg.paste(highlight, (0, 0), hl_alpha)
-
-    # White emblem with a soft dark drop shadow for legibility at small sizes
+    # White emblem with a soft dark drop shadow for depth
     white_emblem = make_standalone_emblem(src_img, (255, 255, 255))
-    shadow_emblem = make_standalone_emblem(src_img, (8, 12, 28))
-    emblem_w = int((size - 2 * margin) * 0.72)
+    shadow_emblem = make_standalone_emblem(src_img, (0, 0, 0))
+    emblem_w = int((size - 2 * margin) * 0.76)
     aspect = white_emblem.height / white_emblem.width
     emblem_h = int(emblem_w * aspect)
     pos_x = (size - emblem_w) // 2
@@ -125,8 +121,8 @@ def make_master_app_icon(src_img):
 
     shadow = shadow_emblem.resize((emblem_w, emblem_h), Image.Resampling.LANCZOS)
     shadow_arr = np.array(shadow)
-    shadow_arr[..., 3] = (shadow_arr[..., 3].astype(float) * 0.35).astype(np.uint8)
-    bg.paste(Image.fromarray(shadow_arr, "RGBA"), (pos_x + 10, pos_y + 16), Image.fromarray(shadow_arr, "RGBA"))
+    shadow_arr[..., 3] = (shadow_arr[..., 3].astype(float) * 0.5).astype(np.uint8)
+    bg.paste(Image.fromarray(shadow_arr, "RGBA"), (pos_x + 14, pos_y + 20), Image.fromarray(shadow_arr, "RGBA"))
 
     resized_emblem = white_emblem.resize((emblem_w, emblem_h), Image.Resampling.LANCZOS)
     bg.paste(resized_emblem, (pos_x, pos_y), resized_emblem)
