@@ -15,6 +15,12 @@ const channel = (() => {
   return "dev"
 })()
 
+// La versión real del package del desktop llega al renderer (splash/menus) por
+// define de build; el build web de la app no la define y se oculta.
+const desktopVersion = (JSON.parse(readFileSync(fileURLToPath(new URL("./package.json", import.meta.url)), "utf8")) as {
+  version?: string
+}).version
+
 const nodePtyPkg = `@lydell/node-pty-${process.platform}-${process.arch}`
 
 // CSP estricto solo en el build de producción (el dev necesita HMR sin
@@ -136,6 +142,7 @@ const require = __cjs_mod__.createRequire(import.meta.url);
     },
     define: {
       "import.meta.env.VITE_TIANCODE_CHANNEL": JSON.stringify(channel),
+      "import.meta.env.VITE_TIANCODE_VERSION": JSON.stringify(desktopVersion ?? ""),
     },
     plugins: [
       appPlugin,

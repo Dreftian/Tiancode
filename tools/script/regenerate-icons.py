@@ -15,7 +15,7 @@ import os
 import shutil
 import struct
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DESKTOP = os.path.join(ROOT, "frontend", "desktop")
@@ -79,43 +79,56 @@ def make_standalone_emblem(src_img, color_rgb):
 
 
 def make_master_app_icon(src_img):
-    """Generate the official dark squircle app icon with cyan border & glowing emblem."""
+    """Generate the official app icon: vibrant cyan→indigo gradient squircle
+    with the white emblem. High contrast on both light and dark taskbars —
+    the previous obsidian design disappeared on dark themes."""
     size = 1024
     bg = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(bg)
 
-    radius = 220
-    margin = 40
+    radius = 228
+    margin = 24
 
-    # Base dark container with deep luxury obsidian
-    draw.rounded_rectangle(
-        [margin, margin, size - margin, size - margin],
-        radius=radius,
-        fill=(15, 23, 42, 255),
-        outline=(56, 189, 248, 120),
-        width=8,
-    )
+    # Gradient background: cyan (top-left) → sky → indigo (bottom-right).
+    grad = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    grad_arr = np.zeros((size, size, 4), dtype=np.uint8)
+    top = np.array([34, 211, 238], dtype=float)   # cyan-400
+    mid = np.array([56, 152, 255], dtype=float)   # sky
+    bottom = np.array([99, 102, 241], dtype=float)  # indigo-500
+    for y in range(size):
+        t = y / (size - 1)
+        color = top * (1 - t) * (1 - t) + mid * 2 * t * (1 - t) + bottom * t * t
+        grad_arr[y, :, :3] = color
+    grad_arr[..., 3] = 255
+    grad = Image.fromarray(grad_arr, "RGBA")
 
-    # Inner dark layer
-    inner_margin = margin + 12
-    draw.rounded_rectangle(
-        [inner_margin, inner_margin, size - inner_margin, size - inner_margin],
-        radius=radius - 8,
-        fill=(10, 15, 29, 255),
-        outline=(255, 255, 255, 35),
-        width=3,
-    )
+    # Rounded-square mask
+    mask = Image.new("L", (size, size), 0)
+    mask_draw = ImageDraw.Draw(mask)
+    mask_draw.rounded_rectangle([margin, margin, size - margin, size - margin], radius=radius, fill=255)
+    bg.paste(grad, (0, 0), mask)
 
-    # White emblem for dark icon container
+    # Soft diagonal highlight (top-left) for depth, clipped to the squircle
+    highlight = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    hl_draw = ImageDraw.Draw(highlight)
+    hl_draw.ellipse([-size * 0.35, -size * 0.45, size * 0.75, size * 0.55], fill=(255, 255, 255, 46))
+    hl_alpha = Image.composite(highlight.split()[3], Image.new("L", (size, size), 0), mask)
+    bg.paste(highlight, (0, 0), hl_alpha)
+
+    # White emblem with a soft dark drop shadow for legibility at small sizes
     white_emblem = make_standalone_emblem(src_img, (255, 255, 255))
-    emblem_w = int((size - 2 * margin) * 0.76)
+    shadow_emblem = make_standalone_emblem(src_img, (8, 12, 28))
+    emblem_w = int((size - 2 * margin) * 0.72)
     aspect = white_emblem.height / white_emblem.width
     emblem_h = int(emblem_w * aspect)
-
-    resized_emblem = white_emblem.resize((emblem_w, emblem_h), Image.Resampling.LANCZOS)
     pos_x = (size - emblem_w) // 2
     pos_y = (size - emblem_h) // 2
 
+    shadow = shadow_emblem.resize((emblem_w, emblem_h), Image.Resampling.LANCZOS)
+    shadow_arr = np.array(shadow)
+    shadow_arr[..., 3] = (shadow_arr[..., 3].astype(float) * 0.35).astype(np.uint8)
+    bg.paste(Image.fromarray(shadow_arr, "RGBA"), (pos_x + 10, pos_y + 16), Image.fromarray(shadow_arr, "RGBA"))
+
+    resized_emblem = white_emblem.resize((emblem_w, emblem_h), Image.Resampling.LANCZOS)
     bg.paste(resized_emblem, (pos_x, pos_y), resized_emblem)
     return bg
 
@@ -124,6 +137,17 @@ def png_bytes(img):
     buffer = io.BytesIO()
     img.save(buffer, "PNG")
     return buffer.getvalue()
+
+
+def thicken_small_frame(img, size):
+    """Dilate the emblem strokes on tiny ICO frames (16-32px) so the white
+    mark survives taskbar/tray downscaling instead of smearing into the
+    gradient."""
+    if size > 32:
+        return img
+    r, g, b, a = img.split()
+    thick = a.filter(ImageFilter.MaxFilter(3))
+    return Image.merge("RGBA", (r, g, b, thick))
 
 
 def bmp_entry(image):
@@ -137,8 +161,21 @@ def bmp_entry(image):
 
 
 def write_ico(path, images):
-    sizes = [im.size for im in images]
-    images[0].save(path, format="ICO", append_images=images[1:], sizes=sizes)
+    """Write a multi-frame ICO. Frames of 128px and below are stored as
+    uncompressed 32bpp DIBs: PNG-compressed small frames render as blank/white
+    squares in parts of Windows (Explorer medium icons, taskbar, NSIS).
+    Only the 256px frame stays PNG-compressed, which every Windows supports."""
+    entries = []
+    blob = b""
+    offset = 6 + 16 * len(images)
+    for im in images:
+        w, h = im.size
+        data = png_bytes(im) if w > 128 else bmp_entry(im)
+        entries.append(struct.pack("<BBBBHHII", w % 256, h % 256, 0, 0, 1, 32, len(data), offset))
+        blob += data
+        offset += len(data)
+    with open(path, "wb") as file:
+        file.write(struct.pack("<HHH", 0, 1, len(images)) + b"".join(entries) + blob)
 
 
 def write_icns(path, images):
@@ -174,7 +211,9 @@ def main():
             resized = app_icon.resize((size, size), Image.Resampling.LANCZOS)
             resized.save(os.path.join(target_dir, f"Square{size}x{size}Logo.png"), "PNG", optimize=True)
 
-        ico_images = [app_icon.resize((s, s), Image.Resampling.LANCZOS) for s in ICO_SIZES]
+        ico_images = [
+            thicken_small_frame(app_icon.resize((s, s), Image.Resampling.LANCZOS), s) for s in ICO_SIZES
+        ]
         write_ico(os.path.join(target_dir, "icon.ico"), ico_images)
 
         icns_images = {k: app_icon.resize((s, s), Image.Resampling.LANCZOS) for k, s in ICNS_TYPES.items()}
