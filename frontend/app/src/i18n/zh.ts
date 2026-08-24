@@ -178,6 +178,15 @@ export const dict = {
   "command.language.set": "使用语言：{{language}}",
 
   "command.session.new": "新建会话",
+  "splash.subtitle": "你的编程代理，本地且私密",
+  "splash.progress": "正在启动环境",
+  "splash.step.server": "正在连接本地服务器",
+  "splash.step.config": "正在加载配置和凭据",
+  "splash.step.models": "正在同步模型和提供商",
+  "splash.step.tools": "正在检查 MCP 服务器和工具",
+  "splash.step.ready": "准备就绪，开始编程",
+  "agent.webapp.label": "Web 与应用",
+  "webapp.modeBadge": "Full JSX · 实时预览",
 
   "command.file.open": "打开文件",
 
@@ -740,6 +749,10 @@ export const dict = {
   "home.title": "主页",
   "home.projects": "项目",
   "home.project.add": "添加项目",
+  "home.webapp.title": "Web 与应用开发",
+  "home.webapp.description": "以全 JSX 构建应用和网站，实时预览。",
+  "home.webapp.action": "开始构建",
+  "home.webapp.folderTitle": "选择 Web 应用文件夹",
   "home.recentlyClosed": "最近关闭",
   "home.server.collapse": "折叠服务器项目",
   "home.server.expand": "展开服务器项目",

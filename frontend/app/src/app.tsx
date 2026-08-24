@@ -560,7 +560,7 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
       </Show>
 
       <Show when={loading()}>
-        <AntigravitySplash version="1.0.90" onComplete={() => void handleSplashDone()} />
+        <AntigravitySplash onComplete={() => void handleSplashDone()} />
       </Show>
     </>
   )

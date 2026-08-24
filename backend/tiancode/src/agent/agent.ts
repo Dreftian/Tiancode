@@ -14,6 +14,7 @@ import PROMPT_COMPACTION from "./prompt/compaction.txt"
 import PROMPT_EXPLORE from "./prompt/explore.txt"
 import PROMPT_SUMMARY from "./prompt/summary.txt"
 import PROMPT_TITLE from "./prompt/title.txt"
+import PROMPT_WEBAPP from "./prompt/webapp.txt"
 import { Permission } from "@/permission"
 import { mergeDeep, pipe, sortBy, values } from "remeda"
 import { Global } from "@tiancode-ai/core/global"
@@ -154,6 +155,22 @@ const layer = Layer.effect(
             ),
             mode: "primary",
             native: true,
+          },
+          webapp: {
+            name: "webapp",
+            description: "Web & App development. Builds full-JSX apps with a real-time live preview.",
+            options: {},
+            permission: Permission.merge(
+              defaults,
+              Permission.fromConfig({
+                question: "allow",
+              }),
+              user,
+            ),
+            prompt: PROMPT_WEBAPP,
+            mode: "primary",
+            native: true,
+            color: "#22d3ee",
           },
           plan: {
             name: "plan",
@@ -317,11 +334,16 @@ const layer = Layer.effect(
 
         const list = Effect.fnUntraced(function* () {
           const cfg = yield* config.get()
+          // Native primary agents keep a fixed order (build → webapp → plan) so
+          // the Web & App mode stays directly below the default agent; custom
+          // user agents follow alphabetically.
+          const nativeOrder: Record<string, number> = { build: 0, webapp: 1, plan: 2 }
           return pipe(
             agents,
             values(),
             sortBy(
               [(x) => (cfg.default_agent ? x.name === cfg.default_agent : x.name === "build"), "desc"],
+              [(x) => nativeOrder[x.name] ?? 99, "asc"],
               [(x) => x.name, "asc"],
             ),
           )

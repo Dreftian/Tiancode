@@ -39,6 +39,8 @@ const petGlyphs: Record<string, string> = {
   fox: "🦊",
 }
 
+const petGlyphKinds = Object.keys(petGlyphs)
+
 let petWindow: BrowserWindow | null = null
 let petState: DesktopPetState = {
   kind: "cat",
@@ -95,16 +97,19 @@ function getPetSvg(kind: DesktopPetKind): string {
 }
 
 function getPetHtml(state: DesktopPetState): string {
-  const avatarSvg = state.petted ? `<span style="font-size:28px;">💖</span>` : getPetSvg(state.kind)
-  const isRunning = state.status === "running"
-  const statusColor =
-    isRunning
-      ? "#22c55e"
-      : state.status === "needs-input"
-        ? "#eab308"
-        : state.status === "blocked"
-          ? "#ef4444"
-          : "#64748b"
+  // Todas las caras de la mascota se embeben como JSON para que la ventana
+  // reciba solo mensajes de estado y nunca vuelva a recargar el HTML (cada
+  // loadURL anterior provocaba un parpadeo visible en cada cambio).
+  const svgRecord = Object.fromEntries(
+    petGlyphKinds.map((kind) => [kind, getPetSvg(kind as DesktopPetKind)]),
+  )
+
+  const initial = JSON.stringify({
+    kind: state.kind,
+    status: state.status,
+    text: state.text,
+    petted: state.petted ?? false,
+  })
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -126,129 +131,274 @@ function getPetHtml(state: DesktopPetState): string {
       flex-direction: column;
       align-items: flex-end;
       justify-content: flex-end;
-      padding: 8px 12px;
+      padding: 10px 14px;
       -webkit-app-region: drag;
     }
     .pet-bubble {
       -webkit-app-region: no-drag;
-      background: rgba(22, 22, 26, 0.94);
-      backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      border-radius: 12px;
-      padding: 6px 10px;
-      font-size: 11px;
+      position: relative;
+      background: rgba(15, 18, 28, 0.92);
+      backdrop-filter: blur(18px);
+      border: 1px solid rgba(56, 189, 248, 0.22);
+      border-radius: 14px;
+      padding: 8px 12px;
+      font-size: 11.5px;
+      line-height: 1.45;
       color: #f1f5f9;
-      max-width: 200px;
-      white-space: nowrap;
+      max-width: 216px;
       overflow: hidden;
-      text-overflow: ellipsis;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
-      margin-bottom: 6px;
-      transition: all 0.25s ease;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+      margin-bottom: 8px;
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s ease;
       cursor: pointer;
     }
     .pet-bubble:hover {
-      border-color: rgba(255, 255, 255, 0.3);
-      transform: translateY(-1px);
+      transform: translateY(-1px) scale(1.02);
+      border-color: rgba(56, 189, 248, 0.5);
     }
+    .pet-bubble::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 14px;
+      pointer-events: none;
+      background: linear-gradient(120deg, rgba(34, 211, 238, 0.14), transparent 45%);
+    }
+    .pet-bubble .typing-dots {
+      display: none;
+      gap: 4px;
+      align-items: center;
+      padding: 2px 0;
+    }
+    .pet-bubble .typing-dots span {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #67e8f9;
+      animation: typing-dot 1s ease-in-out infinite;
+    }
+    .pet-bubble .typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+    .pet-bubble .typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+    .pet-container.running .pet-bubble .typing-dots { display: flex; }
+    .pet-container.running .pet-bubble .bubble-text { display: none; }
+    @keyframes typing-dot {
+      0%, 100% { transform: translateY(0); opacity: 0.5; }
+      50% { transform: translateY(-3px); opacity: 1; }
+    }
+
     .pet-avatar-wrapper {
       -webkit-app-region: no-drag;
       position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 52px;
-      height: 52px;
-      background: ${isRunning ? "linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95))" : "rgba(22, 22, 26, 0.88)"};
-      backdrop-filter: blur(14px);
-      border: 1.5px solid ${isRunning ? "rgba(59, 130, 246, 0.6)" : "rgba(255, 255, 255, 0.15)"};
-      border-radius: 50%;
-      box-shadow: ${isRunning ? "0 0 18px rgba(59, 130, 246, 0.4), 0 8px 20px rgba(0,0,0,0.5)" : "0 8px 20px rgba(0,0,0,0.45)"};
+      width: 58px;
+      height: 58px;
       cursor: pointer;
-      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s ease;
+      transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    .pet-avatar-wrapper:hover {
-      transform: scale(1.12);
-      border-color: rgba(255, 255, 255, 0.4);
-    }
-    .pet-avatar-wrapper:active {
-      transform: scale(0.92);
-    }
-    .pet-glyph {
-      font-size: 26px;
-      line-height: 1;
-      display: inline-block;
-      animation: ${isRunning ? "coding-bounce 0.8s ease-in-out infinite alternate" : state.petted ? "heart-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)" : "none"};
-    }
-    .pet-activity {
+    .pet-avatar-wrapper:hover { transform: scale(1.1); }
+    .pet-avatar-wrapper:active { transform: scale(0.9); }
+
+    /* Anillo de estado: gradiente cónico girando mientras trabaja */
+    .pet-ring {
       position: absolute;
-      bottom: -3px;
-      left: -3px;
-      font-size: 16px;
-      animation: typing-float 1s ease-in-out infinite alternate;
-      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
-    }
-    .pet-status-dot {
-      position: absolute;
-      bottom: 2px;
-      right: 2px;
-      width: 11px;
-      height: 11px;
+      inset: 0;
       border-radius: 50%;
-      background: ${statusColor};
-      border: 2px solid #0f172a;
-      box-shadow: ${isRunning ? "0 0 8px #22c55e" : "none"};
+      padding: 2px;
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.5);
+      transition: background 0.4s ease, box-shadow 0.4s ease;
     }
-    @keyframes coding-bounce {
+    .pet-ring::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: conic-gradient(from 180deg, transparent 10%, rgba(34, 211, 238, 0.9) 60%, rgba(99, 102, 241, 0.9) 90%, transparent);
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+    .pet-ring::after {
+      content: "";
+      position: absolute;
+      inset: 2px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, rgba(30, 41, 59, 0.95), rgba(10, 14, 26, 0.98));
+    }
+    .pet-container.running .pet-ring::before {
+      opacity: 1;
+      animation: ring-spin 1.6s linear infinite;
+    }
+    .pet-container.running .pet-ring {
+      box-shadow: 0 0 22px rgba(34, 211, 238, 0.45), 0 10px 26px rgba(0, 0, 0, 0.5);
+    }
+    .pet-container.needs-input .pet-ring { animation: ring-pulse-amber 1.1s ease-in-out infinite; }
+    .pet-container.blocked .pet-ring { animation: ring-pulse-red 0.9s ease-in-out infinite; }
+    .pet-container.ready .pet-ring::after { background: rgba(255, 255, 255, 0.04); }
+    @keyframes ring-spin { to { transform: rotate(360deg); } }
+    @keyframes ring-pulse-amber {
+      0%, 100% { box-shadow: 0 0 6px rgba(234, 179, 8, 0.35), 0 10px 26px rgba(0, 0, 0, 0.5); }
+      50% { box-shadow: 0 0 22px rgba(234, 179, 8, 0.75), 0 10px 26px rgba(0, 0, 0, 0.5); }
+    }
+    @keyframes ring-pulse-red {
+      0%, 100% { box-shadow: 0 0 6px rgba(239, 68, 68, 0.35), 0 10px 26px rgba(0, 0, 0, 0.5); transform: rotate(0deg); }
+      25% { transform: rotate(3deg); }
+      75% { transform: rotate(-3deg); }
+    }
+
+    .pet-glyph {
+      position: relative;
+      z-index: 1;
+      font-size: 28px;
+      line-height: 1;
+      display: inline-flex;
+      animation: pet-breathe 2.6s ease-in-out infinite;
+    }
+    .pet-container.running .pet-glyph { animation: pet-bounce 0.7s ease-in-out infinite alternate; }
+    .pet-container.running .pet-glyph svg { animation: pet-wiggle 0.7s ease-in-out infinite alternate; }
+    .pet-box { display: inline-flex; }
+    .pet-box svg { width: 30px; height: 30px; }
+    @keyframes pet-breathe {
+      0%, 100% { transform: scale(1) translateY(0); }
+      50% { transform: scale(1.035) translateY(-1px); }
+    }
+    @keyframes pet-bounce {
       0% { transform: translateY(0) rotate(-2deg); }
       100% { transform: translateY(-5px) rotate(3deg); }
     }
+    @keyframes pet-wiggle {
+      0% { transform: rotate(-2deg); }
+      100% { transform: rotate(3deg); }
+    }
+
+    .pet-activity {
+      position: absolute;
+      z-index: 2;
+      bottom: -2px;
+      left: -2px;
+      font-size: 15px;
+      display: none;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+      animation: typing-float 1s ease-in-out infinite alternate;
+    }
+    .pet-container.running .pet-activity { display: block; }
+    .pet-container.needs-input .pet-activity { display: block; animation: typing-float 0.5s ease-in-out infinite alternate; }
     @keyframes typing-float {
       0% { transform: scale(1) translateY(0); }
-      100% { transform: scale(1.18) translateY(-3px); }
+      100% { transform: scale(1.15) translateY(-3px); }
     }
-    @keyframes heart-pop {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.4) rotate(-10deg); }
-      100% { transform: scale(1); }
+    .pet-status-dot {
+      position: absolute;
+      z-index: 2;
+      bottom: 3px;
+      right: 3px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #64748b;
+      border: 2px solid #0f172a;
+      transition: background 0.3s ease, box-shadow 0.3s ease;
+    }
+    .pet-container.running .pet-status-dot { background: #22c55e; box-shadow: 0 0 10px #22c55e; }
+    .pet-container.needs-input .pet-status-dot { background: #eab308; box-shadow: 0 0 10px #eab308; }
+    .pet-container.blocked .pet-status-dot { background: #ef4444; box-shadow: 0 0 10px #ef4444; }
+
+    .pet-hearts {
+      position: absolute;
+      z-index: 3;
+      inset: 0;
+      pointer-events: none;
+      overflow: visible;
+    }
+    .heart {
+      position: absolute;
+      left: 50%;
+      bottom: 40%;
+      font-size: 13px;
+      animation: heart-rise 1s cubic-bezier(0.2, 0.8, 0.4, 1) forwards;
+      filter: drop-shadow(0 2px 6px rgba(244, 63, 94, 0.6));
+    }
+    @keyframes heart-rise {
+      0% { transform: translate(0, 0) scale(0.5); opacity: 0; }
+      18% { opacity: 1; }
+      100% { transform: translate(var(--hx, 0px), -56px) scale(1.25) rotate(var(--hr, 0deg)); opacity: 0; }
     }
     .pet-close-btn {
       position: absolute;
-      top: -4px;
-      left: -4px;
-      width: 18px;
-      height: 18px;
+      z-index: 4;
+      top: -5px;
+      left: -5px;
+      width: 19px;
+      height: 19px;
       border-radius: 50%;
       background: rgba(30, 41, 59, 0.95);
-      border: 1px solid rgba(255,255,255,0.25);
+      border: 1px solid rgba(255, 255, 255, 0.25);
       color: #cbd5e1;
-      font-size: 11px;
+      font-size: 11.5px;
       display: none;
       align-items: center;
       justify-content: center;
       cursor: pointer;
     }
-    .pet-container:hover .pet-close-btn {
-      display: flex;
-    }
-    .pet-close-btn:hover {
-      background: #ef4444;
-      color: white;
+    .pet-avatar-wrapper:hover .pet-close-btn { display: flex; }
+    .pet-close-btn:hover { background: #ef4444; color: white; }
+
+    .pet-enter { animation: pet-enter 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    @keyframes pet-enter {
+      from { opacity: 0; transform: translateY(18px) scale(0.9); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
     }
   </style>
 </head>
 <body>
-  <div class="pet-container">
-    <div class="pet-bubble" id="bubble" title="Doble clic para abrir Tiancode">${escapeHtml(state.text)}</div>
+  <div class="pet-container pet-enter" id="container">
+    <div class="pet-bubble" id="bubble" title="Doble clic para abrir Tiancode">
+      <span class="bubble-text" id="bubbleText"></span>
+      <span class="typing-dots"><span></span><span></span><span></span></span>
+    </div>
     <div class="pet-avatar-wrapper" id="avatar">
       <div class="pet-close-btn" id="closeBtn" title="Ocultar de escritorio">×</div>
-      <span class="pet-glyph">${avatarSvg}</span>
-      ${isRunning ? `<span class="pet-activity" title="Programando / Investigando">💻</span>` : ""}
-      <span class="pet-status-dot"></span>
+      <div class="pet-ring"></div>
+      <span class="pet-glyph"><span class="pet-box" id="glyph"></span></span>
+      <span class="pet-activity" title="Programando / Investigando">💻</span>
+      <span class="pet-status-dot" id="statusDot"></span>
+      <div class="pet-hearts" id="hearts"></div>
     </div>
   </div>
   <script>
     const { ipcRenderer } = require("electron")
+    const svgs = ${JSON.stringify(svgRecord)}
+    const container = document.getElementById("container")
+    const bubbleText = document.getElementById("bubbleText")
+    const glyph = document.getElementById("glyph")
+    const hearts = document.getElementById("hearts")
+
+    const pettedHearts = ["💖", "💕", "❤️", "💗", "💞"]
+
+    function burstHearts() {
+      for (let i = 0; i < 6; i++) {
+        const heart = document.createElement("span")
+        heart.className = "heart"
+        heart.textContent = pettedHearts[i % pettedHearts.length]
+        heart.style.setProperty("--hx", String(((Math.random() - 0.5) * 70) | 0) + "px")
+        heart.style.setProperty("--hr", String(((Math.random() - 0.5) * 60) | 0) + "deg")
+        heart.style.animationDelay = String(i * 60) + "ms"
+        hearts.append(heart)
+        setTimeout(() => heart.remove(), 1500)
+      }
+    }
+
+    function applyState(state) {
+      container.className = "pet-container pet-enter " + (state.status || "ready")
+      bubbleText.textContent = state.text || ""
+      const svg = svgs[state.kind] || svgs.cat
+      if (glyph.innerHTML !== svg) glyph.innerHTML = svg
+    }
+
     document.getElementById("avatar").addEventListener("click", (e) => {
       e.stopPropagation()
       ipcRenderer.send("desktop-pet-action", "pet")
@@ -264,19 +414,22 @@ function getPetHtml(state: DesktopPetState): string {
       e.stopPropagation()
       ipcRenderer.send("desktop-pet-action", "hide")
     })
+
+    ipcRenderer.on("pet-sync", (_event, state) => {
+      // La ráfaga de corazones viaja solo por "pet-burst"; "pet-sync" solo
+      // pinta el estado para no duplicar la animación.
+      applyState(state)
+    })
+
+    ipcRenderer.on("pet-burst", () => burstHearts())
+
+    applyState(${initial})
   </script>
 </body>
 </html>`
 }
 
-function escapeHtml(unsafe: string): string {
-  return (unsafe || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;")
-}
+let petSyncedOnce = false
 
 export function createDesktopPetWindow(): BrowserWindow {
   if (petWindow && !petWindow.isDestroyed()) {
@@ -286,8 +439,8 @@ export function createDesktopPetWindow(): BrowserWindow {
   const primaryDisplay = screen.getPrimaryDisplay()
   const { workArea } = primaryDisplay
 
-  const width = 220
-  const height = 120
+  const width = 232
+  const height = 128
   const x = workArea.x + workArea.width - width - 20
   const y = workArea.y + workArea.height - height - 20
 
@@ -319,10 +472,22 @@ export function createDesktopPetWindow(): BrowserWindow {
     }
   })
 
+  petSyncedOnce = false
+
+  // La ventana se carga UNA VEZ; los cambios de estado se envían por
+  // "pet-sync" y nunca se recarga el documento (el loadURL anterior en cada
+  // actualización hacía parpadear la mascota).
   petWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(getPetHtml(petState))}`)
+  petWindow.webContents.on("did-finish-load", () => {
+    if (!petSyncedOnce && petWindow && !petWindow.isDestroyed()) {
+      petSyncedOnce = true
+      petWindow.webContents.send("pet-sync", petState)
+    }
+  })
 
   petWindow.on("closed", () => {
     petWindow = null
+    petSyncedOnce = false
   })
 
   return petWindow
@@ -330,6 +495,7 @@ export function createDesktopPetWindow(): BrowserWindow {
 
 export function updateDesktopPet(partial: Partial<DesktopPetState>) {
   const previousStatus = petState.status
+  const previousPetted = petState.petted
   petState = { ...petState, ...partial }
 
   if (petState.visible && (!petWindow || petWindow.isDestroyed())) {
@@ -339,7 +505,8 @@ export function updateDesktopPet(partial: Partial<DesktopPetState>) {
   if (petWindow && !petWindow.isDestroyed()) {
     if (petState.visible) {
       if (!petWindow.isVisible()) petWindow.showInactive()
-      petWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(getPetHtml(petState))}`)
+      if (petState.petted && !previousPetted) petWindow.webContents.send("pet-burst")
+      petWindow.webContents.send("pet-sync", petState)
     } else {
       petWindow.hide()
     }

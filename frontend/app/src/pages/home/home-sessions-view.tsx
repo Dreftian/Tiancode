@@ -3,6 +3,7 @@ import { type Accessor, createMemo, For, Show, Suspense } from "solid-js"
 import { Spinner } from "@tiancode-ai/ui/spinner"
 import { ScrollView } from "@tiancode-ai/ui/scroll-view"
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
+import { HomeWebAppCard } from "@/pages/home/home-webapp-card"
 import { Icon as IconV2 } from "@tiancode-ai/ui/v2/icon"
 import { IconButtonV2 } from "@tiancode-ai/ui/v2/icon-button-v2"
 import { TooltipV2 } from "@tiancode-ai/ui/v2/tooltip-v2"
@@ -122,7 +123,8 @@ export function HomeSessionsView(props: HomeSessionsViewProps) {
               />
             }
           >
-            <div ref={props.onSetContent} class="flex flex-col pt-3 pr-3 pb-16">
+            <div ref={props.onSetContent} class="flex flex-col gap-3 pt-3 pr-3 pb-16">
+              <HomeWebAppCard />
               <For each={props.groups()}>
                 {(group, index) => (
                   <>
@@ -526,6 +528,9 @@ function HomeSessionsEmpty(props: { onNewSession?: () => void; language: ReturnT
       >
         {props.language.t("home.sessions.empty.description")}
       </p>
+      <div class="w-full max-w-[420px] pb-2">
+        <HomeWebAppCard />
+      </div>
       <Show when={props.onNewSession}>
         {(onNewSession) => (
           <ButtonV2 data-action="home-new-session" variant="neutral" size="normal" icon="edit" onClick={onNewSession()}>
@@ -537,8 +542,7 @@ function HomeSessionsEmpty(props: { onNewSession?: () => void; language: ReturnT
   )
 }
 
-function HomeSessionSkeleton(props: { label: string }) {
-  return (
+function HomeSessionSkeleton(props: { label: string }) {  return (
     <div class="flex min-w-0 flex-col gap-4">
       <div class="flex h-7 min-w-0 items-center justify-between px-4">
         <div class={HOME_SECTION_LABEL}>{props.label}</div>

@@ -1677,7 +1677,12 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                           props.controls.agents.select(value)
                           restoreFocus()
                         }}
-                        class="capitalize max-w-[160px] text-text-base"
+                        label={(x) =>
+                          x === "webapp"
+                            ? (language.t("agent.webapp.label") ?? "Web & App")
+                            : x.charAt(0).toUpperCase() + x.slice(1)
+                        }
+                        class="max-w-[200px] text-text-base"
                         valueClass="truncate text-13-regular text-text-base"
                         triggerStyle={control()}
                         triggerProps={{ "data-action": "prompt-agent" }}
@@ -1685,6 +1690,15 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                       />
                     </TooltipKeybind>
                   </div>
+                  <Show when={props.controls.agents.current === "webapp"}>
+                    <span
+                      data-component="prompt-webapp-badge"
+                      class="hidden shrink-0 items-center gap-1 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2 py-0.5 text-[11px] leading-4 text-cyan-300 sm:flex"
+                    >
+                      <span class="size-1.5 rounded-full bg-cyan-400" />
+                      {language.t("webapp.modeBadge")}
+                    </span>
+                  </Show>
                 </Show>
                 <Show when={!providersLoading()}>
                   <Show when={store.mode !== "shell"}>

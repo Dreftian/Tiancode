@@ -35,7 +35,7 @@ describe("redact-config", () => {
     } as unknown as ConfigV1.Info
 
     const redacted = redactConfigInfo(info)
-    const mcp = redacted.mcp as Record<string, Record<string, Record<string, string>>>
+    const mcp = redacted.mcp as unknown as Record<string, Record<string, Record<string, string>>>
     expect(mcp.vision.environment.VISION_API_KEY).toBe(REDACTED)
     expect(mcp.vision.environment.LIVE_FRONTEND_CONFIG).toBe("C:/cfg.json")
     expect(mcp.remote.headers.Authorization).toBe(REDACTED)

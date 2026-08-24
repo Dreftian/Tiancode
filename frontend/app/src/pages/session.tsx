@@ -374,7 +374,7 @@ export default function Page() {
   const comments = useComments()
   const command = useCommand()
   const terminal = useTerminal()
-  const [searchParams, setSearchParams] = useSearchParams<{ prompt?: string }>()
+  const [searchParams, setSearchParams] = useSearchParams<{ prompt?: string; agent?: string }>()
   const location = useLocation()
   const navigate = useNavigate()
   const { params, sessionKey, workspaceKey, tabs, view } = useSessionLayout()
@@ -382,6 +382,14 @@ export default function Page() {
   const reviewFile = () => view().review.file()
   const sessionOwnership = createSessionOwnership(sessionKey)
   const newSessionDesign = createMemo(() => settings.general.newLayoutDesigns())
+
+  // Entrada "Desarrollo Web y App" desde Home: ?agent=webapp preselecciona el
+  // modo full-JSX en el composer de esta sesión y limpia el parámetro.
+  createEffect(() => {
+    if (searchParams.agent !== "webapp") return
+    local.agent.set("webapp")
+    setSearchParams({ agent: undefined }, { replace: true })
+  })
 
   // Adjunta una captura del panel "Vista en vivo" al prompt como media part,
   // igual que las capturas del composer (el modelo la analiza vía un MCP de
@@ -1192,6 +1200,12 @@ export default function Page() {
     /\b(website|websites|pagina|página|web|landing|frontend|app|apps|aplicacion|aplicación|excel|hoja de calculo|hoja de cálculo|documento|documentos|docs|doc|construye|construir|crea|crear|build|make|interfaz|ui)\b/i
   const maybeOpenLiveView = () => {
     if (!newSessionDesign()) return
+    // El modo "Desarrollo Web y App" abre siempre la vista en vivo: su contrato
+    // full-JSX vive del preview en tiempo real y no depende del texto del prompt.
+    if (local.agent.current()?.name === "webapp") {
+      view().liveView.open()
+      return
+    }
     const text = prompt
       .current()
       .map((part) => ("content" in part ? part.content : ""))

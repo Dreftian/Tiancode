@@ -2,6 +2,7 @@ interface ImportMetaEnv {
   readonly VITE_TIANCODE_SERVER_HOST: string
   readonly VITE_TIANCODE_SERVER_PORT: string
   readonly VITE_TIANCODE_CHANNEL?: "dev" | "beta" | "prod"
+  readonly VITE_TIANCODE_VERSION?: string
 
   readonly VITE_SENTRY_DSN?: string
   readonly VITE_SENTRY_ENVIRONMENT?: string
