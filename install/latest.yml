@@ -1,8 +1,8 @@
-version: 1.0.96
+version: 1.0.97
 files:
   - url: Tiancode.exe
-    sha512: UiuShW2XcmiYPkWhfBmUtj7duYl+AIqGIMXKLb8OvHEvbyLxYplTGolzECz9SMDiVIpURG+0blC+6qMz/q0QlQ==
-    size: 234311999
+    sha512: mhRt0s5LYI2KpxIw3qduDqkPYLS0S6HEfS36q4ZYWReLyGsSSfixHXd1+qO13u5MKvBUK3z18trBkgZkwERjzg==
+    size: 234284319
 path: Tiancode.exe
-sha512: UiuShW2XcmiYPkWhfBmUtj7duYl+AIqGIMXKLb8OvHEvbyLxYplTGolzECz9SMDiVIpURG+0blC+6qMz/q0QlQ==
-releaseDate: '2026-08-24T07:33:10.543Z'
+sha512: mhRt0s5LYI2KpxIw3qduDqkPYLS0S6HEfS36q4ZYWReLyGsSSfixHXd1+qO13u5MKvBUK3z18trBkgZkwERjzg==
+releaseDate: '2026-08-24T08:00:50.036Z'
