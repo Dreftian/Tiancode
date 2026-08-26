@@ -26,6 +26,7 @@ export const Info = Schema.Struct({
   mode: Schema.Literals(["subagent", "primary", "all"]),
   hidden: Schema.Boolean,
   color: Color.pipe(optional),
+  icon: Schema.String.pipe(optional),
   steps: PositiveInt.pipe(optional),
   permissions: Permission.Ruleset,
 })

@@ -50,6 +50,7 @@ const loadBuiltinSkills = Effect.fnUntraced(function* (s: State) {
     s.skills[markdown.data.name] = {
       name: markdown.data.name,
       description: markdown.data.description,
+      icon: markdown.data.icon,
       location: `<built-in:${name}>`,
       content: markdown.content,
     }
@@ -59,6 +60,7 @@ const loadBuiltinSkills = Effect.fnUntraced(function* (s: State) {
 export const Info = Schema.Struct({
   name: Schema.String,
   description: Schema.optional(Schema.String),
+  icon: Schema.optional(Schema.String),
   location: Schema.String,
   content: Schema.String,
 })
@@ -72,11 +74,12 @@ const Issue = Schema.StructWithRest(
   [Schema.Record(Schema.String, Schema.Unknown)],
 )
 
-function isSkillFrontmatter(data: unknown): data is { name: string; description?: string } {
+function isSkillFrontmatter(data: unknown): data is { name: string; description?: string; icon?: string } {
   return (
     isRecord(data) &&
     typeof data.name === "string" &&
-    (data.description === undefined || typeof data.description === "string")
+    (data.description === undefined || typeof data.description === "string") &&
+    (data.icon === undefined || typeof data.icon === "string")
   )
 }
 
@@ -162,6 +165,7 @@ const add = Effect.fnUntraced(function* (state: State, match: string, events: Ev
   state.skills[md.data.name] = {
     name: md.data.name,
     description: md.data.description,
+    icon: md.data.icon,
     location: match,
     content: md.content,
   }
@@ -314,6 +318,7 @@ const layer = Layer.effect(
         s.skills[CUSTOMIZE_TIANCODE_SKILL_NAME] = {
           name: CUSTOMIZE_TIANCODE_SKILL_NAME,
           description: CUSTOMIZE_TIANCODE_SKILL_DESCRIPTION,
+          icon: "sliders",
           location: "<built-in>",
           content: CUSTOMIZE_TIANCODE_SKILL_BODY,
         }

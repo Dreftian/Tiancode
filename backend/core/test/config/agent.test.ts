@@ -152,6 +152,7 @@ describe("ConfigAgentPlugin.Plugin", () => {
                     mode: "subagent",
                     hidden: true,
                     color: "warning",
+                    icon: "\u{1F9EC}",
                     steps: 12,
                     request: {
                       headers: { first: "one", shared: "first" },
@@ -189,6 +190,7 @@ describe("ConfigAgentPlugin.Plugin", () => {
         mode: "subagent",
         hidden: true,
         color: "warning",
+        icon: "\u{1F9EC}",
         steps: 12,
         model: { providerID: "anthropic", id: "claude-sonnet", variant: undefined },
       })

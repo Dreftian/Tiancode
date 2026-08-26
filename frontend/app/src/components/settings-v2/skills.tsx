@@ -9,9 +9,111 @@ import { useServerSDK } from "@/context/server-sdk"
 import { showToast } from "@/utils/toast"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
+import { fallbackGlyph, hashColor, SettingsItemIconV2 } from "./parts/item-icon"
 import "./settings-v2.css"
 
 const PAGE_SIZE = 8
+
+const GITHUB_URL_RE =
+  /^https?:\/\/github\.com\/([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+?)(?:\.git)?(?:\/(tree|blob)\/([^/\s#]+)((?:\/[^\s#]*)?))?(?:[?#].*)?$/i
+
+const MAX_GITHUB_SKILLS = 20
+const MAX_FILES_PER_SKILL = 30
+
+type GitHubSource = {
+  owner: string
+  repo: string
+  kind?: "tree" | "blob"
+  ref: string
+  subpath: string
+}
+
+function decodeGitHubUrl(value: string): GitHubSource | undefined {
+  const match = GITHUB_URL_RE.exec(value.trim())
+  if (!match) return undefined
+  const kind = match[3] === "tree" || match[3] === "blob" ? match[3] : undefined
+  const subpath = (match[5] ?? "").replace(/^\//, "").replace(/\/$/, "")
+  return {
+    owner: match[1],
+    repo: match[2],
+    kind,
+    ref: match[4] ?? "HEAD",
+    subpath,
+  }
+}
+
+const githubApiJson = async (url: string) => {
+  const response = await fetch(url, { headers: { Accept: "application/vnd.github+json" } })
+  if (!response.ok) throw new Error(`GitHub request failed with ${response.status}`)
+  return response.json()
+}
+
+const fetchGitHubFile = async (source: GitHubSource, path: string) => {
+  const response = await fetch(`https://raw.githubusercontent.com/${source.owner}/${source.repo}/${source.ref}/${path}`)
+  if (!response.ok) throw new Error(`Failed to download ${path} (${response.status})`)
+  return response.text()
+}
+
+type GitHubSkillFiles = { name: string; files: { path: string; content: string }[] }
+
+// Resolves a GitHub URL (repo root, tree folder, or a single SKILL.md blob)
+// into one entry per discovered SKILL.md. Sibling files inside each skill's
+// own directory ride along so references keep working.
+type GitHubTreeEntry = { type: string; path: string }
+
+// Validates the git-trees API response shape without type assertions.
+function parseGitHubBlobPaths(value: unknown): string[] {
+  if (!value || typeof value !== "object" || !("tree" in value) || !Array.isArray(value.tree)) return []
+  const paths: string[] = []
+  for (const entry of value.tree) {
+    if (!entry || typeof entry !== "object") continue
+    if (!("type" in entry) || !("path" in entry)) continue
+    if (typeof entry.type === "string" && typeof entry.path === "string") {
+      paths.push(entry.path)
+    }
+  }
+  return paths
+}
+
+async function fetchGitHubSkills(source: GitHubSource): Promise<GitHubSkillFiles[]> {
+  if (source.kind === "blob") {
+    if (!source.subpath.endsWith("SKILL.md")) return []
+    const content = await fetchGitHubFile(source, source.subpath)
+    const segments = source.subpath.split("/")
+    segments.pop()
+    const name = segments.pop() ?? source.repo
+    return [{ name, files: [{ path: "SKILL.md", content }] }]
+  }
+
+  const data = await githubApiJson(
+    `https://api.github.com/repos/${source.owner}/${source.repo}/git/trees/${source.ref}?recursive=1`,
+  )
+  const blobPaths: GitHubTreeEntry["path"][] = parseGitHubBlobPaths(data)
+
+  const prefix = source.kind === "tree" && source.subpath ? `${source.subpath}/` : ""
+  const skillPaths = blobPaths
+    .filter((filePath) => filePath === "SKILL.md" || filePath.endsWith("/SKILL.md"))
+    .filter((filePath) => !prefix || filePath.startsWith(prefix))
+    .sort()
+    .slice(0, MAX_GITHUB_SKILLS)
+
+  return Promise.all(
+    skillPaths.map(async (skillPath) => {
+      const dir = skillPath.includes("/") ? skillPath.slice(0, skillPath.lastIndexOf("/")) : ""
+      const siblings = dir
+        ? blobPaths.filter((filePath) => filePath.startsWith(`${dir}/`)).slice(0, MAX_FILES_PER_SKILL)
+        : [skillPath]
+      const files = await Promise.all(
+        siblings.map(async (filePath) => ({
+          path: dir ? filePath.slice(dir.length + 1) : filePath,
+          content: await fetchGitHubFile(source, filePath),
+        })),
+      )
+      return { name: dir || source.repo, files }
+    }),
+  )
+}
+
 
 const SKILL_ES_DESCRIPTIONS: Record<string, string> = {
   "accessibility": "Audita y mejora la accesibilidad web siguiendo las pautas WCAG 2.2 y navegación por teclado.",
@@ -375,6 +477,7 @@ export const SettingsSkillsV2: Component<{
   const serverSdk = useServerSDK()
   const isSpanish = createMemo(() => language.intl().toLowerCase().startsWith("es"))
   const [url, setUrl] = createSignal("")
+  const [githubUrl, setGithubUrl] = createSignal("")
   const [importing, setImporting] = createSignal(false)
   const [message, setMessage] = createSignal<"success" | "error" | undefined>(undefined)
   const [selected, setSelected] = createSignal<string | undefined>(undefined)
@@ -486,17 +589,37 @@ export const SettingsSkillsV2: Component<{
   }
 
   const importFromGithub = async () => {
-    const url = window.prompt("Introduce la URL del repositorio o archivo SKILL.md de GitHub:", "https://github.com/")
-    if (!url || !url.trim() || url === "https://github.com/") return
+    const value = githubUrl().trim()
+    if (!value) return
+    const source = decodeGitHubUrl(value)
+    if (!source) {
+      showToast({ variant: "error", title: language.t("settings.skills.github.failed") })
+      return
+    }
+    setImporting(true)
+    setMessage(undefined)
     try {
+      const skills = await fetchGitHubSkills(source)
+      if (skills.length === 0) {
+        showToast({ variant: "error", title: language.t("settings.skills.github.none") })
+        return
+      }
+      for (const skill of skills) {
+        await serverSdk().client.app.skills2.import({ ...params(), name: skill.name, files: skill.files })
+      }
       showToast({
         variant: "success",
-        title: "Skill importada desde GitHub",
-        description: `Sincronizado correctamente con ${url}`,
+        title:
+          skills.length === 1
+            ? language.t("settings.skills.github.success.one", { name: skills[0].name })
+            : language.t("settings.skills.github.success.many", { count: skills.length }),
       })
+      setGithubUrl("")
       void refetch()
     } catch {
-      showToast({ variant: "error", title: "Error al clonar skill desde GitHub" })
+      showToast({ variant: "error", title: language.t("settings.skills.github.failed") })
+    } finally {
+      setImporting(false)
     }
   }
 
@@ -506,9 +629,6 @@ export const SettingsSkillsV2: Component<{
         <div class="settings-v2-tab-header-row">
           <h2 class="settings-v2-tab-title">{language.t("settings.skills.title")}</h2>
           <div class="flex items-center gap-2">
-            <ButtonV2 type="button" variant="outline" size="small" onClick={importFromGithub}>
-              📥 Clonar desde GitHub
-            </ButtonV2>
             <ButtonV2 type="button" variant="ghost" size="small" onClick={searchGoogle}>
               {language.t("settings.skills.search.google")}
             </ButtonV2>
@@ -553,6 +673,11 @@ export const SettingsSkillsV2: Component<{
                         data-disabled={disabled().has(skill.name) ? "" : undefined}
                         onClick={() => setSelected(skill.name)}
                       >
+                        <SettingsItemIconV2
+                          icon={skill.icon}
+                          fallback={fallbackGlyph(skill.name)}
+                          color={hashColor(skill.name)}
+                        />
                         <div class="settings-v2-skills-item-copy">
                           <div class="settings-v2-skills-item-name">{skill.name}</div>
                           <div class="settings-v2-skills-item-description">
@@ -618,6 +743,39 @@ export const SettingsSkillsV2: Component<{
                 <div class="settings-v2-skills-import-row">
                   <div class="settings-v2-skills-import-copy">
                     <div class="settings-v2-skills-item-name">
+                      {language.t("settings.skills.import.github.title")}
+                    </div>
+                    <div class="settings-v2-skills-item-description">
+                      {language.t("settings.skills.import.github.description")}
+                    </div>
+                  </div>
+                  <div class="settings-v2-skills-url">
+                    <TextInputV2
+                      type="url"
+                      appearance="base"
+                      value={githubUrl()}
+                      onInput={(event) => setGithubUrl(event.currentTarget.value)}
+                      placeholder={language.t("settings.skills.import.github.placeholder")}
+                      spellcheck={false}
+                      autocomplete="off"
+                      aria-label={language.t("settings.skills.import.github.title")}
+                    />
+                    <ButtonV2
+                      type="button"
+                      variant="outline"
+                      size="small"
+                      disabled={importing() || !githubUrl()}
+                      onClick={() => void importFromGithub()}
+                    >
+                      {importing()
+                        ? language.t("settings.skills.importing")
+                        : language.t("settings.skills.import.github.button")}
+                    </ButtonV2>
+                  </div>
+                </div>
+                <div class="settings-v2-skills-import-row">
+                  <div class="settings-v2-skills-import-copy">
+                    <div class="settings-v2-skills-item-name">
                       {language.t("settings.skills.import.url.title")}
                     </div>
                     <div class="settings-v2-skills-item-description">
@@ -656,6 +814,11 @@ export const SettingsSkillsV2: Component<{
             {(skill) => (
               <div class="settings-v2-skills-detail">
                 <div class="settings-v2-skills-detail-header">
+                  <SettingsItemIconV2
+                    icon={skill().icon}
+                    fallback={fallbackGlyph(skill().name)}
+                    color={hashColor(skill().name)}
+                  />
                   <div class="settings-v2-skills-item-copy">
                     <div class="settings-v2-skills-item-name">{skill().name}</div>
                     <div class="settings-v2-skills-item-description">

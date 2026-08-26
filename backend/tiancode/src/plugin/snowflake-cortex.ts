@@ -313,8 +313,12 @@ export async function SnowflakeCortexAuthPlugin(_input: PluginInput): Promise<Ho
                   ...(oauth.accountId && { accountId: oauth.accountId }),
                 },
               })
-              .catch(() => {})
-          } catch {}
+              .catch((error) => {
+                console.warn("[snowflake-cortex] failed to persist refreshed tokens", error)
+              })
+          } catch (error) {
+            console.warn("[snowflake-cortex] proactive token refresh failed; continuing with current token", error)
+          }
         }
 
         return {
@@ -350,7 +354,9 @@ export async function SnowflakeCortexAuthPlugin(_input: PluginInput): Promise<Ho
                           ...(accountId && { accountId }),
                         },
                       })
-                      .catch(() => {})
+                      .catch((error) => {
+                        console.warn("[snowflake-cortex] failed to persist refreshed tokens", error)
+                      })
                     return {
                       access: tokens.access_token,
                       refresh: refreshedRefresh,

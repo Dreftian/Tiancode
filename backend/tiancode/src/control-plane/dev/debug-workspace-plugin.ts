@@ -2,8 +2,10 @@ import type { Plugin } from "@tiancode-ai/plugin"
 import { rename, writeFile } from "node:fs/promises"
 import { randomInt } from "node:crypto"
 import { setTimeout as sleep } from "node:timers/promises"
+import os from "node:os"
+import path from "node:path"
 
-const DEV_DATA_FILE = "/tmp/tiancode-workspace-dev-data.json"
+const DEV_DATA_FILE = path.join(os.tmpdir(), "tiancode-workspace-dev-data.json")
 const DEV_DATA_TEMP_FILE = `${DEV_DATA_FILE}.tmp`
 
 async function waitForHealth(port: number) {

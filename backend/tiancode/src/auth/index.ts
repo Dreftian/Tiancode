@@ -75,7 +75,11 @@ const layer = Layer.effect(
         try {
           const data = JSON.parse(process.env.TIANCODE_AUTH_CONTENT) as Record<string, unknown>
           return Record.filterMap(data, (value) => Result.fromOption(decodeStored(value), () => undefined))
-        } catch (err) {}
+        } catch (err) {
+          yield* Effect.logWarning("malformed TIANCODE_AUTH_CONTENT; falling back to auth.json").pipe(
+            Effect.annotateLogs({ error: String(err) }),
+          )
+        }
       }
 
       const data = (yield* fsys.readJson(file).pipe(Effect.orElseSucceed(() => ({})))) as Record<string, unknown>

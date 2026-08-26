@@ -2,10 +2,9 @@ export type ClientErrorReason = "Transport" | "UnexpectedStatus" | "UnsupportedC
 
 export class ClientError extends Error {
   override readonly name = "ClientError"
-  constructor(
-    readonly reason: ClientErrorReason,
-    options?: ErrorOptions,
-  ) {
+  readonly reason: ClientErrorReason
+  constructor(reason: ClientErrorReason, options?: ErrorOptions) {
     super(reason, options)
+    this.reason = reason
   }
 }

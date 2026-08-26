@@ -28,7 +28,6 @@ import { DesktopFirstLaunchOnboarding } from "./onboarding"
 import { resetZoom, setPinchZoomEnabled, webviewZoom, zoomIn, zoomOut } from "./webview-zoom"
 import { windowFullscreen } from "./window-fullscreen"
 import { availableStartupServer, readyWslConnections } from "./wsl/connections"
-import "./styles.css"
 import { Splash } from "@tiancode-ai/ui/logo"
 import { useTheme } from "@tiancode-ai/ui/theme/context"
 

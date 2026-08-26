@@ -2,13 +2,16 @@ import { Context } from "effect"
 import { Flag } from "@tiancode-ai/core/flag/flag"
 
 // Exact production origins the web app and marketing site are served from.
-// Enumerated from the repo: frontend/web deploys to https://opencode.ai
-// (config.mjs, SST production stage) and the server proxies the UI from
-// https://app.opencode.ai (server/shared/ui.ts); the marketing site
-// (tools/website) is hosted at https://tiancode.vercel.app. No tiancode.ai
-// domain exists in the codebase, so the previous `*.tiancode.ai` wildcard
-// matched nothing; only exact origins are allowed (no wildcards).
-const allowedSiteOrigins = new Set(["https://opencode.ai", "https://app.opencode.ai", "https://tiancode.vercel.app"])
+// frontend/web deploys to https://tiancode.vercel.app (and https://tiancode.ai)
+// and the server proxies the UI from https://app.opencode.ai
+// (server/shared/ui.ts). Only exact origins are allowed (no wildcards).
+const allowedSiteOrigins = new Set([
+  "https://opencode.ai",
+  "https://app.opencode.ai",
+  "https://tiancode.vercel.app",
+  "https://tiancode.ai",
+  "https://app.tiancode.ai",
+])
 
 export type CorsOptions = { readonly cors?: ReadonlyArray<string> }
 

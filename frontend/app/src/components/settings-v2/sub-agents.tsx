@@ -2,6 +2,7 @@ import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
 import { CheckboxV2 } from "@tiancode-ai/ui/v2/checkbox-v2"
 import { Icon } from "@tiancode-ai/ui/v2/icon"
 import { IconButtonV2 } from "@tiancode-ai/ui/v2/icon-button-v2"
+import { SettingsItemIconV2, itemColor } from "./parts/item-icon"
 import { SegmentedControlItemV2, SegmentedControlV2 } from "@tiancode-ai/ui/v2/segmented-control-v2"
 import { SelectV2 } from "@tiancode-ai/ui/v2/select-v2"
 import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
@@ -892,12 +893,11 @@ export const SettingsSubAgentsV2: Component<{
                         class="settings-v2-sub-agents-item"
                         data-active={editing() === agent.name ? "" : undefined}
                       >
-                        <div
-                          class="settings-v2-sub-agents-avatar"
-                          style={{ "--agent-color": agent.color ?? "var(--v2-text-text-faint)" }}
-                        >
-                          <span class="settings-v2-sub-agents-avatar-dot" />
-                        </div>
+                        <SettingsItemIconV2
+                          icon={agent.icon}
+                          fallback="subagent"
+                          color={itemColor(agent.color, agent.name)}
+                        />
                         <div class="settings-v2-sub-agents-item-copy">
                           <div class="settings-v2-sub-agents-item-name">{agent.name}</div>
                           <div class="settings-v2-sub-agents-badges">
@@ -980,12 +980,11 @@ export const SettingsSubAgentsV2: Component<{
                 {(agent) => (
                   <div class="settings-v2-sub-agents-card" data-builtin="">
                     <div class="settings-v2-sub-agents-card-header">
-                      <div
-                        class="settings-v2-sub-agents-avatar"
-                        style={{ "--agent-color": agent.color ?? "var(--v2-text-text-faint)" }}
-                      >
-                        <span class="settings-v2-sub-agents-avatar-dot" />
-                      </div>
+                      <SettingsItemIconV2
+                        icon={agent.icon}
+                        fallback="subagent"
+                        color={itemColor(agent.color, agent.name)}
+                      />
                       <div class="settings-v2-sub-agents-card-name">{agent.name}</div>
                     </div>
                     <div class="settings-v2-sub-agents-badges">

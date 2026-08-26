@@ -147,6 +147,12 @@ export interface IconProps extends ComponentProps<"svg"> {
   size?: "small" | "normal" | "medium" | "large"
 }
 
+export type IconName = keyof typeof icons
+
+export function isIconName(value: string): value is IconName {
+  return value in icons
+}
+
 export function Icon(props: IconProps) {
   const [local, others] = splitProps(props, ["name", "size", "class", "classList"])
   onMount(ensureSprite)

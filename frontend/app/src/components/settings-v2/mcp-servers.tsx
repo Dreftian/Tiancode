@@ -21,6 +21,7 @@ import { useServerSDK } from "@/context/server-sdk"
 import { showToast } from "@/utils/toast"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
+import { guessGlyph, SettingsItemIconV2 } from "./parts/item-icon"
 import { formatMcpCommand, parseMcpCommand } from "./mcp-command"
 import {
   connectableProfileServers,
@@ -1414,6 +1415,18 @@ export const SettingsMcpServersV2: Component<{
 
                   return (
                     <div class="settings-v2-mcp-servers-item">
+                      <SettingsItemIconV2
+                        fallback={guessGlyph(serverName)}
+                        color={
+                          info.tone === "green"
+                            ? "var(--v2-state-fg-success)"
+                            : info.tone === "yellow"
+                              ? "var(--v2-state-fg-warning)"
+                              : info.tone === "red"
+                                ? "var(--v2-state-fg-danger)"
+                                : undefined
+                        }
+                      />
                       <div class="settings-v2-mcp-servers-item-copy">
                         <div class="settings-v2-mcp-servers-item-name-row">
                           <span class="settings-v2-mcp-servers-item-dot" data-tone={info.tone} />
@@ -1428,11 +1441,6 @@ export const SettingsMcpServersV2: Component<{
                           <span class="settings-v2-mcp-servers-chip" data-tone={info.tone}>
                             {language.t(info.key)}
                           </span>
-                          <Show when={info.tone === "green"}>
-                            <span class="settings-v2-mcp-servers-chip text-emerald-400 font-mono" data-tone="green">
-                              ⚡ {Math.floor(6 + (serverName.length % 9))} ms
-                            </span>
-                          </Show>
                           <Show when={toolsLabel}>
                             <span class="settings-v2-mcp-servers-chip" data-variant="type">
                               {toolsLabel}

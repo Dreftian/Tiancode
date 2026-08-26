@@ -1352,3 +1352,24 @@
   line-height: 1.35;
   color: var(--v2-text-text-faint);
 }
+
+.settings-v2-item-icon {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 50%;
+  background-color: color-mix(in srgb, var(--item-icon-color, var(--v2-text-text-faint)) 14%, transparent);
+  color: var(--item-icon-color, var(--v2-text-text-muted));
+}
+
+.settings-v2-item-icon [data-slot="icon-svg"] {
+  width: 15px;
+  height: 15px;
+}
+
+.settings-v2-item-icon-emoji {
+  font-size: 14px;
+  line-height: 1;
+}

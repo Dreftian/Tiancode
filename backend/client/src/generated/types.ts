@@ -139,6 +139,7 @@ export type AgentsListOutput = {
     readonly mode: "subagent" | "primary" | "all"
     readonly hidden: boolean
     readonly color?: string | "primary" | "secondary" | "accent" | "success" | "warning" | "error" | "info"
+    readonly icon?: string
     readonly steps?: number
     readonly permissions: ReadonlyArray<{
       readonly action: string
@@ -2533,6 +2534,7 @@ export type SkillsListOutput = {
     readonly name: string
     readonly description?: string
     readonly slash?: boolean
+    readonly icon?: string
     readonly location: string
     readonly content: string
   }>

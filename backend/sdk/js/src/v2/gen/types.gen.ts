@@ -1704,6 +1704,7 @@ export type AgentConfig = {
    * Hex color code (e.g., #FF5733) or theme color (e.g., primary)
    */
   color?: string | "primary" | "secondary" | "accent" | "success" | "warning" | "error" | "info"
+  icon?: string
   steps?: number
   maxSteps?: number
   permission?: PermissionConfig
@@ -2451,6 +2452,7 @@ export type Agent = {
   topP?: number
   temperature?: number
   color?: string
+  icon?: string
   permission: PermissionRuleset
   model?: {
     modelID: string
@@ -3983,6 +3985,7 @@ export type AgentV2Info = {
   mode: "subagent" | "primary" | "all"
   hidden: boolean
   color?: AgentColor
+  icon?: string
   steps?: number
   permissions: PermissionV2Ruleset
 }
@@ -5102,6 +5105,7 @@ export type SkillV2Info = {
   name: string
   description?: string
   slash?: boolean
+  icon?: string
   location: string
   content: string
 }
@@ -8763,6 +8767,7 @@ export type AppSkillsResponses = {
   200: Array<{
     name: string
     description?: string
+    icon?: string
     location: string
     content: string
   }>
@@ -8803,6 +8808,7 @@ export type AppSkillsImportResponses = {
   200: Array<{
     name: string
     description?: string
+    icon?: string
     location: string
     content: string
   }>
@@ -8839,6 +8845,7 @@ export type AppSkillsToggleResponses = {
   200: Array<{
     name: string
     description?: string
+    icon?: string
     location: string
     content: string
   }>

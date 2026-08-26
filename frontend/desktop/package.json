@@ -1,7 +1,7 @@
 {
   "name": "@tiancode-ai/desktop",
   "private": true,
-  "version": "1.0.97",
+  "version": "1.0.98",
   "type": "module",
   "license": "MIT",
   "homepage": "https://tiancode.ai",
@@ -18,7 +18,7 @@
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "package": "electron-builder --config electron-builder.config.ts",
-    "prepare:release": "bun run build && bun run verify:bundled-mcps && bun ./scripts/copy-icons.ts",
+    "prepare:release": "bun run build && bun run verify:bundled-mcps && bun ./scripts/copy-icons.ts && bun ./scripts/copy-metainfo.ts",
     "prepackage": "bun run prepare:release",
     "package:mac": "electron-builder --mac --config electron-builder.config.ts",
     "prepackage:mac": "bun run prepare:release",
