@@ -26,6 +26,7 @@ import spec_driven_development from "../../../../../skills/spec-driven-developme
 import test_driven_development from "../../../../../skills/test-driven-development.md" with { type: "text" }
 import using_agent_skills from "../../../../../skills/using-agent-skills.md" with { type: "text" }
 import accessibility from "../../../../../skills/accessibility.md" with { type: "text" }
+import apple_hig from "../../../../../skills/apple-hig.md" with { type: "text" }
 import codebase_design from "../../../../../skills/codebase-design.md" with { type: "text" }
 import core_web_vitals from "../../../../../skills/core-web-vitals.md" with { type: "text" }
 import deploy_checklist from "../../../../../skills/deploy-checklist.md" with { type: "text" }
@@ -42,6 +43,7 @@ import incident_response from "../../../../../skills/incident-response.md" with 
 import requesting_code_review from "../../../../../skills/requesting-code-review.md" with { type: "text" }
 import research from "../../../../../skills/research.md" with { type: "text" }
 import resolving_merge_conflicts from "../../../../../skills/resolving-merge-conflicts.md" with { type: "text" }
+import scandinavian_design from "../../../../../skills/scandinavian-design.md" with { type: "text" }
 import skill_creator from "../../../../../skills/skill-creator.md" with { type: "text" }
 import sql_queries from "../../../../../skills/sql-queries.md" with { type: "text" }
 import system_design from "../../../../../skills/system-design.md" with { type: "text" }
@@ -81,6 +83,7 @@ export const builtinAgentSkills: Record<string, string> = {
   "test-driven-development": test_driven_development,
   "using-agent-skills": using_agent_skills,
   "accessibility": accessibility,
+  "apple-hig": apple_hig,
   "codebase-design": codebase_design,
   "core-web-vitals": core_web_vitals,
   "deploy-checklist": deploy_checklist,
@@ -97,6 +100,7 @@ export const builtinAgentSkills: Record<string, string> = {
   "requesting-code-review": requesting_code_review,
   "research": research,
   "resolving-merge-conflicts": resolving_merge_conflicts,
+  "scandinavian-design": scandinavian_design,
   "skill-creator": skill_creator,
   "sql-queries": sql_queries,
   "system-design": system_design,
