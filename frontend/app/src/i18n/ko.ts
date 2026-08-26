@@ -579,6 +579,8 @@ export const dict = {
   "livePreview.zoom": "확대/축소",
   "livePreview.zoomIn": "확대",
   "livePreview.zoomOut": "축소",
+  "livePreview.designToCode.title": "시각 요소 인스펙터 (디자인에서 코드로)",
+  "livePreview.designToCode.label": "디자인→코드",
   "livePreview.select": "선택",
   "livePreview.selectHint": "미리보기에서 요소를 클릭하세요. Esc로 종료합니다.",
   "livePreview.start": "개발 서버 시작",

@@ -854,7 +854,7 @@ export function LivePreview(props: {
         <button
           type="button"
           data-pressed={inspectActive() || undefined}
-          title="Inspector Visual de Elementos (Diseño a Código)"
+          title={language.t("livePreview.designToCode.title")}
           onClick={() => setInspectActive(!inspectActive())}
           class={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium border transition-all cursor-pointer ${
             inspectActive()
@@ -862,8 +862,7 @@ export function LivePreview(props: {
               : "bg-v2-background-bg-base text-text-weak border-v2-border-border-muted hover:text-text-base hover:border-v2-border-border-strong"
           }`}
         >
-          <span>🎯</span>
-          <span>Diseño a Código</span>
+          <span>{language.t("livePreview.designToCode.label")}</span>
         </button>
 
         <Show when={deviceId() === "custom"}>

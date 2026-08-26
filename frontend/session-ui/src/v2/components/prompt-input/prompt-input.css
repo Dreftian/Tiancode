@@ -1,0 +1,6 @@
+/* Keep the empty editor's caret anchored on the first line with a zero-width
+   space. Declared in plain CSS because the escape never survives a Tailwind
+   arbitrary value (a doubled backslash renders the literal text "\200B"). */
+[data-component="prompt-input"]:empty::before {
+  content: "\200B";
+}

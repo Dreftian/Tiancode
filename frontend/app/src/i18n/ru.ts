@@ -914,6 +914,8 @@ export const dict = {
   "livePreview.zoom": "Масштаб",
   "livePreview.zoomIn": "Увеличить",
   "livePreview.zoomOut": "Уменьшить",
+  "livePreview.designToCode.title": "Визуальный инспектор элементов (дизайн в код)",
+  "livePreview.designToCode.label": "Дизайн в код",
   "livePreview.select": "Выбрать",
   "livePreview.selectHint": "Нажмите на элемент в предпросмотре. Esc — выход.",
   "livePreview.start": "Запустить dev-сервер",

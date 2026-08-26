@@ -820,6 +820,8 @@ export const dict = {
   "livePreview.zoom": "ズーム",
   "livePreview.zoomIn": "拡大",
   "livePreview.zoomOut": "縮小",
+  "livePreview.designToCode.title": "視覚要素インスペクター（デザインからコードへ）",
+  "livePreview.designToCode.label": "デザイン→コード",
   "livePreview.select": "選択",
   "livePreview.selectHint": "プレビューの要素をクリックしてください。Escで終了。",
   "livePreview.start": "開発サーバーを起動",

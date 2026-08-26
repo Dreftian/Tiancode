@@ -1121,6 +1121,8 @@ export const dict = {
   "livePreview.zoom": "Zoom",
   "livePreview.zoomIn": "Acercar",
   "livePreview.zoomOut": "Alejar",
+  "livePreview.designToCode.title": "Inspector visual de elementos (diseño a código)",
+  "livePreview.designToCode.label": "Diseño a Código",
   "livePreview.select": "Seleccionar",
   "livePreview.selectHint": "Haz clic en un elemento del preview. Esc para salir.",
   "livePreview.start": "Iniciar dev server",

@@ -898,6 +898,8 @@ export const dict = {
   "livePreview.zoom": "缩放",
   "livePreview.zoomIn": "放大",
   "livePreview.zoomOut": "缩小",
+  "livePreview.designToCode.title": "可视化元素检查器（设计转代码）",
+  "livePreview.designToCode.label": "设计转代码",
   "livePreview.select": "选择",
   "livePreview.selectHint": "点击预览中的元素。按 Esc 退出。",
   "livePreview.start": "启动开发服务器",

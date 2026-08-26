@@ -36,6 +36,20 @@ describe("fittedPreviewViewport", () => {
     expect(viewport.height).toBe(446)
   })
 
+  test("scales a device up to fill a panel larger than the emulated viewport", () => {
+    const viewport = fittedPreviewViewport({ width: 1600, height: 1000 }, { width: 1280, height: 800 }, 1, 8)
+
+    expect(viewport.scale).toBeGreaterThan(1)
+    expect(viewport.width).toBeLessThanOrEqual(1600)
+    expect(viewport.height).toBeLessThanOrEqual(1000)
+  })
+
+  test("keeps a manual zoom ceiling even when the panel is larger", () => {
+    const viewport = fittedPreviewViewport({ width: 2400, height: 1400 }, { width: 1280, height: 800 }, 1.5, 8)
+
+    expect(viewport.scale).toBe(1.5)
+  })
+
   test("keeps even a framed device inside a panel that is being collapsed", () => {
     const viewport = fittedPreviewViewport({ width: 18, height: 10 }, { width: 390, height: 844 }, 1, 12)
 
