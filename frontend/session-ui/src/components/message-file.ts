@@ -48,10 +48,18 @@ const LANGUAGE_NAMES = new Map<string, string>([
 // filename may be an absolute path, so extract the basename before looking for one
 export function typeLabel(filename: string, mime: string, fallback: string) {
   if (mime === "application/pdf") return "PDF"
+  if (
+    mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+    mime === "application/msword"
+  )
+    return "DOCX"
+  if (mime === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") return "XLSX"
   const base = getFilename(filename)
   // idx 0 is a dotfile like .gitignore, not an extension
   const idx = base.lastIndexOf(".")
   const suffix = idx <= 0 ? "" : base.slice(idx + 1).toLowerCase()
+  if (suffix === "docx") return "DOCX"
+  if (suffix === "xlsx") return "XLSX"
   if (!suffix) return fallback
   return LANGUAGE_NAMES.get(suffix) ?? suffix.toUpperCase()
 }

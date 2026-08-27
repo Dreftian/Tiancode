@@ -1,9 +1,48 @@
 import type { FileContent } from "@tiancode-ai/sdk/v2"
 
-export type MediaKind = "image" | "audio" | "svg"
+export type DocumentKind = "pdf" | "docx" | "xlsx"
+export type MediaKind = "image" | "audio" | "svg" | DocumentKind
 
 const imageExtensions = new Set(["png", "jpg", "jpeg", "gif", "webp", "avif", "bmp", "ico", "tif", "tiff", "heic"])
 const audioExtensions = new Set(["mp3", "wav", "ogg", "m4a", "aac", "flac", "opus"])
+
+const documentMimes: Record<DocumentKind, string[]> = {
+  pdf: ["application/pdf"],
+  docx: [
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/msword",
+  ],
+  xlsx: ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
+}
+
+const documentExtensions: Record<DocumentKind, string[]> = {
+  pdf: ["pdf"],
+  docx: ["docx", "doc"],
+  xlsx: ["xlsx", "xls"],
+}
+
+export function isDocumentKind(kind: MediaKind | undefined): kind is DocumentKind {
+  return kind === "pdf" || kind === "docx" || kind === "xlsx"
+}
+
+export function documentKindFromPath(path: string | undefined): DocumentKind | undefined {
+  const ext = fileExtension(path)
+  if (documentExtensions.pdf.includes(ext)) return "pdf"
+  if (documentExtensions.docx.includes(ext)) return "docx"
+  if (documentExtensions.xlsx.includes(ext)) return "xlsx"
+}
+
+export function documentKindFromMime(mime: string | undefined): DocumentKind | undefined {
+  const normalized = normalizeMimeType(mime)
+  if (!normalized) return
+  if (documentMimes.pdf.includes(normalized)) return "pdf"
+  if (documentMimes.docx.includes(normalized)) return "docx"
+  if (documentMimes.xlsx.includes(normalized)) return "xlsx"
+}
+
+export function documentKindFromAttachment(input: { filename?: string; mime?: string }) {
+  return documentKindFromMime(input.mime) ?? documentKindFromPath(input.filename)
+}
 
 type MediaValue = unknown
 
@@ -38,6 +77,7 @@ export function mediaKindFromPath(path: string | undefined): MediaKind | undefin
   if (ext === "svg") return "svg"
   if (imageExtensions.has(ext)) return "image"
   if (audioExtensions.has(ext)) return "audio"
+  return documentKindFromPath(path)
 }
 
 export function isBinaryContent(value: MediaValue) {
@@ -88,6 +128,30 @@ function decodeBase64Utf8(value: string) {
     const bytes = Uint8Array.from(raw, (x) => x.charCodeAt(0))
     if (typeof TextDecoder === "function") return new TextDecoder().decode(bytes)
     return raw
+  } catch {}
+}
+
+// Extracts the raw base64 payload of a binary FileContent value, whether it
+// arrives as an embedded data URL or as the { content, encoding: "base64" }
+// record produced by /file/content.
+export function base64FromMediaValue(value: MediaValue): string | undefined {
+  if (typeof value === "string") {
+    const comma = value.indexOf(",")
+    if (comma === -1) return
+    return value.slice(comma + 1)
+  }
+
+  const record = mediaRecord(value)
+  if (!record || record.encoding !== "base64") return
+  if (typeof record.content !== "string") return
+  return record.content
+}
+
+export function decodeBase64Bytes(value: string) {
+  if (typeof atob !== "function") return
+  try {
+    const raw = atob(value)
+    return Uint8Array.from(raw, (x) => x.charCodeAt(0))
   } catch {}
 }
 

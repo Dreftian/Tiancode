@@ -55,6 +55,14 @@ describe("message-file", () => {
     expect(typeLabel("list.md", "text/plain", "File")).toBe("Markdown")
     expect(typeLabel("/repo/src/main.ts", "text/plain", "File")).toBe("TypeScript")
     expect(typeLabel("/tmp/report.pdf", "application/pdf", "File")).toBe("PDF")
+    expect(typeLabel("/tmp/letter.docx", "text/plain", "File")).toBe("DOCX")
+    expect(
+      typeLabel("/tmp/letter.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "File"),
+    ).toBe("DOCX")
+    expect(typeLabel("/tmp/sheet.xlsx", "text/plain", "File")).toBe("XLSX")
+    expect(
+      typeLabel("/tmp/sheet.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "File"),
+    ).toBe("XLSX")
     expect(typeLabel("notes.xyz", "text/plain", "File")).toBe("XYZ")
     expect(typeLabel("/home/user/my.project/Makefile", "text/plain", "File")).toBe("File")
     expect(typeLabel(".gitignore", "text/plain", "File")).toBe("File")

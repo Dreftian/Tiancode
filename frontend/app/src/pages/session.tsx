@@ -91,6 +91,8 @@ import { clampLiveViewWidth, liveViewWidthBounds } from "@/pages/session/live-vi
 import { SessionReviewEmptyChangesV2 } from "@tiancode-ai/session-ui/v2/session-review-empty-changes-v2"
 import { SessionReviewEmptyNoGitV2 } from "@tiancode-ai/session-ui/v2/session-review-empty-no-git-v2"
 import { SessionReviewV2SidebarToggle } from "@tiancode-ai/session-ui/v2/session-review-v2"
+import { DocumentPreviewDialogV2 } from "@tiancode-ai/session-ui/v2/document-preview-dialog-v2"
+import { base64FromMediaValue, documentKindFromAttachment } from "@tiancode-ai/session-ui/pierre/media"
 import { ReviewPanelV2 } from "@/pages/session/v2/review-panel-v2"
 import { createReviewPanelV2State } from "@/pages/session/v2/review-panel-v2-state"
 import { reviewDiffDirectory, reviewDiffNeedsLoad, reviewRootDirectory } from "@/pages/session/v2/review-diff-kinds"
@@ -1982,6 +1984,14 @@ export default function Page() {
   // attachment bytes are embedded as a data URL, so downloading always works;
   // revealing requires the on-disk path captured by the client that attached the file
   const openAttachment = (file: FilePart) => {
+    const docKind = documentKindFromAttachment({ filename: file.filename, mime: file.mime })
+    if (docKind) {
+      const base64 = base64FromMediaValue(file.url)
+      if (base64) {
+        dialog.show(() => <DocumentPreviewDialogV2 kind={docKind} base64={base64} filename={file.filename} />)
+        return
+      }
+    }
     const download = () => {
       const anchor = document.createElement("a")
       anchor.href = file.url

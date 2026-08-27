@@ -2,13 +2,17 @@ import type { FileContent } from "@tiancode-ai/sdk/v2"
 import { createEffect, createMemo, Match, on, onCleanup, Show, Switch, untrack, type JSX } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useI18n } from "@tiancode-ai/ui/context/i18n"
+import { DocumentViewer } from "./document-viewer"
 import {
+  base64FromMediaValue,
   dataUrlFromMediaValue,
   hasMediaValue,
   isBinaryContent,
+  isDocumentKind,
   mediaKindFromPath,
   normalizeMimeType,
   svgTextFromValue,
+  type MediaKind,
 } from "../pierre/media"
 
 export type FileMediaOptions = {
@@ -20,7 +24,7 @@ export type FileMediaOptions = {
   deleted?: boolean
   readFile?: (path: string) => Promise<FileContent | undefined>
   onLoad?: () => void
-  onError?: (ctx: { kind: "image" | "audio" | "svg" }) => void
+  onError?: (ctx: { kind: MediaKind }) => void
 }
 
 function mediaValue(cfg: FileMediaOptions, mode: "image" | "audio") {
@@ -37,6 +41,7 @@ export function FileMedia(props: { media?: FileMediaOptions; fallback: () => JSX
     error?: boolean
     src?: string
     mime?: string
+    doc?: string
   }>({})
   const cfg = () => props.media
   const kind = createMemo(() => {
@@ -50,6 +55,84 @@ export function FileMedia(props: { media?: FileMediaOptions; fallback: () => JSX
     if (!media || media.mode === "off") return false
     if (kind()) return false
     return isBinaryContent(media.current as any)
+  })
+
+  const docKind = createMemo(() => {
+    const k = kind()
+    return isDocumentKind(k) ? k : undefined
+  })
+
+  const docValue = () => {
+    const media = cfg()
+    if (!media) return
+    if (media.current !== undefined) return media.current
+    return media.after ?? media.before
+  }
+
+  const docDirect = createMemo(() => {
+    const media = cfg()
+    if (!media || !docKind()) return
+    return base64FromMediaValue(docValue())
+  })
+
+  const docRequest = createMemo(() => {
+    const media = cfg()
+    const k = docKind()
+    if (!media || !k) return
+    if (media.current !== undefined) return
+    if (docDirect()) return
+    if (!media.path || !media.readFile) return
+    return {
+      key: `doc:${k}:${media.path}`,
+      kind: k,
+      path: media.path,
+      readFile: media.readFile,
+      onError: media.onError,
+    }
+  })
+
+  createEffect(() => {
+    const input = docRequest()
+    if (!input) {
+      if (untrack(() => remote.key)?.startsWith("doc:")) {
+        setRemote({ key: undefined, loading: false, error: false, doc: undefined })
+      }
+      return
+    }
+
+    let active = true
+    if (untrack(() => remote.key) === input.key) setRemote({ loading: true, error: false })
+    else setRemote({ key: input.key, loading: true, error: false, doc: undefined })
+    void input.readFile(input.path).then(
+      (result) => {
+        if (!active) return
+        const base64 = base64FromMediaValue(result as any)
+        if (!base64) {
+          input.onError?.({ kind: input.kind })
+          setRemote({ key: input.key, loading: false, error: true, doc: undefined })
+          return
+        }
+        setRemote({ key: input.key, loading: false, error: false, doc: base64 })
+      },
+      () => {
+        if (!active) return
+        input.onError?.({ kind: input.kind })
+        setRemote({ key: input.key, loading: false, error: true, doc: undefined })
+      },
+    )
+
+    onCleanup(() => {
+      active = false
+    })
+  })
+
+  const docBase64 = createMemo(() => {
+    const k = docKind()
+    if (!k) return
+    const input = docRequest()
+    if (!input) return docDirect()
+    if (remote.key !== input.key || remote.error) return
+    return docDirect() ?? remote.doc
   })
 
   const onLoad = () => props.media?.onLoad?.()
@@ -180,8 +263,12 @@ export function FileMedia(props: { media?: FileMediaOptions; fallback: () => JSX
     ),
   )
 
-  const kindLabel = (value: "image" | "audio") =>
-    i18n.t(value === "image" ? "ui.fileMedia.kind.image" : "ui.fileMedia.kind.audio")
+  const kindLabel = (value: MediaKind) =>
+    value === "image"
+      ? i18n.t("ui.fileMedia.kind.image")
+      : value === "audio"
+        ? i18n.t("ui.fileMedia.kind.audio")
+        : value.toUpperCase()
 
   return (
     <Switch>
@@ -268,6 +355,41 @@ export function FileMedia(props: { media?: FileMediaOptions; fallback: () => JSX
                 )}
               </Show>
             </div>
+          )
+        })()}
+      </Match>
+      <Match when={docKind()}>
+        {(() => {
+          const k = docKind()
+          if (!k) return props.fallback()
+          const label = kindLabel(k)
+          return (
+            <Show
+              when={docBase64()}
+              fallback={(() => {
+                const request = docRequest()
+                const docStatus = (() => {
+                  if (request && (remote.key !== request.key || remote.loading)) return "loading" as const
+                  if (request && remote.error) return "error" as const
+                  return "unavailable" as const
+                })()
+                return (
+                  <div class="flex min-h-40 items-center justify-center px-6 py-4 text-center text-text-weak">
+                    {i18n.t(`ui.fileMedia.state.${docStatus}`, { kind: label })}
+                  </div>
+                )
+              })()}
+            >
+              {(base64) => (
+                <DocumentViewer
+                  kind={k}
+                  base64={base64()}
+                  path={cfg()?.path}
+                  onLoad={onLoad}
+                  onError={() => cfg()?.onError?.({ kind: k })}
+                />
+              )}
+            </Show>
           )
         })()}
       </Match>

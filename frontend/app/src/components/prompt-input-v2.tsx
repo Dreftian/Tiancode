@@ -1,4 +1,6 @@
 import { ImagePreview } from "@tiancode-ai/ui/image-preview"
+import { DocumentPreviewDialogV2 } from "@tiancode-ai/session-ui/v2/document-preview-dialog-v2"
+import { base64FromMediaValue, documentKindFromAttachment } from "@tiancode-ai/session-ui/pierre/media"
 import { useDialog } from "@tiancode-ai/ui/context/dialog"
 import { ProviderIcon } from "@tiancode-ai/ui/provider-icon"
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
@@ -395,8 +397,19 @@ export function usePromptInputV2Controller(props: PromptInputV2ControllerProps):
     onContextRemove(item) {
       if (item?.commentID) comments.remove(item.path, item.commentID)
     },
-    openAttachment: (attachment) =>
-      dialog.show(() => <ImagePreview src={attachment.blob.url} alt={attachment.filename} />),
+    openAttachment: (attachment) => {
+      const docKind = documentKindFromAttachment({ filename: attachment.filename })
+      if (docKind) {
+        const base64 = base64FromMediaValue(attachment.blob.url)
+        if (base64) {
+          dialog.show(() => (
+            <DocumentPreviewDialogV2 kind={docKind} base64={base64} filename={attachment.filename} />
+          ))
+          return
+        }
+      }
+      dialog.show(() => <ImagePreview src={attachment.blob.url} alt={attachment.filename} />)
+    },
     openContext(key) {
       const item = controller.contextItem(key)
       if (item) openComment(item, props, sync, layout, files, comments)
