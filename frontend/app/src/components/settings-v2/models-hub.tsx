@@ -105,15 +105,20 @@ const formatEta = (seconds: Numish | undefined) => {
   return `${hours}h ${minutes % 60}m`
 }
 
-// Iconos de marca oficiales de Hugging Face y proveedores de IA
+// Iconos de marca oficiales de Hugging Face, Labs y avatares reales
 function BrandLogo(props: { id: string; author?: string; class?: string }) {
-  const text = `${props.id} ${props.author ?? ""}`.toLowerCase()
+  const [imgError, setImgError] = createSignal(false)
+  const author = () => {
+    if (props.author) return props.author
+    return props.id.includes("/") ? props.id.split("/")[0] : ""
+  }
+  const text = () => `${props.id} ${author()}`.toLowerCase()
 
-  // 1. DeepSeek (Whale / Dolphin official emblem)
-  if (text.includes("deepseek")) {
+  // 1. DeepSeek (Whale official emblem)
+  if (text().includes("deepseek")) {
     return (
       <div class={`lm-brand-badge lm-brand-deepseek ${props.class ?? ""}`} title="DeepSeek Official">
-        <svg viewBox="0 0 100 100" width="24" height="24" fill="none">
+        <svg viewBox="0 0 100 100" width="26" height="26" fill="none">
           <path
             d="M18 52C22 36 34 26 50 26C66 26 80 36 84 50C86 56 84 64 78 70C72 76 62 80 50 80C36 80 24 72 18 60L12 66C10 68 8 66 9 63L14 48C15 45 18 45 19 48L22 56"
             fill="#ffffff"
@@ -126,10 +131,10 @@ function BrandLogo(props: { id: string; author?: string; class?: string }) {
   }
 
   // 2. Alibaba Qwen (Prism Diamond official emblem)
-  if (text.includes("qwen")) {
+  if (text().includes("qwen")) {
     return (
       <div class={`lm-brand-badge lm-brand-qwen ${props.class ?? ""}`} title="Alibaba Qwen Official">
-        <svg viewBox="0 0 100 100" width="24" height="24" fill="none">
+        <svg viewBox="0 0 100 100" width="26" height="26" fill="none">
           <polygon points="50,12 86,34 86,66 50,88 14,66 14,34" fill="#4f46e5" stroke="#a5b4fc" stroke-width="2" />
           <polygon points="50,12 86,34 50,56 14,34" fill="#818cf8" />
           <polygon points="14,34 50,56 50,88 14,66" fill="#6366f1" />
@@ -141,10 +146,10 @@ function BrandLogo(props: { id: string; author?: string; class?: string }) {
   }
 
   // 3. Meta Llama / CodeLlama (Official Meta Infinity Ribbon)
-  if (text.includes("llama") || text.includes("meta")) {
+  if (text().includes("llama") || text().includes("meta")) {
     return (
       <div class={`lm-brand-badge lm-brand-meta ${props.class ?? ""}`} title="Meta Llama Official">
-        <svg viewBox="0 0 100 100" width="24" height="24" fill="none">
+        <svg viewBox="0 0 100 100" width="26" height="26" fill="none">
           <path
             d="M28 35C18 35 10 42 10 52C10 62 18 69 28 69C38 69 46 60 50 52C54 60 62 69 72 69C82 69 90 62 90 52C90 42 82 35 72 35C62 35 54 44 50 52C46 44 38 35 28 35ZM28 43C34 43 40 48 44 52C40 56 34 61 28 61C22 61 18 57 18 52C18 47 22 43 28 43ZM72 43C78 43 82 47 82 52C82 57 78 61 72 61C66 61 60 56 56 52C60 48 66 43 72 43Z"
             fill="#ffffff"
@@ -155,10 +160,10 @@ function BrandLogo(props: { id: string; author?: string; class?: string }) {
   }
 
   // 4. NVIDIA (Nemotron / Megatron official Eye logo)
-  if (text.includes("nvidia") || text.includes("nemotron") || text.includes("megatron")) {
+  if (text().includes("nvidia") || text().includes("nemotron") || text().includes("megatron")) {
     return (
       <div class={`lm-brand-badge lm-brand-nvidia ${props.class ?? ""}`} title="NVIDIA Official">
-        <svg viewBox="0 0 100 100" width="24" height="24" fill="none">
+        <svg viewBox="0 0 100 100" width="26" height="26" fill="none">
           <path
             d="M50 18C28 18 12 36 12 50C12 64 28 82 50 82C66 82 78 72 84 62C85 60 84 58 82 58L72 58C71 58 69 59 68 60C64 66 58 72 50 72C34 72 22 58 22 50C22 42 34 28 50 28C62 28 70 36 74 42C75 43 77 44 79 44L87 44C89 44 90 42 89 40C82 28 68 18 50 18Z"
             fill="#ffffff"
@@ -173,10 +178,10 @@ function BrandLogo(props: { id: string; author?: string; class?: string }) {
   }
 
   // 5. Google Gemma (Gemma / CodeGemma 4-Point Sparkling Star)
-  if (text.includes("gemma") || text.includes("google") || text.includes("codegemma")) {
+  if (text().includes("gemma") || text().includes("google") || text().includes("codegemma")) {
     return (
       <div class={`lm-brand-badge lm-brand-google ${props.class ?? ""}`} title="Google Gemma Official">
-        <svg viewBox="0 0 100 100" width="24" height="24" fill="none">
+        <svg viewBox="0 0 100 100" width="26" height="26" fill="none">
           <defs>
             <linearGradient id="gemma-g1" x1="0" y1="0" x2="100" y2="100">
               <stop offset="0%" stop-color="#4285F4" />
@@ -193,10 +198,10 @@ function BrandLogo(props: { id: string; author?: string; class?: string }) {
   }
 
   // 6. Mistral AI (Codestral / Mixtral / Ministral official stepped M)
-  if (text.includes("mistral") || text.includes("codestral") || text.includes("mixtral") || text.includes("ministral")) {
+  if (text().includes("mistral") || text().includes("codestral") || text().includes("mixtral") || text().includes("ministral")) {
     return (
       <div class={`lm-brand-badge lm-brand-mistral ${props.class ?? ""}`} title="Mistral AI Official">
-        <svg viewBox="0 0 100 100" width="24" height="24" fill="none">
+        <svg viewBox="0 0 100 100" width="26" height="26" fill="none">
           <rect x="14" y="16" width="16" height="16" fill="#ff7000" />
           <rect x="70" y="16" width="16" height="16" fill="#ff7000" />
           <rect x="14" y="36" width="16" height="16" fill="#ff8c00" />
@@ -214,10 +219,10 @@ function BrandLogo(props: { id: string; author?: string; class?: string }) {
   }
 
   // 7. Microsoft Phi (Phi-3 / Phi-4 / Phi-2)
-  if (text.includes("phi") || text.includes("microsoft")) {
+  if (text().includes("phi") || text().includes("microsoft")) {
     return (
       <div class={`lm-brand-badge lm-brand-microsoft ${props.class ?? ""}`} title="Microsoft Official">
-        <svg viewBox="0 0 100 100" width="22" height="22" fill="none">
+        <svg viewBox="0 0 100 100" width="24" height="24" fill="none">
           <rect x="14" y="14" width="32" height="32" rx="4" fill="#f25022" />
           <rect x="54" y="14" width="32" height="32" rx="4" fill="#7fba00" />
           <rect x="14" y="54" width="32" height="32" rx="4" fill="#00a4ef" />
@@ -228,10 +233,10 @@ function BrandLogo(props: { id: string; author?: string; class?: string }) {
   }
 
   // 8. IBM Granite
-  if (text.includes("granite") || text.includes("ibm")) {
+  if (text().includes("granite") || text().includes("ibm")) {
     return (
       <div class={`lm-brand-badge lm-brand-ibm ${props.class ?? ""}`} title="IBM Granite Official">
-        <svg viewBox="0 0 100 100" width="24" height="24" fill="none">
+        <svg viewBox="0 0 100 100" width="26" height="26" fill="none">
           <rect x="12" y="20" width="76" height="7" fill="#ffffff" />
           <rect x="12" y="30" width="76" height="7" fill="#ffffff" />
           <rect x="12" y="40" width="76" height="7" fill="#ffffff" />
@@ -243,49 +248,26 @@ function BrandLogo(props: { id: string; author?: string; class?: string }) {
     )
   }
 
-  // 9. 01.AI Yi (Yi-Coder / Yi-Lightning)
-  if (text.includes("yi-") || text.includes("01-ai") || text.includes("01.ai")) {
+  // 9. Real Hugging Face Author / Org Avatar si está disponible
+  const authName = author()
+  if (authName && !imgError()) {
     return (
-      <div class={`lm-brand-badge lm-brand-yi ${props.class ?? ""}`} title="01.AI Yi Official">
-        <svg viewBox="0 0 100 100" width="24" height="24" fill="none">
-          <polygon points="50,15 85,50 50,85 15,50" fill="#00ff88" opacity="0.9" />
-          <polygon points="50,30 70,50 50,70 30,50" fill="#0f172a" />
-          <circle cx="50" cy="50" r="8" fill="#00ff88" />
-        </svg>
+      <div class={`lm-brand-badge lm-brand-hf-avatar ${props.class ?? ""}`} title={`${authName} en Hugging Face`}>
+        <img
+          src={`https://huggingface.co/avatars/${encodeURIComponent(authName)}.png`}
+          alt={authName}
+          class="w-full h-full object-cover rounded-xl"
+          onError={() => setImgError(true)}
+          loading="lazy"
+        />
       </div>
     )
   }
 
-  // 10. Cohere (Command-R / Aya)
-  if (text.includes("cohere") || text.includes("command-r") || text.includes("aya")) {
-    return (
-      <div class={`lm-brand-badge lm-brand-cohere ${props.class ?? ""}`} title="Cohere Official">
-        <svg viewBox="0 0 100 100" width="24" height="24" fill="none">
-          <circle cx="36" cy="40" r="20" fill="#d45b4b" />
-          <circle cx="64" cy="56" r="22" fill="#39594c" />
-          <ellipse cx="44" cy="62" rx="14" ry="18" fill="#e8c468" />
-        </svg>
-      </div>
-    )
-  }
-
-  // 11. InternLM (Shanghai AI Lab)
-  if (text.includes("internlm") || text.includes("internvl")) {
-    return (
-      <div class={`lm-brand-badge lm-brand-internlm ${props.class ?? ""}`} title="InternLM Official">
-        <svg viewBox="0 0 100 100" width="24" height="24" fill="none">
-          <circle cx="50" cy="50" r="36" stroke="#38bdf8" stroke-width="4" fill="none" />
-          <polygon points="50,18 58,42 82,50 58,58 50,82 42,58 18,50 42,42" fill="#38bdf8" />
-          <circle cx="50" cy="50" r="6" fill="#ffffff" />
-        </svg>
-      </div>
-    )
-  }
-
-  // 12. Hugging Face / SmolLM / StarCoder / BigCode / Default HF Repository
+  // 10. Hugging Face / Default Fallback
   return (
-    <div class={`lm-brand-badge lm-brand-hf ${props.class ?? ""}`} title="Hugging Face Official">
-      <svg viewBox="0 0 100 100" width="26" height="26" fill="none">
+    <div class={`lm-brand-badge lm-brand-hf ${props.class ?? ""}`} title="Hugging Face">
+      <svg viewBox="0 0 100 100" width="28" height="28" fill="none">
         <circle cx="50" cy="50" r="38" fill="#ffd21e" />
         <ellipse cx="38" cy="46" rx="4" ry="5.5" fill="#1e1e1e" />
         <ellipse cx="62" cy="46" rx="4" ry="5.5" fill="#1e1e1e" />
@@ -411,6 +393,11 @@ export const SettingsModelsHubV2: Component<{
     { initialValue: [] as RuntimeInfo[] },
   )
 
+  const [engineStatus, { refetch: refetchEngine }] = createResource(
+    () => serverSdk().client.modelhub.engine(params()),
+    (request) => request.then((x) => x.data),
+  )
+
   const ram = createMemo(() => asNumber(system()?.ram) ?? 16e9)
   const vramTotal = createMemo(() => asNumber(system()?.vram?.total) ?? 8e9)
   const vramFree = createMemo(() => asNumber(system()?.vram?.free) ?? 6e9)
@@ -419,6 +406,7 @@ export const SettingsModelsHubV2: Component<{
     try {
       const res = await serverSdk().client.modelhub.downloads(params())
       setJobs(res.data ?? [])
+      void refetchEngine()
     } catch {
       // ignore transient polling error
     }
@@ -593,19 +581,67 @@ export const SettingsModelsHubV2: Component<{
     }
   }
 
+  const stopNativeEngine = async () => {
+    try {
+      await serverSdk().client.modelhub.engineStop(params())
+      refetchEngine()
+      refetchRuntimes()
+      showToast({
+        variant: "success",
+        title: "Motor Nativo detenido",
+        description: "Se ha liberado la memoria VRAM y los recursos de la GPU.",
+      })
+    } catch {
+      showToast({ variant: "error", title: "Error al detener el motor nativo" })
+    }
+  }
+
   const activateDownloadedModel = async (job: DownloadJob) => {
     const modelName = job.file.replace(/\.gguf$/i, "")
-    const availableRuntime = (runtimes() ?? []).find((r) => r.available)?.id ?? "lmstudio"
-    const baseURL =
-      availableRuntime === "ollama"
-        ? "http://localhost:11434/v1"
-        : "http://localhost:1234/v1"
+    const availableRuntime = (runtimes() ?? []).find((r) => r.available && r.id !== "tiancode-native")?.id
+
+    let runtimeId = "local"
+    let baseURL = "http://localhost:58282/v1"
+
+    if (availableRuntime === "ollama") {
+      runtimeId = "ollama"
+      baseURL = "http://localhost:11434/v1"
+    } else if (availableRuntime === "lmstudio") {
+      runtimeId = "lmstudio"
+      baseURL = "http://localhost:1234/v1"
+    } else {
+      // Iniciar automáticamente Tiancode Native Engine si no hay un runtime externo
+      runtimeId = "local"
+      baseURL = "http://localhost:58282/v1"
+      showToast({
+        title: "Iniciando Tiancode Native Engine...",
+        description: `Cargando ${modelName} en GPU/VRAM...`,
+      })
+      const engRes = await serverSdk()
+        .client.modelhub.engineStart({
+          ...params(),
+          model: job.model,
+          file: job.file,
+        })
+        .catch(() => undefined)
+
+      if (engRes?.data?.status === "error") {
+        showToast({
+          variant: "error",
+          title: "Error al iniciar el motor nativo",
+          description: engRes.data.error || "No se pudo iniciar el proceso de inferencia.",
+        })
+        return
+      }
+      refetchEngine()
+      refetchRuntimes()
+    }
 
     try {
       const configRes = await serverSdk().client.config.get(params()).catch(() => undefined)
       const existingProviders = (configRes?.data?.provider ?? {}) as Record<string, { npm?: string; options?: { baseURL?: string }; models?: Record<string, { name: string }> }>
       
-      const existingRuntimeModels = (existingProviders[availableRuntime]?.models ?? {}) as Record<string, { name: string }>
+      const existingRuntimeModels = (existingProviders[runtimeId]?.models ?? {}) as Record<string, { name: string }>
       const updatedModels: Record<string, { name: string }> = {
         ...existingRuntimeModels,
         [modelName]: { name: modelName },
@@ -614,14 +650,14 @@ export const SettingsModelsHubV2: Component<{
 
       const updatedProviders = {
         ...existingProviders,
-        [availableRuntime]: {
+        [runtimeId]: {
           npm: "@ai-sdk/openai-compatible",
           options: { baseURL },
           models: updatedModels,
         },
         local: {
           npm: "@ai-sdk/openai-compatible",
-          options: { baseURL: "http://localhost:1234/v1" },
+          options: { baseURL: "http://localhost:58282/v1" },
           models: {
             ...(existingProviders.local?.models ?? {}),
             [modelName]: { name: modelName },
@@ -634,7 +670,7 @@ export const SettingsModelsHubV2: Component<{
         ...params(),
         config: {
           provider: updatedProviders as never,
-          model: `${availableRuntime}/${modelName}`,
+          model: `${runtimeId}/${modelName}`,
         },
       })
 
@@ -772,8 +808,28 @@ export const SettingsModelsHubV2: Component<{
           </div>
         </div>
 
-        {/* Telemetría Compacta de Hardware */}
-        <div class="lm-hw-telemetry">
+        {/* Telemetría Compacta de Hardware y Estado del Motor Nativo */}
+        <div class="lm-hw-telemetry flex items-center gap-3">
+          <Show when={engineStatus()?.status === "running"}>
+            <div class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-medium">
+              <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Motor Nativo Activo: {engineStatus()?.modelName}</span>
+              <button
+                type="button"
+                class="ml-1 text-slate-400 hover:text-red-400 text-xs font-bold cursor-pointer"
+                title="Detener motor y liberar VRAM"
+                onClick={stopNativeEngine}
+              >
+                ✕
+              </button>
+            </div>
+          </Show>
+          <Show when={engineStatus()?.status === "starting" || engineStatus()?.binaryDownloading}>
+            <div class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-medium">
+              <span class="inline-block w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+              <span>{engineStatus()?.binaryDownloading ? `Descargando motor (${engineStatus()?.downloadProgress ?? 0}%)...` : "Cargando en GPU..."}</span>
+            </div>
+          </Show>
           <span title="GPU / VRAM">
             🎮 <strong>{system()?.gpu ? system()!.gpu!.split(" ")[0] : "GPU"}</strong> ({formatBytes(vramFree())} libre)
           </span>
@@ -791,8 +847,10 @@ export const SettingsModelsHubV2: Component<{
             <For each={activeModelList()}>
               {(model) => {
                 const isSelected = () => selectedId() === model.id
+                const authorName = () => model.author || (model.id.includes("/") ? model.id.split("/")[0] : "huggingface")
                 const shortName = () => model.id.split("/").pop() || model.id
                 const downloadCount = () => formatNumber(model.downloads)
+                const likesCount = () => formatNumber(model.likes)
                 const isDownloaded = () => jobs().some((j) => j.model === model.id && j.status === "completed")
 
                 return (
@@ -801,22 +859,23 @@ export const SettingsModelsHubV2: Component<{
                     class={`lm-model-item ${isSelected() ? "lm-model-item--active" : ""}`}
                     onClick={() => setSelectedId(model.id)}
                   >
-                    <BrandLogo id={model.id} author={model.author} class="lm-model-item-logo" />
+                    <BrandLogo id={model.id} author={authorName()} class="lm-model-item-logo" />
                     <div class="lm-model-item-info">
+                      <div class="flex items-center justify-between gap-1">
+                        <span class="text-[11px] font-mono text-sky-400/90 truncate">@{authorName()}</span>
+                        <Show when={isDownloaded()}>
+                          <span class="lm-downloaded-pill">Descargado</span>
+                        </Show>
+                      </div>
                       <div class="lm-model-item-header">
                         <span class="lm-model-item-title">{shortName()}</span>
                         <span class="lm-verified-badge" title="Modelo verificado">✓</span>
                       </div>
                       <p class="lm-model-item-desc">{model.description || "GGUF Quantized model ready for local execution."}</p>
                       <div class="lm-model-item-footer">
-                        <span class="lm-stat-tag">📥 {downloadCount()}</span>
-                        <Show when={isDownloaded()}>
-                          <span class="lm-downloaded-pill">Descargado</span>
-                        </Show>
+                        <span class="lm-stat-tag">⬇ {downloadCount()} · ❤️ {likesCount()}</span>
                         <span class="lm-cap-icons" title="Capacidades del modelo">
-                          <span title="Reasoning">💡</span>
-                          <span title="Tools">🔧</span>
-                          <span title="Code">💻</span>
+                          <span title="GGUF" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-slate-300">GGUF</span>
                         </span>
                       </div>
                     </div>
@@ -831,6 +890,7 @@ export const SettingsModelsHubV2: Component<{
         <div class="lm-hub-content">
           <Show when={currentModel()}>
             {(model) => {
+              const authorName = () => model().author || (model().id.includes("/") ? model().id.split("/")[0] : "huggingface")
               const shortName = () => model().id.split("/").pop() || model().id
               const job = () => activeJob()
               const file = () => currentQuantFile()
@@ -840,24 +900,37 @@ export const SettingsModelsHubV2: Component<{
                 <div class="lm-details-pane">
                   {/* Cabecera del Modelo */}
                   <div class="lm-details-header">
-                    <BrandLogo id={model().id} author={model().author} class="lm-details-logo" />
+                    <BrandLogo id={model().id} author={authorName()} class="lm-details-logo" />
                     <div class="lm-details-title-stack">
+                      <div class="flex items-center gap-2">
+                        <a
+                          href={`https://huggingface.co/${authorName()}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="text-xs font-mono text-sky-400 hover:underline"
+                        >
+                          @{authorName()}
+                        </a>
+                        <span class="text-slate-600">/</span>
+                        <span class="text-xs text-slate-400 font-mono">GGUF Model</span>
+                      </div>
                       <div class="lm-details-title-row">
                         <h2 class="lm-details-title">{shortName()}</h2>
                         <span class="lm-verified-badge-lg">✓</span>
                       </div>
-                      <span class="lm-details-slug">{model().id}</span>
                       <div class="lm-details-stats-row">
-                        <span>📥 {formatNumber(model().downloads)} descargas</span>
-                        <span>⭐ {formatNumber(model().likes)} likes</span>
-                        <span class="lm-staff-badge">Staff Pick</span>
+                        <span>⬇ {formatNumber(model().downloads)} descargas</span>
+                        <span>❤️ {formatNumber(model().likes)} likes</span>
+                        <Show when={!submitted()}>
+                          <span class="lm-staff-badge">🌟 Staff Pick</span>
+                        </Show>
                         <a
                           href={`https://huggingface.co/${model().id}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           class="lm-web-link"
                         >
-                          Open on Web ↗
+                          <span>Hugging Face ↗</span>
                         </a>
                       </div>
                     </div>

@@ -57,7 +57,7 @@ export const dict = {
   "splash.step.models": "Syncing models and providers",
   "splash.step.tools": "Checking MCP servers and tools",
   "splash.step.ready": "Ready to code",
-  "agent.webapp.label": "Web & App",
+  "agent.webapp.label": "Frontend",
   "webapp.modeBadge": "Full JSX · Live preview",
   "command.file.open": "Open file",
   "command.tab.close": "Close tab",

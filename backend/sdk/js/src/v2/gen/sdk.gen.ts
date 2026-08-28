@@ -144,6 +144,12 @@ import type {
   ModelhubDownloadResponses,
   ModelhubDownloadsErrors,
   ModelhubDownloadsResponses,
+  ModelhubEngineErrors,
+  ModelhubEngineResponses,
+  ModelhubEngineStartErrors,
+  ModelhubEngineStartResponses,
+  ModelhubEngineStopErrors,
+  ModelhubEngineStopResponses,
   ModelhubFilesErrors,
   ModelhubFilesResponses,
   ModelhubRuntimesErrors,
@@ -3639,6 +3645,113 @@ export class Modelhub extends HeyApiClient {
     )
     return (options?.client ?? this.client).delete<ModelhubCancelResponses, ModelhubCancelErrors, ThrowOnError>({
       url: "/models/downloads/{id}",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get native engine status
+   *
+   * Report the status of Tiancode's embedded llama-server engine, active model, and memory state.
+   */
+  public engine<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<ModelhubEngineResponses, ModelhubEngineErrors, ThrowOnError>({
+      url: "/models/engine",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Start native engine
+   *
+   * Start or switch the embedded llama-server with a local GGUF model.
+   */
+  public engineStart<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      model?: string
+      file?: string
+      gpuLayers?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      contextSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      port?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "model" },
+            { in: "body", key: "file" },
+            { in: "body", key: "gpuLayers" },
+            { in: "body", key: "contextSize" },
+            { in: "body", key: "port" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<ModelhubEngineStartResponses, ModelhubEngineStartErrors, ThrowOnError>(
+      {
+        url: "/models/engine/start",
+        ...options,
+        ...params,
+        headers: {
+          "Content-Type": "application/json",
+          ...options?.headers,
+          ...params.headers,
+        },
+      },
+    )
+  }
+
+  /**
+   * Stop native engine
+   *
+   * Stop the embedded llama-server and release GPU VRAM.
+   */
+  public engineStop<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<ModelhubEngineStopResponses, ModelhubEngineStopErrors, ThrowOnError>({
+      url: "/models/engine/stop",
       ...options,
       ...params,
     })

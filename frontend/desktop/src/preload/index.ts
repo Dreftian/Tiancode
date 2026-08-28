@@ -185,6 +185,8 @@ const api: ElectronAPI = {
     ipcRenderer.on("window-fullscreen-changed", handler)
     return () => ipcRenderer.removeListener("window-fullscreen-changed", handler)
   },
+  setCompactWindow: (options) => ipcRenderer.invoke("set-compact-window", options),
+  restoreMainWindow: () => ipcRenderer.invoke("restore-main-window"),
   setWindowFocus: () => ipcRenderer.invoke("set-window-focus"),
   showWindow: () => ipcRenderer.invoke("show-window"),
   relaunch: () => ipcRenderer.send("relaunch"),

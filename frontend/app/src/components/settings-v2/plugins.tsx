@@ -208,10 +208,17 @@ export const SettingsPluginsV2: Component<{
 
   const addEntry = async (entry: string) => {
     if (!entry) return
+    const trimmed = entry.trim()
+    if (!trimmed) return
+    if (isInstalled(trimmed)) {
+      showToast({ variant: "success", title: `El plugin "${trimmed}" ya está instalado` })
+      return
+    }
     try {
+      const current = pluginList()
       await serverSdk().client.config.update({
         ...params(),
-        config: { plugin: [...pluginList(), entry] },
+        config: { plugin: [...current, trimmed] },
       })
       showToast({ variant: "success", title: language.t("settings.plugins.add.success") })
       refetchAfterReload()

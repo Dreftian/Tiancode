@@ -21,6 +21,7 @@ import { LSP } from "@/lsp/lsp"
 import { MCP } from "@/mcp"
 import { McpAuth } from "@/mcp/auth"
 import { ModelHub } from "@/model-hub"
+import { LocalEngine } from "@/local-engine"
 import { Permission } from "@/permission"
 import { Plugin } from "@/plugin"
 import { PluginPtyEnvironment } from "@/plugin/pty-environment"
@@ -259,6 +260,7 @@ const app = LayerNode.group([
   MCP.node,
   McpAuth.node,
   ModelHub.node,
+  LocalEngine.node,
   Command.node,
   Truncate.node,
   ToolRegistry.node,

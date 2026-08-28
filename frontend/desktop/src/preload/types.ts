@@ -270,6 +270,8 @@ export type ElectronAPI = {
   getWindowFocused: () => Promise<boolean>
   getWindowFullscreen: () => Promise<boolean>
   onWindowFullscreenChanged: (cb: (fullscreen: boolean) => void) => () => void
+  setCompactWindow: (options?: { width?: number; height?: number }) => Promise<void>
+  restoreMainWindow: () => Promise<void>
   setWindowFocus: () => Promise<void>
   showWindow: () => Promise<void>
   relaunch: () => void

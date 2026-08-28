@@ -699,7 +699,7 @@
     },
     "frontend/desktop": {
       "name": "@tiancode-ai/desktop",
-      "version": "1.0.99",
+      "version": "1.0.104",
       "dependencies": {
         "@huggingface/transformers": "3.8.1",
         "@zip.js/zip.js": "2.7.62",

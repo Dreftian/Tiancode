@@ -246,19 +246,10 @@ function GlobeIcon() {
 
 function CatMascotIcon() {
   return (
-    <div style={{ width: "28px", height: "28px", "border-radius": "8px", background: "linear-gradient(135deg, #00d2ff, #3b82f6)", padding: "1px", display: "flex", "align-items": "center", "justify-content": "center", "flex-shrink": 0 }}>
-      <div style={{ width: "100%", height: "100%", background: "#070b16", "border-radius": "7px", display: "flex", "align-items": "center", "justify-content": "center", padding: "3px" }}>
-        <svg viewBox="0 0 100 100" style={{ width: "100%", height: "100%", fill: "white" }}>
-          <polygon points="18,12 36,44 14,48" fill="currentColor" />
-          <polygon points="82,12 86,48 64,44" fill="currentColor" />
-          <path d="M22,38 C32,24 68,24 78,38 C88,52 88,78 72,90 C58,98 42,98 28,90 C12,78 12,52 22,38 Z" fill="currentColor" />
-          <polygon points="34,44 44,54 34,64 24,54" fill="#070b16" />
-          <polygon points="66,44 76,54 66,64 56,54" fill="#070b16" />
-          <polygon points="50,62 44,56 56,56" fill="#070b16" />
-          <line x1="8" y1="62" x2="26" y2="64" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
-          <line x1="6" y1="70" x2="26" y2="70" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
-          <line x1="92" y1="62" x2="74" y2="64" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
-          <line x1="94" y1="70" x2="74" y2="70" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+    <div style={{ width: "32px", height: "32px", "border-radius": "10px", background: "linear-gradient(135deg, #22d3ee, #6366f1)", padding: "1.5px", display: "flex", "align-items": "center", "justify-content": "center", "flex-shrink": 0 }}>
+      <div style={{ width: "100%", height: "100%", background: "#0a0d16", "border-radius": "8.5px", display: "flex", "align-items": "center", "justify-content": "center" }}>
+        <svg viewBox="0 0 24 24" style={{ width: "18px", height: "18px", color: "#38bdf8" }} fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
         </svg>
       </div>
     </div>

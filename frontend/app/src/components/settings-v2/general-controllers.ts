@@ -35,16 +35,23 @@ export function createPermissionScopeController(sessionID: Accessor<string | und
     accepting: createMemo(() => {
       const id = sessionID()
       const dir = directory()
-      if (!id || !dir) return false
-      return permission.isAutoAccepting(id, dir)
+      if (id && dir) {
+        return permission.isAutoAccepting(id, dir) || permission.isGlobalAutoAccepting()
+      }
+      return permission.isGlobalAutoAccepting()
     }),
-    enabled: createMemo(() => !!directory()),
+    enabled: createMemo(() => true),
     set: (checked: boolean) => {
       const id = sessionID()
       const dir = directory()
-      if (!id || !dir) return
-      if (checked) return permission.enableAutoAccept(id, dir)
-      permission.disableAutoAccept(id, dir)
+      permission.setGlobalAutoAccept(checked)
+      if (id && dir) {
+        if (checked) {
+          permission.enableAutoAccept(id, dir)
+        } else {
+          permission.disableAutoAccept(id, dir)
+        }
+      }
     },
   }
 }

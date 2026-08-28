@@ -9619,6 +9619,129 @@ export type ModelhubCancelResponses = {
 
 export type ModelhubCancelResponse = ModelhubCancelResponses[keyof ModelhubCancelResponses]
 
+export type ModelhubEngineData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/models/engine"
+}
+
+export type ModelhubEngineErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ModelhubEngineError = ModelhubEngineErrors[keyof ModelhubEngineErrors]
+
+export type ModelhubEngineResponses = {
+  /**
+   * Tiancode native engine status
+   */
+  200: {
+    status: "stopped" | "starting" | "running" | "error"
+    port: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    modelPath?: string
+    modelName?: string
+    binaryReady: boolean
+    binaryDownloading: boolean
+    downloadProgress?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    error?: string
+    gpuLayers?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    contextSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  }
+}
+
+export type ModelhubEngineResponse = ModelhubEngineResponses[keyof ModelhubEngineResponses]
+
+export type ModelhubEngineStartData = {
+  body?: {
+    model: string
+    file: string
+    gpuLayers?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    contextSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    port?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/models/engine/start"
+}
+
+export type ModelhubEngineStartErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ModelhubEngineStartError = ModelhubEngineStartErrors[keyof ModelhubEngineStartErrors]
+
+export type ModelhubEngineStartResponses = {
+  /**
+   * Started native engine
+   */
+  200: {
+    status: "stopped" | "starting" | "running" | "error"
+    port: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    modelPath?: string
+    modelName?: string
+    binaryReady: boolean
+    binaryDownloading: boolean
+    downloadProgress?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    error?: string
+    gpuLayers?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    contextSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  }
+}
+
+export type ModelhubEngineStartResponse = ModelhubEngineStartResponses[keyof ModelhubEngineStartResponses]
+
+export type ModelhubEngineStopData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/models/engine/stop"
+}
+
+export type ModelhubEngineStopErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ModelhubEngineStopError = ModelhubEngineStopErrors[keyof ModelhubEngineStopErrors]
+
+export type ModelhubEngineStopResponses = {
+  /**
+   * Stopped native engine
+   */
+  200: {
+    status: "stopped" | "starting" | "running" | "error"
+    port: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    modelPath?: string
+    modelName?: string
+    binaryReady: boolean
+    binaryDownloading: boolean
+    downloadProgress?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    error?: string
+    gpuLayers?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    contextSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  }
+}
+
+export type ModelhubEngineStopResponse = ModelhubEngineStopResponses[keyof ModelhubEngineStopResponses]
+
 export type ProjectListData = {
   body?: never
   path?: never

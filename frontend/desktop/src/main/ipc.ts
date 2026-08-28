@@ -429,6 +429,24 @@ export function registerIpcHandlers(deps: Deps) {
     win?.focus()
   })
 
+  ipcMain.handle("set-compact-window", (event: IpcMainInvokeEvent, options?: { width?: number; height?: number }) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (!win || win.isDestroyed()) return
+    const width = options?.width ?? 520
+    const height = options?.height ?? 460
+    if (win.isMaximized()) win.unmaximize()
+    win.setSize(width, height, true)
+    win.center()
+  })
+
+  ipcMain.handle("restore-main-window", (event: IpcMainInvokeEvent) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (!win || win.isDestroyed()) return
+    win.setMinimumSize(800, 600)
+    win.setSize(1280, 800, true)
+    win.center()
+  })
+
   ipcMain.handle("show-window", (event: IpcMainInvokeEvent) => {
     const win = BrowserWindow.fromWebContents(event.sender)
     win?.show()

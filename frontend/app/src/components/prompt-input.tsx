@@ -1679,7 +1679,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                         }}
                         label={(x) =>
                           x === "webapp"
-                            ? (language.t("agent.webapp.label") ?? "Web & App")
+                            ? (language.t("agent.webapp.label") ?? "Frontend")
                             : x.charAt(0).toUpperCase() + x.slice(1)
                         }
                         class="max-w-[200px] text-text-base"

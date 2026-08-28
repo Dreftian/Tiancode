@@ -126,9 +126,13 @@ const main = Effect.gen(function* () {
   } else {
     app.setAppUserModelId(appId)
   }
+  const portableDir = process.env.PORTABLE_EXECUTABLE_DIR
+  const defaultUserData = portableDir
+    ? join(portableDir, "data")
+    : join(app.getPath("appData"), appId)
   app.setPath(
     "userData",
-    onboardingTestRoot ? join(onboardingTestRoot, "desktop") : join(app.getPath("appData"), appId),
+    onboardingTestRoot ? join(onboardingTestRoot, "desktop") : defaultUserData,
   )
   if (onboardingTestRoot) app.setPath("sessionData", join(onboardingTestRoot, "session"))
   initializeOldLayoutEligibility(app.getPath("userData"))

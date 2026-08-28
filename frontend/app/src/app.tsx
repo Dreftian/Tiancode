@@ -263,6 +263,8 @@ declare global {
       restoreBackup?: (name: string) => Promise<void>
       isFirstLaunchOnboardingPending?: () => Promise<boolean>
       finishFirstLaunchOnboarding?: (createDefaultProject?: boolean) => Promise<string | null>
+      setCompactWindow?: (options?: { width?: number; height?: number }) => Promise<void>
+      restoreMainWindow?: () => Promise<void>
       voices?: VoicesAPI
       asr?: AsrAPI
       runtime?: {
@@ -510,22 +512,50 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
   const loading = createMemo(() => checking() || startupChecking() || !splashFinished())
 
   onMount(() => {
-    const handleOpen = () => setFirstLaunchActive(true)
+    if (window.api?.setCompactWindow) {
+      void window.api.setCompactWindow({ width: 540, height: 480 })
+    }
+
+    const handleOpen = () => {
+      if (window.api?.setCompactWindow) {
+        void window.api.setCompactWindow({ width: 540, height: 480 })
+      }
+      setFirstLaunchActive(true)
+    }
     window.addEventListener("tiancode:open-welcome-setup", handleOpen)
     onCleanup(() => window.removeEventListener("tiancode:open-welcome-setup", handleOpen))
   })
 
+  const handleDoneSetup = () => {
+    setFirstLaunchActive(false)
+    if (window.api?.restoreMainWindow) {
+      void window.api.restoreMainWindow()
+    }
+  }
+
   const handleSplashDone = async () => {
     setSplashFinished(true)
+    let needsSetup = false
     try {
       const isElectronPending = (await window.api?.isFirstLaunchOnboardingPending?.()) === true
       const isLocalPending = !localStorage.getItem(FIRST_LAUNCH_KEY)
       if (isElectronPending || isLocalPending) {
-        setFirstLaunchActive(true)
+        needsSetup = true
       }
     } catch {
       if (!localStorage.getItem(FIRST_LAUNCH_KEY)) {
-        setFirstLaunchActive(true)
+        needsSetup = true
+      }
+    }
+
+    if (needsSetup) {
+      setFirstLaunchActive(true)
+      if (window.api?.setCompactWindow) {
+        void window.api.setCompactWindow({ width: 540, height: 480 })
+      }
+    } else {
+      if (window.api?.restoreMainWindow) {
+        void window.api.restoreMainWindow()
       }
     }
   }
@@ -554,8 +584,8 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
 
       {/* Standalone First Launch Setup Screen (shown before the app is visible) */}
       <Show when={firstLaunchActive()}>
-        <div class="fixed inset-0 z-[99998] flex items-center justify-center bg-[#070b14]/90 backdrop-blur-md p-4 select-none">
-          <DialogWelcomeSetup onDone={() => setFirstLaunchActive(false)} />
+        <div class="fixed inset-0 z-[99998] flex items-center justify-center bg-black/40 backdrop-blur-xl p-4 select-none">
+          <DialogWelcomeSetup onDone={handleDoneSetup} />
         </div>
       </Show>
 

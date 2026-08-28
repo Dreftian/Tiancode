@@ -114,10 +114,12 @@ const require = __cjs_mod__.createRequire(import.meta.url);
       {
         name: "tiancode:copy-server-assets",
         async writeBundle() {
-          for (const l of await readdir(TIANCODE_SERVER_DIST)) {
-            if (!l.endsWith(".wasm")) continue
-            await writeFile(`./out/main/chunks/${l}`, await readFile(`${TIANCODE_SERVER_DIST}/${l}`))
-          }
+          try {
+            for (const l of await readdir(TIANCODE_SERVER_DIST)) {
+              if (!l.endsWith(".wasm")) continue
+              await writeFile(`./out/main/chunks/${l}`, await readFile(`${TIANCODE_SERVER_DIST}/${l}`))
+            }
+          } catch {}
         },
       },
     ],

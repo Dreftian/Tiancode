@@ -104,8 +104,8 @@ tools/          # Soporte: website, GitHub workflows, docs de diseño
 
 - `frontend/` y `backend/` son autocontenidos; `tools/` es soporte (no se importa desde la app).
 - Dependencias dirigidas: Schema → Core → Protocol → Server; el cliente nunca depende de Core/Server.
-- La app es **local-first**: el repo local no se empuja a GitHub (el repo remoto Dreftian/Tiancode contiene solo la website).
-- Los binarios de `install/` se publican en [GitHub Releases](https://github.com/Dreftian/Tiancode/releases) con los nombres `Tiancode.exe` / `Tiancode-portable.exe`.
+- Los binarios oficiales se publican en [GitHub Releases](https://github.com/Dreftian/Tiancode/releases) con los nombres `Tiancode.exe` / `Tiancode-portable.exe`.
+- Las actualizaciones automáticas se sirven directamente desde GitHub Releases mediante `latest.yml`.
 
 ## 📄 Licencia
 
@@ -113,4 +113,4 @@ MIT — ver [LICENSE](LICENSE).
 
 ---
 
-Hecho con ♥ — [Website](https://github.com/Dreftian/Tiancode) · [Releases](https://github.com/Dreftian/Tiancode/releases)
+Hecho con ♥ por Dreftian — [GitHub](https://github.com/Dreftian/Tiancode) · [Releases](https://github.com/Dreftian/Tiancode/releases)

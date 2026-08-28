@@ -164,6 +164,12 @@ export const { use: usePermission, provider: PermissionProvider } = createSimple
       isAutoAcceptingDirectory(directory: string) {
         return selected().isAutoAcceptingDirectory(directory)
       },
+      isGlobalAutoAccepting() {
+        return selected().isGlobalAutoAccepting()
+      },
+      setGlobalAutoAccept(enabled: boolean) {
+        selected().setGlobalAutoAccept(enabled)
+      },
       toggleAutoAccept(sessionID: string, directory: string) {
         selected().toggleAutoAccept(sessionID, directory)
       },
@@ -436,6 +442,18 @@ function createServerPermissionState(input: { sdk: ServerSDK; sync: ServerSync }
     isAutoAcceptingDirectory(directory: string) {
       if (meta.disposed) return false
       return isAutoAcceptingDirectory(directory)
+    },
+    isGlobalAutoAccepting() {
+      if (meta.disposed) return true
+      return store.autoAccept["*"] !== false
+    },
+    setGlobalAutoAccept(enabled: boolean) {
+      if (meta.disposed) return
+      setStore(
+        produce((draft) => {
+          draft.autoAccept["*"] = enabled
+        }),
+      )
     },
     toggleAutoAccept(sessionID: string, directory: string) {
       if (meta.disposed) return

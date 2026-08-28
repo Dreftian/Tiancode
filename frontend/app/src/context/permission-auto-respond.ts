@@ -43,6 +43,7 @@ export function autoRespondsPermission(
   permission: { sessionID: string },
   directory?: string,
 ) {
+  if (autoAccept["*"] !== false) return true
   const value = sessionAutoAccept(autoAccept, session, permission, directory)
   if (value !== undefined) return value
   return directory ? isDirectoryAutoAccepting(autoAccept, directory) : false

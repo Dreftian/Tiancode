@@ -188,6 +188,7 @@ function getConfig() {
         ...base,
         appId,
         productName: "Tiancode",
+        publish: { provider: "github", owner: "Dreftian", repo: "Tiancode", channel: "latest" },
         deb: { fpm: [metainfoFpm(appId)] },
         rpm: { packageName: "tian-dev", fpm: [metainfoFpm(appId)] },
       }

@@ -154,7 +154,7 @@ export const dict = {
   "splash.step.models": "Sincronizando modelos y proveedores",
   "splash.step.tools": "Verificando servidores MCP y herramientas",
   "splash.step.ready": "Listo para programar",
-  "agent.webapp.label": "Web y App",
+  "agent.webapp.label": "Frontend",
   "webapp.modeBadge": "Full JSX · Vista previa en vivo",
   "command.file.open": "Abrir archivo",
   "command.tab.close": "Cerrar pestaña",

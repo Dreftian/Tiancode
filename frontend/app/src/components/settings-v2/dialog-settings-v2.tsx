@@ -165,55 +165,89 @@ export const DialogSettings: Component<{
           </div>
         </TabsV2.List>
         <TabsV2.Content value="general" class="settings-v2-panel">
-          <SettingsGeneralV2 sessionID={props.sessionID} />
+          <Show when={tab() === "general"}>
+            <SettingsGeneralV2 sessionID={props.sessionID} />
+          </Show>
         </TabsV2.Content>
         <TabsV2.Content value="intelligence" class="settings-v2-panel">
-          <SettingsIntelligenceV2 />
+          <Show when={tab() === "intelligence"}>
+            <SettingsIntelligenceV2 />
+          </Show>
         </TabsV2.Content>
         <TabsV2.Content value="ecosystem" class="settings-v2-panel">
-          <SettingsEcosystemV2 />
+          <Show when={tab() === "ecosystem"}>
+            <SettingsEcosystemV2 />
+          </Show>
         </TabsV2.Content>
         <TabsV2.Content value="shortcuts" class="settings-v2-panel">
-          <SettingsKeybinds v2 />
+          <Show when={tab() === "shortcuts"}>
+            <SettingsKeybinds v2 />
+          </Show>
         </TabsV2.Content>
         <TabsV2.Content value="servers" class="settings-v2-panel">
-          <SettingsServersV2 />
+          <Show when={tab() === "servers"}>
+            <SettingsServersV2 />
+          </Show>
         </TabsV2.Content>
         <TabsV2.Content value="providers" class="settings-v2-panel">
-          <SettingsProvidersV2 directory={directory} onBack={showProviders} />
+          <Show when={tab() === "providers"}>
+            <SettingsProvidersV2 directory={directory} onBack={showProviders} />
+          </Show>
         </TabsV2.Content>
         <TabsV2.Content value="models" class="settings-v2-panel">
-          <SettingsModelsV2 />
+          <Show when={tab() === "models"}>
+            <SettingsModelsV2 />
+          </Show>
         </TabsV2.Content>
         <TabsV2.Content value="models-hub" class="settings-v2-panel">
-          <SettingsModelsHubV2 directory={directory()} />
+          <Show when={tab() === "models-hub"}>
+            <SettingsModelsHubV2 directory={directory()} />
+          </Show>
         </TabsV2.Content>
         <TabsV2.Content value="github" class="settings-v2-panel">
-          <SettingsGithubV2 directory={directory()} />
+          <Show when={tab() === "github"}>
+            <SettingsGithubV2 directory={directory()} />
+          </Show>
         </TabsV2.Content>
         <TabsV2.Content value="voices" class="settings-v2-panel">
-          <SettingsVoicesV2 />
+          <Show when={tab() === "voices"}>
+            <SettingsVoicesV2 />
+          </Show>
         </TabsV2.Content>
         <TabsV2.Content value="skills" class="settings-v2-panel">
-          <SettingsSkillsV2 directory={directory()} />
+          <Show when={tab() === "skills"}>
+            <SettingsSkillsV2 directory={directory()} />
+          </Show>
         </TabsV2.Content>
         <TabsV2.Content value="sub-agents" class="settings-v2-panel">
-          <SettingsSubAgentsV2 directory={directory()} />
+          <Show when={tab() === "sub-agents"}>
+            <SettingsSubAgentsV2 directory={directory()} />
+          </Show>
         </TabsV2.Content>
         <TabsV2.Content value="mcp-servers" class="settings-v2-panel">
-          <SettingsMcpServersV2 directory={directory()} />
+          <Show when={tab() === "mcp-servers"}>
+            <SettingsMcpServersV2 directory={directory()} />
+          </Show>
         </TabsV2.Content>
         <TabsV2.Content value="plugins" class="settings-v2-panel">
-          <SettingsPluginsV2 directory={directory()} />
+          <Show when={tab() === "plugins"}>
+            <SettingsPluginsV2 directory={directory()} />
+          </Show>
         </TabsV2.Content>
         <TabsV2.Content value="browser" class="settings-v2-panel">
-          <SettingsBrowserV2 />
+          <Show when={tab() === "browser"}>
+            <SettingsBrowserV2 />
+          </Show>
         </TabsV2.Content>
         <TabsV2.Content value="pets" class="settings-v2-panel">
-          <SettingsPetsV2 />
+          <Show when={tab() === "pets"}>
+            <SettingsPetsV2 />
+          </Show>
         </TabsV2.Content>
         <TabsV2.Content value="computer-use" class="settings-v2-panel">
-          <SettingsComputerUseV2 directory={directory()} />
+          <Show when={tab() === "computer-use"}>
+            <SettingsComputerUseV2 directory={directory()} />
+          </Show>
         </TabsV2.Content>
       </TabsV2>
     </Dialog>

@@ -79,6 +79,27 @@ export const ModelRuntimeInfo = Schema.Struct({
   models: Schema.optional(Schema.Array(Schema.String)),
 })
 
+export const ModelEngineStatus = Schema.Struct({
+  status: Schema.Literals(["stopped", "starting", "running", "error"]),
+  port: Schema.Number,
+  modelPath: Schema.optional(Schema.String),
+  modelName: Schema.optional(Schema.String),
+  binaryReady: Schema.Boolean,
+  binaryDownloading: Schema.Boolean,
+  downloadProgress: Schema.optional(Schema.Number),
+  error: Schema.optional(Schema.String),
+  gpuLayers: Schema.optional(Schema.Number),
+  contextSize: Schema.optional(Schema.Number),
+})
+
+export const ModelEngineStartInput = Schema.Struct({
+  model: Schema.String,
+  file: Schema.String,
+  gpuLayers: Schema.optional(Schema.Number),
+  contextSize: Schema.optional(Schema.Number),
+  port: Schema.optional(Schema.Number),
+})
+
 export const ModelHubApi = HttpApi.make("model-hub")
   .add(
     HttpApiGroup.make("model-hub")
@@ -195,6 +216,37 @@ export const ModelHubApi = HttpApi.make("model-hub")
             identifier: "modelhub.cancel",
             summary: "Cancel a model download",
             description: "Cancel a download job and remove its partial .part file.",
+          }),
+        ),
+        HttpApiEndpoint.get("engine", "/models/engine", {
+          query: WorkspaceRoutingQuery,
+          success: described(ModelEngineStatus, "Tiancode native engine status"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "modelhub.engine",
+            summary: "Get native engine status",
+            description: "Report the status of Tiancode's embedded llama-server engine, active model, and memory state.",
+          }),
+        ),
+        HttpApiEndpoint.post("engineStart", "/models/engine/start", {
+          query: WorkspaceRoutingQuery,
+          payload: ModelEngineStartInput,
+          success: described(ModelEngineStatus, "Started native engine"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "modelhub.engineStart",
+            summary: "Start native engine",
+            description: "Start or switch the embedded llama-server with a local GGUF model.",
+          }),
+        ),
+        HttpApiEndpoint.post("engineStop", "/models/engine/stop", {
+          query: WorkspaceRoutingQuery,
+          success: described(ModelEngineStatus, "Stopped native engine"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "modelhub.engineStop",
+            summary: "Stop native engine",
+            description: "Stop the embedded llama-server and release GPU VRAM.",
           }),
         ),
       )

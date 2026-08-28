@@ -1,41 +1,61 @@
+/* ==========================================================================
+   Tiancode Plugins — Apple / Cupertino Glassmorphism UI
+   ========================================================================== */
+
 .settings-v2-plugins {
-  gap: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+  letter-spacing: -0.01em;
 }
 
 .settings-v2-plugins-note {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 12px 14px;
-  border-radius: 10px;
-  background-color: var(--v2-background-bg-layer-01);
-  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
+  padding: 14px 18px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .settings-v2-plugins-note-title {
-  font-size: 12px;
-  font-weight: 640;
-  line-height: 1;
-  color: var(--v2-text-text-base);
+  font-size: 13px;
+  font-weight: 650;
+  color: #ffffff;
 }
 
 .settings-v2-plugins-note-description {
   font-size: 12px;
-  font-weight: 440;
   line-height: 1.5;
-  color: var(--v2-text-text-muted);
+  color: #8e8e93;
 }
 
 .settings-v2-plugins-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding-block: 12px;
-  border-bottom: 0.5px solid var(--v2-border-border-base);
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 8px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.settings-v2-plugins-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
 }
 
 .settings-v2-plugins-item:last-child {
-  border-bottom: none;
+  margin-bottom: 0;
 }
 
 .settings-v2-plugins-item-copy {
@@ -43,67 +63,63 @@
   min-width: 0;
   flex: 1;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
 }
 
 .settings-v2-plugins-item-name {
-  font-size: 13px;
-  font-weight: 560;
-  line-height: 1.15;
-  color: var(--v2-text-text-base);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #f5f5f7;
   overflow-wrap: anywhere;
 }
 
 .settings-v2-plugins-item-description {
-  font-size: 11px;
-  font-weight: 440;
+  font-size: 12px;
   line-height: 1.4;
-  color: var(--v2-text-text-muted);
+  color: #8e8e93;
   overflow-wrap: anywhere;
 }
 
 .settings-v2-plugins-badge {
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 3px 9px;
+  border-radius: 9999px;
   font-size: 11px;
-  font-weight: 530;
-  line-height: 1;
-  color: var(--v2-state-fg-success);
-  background-color: var(--v2-state-bg-success);
+  font-weight: 600;
+  color: #30d158;
+  background: rgba(52, 199, 89, 0.16);
+  border: 1px solid rgba(52, 199, 89, 0.35);
   flex-shrink: 0;
 }
 
 .settings-v2-plugins-catalog-description {
-  margin: -8px 0 0;
-  font-size: 11px;
-  font-weight: 440;
+  margin: -6px 0 2px;
+  font-size: 12px;
   line-height: 1.4;
-  color: var(--v2-text-text-muted);
+  color: #8e8e93;
 }
 
 .settings-v2-plugins-catalog-note {
-  margin: -4px 0 0;
   font-size: 11px;
-  font-weight: 440;
-  line-height: 1.4;
-  color: var(--v2-text-text-faint);
+  color: #6e6e73;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 .settings-v2-plugins-chip {
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 530;
-  line-height: 1;
-  color: var(--v2-text-text-muted);
-  background-color: var(--v2-background-bg-layer-02);
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #8e8e93;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   flex-shrink: 0;
 }
 
 .settings-v2-plugins-add {
   display: flex;
   width: 100%;
-  gap: 8px;
+  gap: 10px;
+  align-items: center;
 }
 
 .settings-v2-plugins-add [data-component="text-input-v2"] {
@@ -113,18 +129,21 @@
 
 .settings-v2-plugins-template {
   overflow: hidden;
-  border-radius: 10px;
-  background-color: var(--v2-background-bg-layer-01);
-  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .settings-v2-plugins-template-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 14px 18px;
-  border-bottom: 0.5px solid var(--v2-border-border-base);
+  gap: 14px;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .settings-v2-plugins-template-copy {
@@ -135,31 +154,30 @@
 }
 
 .settings-v2-plugins-template-title {
-  font-size: 13px;
-  font-weight: 560;
-  line-height: 1;
-  color: var(--v2-text-text-base);
+  font-size: 14px;
+  font-weight: 650;
+  color: #ffffff;
 }
 
 .settings-v2-plugins-template-description {
-  font-size: 11px;
-  font-weight: 440;
+  font-size: 12px;
   line-height: 1.4;
-  color: var(--v2-text-text-faint);
+  color: #8e8e93;
 }
 
 .settings-v2-plugins-template-body {
-  padding: 16px 18px;
+  padding: 16px 20px;
   user-select: text;
+  background: rgba(0, 0, 0, 0.25);
 }
 
 .settings-v2-plugins-template-body pre {
   margin: 0;
   overflow-x: auto;
-  font-family: var(--v2-font-mono);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
   line-height: 1.6;
-  color: var(--v2-text-text-base);
+  color: #d1d1d6;
 }
 
 /* Cabecera del catálogo con buscador integrado */
@@ -167,52 +185,43 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
+  gap: 14px;
+  margin-bottom: 12px;
 }
 
 .settings-v2-plugins-catalog-header .settings-v2-section-title {
   margin-bottom: 0;
-}
-
-.settings-v2-plugins-catalog-header .text-input-v2 {
-  max-width: 220px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
 }
 
 /* Subtítulos de grupo dentro del catálogo (npm / local) */
 .settings-v2-plugins-catalog-subtitle {
-  margin: 14px 0 6px;
+  margin: 16px 0 8px;
   font-size: 11px;
-  font-weight: 560;
+  font-weight: 650;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--v2-text-text-faint);
+  color: #8e8e93;
 }
 
-/* Toolbar de la lista instalada: título + búsqueda + filtro de origen. */
+/* Toolbar de la lista instalada */
 .settings-v2-plugins-list-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
+  gap: 14px;
+  margin-bottom: 12px;
 }
 
 .settings-v2-plugins-list-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
-.settings-v2-plugins-list-controls [data-component="text-input-v2"] {
-  max-width: 220px;
-}
-
-.settings-v2-plugins-filter [data-component="segmented-control-v2"] {
-  flex-shrink: 0;
-}
-
-/* Fila de nombre con chips (origen, versión, estado). */
+/* Fila de nombre con chips */
 .settings-v2-plugins-item-name-row {
   display: flex;
   align-items: center;
@@ -220,22 +229,24 @@
   gap: 6px;
 }
 
-.settings-v2-plugins-item-name-row .settings-v2-plugins-item-name {
-  margin-right: 2px;
-}
-
 .settings-v2-plugins-chip[data-variant="disabled"] {
-  color: var(--v2-text-text-faint);
+  color: #ff453a;
+  background: rgba(255, 69, 58, 0.15);
+  border-color: rgba(255, 69, 58, 0.3);
 }
 
-/* Item desactivado: nombre atenuado. */
+/* Item desactivado */
+.settings-v2-plugins-item[data-disabled] {
+  opacity: 0.65;
+}
+
 .settings-v2-plugins-item[data-disabled] .settings-v2-plugins-item-name {
-  color: var(--v2-text-text-faint);
+  color: #8e8e93;
   text-decoration: line-through;
-  text-decoration-thickness: 0.5px;
+  text-decoration-thickness: 1px;
 }
 
-/* Acciones de la tarjeta (toggle + eliminar). */
+/* Acciones de la tarjeta */
 .settings-v2-plugins-item-actions {
   display: flex;
   align-items: center;
@@ -243,32 +254,32 @@
   flex-shrink: 0;
 }
 
-/* Chips de hooks detectados en plugins locales. */
+/* Chips de hooks */
 .settings-v2-plugins-hooks {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 5px;
+  margin-top: 2px;
 }
 
 .settings-v2-plugins-hooks-label {
   font-size: 11px;
-  font-weight: 530;
-  color: var(--v2-text-text-faint);
+  font-weight: 550;
+  color: #6e6e73;
   margin-right: 2px;
 }
 
 .settings-v2-plugins-hook {
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-family: var(--v2-font-mono);
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 10.5px;
-  line-height: 1.4;
-  color: var(--v2-text-text-muted);
-  background-color: var(--v2-background-bg-layer-02);
+  color: #2997ff;
+  background: rgba(0, 113, 227, 0.12);
+  border: 1px solid rgba(0, 113, 227, 0.25);
 }
 
-/* Acciones de la cabecera de la plantilla. */
 .settings-v2-plugins-template-actions {
   display: flex;
   align-items: center;

@@ -157,22 +157,6 @@ const layer = Layer.effect(
             mode: "primary",
             native: true,
           },
-          webapp: {
-            name: "webapp",
-            description: "Web & App development. Builds full-JSX apps with a real-time live preview.",
-            options: {},
-            permission: Permission.merge(
-              defaults,
-              Permission.fromConfig({
-                question: "allow",
-              }),
-              user,
-            ),
-            prompt: PROMPT_WEBAPP,
-            mode: "primary",
-            native: true,
-            color: "#22d3ee",
-          },
           plan: {
             name: "plan",
             description: "Plan mode. Disallows all edit tools.",
@@ -198,6 +182,22 @@ const layer = Layer.effect(
             ),
             mode: "primary",
             native: true,
+          },
+          webapp: {
+            name: "webapp",
+            description: "Frontend development. Builds full-JSX apps with a real-time live preview.",
+            options: {},
+            permission: Permission.merge(
+              defaults,
+              Permission.fromConfig({
+                question: "allow",
+              }),
+              user,
+            ),
+            prompt: PROMPT_WEBAPP,
+            mode: "primary",
+            native: true,
+            color: "#22d3ee",
           },
           general: {
             name: "general",

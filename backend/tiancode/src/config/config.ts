@@ -710,9 +710,11 @@ const layer = Layer.effect(
       const dir = yield* InstanceState.directory
       const file = yield* projectConfigFile(dir)
       const existing = yield* loadFile(file).pipe(Effect.orElseSucceed(() => ({})))
-      yield* fs
-        .writeFileString(file, JSON.stringify(mergeDeep(writable(existing), writable(config)), null, 2))
-        .pipe(Effect.orDie)
+      const merged = mergeDeep(writable(existing), writable(config)) as Record<string, unknown>
+      if (config.plugin !== undefined) {
+        merged.plugin = config.plugin
+      }
+      yield* writeGlobalAtomic(file, JSON.stringify(merged, null, 2)).pipe(Effect.orDie)
       yield* fs.remove(path.join(dir, "config.json")).pipe(Effect.catch(() => Effect.void))
     })
 
@@ -727,7 +729,8 @@ const layer = Layer.effect(
       yield* InstanceState.invalidate(state)
     })
 
-    const updateGlobal = Effect.fn("Config.updateGlobal")(function* (config: Info) {      const file = globalConfigFile()
+    const updateGlobal = Effect.fn("Config.updateGlobal")(function* (config: Info) {
+      const file = globalConfigFile()
       const before = (yield* readConfigFile(file)) ?? "{}"
       const patch = writableGlobal(config)
 
@@ -735,11 +738,14 @@ const layer = Layer.effect(
       let changed: boolean
       if (!file.endsWith(".jsonc")) {
         const existing = ConfigParse.schema(ConfigV1.Info, ConfigParse.jsonc(before, file), file)
-        const merged = mergeDeep(writable(existing), patch)
+        const merged = mergeDeep(writable(existing), patch) as Record<string, unknown>
+        if (config.plugin !== undefined) {
+          merged.plugin = config.plugin
+        }
         const serialized = JSON.stringify(merged, null, 2)
         changed = serialized !== before
         if (changed) yield* writeGlobalAtomic(file, serialized).pipe(Effect.orDie)
-        next = merged
+        next = merged as Info
       } else {
         const updated = patchJsonc(before, patch)
         next = ConfigParse.schema(ConfigV1.Info, ConfigParse.jsonc(updated, file), file)

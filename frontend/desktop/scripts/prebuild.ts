@@ -11,5 +11,5 @@ await $`bun ./scripts/copy-metainfo.ts ${channel}`
 // la clave de cifrado solo si su versión cambia con cada release, así que el
 // bump de versión debe reflejarse aquí automáticamente.
 const { version } = await Bun.file("package.json").json()
-await $`cd ../../backend/tiancode && TIANCODE_VERSION=${version} bun script/build-node.ts`
+await $`bun run --cwd ../../backend/tiancode script/build-node.ts`.env({ TIANCODE_VERSION: version })
 if (channel === "dev") await downloadCliToResources()

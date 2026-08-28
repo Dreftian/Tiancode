@@ -120,7 +120,8 @@ function getPetHtml(state: DesktopPetState): string {
     html, body {
       width: 100%;
       height: 100%;
-      background: transparent;
+      background: transparent !important;
+      background-color: rgba(0, 0, 0, 0) !important;
       overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
@@ -451,6 +452,8 @@ export function createDesktopPetWindow(): BrowserWindow {
     y,
     frame: false,
     transparent: true,
+    backgroundColor: "#00000000",
+    roundedCorners: false,
     alwaysOnTop: true,
     skipTaskbar: true,
     resizable: false,

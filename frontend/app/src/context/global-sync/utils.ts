@@ -20,10 +20,10 @@ export function normalizeAgentList(input: AgentListOutput["data"] | Agent[]): Ag
     mode: agent.mode,
     hidden: agent.hidden,
     temperature:
-      typeof agent.request.settings.temperature === "number" ? agent.request.settings.temperature : undefined,
-    topP: typeof agent.request.settings.topP === "number" ? agent.request.settings.topP : undefined,
+      typeof agent.request?.settings?.temperature === "number" ? agent.request.settings.temperature : undefined,
+    topP: typeof agent.request?.settings?.topP === "number" ? agent.request.settings.topP : undefined,
     color: agent.color,
-    permission: agent.permissions.map((rule) => ({
+    permission: (agent.permissions ?? []).map((rule) => ({
       permission: rule.action,
       pattern: rule.resource,
       action: rule.effect,
@@ -31,7 +31,7 @@ export function normalizeAgentList(input: AgentListOutput["data"] | Agent[]): Ag
     model: agent.model && { providerID: agent.model.providerID, modelID: agent.model.id },
     variant: agent.model?.variant,
     prompt: agent.system,
-    options: agent.request.settings,
+    options: agent.request?.settings ?? {},
     steps: agent.steps,
   }))
 }
