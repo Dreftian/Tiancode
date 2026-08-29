@@ -6,11 +6,12 @@ import { httpClient } from "@tiancode-ai/core/effect/app-node-platform"
 import { Context, Effect, Layer } from "effect"
 import { type ChildProcess, execFile, spawn } from "node:child_process"
 import { promisify } from "node:util"
-import { existsSync, createWriteStream } from "node:fs"
+import { existsSync, createWriteStream, readdirSync } from "node:fs"
 import { open, rename, rm } from "node:fs/promises"
 import { pipeline } from "node:stream/promises"
 import { Readable, Transform } from "node:stream"
 import path from "node:path"
+import os from "node:os"
 
 const execFileAsync = promisify(execFile)
 
@@ -208,7 +209,37 @@ const layer = Layer.effect(
       currentContextSize = options.contextSize ?? DEFAULT_CTX_SIZE
       lastError = undefined
 
-      const resolvedModelFile = path.resolve(modelsDir, options.model, options.file)
+      let resolvedModelFile = path.resolve(modelsDir, options.model ?? "", options.file ?? "")
+      if (!existsSync(resolvedModelFile)) {
+        const direct = path.resolve(modelsDir, options.file ?? options.model ?? "")
+        if (existsSync(direct)) {
+          resolvedModelFile = direct
+        } else {
+          const targetName = (options.file || options.model || "").replace(/\.gguf$/i, "").toLowerCase()
+          const findGguf = (dir: string): string | undefined => {
+            if (!existsSync(dir)) return undefined
+            const entries = readdirSync(dir, { withFileTypes: true })
+            for (const entry of entries) {
+              const full = path.join(dir, entry.name)
+              if (entry.isDirectory()) {
+                const found = findGguf(full)
+                if (found) return found
+              } else if (entry.name.endsWith(".gguf") && !entry.name.endsWith(".part")) {
+                const clean = entry.name.replace(/\.gguf$/i, "").toLowerCase()
+                if (clean === targetName || clean.includes(targetName) || targetName.includes(clean)) {
+                  return full
+                }
+              }
+            }
+            return undefined
+          }
+          const found = findGguf(modelsDir)
+          if (found) {
+            resolvedModelFile = found
+          }
+        }
+      }
+
       if (!existsSync(resolvedModelFile)) {
         currentStatus = "error"
         lastError = `El archivo del modelo no existe en disco: ${resolvedModelFile}. Descárgalo primero desde el Models Hub.`
@@ -216,7 +247,7 @@ const layer = Layer.effect(
       }
 
       currentModelPath = resolvedModelFile
-      currentModelName = options.file.replace(/\.gguf$/i, "")
+      currentModelName = path.basename(resolvedModelFile).replace(/\.gguf$/i, "")
 
       // 2. Asegurar binario
       const execPath = yield* ensureBinary().pipe(
@@ -228,7 +259,8 @@ const layer = Layer.effect(
         return getStatus()
       }
 
-      // 3. Argumentos optimizados para llama-server
+      // 3. Argumentos optimizados para llama-server con auto-tuning según CPU/GPU
+      const cpuThreads = Math.max(1, os.cpus().length - 1)
       const args = [
         "-m",
         resolvedModelFile,
@@ -240,6 +272,8 @@ const layer = Layer.effect(
         String(currentGpuLayers),
         "-c",
         String(currentContextSize),
+        "-t",
+        String(cpuThreads),
         "--parallel",
         "1",
       ]

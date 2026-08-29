@@ -39,7 +39,7 @@ export const modelHubHandlers = HttpApiBuilder.group(InstanceHttpApi, "model-hub
       const engStatus = yield* engine.status()
       // Include Tiancode Native Engine at the top of the runtimes list
       const nativeEngine = {
-        id: "tiancode-native",
+        id: "local",
         name: "Tiancode Native Engine (llama.cpp)",
         available: engStatus.status === "running" || engStatus.binaryReady,
         version: engStatus.status === "running" ? `v${engStatus.port} (Activo)` : "Listo",

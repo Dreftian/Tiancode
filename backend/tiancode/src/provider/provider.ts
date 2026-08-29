@@ -1,7 +1,12 @@
 import { LayerNode } from "@tiancode-ai/core/effect/layer-node"
 import os from "os"
-import { existsSync, readdirSync } from "node:fs"
+import { existsSync, readdirSync, mkdirSync } from "node:fs"
+import { rm } from "node:fs/promises"
+import { execFile, spawn } from "node:child_process"
+import { promisify } from "node:util"
 import { ConfigV1 } from "@tiancode-ai/core/v1/config/config"
+
+const execFileAsync = promisify(execFile)
 import fuzzysort from "fuzzysort"
 import { Config } from "@/config/config"
 import { mapValues, mergeDeep, omit, pickBy, sortBy } from "remeda"
@@ -203,12 +208,101 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
     local: () =>
       Effect.succeed({
         autoload: true,
-        options: { baseURL: "http://localhost:58282/v1" },
-      }),
-    "tiancode-native": () =>
-      Effect.succeed({
-        autoload: true,
-        options: { baseURL: "http://localhost:58282/v1" },
+        options: { baseURL: "http://127.0.0.1:58282/v1" },
+        async getModel(sdk: any, modelID: string, _options?: Record<string, any>, _model?: Model) {
+          const probe = async () => {
+            try {
+              const res = await fetch("http://127.0.0.1:58282/health", { signal: AbortSignal.timeout(1000) })
+              return res.ok
+            } catch {
+              return false
+            }
+          }
+
+          const isHealthy = await probe()
+          if (!isHealthy) {
+            const modelsDir = path.join(Global.Path.data, "models")
+            let foundGguf: string | undefined
+            const target = modelID.replace(/\.gguf$/i, "").toLowerCase()
+            const searchGguf = (dir: string) => {
+              if (!existsSync(dir)) return
+              const items = readdirSync(dir, { withFileTypes: true })
+              for (const item of items) {
+                const full = path.join(dir, item.name)
+                if (item.isDirectory()) {
+                  searchGguf(full)
+                  if (foundGguf) return
+                } else if (item.name.endsWith(".gguf") && !item.name.endsWith(".part")) {
+                  const clean = item.name.replace(/\.gguf$/i, "").toLowerCase()
+                  if (clean === target || clean.includes(target) || target.includes(clean)) {
+                    foundGguf = full
+                    return
+                  }
+                }
+              }
+            }
+            searchGguf(modelsDir)
+
+            if (foundGguf && existsSync(foundGguf)) {
+              const binDir = path.join(Global.Path.bin, "llama-server")
+              const binaryExecutable = process.platform === "win32" ? "llama-server.exe" : "llama-server"
+              const binaryPath = path.join(binDir, binaryExecutable)
+
+              if (!existsSync(binaryPath)) {
+                mkdirSync(binDir, { recursive: true })
+                const LLAMA_CPP_WIN_URL =
+                  "https://github.com/ggerganov/llama.cpp/releases/download/b4800/llama-b4800-bin-win-vulkan-x64.zip"
+                const zipPath = path.join(binDir, "llama-server.zip")
+                const res = await fetch(LLAMA_CPP_WIN_URL, { redirect: "follow" })
+                if (res.ok && res.body) {
+                  await Bun.write(zipPath, await res.arrayBuffer())
+                  if (process.platform === "win32") {
+                    await execFileAsync("powershell", [
+                      "-NoProfile",
+                      "-Command",
+                      `Expand-Archive -LiteralPath "${zipPath}" -DestinationPath "${binDir}" -Force`,
+                    ])
+                  }
+                  await rm(zipPath, { force: true }).catch(() => {})
+                }
+              }
+
+              if (existsSync(binaryPath)) {
+                const cpuThreads = Math.max(1, (os.cpus()?.length ?? 4) - 1)
+                spawn(
+                  binaryPath,
+                  [
+                    "-m",
+                    foundGguf,
+                    "--host",
+                    "127.0.0.1",
+                    "--port",
+                    "58282",
+                    "-ngl",
+                    "99",
+                    "-c",
+                    "8192",
+                    "-t",
+                    String(cpuThreads),
+                    "--parallel",
+                    "1",
+                  ],
+                  {
+                    stdio: ["ignore", "pipe", "pipe"],
+                    windowsHide: true,
+                    detached: false,
+                  },
+                )
+                for (let i = 0; i < 60; i++) {
+                  await new Promise((r) => setTimeout(r, 500))
+                  if (await probe()) break
+                }
+              }
+            }
+          }
+
+          return sdk.languageModel(modelID)
+        },
       }),
     ollama: () =>
       Effect.succeed({
@@ -1371,27 +1465,16 @@ const layer = Layer.effect(
 
         // Seed default local engines in database
         const localProviderID = ProviderV2.ID.make("local")
-        const nativeProviderID = ProviderV2.ID.make("tiancode-native")
         const ollamaProviderID = ProviderV2.ID.make("ollama")
         const lmstudioProviderID = ProviderV2.ID.make("lmstudio")
 
         if (!database[localProviderID]) {
           database[localProviderID] = {
             id: localProviderID,
-            name: "Local (Tiancode Engine)",
+            name: "Modelos Locales (Tiancode Engine)",
             source: "custom",
             env: [],
-            options: { baseURL: "http://localhost:58282/v1" },
-            models: {},
-          }
-        }
-        if (!database[nativeProviderID]) {
-          database[nativeProviderID] = {
-            id: nativeProviderID,
-            name: "Tiancode Native Engine",
-            source: "custom",
-            env: [],
-            options: { baseURL: "http://localhost:58282/v1" },
+            options: { baseURL: "http://127.0.0.1:58282/v1" },
             models: {},
           }
         }
@@ -1443,7 +1526,7 @@ const layer = Layer.effect(
                 api: {
                   id: modelID,
                   npm: "@ai-sdk/openai-compatible",
-                  url: "http://localhost:58282/v1",
+                  url: "http://127.0.0.1:58282/v1",
                 },
                 status: "active",
                 capabilities: {
@@ -1464,10 +1547,6 @@ const layer = Layer.effect(
                 variants: {},
               }
               database[localProviderID].models[modelID] = modelObj
-              database[nativeProviderID].models[modelID] = {
-                ...modelObj,
-                providerID: nativeProviderID,
-              }
             }
           } catch {
             // ignore scan errors
