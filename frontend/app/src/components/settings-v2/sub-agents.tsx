@@ -201,15 +201,23 @@ export const SettingsSubAgentsV2: Component<{
 
   const params = () => (props.directory ? { directory: props.directory } : undefined)
 
-  const [agents, { refetch }] = createResource(
-    () => serverSdk().client.app.agents(params()),
-    (request) => request.then((x) => x.data),
+  const [agents, { refetch }] = createResource<Agent[]>(
+    async () => {
+      try {
+        const res = await serverSdk()
+          .api.agent.list(params() ? { location: params()! } : undefined)
+          .catch(() => ({ data: [] as Agent[] }))
+        return (res?.data ?? []) as Agent[]
+      } catch {
+        return []
+      }
+    },
     { initialValue: [] },
   )
 
   const agentList = createMemo(() => agents() ?? [])
-  const userAgents = createMemo(() => agentList().filter((agent) => agent.native !== true))
-  const builtinAgents = createMemo(() => agentList().filter((agent) => agent.native === true))
+  const userAgents = createMemo(() => agentList().filter((agent: Agent) => agent.native !== true))
+  const builtinAgents = createMemo(() => agentList().filter((agent: Agent) => agent.native === true))
 
   const [query, setQuery] = createSignal("")
   const [status, setStatus] = createSignal<StatusId>("all")
@@ -253,7 +261,7 @@ export const SettingsSubAgentsV2: Component<{
   })
 
   const editingAgent = createMemo(
-    () => agentList().find((agent) => agent.name === editing()) ?? null,
+    () => agentList().find((agent: Agent) => agent.name === editing()) ?? null,
   )
 
   const resetForm = () => {

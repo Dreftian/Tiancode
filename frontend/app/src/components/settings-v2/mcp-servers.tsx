@@ -437,17 +437,25 @@ export const SettingsMcpServersV2: Component<{
   // config ni remonta filas; solo actualiza los indicadores en vivo.
   const [configData, { refetch: refetchConfig }] = createResource(
     async () => {
-      const result = await serverSdk().client.config.get(params())
-      return result.data ?? {}
+      try {
+        const result = await serverSdk().client.config.get(params()).catch(() => ({ data: {} }))
+        return (result.data ?? {}) as Record<string, any>
+      } catch {
+        return {} as Record<string, any>
+      }
     },
-    { initialValue: {} as Record<string, unknown> },
+    { initialValue: {} as Record<string, any> },
   )
   const [statusData, { refetch: refetchStatus }] = createResource(
     async () => {
-      const result = await serverSdk().client.mcp.status(params())
-      return result.data ?? {}
+      try {
+        const result = await serverSdk().client.mcp.status(params()).catch(() => ({ data: {} }))
+        return (result.data ?? {}) as Record<string, any>
+      } catch {
+        return {} as Record<string, any>
+      }
     },
-    { initialValue: {} as Record<string, McpStatus> },
+    { initialValue: {} as Record<string, any> },
   )
   const refetchAll = () => Promise.all([refetchConfig(), refetchStatus()])
 

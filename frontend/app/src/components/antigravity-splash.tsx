@@ -1,4 +1,5 @@
-import { type Component, createSignal, onCleanup, onMount, Show } from "solid-js"
+import { type Component, createSignal, onCleanup, onMount } from "solid-js"
+import tianLogo from "../../../ui/src/assets/logo/tian-white.png"
 
 export const AntigravitySplash: Component<{
   onComplete?: () => void
@@ -32,32 +33,28 @@ export const AntigravitySplash: Component<{
 
   return (
     <div
-      class={`w-full h-full min-h-[380px] flex flex-col items-center justify-center bg-[#0e111a] text-white transition-all duration-400 select-none overflow-hidden ${
+      class={`w-full h-full min-h-[380px] flex flex-col items-center justify-center bg-[#0b0d14] text-white transition-all duration-400 select-none overflow-hidden ${
         fading() ? "opacity-0 scale-95 pointer-events-none" : "opacity-100 scale-100"
       }`}
       aria-label="Tiancode"
       role="status"
     >
       {/* Ambient background glow */}
-      <div class="absolute w-56 h-56 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
+      <div class="absolute w-56 h-56 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Logo de Tiancode con Micro-halo */}
-      <div class="relative flex items-center justify-center w-20 h-20 mb-5">
-        <div class="absolute inset-0 rounded-2xl bg-gradient-to-br from-cyan-400/25 to-indigo-600/25 blur-lg" />
-        <div class="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-400 via-sky-500 to-indigo-600 p-[1.5px] shadow-xl shadow-cyan-500/30 flex items-center justify-center">
-          <div class="w-full h-full bg-[#0a0d16] rounded-[14px] flex items-center justify-center">
-            <svg viewBox="0 0 24 24" class="w-8 h-8 text-cyan-400 drop-shadow-[0_0_8px_rgba(56,189,248,0.7)]" fill="none" stroke="currentColor" stroke-width="2.2">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-            </svg>
-          </div>
-        </div>
+      {/* Official Tiancode Logo with micro-halo */}
+      <div class="relative flex items-center justify-center mb-3">
+        <div class="absolute inset-0 rounded-2xl bg-gradient-to-br from-cyan-400/20 to-indigo-600/20 blur-lg" />
+        <img
+          src={tianLogo}
+          alt="Tiancode"
+          class="relative h-12 w-auto object-contain drop-shadow-[0_0_12px_rgba(56,189,248,0.4)]"
+          draggable={false}
+        />
       </div>
 
-      {/* Nombre y Versión */}
-      <div class="flex items-center gap-2 mb-4">
-        <h1 class="text-2xl font-bold tracking-tight text-white">
-          Tian<span class="text-cyan-400">code</span>
-        </h1>
+      {/* Version badge */}
+      <div class="flex items-center gap-1.5 mb-5">
         <span class="px-2 py-0.5 text-[10px] font-mono font-bold rounded-md bg-white/10 text-cyan-300 border border-white/10">
           v{version}
         </span>

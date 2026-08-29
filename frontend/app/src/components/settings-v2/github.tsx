@@ -49,23 +49,50 @@ export const SettingsGithubV2: Component<{
   const [banner, setBanner] = createSignal<string | undefined>(undefined)
 
   const [status, { refetch: refetchStatus }] = createResource(
-    async () => serverSdk().client.github.status(params()),
+    async () => {
+      try {
+        return await serverSdk().client.github.status(params()).catch(() => ({ data: { connected: false } }))
+      } catch {
+        return { data: { connected: false } }
+      }
+    },
   )
-  const connected = () => status()?.data?.connected === true
-  const login = () => status()?.data?.login
-  const avatarUrl = () => status()?.data?.avatarUrl
+  const connected = () => (status()?.data as any)?.connected === true
+  const login = () => (status()?.data as any)?.login
+  const avatarUrl = () => (status()?.data as any)?.avatarUrl
 
   const [repos, { refetch: refetchRepos }] = createResource(
     () => connected(),
-    (isConnected) => (isConnected ? serverSdk().client.github.repos(params()) : undefined),
+    async (isConnected) => {
+      if (!isConnected) return undefined
+      try {
+        return await serverSdk().client.github.repos(params()).catch(() => undefined)
+      } catch {
+        return undefined
+      }
+    },
   )
   const [current, { refetch: refetchCurrent }] = createResource(
     () => connected(),
-    (isConnected) => (isConnected ? serverSdk().client.project.current(params()) : undefined),
+    async (isConnected) => {
+      if (!isConnected) return undefined
+      try {
+        return await serverSdk().client.project.current(params()).catch(() => undefined)
+      } catch {
+        return undefined
+      }
+    },
   )
   const [remote, { refetch: refetchRemote }] = createResource(
     () => connected(),
-    (isConnected) => (isConnected ? serverSdk().client.vcs.remote(params()) : undefined),
+    async (isConnected) => {
+      if (!isConnected) return undefined
+      try {
+        return await serverSdk().client.vcs.remote(params()).catch(() => undefined)
+      } catch {
+        return undefined
+      }
+    },
   )
 
   const [search, setSearch] = createSignal("")

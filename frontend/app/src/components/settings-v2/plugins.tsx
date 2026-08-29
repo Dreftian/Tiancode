@@ -148,8 +148,16 @@ export const SettingsPluginsV2: Component<{
   const params = () => (props.directory ? { directory: props.directory } : undefined)
 
   const [config, { refetch }] = createResource(
-    () => serverSdk().client.config.get(params()),
-    (request) => request.then((x) => x.data),
+    async () => {
+      try {
+        const res = await serverSdk()
+          .client.config.get(params())
+          .catch(() => ({ data: {} as Config }))
+        return res?.data
+      } catch {
+        return undefined
+      }
+    },
     { initialValue: undefined as Config | undefined },
   )
 

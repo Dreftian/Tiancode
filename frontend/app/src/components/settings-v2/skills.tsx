@@ -487,14 +487,22 @@ export const SettingsSkillsV2: Component<{
 
   const [data, { refetch }] = createResource(
     async () => {
-      const [skills, config] = await Promise.all([
-        serverSdk().client.app.skills(params()),
-        serverSdk().client.config.get(params()),
-      ])
-      return {
-        skills: skills.data ?? [],
-        disabled: new Set(config.data?.skills?.disabled ?? []),
-        autoSelect: config.data?.skills?.autoSelect !== false,
+      try {
+        const [skills, config] = await Promise.all([
+          serverSdk()
+            .api.skill.list(params() ? { location: params()! } : undefined)
+            .catch(() => ({ data: [] })),
+          serverSdk()
+            .client.config.get(params())
+            .catch(() => ({ data: {} })),
+        ])
+        return {
+          skills: (skills?.data ?? []) as any[],
+          disabled: new Set(((config?.data as any)?.skills?.disabled ?? []) as string[]),
+          autoSelect: (config?.data as any)?.skills?.autoSelect !== false,
+        }
+      } catch {
+        return { skills: [], disabled: new Set<string>(), autoSelect: true }
       }
     },
     { initialValue: { skills: [], disabled: new Set<string>(), autoSelect: true } },

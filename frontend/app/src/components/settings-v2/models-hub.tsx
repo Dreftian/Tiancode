@@ -372,30 +372,64 @@ export const SettingsModelsHubV2: Component<{
   const params = () => (props.directory ? { directory: props.directory } : undefined)
 
   const [system, { refetch: refetchSystem }] = createResource(
-    () => serverSdk().client.modelhub.system(params()),
-    (request) => request.then((x) => x.data),
+    async () => {
+      try {
+        const res = await serverSdk().client.modelhub.system(params())
+        return res?.data
+      } catch {
+        return undefined
+      }
+    },
   )
 
   const [searchedModels, { refetch: refetchModels }] = createResource(
-    () => (submitted() ? serverSdk().client.modelhub.search({ ...params(), query: submitted(), limit: "40" }) : undefined),
-    (request) => request.then((x) => x.data),
+    () => submitted(),
+    async (query) => {
+      if (!query) return []
+      try {
+        const res = await serverSdk().client.modelhub.search({ ...params(), query, limit: "40" })
+        return (res?.data ?? []) as Model[]
+      } catch {
+        return []
+      }
+    },
     { initialValue: [] as Model[] },
   )
 
   const [filesResource, { refetch: refetchFiles }] = createResource(
-    () => (selectedId() ? serverSdk().client.modelhub.files({ ...params(), model: selectedId() }) : undefined),
-    (request) => request.then((x) => x.data),
+    () => selectedId(),
+    async (model) => {
+      if (!model) return undefined
+      try {
+        const res = await serverSdk().client.modelhub.files({ ...params(), model })
+        return res?.data
+      } catch {
+        return undefined
+      }
+    },
   )
 
   const [runtimes, { refetch: refetchRuntimes }] = createResource(
-    () => serverSdk().client.modelhub.runtimes(params()),
-    (request) => request.then((x) => x.data),
+    async () => {
+      try {
+        const res = await serverSdk().client.modelhub.runtimes(params())
+        return (res?.data ?? []) as RuntimeInfo[]
+      } catch {
+        return []
+      }
+    },
     { initialValue: [] as RuntimeInfo[] },
   )
 
   const [engineStatus, { refetch: refetchEngine }] = createResource(
-    () => serverSdk().client.modelhub.engine(params()),
-    (request) => request.then((x) => x.data),
+    async () => {
+      try {
+        const res = await serverSdk().client.modelhub.engine(params())
+        return res?.data
+      } catch {
+        return undefined
+      }
+    },
   )
 
   const ram = createMemo(() => asNumber(system()?.ram) ?? 16e9)

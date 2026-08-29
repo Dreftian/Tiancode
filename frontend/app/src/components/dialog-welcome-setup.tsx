@@ -6,6 +6,7 @@ import { useSettings } from "@/context/settings"
 import { usePlatform } from "@/context/platform"
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
 import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
+import tianLogo from "../../../ui/src/assets/logo/tian-white.png"
 
 export const FIRST_LAUNCH_KEY = "tiancode.first_launch.completed"
 
@@ -46,7 +47,7 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
       localStorage.setItem("tiancode.sound.enabled", String(enableSound()))
       localStorage.setItem("tiancode.autoupdate.enabled", String(autoUpdates()))
       if (typeof window !== "undefined" && window.api?.finishFirstLaunchOnboarding) {
-        await window.api.finishFirstLaunchOnboarding(true)
+        await window.api.finishFirstLaunchOnboarding(false)
       }
     } catch {}
     props.onDone?.()
@@ -54,7 +55,7 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
   }
 
   const isEs = () => selectedLocale() === "es"
-  const version = () => platform.version || import.meta.env.VITE_TIANCODE_VERSION || "1.0.104"
+  const version = () => platform.version || import.meta.env.VITE_TIANCODE_VERSION || "1.0.0"
 
   const stepLabel = () =>
     step() === 1
@@ -87,12 +88,13 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
       {/* Header with Official Tiancode Emblem */}
       <div class="flex items-center justify-between border-b border-white/10 pb-5">
         <div class="flex items-center gap-3.5">
-          <div class="relative flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-400 via-sky-500 to-indigo-600 p-[1.5px] shadow-lg shadow-cyan-500/25 shrink-0">
-            <div class="w-full h-full bg-[#0a0d16] rounded-[14px] flex items-center justify-center">
-              <svg viewBox="0 0 24 24" class="w-6 h-6 text-cyan-400 drop-shadow-[0_0_6px_rgba(56,189,248,0.6)]" fill="none" stroke="currentColor" stroke-width="2.2">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-              </svg>
-            </div>
+          <div class="relative flex items-center justify-center h-10 w-auto shrink-0">
+            <img
+              src={tianLogo}
+              alt="Tiancode"
+              class="h-8 w-auto object-contain drop-shadow-[0_0_10px_rgba(56,189,248,0.4)]"
+              draggable={false}
+            />
           </div>
 
           <div class="flex flex-col gap-0.5">
