@@ -157,19 +157,26 @@ type FormMessage =
 // them on top of the default ruleset (`*: allow` plus read/external_directory
 // defaults). The effective action for a tool is the last `*`-pattern rule
 // matching its permission name, so the UI maps rules back to checkboxes by
-// walking the ruleset in order.
+const getAgentRules = (agent?: Agent | null): PermissionRule[] => {
+  if (!agent) return []
+  if (Array.isArray(agent.permission)) return agent.permission
+  if (Array.isArray((agent as any).permissions)) return (agent as any).permissions
+  return []
+}
+
 const effectiveToolRule = (agent: Agent, tool: string): PermissionRule | undefined => {
   const permission = tool.toLowerCase()
-  return agent.permission.findLast(
-    (rule) => rule.pattern === "*" && (rule.permission === permission || rule.permission === "*"),
+  return getAgentRules(agent).findLast(
+    (rule) => rule && rule.pattern === "*" && (rule.permission === permission || rule.permission === "*"),
   )
 }
 
 // A restricted ruleset is one with a deny/ask rule (pattern `*`) for a tool
 // permission or for `*` itself; unrestricted agents inherit everything.
 const hasRestrictedTools = (agent: Agent): boolean =>
-  agent.permission.some(
+  getAgentRules(agent).some(
     (rule) =>
+      rule &&
       rule.pattern === "*" &&
       (rule.permission === "*" || ToolPermissionNames.includes(rule.permission)) &&
       rule.action !== "allow",
@@ -177,7 +184,7 @@ const hasRestrictedTools = (agent: Agent): boolean =>
 
 const allowedToolCount = (agent: Agent): number =>
   ToolPermissionNames.filter((permission) =>
-    agent.permission.some((rule) => rule.pattern === "*" && rule.permission === permission && rule.action === "allow"),
+    getAgentRules(agent).some((rule) => rule && rule.pattern === "*" && rule.permission === permission && rule.action === "allow"),
   ).length
 
 export const SettingsSubAgentsV2: Component<{
