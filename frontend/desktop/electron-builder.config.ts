@@ -82,6 +82,11 @@ const getBase = (appId: string): Configuration => ({
       from: "resources/icons",
       to: "icons",
     },
+    // Motor local embebido llama-server (GGUF / Vulkan / CPU)
+    {
+      from: "resources/llama-server",
+      to: "llama-server",
+    },
     // MCP empaquetados (vista en vivo + suite): se sirven desde
     // resources/mcp tanto en instalado como en portable.
     {

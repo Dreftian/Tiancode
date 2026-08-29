@@ -39,6 +39,7 @@ install/*.exe
 # ZCode session files
 .zcode/
 frontend/desktop/resources/tiancode-cli.exe
+frontend/desktop/resources/llama-server/
 dist-1.0.3*/
 dist-1.0.*/
 temp_thumb_*.png

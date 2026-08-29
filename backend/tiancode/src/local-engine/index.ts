@@ -51,9 +51,9 @@ const DEFAULT_PORT = 58282
 const DEFAULT_CTX_SIZE = 8192
 const DEFAULT_GPU_LAYERS = 99
 
-// URL de descarga del binario optimizado precompilado de llama-server para Windows (con soporte Vulkan universal)
+// URL de descarga del binario optimizado precompilado de llama-server para Windows (con soporte Vulkan universal y arquitecturas modernas)
 const LLAMA_CPP_WIN_URL =
-  "https://github.com/ggerganov/llama.cpp/releases/download/b4800/llama-b4800-bin-win-vulkan-x64.zip"
+  "https://github.com/ggml-org/llama.cpp/releases/download/b10679/llama-b10679-bin-win-vulkan-x64.zip"
 
 const layer = Layer.effect(
   Service,
@@ -153,10 +153,44 @@ const layer = Layer.effect(
       return binaryPath
     })
 
+    const findBundledDirectory = (): string | undefined => {
+      const resourcesPath = (process as any).resourcesPath as string | undefined
+      const candidates = [
+        resourcesPath ? path.join(resourcesPath, "llama-server") : undefined,
+        path.resolve(process.cwd(), "frontend", "desktop", "resources", "llama-server"),
+        path.resolve(process.cwd(), "resources", "llama-server"),
+        path.resolve(process.cwd(), "backend", "tiancode", "llama-bin"),
+        path.resolve(__dirname, "..", "..", "..", "frontend", "desktop", "resources", "llama-server"),
+        path.resolve(__dirname, "..", "llama-bin"),
+      ].filter(Boolean) as string[]
+
+      for (const dir of candidates) {
+        const exe = path.join(dir, binaryExecutable)
+        if (existsSync(exe)) return dir
+      }
+      return undefined
+    }
+
     const ensureBinary = Effect.fn("LocalEngine.ensureBinary")(function* () {
+      yield* fs.ensureDir(binDir).pipe(Effect.orDie)
       if (isBinaryPresent()) return binaryPath
 
-      // Comprobar si llama-server está instalado globalmente en el sistema (PATH)
+      // 1. Comprobar si los binarios están embebidos en resources
+      const bundledDir = findBundledDirectory()
+      if (bundledDir && existsSync(path.join(bundledDir, binaryExecutable))) {
+        const files = readdirSync(bundledDir)
+        for (const f of files) {
+          const src = path.join(bundledDir, f)
+          const dst = path.join(binDir, f)
+          if (!existsSync(dst)) {
+            yield* fs.copy(src, dst).pipe(Effect.ignore)
+          }
+        }
+        if (isBinaryPresent()) return binaryPath
+        return path.join(bundledDir, binaryExecutable)
+      }
+
+      // 2. Comprobar si llama-server está instalado globalmente en el sistema (PATH)
       const whichCmd = process.platform === "win32" ? "where" : "which"
       const onPath = yield* Effect.tryPromise(() => execFileAsync(whichCmd, ["llama-server"])).pipe(
         Effect.map((res) => res.stdout.split("\n")[0]?.trim()),
@@ -286,6 +320,7 @@ const layer = Layer.effect(
       })
 
       const child = spawn(execPath, args, {
+        cwd: path.dirname(execPath),
         stdio: ["ignore", "pipe", "pipe"],
         windowsHide: true,
         detached: false,
@@ -307,9 +342,9 @@ const layer = Layer.effect(
         }
       })
 
-      // 4. Sondeo de salud hasta que el modelo esté cargado en GPU/VRAM
+      // 4. Sondeo de salud hasta que el modelo esté cargado en GPU/VRAM (hasta 30 segundos)
       let ready = false
-      for (let attempt = 0; attempt < 40; attempt++) {
+      for (let attempt = 0; attempt < 60; attempt++) {
         yield* Effect.sleep("500 millis")
         const ok = yield* Effect.tryPromise(() => probeHealth(currentPort)).pipe(
           Effect.catch(() => Effect.succeed(false)),

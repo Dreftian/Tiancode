@@ -722,14 +722,14 @@ export function LivePreview(props: {
   }
 
   const deviceOptions = () => [
-    { id: "fit" as const, label: language.t("livePreview.fit") },
-    { id: "mobile" as const, label: `${language.t("livePreview.device.mobile")} 390×844` },
-    { id: "androidPhone" as const, label: `${language.t("livePreview.device.android")} 412×915` },
-    { id: "tablet" as const, label: `${language.t("livePreview.device.tablet")} 768×1024` },
-    { id: "androidTablet" as const, label: `${language.t("livePreview.device.androidTablet")} 800×1280` },
-    { id: "tv" as const, label: `${language.t("livePreview.device.tv")} 1920×1080` },
+    { id: "fit" as const, label: "Ajustar al entorno (Fluido)" },
     { id: "desktop" as const, label: `${language.t("livePreview.device.desktop")} 1440×900` },
     { id: "laptop" as const, label: `${language.t("livePreview.device.laptop")} 1280×800` },
+    { id: "tablet" as const, label: `${language.t("livePreview.device.tablet")} 768×1024` },
+    { id: "androidTablet" as const, label: `${language.t("livePreview.device.androidTablet")} 800×1280` },
+    { id: "mobile" as const, label: `${language.t("livePreview.device.mobile")} 390×844` },
+    { id: "androidPhone" as const, label: `${language.t("livePreview.device.android")} 412×915` },
+    { id: "tv" as const, label: `${language.t("livePreview.device.tv")} 1920×1080` },
     { id: "custom" as const, label: language.t("livePreview.device.custom") },
   ]
 

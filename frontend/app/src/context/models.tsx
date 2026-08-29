@@ -39,13 +39,18 @@ export const { use: useModels, provider: ModelsProvider } = createSimpleContext(
 
     const available = createMemo(() => {
       const connectedProviders = providers.connected()
-      const allProviders = Array.from(providers.all().values()).filter((p) => p.id !== "tiancode-native")
+      const isConnected = (id: string) => connectedProviders.some((p) => p.id === id)
+      const allProviders = Array.from(providers.all().values()).filter((p) => {
+        if (p.id === "tiancode-native") return false
+        if ((p.id === "lmstudio" || p.id === "ollama") && !isConnected(p.id)) return false
+        return true
+      })
       const activeProviders =
         connectedProviders.length > 0
           ? connectedProviders.filter((p) => p.id !== "tiancode-native")
           : allProviders
       const localProvidersWithModels = allProviders.filter(
-        (p) => (p.id === "local" || p.id === "ollama" || p.id === "lmstudio") && Object.keys(p.models ?? {}).length > 0,
+        (p) => p.id === "local" && Object.keys(p.models ?? {}).length > 0,
       )
       const combined = new Map<string, (typeof allProviders)[number]>()
       for (const p of activeProviders) combined.set(p.id, p)
@@ -143,12 +148,11 @@ export const { use: useModels, provider: ModelsProvider } = createSimpleContext(
       if (state === "hide") return false
       if (state === "show") return true
       if (latestSet().has(key)) return true
-      if (
-        model.providerID === "local" ||
-        model.providerID === "ollama" ||
-        model.providerID === "lmstudio"
-      ) {
+      if (model.providerID === "local") {
         return true
+      }
+      if (model.providerID === "ollama" || model.providerID === "lmstudio") {
+        return providers.connected().some((p) => p.id === model.providerID)
       }
       const date = release().get(key)
       if (!date?.isValid) return true

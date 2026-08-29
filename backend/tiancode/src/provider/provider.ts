@@ -1,6 +1,6 @@
 import { LayerNode } from "@tiancode-ai/core/effect/layer-node"
 import os from "os"
-import { existsSync, readdirSync, mkdirSync } from "node:fs"
+import { existsSync, readdirSync, mkdirSync, copyFileSync } from "node:fs"
 import { rm } from "node:fs/promises"
 import { execFile, spawn } from "node:child_process"
 import { promisify } from "node:util"
@@ -246,12 +246,42 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
             if (foundGguf && existsSync(foundGguf)) {
               const binDir = path.join(Global.Path.bin, "llama-server")
               const binaryExecutable = process.platform === "win32" ? "llama-server.exe" : "llama-server"
-              const binaryPath = path.join(binDir, binaryExecutable)
+              let binaryPath = path.join(binDir, binaryExecutable)
+
+              const resourcesPath = (process as any).resourcesPath as string | undefined
+              const bundledCandidates = [
+                resourcesPath ? path.join(resourcesPath, "llama-server") : undefined,
+                path.resolve(process.cwd(), "frontend", "desktop", "resources", "llama-server"),
+                path.resolve(process.cwd(), "resources", "llama-server"),
+                path.resolve(process.cwd(), "backend", "tiancode", "llama-bin"),
+                path.resolve(__dirname, "..", "..", "..", "frontend", "desktop", "resources", "llama-server"),
+                path.resolve(__dirname, "..", "llama-bin"),
+              ].filter(Boolean) as string[]
+
+              for (const cand of bundledCandidates) {
+                const candExe = path.join(cand, binaryExecutable)
+                if (existsSync(candExe)) {
+                  try {
+                    mkdirSync(binDir, { recursive: true })
+                    const files = readdirSync(cand)
+                    for (const f of files) {
+                      const src = path.join(cand, f)
+                      const dst = path.join(binDir, f)
+                      if (!existsSync(dst)) {
+                        copyFileSync(src, dst)
+                      }
+                    }
+                  } catch {
+                    binaryPath = candExe
+                  }
+                  break
+                }
+              }
 
               if (!existsSync(binaryPath)) {
                 mkdirSync(binDir, { recursive: true })
                 const LLAMA_CPP_WIN_URL =
-                  "https://github.com/ggerganov/llama.cpp/releases/download/b4800/llama-b4800-bin-win-vulkan-x64.zip"
+                  "https://github.com/ggml-org/llama.cpp/releases/download/b10679/llama-b10679-bin-win-vulkan-x64.zip"
                 const zipPath = path.join(binDir, "llama-server.zip")
                 const res = await fetch(LLAMA_CPP_WIN_URL, { redirect: "follow" })
                 if (res.ok && res.body) {
@@ -269,6 +299,7 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
 
               if (existsSync(binaryPath)) {
                 const cpuThreads = Math.max(1, (os.cpus()?.length ?? 4) - 1)
+                const runDir = path.dirname(binaryPath)
                 spawn(
                   binaryPath,
                   [
@@ -288,6 +319,7 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
                     "1",
                   ],
                   {
+                    cwd: runDir,
                     stdio: ["ignore", "pipe", "pipe"],
                     windowsHide: true,
                     detached: false,
