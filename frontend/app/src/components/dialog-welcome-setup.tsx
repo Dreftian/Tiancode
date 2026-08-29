@@ -78,7 +78,7 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
 
   return (
     <div
-      class="relative w-full max-w-[500px] rounded-3xl border border-white/10 bg-[#12141c]/95 shadow-[0_24px_60px_rgba(0,0,0,0.65)] p-7 flex flex-col gap-6 text-white select-none overflow-hidden backdrop-blur-2xl font-sans"
+      class="relative w-full h-full min-h-[420px] bg-[#0e111a] p-6 flex flex-col justify-between text-white select-none overflow-hidden font-sans"
     >
       {/* Ambient background glows */}
       <div class="absolute -top-16 -left-16 w-60 h-60 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />

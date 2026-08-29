@@ -17,6 +17,7 @@ import { nativeT } from "./native-translations"
 import { createWindowRegistry } from "./window-registry"
 import { safeWindowURL } from "./window-state"
 import { resolveExternalURL, resolveLocalFilePath } from "./external-url"
+import { isFirstLaunchOnboardingPending } from "./onboarding"
 
 const root = dirname(fileURLToPath(import.meta.url))
 const rendererRoot = join(root, "../renderer")
@@ -231,6 +232,7 @@ export function setDockIcon() {
 }
 
 export function createMainWindow(id: string = randomUUID()) {
+  const isOnboarding = isFirstLaunchOnboardingPending()
   const state = windowState({
     file: windowStateFile(id),
     defaultWidth: 1280,
@@ -240,10 +242,13 @@ export function createMainWindow(id: string = randomUUID()) {
   const mode = tone()
   const icon = windowIcon()
   const win = new BrowserWindow({
-    x: state.x,
-    y: state.y,
-    width: state.width,
-    height: state.height,
+    x: isOnboarding ? undefined : state.x,
+    y: isOnboarding ? undefined : state.y,
+    width: isOnboarding ? 500 : state.width,
+    height: isOnboarding ? 440 : state.height,
+    resizable: !isOnboarding,
+    maximizable: !isOnboarding,
+    center: isOnboarding,
     show: false,
     autoHideMenuBar: true,
     title: APP_NAMES[CHANNEL],

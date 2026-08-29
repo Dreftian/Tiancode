@@ -195,9 +195,17 @@ const layer = Layer.effect(
       Effect.map((v) => v as Record<string, Provider> | undefined),
     )
 
-    const loadSnapshot = Effect.sync(() =>
-      typeof TIANCODE_MODELS_DEV === "undefined" ? undefined : TIANCODE_MODELS_DEV,
-    )
+    const loadSnapshot = Effect.sync(() => {
+      if (typeof TIANCODE_MODELS_DEV === "undefined") return undefined
+      if (typeof TIANCODE_MODELS_DEV === "string") {
+        try {
+          return JSON.parse(TIANCODE_MODELS_DEV) as Record<string, Provider>
+        } catch {
+          return undefined
+        }
+      }
+      return TIANCODE_MODELS_DEV as Record<string, Provider>
+    })
 
     const fetchAndWrite = Effect.fn("ModelsDev.fetchAndWrite")(function* () {
       const text = yield* fetchApi()

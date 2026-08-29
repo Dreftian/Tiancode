@@ -584,7 +584,7 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
 
       {/* Standalone First Launch Setup Screen (shown before the app is visible) */}
       <Show when={firstLaunchActive()}>
-        <div class="fixed inset-0 z-[99998] flex items-center justify-center bg-black/40 backdrop-blur-xl p-4 select-none">
+        <div class="fixed inset-0 z-[99998] w-full h-full bg-[#0e111a] select-none">
           <DialogWelcomeSetup onDone={handleDoneSetup} />
         </div>
       </Show>

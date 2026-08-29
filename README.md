@@ -21,11 +21,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Dreftian/Tiancode/releases/download/v1.0.104/Tiancode.exe">
+  <a href="https://github.com/Dreftian/Tiancode/releases/download/v1.0.0/Tiancode.exe">
     <img src="https://img.shields.io/badge/Descargar%20Instalador-Tiancode.exe-0ea5e9?style=for-the-badge&logo=windows&logoColor=white" alt="Descargar Instalador">
   </a>
   &nbsp;&nbsp;
-  <a href="https://github.com/Dreftian/Tiancode/releases/download/v1.0.104/Tiancode-portable.exe">
+  <a href="https://github.com/Dreftian/Tiancode/releases/download/v1.0.0/Tiancode-portable.exe">
     <img src="https://img.shields.io/badge/Descargar%20Portable-Tiancode--portable.exe-8b5cf6?style=for-the-badge&logo=windows&logoColor=white" alt="Descargar Portable">
   </a>
 </p>
@@ -51,14 +51,14 @@
 
 | Binario | Formato | Uso Recomendado | Enlace Directo |
 |---|---|---|---|
-| **Instalador Oficial** | `.exe` (NSIS) | Instalación estándar con acceso directo y auto-actualizador | [**Descargar Tiancode.exe**](https://github.com/Dreftian/Tiancode/releases/download/v1.0.104/Tiancode.exe) |
-| **Versión Portable** | `.exe` (Portable) | Ejecución directa sin instalación ni permisos de administrador | [**Descargar Tiancode-portable.exe**](https://github.com/Dreftian/Tiancode/releases/download/v1.0.104/Tiancode-portable.exe) |
+| **Instalador Oficial** | `.exe` (NSIS) | Instalación estándar con acceso directo y auto-actualizador | [**Descargar Tiancode.exe**](https://github.com/Dreftian/Tiancode/releases/download/v1.0.0/Tiancode.exe) |
+| **Versión Portable** | `.exe` (Portable) | Ejecución directa sin instalación ni permisos de administrador | [**Descargar Tiancode-portable.exe**](https://github.com/Dreftian/Tiancode/releases/download/v1.0.0/Tiancode-portable.exe) |
 
 ---
 
 ## 🚀 Inicio Rápido
 
-1. Descarga [`Tiancode.exe`](https://github.com/Dreftian/Tiancode/releases/download/v1.0.104/Tiancode.exe) o [`Tiancode-portable.exe`](https://github.com/Dreftian/Tiancode/releases/download/v1.0.104/Tiancode-portable.exe).
+1. Descarga [`Tiancode.exe`](https://github.com/Dreftian/Tiancode/releases/download/v1.0.0/Tiancode.exe) o [`Tiancode-portable.exe`](https://github.com/Dreftian/Tiancode/releases/download/v1.0.0/Tiancode-portable.exe).
 2. Abre la aplicación y configura tus preferencias de idioma, tema y proveedores en el asistente inicial.
 3. ¡Comienza a chatear y desarrollar con tu agente de IA local!
 

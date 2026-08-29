@@ -432,9 +432,11 @@ export function registerIpcHandlers(deps: Deps) {
   ipcMain.handle("set-compact-window", (event: IpcMainInvokeEvent, options?: { width?: number; height?: number }) => {
     const win = BrowserWindow.fromWebContents(event.sender)
     if (!win || win.isDestroyed()) return
-    const width = options?.width ?? 520
-    const height = options?.height ?? 460
+    const width = options?.width ?? 500
+    const height = options?.height ?? 440
     if (win.isMaximized()) win.unmaximize()
+    win.setResizable(false)
+    win.setMaximizable(false)
     win.setSize(width, height, true)
     win.center()
   })
@@ -442,6 +444,8 @@ export function registerIpcHandlers(deps: Deps) {
   ipcMain.handle("restore-main-window", (event: IpcMainInvokeEvent) => {
     const win = BrowserWindow.fromWebContents(event.sender)
     if (!win || win.isDestroyed()) return
+    win.setResizable(true)
+    win.setMaximizable(true)
     win.setMinimumSize(800, 600)
     win.setSize(1280, 800, true)
     win.center()

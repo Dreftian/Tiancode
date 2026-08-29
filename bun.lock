@@ -500,7 +500,7 @@
     },
     "backend/tiancode": {
       "name": "tiancode",
-      "version": "1.0.2",
+      "version": "1.0.0",
       "bin": {
         "tiancode": "./bin/tiancode",
       },
@@ -699,7 +699,7 @@
     },
     "frontend/desktop": {
       "name": "@tiancode-ai/desktop",
-      "version": "1.0.104",
+      "version": "1.0.0",
       "dependencies": {
         "@huggingface/transformers": "3.8.1",
         "@zip.js/zip.js": "2.7.62",
