@@ -508,12 +508,30 @@ export const SettingsSkillsV2: Component<{
     { initialValue: { skills: [], disabled: new Set<string>(), autoSelect: true } },
   )
 
-  const skills = createMemo(() => data().skills)
+  const builtInSkills = createMemo(() => {
+    return Object.entries(SKILL_ES_DESCRIPTIONS).map(([name, description]) => ({
+      name,
+      description,
+      builtin: true,
+      location: "Built-in Engineering Skill",
+      content: SKILL_ES_CONTENTS[name] || `# ${name}\n\n${description}`,
+    }))
+  })
+
+  const skills = createMemo(() => {
+    const serverSkills = data().skills
+    if (serverSkills.length > 0) {
+      const names = new Set(serverSkills.map((s) => s.name))
+      const extra = builtInSkills().filter((s) => !names.has(s.name))
+      return [...serverSkills, ...extra]
+    }
+    return builtInSkills()
+  })
   const disabled = createMemo(() => data().disabled)
   const autoSelect = createMemo(() => data().autoSelect)
   const pages = createMemo(() => Math.max(1, Math.ceil(skills().length / PAGE_SIZE)))
   const pageSkills = createMemo(() => skills().slice(page() * PAGE_SIZE, (page() + 1) * PAGE_SIZE))
-  const selectedSkill = createMemo(() => skills().find((skill) => skill.name === selected()))
+  const selectedSkill = createMemo(() => skills().find((skill) => skill.name === selected()) ?? skills()[0])
 
   const pickFolder = () => {
     const input = document.createElement("input")

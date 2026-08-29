@@ -512,10 +512,6 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
   const loading = createMemo(() => checking() || startupChecking() || !splashFinished())
 
   onMount(() => {
-    if (window.api?.setCompactWindow) {
-      void window.api.setCompactWindow({ width: 250, height: 250 })
-    }
-
     const handleOpen = () => {
       if (window.api?.setCompactWindow) {
         void window.api.setCompactWindow({ width: 540, height: 480 })

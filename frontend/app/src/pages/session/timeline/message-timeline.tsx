@@ -1091,10 +1091,7 @@ export function MessageTimeline(props: {
       return getMsgPart(group.ref.messageID, group.ref.partID)
     })
 
-    // La voz solo recibe texto de asistente que ya quedo confirmado. Razonamiento,
-    // deltas de streaming y herramientas nunca pasan al motor TTS: el primer
-    // bloque textual visible de un turno se enuncia una vez que ese turno se
-    // completa, no durante el pensamiento o la ejecucion transitoria.
+    // La voz solo habla cuando la IA termina de pensar y entrega el resultado final completado.
     createEffect(() => {
       const auto = settings.general.autoSpeak()
       const speakReason = settings.general.speakReasoning()
@@ -1107,13 +1104,16 @@ export function MessageTimeline(props: {
       const rowMessage = message()
       if (!rowMessage || rowMessage.role !== "assistant") return
 
+      // Esperar a que la IA termine completamente de pensar y de generar la respuesta:
+      if (!rowMessage.time?.completed && !rowMessage.finish) return
+
       // Si speakReasoning está activo y es una parte de razonamiento o plan de acción:
       if (speakReason && item.type === "reasoning" && item.text) {
         enqueueAutoSpeak(item.id, item.text)
         return
       }
 
-      // Flujo de autoSpeak para el primer texto descriptivo / anuncio del asistente:
+      // Flujo de autoSpeak para el primer texto descriptivo / resultado final del asistente:
       if (!auto || item.type !== "text" || !item.text) return
       if (rowMessage.error || item.synthetic || item.ignored) return
       const firstText = getMsgParts(rowMessage.id).find((candidate) => candidate.type === "text")
