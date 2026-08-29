@@ -37,14 +37,25 @@ export const { use: useModels, provider: ModelsProvider } = createSimpleContext(
       }),
     )
 
-    const available = createMemo(() =>
-      providers.connected().flatMap((p) =>
+    const available = createMemo(() => {
+      const connectedProviders = providers.connected()
+      const allProviders = Array.from(providers.all().values())
+      const activeProviders = connectedProviders.length > 0 ? connectedProviders : allProviders
+      const localProvidersWithModels = allProviders.filter(
+        (p) =>
+          (p.id === "local" || p.id === "tiancode-native" || p.id === "ollama" || p.id === "lmstudio") &&
+          Object.keys(p.models ?? {}).length > 0,
+      )
+      const combined = new Map<string, (typeof allProviders)[number]>()
+      for (const p of activeProviders) combined.set(p.id, p)
+      for (const p of localProvidersWithModels) combined.set(p.id, p)
+      return Array.from(combined.values()).flatMap((p) =>
         Object.values(p.models).map((m) => ({
           ...m,
           provider: p,
         })),
-      ),
-    )
+      )
+    })
 
     const release = createMemo(
       () =>

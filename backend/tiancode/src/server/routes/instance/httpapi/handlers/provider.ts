@@ -47,8 +47,9 @@ export const providerHandlers = HttpApiBuilder.group(InstanceHttpApi, "provider"
         if ((enabled ? enabled.has(key) : true) && !disabled.has(key)) filtered[key] = value
       }
       const connected = yield* provider.list()
+      const modelsDevProviders = mapValues(filtered, (item) => Provider.fromModelsDevProvider(item))
       const providers = Object.assign(
-        mapValues(filtered, (item) => Provider.fromModelsDevProvider(item)),
+        modelsDevProviders,
         connected,
       )
       return {

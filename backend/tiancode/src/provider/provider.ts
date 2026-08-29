@@ -1,6 +1,6 @@
 import { LayerNode } from "@tiancode-ai/core/effect/layer-node"
 import os from "os"
-import { existsSync } from "node:fs"
+import { existsSync, readdirSync } from "node:fs"
 import { ConfigV1 } from "@tiancode-ai/core/v1/config/config"
 import fuzzysort from "fuzzysort"
 import { Config } from "@/config/config"
@@ -1420,10 +1420,9 @@ const layer = Layer.effect(
         const modelsDataDir = path.join(Global.Path.data, "models")
         if (existsSync(modelsDataDir)) {
           try {
-            const fsNode = yield* Effect.promise(() => import("node:fs"))
             const readGgufs = (dir: string): string[] => {
               let results: string[] = []
-              const list = fsNode.readdirSync(dir, { withFileTypes: true })
+              const list = readdirSync(dir, { withFileTypes: true })
               for (const item of list) {
                 const full = path.join(dir, item.name)
                 if (item.isDirectory()) {
@@ -1707,7 +1706,11 @@ const layer = Layer.effect(
             continue
           }
           const result = yield* fn(data)
-          const isConfigured = Boolean(cfg.provider?.[providerID]) || (cfg.enabled_providers ? cfg.enabled_providers.includes(providerID) : false)
+          const hasDiscoveredModels = Object.keys(database[providerID]?.models ?? {}).length > 0
+          const isConfigured =
+            Boolean(cfg.provider?.[providerID]) ||
+            (cfg.enabled_providers ? cfg.enabled_providers.includes(providerID) : false) ||
+            hasDiscoveredModels
           if (result && (providers[providerID] || (result.autoload && isConfigured))) {
             if (result.getModel) modelLoaders[providerID] = result.getModel
             if (result.vars) varsLoaders[providerID] = result.vars
