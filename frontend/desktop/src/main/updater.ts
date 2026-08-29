@@ -20,6 +20,16 @@ export function setupAutoUpdater(stop: () => Promise<void>) {
   autoUpdater.allowDowngrade = false
   autoUpdater.autoDownload = false
   autoUpdater.autoInstallOnAppQuit = false
+
+  try {
+    autoUpdater.setFeedURL({
+      provider: "github",
+      owner: "Dreftian",
+      repo: "Tiancode",
+    })
+  } catch (err) {
+    logger.log("auto updater setFeedURL error", { error: err })
+  }
   logger.log("auto updater configured", {
     channel: autoUpdater.channel,
     allowPrerelease: autoUpdater.allowPrerelease,
