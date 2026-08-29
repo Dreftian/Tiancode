@@ -436,10 +436,53 @@ export const SettingsModelsHubV2: Component<{
   const vramTotal = createMemo(() => asNumber(system()?.vram?.total) ?? 8e9)
   const vramFree = createMemo(() => asNumber(system()?.vram?.free) ?? 6e9)
 
+  const syncCompletedModels = async (jobList: DownloadJob[]) => {
+    const completed = jobList.filter((j) => j.status === "completed")
+    if (!completed.length) return
+    try {
+      const configRes = await serverSdk().client.config.get(params()).catch(() => undefined)
+      const existingProviders = ((configRes?.data as any)?.provider ?? {}) as Record<string, any>
+      const localProvider = existingProviders.local ?? {
+        npm: "@ai-sdk/openai-compatible",
+        options: { baseURL: "http://localhost:58282/v1" },
+        models: {},
+      }
+      const existingModels = { ...(localProvider.models ?? {}) }
+      let changed = false
+      for (const j of completed) {
+        const cleanName = j.file.replace(/\.gguf$/i, "")
+        if (!existingModels[cleanName]) {
+          existingModels[cleanName] = { name: cleanName }
+          changed = true
+        }
+      }
+      if (changed || !existingProviders.local) {
+        const updatedProviders = {
+          ...existingProviders,
+          local: {
+            npm: "@ai-sdk/openai-compatible",
+            options: { baseURL: "http://localhost:58282/v1" },
+            models: existingModels,
+          },
+        }
+        await serverSdk().client.config.update({
+          ...params(),
+          config: {
+            provider: updatedProviders as never,
+          },
+        })
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   const refreshJobs = async () => {
     try {
       const res = await serverSdk().client.modelhub.downloads(params())
-      setJobs(res.data ?? [])
+      const list = res.data ?? []
+      setJobs(list)
+      void syncCompletedModels(list)
       void refetchEngine()
     } catch {
       // ignore transient polling error
@@ -1161,9 +1204,18 @@ export const SettingsModelsHubV2: Component<{
                     </Show>
 
                     <div class="lm-drawer-item-actions">
+                      <Show when={j.status === "paused" || j.status === "failed"}>
+                        <button
+                          type="button"
+                          class="lm-btn-sm-activate !bg-sky-600 hover:!bg-sky-500 text-white font-medium"
+                          onClick={() => startDownload(j.model, j.file)}
+                        >
+                          ▶ Reanudar
+                        </button>
+                      </Show>
                       <Show when={j.status === "completed"}>
                         <button type="button" class="lm-btn-sm-activate" onClick={() => activateDownloadedModel(j)}>
-                          Activar y Usar
+                          ⚡ Activar y Usar
                         </button>
                       </Show>
                       <button type="button" class="lm-btn-sm-delete" onClick={() => removeDownload(j)}>

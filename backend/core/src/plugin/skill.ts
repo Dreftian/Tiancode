@@ -6,7 +6,9 @@ import { define } from "./internal"
 import { Effect } from "effect"
 import { AbsolutePath } from "../schema"
 import { SkillV2 } from "../skill"
+import { ConfigMarkdown } from "../config/markdown"
 import customizeOpencodeContent from "./skill/customize-tiancode.md" with { type: "text" }
+import { builtinAgentSkills } from "./skill/builtin"
 
 export const CustomizeOpencodeContent = customizeOpencodeContent
 
@@ -26,6 +28,23 @@ export const Plugin = define({
           }),
         }),
       )
+
+      for (const [name, rawContent] of Object.entries(builtinAgentSkills)) {
+        const markdown = ConfigMarkdown.parseOption(rawContent)
+        const frontmatter = markdown?.data as { name?: string; description?: string; icon?: string } | undefined
+        const skillName = frontmatter?.name || name
+        draft.source(
+          SkillV2.EmbeddedSource.make({
+            type: "embedded",
+            skill: SkillV2.Info.make({
+              name: skillName,
+              description: frontmatter?.description,
+              location: AbsolutePath.make(`/builtin/${name}.md`),
+              content: markdown?.content || rawContent,
+            }),
+          }),
+        )
+      }
     })
   }),
 })

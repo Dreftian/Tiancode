@@ -44,27 +44,29 @@ const FALLBACK_POOL: IconName[] = [
   "models",
 ]
 
-export function fallbackGlyph(seed: string): IconName {
+export function fallbackGlyph(seed?: string | null): IconName {
+  const str = typeof seed === "string" ? seed : String(seed || "")
   let hash = 0
-  for (let index = 0; index < seed.length; index++) {
-    hash = (hash * 31 + seed.charCodeAt(index)) | 0
+  for (let index = 0; index < str.length; index++) {
+    hash = (hash * 31 + str.charCodeAt(index)) | 0
   }
   return FALLBACK_POOL[Math.abs(hash) % FALLBACK_POOL.length]
 }
 
 // Deterministic per-item tint so list rows are visually distinguishable even
 // without an explicit color.
-export function hashColor(seed: string): string {
+export function hashColor(seed?: string | null): string {
+  const str = typeof seed === "string" ? seed : String(seed || "")
   let hash = 0
-  for (let index = 0; index < seed.length; index++) {
-    hash = (hash * 31 + seed.charCodeAt(index)) | 0
+  for (let index = 0; index < str.length; index++) {
+    hash = (hash * 31 + str.charCodeAt(index)) | 0
   }
   return `hsl(${Math.abs(hash) % 360} 58% 58%)`
 }
 
 // Only raw hex colors work inside CSS color-mix(); theme tokens fall back to
 // a deterministic per-item hue.
-export function itemColor(color: string | undefined, seed: string): string {
+export function itemColor(color: string | undefined, seed?: string | null): string {
   return color && /^#[0-9a-fA-F]{6}$/.test(color) ? color : hashColor(seed)
 }
 
@@ -80,9 +82,10 @@ const NAME_GLYPHS: Array<[RegExp, IconName]> = [
   [/(search|web|fetch|browser|http)/i, "magnifying-glass"],
 ]
 
-export function guessGlyph(name: string): IconName {
+export function guessGlyph(name?: string | null): IconName {
+  const str = typeof name === "string" ? name : String(name || "")
   for (const [pattern, glyph] of NAME_GLYPHS) {
-    if (pattern.test(name)) return glyph
+    if (pattern.test(str)) return glyph
   }
   return "mcp"
 }

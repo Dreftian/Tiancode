@@ -8,6 +8,9 @@ import { selectProviderCatalog } from "./provider-catalog"
 export const popularProviders = [
   "tiancode",
   "tiancode-go",
+  "local",
+  "ollama",
+  "lmstudio",
   "anthropic",
   "github-copilot",
   "openai",
