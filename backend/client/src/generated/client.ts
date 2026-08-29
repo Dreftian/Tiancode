@@ -1004,12 +1004,6 @@ function appendQuery(params: URLSearchParams, key: string, value: unknown): void
 }
 
 async function json(response: Response): Promise<unknown> {
-  if (!isContentType(response, "application/json") && !response.headers.get("content-type")?.includes("+json")) {
-    try {
-      await response.body?.cancel()
-    } catch {}
-    throw new ClientError("UnsupportedContentType")
-  }
   let text: string
   try {
     text = await response.text()
@@ -1020,6 +1014,9 @@ async function json(response: Response): Promise<unknown> {
   try {
     return JSON.parse(text)
   } catch (cause) {
+    if (!isContentType(response, "application/json") && !response.headers.get("content-type")?.includes("+json") && !response.headers.get("content-type")?.includes("json")) {
+      throw new ClientError("UnsupportedContentType", { cause })
+    }
     throw new ClientError("MalformedResponse", { cause })
   }
 }

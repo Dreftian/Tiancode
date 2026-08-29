@@ -56,6 +56,8 @@ export type HomeProjectsViewProps = {
   onRevealProject: (server: ServerConnection.Any, project: LocalProject) => void
   onClearNotifications: (server: ServerConnection.Any, project: LocalProject) => void
   onCloseProject: (server: ServerConnection.Any, directory: string) => void
+  onRemoveRecentlyClosed?: (server: ServerConnection.Any, directory: string) => void
+  onClearRecentlyClosed?: (server: ServerConnection.Any) => void
   onOpenSettings: () => void
   onOpenHelp: () => void
 }
@@ -403,8 +405,21 @@ function HomeProjectEmpty(
         <span class={HOME_PROJECT_NAV_LABEL}>{props.language.t("home.project.add")}</span>
       </HomeProjectNavButton>
       <Show when={props.items.length > 0}>
-        <div class="mt-3 flex h-7 min-w-0 shrink-0 items-center pl-1.5 pr-3">
+        <div class="mt-3 flex h-7 min-w-0 shrink-0 items-center justify-between pl-1.5 pr-1">
           <div class="text-v2-text-text-faint [font-weight:530]">{props.language.t("home.recentlyClosed")}</div>
+          <TooltipV2 placement="bottom" value={props.language.t("home.recentlyClosed.clear") || "Limpiar recientes"}>
+            <IconButtonV2
+              data-action="home-clear-recently-closed"
+              variant="ghost-muted"
+              size="small"
+              icon={<IconV2 name="trash" class="text-v2-icon-icon-muted hover:text-v2-state-fg-danger" />}
+              aria-label={props.language.t("home.recentlyClosed.clear") || "Limpiar recientes"}
+              onClick={(event) => {
+                event.stopPropagation()
+                props.onClearRecentlyClosed?.(props.server)
+              }}
+            />
+          </TooltipV2>
         </div>
         <For each={props.items}>
           {(project) => <HomeRecentlyClosedRow {...props} project={project} server={props.server} />}
@@ -428,18 +443,35 @@ function HomeRecentlyClosedRow(
     return worktree
   }
   return (
-    <TooltipV2 placement="right" value={path()}>
-      <HomeProjectNavButton
-        type="button"
-        data-component="home-recently-closed-row"
-        class="disabled:opacity-60"
-        disabled={unreachable()}
-        onClick={() => props.onAddProjects(props.server, [props.project.worktree])}
-      >
-        <HomeProjectAvatar project={props.project} outline />
-        <span class={HOME_PROJECT_NAV_LABEL}>{displayName(props.project)}</span>
-      </HomeProjectNavButton>
-    </TooltipV2>
+    <div class="group/recent relative flex items-center min-w-0">
+      <TooltipV2 placement="right" value={path()} class="min-w-0 flex-1">
+        <HomeProjectNavButton
+          type="button"
+          data-component="home-recently-closed-row"
+          class="disabled:opacity-60 pr-7"
+          disabled={unreachable()}
+          onClick={() => props.onAddProjects(props.server, [props.project.worktree])}
+        >
+          <HomeProjectAvatar project={props.project} outline />
+          <span class={HOME_PROJECT_NAV_LABEL}>{displayName(props.project)}</span>
+        </HomeProjectNavButton>
+      </TooltipV2>
+      <div class="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/recent:opacity-100 transition-opacity z-10">
+        <TooltipV2 placement="bottom" value={props.language.t("home.recentlyClosed.remove") || "Eliminar de recientes"}>
+          <IconButtonV2
+            data-action="home-remove-recently-closed-item"
+            variant="ghost-muted"
+            size="small"
+            icon={<IconV2 name="xmark-small" class="text-v2-icon-icon-muted hover:text-v2-state-fg-danger" />}
+            aria-label={props.language.t("home.recentlyClosed.remove") || "Eliminar de recientes"}
+            onClick={(event) => {
+              event.stopPropagation()
+              props.onRemoveRecentlyClosed?.(props.server, props.project.worktree)
+            }}
+          />
+        </TooltipV2>
+      </div>
+    </div>
   )
 }
 

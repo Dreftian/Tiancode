@@ -513,7 +513,7 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
 
   onMount(() => {
     if (window.api?.setCompactWindow) {
-      void window.api.setCompactWindow({ width: 540, height: 480 })
+      void window.api.setCompactWindow({ width: 250, height: 250 })
     }
 
     const handleOpen = () => {

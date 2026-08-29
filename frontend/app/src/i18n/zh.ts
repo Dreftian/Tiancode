@@ -754,6 +754,8 @@ export const dict = {
   "home.webapp.action": "开始构建",
   "home.webapp.folderTitle": "选择 Web 应用文件夹",
   "home.recentlyClosed": "最近关闭",
+  "home.recentlyClosed.clear": "清除最近项目",
+  "home.recentlyClosed.remove": "从最近中移除",
   "home.server.collapse": "折叠服务器项目",
   "home.server.expand": "展开服务器项目",
   "home.sessions.search.placeholder": "搜索会话",

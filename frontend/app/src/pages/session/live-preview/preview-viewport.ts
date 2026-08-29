@@ -33,10 +33,11 @@ export function fittedPreviewViewport(
   // Fit-to-panel in both directions: in auto (zoom = 1) the device scales up
   // or down to use the whole preview instead of capping at 100% and stranding
   // dead margins; a manual zoom acts as the ceiling.
+  const autoScale = Math.min(width / device.width, height / device.height)
   const scale =
     zoom === AUTO_ZOOM
-      ? Math.min(width / device.width, height / device.height)
-      : Math.min(Math.max(0, zoom), width / device.width, height / device.height)
+      ? autoScale
+      : Math.min(Math.max(0, zoom), autoScale)
 
   return {
     width: Math.min(boundedWidth, Math.round(device.width * scale + boundedFrame * 2)),

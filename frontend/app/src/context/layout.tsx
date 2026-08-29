@@ -674,6 +674,12 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         close(directory: string) {
           server.projects.close(directory)
         },
+        removeRecentlyClosed(directory: string) {
+          server.projects.removeRecentlyClosed(directory)
+        },
+        clearRecentlyClosed() {
+          server.projects.clearRecentlyClosed()
+        },
         expand(directory: string) {
           server.projects.expand(directory)
         },

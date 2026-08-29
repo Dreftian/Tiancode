@@ -32,7 +32,8 @@ export function createHomeController() {
     () =>
       selectedProject() ??
       projects().find((project) => project.worktree === focusedServerCtx()?.projects.last()) ??
-      projects()[0],
+      projects()[0] ??
+      (homedir() ? { worktree: homedir(), expanded: false } : undefined),
   )
 
   createEffect(() => {
@@ -48,9 +49,11 @@ export function createHomeController() {
 
   function openProjectNewSession(conn: ServerConnection.Any, directory: string) {
     const ctx = global.ensureServerCtx(conn)
-    ctx.projects.open(directory)
-    ctx.projects.touch(directory)
-    void tabs.newDraft({ server: ServerConnection.key(conn), directory })
+    if (directory) {
+      ctx.projects.open(directory)
+      ctx.projects.touch(directory)
+    }
+    void tabs.newDraft({ server: ServerConnection.key(conn), directory: directory || homedir() })
   }
 
   return {
@@ -74,6 +77,12 @@ export function createHomeController() {
       selected: selectedProject,
       newSession: newSessionProject,
       forServer: (conn: ServerConnection.Any) => global.ensureServerCtx(conn).projects.list(),
+      removeRecentlyClosed: (conn: ServerConnection.Any, directory: string) => {
+        global.ensureServerCtx(conn).projects.removeRecentlyClosed(directory)
+      },
+      clearRecentlyClosed: (conn: ServerConnection.Any) => {
+        global.ensureServerCtx(conn).projects.clearRecentlyClosed()
+      },
       select: (conn: ServerConnection.Any, directory: string) => {
         const key = ServerConnection.key(conn)
         if (global.servers.health[key]?.healthy === false) return
@@ -111,9 +120,10 @@ export function createHomeController() {
       },
       openNewSession: () => {
         const conn = focusedServer()
-        const project = newSessionProject()
-        if (!conn || !project) return
-        openProjectNewSession(conn, project.worktree)
+        if (!conn) return
+        const target = newSessionProject()?.worktree ?? homedir()
+        if (!target) return
+        openProjectNewSession(conn, target)
       },
       openProjectNewSession,
     },

@@ -786,6 +786,8 @@ export const dict = {
   "home.webapp.action": "Empezar a crear",
   "home.webapp.folderTitle": "Elige la carpeta para tu app web",
   "home.recentlyClosed": "Proyectos cerrados recientemente",
+  "home.recentlyClosed.clear": "Limpiar recientes",
+  "home.recentlyClosed.remove": "Eliminar de recientes",
   "home.server.collapse": "Contraer proyectos del servidor",
   "home.server.expand": "Expandir proyectos del servidor",
   "home.sessions.search.placeholder": "Buscar sesiones",

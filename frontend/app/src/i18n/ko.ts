@@ -1054,6 +1054,8 @@ export const dict = {
   "home.webapp.action": "만들기 시작",
   "home.webapp.folderTitle": "웹 앱 폴더 선택",
   "home.recentlyClosed": "최근에 닫은 항목",
+  "home.recentlyClosed.clear": "최근 항목 지우기",
+  "home.recentlyClosed.remove": "최근 항목에서 제거",
   "home.server.collapse": "서버 프로젝트 접기",
   "home.server.expand": "서버 프로젝트 펼치기",
   "home.sessions.search.placeholder": "세션 검색",

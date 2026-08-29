@@ -120,6 +120,15 @@ export function createServerProjects<T extends ServerProjectState>(input: {
       )
       setStore("recentlyClosed", input.scope(), closed)
     },
+    removeRecentlyClosed(directory: string) {
+      const scope = input.scope()
+      const key = pathKey(directory)
+      const closed = currentClosed().filter((worktree) => pathKey(worktree) !== key)
+      setStore("recentlyClosed", scope, closed)
+    },
+    clearRecentlyClosed() {
+      setStore("recentlyClosed", input.scope(), [])
+    },
     expand(directory: string) {
       const index = current().findIndex((project) => project.worktree === directory)
       if (index !== -1) setStore("projects", input.scope(), index, "expanded", true)

@@ -709,6 +709,11 @@ export function LivePreview(props: {
       return {
         width: "100%",
         height: "100%",
+        top: "0px",
+        left: "0px",
+        right: "0px",
+        bottom: "0px",
+        position: "absolute" as const,
       }
     }
     return {
@@ -718,6 +723,7 @@ export function LivePreview(props: {
       top: `${viewport.frame}px`,
       transform: `scale(${viewport.scale})`,
       "transform-origin": "top left",
+      position: "absolute" as const,
     }
   }
 
@@ -889,13 +895,13 @@ export function LivePreview(props: {
           />
         </Show>
         <div class="flex shrink-0 items-center">
-          <ToolButton disabled={deviceId() === "fit"} title={language.t("livePreview.zoomOut")} onClick={() => zoomStep(-ZOOM_STEP)}>
+          <ToolButton title={language.t("livePreview.zoomOut")} onClick={() => zoomStep(-ZOOM_STEP)}>
             −
           </ToolButton>
           <span class="min-w-10 text-center text-11-regular text-text-weak tabular-nums">
             {Math.round(previewViewport().scale * 100)}%
           </span>
-          <ToolButton disabled={deviceId() === "fit"} title={language.t("livePreview.zoomIn")} onClick={() => zoomStep(ZOOM_STEP)}>
+          <ToolButton title={language.t("livePreview.zoomIn")} onClick={() => zoomStep(ZOOM_STEP)}>
             +
           </ToolButton>
         </div>
@@ -968,7 +974,7 @@ export function LivePreview(props: {
                   title={language.t("liveView.tab.app")}
                   sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-downloads"
                   referrerpolicy="no-referrer"
-                  class="absolute border-0 bg-white"
+                  class="absolute inset-0 top-0 left-0 border-0 bg-white"
                   style={iframeStyle()}
                   onLoad={completeIframeLoad}
                   onError={failIframeLoad}

@@ -680,6 +680,8 @@ export const dict = {
   "home.webapp.action": "作成を始める",
   "home.webapp.folderTitle": "Web アプリのフォルダを選択",
   "home.recentlyClosed": "最近閉じたプロジェクト",
+  "home.recentlyClosed.clear": "履歴を消去",
+  "home.recentlyClosed.remove": "履歴から削除",
   "home.server.collapse": "サーバーのプロジェクトを折りたたむ",
   "home.server.expand": "サーバーのプロジェクトを展開",
   "home.sessions.search.placeholder": "セッションを検索",

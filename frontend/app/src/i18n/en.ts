@@ -705,6 +705,8 @@ export const dict = {
   "home.webapp.action": "Start building",
   "home.webapp.folderTitle": "Choose the folder for your web app",
   "home.recentlyClosed": "Recently closed",
+  "home.recentlyClosed.clear": "Clear recent",
+  "home.recentlyClosed.remove": "Remove from recent",
   "home.server.collapse": "Collapse server projects",
   "home.server.expand": "Expand server projects",
   "home.sessions.search.placeholder": "Search sessions",

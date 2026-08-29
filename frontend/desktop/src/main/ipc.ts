@@ -432,8 +432,8 @@ export function registerIpcHandlers(deps: Deps) {
   ipcMain.handle("set-compact-window", (event: IpcMainInvokeEvent, options?: { width?: number; height?: number }) => {
     const win = BrowserWindow.fromWebContents(event.sender)
     if (!win || win.isDestroyed()) return
-    const width = options?.width ?? 500
-    const height = options?.height ?? 440
+    const width = options?.width ?? 250
+    const height = options?.height ?? 250
     if (win.isMaximized()) win.unmaximize()
     win.setResizable(false)
     win.setMaximizable(false)

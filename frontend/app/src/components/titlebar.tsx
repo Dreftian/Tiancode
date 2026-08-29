@@ -34,6 +34,7 @@ import { createMediaQuery } from "@solid-primitives/media"
 import { readSessionTabsRemovedDetail, SESSION_TABS_REMOVED_EVENT } from "@/components/titlebar-session-events"
 import { useGlobal } from "@/context/global"
 import { ServerConnection, useServer } from "@/context/server"
+import { useServerSync } from "@/context/server-sync"
 import { tabKey, useTabs } from "@/context/tabs"
 import type { PromptSession } from "@/context/prompt"
 import "./titlebar.css"
@@ -68,6 +69,7 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
   const language = useLanguage()
   const settings = useSettings()
   const server = useServer()
+  const serverSync = useServerSync()
   const navigate = useNavigate()
   const location = useLocation()
   const params = useParams()
@@ -307,9 +309,13 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
                 const project = global.ensureServerCtx(conn).projects.list()[0]
                 return project ? [{ server: ServerConnection.key(conn), project }] : []
               })[0]
-              if (!fallback) return
+              if (fallback) {
+                tabs.newDraft({ server: fallback.server, directory: fallback.project.worktree }, "")
+                return
+              }
 
-              tabs.newDraft({ server: fallback.server, directory: fallback.project.worktree }, "")
+              const defaultDir = serverSync().data.path.home || ""
+              tabs.newDraft({ server: server.key, directory: defaultDir }, "")
             }
             const toggleHome = () => tabs.toggleHome({ home: layout.route().type === "home", current: currentTab() })
 

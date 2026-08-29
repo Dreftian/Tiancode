@@ -197,6 +197,39 @@ describe("createServerProjects", () => {
       dispose()
     })
   })
+
+  test("removeRecentlyClosed removes a specific recently closed project", () => {
+    createRoot((dispose) => {
+      const [scope] = createSignal(ServerScope.local)
+      const [store, setStore] = createStore({ projects: {}, lastProject: {}, recentlyClosed: {} })
+      const projects = createServerProjects({ scope, store, setStore })
+
+      projects.close("/a")
+      projects.close("/b")
+      projects.close("/c")
+      expect(projects.recentlyClosed()).toEqual(["/c", "/b", "/a"])
+
+      projects.removeRecentlyClosed("/b")
+      expect(projects.recentlyClosed()).toEqual(["/c", "/a"])
+      dispose()
+    })
+  })
+
+  test("clearRecentlyClosed removes all recently closed projects", () => {
+    createRoot((dispose) => {
+      const [scope] = createSignal(ServerScope.local)
+      const [store, setStore] = createStore({ projects: {}, lastProject: {}, recentlyClosed: {} })
+      const projects = createServerProjects({ scope, store, setStore })
+
+      projects.close("/a")
+      projects.close("/b")
+      expect(projects.recentlyClosed()).toEqual(["/b", "/a"])
+
+      projects.clearRecentlyClosed()
+      expect(projects.recentlyClosed()).toEqual([])
+      dispose()
+    })
+  })
 })
 
 describe("migrateCanonicalLocalServerState", () => {

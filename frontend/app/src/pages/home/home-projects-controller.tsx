@@ -107,6 +107,12 @@ export function createHomeProjectsController(home: HomeController) {
       move: (conn: ServerConnection.Any, worktree: string, index: number) => {
         home.server.context(conn).projects.move(worktree, index)
       },
+      removeRecentlyClosed: (conn: ServerConnection.Any, directory: string) => {
+        home.project.removeRecentlyClosed(conn, directory)
+      },
+      clearRecentlyClosed: (conn: ServerConnection.Any) => {
+        home.project.clearRecentlyClosed(conn)
+      },
       canReveal: canRevealProject,
       reveal: (conn: ServerConnection.Any, project: LocalProject) => {
         if (!platform.openPath || !canRevealProject(conn)) return
