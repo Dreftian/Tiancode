@@ -1,5 +1,5 @@
 import type { Session } from "@tiancode-ai/sdk/v2/client"
-import { type Accessor, createMemo, For, Show, Suspense } from "solid-js"
+import { type Accessor, createMemo, createSignal, For, Show, Suspense } from "solid-js"
 import { Spinner } from "@tiancode-ai/ui/spinner"
 import { ScrollView } from "@tiancode-ai/ui/scroll-view"
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
@@ -52,7 +52,7 @@ export type HomeSessionsViewProps = {
   searchNoResultsLabel: Accessor<string>
   titleOpacity: (id: HomeSessionGroup["id"]) => number
   isOpenTab: (record: HomeSessionRecord) => boolean
-  onCreateSession: () => void
+  onCreateSession: (prompt?: string) => void
   onOpenSession: (session: Session, options?: OpenSessionOptions) => void
   onDeleteSession?: (session: Session) => Promise<void>
   onArchiveSession: (session: Session) => Promise<void>
@@ -509,35 +509,115 @@ function HomeSessionProjectName(props: { name: string; search?: boolean }) {
   )
 }
 
-function HomeSessionsEmpty(props: { onNewSession?: () => void; language: ReturnType<typeof useLanguage> }) {
+function HomeSessionsEmpty(props: { onNewSession?: (prompt?: string) => void; language: ReturnType<typeof useLanguage> }) {
+  const [promptText, setPromptText] = createSignal("")
+
+  const handleSubmit = () => {
+    const text = promptText().trim()
+    if (!text) return
+    props.onNewSession?.(text)
+  }
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      handleSubmit()
+    }
+  }
+
+  const handleSuggestion = (suggestion: string) => {
+    props.onNewSession?.(suggestion)
+  }
+
+  const suggestions = () => [
+    {
+      id: "webapp",
+      label: props.language.t("home.chat.suggestion.webapp") || "⚡ Crear una app web interactiva",
+      prompt: "Crea una aplicación web moderna y completa con interfaz interactiva y diseño limpio.",
+    },
+    {
+      id: "explain",
+      label: props.language.t("home.chat.suggestion.explain") || "💡 Explicar arquitectura o código",
+      prompt: "Explica cómo funciona la estructura de un proyecto y cuáles son las mejores prácticas.",
+    },
+    {
+      id: "refactor",
+      label: props.language.t("home.chat.suggestion.refactor") || "🛠️ Refactorizar y optimizar",
+      prompt: "Ayúdame a refactorizar y optimizar código para que sea más limpio y eficiente.",
+    },
+    {
+      id: "tests",
+      label: props.language.t("home.chat.suggestion.tests") || "🧪 Generar pruebas unitarias",
+      prompt: "Genera una suite de pruebas unitarias robustas para validar casos límite y lógica principal.",
+    },
+  ]
+
   return (
-    <div class="flex min-h-full flex-col items-center gap-4 px-6 pt-[52px] text-center">
-      <div
-        class={`
-          shrink-0 text-[13px] leading-[13px] tracking-[-0.04px]
-          text-v2-text-text-base [font-weight:530]
-        `}
-      >
-        {props.language.t("home.sessions.empty")}
+    <div class="flex min-h-full flex-col items-center justify-center gap-6 px-4 py-8 max-w-[680px] mx-auto text-center">
+      {/* Header & Logo */}
+      <div class="flex flex-col items-center gap-3">
+        <div class="flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400/20 via-sky-500/15 to-indigo-600/20 border border-cyan-400/30 shadow-[0_0_30px_rgba(6,182,212,0.18)]">
+          <IconV2 name="sparkles" size="large" class="text-cyan-400" />
+        </div>
+        <h1 class="text-[24px] font-semibold tracking-[-0.03em] text-v2-text-text-base leading-tight">
+          {props.language.t("home.chat.heading") || "¿En qué puedo ayudarte hoy?"}
+        </h1>
+        <p class="text-[13px] leading-5 text-v2-text-text-muted max-w-[440px]">
+          {props.language.t("home.chat.subtitle") || "Inicia una conversación, haz una pregunta o programa libremente."}
+        </p>
       </div>
-      <p
-        class={`
-          mb-1 text-center text-[13px] leading-5 tracking-[-0.04px]
-          text-v2-text-text-muted [font-weight:440]
-        `}
-      >
-        {props.language.t("home.sessions.empty.description")}
-      </p>
-      <div class="w-full max-w-[420px] pb-2">
+
+      {/* Chat Prompt Input Box (Claude / Codex style) */}
+      <div class="w-full rounded-2xl border border-v2-border-border-muted bg-v2-background-bg-layer-01 p-3.5 shadow-xl transition-all focus-within:border-cyan-400/50 focus-within:ring-1 focus-within:ring-cyan-400/20 text-left">
+        <textarea
+          data-action="home-chat-input"
+          class="w-full resize-none bg-transparent text-[14px] leading-relaxed text-v2-text-text-base placeholder:text-v2-text-text-faint outline-none max-h-40 min-h-[72px]"
+          placeholder={props.language.t("home.chat.placeholder") || "Escribe un mensaje o haz una pregunta..."}
+          rows={3}
+          value={promptText()}
+          onInput={(e) => setPromptText(e.currentTarget.value)}
+          onKeyDown={handleKeyDown}
+        />
+        <div class="mt-2 flex items-center justify-between pt-2 border-t border-v2-border-border-muted/50">
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-cyan-400/10 text-cyan-400 border border-cyan-400/20">
+              <IconV2 name="sparkles" size="small" />
+              <span>Tiancode AI</span>
+            </span>
+          </div>
+          <ButtonV2
+            data-action="home-chat-submit"
+            variant="contrast"
+            size="small"
+            icon="arrow-up"
+            disabled={!promptText().trim()}
+            onClick={handleSubmit}
+            class="rounded-xl px-3.5 h-8 font-medium shadow-sm transition-transform active:scale-95 disabled:opacity-40"
+          >
+            {props.language.t("home.chat.send") || "Enviar"}
+          </ButtonV2>
+        </div>
+      </div>
+
+      {/* Suggestion Pills */}
+      <div class="w-full flex flex-wrap justify-center gap-2">
+        <For each={suggestions()}>
+          {(item) => (
+            <button
+              type="button"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-full border border-v2-border-border-muted bg-v2-background-bg-layer-01/60 hover:bg-v2-background-bg-layer-02 hover:border-cyan-400/40 text-[12px] text-v2-text-text-muted hover:text-v2-text-text-base transition-colors text-left"
+              onClick={() => handleSuggestion(item.prompt)}
+            >
+              <span>{item.label}</span>
+            </button>
+          )}
+        </For>
+      </div>
+
+      {/* Web & App card option */}
+      <div class="w-full max-w-[460px] pt-1">
         <HomeWebAppCard />
       </div>
-      <Show when={props.onNewSession}>
-        {(onNewSession) => (
-          <ButtonV2 data-action="home-new-session" variant="contrast" size="normal" icon="edit" onClick={onNewSession()}>
-            {props.language.t("command.session.new")}
-          </ButtonV2>
-        )}
-      </Show>
     </div>
   )
 }
