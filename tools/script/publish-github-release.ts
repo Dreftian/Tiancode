@@ -26,26 +26,29 @@ async function main() {
   const token = await getGitHubToken()
   const owner = "Dreftian"
   const repo = "Tiancode"
-  const tag = "v1.0.0"
-  const releaseName = "Tiancode v1.0.0 - Versión Oficial"
-  const body = `## 🚀 Tiancode v1.0.0 — Versión Oficial
+  const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
+  const version = desktopPkg.version || "1.0.1"
+  const tag = `v${version}`
+  const releaseName = `Tiancode v${version} - Versión Oficial`
+  const body = `## 🚀 Tiancode v${version} — Versión Oficial
 
 ### ✨ Características Principales
+- **Detección Automática de Modelos Locales:** Descubre automáticamente todos los modelos GGUF descargados en disco y los activa de inmediato en el selector de chat y en Gestionar Modelos.
+- **71 Built-in Engineering Skills:** Acceso completo a todo el catálogo de habilidades de ingeniería y flujo de trabajo.
 - **Flujo de Ventana Compacta Apple:** Arranque optimizado en ventana compacta (500×440 px) con carga fluida de 3 segundos, logo Tiancode y asistente de bienvenida sin fondos oscuros vacíos.
 - **Transición suave:** Al completar la bienvenida, la app se expande suavemente al espacio de trabajo completo.
-- **Model Hub y HuggingFace:** Descarga y ejecución de modelos locales GGUF con soporte GPU acelerado.
+- **Model Hub y HuggingFace:** Descarga y ejecución de modelos locales GGUF con soporte GPU acelerado y reanudación de descargas.
 - **Proveedores y Modelos Pre-Cargados:** OpenAI, Anthropic, Gemini, DeepSeek, Ollama, LM Studio, HuggingFace y OpenCode Zen disponibles desde el primer arranque.
 - **Plugins y MCP Servers:** Ecosistema completo con activación/desactivación funcional y suite de herramientas.
 - **Voces TTS:** Motor Kokoro y modelos neuronales Piper en español con dictado y lectura de respuestas.
-- **Auto-Aceptación de Permisos:** Terminal y herramientas activadas por defecto para máxima fluidez.
 - **Auto-Actualizador:** Sincronizado directamente con las releases de este repositorio.
 
 ### 📦 Descargas
 | Archivo | Tipo | Descripción |
 |---|---|---|
-| [**Tiancode.exe**](https://github.com/Dreftian/Tiancode/releases/download/v1.0.0/Tiancode.exe) | Instalador Windows | Instalador oficial con acceso directo y actualizador |
-| [**Tiancode-portable.exe**](https://github.com/Dreftian/Tiancode/releases/download/v1.0.0/Tiancode-portable.exe) | Portable Windows | Ejecutable directo sin instalación |
-| [**latest.yml**](https://github.com/Dreftian/Tiancode/releases/download/v1.0.0/latest.yml) | Metadatos | Registro para el actualizador automático |
+| [**Tiancode.exe**](https://github.com/Dreftian/Tiancode/releases/download/${tag}/Tiancode.exe) | Instalador Windows | Instalador oficial con acceso directo y actualizador |
+| [**Tiancode-portable.exe**](https://github.com/Dreftian/Tiancode/releases/download/${tag}/Tiancode-portable.exe) | Portable Windows | Ejecutable directo sin instalación |
+| [**latest.yml**](https://github.com/Dreftian/Tiancode/releases/download/${tag}/latest.yml) | Metadatos | Registro para el actualizador automático |
 `
 
   console.log(`[1/4] Verificando release ${tag} en GitHub...`)

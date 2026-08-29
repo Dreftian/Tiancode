@@ -72,6 +72,15 @@ const layer = Layer.effect(
       if (provider.disabled) return false
       if (typeof provider.request.body.apiKey === "string") return true
       if (integration?.connections.length) return true
+      if (
+        provider.id === "local" ||
+        provider.id === "tiancode-native" ||
+        provider.id === "ollama" ||
+        provider.id === "lmstudio"
+      ) {
+        return true
+      }
+      if (provider.api.url || typeof provider.request.body.baseURL === "string") return true
       return provider.integrationID === undefined && !integration
     }
 

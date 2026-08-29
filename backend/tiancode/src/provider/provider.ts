@@ -1,5 +1,6 @@
 import { LayerNode } from "@tiancode-ai/core/effect/layer-node"
 import os from "os"
+import { existsSync } from "node:fs"
 import { ConfigV1 } from "@tiancode-ai/core/v1/config/config"
 import fuzzysort from "fuzzysort"
 import { Config } from "@/config/config"
@@ -199,6 +200,26 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
         options: ok ? {} : { apiKey: "public" },
       }
     }),
+    local: () =>
+      Effect.succeed({
+        autoload: true,
+        options: { baseURL: "http://localhost:58282/v1" },
+      }),
+    "tiancode-native": () =>
+      Effect.succeed({
+        autoload: true,
+        options: { baseURL: "http://localhost:58282/v1" },
+      }),
+    ollama: () =>
+      Effect.succeed({
+        autoload: true,
+        options: { baseURL: "http://localhost:11434/v1" },
+      }),
+    lmstudio: () =>
+      Effect.succeed({
+        autoload: true,
+        options: { baseURL: "http://localhost:1234/v1" },
+      }),
     openai: () =>
       Effect.succeed({
         autoload: false,
@@ -1348,6 +1369,112 @@ const layer = Layer.effect(
         const catalog = mapValues(modelsDev, fromModelsDevProvider)
         const database = mapValues(catalog, toPublicInfo)
 
+        // Seed default local engines in database
+        const localProviderID = ProviderV2.ID.make("local")
+        const nativeProviderID = ProviderV2.ID.make("tiancode-native")
+        const ollamaProviderID = ProviderV2.ID.make("ollama")
+        const lmstudioProviderID = ProviderV2.ID.make("lmstudio")
+
+        if (!database[localProviderID]) {
+          database[localProviderID] = {
+            id: localProviderID,
+            name: "Local (Tiancode Engine)",
+            source: "custom",
+            env: [],
+            options: { baseURL: "http://localhost:58282/v1" },
+            models: {},
+          }
+        }
+        if (!database[nativeProviderID]) {
+          database[nativeProviderID] = {
+            id: nativeProviderID,
+            name: "Tiancode Native Engine",
+            source: "custom",
+            env: [],
+            options: { baseURL: "http://localhost:58282/v1" },
+            models: {},
+          }
+        }
+        if (!database[ollamaProviderID]) {
+          database[ollamaProviderID] = {
+            id: ollamaProviderID,
+            name: "Ollama",
+            source: "custom",
+            env: [],
+            options: { baseURL: "http://localhost:11434/v1" },
+            models: {},
+          }
+        }
+        if (!database[lmstudioProviderID]) {
+          database[lmstudioProviderID] = {
+            id: lmstudioProviderID,
+            name: "LM Studio",
+            source: "custom",
+            env: [],
+            options: { baseURL: "http://localhost:1234/v1" },
+            models: {},
+          }
+        }
+
+        // Auto-discover downloaded .gguf models from models storage directory
+        const modelsDataDir = path.join(Global.Path.data, "models")
+        if (existsSync(modelsDataDir)) {
+          try {
+            const fsNode = yield* Effect.promise(() => import("node:fs"))
+            const readGgufs = (dir: string): string[] => {
+              let results: string[] = []
+              const list = fsNode.readdirSync(dir, { withFileTypes: true })
+              for (const item of list) {
+                const full = path.join(dir, item.name)
+                if (item.isDirectory()) {
+                  results = results.concat(readGgufs(full))
+                } else if (item.name.endsWith(".gguf") && !item.name.endsWith(".part")) {
+                  results.push(item.name)
+                }
+              }
+              return results
+            }
+            const ggufs = readGgufs(modelsDataDir)
+            for (const file of ggufs) {
+              const modelID = file.replace(/\.gguf$/i, "")
+              const modelObj: Model = {
+                id: ModelV2.ID.make(modelID),
+                providerID: localProviderID,
+                name: modelID,
+                api: {
+                  id: modelID,
+                  npm: "@ai-sdk/openai-compatible",
+                  url: "http://localhost:58282/v1",
+                },
+                status: "active",
+                capabilities: {
+                  temperature: true,
+                  reasoning: false,
+                  attachment: false,
+                  toolcall: true,
+                  input: { text: true, audio: false, image: false, video: false, pdf: false },
+                  output: { text: true, audio: false, image: false, video: false, pdf: false },
+                  interleaved: false,
+                },
+                cost: { input: 0, output: 0, cache: { read: 0, write: 0 } },
+                options: {},
+                limit: { context: 32768, output: 8192 },
+                headers: {},
+                family: "local",
+                release_date: new Date().toISOString(),
+                variants: {},
+              }
+              database[localProviderID].models[modelID] = modelObj
+              database[nativeProviderID].models[modelID] = {
+                ...modelObj,
+                providerID: nativeProviderID,
+              }
+            }
+          } catch {
+            // ignore scan errors
+          }
+        }
+
         const providers: Record<ProviderV2.ID, Info> = {} as Record<ProviderV2.ID, Info>
         const languages = new Map<string, LanguageModelV3>()
         const modelLoaders: {
@@ -1384,7 +1511,11 @@ const layer = Layer.effect(
         const plugins = yield* plugin.list()
 
         // now read config providers - includes any modifications from plugin config() hook
-        const configProviders = Object.entries(cfg.provider ?? {})
+        const rawProviders: NonNullable<ConfigV1.Info["provider"]> = {
+          ...(cfg.provider ?? {}),
+          ...((cfg as any).providers ?? {}),
+        }
+        const configProviders = Object.entries(rawProviders)
         const disabled = new Set(cfg.disabled_providers ?? [])
         const enabled = cfg.enabled_providers ? new Set(cfg.enabled_providers) : null
 

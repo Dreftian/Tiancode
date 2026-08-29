@@ -465,12 +465,18 @@ export const SettingsModelsHubV2: Component<{
             models: existingModels,
           },
         }
+        await serverSdk().client.global.config.update({
+          config: {
+            provider: updatedProviders as never,
+          },
+        }).catch(() => undefined)
+
         await serverSdk().client.config.update({
           ...params(),
           config: {
             provider: updatedProviders as never,
           },
-        })
+        }).catch(() => undefined)
       }
     } catch {
       // ignore
@@ -743,13 +749,20 @@ export const SettingsModelsHubV2: Component<{
         },
       }
 
+      await serverSdk().client.global.config.update({
+        config: {
+          provider: updatedProviders as never,
+          model: `${runtimeId}/${modelName}`,
+        },
+      }).catch(() => undefined)
+
       await serverSdk().client.config.update({
         ...params(),
         config: {
           provider: updatedProviders as never,
           model: `${runtimeId}/${modelName}`,
         },
-      })
+      }).catch(() => undefined)
 
       showToast({
         variant: "success",

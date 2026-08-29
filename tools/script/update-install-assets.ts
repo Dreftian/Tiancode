@@ -10,7 +10,10 @@ const sha512 = createHash("sha512").update(fileBuffer).digest("base64")
 const size = statSync("install/Tiancode.exe").size
 const date = new Date().toISOString()
 
-const yaml = `version: 1.0.0
+const desktopPkg = JSON.parse(readFileSync("frontend/desktop/package.json", "utf-8"))
+const version = desktopPkg.version || "1.0.1"
+
+const yaml = `version: ${version}
 files:
   - url: Tiancode.exe
     sha512: ${sha512}
