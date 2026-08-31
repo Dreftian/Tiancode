@@ -872,35 +872,40 @@
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 24px;
+  gap: 10px;
 }
 
 .settings-v2-skills-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding-block: 12px;
-  padding-inline: 10px;
-  margin-inline: -10px;
-  border-radius: 8px;
-  border-bottom: 0.5px solid var(--v2-border-border-base);
+  gap: 14px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.005) 100%), var(--v2-background-bg-layer-01);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 8px;
   cursor: pointer;
-  transition: background-color 120ms ease;
+  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 @media (hover: hover) {
   .settings-v2-skills-item:not([data-selected]):hover {
-    background-color: color-mix(in srgb, var(--v2-background-bg-layer-02) 55%, transparent);
+    border-color: rgba(56, 189, 248, 0.35);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.015) 100%), var(--v2-background-bg-layer-02);
+    transform: translateY(-1.5px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2), 0 0 12px rgba(56, 189, 248, 0.1);
   }
 }
 
 .settings-v2-skills-item:last-child {
-  border-bottom: none;
+  margin-bottom: 0;
 }
 
 .settings-v2-skills-item[data-selected] {
-  background-color: var(--v2-background-bg-layer-02);
-  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
+  border-color: rgba(56, 189, 248, 0.55);
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.08) 0%, rgba(56, 189, 248, 0.02) 100%), var(--v2-background-bg-layer-02);
+  box-shadow: 0 0 18px rgba(56, 189, 248, 0.18);
 }
 
 .settings-v2-skills-item-copy {
@@ -908,13 +913,13 @@
   min-width: 0;
   flex: 1;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
 }
 
 .settings-v2-skills-item-name {
-  font-size: 13px;
-  font-weight: 560;
-  line-height: 1.15;
+  font-size: 13.5px;
+  font-weight: 650;
+  line-height: 1.25;
   color: var(--v2-text-text-base);
   overflow-wrap: anywhere;
 }
@@ -925,9 +930,9 @@
 
 .settings-v2-skills-item-description {
   font-size: 12px;
-  font-weight: 440;
+  font-weight: 450;
   line-height: 1.45;
-  color: var(--v2-text-text-faint);
+  color: var(--v2-text-text-muted);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -938,6 +943,199 @@
   display: flex;
   flex-shrink: 0;
   align-items: center;
+}
+
+.settings-v2-skills-toolbar-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-block: 6px 12px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--v2-background-bg-layer-01);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.settings-v2-skills-quick-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.settings-v2-skills-quick-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.settings-v2-skills-stats-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--v2-text-text-base);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.settings-v2-skills-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background-color: var(--v2-background-bg-layer-02);
+  color: var(--v2-text-text-base);
+}
+
+.settings-v2-skills-action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.settings-v2-skills-action-btn:active {
+  transform: translateY(0);
+}
+
+.settings-v2-skills-action-btn--enable {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.4);
+  color: #4ade80;
+}
+
+.settings-v2-skills-action-btn--enable:hover {
+  background: rgba(34, 197, 94, 0.25);
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.25);
+}
+
+.settings-v2-skills-action-btn--safe {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+}
+
+.settings-v2-skills-action-btn--safe:hover {
+  background: rgba(56, 189, 248, 0.25);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+}
+
+.settings-v2-skills-action-btn--specialized {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+}
+
+.settings-v2-skills-action-btn--specialized:hover {
+  background: rgba(245, 158, 11, 0.25);
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.25);
+}
+
+.settings-v2-skills-action-btn--disable {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #f87171;
+}
+
+.settings-v2-skills-action-btn--disable:hover {
+  background: rgba(239, 68, 68, 0.22);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.25);
+}
+
+.settings-v2-skills-filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 6px;
+}
+
+.settings-v2-skills-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 550;
+  border-radius: 9999px;
+  background-color: var(--v2-background-bg-layer-02);
+  color: var(--v2-text-text-muted);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.settings-v2-skills-filter-btn:hover {
+  color: var(--v2-text-text-base);
+  background-color: var(--v2-background-bg-layer-03);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.settings-v2-skills-filter-btn[data-active] {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(56, 189, 248, 0.55);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+}
+
+.settings-v2-skill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9.5px;
+  font-weight: 580;
+  padding: 1.5px 6px;
+  border-radius: 9999px;
+  line-height: 1.2;
+  margin-left: 6px;
+  vertical-align: middle;
+  flex-shrink: 0;
+  letter-spacing: 0.01em;
+}
+
+.settings-v2-skill-badge--safe {
+  background-color: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border: 0.5px solid rgba(16, 185, 129, 0.3);
+}
+
+.settings-v2-skill-badge--specialized {
+  background-color: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  border: 0.5px solid rgba(245, 158, 11, 0.3);
+}
+
+.settings-v2-skill-compatibility-callout {
+  margin-bottom: 10px;
+  padding: 7px 11px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  line-height: 1.42;
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+}
+
+.settings-v2-skill-compatibility-callout--safe {
+  background-color: rgba(16, 185, 129, 0.07);
+  border: 0.5px solid rgba(16, 185, 129, 0.22);
+  color: #10b981;
+}
+
+.settings-v2-skill-compatibility-callout--specialized {
+  background-color: rgba(245, 158, 11, 0.07);
+  border: 0.5px solid rgba(245, 158, 11, 0.22);
+  color: #fbbf24;
 }
 
 .settings-v2-skills-item-toggle [data-component="switch"] {
@@ -1285,10 +1483,10 @@
 }
 
 .settings-v2-pets-card:hover {
-  border-color: rgba(255, 255, 255, 0.28);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%), var(--v2-background-bg-layer-02);
+  border-color: rgba(255, 255, 255, 0.25);
+  background: var(--v2-background-bg-layer-02);
   transform: translateY(-2px);
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
 }
 
 .settings-v2-pets-card:hover .settings-v2-pets-card-3d svg {
@@ -1297,8 +1495,8 @@
 
 .settings-v2-pets-card[data-selected] {
   border-color: #3b82f6 !important;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.45), 0 8px 24px rgba(59, 130, 246, 0.2) !important;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.14) 0%, rgba(59, 130, 246, 0.04) 100%), var(--v2-background-bg-layer-02) !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.55), 0 8px 24px rgba(59, 130, 246, 0.25) !important;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.16) 0%, rgba(59, 130, 246, 0.05) 100%), var(--v2-background-bg-layer-02) !important;
 }
 
 .settings-v2-pets-card-glyph {

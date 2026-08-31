@@ -11,6 +11,13 @@ export function cleanMarkdownForSpeech(text: string): string {
 
   let speech = text
 
+  // 0. Eliminar bloques de razonamiento/pensamiento (pensamiento en gris / <think>)
+  // La voz solo debe leer la respuesta visible en blanco del asistente.
+  speech = speech.replace(/<think[\s\S]*?<\/think>/gi, "")
+  speech = speech.replace(/<reasoning[\s\S]*?<\/reasoning>/gi, "")
+  speech = speech.replace(/<thought[\s\S]*?<\/thought>/gi, "")
+  speech = speech.replace(/<details[\s\S]*?<\/details>/gi, "")
+
   // 1. Eliminar bloques de código cercados (```lang ... ```)
   speech = speech.replace(/```[\s\S]*?```/g, "")
 

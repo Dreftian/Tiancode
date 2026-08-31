@@ -46,6 +46,7 @@ export function provider(model: Provider.Model) {
 
 export interface Interface {
   readonly environment: (model: Provider.Model) => Effect.Effect<string[]>
+  readonly subagents: (agent: Agent.Info) => Effect.Effect<string | undefined>
   readonly skills: (agent: Agent.Info) => Effect.Effect<string | undefined>
   readonly autoSkills: (agent: Agent.Info) => Effect.Effect<string | undefined>
   readonly mcp: (agent: Agent.Info, permission?: PermissionV1.Ruleset) => Effect.Effect<string | undefined>
@@ -78,6 +79,9 @@ const layer = Layer.effect(
             `  Platform: ${process.platform}`,
             `  Today's date: ${new Date().toDateString()}`,
             `</env>`,
+            `CRITICAL WORKSPACE DIRECTIVES:`,
+            `- Active project directory: "${ctx.directory}". When the user asks you to build, create, develop, fix, refactor, or implement any code, features, or applications, you MUST AUTONOMOUSLY CREATE AND WRITE THE ACTUAL FILES ON DISK inside this project directory using your available tools (write, edit, apply_patch, bash). Never stop at just explaining or showing markdown code in chat when the user asked you to build or create something.`,
+            `- If the user is only asking a theoretical question, brainstorming, or has no active project folder, converse normally in the chat without modifying files.`,
           ].join("\n"),
           references.length === 0
             ? undefined
@@ -98,6 +102,30 @@ const layer = Layer.effect(
                 "</available_references>",
               ].join("\n"),
         ].filter((part): part is string => part !== undefined)
+      }),
+
+      subagents: Effect.fn("SystemPrompt.subagents")(function* (agent: Agent.Info) {
+        if (agent.mode === "subagent") return
+        if (Permission.disabled(["task"], agent.permission).has("task")) return
+
+        return [
+          "<available_subagents>",
+          "You are equipped with specialized autonomous subagents that you MUST PROACTIVELY USE via the `task` tool:",
+          "- explore: Fast agent specialized for exploring codebases, finding files, searching keywords, and answering architectural questions.",
+          "- general: General-purpose agent for executing multi-step tasks and research in parallel.",
+          "- software-architect: Designing modular architecture, clean system boundaries, and SOLID patterns.",
+          "- fullstack-coder: Implementing fullstack features, API endpoints, backend logic, and frontend components.",
+          "- ui-ux-master: Crafting modern, accessible UI/UX, Tailwind CSS layouts, and polished visual interfaces.",
+          "- devsecops-auditor: Auditing dependencies, detecting CVEs, protecting secrets, and validating security posture.",
+          "- performance-optimizer: Profiling bottlenecks, optimizing query latency, bundles, and render speeds.",
+          "- database-architect: Designing and optimizing database schemas, migrations, indexes, and queries.",
+          "- docs-generator: Writing comprehensive Markdown technical documentation and OpenAPI specs.",
+          "- qa-e2e-tester: Creating automated test suites, edge-case coverage, and Playwright/Vitest tests.",
+          "",
+          "PROACTIVE MULTI-AGENT DELEGATION DIRECTIVE:",
+          "For complex, multi-component, research, fullstack, or thorough development tasks, PROACTIVELY launch one or more subagents using the `task` tool (with `subagent_type: '<agent_name>'` and a detailed prompt). Launch multiple independent subagents in parallel to achieve fast, high-quality results without asking the user first.",
+          "</available_subagents>",
+        ].join("\n")
       }),
 
       skills: Effect.fn("SystemPrompt.skills")(function* (agent: Agent.Info) {

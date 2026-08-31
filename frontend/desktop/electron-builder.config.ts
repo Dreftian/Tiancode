@@ -193,7 +193,7 @@ function getConfig() {
         ...base,
         appId,
         productName: "Tiancode",
-        publish: { provider: "github", owner: "Dreftian", repo: "Tiancode", channel: "latest" },
+        publish: { provider: "generic", url: "https://github.com/Dreftian/Tiancode/releases/latest/download", channel: "latest" },
         deb: { fpm: [metainfoFpm(appId)] },
         rpm: { packageName: "tian-dev", fpm: [metainfoFpm(appId)] },
       }
@@ -204,7 +204,7 @@ function getConfig() {
         appId,
         productName: "Tiancode Beta",
         protocols: { name: "Tiancode Beta", schemes: ["tiancode"] },
-        publish: { provider: "github", owner: "Dreftian", repo: "Tiancode", channel: "latest" },
+        publish: { provider: "generic", url: "https://github.com/Dreftian/Tiancode/releases/latest/download", channel: "latest" },
         deb: { fpm: [metainfoFpm(appId)] },
         rpm: { packageName: "tian-beta", fpm: [metainfoFpm(appId)] },
       }
@@ -215,7 +215,7 @@ function getConfig() {
         appId,
         productName: "Tiancode",
         protocols: { name: "Tiancode", schemes: ["tiancode"] },
-        publish: { provider: "github", owner: "Dreftian", repo: "Tiancode", channel: "latest" },
+        publish: { provider: "generic", url: "https://github.com/Dreftian/Tiancode/releases/latest/download", channel: "latest" },
         deb: { fpm: [metainfoFpm(appId), legacyDesktopEntryFpm] },
         rpm: { packageName: "tian", fpm: [metainfoFpm(appId), legacyDesktopEntryFpm] },
       }

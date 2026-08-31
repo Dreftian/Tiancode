@@ -10,7 +10,7 @@ import { PermissionV2 } from "../permission"
 
 const TRUNCATION_GLOB = path.join(Global.Path.data, "tool-output", "*")
 const BUILD_SYSTEM =
-  "You are an AI coding agent. Help the user accomplish software engineering tasks by inspecting the workspace, making targeted changes, and using tools according to the configured permissions."
+  "You are Tiancode, the primary software engineering builder and autonomous multi-agent orchestrator. Sub-agent collaboration is permanently active and enabled by default. Proactively delegate to and leverage specialized sub-agents (`software-architect`, `fullstack-coder`, `devsecops-auditor`, `ui-ux-master`, `performance-optimizer`, `database-architect`, `docs-generator`, `qa-e2e-tester`, `explore`, `general`) to research, design, test, audit, and implement comprehensive user requests with maximum speed and perfection."
 
 const PROMPT_EXPLORE = `You are a file search specialist. You excel at thoroughly navigating and exploring codebases.
 
@@ -126,6 +126,7 @@ export const Plugin = define({
         item.description = "The default agent. Executes tools based on configured permissions."
         item.system ??= BUILD_SYSTEM
         item.mode = "primary"
+        item.native = true
         item.permissions.push(
           ...PermissionV2.merge(defaults, [
             { action: "question", resource: "*", effect: "allow" },
@@ -137,6 +138,7 @@ export const Plugin = define({
       draft.update(AgentV2.ID.make("plan"), (item) => {
         item.description = "Plan mode. Disallows all edit tools."
         item.mode = "primary"
+        item.native = true
         item.permissions.push(
           ...PermissionV2.merge(defaults, [
             { action: "question", resource: "*", effect: "allow" },
@@ -153,10 +155,23 @@ export const Plugin = define({
         )
       })
 
+      draft.update(AgentV2.ID.make("webapp"), (item) => {
+        item.description = "Frontend development. Builds full-JSX apps with a real-time live preview."
+        item.mode = "primary"
+        item.native = true
+        item.color = "#22d3ee"
+        item.permissions.push(
+          ...PermissionV2.merge(defaults, [
+            { action: "question", resource: "*", effect: "allow" },
+          ]),
+        )
+      })
+
       draft.update(AgentV2.ID.make("general"), (item) => {
         item.description =
           "General-purpose agent for researching complex questions and executing multi-step tasks. Use this agent to execute multiple units of work in parallel."
         item.mode = "subagent"
+        item.native = true
         item.permissions.push(...PermissionV2.merge(defaults, [{ action: "todowrite", resource: "*", effect: "deny" }]))
       })
 
@@ -165,6 +180,7 @@ export const Plugin = define({
           'Fast agent specialized for exploring codebases. Use this when you need to quickly find files by patterns (eg. "src/components/**/*.tsx"), search code for keywords (eg. "API endpoints"), or answer questions about the codebase (eg. "how do API endpoints work?"). When calling this agent, specify the desired thoroughness level: "quick" for basic searches, "medium" for moderate exploration, or "very thorough" for comprehensive analysis across multiple locations and naming conventions.'
         item.system = PROMPT_EXPLORE
         item.mode = "subagent"
+        item.native = true
         item.permissions.push(
           ...PermissionV2.merge(
             defaults,
@@ -181,8 +197,89 @@ export const Plugin = define({
         )
       })
 
+      draft.update(AgentV2.ID.make("software-architect"), (item) => {
+        item.description = "Diseño modular de sistemas, patrones de diseño limpios, domain-driven design y arquitectura desacoplada."
+        item.system = "Eres un arquitecto de software senior de élite. Diseñas sistemas limpios, modulares y altamente escalables. Evalúas trade-offs arquitectónicos, defines límites de módulos y garantizas que el código cumpla con los principios SOLID y clean architecture."
+        item.mode = "subagent"
+        item.native = true
+        item.color = "#3B82F6"
+        item.icon = "🏛️"
+        item.permissions.push(...defaults)
+      })
+
+      draft.update(AgentV2.ID.make("fullstack-coder"), (item) => {
+        item.description = "Implementación ágil de features completas de frontend, backend, APIs y bases de datos."
+        item.system = "Eres un ingeniero fullstack senior. Implementas requerimientos de inicio a fin con código robusto, tipado estricto en TypeScript/Rust/Go/Python, integración fluida de APIs y componentes limpios."
+        item.mode = "subagent"
+        item.native = true
+        item.color = "#8B5CF6"
+        item.icon = "⚡"
+        item.permissions.push(...defaults)
+      })
+
+      draft.update(AgentV2.ID.make("devsecops-auditor"), (item) => {
+        item.description = "Auditoría estricta de dependencias, CVEs, fugas de secretos y seguridad estática de código."
+        item.system = "Eres un auditor DevSecOps de élite. Tu función es inspeccionar dependencias, detectar vulnerabilidades de seguridad, evitar fugas de credenciales y validar que los cambios cumplan con los estándares OWASP."
+        item.mode = "subagent"
+        item.native = true
+        item.color = "#EF4444"
+        item.icon = "🛡️"
+        item.permissions.push(...defaults)
+      })
+
+      draft.update(AgentV2.ID.make("ui-ux-master"), (item) => {
+        item.description = "Diseño visual moderno, Tailwind CSS, micro-interacciones fluidas y componentes accesibles."
+        item.system = "Eres un diseñador y desarrollador frontend experto en UI/UX moderna. Diseñas interfaces atractivas, limpias, con excelente jerarquía visual, espaciados precisos, transiciones suaves y soporte completo para temas oscuro/claro."
+        item.mode = "subagent"
+        item.native = true
+        item.color = "#EC4899"
+        item.icon = "🎨"
+        item.permissions.push(...defaults)
+      })
+
+      draft.update(AgentV2.ID.make("performance-optimizer"), (item) => {
+        item.description = "Perfilado de rendimiento, reducción de latencia, optimización de bundles y tiempos de carga."
+        item.system = "Eres un especialista senior en rendimiento y optimización. Identificas cuellos de botella de CPU y memoria, optimizas bundles, eliminas re-renders innecesarios y aceleras tiempos de respuesta."
+        item.mode = "subagent"
+        item.native = true
+        item.color = "#F97316"
+        item.icon = "🚀"
+        item.permissions.push(...defaults)
+      })
+
+      draft.update(AgentV2.ID.make("database-architect"), (item) => {
+        item.description = "Optimización de esquemas, índices, planes de ejecución y migraciones seguras."
+        item.system = "Eres un arquitecto de bases de datos senior. Analizas consultas SQL, índices, normalización, migraciones Drizzle/Prisma y concurrencia para garantizar máximo rendimiento sin cuellos de botella."
+        item.mode = "subagent"
+        item.native = true
+        item.color = "#EAB308"
+        item.icon = "🗄️"
+        item.permissions.push(...defaults)
+      })
+
+      draft.update(AgentV2.ID.make("docs-generator"), (item) => {
+        item.description = "Generación de especificaciones OpenAPI, documentación técnica Markdown y guías."
+        item.system = "Eres un redactor técnico y arquitecto de APIs. Documentas cada endpoint, tipo de dato, arquitectura de módulos y guías de contribución con claridad profesional en formato Markdown."
+        item.mode = "subagent"
+        item.native = true
+        item.color = "#06B6D4"
+        item.icon = "📝"
+        item.permissions.push(...defaults)
+      })
+
+      draft.update(AgentV2.ID.make("qa-e2e-tester"), (item) => {
+        item.description = "Creación de suites de pruebas unitarias, de integración y end-to-end con Vitest y Playwright."
+        item.system = "Eres un ingeniero de QA y testing automatizado. Escribes suites de pruebas completas, validas casos borde y aseguras cobertura integral de código."
+        item.mode = "subagent"
+        item.native = true
+        item.color = "#10B981"
+        item.icon = "🧪"
+        item.permissions.push(...defaults)
+      })
+
       draft.update(AgentV2.ID.make("compaction"), (item) => {
         item.mode = "primary"
+        item.native = true
         item.hidden = true
         item.system = PROMPT_COMPACTION
         item.permissions.push(...PermissionV2.merge(defaults, [{ action: "*", resource: "*", effect: "deny" }]))
@@ -190,6 +287,7 @@ export const Plugin = define({
 
       draft.update(AgentV2.ID.make("title"), (item) => {
         item.mode = "primary"
+        item.native = true
         item.hidden = true
         item.system = PROMPT_TITLE
         item.permissions.push(...PermissionV2.merge(defaults, [{ action: "*", resource: "*", effect: "deny" }]))
@@ -197,6 +295,7 @@ export const Plugin = define({
 
       draft.update(AgentV2.ID.make("summary"), (item) => {
         item.mode = "primary"
+        item.native = true
         item.hidden = true
         item.system = PROMPT_SUMMARY
         item.permissions.push(...PermissionV2.merge(defaults, [{ action: "*", resource: "*", effect: "deny" }]))

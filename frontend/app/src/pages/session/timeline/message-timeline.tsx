@@ -136,9 +136,11 @@ function TimelineThinkingRow(props: { reasoningHeading?: string; showReasoningSu
   const language = useLanguage()
 
   return (
-    <div data-slot="session-turn-thinking">
+    <div data-slot="session-turn-thinking" class="flex items-center gap-2 py-1.5 px-1 text-sm text-text-weak">
+      <span class="inline-block size-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_rgba(56,189,248,0.8)]" />
       <TextShimmer text={language.t("ui.sessionTurn.status.thinking")} />
-      <Show when={!props.showReasoningSummaries}>
+      <Show when={!props.showReasoningSummaries && props.reasoningHeading}>
+        <span class="text-text-weaker font-normal">—</span>
         <TextReveal text={props.reasoningHeading} class="session-turn-thinking-heading" travel={25} duration={700} />
       </Show>
     </div>
@@ -1091,31 +1093,22 @@ export function MessageTimeline(props: {
       return getMsgPart(group.ref.messageID, group.ref.partID)
     })
 
-    // La voz solo habla cuando la IA termina de pensar y entrega el resultado final completado.
+    // La voz solo habla cuando la IA termina de responder y entrega el texto final (solo la parte blanca, nunca el razonamiento en gris).
     createEffect(() => {
       const auto = settings.general.autoSpeak()
-      const speakReason = settings.general.speakReasoning()
-      if (!auto && !speakReason) {
+      if (!auto) {
         stopAutoSpeak()
         return
       }
       const item = part()
-      if (!item) return
+      if (!item || item.type !== "text" || !item.text) return
       const rowMessage = message()
       if (!rowMessage || rowMessage.role !== "assistant") return
 
-      // Esperar a que la IA termine completamente de pensar y de generar la respuesta:
+      // Esperar a que la IA termine completamente de responder:
       if (!rowMessage.time?.completed && !rowMessage.finish) return
-
-      // Si speakReasoning está activo y es una parte de razonamiento o plan de acción:
-      if (speakReason && item.type === "reasoning" && item.text) {
-        enqueueAutoSpeak(item.id, item.text)
-        return
-      }
-
-      // Flujo de autoSpeak para el primer texto descriptivo / resultado final del asistente:
-      if (!auto || item.type !== "text" || !item.text) return
       if (rowMessage.error || item.synthetic || item.ignored) return
+
       const firstText = getMsgParts(rowMessage.id).find((candidate) => candidate.type === "text")
       if (firstText?.id !== item.id) return
       enqueueAutoSpeak(item.id, item.text)

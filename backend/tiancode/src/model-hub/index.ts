@@ -8,7 +8,7 @@ import { execFile } from "node:child_process"
 import { promisify } from "node:util"
 import { createHash } from "node:crypto"
 import { createReadStream, createWriteStream } from "node:fs"
-import { mkdir, rename, rm, stat, statfs } from "node:fs/promises"
+import { mkdir, readdir, rename, rm, stat, statfs } from "node:fs/promises"
 import { Transform, Readable } from "node:stream"
 import { pipeline } from "node:stream/promises"
 import { Context, Effect, Layer, Option, Schema, Scope, Types } from "effect"
@@ -18,39 +18,52 @@ import { Global } from "@tiancode-ai/core/global"
 
 const execFileAsync = promisify(execFile)
 
+let cachedGpu: string | undefined
+let cachedGpuChecked = false
+let cachedVram: VramInfo | undefined
+let cachedVramCheckedAt = 0
+
 // Detect the primary GPU. Windows exposes it via WMI (works for NVIDIA/AMD/
 // Intel); non-Windows falls back to lspci when available. Failures return
-// undefined so the settings panel still renders.
+// undefined so the settings panel still renders quickly without freezing.
 const detectGpu = Effect.fn("ModelHub.gpu")(function* () {
+  if (cachedGpuChecked) return cachedGpu
+  cachedGpuChecked = true
   if (process.platform === "win32") {
     const result = yield* Effect.tryPromise(() =>
-      execFileAsync("powershell", [
-        "-NoProfile",
-        "-Command",
-        "(Get-CimInstance Win32_VideoController | Where-Object { $_.Name } | Select-Object -First 1).Name",
-      ]),
+      execFileAsync(
+        "powershell",
+        [
+          "-NoProfile",
+          "-Command",
+          "(Get-CimInstance Win32_VideoController | Where-Object { $_.Name } | Select-Object -First 1).Name",
+        ],
+        { timeout: 3000 },
+      ),
     ).pipe(Effect.catch(() => Effect.succeed(undefined)))
     const name = result?.stdout?.trim()
-    if (name) return name
+    if (name) {
+      cachedGpu = name
+      return name
+    }
   }
-  const lspci = yield* Effect.tryPromise(() => execFileAsync("lspci")).pipe(
+  const lspci = yield* Effect.tryPromise(() => execFileAsync("lspci", [], { timeout: 3000 })).pipe(
     Effect.catch(() => Effect.succeed(undefined)),
   )
   const vga = lspci?.stdout?.split("\n").find((line) => /vga|3d|display/i.test(line))
-  return (
+  cachedGpu =
     vga
       ?.split(/\s{2,}/)
       .slice(1)
       .join(" ")
       .trim() || undefined
-  )
+  return cachedGpu
 })
 
 // VRAM is the primary memory for local models: the GPU loads layers there
 // first and system RAM only backs it up when the model overflows the GPU.
 // NVIDIA reports real numbers through nvidia-smi; AMD/Intel and any fallback
-// use DXGI via a small C# shim. Returns total + free bytes or undefined when
-// no dedicated GPU is available.
+// use fast cached queries. Returns total + free bytes or undefined.
 export interface VramInfo {
   readonly total: number
   readonly free: number
@@ -63,12 +76,20 @@ const NVIDIA_SMI_PATHS = [
 ]
 
 const detectVram = Effect.fn("ModelHub.vram")(function* () {
-  // nvidia-smi is authoritative for NVIDIA: it reports real total/free in MiB
-  // (noheader,nounits). Iterate every GPU line and pick the one with the most
-  // dedicated memory (the primary GPU on multi-GPU and hybrid laptops).
+  const now = Date.now()
+  if (cachedVram !== undefined && now - cachedVramCheckedAt < 60_000) {
+    return cachedVram
+  }
+  cachedVramCheckedAt = now
+
+  // nvidia-smi is authoritative for NVIDIA: reports real total/free in MiB
   for (const binary of NVIDIA_SMI_PATHS) {
     const result = yield* Effect.tryPromise(() =>
-      execFileAsync(binary, ["--query-gpu=memory.total,memory.free,memory.used", "--format=csv,noheader,nounits"]),
+      execFileAsync(
+        binary,
+        ["--query-gpu=memory.total,memory.free,memory.used", "--format=csv,noheader,nounits"],
+        { timeout: 2000 },
+      ),
     ).pipe(Effect.catch(() => Effect.succeed(undefined)))
     let best: VramInfo | undefined
     for (const line of (result?.stdout ?? "").split("\n")) {
@@ -76,94 +97,34 @@ const detectVram = Effect.fn("ModelHub.vram")(function* () {
       if (!total || free === undefined || Number.isNaN(total) || Number.isNaN(free)) continue
       if (!best || total > best.total) best = { total, free }
     }
-    if (best) return best
-  }
-  if (process.platform !== "win32") return undefined
-  // DXGI path for AMD/Intel and any fallback. The C# shim walks the vtable
-  // with explicit function pointers (the [ComImport] pattern does not work
-  // here), skips the Microsoft Basic Render Driver (0x1414) and picks the
-  // adapter with the most dedicated memory. Prints "total,free" in bytes with
-  // free derived from QueryVideoMemoryInfo (Budget minus CurrentUsage) so the
-  // green tier caps offload at the VRAM actually available right now.
-  const script = `
-Add-Type -TypeDefinition @"
-using System;
-using System.Runtime.InteropServices;
-
-[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-public struct DXGI_ADAPTER_DESC {
-    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)] public string Description;
-    public uint VendorId; public uint DeviceId; public uint SubSysId; public uint Revision;
-    public IntPtr DedicatedVideoMemory; public IntPtr DedicatedSystemMemory; public IntPtr SharedSystemMemory;
-    public long AdapterLuid;
-}
-[StructLayout(LayoutKind.Sequential)]
-public struct DXGI_QUERY_VIDEO_MEMORY_INFO { public ulong Budget; public ulong CurrentUsage; public ulong AvailableForReservation; public ulong CurrentReservation; }
-
-public static class Vram {
-    [DllImport("dxgi.dll")] public static extern int CreateDXGIFactory1(ref Guid riid, out IntPtr factory);
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)] public delegate int DEnumAdapters(IntPtr self, uint index, out IntPtr adapter);
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)] public delegate int DGetDesc(IntPtr self, out DXGI_ADAPTER_DESC desc);
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)] public delegate int DQueryInterface(IntPtr self, ref Guid riid, out IntPtr ppv);
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)] public delegate int DQueryVideoMemoryInfo(IntPtr self, uint node, uint segment, out DXGI_QUERY_VIDEO_MEMORY_INFO info);
-
-    private static readonly Guid IID_FACTORY1 = new Guid("770aae78-f26f-4dba-a829-253c83d1b387");
-    private static readonly Guid IID_ADAPTER3 = new Guid("645967a4-1392-4310-a798-8053ce3e93fd");
-
-    public static string Get() {
-        long best = 0; long bestFree = 0;
-        Guid fGuid = IID_FACTORY1;
-        IntPtr factoryPtr;
-        int hr = CreateDXGIFactory1(ref fGuid, out factoryPtr);
-        if (hr != 0) return "";
-        try {
-            var enumAdapters = (DEnumAdapters)Marshal.GetDelegateForFunctionPointer(
-                Marshal.ReadIntPtr(Marshal.ReadIntPtr(factoryPtr), 7 * IntPtr.Size), typeof(DEnumAdapters));
-            uint i = 0;
-            while (true) {
-                IntPtr adapterPtr;
-                hr = enumAdapters(factoryPtr, i, out adapterPtr);
-                if (hr != 0) break;
-                IntPtr vt = Marshal.ReadIntPtr(adapterPtr);
-                DXGI_ADAPTER_DESC desc;
-                var getDesc = (DGetDesc)Marshal.GetDelegateForFunctionPointer(Marshal.ReadIntPtr(vt, 8 * IntPtr.Size), typeof(DGetDesc));
-                if (getDesc(adapterPtr, out desc) == 0 && desc.VendorId != 0x1414) {
-                    long total = desc.DedicatedVideoMemory.ToInt64();
-                    long free = total;
-                    var qi = (DQueryInterface)Marshal.GetDelegateForFunctionPointer(Marshal.ReadIntPtr(vt, 0), typeof(DQueryInterface));
-                    Guid a3Guid = IID_ADAPTER3; IntPtr a3;
-                    if (qi(adapterPtr, ref a3Guid, out a3) == 0) {
-                        // IDXGIAdapter3 vtable: 0-2 IUnknown, 3-6 IDXGIObject,
-                        // 7 EnumOutputs, 8 GetDesc, 9 CheckInterfaceSupport,
-                        // 10 GetDesc1, 11 GetDesc2, 12 QueryVideoMemoryInfo.
-                        var qvmi = (DQueryVideoMemoryInfo)Marshal.GetDelegateForFunctionPointer(
-                            Marshal.ReadIntPtr(Marshal.ReadIntPtr(a3), 12 * IntPtr.Size), typeof(DQueryVideoMemoryInfo));
-                        DXGI_QUERY_VIDEO_MEMORY_INFO info;
-                        if (qvmi(a3, 0, 0, out info) == 0 && info.Budget > info.CurrentUsage)
-                            free = (long)(info.Budget - info.CurrentUsage);
-                        Marshal.Release(a3);
-                    }
-                    if (total > best) { best = total; bestFree = free; }
-                }
-                Marshal.Release(adapterPtr);
-                i++;
-            }
-        } finally { Marshal.Release(factoryPtr); }
-        return best > 0 ? best + "," + bestFree : "";
+    if (best) {
+      cachedVram = best
+      return best
     }
-}
-"@
-[Vram]::Get()`
-  const result = yield* Effect.tryPromise(() => execFileAsync("powershell", ["-NoProfile", "-Command", script])).pipe(
-    Effect.catch(() => Effect.succeed(undefined)),
-  )
-  // The shim prints "total,free" (bytes); both are needed — free caps the
-  // full-offload tier while total bounds the partial-offload tier.
-  const [totalText, freeText] = (result?.stdout?.trim() ?? "").split(",")
-  const total = Number(totalText)
-  const free = Number(freeText)
-  if (!total || Number.isNaN(total)) return undefined
-  return { total, free: free > 0 ? free : total }
+  }
+
+  if (process.platform !== "win32") return undefined
+
+  // Fast WMI AdapterRAM query for Intel/AMD/fallback GPUs (instant execution)
+  const wmiResult = yield* Effect.tryPromise(() =>
+    execFileAsync(
+      "powershell",
+      [
+        "-NoProfile",
+        "-Command",
+        "(Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty AdapterRAM | Measure-Object -Maximum).Maximum",
+      ],
+      { timeout: 3000 },
+    ),
+  ).pipe(Effect.catch(() => Effect.succeed(undefined)))
+
+  const wmiBytes = Number(wmiResult?.stdout?.trim())
+  if (wmiBytes && !Number.isNaN(wmiBytes) && wmiBytes > 0) {
+    cachedVram = { total: wmiBytes, free: wmiBytes }
+    return cachedVram
+  }
+
+  return undefined
 })
 
 const HUGGINGFACE_API = "https://huggingface.co/api"
@@ -964,17 +925,77 @@ const layer = Layer.effect(
     })
 
     const cancelDownload = Effect.fn("ModelHub.cancelDownload")(function* (id: string) {
-      const job = jobs.get(id)
-      if (!job) return false
-      controllers.get(id)?.abort()
-      controllers.delete(id)
-      jobs.delete(id)
-      yield* Effect.tryPromise(() => rm(job.tempPath, { force: true })).pipe(Effect.catch(() => Effect.void))
-      yield* Effect.tryPromise(() => rm(job.destPath, { force: true })).pipe(Effect.catch(() => Effect.void))
-      yield* Effect.tryPromise(() => rm(path.dirname(job.destPath), { recursive: true, force: true })).pipe(
-        Effect.catch(() => Effect.void),
-      )
-      yield* persistJobs(true)
+      const decodedId = decodeURIComponent(id).trim()
+      const matches = (j: MutableDownloadJob) =>
+        j.id === id ||
+        j.id === decodedId ||
+        j.file === id ||
+        j.file === decodedId ||
+        j.file.toLowerCase() === decodedId.toLowerCase() ||
+        j.file.replace(/\.gguf$/i, "").toLowerCase() === decodedId.replace(/\.gguf$/i, "").toLowerCase() ||
+        `${j.owner}/${j.repo}` === decodedId ||
+        j.destPath.includes(decodedId) ||
+        j.destPath.includes(id)
+
+      const targetJobs: MutableDownloadJob[] = []
+      for (const [k, j] of jobs.entries()) {
+        if (k === id || k === decodedId || matches(j)) {
+          targetJobs.push(j)
+        }
+      }
+
+      for (const job of targetJobs) {
+        controllers.get(job.id)?.abort()
+        controllers.delete(job.id)
+        jobs.delete(job.id)
+
+        yield* Effect.tryPromise(async () => {
+          if (job.tempPath) {
+            await rm(job.tempPath, { force: true, recursive: true }).catch(() => {})
+          }
+          if (job.destPath) {
+            await rm(job.destPath, { force: true, recursive: true }).catch(() => {})
+          }
+          const parentDir = path.dirname(job.destPath)
+          if (parentDir && parentDir !== resolvedModelsDir && parentDir.startsWith(resolvedModelsDir)) {
+            const remaining = await readdir(parentDir).catch(() => [])
+            if (remaining.length === 0) {
+              await rm(parentDir, { recursive: true, force: true }).catch(() => {})
+            }
+          }
+        }).pipe(Effect.catch(() => Effect.void))
+      }
+
+      // Direct disk cleanup fallback for any loose files or folders matching id / decodedId
+      yield* Effect.tryPromise(async () => {
+        const cleanDir = async (dir: string) => {
+          const entries = await readdir(dir, { withFileTypes: true }).catch(() => [])
+          for (const entry of entries) {
+            const fullPath = path.join(dir, entry.name)
+            if (
+              entry.name === id ||
+              entry.name === decodedId ||
+              entry.name.toLowerCase() === decodedId.toLowerCase() ||
+              entry.name.replace(/\.gguf$/i, "").toLowerCase() === decodedId.replace(/\.gguf$/i, "").toLowerCase()
+            ) {
+              await rm(fullPath, { recursive: true, force: true }).catch(async () => {
+                if (process.platform === "win32") {
+                  await execFileAsync("powershell", [
+                    "-NoProfile",
+                    "-Command",
+                    `Remove-Item -LiteralPath '${fullPath}' -Force -Recurse -ErrorAction SilentlyContinue`,
+                  ]).catch(() => {})
+                }
+              })
+            } else if (entry.isDirectory()) {
+              await cleanDir(fullPath)
+            }
+          }
+        }
+        await cleanDir(resolvedModelsDir)
+      }).pipe(Effect.catch(() => Effect.void))
+
+      yield* fs.writeJson(jobsFile, Array.from(jobs.values())).pipe(Effect.catch(() => Effect.void))
       return true
     })
 

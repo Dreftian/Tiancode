@@ -59,7 +59,12 @@ function cutAtBoundary(text: string) {
 // intentional: callers should simply skip text that is code or not prose.
 export function prepareAutoSpeakText(text: string) {
   if (typeof text !== "string" || text.length > MAX_SOURCE_CHARS || !isNarrativeText(text)) return
-  const cleaned = text
+  // Limpiar primero bloques de razonamiento/pensamiento en gris (<think>, <reasoning>)
+  const stripped = text
+    .replace(/<think[\s\S]*?<\/think>/gi, "")
+    .replace(/<reasoning[\s\S]*?<\/reasoning>/gi, "")
+    .replace(/<thought[\s\S]*?<\/thought>/gi, "")
+  const cleaned = stripped
     .replace(/```[\s\S]*?```/gu, " ")
     .replace(/!?(?:\[([^\]]+)\]\([^)]*\))/gu, "$1")
     .replace(/[`*_>#]/gu, " ")

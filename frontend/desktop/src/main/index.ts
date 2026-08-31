@@ -181,6 +181,10 @@ const main = Effect.gen(function* () {
   ensureLoopbackNoProxy()
   useEnvProxy((message, error) => logger.warn(message, error))
   app.commandLine.appendSwitch("proxy-bypass-list", "<-loopback>")
+  if (process.platform === "win32") {
+    app.commandLine.appendSwitch("disable-gpu-process-crash-limit")
+    app.commandLine.appendSwitch("disable-features", "CalculateNativeWinOcclusion")
+  }
   const features = app.commandLine.getSwitchValue("enable-features")
   app.commandLine.appendSwitch("enable-features", features ? `${jsCallStackFeature},${features}` : jsCallStackFeature)
   if (!app.isPackaged) app.commandLine.appendSwitch("remote-debugging-port", "9222")

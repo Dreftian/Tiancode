@@ -13,11 +13,11 @@ import type { Info as SkillInfo } from "./index"
 
 const MAX_AUTO_SKILLS = 6
 
-// Skills base que aplican a cualquier proyecto de software.
+// Skills base que aplican a cualquier proyecto de software de forma segura sin imponer bloqueos.
 const BASE_SKILLS = [
-  "test-driven-development",
   "code-review-and-quality",
   "verification-before-completion",
+  "security-and-hardening",
 ] as const
 
 type Rule = { signals: string[]; skills: string[] }
@@ -27,6 +27,7 @@ type Rule = { signals: string[]; skills: string[] }
 const RULES: Rule[] = [
   { signals: ["web-frontend"], skills: ["frontend-design", "frontend-ui-engineering", "web-quality-audit"] },
   { signals: ["api"], skills: ["api-and-interface-design", "security-and-hardening", "observability-and-instrumentation"] },
+  { signals: ["testing"], skills: ["testing-strategy", "test-driven-development"] },
   { signals: ["docker"], skills: ["deploy-checklist", "ci-cd-and-automation", "shipping-and-launch"] },
   { signals: ["ci"], skills: ["ci-cd-and-automation", "git-workflow-and-versioning"] },
   { signals: ["sql"], skills: ["sql-queries", "domain-modeling"] },
@@ -118,6 +119,17 @@ async function detectSignals(worktree: string): Promise<Set<string>> {
   if (has("prisma") || entries.some((entry) => /\.sql$/.test(entry.name))) signals.add("sql")
   if (hasDir("docs") || hasDir("documentation")) signals.add("docs")
   if (entries.some((entry) => /\.(mdx|md)$/.test(entry.name))) signals.add("docs")
+  if (
+    hasDir("test") ||
+    hasDir("tests") ||
+    hasDir("__tests__") ||
+    has("jest.config.js") ||
+    has("jest.config.ts") ||
+    has("vitest.config.ts") ||
+    has("pytest.ini")
+  ) {
+    signals.add("testing")
+  }
   return signals
 }
 

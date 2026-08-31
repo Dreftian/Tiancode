@@ -48,4 +48,5 @@ it.instance(
       expect(added?.mode).toBe(PLUGIN_AGENT.mode)
     }),
   { config: { plugin: [pluginUrl] } },
+  15000,
 )

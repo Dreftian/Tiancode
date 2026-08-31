@@ -70,43 +70,45 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
           ? "Paso 3 de 3: Descargo de responsabilidad y privacidad"
           : "Step 3 of 3: Disclaimer & privacy notice"
 
+  const isDark = () => selectedTheme() === "dark" || (selectedTheme() === "system" && theme.colorScheme() === "dark")
+
   const cardClass = (selected: boolean) =>
-    `flex items-center gap-3.5 p-3.5 rounded-2xl border cursor-pointer transition-all duration-200 ${
+    `flex items-center gap-3.5 p-3 rounded-2xl border cursor-pointer transition-all duration-200 ${
       selected
-        ? "border-cyan-400/50 bg-cyan-500/10 shadow-[0_0_16px_rgba(56,189,248,0.15)]"
-        : "border-white/8 bg-white/3 hover:border-white/15 hover:bg-white/6"
+        ? "border-cyan-400/60 bg-cyan-500/15 shadow-[0_0_16px_rgba(56,189,248,0.2)] text-white"
+        : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10 text-slate-300"
     }`
 
   return (
     <div
-      class="relative w-full h-full min-h-[420px] bg-[#0e111a] p-6 flex flex-col justify-between text-white select-none overflow-hidden font-sans"
+      class="relative w-full max-w-[540px] max-h-[90vh] bg-[#0d1117] border border-white/15 rounded-3xl p-6 flex flex-col justify-between text-white select-none overflow-hidden font-sans shadow-[0_25px_60px_rgba(0,0,0,0.8)]"
     >
       {/* Ambient background glows */}
-      <div class="absolute -top-16 -left-16 w-60 h-60 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
-      <div class="absolute -bottom-16 -right-16 w-60 h-60 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
+      <div class="absolute -top-16 -left-16 w-52 h-52 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
+      <div class="absolute -bottom-16 -right-16 w-52 h-52 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
 
       {/* Header with Official Tiancode Emblem */}
-      <div class="flex items-center justify-between border-b border-white/10 pb-5">
-        <div class="flex items-center gap-3.5">
-          <div class="relative flex items-center justify-center h-10 w-auto shrink-0">
+      <div class="flex items-center justify-between border-b border-white/10 pb-4">
+        <div class="flex items-center gap-3">
+          <div class="relative flex items-center justify-center h-9 w-auto shrink-0">
             <img
               src={tianLogo}
               alt="Tiancode"
-              class="h-8 w-auto object-contain drop-shadow-[0_0_10px_rgba(56,189,248,0.4)]"
+              class="h-7 w-auto object-contain drop-shadow-[0_0_10px_rgba(56,189,248,0.4)]"
               draggable={false}
             />
           </div>
 
           <div class="flex flex-col gap-0.5">
             <div class="flex items-center gap-2">
-              <h2 class="text-[16px] font-bold text-white tracking-tight">
+              <h2 class="text-[15px] font-bold text-white tracking-tight">
                 {isEs() ? "Configuración Inicial de Tiancode" : "Tiancode Initial Setup"}
               </h2>
-              <span class="px-2 py-0.5 text-[10px] font-mono font-bold rounded-full border border-cyan-400/30 bg-cyan-400/10 text-cyan-300">
+              <span class="px-2 py-0.5 text-[9.5px] font-mono font-bold rounded-full border border-cyan-400/30 bg-cyan-400/10 text-cyan-300">
                 v{version()}
               </span>
             </div>
-            <p class="text-[12px] text-slate-400 font-medium">{stepLabel()}</p>
+            <p class="text-[11.5px] text-slate-400 font-medium">{stepLabel()}</p>
           </div>
         </div>
 
@@ -124,9 +126,9 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
 
       {/* Step 1: Language and Appearance */}
       <Show when={step() === 1}>
-        <div class="flex flex-col gap-5">
+        <div class="flex flex-col gap-4 my-2">
           {/* Language Selection */}
-          <div class="flex flex-col gap-2.5">
+          <div class="flex flex-col gap-2">
             <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
               <span>🌐</span>
               <span>{isEs() ? "Idioma de la Aplicación" : "Application Language"}</span>
@@ -137,15 +139,15 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
                 onClick={() => handleSelectLanguage("es")}
                 class={cardClass(selectedLocale() === "es")}
               >
-                <span class="text-2xl">🇪🇸</span>
+                <span class="text-xl">🇪🇸</span>
                 <div class="flex flex-col flex-1 min-w-0 text-left">
                   <div class="flex items-center justify-between gap-1">
-                    <span class="text-[13px] font-semibold text-white truncate">Español</span>
+                    <span class="text-[12.5px] font-semibold text-white truncate">Español</span>
                     <Show when={selectedLocale() === "es"}>
                       <span class="text-[11px] text-cyan-400 font-bold">✓</span>
                     </Show>
                   </div>
-                  <span class="text-[11.5px] text-slate-400">Predeterminado (Local)</span>
+                  <span class="text-[11px] text-slate-400">Predeterminado (Local)</span>
                 </div>
               </button>
 
@@ -154,22 +156,22 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
                 onClick={() => handleSelectLanguage("en")}
                 class={cardClass(selectedLocale() === "en")}
               >
-                <span class="text-2xl">🇺🇸</span>
+                <span class="text-xl">🇺🇸</span>
                 <div class="flex flex-col flex-1 min-w-0 text-left">
                   <div class="flex items-center justify-between gap-1">
-                    <span class="text-[13px] font-semibold text-white truncate">English</span>
+                    <span class="text-[12.5px] font-semibold text-white truncate">English</span>
                     <Show when={selectedLocale() === "en"}>
                       <span class="text-[11px] text-cyan-400 font-bold">✓</span>
                     </Show>
                   </div>
-                  <span class="text-[11.5px] text-slate-400">Fluent Studio UI</span>
+                  <span class="text-[11px] text-slate-400">Fluent Studio UI</span>
                 </div>
               </button>
             </div>
           </div>
 
           {/* Theme Selection */}
-          <div class="flex flex-col gap-2.5">
+          <div class="flex flex-col gap-2">
             <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
               <span>🎨</span>
               <span>{isEs() ? "Tema Visual" : "Theme Preference"}</span>
@@ -178,39 +180,39 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
               <button
                 type="button"
                 onClick={() => handleSelectTheme("dark")}
-                class={`flex flex-col items-center gap-1.5 p-3 rounded-2xl border cursor-pointer transition-all duration-200 text-[12px] font-medium ${
+                class={`flex flex-col items-center gap-1.5 p-2.5 rounded-2xl border cursor-pointer transition-all duration-200 text-[11.5px] font-medium ${
                   selectedTheme() === "dark"
-                    ? "border-cyan-400/50 bg-cyan-500/10 shadow-[0_0_14px_rgba(56,189,248,0.15)] text-white"
-                    : "border-white/8 bg-white/3 hover:border-white/15 text-slate-400 hover:text-white"
+                    ? "border-cyan-400/60 bg-cyan-500/15 shadow-[0_0_14px_rgba(56,189,248,0.2)] text-white"
+                    : "border-white/10 bg-white/5 hover:border-white/20 text-slate-400 hover:text-white"
                 }`}
               >
-                <span class="text-xl">🌙</span>
-                <span>{isEs() ? "Oscuro (Neon)" : "Dark"}</span>
+                <span class="text-lg">🌙</span>
+                <span>{isEs() ? "Oscuro" : "Dark"}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleSelectTheme("light")}
-                class={`flex flex-col items-center gap-1.5 p-3 rounded-2xl border cursor-pointer transition-all duration-200 text-[12px] font-medium ${
+                class={`flex flex-col items-center gap-1.5 p-2.5 rounded-2xl border cursor-pointer transition-all duration-200 text-[11.5px] font-medium ${
                   selectedTheme() === "light"
-                    ? "border-cyan-400/50 bg-cyan-500/10 shadow-[0_0_14px_rgba(56,189,248,0.15)] text-white"
-                    : "border-white/8 bg-white/3 hover:border-white/15 text-slate-400 hover:text-white"
+                    ? "border-cyan-400/60 bg-cyan-500/15 shadow-[0_0_14px_rgba(56,189,248,0.2)] text-white"
+                    : "border-white/10 bg-white/5 hover:border-white/20 text-slate-400 hover:text-white"
                 }`}
               >
-                <span class="text-xl">☀️</span>
-                <span>{isEs() ? "Claro (Light)" : "Light"}</span>
+                <span class="text-lg">☀️</span>
+                <span>{isEs() ? "Claro" : "Light"}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleSelectTheme("system")}
-                class={`flex flex-col items-center gap-1.5 p-3 rounded-2xl border cursor-pointer transition-all duration-200 text-[12px] font-medium ${
+                class={`flex flex-col items-center gap-1.5 p-2.5 rounded-2xl border cursor-pointer transition-all duration-200 text-[11.5px] font-medium ${
                   selectedTheme() === "system"
-                    ? "border-cyan-400/50 bg-cyan-500/10 shadow-[0_0_14px_rgba(56,189,248,0.15)] text-white"
-                    : "border-white/8 bg-white/3 hover:border-white/15 text-slate-400 hover:text-white"
+                    ? "border-cyan-400/60 bg-cyan-500/15 shadow-[0_0_14px_rgba(56,189,248,0.2)] text-white"
+                    : "border-white/10 bg-white/5 hover:border-white/20 text-slate-400 hover:text-white"
                 }`}
               >
-                <span class="text-xl">💻</span>
+                <span class="text-lg">💻</span>
                 <span>{isEs() ? "Automático" : "System"}</span>
               </button>
             </div>

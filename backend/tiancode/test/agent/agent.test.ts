@@ -49,6 +49,7 @@ it.instance("returns default native agents when no config", () =>
     const agents = yield* load((svc) => svc.list())
     const names = agents.map((a) => a.name)
     expect(names).toContain("build")
+    expect(names).toContain("webapp")
     expect(names).toContain("plan")
     expect(names).toContain("general")
     expect(names).toContain("explore")
@@ -725,17 +726,18 @@ it.instance(
 )
 
 it.instance(
-  "defaultAgent returns plan when build is disabled and default_agent not set",
+  "defaultAgent returns plan when build and webapp are disabled and default_agent not set",
   () =>
     Effect.gen(function* () {
       const agent = yield* load((svc) => svc.defaultAgent())
-      // build is disabled, so it should return plan (next primary agent)
+      // build and webapp are disabled, so it should return plan (next primary agent)
       expect(agent).toBe("plan")
     }),
   {
     config: {
       agent: {
         build: { disable: true },
+        webapp: { disable: true },
       },
     },
   },
@@ -748,6 +750,7 @@ it.instance(
     config: {
       agent: {
         build: { disable: true },
+        webapp: { disable: true },
         plan: { disable: true },
       },
     },

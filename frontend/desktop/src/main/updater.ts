@@ -16,16 +16,15 @@ export function setupAutoUpdater(stop: () => Promise<void>) {
   const logger = getLogger()
   autoUpdater.logger = logger
   autoUpdater.channel = "latest"
-  autoUpdater.allowPrerelease = false
+  autoUpdater.allowPrerelease = true
   autoUpdater.allowDowngrade = false
   autoUpdater.autoDownload = false
   autoUpdater.autoInstallOnAppQuit = false
 
   try {
     autoUpdater.setFeedURL({
-      provider: "github",
-      owner: "Dreftian",
-      repo: "Tiancode",
+      provider: "generic",
+      url: "https://github.com/Dreftian/Tiancode/releases/latest/download",
     })
   } catch (err) {
     logger.log("auto updater setFeedURL error", { error: err })

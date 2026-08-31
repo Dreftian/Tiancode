@@ -50,14 +50,14 @@ async function project(files: Record<string, string>): Promise<string> {
 }
 
 describe("skill auto-select", () => {
-  test("sin señales selecciona solo las skills base", async () => {
+  test("sin señales selecciona solo las skills base seguras", async () => {
     const dir = await project({})
     const selected = await autoSelectFor(dir, catalog)
     expect(selected.length).toBe(3)
     expect(names(selected)).toEqual([
-      "test-driven-development",
       "code-review-and-quality",
       "verification-before-completion",
+      "security-and-hardening",
     ])
   })
 
@@ -69,7 +69,7 @@ describe("skill auto-select", () => {
     expect(selected).toContain("frontend-design")
     expect(selected).toContain("frontend-ui-engineering")
     expect(selected).toContain("web-quality-audit")
-    expect(selected).toContain("test-driven-development")
+    expect(selected).toContain("code-review-and-quality")
   })
 
   test("sitio HTML y adaptador de preview también cargan el diseño frontend", async () => {
@@ -80,6 +80,15 @@ describe("skill auto-select", () => {
     const selected = names(await autoSelectFor(dir, catalog))
     expect(selected).toContain("frontend-design")
     expect(selected).toContain("frontend-ui-engineering")
+  })
+
+  test("proyecto con carpeta tests detecta testing y añade TDD", async () => {
+    const dir = await project({
+      "tests/app.test.ts": "test('ok', () => {})",
+    })
+    const selected = names(await autoSelectFor(dir, catalog))
+    expect(selected).toContain("testing-strategy")
+    expect(selected).toContain("test-driven-development")
   })
 
   test("proyecto python detecta pyproject.toml", async () => {
@@ -129,7 +138,7 @@ describe("skill auto-select", () => {
     const dir = await project({})
     const selected = await autoSelectFor(dir, catalog)
     const block = fmtAuto(selected)
-    expect(block).toContain("## Skill: test-driven-development")
-    expect(block).toContain("# test-driven-development")
+    expect(block).toContain("## Skill: code-review-and-quality")
+    expect(block).toContain("# code-review-and-quality")
   })
 })

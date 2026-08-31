@@ -210,8 +210,9 @@ function getPetHtml(state: DesktopPetState): string {
       inset: 0;
       border-radius: 50%;
       padding: 2px;
-      background: rgba(255, 255, 255, 0.08);
-      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.5);
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
       transition: background 0.4s ease, box-shadow 0.4s ease;
     }
     .pet-ring::before {
@@ -239,7 +240,6 @@ function getPetHtml(state: DesktopPetState): string {
     }
     .pet-container.needs-input .pet-ring { animation: ring-pulse-amber 1.1s ease-in-out infinite; }
     .pet-container.blocked .pet-ring { animation: ring-pulse-red 0.9s ease-in-out infinite; }
-    .pet-container.ready .pet-ring::after { background: rgba(255, 255, 255, 0.04); }
     @keyframes ring-spin { to { transform: rotate(360deg); } }
     @keyframes ring-pulse-amber {
       0%, 100% { box-shadow: 0 0 6px rgba(234, 179, 8, 0.35), 0 10px 26px rgba(0, 0, 0, 0.5); }
@@ -460,12 +460,16 @@ export function createDesktopPetWindow(): BrowserWindow {
     hasShadow: false,
     focusable: false,
     show: false,
+    type: "toolbar",
+    thickFrame: false,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
+      backgroundThrottling: false,
     },
   })
 
+  petWindow.setBackgroundColor("#00000000")
   petWindow.setAlwaysOnTop(true, "screen-saver")
   petWindow.setVisibleOnAllWorkspaces(true)
 

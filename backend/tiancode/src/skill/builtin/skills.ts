@@ -25,6 +25,7 @@ import deploy_checklist from "../../../../../skills/deploy-checklist.md" with { 
 import deprecation_and_migration from "../../../../../skills/deprecation-and-migration.md" with { type: "text" }
 import dispatching_parallel_agents from "../../../../../skills/dispatching-parallel-agents.md" with { type: "text" }
 import doc_coauthoring from "../../../../../skills/doc-coauthoring.md" with { type: "text" }
+import docker_containerization_expert from "../../../../../skills/docker-containerization-expert.md" with { type: "text" }
 import docker_deploy_pipeline from "../../../../../skills/docker-deploy-pipeline.md" with { type: "text" }
 import documentation_and_adrs from "../../../../../skills/documentation-and-adrs.md" with { type: "text" }
 import domain_modeling from "../../../../../skills/domain-modeling.md" with { type: "text" }
@@ -42,10 +43,12 @@ import improve_codebase_architecture from "../../../../../skills/improve-codebas
 import incident_response from "../../../../../skills/incident-response.md" with { type: "text" }
 import incremental_implementation from "../../../../../skills/incremental-implementation.md" with { type: "text" }
 import interview_me from "../../../../../skills/interview-me.md" with { type: "text" }
+import nextjs_app_router_expert from "../../../../../skills/nextjs-app-router-expert.md" with { type: "text" }
 import notebooklm_researcher from "../../../../../skills/notebooklm-researcher.md" with { type: "text" }
 import observability_and_instrumentation from "../../../../../skills/observability-and-instrumentation.md" with { type: "text" }
 import performance_optimization from "../../../../../skills/performance-optimization.md" with { type: "text" }
 import planning_and_task_breakdown from "../../../../../skills/planning-and-task-breakdown.md" with { type: "text" }
+import playwright_e2e_testing from "../../../../../skills/playwright-e2e-testing.md" with { type: "text" }
 import requesting_code_review from "../../../../../skills/requesting-code-review.md" with { type: "text" }
 import research from "../../../../../skills/research.md" with { type: "text" }
 import resolving_merge_conflicts from "../../../../../skills/resolving-merge-conflicts.md" with { type: "text" }
@@ -59,11 +62,13 @@ import spec_driven_development from "../../../../../skills/spec-driven-developme
 import sql_queries from "../../../../../skills/sql-queries.md" with { type: "text" }
 import system_automation_windows from "../../../../../skills/system-automation-windows.md" with { type: "text" }
 import system_design from "../../../../../skills/system-design.md" with { type: "text" }
+import tailwind_v4_styling from "../../../../../skills/tailwind-v4-styling.md" with { type: "text" }
 import tech_debt from "../../../../../skills/tech-debt.md" with { type: "text" }
 import test_driven_development from "../../../../../skills/test-driven-development.md" with { type: "text" }
 import testing_strategy from "../../../../../skills/testing-strategy.md" with { type: "text" }
 import tiancode_spec_kit from "../../../../../skills/tiancode-spec-kit.md" with { type: "text" }
 import to_spec from "../../../../../skills/to-spec.md" with { type: "text" }
+import typescript_strict_patterns from "../../../../../skills/typescript-strict-patterns.md" with { type: "text" }
 import using_agent_skills from "../../../../../skills/using-agent-skills.md" with { type: "text" }
 import using_git_worktrees from "../../../../../skills/using-git-worktrees.md" with { type: "text" }
 import verification_before_completion from "../../../../../skills/verification-before-completion.md" with { type: "text" }
@@ -98,6 +103,7 @@ export const builtinAgentSkills: Record<string, string> = {
   "deprecation-and-migration": deprecation_and_migration,
   "dispatching-parallel-agents": dispatching_parallel_agents,
   "doc-coauthoring": doc_coauthoring,
+  "docker-containerization-expert": docker_containerization_expert,
   "docker-deploy-pipeline": docker_deploy_pipeline,
   "documentation-and-adrs": documentation_and_adrs,
   "domain-modeling": domain_modeling,
@@ -115,10 +121,12 @@ export const builtinAgentSkills: Record<string, string> = {
   "incident-response": incident_response,
   "incremental-implementation": incremental_implementation,
   "interview-me": interview_me,
+  "nextjs-app-router-expert": nextjs_app_router_expert,
   "notebooklm-researcher": notebooklm_researcher,
   "observability-and-instrumentation": observability_and_instrumentation,
   "performance-optimization": performance_optimization,
   "planning-and-task-breakdown": planning_and_task_breakdown,
+  "playwright-e2e-testing": playwright_e2e_testing,
   "requesting-code-review": requesting_code_review,
   "research": research,
   "resolving-merge-conflicts": resolving_merge_conflicts,
@@ -132,11 +140,13 @@ export const builtinAgentSkills: Record<string, string> = {
   "sql-queries": sql_queries,
   "system-automation-windows": system_automation_windows,
   "system-design": system_design,
+  "tailwind-v4-styling": tailwind_v4_styling,
   "tech-debt": tech_debt,
   "test-driven-development": test_driven_development,
   "testing-strategy": testing_strategy,
   "tiancode-spec-kit": tiancode_spec_kit,
   "to-spec": to_spec,
+  "typescript-strict-patterns": typescript_strict_patterns,
   "using-agent-skills": using_agent_skills,
   "using-git-worktrees": using_git_worktrees,
   "verification-before-completion": verification_before_completion,

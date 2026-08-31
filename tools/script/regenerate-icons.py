@@ -80,40 +80,39 @@ def make_standalone_emblem(src_img, color_rgb):
 
 def make_master_app_icon(src_img):
     """Generate the official dark squircle app icon: deep obsidian background
-    with the WHITE emblem (the brand mark is a white face on a dark plate —
-    the cyan/blue gradient backgrounds never belonged to the brand). A subtle
-    cyan rim keeps the dark plate readable on dark taskbars; the DIB small
-    frames in write_ico fix the white-square rendering."""
-    size = 1024
+    with the crisp WHITE emblem. Perfectly rounded squircle with supersampled
+    antialiasing and transparent corners, with no color fringe or blue borders."""
+    scale = 2
+    size = 1024 * scale
     bg = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(bg)
 
-    radius = 220
-    margin = 40
+    radius = 220 * scale
+    margin = 40 * scale
 
     # Base dark container with deep luxury obsidian
     draw.rounded_rectangle(
         [margin, margin, size - margin, size - margin],
         radius=radius,
-        fill=(15, 23, 42, 255),
-        outline=(56, 189, 248, 130),
-        width=10,
+        fill=(12, 16, 24, 255),
+        outline=(255, 255, 255, 24),
+        width=3 * scale,
     )
 
-    # Inner dark layer
-    inner_margin = margin + 14
+    # Inner subtle rim for depth
+    inner_margin = margin + 12 * scale
     draw.rounded_rectangle(
         [inner_margin, inner_margin, size - inner_margin, size - inner_margin],
-        radius=radius - 8,
-        fill=(10, 15, 29, 255),
-        outline=(255, 255, 255, 30),
-        width=3,
+        radius=radius - 10 * scale,
+        fill=(9, 13, 20, 255),
+        outline=(255, 255, 255, 10),
+        width=2 * scale,
     )
 
     # White emblem with a soft dark drop shadow for depth
     white_emblem = make_standalone_emblem(src_img, (255, 255, 255))
     shadow_emblem = make_standalone_emblem(src_img, (0, 0, 0))
-    emblem_w = int((size - 2 * margin) * 0.76)
+    emblem_w = int((size - 2 * margin) * 0.74)
     aspect = white_emblem.height / white_emblem.width
     emblem_h = int(emblem_w * aspect)
     pos_x = (size - emblem_w) // 2
@@ -121,12 +120,14 @@ def make_master_app_icon(src_img):
 
     shadow = shadow_emblem.resize((emblem_w, emblem_h), Image.Resampling.LANCZOS)
     shadow_arr = np.array(shadow)
-    shadow_arr[..., 3] = (shadow_arr[..., 3].astype(float) * 0.5).astype(np.uint8)
-    bg.paste(Image.fromarray(shadow_arr, "RGBA"), (pos_x + 14, pos_y + 20), Image.fromarray(shadow_arr, "RGBA"))
+    shadow_arr[..., 3] = (shadow_arr[..., 3].astype(float) * 0.4).astype(np.uint8)
+    bg.paste(Image.fromarray(shadow_arr, "RGBA"), (pos_x + 10 * scale, pos_y + 14 * scale), Image.fromarray(shadow_arr, "RGBA"))
 
     resized_emblem = white_emblem.resize((emblem_w, emblem_h), Image.Resampling.LANCZOS)
     bg.paste(resized_emblem, (pos_x, pos_y), resized_emblem)
-    return bg
+    
+    # Downscale supersampled image for ultra-smooth edges
+    return bg.resize((1024, 1024), Image.Resampling.LANCZOS)
 
 
 def png_bytes(img):
@@ -137,8 +138,7 @@ def png_bytes(img):
 
 def thicken_small_frame(img, size):
     """Dilate the emblem strokes on tiny ICO frames (16-32px) so the white
-    mark survives taskbar/tray downscaling instead of smearing into the
-    gradient."""
+    mark survives taskbar/tray downscaling."""
     if size > 32:
         return img
     r, g, b, a = img.split()
@@ -147,8 +147,13 @@ def thicken_small_frame(img, size):
 
 
 def bmp_entry(image):
-    w, h = image.size
-    data = image.convert("RGBA").tobytes("raw", "BGRA")
+    # Zero out RGB on fully transparent pixels to eliminate color fringe/halo in Windows
+    img_arr = np.array(image.convert("RGBA"))
+    alpha = img_arr[..., 3]
+    img_arr[alpha == 0, :3] = 0
+    cleaned_img = Image.fromarray(img_arr, "RGBA")
+    w, h = cleaned_img.size
+    data = cleaned_img.tobytes("raw", "BGRA")
     rows = [data[i * w * 4 : (i + 1) * w * 4] for i in range(h)]
     xor = b"".join(reversed(rows))
     and_mask = b"\x00" * (((w + 31) // 32) * 4 * h)

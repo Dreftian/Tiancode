@@ -436,9 +436,12 @@ export const SettingsModelsHubV2: Component<{
   const vramTotal = createMemo(() => asNumber(system()?.vram?.total) ?? 8e9)
   const vramFree = createMemo(() => asNumber(system()?.vram?.free) ?? 6e9)
 
+  const syncedJobSet = new Set<string>()
+
   const syncCompletedModels = async (jobList: DownloadJob[]) => {
     const completed = jobList.filter((j) => j.status === "completed")
-    if (!completed.length) return
+    const newCompleted = completed.filter((j) => !syncedJobSet.has(j.id))
+    if (!newCompleted.length) return
     try {
       const configRes = await serverSdk().client.config.get(params()).catch(() => undefined)
       const existingProviders = ((configRes?.data as any)?.provider ?? {}) as Record<string, any>
@@ -449,14 +452,15 @@ export const SettingsModelsHubV2: Component<{
       }
       const existingModels = { ...(localProvider.models ?? {}) }
       let changed = false
-      for (const j of completed) {
+      for (const j of newCompleted) {
         const cleanName = j.file.replace(/\.gguf$/i, "")
         if (!existingModels[cleanName]) {
           existingModels[cleanName] = { name: cleanName }
           changed = true
         }
+        syncedJobSet.add(j.id)
       }
-      if (changed || !existingProviders.local) {
+      if (changed) {
         const updatedProviders = {
           ...existingProviders,
           local: {
@@ -497,7 +501,8 @@ export const SettingsModelsHubV2: Component<{
 
   createEffect(() => {
     void refreshJobs()
-    const timer = setInterval(() => void refreshJobs(), 1000)
+    const intervalTime = jobs().some((j) => j.status === "downloading") ? 1500 : 4000
+    const timer = setInterval(() => void refreshJobs(), intervalTime)
     onCleanup(() => clearInterval(timer))
   })
 
@@ -629,23 +634,51 @@ export const SettingsModelsHubV2: Component<{
   }
 
   const removeDownload = async (job: DownloadJob) => {
-    try {
-      // Invocación SDK con id plano para borrar de disco y cancelar job
-      await serverSdk().client.modelhub.cancel({ id: job.id, ...params() }).catch(() => undefined)
+    // 1. Eliminación optimista inmediata en la UI
+    setJobs((prev) => prev.filter((j) => j.id !== job.id && j.file !== job.file))
 
-      // Limpiar del registro de proveedores
+    try {
+      // 2. Detener el motor nativo para liberar bloqueos de archivo en Windows
+      await serverSdk().client.modelhub.engineStop(params()).catch(() => undefined)
+
+      // 3. Invocación de borrado físico directo vía Desktop IPC en Windows (elimina de disco, .jobs.json y procesos)
+      const electronApi = (window as unknown as { api?: { modelHub?: { deleteFile: (target: unknown) => Promise<unknown> } } })?.api
+      if (electronApi?.modelHub?.deleteFile) {
+        await electronApi.modelHub.deleteFile({
+          file: job.file,
+          id: job.id,
+          destPath: (job as any).destPath,
+        }).catch(() => undefined)
+      }
+
+      // 4. Eliminar archivo de disco y cancelar job en backend con múltiples formatos de clave
+      const safeFile = encodeURIComponent(job.file)
+      const safeId = encodeURIComponent(job.id)
+      await Promise.all([
+        serverSdk().client.modelhub.cancel({ id: safeFile, ...params() }).catch(() => undefined),
+        serverSdk().client.modelhub.cancel({ id: job.file, ...params() }).catch(() => undefined),
+        serverSdk().client.modelhub.cancel({ id: safeId, ...params() }).catch(() => undefined),
+        serverSdk().client.modelhub.cancel({ id: job.id, ...params() }).catch(() => undefined),
+      ])
+
+      // 4. Limpiar del registro de proveedores en config
       const cleanName = job.file.replace(/\.gguf$/i, "")
       const configRes = await serverSdk().client.config.get(params()).catch(() => undefined)
       if (configRes?.data?.provider) {
         const providers = { ...configRes.data.provider } as Record<string, { models?: Record<string, unknown> }>
         let changed = false
         for (const [pKey, pVal] of Object.entries(providers)) {
-          if (pVal?.models && (pVal.models[cleanName] || pVal.models[job.file])) {
+          if (pVal?.models) {
             const newModels = { ...pVal.models }
-            delete newModels[cleanName]
-            delete newModels[job.file]
-            providers[pKey] = { ...pVal, models: newModels }
-            changed = true
+            for (const mKey of Object.keys(newModels)) {
+              if (mKey === cleanName || mKey === job.file || mKey.includes(cleanName) || mKey.includes(job.file)) {
+                delete newModels[mKey]
+                changed = true
+              }
+            }
+            if (changed) {
+              providers[pKey] = { ...pVal, models: newModels }
+            }
           }
         }
         if (changed) {
@@ -654,13 +687,15 @@ export const SettingsModelsHubV2: Component<{
       }
 
       await refreshJobs()
+      refetchEngine()
       showToast({
         variant: "success",
         title: "Modelo eliminado del disco",
-        description: `Se eliminó ${job.file}`,
+        description: `Se eliminó ${job.file} completamente.`,
       })
     } catch {
       showToast({ variant: "error", title: "Error al eliminar el modelo" })
+      await refreshJobs()
     }
   }
 
@@ -988,80 +1023,65 @@ export const SettingsModelsHubV2: Component<{
 
               return (
                 <div class="lm-details-pane">
-                  {/* Cabecera del Modelo */}
-                  <div class="lm-details-header">
-                    <BrandLogo id={model().id} author={authorName()} class="lm-details-logo" />
-                    <div class="lm-details-title-stack">
-                      <div class="flex items-center gap-2">
-                        <a
-                          href={`https://huggingface.co/${authorName()}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          class="text-xs font-mono text-sky-400 hover:underline"
-                        >
-                          @{authorName()}
-                        </a>
-                        <span class="text-slate-600">/</span>
-                        <span class="text-xs text-slate-400 font-mono">GGUF Model</span>
-                      </div>
-                      <div class="lm-details-title-row">
-                        <h2 class="lm-details-title">{shortName()}</h2>
-                        <span class="lm-verified-badge-lg">✓</span>
-                      </div>
-                      <div class="lm-details-stats-row">
-                        <span>⬇ {formatNumber(model().downloads)} descargas</span>
-                        <span>❤️ {formatNumber(model().likes)} likes</span>
-                        <Show when={!submitted()}>
-                          <span class="lm-staff-badge">🌟 Staff Pick</span>
-                        </Show>
+                  {/* Cabecera del Modelo Compacta */}
+                  <div class="lm-hero-compact">
+                    <BrandLogo id={model().id} author={authorName()} class="lm-details-logo-sm" />
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between gap-2 flex-wrap">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                          <h2 class="lm-details-title-compact truncate">{shortName()}</h2>
+                          <span class="lm-verified-badge-lg" title="Modelo verificado">✓</span>
+                          <Show when={!submitted()}>
+                            <span class="lm-staff-badge-sm">🌟 Staff Pick</span>
+                          </Show>
+                        </div>
                         <a
                           href={`https://huggingface.co/${model().id}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          class="lm-web-link"
+                          class="lm-web-link text-xs"
                         >
-                          <span>Hugging Face ↗</span>
+                          Hugging Face ↗
                         </a>
+                      </div>
+                      <div class="flex items-center gap-3 text-xs text-slate-400 mt-1 flex-wrap">
+                        <span class="font-mono text-sky-400">@{authorName()}</span>
+                        <span>⬇ {formatNumber(model().downloads)} descargas</span>
+                        <span>❤️ {formatNumber(model().likes)} likes</span>
+                        <span class="text-slate-500 font-mono text-[11px]">GGUF Format</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Tarjeta de Opciones de Descarga y Ejecución */}
-                  <div class="lm-card lm-download-card">
-                    <div class="lm-card-header">
-                      <h3 class="lm-card-title">Download Options</h3>
-                      <span class="lm-device-tag">Download to: <strong>This device ▾</strong></span>
-                    </div>
-
-                    <div class="lm-quant-selector-row">
-                      <div class="lm-quant-picker">
-                        <span class="lm-quant-label">Cuantización GGUF:</span>
+                  {/* Panel de Acción y Ejecución Compacto */}
+                  <div class="lm-action-strip">
+                    <div class="flex items-center gap-3 flex-wrap flex-1">
+                      <div class="lm-quant-picker flex-1 min-w-[200px]">
                         <select
-                          class="lm-quant-select"
+                          class="lm-quant-select w-full"
                           value={selectedQuant()}
                           onChange={(e) => setSelectedQuant(e.currentTarget.value)}
                         >
                           <For each={availableFiles()}>
                             {(qf) => (
                               <option value={qf.file}>
-                                {qf.quant || "GGUF"} · {formatBytes(qf.size)} {qf.recommended ? "(Recommended)" : ""}
+                                {qf.quant || "GGUF"} · {formatBytes(qf.size)} {qf.recommended ? "(Recomendado)" : ""}
                               </option>
                             )}
                           </For>
                         </select>
                       </div>
 
-                      {/* Insignia de compatibilidad de hardware */}
+                      {/* Insignia de Hardware */}
                       <div class={`lm-compat-badge lm-compat-${fit()}`}>
-                        <Show when={fit() === "full_gpu"}>⚡ Full GPU Offload Possible</Show>
-                        <Show when={fit() === "partial_gpu"}>⚡ Partial GPU Offload Possible</Show>
-                        <Show when={fit() === "ram_only"}>🧠 Fits without GPU (CPU/RAM)</Show>
-                        <Show when={fit() === "no_fit"}>⚠️ Requiere más memoria</Show>
+                        <Show when={fit() === "full_gpu"}>⚡ Full GPU Offload</Show>
+                        <Show when={fit() === "partial_gpu"}>⚡ Partial GPU</Show>
+                        <Show when={fit() === "ram_only"}>🧠 RAM / CPU</Show>
+                        <Show when={fit() === "no_fit"}>⚠️ Memoria Insuficiente</Show>
                       </div>
                     </div>
 
-                    {/* Botones Principales de Acción */}
-                    <div class="lm-action-bar">
+                    <div class="flex items-center gap-2">
                       <Show
                         when={job()?.status === "completed"}
                         fallback={
@@ -1070,113 +1090,98 @@ export const SettingsModelsHubV2: Component<{
                             fallback={
                               <button
                                 type="button"
-                                class="lm-btn-download"
+                                class="lm-btn-download-sm"
                                 onClick={() => file() && startDownload(model().id, file()!.file)}
                               >
-                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
                                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                                   <polyline points="7 10 12 15 17 10" />
                                   <line x1="12" y1="15" x2="12" y2="3" />
                                 </svg>
-                                Download {formatBytes(file()?.size)}
+                                <span>Descargar {formatBytes(file()?.size)}</span>
                               </button>
                             }
                           >
-                            <div class="lm-downloading-pill">
+                            <div class="lm-downloading-pill-sm">
                               <span class="lm-spinner" />
-                              Descargando... {job()?.percent ?? 0}% ({formatSpeed(job()?.speedBytesPerSec)})
+                              <span>{job()?.percent ?? 0}% ({formatSpeed(job()?.speedBytesPerSec)})</span>
                             </div>
                           </Show>
                         }
                       >
-                        <div class="lm-completed-actions">
-                          <button
-                            type="button"
-                            class="lm-btn-activate"
-                            onClick={() => job() && activateDownloadedModel(job()!)}
-                          >
-                            ⚡ Activar y Usar
-                          </button>
-                          <button
-                            type="button"
-                            class="lm-btn-delete"
-                            onClick={() => job() && removeDownload(job()!)}
-                          >
-                            🗑️ Eliminar de disco
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          class="lm-btn-activate-sm"
+                          onClick={() => job() && activateDownloadedModel(job()!)}
+                        >
+                          ⚡ Activar y Usar
+                        </button>
+                        <button
+                          type="button"
+                          class="lm-btn-delete-sm"
+                          onClick={() => job() && removeDownload(job()!)}
+                          title="Eliminar de disco"
+                        >
+                          🗑️
+                        </button>
                       </Show>
 
-                      {/* Botón de Benchmark GPU en 1 Clic */}
                       <button
                         type="button"
-                        class="lm-btn-benchmark px-3 py-1.5 rounded-lg border border-sky-500/30 bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 text-xs font-semibold flex items-center gap-1.5 transition-all"
+                        class="lm-btn-benchmark-sm"
                         disabled={benchmarking()}
                         onClick={runBenchmark}
+                        title="Probar velocidad de inferencia en GPU"
                       >
-                        <Show when={benchmarking()} fallback={<span>⚡ Benchmark GPU</span>}>
+                        <Show when={benchmarking()} fallback={<span>⚡ Benchmark</span>}>
                           <span class="lm-spinner" />
-                          <span>Calculando tok/s...</span>
                         </Show>
                       </button>
                     </div>
-
-                    {/* Resultado del Benchmark GPU */}
-                    <Show when={benchResult()}>
-                      {(res) => (
-                        <div class="mt-2.5 p-2 rounded-lg bg-slate-950/80 border border-sky-500/30 flex items-center justify-between text-xs text-sky-200">
-                          <div class="flex items-center gap-2">
-                            <span class="text-emerald-400 font-bold text-sm">{res().tokSec} tok/s</span>
-                            <span class="text-slate-400">· VRAM: {res().vram}</span>
-                          </div>
-                          <span class="text-slate-400">TTFT: {res().ttft} ms</span>
-                        </div>
-                      )}
-                    </Show>
                   </div>
 
-                  {/* Tarjeta de Detalles Técnicos */}
-                  <div class="lm-card">
-                    <h3 class="lm-card-title">Details</h3>
-                    <p class="lm-details-desc">{model().description || "Model architecture built for agentic execution and local workflows."}</p>
-                    <div class="lm-badges-grid">
-                      <div class="lm-badge-item">
-                        <span class="lm-badge-k">Architecture</span>
-                        <span class="lm-badge-v">{shortName().toLowerCase().includes("qwen") ? "qwen2.5" : "transformer"}</span>
+                  {/* Resultado del Benchmark GPU */}
+                  <Show when={benchResult()}>
+                    {(res) => (
+                      <div class="p-2.5 rounded-xl bg-slate-950/80 border border-sky-500/30 flex items-center justify-between text-xs text-sky-200">
+                        <div class="flex items-center gap-2">
+                          <span class="text-emerald-400 font-bold text-sm">{res().tokSec} tok/s</span>
+                          <span class="text-slate-400">· VRAM: {res().vram}</span>
+                        </div>
+                        <span class="text-slate-400">TTFT: {res().ttft} ms (Offload completo)</span>
                       </div>
-                      <div class="lm-badge-item">
-                        <span class="lm-badge-k">Formats</span>
-                        <span class="lm-badge-v">GGUF</span>
-                      </div>
-                      <div class="lm-badge-item">
-                        <span class="lm-badge-k">Quantization</span>
-                        <span class="lm-badge-v">{file()?.quant || "Q4_K_M"}</span>
-                      </div>
-                      <div class="lm-badge-item">
-                        <span class="lm-badge-k">Chat Template</span>
-                        <span class="lm-badge-v text-emerald-400 font-mono">ChatML (Auto-detect)</span>
-                      </div>
-                      <div class="lm-badge-item">
-                        <span class="lm-badge-k">File Size</span>
-                        <span class="lm-badge-v">{formatBytes(file()?.size)}</span>
-                      </div>
+                    )}
+                  </Show>
+
+                  {/* Fila Compacta de Especificaciones */}
+                  <div class="lm-specs-strip">
+                    <div class="lm-spec-pill">
+                      <span class="lm-spec-k">Arquitectura</span>
+                      <span class="lm-spec-v">{shortName().toLowerCase().includes("qwen") ? "qwen2.5" : "transformer"}</span>
+                    </div>
+                    <div class="lm-spec-pill">
+                      <span class="lm-spec-k">Cuantización</span>
+                      <span class="lm-spec-v">{file()?.quant || "Q4_K_M"}</span>
+                    </div>
+                    <div class="lm-spec-pill">
+                      <span class="lm-spec-k">Tamaño</span>
+                      <span class="lm-spec-v">{formatBytes(file()?.size)}</span>
+                    </div>
+                    <div class="lm-spec-pill">
+                      <span class="lm-spec-k">Plantilla Chat</span>
+                      <span class="lm-spec-v text-emerald-400 font-mono">ChatML (Auto)</span>
                     </div>
                   </div>
 
-                  {/* Sección README y Capacidades */}
-                  <div class="lm-card">
-                    <h3 class="lm-card-title">README & Highlights</h3>
-                    <div class="lm-readme-body">
-                      <h4>{shortName()}</h4>
-                      <p>
-                        Compact, high-performance dense vision-language and reasoning model optimized for coding,
-                        autonomous planning and local tool execution in Tiancode.
-                      </p>
-                      <ul>
-                        <li><strong>Agent Execution:</strong> Autonomous planning and environment-feedback loops.</li>
-                        <li><strong>Flexible Thinking:</strong> Native reasoning traces and chain-of-thought support.</li>
-                        <li><strong>Zero External Apps Needed:</strong> Runs directly via Tiancode Local inference backend.</li>
-                      </ul>
+                  {/* Resumen Compacto y Capacidades */}
+                  <div class="lm-summary-compact">
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                      {model().description || "Modelo de razonamiento optimizado para codificación, ejecución autónoma de sub-agentes y llamadas a herramientas locales en Tiancode."}
+                    </p>
+                    <div class="flex items-center gap-2 flex-wrap mt-2">
+                      <span class="lm-cap-chip">💻 Coding & Tools</span>
+                      <span class="lm-cap-chip">🧠 Reasoning Traces</span>
+                      <span class="lm-cap-chip">⚡ Native Local Inference</span>
                     </div>
                   </div>
                 </div>

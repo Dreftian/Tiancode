@@ -219,13 +219,114 @@ const SKILL_ES_DESCRIPTIONS: Record<string, string> = {
   "quickgo-database": "Mapeo de genes a procesos biológicos, funciones moleculares y jerarquía Gene Ontology.",
   "reactome-database": "Análisis de rutas biológicas, reacciones y enriquecimiento de vías en Reactome.",
   "science-skills-common": "Librería compartida con cliente HTTP unificado para peticiones científicas y rate limiting.",
-  "scienceskillscommon": "Librería compartida con cliente HTTP unificado para peticiones científicas y rate limiting.",
   "string-database": "Consulta interacciones proteína-proteína, redes funcionales y homología en STRING.",
   "ucsc-conservation-and-tfbs": "Puntajes de conservación evolutiva y sitios de unión TF en el Navegador UCSC.",
   "unibind-database": "Conjuntos de datos de sitios de unión de factores de transcripción validados en UniBind.",
   "uniprot-database": "Metadatos de proteínas, función, taxonomía y secuencias en UniProtKB.",
   "uv": "Verifica e instala el gestor ultra-rápido de paquetes y entornos virtuales de Python uv.",
   "workflow-skill-creator": "Empaqueta y convierte un flujo de trabajo o interacción completada en una skill reutilizable.",
+  "nextjs-app-router-expert": "Especialista en Next.js 15, App Router, React Server Components (RSC), Server Actions y caché.",
+  "typescript-strict-patterns": "Patrones avanzados de tipado estricto en TypeScript 5+: branded types, discriminated unions y cero any.",
+  "tailwind-v4-styling": "Estilizado moderno con Tailwind CSS v4: variables de tema CSS (@theme), utilidades nativas y diseño Apple.",
+  "docker-containerization-expert": "Contenedorización avanzada con Docker: builds multi-stage, compose, seguridad non-root y healthchecks.",
+  "playwright-e2e-testing": "Automatización y pruebas End-to-End con Playwright: Page Object Model (POM), fixtures y visual regression.",
+}
+
+export const SAFE_SKILLS = new Set([
+  "accessibility",
+  "api-and-interface-design",
+  "api-rest-graphql-openapi",
+  "ci-cd-and-automation",
+  "code-review-and-quality",
+  "code-simplification",
+  "codebase-design",
+  "context-engineering",
+  "core-web-vitals",
+  "customize-tiancode",
+  "database-design-and-migration",
+  "database-drizzle-sqlite-pg",
+  "debugging-and-error-recovery",
+  "deploy-checklist",
+  "documentation-and-adrs",
+  "documentation-and-guides",
+  "git-workflow-and-releases",
+  "git-workflow-and-versioning",
+  "observability-and-instrumentation",
+  "performance-and-profiling",
+  "performance-optimization",
+  "security-and-hardening",
+  "security-and-vulnerability-audit",
+  "security-sast-owasp",
+  "testing-and-coverage",
+  "testing-strategy",
+  "verification-before-completion",
+  "agy-customizations",
+  "credentials",
+  "typescript-strict-patterns",
+])
+
+export const CATEGORY_FRONTEND = new Set([
+  "accessibility",
+  "apple-hig",
+  "browser-automation",
+  "browser-testing-with-devtools",
+  "claude-design-system-extractor",
+  "claude-frontend-engineer",
+  "claude-react-nextjs-expert",
+  "core-web-vitals",
+  "frontend-design",
+  "frontend-ui-engineering",
+  "frontend-ui-ux",
+  "fullstack-nextjs-tailwind",
+  "nextjs-app-router-expert",
+  "scandinavian-design",
+  "tailwind-v4-styling",
+  "web-quality-audit",
+  "generative_ui",
+])
+
+export const CATEGORY_BACKEND = new Set([
+  "api-and-interface-design",
+  "api-rest-graphql-openapi",
+  "database-design-and-migration",
+  "database-drizzle-sqlite-pg",
+  "docker-containerization-expert",
+  "docker-deploy-pipeline",
+  "domain-modeling",
+  "sql-queries",
+  "system-design",
+  "observability-and-instrumentation",
+  "incident-response",
+  "deploy-checklist",
+])
+
+export const CATEGORY_TESTING = new Set([
+  "code-review-and-quality",
+  "code-simplification",
+  "debugging-and-error-recovery",
+  "test-driven-development",
+  "testing-and-coverage",
+  "testing-strategy",
+  "verification-before-completion",
+  "playwright-e2e-testing",
+  "security-and-hardening",
+  "security-sast-owasp",
+  "security-and-vulnerability-audit",
+])
+
+export const SPECIALIZED_CONFLICT_TIPS: Record<string, string> = {
+  "test-driven-development": "⚠️ Metodología TDD estricta: exige pruebas unitarias previas antes de cualquier código. Puede colisionar con 'spec-driven-development' o 'incremental-implementation' si se activan juntas en prototipos rápidos.",
+  "spec-driven-development": "⚠️ Metodología Spec-First: redacta especificaciones completas antes de codificar. No combinar con TDD simultáneo para evitar parálisis de ejecución.",
+  "source-driven-development": "⚠️ Desarrollo basado en fuentes estrictas: requiere documentación oficial explícita antes de cualquier cambio.",
+  "doubt-driven-development": "⚠️ Revisión adversaria escéptica: somete cada decisión a cuestionamiento riguroso. Útil para cambios críticos, pero ralentiza prototipos ágiles.",
+  "grill-me": "⚠️ Flujo interactivo de entrevista: detiene la generación de código para interrogar al usuario sobre decisiones de diseño.",
+  "interview-me": "⚠️ Flujo interrogativo de requisitos: formula preguntas continuas antes de implementar.",
+  "wait-what": "⚠️ Detención preventiva de supuestos: interrumpe el flujo si detecta ambigüedad en lugar de inferir valores por defecto.",
+  "apple-hig": "⚠️ Guía de estilo Apple Human Interface: tipografía SF Pro y minimalismo estricto. Puede chocar con 'scandinavian-design' o 'frontend-design' si se combinan.",
+  "scandinavian-design": "⚠️ Estética nórdica ultra-minimalista: paletas monocromáticas. Puede entrar en conflicto visual con 'frontend-design'.",
+  "system-automation-windows": "⚠️ Automatización profunda de Windows: ejecuta scripts de PowerShell/CMD a nivel de sistema.",
+  "browser-automation": "⚠️ Requiere navegador headless configurado para testing de UI.",
+  "dispatching-parallel-agents": "⚠️ Lanza swarms de agentes en paralelo: alto consumo de recursos y tokens.",
 }
 
 const SKILL_ES_CONTENTS: Record<string, string> = {
@@ -482,6 +583,7 @@ export const SettingsSkillsV2: Component<{
   const [message, setMessage] = createSignal<"success" | "error" | undefined>(undefined)
   const [selected, setSelected] = createSignal<string | undefined>(undefined)
   const [page, setPage] = createSignal(0)
+  const [filterCategory, setFilterCategory] = createSignal<"all" | "safe" | "specialized" | "frontend" | "backend" | "testing">("all")
 
   const params = () => (props.directory ? { directory: props.directory } : undefined)
 
@@ -527,11 +629,65 @@ export const SettingsSkillsV2: Component<{
     }
     return builtInSkills()
   })
+
+  const filteredSkills = createMemo(() => {
+    const list = skills()
+    const cat = filterCategory()
+    if (cat === "safe") return list.filter((s) => SAFE_SKILLS.has(s.name))
+    if (cat === "specialized") return list.filter((s) => !SAFE_SKILLS.has(s.name))
+    if (cat === "frontend") return list.filter((s) => CATEGORY_FRONTEND.has(s.name))
+    if (cat === "backend") return list.filter((s) => CATEGORY_BACKEND.has(s.name))
+    if (cat === "testing") return list.filter((s) => CATEGORY_TESTING.has(s.name))
+    return list
+  })
+
   const disabled = createMemo(() => data().disabled)
   const autoSelect = createMemo(() => data().autoSelect)
-  const pages = createMemo(() => Math.max(1, Math.ceil(skills().length / PAGE_SIZE)))
-  const pageSkills = createMemo(() => skills().slice(page() * PAGE_SIZE, (page() + 1) * PAGE_SIZE))
-  const selectedSkill = createMemo(() => skills().find((skill) => skill.name === selected()) ?? skills()[0])
+  const pages = createMemo(() => Math.max(1, Math.ceil(filteredSkills().length / PAGE_SIZE)))
+  const pageSkills = createMemo(() => filteredSkills().slice(page() * PAGE_SIZE, (page() + 1) * PAGE_SIZE))
+  const selectedSkill = createMemo(() => skills().find((skill) => skill.name === selected()) ?? filteredSkills()[0] ?? skills()[0])
+
+  const enabledCount = createMemo(() => skills().filter((s) => !disabled().has(s.name)).length)
+  const safeEnabledCount = createMemo(() => skills().filter((s) => SAFE_SKILLS.has(s.name) && !disabled().has(s.name)).length)
+  const specializedEnabledCount = createMemo(() => skills().filter((s) => !SAFE_SKILLS.has(s.name) && !disabled().has(s.name)).length)
+
+  const updateDisabledSkills = async (newDisabledList: string[]) => {
+    try {
+      const sorted = newDisabledList.toSorted()
+      await serverSdk().client.config.update({
+        ...params(),
+        config: { skills: { disabled: sorted } },
+      })
+      void refetch()
+    } catch (e) {
+      console.warn("Failed to update disabled skills", e)
+    }
+  }
+
+  const enableAll = async () => {
+    await updateDisabledSkills([])
+  }
+
+  const disableAll = async () => {
+    await updateDisabledSkills(skills().map((s) => s.name))
+  }
+
+  const enableSafeOnly = async () => {
+    const specializedNames = skills().filter((s) => !SAFE_SKILLS.has(s.name)).map((s) => s.name)
+    await updateDisabledSkills(specializedNames)
+  }
+
+  const toggleSpecialized = async () => {
+    const specializedNames = skills().filter((s) => !SAFE_SKILLS.has(s.name)).map((s) => s.name)
+    const allSpecializedDisabled = specializedNames.every((name) => disabled().has(name))
+    if (allSpecializedDisabled) {
+      const newDisabled = Array.from(disabled()).filter((name) => !specializedNames.includes(name))
+      await updateDisabledSkills(newDisabled)
+    } else {
+      const newDisabled = Array.from(new Set([...disabled(), ...specializedNames]))
+      await updateDisabledSkills(newDisabled)
+    }
+  }
 
   const pickFolder = () => {
     const input = document.createElement("input")
@@ -579,24 +735,30 @@ export const SettingsSkillsV2: Component<{
   }
 
   const toggleSkill = async (name: string, enabled: boolean) => {
-    setMessage(undefined)
     try {
-      await serverSdk().client.app.skills2.toggle({ ...params(), name, enabled })
-      void refetch()
-    } catch {
-      setMessage("error")
+      const nextDisabled = new Set(disabled())
+      if (enabled) {
+        nextDisabled.delete(name)
+      } else {
+        nextDisabled.add(name)
+      }
+      await updateDisabledSkills(Array.from(nextDisabled))
+    } catch (e) {
+      console.warn("Failed to toggle skill", e)
     }
   }
 
   // Auto-selección: el modelo elige automáticamente las skills según las
   // señales del proyecto (framework, tooling…). Persiste en skills.autoSelect.
   const toggleAutoSelect = async (enabled: boolean) => {
-    setMessage(undefined)
     try {
-      await serverSdk().client.config.update({ ...params(), config: { skills: { autoSelect: enabled } } })
+      await serverSdk().client.config.update({
+        ...params(),
+        config: { skills: { autoSelect: enabled } },
+      })
       void refetch()
-    } catch {
-      setMessage("error")
+    } catch (e) {
+      console.warn("Failed to toggle autoSelect", e)
     }
   }
 
@@ -686,8 +848,104 @@ export const SettingsSkillsV2: Component<{
                   </Switch>
                 </SettingsRowV2>
               </SettingsListV2>
+
+              {/* Barra de Herramientas Compacta: Acciones Rápidas y Filtros en 1 sola sección reducida */}
+              <div class="settings-v2-skills-toolbar-compact">
+                <div class="settings-v2-skills-quick-row">
+                  <div class="settings-v2-skills-quick-buttons">
+                    <button
+                      type="button"
+                      class="settings-v2-skills-action-btn settings-v2-skills-action-btn--enable"
+                      onClick={() => void enableAll()}
+                      title={isSpanish() ? "Activar todas las skills del catálogo" : "Enable all skills in catalog"}
+                    >
+                      ⚡ {isSpanish() ? "Activar Todas" : "Enable All"}
+                    </button>
+                    <button
+                      type="button"
+                      class="settings-v2-skills-action-btn settings-v2-skills-action-btn--safe"
+                      onClick={() => void enableSafeOnly()}
+                      title={isSpanish() ? "Activar sólo las skills 100% seguras" : "Enable safe skills"}
+                    >
+                      🛡️ {isSpanish() ? "Sólo Seguras" : "Safe Only"} ({skills().filter((s) => SAFE_SKILLS.has(s.name)).length})
+                    </button>
+                    <button
+                      type="button"
+                      class="settings-v2-skills-action-btn settings-v2-skills-action-btn--specialized"
+                      onClick={() => void toggleSpecialized()}
+                      title={isSpanish() ? "Activar o desactivar especializadas" : "Toggle specialized"}
+                    >
+                      ⚠️ {specializedEnabledCount() > 0 ? (isSpanish() ? "Desactivar Esp." : "Disable Spec.") : (isSpanish() ? "Especializadas" : "Specialized")}
+                    </button>
+                    <button
+                      type="button"
+                      class="settings-v2-skills-action-btn settings-v2-skills-action-btn--disable"
+                      onClick={() => void disableAll()}
+                      title={isSpanish() ? "Desactivar todas las skills" : "Disable all skills"}
+                    >
+                      🛑 {isSpanish() ? "Desactivar Todas" : "Disable All"}
+                    </button>
+                  </div>
+                  <span class="settings-v2-skills-stats-pill">
+                    {enabledCount()}/{skills().length} {isSpanish() ? "activas" : "active"}
+                  </span>
+                </div>
+
+                {/* Categorías de Filtro Compactas */}
+                <div class="settings-v2-skills-filters-row">
+                  <button
+                    type="button"
+                    class="settings-v2-skills-filter-btn"
+                    data-active={filterCategory() === "all" ? "" : undefined}
+                    onClick={() => { setFilterCategory("all"); setPage(0); }}
+                  >
+                    {isSpanish() ? "Todas" : "All"} ({skills().length})
+                  </button>
+                  <button
+                    type="button"
+                    class="settings-v2-skills-filter-btn"
+                    data-active={filterCategory() === "safe" ? "" : undefined}
+                    onClick={() => { setFilterCategory("safe"); setPage(0); }}
+                  >
+                    🛡️ {isSpanish() ? "Seguras" : "Safe"} ({skills().filter((s) => SAFE_SKILLS.has(s.name)).length})
+                  </button>
+                  <button
+                    type="button"
+                    class="settings-v2-skills-filter-btn"
+                    data-active={filterCategory() === "specialized" ? "" : undefined}
+                    onClick={() => { setFilterCategory("specialized"); setPage(0); }}
+                  >
+                    ⚠️ {isSpanish() ? "Especializadas" : "Specialized"} ({skills().filter((s) => !SAFE_SKILLS.has(s.name)).length})
+                  </button>
+                  <button
+                    type="button"
+                    class="settings-v2-skills-filter-btn"
+                    data-active={filterCategory() === "frontend" ? "" : undefined}
+                    onClick={() => { setFilterCategory("frontend"); setPage(0); }}
+                  >
+                    🎨 Frontend
+                  </button>
+                  <button
+                    type="button"
+                    class="settings-v2-skills-filter-btn"
+                    data-active={filterCategory() === "backend" ? "" : undefined}
+                    onClick={() => { setFilterCategory("backend"); setPage(0); }}
+                  >
+                    ⚙️ Backend
+                  </button>
+                  <button
+                    type="button"
+                    class="settings-v2-skills-filter-btn"
+                    data-active={filterCategory() === "testing" ? "" : undefined}
+                    onClick={() => { setFilterCategory("testing"); setPage(0); }}
+                  >
+                    🧪 Testing
+                  </button>
+                </div>
+              </div>
+
               <Show
-                when={skills().length > 0}
+                when={filteredSkills().length > 0}
                 fallback={<div class="settings-v2-skills-status">{language.t("settings.skills.empty")}</div>}
               >
                 <SettingsListV2>
@@ -705,7 +963,16 @@ export const SettingsSkillsV2: Component<{
                           color={hashColor(skill.name)}
                         />
                         <div class="settings-v2-skills-item-copy">
-                          <div class="settings-v2-skills-item-name">{skill.name}</div>
+                          <div class="settings-v2-skills-item-name flex items-center">
+                            {skill.name}
+                            <span
+                              class={`settings-v2-skill-badge ${SAFE_SKILLS.has(skill.name) ? "settings-v2-skill-badge--safe" : "settings-v2-skill-badge--specialized"}`}
+                            >
+                              {SAFE_SKILLS.has(skill.name)
+                                ? (isSpanish() ? "🛡️ Seguro" : "🛡️ Safe")
+                                : (isSpanish() ? "⚠️ Especializado" : "⚠️ Specialized")}
+                            </span>
+                          </div>
                           <div class="settings-v2-skills-item-description">
                             {localizeSkillDescription(skill.name, skill.description, isSpanish())}
                           </div>
@@ -846,7 +1113,16 @@ export const SettingsSkillsV2: Component<{
                     color={hashColor(skill().name)}
                   />
                   <div class="settings-v2-skills-item-copy">
-                    <div class="settings-v2-skills-item-name">{skill().name}</div>
+                    <div class="settings-v2-skills-item-name flex items-center">
+                      {skill().name}
+                      <span
+                        class={`settings-v2-skill-badge ${SAFE_SKILLS.has(skill().name) ? "settings-v2-skill-badge--safe" : "settings-v2-skill-badge--specialized"}`}
+                      >
+                        {SAFE_SKILLS.has(skill().name)
+                          ? (isSpanish() ? "🛡️ Seguro" : "🛡️ Safe")
+                          : (isSpanish() ? "⚠️ Especializado" : "⚠️ Specialized")}
+                      </span>
+                    </div>
                     <div class="settings-v2-skills-item-description">
                       {localizeSkillDescription(skill().name, skill().description, isSpanish())}
                     </div>
@@ -862,6 +1138,21 @@ export const SettingsSkillsV2: Component<{
                   </div>
                 </div>
                 <div class="settings-v2-skills-detail-meta">{skill().location}</div>
+
+                {/* Caja de aviso de compatibilidad y optimización */}
+                <div
+                  class={`settings-v2-skill-compatibility-callout ${SAFE_SKILLS.has(skill().name) ? "settings-v2-skill-compatibility-callout--safe" : "settings-v2-skill-compatibility-callout--specialized"}`}
+                >
+                  {SAFE_SKILLS.has(skill().name)
+                    ? (isSpanish()
+                        ? "🛡️ Skill universal segura y compatible: puede estar activa junto a cualquier otra skill sin riesgo de interferencia ni bloqueos en el flujo de trabajo."
+                        : "🛡️ Safe & universal skill: compatible to run alongside any other skill without workflow conflicts.")
+                    : (SPECIALIZED_CONFLICT_TIPS[skill().name] ||
+                        (isSpanish()
+                          ? "⚠️ Skill especializada: diseñada para un propósito específico. Evita activarla junto a otras metodologías o estilos de diseño opuestos para mantener la fluidez y evitar respuestas contradictorias."
+                          : "⚠️ Specialized skill: designed for a specific workflow. Avoid combining with opposing methodologies or styling guides."))}
+                </div>
+
                 <div class="settings-v2-skills-detail-body">
                   <Markdown text={localizeSkillContent(skill().name, skill().content, isSpanish())} class="text-12-regular" />
                 </div>

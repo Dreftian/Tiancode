@@ -216,6 +216,9 @@ const api: ElectronAPI = {
     toggle: () => ipcRenderer.invoke("desktop-pet-toggle"),
     getState: () => ipcRenderer.invoke("desktop-pet-get-state"),
   },
+  modelHub: {
+    deleteFile: (target) => ipcRenderer.invoke("model-hub-delete-file", target),
+  },
 }
 
 contextBridge.exposeInMainWorld("api", api)

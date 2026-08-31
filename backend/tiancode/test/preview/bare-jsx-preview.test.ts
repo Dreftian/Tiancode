@@ -120,6 +120,31 @@ describe("bare JSX preview", () => {
     }
   })
 
+  test("serves index.html with helper JS scripts as static preview", async () => {
+    await using tmp = await tmpdir()
+    await Bun.write(
+      path.join(tmp.path, "index.html"),
+      '<html><body><script src="js/bloatware-data.js"></script><script src="js/app.js"></script><main id="app">App content</main></body></html>',
+    )
+    await Bun.write(path.join(tmp.path, "js", "bloatware-data.js"), 'window.data = { items: ["a", "b"] };')
+    await Bun.write(path.join(tmp.path, "js", "app.js"), 'console.log("loaded", window.data);')
+
+    const state = await startPreviewServer(tmp.path)
+    try {
+      expect(state).toMatchObject({
+        status: "ready",
+        framework: "html",
+        packageManager: "static",
+        command: "Tiancode static preview",
+      })
+      const page = await (await fetch(state.url!)).text()
+      expect(page).toContain("bloatware-data.js")
+      expect(page).toContain("app.js")
+    } finally {
+      expect(stopPreviewServer(tmp.path).status).toBe("stopped")
+    }
+  })
+
   test("runs a React Babel HTML shell from the managed JSX runtime", async () => {
     await using tmp = await tmpdir()
     await Bun.write(

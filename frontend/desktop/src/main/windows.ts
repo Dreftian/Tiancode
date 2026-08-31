@@ -242,13 +242,13 @@ export function createMainWindow(id: string = randomUUID()) {
   const mode = tone()
   const icon = windowIcon()
   const win = new BrowserWindow({
-    x: isOnboarding ? undefined : state.x,
-    y: isOnboarding ? undefined : state.y,
-    width: isOnboarding ? 500 : state.width,
-    height: isOnboarding ? 440 : state.height,
-    resizable: !isOnboarding,
-    maximizable: !isOnboarding,
-    center: isOnboarding,
+    x: undefined,
+    y: undefined,
+    width: isOnboarding ? 780 : 440,
+    height: isOnboarding ? 560 : 380,
+    resizable: false,
+    maximizable: false,
+    center: true,
     show: false,
     autoHideMenuBar: true,
     title: APP_NAMES[CHANNEL],

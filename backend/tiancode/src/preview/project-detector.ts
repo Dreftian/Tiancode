@@ -26,12 +26,24 @@ const BARE_JSX_ENTRIES = [
   "src/index.jsx",
   "src/App.tsx",
   "src/App.jsx",
+  "src/app.tsx",
+  "src/app.jsx",
   "main.tsx",
   "main.jsx",
   "index.tsx",
   "index.jsx",
   "App.tsx",
   "App.jsx",
+  "app.tsx",
+  "app.jsx",
+  "src/main.js",
+  "src/index.js",
+  "src/App.js",
+  "src/app.js",
+  "main.js",
+  "index.js",
+  "App.js",
+  "app.js",
 ] as const
 
 // Puertos por defecto de los frameworks/bundlers más comunes; el stdout del
@@ -83,9 +95,40 @@ async function findBareJsxEntry(dir: string) {
         return entry.split(sep).join("/")
       }
     }
+    const babelMatch =
+      /<script\b[^>]*\btype\s*=\s*["']text\/babel["'][^>]*\bsrc\s*=\s*["']([^"']+)["']/i.exec(index) ||
+      /<script\b[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*\btype\s*=\s*["']text\/babel["']/i.exec(index)
+    if (babelMatch?.[1] && !/^(?:https?:)?\/\//i.test(babelMatch[1])) {
+      const candidate = resolve(dir, babelMatch[1].split(/[?#]/, 1)[0].replace(/^[/\\]+/, ""))
+      const entry = relative(dir, candidate)
+      if (entry && entry !== ".." && !entry.startsWith(`..${sep}`) && !isAbsolute(entry) && existsSync(candidate)) {
+        return entry.split(sep).join("/")
+      }
+    }
+    // Si index.html existe pero no apunta explícitamente a JSX/TSX/Babel, debe ser servido como proyecto HTML estático
+    return undefined
   }
 
-  return BARE_JSX_ENTRIES.find((entry) => existsSync(join(dir, entry)))
+  const standard = BARE_JSX_ENTRIES.find((entry) => existsSync(join(dir, entry)))
+  if (standard) return standard
+
+  // Escanear cualquier archivo .jsx o .tsx en raíz o src/
+  try {
+    const rootFiles = existsSync(dir) ? (await import("node:fs/promises")).readdir(dir) : []
+    const rootCandidates = (await rootFiles).filter((f) => /\.(jsx|tsx)$/i.test(f))
+    if (rootCandidates.length > 0) return rootCandidates[0]
+
+    const srcDir = join(dir, "src")
+    if (existsSync(srcDir)) {
+      const srcFiles = (await import("node:fs/promises")).readdir(srcDir)
+      const srcCandidates = (await srcFiles).filter((f) => /\.(jsx|tsx)$/i.test(f))
+      if (srcCandidates.length > 0) return `src/${srcCandidates[0]}`
+    }
+  } catch {
+    // ignore
+  }
+
+  return undefined
 }
 
 function bareJsxProject(entry: string): DetectedProject {

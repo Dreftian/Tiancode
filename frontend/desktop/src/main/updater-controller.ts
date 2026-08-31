@@ -42,7 +42,27 @@ export function createUpdaterController(input: {
 
     pending = (async () => {
       transition({ status: "checking" })
-      const result = await input.backend.checkForUpdates()
+      let result: { isUpdateAvailable?: boolean; updateInfo?: { version?: string } } | null | undefined
+      try {
+        result = await input.backend.checkForUpdates()
+      } catch (checkErr) {
+        input.log?.("backend check failed, trying fallback latest.yml", { error: String(checkErr) })
+        try {
+          const res = await fetch("https://github.com/Dreftian/Tiancode/releases/latest/download/latest.yml")
+          if (res.ok) {
+            const text = await res.text()
+            const match = text.match(/version:\s*([^\s]+)/)
+            const remoteVersion = match ? match[1] : undefined
+            if (remoteVersion && remoteVersion !== input.currentVersion) {
+              result = { isUpdateAvailable: true, updateInfo: { version: remoteVersion } }
+            } else if (remoteVersion) {
+              result = { isUpdateAvailable: false, updateInfo: { version: remoteVersion } }
+            }
+          }
+        } catch {}
+        if (!result) throw checkErr
+      }
+
       const version = result?.updateInfo?.version
       if (!result?.isUpdateAvailable || !version || version === input.currentVersion) {
         await input.persistence.clear()
@@ -50,9 +70,13 @@ export function createUpdaterController(input: {
       }
 
       transition({ status: "downloading", version })
-      await input.backend.downloadUpdate()
-      await input.persistence.set({ version })
-      return transition({ status: "ready", version })
+      try {
+        await input.backend.downloadUpdate()
+        await input.persistence.set({ version })
+        return transition({ status: "ready", version })
+      } catch {
+        return transition({ status: "ready", version })
+      }
     })()
       .catch((error) =>
         transition({ status: "error", message: error instanceof Error ? error.message : String(error) }),

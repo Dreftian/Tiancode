@@ -501,20 +501,19 @@ function bootstrapModule(entry: string) {
 
 const root = document.getElementById("root")
 const showError = (error) => {
-  const view = document.createElement("pre")
-  view.id = "tiancode-preview-error"
-  view.textContent = error instanceof Error ? error.stack || error.message : String(error)
-  root.replaceChildren(view)
+  if (!error) return
+  console.error("Tiancode preview runtime error:", error)
 }
 window.addEventListener("error", (event) => showError(event.error || event.message))
 window.addEventListener("unhandledrejection", (event) => showError(event.reason))
 
 try {
-  const entry = await import(${JSON.stringify(entry)})
-  if (!root.childNodes.length) {
-    const component = entry.default || entry.App
-    if (!component) throw new Error("La entrada JSX debe exportar por defecto un componente, exportar App, o montar su propia raíz con react-dom/client.")
-    createRoot(root).render(createElement(component, {}))
+  const entryModule = await import(${JSON.stringify(entry)})
+  if (root && !root.childNodes.length) {
+    const component = entryModule.default || entryModule.App || entryModule.Main || entryModule.Root
+    if (component && (typeof component === "function" || typeof component === "object")) {
+      createRoot(root).render(createElement(component, {}))
+    }
   }
 } catch (error) {
   showError(error)

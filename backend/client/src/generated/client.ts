@@ -1014,7 +1014,11 @@ async function json(response: Response): Promise<unknown> {
   try {
     return JSON.parse(text)
   } catch (cause) {
-    if (!isContentType(response, "application/json") && !response.headers.get("content-type")?.includes("+json") && !response.headers.get("content-type")?.includes("json")) {
+    if (
+      !isContentType(response, "application/json") &&
+      !response.headers.get("content-type")?.includes("+json") &&
+      !response.headers.get("content-type")?.includes("json")
+    ) {
       throw new ClientError("UnsupportedContentType", { cause })
     }
     throw new ClientError("MalformedResponse", { cause })

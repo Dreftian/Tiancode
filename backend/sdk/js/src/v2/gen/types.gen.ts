@@ -3983,6 +3983,7 @@ export type AgentV2Info = {
   system?: string
   description?: string
   mode: "subagent" | "primary" | "all"
+  native?: boolean
   hidden: boolean
   color?: AgentColor
   icon?: string

@@ -136,11 +136,136 @@ const StatusOptions: { id: "all" | "enabled" | "disabled"; label: string }[] = [
 const NativeAgentDescriptionKeys: Record<string, string> = {
   build: "settings.subAgents.native.build",
   plan: "settings.subAgents.native.plan",
+  webapp: "settings.subAgents.native.webapp",
   general: "settings.subAgents.native.general",
   explore: "settings.subAgents.native.explore",
+  "software-architect": "settings.subAgents.native.softwareArchitect",
+  "fullstack-coder": "settings.subAgents.native.fullstackCoder",
+  "devsecops-auditor": "settings.subAgents.native.devsecopsAuditor",
+  "ui-ux-master": "settings.subAgents.native.uiUxMaster",
+  "performance-optimizer": "settings.subAgents.native.performanceOptimizer",
+  "database-architect": "settings.subAgents.native.databaseArchitect",
+  "docs-generator": "settings.subAgents.native.docsGenerator",
+  "qa-e2e-tester": "settings.subAgents.native.qaE2eTester",
   compaction: "settings.subAgents.native.compaction",
   title: "settings.subAgents.native.title",
   summary: "settings.subAgents.native.summary",
+}
+
+interface AgentDisplayMeta {
+  title: string
+  role: string
+  icon: string
+  color: string
+  category: string
+  description?: string
+}
+
+const AGENT_META: Record<string, AgentDisplayMeta> = {
+  build: {
+    title: "Constructor Principal",
+    role: "Core Execution & Code Build",
+    icon: "🔨",
+    color: "#3B82F6",
+    category: "🏗️ Core",
+    description: "Modo predeterminado de construcción. Analiza, crea y modifica código con herramientas de sistema.",
+  },
+  plan: {
+    title: "Planificador Estratégico",
+    role: "Architecture & Research",
+    icon: "📋",
+    color: "#8B5CF6",
+    category: "📐 Planificación",
+    description: "Modo de investigación y diseño de arquitectura. No realiza modificaciones destructivas.",
+  },
+  webapp: {
+    title: "Web App (Live Preview)",
+    role: "Full-JSX Interactive Apps",
+    icon: "🌐",
+    color: "#06B6D4",
+    category: "🌐 Frontend",
+    description: "Desarrollo ágil de aplicaciones web con vista previa reactiva en tiempo real.",
+  },
+  general: {
+    title: "Asistente Multitarea",
+    role: "General Purpose Assistant",
+    icon: "🔍",
+    color: "#10B981",
+    category: "🧠 Inteligencia",
+    description: "Investigación profunda, resolución de consultas complejas y flujos de trabajo autónomos.",
+  },
+  explore: {
+    title: "Explorador Rápido",
+    role: "Fast Codebase Discovery",
+    icon: "🧭",
+    color: "#F59E0B",
+    category: "🔍 Exploración",
+    description: "Búsqueda semántica y mapeo estructural de repositorios a alta velocidad.",
+  },
+  "software-architect": {
+    title: "Arquitecto de Software",
+    role: "System Architecture & SOLID",
+    icon: "🏛️",
+    color: "#3B82F6",
+    category: "🏛️ Arquitectura",
+    description: "Diseño modular de sistemas, patrones limpios, domain-driven design y desacoplamiento.",
+  },
+  "fullstack-coder": {
+    title: "Ingeniero Fullstack",
+    role: "Fullstack Senior Implementation",
+    icon: "⚡",
+    color: "#8B5CF6",
+    category: "⚡ Fullstack",
+    description: "Implementación ágil de features completas de frontend, backend, APIs y bases de datos.",
+  },
+  "devsecops-auditor": {
+    title: "Auditor DevSecOps",
+    role: "Security, CVEs & Secret Audits",
+    icon: "🛡️",
+    color: "#EF4444",
+    category: "🛡️ Seguridad",
+    description: "Auditoría estricta de dependencias, detección de CVEs y prevención de fugas de credenciales.",
+  },
+  "ui-ux-master": {
+    title: "Maestro UI/UX & CSS",
+    role: "Design Systems & Tailwind",
+    icon: "🎨",
+    color: "#EC4899",
+    category: "🎨 Diseño",
+    description: "Diseño visual moderno, Tailwind CSS, micro-interacciones fluidas y componentes accesibles.",
+  },
+  "performance-optimizer": {
+    title: "Optimizador Rendimiento",
+    role: "Profiling, Latency & Bundles",
+    icon: "🚀",
+    color: "#F97316",
+    category: "🚀 Rendimiento",
+    description: "Perfilado de CPU y memoria, reducción de latencia, optimización de bundles y tiempos de carga.",
+  },
+  "database-architect": {
+    title: "Arquitecto de Datos",
+    role: "SQL, Drizzle & Query Tuning",
+    icon: "🗄️",
+    color: "#EAB308",
+    category: "🗄️ Backend/DB",
+    description: "Optimización de esquemas, índices, planes de ejecución y migraciones Drizzle/SQL seguras.",
+  },
+  "docs-generator": {
+    title: "Generador de Docs",
+    role: "OpenAPI & Markdown Specs",
+    icon: "📝",
+    color: "#06B6D4",
+    category: "📝 Docs",
+    description: "Generación de especificaciones OpenAPI, documentación técnica Markdown y guías.",
+  },
+  "qa-e2e-tester": {
+    title: "Ingeniero QA / Testing",
+    role: "Vitest & Playwright E2E",
+    icon: "🧪",
+    color: "#10B981",
+    category: "🧪 Calidad",
+    description: "Creación de suites de pruebas unitarias, de integración y end-to-end automatizadas.",
+  },
 }
 
 type StatusId = "all" | "enabled" | "disabled"
@@ -222,9 +347,38 @@ export const SettingsSubAgentsV2: Component<{
     { initialValue: [] },
   )
 
-  const agentList = createMemo(() => agents() ?? [])
-  const userAgents = createMemo(() => agentList().filter((agent: Agent) => agent.native !== true))
-  const builtinAgents = createMemo(() => agentList().filter((agent: Agent) => agent.native === true))
+  const isNative = (agent: Agent) => agent.native === true || agent.name in NativeAgentDescriptionKeys || agent.name in AGENT_META
+
+  const builtinAgents = createMemo<Agent[]>(() => {
+    const list: Agent[] = []
+    const serverList = agents() ?? []
+
+    for (const [key, meta] of Object.entries(AGENT_META)) {
+      const serverMatch = serverList.find((a) => a?.name === key)
+      const preset = SPECIALIZED_PRESETS.find((p) => p?.name === key)
+
+      list.push({
+        name: key,
+        description: meta.description || serverMatch?.description || preset?.description || meta.role,
+        prompt: serverMatch?.prompt || preset?.prompt || "",
+        mode: ["build", "plan", "webapp"].includes(key) ? "primary" : "subagent",
+        native: true,
+        color: meta.color,
+        icon: meta.icon,
+        model: serverMatch?.model,
+        permission: (serverMatch as any)?.permission || [],
+      } as Agent)
+    }
+
+    return list
+  })
+
+  const userAgents = createMemo<Agent[]>(() => {
+    const serverList = agents() ?? []
+    return serverList.filter((a) => a && !isNative(a) && !(a.name in AGENT_META))
+  })
+
+  const agentList = createMemo(() => [...builtinAgents(), ...userAgents()])
 
   const [query, setQuery] = createSignal("")
   const [status, setStatus] = createSignal<StatusId>("all")
@@ -538,17 +692,27 @@ export const SettingsSubAgentsV2: Component<{
     }
   })
 
-  const installPreset = (preset: (typeof SPECIALIZED_PRESETS)[0]) => {
-    setName(preset.name)
-    setDescription(preset.description)
-    setPrompt(preset.prompt)
-    setColor(preset.color)
-    setToolsMode("custom")
-    setTools(preset.tools.map((t) => t.toLowerCase()))
+  const cloneToCustom = (agent: Agent) => {
+    const meta = AGENT_META[agent.name]
+    setName(`${agent.name}-custom`)
+    setDescription(meta?.description || nativeDescription(agent) || agent.description || "")
+    setPrompt(agent.prompt || "")
+    setColor(meta?.color || agent.color || "#3B82F6")
+    setModelKind(agent.model ? "custom" : "inherit")
+    setModelValue(agent.model ? `${agent.model.providerID}/${agent.model.modelID}` : "")
+    const restricted = hasRestrictedTools(agent)
+    setToolsMode(restricted ? "custom" : "all")
+    setTools(
+      restricted
+        ? AgentTools.filter((tool) => effectiveToolRule(agent, tool.id)?.action !== "deny").map((tool) => tool.id)
+        : [],
+    )
+    setInjectAgentsMd(true)
+    setEditing(null)
     showToast({
       variant: "success",
-      title: `Preset ${preset.role} cargado`,
-      description: "Revisa los campos y guarda tu nuevo sub-agente.",
+      title: `Plantilla ${meta?.title || agent.name} cargada`,
+      description: "Ajusta las opciones en el formulario para crear tu sub-agente.",
     })
   }
 
@@ -611,42 +775,93 @@ export const SettingsSubAgentsV2: Component<{
           </div>
         </Show>
 
-        {/* 1. Grafo Visual de Enjambre Multi-Agente */}
-        <AgentSwarmGraph class="mb-5" />
+        {/* 1. Sub-Agentes Integrados de Élite (Fuente Principal) */}
+        <Show when={visibleBuiltinAgents().length > 0}>
+          <div class="settings-v2-section mb-6">
+            <div class="flex items-center justify-between mb-2.5">
+              <div class="flex items-center gap-2">
+                <h3 class="settings-v2-section-title">
+                  {language.t("settings.subAgents.list.group.builtin")}
+                </h3>
+                <span class="settings-v2-sub-agents-group-count">{visibleBuiltinAgents().length}</span>
+              </div>
+              <span class="text-xs text-slate-400">
+                {language.t("settings.subAgents.list.builtin.hint")}
+              </span>
+            </div>
+            <div class="settings-v2-sub-agents-grid">
+              <For each={visibleBuiltinAgents()}>
+                {(agent) => {
+                  const meta = () => AGENT_META[agent.name] || {
+                    title: agent.name,
+                    role: "Especialista Autónomo",
+                    icon: agent.icon || "🤖",
+                    color: agent.color || "#3B82F6",
+                    category: "🤖 Agente",
+                    description: nativeDescription(agent) || agent.description || "",
+                  }
 
-        {/* 2. Catálogo de Presets Especializados en 1 Clic */}
-        <div class="settings-v2-section mb-6">
-          <div class="flex items-center justify-between mb-2.5">
-            <h3 class="settings-v2-section-title">Catálogo de Sub-Agentes Especializados (1 Clic)</h3>
-            <span class="text-xs text-slate-400">Instala roles preconfigurados con permisos óptimos</span>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
-            <For each={SPECIALIZED_PRESETS}>
-              {(preset) => (
-                <div class="flex flex-col justify-between p-3 rounded-lg border border-white/10 bg-slate-900/50 hover:border-white/20 transition-colors">
-                  <div class="flex items-start gap-2.5 mb-2">
-                    <span class="text-2xl">{preset.icon}</span>
-                    <div class="min-w-0 flex-1">
-                      <span class="text-xs font-semibold text-white block truncate">{preset.role}</span>
-                      <p class="text-[11px] text-slate-400 line-clamp-2 leading-relaxed mt-0.5">{preset.description}</p>
-                    </div>
-                  </div>
-                  <div class="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
-                    <span class="text-[10px] text-slate-400">{preset.tools.length} herramientas</span>
-                    <ButtonV2
-                      type="button"
-                      variant="outline"
-                      size="small"
-                      onClick={() => installPreset(preset)}
+                  return (
+                    <div
+                      class="settings-v2-sub-agents-card"
+                      data-builtin=""
+                      style={{ "--card-accent": meta().color }}
                     >
-                      Cargar Preset ⚡
-                    </ButtonV2>
-                  </div>
-                </div>
-              )}
-            </For>
+                      <div>
+                        <div class="settings-v2-sub-agents-card-header">
+                          <div class="settings-v2-sub-agents-card-identity">
+                            <div class="settings-v2-sub-agents-card-avatar">
+                              {meta().icon}
+                            </div>
+                            <div class="settings-v2-sub-agents-card-title-group">
+                              <div class="settings-v2-sub-agents-card-name">{meta().title}</div>
+                              <div class="settings-v2-sub-agents-card-role">{meta().role}</div>
+                            </div>
+                          </div>
+                          <span class="settings-v2-sub-agents-card-category">{meta().category}</span>
+                        </div>
+
+                        <div class="settings-v2-sub-agents-card-description mt-2.5">
+                          {meta().description || nativeDescription(agent)}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div class="settings-v2-sub-agents-badges mb-2">
+                          <span class="settings-v2-sub-agents-badge settings-v2-sub-agents-badge--accent">
+                            {agent.model?.modelID ?? language.t("settings.subAgents.list.model.inherit")}
+                          </span>
+                          <span class="settings-v2-sub-agents-badge">
+                            {hasRestrictedTools(agent)
+                              ? language.t("settings.subAgents.list.tools.summary", {
+                                  count: allowedToolCount(agent),
+                                })
+                              : language.t("settings.subAgents.list.tools.all")}
+                          </span>
+                          <span class="settings-v2-sub-agents-badge !text-slate-400">
+                            🔒 {language.t("settings.subAgents.list.group.builtin")}
+                          </span>
+                        </div>
+
+                        <div class="settings-v2-sub-agents-card-footer">
+                          <span class="text-[10.5px] font-mono text-slate-500">@{agent.name}</span>
+                          <button
+                            type="button"
+                            class="settings-v2-sub-agents-card-btn"
+                            onClick={() => cloneToCustom(agent)}
+                            title="Cargar como base en el editor para crear tu versión personalizada"
+                          >
+                            ✨ Personalizar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                }}
+              </For>
+            </div>
           </div>
-        </div>
+        </Show>
 
         <div class="settings-v2-sub-agents-layout">
           <div class="settings-v2-sub-agents-form">
@@ -892,9 +1107,11 @@ export const SettingsSubAgentsV2: Component<{
               <Show
                 when={visibleUserAgents().length > 0}
                 fallback={
-                  <Show when={visibleBuiltinAgents().length === 0}>
-                    <div class="settings-v2-skills-status">{language.t("settings.subAgents.list.empty")}</div>
-                  </Show>
+                  <div class="p-4 rounded-xl border border-dashed border-white/10 bg-white/2 text-center text-xs text-slate-400 flex flex-col items-center gap-1.5 my-2">
+                    <span class="text-base">✨</span>
+                    <span class="font-medium text-slate-300">Sin sub-agentes personalizados</span>
+                    <span>Crea uno con el formulario de la izquierda o haz clic en "Personalizar" en cualquier sub-agente del catálogo superior.</span>
+                  </div>
                 }
               >
                 <div class="settings-v2-sub-agents-group-title">
@@ -981,53 +1198,12 @@ export const SettingsSubAgentsV2: Component<{
           <RlmHierarchyTree />
         </div>
 
-        <Show when={visibleBuiltinAgents().length > 0}>
-          <div class="settings-v2-section settings-v2-sub-agents-builtin-section">
-            <div class="settings-v2-sub-agents-group-title">
-              {language.t("settings.subAgents.list.group.builtin")}
-              <span class="settings-v2-sub-agents-group-count">{visibleBuiltinAgents().length}</span>
-              <span class="settings-v2-sub-agents-group-hint">
-                {language.t("settings.subAgents.list.builtin.hint")}
-              </span>
-            </div>
-            <div class="settings-v2-sub-agents-grid">
-              <For each={visibleBuiltinAgents()}>
-                {(agent) => (
-                  <div class="settings-v2-sub-agents-card" data-builtin="">
-                    <div class="settings-v2-sub-agents-card-header">
-                      <SettingsItemIconV2
-                        icon={agent.icon}
-                        fallback="subagent"
-                        color={itemColor(agent.color, agent.name)}
-                      />
-                      <div class="settings-v2-sub-agents-card-name">{agent.name}</div>
-                    </div>
-                    <div class="settings-v2-sub-agents-badges">
-                      <span class="settings-v2-sub-agents-badge settings-v2-sub-agents-badge--accent">
-                        {agent.model?.modelID ?? language.t("settings.subAgents.list.model.inherit")}
-                      </span>
-                      <span class="settings-v2-sub-agents-badge">
-                        {hasRestrictedTools(agent)
-                          ? language.t("settings.subAgents.list.tools.summary", {
-                              count: allowedToolCount(agent),
-                            })
-                          : language.t("settings.subAgents.list.tools.all")}
-                      </span>
-                    </div>
-                    <div class="settings-v2-sub-agents-card-description">{nativeDescription(agent)}</div>
-                  </div>
-                )}
-              </For>
-            </div>
-
-            <div class="settings-v2-sub-agents-list-footer">
-              {language.t("settings.subAgents.list.footer", {
-                count: agentList().length,
-                enabled: agentList().length,
-              })}
-            </div>
-          </div>
-        </Show>
+        <div class="settings-v2-sub-agents-list-footer">
+          {language.t("settings.subAgents.list.footer", {
+            count: agentList().length,
+            enabled: agentList().length,
+          })}
+        </div>
       </div>
     </>
   )

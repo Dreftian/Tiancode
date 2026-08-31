@@ -60,15 +60,19 @@ export const { use: useModels, provider: ModelsProvider } = createSimpleContext(
       const list: Array<(typeof allProviders)[number]["models"][string] & { provider: (typeof allProviders)[number] }> = []
 
       for (const p of combined.values()) {
-        for (const m of Object.values(p.models)) {
-          const cleanID = m.id.replace(/\.gguf$/i, "")
+        for (const [modelKeyId, m] of Object.entries(p.models ?? {})) {
+          if (!m) continue
+          const rawId = (m as any).id || modelKeyId
+          if (typeof rawId !== "string" || !rawId) continue
+          const rawName = (m as any).name || rawId
+          const cleanID = rawId.replace(/\.gguf$/i, "")
           const key = `${p.id}:${cleanID}`
           if (seenKeys.has(key)) continue
           seenKeys.add(key)
           list.push({
-            ...m,
+            ...(m as any),
             id: cleanID,
-            name: m.name.replace(/\.gguf$/i, ""),
+            name: typeof rawName === "string" ? rawName.replace(/\.gguf$/i, "") : cleanID,
             provider: p,
           })
         }

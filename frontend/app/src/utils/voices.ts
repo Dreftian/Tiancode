@@ -181,16 +181,17 @@ export async function enableBargeInListener() {
       // Si el usuario habla (volumen por encima del umbral de ruido ambiente) y la IA está hablando:
       if (average > 35) {
         speechFrames++
-        if (speechFrames > 3 && bargeInEnabled() && speakingKey()) {
+        if (speechFrames > 2 && bargeInEnabled()) {
           stopSpeaking()
+          import("./stream-speech").then((m) => m.StreamSpeech.interrupt()).catch(() => {})
           speechFrames = 0
         }
       } else {
         speechFrames = Math.max(0, speechFrames - 1)
       }
-      requestAnimationFrame(checkVolume)
+      setTimeout(checkVolume, 80)
     }
-    requestAnimationFrame(checkVolume)
+    setTimeout(checkVolume, 80)
   } catch {
     // ignore if mic permission not granted
   }

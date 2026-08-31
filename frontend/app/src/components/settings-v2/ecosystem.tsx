@@ -196,6 +196,35 @@ export const SettingsEcosystemV2: Component = () => {
     }
   }
 
+  const enableAll = () => {
+    for (const mod of REPO_MODULES) {
+      toggleModule(mod.id, true)
+    }
+  }
+
+  const enableRecommended = () => {
+    const recommended: Array<keyof EcosystemSettings> = [
+      "llamacoder",
+      "boltDiy",
+      "openDesign",
+      "monaco",
+      "tauri",
+      "treeSitter",
+      "graphify",
+      "pipelines",
+      "claudeMem",
+    ]
+    for (const mod of REPO_MODULES) {
+      toggleModule(mod.id, recommended.includes(mod.id))
+    }
+  }
+
+  const disableAll = () => {
+    for (const mod of REPO_MODULES) {
+      toggleModule(mod.id, false)
+    }
+  }
+
   return (
     <>
       <div class="settings-v2-tab-header settings-v2-tab-header--stacked">
@@ -211,6 +240,43 @@ export const SettingsEcosystemV2: Component = () => {
       </div>
 
       <div class="settings-v2-tab-body">
+        {/* Banner Explicativo de Ecosistema */}
+        <div class="mb-4 p-3.5 rounded-xl border border-sky-500/20 bg-sky-500/10 text-xs text-sky-200 flex items-start gap-3">
+          <span class="text-base shrink-0">💡</span>
+          <div class="flex-1 leading-relaxed">
+            <span class="font-semibold text-white block mb-0.5">¿Es necesario tener todo activado?</span>
+            No es obligatorio. Los módulos esenciales de desarrollo y memoria (Monaco, Tree-Sitter AST, Memoria LTM, LlamaCoder) están activos por defecto para máximo rendimiento local. Módulos como E2B o Firecrawl son opcionales para sandboxing en la nube y scraping web avanzado.
+          </div>
+        </div>
+
+        {/* Acciones Rápidas */}
+        <div class="flex items-center justify-between gap-2 flex-wrap mb-3 p-3 rounded-xl border border-white/10 bg-slate-900/40">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-semibold text-slate-300">Presets Rápidos:</span>
+            <button
+              type="button"
+              class="px-2.5 py-1 text-xs font-medium rounded-lg border border-emerald-500/40 bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 transition-colors"
+              onClick={enableRecommended}
+            >
+              🛡️ Configuración Recomendada
+            </button>
+            <button
+              type="button"
+              class="px-2.5 py-1 text-xs font-medium rounded-lg border border-sky-500/40 bg-sky-500/15 text-sky-300 hover:bg-sky-500/25 transition-colors"
+              onClick={enableAll}
+            >
+              ⚡ Activar Todos (14)
+            </button>
+            <button
+              type="button"
+              class="px-2.5 py-1 text-xs font-medium rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20 transition-colors"
+              onClick={disableAll}
+            >
+              🛑 Desactivar Todos
+            </button>
+          </div>
+        </div>
+
         {/* Barra de herramientas y filtros */}
         <div style={{ "display": "flex", "flex-direction": "column", "gap": "10px", "margin-bottom": "16px" }}>
           <TextInputV2

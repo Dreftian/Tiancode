@@ -293,6 +293,9 @@ export type ElectronAPI = {
     toggle: () => Promise<boolean>
     getState: () => Promise<DesktopPetState>
   }
+  modelHub: {
+    deleteFile: (target: { file?: string; id?: string; destPath?: string }) => Promise<{ success: boolean }>
+  }
 }
 
 export type DesktopPetState = {

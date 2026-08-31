@@ -475,7 +475,6 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
   const dialog = useDialog()
 
   const [checkMode, setCheckMode] = createSignal<"blocking" | "background">("blocking")
-  const [splashFinished, setSplashFinished] = createSignal(false)
 
   const [startupHealthCheck, healthCheckActions] = createResource(() =>
     props.disableHealthCheck
@@ -508,13 +507,22 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
   const startupChecking = createMemo(
     () => startupHealthCheck.latest === true && ["unresolved", "pending"].includes(startup.state),
   )
-  const [firstLaunchActive, setFirstLaunchActive] = createSignal(false)
-  const loading = createMemo(() => checking() || startupChecking() || !splashFinished())
+  const isFirstLaunchPending = () => {
+    try {
+      return !localStorage.getItem(FIRST_LAUNCH_KEY)
+    } catch {
+      return false
+    }
+  }
+
+  const [firstLaunchActive, setFirstLaunchActive] = createSignal(isFirstLaunchPending())
+  const [splashFinished, setSplashFinished] = createSignal(false)
+  const loading = createMemo(() => !firstLaunchActive() && (!splashFinished() || checking() || startupChecking()))
 
   onMount(() => {
     const handleOpen = () => {
       if (window.api?.setCompactWindow) {
-        void window.api.setCompactWindow({ width: 540, height: 480 })
+        void window.api.setCompactWindow({ width: 800, height: 600 })
       }
       setFirstLaunchActive(true)
     }
@@ -524,6 +532,7 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
 
   const handleDoneSetup = () => {
     setFirstLaunchActive(false)
+    setSplashFinished(false)
     if (window.api?.restoreMainWindow) {
       void window.api.restoreMainWindow()
     }
@@ -531,28 +540,8 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
 
   const handleSplashDone = async () => {
     setSplashFinished(true)
-    let needsSetup = false
-    try {
-      const isElectronPending = (await window.api?.isFirstLaunchOnboardingPending?.()) === true
-      const isLocalPending = !localStorage.getItem(FIRST_LAUNCH_KEY)
-      if (isElectronPending || isLocalPending) {
-        needsSetup = true
-      }
-    } catch {
-      if (!localStorage.getItem(FIRST_LAUNCH_KEY)) {
-        needsSetup = true
-      }
-    }
-
-    if (needsSetup) {
-      setFirstLaunchActive(true)
-      if (window.api?.setCompactWindow) {
-        void window.api.setCompactWindow({ width: 540, height: 480 })
-      }
-    } else {
-      if (window.api?.restoreMainWindow) {
-        void window.api.restoreMainWindow()
-      }
+    if (window.api?.restoreMainWindow) {
+      void window.api.restoreMainWindow()
     }
   }
 
@@ -578,9 +567,9 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
         </Show>
       </Show>
 
-      {/* Standalone First Launch Setup Screen (shown before the app is visible) */}
+      {/* Standalone First Launch Setup Screen (shown FIRST before anything else on fresh install) */}
       <Show when={firstLaunchActive()}>
-        <div class="fixed inset-0 z-[99998] w-full h-full bg-[#0e111a] select-none">
+        <div class="fixed inset-0 z-[99998] w-full h-full bg-[#07090e] flex items-center justify-center p-4 select-none overflow-y-auto">
           <DialogWelcomeSetup onDone={handleDoneSetup} />
         </div>
       </Show>

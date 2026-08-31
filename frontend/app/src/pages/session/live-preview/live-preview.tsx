@@ -607,13 +607,21 @@ export function LivePreview(props: {
     navigateTo(target)
   })
 
-  // Inicia el preview gestionado cuando el agente crea una entrada web ejecutable.
+  // Inicia el preview gestionado cuando el agente crea una entrada web ejecutable o se detecta un proyecto.
+  let hasAutoStarted = false
   createEffect(() => {
-    const key = props.autoStartKey?.()
     const status = devServer()?.status
-    if (!key || key === lastAutoStartKey || status === "starting" || status === "ready") return
-    lastAutoStartKey = key
-    void devServerAction("start")
+    const command = devServer()?.command
+    const key = props.autoStartKey?.()
+    if (status === "idle" && command && !hasAutoStarted) {
+      hasAutoStarted = true
+      void devServerAction("start")
+      return
+    }
+    if (key && key !== lastAutoStartKey && status !== "starting" && status !== "ready") {
+      lastAutoStartKey = key
+      void devServerAction("start")
+    }
   })
 
   // Un servidor listo se publica como destino canónico y reemplaza la
@@ -989,8 +997,18 @@ export function LivePreview(props: {
           )}
         </Show>
         <Show when={!iframeUrl() && !previewSurfaceVisible()}>
-          <div class="absolute inset-0 flex items-center justify-center px-6 text-center text-12-regular text-text-weak">
-            {previewPlaceholder()}
+          <div class="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center text-12-regular text-text-weak">
+            <span>{previewPlaceholder()}</span>
+            <Show when={devServer()?.status === "idle" || devServer()?.status === "stopped" || devServer()?.status === "error"}>
+              <button
+                type="button"
+                class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[12px] font-medium hover:bg-cyan-500/30 transition-all cursor-pointer shadow-sm"
+                onClick={() => void devServerAction(devServer()?.status === "stopped" ? "start" : devServer()?.status === "error" ? "restart" : "start")}
+              >
+                <span>▶</span>
+                <span>{devServer()?.status === "error" ? (language.t("livePreview.retry") || "Reintentar") : (language.t("livePreview.startServer") || "Iniciar Vista Previa")}</span>
+              </button>
+            </Show>
           </div>
         </Show>
       </div>

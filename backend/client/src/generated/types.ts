@@ -137,6 +137,7 @@ export type AgentsListOutput = {
     readonly system?: string
     readonly description?: string
     readonly mode: "subagent" | "primary" | "all"
+    readonly native?: boolean | null
     readonly hidden: boolean
     readonly color?: string | "primary" | "secondary" | "accent" | "success" | "warning" | "error" | "info"
     readonly icon?: string

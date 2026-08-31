@@ -11,15 +11,13 @@ import { SettingsModelsV2 } from "./models"
 import { SettingsModelsHubV2 } from "./models-hub"
 import { SettingsSkillsV2 } from "./skills"
 import { SettingsSubAgentsV2 } from "./sub-agents"
-import { SettingsMcpServersV2 } from "./mcp-servers"
-import { SettingsBrowserV2 } from "./browser"
+import { SettingsMcpPluginsV2 } from "./mcp-plugins"
 import { SettingsPetsV2 } from "./pets"
 import { SettingsComputerUseV2 } from "./computer-use"
 import { SettingsGithubV2 } from "./github"
 import { SettingsIntelligenceV2 } from "./intelligence"
 import { SettingsEcosystemV2 } from "./ecosystem"
 import { SettingsVoicesV2 } from "./voices"
-import { SettingsPluginsV2 } from "./plugins"
 import "./settings-v2.css"
 import { SettingsServersV2 } from "./servers"
 import { useDialog } from "@tiancode-ai/ui/context/dialog"
@@ -37,7 +35,25 @@ export const DialogSettings: Component<{
   const layout = useLayout()
   const tabs = useTabs()
   const serverSync = useServerSync()
-  const [tab, setTab] = createSignal(props.defaultValue ?? "general")
+  const initialTab = props.defaultValue === "mcp-servers" || props.defaultValue === "plugins"
+    ? "mcp-plugins"
+    : props.defaultValue === "browser"
+      ? "computer-use"
+      : props.defaultValue ?? "general"
+  const [tab, setTab] = createSignal(initialTab)
+
+  // Track visited tabs to keep them in memory for buttery smooth, zero-lag tab switching
+  const [visited, setVisited] = createSignal<Set<string>>(new Set([initialTab]))
+  const markVisited = (val: string) => {
+    setVisited((prev) => {
+      if (prev.has(val)) return prev
+      const next = new Set(prev)
+      next.add(val)
+      return next
+    })
+    setTab(val)
+  }
+
   const rawDirectory = () => {
     const route = layout.route()
     if (route.type === "dir-new-sesssion") return route.dir
@@ -60,16 +76,17 @@ export const DialogSettings: Component<{
         orientation="vertical"
         variant="settings"
         value={tab()}
-        onChange={(value) => setTab(value)}
+        onChange={(value) => markVisited(value)}
         class="settings-v2"
       >
         <TabsV2.List>
           <div class="flex flex-col justify-between h-full w-full">
             <div class="flex flex-col gap-3 w-full">
               <div class="flex flex-col gap-3">
+                {/* Desktop Section */}
                 <div class="flex flex-col gap-1.5">
                   <TabsV2.SectionTitle>{language.t("settings.section.desktop")}</TabsV2.SectionTitle>
-                  <div class="flex flex-col gap-1.5 w-full">
+                  <div class="flex flex-col gap-1 w-full">
                     <TabsV2.Trigger value="general">
                       <Icon name="sliders" />
                       {language.t("settings.tab.general")}
@@ -82,6 +99,10 @@ export const DialogSettings: Component<{
                       <Icon name="dot-grid" />
                       Ecosistema IA
                     </TabsV2.Trigger>
+                    <TabsV2.Trigger value="computer-use">
+                      <Icon name="window-cursor" />
+                      {language.t("settings.tab.computerUse") || "Uso de la PC"}
+                    </TabsV2.Trigger>
                     <TabsV2.Trigger value="shortcuts">
                       <Icon name="keyboard" />
                       {language.t("settings.tab.shortcuts")}
@@ -89,9 +110,10 @@ export const DialogSettings: Component<{
                   </div>
                 </div>
 
+                {/* Server Section */}
                 <div class="flex flex-col gap-1.5">
                   <TabsV2.SectionTitle>{language.t("settings.section.server")}</TabsV2.SectionTitle>
-                  <div class="flex flex-col gap-1.5 w-full">
+                  <div class="flex flex-col gap-1 w-full">
                     <TabsV2.Trigger value="servers">
                       <Icon name="server" />
                       {language.t("status.popover.tab.servers")}
@@ -110,9 +132,11 @@ export const DialogSettings: Component<{
                     </TabsV2.Trigger>
                   </div>
                 </div>
+
+                {/* Extensions Section */}
                 <div class="flex flex-col gap-1.5">
                   <TabsV2.SectionTitle>{language.t("settings.section.extensions")}</TabsV2.SectionTitle>
-                  <div class="flex flex-col gap-1.5 w-full">
+                  <div class="flex flex-col gap-1 w-full">
                     <TabsV2.Trigger value="github">
                       <Icon name="github" />
                       {language.t("settings.tab.github")}
@@ -127,32 +151,22 @@ export const DialogSettings: Component<{
                     </TabsV2.Trigger>
                     <TabsV2.Trigger value="sub-agents">
                       <Icon name="brain" />
-                      {language.t("settings.tab.subAgents")}
+                      {language.t("settings.tab.subAgents") || "Sub-Agentes"}
                     </TabsV2.Trigger>
-                    <TabsV2.Trigger value="mcp-servers">
+                    <TabsV2.Trigger value="mcp-plugins">
                       <Icon name="mcp" />
-                      {language.t("settings.tab.mcpServers")}
-                    </TabsV2.Trigger>
-                    <TabsV2.Trigger value="plugins">
-                      <Icon name="plugin" />
-                      {language.t("settings.tab.plugins")}
+                      {language.t("settings.tab.mcpPlugins") || "MCP y Plugins"}
                     </TabsV2.Trigger>
                   </div>
                 </div>
+
+                {/* Integrations Section */}
                 <div class="flex flex-col gap-1.5">
                   <TabsV2.SectionTitle>{language.t("settings.section.integrations")}</TabsV2.SectionTitle>
-                  <div class="flex flex-col gap-1.5 w-full">
-                    <TabsV2.Trigger value="browser">
-                      <Icon name="square-arrow-top-right" />
-                      {language.t("settings.tab.browser")}
-                    </TabsV2.Trigger>
+                  <div class="flex flex-col gap-1 w-full">
                     <TabsV2.Trigger value="pets">
                       <Icon name="bubble-5" />
                       {language.t("settings.tab.pets")}
-                    </TabsV2.Trigger>
-                    <TabsV2.Trigger value="computer-use">
-                      <Icon name="window-cursor" />
-                      {language.t("settings.tab.computerUse")}
                     </TabsV2.Trigger>
                   </div>
                 </div>
@@ -164,89 +178,95 @@ export const DialogSettings: Component<{
             </div>
           </div>
         </TabsV2.List>
-        <TabsV2.Content value="general" class="settings-v2-panel">
-          <Show when={tab() === "general"}>
+
+        {/* Tab Panels with Fluid Cached Switching */}
+        <TabsV2.Content value="general" class="settings-v2-panel" classList={{ "!hidden": tab() !== "general" }}>
+          <Show when={visited().has("general")}>
             <SettingsGeneralV2 sessionID={props.sessionID} />
           </Show>
         </TabsV2.Content>
-        <TabsV2.Content value="intelligence" class="settings-v2-panel">
-          <Show when={tab() === "intelligence"}>
+
+        <TabsV2.Content value="intelligence" class="settings-v2-panel" classList={{ "!hidden": tab() !== "intelligence" }}>
+          <Show when={visited().has("intelligence")}>
             <SettingsIntelligenceV2 />
           </Show>
         </TabsV2.Content>
-        <TabsV2.Content value="ecosystem" class="settings-v2-panel">
-          <Show when={tab() === "ecosystem"}>
+
+        <TabsV2.Content value="ecosystem" class="settings-v2-panel" classList={{ "!hidden": tab() !== "ecosystem" }}>
+          <Show when={visited().has("ecosystem")}>
             <SettingsEcosystemV2 />
           </Show>
         </TabsV2.Content>
-        <TabsV2.Content value="shortcuts" class="settings-v2-panel">
-          <Show when={tab() === "shortcuts"}>
+
+        <TabsV2.Content value="computer-use" class="settings-v2-panel" classList={{ "!hidden": tab() !== "computer-use" }}>
+          <Show when={visited().has("computer-use")}>
+            <SettingsComputerUseV2 directory={directory()} />
+          </Show>
+        </TabsV2.Content>
+
+        <TabsV2.Content value="shortcuts" class="settings-v2-panel" classList={{ "!hidden": tab() !== "shortcuts" }}>
+          <Show when={visited().has("shortcuts")}>
             <SettingsKeybinds v2 />
           </Show>
         </TabsV2.Content>
-        <TabsV2.Content value="servers" class="settings-v2-panel">
-          <Show when={tab() === "servers"}>
+
+        <TabsV2.Content value="servers" class="settings-v2-panel" classList={{ "!hidden": tab() !== "servers" }}>
+          <Show when={visited().has("servers")}>
             <SettingsServersV2 />
           </Show>
         </TabsV2.Content>
-        <TabsV2.Content value="providers" class="settings-v2-panel">
-          <Show when={tab() === "providers"}>
+
+        <TabsV2.Content value="providers" class="settings-v2-panel" classList={{ "!hidden": tab() !== "providers" }}>
+          <Show when={visited().has("providers")}>
             <SettingsProvidersV2 directory={directory} onBack={showProviders} />
           </Show>
         </TabsV2.Content>
-        <TabsV2.Content value="models" class="settings-v2-panel">
-          <Show when={tab() === "models"}>
+
+        <TabsV2.Content value="models" class="settings-v2-panel" classList={{ "!hidden": tab() !== "models" }}>
+          <Show when={visited().has("models")}>
             <SettingsModelsV2 />
           </Show>
         </TabsV2.Content>
-        <TabsV2.Content value="models-hub" class="settings-v2-panel">
-          <Show when={tab() === "models-hub"}>
+
+        <TabsV2.Content value="models-hub" class="settings-v2-panel" classList={{ "!hidden": tab() !== "models-hub" }}>
+          <Show when={visited().has("models-hub")}>
             <SettingsModelsHubV2 directory={directory()} />
           </Show>
         </TabsV2.Content>
-        <TabsV2.Content value="github" class="settings-v2-panel">
-          <Show when={tab() === "github"}>
+
+        <TabsV2.Content value="github" class="settings-v2-panel" classList={{ "!hidden": tab() !== "github" }}>
+          <Show when={visited().has("github")}>
             <SettingsGithubV2 directory={directory()} />
           </Show>
         </TabsV2.Content>
-        <TabsV2.Content value="voices" class="settings-v2-panel">
-          <Show when={tab() === "voices"}>
+
+        <TabsV2.Content value="voices" class="settings-v2-panel" classList={{ "!hidden": tab() !== "voices" }}>
+          <Show when={visited().has("voices")}>
             <SettingsVoicesV2 />
           </Show>
         </TabsV2.Content>
-        <TabsV2.Content value="skills" class="settings-v2-panel">
-          <Show when={tab() === "skills"}>
+
+        <TabsV2.Content value="skills" class="settings-v2-panel" classList={{ "!hidden": tab() !== "skills" }}>
+          <Show when={visited().has("skills")}>
             <SettingsSkillsV2 directory={directory()} />
           </Show>
         </TabsV2.Content>
-        <TabsV2.Content value="sub-agents" class="settings-v2-panel">
-          <Show when={tab() === "sub-agents"}>
+
+        <TabsV2.Content value="sub-agents" class="settings-v2-panel" classList={{ "!hidden": tab() !== "sub-agents" }}>
+          <Show when={visited().has("sub-agents")}>
             <SettingsSubAgentsV2 directory={directory()} />
           </Show>
         </TabsV2.Content>
-        <TabsV2.Content value="mcp-servers" class="settings-v2-panel">
-          <Show when={tab() === "mcp-servers"}>
-            <SettingsMcpServersV2 directory={directory()} />
+
+        <TabsV2.Content value="mcp-plugins" class="settings-v2-panel" classList={{ "!hidden": tab() !== "mcp-plugins" }}>
+          <Show when={visited().has("mcp-plugins")}>
+            <SettingsMcpPluginsV2 directory={directory()} />
           </Show>
         </TabsV2.Content>
-        <TabsV2.Content value="plugins" class="settings-v2-panel">
-          <Show when={tab() === "plugins"}>
-            <SettingsPluginsV2 directory={directory()} />
-          </Show>
-        </TabsV2.Content>
-        <TabsV2.Content value="browser" class="settings-v2-panel">
-          <Show when={tab() === "browser"}>
-            <SettingsBrowserV2 />
-          </Show>
-        </TabsV2.Content>
-        <TabsV2.Content value="pets" class="settings-v2-panel">
-          <Show when={tab() === "pets"}>
+
+        <TabsV2.Content value="pets" class="settings-v2-panel" classList={{ "!hidden": tab() !== "pets" }}>
+          <Show when={visited().has("pets")}>
             <SettingsPetsV2 />
-          </Show>
-        </TabsV2.Content>
-        <TabsV2.Content value="computer-use" class="settings-v2-panel">
-          <Show when={tab() === "computer-use"}>
-            <SettingsComputerUseV2 directory={directory()} />
           </Show>
         </TabsV2.Content>
       </TabsV2>
