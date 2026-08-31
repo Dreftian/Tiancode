@@ -1531,57 +1531,66 @@ const layer = Layer.effect(
           }
         }
 
-        // Auto-discover downloaded .gguf models from models storage directory
-        const modelsDataDir = path.join(Global.Path.data, "models")
-        if (existsSync(modelsDataDir)) {
+        // Auto-discover downloaded .gguf models from all models storage directories
+        const candidateModelsDirs = [
+          path.join(Global.Path.data, "models"),
+          path.join(os.homedir(), ".local", "share", "tiancode", "models"),
+          path.join(process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming"), "ai.tiancode.desktop", "xdg", "data", "tiancode", "models"),
+          path.join(process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming"), "ai.tiancode.desktop.codex", "xdg", "data", "tiancode", "models"),
+        ]
+
+        const readGgufs = (dir: string): string[] => {
+          let results: string[] = []
           try {
-            const readGgufs = (dir: string): string[] => {
-              let results: string[] = []
-              const list = readdirSync(dir, { withFileTypes: true })
-              for (const item of list) {
-                const full = path.join(dir, item.name)
-                if (item.isDirectory()) {
-                  results = results.concat(readGgufs(full))
-                } else if (item.name.endsWith(".gguf") && !item.name.endsWith(".part")) {
-                  results.push(item.name)
-                }
+            const list = readdirSync(dir, { withFileTypes: true })
+            for (const item of list) {
+              const full = path.join(dir, item.name)
+              if (item.isDirectory()) {
+                results = results.concat(readGgufs(full))
+              } else if (item.name.endsWith(".gguf") && !item.name.endsWith(".part")) {
+                results.push(item.name)
               }
-              return results
             }
-            const ggufs = readGgufs(modelsDataDir)
-            for (const file of ggufs) {
-              const modelID = file.replace(/\.gguf$/i, "")
-              const modelObj: Model = {
-                id: ModelV2.ID.make(modelID),
-                providerID: localProviderID,
-                name: modelID,
-                api: {
-                  id: modelID,
-                  npm: "@ai-sdk/openai-compatible",
-                  url: "http://127.0.0.1:58282/v1",
-                },
-                status: "active",
-                capabilities: {
-                  temperature: true,
-                  reasoning: false,
-                  attachment: false,
-                  toolcall: true,
-                  input: { text: true, audio: false, image: false, video: false, pdf: false },
-                  output: { text: true, audio: false, image: false, video: false, pdf: false },
-                  interleaved: false,
-                },
-                cost: { input: 0, output: 0, cache: { read: 0, write: 0 } },
-                options: {},
-                limit: { context: 32768, output: 8192 },
-                headers: {},
-                family: "local",
-                release_date: new Date().toISOString(),
-                variants: {},
-              }
-              database[localProviderID].models[modelID] = modelObj
+          } catch {}
+          return results
+        }
+
+        const seenGgufs = new Set<string>()
+        for (const modelsDataDir of candidateModelsDirs) {
+          if (!existsSync(modelsDataDir)) continue
+          const ggufs = readGgufs(modelsDataDir)
+          for (const file of ggufs) {
+            const modelID = file.replace(/\.gguf$/i, "")
+            if (seenGgufs.has(modelID)) continue
+            seenGgufs.add(modelID)
+            const modelObj: Model = {
+              id: ModelV2.ID.make(modelID),
+              providerID: localProviderID,
+              name: modelID,
+              api: {
+                id: modelID,
+                npm: "@ai-sdk/openai-compatible",
+                url: "http://127.0.0.1:58282/v1",
+              },
+              status: "active",
+              capabilities: {
+                temperature: true,
+                reasoning: false,
+                attachment: false,
+                toolcall: true,
+                input: { text: true, audio: false, image: false, video: false, pdf: false },
+                output: { text: true, audio: false, image: false, video: false, pdf: false },
+                interleaved: false,
+              },
+              cost: { input: 0, output: 0, cache: { read: 0, write: 0 } },
+              options: {},
+              limit: { context: 32768, output: 8192 },
+              headers: {},
+              family: "local",
+              release_date: new Date().toISOString(),
+              variants: {},
             }
-          } catch {
-            // ignore scan errors
+            database[localProviderID].models[modelID] = modelObj
           }
         }
 

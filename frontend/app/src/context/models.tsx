@@ -38,28 +38,15 @@ export const { use: useModels, provider: ModelsProvider } = createSimpleContext(
     )
 
     const available = createMemo(() => {
-      const connectedProviders = providers.connected()
-      const isConnected = (id: string) => connectedProviders.some((p) => p.id === id)
       const allProviders = Array.from(providers.all().values()).filter((p) => {
         if (p.id === "tiancode-native") return false
-        if ((p.id === "lmstudio" || p.id === "ollama") && !isConnected(p.id)) return false
         return true
       })
-      const activeProviders =
-        connectedProviders.length > 0
-          ? connectedProviders.filter((p) => p.id !== "tiancode-native")
-          : allProviders
-      const localProvidersWithModels = allProviders.filter(
-        (p) => p.id === "local" && Object.keys(p.models ?? {}).length > 0,
-      )
-      const combined = new Map<string, (typeof allProviders)[number]>()
-      for (const p of activeProviders) combined.set(p.id, p)
-      for (const p of localProvidersWithModels) combined.set(p.id, p)
 
       const seenKeys = new Set<string>()
       const list: Array<(typeof allProviders)[number]["models"][string] & { provider: (typeof allProviders)[number] }> = []
 
-      for (const p of combined.values()) {
+      for (const p of allProviders) {
         for (const [modelKeyId, m] of Object.entries(p.models ?? {})) {
           if (!m) continue
           const rawId = (m as any).id || modelKeyId
