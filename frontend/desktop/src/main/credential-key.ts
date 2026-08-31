@@ -10,15 +10,32 @@ import { app, safeStorage } from "electron"
 // (CLI standalone o safeStorage no disponible) las credenciales vuelven a
 // texto plano, el comportamiento legacy.
 export async function getCredentialKey(): Promise<string | undefined> {
-  const file = join(app.getPath("userData"), "credentials.key")
-  try {
-    if (existsSync(file)) return safeStorage.decryptString(await readFile(file))
-  } catch (error) {
-    console.warn("failed to decrypt credential key", error)
-    return undefined
+  const currentPath = join(app.getPath("userData"), "credentials.key")
+  const candidatePaths = [
+    currentPath,
+    join(app.getPath("appData"), "ai.tiancode.desktop", "credentials.key"),
+    join(app.getPath("appData"), "ai.tiancode.desktop.codex", "credentials.key"),
+    join(app.getPath("appData"), "ai.tiancode.desktop.dev", "credentials.key"),
+  ]
+
+  for (const file of candidatePaths) {
+    try {
+      if (existsSync(file)) {
+        const decrypted = safeStorage.decryptString(await readFile(file))
+        if (decrypted) {
+          if (file !== currentPath) {
+            await writeFile(currentPath, await readFile(file), { mode: 0o600 }).catch(() => {})
+          }
+          return decrypted
+        }
+      }
+    } catch (error) {
+      console.warn("failed to decrypt credential key from", file, error)
+    }
   }
+
   if (!safeStorage.isEncryptionAvailable()) return undefined
   const key = randomBytes(32).toString("base64")
-  await writeFile(file, safeStorage.encryptString(key), { mode: 0o600 })
+  await writeFile(currentPath, safeStorage.encryptString(key), { mode: 0o600 })
   return key
 }

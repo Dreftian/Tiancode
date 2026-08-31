@@ -67,25 +67,17 @@ function migrateFile(datPath: string, filename: string) {
 }
 
 export function migrate() {
-  if (getStore().get(TAURI_MIGRATED_KEY)) {
-    log.log("tauri migration: already done, skipping")
-    return
+  const candidateIds = ["ai.tiancode.desktop", "ai.tiancode.desktop.codex", "ai.tiancode.desktop.dev"]
+  for (const id of candidateIds) {
+    const dir = tauriDir(id)
+    if (!existsSync(dir)) continue
+    try {
+      for (const filename of readdirSync(dir)) {
+        if (!filename.endsWith(".dat") && filename !== "tiancode.settings") continue
+        migrateFile(join(dir, filename), filename)
+      }
+    } catch (err) {
+      log.warn("migration error reading directory", dir, err)
+    }
   }
-
-  const dir = tauriDir(tauriAppId())
-  log.log("tauri migration: starting", { dir })
-
-  if (!existsSync(dir)) {
-    log.log("tauri migration: no tauri data directory found, nothing to migrate")
-    getStore().set(TAURI_MIGRATED_KEY, true)
-    return
-  }
-
-  for (const filename of readdirSync(dir)) {
-    if (!filename.endsWith(".dat")) continue
-    migrateFile(join(dir, filename), filename)
-  }
-
-  log.log("tauri migration: complete")
-  getStore().set(TAURI_MIGRATED_KEY, true)
 }

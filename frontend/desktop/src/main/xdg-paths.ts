@@ -83,19 +83,39 @@ export function applyDesktopXdgPaths(userData: string, environment: Environment 
 export async function migrateDesktopXdgPaths(paths: DesktopXdgPaths) {
   if (!paths.managed.data && !paths.managed.config && !paths.managed.state) return { migrated: false, copied: 0 }
   const marker = join(paths.root, migrationMarker)
-  if (existsSync(marker)) return { migrated: false, copied: 0 }
+  const markerExists = existsSync(marker)
 
-  const copied =
-    (paths.managed.data ? await copyMissing(paths.legacy.data, paths.global.data, new Set(["models"])) : 0) +
-    (paths.managed.config ? await copyMissing(paths.legacy.config, paths.global.config) : 0) +
-    (paths.managed.state ? await copyMissing(paths.legacy.state, paths.global.state) : 0)
+  const candidateLegacyData = [
+    paths.legacy.data,
+    join(dirname(paths.root), "..", "ai.tiancode.desktop", "xdg", "data", appDirectory),
+    join(dirname(paths.root), "..", "ai.tiancode.desktop.codex", "xdg", "data", appDirectory),
+    join(dirname(paths.root), "..", "ai.tiancode.desktop", appDirectory),
+    join(dirname(paths.root), "..", "ai.tiancode.desktop.codex", appDirectory),
+  ]
+
+  let copied = 0
+  if (paths.managed.data) {
+    for (const legacyData of candidateLegacyData) {
+      if (existsSync(legacyData) && !samePath(legacyData, paths.global.data)) {
+        copied += await copyMissing(legacyData, paths.global.data, new Set(["models"]))
+      }
+    }
+  }
+
+  if (paths.managed.config && !markerExists) {
+    copied += await copyMissing(paths.legacy.config, paths.global.config)
+  }
+
+  if (paths.managed.state && !markerExists) {
+    copied += await copyMissing(paths.legacy.state, paths.global.state)
+  }
 
   await mkdir(paths.root, { recursive: true })
   await writeFile(marker, "1\n", { flag: "wx" }).catch((error: unknown) => {
     if (isAlreadyExists(error)) return
     throw error
   })
-  return { migrated: true, copied }
+  return { migrated: copied > 0, copied }
 }
 
 async function copyMissing(source: string, target: string, excludedAtRoot?: Set<string>): Promise<number> {
@@ -118,6 +138,15 @@ async function copyMissing(source: string, target: string, excludedAtRoot?: Set<
     await mkdir(dirname(target), { recursive: true })
     await cp(source, target, { recursive: sourceInfo.isDirectory(), force: false, verbatimSymlinks: true })
     return 1
+  }
+
+  if (!sourceInfo.isDirectory() && !targetInfo.isDirectory()) {
+    // If target is an empty stub database and source is a real database (> 100KB), restore the real database
+    if (sourceInfo.size > targetInfo.size && targetInfo.size < 1_000_000 && source.endsWith(".db")) {
+      await cp(source, target, { force: true })
+      return 1
+    }
+    return 0
   }
 
   if (!sourceInfo.isDirectory() || !targetInfo.isDirectory()) return 0
