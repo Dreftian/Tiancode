@@ -34,6 +34,8 @@ import { TooltipV2 } from "@tiancode-ai/ui/v2/tooltip-v2"
 import { fileTreeTooltipKeybind, reviewTooltipKeybind, terminalTooltipKeybind } from "../command-tooltip-keybind"
 import { useTitlebarRightMount } from "../titlebar"
 import { previewPanelOpen, setPreviewPanelOpen, supportsPreviewPanel } from "../preview-panel"
+import { stopSpeaking } from "@/utils/voices"
+import { stopAutoSpeak } from "@/utils/auto-speak"
 
 const OPEN_APPS = [
   "vscode",
@@ -260,6 +262,18 @@ export function SessionHeader() {
     onPanelToggle: () => {
       if (!layout.fileTree.opened()) view().liveView.close()
       layout.fileTree.toggle()
+    },
+    voiceActive: settings.general.autoSpeak(),
+    voiceLabel: settings.general.autoSpeak()
+      ? "Voz activa: la IA narrará al responder (clic para silenciar)"
+      : "Voz silenciada: modo rápido 0% CPU (clic para activar)",
+    onVoiceToggle: () => {
+      const next = !settings.general.autoSpeak()
+      settings.general.setAutoSpeak(next)
+      if (!next) {
+        stopSpeaking()
+        stopAutoSpeak()
+      }
     },
   }))
 
@@ -560,6 +574,9 @@ type SessionHeaderV2ActionsState = {
   panelKeybind: string[]
   panelOpened: boolean
   onPanelToggle: () => void
+  voiceActive: boolean
+  voiceLabel: string
+  onVoiceToggle: () => void
 }
 
 function SessionHeaderV2Actions(props: { state: SessionHeaderV2ActionsState }) {
@@ -570,6 +587,39 @@ function SessionHeaderV2Actions(props: { state: SessionHeaderV2ActionsState }) {
           <StatusPopoverV2 />
         </Tooltip>
       </Show>
+
+      {/* Botón de control rápido de voz (1 clic para activar o silenciar) */}
+      <TooltipV2 class="shrink-0" placement="bottom" value={props.state.voiceLabel}>
+        <IconButtonV2
+          type="button"
+          variant="ghost"
+          size="large"
+          class="!w-9 shrink-0 transition-colors"
+          classList={{
+            "[&_svg]:text-v2-icon-icon-accent text-v2-icon-icon-accent bg-v2-surface-action-selected/30": props.state.voiceActive,
+            "opacity-60 hover:opacity-100": !props.state.voiceActive,
+          }}
+          onClick={props.state.onVoiceToggle}
+          aria-label={props.state.voiceLabel}
+          icon={
+            <Show
+              when={props.state.voiceActive}
+              fallback={
+                <svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
+                  <path d="M7.33 3.33L4 6H1.33v4H4l3.33 2.67V3.33z" stroke-linecap="square" />
+                  <path d="M10.5 6l3.5 4M14 6l-3.5 4" stroke-linecap="square" />
+                </svg>
+              }
+            >
+              <svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
+                <path d="M7.33 3.33L4 6H1.33v4H4l3.33 2.67V3.33z" stroke-linecap="square" />
+                <path d="M10 5.33c1.33 1.34 1.33 4 0 5.34M12.5 3.33c2 2 2 7.34 0 9.34" stroke-linecap="round" />
+              </svg>
+            </Show>
+          }
+        />
+      </TooltipV2>
+
       <TooltipV2
         class="shrink-0"
         placement="bottom"

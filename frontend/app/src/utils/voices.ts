@@ -89,6 +89,11 @@ const clearActive = () => {
 export function stopSpeaking() {
   speechGeneration += 1
   activeAudio?.pause()
+  if (typeof window !== "undefined" && "speechSynthesis" in window) {
+    try {
+      window.speechSynthesis.cancel()
+    } catch {}
+  }
   const finish = pendingPlay
   pendingPlay = undefined
   clearActive()
@@ -96,11 +101,29 @@ export function stopSpeaking() {
   finish?.()
 }
 
-// Preferencias dinámicas de audio (velocidad, tono, barge-in)
+// Preferencias dinámicas de audio (velocidad, tono, barge-in, motor)
 const SPEED_KEY = "tiancode.voice.speed"
 const PITCH_KEY = "tiancode.voice.pitch"
 const BARGE_IN_KEY = "tiancode.voice.barge_in"
 const CUSTOM_VOICES_KEY = "tiancode.voice.custom_list"
+const ENGINE_KEY = "tiancode.voice.engine"
+
+export type VoiceEngineMode = "auto" | "system" | "neural"
+
+export const [voiceEngineMode, setVoiceEngineState] = createSignal<VoiceEngineMode>(
+  typeof localStorage !== "undefined" ? ((localStorage.getItem(ENGINE_KEY) as VoiceEngineMode) ?? "auto") : "auto",
+)
+
+export function getVoiceEngineMode(): VoiceEngineMode {
+  return voiceEngineMode()
+}
+
+export function setVoiceEngineMode(mode: VoiceEngineMode) {
+  setVoiceEngineState(mode)
+  if (typeof localStorage !== "undefined") {
+    localStorage.setItem(ENGINE_KEY, mode)
+  }
+}
 
 const [voiceSpeed, setVoiceSpeedState] = createSignal<number>(
   typeof localStorage !== "undefined" ? Number(localStorage.getItem(SPEED_KEY) ?? "1.0") : 1.0,
@@ -307,16 +330,16 @@ function speakWithWebSpeech(key: string, text: string): Promise<string | undefin
       window.speechSynthesis.cancel()
       const utterance = new SpeechSynthesisUtterance(text)
       utterance.lang = "es-ES"
-      utterance.rate = 1.05
+      utterance.rate = getVoiceSpeed() ?? 1.05
       utterance.pitch = 1.0
 
       const voices = window.speechSynthesis.getVoices()
-      // Priorizar voces naturales femeninas en español
+      // Priorizar voces naturales en español de Windows (Microsoft Sabina, Helena, Laura, Dalia, etc.)
       const femaleEsVoice = voices.find(
         (v) =>
-          v.lang.startsWith("es") &&
-          /elvira|dalia|sol|sabina|paulina|monica|paloma|natural|neural|female|mujer/i.test(v.name),
-      ) || voices.find((v) => v.lang.startsWith("es"))
+          v.lang.toLowerCase().startsWith("es") &&
+          /sabina|helena|laura|elvira|dalia|sol|paulina|monica|paloma|natural|neural|female|mujer/i.test(v.name),
+      ) || voices.find((v) => v.lang.toLowerCase().startsWith("es"))
 
       if (femaleEsVoice) utterance.voice = femaleEsVoice
 
@@ -350,6 +373,10 @@ async function speak(key: string, text: string, voiceId?: string, options?: Voic
   stopSpeaking()
   setSpeakingKey(key)
   const expectedGeneration = speechGeneration
+
+  if (getVoiceEngineMode() === "system") {
+    return speakWithWebSpeech(key, normalized)
+  }
 
   const api = voicesAPI()
   if (!api) {

@@ -18,7 +18,12 @@ import {
   setBargeInEnabled,
   enableBargeInListener,
   currentSpeakingKey,
+  getVoiceEngineMode,
+  setVoiceEngineMode,
+  stopSpeaking,
+  type VoiceEngineMode,
 } from "@/utils/voices"
+import { stopAutoSpeak } from "@/utils/auto-speak"
 import { AudioWaveform } from "@/components/audio-waveform"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
@@ -311,6 +316,48 @@ export const SettingsVoicesV2: Component = () => {
             </div>
           </Show>
 
+          {/* Tarjeta de Control Maestro de Voz */}
+          <div class="settings-v2-voices-master-card" data-active={settings.general.autoSpeak()}>
+            <div class="settings-v2-voices-master-info">
+              <div class="settings-v2-voices-master-icon">
+                <Show
+                  when={settings.general.autoSpeak()}
+                  fallback={
+                    <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
+                      <path d="M7.33 3.33L4 6H1.33v4H4l3.33 2.67V3.33z" stroke-linecap="square" />
+                      <path d="M10.5 6l3.5 4M14 6l-3.5 4" stroke-linecap="square" />
+                    </svg>
+                  }
+                >
+                  <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
+                    <path d="M7.33 3.33L4 6H1.33v4H4l3.33 2.67V3.33z" stroke-linecap="square" />
+                    <path d="M10 5.33c1.33 1.34 1.33 4 0 5.34M12.5 3.33c2 2 2 7.34 0 9.34" stroke-linecap="round" />
+                  </svg>
+                </Show>
+              </div>
+              <div class="settings-v2-voices-master-text">
+                <div class="settings-v2-voices-master-title">
+                  {settings.general.autoSpeak() ? "Voz Automática Activada" : "Voz Automática Desactivada (Silenciada)"}
+                </div>
+                <div class="settings-v2-voices-master-desc">
+                  {settings.general.autoSpeak()
+                    ? "La IA hablará en voz alta cuando termine de responder. Si notas lentitud en tu equipo, puedes desactivarla aquí o en la barra superior."
+                    : "Modo silencioso ultra rápido (0% de uso de CPU). La IA responderá de inmediato sin procesar audio."}
+                </div>
+              </div>
+            </div>
+            <Switch
+              checked={settings.general.autoSpeak()}
+              onChange={(value) => {
+                settings.general.setAutoSpeak(value)
+                if (!value) {
+                  stopSpeaking()
+                  stopAutoSpeak()
+                }
+              }}
+            />
+          </div>
+
           <Show when={selectedVoice()}>
             <div class="settings-v2-voices-selected">
               <Icon name="circle-check" size="small" />
@@ -321,12 +368,59 @@ export const SettingsVoicesV2: Component = () => {
 
           <SettingsListV2>
             <SettingsRowV2
+              title="Motor de Síntesis de Voz"
+              description="Usa la voz nativa de Windows (Microsoft Sabina/Helena) para 0% consumo de CPU y 0 ms de espera, o el modelo neuronal local."
+            >
+              <div class="flex items-center gap-1.5">
+                <ButtonV2
+                  type="button"
+                  variant={getVoiceEngineMode() === "system" ? "contrast" : "ghost"}
+                  size="small"
+                  onClick={() => {
+                    setVoiceEngineMode("system")
+                    settings.general.setVoiceEngine("system")
+                  }}
+                >
+                  ⚡ Voz Nativa Windows (0% CPU)
+                </ButtonV2>
+                <ButtonV2
+                  type="button"
+                  variant={getVoiceEngineMode() === "auto" ? "contrast" : "ghost"}
+                  size="small"
+                  onClick={() => {
+                    setVoiceEngineMode("auto")
+                    settings.general.setVoiceEngine("auto")
+                  }}
+                >
+                  🔄 Automático
+                </ButtonV2>
+                <ButtonV2
+                  type="button"
+                  variant={getVoiceEngineMode() === "neural" ? "contrast" : "ghost"}
+                  size="small"
+                  onClick={() => {
+                    setVoiceEngineMode("neural")
+                    settings.general.setVoiceEngine("neural")
+                  }}
+                >
+                  🧠 Neural Kokoro
+                </ButtonV2>
+              </div>
+            </SettingsRowV2>
+
+            <SettingsRowV2
               title={language.t("settings.voices.autoSpeak.title")}
               description={language.t("settings.voices.autoSpeak.description")}
             >
               <Switch
                 checked={settings.general.autoSpeak()}
-                onChange={(value) => settings.general.setAutoSpeak(value)}
+                onChange={(value) => {
+                  settings.general.setAutoSpeak(value)
+                  if (!value) {
+                    stopSpeaking()
+                    stopAutoSpeak()
+                  }
+                }}
               />
             </SettingsRowV2>
 

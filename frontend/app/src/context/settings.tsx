@@ -118,6 +118,7 @@ export interface Settings {
     petPosition: PetPosition
     autoSpeak: boolean
     speakReasoning: boolean
+    voiceEngine: "auto" | "system" | "neural"
     showReasoningSummaries: boolean
     shellToolPartsExpanded: boolean
     editToolPartsExpanded: boolean
@@ -290,6 +291,7 @@ const defaultSettings: Settings = {
     petPosition: defaultPetSettings.position,
     autoSpeak: false,
     speakReasoning: false,
+    voiceEngine: "auto",
     showReasoningSummaries: false,
     shellToolPartsExpanded: false,
     editToolPartsExpanded: false,
@@ -523,6 +525,10 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         speakReasoning: withFallback(() => store.general?.speakReasoning, defaultSettings.general.speakReasoning),
         setSpeakReasoning(value: boolean) {
           setStore("general", "speakReasoning", value)
+        },
+        voiceEngine: withFallback(() => store.general?.voiceEngine, defaultSettings.general.voiceEngine),
+        setVoiceEngine(value: "auto" | "system" | "neural") {
+          setStore("general", "voiceEngine", value)
         },
         showReasoningSummaries: withFallback(
           () => store.general?.showReasoningSummaries,
