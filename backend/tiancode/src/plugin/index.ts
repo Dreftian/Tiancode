@@ -288,10 +288,17 @@ const layer = Layer.effect(
     >(name: Name, input: Input, output: Output) {
       if (!name) return output
       const s = yield* InstanceState.get(state)
+      if (s.hooks.length === 0) return output
       for (const hook of s.hooks) {
         const fn = hook[name] as any
-        if (!fn) continue
-        yield* Effect.promise(async () => fn(input, output))
+        if (typeof fn !== "function") continue
+        yield* Effect.tryPromise({
+          try: () => Promise.resolve(fn(input, output)),
+          catch: errorMessage,
+        }).pipe(
+          Effect.tapError((error) => Effect.logWarning("plugin hook failed", { hook: name, error })),
+          Effect.ignore,
+        )
       }
       return output
     })

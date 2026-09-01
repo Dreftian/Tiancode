@@ -23,6 +23,7 @@ import { createPromptSubmissionState } from "./submission-state"
 import { normalizeSessionInfo } from "@/utils/session"
 import { Event } from "@tiancode-ai/schema/event"
 import { blobDataUrl } from "@/utils/draft-store"
+import { isSpeed2xActive, resolveFastVariant, SPEED_MODE_2X_DIRECTIVE } from "@/utils/speed-mode"
 
 type PendingPrompt = {
   abort: AbortController
@@ -171,6 +172,7 @@ export async function sendFollowupDraft(input: FollowupSendInput) {
       agent: input.draft.agent,
       model: input.draft.model,
       variant: input.draft.variant,
+      system: isSpeed2xActive() ? SPEED_MODE_2X_DIRECTIVE : undefined,
       legacyParts: requestParts,
       text: requestParts.flatMap((part) => (part.type === "text" ? [part.text] : [])).join("\n"),
       files: requestParts.flatMap((part) => {
@@ -399,11 +401,14 @@ export function createPromptSubmit(input: PromptSubmitInput) {
     }
 
     let session = input.info()
+    const effectiveVariant = isSpeed2xActive()
+      ? (resolveFastVariant(modelSelection.variant.list()) ?? variant)
+      : variant
     if (!session && isNewSession) {
       const created = await sdk()
         .api.session.create({
           agent: currentAgent.name,
-          model: { id: currentModel.id, providerID: currentModel.provider.id, variant },
+          model: { id: currentModel.id, providerID: currentModel.provider.id, variant: effectiveVariant },
           location: { directory: sessionDirectory },
         })
         .then(normalizeSessionInfo)
@@ -423,7 +428,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
           local.session.promote(sessionDirectory, session.id, {
             agent: currentAgent.name,
             model: { providerID: currentModel.provider.id, modelID: currentModel.id },
-            variant: variant ?? null,
+            variant: effectiveVariant ?? null,
           })
           layout.handoff.setTabs(base64Encode(sessionDirectory), session.id)
           const draftID = search.draftId
@@ -453,7 +458,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
       context,
       agent,
       model,
-      variant,
+      variant: effectiveVariant,
     }
 
     const clearInput = () => {

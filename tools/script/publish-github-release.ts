@@ -29,19 +29,20 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.1"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} - Versión Oficial`
+  const releaseName = `Tiancode v${version} - Soporte DESIGN.md, Vibe Coding y Next.js 15`
   const body = `## 🚀 Tiancode v${version} — Versión Oficial
 
-### ✨ Características Principales
-- **Detección Automática de Modelos Locales:** Descubre automáticamente todos los modelos GGUF descargados en disco y los activa de inmediato en el selector de chat y en Gestionar Modelos.
-- **71 Built-in Engineering Skills:** Acceso completo a todo el catálogo de habilidades de ingeniería y flujo de trabajo.
-- **Flujo de Ventana Compacta Apple:** Arranque optimizado en ventana compacta (500×440 px) con carga fluida de 3 segundos, logo Tiancode y asistente de bienvenida sin fondos oscuros vacíos.
-- **Transición suave:** Al completar la bienvenida, la app se expande suavemente al espacio de trabajo completo.
-- **Model Hub y HuggingFace:** Descarga y ejecución de modelos locales GGUF con soporte GPU acelerado y reanudación de descargas.
-- **Proveedores y Modelos Pre-Cargados:** OpenAI, Anthropic, Gemini, DeepSeek, Ollama, LM Studio, HuggingFace y OpenCode Zen disponibles desde el primer arranque.
-- **Plugins y MCP Servers:** Ecosistema completo con activación/desactivación funcional y suite de herramientas.
-- **Voces TTS:** Motor Kokoro y modelos neuronales Piper en español con dictado y lectura de respuestas.
-- **Auto-Actualizador:** Sincronizado directamente con las releases de este repositorio.
+### ✨ Novedades y Características Principales
+- **Soporte Nativo de Sistemas de Diseño (DESIGN.md):** Tiancode ahora detecta automáticamente archivos \`DESIGN.md\` en cualquier proyecto e inyecta su sistema de diseño, tokens de color y contratos de componentes en el contexto del modelo.
+- **Subagente UI/UX Especializado (\`ui-ux-master\`):** Diseñado para aplicar rigurosamente tokens semánticos, escalas tipográficas y espaciados armónicos basados en \`DESIGN.md\`.
+- **Habilidad de Sistemas de Diseño (\`design-system-spec\`):** Habilidad canónica basada en el estándar Rico UI para auditar, crear y sincronizar especificaciones visuales y Tailwind CSS.
+- **Metodología Vibe Coding en 3 Fases (\`vibe-coding-workflow\`):** Flujo estructurado inspirado en Lovable (Planificación de Esquemas y Contratos → Implementación Modular Tipada → Verificación y Polish).
+- **Habilidad Fullstack Next.js 15+ (\`fullstack-nextjs-tailwind\`):** Directrices avanzadas para React Server Components (RSC), Server Actions con esquemas tipados y Tailwind CSS v4.
+- **Detección Automática de Modelos Locales:** Descubre automáticamente todos los modelos GGUF descargados en disco y los activa de inmediato.
+- **73 Built-in Engineering Skills:** Catálogo expandido de habilidades de ingeniería y flujo de trabajo.
+- **Plugins y MCP Servers:** Ecosistema completo con activación funcional y suite de herramientas.
+- **Voces TTS Kokoro y Piper:** Síntesis de voz neural con dictado en español.
+- **Actualizador Automático:** Detección e instalación fluida de nuevas versiones.
 
 ### 📦 Descargas
 | Archivo | Tipo | Descripción |

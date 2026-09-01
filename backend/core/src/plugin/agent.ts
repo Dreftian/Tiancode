@@ -228,8 +228,8 @@ export const Plugin = define({
       })
 
       draft.update(AgentV2.ID.make("ui-ux-master"), (item) => {
-        item.description = "Diseño visual moderno, Tailwind CSS, micro-interacciones fluidas y componentes accesibles."
-        item.system = "Eres un diseñador y desarrollador frontend experto en UI/UX moderna. Diseñas interfaces atractivas, limpias, con excelente jerarquía visual, espaciados precisos, transiciones suaves y soporte completo para temas oscuro/claro."
+        item.description = "Diseño visual moderno, sistemas DESIGN.md, Tailwind CSS, micro-interacciones fluidas y accesibilidad."
+        item.system = "Eres un diseñador y desarrollador frontend experto en UI/UX moderna y sistemas de diseño. Siempre identificas y respetas las especificaciones del archivo `DESIGN.md` cuando exista. Diseñas interfaces atractivas, limpias, con estricta jerarquía visual, tokens de diseño semánticos (colores HSL/RGB, escalas de tipografía y espaciado de 4/8px), transiciones suaves, contraste WCAG y soporte completo para modo oscuro y claro."
         item.mode = "subagent"
         item.native = true
         item.color = "#EC4899"

@@ -25,32 +25,6 @@ export const popularProviders = [
 ]
 const popularProviderSet = new Set(popularProviders)
 
-function makeFallbackModel(providerID: string, id: string, name: string) {
-  return {
-    id,
-    providerID,
-    name,
-    api: { id, npm: "@ai-sdk/openai-compatible", url: "" },
-    status: "active" as const,
-    capabilities: {
-      temperature: true,
-      reasoning: false,
-      attachment: true,
-      toolcall: true,
-      input: { text: true, audio: false, image: true, video: false, pdf: true },
-      output: { text: true, audio: false, image: false, video: false, pdf: false },
-      interleaved: false,
-    },
-    cost: { input: 0, output: 0, cache: { read: 0, write: 0 } },
-    options: {},
-    limit: { context: 128000, output: 8192 },
-    headers: {},
-    family: providerID,
-    release_date: new Date().toISOString(),
-    variants: {},
-  }
-}
-
 const DEFAULT_FALLBACK_PROVIDERS: Record<string, Provider> = {
   openai: {
     id: "openai",
@@ -58,12 +32,7 @@ const DEFAULT_FALLBACK_PROVIDERS: Record<string, Provider> = {
     source: "custom",
     env: ["OPENAI_API_KEY"],
     options: {},
-    models: {
-      "gpt-4o": makeFallbackModel("openai", "gpt-4o", "GPT-4o"),
-      "gpt-4o-mini": makeFallbackModel("openai", "gpt-4o-mini", "GPT-4o Mini"),
-      "o1": makeFallbackModel("openai", "o1", "o1"),
-      "o3-mini": makeFallbackModel("openai", "o3-mini", "o3-mini"),
-    },
+    models: {},
   },
   anthropic: {
     id: "anthropic",
@@ -71,11 +40,7 @@ const DEFAULT_FALLBACK_PROVIDERS: Record<string, Provider> = {
     source: "custom",
     env: ["ANTHROPIC_API_KEY"],
     options: {},
-    models: {
-      "claude-3-7-sonnet-latest": makeFallbackModel("anthropic", "claude-3-7-sonnet-latest", "Claude 3.7 Sonnet"),
-      "claude-3-5-sonnet-latest": makeFallbackModel("anthropic", "claude-3-5-sonnet-latest", "Claude 3.5 Sonnet"),
-      "claude-3-5-haiku-latest": makeFallbackModel("anthropic", "claude-3-5-haiku-latest", "Claude 3.5 Haiku"),
-    },
+    models: {},
   },
   google: {
     id: "google",
@@ -83,11 +48,7 @@ const DEFAULT_FALLBACK_PROVIDERS: Record<string, Provider> = {
     source: "custom",
     env: ["GEMINI_API_KEY"],
     options: {},
-    models: {
-      "gemini-2.5-pro": makeFallbackModel("google", "gemini-2.5-pro", "Gemini 2.5 Pro"),
-      "gemini-2.5-flash": makeFallbackModel("google", "gemini-2.5-flash", "Gemini 2.5 Flash"),
-      "gemini-2.0-flash": makeFallbackModel("google", "gemini-2.0-flash", "Gemini 2.0 Flash"),
-    },
+    models: {},
   },
   deepseek: {
     id: "deepseek",
@@ -95,10 +56,7 @@ const DEFAULT_FALLBACK_PROVIDERS: Record<string, Provider> = {
     source: "custom",
     env: ["DEEPSEEK_API_KEY"],
     options: {},
-    models: {
-      "deepseek-chat": makeFallbackModel("deepseek", "deepseek-chat", "DeepSeek V3 (Chat)"),
-      "deepseek-reasoner": makeFallbackModel("deepseek", "deepseek-reasoner", "DeepSeek R1 (Reasoner)"),
-    },
+    models: {},
   },
   local: {
     id: "local",
@@ -130,11 +88,7 @@ const DEFAULT_FALLBACK_PROVIDERS: Record<string, Provider> = {
     source: "custom",
     env: ["OPENROUTER_API_KEY"],
     options: {},
-    models: {
-      "anthropic/claude-3.7-sonnet": makeFallbackModel("openrouter", "anthropic/claude-3.7-sonnet", "Claude 3.7 Sonnet (OpenRouter)"),
-      "openai/gpt-4o": makeFallbackModel("openrouter", "openai/gpt-4o", "GPT-4o (OpenRouter)"),
-      "deepseek/deepseek-r1": makeFallbackModel("openrouter", "deepseek/deepseek-r1", "DeepSeek R1 (OpenRouter)"),
-    },
+    models: {},
   },
   groq: {
     id: "groq",
@@ -142,10 +96,7 @@ const DEFAULT_FALLBACK_PROVIDERS: Record<string, Provider> = {
     source: "custom",
     env: ["GROQ_API_KEY"],
     options: {},
-    models: {
-      "llama-3.3-70b-versatile": makeFallbackModel("groq", "llama-3.3-70b-versatile", "Llama 3.3 70B (Groq)"),
-      "deepseek-r1-distill-llama-70b": makeFallbackModel("groq", "deepseek-r1-distill-llama-70b", "DeepSeek R1 Distill 70B (Groq)"),
-    },
+    models: {},
   },
   xai: {
     id: "xai",
@@ -153,10 +104,7 @@ const DEFAULT_FALLBACK_PROVIDERS: Record<string, Provider> = {
     source: "custom",
     env: ["XAI_API_KEY"],
     options: {},
-    models: {
-      "grok-2-latest": makeFallbackModel("xai", "grok-2-latest", "Grok 2"),
-      "grok-beta": makeFallbackModel("xai", "grok-beta", "Grok Beta"),
-    },
+    models: {},
   },
   mistral: {
     id: "mistral",
@@ -164,10 +112,7 @@ const DEFAULT_FALLBACK_PROVIDERS: Record<string, Provider> = {
     source: "custom",
     env: ["MISTRAL_API_KEY"],
     options: {},
-    models: {
-      "mistral-large-latest": makeFallbackModel("mistral", "mistral-large-latest", "Mistral Large"),
-      "codestral-latest": makeFallbackModel("mistral", "codestral-latest", "Codestral"),
-    },
+    models: {},
   },
   "github-copilot": {
     id: "github-copilot",
@@ -175,10 +120,7 @@ const DEFAULT_FALLBACK_PROVIDERS: Record<string, Provider> = {
     source: "custom",
     env: [],
     options: {},
-    models: {
-      "claude-3.5-sonnet": makeFallbackModel("github-copilot", "claude-3.5-sonnet", "Claude 3.5 Sonnet (Copilot)"),
-      "gpt-4o": makeFallbackModel("github-copilot", "gpt-4o", "GPT-4o (Copilot)"),
-    },
+    models: {},
   },
   vercel: {
     id: "vercel",

@@ -16,6 +16,7 @@ import { ConfigMarkdown as ConfigMarkdownCore } from "@tiancode-ai/core/config/m
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import { Glob } from "@tiancode-ai/core/util/glob"
 import { Discovery } from "./discovery"
+import { AutoSelect } from "./auto-select"
 import { isRecord } from "@/util/record"
 import { escapeHtml } from "@/util/html"
 
@@ -385,6 +386,7 @@ const layer = Layer.effect(
     })
 
     const reload = Effect.fn("Skill.reload")(function* () {
+      AutoSelect.clearCache()
       yield* InstanceState.invalidate(discovered)
       yield* InstanceState.invalidate(state)
     })

@@ -48,7 +48,7 @@ const layer = Layer.effectDiscard(
           Flag.TIANCODE_DISABLE_PROJECT_CONFIG || !insideProject
             ? []
             : yield* fs.up({
-                targets: ["AGENTS.md"],
+                targets: ["AGENTS.md", "DESIGN.md"],
                 start,
                 stop,
               }),

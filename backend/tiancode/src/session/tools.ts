@@ -12,7 +12,8 @@ import { Truncate } from "@/tool/truncate"
 
 import { Plugin } from "@/plugin"
 import type { TaskPromptOps } from "@/tool/task"
-import { type Tool as AITool, tool, jsonSchema, type ToolExecutionOptions, asSchema } from "ai"
+import { type Tool as AITool, tool, jsonSchema, type ToolExecutionOptions } from "ai"
+import type { JSONSchema7 } from "@ai-sdk/provider"
 import { Effect } from "effect"
 import { MessageV2 } from "./message-v2"
 import { Session } from "./session"
@@ -37,6 +38,34 @@ const SUPPORTED_MCP_RESOURCE_ATTACHMENT_MIMES = new Set([
   "image/png",
   "image/webp",
 ])
+
+const mcpSchemaCache = new WeakMap<object, Map<string, ReturnType<typeof jsonSchema>>>()
+
+function getTransformedMcpSchema(
+  def: { inputSchema?: unknown },
+  model: Provider.Model,
+): ReturnType<typeof jsonSchema> {
+  const modelKey = `${model.providerID}/${model.id}/${model.api.npm ?? ""}`
+  let modelMap = mcpSchemaCache.get(def as object)
+  if (!modelMap) {
+    modelMap = new Map()
+    mcpSchemaCache.set(def as object, modelMap)
+  }
+  const cached = modelMap.get(modelKey)
+  if (cached) return cached
+
+  const rawSchema = (def.inputSchema ?? {}) as Record<string, unknown>
+  const schema: JSONSchema7 = {
+    ...rawSchema,
+    type: "object",
+    properties: (rawSchema.properties ?? {}) as JSONSchema7["properties"],
+    additionalProperties: false,
+  }
+  const transformed = ProviderTransform.schema(model, { ...schema, properties: schema.properties ?? {} })
+  const result = jsonSchema(transformed)
+  modelMap.set(modelKey, result)
+  return result
+}
 
 export const resolve = Effect.fn("SessionTools.resolve")(function* (input: {
   agent: Agent.Info
@@ -392,9 +421,7 @@ export const resolve = Effect.fn("SessionTools.resolve")(function* (input: {
     const execute = item.execute
     if (!execute) continue
 
-    const schema = yield* Effect.promise(() => Promise.resolve(asSchema(item.inputSchema).jsonSchema))
-    const transformed = ProviderTransform.schema(input.model, { ...schema, properties: schema.properties ?? {} })
-    item.inputSchema = jsonSchema(transformed)
+    item.inputSchema = getTransformedMcpSchema(entry.def, input.model)
     item.execute = (args, opts) =>
       run.promise(
         Effect.gen(function* () {

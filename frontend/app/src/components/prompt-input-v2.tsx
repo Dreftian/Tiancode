@@ -15,6 +15,8 @@ import type { PromptInputProps } from "@/components/prompt-input/contracts"
 import { VoiceDictationButton } from "@/components/voice-dictation-button"
 import { CaptureControl } from "@/components/capture-control"
 import { PromptOptimizerButton } from "@/components/prompt-optimizer-button"
+import { SpeedModeButton } from "@/components/speed-mode-button"
+import { toggleSpeed2x } from "@/utils/speed-mode"
 import { normalizePromptHistoryEntry, promptLength, type PromptHistoryComment } from "@/components/prompt-input/history"
 import { createPersistedPromptInputHistory } from "@/components/prompt-input/history-store"
 import { promptDesignPlaceholder, promptPlaceholder } from "@/components/prompt-input/placeholder"
@@ -109,6 +111,7 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
             }
           />
         }
+        speedControl={<SpeedModeButton />}
         modelControl={
           <PromptInputV2ModelControl
             loading={props.controller.model.loading}
@@ -503,6 +506,13 @@ export function usePromptInputV2Controller(props: PromptInputV2ControllerProps):
       keybind: "mod+shift+e",
       disabled: controller.state.mode === "normal",
       onSelect: () => controller.dispatch({ type: "mode.normal" }),
+    },
+    {
+      id: "prompt.speed.toggle",
+      title: language.t("command.prompt.speed.toggle"),
+      category: language.t("command.category.session"),
+      keybind: "mod+shift+r",
+      onSelect: () => toggleSpeed2x(),
     },
   ])
 

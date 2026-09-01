@@ -12,6 +12,13 @@ import { join } from "node:path"
 import type { Info as SkillInfo } from "./index"
 
 const MAX_AUTO_SKILLS = 6
+const SIGNAL_CACHE_TTL_MS = 60_000
+
+const signalCache = new Map<string, { signals: Set<string>; timestamp: number }>()
+
+export function clearCache() {
+  signalCache.clear()
+}
 
 // Skills base que aplican a cualquier proyecto de software de forma segura sin imponer bloqueos.
 const BASE_SKILLS = [
@@ -43,6 +50,11 @@ const RULES: Rule[] = [
 // Lee las señales del workspace sin recorrer árboles grandes: solo la raíz,
 // .github y un par de manifiestos pequeños.
 async function detectSignals(worktree: string): Promise<Set<string>> {
+  const cached = signalCache.get(worktree)
+  if (cached && Date.now() - cached.timestamp < SIGNAL_CACHE_TTL_MS) {
+    return cached.signals
+  }
+
   const signals = new Set<string>()
   let entries: { name: string; isDir: boolean }[] = []
   try {
@@ -130,6 +142,7 @@ async function detectSignals(worktree: string): Promise<Set<string>> {
   ) {
     signals.add("testing")
   }
+  signalCache.set(worktree, { signals, timestamp: Date.now() })
   return signals
 }
 

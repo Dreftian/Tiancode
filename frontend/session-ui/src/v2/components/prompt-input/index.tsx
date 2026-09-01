@@ -52,6 +52,8 @@ export type PromptInputV2Props = {
   captureControl?: JSX.Element
   // Trae-style prompt optimization button
   optimizeControl?: JSX.Element
+  // Universal 2x speed / turbo mode button
+  speedControl?: JSX.Element
 }
 
 export function PromptInputV2(props: PromptInputV2Props) {
@@ -268,6 +270,7 @@ export function PromptInputV2(props: PromptInputV2Props) {
                 {props.captureControl}
                 {props.micControl}
                 {props.optimizeControl}
+                {props.speedControl}
               </div>
             </Show>
             <PromptInputV2SubmitButton
