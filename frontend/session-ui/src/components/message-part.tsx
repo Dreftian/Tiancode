@@ -457,20 +457,38 @@ function tone(name: string) {
   return agentPalette[hash % agentPalette.length]
 }
 
+const defaultAgentIcons: Record<string, string> = {
+  "software-architect": "🏛️",
+  "fullstack-coder": "⚡",
+  "ui-ux-master": "🎨",
+  "devsecops-auditor": "🛡️",
+  "performance-optimizer": "🚀",
+  "database-architect": "🗄️",
+  "docs-generator": "📝",
+  "qa-e2e-tester": "🧪",
+  explore: "🔍",
+  general: "🤖",
+  build: "🛠️",
+  plan: "📋",
+  webapp: "🌐",
+}
+
 function taskAgent(
   raw: unknown,
-  list?: readonly { name: string; color?: string }[],
-): { name?: string; color?: string; v2Color?: string } {
+  list?: readonly { name: string; color?: string; icon?: string }[],
+): { name?: string; color?: string; v2Color?: string; icon?: string } {
   if (typeof raw !== "string" || !raw) return {}
   const key = raw.toLowerCase()
   const item = list?.find((entry) => entry.name === raw || entry.name.toLowerCase() === key)
   const v2Tone = item?.color ? undefined : v2AgentTones[key]
   const color = agentColor(item?.color, agentThemeColors) ?? agentTones[key] ?? tone(key)
   const v2Color = agentColor(item?.color, v2AgentThemeColors) ?? v2Tone ?? color
+  const icon = item?.icon ?? defaultAgentIcons[key] ?? "🤖"
   return {
     name: item?.name ?? `${raw[0]!.toUpperCase()}${raw.slice(1)}`,
     color,
     v2Color,
+    icon,
   }
 }
 
@@ -2082,44 +2100,46 @@ ToolRegistry.register({
     const trigger = () => (
       <div
         data-component="task-tool-card"
+        data-running={running() || undefined}
         style={{
           "--task-agent-color": v2Tone(),
           "--task-agent-legacy-color": tone(),
         }}
       >
         <div data-component="task-tool-surface">
+          <span class="task-agent-avatar" style={{ "border-color": v2Tone() ?? tone() ?? "#38bdf8" }}>
+            {agent().icon ?? "🤖"}
+          </span>
           <div data-slot="basic-tool-tool-info-structured">
             <div data-slot="basic-tool-tool-info-main">
-              <Show
-                when={running()}
-                fallback={
-                  <Show when={newLayout()}>
-                    <span data-component="task-tool-icon">
-                      <Icon name="subagent" size="small" />
-                    </span>
-                  </Show>
-                }
-              >
-                <span data-component="task-tool-spinner" style={{ color: tone() ?? "var(--icon-interactive-base)" }}>
-                  <Show when={newLayout()} fallback={<Spinner />}>
-                    <SessionProgressIndicatorV2
-                      style={{ color: v2Tone() ?? "light-dark(var(--v2-text-text-base), #ffffff)" }}
-                    />
-                  </Show>
-                </span>
-              </Show>
               <span data-component="task-tool-title">{title()}</span>
+              <span class="task-agent-status-tag" data-status={props.status}>
+                {running() ? "Ejecutando" : props.status === "error" ? "Error" : "Listo"}
+              </span>
               <Show when={subtitle()}>
                 <span data-slot="basic-tool-tool-subtitle">{subtitle()}</span>
               </Show>
             </div>
           </div>
+          <Show
+            when={running()}
+            fallback={
+              <Show when={clickable()}>
+                <div data-component="task-tool-action">
+                  <Icon name="square-arrow-top-right" size="small" />
+                </div>
+              </Show>
+            }
+          >
+            <span data-component="task-tool-spinner" style={{ color: tone() ?? "var(--icon-interactive-base)" }}>
+              <Show when={newLayout()} fallback={<Spinner />}>
+                <SessionProgressIndicatorV2
+                  style={{ color: v2Tone() ?? "light-dark(var(--v2-text-text-base), #ffffff)" }}
+                />
+              </Show>
+            </span>
+          </Show>
         </div>
-        <Show when={clickable()}>
-          <div data-component="task-tool-action">
-            <Icon name="square-arrow-top-right" size="small" />
-          </div>
-        </Show>
       </div>
     )
 
