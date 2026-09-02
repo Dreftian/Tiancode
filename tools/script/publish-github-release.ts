@@ -29,20 +29,27 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.1"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} - Soporte DESIGN.md, Vibe Coding y Next.js 15`
-  const body = `## 🚀 Tiancode v${version} — Versión Oficial
+  const releaseName = `Tiancode v${version} - Parches Críticos de Seguridad, Estabilización y Blindaje de Credenciales`
+  const body = `## 🚀 Tiancode v${version} — Versión Oficial con Blindaje de Seguridad
 
-### ✨ Novedades y Características Principales
-- **Soporte Nativo de Sistemas de Diseño (DESIGN.md):** Tiancode ahora detecta automáticamente archivos \`DESIGN.md\` en cualquier proyecto e inyecta su sistema de diseño, tokens de color y contratos de componentes en el contexto del modelo.
-- **Subagente UI/UX Especializado (\`ui-ux-master\`):** Diseñado para aplicar rigurosamente tokens semánticos, escalas tipográficas y espaciados armónicos basados en \`DESIGN.md\`.
-- **Habilidad de Sistemas de Diseño (\`design-system-spec\`):** Habilidad canónica basada en el estándar Rico UI para auditar, crear y sincronizar especificaciones visuales y Tailwind CSS.
-- **Metodología Vibe Coding en 3 Fases (\`vibe-coding-workflow\`):** Flujo estructurado inspirado en Lovable (Planificación de Esquemas y Contratos → Implementación Modular Tipada → Verificación y Polish).
-- **Habilidad Fullstack Next.js 15+ (\`fullstack-nextjs-tailwind\`):** Directrices avanzadas para React Server Components (RSC), Server Actions con esquemas tipados y Tailwind CSS v4.
-- **Detección Automática de Modelos Locales:** Descubre automáticamente todos los modelos GGUF descargados en disco y los activa de inmediato.
-- **73 Built-in Engineering Skills:** Catálogo expandido de habilidades de ingeniería y flujo de trabajo.
-- **Plugins y MCP Servers:** Ecosistema completo con activación funcional y suite de herramientas.
-- **Voces TTS Kokoro y Piper:** Síntesis de voz neural con dictado en español.
-- **Actualizador Automático:** Detección e instalación fluida de nuevas versiones.
+### 🛡️ Parches de Seguridad y Mejoras de Estabilidad
+- **Blindaje y Aislamiento de Desktop Pet (Anti-RCE):** Ventana complementaria aislada con \`contextIsolation: true\`, \`nodeIntegration: false\` y \`sandbox: true\`, neutralizando vectores de inyección de código desde respuestas de modelos.
+- **Protección contra Secuestro de Terminal PTY (Anti-CSWSH):** Validación estricta e incondicional de origen en WebSockets PTY (\`/api/pty/:ptyID/connect\`), bloqueando intentos de control remoto no autorizado desde navegadores web.
+- **Protección de Credenciales AES-GCM en Reposo:** Corrección en la persistencia del almacén de autenticación que asegura que todas las claves API se mantengan cifradas con AES-GCM al agregar o eliminar proveedores.
+- **Contención de Eliminación de Archivos IPC:** Validación estricta de rutas en operaciones de Model Hub para prevenir cualquier intento de path traversal o eliminación fuera de los directorios de modelos.
+- **Purgado de Dominios Upstream en CORS:** Limpieza de la lista blanca de CORS eliminando dominios ajenos heredados.
+- **Limpieza de Código Muerto:** Eliminación de archivos huérfanos y registros de desarrollo anteriores.
+- **Actualización 100% No Destructiva:** Garantiza la preservación intacta de sesiones, bases de datos locales, configuración y claves activas de proveedores.
+
+### ✨ Características Principales
+- **Soporte Nativo de Sistemas de Diseño (DESIGN.md):** Detección automática de especificaciones de diseño y contratos visuales.
+- **Subagente UI/UX Especializado (\`ui-ux-master\`):** Diseñado para aplicar rigurosamente tokens semánticos y componentes armónicos.
+- **Metodología Vibe Coding en 3 Fases (\`vibe-coding-workflow\`):** Flujo ágil y estructurado para prototipado rápido y robusto.
+- **Habilidad Fullstack Next.js 15+ (\`fullstack-nextjs-tailwind\`):** Soporte de RSC, Server Actions y Tailwind CSS v4.
+- **Detección Automática de Modelos Locales:** Descubre y activa de inmediato modelos GGUF en disco.
+- **73 Built-in Engineering Skills y MCP Suite:** Ecosistema completo de agentes y herramientas.
+- **Voces TTS Kokoro y Piper:** Síntesis neural en español e inglés.
+- **Actualizador Automático Integrado:** Detección e instalación fluida de nuevas versiones.
 
 ### 📦 Descargas
 | Archivo | Tipo | Descripción |

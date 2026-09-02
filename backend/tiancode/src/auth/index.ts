@@ -92,20 +92,24 @@ const layer = Layer.effect(
 
     const set = Effect.fn("Auth.set")(function* (key: string, info: Info) {
       const norm = key.replace(/\/+$/, "")
-      const data = yield* all()
+      const data = (yield* fsys.readJson(file).pipe(Effect.orElseSucceed(() => ({})))) as Record<string, unknown>
       if (norm !== key) delete data[key]
       delete data[norm + "/"]
+      data[norm] = encode(info)
       yield* fsys
-        .writeJson(file, { ...data, [norm]: encode(info) }, 0o600)
+        .writeJson(file, data, 0o600)
         .pipe(Effect.mapError(fail("Failed to write auth data")))
     })
 
     const remove = Effect.fn("Auth.remove")(function* (key: string) {
       const norm = key.replace(/\/+$/, "")
-      const data = yield* all()
+      const data = (yield* fsys.readJson(file).pipe(Effect.orElseSucceed(() => ({})))) as Record<string, unknown>
       delete data[key]
       delete data[norm]
-      yield* fsys.writeJson(file, data, 0o600).pipe(Effect.mapError(fail("Failed to write auth data")))
+      delete data[norm + "/"]
+      yield* fsys
+        .writeJson(file, data, 0o600)
+        .pipe(Effect.mapError(fail("Failed to write auth data")))
     })
 
     // Migración única: con clave disponible, re-cifra los valores que siguen

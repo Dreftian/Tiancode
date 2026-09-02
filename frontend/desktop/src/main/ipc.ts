@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process"
 import { stat, writeFile } from "node:fs/promises"
-import { basename, isAbsolute, join } from "node:path"
+import { basename, isAbsolute, join, relative, resolve } from "node:path"
 import { app, BrowserWindow, clipboard, dialog, ipcMain, shell } from "electron"
 import type { IpcMainEvent, IpcMainInvokeEvent } from "electron"
 import type { DesktopMenuAction } from "@tiancode-ai/app/desktop-menu"
@@ -553,7 +553,15 @@ export function registerIpcHandlers(deps: Deps) {
         } catch {}
       }
 
-      if (target.destPath) {
+      const isInsideCandidateDir = (targetPath: string) => {
+        const resolvedTarget = resolve(targetPath)
+        return candidateDirs.some((dir) => {
+          const rel = relative(resolve(dir), resolvedTarget)
+          return !rel.startsWith("..") && !isAbsolute(rel)
+        })
+      }
+
+      if (target.destPath && isInsideCandidateDir(target.destPath)) {
         try {
           await rm(target.destPath, { recursive: true, force: true }).catch(() => {})
           await rm(`${target.destPath}.part`, { recursive: true, force: true }).catch(() => {})

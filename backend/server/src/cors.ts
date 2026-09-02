@@ -6,8 +6,6 @@ import { Flag } from "@tiancode-ai/core/flag/flag"
 // and the server proxies the UI from https://app.opencode.ai
 // (server/shared/ui.ts). Only exact origins are allowed (no wildcards).
 const allowedSiteOrigins = new Set([
-  "https://opencode.ai",
-  "https://app.opencode.ai",
   "https://tiancode.vercel.app",
   "https://tiancode.ai",
   "https://app.tiancode.ai",

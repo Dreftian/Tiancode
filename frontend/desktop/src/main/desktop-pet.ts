@@ -1,4 +1,9 @@
 import { BrowserWindow, screen, Notification, ipcMain } from "electron"
+import { join } from "node:path"
+
+function safeScriptJson(value: unknown): string {
+  return JSON.stringify(value).replace(/</g, "\\u003c").replace(/>/g, "\\u003e")
+}
 
 export type DesktopPetKind =
   | "dewey"
@@ -104,12 +109,12 @@ function getPetHtml(state: DesktopPetState): string {
     petGlyphKinds.map((kind) => [kind, getPetSvg(kind as DesktopPetKind)]),
   )
 
-  const initial = JSON.stringify({
+  const initial = {
     kind: state.kind,
     status: state.status,
     text: state.text,
     petted: state.petted ?? false,
-  })
+  }
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -371,8 +376,8 @@ function getPetHtml(state: DesktopPetState): string {
     </div>
   </div>
   <script>
-    const { ipcRenderer } = require("electron")
-    const svgs = ${JSON.stringify(svgRecord)}
+    const petApi = window.petApi
+    const svgs = ${safeScriptJson(svgRecord)}
     const container = document.getElementById("container")
     const bubbleText = document.getElementById("bubbleText")
     const glyph = document.getElementById("glyph")
@@ -394,6 +399,7 @@ function getPetHtml(state: DesktopPetState): string {
     }
 
     function applyState(state) {
+      if (!state) return
       container.className = "pet-container pet-enter " + (state.status || "ready")
       bubbleText.textContent = state.text || ""
       const svg = svgs[state.kind] || svgs.cat
@@ -402,29 +408,29 @@ function getPetHtml(state: DesktopPetState): string {
 
     document.getElementById("avatar").addEventListener("click", (e) => {
       e.stopPropagation()
-      ipcRenderer.send("desktop-pet-action", "pet")
+      petApi?.sendAction("pet")
     })
     document.getElementById("avatar").addEventListener("dblclick", (e) => {
       e.stopPropagation()
-      ipcRenderer.send("desktop-pet-action", "focus-main")
+      petApi?.sendAction("focus-main")
     })
     document.getElementById("bubble").addEventListener("click", () => {
-      ipcRenderer.send("desktop-pet-action", "focus-main")
+      petApi?.sendAction("focus-main")
     })
     document.getElementById("closeBtn").addEventListener("click", (e) => {
       e.stopPropagation()
-      ipcRenderer.send("desktop-pet-action", "hide")
+      petApi?.sendAction("hide")
     })
 
-    ipcRenderer.on("pet-sync", (_event, state) => {
+    petApi?.onSync((state) => {
       // La ráfaga de corazones viaja solo por "pet-burst"; "pet-sync" solo
       // pinta el estado para no duplicar la animación.
       applyState(state)
     })
 
-    ipcRenderer.on("pet-burst", () => burstHearts())
+    petApi?.onBurst(() => burstHearts())
 
-    applyState(${initial})
+    applyState(${safeScriptJson(initial)})
   </script>
 </body>
 </html>`
@@ -463,8 +469,10 @@ export function createDesktopPetWindow(): BrowserWindow {
     type: "toolbar",
     thickFrame: false,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
+      preload: join(__dirname, "../preload/pet.js"),
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
       backgroundThrottling: false,
     },
   })
