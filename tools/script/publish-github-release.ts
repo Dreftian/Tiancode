@@ -29,27 +29,16 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.1"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} - Parches Críticos de Seguridad, Estabilización y Blindaje de Credenciales`
-  const body = `## 🚀 Tiancode v${version} — Versión Oficial con Blindaje de Seguridad
+  const releaseName = `Tiancode v${version} - Inferencia Local GGUF Robusta, Integración de Chat y Correcciones Críticas`
+  const body = `## 🚀 Tiancode v${version} — Inferencia Local GGUF, Integración Directa en Chat y Estabilidad
 
-### 🛡️ Parches de Seguridad y Mejoras de Estabilidad
-- **Blindaje y Aislamiento de Desktop Pet (Anti-RCE):** Ventana complementaria aislada con \`contextIsolation: true\`, \`nodeIntegration: false\` y \`sandbox: true\`, neutralizando vectores de inyección de código desde respuestas de modelos.
-- **Protección contra Secuestro de Terminal PTY (Anti-CSWSH):** Validación estricta e incondicional de origen en WebSockets PTY (\`/api/pty/:ptyID/connect\`), bloqueando intentos de control remoto no autorizado desde navegadores web.
-- **Protección de Credenciales AES-GCM en Reposo:** Corrección en la persistencia del almacén de autenticación que asegura que todas las claves API se mantengan cifradas con AES-GCM al agregar o eliminar proveedores.
-- **Contención de Eliminación de Archivos IPC:** Validación estricta de rutas en operaciones de Model Hub para prevenir cualquier intento de path traversal o eliminación fuera de los directorios de modelos.
-- **Purgado de Dominios Upstream en CORS:** Limpieza de la lista blanca de CORS eliminando dominios ajenos heredados.
-- **Limpieza de Código Muerto:** Eliminación de archivos huérfanos y registros de desarrollo anteriores.
-- **Actualización 100% No Destructiva:** Garantiza la preservación intacta de sesiones, bases de datos locales, configuración y claves activas de proveedores.
-
-### ✨ Características Principales
-- **Soporte Nativo de Sistemas de Diseño (DESIGN.md):** Detección automática de especificaciones de diseño y contratos visuales.
-- **Subagente UI/UX Especializado (\`ui-ux-master\`):** Diseñado para aplicar rigurosamente tokens semánticos y componentes armónicos.
-- **Metodología Vibe Coding en 3 Fases (\`vibe-coding-workflow\`):** Flujo ágil y estructurado para prototipado rápido y robusto.
-- **Habilidad Fullstack Next.js 15+ (\`fullstack-nextjs-tailwind\`):** Soporte de RSC, Server Actions y Tailwind CSS v4.
-- **Detección Automática de Modelos Locales:** Descubre y activa de inmediato modelos GGUF en disco.
-- **73 Built-in Engineering Skills y MCP Suite:** Ecosistema completo de agentes y herramientas.
-- **Voces TTS Kokoro y Piper:** Síntesis neural en español e inglés.
-- **Actualizador Automático Integrado:** Detección e instalación fluida de nuevas versiones.
+### ⚡ Novedades y Correcciones del Motor Local (GGUF / llama.cpp)
+- **Activación y Uso Inmediato en Chat:** Los modelos locales descargados (.gguf) ahora se activan automáticamente, eliminando cualquier bloqueo previo en \`disabled_providers\` y sincronizando instantáneamente el catálogo con el selector de modelos del chat.
+- **Resolución Multi-Directorio de Modelos y Binarios:** Soporte exhaustivo para escanear y localizar tanto archivos \`.gguf\` como el motor \`llama-server.exe\` a través de todas las ubicaciones candidatas de datos (XDG data, AppData Roaming, Local y directorio de la aplicación).
+- **Conexión Directa en 1 Clic (Sin solicitud errónea de API Key):** Conectar "Tiancode Native / GGUF" en la pestaña de Proveedores ahora activa el motor local nativo inmediatamente sin requerir credenciales ni mostrar formularios innecesarios.
+- **Corrección de TypeError Fatal en el Modal de Proveedores:** Blindaje contra referencias nulas al abrir o conectar proveedores cuando no están presentes en el catálogo activo (\`Cannot read properties of undefined (reading 'name')\`).
+- **Respuesta Rápida y Streaming en Chat:** Configuración optimizada de \`baseURL\` en \`127.0.0.1:58282\` eliminando latencias de resolución IPv6 en Windows y soportando streaming directo de respuestas.
+- **Actualización 100% No Destructiva:** Preserva íntegramente las sesiones, configuración, modelos descargados y claves API existentes del usuario.
 
 ### 📦 Descargas
 | Archivo | Tipo | Descripción |
