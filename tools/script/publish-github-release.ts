@@ -29,16 +29,16 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.1"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} - Inferencia Local GGUF Robusta, Integración de Chat y Correcciones Críticas`
-  const body = `## 🚀 Tiancode v${version} — Inferencia Local GGUF, Integración Directa en Chat y Estabilidad
+  const releaseName = `Tiancode v${version} - Versión Oficial Estable`
+  const body = `## 🚀 Tiancode v${version} — La versión estable oficial
 
-### ⚡ Novedades y Correcciones del Motor Local (GGUF / llama.cpp)
-- **Activación y Uso Inmediato en Chat:** Los modelos locales descargados (.gguf) ahora se activan automáticamente, eliminando cualquier bloqueo previo en \`disabled_providers\` y sincronizando instantáneamente el catálogo con el selector de modelos del chat.
-- **Resolución Multi-Directorio de Modelos y Binarios:** Soporte exhaustivo para escanear y localizar tanto archivos \`.gguf\` como el motor \`llama-server.exe\` a través de todas las ubicaciones candidatas de datos (XDG data, AppData Roaming, Local y directorio de la aplicación).
-- **Conexión Directa en 1 Clic (Sin solicitud errónea de API Key):** Conectar "Tiancode Native / GGUF" en la pestaña de Proveedores ahora activa el motor local nativo inmediatamente sin requerir credenciales ni mostrar formularios innecesarios.
-- **Corrección de TypeError Fatal en el Modal de Proveedores:** Blindaje contra referencias nulas al abrir o conectar proveedores cuando no están presentes en el catálogo activo (\`Cannot read properties of undefined (reading 'name')\`).
-- **Respuesta Rápida y Streaming en Chat:** Configuración optimizada de \`baseURL\` en \`127.0.0.1:58282\` eliminando latencias de resolución IPv6 en Windows y soportando streaming directo de respuestas.
-- **Actualización 100% No Destructiva:** Preserva íntegramente las sesiones, configuración, modelos descargados y claves API existentes del usuario.
+### ✨ Novedades y mejoras
+- **Modelos locales GGUF robustos:** activación inmediata en chat, resolución multi-directorio de modelos y del motor \`llama-server\`, y conexión directa sin solicitar API keys.
+- **Optimizador de prompts mejorado:** detección de intención (debugging, scaffolding, refactoring, conceptual) con extracción de entidades para prompts más precisos.
+- **Ecosistema con control maestro:** presets (recomendado, todo, ninguno, personalizado) para skills, plugins y MCP servers.
+- **Sub-agentes mejorados:** tarjetas visibles en chat y configuración más rica en ajustes.
+- **Hub de modelos local:** detección de motor, compatibilidad RAM/VRAM y limpieza multi-directorio de modelos.
+- **Actualización 100% no destructiva:** preserva sesiones, configuración, modelos descargados y claves API existentes.
 
 ### 📦 Descargas
 | Archivo | Tipo | Descripción |
@@ -60,6 +60,24 @@ async function main() {
   if (getRes.ok) {
     releaseData = await getRes.json()
     console.log(`Release encontrada con id ${releaseData.id}`)
+    // La release v1.0.0 ya existe: re-publicar como latest con las notas oficiales.
+    const patchRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases/${releaseData.id}`, {
+      method: "PATCH",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: releaseName,
+        body,
+        draft: false,
+        prerelease: false,
+        make_latest: "true",
+      }),
+    })
+    if (!patchRes.ok) {
+      const err = await patchRes.text()
+      throw new Error(`Error al actualizar release: ${patchRes.status} ${err}`)
+    }
+    releaseData = await patchRes.json()
+    console.log(`Release actualizada y marcada como latest`)
   } else {
     console.log(`Creando nueva release ${tag}...`)
     const createRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases`, {
@@ -71,6 +89,7 @@ async function main() {
         body,
         draft: false,
         prerelease: false,
+        make_latest: "true",
       }),
     })
     if (!createRes.ok) {
