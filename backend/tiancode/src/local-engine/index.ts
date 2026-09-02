@@ -171,11 +171,65 @@ const layer = Layer.effect(
       return undefined
     }
 
+    const getCandidateBinDirs = (): string[] => [
+      binDir,
+      path.join(Global.Path.bin, "llama-server"),
+      path.join(Global.Path.cache, "bin", "llama-server"),
+      path.join(
+        process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming"),
+        "ai.tiancode.desktop",
+        "xdg",
+        "cache",
+        "tiancode",
+        "bin",
+        "llama-server",
+      ),
+      path.join(
+        process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming"),
+        "ai.tiancode.desktop.codex",
+        "xdg",
+        "cache",
+        "tiancode",
+        "bin",
+        "llama-server",
+      ),
+    ]
+
+    const getCandidateModelsDirs = (): string[] => [
+      modelsDir,
+      path.join(Global.Path.data, "models"),
+      path.join(os.homedir(), ".local", "share", "tiancode", "models"),
+      path.join(
+        process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming"),
+        "ai.tiancode.desktop",
+        "xdg",
+        "data",
+        "tiancode",
+        "models",
+      ),
+      path.join(
+        process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming"),
+        "ai.tiancode.desktop.codex",
+        "xdg",
+        "data",
+        "tiancode",
+        "models",
+      ),
+    ]
+
     const ensureBinary = Effect.fn("LocalEngine.ensureBinary")(function* () {
       yield* fs.ensureDir(binDir).pipe(Effect.orDie)
       if (isBinaryPresent()) return binaryPath
 
-      // 1. Comprobar si los binarios están embebidos en resources
+      // 1. Comprobar todos los directorios candidatos de caché/bin
+      for (const dir of getCandidateBinDirs()) {
+        const exe = path.join(dir, binaryExecutable)
+        if (existsSync(exe)) {
+          return exe
+        }
+      }
+
+      // 2. Comprobar si los binarios están embebidos en resources
       const bundledDir = findBundledDirectory()
       if (bundledDir && existsSync(path.join(bundledDir, binaryExecutable))) {
         const files = readdirSync(bundledDir)
@@ -190,7 +244,7 @@ const layer = Layer.effect(
         return path.join(bundledDir, binaryExecutable)
       }
 
-      // 2. Comprobar si llama-server está instalado globalmente en el sistema (PATH)
+      // 3. Comprobar si llama-server está instalado globalmente en el sistema (PATH)
       const whichCmd = process.platform === "win32" ? "where" : "which"
       const onPath = yield* Effect.tryPromise(() => execFileAsync(whichCmd, ["llama-server"])).pipe(
         Effect.map((res) => res.stdout.split("\n")[0]?.trim()),
@@ -243,40 +297,53 @@ const layer = Layer.effect(
       currentContextSize = options.contextSize ?? DEFAULT_CTX_SIZE
       lastError = undefined
 
-      let resolvedModelFile = path.resolve(modelsDir, options.model ?? "", options.file ?? "")
-      if (!existsSync(resolvedModelFile)) {
-        const direct = path.resolve(modelsDir, options.file ?? options.model ?? "")
-        if (existsSync(direct)) {
-          resolvedModelFile = direct
-        } else {
-          const targetName = (options.file || options.model || "").replace(/\.gguf$/i, "").toLowerCase()
-          const findGguf = (dir: string): string | undefined => {
-            if (!existsSync(dir)) return undefined
-            const entries = readdirSync(dir, { withFileTypes: true })
-            for (const entry of entries) {
-              const full = path.join(dir, entry.name)
-              if (entry.isDirectory()) {
-                const found = findGguf(full)
-                if (found) return found
-              } else if (entry.name.endsWith(".gguf") && !entry.name.endsWith(".part")) {
-                const clean = entry.name.replace(/\.gguf$/i, "").toLowerCase()
-                if (clean === targetName || clean.includes(targetName) || targetName.includes(clean)) {
-                  return full
-                }
+      let resolvedModelFile: string | undefined
+      const targetName = (options.file || options.model || "").replace(/\.gguf$/i, "").toLowerCase()
+
+      const findGgufInDir = (dir: string): string | undefined => {
+        if (!existsSync(dir)) return undefined
+        try {
+          const entries = readdirSync(dir, { withFileTypes: true })
+          for (const entry of entries) {
+            const full = path.join(dir, entry.name)
+            if (entry.isDirectory()) {
+              const found = findGgufInDir(full)
+              if (found) return found
+            } else if (entry.name.endsWith(".gguf") && !entry.name.endsWith(".part")) {
+              const clean = entry.name.replace(/\.gguf$/i, "").toLowerCase()
+              if (clean === targetName || clean.includes(targetName) || targetName.includes(clean)) {
+                return full
               }
             }
-            return undefined
           }
-          const found = findGguf(modelsDir)
-          if (found) {
-            resolvedModelFile = found
-          }
+        } catch {
+          // ignore
+        }
+        return undefined
+      }
+
+      // Buscar en todos los directorios candidatos de modelos
+      for (const candDir of getCandidateModelsDirs()) {
+        const byModelSubdir = path.resolve(candDir, options.model ?? "", options.file ?? "")
+        if (existsSync(byModelSubdir)) {
+          resolvedModelFile = byModelSubdir
+          break
+        }
+        const byDirectFile = path.resolve(candDir, options.file ?? options.model ?? "")
+        if (existsSync(byDirectFile)) {
+          resolvedModelFile = byDirectFile
+          break
+        }
+        const found = findGgufInDir(candDir)
+        if (found) {
+          resolvedModelFile = found
+          break
         }
       }
 
-      if (!existsSync(resolvedModelFile)) {
+      if (!resolvedModelFile || !existsSync(resolvedModelFile)) {
         currentStatus = "error"
-        lastError = `El archivo del modelo no existe en disco: ${resolvedModelFile}. Descárgalo primero desde el Models Hub.`
+        lastError = `El archivo del modelo no existe en disco: ${options.file || options.model}. Descárgalo primero desde el Models Hub.`
         return getStatus()
       }
 

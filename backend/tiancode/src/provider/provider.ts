@@ -221,32 +221,90 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
 
           const isHealthy = await probe()
           if (!isHealthy) {
-            const modelsDir = path.join(Global.Path.data, "models")
+            const candidateModelsDirs = [
+              path.join(Global.Path.data, "models"),
+              path.join(os.homedir(), ".local", "share", "tiancode", "models"),
+              path.join(
+                process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming"),
+                "ai.tiancode.desktop",
+                "xdg",
+                "data",
+                "tiancode",
+                "models",
+              ),
+              path.join(
+                process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming"),
+                "ai.tiancode.desktop.codex",
+                "xdg",
+                "data",
+                "tiancode",
+                "models",
+              ),
+            ]
             let foundGguf: string | undefined
             const target = modelID.replace(/\.gguf$/i, "").toLowerCase()
             const searchGguf = (dir: string) => {
               if (!existsSync(dir)) return
-              const items = readdirSync(dir, { withFileTypes: true })
-              for (const item of items) {
-                const full = path.join(dir, item.name)
-                if (item.isDirectory()) {
-                  searchGguf(full)
-                  if (foundGguf) return
-                } else if (item.name.endsWith(".gguf") && !item.name.endsWith(".part")) {
-                  const clean = item.name.replace(/\.gguf$/i, "").toLowerCase()
-                  if (clean === target || clean.includes(target) || target.includes(clean)) {
-                    foundGguf = full
-                    return
+              try {
+                const items = readdirSync(dir, { withFileTypes: true })
+                for (const item of items) {
+                  const full = path.join(dir, item.name)
+                  if (item.isDirectory()) {
+                    searchGguf(full)
+                    if (foundGguf) return
+                  } else if (item.name.endsWith(".gguf") && !item.name.endsWith(".part")) {
+                    const clean = item.name.replace(/\.gguf$/i, "").toLowerCase()
+                    if (clean === target || clean.includes(target) || target.includes(clean)) {
+                      foundGguf = full
+                      return
+                    }
                   }
                 }
+              } catch {
+                // ignore
               }
             }
-            searchGguf(modelsDir)
+            for (const dir of candidateModelsDirs) {
+              searchGguf(dir)
+              if (foundGguf) break
+            }
 
             if (foundGguf && existsSync(foundGguf)) {
               const binDir = path.join(Global.Path.bin, "llama-server")
               const binaryExecutable = process.platform === "win32" ? "llama-server.exe" : "llama-server"
               let binaryPath = path.join(binDir, binaryExecutable)
+
+              const candidateBinDirs = [
+                binDir,
+                path.join(Global.Path.bin, "llama-server"),
+                path.join(Global.Path.cache, "bin", "llama-server"),
+                path.join(
+                  process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming"),
+                  "ai.tiancode.desktop",
+                  "xdg",
+                  "cache",
+                  "tiancode",
+                  "bin",
+                  "llama-server",
+                ),
+                path.join(
+                  process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming"),
+                  "ai.tiancode.desktop.codex",
+                  "xdg",
+                  "cache",
+                  "tiancode",
+                  "bin",
+                  "llama-server",
+                ),
+              ]
+
+              for (const cand of candidateBinDirs) {
+                const candExe = path.join(cand, binaryExecutable)
+                if (existsSync(candExe)) {
+                  binaryPath = candExe
+                  break
+                }
+              }
 
               const resourcesPath = (process as any).resourcesPath as string | undefined
               const bundledCandidates = [
@@ -1637,6 +1695,15 @@ const layer = Layer.effect(
         const configProviders = Object.entries(rawProviders)
         const disabled = new Set(cfg.disabled_providers ?? [])
         const enabled = cfg.enabled_providers ? new Set(cfg.enabled_providers) : null
+
+        // Ensure local engine is never blocked by stale disabled_providers if it has models or is in config
+        if (disabled.has(localProviderID)) {
+          const hasLocalInConfig = Boolean(cfg.provider?.[localProviderID]) || cfg.model?.startsWith("local/")
+          const hasDiscoveredModels = Object.keys(database[localProviderID]?.models ?? {}).length > 0
+          if (hasLocalInConfig || hasDiscoveredModels) {
+            disabled.delete(localProviderID)
+          }
+        }
 
         function isProviderAllowed(providerID: ProviderV2.ID): boolean {
           if (enabled && !enabled.has(providerID)) return false

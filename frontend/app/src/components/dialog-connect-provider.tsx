@@ -406,7 +406,16 @@ function ProviderConnection(props: {
   })
 
   const provider = createMemo(
-    () => providers.all().get(props.provider) ?? serverSync().data.provider.all.get(props.provider)!,
+    () =>
+      providers.all().get(props.provider) ??
+      serverSync().data.provider.all?.get(props.provider) ?? {
+        id: props.provider,
+        name: props.provider,
+        source: "custom" as const,
+        env: [],
+        options: {},
+        models: {},
+      },
   )
   const fallback = createMemo<ConnectMethod[]>(() => [
     {
@@ -709,6 +718,14 @@ function ProviderConnection(props: {
   })
 
   async function complete() {
+    const currentConfig = serverSync().data.config
+    const disabled = currentConfig.disabled_providers ?? []
+    if (disabled.includes(props.provider)) {
+      const nextDisabled = disabled.filter((id) => id !== props.provider)
+      serverSync().set("config", "disabled_providers", nextDisabled)
+      await serverSync().updateConfig({ disabled_providers: nextDisabled }).catch(() => undefined)
+    }
+    await serverSDK().client.global.dispose().catch(() => undefined)
     await serverSync()
       .refreshProviders()
       .catch(() => undefined)

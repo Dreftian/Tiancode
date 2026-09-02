@@ -41,7 +41,37 @@ export const SettingsProvidersV2: Component<{
   const providers = useProviders(props.directory)
   const providerConnect = useProviderConnectController({ onBack: props.onBack })
 
-  const connect = (provider?: string) => {
+  const connect = async (provider?: string) => {
+    if (provider === "local") {
+      const currentConfig = serverSync().data.config
+      const disabled = currentConfig.disabled_providers ?? []
+      const nextDisabled = disabled.filter((id) => id !== "local")
+      const currentProviders = { ...(currentConfig.provider ?? {}) }
+      if (!currentProviders.local) {
+        currentProviders.local = {
+          npm: "@ai-sdk/openai-compatible",
+          options: { baseURL: "http://127.0.0.1:58282/v1" },
+          models: {},
+        }
+      }
+      serverSync().set("config", "disabled_providers", nextDisabled)
+      serverSync().set("config", "provider", currentProviders)
+      await serverSync()
+        .updateConfig({
+          disabled_providers: nextDisabled,
+          provider: currentProviders,
+        })
+        .catch(() => undefined)
+      await serverSdk().client.global.dispose().catch(() => undefined)
+      await serverSync().refreshProviders().catch(() => undefined)
+      showToast({
+        variant: "success",
+        icon: "circle-check",
+        title: language.t("provider.connect.toast.connected.title", { provider: "Tiancode Native / GGUF" }),
+        description: "Motor nativo local conectado. Puedes descargar o activar modelos GGUF en 'Modelos Locales'.",
+      })
+      return
+    }
     providerConnect.select(provider)
     void dialog.show(() => <DialogConnectProvider directory={props.directory} controller={providerConnect} />)
   }

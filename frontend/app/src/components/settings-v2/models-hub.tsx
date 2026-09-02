@@ -15,6 +15,7 @@ import {
 import { createStore } from "solid-js/store"
 import { useLanguage } from "@/context/language"
 import { useServerSDK } from "@/context/server-sdk"
+import { useServerSync } from "@/context/server-sync"
 import { showToast } from "@/utils/toast"
 import { Persist, persisted } from "@/utils/persist"
 import { SoundEffects } from "@/utils/sound-effects"
@@ -356,6 +357,7 @@ export const SettingsModelsHubV2: Component<{
 }> = (props) => {
   const language = useLanguage()
   const serverSdk = useServerSDK()
+  const serverSync = useServerSync()
   const [query, setQuery] = createSignal("")
   const [submitted, setSubmitted] = createSignal("")
   const [selectedId, setSelectedId] = createSignal<string>(STAFF_PICKS[0].id)
@@ -716,10 +718,12 @@ export const SettingsModelsHubV2: Component<{
 
   const activateDownloadedModel = async (job: DownloadJob) => {
     const modelName = job.file.replace(/\.gguf$/i, "")
-    const availableRuntime = (runtimes() ?? []).find((r) => r.available && r.id !== "tiancode-native")?.id
+    const availableRuntime = (runtimes() ?? []).find(
+      (r) => r.available && r.id !== "tiancode-native" && r.id !== "local",
+    )?.id
 
     let runtimeId = "local"
-    let baseURL = "http://localhost:58282/v1"
+    let baseURL = "http://127.0.0.1:58282/v1"
 
     if (availableRuntime === "ollama") {
       runtimeId = "ollama"
@@ -730,7 +734,7 @@ export const SettingsModelsHubV2: Component<{
     } else {
       // Iniciar automáticamente Tiancode Native Engine si no hay un runtime externo
       runtimeId = "local"
-      baseURL = "http://localhost:58282/v1"
+      baseURL = "http://127.0.0.1:58282/v1"
       showToast({
         title: "Iniciando Tiancode Native Engine...",
         description: `Cargando ${modelName} en GPU/VRAM...`,
@@ -741,7 +745,7 @@ export const SettingsModelsHubV2: Component<{
           model: job.model,
           file: job.file,
         })
-        .catch(() => undefined)
+        .catch((err) => ({ data: { status: "error", error: String(err) } }))
 
       if (engRes?.data?.status === "error") {
         showToast({
@@ -757,8 +761,11 @@ export const SettingsModelsHubV2: Component<{
 
     try {
       const configRes = await serverSdk().client.config.get(params()).catch(() => undefined)
-      const existingProviders = (configRes?.data?.provider ?? {}) as Record<string, { npm?: string; options?: { baseURL?: string }; models?: Record<string, { name: string }> }>
-      
+      const existingProviders = (configRes?.data?.provider ?? {}) as Record<
+        string,
+        { npm?: string; options?: { baseURL?: string }; models?: Record<string, { name: string }> }
+      >
+
       const existingRuntimeModels = (existingProviders[runtimeId]?.models ?? {}) as Record<string, { name: string }>
       const updatedModels: Record<string, { name: string }> = {
         ...existingRuntimeModels,
@@ -775,7 +782,7 @@ export const SettingsModelsHubV2: Component<{
         },
         local: {
           npm: "@ai-sdk/openai-compatible",
-          options: { baseURL: "http://localhost:58282/v1" },
+          options: { baseURL: "http://127.0.0.1:58282/v1" },
           models: {
             ...(existingProviders.local?.models ?? {}),
             [modelName]: { name: modelName },
@@ -784,20 +791,37 @@ export const SettingsModelsHubV2: Component<{
         },
       }
 
-      await serverSdk().client.global.config.update({
-        config: {
-          provider: updatedProviders as never,
-          model: `${runtimeId}/${modelName}`,
-        },
-      }).catch(() => undefined)
+      // IMPORTANTE: Asegurar que ni runtimeId ni local queden en disabled_providers
+      const currentDisabled = ((configRes?.data?.disabled_providers ?? serverSync().data.config.disabled_providers ?? []) as string[])
+      const nextDisabled = currentDisabled.filter((id) => id !== runtimeId && id !== "local")
 
-      await serverSdk().client.config.update({
-        ...params(),
-        config: {
-          provider: updatedProviders as never,
-          model: `${runtimeId}/${modelName}`,
-        },
-      }).catch(() => undefined)
+      await serverSdk()
+        .client.global.config.update({
+          config: {
+            provider: updatedProviders as never,
+            disabled_providers: nextDisabled,
+            model: `${runtimeId}/${modelName}`,
+          },
+        })
+        .catch(() => undefined)
+
+      await serverSdk()
+        .client.config.update({
+          ...params(),
+          config: {
+            provider: updatedProviders as never,
+            disabled_providers: nextDisabled,
+            model: `${runtimeId}/${modelName}`,
+          },
+        })
+        .catch(() => undefined)
+
+      serverSync().set("config", "provider", updatedProviders)
+      serverSync().set("config", "disabled_providers", nextDisabled)
+      serverSync().set("config", "model", `${runtimeId}/${modelName}`)
+
+      await serverSdk().client.global.dispose().catch(() => undefined)
+      await serverSync().refreshProviders().catch(() => undefined)
 
       showToast({
         variant: "success",

@@ -150,12 +150,16 @@ export function useProviders(directory: Accessor<string | undefined>) {
   return {
     all: (): Map<string, Provider> => {
       const current = providers().all
-      if (current && current.size > 0) return current
-      const fallbackMap = new Map<string, Provider>()
+      const map = new Map<string, Provider>()
       for (const [id, p] of Object.entries(DEFAULT_FALLBACK_PROVIDERS)) {
-        fallbackMap.set(id, p)
+        map.set(id, p)
       }
-      return fallbackMap
+      if (current) {
+        for (const [id, p] of current.entries()) {
+          map.set(id, p)
+        }
+      }
+      return map
     },
     default: () => providers().default,
     popular: (): Provider[] => {

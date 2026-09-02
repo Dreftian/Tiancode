@@ -4,6 +4,7 @@ import { DateTime } from "luxon"
 import { filter, firstBy, flat, groupBy, mapValues, pipe, uniqueBy, values } from "remeda"
 import { createSimpleContext } from "@tiancode-ai/ui/context"
 import { useProviders } from "@/hooks/use-providers"
+import { useServerSync } from "./server-sync"
 import { Persist, persisted } from "@/utils/persist"
 
 export type ModelKey = { providerID: string; modelID: string }
@@ -27,6 +28,7 @@ export const { use: useModels, provider: ModelsProvider } = createSimpleContext(
   gate: false,
   init: (props: { directory?: Accessor<string | undefined> } = {}) => {
     const providers = useProviders(() => props.directory?.())
+    const serverSync = useServerSync()
 
     const [store, setStore, _, ready] = persisted(
       Persist.global("model", ["model.v1"]),
@@ -52,6 +54,32 @@ export const { use: useModels, provider: ModelsProvider } = createSimpleContext(
       const combined = new Map<string, (typeof allProviders)[number]>()
       for (const p of activeProviders) combined.set(p.id, p)
       for (const p of localProvidersWithModels) combined.set(p.id, p)
+
+      // Ensure local provider models from config are always present even if backend sync is in progress
+      const configLocalModels = serverSync().data.config.provider?.local?.models ?? {}
+      if (Object.keys(configLocalModels).length > 0) {
+        const existingLocal = combined.get("local") ?? {
+          id: "local",
+          name: "Tiancode Native / GGUF",
+          source: "custom" as const,
+          env: [],
+          options: { baseURL: "http://127.0.0.1:58282/v1" },
+          models: {},
+        }
+        const mergedModels = { ...(existingLocal.models ?? {}) }
+        for (const [mid, mobj] of Object.entries(configLocalModels)) {
+          const cleanMid = mid.replace(/\.gguf$/i, "")
+          mergedModels[cleanMid] = (mergedModels[cleanMid] as any) ?? {
+            id: cleanMid,
+            name: (mobj as any)?.name ? (mobj as any).name.replace(/\.gguf$/i, "") : cleanMid,
+            status: "active",
+          }
+        }
+        combined.set("local", {
+          ...existingLocal,
+          models: mergedModels,
+        })
+      }
 
       const seenKeys = new Set<string>()
       const list: Array<(typeof allProviders)[number]["models"][string] & { provider: (typeof allProviders)[number] }> = []
