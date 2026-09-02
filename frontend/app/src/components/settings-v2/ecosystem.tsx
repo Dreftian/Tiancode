@@ -183,9 +183,21 @@ export const SettingsEcosystemV2: Component = () => {
     })
   })
 
+  const RECOMMENDED_MODULES: Array<keyof EcosystemSettings> = [
+    "llamacoder",
+    "boltDiy",
+    "openDesign",
+    "monaco",
+    "tauri",
+    "treeSitter",
+    "graphify",
+    "pipelines",
+    "claudeMem",
+  ]
+
   const isEnabled = (id: keyof EcosystemSettings) => {
     const val = settings.ecosystem[id]
-    return typeof val === "function" ? val() : true
+    return typeof val === "function" ? Boolean(val()) : true
   }
 
   const toggleModule = (id: keyof EcosystemSettings, enabled: boolean) => {
@@ -196,43 +208,64 @@ export const SettingsEcosystemV2: Component = () => {
     }
   }
 
-  const enableAll = () => {
-    for (const mod of REPO_MODULES) {
-      toggleModule(mod.id, true)
+  const activeCount = createMemo(() => {
+    return REPO_MODULES.filter((m) => isEnabled(m.id)).length
+  })
+
+  const currentPreset = createMemo<"recommended" | "all" | "none" | "custom">(() => {
+    const count = activeCount()
+    if (count === REPO_MODULES.length) return "all"
+    if (count === 0) return "none"
+    const matchesRecommended = REPO_MODULES.every((m) =>
+      RECOMMENDED_MODULES.includes(m.id) ? isEnabled(m.id) : !isEnabled(m.id),
+    )
+    if (matchesRecommended) return "recommended"
+    return "custom"
+  })
+
+  const applyPreset = (preset: "recommended" | "all" | "none") => {
+    if (preset === "all") {
+      for (const mod of REPO_MODULES) {
+        toggleModule(mod.id, true)
+      }
+      if (typeof settings.ecosystem.setPreset === "function") {
+        settings.ecosystem.setPreset("all")
+      }
+      return
+    }
+    if (preset === "none") {
+      for (const mod of REPO_MODULES) {
+        toggleModule(mod.id, false)
+      }
+      if (typeof settings.ecosystem.setPreset === "function") {
+        settings.ecosystem.setPreset("none")
+      }
+      return
+    }
+    if (preset === "recommended") {
+      for (const mod of REPO_MODULES) {
+        toggleModule(mod.id, RECOMMENDED_MODULES.includes(mod.id))
+      }
+      if (typeof settings.ecosystem.setPreset === "function") {
+        settings.ecosystem.setPreset("recommended")
+      }
     }
   }
 
-  const enableRecommended = () => {
-    const recommended: Array<keyof EcosystemSettings> = [
-      "llamacoder",
-      "boltDiy",
-      "openDesign",
-      "monaco",
-      "tauri",
-      "treeSitter",
-      "graphify",
-      "pipelines",
-      "claudeMem",
-    ]
-    for (const mod of REPO_MODULES) {
-      toggleModule(mod.id, recommended.includes(mod.id))
-    }
-  }
-
-  const disableAll = () => {
-    for (const mod of REPO_MODULES) {
-      toggleModule(mod.id, false)
-    }
-  }
+  const enableAll = () => applyPreset("all")
+  const enableRecommended = () => applyPreset("recommended")
+  const disableAll = () => applyPreset("none")
 
   return (
     <>
       <div class="settings-v2-tab-header settings-v2-tab-header--stacked">
         <div class="settings-v2-tab-header-row">
           <h2 class="settings-v2-tab-title">Módulos & Ecosistema IA</h2>
-          <span class="settings-v2-chip" data-tone="green">
-            14 Módulos Integrados
-          </span>
+          <div class="flex items-center gap-2">
+            <span class="settings-v2-chip" data-tone={activeCount() > 0 ? "green" : "muted"}>
+              {activeCount()} / {REPO_MODULES.length} Activos
+            </span>
+          </div>
         </div>
         <p class="settings-v2-tab-description">
           Activa o desactiva las tecnologías y repositorios de código abierto integrados en Tiancode para personalizar tu flujo de trabajo.
@@ -249,30 +282,86 @@ export const SettingsEcosystemV2: Component = () => {
           </div>
         </div>
 
-        {/* Acciones Rápidas */}
-        <div class="flex items-center justify-between gap-2 flex-wrap mb-3 p-3 rounded-xl border border-white/10 bg-slate-900/40">
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-semibold text-slate-300">Presets Rápidos:</span>
+        {/* Acciones Rápidas con Toggles y Estado Activo */}
+        <div class="flex flex-col gap-2.5 mb-4 p-3 rounded-xl border border-white/10 bg-slate-900/50">
+          <div class="flex items-center justify-between gap-2 flex-wrap">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold text-slate-200">Presets Rápidos:</span>
+              <span class="text-[11px] px-2 py-0.5 rounded-full font-medium" classList={{
+                "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30": currentPreset() === "recommended",
+                "bg-sky-500/20 text-sky-300 border border-sky-500/30": currentPreset() === "all",
+                "bg-rose-500/20 text-rose-300 border border-rose-500/30": currentPreset() === "none",
+                "bg-amber-500/20 text-amber-300 border border-amber-500/30": currentPreset() === "custom",
+              }}>
+                {currentPreset() === "recommended" && "🛡️ Perfil: Recomendado (9)"}
+                {currentPreset() === "all" && "⚡ Perfil: Todos Activos (14)"}
+                {currentPreset() === "none" && "🛑 Perfil: Todo Desactivado"}
+                {currentPreset() === "custom" && `🛠️ Perfil: Personalizado (${activeCount()})`}
+              </span>
+            </div>
+
+            <div class="flex items-center gap-2 text-xs text-slate-400">
+              <span>Interruptor Maestro:</span>
+              <Switch
+                checked={activeCount() > 0}
+                onChange={(checked) => (checked ? enableRecommended() : disableAll())}
+              />
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 flex-wrap pt-1 border-t border-white/5">
             <button
               type="button"
-              class="px-2.5 py-1 text-xs font-medium rounded-lg border border-emerald-500/40 bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 transition-colors"
+              class="px-3 py-1.5 text-xs font-medium rounded-lg border transition-all flex items-center gap-1.5"
+              classList={{
+                "border-emerald-400 bg-emerald-500/25 text-emerald-200 shadow-sm shadow-emerald-950 ring-1 ring-emerald-400/50":
+                  currentPreset() === "recommended",
+                "border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20":
+                  currentPreset() !== "recommended",
+              }}
               onClick={enableRecommended}
             >
-              🛡️ Configuración Recomendada
+              <span>🛡️</span>
+              <span>Configuración Recomendada</span>
+              <Show when={currentPreset() === "recommended"}>
+                <span class="text-[10px] font-bold">✓</span>
+              </Show>
             </button>
+
             <button
               type="button"
-              class="px-2.5 py-1 text-xs font-medium rounded-lg border border-sky-500/40 bg-sky-500/15 text-sky-300 hover:bg-sky-500/25 transition-colors"
+              class="px-3 py-1.5 text-xs font-medium rounded-lg border transition-all flex items-center gap-1.5"
+              classList={{
+                "border-sky-400 bg-sky-500/25 text-sky-200 shadow-sm shadow-sky-950 ring-1 ring-sky-400/50":
+                  currentPreset() === "all",
+                "border-sky-500/30 bg-sky-500/10 text-sky-300 hover:bg-sky-500/20":
+                  currentPreset() !== "all",
+              }}
               onClick={enableAll}
             >
-              ⚡ Activar Todos (14)
+              <span>⚡</span>
+              <span>Activar Todos (14)</span>
+              <Show when={currentPreset() === "all"}>
+                <span class="text-[10px] font-bold">✓</span>
+              </Show>
             </button>
+
             <button
               type="button"
-              class="px-2.5 py-1 text-xs font-medium rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20 transition-colors"
+              class="px-3 py-1.5 text-xs font-medium rounded-lg border transition-all flex items-center gap-1.5"
+              classList={{
+                "border-rose-400 bg-rose-500/25 text-rose-200 shadow-sm shadow-rose-950 ring-1 ring-rose-400/50":
+                  currentPreset() === "none",
+                "border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20":
+                  currentPreset() !== "none",
+              }}
               onClick={disableAll}
             >
-              🛑 Desactivar Todos
+              <span>🛑</span>
+              <span>Desactivar Todos</span>
+              <Show when={currentPreset() === "none"}>
+                <span class="text-[10px] font-bold">✓</span>
+              </Show>
             </button>
           </div>
         </div>
@@ -331,7 +420,7 @@ export const SettingsEcosystemV2: Component = () => {
           <SettingsListV2>
             <For each={visibleModules()}>
               {(mod) => {
-                const active = isEnabled(mod.id)
+                const active = () => isEnabled(mod.id)
                 return (
                   <SettingsRowV2
                     title={
@@ -385,11 +474,11 @@ export const SettingsEcosystemV2: Component = () => {
                     }
                   >
                     <div class="flex items-center gap-3">
-                      <span class="settings-v2-chip" data-tone={active ? "green" : "muted"}>
-                        {active ? "Activo" : "Inactivo"}
+                      <span class="settings-v2-chip" data-tone={active() ? "green" : "muted"}>
+                        {active() ? "Activo" : "Inactivo"}
                       </span>
                       <Switch
-                        checked={active}
+                        checked={active()}
                         onChange={(checked) => toggleModule(mod.id, checked)}
                       />
                     </div>

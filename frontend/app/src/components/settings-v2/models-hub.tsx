@@ -636,14 +636,12 @@ export const SettingsModelsHubV2: Component<{
   }
 
   const removeDownload = async (job: DownloadJob) => {
-    // 1. Eliminación optimista inmediata en la UI
-    setJobs((prev) => prev.filter((j) => j.id !== job.id && j.file !== job.file))
-
     try {
-      // 2. Detener el motor nativo para liberar bloqueos de archivo en Windows
+      // 1. Detener el motor nativo para liberar bloqueos de archivo en Windows
       await serverSdk().client.modelhub.engineStop(params()).catch(() => undefined)
+      await new Promise((r) => setTimeout(r, 250))
 
-      // 3. Invocación de borrado físico directo vía Desktop IPC en Windows (elimina de disco, .jobs.json y procesos)
+      // 2. Invocación de borrado físico directo vía Desktop IPC en Windows (elimina de disco, .jobs.json y procesos)
       const electronApi = (window as unknown as { api?: { modelHub?: { deleteFile: (target: unknown) => Promise<unknown> } } })?.api
       if (electronApi?.modelHub?.deleteFile) {
         await electronApi.modelHub.deleteFile({
@@ -653,7 +651,7 @@ export const SettingsModelsHubV2: Component<{
         }).catch(() => undefined)
       }
 
-      // 4. Eliminar archivo de disco y cancelar job en backend con múltiples formatos de clave
+      // 3. Eliminar archivo de disco y cancelar job en backend con múltiples formatos de clave
       const safeFile = encodeURIComponent(job.file)
       const safeId = encodeURIComponent(job.id)
       await Promise.all([
@@ -663,40 +661,52 @@ export const SettingsModelsHubV2: Component<{
         serverSdk().client.modelhub.cancel({ id: job.id, ...params() }).catch(() => undefined),
       ])
 
-      // 4. Limpiar del registro de proveedores en config
+      // 4. Limpiar del registro de proveedores en config (proyecto Y global)
       const cleanName = job.file.replace(/\.gguf$/i, "")
-      const configRes = await serverSdk().client.config.get(params()).catch(() => undefined)
-      if (configRes?.data?.provider) {
-        const providers = { ...configRes.data.provider } as Record<string, { models?: Record<string, unknown> }>
-        let changed = false
-        for (const [pKey, pVal] of Object.entries(providers)) {
-          if (pVal?.models) {
-            const newModels = { ...pVal.models }
-            for (const mKey of Object.keys(newModels)) {
-              if (mKey === cleanName || mKey === job.file || mKey.includes(cleanName) || mKey.includes(job.file)) {
-                delete newModels[mKey]
-                changed = true
+      const pruneConfig = async (loc?: { directory?: string }) => {
+        try {
+          const configRes = await serverSdk().client.config.get(loc).catch(() => undefined)
+          if (configRes?.data?.provider) {
+            const providers = { ...configRes.data.provider } as Record<string, { models?: Record<string, unknown> }>
+            let changed = false
+            for (const [pKey, pVal] of Object.entries(providers)) {
+              if (pVal?.models) {
+                const newModels = { ...pVal.models }
+                for (const mKey of Object.keys(newModels)) {
+                  if (mKey === cleanName || mKey === job.file || mKey.includes(cleanName) || mKey.includes(job.file)) {
+                    delete newModels[mKey]
+                    changed = true
+                  }
+                }
+                if (changed) {
+                  providers[pKey] = { ...pVal, models: newModels }
+                }
               }
             }
             if (changed) {
-              providers[pKey] = { ...pVal, models: newModels }
+              await serverSdk().client.config.update({ ...loc, config: { provider: providers as never } })
             }
           }
-        }
-        if (changed) {
-          await serverSdk().client.config.update({ ...params(), config: { provider: providers as never } })
-        }
+        } catch {}
       }
 
+      await pruneConfig(params())
+      if (params()) {
+        await pruneConfig(undefined)
+      }
+
+      // 5. Confirmación y sincronización final en la UI
       await refreshJobs()
       refetchEngine()
+      setJobs((prev) => prev.filter((j) => j.id !== job.id && j.file !== job.file))
+
       showToast({
         variant: "success",
         title: "Modelo eliminado del disco",
         description: `Se eliminó ${job.file} completamente.`,
       })
     } catch {
-      showToast({ variant: "error", title: "Error al eliminar el modelo" })
+      showToast({ variant: "error", title: "Error al eliminar el modelo del disco" })
       await refreshJobs()
     }
   }

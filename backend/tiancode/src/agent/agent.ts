@@ -372,8 +372,12 @@ const layer = Layer.effect(
           },
         }
 
-        for (const [key, value] of Object.entries(cfg.agent ?? {})) {
-          if (value.disable) {
+        const configuredAgents: Record<string, Record<string, any>> = {
+          ...((cfg as any).agents ?? {}),
+          ...(cfg.agent ?? {}),
+        }
+        for (const [key, value] of Object.entries(configuredAgents)) {
+          if (value.disable || value.disabled) {
             delete agents[key]
             continue
           }

@@ -206,24 +206,74 @@ function capitalizeFirst(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1)
 }
 
+export type PromptIntent = "debugging" | "scaffolding" | "refactoring" | "conceptual"
+
+function detectIntent(text: string): PromptIntent {
+  const lower = text.toLowerCase()
+  if (
+    /\b(bug|error|falla|fallo|roto|rompe|no funciona|crash|exception|warning|issue|flicker|parpadeo|desync|lock|problema|corrige|corregir|arregla|arreglar|fix|soluciona|solucionar)\b/i.test(
+      lower,
+    )
+  ) {
+    return "debugging"
+  }
+  if (
+    /\b(refactor|refactoriza|refactorizar|optimiza|optimizar|limpia|limpiar|simplifica|simplificar|decouple|desacopla|desacoplar|rendimiento|performance|duplicad|modulariza|modularizar)\b/i.test(
+      lower,
+    )
+  ) {
+    return "refactoring"
+  }
+  if (
+    /\b(cómo|como funciona|explica|explicar|qué es|que es|por qué|arquitectura|evalúa|evaluar|compara|comparar|alternativa|diferencia)\b/i.test(
+      lower,
+    )
+  ) {
+    return "conceptual"
+  }
+  return "scaffolding"
+}
+
+function extractEntities(text: string): { files: string[]; symbols: string[] } {
+  const files: string[] = []
+  const symbols: string[] = []
+
+  const fileMatches = text.match(/\b[\w./\\-]+\.(?:tsx|ts|jsx|js|py|json|css|html|md|rs|go)\b/gi)
+  if (fileMatches) {
+    for (const f of fileMatches) {
+      if (!files.includes(f)) files.push(f)
+    }
+  }
+
+  const symbolMatches = text.match(/`([^`]+)`/g)
+  if (symbolMatches) {
+    for (const s of symbolMatches) {
+      const clean = s.replace(/`/g, "")
+      if (!symbols.includes(clean)) symbols.push(clean)
+    }
+  }
+
+  return { files, symbols }
+}
+
 /**
- * Motor avanzado de Optimización de Prompt e Ingeniería de Instrucciones.
- * Transforma intenciones en lenguaje natural y borradores informales en directivas
- * técnicas con estructura de arquitectura, requerimientos claros y criterios de calidad.
+ * Pipeline de Optimización Contextual de Prompts (Estilo Trae.ai / Cursor).
+ * Clasifica la intención del usuario (Debugging, Scaffolding, Refactor, Conceptual),
+ * extrae entidades técnicas y genera especificaciones estructuradas sin redundancia.
  */
 export function enhancePromptText(rawText: string, isSpanish: boolean): string {
   const text = rawText.trim()
   if (!text) return ""
 
-  // Normalizar ortografía, tildes y terminología técnica
+  // Normalizar ortografía y terminología técnica
   const normalized = normalizeSpellingAndTerms(text)
 
-  // Si el usuario ya estructuró un prompt completo con encabezados, respetamos su estructura
+  // Si ya contiene encabezados estructurados, respetamos el formato
   if (normalized.includes("###") || normalized.includes("## Objetivo") || normalized.includes("## Directivas")) {
     return normalized
   }
 
-  // Segmentar oraciones y directivas por puntuación y conectores lógicos
+  // Segmentar oraciones y directivas
   const rawClauses = normalized
     .split(/(?:[.;\n]+\s*|\s*,\s*(?:y\s+(?:por\s+último\s+|también\s+)?|además\s+|también\s+|por\s+último\s+))/i)
     .map((c) => c.trim())
@@ -233,7 +283,6 @@ export function enhancePromptText(rawText: string, isSpanish: boolean): string {
     return normalized
   }
 
-  // Identificar requerimientos limpios
   const formattedRequirements = rawClauses.map((clause) => {
     let clean = clause
       .replace(/^(?:necesito\s+que\s+|quiero\s+que\s+|haz\s+que\s+|por\s+favor\s+|podrías\s+|cambia\s+que\s+|revisa\s+que\s+|en\s+|y\s+|de\s+|para\s+|que\s+)/i, "")
@@ -243,73 +292,209 @@ export function enhancePromptText(rawText: string, isSpanish: boolean): string {
     return `- ${clean}`
   })
 
-  // Detectar el dominio temático (UI, MCP, Modelos, Voz, Bugfix, etc.)
-  const isUI = /diseño|estilo|columna|icono|scroll|parpadeo|interfaz|vista previa|preview|css|layout/i.test(normalized)
-  const isMCP = /mcp|servidor|servidores|preset|conectar|herramienta/i.test(normalized)
-  const isVoice = /voz|voces|femenina|mascota|hablar|tts|narrar|audio/i.test(normalized)
-  const isLocalModels = /modelo|modelos|cpu|gpu|vram|ram|ollama|hardware/i.test(normalized)
+  const intent = detectIntent(normalized)
+  const { files } = extractEntities(normalized)
+  const mainGoal = capitalizeFirst(rawClauses[0])
 
   if (isSpanish) {
     const sections: string[] = []
 
-    sections.push("### 🎯 Objetivo Principal")
-    sections.push(
-      rawClauses.length === 1
-        ? `${capitalizeFirst(rawClauses[0])}.`
-        : `Implementar las siguientes mejoras y correcciones técnicas de manera robusta y sin regresiones:`,
-    )
+    if (intent === "debugging") {
+      sections.push("### 🐛 Diagnóstico y Corrección de Error")
+      sections.push(`**Problema:** ${mainGoal}.`)
+      if (formattedRequirements.length > 1) {
+        sections.push("\n**Síntomas y Detalles Observados:**")
+        sections.push(formattedRequirements.join("\n"))
+      }
+      if (files.length > 0) {
+        sections.push(`\n**Archivos / Módulos en Observación:**\n${files.map((f) => `- \`${f}\``).join("\n")}`)
+      }
+      sections.push("\n### 🔍 Hipótesis de Causa Raíz & Puntos Críticos")
+      sections.push(
+        [
+          "- Inspeccionar posibles desincronizaciones de estado reactivo, condiciones de carrera o referencias nulas.",
+          "- Validar el ciclo de vida de componentes y liberación de recursos (procesos, locks o listeners).",
+        ].join("\n"),
+      )
+      sections.push("\n### 🛠️ Directivas de Solución")
+      sections.push(
+        [
+          "- Aplicar una solución quirúrgica y mínima que ataque la causa raíz sin efectos secundarios en otras áreas.",
+          "- Asegurar compatibilidad de tipos TypeScript estricta y manejo explícito de errores.",
+        ].join("\n"),
+      )
+      sections.push("\n### ✅ Criterios de Verificación")
+      sections.push("- Confirmar la resolución del fallo con typecheck limpio y validación de escenarios de borde.")
+      return sections.join("\n")
+    }
 
-    if (rawClauses.length > 1) {
-      sections.push("\n### 📋 Especificaciones y Requerimientos")
+    if (intent === "refactoring") {
+      sections.push("### ♻️ Plan de Refactorización y Optimización")
+      sections.push(`**Objetivo de Reestructuración:** ${mainGoal}.`)
+      if (formattedRequirements.length > 1) {
+        sections.push("\n**Puntos de Intervención:**")
+        sections.push(formattedRequirements.join("\n"))
+      }
+      if (files.length > 0) {
+        sections.push(`\n**Archivos Afectados:**\n${files.map((f) => `- \`${f}\``).join("\n")}`)
+      }
+      sections.push("\n### 📐 Directivas Arquitectónicas")
+      sections.push(
+        [
+          "- **Invariante de Comportamiento:** Preservar intactas las firmas públicas y el comportamiento observable existente.",
+          "- **Desacoplamiento:** Reducir complejidad ciclomática, eliminar duplicación de código y definir límites limpios.",
+          "- **Rendimiento:** Optimizar consumo de recursos, memoria y evitar renders/cálculos innecesarios.",
+        ].join("\n"),
+      )
+      sections.push("\n### 🧪 Verificación de No-Regresión")
+      sections.push("- Validar compilación estricta con `typecheck` y asegurar que todas las suites de prueba sigan pasando.")
+      return sections.join("\n")
+    }
+
+    if (intent === "conceptual") {
+      sections.push("### 💡 Consulta Técnica y Análisis de Arquitectura")
+      sections.push(`**Pregunta Principal:** ${mainGoal}.`)
+      if (formattedRequirements.length > 1) {
+        sections.push("\n**Aspectos Específicos a Evaluar:**")
+        sections.push(formattedRequirements.join("\n"))
+      }
+      sections.push("\n### ⚖️ Dimensiones de Análisis Requeridas")
+      sections.push(
+        [
+          "- **Trade-offs Técnicos:** Comparar viabilidad, rendimiento, complejidad de adopción y costo de mantenimiento.",
+          "- **Patrones y Buenas Prácticas:** Evaluar estándares de la industria y alternativas recomendadas.",
+          "- **Entregables:** Proporcionar explicaciones claras acompañadas de ejemplos de código idiomáticos y aplicables.",
+        ].join("\n"),
+      )
+      return sections.join("\n")
+    }
+
+    // Por defecto: Scaffolding / Nueva Característica
+    sections.push("### 🚀 Especificación de Feature & Scaffolding")
+    sections.push(`**Objetivo Funcional:** ${mainGoal}.`)
+    if (formattedRequirements.length > 1) {
+      sections.push("\n### 📋 Requerimientos y Casos de Uso")
       sections.push(formattedRequirements.join("\n"))
     }
-
-    sections.push("\n### 🏗️ Directivas de Arquitectura y Calidad")
-    const directives: string[] = [
-      "- Mantener la integridad de los contratos de tipos TypeScript y la arquitectura existente.",
-      "- Verificar que no existan errores de compilación (`typecheck`) ni advertencias de consola.",
-    ]
-    if (isUI) {
-      directives.push("- Garantizar transiciones visuales fluidas, sin parpadeos de fondo ni desbordamientos de scroll.")
+    if (files.length > 0) {
+      sections.push(`\n**Archivos Involucrados:**\n${files.map((f) => `- \`${f}\``).join("\n")}`)
     }
-    if (isMCP) {
-      directives.push("- Asegurar que los comandos MCP sean válidos y que los fallidos se gestionen de forma limpia.")
-    }
-    if (isVoice) {
-      directives.push("- Validar que la voz femenina predeterminada se active fluidamente en las narraciones de contexto.")
-    }
-    if (isLocalModels) {
-      directives.push("- Respetar el orden estricto de telemetría de hardware (CPU → GPU → VRAM → RAM → Disco libre).")
-    }
-
-    sections.push(directives.join("\n"))
-
+    sections.push("\n### 🏗️ Fases de Implementación")
+    sections.push(
+      [
+        "1. **Modelado & Tipos:** Diseñar contratos, interfaces o esquemas de datos fuertemente tipados sin `any`.",
+        "2. **Capa Lógica & Estado:** Implementar el manejo reactivo de estado y la comunicación con servicios/APIs.",
+        "3. **Capa Visual & UX:** Construir la UI considerando estados `loading`, `empty`, `error` y transiciones fluidas.",
+      ].join("\n"),
+    )
+    sections.push("\n### 🛡️ Criterios de Calidad")
+    sections.push(
+      [
+        "- Cero regresiones en la base de código existente.",
+        "- Código modular, desacoplado y con observabilidad limpia de errores.",
+      ].join("\n"),
+    )
     return sections.join("\n")
   }
 
-  // Versión en inglés
+  // Versión en inglés (English)
   const sections: string[] = []
-  sections.push("### 🎯 Objective")
-  sections.push(
-    rawClauses.length === 1
-      ? `${capitalizeFirst(rawClauses[0])}.`
-      : `Implement the following technical enhancements cleanly with zero regressions:`,
-  )
 
-  if (rawClauses.length > 1) {
+  if (intent === "debugging") {
+    sections.push("### 🐛 Bug Diagnosis & Resolution")
+    sections.push(`**Issue:** ${mainGoal}.`)
+    if (formattedRequirements.length > 1) {
+      sections.push("\n**Observed Symptoms:**")
+      sections.push(formattedRequirements.join("\n"))
+    }
+    if (files.length > 0) {
+      sections.push(`\n**Target Files:**\n${files.map((f) => `- \`${f}\``).join("\n")}`)
+    }
+    sections.push("\n### 🔍 Root Cause Hypotheses & Key Inspection Points")
+    sections.push(
+      [
+        "- Inspect reactive state desynchronizations, race conditions, or unhandled null/undefined values.",
+        "- Verify lifecycle cleanup of resources, background tasks, or active locks.",
+      ].join("\n"),
+    )
+    sections.push("\n### 🛠️ Solution Directives")
+    sections.push(
+      [
+        "- Apply a surgical, minimal fix addressing the root cause without touching unrelated modules.",
+        "- Ensure strict TypeScript type safety and defensive error boundaries.",
+      ].join("\n"),
+    )
+    sections.push("\n### ✅ Verification Criteria")
+    sections.push("- Confirm bug resolution with clean typecheck and zero regression.")
+    return sections.join("\n")
+  }
+
+  if (intent === "refactoring") {
+    sections.push("### ♻️ Refactoring & Performance Plan")
+    sections.push(`**Goal:** ${mainGoal}.`)
+    if (formattedRequirements.length > 1) {
+      sections.push("\n**Intervention Areas:**")
+      sections.push(formattedRequirements.join("\n"))
+    }
+    if (files.length > 0) {
+      sections.push(`\n**Target Files:**\n${files.map((f) => `- \`${f}\``).join("\n")}`)
+    }
+    sections.push("\n### 📐 Architectural Directives")
+    sections.push(
+      [
+        "- **Behavioral Invariant:** Keep public API signatures and observable behavior strictly preserved.",
+        "- **Decoupling:** Reduce cyclomatic complexity, remove duplication, and isolate boundaries.",
+        "- **Efficiency:** Eliminate unnecessary re-renders or allocations.",
+      ].join("\n"),
+    )
+    sections.push("\n### 🧪 Non-Regression Verification")
+    sections.push("- Validate with strict typecheck and ensure all existing test suites pass.")
+    return sections.join("\n")
+  }
+
+  if (intent === "conceptual") {
+    sections.push("### 💡 Technical Architecture & Conceptual Analysis")
+    sections.push(`**Core Inquiry:** ${mainGoal}.`)
+    if (formattedRequirements.length > 1) {
+      sections.push("\n**Specific Dimensions to Evaluate:**")
+      sections.push(formattedRequirements.join("\n"))
+    }
+    sections.push("\n### ⚖️ Required Analysis")
+    sections.push(
+      [
+        "- **Technical Trade-offs:** Compare feasibility, performance, adoption complexity, and maintenance overhead.",
+        "- **Patterns & Best Practices:** Assess industry standards and clean design patterns.",
+        "- **Deliverables:** Provide structured insights with idiomatic, actionable code snippets.",
+      ].join("\n"),
+    )
+    return sections.join("\n")
+  }
+
+  // Default: Scaffolding / Feature
+  sections.push("### 🚀 Feature Specification & Scaffolding")
+  sections.push(`**Objective:** ${mainGoal}.`)
+  if (formattedRequirements.length > 1) {
     sections.push("\n### 📋 Requirements & Specifications")
     sections.push(formattedRequirements.join("\n"))
   }
-
-  sections.push("\n### 🏗️ Architectural & Quality Directives")
+  if (files.length > 0) {
+    sections.push(`\n**Target Files:**\n${files.map((f) => `- \`${f}\``).join("\n")}`)
+  }
+  sections.push("\n### 🏗️ Implementation Phases")
   sections.push(
     [
-      "- Preserve TypeScript type safety and existing architecture conventions.",
-      "- Ensure fluid UX with no visual flashing or broken layouts.",
-      "- Verify all commands, state management, and edge cases.",
+      "1. **Contracts & Types:** Define strict TypeScript interfaces/schemas with zero `any`.",
+      "2. **Logic & State:** Implement robust reactive state management and API communication.",
+      "3. **UI & UX:** Build the interface supporting `loading`, `empty`, and `error` states gracefully.",
     ].join("\n"),
   )
-
+  sections.push("\n### 🛡️ Quality Criteria")
+  sections.push(
+    [
+      "- Zero regressions across the existing codebase.",
+      "- Clean modular design adhering to repository conventions.",
+    ].join("\n"),
+  )
   return sections.join("\n")
 }
 

@@ -66,6 +66,8 @@ export const defaultIntelligenceSettings: IntelligenceSettings = {
 }
 
 export interface EcosystemSettings {
+  masterEnabled?: boolean
+  preset?: "recommended" | "all" | "none" | "custom"
   llamacoder: boolean
   tauri: boolean
   treeSitter: boolean
@@ -83,6 +85,8 @@ export interface EcosystemSettings {
 }
 
 export const defaultEcosystemSettings: EcosystemSettings = {
+  masterEnabled: true,
+  preset: "recommended",
   llamacoder: true,
   tauri: true,
   treeSitter: true,
@@ -735,6 +739,20 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         },
       },
       ecosystem: {
+        masterEnabled: withFallback(
+          () => store.ecosystem?.masterEnabled,
+          defaultSettings.ecosystem.masterEnabled ?? true,
+        ),
+        setMasterEnabled(value: boolean) {
+          setStore("ecosystem", "masterEnabled", value)
+        },
+        preset: withFallback(
+          () => store.ecosystem?.preset,
+          defaultSettings.ecosystem.preset ?? "recommended",
+        ),
+        setPreset(value: "recommended" | "all" | "none" | "custom") {
+          setStore("ecosystem", "preset", value)
+        },
         llamacoder: withFallback(() => store.ecosystem?.llamacoder, defaultSettings.ecosystem.llamacoder),
         setLlamacoder(value: boolean) {
           setStore("ecosystem", "llamacoder", value)

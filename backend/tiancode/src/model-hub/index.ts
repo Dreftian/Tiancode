@@ -7,7 +7,7 @@ import os from "os"
 import { execFile } from "node:child_process"
 import { promisify } from "node:util"
 import { createHash } from "node:crypto"
-import { createReadStream, createWriteStream } from "node:fs"
+import { createReadStream, createWriteStream, existsSync } from "node:fs"
 import { mkdir, readdir, rename, rm, stat, statfs } from "node:fs/promises"
 import { Transform, Readable } from "node:stream"
 import { pipeline } from "node:stream/promises"
@@ -968,6 +968,32 @@ const layer = Layer.effect(
 
       // Direct disk cleanup fallback for any loose files or folders matching id / decodedId
       yield* Effect.tryPromise(async () => {
+        if (process.platform === "win32") {
+          await execFileAsync("taskkill", ["/F", "/IM", "llama-server.exe", "/T"]).catch(() => {})
+          await execFileAsync("taskkill", ["/F", "/IM", "llama.exe", "/T"]).catch(() => {})
+        }
+
+        const candidateDirs = [
+          resolvedModelsDir,
+          path.join(os.homedir(), ".local", "share", "tiancode", "models"),
+          path.join(
+            process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming"),
+            "ai.tiancode.desktop",
+            "xdg",
+            "data",
+            "tiancode",
+            "models",
+          ),
+          path.join(
+            process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming"),
+            "ai.tiancode.desktop.codex",
+            "xdg",
+            "data",
+            "tiancode",
+            "models",
+          ),
+        ]
+
         const cleanDir = async (dir: string) => {
           const entries = await readdir(dir, { withFileTypes: true }).catch(() => [])
           for (const entry of entries) {
@@ -992,7 +1018,12 @@ const layer = Layer.effect(
             }
           }
         }
-        await cleanDir(resolvedModelsDir)
+
+        for (const dir of candidateDirs) {
+          if (existsSync(dir)) {
+            await cleanDir(dir)
+          }
+        }
       }).pipe(Effect.catch(() => Effect.void))
 
       yield* fs.writeJson(jobsFile, Array.from(jobs.values())).pipe(Effect.catch(() => Effect.void))

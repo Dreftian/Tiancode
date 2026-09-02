@@ -330,8 +330,27 @@ export const SettingsSubAgentsV2: Component<{
   const [editing, setEditing] = createSignal<string | null>(null)
   const [saving, setSaving] = createSignal(false)
   const [message, setMessage] = createSignal<FormMessage>(undefined)
+  const [scope, setScope] = createSignal<"project" | "global">(props.directory ? "project" : "global")
 
   const params = () => (props.directory ? { directory: props.directory } : undefined)
+  const activeParams = () => (scope() === "project" && props.directory ? { directory: props.directory } : undefined)
+
+  const [configData, { refetch: refetchConfig }] = createResource(
+    () => activeParams(),
+    async (loc) => {
+      try {
+        const res = await serverSdk().client.config.get(loc).catch(() => undefined)
+        const raw = {
+          ...((res?.data as any)?.agents ?? {}),
+          ...((res?.data as any)?.agent ?? {}),
+        }
+        return raw as Record<string, { disable?: boolean; disabled?: boolean }>
+      } catch {
+        return {}
+      }
+    },
+    { initialValue: {} },
+  )
 
   const [agents, { refetch }] = createResource<Agent[]>(
     async () => {
@@ -346,6 +365,50 @@ export const SettingsSubAgentsV2: Component<{
     },
     { initialValue: [] },
   )
+
+  const isAgentActive = (agentName: string) => {
+    const conf = configData()
+    if (conf && (conf[agentName]?.disable === true || conf[agentName]?.disabled === true)) {
+      return false
+    }
+    const serverList = agents() ?? []
+    const match = serverList.find((a) => a?.name === agentName)
+    if (match && ((match as any).disabled === true || (match as any).mode === "disabled")) {
+      return false
+    }
+    return true
+  }
+
+  const toggleAgent = async (agentName: string, enable: boolean) => {
+    try {
+      const conf = { ...(configData() ?? {}) }
+      conf[agentName] = {
+        ...(conf[agentName] ?? {}),
+        disable: !enable,
+        disabled: !enable,
+      }
+      await serverSdk().client.config.update({
+        ...activeParams(),
+        config: {
+          agent: conf,
+          agents: conf,
+        } as any,
+      })
+      await Promise.all([refetchConfig(), refetch()])
+      showToast({
+        variant: "success",
+        title: enable ? "Sub-agente activado" : "Sub-agente desactivado",
+        description: `@${agentName} ${enable ? "ahora está activo" : "ha sido desactivado"} para ${
+          scope() === "project" ? "este proyecto" : "la configuración global"
+        }.`,
+      })
+    } catch {
+      showToast({
+        variant: "error",
+        title: "Error al actualizar estado del sub-agente",
+      })
+    }
+  }
 
   const isNative = (agent: Agent) => agent.native === true || agent.name in NativeAgentDescriptionKeys || agent.name in AGENT_META
 
@@ -775,6 +838,45 @@ export const SettingsSubAgentsV2: Component<{
           </div>
         </Show>
 
+        {/* Selector de Alcance Granular: Proyecto Actual vs Global */}
+        <div class="flex items-center justify-between gap-3 mb-5 p-3 rounded-xl border border-white/10 bg-slate-900/40">
+          <div class="flex items-center gap-2.5">
+            <span class="text-xs font-semibold text-slate-300">Alcance de Configuración:</span>
+            <div class="flex items-center gap-1.5 p-0.5 rounded-lg bg-black/40 border border-white/10">
+              <button
+                type="button"
+                disabled={!props.directory}
+                onClick={() => setScope("project")}
+                class="px-2.5 py-1 text-xs rounded-md font-medium transition-all"
+                classList={{
+                  "bg-sky-500/25 text-sky-200 border border-sky-400/40 shadow-sm": scope() === "project",
+                  "text-slate-400 hover:text-slate-200": scope() !== "project",
+                  "opacity-50 cursor-not-allowed": !props.directory,
+                }}
+              >
+                📁 Proyecto Actual {props.directory ? `(${props.directory.split(/[\\/]/).pop()})` : ""}
+              </button>
+              <button
+                type="button"
+                onClick={() => setScope("global")}
+                class="px-2.5 py-1 text-xs rounded-md font-medium transition-all"
+                classList={{
+                  "bg-sky-500/25 text-sky-200 border border-sky-400/40 shadow-sm": scope() === "global",
+                  "text-slate-400 hover:text-slate-200": scope() !== "global",
+                }}
+              >
+                🌐 Global (Configuración Base)
+              </button>
+            </div>
+          </div>
+
+          <div class="text-xs text-slate-400">
+            {scope() === "project"
+              ? "Configuración aplicada exclusivamente a este repositorio."
+              : "Configuración base predeterminada para cualquier repositorio."}
+          </div>
+        </div>
+
         {/* 1. Sub-Agentes Integrados de Élite (Fuente Principal) */}
         <Show when={visibleBuiltinAgents().length > 0}>
           <div class="settings-v2-section mb-6">
@@ -845,14 +947,27 @@ export const SettingsSubAgentsV2: Component<{
 
                         <div class="settings-v2-sub-agents-card-footer">
                           <span class="text-[10.5px] font-mono text-slate-500">@{agent.name}</span>
-                          <button
-                            type="button"
-                            class="settings-v2-sub-agents-card-btn"
-                            onClick={() => cloneToCustom(agent)}
-                            title="Cargar como base en el editor para crear tu versión personalizada"
-                          >
-                            ✨ Personalizar
-                          </button>
+                          <div class="flex items-center gap-2">
+                            <span
+                              class="settings-v2-chip"
+                              data-tone={isAgentActive(agent.name) ? "green" : "muted"}
+                            >
+                              {isAgentActive(agent.name) ? "Activo" : "Inactivo"}
+                            </span>
+                            <Switch
+                              checked={isAgentActive(agent.name)}
+                              disabled={agent.name === "build"}
+                              onChange={(checked) => toggleAgent(agent.name, checked)}
+                            />
+                            <button
+                              type="button"
+                              class="settings-v2-sub-agents-card-btn"
+                              onClick={() => cloneToCustom(agent)}
+                              title="Cargar como base en el editor para crear tu versión personalizada"
+                            >
+                              ✨ Personalizar
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>

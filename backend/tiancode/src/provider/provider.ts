@@ -1753,6 +1753,13 @@ const layer = Layer.effect(
           }
 
           for (const [modelID, model] of Object.entries(provider.models ?? {})) {
+            if (providerID === localProviderID) {
+              const cleanID = modelID.replace(/\.gguf$/i, "")
+              const existsOnDisk = seenGgufs.has(cleanID) || seenGgufs.has(modelID)
+              if (!existsOnDisk) {
+                continue
+              }
+            }
             const existingModel = parsed.models[model.id ?? modelID]
             const apiID = model.id ?? existingModel?.api.id ?? modelID
             const apiNpm =
