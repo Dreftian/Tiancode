@@ -728,6 +728,18 @@ const layer = Layer.effect(
     })
 
     const listDownloads = Effect.fn("ModelHub.downloads")(function* () {
+      // Reconcile with disk: a "completed" job whose destPath is gone (manual
+      // delete, antivirus quarantine, or a failed removal that still reported
+      // success) must drop out of the registry instead of resurrecting the
+      // model in the UI and re-syncing it into provider config.
+      for (const [id, job] of jobs.entries()) {
+        if (job.status !== "completed") continue
+        const exists = yield* fs.existsSafe(job.destPath)
+        if (!exists) {
+          jobs.delete(id)
+          yield* persistJobs(true)
+        }
+      }
       return Array.from(jobs.values()).map(toDownloadState)
     })
 

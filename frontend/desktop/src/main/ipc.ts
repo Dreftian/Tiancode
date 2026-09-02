@@ -568,7 +568,33 @@ export function registerIpcHandlers(deps: Deps) {
         } catch {}
       }
 
-      return { success: true }
+      // Verify the artifact is really gone; a locked file (llama-server still
+      // holding the handle, AV quarantine, etc.) must not report success or
+      // the model silently resurrects via auto-discovery on next start.
+      let stillExists = false
+      for (const dir of candidateDirs) {
+        try {
+          const verifyDir = async (currentDir: string) => {
+            const entries = await readdir(currentDir, { withFileTypes: true }).catch(() => [])
+            for (const entry of entries) {
+              if (stillExists) return
+              const nameLower = entry.name.toLowerCase()
+              const isMatch =
+                (target.file && nameLower === target.file.toLowerCase()) ||
+                (fileOrName && nameLower.includes(fileOrName.toLowerCase())) ||
+                (cleanFileName && nameLower.includes(cleanFileName.toLowerCase()))
+              if (isMatch && entry.isFile() && !nameLower.endsWith(".part")) {
+                stillExists = true
+                return
+              }
+              if (entry.isDirectory()) await verifyDir(join(currentDir, entry.name))
+            }
+          }
+          await verifyDir(dir)
+        } catch {}
+      }
+
+      return { success: !stillExists }
     },
   )
 }

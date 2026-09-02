@@ -642,13 +642,17 @@ export const SettingsModelsHubV2: Component<{
       await new Promise((r) => setTimeout(r, 250))
 
       // 2. Invocación de borrado físico directo vía Desktop IPC en Windows (elimina de disco, .jobs.json y procesos)
-      const electronApi = (window as unknown as { api?: { modelHub?: { deleteFile: (target: unknown) => Promise<unknown> } } })?.api
+      const electronApi = (window as unknown as { api?: { modelHub?: { deleteFile: (target: unknown) => Promise<{ success?: boolean }> } } })?.api
+      let ipcDeleted = false
       if (electronApi?.modelHub?.deleteFile) {
-        await electronApi.modelHub.deleteFile({
-          file: job.file,
-          id: job.id,
-          destPath: (job as any).destPath,
-        }).catch(() => undefined)
+        const res = await electronApi.modelHub
+          .deleteFile({
+            file: job.file,
+            id: job.id,
+            destPath: (job as any).destPath,
+          })
+          .catch(() => undefined)
+        ipcDeleted = res?.success === true
       }
 
       // 3. Eliminar archivo de disco y cancelar job en backend con múltiples formatos de clave
@@ -699,6 +703,22 @@ export const SettingsModelsHubV2: Component<{
       await refreshJobs()
       refetchEngine()
       setJobs((prev) => prev.filter((j) => j.id !== job.id && j.file !== job.file))
+
+      // El backend puede re-agregar el job si el archivo sigue bloqueado en
+      // disco; verificar que realmente desapareció antes de anunciar éxito.
+      const after = await serverSdk().client.modelhub.downloads(params()).catch(() => undefined)
+      const stillThere =
+        (after?.data ?? []).some((j) => j.id === job.id || j.file === job.file) ||
+        (electronApi?.modelHub?.deleteFile && !ipcDeleted)
+
+      if (stillThere) {
+        showToast({
+          variant: "error",
+          title: "No se pudo eliminar el modelo",
+          description: `${job.file} sigue en uso o bloqueado en disco. Cierra Tiancode y vuelve a intentarlo.`,
+        })
+        return
+      }
 
       showToast({
         variant: "success",
