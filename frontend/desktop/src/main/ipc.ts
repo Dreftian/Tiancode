@@ -15,6 +15,7 @@ import { getStore, removeStoreFileIfEmpty } from "./store"
 import {
   getPinchZoomEnabled,
   getWindowID,
+  isLiveViewPreviewUrl,
   openExternalURL,
   openLocalFileURL,
   setPinchZoomEnabled,
@@ -343,11 +344,22 @@ export function registerIpcHandlers(deps: Deps) {
     return true
   })
 
-  ipcMain.on("open-external", (_event: IpcMainEvent, url: string) => {
+  ipcMain.on("open-external", (event: IpcMainEvent, url: string) => {
+    // Las URLs de vista previa local (dev server, HTML del proyecto) que la
+    // UI pide abrir fuera se muestran en el panel "Vista en vivo": se
+    // reenvían al renderer para que abra el sandbox en lugar del navegador.
+    if (isLiveViewPreviewUrl(url)) {
+      event.sender.send("live-view-navigate", url)
+      return
+    }
     openExternalURL(url)
   })
 
-  ipcMain.on("open-local-file", (_event: IpcMainEvent, url: string) => {
+  ipcMain.on("open-local-file", (event: IpcMainEvent, url: string) => {
+    if (isLiveViewPreviewUrl(url)) {
+      event.sender.send("live-view-navigate", url)
+      return
+    }
     openLocalFileURL(url)
   })
 

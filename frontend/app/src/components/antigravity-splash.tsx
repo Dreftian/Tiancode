@@ -1,4 +1,5 @@
 import { type Component, createSignal, onCleanup, onMount } from "solid-js"
+import { WordmarkV2 } from "@tiancode-ai/ui/v2/wordmark-v2"
 import tianLogo from "../../../ui/src/assets/logo/tian-white.png"
 
 export const AntigravitySplash: Component<{
@@ -64,11 +65,9 @@ export const AntigravitySplash: Component<{
           />
         </div>
 
-        {/* Title */}
-        <div class="flex flex-col items-center gap-1.5 text-center mt-1">
-          <h1 class="text-2xl font-bold tracking-tight text-white drop-shadow font-sans">
-            Tiancode
-          </h1>
+        {/* Title with Official WordmarkV2 "T i a n c o d e" */}
+        <div class="flex flex-col items-center gap-2 text-center mt-1 w-full max-w-[220px]">
+          <WordmarkV2 class="w-full h-auto text-white drop-shadow-[0_0_12px_rgba(255,255,255,0.4)]" />
           <span class="text-xs text-slate-400 tracking-wide font-medium">
             {statusText()}
           </span>

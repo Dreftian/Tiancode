@@ -142,6 +142,11 @@ const api: ElectronAPI = {
   writeTextFile: (path, content) => ipcRenderer.invoke("write-text-file", path, content),
   openExternal: (url) => ipcRenderer.send("open-external", url),
   openLocalFile: (url) => ipcRenderer.send("open-local-file", url),
+  onLiveViewNavigate: (cb) => {
+    const handler = (_: unknown, url: string) => cb(url)
+    ipcRenderer.on("live-view-navigate", handler)
+    return () => ipcRenderer.removeListener("live-view-navigate", handler)
+  },
   openPath: (path, app) => ipcRenderer.invoke("open-path", path, app),
   revealPath: (path) => ipcRenderer.invoke("reveal-path", path),
   readClipboardImage: () => ipcRenderer.invoke("read-clipboard-image"),

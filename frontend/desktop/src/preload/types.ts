@@ -248,6 +248,7 @@ export type ElectronAPI = {
   writeTextFile: (path: string, content: string) => Promise<boolean>
   openExternal: (url: string) => void
   openLocalFile: (url: string) => void
+  onLiveViewNavigate: (cb: (url: string) => void) => () => void
   openPath: (path: string, app?: string) => Promise<void>
   revealPath: (path: string) => Promise<boolean>
   readClipboardImage: () => Promise<{ buffer: ArrayBuffer; width: number; height: number } | null>

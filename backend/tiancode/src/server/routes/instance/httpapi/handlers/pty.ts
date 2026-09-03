@@ -10,7 +10,7 @@ import { LocationServiceMap, locationServiceMapLayer } from "@tiancode-ai/core/l
 import { Location } from "@tiancode-ai/core/location"
 import { AbsolutePath } from "@tiancode-ai/core/schema"
 import { Shell } from "@tiancode-ai/core/shell"
-import { CorsConfig, isAllowedRequestOrigin, type CorsOptions } from "@tiancode-ai/server/cors"
+import { CorsConfig, isAllowedRequestOrigin, sameHost, type CorsOptions } from "@tiancode-ai/server/cors"
 import {
   PTY_CONNECT_TICKET_QUERY,
   PTY_CONNECT_TOKEN_HEADER,
@@ -197,6 +197,9 @@ export const ptyConnectHandlers = HttpApiBuilder.group(PtyConnectApi, "pty-conne
         if (ticket) {
           const valid = yield* tickets.consume({ ticket, ptyID: ctx.params.ptyID, ...(yield* ticketScope) })
           if (!valid) return HttpServerResponse.empty({ status: 403 })
+        } else if (ctx.request.headers.origin && !sameHost(ctx.request.headers.origin, ctx.request.headers.host ?? "")) {
+          // CSWSH guard: cross-origin WebSocket connections must provide a valid ticket
+          return HttpServerResponse.empty({ status: 403 })
         }
         const parsedCursor = query.value.cursor === undefined ? undefined : Number(query.value.cursor)
         const cursor =

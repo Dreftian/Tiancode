@@ -339,6 +339,13 @@ export function openLocalFileURL(value: string) {
 
 function wireNavigationPolicy(win: BrowserWindow) {
   win.webContents.setWindowOpenHandler(({ url }) => {
+    // Los destinos de vista previa local (dev servers, HTML del proyecto) se
+    // muestran dentro del panel "Vista en vivo", nunca en el navegador del
+    // escritorio: se reenvían al renderer para que abra el sandbox.
+    if (isLiveViewPreviewUrl(url)) {
+      sendLiveViewNavigate(win, url)
+      return { action: "deny" }
+    }
     if (!isRendererUrl(url)) openExternalURL(url)
     return { action: "deny" }
   })
@@ -347,8 +354,28 @@ function wireNavigationPolicy(win: BrowserWindow) {
   win.webContents.on("will-navigate", (event, url) => {
     if (isRendererUrl(url)) return
     event.preventDefault()
+    if (isLiveViewPreviewUrl(url)) {
+      sendLiveViewNavigate(win, url)
+      return
+    }
     openExternalURL(url)
   })
+}
+
+// Un dev server local o un HTML servido del disco es contenido del panel
+// "Vista en vivo", no del navegador del sistema.
+const liveViewLoopbackHosts = new Set(["localhost", "127.0.0.1", "0.0.0.0", "[::1]", "::1"])
+export function isLiveViewPreviewUrl(value: string) {
+  if (!value || !URL.canParse(value)) return false
+  const url = new URL(value)
+  const host = url.hostname.replace(/^\[|\]$/g, "").toLowerCase()
+  if ((url.protocol === "http:" || url.protocol === "https:") && liveViewLoopbackHosts.has(host)) return true
+  return url.protocol === "file:" && /\.html?$/i.test(url.pathname)
+}
+
+function sendLiveViewNavigate(win: BrowserWindow, url: string) {
+  if (win.isDestroyed() || win.webContents.isDestroyed()) return
+  win.webContents.send("live-view-navigate", url)
 }
 
 function registerWindow(win: BrowserWindow, id: string) {

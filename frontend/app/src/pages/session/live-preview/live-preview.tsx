@@ -383,6 +383,45 @@ export function LivePreview(props: {
   const completeIframeLoad = () => {
     const target = iframeUrl()
     if (!target) return
+    try {
+      if (iframe?.contentWindow) {
+        const win = iframe.contentWindow as any
+        if (!win.electron) {
+          win.electron = {
+            ipcRenderer: {
+              send: () => {},
+              on: () => () => {},
+              invoke: async () => ({}),
+              removeListener: () => {},
+            },
+          }
+        }
+        if (!win.api) {
+          win.api = {
+            platform: "browser-sandbox",
+            isSandbox: true,
+          }
+        }
+        if (!win.ventd) {
+          win.ventd = {
+            getState: async () => ({ connection: "idle", config: {} }),
+            onState: () => () => {},
+            onDevices: () => () => {},
+            onStats: () => () => {},
+            onLog: () => () => {},
+            onInput: () => () => {},
+            startScan: async () => {},
+            stopScan: async () => {},
+            connect: async () => {},
+            disconnect: async () => {},
+            updateConfig: async () => {},
+            log: () => {},
+          }
+        }
+      }
+    } catch {
+      // Cross-origin iframe
+    }
     setIframeLoading(false)
     updateIframeState(target, false)
     retryAttempts = 0

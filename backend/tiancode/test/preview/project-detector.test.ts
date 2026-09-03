@@ -141,4 +141,27 @@ describe("detectProject", () => {
 
     expect(await detectProject(tmp.path)).toBeNull()
   })
+
+  test("prioritizes web dev script when dev script contains desktop runners", async () => {
+    await using tmp = await tmpdir()
+    await Bun.write(
+      path.join(tmp.path, "package.json"),
+      JSON.stringify({
+        dependencies: { react: "latest" },
+        devDependencies: { vite: "latest" },
+        scripts: {
+          dev: 'concurrently -k "npm:dev:vite" "npm:dev:electron"',
+          "dev:vite": "vite",
+          "dev:electron": "wait-on tcp:5173 && electron .",
+        },
+      }),
+    )
+
+    expect(await detectProject(tmp.path)).toEqual({
+      framework: "vite",
+      packageManager: "npm",
+      script: "dev:vite",
+      port: 5173,
+    })
+  })
 })

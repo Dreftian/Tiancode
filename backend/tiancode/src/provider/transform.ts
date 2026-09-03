@@ -1347,16 +1347,58 @@ const SLUG_OVERRIDES: Record<string, string> = {
   amazon: "bedrock",
 }
 
+function anthropicBindsThinking(apiId: string) {
+  if (!apiId.toLowerCase().includes("claude-")) return false
+  const version = /claude-(?:[a-z]+-)?(\d+)(?:[.-](\d{1,2}))?(?:[.@-]|$)/i.exec(apiId)
+  if (!version) return true
+  const major = Number(version[1])
+  const minor = Number(version[2] ?? 0)
+  return major > 5 || (major === 5 && minor >= 1)
+}
+
+const ANTHROPIC_BLOCK_BINDING = { prefixMismatchBehavior: "drop_block" }
+
+function anthropicBlockBinding(model: Provider.Model, options: { [x: string]: any }) {
+  const sdk = sdkKey(model.api.npm)
+  const key = sdk === "bedrock" ? "reasoningConfig" : sdk === "anthropic" ? "thinking" : undefined
+  // Consume the opt-out even on models outside the default scope.
+  if (key && options[key]?.blockBinding === false) {
+    const result = { ...options, [key]: { ...options[key] } }
+    delete result[key].blockBinding
+    if (Object.keys(result[key]).length === 0) delete result[key]
+    return result
+  }
+
+  if (!anthropicBindsThinking(model.api.id)) return options
+  switch (model.api.npm) {
+    case "@ai-sdk/anthropic":
+    case "@ai-sdk/google-vertex/anthropic": {
+      const thinking = options.thinking ?? { type: "adaptive" }
+      if (thinking.type !== "adaptive" && thinking.type !== "enabled") return options
+      if (thinking.blockBinding !== undefined) return options
+      return { ...options, thinking: { ...thinking, blockBinding: ANTHROPIC_BLOCK_BINDING } }
+    }
+    case "@ai-sdk/amazon-bedrock": {
+      const reasoningConfig = options.reasoningConfig ?? { type: "adaptive" }
+      if (reasoningConfig.type !== "adaptive" && reasoningConfig.type !== "enabled") return options
+      if (reasoningConfig.blockBinding !== undefined) return options
+      return { ...options, reasoningConfig: { ...reasoningConfig, blockBinding: ANTHROPIC_BLOCK_BINDING } }
+    }
+  }
+  return options
+}
+
 export function providerOptions(model: Provider.Model, options: { [x: string]: any }) {
   const usesOpenAIReasoningGate =
     model.api.npm === "@ai-sdk/openai" ||
     model.api.npm === "@ai-sdk/azure" ||
     model.api.npm === "@ai-sdk/amazon-bedrock/mantle"
-  const normalized =
+  const withReasoning =
     usesOpenAIReasoningGate &&
     (model.capabilities.reasoning || options.reasoningEffort !== undefined || options.reasoningSummary !== undefined)
       ? { ...options, forceReasoning: true }
       : options
+  const normalized = anthropicBlockBinding(model, withReasoning)
 
   if (model.api.npm === "@ai-sdk/gateway") {
     // Gateway providerOptions are split across two namespaces:

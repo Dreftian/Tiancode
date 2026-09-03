@@ -171,6 +171,9 @@ type PlatformBase = {
   /** Preview view (panel "Vista en vivo"; desktop only) */
   previewView?: PreviewViewPlatform
 
+  /** Subscribe to preview targets routed by the desktop shell into the live view (desktop only) */
+  onLiveViewNavigate?(cb: (url: string) => void): () => void
+
   /** Start/stop launching with the OS login (Windows only) */
   setLoginItem?(enabled: boolean): Promise<boolean>
   getLoginItem?(): Promise<boolean>

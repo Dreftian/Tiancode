@@ -32,6 +32,11 @@ async function main() {
   const releaseName = `Tiancode v${version} - Versión Oficial Estable`
   const body = `## 🚀 Tiancode v${version} — La versión estable oficial
 
+### 🐛 Corregido en v1.0.1
+- **Vista previa siempre dentro de la app:** las vistas previas de tus apps y webs se muestran en el panel "Vista en vivo" de la sesión, nunca en una ventana del navegador del escritorio.
+- **Dev servers sin aperturas externas:** Vite, Next y React ya no abren el navegador del sistema por su cuenta; la URL aparece automáticamente dentro de Tiancode.
+- **Enlaces locales redirigidos:** hacer clic en un enlace localhost o en un HTML generado (en el chat o en la terminal) lo abre en la Vista en vivo.
+
 ### ✨ Novedades y mejoras
 - **Modelos locales GGUF robustos:** activación inmediata en chat, resolución multi-directorio de modelos y del motor \`llama-server\`, y conexión directa sin solicitar API keys.
 - **Optimizador de prompts mejorado:** detección de intención (debugging, scaffolding, refactoring, conceptual) con extracción de entidades para prompts más precisos.

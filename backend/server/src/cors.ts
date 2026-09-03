@@ -41,7 +41,7 @@ export function isAllowedRequestOrigin(input: string | undefined, host: string |
   return isAllowedCorsOrigin(input, opts)
 }
 
-function sameHost(origin: string, host: string) {
+export function sameHost(origin: string, host: string) {
   try {
     return new URL(origin).host === host
   } catch {

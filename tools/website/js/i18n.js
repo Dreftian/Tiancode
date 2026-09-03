@@ -22,7 +22,7 @@ export const I18N = {
     'theme.aria': 'Cambiar tema claro/oscuro',
     'lang.aria': 'Cambiar idioma',
     'nav.aria': 'Abrir menú de navegación',
-    'hero.badge': 'v1.0.0 · Agente de IA local-first',
+    'hero.badge': 'v1.0.1 · Agente de IA local-first',
     'hero.tagline': 'Tu asistente de IA para programar, directo en tu terminal.',
     'hero.sub': 'Agentes de IA, 52+ skills de ingeniería de software, modelos locales GGUF, GitHub y MCP — una app de escritorio rápida y enfocada para Windows.',
     'hero.ctaDownload': 'Descargar para Windows',
@@ -68,7 +68,7 @@ export const I18N = {
 
     /* --- Vista previa de la app (mockups) --- */
     'preview.title': 'Vista previa de la app',
-    'preview.sub': 'Así se ve Tiancode 1.0.0: la ventana principal con su terminal, el diálogo de configuración, los modelos locales y las skills.',
+    'preview.sub': 'Así se ve Tiancode 1.0.1: la ventana principal con su terminal, el diálogo de configuración, los modelos locales y las skills.',
     'mu.cap.chat': 'Ventana principal: chat, explorador y terminal con toggles en el titlebar',
     'mu.cap.set': 'Diálogo de configuración (1240 px) con sidebar compacto',
     'mu.cap.ml': 'Pestaña Modelos Locales: compatibilidad según RAM y sistema',
@@ -127,7 +127,7 @@ export const I18N = {
     'mu.sk.toggle': 'Activar o desactivar skill',
 
     'stats.title': 'Cifras que importan',
-    'stats.sub': 'Datos reales de la versión 1.0.0.',
+    'stats.sub': 'Datos reales de la versión 1.0.1.',
     'stats.c1': 'Skills de ingeniería',
     'stats.c2': 'Tests e2e (HTTP)',
     'stats.c3': 'Pestañas de configuración',
@@ -153,7 +153,7 @@ export const I18N = {
     'cta.title': 'Empieza a programar con IA hoy',
     'cta.sub': 'Gratis para uso personal. Rápido de instalar, fácil de configurar.',
     'cta.button': 'Descargar Tiancode',
-    'cta.note': 'Windows 10 y 11 · 64 bits · ~270 MB',
+    'cta.note': 'Windows 10 y 11 · 64 bits · ~375 MB',
     'footer.tagline': 'El asistente de IA para programar, hecho para Windows.',
     'footer.product': 'Producto',
     'footer.resources': 'Recursos',
@@ -267,9 +267,9 @@ export const I18N = {
     'docs.t7': 'Solución de problemas',
     'docs.t8': 'Arquitectura del proyecto',
     'docs.s1t': '1. Instalación',
-    'docs.s1p': 'Tiancode 1.0.0 se distribuye en dos formatos para Windows 10 y 11 (64 bits):',
-    'docs.s1l1': 'Instalador NSIS (Tiancode.exe, ~270 MB): instalación clásica con asistente, accesos directos y actualizaciones sencillas.',
-    'docs.s1l2': 'Versión portable (Tiancode-portable.exe, ~270 MB): sin instalación, se ejecuta desde cualquier carpeta o USB.',
+    'docs.s1p': 'Tiancode 1.0.1 se distribuye en dos formatos para Windows 10 y 11 (64 bits):',
+    'docs.s1l1': 'Instalador NSIS (Tiancode.exe, ~375 MB): instalación clásica con asistente, accesos directos y actualizaciones sencillas.',
+    'docs.s1l2': 'Versión portable (Tiancode-portable.exe, ~375 MB): sin instalación, se ejecuta desde cualquier carpeta o USB.',
     'docs.s1p2': 'Requisitos mínimos: Windows 10 u 11 de 64 bits, 4 GB de RAM y 1 GB de espacio libre. Para modelos locales se recomiendan 8 GB de RAM o más.',
     'docs.s2t': '2. Agentes',
     'docs.s2p': 'Los agentes son asistentes de IA especializados que trabajan en tu proyecto. Puedes tener varios agentes en la misma conversación, delegar tareas a sub-agentes y asignar a cada uno un rol (senior-dev, reviewer, arquitecto…).',
@@ -310,7 +310,7 @@ export const I18N = {
     'guide.title': 'Guía de inicio',
     'guide.sub': 'Pon Tiancode en marcha en menos de cinco minutos, paso a paso.',
     'guide.s1t': 'Descarga Tiancode',
-    'guide.s1d': 'Elige el instalador NSIS (~270 MB) o la versión portable (~270 MB) desde la página de descarga. La versión 1.0.0 soporta Windows 10 y 11.',
+    'guide.s1d': 'Elige el instalador NSIS (~375 MB) o la versión portable (~375 MB) desde la página de descarga. La versión 1.0.1 soporta Windows 10 y 11.',
     'guide.s2t': 'Instala o ejecuta',
     'guide.s2d': 'Con el instalador: sigue el asistente. Con la portable: coloca el ejecutable en una carpeta y ejecútalo — no requiere instalación.',
     'guide.s3t': 'Elige tu modelo',
@@ -353,8 +353,8 @@ export const I18N = {
 
     /* --- Novedades --- */
     'news.title': 'Novedades',
-    'news.sub': 'Todo lo que trae Tiancode 1.0.0, la primera versión estable.',
-    'news.v1': 'Versión 1.0.0',
+    'news.sub': 'Todo lo que trae Tiancode 1.0.1, la primera versión estable.',
+    'news.v1': 'Versión 1.0.1',
     'news.date': '2 de septiembre de 2026',
     'news.chip': 'Última versión',
     'news.newTitle': 'Novedades',
@@ -365,7 +365,7 @@ export const I18N = {
     'news.new5': 'Toggles en el titlebar: muestra u oculta el terminal y el panel de archivos junto a los botones de ventana.',
     'news.new6': 'Interfaz V2: tema claro/oscuro, sidebar de configuración compacto y diálogo de configuración de 1240 px.',
     'news.impTitle': 'Mejoras',
-    'news.imp1': 'Distribución: instalador NSIS (Tiancode.exe, ~270 MB) y portable (Tiancode-portable.exe, ~270 MB) para Windows 10 y 11.',
+    'news.imp1': 'Distribución: instalador NSIS (Tiancode.exe, ~375 MB) y portable (Tiancode-portable.exe, ~375 MB) para Windows 10 y 11.',
     'news.imp2': 'Terminal integrada más rápida, con resaltado de sintaxis.',
     'news.imp3': 'Multi-proveedor: usa OpenAI, Anthropic y modelos locales en paralelo.',
     'news.imp4': 'Atajos de teclado personalizables para las acciones más frecuentes.',
@@ -378,7 +378,7 @@ export const I18N = {
     /* --- Modo portable --- */
     'port.title': 'Modo portable',
     'port.sub': 'Tiancode donde lo necesites: sin instalación, con tu configuración a cuestas.',
-    'port.intro': 'La versión portable (Tiancode-portable.exe, ~270 MB) ejecuta la aplicación completa sin instalarla. Es la misma Tiancode, pero todo — el ejecutable, la configuración y los modelos — vive en la carpeta que tú elijas.',
+    'port.intro': 'La versión portable (Tiancode-portable.exe, ~375 MB) ejecuta la aplicación completa sin instalarla. Es la misma Tiancode, pero todo — el ejecutable, la configuración y los modelos — vive en la carpeta que tú elijas.',
     'port.prosTitle': 'Por qué elegir la versión portable',
     'port.p1': 'Sin instalación y sin permisos de administrador.',
     'port.p2': 'Llévala en un USB y úsala en cualquier PC con Windows 10 u 11.',
@@ -398,16 +398,16 @@ export const I18N = {
 
     /* --- Descarga --- */
     'dl.title': 'Descarga',
-    'dl.sub': 'Tiancode 1.0.0 para Windows 10 y 11 (64 bits). Gratis, sin registro. El instalador y la versión portable son el mismo software: elige el que mejor se adapte a tu flujo.',
+    'dl.sub': 'Tiancode 1.0.1 para Windows 10 y 11 (64 bits). Gratis, sin registro. El instalador y la versión portable son el mismo software: elige el que mejor se adapte a tu flujo.',
     'dl.instTitle': 'Instalador de Windows',
     'dl.instDesc': 'Instalación clásica con asistente NSIS. Ideal para uso diario: incluye accesos directos y actualizaciones sencillas.',
     'dl.instFile': 'Tiancode.exe',
-    'dl.instSize': '~270 MB',
+    'dl.instSize': '~375 MB',
     'dl.instBtn': 'Descargar instalador',
     'dl.portTitle': 'Versión portable',
     'dl.portDesc': 'Sin instalación. Ejecuta Tiancode desde cualquier carpeta o USB; la configuración se guarda junto al ejecutable.',
     'dl.portFile': 'Tiancode-portable.exe',
-    'dl.portSize': '~270 MB',
+    'dl.portSize': '~375 MB',
     'dl.portBtn': 'Descargar portable',
     'dl.reqTitle': 'Requisitos del sistema',
     'dl.req1': 'Windows 10 u 11, 64 bits.',
@@ -415,7 +415,7 @@ export const I18N = {
     'dl.req3': '1 GB de espacio libre; los modelos locales requieren espacio adicional.',
     'dl.req4': 'Internet solo para descargar modelos o usar proveedores en la nube.',
     'dl.checksum': 'Verifica la integridad de tu descarga con el hash SHA-256 publicado junto a cada versión.',
-    'dl.news': '¿Qué hay de nuevo en 1.0.0? Lee las novedades.'
+    'dl.news': '¿Qué hay de nuevo en 1.0.1? Lee las novedades.'
   },
 
   en: {
@@ -432,7 +432,7 @@ export const I18N = {
     'theme.aria': 'Toggle light/dark theme',
     'lang.aria': 'Switch language',
     'nav.aria': 'Open navigation menu',
-    'hero.badge': 'v1.0.0 · Local-first AI agent',
+    'hero.badge': 'v1.0.1 · Local-first AI agent',
     'hero.tagline': 'Your AI coding assistant, right in your terminal.',
     'hero.sub': 'AI agents, 52+ software engineering skills, local GGUF models, GitHub and MCP — a fast, focused desktop app for Windows.',
     'hero.ctaDownload': 'Download for Windows',
@@ -478,7 +478,7 @@ export const I18N = {
 
     /* --- App preview (mockups) --- */
     'preview.title': 'App preview',
-    'preview.sub': 'This is Tiancode 1.0.0: the main window with its terminal, the settings dialog, local models, and skills.',
+    'preview.sub': 'This is Tiancode 1.0.1: the main window with its terminal, the settings dialog, local models, and skills.',
     'mu.cap.chat': 'Main window: chat, explorer, and terminal with title bar toggles',
     'mu.cap.set': 'Settings dialog (1240 px) with compact sidebar',
     'mu.cap.ml': 'Local Models tab: RAM compatibility and system info',
@@ -537,7 +537,7 @@ export const I18N = {
     'mu.sk.toggle': 'Toggle skill',
 
     'stats.title': 'Numbers that matter',
-    'stats.sub': 'Real numbers from version 1.0.0.',
+    'stats.sub': 'Real numbers from version 1.0.1.',
     'stats.c1': 'Engineering skills',
     'stats.c2': 'E2E HTTP tests',
     'stats.c3': 'Configuration tabs',
@@ -563,7 +563,7 @@ export const I18N = {
     'cta.title': 'Start coding with AI today',
     'cta.sub': 'Free for personal use. Quick to install, easy to configure.',
     'cta.button': 'Download Tiancode',
-    'cta.note': 'Windows 10 and 11 · 64-bit · ~270 MB',
+    'cta.note': 'Windows 10 and 11 · 64-bit · ~375 MB',
     'footer.tagline': 'The AI coding assistant, built for Windows.',
     'footer.product': 'Product',
     'footer.resources': 'Resources',
@@ -677,9 +677,9 @@ export const I18N = {
     'docs.t7': 'Troubleshooting',
     'docs.t8': 'Project architecture',
     'docs.s1t': '1. Installation',
-    'docs.s1p': 'Tiancode 1.0.0 ships in two formats for Windows 10 and 11 (64-bit):',
-    'docs.s1l1': 'NSIS installer (Tiancode.exe, ~270 MB): classic wizard-based install with shortcuts and easy updates.',
-    'docs.s1l2': 'Portable build (Tiancode-portable.exe, ~270 MB): no install, runs from any folder or USB drive.',
+    'docs.s1p': 'Tiancode 1.0.1 ships in two formats for Windows 10 and 11 (64-bit):',
+    'docs.s1l1': 'NSIS installer (Tiancode.exe, ~375 MB): classic wizard-based install with shortcuts and easy updates.',
+    'docs.s1l2': 'Portable build (Tiancode-portable.exe, ~375 MB): no install, runs from any folder or USB drive.',
     'docs.s1p2': 'Minimum requirements: Windows 10 or 11 (64-bit), 4 GB RAM, and 1 GB of free space. 8 GB RAM or more is recommended for local models.',
     'docs.s2t': '2. Agents',
     'docs.s2p': 'Agents are specialized AI assistants that work on your project. You can have several agents in the same conversation, delegate tasks to sub-agents, and assign each one a role (senior-dev, reviewer, architect…).',
@@ -720,7 +720,7 @@ export const I18N = {
     'guide.title': 'Getting Started',
     'guide.sub': 'Get Tiancode up and running in under five minutes, step by step.',
     'guide.s1t': 'Download Tiancode',
-    'guide.s1d': 'Pick the NSIS installer (~270 MB) or the portable build (~270 MB) from the download page. Version 1.0.0 supports Windows 10 and 11.',
+    'guide.s1d': 'Pick the NSIS installer (~375 MB) or the portable build (~375 MB) from the download page. Version 1.0.1 supports Windows 10 and 11.',
     'guide.s2t': 'Install or run',
     'guide.s2d': 'With the installer: follow the wizard. With the portable build: put the executable in a folder and run it — no installation required.',
     'guide.s3t': 'Pick your model',
@@ -763,8 +763,8 @@ export const I18N = {
 
     /* --- What's New --- */
     'news.title': "What's New",
-    'news.sub': 'Everything Tiancode 1.0.0 brings — the first stable release.',
-    'news.v1': 'Version 1.0.0',
+    'news.sub': 'Everything Tiancode 1.0.1 brings — the first stable release.',
+    'news.v1': 'Version 1.0.1',
     'news.date': 'September 2, 2026',
     'news.chip': 'Latest release',
     'news.newTitle': 'New',
@@ -775,7 +775,7 @@ export const I18N = {
     'news.new5': 'Title bar toggles: show or hide the terminal and the file panel next to the window buttons.',
     'news.new6': 'V2 UI: light/dark theme, a compact settings sidebar, and a 1240 px settings dialog.',
     'news.impTitle': 'Improvements',
-    'news.imp1': 'Distribution: NSIS installer (Tiancode.exe, ~270 MB) and portable build (Tiancode-portable.exe, ~270 MB) for Windows 10 and 11.',
+    'news.imp1': 'Distribution: NSIS installer (Tiancode.exe, ~375 MB) and portable build (Tiancode-portable.exe, ~375 MB) for Windows 10 and 11.',
     'news.imp2': 'Faster integrated terminal with syntax highlighting.',
     'news.imp3': 'Multi-provider: use OpenAI, Anthropic, and local models in parallel.',
     'news.imp4': 'Customizable keyboard shortcuts for the most frequent actions.',
@@ -788,7 +788,7 @@ export const I18N = {
     /* --- Portable mode --- */
     'port.title': 'Portable Mode',
     'port.sub': 'Tiancode wherever you need it: no installation, your configuration travels with you.',
-    'port.intro': 'The portable build (Tiancode-portable.exe, ~270 MB) runs the full application without installing it. It is the same Tiancode, but everything — the executable, the configuration, and the models — lives in a folder of your choice.',
+    'port.intro': 'The portable build (Tiancode-portable.exe, ~375 MB) runs the full application without installing it. It is the same Tiancode, but everything — the executable, the configuration, and the models — lives in a folder of your choice.',
     'port.prosTitle': 'Why choose the portable build',
     'port.p1': 'No installation and no administrator rights.',
     'port.p2': 'Carry it on a USB stick and use it on any Windows 10 or 11 PC.',
@@ -808,16 +808,16 @@ export const I18N = {
 
     /* --- Download --- */
     'dl.title': 'Download',
-    'dl.sub': 'Tiancode 1.0.0 for Windows 10 and 11 (64-bit). Free, no sign-up required. The installer and the portable build are the same software: pick the one that fits your workflow.',
+    'dl.sub': 'Tiancode 1.0.1 for Windows 10 and 11 (64-bit). Free, no sign-up required. The installer and the portable build are the same software: pick the one that fits your workflow.',
     'dl.instTitle': 'Windows installer',
     'dl.instDesc': 'Classic wizard-based NSIS install. Ideal for daily use: includes shortcuts and easy updates.',
     'dl.instFile': 'Tiancode.exe',
-    'dl.instSize': '~270 MB',
+    'dl.instSize': '~375 MB',
     'dl.instBtn': 'Download installer',
     'dl.portTitle': 'Portable build',
     'dl.portDesc': 'No installation. Run Tiancode from any folder or USB drive; settings are stored next to the executable.',
     'dl.portFile': 'Tiancode-portable.exe',
-    'dl.portSize': '~270 MB',
+    'dl.portSize': '~375 MB',
     'dl.portBtn': 'Download portable',
     'dl.reqTitle': 'System requirements',
     'dl.req1': 'Windows 10 or 11, 64-bit.',
@@ -825,7 +825,7 @@ export const I18N = {
     'dl.req3': '1 GB of free space; local models need additional space.',
     'dl.req4': 'Internet only to download models or use cloud providers.',
     'dl.checksum': 'Verify the integrity of your download with the SHA-256 hash published with each release.',
-    'dl.news': 'What is new in 1.0.0? Read the changelog.'
+    'dl.news': 'What is new in 1.0.1? Read the changelog.'
   }
 };
 

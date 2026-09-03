@@ -4,18 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Novedades — Tiancode</title>
-  <meta name="description" content="Novedades de Tiancode 1.0.0: GitHub, MCP Servers, plugins, voces TTS, bandeja del sistema, 52+ skills, onboarding y logo nuevo.">
+  <meta name="description" content="Novedades de Tiancode 1.0.1: GitHub, MCP Servers, plugins, voces TTS, bandeja del sistema, 52+ skills, onboarding y logo nuevo.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Tiancode">
   <meta property="og:title" content="Novedades — Tiancode">
-  <meta property="og:description" content="Novedades de Tiancode 1.0.0: GitHub, MCP Servers, plugins, voces TTS, bandeja del sistema, 52+ skills, onboarding y logo nuevo.">
+  <meta property="og:description" content="Novedades de Tiancode 1.0.1: GitHub, MCP Servers, plugins, voces TTS, bandeja del sistema, 52+ skills, onboarding y logo nuevo.">
   <meta property="og:url" content="https://tiancode.vercel.app/recursos/novedades.html">
   <meta property="og:image" content="https://tiancode.vercel.app/img/og-image.png">
   <meta property="og:locale" content="es_ES">
   <meta property="og:locale:alternate" content="en_US">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Novedades — Tiancode">
-  <meta name="twitter:description" content="Novedades de Tiancode 1.0.0: GitHub, MCP Servers, plugins, voces TTS, bandeja del sistema, 52+ skills, onboarding y logo nuevo.">
+  <meta name="twitter:description" content="Novedades de Tiancode 1.0.1: GitHub, MCP Servers, plugins, voces TTS, bandeja del sistema, 52+ skills, onboarding y logo nuevo.">
   <meta name="twitter:image" content="https://tiancode.vercel.app/img/og-image.png">
   <link rel="canonical" href="https://tiancode.vercel.app/recursos/novedades.html">
   <link rel="icon" type="image/png" href="img/favicon.png">
@@ -121,12 +121,33 @@
           <header class="page-head reveal">
             <span class="eyebrow">Recursos</span>
             <h1 class="page-title">Novedades</h1>
-            <p class="page-sub">Todo lo que trae Tiancode 1.0.0, la primera versión estable.</p>
+            <p class="page-sub">Todo lo que trae Tiancode 1.0.1, la versión estable.</p>
           </header>
           <div class="page-body reveal" style="--rd:.08s">
               <div class="news-version">
-                <h2>Versión 1.0.0</h2>
+                <h2>Versión 1.0.1</h2>
                 <span class="news-tag">Última versión</span>
+                <span class="news-date">3 de septiembre de 2026</span>
+              </div>
+              <div class="news-block news-block--fix">
+                <h3>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  <span>Novedades y Correcciones en v1.0.1</span>
+                </h3>
+                <ul class="news-list news-list--fix">
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Sandbox aislado sin ventanas de escritorio:</strong> los proyectos híbridos o de escritorio (Electron/Tauri) priorizan scripts web (como dev:vite) y bloquean la apertura de ventanas nativas en el host, ejecutándose de forma aislada y segura dentro de la Vista en vivo de Tiancode.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Resiliencia OpenCode v1.18.27:</strong> timeouts de streaming de 5 minutos, soporte para opt-out de blockBinding en Anthropic, acotado a Claude 5.1+ y cancelación segura de lectores SSE.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Asistente de bienvenida estilo Windows 11:</strong> diseño renovado con Mica, Fluent Design, tarjetas de configuración y controles interactivos modernos.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Tipografía oficial en el arranque:</strong> pantalla de carga con el nuevo logo "T i a n c o d e" Wordmark oficial idéntico al de la vista de chat.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Blindaje CSWSH en terminal PTY:</strong> validación estricta de tickets y protección ante orígenes cruzados en WebSockets.</span></li>
+                </ul>
+              </div>
+
+              <div class="news-version">
+                <h2>Versión 1.0.0</h2>
+                <span class="news-tag">Estable</span>
                 <span class="news-date">2 de septiembre de 2026</span>
               </div>
               <div class="news-block news-block--new">
@@ -134,7 +155,7 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                   </svg>
-                  <span>Seguridad y correcciones en v1.0.0</span>
+                  <span>Seguridad y correcciones en v1.0.1</span>
                 </h3>
                 <ul class="news-list news-list--new">
                   <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span><strong>Auditoría de seguridad integral:</strong> el panel de vista en vivo ya no es legible desde webs externas, tus claves de API no salen por HTTP en claro y las claves del servidor dejan de filtrarse a procesos de proyectos clonados.</span></li>
@@ -172,7 +193,7 @@
                   <span>Mejoras</span>
                 </h3>
                 <ul class="news-list news-list--imp">
-                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span>Distribución: instalador NSIS (Tiancode.exe, ~270 MB) y portable (Tiancode-portable.exe, ~270 MB) para Windows 10 y 11.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span>Distribución: instalador NSIS (Tiancode.exe, ~375 MB) y portable (Tiancode-portable.exe, ~375 MB) para Windows 10 y 11.</span></li>
                   <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span>Terminal integrada más rápida, con resaltado de sintaxis.</span></li>
                   <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span>Multi-proveedor: usa OpenAI, Anthropic y modelos locales en paralelo.</span></li>
                   <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span>Atajos de teclado personalizables para las acciones más frecuentes.</span></li>
@@ -214,7 +235,7 @@
           </a>
           <p>El asistente de IA para programar, hecho para Windows.</p>
         </div>
-        <span class="footer-version"><i aria-hidden="true"></i>v1.0.0 · MIT</span>
+        <span class="footer-version"><i aria-hidden="true"></i>v1.0.1 · MIT</span>
       </div>
       <div class="footer-grid">
         <nav class="footer-col" aria-label="Producto">

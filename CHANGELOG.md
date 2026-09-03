@@ -4,6 +4,27 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.1] — 2026-09-03
+### Corregido
+
+- **La vista previa de apps y webs se muestra siempre en "Vista en vivo"**: al
+  pedir una vista previa (preview_start, dev server o HTML generado), el
+  resultado ya nunca aparece en una ventana del navegador del escritorio; se
+  renderiza dentro del panel "Vista en vivo" de la sesión (iframe/WebContentsView),
+  que se abre automáticamente con la pestaña App activa.
+- **El agente ya no puede abrir el navegador del sistema con una vista previa
+  local**: el guard del shell bloquea, además de las URLs localhost, los
+  lanzamientos de HTML local (`start index.html`, `explorer`, `Invoke-Item`,
+  `file:///...`) y los scripts con `--open` (`npm run dev -- --open`,
+  `npx vite --open`), redirigiendo al pipeline de preview embebido.
+- **Los dev servers ya no abren el navegador por su cuenta**: el entorno del
+  servidor de desarrollo gestionado incluye `BROWSER=none`, así que Vite,
+  react-scripts y Next no abren el navegador del escritorio al arrancar.
+- **Los enlaces locales de la UI van a la Vista en vivo**: los clics en URLs
+  localhost o HTML del proyecto (enlaces del chat, Ctrl+clic en la terminal,
+  enlaces con `target="_blank"`) que antes terminaban en el navegador del
+  escritorio ahora navegan el panel "Vista en vivo" de la sesión activa.
+
 ## [1.0.29] — 2026-08-10
 ### Corregido
 

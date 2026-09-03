@@ -4,7 +4,6 @@ import { useLanguage, type Locale } from "@/context/language"
 import { useTheme, type ColorScheme } from "@tiancode-ai/ui/theme/context"
 import { useSettings } from "@/context/settings"
 import { usePlatform } from "@/context/platform"
-import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
 import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
 import tianLogo from "../../../ui/src/assets/logo/tian-white.png"
 
@@ -73,51 +72,58 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
   const isDark = () => selectedTheme() === "dark" || (selectedTheme() === "system" && theme.colorScheme() === "dark")
 
   const cardClass = (selected: boolean) =>
-    `flex items-center gap-3.5 p-3 rounded-2xl border cursor-pointer transition-all duration-200 ${
+    `flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all duration-150 select-none ${
       selected
-        ? "border-cyan-400/60 bg-cyan-500/15 shadow-[0_0_16px_rgba(56,189,248,0.2)] text-white"
-        : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10 text-slate-300"
+        ? "border-[#0078d4] bg-[#0078d4]/10 shadow-[0_0_0_1px_#0078d4] text-white"
+        : "border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/[0.14] text-slate-200"
     }`
 
   return (
     <div
-      class="relative w-full max-w-[540px] max-h-[90vh] bg-[#0d1117] border border-white/15 rounded-3xl p-6 flex flex-col justify-between text-white select-none overflow-hidden font-sans shadow-[0_25px_60px_rgba(0,0,0,0.8)]"
+      class="relative w-full max-w-[560px] max-h-[92vh] bg-[#202020]/95 backdrop-blur-3xl border border-white/[0.12] rounded-2xl p-6 flex flex-col justify-between text-white select-none overflow-hidden font-sans shadow-[0_32px_64px_rgba(0,0,0,0.55),0_1px_0_rgba(255,255,255,0.1)_inset]"
+      style={{
+        "font-family": "Segoe UI Variable, Segoe UI, -apple-system, BlinkMacSystemFont, Roboto, sans-serif",
+      }}
     >
-      {/* Ambient background glows */}
-      <div class="absolute -top-16 -left-16 w-52 h-52 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
-      <div class="absolute -bottom-16 -right-16 w-52 h-52 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
+      {/* Windows 11 Mica subtle highlight */}
+      <div class="absolute -top-24 -right-24 w-64 h-64 bg-[#0078d4]/15 rounded-full blur-3xl pointer-events-none" />
+      <div class="absolute -bottom-24 -left-24 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Header with Official Tiancode Emblem */}
-      <div class="flex items-center justify-between border-b border-white/10 pb-4">
-        <div class="flex items-center gap-3">
-          <div class="relative flex items-center justify-center h-9 w-auto shrink-0">
+      {/* Header - Windows 11 OOBE / Fluent Style */}
+      <div class="flex items-start justify-between border-b border-white/[0.08] pb-4 mb-4">
+        <div class="flex items-center gap-3.5">
+          <div class="relative flex items-center justify-center size-10 rounded-xl bg-white/[0.06] border border-white/[0.12] shadow-sm shrink-0">
             <img
               src={tianLogo}
               alt="Tiancode"
-              class="h-7 w-auto object-contain drop-shadow-[0_0_10px_rgba(56,189,248,0.4)]"
+              class="h-6 w-auto object-contain drop-shadow-[0_2px_8px_rgba(0,120,212,0.4)]"
               draggable={false}
             />
           </div>
 
-          <div class="flex flex-col gap-0.5">
+          <div class="flex flex-col">
             <div class="flex items-center gap-2">
-              <h2 class="text-[15px] font-bold text-white tracking-tight">
-                {isEs() ? "Configuración Inicial de Tiancode" : "Tiancode Initial Setup"}
+              <h2 class="text-[16px] font-semibold text-white tracking-tight">
+                {isEs() ? "Configuración de Tiancode" : "Tiancode Setup"}
               </h2>
-              <span class="px-2 py-0.5 text-[9.5px] font-mono font-bold rounded-full border border-cyan-400/30 bg-cyan-400/10 text-cyan-300">
+              <span class="px-2 py-0.5 text-[10px] font-mono font-medium rounded-md border border-[#0078d4]/40 bg-[#0078d4]/15 text-[#60cdff]">
                 v{version()}
               </span>
             </div>
-            <p class="text-[11.5px] text-slate-400 font-medium">{stepLabel()}</p>
+            <p class="text-[12px] text-neutral-400">{stepLabel()}</p>
           </div>
         </div>
 
-        {/* Step Indicator */}
-        <div class="flex items-center gap-1.5 border border-white/10 bg-white/5 px-2.5 py-1 rounded-full">
+        {/* Windows 11 Step Progress Pills */}
+        <div class="flex items-center gap-1.5 bg-black/20 border border-white/[0.08] px-2.5 py-1.5 rounded-full">
           {[1, 2, 3].map((s) => (
             <div
-              class={`size-2 rounded-full transition-all duration-300 ${
-                step() >= s ? "bg-cyan-400 shadow-[0_0_6px_rgba(56,189,248,0.8)]" : "bg-slate-700"
+              class={`h-1.5 rounded-full transition-all duration-300 ${
+                step() === s
+                  ? "w-5 bg-[#0078d4] shadow-[0_0_8px_#0078d4]"
+                  : step() > s
+                    ? "w-2 bg-[#0078d4]/60"
+                    : "w-2 bg-white/20"
               }`}
             />
           ))}
@@ -126,165 +132,190 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
 
       {/* Step 1: Language and Appearance */}
       <Show when={step() === 1}>
-        <div class="flex flex-col gap-4 my-2">
+        <div class="flex flex-col gap-4 my-1">
           {/* Language Selection */}
           <div class="flex flex-col gap-2">
-            <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <span>🌐</span>
-              <span>{isEs() ? "Idioma de la Aplicación" : "Application Language"}</span>
-            </label>
+            <span class="text-[12px] font-medium text-neutral-400">
+              {isEs() ? "Elige el idioma del sistema" : "Choose display language"}
+            </span>
             <div class="grid grid-cols-2 gap-2.5">
-              <button
-                type="button"
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={() => handleSelectLanguage("es")}
                 class={cardClass(selectedLocale() === "es")}
               >
-                <span class="text-xl">🇪🇸</span>
-                <div class="flex flex-col flex-1 min-w-0 text-left">
-                  <div class="flex items-center justify-between gap-1">
-                    <span class="text-[12.5px] font-semibold text-white truncate">Español</span>
-                    <Show when={selectedLocale() === "es"}>
-                      <span class="text-[11px] text-cyan-400 font-bold">✓</span>
-                    </Show>
+                <div class="flex items-center gap-3">
+                  <span class="text-xl">🇪🇸</span>
+                  <div class="flex flex-col text-left">
+                    <span class="text-[13px] font-medium text-white">Español</span>
+                    <span class="text-[11px] text-neutral-400">Predeterminado</span>
                   </div>
-                  <span class="text-[11px] text-slate-400">Predeterminado (Local)</span>
                 </div>
-              </button>
+                {/* Win11 Radio circle */}
+                <div
+                  class={`size-4 rounded-full border flex items-center justify-center transition-all ${
+                    selectedLocale() === "es"
+                      ? "border-[#0078d4] bg-[#0078d4]"
+                      : "border-white/30 bg-transparent"
+                  }`}
+                >
+                  {selectedLocale() === "es" && <div class="size-1.5 rounded-full bg-white" />}
+                </div>
+              </div>
 
-              <button
-                type="button"
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={() => handleSelectLanguage("en")}
                 class={cardClass(selectedLocale() === "en")}
               >
-                <span class="text-xl">🇺🇸</span>
-                <div class="flex flex-col flex-1 min-w-0 text-left">
-                  <div class="flex items-center justify-between gap-1">
-                    <span class="text-[12.5px] font-semibold text-white truncate">English</span>
-                    <Show when={selectedLocale() === "en"}>
-                      <span class="text-[11px] text-cyan-400 font-bold">✓</span>
-                    </Show>
+                <div class="flex items-center gap-3">
+                  <span class="text-xl">🇺🇸</span>
+                  <div class="flex flex-col text-left">
+                    <span class="text-[13px] font-medium text-white">English</span>
+                    <span class="text-[11px] text-neutral-400">Fluent Studio</span>
                   </div>
-                  <span class="text-[11px] text-slate-400">Fluent Studio UI</span>
                 </div>
-              </button>
+                {/* Win11 Radio circle */}
+                <div
+                  class={`size-4 rounded-full border flex items-center justify-center transition-all ${
+                    selectedLocale() === "en"
+                      ? "border-[#0078d4] bg-[#0078d4]"
+                      : "border-white/30 bg-transparent"
+                  }`}
+                >
+                  {selectedLocale() === "en" && <div class="size-1.5 rounded-full bg-white" />}
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Theme Selection */}
           <div class="flex flex-col gap-2">
-            <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <span>🎨</span>
-              <span>{isEs() ? "Tema Visual" : "Theme Preference"}</span>
-            </label>
+            <span class="text-[12px] font-medium text-neutral-400">
+              {isEs() ? "Modo de color" : "Color mode"}
+            </span>
             <div class="grid grid-cols-3 gap-2.5">
-              <button
-                type="button"
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={() => handleSelectTheme("dark")}
-                class={`flex flex-col items-center gap-1.5 p-2.5 rounded-2xl border cursor-pointer transition-all duration-200 text-[11.5px] font-medium ${
+                class={`flex flex-col items-center gap-2 p-3 rounded-xl border cursor-pointer transition-all duration-150 ${
                   selectedTheme() === "dark"
-                    ? "border-cyan-400/60 bg-cyan-500/15 shadow-[0_0_14px_rgba(56,189,248,0.2)] text-white"
-                    : "border-white/10 bg-white/5 hover:border-white/20 text-slate-400 hover:text-white"
+                    ? "border-[#0078d4] bg-[#0078d4]/10 shadow-[0_0_0_1px_#0078d4] text-white"
+                    : "border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/[0.14] text-neutral-300"
                 }`}
               >
-                <span class="text-lg">🌙</span>
-                <span>{isEs() ? "Oscuro" : "Dark"}</span>
-              </button>
+                <div class="size-8 rounded-lg bg-neutral-900 border border-neutral-700 flex items-center justify-center text-sm shadow-inner">
+                  🌙
+                </div>
+                <span class="text-[12px] font-medium">{isEs() ? "Oscuro" : "Dark"}</span>
+              </div>
 
-              <button
-                type="button"
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={() => handleSelectTheme("light")}
-                class={`flex flex-col items-center gap-1.5 p-2.5 rounded-2xl border cursor-pointer transition-all duration-200 text-[11.5px] font-medium ${
+                class={`flex flex-col items-center gap-2 p-3 rounded-xl border cursor-pointer transition-all duration-150 ${
                   selectedTheme() === "light"
-                    ? "border-cyan-400/60 bg-cyan-500/15 shadow-[0_0_14px_rgba(56,189,248,0.2)] text-white"
-                    : "border-white/10 bg-white/5 hover:border-white/20 text-slate-400 hover:text-white"
+                    ? "border-[#0078d4] bg-[#0078d4]/10 shadow-[0_0_0_1px_#0078d4] text-white"
+                    : "border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/[0.14] text-neutral-300"
                 }`}
               >
-                <span class="text-lg">☀️</span>
-                <span>{isEs() ? "Claro" : "Light"}</span>
-              </button>
+                <div class="size-8 rounded-lg bg-slate-100 border border-slate-300 text-slate-800 flex items-center justify-center text-sm shadow-inner">
+                  ☀️
+                </div>
+                <span class="text-[12px] font-medium">{isEs() ? "Claro" : "Light"}</span>
+              </div>
 
-              <button
-                type="button"
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={() => handleSelectTheme("system")}
-                class={`flex flex-col items-center gap-1.5 p-2.5 rounded-2xl border cursor-pointer transition-all duration-200 text-[11.5px] font-medium ${
+                class={`flex flex-col items-center gap-2 p-3 rounded-xl border cursor-pointer transition-all duration-150 ${
                   selectedTheme() === "system"
-                    ? "border-cyan-400/60 bg-cyan-500/15 shadow-[0_0_14px_rgba(56,189,248,0.2)] text-white"
-                    : "border-white/10 bg-white/5 hover:border-white/20 text-slate-400 hover:text-white"
+                    ? "border-[#0078d4] bg-[#0078d4]/10 shadow-[0_0_0_1px_#0078d4] text-white"
+                    : "border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/[0.14] text-neutral-300"
                 }`}
               >
-                <span class="text-lg">💻</span>
-                <span>{isEs() ? "Automático" : "System"}</span>
-              </button>
+                <div class="size-8 rounded-lg bg-gradient-to-tr from-neutral-900 to-slate-200 border border-white/20 flex items-center justify-center text-sm shadow-inner">
+                  💻
+                </div>
+                <span class="text-[12px] font-medium">{isEs() ? "Sistema" : "System"}</span>
+              </div>
             </div>
           </div>
         </div>
       </Show>
 
-      {/* Step 2: System Configuration */}
+      {/* Step 2: System Configuration (Windows 11 Settings Group Style) */}
       <Show when={step() === 2}>
-        <div class="flex flex-col gap-3">
-          <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <span>⚙️</span>
-            <span>{isEs() ? "Opciones del Sistema" : "System Options"}</span>
-          </label>
+        <div class="flex flex-col gap-3 my-1">
+          <span class="text-[12px] font-medium text-neutral-400">
+            {isEs() ? "Preferencias del sistema y accesibilidad" : "System preferences & accessibility"}
+          </span>
 
-          {/* Sound toggle card */}
-          <div
-            onClick={() => setEnableSound(!enableSound())}
-            class="flex items-center justify-between p-3.5 rounded-2xl border border-white/8 bg-white/3 hover:border-white/15 transition-all duration-200 cursor-pointer"
-          >
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl border border-white/10 bg-white/5 flex items-center justify-center text-lg shrink-0">
-                🔊
+          {/* Windows 11 Group Container */}
+          <div class="flex flex-col rounded-xl border border-white/[0.08] bg-white/[0.03] overflow-hidden divide-y divide-white/[0.06]">
+            {/* Sound toggle card */}
+            <div
+              onClick={() => setEnableSound(!enableSound())}
+              class="flex items-center justify-between p-3.5 hover:bg-white/[0.04] transition-colors cursor-pointer"
+            >
+              <div class="flex items-center gap-3">
+                <div class="size-8 rounded-lg bg-white/[0.06] border border-white/[0.1] flex items-center justify-center text-base shrink-0">
+                  🔊
+                </div>
+                <div class="flex flex-col text-left">
+                  <span class="text-[13px] font-medium text-white">
+                    {isEs() ? "Sonido del sistema y voz neural" : "System sounds & neural voice"}
+                  </span>
+                  <span class="text-[11.5px] text-neutral-400">
+                    {isEs()
+                      ? "Respuestas por voz neural Kokoro TTS y avisos de compilación"
+                      : "Neural Kokoro voice TTS and compilation alerts"}
+                  </span>
+                </div>
               </div>
-              <div class="flex flex-col text-left">
-                <span class="text-[13px] font-semibold text-white">
-                  {isEs() ? "Efectos de Sonido y Voz TTS" : "Sound Effects & Voice TTS"}
-                </span>
-                <span class="text-[11.5px] text-slate-400">
-                  {isEs()
-                    ? "Síntesis neural de voz y retroalimentación auditiva"
-                    : "Kokoro/Piper TTS voices and notifications"}
-                </span>
-              </div>
+              <Switch checked={enableSound()} onChange={(checked) => setEnableSound(checked)} />
             </div>
-            <Switch checked={enableSound()} onChange={(checked) => setEnableSound(checked)} />
+
+            {/* Auto update toggle card */}
+            <div
+              onClick={() => setAutoUpdates(!autoUpdates())}
+              class="flex items-center justify-between p-3.5 hover:bg-white/[0.04] transition-colors cursor-pointer"
+            >
+              <div class="flex items-center gap-3">
+                <div class="size-8 rounded-lg bg-white/[0.06] border border-white/[0.1] flex items-center justify-center text-base shrink-0">
+                  🔄
+                </div>
+                <div class="flex flex-col text-left">
+                  <span class="text-[13px] font-medium text-white">
+                    {isEs() ? "Actualizaciones automáticas" : "Automatic updates"}
+                  </span>
+                  <span class="text-[11.5px] text-neutral-400">
+                    {isEs()
+                      ? "Mantener Tiancode actualizado de forma no destructiva"
+                      : "Keep Tiancode updated non-destructively"}
+                  </span>
+                </div>
+              </div>
+              <Switch checked={autoUpdates()} onChange={(checked) => setAutoUpdates(checked)} />
+            </div>
           </div>
 
-          {/* Auto update toggle card */}
-          <div
-            onClick={() => setAutoUpdates(!autoUpdates())}
-            class="flex items-center justify-between p-3.5 rounded-2xl border border-white/8 bg-white/3 hover:border-white/15 transition-all duration-200 cursor-pointer"
-          >
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl border border-white/10 bg-white/5 flex items-center justify-center text-lg shrink-0">
-                🔄
-              </div>
-              <div class="flex flex-col text-left">
-                <span class="text-[13px] font-semibold text-white">
-                  {isEs() ? "Actualizaciones Automáticas" : "Automatic Updates"}
-                </span>
-                <span class="text-[11.5px] text-slate-400">
-                  {isEs()
-                    ? "Buscar nuevas versiones y mejoras sin interrumpir tu trabajo"
-                    : "Seamless non-destructive updates"}
-                </span>
-              </div>
-            </div>
-            <Switch checked={autoUpdates()} onChange={(checked) => setAutoUpdates(checked)} />
-          </div>
-
-          {/* Info callout */}
-          <div class="p-3 rounded-2xl border border-white/8 bg-white/3 text-[11.5px] leading-relaxed text-slate-400 flex items-start gap-2.5">
-            <span class="text-base shrink-0 mt-0.5">💡</span>
+          {/* Windows 11 Info Badge */}
+          <div class="p-3 rounded-xl border border-[#0078d4]/20 bg-[#0078d4]/10 text-[11.5px] text-neutral-300 flex items-start gap-2.5">
+            <span class="text-[#60cdff] text-base shrink-0 mt-0.5">ℹ️</span>
             <div class="flex flex-col gap-0.5">
-              <span class="font-semibold text-slate-200">
-                {isEs() ? "Servidores MCP y Proveedores Disponibles" : "MCP Servers & AI Providers"}
+              <span class="font-medium text-white">
+                {isEs() ? "Modelos locales GGUF y servidores MCP" : "Local GGUF models & MCP servers"}
               </span>
-              <span>
+              <span class="text-neutral-400">
                 {isEs()
-                  ? "Podrás conectar servidores MCP y modelos locales GGUF o en la nube directamente desde Ajustes."
-                  : "You can manage MCP servers and local GGUF models anytime in Settings."}
+                  ? "Puedes configurar inferencia offline con GPU, plugins y servidores MCP en cualquier momento desde Ajustes."
+                  : "You can configure offline GPU models, plugins and MCP servers anytime from Settings."}
               </span>
             </div>
           </div>
@@ -293,20 +324,19 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
 
       {/* Step 3: Disclaimer & Terms */}
       <Show when={step() === 3}>
-        <div class="flex flex-col gap-3">
-          <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <span>🛡️</span>
-            <span>{isEs() ? "Descargo de Responsabilidad y Privacidad" : "Disclaimer & Privacy Notice"}</span>
-          </label>
+        <div class="flex flex-col gap-3 my-1">
+          <span class="text-[12px] font-medium text-neutral-400">
+            {isEs() ? "Condiciones de uso y seguridad" : "Terms of use and security"}
+          </span>
 
-          <div class="p-3.5 rounded-2xl border border-white/8 bg-white/3 text-[11.5px] leading-relaxed text-slate-300 flex flex-col gap-2 max-h-[160px] overflow-y-auto">
+          <div class="p-3.5 rounded-xl border border-white/[0.08] bg-white/[0.03] text-[12px] leading-relaxed text-neutral-300 flex flex-col gap-2 max-h-[170px] overflow-y-auto">
             <div class="flex items-center gap-1.5 font-semibold text-white">
-              <span>🔒</span>
-              <span>{isEs() ? "Ejecución Local y Privacidad:" : "Local Execution & Privacy:"}</span>
+              <span>🛡️</span>
+              <span>{isEs() ? "Compromiso de Privacidad y Ejecución Local:" : "Local Privacy & Execution Commitment:"}</span>
             </div>
             <p>
               {isEs()
-                ? "1. Tiancode ejecuta código y comandos localmente en tu sistema bajo tu supervisión directa."
+                ? "1. Tiancode ejecuta código y herramientas localmente en tu sistema bajo tu supervisión directa."
                 : "1. Tiancode executes code and tools locally on your system under your supervision."}
             </p>
             <p>
@@ -321,49 +351,56 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
             </p>
           </div>
 
-          <label class="flex items-center gap-3 p-3 rounded-2xl border border-white/8 bg-white/3 hover:border-white/15 transition-all duration-200 cursor-pointer">
+          <label class="flex items-center gap-3 p-3 rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] transition-colors cursor-pointer select-none">
             <input
               type="checkbox"
               checked={disclaimerAccepted()}
               onChange={(e) => setDisclaimerAccepted(e.currentTarget.checked)}
-              class="size-4 accent-cyan-400 rounded cursor-pointer shrink-0"
+              class="size-4.5 accent-[#0078d4] rounded cursor-pointer shrink-0"
             />
-            <span class="text-[12px] text-slate-300 font-medium">
+            <span class="text-[12.5px] text-white font-medium">
               {isEs()
-                ? "Acepto el descargo de responsabilidad y las condiciones de uso responsable"
-                : "I agree to the disclaimer and responsible use terms"}
+                ? "He leído y acepto el uso responsable de la aplicación"
+                : "I have read and agree to the responsible use terms"}
             </span>
           </label>
         </div>
       </Show>
 
-      {/* Navigation and Action Buttons */}
-      <div class="flex items-center justify-between pt-2 border-t border-white/10">
+      {/* Navigation and Action Buttons - Windows 11 Fluent style */}
+      <div class="flex items-center justify-between pt-3 mt-3 border-t border-white/[0.08]">
         <Show when={step() > 1} fallback={<div />}>
-          <ButtonV2 variant="ghost-muted" size="normal" onClick={() => setStep((s) => (s - 1) as 1 | 2)}>
-            <span>←</span>
-            <span>{isEs() ? "Atrás" : "Back"}</span>
-          </ButtonV2>
+          <button
+            type="button"
+            onClick={() => setStep((s) => (s - 1) as 1 | 2)}
+            class="px-4 py-2 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] active:bg-white/[0.04] border border-white/[0.1] text-neutral-300 hover:text-white text-[13px] font-medium transition-all"
+          >
+            {isEs() ? "Atrás" : "Back"}
+          </button>
         </Show>
 
         <Show
           when={step() < 3}
           fallback={
-            <ButtonV2
-              variant="neutral"
-              size="normal"
+            <button
+              type="button"
               disabled={!disclaimerAccepted()}
               onClick={() => void handleFinish()}
+              class="px-5 py-2 rounded-lg bg-[#0078d4] hover:bg-[#106ebe] active:bg-[#005a9e] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[13px] font-semibold shadow-[0_2px_8px_rgba(0,120,212,0.4)] transition-all flex items-center gap-2"
             >
-              <span>{isEs() ? "Comenzar a Programar" : "Start Coding"}</span>
-              <span>🚀</span>
-            </ButtonV2>
+              <span>{isEs() ? "Comenzar" : "Get Started"}</span>
+              <span>→</span>
+            </button>
           }
         >
-          <ButtonV2 variant="contrast" size="normal" onClick={() => setStep((s) => (s + 1) as 2 | 3)}>
+          <button
+            type="button"
+            onClick={() => setStep((s) => (s + 1) as 2 | 3)}
+            class="px-5 py-2 rounded-lg bg-[#0078d4] hover:bg-[#106ebe] active:bg-[#005a9e] text-white text-[13px] font-semibold shadow-[0_2px_8px_rgba(0,120,212,0.4)] transition-all flex items-center gap-1.5"
+          >
             <span>{isEs() ? "Siguiente" : "Next"}</span>
             <span>→</span>
-          </ButtonV2>
+          </button>
         </Show>
       </div>
     </div>

@@ -95,6 +95,14 @@ function scrubEnv() {
   // Logs sin códigos ANSI: el parsing de URLs/errores es más fiable.
   env.FORCE_COLOR = "0"
   env.NO_COLOR = "1"
+  // La vista previa vive dentro de Tiancode (Vista en vivo): un dev server
+  // nunca debe abrir el navegador del escritorio por su cuenta (vite --open,
+  // react-scripts start, next start) ni abrir ventanas nativas de Electron/Tauri
+  // sobre el escritorio del usuario.
+  env.BROWSER = "none"
+  env.ELECTRON_RUN_AS_NODE = "1"
+  env.CI = "true"
+  env.TAURI_SKIP_DEVSERVER = "true"
   return env
 }
 

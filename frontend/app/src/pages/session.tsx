@@ -98,8 +98,10 @@ import { createReviewPanelV2State } from "@/pages/session/v2/review-panel-v2-sta
 import { reviewDiffDirectory, reviewDiffNeedsLoad, reviewRootDirectory } from "@/pages/session/v2/review-diff-kinds"
 import { TerminalPanel } from "@/pages/session/terminal-panel"
 import { TerminalPanelV2 } from "@/pages/session/terminal-panel-v2"
-import { LiveViewPanel } from "@/pages/session/live-view-panel"
+import { LiveViewPanel, setLiveViewManagedTarget } from "@/pages/session/live-view-panel"
 import { useLiveViewAutoOpen } from "@/pages/session/live-view-auto-open"
+import { liveViewNavigateRequest, requestLiveViewNavigation } from "@/pages/session/live-view-navigate"
+import { setPreviewPanelOpen } from "@/components/preview-panel"
 import { useComposerCommands } from "@/pages/session/use-composer-commands"
 import { useSessionCommands } from "@/pages/session/use-session-commands"
 import { useSessionHashScroll } from "@/pages/session/use-session-hash-scroll"
@@ -1220,6 +1222,26 @@ export default function Page() {
   // panel "Vista en vivo", no en el navegador flotante (que solo se abre por
   // clic del usuario).
   useLiveViewAutoOpen({ enabled: () => newSessionDesign() && !!params.id })
+
+  // Redirección interna de destinos de vista previa local: el desktop shell
+  // reenvía aquí los clics del renderer a un dev server local (o a un HTML del
+  // proyecto) que antes terminaban en el navegador del escritorio. Se abre el
+  // sandbox, se fuerza la pestaña App y el destino se publica como objetivo
+  // canónico del panel para que la vista navegue a él.
+  onMount(() => {
+    const unsubscribe = platform.onLiveViewNavigate?.((url) => requestLiveViewNavigation(url))
+    if (unsubscribe) onCleanup(unsubscribe)
+  })
+  createEffect(() => {
+    const request = liveViewNavigateRequest()
+    if (!request || !params.id) return
+    if (!newSessionDesign()) return
+    setPreviewPanelOpen(false)
+    view().liveView.setTab("preview")
+    view().liveView.open()
+    const directory = sdk().directory
+    if (directory && directory !== "main") setLiveViewManagedTarget({ directory, url: request.url })
+  })
 
   useComposerCommands()
   useSessionCommands({

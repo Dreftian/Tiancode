@@ -244,10 +244,38 @@ export async function detectProject(dir: string): Promise<DetectedProject | null
   else if (existsSync(join(dir, "index.html"))) framework = "html"
 
   const scripts = (typeof pkg.scripts === "object" && pkg.scripts !== null ? pkg.scripts : {}) as Record<string, unknown>
-  // The script name, not its command, is passed to the package manager. The
-  // fallback order covers the conventional React/JSX and static-site commands
-  // without guessing a missing `dev` script.
-  const script = DEV_SCRIPTS.find((key) => typeof scripts[key] === "string")
+  const WEB_DEV_SCRIPTS = [
+    "dev:vite",
+    "dev:web",
+    "dev:browser",
+    "dev:client",
+    "dev:frontend",
+    "dev:renderer",
+    "dev:ui",
+    "dev:app",
+    "start:web",
+    "start:browser",
+    "start:renderer",
+    "vite",
+  ] as const
+
+  const DESKTOP_RUNNER_RE = /\b(?:electron(?:\.exe)?|tauri(?:\.exe)?|nw(?:\.exe)?)\b/i
+
+  // Si el script estándar de dev lanza un entorno de escritorio nativo (p. ej.
+  // Electron o Tauri), se prioriza un script web (como dev:vite o dev:web)
+  // para que la vista previa se ejecute dentro del Sandbox de Tiancode y no
+  // abra ventanas de escritorio separadas en el sistema del usuario.
+  const standardScript = DEV_SCRIPTS.find((key) => typeof scripts[key] === "string")
+  const standardCmd = standardScript ? String(scripts[standardScript]) : ""
+  const isDesktop = standardCmd && DESKTOP_RUNNER_RE.test(standardCmd)
+
+  let script: string | undefined
+  if (isDesktop) {
+    script = WEB_DEV_SCRIPTS.find((key) => typeof scripts[key] === "string") ?? standardScript
+  } else {
+    script = standardScript ?? WEB_DEV_SCRIPTS.find((key) => typeof scripts[key] === "string")
+  }
+
   if (!script) {
     const entry = await findBareJsxEntry(dir)
     if (entry) return bareJsxProject(entry)

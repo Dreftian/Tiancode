@@ -7,7 +7,7 @@ import { HttpServerRequest, HttpServerResponse } from "effect/unstable/http"
 import { HttpApiBuilder, HttpApiSchema } from "effect/unstable/httpapi"
 import * as Socket from "effect/unstable/socket/Socket"
 import { Api } from "../api"
-import { CorsConfig, isAllowedRequestOrigin } from "../cors"
+import { CorsConfig, isAllowedRequestOrigin, sameHost } from "../cors"
 import { ForbiddenError, PtyNotFoundError } from "@tiancode-ai/protocol/errors"
 import {
   PTY_CONNECT_TICKET_QUERY,
@@ -155,6 +155,8 @@ export const PtyHandler = HttpApiBuilder.group(Api, "server.pty", (handlers) =>
           if (ticket) {
             const valid = yield* tickets.consume({ ticket, ptyID: ctx.params.ptyID, ...(yield* ticketScope) })
             if (!valid) return HttpServerResponse.empty({ status: 403 })
+          } else if (ctx.request.headers.origin && !sameHost(ctx.request.headers.origin, ctx.request.headers.host ?? "")) {
+            return HttpServerResponse.empty({ status: 403 })
           }
           const parsedCursor = url.searchParams.get("cursor")
           const cursorNumber = parsedCursor === null ? undefined : Number(parsedCursor)
