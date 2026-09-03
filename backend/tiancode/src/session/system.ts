@@ -46,7 +46,7 @@ export function provider(model: Provider.Model) {
 
 export interface Interface {
   readonly environment: (model: Provider.Model) => Effect.Effect<string[]>
-  readonly subagents: (agent: Agent.Info) => Effect.Effect<string | undefined>
+  readonly subagents: (agent: Agent.Info, available?: Agent.Info[]) => Effect.Effect<string | undefined>
   readonly skills: (agent: Agent.Info) => Effect.Effect<string | undefined>
   readonly autoSkills: (agent: Agent.Info) => Effect.Effect<string | undefined>
   readonly mcp: (agent: Agent.Info, permission?: PermissionV1.Ruleset) => Effect.Effect<string | undefined>
@@ -104,23 +104,40 @@ const layer = Layer.effect(
         ].filter((part): part is string => part !== undefined)
       }),
 
-      subagents: Effect.fn("SystemPrompt.subagents")(function* (agent: Agent.Info) {
+      subagents: Effect.fn("SystemPrompt.subagents")(function* (agent: Agent.Info, available?: Agent.Info[]) {
         if (agent.mode === "subagent") return
         if (Permission.disabled(["task"], agent.permission).has("task")) return
+
+        const items = available
+          ? available.filter((item) => item.mode !== "primary" && item.hidden !== true)
+          : undefined
+
+        const allowed = items
+          ? items.filter((item) => Permission.evaluate("task", item.name, agent.permission).action !== "deny")
+          : undefined
+
+        const formatted =
+          allowed && allowed.length > 0
+            ? allowed
+                .toSorted((a, b) => a.name.localeCompare(b.name))
+                .map((item) => `- ${item.name}: ${item.description ?? "Specialized autonomous subagent."}`)
+            : [
+                "- explore: Fast agent specialized for exploring codebases, discovering files, grep searching, and answering architecture questions.",
+                "- software-architect: Designing modular systems, domain modeling, clean abstractions, and SOLID architectural patterns.",
+                "- ui-ux-master: Crafting modern visual design, responsive layouts, Tailwind CSS styling, components, and polished UI/UX.",
+                "- fullstack-coder: Implementing fullstack logic, APIs, server routes, database queries, and robust production code.",
+                "- devsecops-auditor: Auditing dependencies, CVEs, secret leak prevention, and OWASP security posture.",
+                "- performance-optimizer: Profiling bottlenecks, query latency, memory leaks, and rendering performance.",
+                "- database-architect: Designing schemas, migrations, indexes, and high-performance SQL/ORM models.",
+                "- qa-e2e-tester: Creating automated test suites, unit tests, integration tests, and edge-case verification.",
+                "- docs-generator: Writing comprehensive Markdown technical documentation, user guides, and API specs.",
+                "- general: Autonomous multi-step research and task execution in parallel.",
+              ]
 
         return [
           "<available_subagents>",
           "You are the Lead Swarm Orchestrator equipped with autonomous specialized subagents. You MUST PROACTIVELY USE THEM via the `task` tool:",
-          "- explore: Fast agent specialized for exploring codebases, discovering files, grep searching, and answering architecture questions.",
-          "- software-architect: Designing modular systems, domain modeling, clean abstractions, and SOLID architectural patterns.",
-          "- ui-ux-master: Crafting modern visual design, responsive layouts, Tailwind CSS styling, components, and polished UI/UX.",
-          "- fullstack-coder: Implementing fullstack logic, APIs, server routes, database queries, and robust production code.",
-          "- devsecops-auditor: Auditing dependencies, CVEs, secret leak prevention, and OWASP security posture.",
-          "- performance-optimizer: Profiling bottlenecks, query latency, memory leaks, and rendering performance.",
-          "- database-architect: Designing schemas, migrations, indexes, and high-performance SQL/ORM models.",
-          "- qa-e2e-tester: Creating automated test suites, unit tests, integration tests, and edge-case verification.",
-          "- docs-generator: Writing comprehensive Markdown technical documentation, user guides, and API specs.",
-          "- general: Autonomous multi-step research and task execution in parallel.",
+          ...formatted,
           "",
           "SWARM LEAD ORCHESTRATOR PROTOCOL (CODEX-STYLE COLLABORATION):",
           "When the user requests creating, developing, refactoring, building, or analyzing any project or feature:",

@@ -467,6 +467,17 @@ it.instance("Agent.get returns undefined for non-existent agent", () =>
   }),
 )
 
+it.instance("Agent.get resolves agents with @ prefix, underscore, or case variation", () =>
+  Effect.gen(function* () {
+    const byAt = yield* load((svc) => svc.get("@fullstack-coder"))
+    const byUnderscore = yield* load((svc) => svc.get("fullstack_coder"))
+    const byUpper = yield* load((svc) => svc.get("Fullstack-Coder"))
+    expect(byAt?.name).toBe("fullstack-coder")
+    expect(byUnderscore?.name).toBe("fullstack-coder")
+    expect(byUpper?.name).toBe("fullstack-coder")
+  }),
+)
+
 it.instance("default permission includes doom_loop and external_directory as ask", () =>
   Effect.gen(function* () {
     const build = yield* load((svc) => svc.get("build"))

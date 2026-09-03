@@ -422,7 +422,14 @@ const layer = Layer.effect(
           )
         }
 
+        const normalize = (name: string) => name.trim().replace(/^@/, "").toLowerCase().replace(/_/g, "-")
         const get = Effect.fnUntraced(function* (agent: string) {
+          if (agents[agent]) return agents[agent]
+          const target = normalize(agent)
+          if (agents[target]) return agents[target]
+          for (const key of Object.keys(agents)) {
+            if (normalize(key) === target) return agents[key]
+          }
           return agents[agent]
         })
 
