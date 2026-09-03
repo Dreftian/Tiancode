@@ -1282,6 +1282,7 @@ const layer = Layer.effect(
             ]
             const format = lastUser.format ?? { type: "text" as const }
             if (format.type === "json_schema") system.push(STRUCTURED_OUTPUT_SYSTEM_PROMPT)
+            if (lastUser.system) system.push(lastUser.system)
             const result = yield* handle.process({
               user: lastUser,
               agent,

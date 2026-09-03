@@ -1,8 +1,16 @@
-import { createSignal, onCleanup } from "solid-js"
+import { createSignal, For, onCleanup, onMount, Show } from "solid-js"
 import { useLanguage } from "@/context/language"
 import { showToast } from "@/utils/toast"
 import { getSpeechRecognition, speechRecognitionLang, type SpeechRecognitionLike } from "@/utils/voices"
-import { asrAPI, startLocalDictation } from "@/utils/asr"
+import {
+  asrAPI,
+  getAudioInputDevices,
+  getSelectedAudioDeviceId,
+  onAudioDeviceChange,
+  setSelectedAudioDeviceId,
+  startLocalDictation,
+} from "@/utils/asr"
+import { ContextMenu } from "@tiancode-ai/ui/context-menu"
 
 // Mic icon rendered inline; the icon set has no microphone.
 export function MicIcon(props: { class?: string }) {
@@ -22,6 +30,7 @@ export function MicIcon(props: { class?: string }) {
 // platform exposes it (browser), otherwise streams the mic to the local
 // sherpa-onnx recognizer in the desktop main process. It never submits
 // automatically so the user can review the transcript before sending.
+// Right-click opens the PC microphone selector to choose between detected audio inputs.
 export function VoiceDictationButton(props: {
   class?: string
   listeningClass?: string
@@ -32,15 +41,30 @@ export function VoiceDictationButton(props: {
   const language = useLanguage()
   const [listening, setListening] = createSignal(false)
   const [preparing, setPreparing] = createSignal(false)
+  const [devices, setDevices] = createSignal<MediaDeviceInfo[]>([])
+  const [selectedDeviceId, setSelectedDeviceIdState] = createSignal<string | null>(getSelectedAudioDeviceId())
+
   let recognition: SpeechRecognitionLike | undefined
-  // Ref al último dictado local iniciado: parar siempre apunta al activo.
   let stopLocalRef: (() => void) | undefined
-  // Arranque en curso (entre clics y la asignación de stopLocalRef): dos clics
-  // rápidos no deben iniciar dos capturas de micrófono, porque el segundo
-  // sobrescribiría el stop del primero y su stream quedaría grabando para
-  // siempre (chunks intercalados en la misma grabación del proceso principal).
   let starting = false
   let disposed = false
+
+  const refreshDevices = async () => {
+    try {
+      const mics = await getAudioInputDevices()
+      setDevices(mics)
+    } catch {
+      setDevices([])
+    }
+  }
+
+  onMount(() => {
+    void refreshDevices()
+    const cleanupListener = onAudioDeviceChange(() => {
+      void refreshDevices()
+    })
+    onCleanup(cleanupListener)
+  })
 
   const stop = () => {
     recognition?.stop()
@@ -51,22 +75,41 @@ export function VoiceDictationButton(props: {
     setListening(false)
   }
 
-  // Si el compositor se desmonta con el dictado activo (o arrancando) hay que
-  // detener la captura: si no, el indicador del micrófono del SO y el envío de
-  // chunks por IPC seguirían activos sin dueño.
   onCleanup(() => {
     disposed = true
     stop()
   })
 
+  const handleSelectDevice = (deviceId: string | null) => {
+    setSelectedAudioDeviceId(deviceId)
+    setSelectedDeviceIdState(deviceId)
+    showToast({
+      variant: "default",
+      title: language.t("chat.mic.selectDevice") ?? "Micrófono seleccionado",
+      description: deviceId
+        ? devices().find((d) => d.deviceId === deviceId)?.label || language.t("chat.mic.devices")
+        : (language.t("chat.mic.defaultDevice") ?? "Predeterminado del sistema"),
+    })
+  }
+
   const start = async () => {
     if (starting || listening()) return
     starting = true
     try {
+      // 0. Detectar dispositivos de audio en la PC
+      await refreshDevices()
+      if (devices().length === 0) {
+        showToast({
+          variant: "error",
+          title: language.t("chat.mic.error"),
+          description: language.t("chat.mic.noDevices") ?? "No se detectó ningún micrófono conectado a la PC.",
+        })
+        return
+      }
+
       // 1. Electron Desktop: dictado local offline con sherpa-onnx / Whisper (proceso principal)
       const api = asrAPI()
       if (api) {
-        // El modelo Whisper (~100 MB) se descarga bajo demanda con feedback
         const status = await api.status().catch(() => undefined)
         if (status && !status.ready && !status.downloading) {
           setPreparing(true)
@@ -97,6 +140,7 @@ export function VoiceDictationButton(props: {
               showToast({ variant: "error", title: language.t("chat.mic.error"), description: message })
               stop()
             },
+            selectedDeviceId() || undefined,
           )
           if (disposed) {
             stop()
@@ -148,7 +192,9 @@ export function VoiceDictationButton(props: {
     }
   }
 
-  const toggle = () => {
+  const toggle = (e: MouseEvent) => {
+    // Si fue clic izquierdo (botón 0)
+    if (e.button !== 0) return
     if (listening()) {
       stop()
       return
@@ -156,20 +202,74 @@ export function VoiceDictationButton(props: {
     void start()
   }
 
+  const tooltipTitle = () => {
+    if (listening()) return props.listeningLabel
+    if (preparing()) return language.t("chat.mic.downloading")
+    const activeMic = selectedDeviceId() ? devices().find((d) => d.deviceId === selectedDeviceId())?.label : null
+    const hint = language.locale() === "es" ? "(Clic derecho: elegir micrófono PC)" : "(Right-click: select PC mic)"
+    return activeMic ? `${props.ariaLabel} [${activeMic}] ${hint}` : `${props.ariaLabel} ${hint}`
+  }
+
   return (
-    <button
-      type="button"
-      aria-label={listening() ? props.listeningLabel : preparing() ? language.t("chat.mic.downloading") : props.ariaLabel}
-      title={listening() ? props.listeningLabel : preparing() ? language.t("chat.mic.downloading") : props.ariaLabel}
-      disabled={preparing()}
-      classList={{
-        [props.class ?? ""]: !!props.class,
-        [props.listeningClass ?? ""]: !!props.listeningClass && listening(),
-      }}
-      data-listening={listening() || undefined}
-      onClick={toggle}
-    >
-      <MicIcon class="size-4" />
-    </button>
+    <ContextMenu onOpenChange={(open) => open && void refreshDevices()}>
+      <ContextMenu.Trigger
+        as="button"
+        type="button"
+        aria-label={tooltipTitle()}
+        title={tooltipTitle()}
+        disabled={preparing()}
+        classList={{
+          [props.class ?? ""]: !!props.class,
+          [props.listeningClass ?? ""]: !!props.listeningClass && listening(),
+        }}
+        data-listening={listening() || undefined}
+        onClick={toggle}
+      >
+        <MicIcon class="size-4" />
+      </ContextMenu.Trigger>
+      <ContextMenu.Portal>
+        <ContextMenu.Content class="min-w-[220px] max-w-[340px] text-xs">
+          <div class="px-2 py-1 text-[11px] font-semibold text-v2-text-text-muted select-none">
+            {language.t("chat.mic.devices") ?? "Micrófonos de la PC"} ({devices().length})
+          </div>
+          <ContextMenu.Separator />
+          <ContextMenu.Item onSelect={() => handleSelectDevice(null)}>
+            <span class="flex-1 truncate">
+              {language.t("chat.mic.defaultDevice") ?? "Predeterminado del sistema"}
+            </span>
+            <Show when={selectedDeviceId() === null}>
+              <span class="ml-2 font-bold text-sky-400">✓</span>
+            </Show>
+          </ContextMenu.Item>
+          <ContextMenu.Separator />
+          <Show
+            when={devices().length > 0}
+            fallback={
+              <div class="px-2 py-1.5 text-[11px] text-v2-text-text-muted italic">
+                {language.t("chat.mic.noDevices") ?? "No se detectaron micrófonos"}
+              </div>
+            }
+          >
+            <For each={devices()}>
+              {(device, index) => {
+                const label = () => device.label || `Micrófono ${index() + 1}`
+                const isCurrent = () => selectedDeviceId() === device.deviceId
+                return (
+                  <ContextMenu.Item onSelect={() => handleSelectDevice(device.deviceId)}>
+                    <span class="flex-1 truncate" title={label()}>
+                      {label()}
+                    </span>
+                    <Show when={isCurrent()}>
+                      <span class="ml-2 font-bold text-sky-400">✓</span>
+                    </Show>
+                  </ContextMenu.Item>
+                )
+              }}
+            </For>
+          </Show>
+        </ContextMenu.Content>
+      </ContextMenu.Portal>
+    </ContextMenu>
   )
 }
+
