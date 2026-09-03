@@ -27,23 +27,27 @@ async function main() {
   const owner = "Dreftian"
   const repo = "Tiancode"
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
-  const version = desktopPkg.version || "1.0.1"
+  const version = desktopPkg.version || "1.0.2"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} - Versión Oficial Estable`
-  const body = `## 🚀 Tiancode v${version} — La versión estable oficial
+  const releaseName = `Tiancode v${version} - Sub-Agentes Universales, Curaduría de Herramientas & UI V2`
+  const body = `## 🚀 Tiancode v${version} — Sub-Agentes Universales & Optimización V2
 
-### 🐛 Corregido en v1.0.1
-- **Vista previa siempre dentro de la app:** las vistas previas de tus apps y webs se muestran en el panel "Vista en vivo" de la sesión, nunca en una ventana del navegador del escritorio.
-- **Dev servers sin aperturas externas:** Vite, Next y React ya no abren el navegador del sistema por su cuenta; la URL aparece automáticamente dentro de Tiancode.
-- **Enlaces locales redirigidos:** hacer clic en un enlace localhost o en un HTML generado (en el chat o en la terminal) lo abre en la Vista en vivo.
+### 🤖 Sub-Agentes Universales para Todos los Modelos
+- **Compatibilidad Total de Modelos:** Cualquier modelo actual o futuro (Claude 3.7/4/5, GPT-4o/5, o1/o3/o4, Gemini 2.0/2.5, DeepSeek R1/V3, Llama 3.3, Qwen 2.5 Coder, modelos locales GGUF) reconoce y delega tareas a los sub-agentes especializados automáticamente.
+- **Resolución Resiliente de Nombres:** Normalización tolerante a prefijos \`@\`, guiones bajos y variaciones de mayúsculas/minúsculas en el registro de agentes (e.g. \`@fullstack-coder\`, \`fullstack_coder\`).
+- **Descubrimiento Dinámico:** Los agentes personalizados e importados (.md) se inyectan automáticamente en el prompt de sistema del modelo principal.
+- **Enumeración Canónica en Schema:** Schema JSON enriquecido para evitar alucinaciones en modelos con decodificación guiada o de menor escala.
 
-### ✨ Novedades y mejoras
-- **Modelos locales GGUF robustos:** activación inmediata en chat, resolución multi-directorio de modelos y del motor \`llama-server\`, y conexión directa sin solicitar API keys.
-- **Optimizador de prompts mejorado:** detección de intención (debugging, scaffolding, refactoring, conceptual) con extracción de entidades para prompts más precisos.
-- **Ecosistema con control maestro:** presets (recomendado, todo, ninguno, personalizado) para skills, plugins y MCP servers.
-- **Sub-agentes mejorados:** tarjetas visibles en chat y configuración más rica en ajustes.
-- **Hub de modelos local:** detección de motor, compatibilidad RAM/VRAM y limpieza multi-directorio de modelos.
-- **Actualización 100% no destructiva:** preserva sesiones, configuración, modelos descargados y claves API existentes.
+### 🛡️ Curaduría y Armonización Anti-Colisión de Herramientas
+- **Catálogo MCP Optimizado:** Eliminación de presets redundantes (\`filesystem\`, \`fetch\`, \`time\`, \`git\`) que saturaban el contexto y colisionaban con herramientas nativas.
+- **Límites Claros de Jurisdicción:** Filesystem y Git unificados en el núcleo nativo de Tiancode; Playwright protegido con guardrails de aislamiento local.
+- **Presets de Alto Impacto:** Priorización de bases de datos (\`supabase\`, \`postgres\`, \`sqlite\`, \`duckdb\`, \`redis\`), DevOps (\`docker\`, \`sentry\`, \`e2b\`), diseño (\`figma\`) e investigación profunda (\`firecrawl\`, \`context7\`).
+- **Plugins Oficiales:** Nomenclatura oficial modernizada bajo la marca Tiancode (Android Emulator, iOS Simulator, Tiancode Guide, etc.).
+
+### 🎨 Mascota de Escritorio (Desktop Pet) & UI V2
+- **Glassmorphism Fluent Moderno:** Globo de diálogo translúcido con desenfoque profundo (\`backdrop-filter: blur(20px)\`), borde luminoso y sombra difusa adaptada a Windows 11 oscuro.
+- **Microinteracciones Reactivas:** Hover con escalado elástico, interacción de cariño con ráfaga de corazones (\`pet-burst\`) y doble clic para enfocar la app principal.
+- **Consumo Ultra-Bajo de CPU:** Animaciones aceleradas por GPU mediante transformaciones CSS puras (< 0.3% CPU en reposo).
 
 ### 📦 Descargas
 | Archivo | Tipo | Descripción |
