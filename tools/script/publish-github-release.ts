@@ -49,6 +49,12 @@ async function main() {
 - **Microinteracciones Reactivas:** Hover con escalado elástico, interacción de cariño con ráfaga de corazones (\`pet-burst\`) y doble clic para enfocar la app principal.
 - **Consumo Ultra-Bajo de CPU:** Animaciones aceleradas por GPU mediante transformaciones CSS puras (< 0.3% CPU en reposo).
 
+### 🌐 Vista Previa Sandbox Universal & Explorador de Código
+- **Detección Recursiva de Proyectos:** Detección inteligente de cualquier proyecto web o aplicación (Vite, Next, React, Vue, Svelte, HTML/CSS/JS, Python web) tanto en la raíz como en subcarpetas anidadas (\`Dios/\`, \`frontend/\`, \`client/\`, \`web/\`, \`app/\`, etc.).
+- **Live Reload Instantáneo a Milisegundos:** Recarga en tiempo real mediante Server-Sent Events (SSE) y monitoreo de sistema de archivos nativo con debounce de 25ms para reflejar cambios del usuario o de la IA al instante.
+- **Ajuste de Entorno Moderno (2025/2026):** Presets actualizados y precisos para iPhone 16 / 16 Pro Max, Pixel 9 / Galaxy S24, iPad Pro, MacBook Pro 16", Desktop FHD y 4K UHD, con marcos de dispositivo adaptados y persistencia reactiva que no se resetea al seleccionar.
+- **Sidebar de Código Redimensionable y Scroll Horizontal:** Barra lateral de archivos en la pestaña "Código" deslizable mediante arrastre (drag & drop) y scroll horizontal automático para visualizar nombres largos sin cortes.
+
 ### 📦 Descargas
 | Archivo | Tipo | Descripción |
 |---|---|---|

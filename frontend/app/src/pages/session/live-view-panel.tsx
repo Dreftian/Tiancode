@@ -429,12 +429,12 @@ function CodeTreeNode(props: { node: PreviewFileTreeNode; depth: number; selecte
         fallback={
           <>
             <div
-              class="flex items-center gap-1.5 truncate py-0.5 text-11-medium text-text-weak"
+              class="flex w-full min-w-fit items-center gap-1.5 truncate py-0.5 text-11-medium text-text-weak"
               style={{ "padding-left": `${props.depth * 12 + 6}px` }}
               title={props.node.name}
             >
               <span class="shrink-0 text-amber-400/90 text-[11px]">📁</span>
-              <span class="truncate font-medium">{props.node.name}</span>
+              <span class="truncate min-w-0 font-medium whitespace-nowrap">{props.node.name}</span>
             </div>
             <For each={props.node.children}>
               {(child) => <CodeTreeNode node={child} depth={props.depth + 1} selectedPath={props.selectedPath} onSelect={props.onSelect} />}
@@ -446,7 +446,7 @@ function CodeTreeNode(props: { node: PreviewFileTreeNode; depth: number; selecte
           <button
             type="button"
             data-selected={props.selectedPath === path() || undefined}
-            class="flex w-full items-center gap-1.5 truncate rounded-sm py-0.5 pr-2 text-left font-mono text-11-regular text-text-weak hover:bg-v2-overlay-simple-overlay-hover hover:text-text-base data-[selected]:bg-v2-overlay-simple-overlay-active data-[selected]:text-text-base"
+            class="flex w-full min-w-fit items-center gap-1.5 truncate rounded-sm py-0.5 pr-2 text-left font-mono text-11-regular text-text-weak hover:bg-v2-overlay-simple-overlay-hover hover:text-text-base data-[selected]:bg-v2-overlay-simple-overlay-active data-[selected]:text-text-base"
             style={{ "padding-left": `${props.depth * 12 + 6}px` }}
             onClick={() => props.onSelect(path())}
             title={path()}
@@ -455,7 +455,7 @@ function CodeTreeNode(props: { node: PreviewFileTreeNode; depth: number; selecte
               <FileIcon node={{ path: path(), type: "file" }} class="size-3.5" />
             </div>
             {getFileBadge(props.node.name)}
-            <span class="truncate">{props.node.name}</span>
+            <span class="truncate min-w-0 whitespace-nowrap">{props.node.name}</span>
           </button>
         )}
       </Show>
@@ -812,6 +812,44 @@ function CodePane(props: {
     if (fallback) selectFile(fallback)
   })
 
+  const [codeSidebarWidth, setCodeSidebarWidth] = createSignal<number>(
+    (() => {
+      try {
+        const saved = localStorage.getItem("tiancode.code-sidebar-width")
+        const parsed = saved ? Number.parseInt(saved, 10) : NaN
+        if (Number.isFinite(parsed) && parsed >= 160 && parsed <= 700) return parsed
+      } catch {}
+      return 240
+    })(),
+  )
+
+  const [isResizingSidebar, setIsResizingSidebar] = createSignal(false)
+
+  const handleSidebarResizeStart = (event: MouseEvent) => {
+    event.preventDefault()
+    setIsResizingSidebar(true)
+    const startX = event.clientX
+    const startWidth = codeSidebarWidth()
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const delta = moveEvent.clientX - startX
+      const nextWidth = Math.max(160, Math.min(650, startWidth + delta))
+      setCodeSidebarWidth(nextWidth)
+    }
+
+    const onMouseUp = () => {
+      setIsResizingSidebar(false)
+      window.removeEventListener("mousemove", onMouseMove)
+      window.removeEventListener("mouseup", onMouseUp)
+      try {
+        localStorage.setItem("tiancode.code-sidebar-width", String(codeSidebarWidth()))
+      } catch {}
+    }
+
+    window.addEventListener("mousemove", onMouseMove)
+    window.addEventListener("mouseup", onMouseUp)
+  }
+
   return (
     <div class="flex size-full min-h-0 flex-col">
       <div class="flex h-10 shrink-0 items-center gap-2 overflow-hidden border-b border-v2-border-border-muted px-2">
@@ -880,7 +918,10 @@ function CodePane(props: {
       </div>
       <div class="flex min-h-0 min-w-0 flex-1">
         <Show when={files().length > 0}>
-          <aside class="flex w-44 shrink-0 flex-col border-r border-v2-border-border-muted bg-v2-background-bg-base">
+          <aside
+            class="group/sidebar relative flex shrink-0 flex-col border-r border-v2-border-border-muted bg-v2-background-bg-base"
+            style={{ width: `${codeSidebarWidth()}px` }}
+          >
             <div class="shrink-0 border-b border-v2-border-border-muted px-2 py-1 text-11-regular text-text-faint">
               {language.t("liveView.code.files", { count: filteredFiles().length })}
               <Show when={workspaceLoading()}> / {language.t("common.loading")}</Show>
@@ -889,14 +930,24 @@ function CodePane(props: {
               when={tree().length > 0}
               fallback={<div class="p-2 text-11-regular text-text-faint">{language.t("liveView.code.emptyFilter")}</div>}
             >
-              <ScrollView class="min-h-0 flex-1">
-                <div class="p-1">
+              <ScrollView class="min-h-0 flex-1 overflow-x-auto">
+                <div class="p-1 min-w-fit w-full">
                   <For each={tree()}>
                     {(node) => <CodeTreeNode node={node} depth={0} selectedPath={selectedPath()} onSelect={selectFile} />}
                   </For>
                 </div>
               </ScrollView>
             </Show>
+            {/* Splitter arrastrable para redimensionar el sidebar de archivos */}
+            <div
+              role="separator"
+              aria-orientation="vertical"
+              class={`absolute top-0 -right-1 h-full w-2 cursor-col-resize z-30 transition-colors select-none ${
+                isResizingSidebar() ? "bg-sky-500/80" : "hover:bg-sky-500/50"
+              }`}
+              onMouseDown={handleSidebarResizeStart}
+              title={language.intl().toLowerCase().startsWith("es") ? "Arrastrar para redimensionar barra lateral" : "Drag to resize sidebar"}
+            />
           </aside>
         </Show>
         <div class="min-h-0 min-w-0 flex-1">
@@ -1178,6 +1229,10 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
       latestEventAt = Date.now()
       setSnapshot((current) => applyLiveSnapshotUpdate(current, update))
       stopFallbackPolling()
+      if (update.type === "file_added" || update.type === "file_modified" || update.type === "file_changed" || update.type === "file_removed") {
+        const rel = isRecord(update.data) && typeof update.data.rel === "string" ? update.data.rel : undefined
+        window.dispatchEvent(new CustomEvent("tiancode:preview-reload", { detail: { path: rel } }))
+      }
       if (update.type === "session_created" || update.type === "tree_changed") void loadSnapshot()
     })
     source.onopen = () => {
@@ -1221,11 +1276,11 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
   const viewportMaxWidth = () => {
     switch (viewportMode()) {
       case "mobile":
-        return "390px"
+        return "393px"
       case "tablet":
         return "820px"
       case "laptop":
-        return "1024px"
+        return "1366px"
       default:
         return "100%"
     }

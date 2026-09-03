@@ -115,12 +115,12 @@ function idleState(detected: DetectedProject | null): PreviewState {
     packageManager: detected?.packageManager ?? null,
     command: detected
       ? detected.packageManager === "static"
-        ? "Tiancode static preview"
+        ? `Tiancode static preview${detected.workingDirectory && detected.workingDirectory !== "." ? ` (${detected.workingDirectory})` : ""}`
         : detected.packageManager === "bare-jsx"
-          ? "Tiancode JSX preview"
+          ? `Tiancode JSX preview${detected.workingDirectory && detected.workingDirectory !== "." ? ` (${detected.workingDirectory})` : ""}`
           : detected.packageManager === "custom"
             ? "tiancode.preview.json"
-        : `${detected.packageManager} run ${detected.script}`
+        : `${detected.packageManager} run ${detected.script}${detected.workingDirectory && detected.workingDirectory !== "." ? ` (${detected.workingDirectory})` : ""}`
       : null,
     errors: [],
     startedAt: null,
@@ -303,9 +303,14 @@ async function spawnServer(managed: Managed) {
   // controlamos nosotros (el framework elige su propio puerto). Ojo: en
   // Windows, python no emite su mensaje de arranque por los pipes cuando lo
   // lanza node/bun, así que el readiness se resuelve escaneando el puerto.
+  const targetDir = managed.detected.workingDirectory && managed.detected.workingDirectory !== "."
+    ? join(managed.directory, managed.detected.workingDirectory)
+    : managed.directory
+
   if (packageManager === "bare-jsx") {
-    if (!managed.detected.entry) {
-      setStatus(managed, { status: "error", errorMessage: "No se encontró la entrada JSX del proyecto." })
+    const entry = managed.detected.entry
+    if (!entry) {
+      setStatus(managed, { status: "error", errorMessage: "No se encontró una entrada JSX/TSX válida." })
       return
     }
     const port = await findFreePort(managed.detected.port)
@@ -314,7 +319,7 @@ async function spawnServer(managed: Managed) {
       return
     }
     try {
-      const preview = await startBareJsxPreview(managed.directory, managed.detected.entry, port)
+      const preview = await startBareJsxPreview(targetDir, entry, port)
       managed.bareJsx = preview
       preview.server.on("error", (error) => {
         setStatus(managed, { status: "error", errorMessage: error.message })
@@ -341,7 +346,7 @@ async function spawnServer(managed: Managed) {
       return
     }
     try {
-      const preview = await startStaticPreview(managed.directory, localPort)
+      const preview = await startStaticPreview(targetDir, localPort)
       managed.staticPreview = preview
       preview.server.on("error", (error) => {
         setStatus(managed, { status: "error", errorMessage: error.message })
@@ -366,7 +371,7 @@ async function spawnServer(managed: Managed) {
       return
     }
     const [command, ...prefix] = resolvePythonCommand()
-    const child = spawn(command, [...prefix, "-m", "http.server", String(port), "--bind", "127.0.0.1", "--directory", managed.directory], {
+    const child = spawn(command, [...prefix, "-m", "http.server", String(port), "--bind", "127.0.0.1", "--directory", targetDir], {
       env: scrubEnv(),
       detached: !isWin,
       windowsHide: true,
@@ -426,7 +431,7 @@ async function spawnServer(managed: Managed) {
   // → taskkill /T mata todo el árbol). En Unix, detached + setsid permite
   // matar el grupo de procesos.
   const child = spawn(packageManager, args, {
-    cwd: managed.directory,
+    cwd: targetDir,
     env: scrubEnv(),
     shell: isWin,
     detached: !isWin,

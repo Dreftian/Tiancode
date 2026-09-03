@@ -53,13 +53,18 @@ export function isWelcomePreviewUrl(url: string | undefined) {
 }
 
 const DEVICE_PRESETS = {
-  desktop: { width: 1440, height: 900 },
-  laptop: { width: 1280, height: 800 },
-  tv: { width: 1920, height: 1080 },
-  tablet: { width: 768, height: 1024 },
+  desktop: { width: 1920, height: 1080 },
+  desktopCompact: { width: 1440, height: 900 },
+  macbook: { width: 1512, height: 982 },
+  laptop: { width: 1366, height: 768 },
+  tablet: { width: 820, height: 1180 },
+  tabletCompact: { width: 768, height: 1024 },
   androidTablet: { width: 800, height: 1280 },
-  mobile: { width: 390, height: 844 },
+  mobile: { width: 393, height: 852 },
+  mobileMax: { width: 430, height: 932 },
   androidPhone: { width: 412, height: 915 },
+  mobileCompact: { width: 375, height: 667 },
+  tv: { width: 2560, height: 1440 },
 } as const
 
 type DeviceId = "fit" | keyof typeof DEVICE_PRESETS | "custom"
@@ -125,19 +130,21 @@ export function LivePreview(props: {
   const setDeviceId = (id: DeviceId) => setPreviewPrefs("deviceId", id)
   const [inspectActive, setInspectActive] = createSignal(false)
 
+  let lastExternal = props.externalDevice?.()
   createEffect(() => {
     const ext = props.externalDevice?.()
-    if (!ext) return
-    if (ext === "mobile" && deviceId() !== "mobile") {
+    if (!ext || ext === lastExternal) return
+    lastExternal = ext
+    if (ext === "mobile") {
       setDeviceId("mobile")
       setZoom(1)
-    } else if (ext === "tablet" && deviceId() !== "tablet") {
+    } else if (ext === "tablet") {
       setDeviceId("tablet")
       setZoom(1)
-    } else if (ext === "laptop" && deviceId() !== "laptop") {
+    } else if (ext === "laptop") {
       setDeviceId("laptop")
       setZoom(1)
-    } else if (ext === "fluid" && deviceId() !== "fit") {
+    } else if (ext === "fluid") {
       setDeviceId("fit")
       setZoom(1)
     }
@@ -222,8 +229,8 @@ export function LivePreview(props: {
   const deviceFrame = () => {
     const id = deviceId()
     if (id === "fit") return 0
-    if (id === "mobile" || id === "androidPhone") return 12
-    if (id === "tablet" || id === "androidTablet") return 10
+    if (id === "mobile" || id === "mobileMax" || id === "mobileCompact" || id === "androidPhone") return 12
+    if (id === "tablet" || id === "tabletCompact" || id === "androidTablet") return 10
     if (id === "tv") return 8
     return 8
   }
@@ -776,14 +783,19 @@ export function LivePreview(props: {
 
   const deviceOptions = () => [
     { id: "fit" as const, label: "Ajustar al entorno (Fluido)" },
-    { id: "desktop" as const, label: `${language.t("livePreview.device.desktop")} 1440×900` },
-    { id: "laptop" as const, label: `${language.t("livePreview.device.laptop")} 1280×800` },
-    { id: "tablet" as const, label: `${language.t("livePreview.device.tablet")} 768×1024` },
-    { id: "androidTablet" as const, label: `${language.t("livePreview.device.androidTablet")} 800×1280` },
-    { id: "mobile" as const, label: `${language.t("livePreview.device.mobile")} 390×844` },
-    { id: "androidPhone" as const, label: `${language.t("livePreview.device.android")} 412×915` },
-    { id: "tv" as const, label: `${language.t("livePreview.device.tv")} 1920×1080` },
-    { id: "custom" as const, label: language.t("livePreview.device.custom") },
+    { id: "desktop" as const, label: "Escritorio FHD 1920×1080" },
+    { id: "desktopCompact" as const, label: "Escritorio 1440×900" },
+    { id: "macbook" as const, label: "MacBook Pro 1512×982" },
+    { id: "laptop" as const, label: "Portátil 1366×768" },
+    { id: "tablet" as const, label: "iPad Air/Pro 820×1180" },
+    { id: "tabletCompact" as const, label: "iPad Mini 768×1024" },
+    { id: "androidTablet" as const, label: "Android Tablet 800×1280" },
+    { id: "mobile" as const, label: "iPhone 16 / 15 Pro 393×852" },
+    { id: "mobileMax" as const, label: "iPhone 16 / 15 Pro Max 430×932" },
+    { id: "androidPhone" as const, label: "Android Galaxy S24 412×915" },
+    { id: "mobileCompact" as const, label: "Móvil Compacto 375×667" },
+    { id: "tv" as const, label: "Monitor 2K/TV 2560×1440" },
+    { id: "custom" as const, label: language.t("livePreview.device.custom") || "Personalizado" },
   ]
 
   const setCustomDimension = (axis: "width" | "height", value: string) => {
@@ -872,7 +884,7 @@ export function LivePreview(props: {
         <span class="max-w-28 shrink truncate text-11-regular text-text-weak">{devServerStatusLabel() ?? language.t("livePreview.fit")}</span>
         <SelectV2
           appearance="base"
-          class="w-32 max-w-full shrink"
+          class="w-48 max-w-full shrink"
           options={deviceOptions()}
           current={deviceOptions().find((option) => option.id === deviceId())}
           placement="bottom-end"
@@ -884,12 +896,16 @@ export function LivePreview(props: {
             setDeviceId(option.id)
             if (option.id === "fit") {
               setRotated(false)
+              lastExternal = "fluid"
               props.onDeviceChange?.("fluid")
-            } else if (option.id === "mobile" || option.id === "androidPhone") {
+            } else if (option.id === "mobile" || option.id === "mobileMax" || option.id === "mobileCompact" || option.id === "androidPhone") {
+              lastExternal = "mobile"
               props.onDeviceChange?.("mobile")
-            } else if (option.id === "tablet" || option.id === "androidTablet") {
+            } else if (option.id === "tablet" || option.id === "tabletCompact" || option.id === "androidTablet") {
+              lastExternal = "tablet"
               props.onDeviceChange?.("tablet")
-            } else if (option.id === "laptop" || option.id === "desktop" || option.id === "tv") {
+            } else {
+              lastExternal = "laptop"
               props.onDeviceChange?.("laptop")
             }
           }}
@@ -991,9 +1007,9 @@ export function LivePreview(props: {
                     ? "border border-black/70 shadow-[0_12px_40px_rgba(0,0,0,0.35)]"
                     : "size-full"
                 } ${
-                  deviceId() === "mobile" || deviceId() === "androidPhone"
+                  deviceId() === "mobile" || deviceId() === "mobileMax" || deviceId() === "mobileCompact" || deviceId() === "androidPhone"
                     ? "rounded-[1.8rem] ring-4 ring-neutral-800"
-                    : deviceId() === "tablet" || deviceId() === "androidTablet"
+                    : deviceId() === "tablet" || deviceId() === "tabletCompact" || deviceId() === "androidTablet"
                       ? "rounded-2xl ring-4 ring-neutral-800"
                       : deviceId() === "tv"
                         ? "rounded-md border-4 border-neutral-900 shadow-2xl"
@@ -1003,8 +1019,11 @@ export function LivePreview(props: {
                 }`}
                 style={previewFrameStyle()}
               >
-                <Show when={deviceId() === "mobile"}>
-                  <div class="pointer-events-none absolute left-1/2 top-1 z-10 h-1.5 w-16 -translate-x-1/2 rounded-full bg-black/80" aria-hidden="true" />
+                <Show when={deviceId() === "mobile" || deviceId() === "mobileMax"}>
+                  <div class="pointer-events-none absolute left-1/2 top-1.5 z-10 h-2 w-16 -translate-x-1/2 rounded-full bg-black/90 shadow-sm" aria-hidden="true" />
+                </Show>
+                <Show when={deviceId() === "mobileCompact"}>
+                  <div class="pointer-events-none absolute left-1/2 top-1 z-10 h-1.5 w-12 -translate-x-1/2 rounded-full bg-black/80" aria-hidden="true" />
                 </Show>
                 <Show when={deviceId() === "androidPhone"}>
                   <div class="pointer-events-none absolute left-1/2 top-1.5 z-10 h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-black ring-1 ring-neutral-700" aria-hidden="true" />

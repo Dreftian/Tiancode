@@ -1,5 +1,5 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http"
-import { existsSync } from "node:fs"
+import { existsSync, watch, type FSWatcher } from "node:fs"
 import { readFile, readdir, stat } from "node:fs/promises"
 import { dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path"
 import {
@@ -24,10 +24,35 @@ export type BareJsxPreview = {
 
 export type StaticPreview = BareJsxPreview
 
+function setupWatcher(directory: string, sseClients: Set<ServerResponse>): FSWatcher | null {
+  try {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    return watch(directory, { recursive: true }, (_event, filename) => {
+      if (filename && (filename.includes("node_modules") || filename.startsWith("."))) return
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(() => {
+        const payload = `data: ${JSON.stringify({ type: "reload", ts: Date.now() })}\n\n`
+        for (const client of sseClients) {
+          try {
+            client.write(payload)
+          } catch {
+            sseClients.delete(client)
+          }
+        }
+      }, 25)
+    })
+  } catch {
+    return null
+  }
+}
+
 export async function startBareJsxPreview(directory: string, entry: string, port: number): Promise<BareJsxPreview> {
   const styles = await linkedStyles(directory)
+  const sseClients = new Set<ServerResponse>()
+  const watcher = setupWatcher(directory, sseClients)
+
   const server = createServer((request, response) => {
-    void handleRequest(directory, entry, styles, request, response)
+    void handleRequest(directory, entry, styles, request, response, sseClients)
   })
 
   await new Promise<void>((resolveListen, rejectListen) => {
@@ -47,6 +72,7 @@ export async function startBareJsxPreview(directory: string, entry: string, port
   const address = server.address()
   if (!address || typeof address === "string") {
     server.close()
+    watcher?.close()
     throw new Error("La vista previa JSX no devolvió un puerto local.")
   }
 
@@ -54,14 +80,22 @@ export async function startBareJsxPreview(directory: string, entry: string, port
     server,
     url: `http://127.0.0.1:${address.port}`,
     close: () => {
+      watcher?.close()
+      for (const client of sseClients) {
+        try { client.end() } catch {}
+      }
+      sseClients.clear()
       if (server.listening) server.close()
     },
   }
 }
 
 export async function startStaticPreview(directory: string, port: number): Promise<StaticPreview> {
+  const sseClients = new Set<ServerResponse>()
+  const watcher = setupWatcher(directory, sseClients)
+
   const server = createServer((request, response) => {
-    void handleStaticRequest(directory, request, response)
+    void handleStaticRequest(directory, request, response, sseClients)
   })
 
   await new Promise<void>((resolveListen, rejectListen) => {
@@ -81,6 +115,7 @@ export async function startStaticPreview(directory: string, port: number): Promi
   const address = server.address()
   if (!address || typeof address === "string") {
     server.close()
+    watcher?.close()
     throw new Error("La vista previa estatica no devolvio un puerto local.")
   }
 
@@ -88,6 +123,11 @@ export async function startStaticPreview(directory: string, port: number): Promi
     server,
     url: `http://127.0.0.1:${address.port}`,
     close: () => {
+      watcher?.close()
+      for (const client of sseClients) {
+        try { client.end() } catch {}
+      }
+      sseClients.clear()
       if (server.listening) server.close()
     },
   }
@@ -99,6 +139,7 @@ async function handleRequest(
   styles: readonly string[],
   request: IncomingMessage,
   response: ServerResponse,
+  sseClients?: Set<ServerResponse>,
 ) {
   if (request.method !== "GET" && request.method !== "HEAD") {
     send(response, 405, "text/plain; charset=utf-8", "Method not allowed")
@@ -107,6 +148,20 @@ async function handleRequest(
 
   try {
     const url = new URL(request.url ?? "/", "http://127.0.0.1")
+    if (url.pathname === "/__tiancode__/events") {
+      response.writeHead(200, {
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+        "Access-Control-Allow-Origin": "*",
+      })
+      response.write("retry: 1000\n\n")
+      if (sseClients) sseClients.add(response)
+      request.on("close", () => {
+        if (sseClients) sseClients.delete(response)
+      })
+      return
+    }
     if (url.pathname === "/__tiancode__/reload") {
       send(response, 200, "text/javascript; charset=utf-8", RELOAD_MODULE)
       return
@@ -208,7 +263,12 @@ async function linkedStyles(directory: string) {
   }
 }
 
-async function handleStaticRequest(directory: string, request: IncomingMessage, response: ServerResponse) {
+async function handleStaticRequest(
+  directory: string,
+  request: IncomingMessage,
+  response: ServerResponse,
+  sseClients?: Set<ServerResponse>,
+) {
   if (request.method !== "GET" && request.method !== "HEAD") {
     send(response, 405, "text/plain; charset=utf-8", "Method not allowed")
     return
@@ -216,6 +276,20 @@ async function handleStaticRequest(directory: string, request: IncomingMessage, 
 
   try {
     const url = new URL(request.url ?? "/", "http://127.0.0.1")
+    if (url.pathname === "/__tiancode__/events") {
+      response.writeHead(200, {
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+        "Access-Control-Allow-Origin": "*",
+      })
+      response.write("retry: 1000\n\n")
+      if (sseClients) sseClients.add(response)
+      request.on("close", () => {
+        if (sseClients) sseClients.delete(response)
+      })
+      return
+    }
     if (url.pathname === "/__tiancode__/reload") {
       send(response, 200, "text/javascript; charset=utf-8", RELOAD_MODULE)
       return
@@ -475,6 +549,26 @@ const RELOAD_MODULE = String.raw`
 let revision
 let reloading = false
 
+function triggerReload() {
+  if (reloading) return
+  reloading = true
+  window.location.reload()
+}
+
+try {
+  if (typeof EventSource !== "undefined") {
+    const es = new EventSource("/__tiancode__/events")
+    es.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        if (data && data.type === "reload") {
+          triggerReload()
+        }
+      } catch {}
+    }
+  }
+} catch {}
+
 async function refreshRevision() {
   try {
     const response = await fetch("/__tiancode__/revision", { cache: "no-store" })
@@ -485,15 +579,14 @@ async function refreshRevision() {
       revision = next
       return
     }
-    if (next !== revision && !reloading) {
-      reloading = true
-      window.location.reload()
+    if (next !== revision) {
+      triggerReload()
     }
   } catch {}
 }
 
 void refreshRevision()
-window.setInterval(() => void refreshRevision(), 700)
+window.setInterval(() => void refreshRevision(), 250)
 `
 
 function bootstrapModule(entry: string) {

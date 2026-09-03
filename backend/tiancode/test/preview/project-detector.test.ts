@@ -164,4 +164,41 @@ describe("detectProject", () => {
       port: 5173,
     })
   })
+
+  test("detects project inside subdirectories like Dios or frontend", async () => {
+    await using tmp = await tmpdir()
+    const subDir = path.join(tmp.path, "Dios")
+    await Bun.write(
+      path.join(subDir, "package.json"),
+      JSON.stringify({
+        dependencies: { react: "^19.0.0" },
+        devDependencies: { vite: "^6.0.0" },
+        scripts: {
+          dev: "vite",
+        },
+      }),
+    )
+
+    expect(await detectProject(tmp.path)).toEqual({
+      framework: "vite",
+      packageManager: "npm",
+      script: "dev",
+      port: 5173,
+      workingDirectory: "Dios",
+    })
+  })
+
+  test("detects static site inside subfolder", async () => {
+    await using tmp = await tmpdir()
+    const subDir = path.join(tmp.path, "site")
+    await Bun.write(path.join(subDir, "index.html"), "<!doctype html><html><body><h1>Hello</h1></body></html>")
+
+    expect(await detectProject(tmp.path)).toEqual({
+      framework: "html",
+      packageManager: "static",
+      script: "",
+      port: 4173,
+      workingDirectory: "site",
+    })
+  })
 })

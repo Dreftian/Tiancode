@@ -3,7 +3,7 @@
 // prefiere el script `dev` del package.json cuando existe.
 
 import { existsSync } from "node:fs"
-import { readFile } from "node:fs/promises"
+import { readFile, readdir } from "node:fs/promises"
 import { isAbsolute, join, relative, resolve, sep } from "node:path"
 
 export type DetectedProject = {
@@ -192,20 +192,94 @@ async function detectConfiguredProject(dir: string): Promise<DetectedProject | u
   }
 }
 
-export async function detectProject(dir: string): Promise<DetectedProject | null> {
+const IGNORED_DIRS = new Set([
+  ".git",
+  "node_modules",
+  "dist",
+  "build",
+  "out",
+  ".next",
+  ".turbo",
+  ".husky",
+  ".vscode",
+  ".idea",
+  ".venv",
+  "venv",
+  "__pycache__",
+  ".tiancode",
+  ".opencode",
+  "install",
+  "coverage",
+])
+
+const PRIORITY_DIR_NAMES = [
+  "dios",
+  "frontend",
+  "client",
+  "web",
+  "app",
+  "ui",
+  "site",
+  "website",
+  "src",
+]
+
+async function detectSingleDirectory(dir: string, rootDir: string): Promise<DetectedProject | null> {
   const configured = await detectConfiguredProject(dir)
-  if (configured) return configured
+  if (configured) {
+    if (dir !== rootDir) {
+      const rel = relative(rootDir, dir).split(sep).join("/")
+      return {
+        ...configured,
+        workingDirectory: configured.workingDirectory && configured.workingDirectory !== "."
+          ? `${rel}/${configured.workingDirectory}`
+          : rel,
+      }
+    }
+    return configured
+  }
+
+  const relDir = relative(rootDir, dir).split(sep).join("/") || "."
 
   const manifest = await readProjectText(join(dir, "package.json"))
   if (manifest === undefined) {
     const entry = await findBareJsxEntry(dir)
-    if (entry) return bareJsxProject(entry)
-
-    // Proyecto estático: sin gestor ni scripts, solo HTML servido localmente
-    // (el agente genera webs con index.html puro y las abre directamente).
-    if (existsSync(join(dir, "index.html"))) {
-      return { framework: "html", packageManager: "static", script: "", port: 4173 }
+    if (entry) {
+      const proj = bareJsxProject(entry)
+      if (relDir !== ".") proj.workingDirectory = relDir
+      return proj
     }
+
+    if (existsSync(join(dir, "index.html"))) {
+      return {
+        framework: "html",
+        packageManager: "static",
+        script: "",
+        port: 4173,
+        ...(relDir !== "." ? { workingDirectory: relDir } : {}),
+      }
+    }
+
+    // Comprobar si hay otros archivos HTML en el directorio (ej. home.html, app.html)
+    try {
+      if (existsSync(dir)) {
+        const files = await readdir(dir)
+        const htmlFile = files.find((f) => /\.html?$/i.test(f))
+        if (htmlFile) {
+          return {
+            framework: "html",
+            packageManager: "static",
+            script: "",
+            port: 4173,
+            entry: htmlFile,
+            ...(relDir !== "." ? { workingDirectory: relDir } : {}),
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
+
     return null
   }
 
@@ -278,13 +352,98 @@ export async function detectProject(dir: string): Promise<DetectedProject | null
 
   if (!script) {
     const entry = await findBareJsxEntry(dir)
-    if (entry) return bareJsxProject(entry)
+    if (entry) {
+      const proj = bareJsxProject(entry)
+      if (relDir !== ".") proj.workingDirectory = relDir
+      return proj
+    }
 
-    if (framework === "html") return { framework, packageManager: "static", script: "", port: FRAMEWORK_PORTS.html }
+    if (framework === "html" || existsSync(join(dir, "index.html"))) {
+      return {
+        framework: "html",
+        packageManager: "static",
+        script: "",
+        port: FRAMEWORK_PORTS.html,
+        ...(relDir !== "." ? { workingDirectory: relDir } : {}),
+      }
+    }
     return null
   }
 
   const port = (framework && FRAMEWORK_PORTS[framework]) || 5173
 
-  return { framework, packageManager, script, port }
+  return {
+    framework,
+    packageManager,
+    script,
+    port,
+    ...(relDir !== "." ? { workingDirectory: relDir } : {}),
+  }
+}
+
+export async function detectProject(dir: string): Promise<DetectedProject | null> {
+  // 1. Comprobar primero la raíz del espacio de trabajo
+  const rootDetected = await detectSingleDirectory(dir, dir)
+  if (rootDetected) return rootDetected
+
+  // 2. Si no se detecta en la raíz, escanear subdirectorios hasta profundidad 2
+  try {
+    if (!existsSync(dir)) return null
+    const entries = await readdir(dir, { withFileTypes: true })
+    const subdirs = entries
+      .filter((e) => e.isDirectory() && !e.name.startsWith(".") && !IGNORED_DIRS.has(e.name.toLowerCase()))
+      .map((e) => e.name)
+
+    // Priorizar carpetas comunes de apps/frontend (dios, frontend, client, web, app, ui, etc.)
+    subdirs.sort((a, b) => {
+      const aLower = a.toLowerCase()
+      const bLower = b.toLowerCase()
+      const aPriority = PRIORITY_DIR_NAMES.findIndex((p) => aLower === p || aLower.includes(p))
+      const bPriority = PRIORITY_DIR_NAMES.findIndex((p) => bLower === p || bLower.includes(p))
+      if (aPriority !== -1 && bPriority === -1) return -1
+      if (aPriority === -1 && bPriority !== -1) return 1
+      if (aPriority !== -1 && bPriority !== -1) return aPriority - bPriority
+      return a.localeCompare(b)
+    })
+
+    // Escaneo nivel 1
+    for (const sub of subdirs) {
+      const subPath = join(dir, sub)
+      const found = await detectSingleDirectory(subPath, dir)
+      if (found) return found
+    }
+
+    // Escaneo nivel 2 (monorrepos, packages/web, apps/frontend, etc.)
+    for (const sub of subdirs) {
+      const subPath = join(dir, sub)
+      try {
+        const grandEntries = await readdir(subPath, { withFileTypes: true })
+        const grandDirs = grandEntries
+          .filter((e) => e.isDirectory() && !e.name.startsWith(".") && !IGNORED_DIRS.has(e.name.toLowerCase()))
+          .map((e) => e.name)
+
+        grandDirs.sort((a, b) => {
+          const aLower = a.toLowerCase()
+          const bLower = b.toLowerCase()
+          const aPriority = PRIORITY_DIR_NAMES.findIndex((p) => aLower === p || aLower.includes(p))
+          const bPriority = PRIORITY_DIR_NAMES.findIndex((p) => bLower === p || bLower.includes(p))
+          if (aPriority !== -1 && bPriority === -1) return -1
+          if (aPriority === -1 && bPriority !== -1) return 1
+          return a.localeCompare(b)
+        })
+
+        for (const grand of grandDirs) {
+          const grandPath = join(subPath, grand)
+          const found = await detectSingleDirectory(grandPath, dir)
+          if (found) return found
+        }
+      } catch {
+        // ignore errors on subfolders
+      }
+    }
+  } catch {
+    // ignore directory read errors
+  }
+
+  return null
 }
