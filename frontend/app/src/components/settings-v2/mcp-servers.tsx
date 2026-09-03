@@ -47,36 +47,27 @@ const TypeOptions: { id: "local" | "remote"; label: string }[] = [
 ]
 
 const PresetDefinitions: { id: string; labelKey: string; command: string }[] = [
-  {
-    id: "filesystem",
-    labelKey: "settings.mcpServers.presets.filesystem",
-    command: "npx -y @modelcontextprotocol/server-filesystem .",
-  },
-  { id: "fetch", labelKey: "settings.mcpServers.presets.fetch", command: "npx -y @modelcontextprotocol/server-fetch" },
-  { id: "context7", labelKey: "settings.mcpServers.presets.context7", command: "npx -y @upstash/context7-mcp" },
-  { id: "firecrawl", labelKey: "settings.mcpServers.presets.firecrawl", command: "npx -y firecrawl-mcp" },
-  { id: "sentry", labelKey: "settings.mcpServers.presets.sentry", command: "npx -y @sentry/mcp-server" },
   { id: "supabase", labelKey: "settings.mcpServers.presets.supabase", command: "npx -y @supabase/mcp-server-supabase" },
-  { id: "postgres", labelKey: "settings.mcpServers.presets.postgres", command: "npx -y @modelcontextprotocol/server-postgres" },
+  { id: "postgres", labelKey: "settings.mcpServers.presets.postgres", command: "npx -y @modelcontextprotocol/server-postgres postgresql://localhost/mydb" },
   { id: "sqlite", labelKey: "settings.mcpServers.presets.sqlite", command: "npx -y @modelcontextprotocol/server-sqlite ." },
   { id: "duckdb", labelKey: "settings.mcpServers.presets.duckdb", command: "npx -y duckdb-mcp" },
   { id: "redis", labelKey: "settings.mcpServers.presets.redis", command: "npx -y @modelcontextprotocol/server-redis" },
-  { id: "figma", labelKey: "settings.mcpServers.presets.figma", command: "npx -y figma-developer-mcp" },
   { id: "docker", labelKey: "settings.mcpServers.presets.docker", command: "npx -y docker-mcp" },
-  { id: "mem0", labelKey: "settings.mcpServers.presets.mem0", command: "npx -y mem0-mcp" },
-  { id: "brave-search", labelKey: "settings.mcpServers.presets.braveSearch", command: "npx -y @modelcontextprotocol/server-brave-search" },
+  { id: "sentry", labelKey: "settings.mcpServers.presets.sentry", command: "npx -y @sentry/mcp-server" },
   { id: "e2b", labelKey: "settings.mcpServers.presets.e2b", command: "npx -y @e2b/mcp-server" },
-  { id: "postman", labelKey: "settings.mcpServers.presets.postman", command: "npx -y @postman/postman-mcp-server" },
-  { id: "memory", labelKey: "settings.mcpServers.presets.memory", command: "npx -y @modelcontextprotocol/server-memory" },
+  { id: "figma", labelKey: "settings.mcpServers.presets.figma", command: "npx -y figma-developer-mcp" },
+  { id: "firecrawl", labelKey: "settings.mcpServers.presets.firecrawl", command: "npx -y firecrawl-mcp" },
+  { id: "context7", labelKey: "settings.mcpServers.presets.context7", command: "npx -y @upstash/context7-mcp" },
+  { id: "playwright", labelKey: "settings.mcpServers.presets.playwright", command: "npx -y @playwright/mcp@latest" },
+  { id: "notebooklm", labelKey: "settings.mcpServers.presets.notebooklm", command: "npx -y notebooklm-mcp@latest" },
   {
     id: "sequential-thinking",
     labelKey: "settings.mcpServers.presets.sequentialThinking",
     command: "npx -y @modelcontextprotocol/server-sequential-thinking",
   },
-  { id: "time", labelKey: "settings.mcpServers.presets.time", command: "npx -y @modelcontextprotocol/server-time" },
-  { id: "playwright", labelKey: "settings.mcpServers.presets.playwright", command: "npx -y @playwright/mcp@latest" },
-  { id: "notebooklm", labelKey: "settings.mcpServers.presets.notebooklm", command: "npx -y notebooklm-mcp@latest" },
-  { id: "git", labelKey: "settings.mcpServers.presets.git", command: "npx -y @modelcontextprotocol/server-git" },
+  { id: "postman", labelKey: "settings.mcpServers.presets.postman", command: "npx -y @postman/postman-mcp-server" },
+  { id: "mem0", labelKey: "settings.mcpServers.presets.mem0", command: "npx -y mem0-mcp" },
+  { id: "brave-search", labelKey: "settings.mcpServers.presets.braveSearch", command: "npx -y @modelcontextprotocol/server-brave-search" },
 ]
 
 // Catalog of popular verified MCP servers shown under "Discover".

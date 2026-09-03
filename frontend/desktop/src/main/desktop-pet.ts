@@ -143,35 +143,38 @@ function getPetHtml(state: DesktopPetState): string {
     .pet-bubble {
       -webkit-app-region: no-drag;
       position: relative;
-      background: rgba(15, 18, 28, 0.92);
-      backdrop-filter: blur(18px);
-      border: 1px solid rgba(56, 189, 248, 0.22);
-      border-radius: 14px;
-      padding: 8px 12px;
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 16px;
+      padding: 9px 14px;
       font-size: 11.5px;
       line-height: 1.45;
-      color: #f1f5f9;
-      max-width: 216px;
+      color: #f8fafc;
+      font-weight: 500;
+      max-width: 220px;
       overflow: hidden;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
       margin-bottom: 8px;
-      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s ease;
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s ease, box-shadow 0.2s ease;
       cursor: pointer;
     }
     .pet-bubble:hover {
-      transform: translateY(-1px) scale(1.02);
-      border-color: rgba(56, 189, 248, 0.5);
+      transform: translateY(-2px) scale(1.02);
+      border-color: rgba(56, 189, 248, 0.65);
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.6), 0 0 16px rgba(56, 189, 248, 0.25);
     }
     .pet-bubble::after {
       content: "";
       position: absolute;
       inset: 0;
-      border-radius: 14px;
+      border-radius: 16px;
       pointer-events: none;
-      background: linear-gradient(120deg, rgba(34, 211, 238, 0.14), transparent 45%);
+      background: linear-gradient(120deg, rgba(34, 211, 238, 0.16), transparent 50%);
     }
     .pet-bubble .typing-dots {
       display: none;
@@ -204,10 +207,13 @@ function getPetHtml(state: DesktopPetState): string {
       width: 58px;
       height: 58px;
       cursor: pointer;
-      transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.22s ease;
     }
-    .pet-avatar-wrapper:hover { transform: scale(1.1); }
-    .pet-avatar-wrapper:active { transform: scale(0.9); }
+    .pet-avatar-wrapper:hover {
+      transform: scale(1.1) translateY(-2px);
+      filter: drop-shadow(0 8px 16px rgba(56, 189, 248, 0.35));
+    }
+    .pet-avatar-wrapper:active { transform: scale(0.92); }
 
     /* Anillo de estado: gradiente cónico girando mientras trabaja */
     .pet-ring {
