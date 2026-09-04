@@ -27,23 +27,30 @@ async function main() {
   const owner = "Dreftian"
   const repo = "Tiancode"
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
-  const version = desktopPkg.version || "1.0.6"
+  const version = desktopPkg.version || "1.0.12"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — Sandbox Universal y Vista Previa en Tiempo Real Multilenguaje`
-  const body = `## 🚀 Tiancode v${version} — Sandbox Universal y Vista Previa en Tiempo Real Multilenguaje
+  const releaseName = `Tiancode v${version} — Estudio de Voces, Galería de Sub-Agentes y Fluidez Total`
+  const body = `## 🚀 Tiancode v${version} — Estudio de Voces, Galería de Sub-Agentes y Fluidez Total
 
-### 🖥️ Sandbox Protegido y Vista Previa Universal Multilenguaje
-- **Detección Automática Profunda de Proyectos:** El motor de detección ahora analiza recursivamente proyectos y subcarpetas para identificar aplicaciones de cualquier lenguaje: C#/.NET (WPF, WinForms, Avalonia), Rust, Go, Python (PyQt, Tkinter, Flask, FastAPI), C++, y ecosistemas Web (Vite, Next.js, Nuxt, Astro, Svelte, HTML puro).
-- **Ejecución Directa de Binarios Compilados sin Requerir SDK Completo:** Para aplicaciones de escritorio (.NET, Rust, Go, etc.), Tiancode detecta automáticamente los ejecutables compilados en \`bin/Release\`, \`bin/Debug\`, \`target/release\`, \`build/\` (como \`NovaSound.exe\`) y los ejecuta directamente con el runtime instalado, evitando errores por falta de SDKs de desarrollo.
-- **Panel de Control y Monitor de Proceso en Tiempo Real:** Tarjeta de aplicación nativa interactiva con controles de Iniciar, Detener y Reiniciar, estado del proceso, PID y terminal de logs de consola en vivo con auto-scroll.
+### 🎙️ Estudio de Voces Femeninas de Alta Fidelidad
+- **Experiencia de Voz Fluida sin Barreras:** Acceso inmediato a síntesis de voz natural y fluida en español sin descargar el modelo local de 1GB de Kokoro (bloque descargable opcional solo al activar el motor neural explícito).
+- **Voces Femeninas Naturales:** Integración de voces premium en español como Natasha Pro, Conversacional, Profesional y Suave mediante síntesis Edge/Windows Neural y Fish Audio S2.1 Pro.
+- **Controles de Estudio:** Ajuste en tiempo real de velocidad (0.75x a 2.0x), Pitch/Tono de voz (Grave, Natural, Agudo), Ganancia de volumen (50% a 120%) y analizador de espectro de onda reactivo a la reproducción de audio.
 
-### 📝 Pestaña de Código con Seguimiento Paso a Paso en Vivo
-- **Sincronización en Tiempo Real con la IA:** Conexión directa con \`session_diff\` y eventos de herramientas (\`write\`, \`edit\`, \`apply_patch\`) para seguir automáticamente el archivo que cualquier modelo de IA esté modificando paso a paso en el chat.
-- **Recarga Instantánea:** Despacho de eventos \`tiancode:preview-reload\` que actualizan tanto el sandbox gráfico como el visor/editor de código sin requerir recargar la página.
-- **Explorador y Árbol de Archivos Integrado:** Filtrado rápido por frontend/backend y selección automática de archivos clave (\`MainWindow.xaml\`, \`App.xaml.cs\`, \`Program.cs\`, \`index.html\`).
+### ⚡ Eliminación Total del Parpadeo en Configuración
+- **Navegación 100% Fluida:** Solución definitiva al problema de parpadeo y artefactos en el fondo del chat al cambiar repetidamente entre pestañas de Configuración (Skills, Sub-Agentes, GitHub, Mascotas).
+- **Aislamiento GPU de Capas:** Aislamiento con \`content-visibility: hidden !important\` y \`contain: strict !important\` que evita repintados innecesarios del compositor de Chromium y retiene los datos en memoria sin reconstrucciones destructivas del DOM.
 
-### 🔒 Integridad y Migración No Destructiva
-- Todas las configuraciones de usuario, proveedores, claves API (Fish Audio, OpenCode, Claude, etc.), sesiones y herramientas MCP permanecen 100% intactas tras la actualización automática.
+### 🤖 Galería Completa de Sub-Agentes y Modal Astra Cósmico
+- **Rejilla Panorámica:** Nueva vista en rejilla responsiva a ancho completo con tarjetas informativas, chips de color y estados de activación en tiempo real.
+- **Modal Flotante Astra Cósmico:** Creación y edición intuitiva en un diálogo flotante de alta gama con paleta de colores, selección de herramientas y soporte para exportar e importar especificaciones \`.agent.md\`.
+
+### 🌌 Asistente de Bienvenida Astra y Splash al 95%
+- **Diseño Glass Cósmico:** Asistente de bienvenida rediseñado sin contenedor oscuro de fondo, destacando la tarjeta flotante con halos translúcidos cian e índigo.
+- **Splash Screen de Alta Claridad:** Calibración precisa de opacidades y contraste en el rostro y tipografía "TIANCODE" al 95% de carga para máxima nitidez visual.
+
+### 🔒 Actualización No Destructiva
+- Todas las configuraciones de usuario, proveedores, claves API, sesiones de chat y herramientas MCP se conservan íntegras tras la actualización.
 
 ### 📦 Descargas
 | Archivo | Tipo | Descripción |

@@ -25,6 +25,53 @@ import { useLayout } from "@/context/layout"
 import { useTabs } from "@/context/tabs"
 import { useServerSync } from "@/context/server-sync"
 
+const IconEcosystem = () => (
+  <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="10" cy="10" r="2.5" fill="currentColor" fill-opacity="0.2" />
+    <circle cx="4" cy="6" r="2" />
+    <circle cx="16" cy="6" r="2" />
+    <circle cx="5" cy="15" r="2" />
+    <circle cx="15" cy="15" r="2" />
+    <path d="M5.5 7.5L8.5 9M14.5 7.5L11.5 9M6.5 14L8.5 11M13.5 14L11.5 11M6 6h8" />
+  </svg>
+)
+
+const IconVoices = () => (
+  <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="7" y="2" width="6" height="10" rx="3" fill="currentColor" fill-opacity="0.15" />
+    <path d="M4 8v1a6 6 0 0012 0V8M10 15v3M7 18h6" />
+  </svg>
+)
+
+const IconSkills = () => (
+  <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8.5 3H4.5A1.5 1.5 0 003 4.5V8.5a1.5 1.5 0 001.5 1.5H5a2 2 0 010 4h-.5A1.5 1.5 0 003 15.5V17a1.5 1.5 0 001.5 1.5h4a1.5 1.5 0 001.5-1.5v-.5a2 2 0 014 0v.5A1.5 1.5 0 0015.5 18.5h1.5a1.5 1.5 0 001.5-1.5v-4a1.5 1.5 0 00-1.5-1.5h-.5a2 2 0 010-4h.5A1.5 1.5 0 0018.5 6V4.5A1.5 1.5 0 0017 3h-4a1.5 1.5 0 00-1.5 1.5v.5a2 2 0 01-4 0v-.5A1.5 1.5 0 008.5 3z" />
+  </svg>
+)
+
+const IconSubAgents = () => (
+  <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="6" width="14" height="10" rx="3" fill="currentColor" fill-opacity="0.15" />
+    <path d="M10 2v4M2 11h1M17 11h1M7 10.5a1 1 0 100-2 1 1 0 000 2zM13 10.5a1 1 0 100-2 1 1 0 000 2zM7 13.5h6" />
+  </svg>
+)
+
+const IconMcpPlugins = () => (
+  <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7 3v4M13 3v4M5 7h10a1 1 0 011 1v2.5a5 5 0 01-5 5h-2a5 5 0 01-5-5V8a1 1 0 011-1zM10 15.5v2.5" />
+  </svg>
+)
+
+const IconPets = () => (
+  <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
+    <circle cx="5" cy="7" r="1.8" />
+    <circle cx="8.5" cy="4.5" r="1.8" />
+    <circle cx="12" cy="4.5" r="1.8" />
+    <circle cx="15.5" cy="7" r="1.8" />
+    <path d="M10.2 9c-2.4 0-4.7 1.4-4.7 3.8 0 2.2 2 3.7 4.7 3.7s4.8-1.5 4.8-3.7c0-2.4-2.4-3.8-4.8-3.8z" />
+  </svg>
+)
+
 export const DialogSettings: Component<{
   sessionID?: string
   defaultValue?: string
@@ -97,7 +144,7 @@ export const DialogSettings: Component<{
                       {language.t("settings.tab.intelligence") || "Intelligence"}
                     </TabsV2.Trigger>
                     <TabsV2.Trigger value="ecosystem">
-                      <Icon name="dot-grid" />
+                      <IconEcosystem />
                       Ecosistema IA
                     </TabsV2.Trigger>
                     <TabsV2.Trigger value="computer-use">
@@ -143,19 +190,19 @@ export const DialogSettings: Component<{
                       {language.t("settings.tab.github")}
                     </TabsV2.Trigger>
                     <TabsV2.Trigger value="voices">
-                      <Icon name="prompt" />
+                      <IconVoices />
                       {language.t("settings.tab.voices")}
                     </TabsV2.Trigger>
                     <TabsV2.Trigger value="skills">
-                      <Icon name="code-lines" />
+                      <IconSkills />
                       {language.t("settings.tab.skills")}
                     </TabsV2.Trigger>
                     <TabsV2.Trigger value="sub-agents">
-                      <Icon name="brain" />
+                      <IconSubAgents />
                       {language.t("settings.tab.subAgents") || "Sub-Agentes"}
                     </TabsV2.Trigger>
                     <TabsV2.Trigger value="mcp-plugins">
-                      <Icon name="mcp" />
+                      <IconMcpPlugins />
                       {language.t("settings.tab.mcpPlugins") || "MCP y Plugins"}
                     </TabsV2.Trigger>
                   </div>
@@ -166,7 +213,7 @@ export const DialogSettings: Component<{
                   <TabsV2.SectionTitle>{language.t("settings.section.integrations")}</TabsV2.SectionTitle>
                   <div class="flex flex-col gap-1 w-full">
                     <TabsV2.Trigger value="pets">
-                      <Icon name="bubble-5" />
+                      <IconPets />
                       {language.t("settings.tab.pets")}
                     </TabsV2.Trigger>
                   </div>
@@ -237,25 +284,25 @@ export const DialogSettings: Component<{
 
         <TabsV2.Content forceMount value="github" class="settings-v2-panel" classList={{ "!hidden": tab() !== "github" }}>
           <Show when={visited().has("github")}>
-            <SettingsGithubV2 directory={directory()} />
+            <SettingsGithubV2 directory={directory()} active={tab() === "github"} />
           </Show>
         </TabsV2.Content>
 
         <TabsV2.Content forceMount value="voices" class="settings-v2-panel" classList={{ "!hidden": tab() !== "voices" }}>
           <Show when={visited().has("voices")}>
-            <SettingsVoicesV2 />
+            <SettingsVoicesV2 active={tab() === "voices"} />
           </Show>
         </TabsV2.Content>
 
         <TabsV2.Content forceMount value="skills" class="settings-v2-panel" classList={{ "!hidden": tab() !== "skills" }}>
           <Show when={visited().has("skills")}>
-            <SettingsSkillsV2 directory={directory()} />
+            <SettingsSkillsV2 directory={directory()} active={tab() === "skills"} />
           </Show>
         </TabsV2.Content>
 
         <TabsV2.Content forceMount value="sub-agents" class="settings-v2-panel" classList={{ "!hidden": tab() !== "sub-agents" }}>
           <Show when={visited().has("sub-agents")}>
-            <SettingsSubAgentsV2 directory={directory()} />
+            <SettingsSubAgentsV2 directory={directory()} active={tab() === "sub-agents"} />
           </Show>
         </TabsV2.Content>
 
@@ -267,7 +314,7 @@ export const DialogSettings: Component<{
 
         <TabsV2.Content forceMount value="pets" class="settings-v2-panel" classList={{ "!hidden": tab() !== "pets" }}>
           <Show when={visited().has("pets")}>
-            <SettingsPetsV2 />
+            <SettingsPetsV2 active={tab() === "pets"} />
           </Show>
         </TabsV2.Content>
       </TabsV2>

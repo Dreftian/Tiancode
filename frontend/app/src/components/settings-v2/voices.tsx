@@ -14,6 +14,10 @@ import {
   type VoiceInfo,
   getVoiceSpeed,
   setVoiceSpeed,
+  getVoicePitch,
+  setVoicePitch,
+  getVoiceVolume,
+  setVoiceVolume,
   getBargeInEnabled,
   setBargeInEnabled,
   enableBargeInListener,
@@ -75,7 +79,7 @@ const languageLabel = (code: string) => LANGUAGE_LABELS[code.toLowerCase()] ?? c
 // A voice can be selected when it is supported and enabled.
 const canSelect = (voice: VoiceInfo) => voice.supported && voice.enabled !== false
 
-export const SettingsVoicesV2: Component = () => {
+export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
   const language = useLanguage()
   const settings = useSettings()
   const api = voicesAPI()
@@ -293,7 +297,7 @@ export const SettingsVoicesV2: Component = () => {
             <div class="settings-v2-skills-status">{language.t("settings.voices.loading")}</div>
           </Show>
 
-          <Show when={!status.loading && status() && !status()!.ready}>
+          <Show when={getVoiceEngineMode() === "neural" && !status.loading && status() && !status()!.ready}>
             <div class="settings-v2-section">
               <h3 class="settings-v2-section-title">{language.t("settings.voices.download.title")}</h3>
               <p class="settings-v2-voices-description">{language.t("settings.voices.download.description")}</p>
@@ -377,7 +381,7 @@ export const SettingsVoicesV2: Component = () => {
                   <span class="text-[11px] text-emerald-400 font-semibold">{selectedVoice()!.name}</span>
                 </Show>
               </div>
-              <AudioWaveform active={isVoiceSpeaking()} height={26} barsCount={36} />
+              <AudioWaveform active={(props.active ?? true) && isVoiceSpeaking()} height={26} barsCount={36} />
             </div>
           </Show>
 
@@ -469,7 +473,7 @@ export const SettingsVoicesV2: Component = () => {
             </SettingsRowV2>
 
             <SettingsRowV2
-              title="Velocidad de Reproducción"
+              title="Velocidad de Reproducción (Rate)"
               description="Ajusta la velocidad de narración para una reproducción más rápida o pausada."
             >
               <div class="flex items-center gap-1">
@@ -482,6 +486,55 @@ export const SettingsVoicesV2: Component = () => {
                       onClick={() => setVoiceSpeed(rate)}
                     >
                       {rate}x
+                    </ButtonV2>
+                  )}
+                </For>
+              </div>
+            </SettingsRowV2>
+
+            <SettingsRowV2
+              title="Tono de Voz (Pitch Studio)"
+              description="Modula la frecuencia fundamental para una voz más grave, natural o aguda."
+            >
+              <div class="flex items-center gap-1">
+                <For each={[
+                  { val: 0.85, label: "Grave (0.85x)" },
+                  { val: 1.0, label: "Natural (1.0x)" },
+                  { val: 1.15, label: "Agudo (1.15x)" },
+                ]}>
+                  {(item) => (
+                    <ButtonV2
+                      type="button"
+                      variant={getVoicePitch() === item.val ? "contrast" : "ghost"}
+                      size="small"
+                      onClick={() => setVoicePitch(item.val)}
+                    >
+                      {item.label}
+                    </ButtonV2>
+                  )}
+                </For>
+              </div>
+            </SettingsRowV2>
+
+            <SettingsRowV2
+              title="Volumen de Síntesis (Gain)"
+              description="Nivel de ganancia sonora y amplificación de las respuestas narradas."
+            >
+              <div class="flex items-center gap-1">
+                <For each={[
+                  { val: 0.5, label: "50%" },
+                  { val: 0.75, label: "75%" },
+                  { val: 1.0, label: "100%" },
+                  { val: 1.2, label: "120%" },
+                ]}>
+                  {(item) => (
+                    <ButtonV2
+                      type="button"
+                      variant={getVoiceVolume() === item.val ? "contrast" : "ghost"}
+                      size="small"
+                      onClick={() => setVoiceVolume(item.val)}
+                    >
+                      {item.label}
                     </ButtonV2>
                   )}
                 </For>
@@ -506,7 +559,7 @@ export const SettingsVoicesV2: Component = () => {
               description="Visualizador de onda sonora reactivo durante la síntesis y dictado por micrófono."
             >
               <div class="w-48">
-                <AudioWaveform active={currentSpeakingKey() !== undefined} height={26} barsCount={24} />
+                <AudioWaveform active={(props.active ?? true) && (currentSpeakingKey() !== undefined || isVoiceSpeaking())} height={26} barsCount={24} />
               </div>
             </SettingsRowV2>
           </SettingsListV2>

@@ -4,6 +4,20 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.12] — 2026-09-04
+### Nuevo
+
+- **Estudio de Voces Tiancode**: Experiencia de voz fluida y ultrarrápida sin barreras de descargas pesadas de 1GB. Integración de voces femeninas naturales en español (Natasha Pro, Conversacional, Profesional, Suave) mediante síntesis Edge/Windows Neural y Fish Audio S2.1 Pro.
+- **Controles de Estudio de Voz**: Ecualización de velocidad (0.75x a 2.0x), Tono/Pitch (Grave, Natural, Agudo), Ganancia de volumen (50% a 120%) y visualizador de onda espectral reactiva en tiempo real.
+- **Galería Completa de Sub-Agentes y Modal Astra**: Renovación de la interfaz de sub-agentes a rejilla tipo galería responsiva de ancho completo y modal flotante de creación/edición con estética Astra Cosmic y exportación/importación `.agent.md`.
+- **Tema Astra Cósmico y Asistente de Bienvenida**: Diseño translúcido de cristal cósmico con halos cian e índigo; eliminación del contenedor oscuro de fondo para un modal limpio y flotante.
+- **Splash Screen 95% Definido**: Corrección de saturación en el rostro del gato y tipografía "TIANCODE", ampliando dimensiones para máximo detalle.
+- **Persistencia de Inteligencia**: Conexión reactiva y almacenamiento de poda inteligente de contexto RLM y presupuesto de pensamiento.
+
+### Corregido
+
+- **Parpadeo y artefactos en el fondo del chat al cambiar pestañas de Configuración**: Eliminada la destrucción/reconstrucción de elementos del DOM en pestañas ocultas (Skills, Sub-Agentes, GitHub, Mascotas). Aislamiento en capa GPU con `content-visibility: hidden !important` y `contain: strict !important`, logrando transiciones 100% fluidas sin repintados de fondo.
+
 ## [1.0.1] — 2026-09-03
 ### Corregido
 

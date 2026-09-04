@@ -52,6 +52,8 @@ export interface IntelligenceSettings {
   autoSkillLearn: boolean
   guardrails: boolean
   sandboxExecution: "host" | "docker" | "e2b"
+  rlmAutoPruning: boolean
+  thinkingBudget: string
 }
 
 export const defaultIntelligenceSettings: IntelligenceSettings = {
@@ -63,6 +65,8 @@ export const defaultIntelligenceSettings: IntelligenceSettings = {
   autoSkillLearn: true,
   guardrails: false,
   sandboxExecution: "host",
+  rlmAutoPruning: true,
+  thinkingBudget: "16384",
 }
 
 export interface EcosystemSettings {
@@ -736,6 +740,20 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         ),
         setSandboxExecution(value: "host" | "docker" | "e2b") {
           setStore("intelligence", "sandboxExecution", value)
+        },
+        rlmAutoPruning: withFallback(
+          () => store.intelligence?.rlmAutoPruning,
+          defaultSettings.intelligence.rlmAutoPruning,
+        ),
+        setRlmAutoPruning(value: boolean) {
+          setStore("intelligence", "rlmAutoPruning", value)
+        },
+        thinkingBudget: withFallback(
+          () => store.intelligence?.thinkingBudget,
+          defaultSettings.intelligence.thinkingBudget,
+        ),
+        setThinkingBudget(value: string) {
+          setStore("intelligence", "thinkingBudget", value)
         },
       },
       ecosystem: {

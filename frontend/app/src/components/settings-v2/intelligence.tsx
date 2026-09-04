@@ -112,8 +112,8 @@ export const SettingsIntelligenceV2: Component = () => {
               description="Resume automáticamente salidas gigantescas de terminal y logs para no agotar la ventana de contexto."
             >
               <Switch
-                checked={true}
-                onChange={() => undefined}
+                checked={settings.intelligence.rlmAutoPruning()}
+                onChange={(checked) => settings.intelligence.setRlmAutoPruning(checked)}
               />
             </SettingsRowV2>
 
@@ -124,11 +124,11 @@ export const SettingsIntelligenceV2: Component = () => {
               <SelectV2
                 appearance="inline"
                 options={["4096", "8192", "16384", "32768", "64000"]}
-                current="16384"
+                current={settings.intelligence.thinkingBudget()}
                 placement="bottom-end"
                 gutter={6}
                 label={(opt) => `${Number(opt).toLocaleString()} tokens`}
-                onSelect={() => undefined}
+                onSelect={(opt) => opt && settings.intelligence.setThinkingBudget(opt)}
               />
             </SettingsRowV2>
           </SettingsListV2>

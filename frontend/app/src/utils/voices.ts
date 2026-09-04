@@ -184,11 +184,15 @@ export function setFishAudioVoice(voiceId: string) {
   }
 }
 
+const VOLUME_KEY = "tiancode.voice.volume"
 const [voiceSpeed, setVoiceSpeedState] = createSignal<number>(
   typeof localStorage !== "undefined" ? Number(localStorage.getItem(SPEED_KEY) ?? "1.0") : 1.0,
 )
 const [voicePitch, setVoicePitchState] = createSignal<number>(
   typeof localStorage !== "undefined" ? Number(localStorage.getItem(PITCH_KEY) ?? "1.0") : 1.0,
+)
+const [voiceVolume, setVoiceVolumeState] = createSignal<number>(
+  typeof localStorage !== "undefined" ? Number(localStorage.getItem(VOLUME_KEY) ?? "1.0") : 1.0,
 )
 const [bargeInEnabled, setBargeInState] = createSignal<boolean>(
   typeof localStorage !== "undefined" ? localStorage.getItem(BARGE_IN_KEY) === "true" : true,
@@ -212,12 +216,20 @@ export const getVoiceSpeed = () => voiceSpeed()
 export const setVoiceSpeed = (val: number) => {
   setVoiceSpeedState(val)
   if (typeof localStorage !== "undefined") localStorage.setItem(SPEED_KEY, String(val))
+  if (activeAudio) activeAudio.playbackRate = val
 }
 
 export const getVoicePitch = () => voicePitch()
 export const setVoicePitch = (val: number) => {
   setVoicePitchState(val)
   if (typeof localStorage !== "undefined") localStorage.setItem(PITCH_KEY, String(val))
+}
+
+export const getVoiceVolume = () => voiceVolume()
+export const setVoiceVolume = (val: number) => {
+  setVoiceVolumeState(val)
+  if (typeof localStorage !== "undefined") localStorage.setItem(VOLUME_KEY, String(val))
+  if (activeAudio) activeAudio.volume = Math.max(0, Math.min(1, val))
 }
 
 export const getBargeInEnabled = () => bargeInEnabled()
@@ -297,6 +309,7 @@ const playWav = (key: string, wav: Uint8Array) =>
       const url = URL.createObjectURL(blob)
       const audio = new Audio(url)
       audio.playbackRate = getVoiceSpeed()
+      audio.volume = getVoiceVolume()
       activeURL = url
       activeAudio = audio
       audio.onended = finish
@@ -390,7 +403,8 @@ function speakWithWebSpeech(key: string, text: string): Promise<string | undefin
       const utterance = new SpeechSynthesisUtterance(text)
       utterance.lang = "es-ES"
       utterance.rate = getVoiceSpeed() ?? 1.05
-      utterance.pitch = 1.0
+      utterance.pitch = getVoicePitch() ?? 1.0
+      utterance.volume = getVoiceVolume() ?? 1.0
 
       const voices = window.speechSynthesis.getVoices()
       // Priorizar voces naturales en español de Windows (Microsoft Sabina, Helena, Laura, Dalia, etc.)
@@ -495,6 +509,7 @@ export async function speakWithFishAudio(
         const url = URL.createObjectURL(blob)
         const audio = new Audio(url)
         audio.playbackRate = getVoiceSpeed()
+        audio.volume = getVoiceVolume()
         activeURL = url
         activeAudio = audio
         audio.onended = finish

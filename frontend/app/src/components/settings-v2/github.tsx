@@ -36,6 +36,7 @@ function GitHubLogo(props: { size?: number }) {
 
 export const SettingsGithubV2: Component<{
   directory?: string
+  active?: boolean
 }> = (props) => {
   const language = useLanguage()
   const serverSdk = useServerSDK()
@@ -56,6 +57,7 @@ export const SettingsGithubV2: Component<{
         return { data: { connected: false } }
       }
     },
+    { initialValue: { data: { connected: false } } },
   )
   const connected = () => (status()?.data as any)?.connected === true
   const login = () => (status()?.data as any)?.login

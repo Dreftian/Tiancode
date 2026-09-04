@@ -74,29 +74,29 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
   const cardClass = (selected: boolean) =>
     `flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all duration-150 select-none ${
       selected
-        ? "border-[#0078d4] bg-[#0078d4]/10 shadow-[0_0_0_1px_#0078d4] text-white"
-        : "border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/[0.14] text-slate-200"
+        ? "border-cyan-400 bg-cyan-500/15 shadow-[0_0_16px_rgba(56,189,248,0.25)] text-white"
+        : "border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-cyan-500/30 text-slate-200"
     }`
 
   return (
     <div
-      class="relative w-full max-w-[560px] max-h-[92vh] bg-[#202020]/95 backdrop-blur-3xl border border-white/[0.12] rounded-2xl p-6 flex flex-col justify-between text-white select-none overflow-hidden font-sans shadow-[0_32px_64px_rgba(0,0,0,0.55),0_1px_0_rgba(255,255,255,0.1)_inset]"
+      class="relative w-full max-w-[560px] max-h-[92vh] bg-[#0c1222]/95 backdrop-blur-3xl border border-cyan-500/25 rounded-2xl p-6 flex flex-col justify-between text-white select-none overflow-hidden font-sans shadow-[0_24px_64px_rgba(0,0,0,0.8),0_0_50px_rgba(56,189,248,0.15)]"
       style={{
         "font-family": "Segoe UI Variable, Segoe UI, -apple-system, BlinkMacSystemFont, Roboto, sans-serif",
       }}
     >
-      {/* Windows 11 Mica subtle highlight */}
-      <div class="absolute -top-24 -right-24 w-64 h-64 bg-[#0078d4]/15 rounded-full blur-3xl pointer-events-none" />
-      <div class="absolute -bottom-24 -left-24 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+      {/* Astra Cosmic subtle glowing highlights */}
+      <div class="absolute -top-24 -right-24 w-64 h-64 bg-cyan-500/20 rounded-full blur-3xl pointer-events-none" />
+      <div class="absolute -bottom-24 -left-24 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Header - Windows 11 OOBE / Fluent Style */}
+      {/* Header - Astra Cosmic Style */}
       <div class="flex items-start justify-between border-b border-white/[0.08] pb-4 mb-4">
         <div class="flex items-center gap-3.5">
-          <div class="relative flex items-center justify-center size-10 rounded-xl bg-white/[0.06] border border-white/[0.12] shadow-sm shrink-0">
+          <div class="relative flex items-center justify-center size-10 rounded-xl bg-cyan-500/10 border border-cyan-400/30 shadow-[0_0_14px_rgba(56,189,248,0.25)] shrink-0">
             <img
               src={tianLogo}
               alt="Tiancode"
-              class="h-6 w-auto object-contain drop-shadow-[0_2px_8px_rgba(0,120,212,0.4)]"
+              class="h-6 w-auto object-contain drop-shadow-[0_0_10px_rgba(56,189,248,0.6)]"
               draggable={false}
             />
           </div>
@@ -106,23 +106,23 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
               <h2 class="text-[16px] font-semibold text-white tracking-tight">
                 {isEs() ? "Configuración de Tiancode" : "Tiancode Setup"}
               </h2>
-              <span class="px-2 py-0.5 text-[10px] font-mono font-medium rounded-md border border-[#0078d4]/40 bg-[#0078d4]/15 text-[#60cdff]">
+              <span class="px-2 py-0.5 text-[10px] font-mono font-medium rounded-md border border-cyan-400/40 bg-cyan-500/15 text-cyan-300">
                 v{version()}
               </span>
             </div>
-            <p class="text-[12px] text-neutral-400">{stepLabel()}</p>
+            <p class="text-[12px] text-cyan-200/60">{stepLabel()}</p>
           </div>
         </div>
 
-        {/* Windows 11 Step Progress Pills */}
-        <div class="flex items-center gap-1.5 bg-black/20 border border-white/[0.08] px-2.5 py-1.5 rounded-full">
+        {/* Astra Step Progress Pills */}
+        <div class="flex items-center gap-1.5 bg-black/40 border border-cyan-500/20 px-2.5 py-1.5 rounded-full">
           {[1, 2, 3].map((s) => (
             <div
               class={`h-1.5 rounded-full transition-all duration-300 ${
                 step() === s
-                  ? "w-5 bg-[#0078d4] shadow-[0_0_8px_#0078d4]"
+                  ? "w-5 bg-gradient-to-r from-cyan-400 to-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.9)]"
                   : step() > s
-                    ? "w-2 bg-[#0078d4]/60"
+                    ? "w-2 bg-cyan-500/50"
                     : "w-2 bg-white/20"
               }`}
             />
@@ -152,15 +152,15 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
                     <span class="text-[11px] text-neutral-400">Predeterminado</span>
                   </div>
                 </div>
-                {/* Win11 Radio circle */}
+                {/* Astra Radio circle */}
                 <div
                   class={`size-4 rounded-full border flex items-center justify-center transition-all ${
                     selectedLocale() === "es"
-                      ? "border-[#0078d4] bg-[#0078d4]"
+                      ? "border-cyan-400 bg-cyan-400 shadow-[0_0_8px_rgba(56,189,248,0.8)]"
                       : "border-white/30 bg-transparent"
                   }`}
                 >
-                  {selectedLocale() === "es" && <div class="size-1.5 rounded-full bg-white" />}
+                  {selectedLocale() === "es" && <div class="size-1.5 rounded-full bg-black" />}
                 </div>
               </div>
 
@@ -177,15 +177,15 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
                     <span class="text-[11px] text-neutral-400">Fluent Studio</span>
                   </div>
                 </div>
-                {/* Win11 Radio circle */}
+                {/* Astra Radio circle */}
                 <div
                   class={`size-4 rounded-full border flex items-center justify-center transition-all ${
                     selectedLocale() === "en"
-                      ? "border-[#0078d4] bg-[#0078d4]"
+                      ? "border-cyan-400 bg-cyan-400 shadow-[0_0_8px_rgba(56,189,248,0.8)]"
                       : "border-white/30 bg-transparent"
                   }`}
                 >
-                  {selectedLocale() === "en" && <div class="size-1.5 rounded-full bg-white" />}
+                  {selectedLocale() === "en" && <div class="size-1.5 rounded-full bg-black" />}
                 </div>
               </div>
             </div>
@@ -203,8 +203,8 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
                 onClick={() => handleSelectTheme("dark")}
                 class={`flex flex-col items-center gap-2 p-3 rounded-xl border cursor-pointer transition-all duration-150 ${
                   selectedTheme() === "dark"
-                    ? "border-[#0078d4] bg-[#0078d4]/10 shadow-[0_0_0_1px_#0078d4] text-white"
-                    : "border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/[0.14] text-neutral-300"
+                    ? "border-cyan-400 bg-cyan-500/20 shadow-[0_0_14px_rgba(56,189,248,0.25)] text-white"
+                    : "border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-cyan-500/30 text-neutral-300"
                 }`}
               >
                 <div class="size-8 rounded-lg bg-neutral-900 border border-neutral-700 flex items-center justify-center text-sm shadow-inner">
@@ -219,8 +219,8 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
                 onClick={() => handleSelectTheme("light")}
                 class={`flex flex-col items-center gap-2 p-3 rounded-xl border cursor-pointer transition-all duration-150 ${
                   selectedTheme() === "light"
-                    ? "border-[#0078d4] bg-[#0078d4]/10 shadow-[0_0_0_1px_#0078d4] text-white"
-                    : "border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/[0.14] text-neutral-300"
+                    ? "border-cyan-400 bg-cyan-500/20 shadow-[0_0_14px_rgba(56,189,248,0.25)] text-white"
+                    : "border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-cyan-500/30 text-neutral-300"
                 }`}
               >
                 <div class="size-8 rounded-lg bg-slate-100 border border-slate-300 text-slate-800 flex items-center justify-center text-sm shadow-inner">
@@ -235,8 +235,8 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
                 onClick={() => handleSelectTheme("system")}
                 class={`flex flex-col items-center gap-2 p-3 rounded-xl border cursor-pointer transition-all duration-150 ${
                   selectedTheme() === "system"
-                    ? "border-[#0078d4] bg-[#0078d4]/10 shadow-[0_0_0_1px_#0078d4] text-white"
-                    : "border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/[0.14] text-neutral-300"
+                    ? "border-cyan-400 bg-cyan-500/20 shadow-[0_0_14px_rgba(56,189,248,0.25)] text-white"
+                    : "border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-cyan-500/30 text-neutral-300"
                 }`}
               >
                 <div class="size-8 rounded-lg bg-gradient-to-tr from-neutral-900 to-slate-200 border border-white/20 flex items-center justify-center text-sm shadow-inner">
@@ -249,14 +249,14 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
         </div>
       </Show>
 
-      {/* Step 2: System Configuration (Windows 11 Settings Group Style) */}
+      {/* Step 2: System Configuration (Astra Settings Group Style) */}
       <Show when={step() === 2}>
         <div class="flex flex-col gap-3 my-1">
           <span class="text-[12px] font-medium text-neutral-400">
             {isEs() ? "Preferencias del sistema y accesibilidad" : "System preferences & accessibility"}
           </span>
 
-          {/* Windows 11 Group Container */}
+          {/* Astra Group Container */}
           <div class="flex flex-col rounded-xl border border-white/[0.08] bg-white/[0.03] overflow-hidden divide-y divide-white/[0.06]">
             {/* Sound toggle card */}
             <div
@@ -264,7 +264,7 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
               class="flex items-center justify-between p-3.5 hover:bg-white/[0.04] transition-colors cursor-pointer"
             >
               <div class="flex items-center gap-3">
-                <div class="size-8 rounded-lg bg-white/[0.06] border border-white/[0.1] flex items-center justify-center text-base shrink-0">
+                <div class="size-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-base shrink-0">
                   🔊
                 </div>
                 <div class="flex flex-col text-left">
@@ -273,8 +273,8 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
                   </span>
                   <span class="text-[11.5px] text-neutral-400">
                     {isEs()
-                      ? "Respuestas por voz neural Kokoro TTS y avisos de compilación"
-                      : "Neural Kokoro voice TTS and compilation alerts"}
+                      ? "Respuestas por voz neural fluida y avisos de compilación"
+                      : "Fluid neural voice TTS and compilation alerts"}
                   </span>
                 </div>
               </div>
@@ -287,7 +287,7 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
               class="flex items-center justify-between p-3.5 hover:bg-white/[0.04] transition-colors cursor-pointer"
             >
               <div class="flex items-center gap-3">
-                <div class="size-8 rounded-lg bg-white/[0.06] border border-white/[0.1] flex items-center justify-center text-base shrink-0">
+                <div class="size-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-base shrink-0">
                   🔄
                 </div>
                 <div class="flex flex-col text-left">
@@ -305,14 +305,14 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
             </div>
           </div>
 
-          {/* Windows 11 Info Badge */}
-          <div class="p-3 rounded-xl border border-[#0078d4]/20 bg-[#0078d4]/10 text-[11.5px] text-neutral-300 flex items-start gap-2.5">
-            <span class="text-[#60cdff] text-base shrink-0 mt-0.5">ℹ️</span>
+          {/* Astra Info Badge */}
+          <div class="p-3 rounded-xl border border-cyan-500/30 bg-cyan-950/40 text-[11.5px] text-cyan-200 flex items-start gap-2.5 shadow-[0_0_20px_rgba(56,189,248,0.1)]">
+            <span class="text-cyan-400 text-base shrink-0 mt-0.5">✨</span>
             <div class="flex flex-col gap-0.5">
               <span class="font-medium text-white">
                 {isEs() ? "Modelos locales GGUF y servidores MCP" : "Local GGUF models & MCP servers"}
               </span>
-              <span class="text-neutral-400">
+              <span class="text-slate-300/80">
                 {isEs()
                   ? "Puedes configurar inferencia offline con GPU, plugins y servidores MCP en cualquier momento desde Ajustes."
                   : "You can configure offline GPU models, plugins and MCP servers anytime from Settings."}
@@ -356,7 +356,7 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
               type="checkbox"
               checked={disclaimerAccepted()}
               onChange={(e) => setDisclaimerAccepted(e.currentTarget.checked)}
-              class="size-4.5 accent-[#0078d4] rounded cursor-pointer shrink-0"
+              class="size-4.5 accent-cyan-400 rounded cursor-pointer shrink-0"
             />
             <span class="text-[12.5px] text-white font-medium">
               {isEs()
@@ -367,7 +367,7 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
         </div>
       </Show>
 
-      {/* Navigation and Action Buttons - Windows 11 Fluent style */}
+      {/* Navigation and Action Buttons - Astra Cosmic style */}
       <div class="flex items-center justify-between pt-3 mt-3 border-t border-white/[0.08]">
         <Show when={step() > 1} fallback={<div />}>
           <button
@@ -386,7 +386,7 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
               type="button"
               disabled={!disclaimerAccepted()}
               onClick={() => void handleFinish()}
-              class="px-5 py-2 rounded-lg bg-[#0078d4] hover:bg-[#106ebe] active:bg-[#005a9e] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[13px] font-semibold shadow-[0_2px_8px_rgba(0,120,212,0.4)] transition-all flex items-center gap-2"
+              class="px-5 py-2 rounded-lg bg-gradient-to-r from-cyan-500 via-sky-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-400 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[13px] font-semibold shadow-[0_0_20px_rgba(56,189,248,0.4)] transition-all flex items-center gap-2"
             >
               <span>{isEs() ? "Comenzar" : "Get Started"}</span>
               <span>→</span>
@@ -396,7 +396,7 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
           <button
             type="button"
             onClick={() => setStep((s) => (s + 1) as 2 | 3)}
-            class="px-5 py-2 rounded-lg bg-[#0078d4] hover:bg-[#106ebe] active:bg-[#005a9e] text-white text-[13px] font-semibold shadow-[0_2px_8px_rgba(0,120,212,0.4)] transition-all flex items-center gap-1.5"
+            class="px-5 py-2 rounded-lg bg-gradient-to-r from-cyan-500 via-sky-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-400 active:scale-[0.99] text-white text-[13px] font-semibold shadow-[0_0_20px_rgba(56,189,248,0.4)] transition-all flex items-center gap-1.5"
           >
             <span>{isEs() ? "Siguiente" : "Next"}</span>
             <span>→</span>

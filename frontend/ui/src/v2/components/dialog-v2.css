@@ -8,6 +8,8 @@
   contain: strict;
   isolation: isolate;
   transform: translateZ(0);
+  will-change: opacity;
+  backface-visibility: hidden;
 }
 
 [data-component="dialog-v2"] {
@@ -20,6 +22,9 @@
   pointer-events: none;
   isolation: isolate;
   transform: translateZ(0);
+  contain: strict;
+  will-change: transform;
+  backface-visibility: hidden;
 
   [data-slot="dialog-container"] {
     display: flex;

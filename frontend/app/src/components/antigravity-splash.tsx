@@ -54,9 +54,9 @@ export const AntigravitySplash: Component<{
 
     // Geometría de letras TIANCODE (bajo el gato)
     const word = "TIANCODE"
-    const letterW = 85
-    const gap = 35
-    const totalW = word.length * letterW + (word.length - 1) * gap // 925
+    const letterW = 95
+    const gap = 36
+    const totalW = word.length * letterW + (word.length - 1) * gap
     const startX = -totalW / 2
     const oy = 51.5
     const letterH = 110
@@ -422,7 +422,7 @@ export const AntigravitySplash: Component<{
 
       const cx = width / 2
       const cy = height * 0.41
-      const maxTargetW = Math.min(width * 0.82, 420)
+      const maxTargetW = Math.min(width * 0.86, 490)
       const textScale = maxTargetW / totalW
       const formationFactor = assembleT
 
@@ -480,9 +480,10 @@ export const AntigravitySplash: Component<{
         }
       }
 
-      // 4. EMBLEMA DEL GATO Y TRAZOS DE TIANCODE (Cintas y formas luminosas en 3D)
+      // 4. EMBLEMA DEL GATO Y TRAZOS DE TIANCODE (Cintas y formas luminosas en 3D con contraste nítido)
       if (formationFactor > 0.06) {
         const ribbonAlpha = Math.pow(formationFactor, 2)
+        ctx.globalCompositeOperation = "source-over"
 
         CAT_POLYGONS.forEach((poly) => {
           const pts = poly.pts.map((p) =>
@@ -490,29 +491,45 @@ export const AntigravitySplash: Component<{
           )
           if (pts.length < 3) return
 
+          const isEye = poly.eye && poly.pts[0][1] < -100
+          const isMouthOutline = poly.eye && poly.pts[0][1] >= -100
+          const isTooth = !poly.eye
+
           ctx.beginPath()
           ctx.moveTo(pts[0].x, pts[0].y)
           for (let k = 1; k < pts.length; k++) ctx.lineTo(pts[k].x, pts[k].y)
           ctx.closePath()
 
-          if (poly.eye) {
-            ctx.fillStyle = `rgba(255, 255, 255, ${(0.92 * ribbonAlpha).toFixed(2)})`
-          } else {
-            ctx.fillStyle = `rgba(215, 242, 255, ${(0.65 * ribbonAlpha).toFixed(2)})`
+          if (isMouthOutline) {
+            // Fondo oscuro contrastado para la cavidad bucal del gato
+            ctx.fillStyle = `rgba(7, 10, 18, ${(0.92 * ribbonAlpha).toFixed(2)})`
+            ctx.fill()
+
+            // Delineado exterior de la sonrisa en azul Astra radiante
+            ctx.strokeStyle = `rgba(56, 189, 248, ${(0.88 * ribbonAlpha).toFixed(2)})`
+            ctx.lineWidth = 2.4 * pts[0].scale
+            ctx.stroke()
+          } else if (isTooth) {
+            // Colmillos y dientes nítidos blancos diamante
+            ctx.fillStyle = `rgba(255, 255, 255, ${(0.98 * ribbonAlpha).toFixed(2)})`
+            ctx.fill()
+
+            ctx.strokeStyle = `rgba(186, 230, 253, ${(0.82 * ribbonAlpha).toFixed(2)})`
+            ctx.lineWidth = 1.0 * pts[0].scale
+            ctx.stroke()
+          } else if (isEye) {
+            // Ojos radiantes con núcleo puro y delineado fino
+            ctx.fillStyle = `rgba(255, 255, 255, ${(0.98 * ribbonAlpha).toFixed(2)})`
+            ctx.fill()
+
+            ctx.strokeStyle = `rgba(56, 189, 248, ${(0.6 * ribbonAlpha).toFixed(2)})`
+            ctx.lineWidth = 3.2 * pts[0].scale
+            ctx.stroke()
+
+            ctx.strokeStyle = `rgba(255, 255, 255, ${(0.95 * ribbonAlpha).toFixed(2)})`
+            ctx.lineWidth = 1.4 * pts[0].scale
+            ctx.stroke()
           }
-          ctx.fill()
-
-          ctx.strokeStyle = `rgba(56, 189, 248, ${(0.32 * ribbonAlpha).toFixed(2)})`
-          ctx.lineWidth = 9 * pts[0].scale
-          ctx.stroke()
-
-          ctx.strokeStyle = `rgba(186, 230, 253, ${(0.6 * ribbonAlpha).toFixed(2)})`
-          ctx.lineWidth = 4 * pts[0].scale
-          ctx.stroke()
-
-          ctx.strokeStyle = `rgba(255, 255, 255, ${(0.92 * ribbonAlpha).toFixed(2)})`
-          ctx.lineWidth = 1.6 * pts[0].scale
-          ctx.stroke()
         })
 
         const drawProjectedLine = (lx1: number, ly1: number, lx2: number, ly2: number) => {
@@ -579,6 +596,7 @@ export const AntigravitySplash: Component<{
       }
 
       // 5. Partículas de la constelación (Gato + TIANCODE)
+      ctx.globalCompositeOperation = "lighter"
       for (let i = 0; i < constellationStars.length; i++) {
         const ptc = constellationStars[i]
 

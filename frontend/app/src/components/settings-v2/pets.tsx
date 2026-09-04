@@ -15,7 +15,7 @@ const petPositionLabels = {
   "top-left": "settings.pets.position.topLeft",
 } as const
 
-export const SettingsPetsV2: Component = () => {
+export const SettingsPetsV2: Component<{ active?: boolean }> = (_props) => {
   const language = useLanguage()
   const settings = useSettings()
 

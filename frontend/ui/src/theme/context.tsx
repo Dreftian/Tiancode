@@ -300,8 +300,15 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
         clear()
         return
       }
+      if (store.themes[next]) {
+        applyTheme(store.themes[next], next, store.mode, store.colorScheme)
+        cacheThemeVariants(store.themes[next], next)
+        write(STORAGE_KEYS.THEME_ID, next)
+        return
+      }
       void load(next).then((theme) => {
         if (!theme || store.themeId !== next) return
+        applyTheme(theme, next, store.mode, store.colorScheme)
         cacheThemeVariants(theme, next)
         write(STORAGE_KEYS.THEME_ID, next)
       })
@@ -310,7 +317,12 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
     const setColorScheme = (scheme: ColorScheme) => {
       setStore("colorScheme", scheme)
       write(STORAGE_KEYS.COLOR_SCHEME, scheme)
-      setStore("mode", scheme === "system" ? getSystemMode() : scheme)
+      const nextMode = scheme === "system" ? getSystemMode() : scheme
+      setStore("mode", nextMode)
+      const current = store.themes[store.themeId]
+      if (current) {
+        applyTheme(current, store.themeId, nextMode, scheme)
+      }
     }
 
     return {

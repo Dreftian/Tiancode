@@ -38,8 +38,12 @@
   transform: translateZ(0);
 }
 
-[data-slot="tabs-v2-content"][hidden] {
+[data-slot="tabs-v2-content"][hidden],
+.settings-v2-panel[hidden],
+.settings-v2-panel.\!hidden {
   display: none !important;
+  content-visibility: hidden !important;
+  contain: strict !important;
 }
 
 .settings-v2-panel :is(input, textarea, [contenteditable="true"]) {

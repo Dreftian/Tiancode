@@ -236,6 +236,11 @@ const SKILL_ES_DESCRIPTIONS: Record<string, string> = {
   "tailwind-v4-styling": "Estilizado moderno con Tailwind CSS v4: variables de tema CSS (@theme), utilidades nativas y diseño Apple.",
   "docker-containerization-expert": "Contenedorización avanzada con Docker: builds multi-stage, compose, seguridad non-root y healthchecks.",
   "playwright-e2e-testing": "Automatización y pruebas End-to-End con Playwright: Page Object Model (POM), fixtures y visual regression.",
+  "docx": "Lectura, extracción estructurada, edición y generación de documentos Word (.docx).",
+  "xlsx": "Análisis de fórmulas, validación de datos y manipulación estructurada de hojas de cálculo Excel (.xlsx).",
+  "pptx": "Inspección, creación y formateo modular de presentaciones PowerPoint (.pptx).",
+  "pdf": "Extracción de texto estructurado, metadatos, OCR y procesamiento de documentos PDF.",
+  "mcp-builder": "Construcción, validación e integración rápida de servidores Model Context Protocol (MCP) en TypeScript y Python.",
 }
 
 export const SAFE_SKILLS = new Set([
@@ -269,17 +274,24 @@ export const SAFE_SKILLS = new Set([
   "deploy-checklist",
   "documentation-and-adrs",
   "documentation-and-guides",
+  "docx",
+  "frontend-design",
   "git-workflow-and-releases",
   "git-workflow-and-versioning",
+  "mcp-builder",
   "observability-and-instrumentation",
+  "pdf",
   "performance-and-profiling",
   "performance-optimization",
+  "pptx",
   "security-and-hardening",
   "security-and-vulnerability-audit",
   "security-sast-owasp",
   "testing-and-coverage",
   "testing-strategy",
   "verification-before-completion",
+  "web-quality-audit",
+  "xlsx",
   "agy-customizations",
   "credentials",
   "typescript-strict-patterns",
@@ -651,6 +663,7 @@ function localizeSkillContent(name: string, content: string | undefined, isSpani
 
 export const SettingsSkillsV2: Component<{
   directory?: string
+  active?: boolean
 }> = (props) => {
   const language = useLanguage()
   const platform = usePlatform()
@@ -669,12 +682,14 @@ export const SettingsSkillsV2: Component<{
   const [data, { refetch }] = createResource(
     async () => {
       try {
+        const p = params()
+        const loc = p ? { location: p } : undefined
         const [skills, config] = await Promise.all([
           serverSdk()
-            .api.skill.list(params() ? { location: params()! } : undefined)
+            .api.skill.list(loc)
             .catch(() => ({ data: [] })),
           serverSdk()
-            .client.config.get(params())
+            .client.config.get(p ?? undefined)
             .catch(() => ({ data: {} })),
         ])
         return {

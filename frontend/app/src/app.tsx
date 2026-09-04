@@ -569,7 +569,9 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
 
       {/* Standalone First Launch Setup Screen (shown FIRST before anything else on fresh install) */}
       <Show when={firstLaunchActive()}>
-        <div class="fixed inset-0 z-[99998] w-full h-full bg-[#07090e] flex items-center justify-center p-4 select-none overflow-y-auto">
+        <div class="fixed inset-0 z-[99998] w-full h-full bg-[#05070c]/70 backdrop-blur-xl flex items-center justify-center p-4 select-none overflow-y-auto">
+          <div class="absolute w-[600px] h-[600px] rounded-full bg-cyan-500/10 blur-[140px] pointer-events-none" />
+          <div class="absolute w-[500px] h-[500px] rounded-full bg-indigo-500/10 blur-[150px] pointer-events-none" />
           <DialogWelcomeSetup onDone={handleDoneSetup} />
         </div>
       </Show>
