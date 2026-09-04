@@ -1,7 +1,7 @@
 import { IconButtonV2 } from "@tiancode-ai/ui/v2/icon-button-v2"
 import { Icon as IconV2 } from "@tiancode-ai/ui/v2/icon"
 import { SelectV2 } from "@tiancode-ai/ui/v2/select-v2"
-import { createEffect, createSignal, onCleanup, onMount, Show } from "solid-js"
+import { createEffect, createSignal, For, onCleanup, onMount, Show } from "solid-js"
 import { createStore } from "solid-js/store"
 import { Persist, persisted } from "@/utils/persist"
 import { normalizeUrl } from "@/components/preview-panel"
@@ -11,7 +11,7 @@ import { useSDK } from "@/context/sdk"
 import { useServer } from "@/context/server"
 import { authTokenFromCredentials } from "@/utils/server"
 import type { PreviewViewState } from "@/context/platform"
-import { previewActionUrl, previewStatusUrl, type PreviewAction } from "./live-preview-url"
+import { previewActionUrl, previewLogsUrl, previewStatusUrl, type PreviewAction } from "./live-preview-url"
 import { PREVIEW_RETRY_MAX_ATTEMPTS, isRetryablePreviewLoadFailure, previewRetryDelay, samePreviewUrl } from "./live-preview-retry"
 import { iframePreviewUrl, usesIframePreview } from "./live-preview-transport"
 import { orientedPreviewDimensions } from "./preview-experience"
@@ -28,6 +28,7 @@ type DevServerState = {
   errors: { file: string | null; line: number | null; message: string }[]
   startedAt: number | null
   errorMessage: string | null
+  isDesktop?: boolean
 }
 
 // La vista previa local se muestra en un iframe dentro del renderer. Esto hace
@@ -475,6 +476,19 @@ export function LivePreview(props: {
       ? { Authorization: `Basic ${authTokenFromCredentials({ username: http.username ?? "tiancode", password })}` }
       : undefined
   }
+  const [desktopLogs, setDesktopLogs] = createSignal<string[]>([])
+  const fetchDevServerLogs = async () => {
+    const dir = devServerDirectory()
+    const headers = devServerHeaders()
+    const url = server.current?.http.url
+    if (!dir || !url) return
+    try {
+      const res = await fetch(previewLogsUrl(url, dir), { headers })
+      if (res.ok) setDesktopLogs((await res.json()) as string[])
+    } catch {
+      // ignore
+    }
+  }
   const fetchDevServer = async () => {
     const dir = devServerDirectory()
     const headers = devServerHeaders()
@@ -482,7 +496,13 @@ export function LivePreview(props: {
     if (!dir || !url) return
     try {
       const res = await fetch(previewStatusUrl(url, dir), { headers })
-      if (res.ok) setDevServer((await res.json()) as DevServerState)
+      if (res.ok) {
+        const data = (await res.json()) as DevServerState
+        setDevServer(data)
+        if (data.isDesktop || data.status === "starting" || data.status === "ready") {
+          void fetchDevServerLogs()
+        }
+      }
     } catch {
       // Servidor del agente no disponible: se conserva el último estado.
     }
@@ -498,7 +518,11 @@ export function LivePreview(props: {
         headers: { ...headers, "content-type": "application/json" },
         body: "{}",
       })
-      if (res.ok) setDevServer((await res.json()) as DevServerState)
+      if (res.ok) {
+        const data = (await res.json()) as DevServerState
+        setDevServer(data)
+        void fetchDevServerLogs()
+      }
     } catch {
       // Sin servidor del agente: la UI queda como está.
     }
@@ -1055,19 +1079,143 @@ export function LivePreview(props: {
           )}
         </Show>
         <Show when={!iframeUrl() && !previewSurfaceVisible()}>
-          <div class="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center text-12-regular text-text-weak">
-            <span>{previewPlaceholder()}</span>
-            <Show when={devServer()?.status === "idle" || devServer()?.status === "stopped" || devServer()?.status === "error"}>
-              <button
-                type="button"
-                class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[12px] font-medium hover:bg-cyan-500/30 transition-all cursor-pointer shadow-sm"
-                onClick={() => void devServerAction(devServer()?.status === "stopped" ? "start" : devServer()?.status === "error" ? "restart" : "start")}
-              >
-                <span>▶</span>
-                <span>{devServer()?.status === "error" ? (language.t("livePreview.retry") || "Reintentar") : (language.t("livePreview.startServer") || "Iniciar Vista Previa")}</span>
-              </button>
-            </Show>
-          </div>
+          <Show
+            when={devServer()?.isDesktop}
+            fallback={
+              <div class="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center text-12-regular text-text-weak">
+                <span>{previewPlaceholder()}</span>
+                <Show when={devServer()?.status === "idle" || devServer()?.status === "stopped" || devServer()?.status === "error"}>
+                  <button
+                    type="button"
+                    class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[12px] font-medium hover:bg-cyan-500/30 transition-all cursor-pointer shadow-sm"
+                    onClick={() => void devServerAction(devServer()?.status === "stopped" ? "start" : devServer()?.status === "error" ? "restart" : "start")}
+                  >
+                    <span>▶</span>
+                    <span>{devServer()?.status === "error" ? (language.t("livePreview.retry") || "Reintentar") : (language.t("livePreview.startServer") || "Iniciar Vista Previa")}</span>
+                  </button>
+                </Show>
+              </div>
+            }
+          >
+            <div class="absolute inset-0 flex flex-col overflow-hidden bg-v2-background-bg-base p-4">
+              <div class="flex flex-col gap-3 rounded-xl border border-v2-border-border-muted bg-v2-background-bg-surface p-4 shadow-sm">
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2.5">
+                    <span class="flex size-9 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-400 text-lg">
+                      🖥️
+                    </span>
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <span class="text-13-medium text-text-base">Aplicación Nativa de Windows</span>
+                        <span class="rounded bg-cyan-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-cyan-300">
+                          {devServer()?.framework || "Desktop GUI"}
+                        </span>
+                      </div>
+                      <p class="text-11-regular text-text-weak">
+                        Esta aplicación se ejecuta en una ventana nativa de tu sistema operativo Windows.
+                      </p>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span
+                      class={`size-2 rounded-full ${
+                        devServer()?.status === "ready"
+                          ? "bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]"
+                          : devServer()?.status === "starting"
+                            ? "bg-amber-400 animate-ping"
+                            : devServer()?.status === "error"
+                              ? "bg-rose-500"
+                              : "bg-neutral-500"
+                      }`}
+                    />
+                    <span class="text-11-medium text-text-weak">
+                      {devServer()?.status === "ready"
+                        ? "En ejecución en Windows"
+                        : devServer()?.status === "starting"
+                          ? "Iniciando proceso..."
+                          : devServer()?.status === "error"
+                            ? "Error al ejecutar"
+                            : "Detenida"}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-2 pt-1">
+                  <Show
+                    when={devServer()?.status === "ready"}
+                    fallback={
+                      <button
+                        type="button"
+                        class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[12px] font-medium hover:bg-cyan-500/30 transition-all cursor-pointer shadow-sm"
+                        onClick={() => void devServerAction(devServer()?.status === "error" ? "restart" : "start")}
+                      >
+                        <span>▶</span>
+                        <span>{devServer()?.status === "error" ? "Reintentar Ejecución" : "Ejecutar Aplicación en Windows"}</span>
+                      </button>
+                    }
+                  >
+                    <button
+                      type="button"
+                      class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[12px] font-medium hover:bg-rose-500/30 transition-all cursor-pointer shadow-sm"
+                      onClick={() => void devServerAction("stop")}
+                    >
+                      <span>■</span>
+                      <span>Detener Aplicación</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-neutral-800 text-neutral-300 border border-neutral-700 text-[12px] font-medium hover:bg-neutral-700 transition-all cursor-pointer shadow-sm"
+                      onClick={() => void devServerAction("restart")}
+                    >
+                      <span>↻</span>
+                      <span>Reiniciar</span>
+                    </button>
+                  </Show>
+                  <Show when={devServer()?.command}>
+                    <span class="text-11-regular font-mono text-text-faint ml-auto">
+                      {devServer()?.command}
+                    </span>
+                  </Show>
+                </div>
+              </div>
+
+              {/* Consola de logs en vivo */}
+              <div class="mt-3 flex min-h-0 flex-1 flex-col rounded-xl border border-v2-border-border-muted bg-neutral-950 p-3 shadow-inner">
+                <div class="flex items-center justify-between pb-2 border-b border-neutral-800 text-[11px] text-neutral-400">
+                  <span class="font-medium">Consola de ejecución (stdout / stderr)</span>
+                  <div class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      class="text-neutral-400 hover:text-white transition-colors cursor-pointer text-[10px]"
+                      onClick={() => void fetchDevServerLogs()}
+                    >
+                      Actualizar
+                    </button>
+                    <button
+                      type="button"
+                      class="text-neutral-400 hover:text-white transition-colors cursor-pointer text-[10px]"
+                      onClick={() => {
+                        const text = desktopLogs().join("\n")
+                        if (text) void navigator.clipboard?.writeText(text)
+                      }}
+                    >
+                      Copiar
+                    </button>
+                  </div>
+                </div>
+                <div class="min-h-0 flex-1 overflow-y-auto pt-2 font-mono text-[11px] leading-relaxed text-neutral-300">
+                  <Show
+                    when={desktopLogs().length > 0}
+                    fallback={<div class="text-neutral-600 italic">No hay registros de consola aún. Presiona "Ejecutar Aplicación en Windows" para ver la salida.</div>}
+                  >
+                    <For each={desktopLogs()}>
+                      {(line) => <div class="whitespace-pre-wrap break-all">{line}</div>}
+                    </For>
+                  </Show>
+                </div>
+              </div>
+            </div>
+          </Show>
         </Show>
       </div>
 

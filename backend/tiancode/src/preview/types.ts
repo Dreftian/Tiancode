@@ -19,4 +19,5 @@ export type PreviewState = {
   errors: PreviewError[]
   startedAt: number | null
   errorMessage: string | null
+  isDesktop?: boolean
 }

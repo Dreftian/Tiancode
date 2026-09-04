@@ -16,6 +16,7 @@ export type DetectedProject = {
   url?: string
   workingDirectory?: string
   error?: string
+  isDesktop?: boolean
 }
 
 const DEV_SCRIPTS = ["dev", "develop", "start", "serve"] as const
@@ -267,6 +268,16 @@ async function detectMultiLanguageProject(dir: string, relDir: string): Promise<
         framework = "flask"
         script = "flask run --port 5000"
         port = 5000
+      } else if (combined.includes("tkinter") || combined.includes("pyqt") || combined.includes("pyside") || combined.includes("wxpython")) {
+        return {
+          framework: "python-gui",
+          packageManager: "python",
+          script: activePyFile ?? "main.py",
+          port: 0,
+          isDesktop: true,
+          entry: activePyFile ?? "main.py",
+          ...(relDir !== "." ? { workingDirectory: relDir } : {}),
+        }
       } else {
         script = activePyFile ?? "main.py"
         port = 8000
@@ -366,13 +377,42 @@ async function detectMultiLanguageProject(dir: string, relDir: string): Promise<
   try {
     if (existsSync(dir)) {
       const files = await readdir(dir)
-      const hasCsproj = files.some((f) => /\.csproj$/i.test(f) || /\.sln$/i.test(f))
-      if (hasCsproj) {
+      const csprojFiles = files.filter((f) => /\.csproj$/i.test(f))
+      const hasCsprojOrSln = csprojFiles.length > 0 || files.some((f) => /\.sln$/i.test(f))
+      if (hasCsprojOrSln) {
+        let isDesktop = false
+        let framework = "dotnet"
+        for (const f of csprojFiles) {
+          const content = await readProjectText(join(dir, f))
+          if (content) {
+            if (/<UseWPF>true<\/UseWPF>/i.test(content)) {
+              framework = "wpf"
+              isDesktop = true
+              break
+            }
+            if (/<UseWindowsForms>true<\/UseWindowsForms>/i.test(content)) {
+              framework = "winforms"
+              isDesktop = true
+              break
+            }
+            if (/<OutputType>WinExe<\/OutputType>/i.test(content) || /TargetFramework.*-windows/i.test(content)) {
+              framework = "dotnet-desktop"
+              isDesktop = true
+              break
+            }
+            if (/Microsoft\.NET\.Sdk\.Web/i.test(content)) {
+              framework = "aspnetcore"
+              isDesktop = false
+              break
+            }
+          }
+        }
         return {
-          framework: "dotnet",
+          framework,
           packageManager: "dotnet",
           script: "dotnet run",
-          port: 5000,
+          port: isDesktop ? 0 : 5000,
+          isDesktop,
           ...(relDir !== "." ? { workingDirectory: relDir } : {}),
         }
       }

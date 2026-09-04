@@ -122,7 +122,7 @@ export interface Settings {
     petPosition: PetPosition
     autoSpeak: boolean
     speakReasoning: boolean
-    voiceEngine: "auto" | "system" | "neural"
+    voiceEngine: "auto" | "fish" | "system" | "neural"
     showReasoningSummaries: boolean
     shellToolPartsExpanded: boolean
     editToolPartsExpanded: boolean
@@ -531,7 +531,7 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
           setStore("general", "speakReasoning", value)
         },
         voiceEngine: withFallback(() => store.general?.voiceEngine, defaultSettings.general.voiceEngine),
-        setVoiceEngine(value: "auto" | "system" | "neural") {
+        setVoiceEngine(value: "auto" | "fish" | "system" | "neural") {
           setStore("general", "voiceEngine", value)
         },
         showReasoningSummaries: withFallback(

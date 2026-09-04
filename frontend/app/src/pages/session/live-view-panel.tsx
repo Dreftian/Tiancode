@@ -216,9 +216,11 @@ export function embeddedPreviewTarget(
 ) {
   const managed = managedUrlForDirectory(target, directory)
   if (managed) return managed
-  if (snapshot?.preview_url) return serverTargetOf(snapshot)
+  if (snapshot?.preview_url) return snapshot.preview_url
+  const devUrl = findDevServerUrl(snapshot)
+  if (devUrl) return devUrl
   if (previewAutoStartKey(snapshot)) return
-  return serverTargetOf(snapshot)
+  return resolveReportedUrl(snapshot)
 }
 
 export function filterPreviewFiles(paths: readonly string[], query: string) {

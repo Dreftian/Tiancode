@@ -108,7 +108,7 @@ const BARGE_IN_KEY = "tiancode.voice.barge_in"
 const CUSTOM_VOICES_KEY = "tiancode.voice.custom_list"
 const ENGINE_KEY = "tiancode.voice.engine"
 
-export type VoiceEngineMode = "auto" | "system" | "neural"
+export type VoiceEngineMode = "auto" | "fish" | "system" | "neural"
 
 export const [voiceEngineMode, setVoiceEngineState] = createSignal<VoiceEngineMode>(
   typeof localStorage !== "undefined" ? ((localStorage.getItem(ENGINE_KEY) as VoiceEngineMode) ?? "auto") : "auto",
@@ -122,6 +122,59 @@ export function setVoiceEngineMode(mode: VoiceEngineMode) {
   setVoiceEngineState(mode)
   if (typeof localStorage !== "undefined") {
     localStorage.setItem(ENGINE_KEY, mode)
+  }
+}
+
+// Fish Audio S2.1 Pro API (Ultra-Fluida / Free Tier)
+export const FISH_AUDIO_API_URL = "https://api.fish.audio/v1/tts"
+const FISH_KEY_STORAGE = "tiancode.voice.fish_audio_key"
+const FISH_VOICE_STORAGE = "tiancode.voice.fish_audio_voice_id"
+export const DEFAULT_FISH_KEY = "sk-fish-JctE9rsGvKF4LthXgq0dZRxno7Wqm5ftrSAA3cfO8Uk"
+export const DEFAULT_FISH_VOICE = "07a03f5ca90849b3bf0638135b0a40c3" // Natasha (Spanish)
+
+export type FishVoice = {
+  id: string
+  name: string
+  desc: string
+  lang: string
+  gender: "female" | "male"
+}
+
+export const CURATED_FISH_VOICES: FishVoice[] = [
+  { id: "07a03f5ca90849b3bf0638135b0a40c3", name: "Natasha (Español Natural)", desc: "Cálida, empática, dicción perfecta y tono femenino joven", lang: "es", gender: "female" },
+  { id: "2ac5be5c9fe4494989a8a21b43c7729f", name: "Española Conversacional y Viva", desc: "Alegre, fluida, animada y conversacional", lang: "es", gender: "female" },
+  { id: "b221a81a09324e0a8428c13bc6391985", name: "Española Profesional", desc: "Clara, rítmica, didáctica para explicaciones de código", lang: "es", gender: "female" },
+  { id: "ffce9b71653646149b8832b89054cc7d", name: "Española Brillante y Dinámica", desc: "Dinámica, juvenil y enérgica", lang: "es", gender: "female" },
+  { id: "82985a30bc9a4f759dde5f701ce3dcf3", name: "Española Neutra y Suave", desc: "Elegante, clara y cadencia relajada", lang: "es", gender: "female" },
+  { id: "f4e6fd540b6b4408805952c419a581a1", name: "Española Conversación Natural", desc: "Muy humana, cadencia realista y natural", lang: "es", gender: "female" },
+]
+
+export const [fishAudioKey, setFishAudioKeyState] = createSignal<string>(
+  typeof localStorage !== "undefined" ? localStorage.getItem(FISH_KEY_STORAGE) || DEFAULT_FISH_KEY : DEFAULT_FISH_KEY,
+)
+export const [fishAudioVoice, setFishAudioVoiceState] = createSignal<string>(
+  typeof localStorage !== "undefined" ? localStorage.getItem(FISH_VOICE_STORAGE) || DEFAULT_FISH_VOICE : DEFAULT_FISH_VOICE,
+)
+
+export function getFishAudioKey(): string {
+  return fishAudioKey()
+}
+
+export function setFishAudioKey(key: string) {
+  setFishAudioKeyState(key.trim())
+  if (typeof localStorage !== "undefined") {
+    localStorage.setItem(FISH_KEY_STORAGE, key.trim())
+  }
+}
+
+export function getFishAudioVoice(): string {
+  return fishAudioVoice()
+}
+
+export function setFishAudioVoice(voiceId: string) {
+  setFishAudioVoiceState(voiceId.trim())
+  if (typeof localStorage !== "undefined") {
+    localStorage.setItem(FISH_VOICE_STORAGE, voiceId.trim())
   }
 }
 
@@ -360,6 +413,86 @@ function speakWithWebSpeech(key: string, text: string): Promise<string | undefin
   })
 }
 
+export async function speakWithFishAudio(
+  key: string,
+  text: string,
+  voiceId?: string,
+): Promise<string | undefined> {
+  const apiKey = getFishAudioKey()
+  if (!apiKey) return "Clave de API de Fish Audio no configurada."
+
+  const selectedVoice = voiceId || getFishAudioVoice()
+  const speed = getVoiceSpeed()
+  const expectedGeneration = speechGeneration
+
+  try {
+    const response = await fetch(FISH_AUDIO_API_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        model: "s2.1-pro-free",
+      },
+      body: JSON.stringify({
+        text,
+        reference_id: selectedVoice || undefined,
+        format: "mp3",
+        latency: "normal",
+        prosody: {
+          speed: speed ?? 1.0,
+          volume: 0,
+        },
+      }),
+    })
+
+    if (!response.ok) {
+      const errBody = await response.text().catch(() => "")
+      return `Error Fish Audio HTTP ${response.status}: ${errBody || response.statusText}`
+    }
+
+    if (speechGeneration !== expectedGeneration || speakingKey() !== key) return
+
+    const buffer = await response.arrayBuffer()
+    if (!buffer || buffer.byteLength === 0) {
+      return "Fish Audio devolvió un buffer de audio vacío."
+    }
+
+    if (speechGeneration !== expectedGeneration || speakingKey() !== key) return
+
+    return new Promise<undefined>((resolve) => {
+      let resolved = false
+      const finish = () => {
+        if (resolved) return
+        resolved = true
+        if (pendingPlay === finish) {
+          pendingPlay = undefined
+          clearActive()
+          setSpeakingKey(undefined)
+        }
+        resolve(undefined)
+      }
+
+      try {
+        const blob = new Blob([buffer], { type: "audio/mpeg" })
+        const url = URL.createObjectURL(blob)
+        const audio = new Audio(url)
+        audio.playbackRate = getVoiceSpeed()
+        activeURL = url
+        activeAudio = audio
+        audio.onended = finish
+        audio.onerror = finish
+        pendingPlay = finish
+        audio.play().catch(finish)
+        setTimeout(finish, 45000)
+      } catch {
+        finish()
+      }
+    })
+  } catch (error) {
+    return `Error de red al conectar con Fish Audio: ${error instanceof Error ? error.message : String(error)}`
+  }
+}
+
 async function speak(key: string, text: string, voiceId?: string, options?: VoicesSpeakOptions): Promise<string | undefined> {
   // Limpia y normaliza Markdown a lenguaje hablado fluido natural (estilo Sol de ChatGPT)
   const cleaned = cleanMarkdownForSpeech(text)
@@ -374,8 +507,23 @@ async function speak(key: string, text: string, voiceId?: string, options?: Voic
   setSpeakingKey(key)
   const expectedGeneration = speechGeneration
 
+  const isFishVoice = Boolean(voiceId && (CURATED_FISH_VOICES.some((v) => v.id === voiceId) || voiceId.length === 32))
+  if (isFishVoice || getVoiceEngineMode() === "fish") {
+    const err = await speakWithFishAudio(key, normalized, voiceId)
+    if (!err) return
+    return speakWithWebSpeech(key, normalized)
+  }
+
   if (getVoiceEngineMode() === "system") {
     return speakWithWebSpeech(key, normalized)
+  }
+
+  if (getVoiceEngineMode() === "auto") {
+    const fishKey = getFishAudioKey()
+    if (fishKey) {
+      const err = await speakWithFishAudio(key, normalized, voiceId)
+      if (!err) return
+    }
   }
 
   const api = voicesAPI()

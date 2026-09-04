@@ -132,6 +132,16 @@ describe("embeddedPreviewTarget", () => {
       }),
     ).toBe("http://127.0.0.1:5173")
   })
+
+  test("uses dev server URL found in logs even when entry files exist", () => {
+    expect(
+      embeddedPreviewTarget(undefined, "C:\\crm", {
+        preview_default: "preview/",
+        files: [{ rel: "index.html", size: 10, mtime: 1 }],
+        logs: [{ line: "Local: http://localhost:5173/" }],
+      }),
+    ).toBe("http://localhost:5173")
+  })
 })
 
 describe("filterPreviewFiles", () => {

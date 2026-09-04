@@ -22,6 +22,14 @@ import {
   setVoiceEngineMode,
   stopSpeaking,
   type VoiceEngineMode,
+  getFishAudioKey,
+  setFishAudioKey,
+  DEFAULT_FISH_KEY,
+  getFishAudioVoice,
+  setFishAudioVoice,
+  DEFAULT_FISH_VOICE,
+  CURATED_FISH_VOICES,
+  speakWithFishAudio,
 } from "@/utils/voices"
 import { stopAutoSpeak } from "@/utils/auto-speak"
 import { AudioWaveform } from "@/components/audio-waveform"
@@ -384,9 +392,20 @@ export const SettingsVoicesV2: Component = () => {
           <SettingsListV2>
             <SettingsRowV2
               title="Motor de Síntesis de Voz"
-              description="Usa la voz nativa de Windows (Microsoft Sabina/Helena) para 0% consumo de CPU y 0 ms de espera, o el modelo neuronal local."
+              description="Elige entre Fish Audio S2.1 Pro para voces humanas ultra-fluidas (0% CPU local), voz nativa de Windows (Microsoft Sabina) o el modelo neuronal local."
             >
-              <div class="flex items-center gap-1.5">
+              <div class="flex items-center flex-wrap gap-1.5">
+                <ButtonV2
+                  type="button"
+                  variant={getVoiceEngineMode() === "fish" ? "contrast" : "ghost"}
+                  size="small"
+                  onClick={() => {
+                    setVoiceEngineMode("fish")
+                    settings.general.setVoiceEngine("fish")
+                  }}
+                >
+                  🐟 Fish Audio S2.1 Pro (Ultra-Fluida / Free)
+                </ButtonV2>
                 <ButtonV2
                   type="button"
                   variant={getVoiceEngineMode() === "system" ? "contrast" : "ghost"}
@@ -491,6 +510,109 @@ export const SettingsVoicesV2: Component = () => {
               </div>
             </SettingsRowV2>
           </SettingsListV2>
+
+          {/* Tarjeta de Configuración de Fish Audio S2.1 Pro */}
+          <Show when={getVoiceEngineMode() === "fish" || getVoiceEngineMode() === "auto"}>
+            <div class="settings-v2-section mt-4 rounded-xl border border-cyan-500/30 bg-gradient-to-b from-cyan-950/25 to-neutral-900/60 p-4 shadow-sm">
+              <div class="flex items-center justify-between pb-3 border-b border-cyan-500/20">
+                <div class="flex items-center gap-2.5">
+                  <span class="text-2xl">🐟</span>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-13-medium text-text-base">Fish Audio S2.1 Pro (Free API)</span>
+                      <span class="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
+                        Ultra-Fluida / 0% CPU Local
+                      </span>
+                    </div>
+                    <p class="text-11-regular text-text-weak">
+                      Voces hiper-realistas femeninas en español con entonación natural, pausas de respiración y dicción perfecta.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[11px] font-medium hover:bg-cyan-500/30 transition-all cursor-pointer shadow-sm"
+                  onClick={async () => {
+                    const probeKey = "probe:fish"
+                    if (isVoiceSpeaking(probeKey)) {
+                      stopSpeaking()
+                      return
+                    }
+                    showToast({
+                      title: "Probando Fish Audio",
+                      description: "Generando voz fluida femenina en español...",
+                    })
+                    const err = await speakWithFishAudio(probeKey, "¡Hola! Soy la voz hiper-realista femenina de Tiancode impulsada por Fish Audio S 2.1 Pro. ¿Qué programamos hoy?")
+                    if (err) {
+                      showToast({ variant: "error", title: "Error en Fish Audio", description: err })
+                    }
+                  }}
+                >
+                  <span>{isVoiceSpeaking("probe:fish") ? "■ Detener Muestra" : "▶ Probar Voz"}</span>
+                </button>
+              </div>
+
+              {/* Selector de Voz de Fish Audio */}
+              <div class="mt-3.5">
+                <div class="text-[11px] font-medium text-text-weak mb-2">Selecciona una Voz Femenina de Alta Fidelidad:</div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <For each={CURATED_FISH_VOICES}>
+                    {(voice) => (
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setFishAudioVoice(voice.id)}
+                        class={`flex flex-col p-2.5 rounded-lg border transition-all cursor-pointer text-left ${
+                          getFishAudioVoice() === voice.id
+                            ? "border-cyan-400 bg-cyan-500/15 shadow-[0_0_10px_rgba(56,189,248,0.2)]"
+                            : "border-neutral-800 bg-neutral-900/50 hover:border-neutral-700 hover:bg-neutral-800/40"
+                        }`}
+                      >
+                        <div class="flex items-center justify-between">
+                          <span class="text-12-medium text-text-base flex items-center gap-1.5">
+                            <span class={`size-2 rounded-full ${getFishAudioVoice() === voice.id ? "bg-cyan-400 shadow-[0_0_6px_#38bdf8]" : "bg-neutral-600"}`} />
+                            {voice.name}
+                          </span>
+                          <span class="text-[10px] text-cyan-400 font-mono">
+                            {voice.id === DEFAULT_FISH_VOICE ? "★ Recomendada" : ""}
+                          </span>
+                        </div>
+                        <span class="text-[11px] text-text-weak mt-1 line-clamp-2">
+                          {voice.desc}
+                        </span>
+                      </div>
+                    )}
+                  </For>
+                </div>
+              </div>
+
+              {/* Clave de API */}
+              <div class="mt-3.5 pt-3 border-t border-cyan-500/15 flex flex-col gap-1.5">
+                <div class="flex items-center justify-between text-[11px] text-text-weak">
+                  <span>Clave de API de Fish Audio (S2.1 Pro Free):</span>
+                  <button
+                    type="button"
+                    class="text-cyan-400 hover:underline cursor-pointer text-[11px]"
+                    onClick={() => {
+                      setFishAudioKey(DEFAULT_FISH_KEY)
+                      showToast({ title: "Clave restablecida", description: "Se ha cargado la clave gratuita de Fish Audio." })
+                    }}
+                  >
+                    Restablecer clave predeterminada
+                  </button>
+                </div>
+                <div class="flex items-center gap-2">
+                  <input
+                    type="password"
+                    value={getFishAudioKey()}
+                    onInput={(e) => setFishAudioKey(e.currentTarget.value)}
+                    placeholder="sk-fish-..."
+                    class="flex-1 h-7 rounded-md border border-neutral-700 bg-black/60 px-2 text-11-regular font-mono text-text-base outline-none focus:border-cyan-400"
+                  />
+                </div>
+              </div>
+            </div>
+          </Show>
 
           <div class="settings-v2-section">
             <h3 class="settings-v2-section-title">{language.t("settings.voices.ready.title")}</h3>

@@ -125,6 +125,7 @@ function idleState(detected: DetectedProject | null): PreviewState {
     errors: [],
     startedAt: null,
     errorMessage: null,
+    isDesktop: detected?.isDesktop ?? false,
   }
 }
 
@@ -477,6 +478,8 @@ async function spawnServer(managed: Managed) {
     execArgs = ["run", managed.detected.script]
   }
 
+  const isDesktop = Boolean(managed.detected.isDesktop)
+
   // En Windows los gestores son .cmd o comandos de shell: shell:true los resuelve
   // (cmd.exe padre → taskkill /T mata todo el árbol). En Unix, detached + setsid
   // permite matar el grupo de procesos.
@@ -485,11 +488,37 @@ async function spawnServer(managed: Managed) {
     env: scrubEnv(),
     shell: isWin,
     detached: !isWin,
-    windowsHide: true,
+    windowsHide: !isDesktop,
     stdio: ["ignore", "pipe", "pipe"],
   })
 
   managed.process = child
+
+  if (isDesktop) {
+    setStatus(managed, {
+      status: "ready",
+      url: null,
+      port: null,
+      isDesktop: true,
+      errorMessage: null,
+    })
+    child.stdout?.on("data", (data: Buffer) => onOutput(managed, data.toString()))
+    child.stderr?.on("data", (data: Buffer) => onOutput(managed, data.toString()))
+    child.on("error", (error) => {
+      setStatus(managed, { status: "error", isDesktop: true, errorMessage: error.message })
+    })
+    child.on("exit", (code) => {
+      managed.process = null
+      if (managed.state.status === "starting" || managed.state.status === "ready") {
+        setStatus(managed, {
+          status: "stopped",
+          isDesktop: true,
+          errorMessage: code && code !== 0 ? `El proceso terminó con código ${code}` : null,
+        })
+      }
+    })
+    return
+  }
 
   // Chequeo proactivo inmediato del puerto esperado mientras se escuchan logs
   if (managed.detected.port && managed.detected.port > 0) {

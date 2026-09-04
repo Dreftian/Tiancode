@@ -8,6 +8,10 @@ export function previewActionUrl(serverUrl: string, action: PreviewAction, direc
   return previewUrl(serverUrl, `preview/${action}`, directory)
 }
 
+export function previewLogsUrl(serverUrl: string, directory: string) {
+  return previewUrl(serverUrl, "preview/logs", directory)
+}
+
 function previewUrl(serverUrl: string, path: string, directory: string) {
   return `${serverUrl.replace(/\/+$/, "")}/${path}?directory=${encodeURIComponent(directory)}`
 }

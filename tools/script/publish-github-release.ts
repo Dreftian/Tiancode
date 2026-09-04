@@ -27,31 +27,25 @@ async function main() {
   const owner = "Dreftian"
   const repo = "Tiancode"
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
-  const version = desktopPkg.version || "1.0.5"
+  const version = desktopPkg.version || "1.0.6"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} - Activación Automática de Sub-agentes, UI Codex Desktop en Chat, Vista Previa Universal Multi-Lenguaje & Windows 11 Fluent Store`
-  const body = `## 🚀 Tiancode v${version} — Activación Automática de Sub-agentes, UI Codex Desktop, Vista Previa Universal & Windows 11 Fluent Store
+  const releaseName = `Tiancode v${version} - Fish Audio S2.1 Pro Ultra-Fluida, Soporte de Apps Nativas de Escritorio (WPF/GUI) & Live Preview Universal`
+  const body = `## 🚀 Tiancode v${version} — Fish Audio S2.1 Pro Ultra-Fluida, Soporte de Apps Nativas de Escritorio & Live Preview Universal
 
-### 🤖 Activación Automática y Proactiva de Sub-Agentes Especializados
-- **Orquestación Autónoma de Enjambres:** Mandato universal que obliga al agente principal a delegar tareas complejas, frontend, backend, arquitectura, testing y seguridad a sub-agentes especializados (\`ui-ux-master\`, \`fullstack-coder\`, \`software-architect\`, \`devsecops-auditor\`, \`qa-e2e-tester\`) de forma 100% automática sin requerir que el usuario lo solicite de manera manual.
-- **Inyección en Todos los Proveedores:** Integración exhaustiva en prompts de sistema para Anthropic Claude, OpenAI GPT, Google Gemini, Ollama, DeepSeek y Kimi.
+### 🐟 Integración de Fish Audio S2.1 Pro (Voces Femeninas Ultra-Fluidas Free API)
+- **Calidad de Estudio Hiper-Realista:** Integración con la API oficial gratuita S2.1 Pro de Fish Audio, proporcionando voces de locución humana con cadencia natural, respiración y prosodia impecable a 0% de consumo de CPU local.
+- **Catálogo de Voces Femeninas en Español:** Acceso directo a voces curadas de alta calidad: *Natasha (Español Natural)*, *Española Conversacional y Viva*, *Española Profesional*, *Española Brillante y Dinámica*, *Española Neutra y Suave*, y *Española Conversación Natural*.
+- **Selector y Prueba de Voz en Vivo:** Panel dedicado en Configuración > Voces con botón para probar la síntesis de voz, selector rápido de voces, soporte para claves personalizadas y enlace al directorio de modelos de la comunidad.
 
-### 💼 Interfaz de Sub-agentes Estilo Codex Desktop en el Chat
-- **Tarjetas Ejecutivas de Especialistas:** Tarjetas rediseñadas con acentos cromáticos por especialidad, badges de rol (\`UI/UX & Frontend\`, \`Fullstack & Core\`, \`System Architect\`, etc.) e indicador de pulso en vivo.
-- **Visualización Limpia de Resultados:** Vista previa de directivas, botón directo "Abrir sesión ↗" y bandeja colapsable con renderizado Markdown optimizado y copiado en un clic.
+### 🖥️ Soporte Integral de Aplicaciones de Escritorio Nativas en Vista Previa
+- **Detección Automática de GUI (.NET WPF / WinForms / Python GUI / Rust GUI):** Identificación inteligente de proyectos de escritorio (como C# con WPF, NAudio, Windows Forms, Tkinter, PyQt, etc.) evitando falsos bloqueos de puerto HTTP.
+- **Ejecución Visible en Windows:** Lanzamiento del proceso sin ocultar la ventana (\`windowsHide: false\`), permitiendo al usuario interactuar directamente con la ventana nativa de su aplicación en el sistema operativo.
+- **Panel Sandbox para Aplicaciones de Escritorio:** Interfaz dedicada con controles de proceso (\`▶ Ejecutar en Windows\`, \`■ Detener Aplicación\`, \`↻ Reiniciar\`), indicador de estado en tiempo real (En ejecución / Detenida) y terminal de logs en vivo (stdout / stderr) con botón de copiado.
+- **Resolución Inmediata de URLs de Desarrollo:** Corrección en el algoritmo de enlace de Vista Previa para adoptar sin demora las URLs de desarrollo locales detectadas en los registros de ejecución.
 
-### 🌐 Vista Previa Universal para Cualquier Website o App en Todos los Lenguajes
-- **Soporte Multi-Lenguaje y Multi-Framework Nativo:** Detección y arranque automático para Node.js/TypeScript, Python (FastAPI/Flask/Django/Streamlit/Gradio), Rust (Cargo/Trunk), Go, PHP (Laravel/Built-in), Ruby (Rails), Java/Kotlin (Spring Boot/Maven/Gradle), .NET/C#, Deno y HTML estático.
-- **Normalización HTTP/HTTPS Inteligente:** Corrección que fuerza \`http://\` en \`localhost\`, \`127.0.0.1\`, \`0.0.0.0\` y \`[::1]\`, erradicando los errores de protocolo SSL (\`ERR_SSL_PROTOCOL_ERROR\`).
-- **Control Responsive & Puertos Rápidos:** Selector de viewport (\`Desktop\`, \`Tablet\` a 768px, \`Mobile\` a 375px), botones de puertos de desarrollo (\`:3000\`, \`:5173\`, \`:8000\`, \`:8080\`, \`:8501\`, \`:7860\`, \`:5000\`), overlay de recuperación de errores y fallback web.
-
-### 🪟 Catálogo "Descubrir" de MCP y Plugins Estilo Windows 11 Fluent Store
-- **Material Mica & Acrylic:** Banner Hero con gradiente radial Mica, chips de categorías redondeados con efecto glow Fluent y tarjetas estilo Microsoft Store con borde translúcido y elevación suave.
-- **Auditoría y Sincronización en Tiempo Real:** Corrección de formatos de entrada de plugins en la configuración para alternar activación y desactivación de forma sincronizada sin pérdidas de estado.
-
-### 🎙️ Dictado por Voz Modernizado & Telemetría de Modelos Locales
-- **Formas de Onda Reactivas (Audio Waveform):** Canvas animado de ondas sonoras en tiempo real mientras el micrófono o la voz están activos.
-- **Telemetría y Estado de Runtimes:** Insignias de estado en tiempo real (Online / Offline) para Ollama y LM Studio, con visualización de puertos y monitor de VRAM / GPU libre.
+### 🤖 Activación Automática de Sub-Agentes y UI Codex Desktop
+- **Orquestación Autónoma de Enjambres:** Sub-agentes especializados (\`ui-ux-master\`, \`fullstack-coder\`, \`software-architect\`, \`devsecops-auditor\`, \`qa-e2e-tester\`) invocados automáticamente para tareas complejas.
+- **Tarjetas Ejecutivas Estilo Codex Desktop:** Tarjetas de especialistas con distintivos de rol cromáticos, estado de pulso en vivo y visualización colapsable de directivas y resultados.
 
 ### 📦 Descargas
 | Archivo | Tipo | Descripción |
