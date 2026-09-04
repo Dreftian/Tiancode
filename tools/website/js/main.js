@@ -11,10 +11,12 @@ import { initRouter, closeDropdown } from './router.js';
 import { initAnimations } from './animations.js';
 import { initCharts } from './charts.js';
 import { initFaq } from './faq.js';
+import { initGalaxy } from './galaxy.js';
 
 /* ---------- Inicialización de módulos ---------- */
 initTheme();
 initRouter();
+initGalaxy();
 applyLang(); // aplica el idioma guardado y sincroniza título/gráficas
 initI18n();
 initAnimations();

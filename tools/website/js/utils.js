@@ -6,7 +6,9 @@
 export const LS_KEYS = { lang: 'tiancode-lang', theme: 'tiancode-theme' };
 
 export const reducedMotion =
-  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  typeof window !== 'undefined' && window.matchMedia
+    ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    : false;
 
 export function readLS(key, fallback) {
   try { return localStorage.getItem(key) || fallback; } catch (e) { return fallback; }

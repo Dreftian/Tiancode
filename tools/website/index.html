@@ -149,12 +149,12 @@
         </a>
 
         <nav class="main-nav" aria-label="Navegación principal">
-          <a href="#hero">Overview</a>
-          <a href="#capabilities">Capabilities</a>
-          <a href="#benchmarks">Benchmarks</a>
-          <a href="#architecture">Architecture</a>
-          <a href="#skills">Skills</a>
-          <a href="#downloads">Download</a>
+          <a href="#hero" data-i18n="nav.overview">Visión General</a>
+          <a href="#capabilities" data-i18n="nav.capabilities">Capacidades</a>
+          <a href="#benchmarks" data-i18n="nav.benchmarks">Evaluaciones</a>
+          <a href="#architecture" data-i18n="nav.architecture">Arquitectura</a>
+          <a href="#skills" data-i18n="nav.skills">Skills</a>
+          <a href="#downloads" data-i18n="nav.download">Descargar</a>
           <div class="nav-dropdown">
             <button class="nav-dropdown-toggle" type="button" aria-expanded="false" aria-haspopup="true"
                     data-i18n-aria="nav.dropdownAria" aria-label="Abrir menú de recursos">
@@ -184,7 +184,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
           </svg>
-          <span>Download v1.0.4</span>
+          <span data-i18n="nav.downloadPill">Descargar v1.0.4</span>
         </a>
         <a href="https://github.com/Dreftian/Tiancode" class="icon-btn" aria-label="GitHub Repository" target="_blank" rel="noopener noreferrer">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -221,20 +221,40 @@
     <!-- ===== Contenido de la home (Estilo OpenAI Index / GPT-6 Astra) ===== -->
     <div id="home" class="home-content">
 
+    <!-- ================= 00. Cosmic Motion Hero Stage (Estilo GPT-6 Astra) ================= -->
+    <section id="galaxy-hero" class="cosmic-hero-stage" aria-label="Visualizador de Inteligencia Cósmica Tiancode">
+      <div class="cosmic-stage-inner">
+        <div class="cosmic-word cosmic-word-left" data-i18n="hero.cosmicLeft">TIAN</div>
+        <div class="cosmic-canvas-wrap">
+          <canvas id="cosmic-galaxy-canvas"></canvas>
+        </div>
+        <div class="cosmic-word cosmic-word-right" data-i18n="hero.cosmicRight">CODE</div>
+      </div>
+      <div class="cosmic-controls">
+        <button id="cosmic-replay-btn" class="cosmic-replay-btn" type="button"
+                data-i18n-aria="hero.cosmicReplayAria" aria-label="Reiniciar rotación de la galaxia cósmica"
+                title="Reiniciar animación cósmica">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.19"/>
+          </svg>
+        </button>
+      </div>
+    </section>
+
     <!-- ================= 01. Hero Editorial & Launch Announcement ================= -->
     <section id="hero" class="hero-editorial">
       <div class="container">
         <div class="hero-editorial-head">
           <div class="announcement-eyebrow reveal">
             <span class="eyebrow-dot" aria-hidden="true"></span>
-            <span class="eyebrow-pill">PRODUCT ANNOUNCEMENT</span>
-            <span>SEPTEMBER 2026</span> · <span>TIANCODE 1.0.4</span>
+            <span class="eyebrow-pill" data-i18n="hero.eyebrowPill">COMUNICADO DE PRODUCTO</span>
+            <span data-i18n="hero.eyebrowMeta">SEPTIEMBRE 2026 · TIANCODE 1.0.4</span>
           </div>
 
-          <h1 class="announcement-title reveal">Tiancode: Autonomous Agentic Intelligence for Developers</h1>
+          <h1 class="announcement-title reveal" data-i18n="hero.title">Tiancode: Inteligencia Agéntica Autónoma para Desarrolladores</h1>
 
-          <p class="announcement-lead reveal">
-            A breakthrough in sovereign, local-first software engineering. Powered by autonomous multi-agent swarms, zero-telemetry privacy, native Model Hub GGUF execution, 52+ specialized engineering skills, and real-time Kokoro neural voice synthesis on Windows.
+          <p class="announcement-lead reveal" data-i18n="hero.lead">
+            Un hito en la ingeniería de software soberana y local-first. Impulsado por enjambres multi-agente autónomos, privacidad con cero telemetría, ejecución nativa de Model Hub GGUF, 52+ skills de ingeniería y síntesis de voz neural Kokoro en tiempo real para Windows.
           </p>
 
           <div class="announcement-actions reveal">
@@ -242,12 +262,12 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
               </svg>
-              <span>Download Tiancode.exe (v1.0.4)</span>
+              <span data-i18n="hero.ctaDownload">Descargar Tiancode.exe (v1.0.4)</span>
             </a>
             <a href="https://github.com/Dreftian/Tiancode/releases/latest/download/Tiancode-portable.exe" class="btn btn-secondary btn-lg">
-              <span>Download Portable (.exe)</span>
+              <span data-i18n="hero.ctaPortable">Descargar Portable (.exe)</span>
             </a>
-            <div class="cmd-box" id="hero-cmd-box" title="Clic para copiar comando">
+            <div class="cmd-box" id="hero-cmd-box" data-i18n-title="hero.cmdCopyTitle" title="Clic para copiar comando winget">
               <span class="cmd-prompt">&gt;</span>
               <code>winget install Dreftian.Tiancode</code>
               <span class="cmd-copy-btn">
@@ -263,24 +283,24 @@
           <!-- Barra de metadatos de lanzamiento estilo OpenAI (4 columnas) -->
           <div class="announcement-meta reveal">
             <div class="meta-item">
-              <span class="meta-label">Release</span>
-              <span class="meta-value">September 2026 · v1.0.4</span>
-              <span class="meta-value-sub">Production Stable Channel</span>
+              <span class="meta-label" data-i18n="hero.metaReleaseLabel">Lanzamiento</span>
+              <span class="meta-value" data-i18n="hero.metaReleaseVal">Septiembre 2026 · v1.0.4</span>
+              <span class="meta-value-sub" data-i18n="hero.metaReleaseSub">Canal de Producción Estable</span>
             </div>
             <div class="meta-item">
-              <span class="meta-label">Platform</span>
-              <span class="meta-value">Windows 10 / 11 (64-bit)</span>
-              <span class="meta-value-sub">Native Electron &amp; Portable USB</span>
+              <span class="meta-label" data-i18n="hero.metaPlatformLabel">Plataforma</span>
+              <span class="meta-value" data-i18n="hero.metaPlatformVal">Windows 10 / 11 (64-bit)</span>
+              <span class="meta-value-sub" data-i18n="hero.metaPlatformSub">Instalador Nativo &amp; USB Portable</span>
             </div>
             <div class="meta-item">
-              <span class="meta-label">Core Architecture</span>
-              <span class="meta-value">Local-First · Effect V2 · SQLite</span>
-              <span class="meta-value-sub">Durable Session &amp; Agent Swarm</span>
+              <span class="meta-label" data-i18n="hero.metaArchLabel">Arquitectura del Núcleo</span>
+              <span class="meta-value" data-i18n="hero.metaArchVal">Local-First · Effect V2 · SQLite</span>
+              <span class="meta-value-sub" data-i18n="hero.metaArchSub">Sesiones Durables &amp; Swarm de Agentes</span>
             </div>
             <div class="meta-item">
-              <span class="meta-label">Runtime &amp; Privacy</span>
-              <span class="meta-value">Zero Telemetry · Direct API Keys</span>
-              <span class="meta-value-sub">Local GGUF GPU Inference</span>
+              <span class="meta-label" data-i18n="hero.metaPrivacyLabel">Privacidad &amp; Ejecución</span>
+              <span class="meta-value" data-i18n="hero.metaPrivacyVal">Cero Telemetría · Claves Directas</span>
+              <span class="meta-value-sub" data-i18n="hero.metaPrivacySub">Inferencia GPU Local con GGUF</span>
             </div>
           </div>
         </div>
@@ -294,11 +314,11 @@
               </div>
               <div class="window-title">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-                <span>Tiancode Desktop Studio — senior-dev swarm</span>
+                <span data-i18n="showcase.windowTitle">Tiancode Desktop Studio — enjambre senior-dev</span>
               </div>
               <div class="window-status-pill">
                 <i></i>
-                <span>Local GPU Active · DirectML / CUDA</span>
+                <span data-i18n="showcase.statusPill">GPU Local Activa · DirectML / CUDA</span>
               </div>
             </div>
 
@@ -306,15 +326,15 @@
             <div class="showcase-tabs-bar">
               <button class="showcase-tab-btn is-active" type="button" data-target-panel="panel-agent">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                <span>01 / Agent Swarm &amp; AST</span>
+                <span data-i18n="showcase.tab1">01 / Enjambre de Agentes &amp; AST</span>
               </button>
               <button class="showcase-tab-btn" type="button" data-target-panel="panel-models">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                <span>02 / Model Hub GGUF</span>
+                <span data-i18n="showcase.tab2">02 / Model Hub GGUF Local</span>
               </button>
               <button class="showcase-tab-btn" type="button" data-target-panel="panel-preview">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-                <span>03 / Universal Live Preview</span>
+                <span data-i18n="showcase.tab3">03 / Vista Previa Universal</span>
               </button>
               <button class="showcase-tab-btn" type="button" data-target-panel="panel-mcp">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -1701,8 +1721,8 @@ tiancode --version           # Muestra la versión instalada</code></pre>
             </span>
             Tiancode
           </a>
-          <p class="footer-tagline">
-            Autonomous agentic intelligence for software engineering. Built for sovereign execution on Windows.
+          <p class="footer-tagline" data-i18n="footer.tagline">
+            Entorno de desarrollo agéntico local-first para Windows.
           </p>
           <div class="footer-status-badge">
             <i></i>
@@ -1712,7 +1732,7 @@ tiancode --version           # Muestra la versión instalada</code></pre>
 
         <div class="footer-cols-grid">
           <div class="footer-col">
-            <span class="footer-col-title">Product</span>
+            <span class="footer-col-title" data-i18n="footer.product">Producto</span>
             <a href="productos/app.html">Desktop Studio</a>
             <a href="#capabilities">Capabilities</a>
             <a href="#benchmarks">Benchmarks</a>
@@ -1720,7 +1740,7 @@ tiancode --version           # Muestra la versión instalada</code></pre>
             <a href="recursos/portable.html">Portable Edition</a>
           </div>
           <div class="footer-col">
-            <span class="footer-col-title">Research &amp; Models</span>
+            <span class="footer-col-title" data-i18n="footer.resources">Recursos</span>
             <a href="#panel-models">Model Hub GGUF</a>
             <a href="https://huggingface.co" target="_blank" rel="noopener noreferrer">Hugging Face Hub</a>
             <a href="https://ollama.com" target="_blank" rel="noopener noreferrer">Ollama Runtime</a>
@@ -1734,7 +1754,7 @@ tiancode --version           # Muestra la versión instalada</code></pre>
             <a href="https://github.com/modelcontextprotocol" target="_blank" rel="noopener noreferrer">Model Context Protocol</a>
           </div>
           <div class="footer-col">
-            <span class="footer-col-title">Legal &amp; Source</span>
+            <span class="footer-col-title" data-i18n="footer.legal">Legal</span>
             <a href="legal/licencia.html">MIT License</a>
             <a href="legal/privacidad.html">Privacy Policy</a>
             <a href="legal/terminos.html">Terms of Service</a>
@@ -1744,7 +1764,7 @@ tiancode --version           # Muestra la versión instalada</code></pre>
       </div>
 
       <div class="footer-bottom-bar">
-        <span>© 2026 Tiancode. Open-source under MIT License.</span>
+        <span data-i18n="footer.rights">© 2026 Tiancode. Código abierto bajo licencia MIT.</span>
         <span>Crafted with ♥ by <a href="https://github.com/Dreftian" target="_blank" rel="noopener noreferrer">Dreftian</a></span>
       </div>
     </div>
