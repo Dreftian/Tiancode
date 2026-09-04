@@ -2491,14 +2491,14 @@ export default function Page() {
                   />
                 </div>
                 <div class="min-h-0 min-w-0 flex-1 h-full">
-                  <LiveViewPanel onCapture={attachLiveViewCapture} expandable />
+                  <LiveViewPanel onCapture={attachLiveViewCapture} expandable sessionID={params.id} />
                 </div>
               </div>
             </Show>
           </Show>
           <Show when={desktopSandboxExpanded()}>
             <div class="h-full min-h-0 min-w-0 flex-1 overflow-hidden">
-              <LiveViewPanel onCapture={attachLiveViewCapture} expandable />
+              <LiveViewPanel onCapture={attachLiveViewCapture} expandable sessionID={params.id} />
             </div>
           </Show>
         </div>
@@ -2527,7 +2527,7 @@ export default function Page() {
               <TerminalPanelV2 stacked />
             </Show>
             <Show when={!terminalOpen() && !sandboxSideAvailable() && liveViewOpen()}>
-              <LiveViewPanel onCapture={attachLiveViewCapture} />
+              <LiveViewPanel onCapture={attachLiveViewCapture} sessionID={params.id} />
             </Show>
           </div>
         </Show>

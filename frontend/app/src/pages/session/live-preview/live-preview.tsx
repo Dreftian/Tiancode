@@ -98,6 +98,7 @@ function ToolButton(props: {
 export function LivePreview(props: {
   targetUrl?: () => string | undefined
   autoStartKey?: () => string | undefined
+  directory?: () => string | undefined
   onManagedTarget?: (url: string | undefined) => void
   onCapture?: (file: File) => void
   onOpenSource?: (path: string) => void
@@ -466,6 +467,8 @@ export function LivePreview(props: {
   // Dev server gestionado por el agente (DevServerManager): estado, logs y
   // acciones se leen del HttpApi /preview del servidor del agente.
   const devServerDirectory = () => {
+    const propDir = props.directory?.()
+    if (propDir && propDir !== "main") return propDir
     const dir = sdk().directory
     return dir && dir !== "main" ? dir : undefined
   }
@@ -1177,6 +1180,11 @@ export function LivePreview(props: {
                     </span>
                   </Show>
                 </div>
+                <Show when={devServer()?.errorMessage}>
+                  <div class="rounded-lg bg-rose-500/10 border border-rose-500/20 px-3 py-2 text-[11px] text-rose-300">
+                    {devServer()?.errorMessage}
+                  </div>
+                </Show>
               </div>
 
               {/* Consola de logs en vivo */}

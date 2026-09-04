@@ -30,6 +30,7 @@ export const PreviewStateSchema = Schema.Struct({
   errors: Schema.Array(PreviewErrorSchema),
   startedAt: Schema.Union([Schema.Null, Schema.Number]),
   errorMessage: Schema.Union([Schema.Null, Schema.String]),
+  isDesktop: Schema.optional(Schema.Boolean),
 })
 
 export const PreviewApi = HttpApi.make("preview")

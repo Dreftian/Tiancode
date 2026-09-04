@@ -13,6 +13,7 @@ export type DetectedProject = {
   port: number
   entry?: string
   command?: string[]
+  executable?: string
   url?: string
   workingDirectory?: string
   error?: string
@@ -225,6 +226,43 @@ const PRIORITY_DIR_NAMES = [
   "src",
 ]
 
+export async function findCompiledExecutable(dir: string, preferredName?: string): Promise<string | undefined> {
+  const checkFolders = [
+    join(dir, "bin", "Release"),
+    join(dir, "bin", "Debug"),
+    join(dir, "bin"),
+    join(dir, "target", "release"),
+    join(dir, "target", "debug"),
+    join(dir, "build"),
+    dir,
+  ]
+  const cleanName = preferredName?.replace(/\.(csproj|sln)$/i, "").toLowerCase()
+
+  for (const folder of checkFolders) {
+    if (!existsSync(folder)) continue
+    try {
+      const entries = await readdir(folder, { withFileTypes: true, recursive: true })
+      const exeFiles = entries
+        .filter((e) => e.isFile() && /\.exe$/i.test(e.name) && !/^(unins|setup|installer)/i.test(e.name))
+        .map((e) => {
+          const pPath = (e as any).parentPath ?? (e as any).path ?? folder
+          const full = join(pPath, e.name)
+          return relative(dir, full).split(sep).join("/")
+        })
+      if (exeFiles.length > 0) {
+        if (cleanName) {
+          const match = exeFiles.find((p) => p.toLowerCase().includes(cleanName))
+          if (match) return match
+        }
+        return exeFiles[0]
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return undefined
+}
+
 async function detectMultiLanguageProject(dir: string, relDir: string): Promise<DetectedProject | null> {
   // 1. Python projects (FastAPI, Flask, Django, Streamlit, Gradio, Python server)
   const hasRequirements = existsSync(join(dir, "requirements.txt"))
@@ -297,21 +335,26 @@ async function detectMultiLanguageProject(dir: string, relDir: string): Promise<
   // 2. Rust projects (Cargo, Trunk WASM)
   if (existsSync(join(dir, "Cargo.toml"))) {
     const hasTrunk = existsSync(join(dir, "Trunk.toml"))
+    const exe = !hasTrunk ? await findCompiledExecutable(dir) : undefined
     return {
       framework: hasTrunk ? "trunk" : "rust",
       packageManager: hasTrunk ? "trunk" : "cargo",
-      script: hasTrunk ? "trunk serve" : "cargo run",
-      port: 8080,
+      script: exe ? exe.split("/").pop()! : hasTrunk ? "trunk serve" : "cargo run",
+      executable: exe,
+      port: hasTrunk ? 8080 : 0,
+      isDesktop: !hasTrunk,
       ...(relDir !== "." ? { workingDirectory: relDir } : {}),
     }
   }
 
   // 3. Go projects
   if (existsSync(join(dir, "go.mod")) || existsSync(join(dir, "main.go"))) {
+    const exe = await findCompiledExecutable(dir)
     return {
       framework: "go",
       packageManager: "go",
-      script: "go run .",
+      script: exe ? exe.split("/").pop()! : "go run .",
+      executable: exe,
       port: 8080,
       entry: existsSync(join(dir, "main.go")) ? "main.go" : undefined,
       ...(relDir !== "." ? { workingDirectory: relDir } : {}),
@@ -407,10 +450,13 @@ async function detectMultiLanguageProject(dir: string, relDir: string): Promise<
             }
           }
         }
+        const mainCsproj = csprojFiles[0]
+        const exe = isDesktop ? await findCompiledExecutable(dir, mainCsproj) : undefined
         return {
           framework,
           packageManager: "dotnet",
-          script: "dotnet run",
+          script: exe ? exe.split("/").pop()! : "dotnet run",
+          executable: exe,
           port: isDesktop ? 0 : 5000,
           isDesktop,
           ...(relDir !== "." ? { workingDirectory: relDir } : {}),

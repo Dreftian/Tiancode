@@ -29,26 +29,21 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.6"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} - Corrección Definitiva del Parpadeo en Modelos Locales y Caché Silencioso GPU Windows`
-  const body = `## 🚀 Tiancode v${version} — Corrección Definitiva del Parpadeo en Modelos Locales y Caché Silencioso GPU Windows
+  const releaseName = `Tiancode v${version} — Sandbox Universal y Vista Previa en Tiempo Real Multilenguaje`
+  const body = `## 🚀 Tiancode v${version} — Sandbox Universal y Vista Previa en Tiempo Real Multilenguaje
 
-### ⚡ Eliminación Total del Parpadeo en Chat (Desde Modelos Locales y Pestañas Siguientes)
-- **Eliminación del Bucle Reactivo Infinito en Modelos Locales (\`models-hub.tsx\`):** Se identificó y resolvió el ciclo reactivo descontrolado donde \`createEffect\` leía \`jobs()\` y a su vez ejecutaba \`setJobs()\`, produciendo decenas de peticiones por segundo que invalidaban el virtualizador del chat de fondo.
-- **Pausa Inteligente de Sondeo en Pestañas Ocultas (\`active\` prop):** Las pestañas de Modelos Locales, MCP & Plugins y Uso de la PC ahora solo ejecutan temporizadores de consulta cuando están activas en primer plano, liberando al 100% el hilo principal de renderizado cuando están en segundo plano.
-- **Ejecución Silenciosa de Procesos en Windows (\`windowsHide: true\`):** Se blindaron todas las llamadas a \`powershell\` y \`taskkill\` en el backend con \`windowsHide: true\` y \`-WindowStyle Hidden\`, impidiendo que el Gestor de Ventanas de Windows (DWM) invalide la superficie gráfica y produzca desgarros ("se raya").
-- **Caché Permanente de Detección de Hardware:** La inspección de GPU y memoria VRAM se almacena permanentemente en memoria durante la ejecución de la aplicación, eliminando ejecuciones redundantes de scripts del sistema.
+### 🖥️ Sandbox Protegido y Vista Previa Universal Multilenguaje
+- **Detección Automática Profunda de Proyectos:** El motor de detección ahora analiza recursivamente proyectos y subcarpetas para identificar aplicaciones de cualquier lenguaje: C#/.NET (WPF, WinForms, Avalonia), Rust, Go, Python (PyQt, Tkinter, Flask, FastAPI), C++, y ecosistemas Web (Vite, Next.js, Nuxt, Astro, Svelte, HTML puro).
+- **Ejecución Directa de Binarios Compilados sin Requerir SDK Completo:** Para aplicaciones de escritorio (.NET, Rust, Go, etc.), Tiancode detecta automáticamente los ejecutables compilados en \`bin/Release\`, \`bin/Debug\`, \`target/release\`, \`build/\` (como \`NovaSound.exe\`) y los ejecuta directamente con el runtime instalado, evitando errores por falta de SDKs de desarrollo.
+- **Panel de Control y Monitor de Proceso en Tiempo Real:** Tarjeta de aplicación nativa interactiva con controles de Iniciar, Detener y Reiniciar, estado del proceso, PID y terminal de logs de consola en vivo con auto-scroll.
 
-### 🌌 Animación 3D Cósmica Oficial de Carga (Port de tiancode.vercel.app)
-- **Motor de Constelaciones 3D Completo:** Port directo del motor cósmico de la web oficial a Canvas 2D interactivo con proyección en perspectiva 3D (\`fov: 520\`).
-- **Logo del Gato Cósmico Tiancode en 3D:** Polígonos vectoriales exactos de los ojos radiantes, sonrisa estelar y colmillos felinos formados por estrellas ensambladas desde el espacio profundo.
-- **Letras 3D "TIANCODE":** Rotación sutil y profundidad geométrica tridimensional con brazos espirales galácticos, auroras cósmicas y destellos de difracción en cruz (\`+\`).
+### 📝 Pestaña de Código con Seguimiento Paso a Paso en Vivo
+- **Sincronización en Tiempo Real con la IA:** Conexión directa con \`session_diff\` y eventos de herramientas (\`write\`, \`edit\`, \`apply_patch\`) para seguir automáticamente el archivo que cualquier modelo de IA esté modificando paso a paso en el chat.
+- **Recarga Instantánea:** Despacho de eventos \`tiancode:preview-reload\` que actualizan tanto el sandbox gráfico como el visor/editor de código sin requerir recargar la página.
+- **Explorador y Árbol de Archivos Integrado:** Filtrado rápido por frontend/backend y selección automática de archivos clave (\`MainWindow.xaml\`, \`App.xaml.cs\`, \`Program.cs\`, \`index.html\`).
 
-### 🐟 Voces Femeninas Fish Audio S2.1 Pro Free
-- **Integración Nativa con IPC Bridge:** Verificación y validación de las 6 voces femeninas en español con el modelo gratuito \`s2.1-pro-free\` sin límites de CORS.
-- **Streaming y Respuesta Inmediata:** Latencia inferior a 100ms con reproducción en búfer de alta fidelidad.
-
-### 🖥️ Sandbox Protegido y Live Preview Universal
-- Ejecución visual en Windows para proyectos GUI (.NET WPF, WinForms, Python GUI, Rust GUI) en entorno de aislamiento supervisado con terminal de logs en vivo.
+### 🔒 Integridad y Migración No Destructiva
+- Todas las configuraciones de usuario, proveedores, claves API (Fish Audio, OpenCode, Claude, etc.), sesiones y herramientas MCP permanecen 100% intactas tras la actualización automática.
 
 ### 📦 Descargas
 | Archivo | Tipo | Descripción |

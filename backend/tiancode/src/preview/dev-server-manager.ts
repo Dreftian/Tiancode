@@ -6,11 +6,11 @@
 
 import { execFileSync, spawn, spawnSync, type ChildProcess } from "node:child_process"
 import { existsSync, readdirSync } from "node:fs"
-import { join } from "node:path"
+import { dirname, join, resolve } from "node:path"
 import net from "node:net"
 import { startBareJsxPreview, startStaticPreview, type BareJsxPreview, type StaticPreview } from "./bare-jsx-preview"
 import { parseBuildError } from "./error-parser"
-import { detectProject, type DetectedProject } from "./project-detector"
+import { detectProject, findCompiledExecutable, type DetectedProject } from "./project-detector"
 import type { PreviewError, PreviewState } from "./types"
 
 const LOG_MAX = 500
@@ -480,13 +480,44 @@ async function spawnServer(managed: Managed) {
 
   const isDesktop = Boolean(managed.detected.isDesktop)
 
+  let spawnCwd = targetDir
+  let useShell = isWin
+
+  if (managed.detected.executable) {
+    const fullExe = resolve(targetDir, managed.detected.executable)
+    if (existsSync(fullExe)) {
+      execCmd = fullExe
+      execArgs = []
+      spawnCwd = dirname(fullExe)
+      useShell = false
+    }
+  } else if (packageManager === "dotnet") {
+    const foundExe = await findCompiledExecutable(targetDir)
+    if (foundExe) {
+      const fullExe = resolve(targetDir, foundExe)
+      execCmd = fullExe
+      execArgs = []
+      spawnCwd = dirname(fullExe)
+      useShell = false
+    }
+  } else if (packageManager === "cargo" && isDesktop) {
+    const foundExe = await findCompiledExecutable(targetDir)
+    if (foundExe) {
+      const fullExe = resolve(targetDir, foundExe)
+      execCmd = fullExe
+      execArgs = []
+      spawnCwd = dirname(fullExe)
+      useShell = false
+    }
+  }
+
   // En Windows los gestores son .cmd o comandos de shell: shell:true los resuelve
   // (cmd.exe padre → taskkill /T mata todo el árbol). En Unix, detached + setsid
   // permite matar el grupo de procesos.
   const child = spawn(execCmd, execArgs, {
-    cwd: targetDir,
+    cwd: spawnCwd,
     env: scrubEnv(),
-    shell: isWin,
+    shell: useShell,
     detached: !isWin,
     windowsHide: !isDesktop,
     stdio: ["ignore", "pipe", "pipe"],
@@ -547,8 +578,19 @@ async function spawnServer(managed: Managed) {
   scheduleReadinessTimeout(managed)
 }
 
-export function getPreviewState(directory: string) {
-  return servers.get(directory)?.state ?? idleState(null)
+const detectedStateCache = new Map<string, PreviewState>()
+
+export async function detectPreviewState(directory: string): Promise<PreviewState> {
+  const existing = servers.get(directory)
+  if (existing) return existing.state
+  const detected = await detectProject(directory)
+  const state = idleState(detected)
+  detectedStateCache.set(directory, state)
+  return state
+}
+
+export function getPreviewState(directory: string): PreviewState {
+  return servers.get(directory)?.state ?? detectedStateCache.get(directory) ?? idleState(null)
 }
 
 export function getPreviewLogs(directory: string) {

@@ -274,10 +274,12 @@ export function previewFileTree(paths: readonly string[]): PreviewFileTreeNode[]
 export function preferredPreviewCodePath(paths: readonly string[]) {
   const sorted = [...new Set(paths)].sort((a, b) => a.localeCompare(b))
   const preferred = [
+    /(?:^|\/)MainWindow\.xaml$/i,
+    /(?:^|\/)App\.xaml(?:\.cs)?$/i,
     /(?:^|\/)index\.html$/i,
     /(?:^|\/)App\.(?:tsx|jsx|ts|js)$/i,
-    /(?:^|\/)(?:main|index)\.(?:tsx|jsx|ts|js)$/i,
-    /(?:^|\/)app\.(?:tsx|jsx|ts|js)$/i,
+    /(?:^|\/)(?:main|index|Program)\.(?:tsx|jsx|ts|js|py|rs|go|cs)$/i,
+    /(?:^|\/)app\.(?:tsx|jsx|ts|js|py)$/i,
   ]
   return preferred.flatMap((pattern) => sorted.filter((path) => pattern.test(path)))[0] ?? sorted[0]
 }
@@ -799,6 +801,24 @@ function CodePane(props: {
     selectFile(path)
   })
 
+  onMount(() => {
+    const handleReload = (event: Event) => {
+      const customEvent = event as CustomEvent<{ path?: string }>
+      const modifiedPath = customEvent.detail?.path
+      const current = selectedPath()
+      if (!current || !modifiedPath) return
+      const normCurrent = current.replace(/\\/g, "/").replace(/^\/+/, "")
+      const normMod = modifiedPath.replace(/\\/g, "/").replace(/^\/+/, "")
+      if (normCurrent === normMod || normCurrent.endsWith(normMod) || normMod.endsWith(normCurrent)) {
+        void file.load(current, { force: true })
+      }
+    }
+    window.addEventListener("tiancode:preview-reload", handleReload)
+    onCleanup(() => {
+      window.removeEventListener("tiancode:preview-reload", handleReload)
+    })
+  })
+
   let lastRequested = ""
   createEffect(() => {
     const path = props.requestedPath
@@ -1069,7 +1089,7 @@ function CodePane(props: {
 }
 
 
-export function LiveViewPanel(props: { onCapture?: (file: File) => void; expandable?: boolean }) {
+export function LiveViewPanel(props: { onCapture?: (file: File) => void; expandable?: boolean; sessionID?: string }) {
   const language = useLanguage()
   const { view } = useSessionLayout()
   const sync = useSync()
@@ -1083,6 +1103,55 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
   // El aviso descartado con la X no vuelve a aparecer para esa misma URL
   // (el poll lo re-derivaría en el siguiente snapshot).
   const [dismissedUrl, setDismissedUrl] = createSignal<string | undefined>(undefined)
+
+  const sessionDiffs = createMemo(() => {
+    const id = props.sessionID
+    if (!id) return []
+    return sync().data.session_diff[id] ?? []
+  })
+
+  const [activeEditFile, setActiveEditFile] = createSignal<string | undefined>()
+
+  // Seguimiento en tiempo real de archivos modificados por cualquier modelo de IA
+  createEffect(() => {
+    const diffs = sessionDiffs()
+    if (diffs.length > 0) {
+      const latest = diffs[diffs.length - 1].file
+      if (latest && latest !== activeEditFile()) {
+        setActiveEditFile(latest)
+        window.dispatchEvent(new CustomEvent("tiancode:preview-reload", { detail: { path: latest } }))
+      }
+    }
+  })
+
+  // Inspeccionar partes de ejecución de herramientas (write, edit, apply_patch)
+  createEffect(() => {
+    const parts = sync().data.part
+    const dir = sdk().directory
+    for (const key of Object.keys(parts)) {
+      const list = parts[key]
+      if (!list) continue
+      for (const p of list) {
+        if ((p as any).type === "tool") {
+          const toolName = (p as any).tool
+          if (toolName === "write" || toolName === "edit" || toolName === "apply_patch") {
+            const fp = (p as any).input?.filePath || (p as any).input?.path || (p as any).metadata?.filepath
+            if (fp && typeof fp === "string") {
+              let rel = fp
+              if (dir && rel.startsWith(dir)) {
+                rel = rel.slice(dir.length).replace(/^[/\\]+/, "")
+              }
+              rel = rel.replace(/\\/g, "/")
+              if (rel && rel !== activeEditFile()) {
+                setActiveEditFile(rel)
+                window.dispatchEvent(new CustomEvent("tiancode:preview-reload", { detail: { path: rel } }))
+              }
+            }
+          }
+        }
+      }
+    }
+  })
 
   // La selección se guarda en el layout, así que al volver a abrir el sandbox
   // se conserva el modo completo que eligió la persona.
@@ -1106,7 +1175,13 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
   // preview explícita puede cambiar ese destino; nunca un shell o navegador
   // externo que haya usado el agente.
   const serverTarget = createMemo(() => serverTargetOf(snapshot()))
-  const autoStartKey = createMemo(() => previewAutoStartKey(snapshot()))
+  const autoStartKey = createMemo(() => {
+    const fromSnap = previewAutoStartKey(snapshot())
+    if (fromSnap) return fromSnap
+    const diffs = sessionDiffs()
+    if (diffs.length > 0) return diffs.map((d) => d.file).join("|")
+    return activeEditFile()
+  })
   const browserTarget = () => embeddedPreviewTarget(liveViewManagedTarget(), sdk().directory, snapshot())
 
   // Aviso transitorio cuando la navegación vino de la detección de logs (no
@@ -1414,6 +1489,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
                 class="size-full transition-all duration-300 flex flex-col"
               >
                 <LivePreview
+                  directory={() => sdk().directory}
                   targetUrl={browserTarget}
                   autoStartKey={autoStartKey}
                   externalDevice={() => viewportMode()}
@@ -1436,10 +1512,10 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
           }
         >
           <CodePane
-            followPath={snapshot()?.current_file ?? undefined}
+            followPath={snapshot()?.current_file ?? activeEditFile() ?? undefined}
             requestedPath={requestedCodePath()}
             currentCode={snapshot()?.current_code}
-            files={snapshot()?.files}
+            files={snapshot()?.files ?? sessionDiffs().map((d) => ({ rel: d.file, kind: "file" }))}
           />
         </Show>
         <Show when={content() !== "code" && detectedUrl()}>
