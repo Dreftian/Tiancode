@@ -4,7 +4,7 @@ import { useDialog } from "@tiancode-ai/ui/context/dialog"
 import { ProviderIcon } from "@tiancode-ai/ui/provider-icon"
 import { showToast } from "@/utils/toast"
 import { popularProviders, useProviders } from "@/hooks/use-providers"
-import { createMemo, type Accessor, type Component, For, Show } from "solid-js"
+import { createMemo, createSignal, type Accessor, type Component, For, Show } from "solid-js"
 import { useLanguage } from "@/context/language"
 import { useServerProtocol, useServerSDK } from "@/context/server-sdk"
 import { useServerSync } from "@/context/server-sync"
@@ -41,35 +41,39 @@ export const SettingsProvidersV2: Component<{
   const providers = useProviders(props.directory)
   const providerConnect = useProviderConnectController({ onBack: props.onBack })
 
+  const [disconnecting, setDisconnecting] = createSignal<Set<string>>(new Set())
+
   const connect = async (provider?: string) => {
     if (provider === "local") {
-      const currentConfig = serverSync().data.config
-      const disabled = currentConfig.disabled_providers ?? []
-      const nextDisabled = disabled.filter((id) => id !== "local")
-      const currentProviders = { ...(currentConfig.provider ?? {}) }
-      if (!currentProviders.local) {
-        currentProviders.local = {
-          npm: "@ai-sdk/openai-compatible",
-          options: { baseURL: "http://127.0.0.1:58282/v1" },
-          models: {},
-        }
-      }
-      serverSync().set("config", "disabled_providers", nextDisabled)
-      serverSync().set("config", "provider", currentProviders)
-      await serverSync()
-        .updateConfig({
-          disabled_providers: nextDisabled,
-          provider: currentProviders,
-        })
-        .catch(() => undefined)
-      await serverSdk().client.global.dispose().catch(() => undefined)
-      await serverSync().refreshProviders().catch(() => undefined)
       showToast({
         variant: "success",
         icon: "circle-check",
         title: language.t("provider.connect.toast.connected.title", { provider: "Tiancode Native / GGUF" }),
         description: "Motor nativo local conectado. Puedes descargar o activar modelos GGUF en 'Modelos Locales'.",
       })
+      void (async () => {
+        const currentConfig = serverSync().data.config
+        const disabled = currentConfig.disabled_providers ?? []
+        const nextDisabled = disabled.filter((id) => id !== "local")
+        const currentProviders = { ...(currentConfig.provider ?? {}) }
+        if (!currentProviders.local) {
+          currentProviders.local = {
+            npm: "@ai-sdk/openai-compatible",
+            options: { baseURL: "http://127.0.0.1:58282/v1" },
+            models: {},
+          }
+        }
+        serverSync().set("config", "disabled_providers", nextDisabled)
+        serverSync().set("config", "provider", currentProviders)
+        await serverSync()
+          .updateConfig({
+            disabled_providers: nextDisabled,
+            provider: currentProviders,
+          })
+          .catch(() => undefined)
+        await serverSdk().client.global.dispose().catch(() => undefined)
+        await serverSync().refreshProviders().catch(() => undefined)
+      })()
       return
     }
     providerConnect.select(provider)
@@ -79,7 +83,11 @@ export const SettingsProvidersV2: Component<{
   const connected = createMemo(() => {
     return providers
       .connected()
-      .filter((p) => p.id !== "tiancode" || Object.values(p.models).find((m) => m.cost?.input))
+      .filter(
+        (p) =>
+          !disconnecting().has(p.id) &&
+          (p.id !== "tiancode" || Object.values(p.models).find((m) => m.cost?.input)),
+      )
   })
 
   const popular = createMemo(() => {
@@ -124,51 +132,59 @@ export const SettingsProvidersV2: Component<{
     return true
   }
 
-  const disconnect = async (providerID: string, name: string) => {
-    try {
-      // 1. Remove auth credentials
-      await serverSdk()
-        .client.auth.remove({ providerID })
-        .catch(() => undefined)
+  const disconnect = (providerID: string, name: string) => {
+    // 1. Optimistic instant UI update: mark disconnecting immediately
+    setDisconnecting((prev) => new Set([...prev, providerID]))
 
-      // 2. Remove from config.provider and add to disabled_providers
-      const currentConfig = serverSync().data.config
-      const currentProviders = { ...(currentConfig.provider ?? {}) }
-      let configChanged = false
-      if (currentProviders[providerID]) {
-        delete currentProviders[providerID]
-        configChanged = true
+    // 2. Instant notification toast (0ms latency like OpenCode)
+    showToast({
+      variant: "success",
+      icon: "circle-check",
+      title: language.t("provider.disconnect.toast.disconnected.title", { provider: name }),
+      description: language.t("provider.disconnect.toast.disconnected.description", { provider: name }),
+    })
+
+    // 3. Asynchronous non-blocking background cleanup
+    void (async () => {
+      try {
+        const currentConfig = serverSync().data.config
+        const currentProviders = { ...(currentConfig.provider ?? {}) }
+        let configChanged = false
+        if (currentProviders[providerID]) {
+          delete currentProviders[providerID]
+          configChanged = true
+        }
+        const beforeDisabled = currentConfig.disabled_providers ?? []
+        const nextDisabled = beforeDisabled.includes(providerID) ? beforeDisabled : [...beforeDisabled, providerID]
+        if (!beforeDisabled.includes(providerID)) {
+          configChanged = true
+        }
+
+        if (configChanged) {
+          serverSync().set("config", "provider", currentProviders)
+          serverSync().set("config", "disabled_providers", nextDisabled)
+        }
+
+        await Promise.allSettled([
+          serverSdk().client.auth.remove({ providerID }).catch(() => undefined),
+          configChanged
+            ? serverSync().updateConfig({ provider: currentProviders, disabled_providers: nextDisabled }).catch(() => undefined)
+            : Promise.resolve(),
+        ])
+
+        await serverSdk().client.global.dispose().catch(() => undefined)
+        await serverSync().refreshProviders().catch(() => undefined)
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err)
+        showToast({ title: language.t("common.requestFailed"), description: message })
+      } finally {
+        setDisconnecting((prev) => {
+          const next = new Set(prev)
+          next.delete(providerID)
+          return next
+        })
       }
-      const beforeDisabled = currentConfig.disabled_providers ?? []
-      const nextDisabled = beforeDisabled.includes(providerID) ? beforeDisabled : [...beforeDisabled, providerID]
-      if (!beforeDisabled.includes(providerID)) {
-        configChanged = true
-      }
-
-      if (configChanged) {
-        serverSync().set("config", "provider", currentProviders)
-        serverSync().set("config", "disabled_providers", nextDisabled)
-        await serverSync()
-          .updateConfig({
-            provider: currentProviders,
-            disabled_providers: nextDisabled,
-          })
-          .catch(() => undefined)
-      }
-
-      // 3. Dispose global instance and refresh providers in UI
-      await serverSdk().client.global.dispose().catch(() => undefined)
-
-      showToast({
-        variant: "success",
-        icon: "circle-check",
-        title: language.t("provider.disconnect.toast.disconnected.title", { provider: name }),
-        description: language.t("provider.disconnect.toast.disconnected.description", { provider: name }),
-      })
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err)
-      showToast({ title: language.t("common.requestFailed"), description: message })
-    }
+    })()
   }
 
   return (

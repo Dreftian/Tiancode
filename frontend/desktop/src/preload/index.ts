@@ -56,6 +56,8 @@ const api: ElectronAPI = {
       ipcRenderer.on("voices-piper-progress", handler)
       return () => ipcRenderer.removeListener("voices-piper-progress", handler)
     },
+    speakFish: (text, voiceId, apiKey, speed) =>
+      ipcRenderer.invoke("voices-speak-fish", text, voiceId, apiKey, speed),
   },
   asr: {
     status: () => ipcRenderer.invoke("asr-status"),

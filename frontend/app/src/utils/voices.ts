@@ -64,6 +64,12 @@ export type VoicesAPI = {
   deleteVoice: (voiceId: string) => Promise<void>
   setEnabled: (voiceId: string, enabled: boolean) => Promise<void>
   onPiperProgress: (cb: (event: VoicesPiperProgress) => void) => () => void
+  speakFish?: (
+    text: string,
+    voiceId?: string,
+    apiKey?: string,
+    speed?: number,
+  ) => Promise<{ mp3?: Uint8Array; error?: string }>
 }
 
 export const voicesAPI = (): VoicesAPI | undefined => window.api?.voices
@@ -426,35 +432,47 @@ export async function speakWithFishAudio(
   const expectedGeneration = speechGeneration
 
   try {
-    const response = await fetch(FISH_AUDIO_API_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        model: "s2.1-pro-free",
-      },
-      body: JSON.stringify({
-        text,
-        reference_id: selectedVoice || undefined,
-        format: "mp3",
-        latency: "normal",
-        prosody: {
-          speed: speed ?? 1.0,
-          volume: 0,
+    let audioBuffer: Uint8Array | ArrayBuffer | undefined
+
+    if (window.api?.voices?.speakFish) {
+      const res = await window.api.voices.speakFish(text, selectedVoice, apiKey, speed)
+      if (res.error) return res.error
+      if (!res.mp3 || res.mp3.byteLength === 0) {
+        return "Fish Audio devolvió un buffer de audio vacío."
+      }
+      audioBuffer = res.mp3
+    } else {
+      const response = await fetch(FISH_AUDIO_API_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          model: "s2.1-pro-free",
         },
-      }),
-    })
+        body: JSON.stringify({
+          text,
+          reference_id: selectedVoice || undefined,
+          format: "mp3",
+          latency: "normal",
+          prosody: {
+            speed: speed ?? 1.0,
+            volume: 0,
+          },
+        }),
+      })
 
-    if (!response.ok) {
-      const errBody = await response.text().catch(() => "")
-      return `Error Fish Audio HTTP ${response.status}: ${errBody || response.statusText}`
-    }
+      if (!response.ok) {
+        const errBody = await response.text().catch(() => "")
+        return `Error Fish Audio HTTP ${response.status}: ${errBody || response.statusText}`
+      }
 
-    if (speechGeneration !== expectedGeneration || speakingKey() !== key) return
+      if (speechGeneration !== expectedGeneration || speakingKey() !== key) return
 
-    const buffer = await response.arrayBuffer()
-    if (!buffer || buffer.byteLength === 0) {
-      return "Fish Audio devolvió un buffer de audio vacío."
+      const buffer = await response.arrayBuffer()
+      if (!buffer || buffer.byteLength === 0) {
+        return "Fish Audio devolvió un buffer de audio vacío."
+      }
+      audioBuffer = buffer
     }
 
     if (speechGeneration !== expectedGeneration || speakingKey() !== key) return
@@ -473,7 +491,7 @@ export async function speakWithFishAudio(
       }
 
       try {
-        const blob = new Blob([buffer], { type: "audio/mpeg" })
+        const blob = new Blob([audioBuffer as BlobPart], { type: "audio/mpeg" })
         const url = URL.createObjectURL(blob)
         const audio = new Audio(url)
         audio.playbackRate = getVoiceSpeed()

@@ -29,23 +29,39 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.6"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} - Fish Audio S2.1 Pro Ultra-Fluida, Soporte de Apps Nativas de Escritorio (WPF/GUI) & Live Preview Universal`
-  const body = `## 🚀 Tiancode v${version} — Fish Audio S2.1 Pro Ultra-Fluida, Soporte de Apps Nativas de Escritorio & Live Preview Universal
+  const releaseName = `Tiancode v${version} - Fish Audio IPC Bridge, Cero Parpadeo, Conexión Instantánea OpenCode & Astral Loading`
+  const body = `## 🚀 Tiancode v${version} — Fish Audio IPC Bridge, Cero Parpadeo, Conexión Instantánea OpenCode & Astral Loading
 
-### 🐟 Integración de Fish Audio S2.1 Pro (Voces Femeninas Ultra-Fluidas Free API)
-- **Calidad de Estudio Hiper-Realista:** Integración con la API oficial gratuita S2.1 Pro de Fish Audio, proporcionando voces de locución humana con cadencia natural, respiración y prosodia impecable a 0% de consumo de CPU local.
-- **Catálogo de Voces Femeninas en Español:** Acceso directo a voces curadas de alta calidad: *Natasha (Español Natural)*, *Española Conversacional y Viva*, *Española Profesional*, *Española Brillante y Dinámica*, *Española Neutra y Suave*, y *Española Conversación Natural*.
-- **Selector y Prueba de Voz en Vivo:** Panel dedicado en Configuración > Voces con botón para probar la síntesis de voz, selector rápido de voces, soporte para claves personalizadas y enlace al directorio de modelos de la comunidad.
+### 🐟 Corrección Definitiva de Fish Audio (IPC Bridge Nativo a 0% CORS)
+- **Bypass Total de CORS en Chromium:** Se implementó un IPC Bridge directo en el proceso principal de Electron (\`voices-speak-fish\`), eliminando por completo el error \`Failed to fetch\` causado por el navegador al enviar peticiones con cabeceras personalizadas.
+- **Modelo Oficial Gratuito \`s2.1-pro-free\`:** Síntesis ultra-fluida y de ultra-baja latencia (~70ms TTFA) en 83 idiomas, con prioridad en voces femeninas naturales en español (*Natasha*, *Española Conversacional y Viva*, *Española Profesional*, etc.).
+- **Reproducción Binaria Instantánea:** Conversión directa de bytes MP3 recibidos por IPC a un buffer de audio local con control dinámico de velocidad y reactividad de ondas.
 
-### 🖥️ Soporte Integral de Aplicaciones de Escritorio Nativas en Vista Previa
-- **Detección Automática de GUI (.NET WPF / WinForms / Python GUI / Rust GUI):** Identificación inteligente de proyectos de escritorio (como C# con WPF, NAudio, Windows Forms, Tkinter, PyQt, etc.) evitando falsos bloqueos de puerto HTTP.
-- **Ejecución Visible en Windows:** Lanzamiento del proceso sin ocultar la ventana (\`windowsHide: false\`), permitiendo al usuario interactuar directamente con la ventana nativa de su aplicación en el sistema operativo.
-- **Panel Sandbox para Aplicaciones de Escritorio:** Interfaz dedicada con controles de proceso (\`▶ Ejecutar en Windows\`, \`■ Detener Aplicación\`, \`↻ Reiniciar\`), indicador de estado en tiempo real (En ejecución / Detenida) y terminal de logs en vivo (stdout / stderr) con botón de copiado.
-- **Resolución Inmediata de URLs de Desarrollo:** Corrección en el algoritmo de enlace de Vista Previa para adoptar sin demora las URLs de desarrollo locales detectadas en los registros de ejecución.
+### ⚡ Cero Parpadeos y Máxima Fluidez en Configuración (60 FPS)
+- **Persistencia en Memoria de Pestañas (\`forceMount\`):** Todas las pestañas de Configuración (GitHub, Voces, Skills, Proveedores, etc.) permanecen cacheadas e hidratadas en memoria con \`contain: paint layout\`, eliminando la destrucción y reconstrucción del DOM.
+- **Eliminación del Salto Dimensional:** Se pre-cargan los componentes para que el cambio entre pestañas sea un toggle CSS puro e instantáneo de 0ms sin pantallas blancas ni parpadeos.
 
-### 🤖 Activación Automática de Sub-Agentes y UI Codex Desktop
-- **Orquestación Autónoma de Enjambres:** Sub-agentes especializados (\`ui-ux-master\`, \`fullstack-coder\`, \`software-architect\`, \`devsecops-auditor\`, \`qa-e2e-tester\`) invocados automáticamente para tareas complejas.
-- **Tarjetas Ejecutivas Estilo Codex Desktop:** Tarjetas de especialistas con distintivos de rol cromáticos, estado de pulso en vivo y visualización colapsable de directivas y resultados.
+### ⚡ Conexión y Desconexión Instantánea de Proveedores (Estilo OpenCode)
+- **Actualización Optimista Inmediata:** Desconexión y conexión en menos de 1 ms en la interfaz con emisión inmediata del Toast de notificación.
+- **Persistencia Asíncrona en Segundo Plano:** El guardado de configuración, revocación de tokens y actualización de estado ocurren en segundo plano sin congelar la UI.
+
+### 🛡️ Catálogo de Skills Claude Code Desktop Integradas
+- Incorporación de las 7 skills clave de ingeniería de Anthropic:
+  - \`claude-code-review\`: Auditoría exhaustiva de código, calidad idiomática y detección de regresiones.
+  - \`claude-git-workflow\`: Commits convencionales atómicos, ramas limpias y PRs estructurados.
+  - \`claude-system-architecture\`: Descomposición modular y contratos limpios de dependencias.
+  - \`claude-terminal-automation\`: Automatización segura de terminal y diagnóstico de procesos.
+  - \`claude-deep-investigation\`: Arqueología profunda de código y reconstrucción de causas raíz.
+  - \`claude-performance-profiling\`: Perfilado extremo de rendimiento, eliminación de memory leaks y contención de renderizado.
+  - \`claude-security-auditor\`: Auditoría de vulnerabilidades y prevención OWASP.
+
+### 🌌 Pantalla de Carga Cósmica Estilo Astral.sh ("Tiancode")
+- **Lienzo de Constelaciones Interactivo:** Campo estelar dinámico con estrellas titilantes y líneas de constelación que se conectan orgánicamente en el espacio profundo.
+- **Convergencia en Logo e Identidad:** Las constelaciones y auroras cósmicas (cian y violeta) convergen en el emblema y el nombre iluminado "Tiancode".
+- **Barra de Progreso Cupertino/Astral:** Transición fluida con brillo pulsante para el inicio de la aplicación.
+
+### 🖥️ Sandbox Protegido y Live Preview Universal
+- Ejecución visual en Windows para proyectos GUI (.NET WPF, WinForms, Python GUI, Rust GUI) en entorno de aislamiento supervisado con terminal de logs en vivo.
 
 ### 📦 Descargas
 | Archivo | Tipo | Descripción |

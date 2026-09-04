@@ -7,12 +7,18 @@ import browser_automation from "../../../../../skills/browser-automation.md" wit
 import browser_testing_with_devtools from "../../../../../skills/browser-testing-with-devtools.md" with { type: "text" }
 import ci_cd_and_automation from "../../../../../skills/ci-cd-and-automation.md" with { type: "text" }
 import claude_code_architect from "../../../../../skills/claude-code-architect.md" with { type: "text" }
+import claude_code_review from "../../../../../skills/claude-code-review.md" with { type: "text" }
 import claude_context_engineer from "../../../../../skills/claude-context-engineer.md" with { type: "text" }
+import claude_deep_investigation from "../../../../../skills/claude-deep-investigation.md" with { type: "text" }
 import claude_design_system_extractor from "../../../../../skills/claude-design-system-extractor.md" with { type: "text" }
 import claude_frontend_engineer from "../../../../../skills/claude-frontend-engineer.md" with { type: "text" }
+import claude_git_workflow from "../../../../../skills/claude-git-workflow.md" with { type: "text" }
 import claude_performance_optimizer from "../../../../../skills/claude-performance-optimizer.md" with { type: "text" }
+import claude_performance_profiling from "../../../../../skills/claude-performance-profiling.md" with { type: "text" }
 import claude_react_nextjs_expert from "../../../../../skills/claude-react-nextjs-expert.md" with { type: "text" }
 import claude_security_auditor from "../../../../../skills/claude-security-auditor.md" with { type: "text" }
+import claude_system_architecture from "../../../../../skills/claude-system-architecture.md" with { type: "text" }
+import claude_terminal_automation from "../../../../../skills/claude-terminal-automation.md" with { type: "text" }
 import claude_testing_and_verification from "../../../../../skills/claude-testing-and-verification.md" with { type: "text" }
 import code_review_and_quality from "../../../../../skills/code-review-and-quality.md" with { type: "text" }
 import code_simplification from "../../../../../skills/code-simplification.md" with { type: "text" }
@@ -84,14 +90,20 @@ export const builtinAgentSkills: Record<string, string> = {
   "browser-automation": browser_automation,
   "browser-testing-with-devtools": browser_testing_with_devtools,
   "ci-cd-and-automation": ci_cd_and_automation,
-  "claude-code-architect": codebase_design,
-  "claude-context-engineer": context_engineering,
+  "claude-code-architect": claude_code_architect,
+  "claude-code-review": claude_code_review,
+  "claude-context-engineer": claude_context_engineer,
+  "claude-deep-investigation": claude_deep_investigation,
   "claude-design-system-extractor": claude_design_system_extractor,
-  "claude-frontend-engineer": frontend_ui_engineering,
-  "claude-performance-optimizer": performance_optimization,
+  "claude-frontend-engineer": claude_frontend_engineer,
+  "claude-git-workflow": claude_git_workflow,
+  "claude-performance-optimizer": claude_performance_optimizer,
+  "claude-performance-profiling": claude_performance_profiling,
   "claude-react-nextjs-expert": claude_react_nextjs_expert,
-  "claude-security-auditor": security_and_hardening,
-  "claude-testing-and-verification": test_driven_development,
+  "claude-security-auditor": claude_security_auditor,
+  "claude-system-architecture": claude_system_architecture,
+  "claude-terminal-automation": claude_terminal_automation,
+  "claude-testing-and-verification": claude_testing_and_verification,
   "code-review-and-quality": code_review_and_quality,
   "code-simplification": code_simplification,
   "codebase-design": codebase_design,

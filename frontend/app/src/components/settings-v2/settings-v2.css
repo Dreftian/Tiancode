@@ -30,6 +30,13 @@
   container-name: settings-panel;
   background-color: var(--v2-background-bg-base);
   min-height: 100%;
+  contain: paint layout;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+[data-slot="tabs-v2-content"][hidden] {
+  display: none !important;
 }
 
 .settings-v2-panel :is(input, textarea, [contenteditable="true"]) {

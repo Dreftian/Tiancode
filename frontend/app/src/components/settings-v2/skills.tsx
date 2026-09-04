@@ -224,7 +224,13 @@ const SKILL_ES_DESCRIPTIONS: Record<string, string> = {
   "unibind-database": "Conjuntos de datos de sitios de unión de factores de transcripción validados en UniBind.",
   "uniprot-database": "Metadatos de proteínas, función, taxonomía y secuencias en UniProtKB.",
   "uv": "Verifica e instala el gestor ultra-rápido de paquetes y entornos virtuales de Python uv.",
-  "workflow-skill-creator": "Empaqueta y convierte un flujo de trabajo o interacción completada en una skill reutilizable.",
+  "claude-code-architect": "Arquitectura de software de alto nivel, contratos de servicios y descomposición modular sólida.",
+  "claude-code-review": "Revisión exhaustiva de código al estilo Claude Code: análisis de regresiones, detección de trampas de lógica y calidad idiomática.",
+  "claude-git-workflow": "Flujos de trabajo Git inteligentes inspirados en Claude Code: commits convencionales, ramificación limpia y PRs descriptivos.",
+  "claude-system-architecture": "Diseño de arquitectura de sistemas y descomposición modular desacoplada según directivas de Anthropic.",
+  "claude-terminal-automation": "Automatización segura y supervisión de comandos de terminal, scripts de diagnóstico y ejecución de tareas CLI.",
+  "claude-deep-investigation": "Arqueología profunda del código, rastreo de dependencias ocultas y diagnóstico riguroso de causa raíz.",
+  "claude-performance-profiling": "Perfilado de rendimiento extremo: detección de cuellos de botella en CPU, fugas de memoria y optimización de latencia.",
   "nextjs-app-router-expert": "Especialista en Next.js 15, App Router, React Server Components (RSC), Server Actions y caché.",
   "typescript-strict-patterns": "Patrones avanzados de tipado estricto en TypeScript 5+: branded types, discriminated unions y cero any.",
   "tailwind-v4-styling": "Estilizado moderno con Tailwind CSS v4: variables de tema CSS (@theme), utilidades nativas y diseño Apple.",
@@ -237,6 +243,20 @@ export const SAFE_SKILLS = new Set([
   "api-and-interface-design",
   "api-rest-graphql-openapi",
   "ci-cd-and-automation",
+  "claude-code-architect",
+  "claude-code-review",
+  "claude-context-engineer",
+  "claude-deep-investigation",
+  "claude-design-system-extractor",
+  "claude-frontend-engineer",
+  "claude-git-workflow",
+  "claude-performance-optimizer",
+  "claude-performance-profiling",
+  "claude-react-nextjs-expert",
+  "claude-security-auditor",
+  "claude-system-architecture",
+  "claude-terminal-automation",
+  "claude-testing-and-verification",
   "code-review-and-quality",
   "code-simplification",
   "codebase-design",
@@ -511,7 +531,7 @@ Evaluación de seguridad, prevención de inyecciones (OWASP Top 10) y manejo seg
 - Almacenamiento seguro de claves de API y tokens de autenticación.
 - Políticas de permisos restrictivas por defecto.`,
 
-  "testing-and-coverage": `# Pruebas Automatizadas y Cobertura
+  "testing-strategy": `# Estrategias de Pruebas y Cobertura
 
 ## Descripción General
 Estrategias para pruebas unitarias, de integración y de extremo a extremo (E2E) con alta cobertura.
@@ -520,6 +540,65 @@ Estrategias para pruebas unitarias, de integración y de extremo a extremo (E2E)
 - Probar el comportamiento real en lugar de detalles internos de implementación.
 - Minimizar el uso de mocks complejos.
 - Pruebas rápidas, deterministas y aisladas.`,
+
+  "claude-code-review": `# Revisión de Código Claude Code
+
+## Descripción General
+Auditoría rigurosa y revisión sistemática de código al estilo Claude Code Desktop. Se enfoca en detectar regresiones silenciosas, problemas de tipado y optimización de arquitectura.
+
+## Directivas
+- **Detección de Regresiones**: Comparar minuciosamente la lógica modificada contra el comportamiento esperado.
+- **Seguridad y Validación**: Verificar que todas las entradas estén saneadas y no existan riesgos de inyección o desbordamiento.
+- **Sugerencias Accionables**: Proporcionar reemplazos exactos de código listos para aplicar.`,
+
+  "claude-git-workflow": `# Flujo de Trabajo Git Claude Code
+
+## Descripción General
+Buenas prácticas de control de versiones inspiradas en la disciplina de desarrollo de Claude Code.
+
+## Directivas
+- **Commits Convencionales y Atómicos**: Formato estricto \`type(scope): summary\`.
+- **Ramas Limpias**: Nombres de 2 a 3 palabras separadas por guiones sin prefijos redundantes.
+- **Resolución de Conflictos**: Verificación de compilación y pruebas tras cada merge o rebase.`,
+
+  "claude-system-architecture": `# Arquitectura de Sistemas Claude Code
+
+## Descripción General
+Diseño y descomposición modular de software guiado por los principios arquitectónicos de Anthropic.
+
+## Directivas
+- **Módulos Profundos**: Ocultar complejidad tras interfaces limpias y de un solo propósito.
+- **Límites de Dependencia Unidireccionales**: Esquemas -> Núcleo -> Servidor -> Cliente.
+- **Tolerancia a Fallos**: Retiros exponenciales y degradación elegante ante caídas de servicios externos.`,
+
+  "claude-terminal-automation": `# Automatización de Terminal Claude Code
+
+## Descripción General
+Ejecución supervisada y segura de comandos de terminal, scripts de diagnóstico y flujos de automatización CLI.
+
+## Directivas
+- **Seguridad**: Nunca ejecutar comandos destructivos sin confirmación previa.
+- **Supervisión de Procesos**: Capturar salidas estándar y errores para diagnóstico en vivo.
+- **Compatibilidad**: Soporte nativo para PowerShell en Windows y Bash en POSIX.`,
+
+  "claude-deep-investigation": `# Investigación Profunda Claude Code
+
+## Descripción General
+Arqueología exhaustiva de código y reconstrucción de la cadena causal para bugs complejos y de difícil reproducción.
+
+## Directivas
+- **Rastreo de Jerarquía Completa**: Seguir el flujo desde la interacción del usuario hasta el backend.
+- **Hipótesis Verificables**: Comprobar suposiciones con pruebas aisladas antes de modificar código fuente.`,
+
+  "claude-performance-profiling": `# Perfilado de Rendimiento Claude Code
+
+## Descripción General
+Análisis extremo de rendimiento para identificar cuellos de botella de CPU, fugas de memoria y bloqueos de renderizado.
+
+## Directivas
+- **Contención de Pintura**: Usar \`contain: paint layout\` y capas GPU compuestas.
+- **Transferencias Zero-Copy**: Transmitir buffers binarios directos sin conversiones de cadenas intermedias.
+- **Arranque Instantáneo**: Carga perezosa de dependencias pesadas mediante importaciones dinámicas.`,
 }
 
 function localizeSkillDescription(name: string, defaultDesc: string | undefined, isSpanish: boolean): string {

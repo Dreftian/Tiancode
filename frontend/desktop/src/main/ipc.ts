@@ -27,7 +27,7 @@ import type { UpdaterController } from "./updater-controller"
 import { createUpdaterSubscriptions } from "./updater-subscriptions"
 import { createDesktopDraftStore } from "./draft-store"
 import { nativeT } from "./native-translations"
-import { downloadVoices, deleteVoice, downloadVoice, getVoicesStatus, listVoices, selectVoice, setVoiceEnabled, speakVoice } from "./voices"
+import { downloadVoices, deleteVoice, downloadVoice, getVoicesStatus, listVoices, selectVoice, setVoiceEnabled, speakVoice, speakFishVoice } from "./voices"
 import { asrChunk, asrStart, asrStop, ensureAsrModel, getAsrStatus } from "./asr"
 import { getRuntimeInstallState, installRuntime } from "./runtime-install"
 import { captureArea, captureLiveView, capturePreview, captureScreen, captureWindow } from "./capture"
@@ -212,6 +212,13 @@ export function registerIpcHandlers(deps: Deps) {
   ipcMain.handle("voices-speak", (_event: IpcMainInvokeEvent, text: string, voiceId?: string, options?: { automatic?: boolean }) =>
     speakVoice(text, voiceId, options),
   )
+  ipcMain.handle("voices-speak-fish", (
+    _event: IpcMainInvokeEvent,
+    text: string,
+    voiceId?: string,
+    apiKey?: string,
+    speed?: number,
+  ) => speakFishVoice(text, voiceId, apiKey, speed))
   ipcMain.handle("voices-select", (_event: IpcMainInvokeEvent, voiceId: string) => selectVoice(voiceId))
   ipcMain.handle("voices-download-voice", (_event: IpcMainInvokeEvent, voiceId: string) => downloadVoice(voiceId))
   ipcMain.handle("voices-delete-voice", (_event: IpcMainInvokeEvent, voiceId: string) => deleteVoice(voiceId))

@@ -100,6 +100,12 @@ export type VoicesAPI = {
   deleteVoice: (voiceId: string) => Promise<void>
   setEnabled: (voiceId: string, enabled: boolean) => Promise<void>
   onPiperProgress: (cb: (event: VoicesPiperProgress) => void) => () => void
+  speakFish?: (
+    text: string,
+    voiceId?: string,
+    apiKey?: string,
+    speed?: number,
+  ) => Promise<{ mp3?: Uint8Array; error?: string }>
 }
 
 // Local speech-to-text (sherpa-onnx Whisper) for mic dictation. The renderer

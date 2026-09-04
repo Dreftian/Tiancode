@@ -42,15 +42,26 @@ export const DialogSettings: Component<{
       : props.defaultValue ?? "general"
   const [tab, setTab] = createSignal(initialTab)
 
-  // Track visited tabs to keep them in memory for buttery smooth, zero-lag tab switching
-  const [visited, setVisited] = createSignal<Set<string>>(new Set([initialTab]))
+  const ALL_SETTINGS_TABS = [
+    "general",
+    "intelligence",
+    "ecosystem",
+    "computer-use",
+    "shortcuts",
+    "servers",
+    "providers",
+    "models",
+    "models-hub",
+    "github",
+    "voices",
+    "skills",
+    "sub-agents",
+    "mcp-plugins",
+    "pets",
+  ]
+  // Pre-seed all tabs so switching is buttery smooth, zero-flicker and 100% cached
+  const [visited, setVisited] = createSignal<Set<string>>(new Set(ALL_SETTINGS_TABS))
   const markVisited = (val: string) => {
-    setVisited((prev) => {
-      if (prev.has(val)) return prev
-      const next = new Set(prev)
-      next.add(val)
-      return next
-    })
     setTab(val)
   }
 
@@ -180,91 +191,91 @@ export const DialogSettings: Component<{
         </TabsV2.List>
 
         {/* Tab Panels with Fluid Cached Switching */}
-        <TabsV2.Content value="general" class="settings-v2-panel" classList={{ "!hidden": tab() !== "general" }}>
+        <TabsV2.Content forceMount value="general" class="settings-v2-panel" classList={{ "!hidden": tab() !== "general" }}>
           <Show when={visited().has("general")}>
             <SettingsGeneralV2 sessionID={props.sessionID} />
           </Show>
         </TabsV2.Content>
 
-        <TabsV2.Content value="intelligence" class="settings-v2-panel" classList={{ "!hidden": tab() !== "intelligence" }}>
+        <TabsV2.Content forceMount value="intelligence" class="settings-v2-panel" classList={{ "!hidden": tab() !== "intelligence" }}>
           <Show when={visited().has("intelligence")}>
             <SettingsIntelligenceV2 />
           </Show>
         </TabsV2.Content>
 
-        <TabsV2.Content value="ecosystem" class="settings-v2-panel" classList={{ "!hidden": tab() !== "ecosystem" }}>
+        <TabsV2.Content forceMount value="ecosystem" class="settings-v2-panel" classList={{ "!hidden": tab() !== "ecosystem" }}>
           <Show when={visited().has("ecosystem")}>
             <SettingsEcosystemV2 />
           </Show>
         </TabsV2.Content>
 
-        <TabsV2.Content value="computer-use" class="settings-v2-panel" classList={{ "!hidden": tab() !== "computer-use" }}>
+        <TabsV2.Content forceMount value="computer-use" class="settings-v2-panel" classList={{ "!hidden": tab() !== "computer-use" }}>
           <Show when={visited().has("computer-use")}>
             <SettingsComputerUseV2 directory={directory()} />
           </Show>
         </TabsV2.Content>
 
-        <TabsV2.Content value="shortcuts" class="settings-v2-panel" classList={{ "!hidden": tab() !== "shortcuts" }}>
+        <TabsV2.Content forceMount value="shortcuts" class="settings-v2-panel" classList={{ "!hidden": tab() !== "shortcuts" }}>
           <Show when={visited().has("shortcuts")}>
             <SettingsKeybinds v2 />
           </Show>
         </TabsV2.Content>
 
-        <TabsV2.Content value="servers" class="settings-v2-panel" classList={{ "!hidden": tab() !== "servers" }}>
+        <TabsV2.Content forceMount value="servers" class="settings-v2-panel" classList={{ "!hidden": tab() !== "servers" }}>
           <Show when={visited().has("servers")}>
             <SettingsServersV2 />
           </Show>
         </TabsV2.Content>
 
-        <TabsV2.Content value="providers" class="settings-v2-panel" classList={{ "!hidden": tab() !== "providers" }}>
+        <TabsV2.Content forceMount value="providers" class="settings-v2-panel" classList={{ "!hidden": tab() !== "providers" }}>
           <Show when={visited().has("providers")}>
             <SettingsProvidersV2 directory={directory} onBack={showProviders} />
           </Show>
         </TabsV2.Content>
 
-        <TabsV2.Content value="models" class="settings-v2-panel" classList={{ "!hidden": tab() !== "models" }}>
+        <TabsV2.Content forceMount value="models" class="settings-v2-panel" classList={{ "!hidden": tab() !== "models" }}>
           <Show when={visited().has("models")}>
             <SettingsModelsV2 />
           </Show>
         </TabsV2.Content>
 
-        <TabsV2.Content value="models-hub" class="settings-v2-panel" classList={{ "!hidden": tab() !== "models-hub" }}>
+        <TabsV2.Content forceMount value="models-hub" class="settings-v2-panel" classList={{ "!hidden": tab() !== "models-hub" }}>
           <Show when={visited().has("models-hub")}>
             <SettingsModelsHubV2 directory={directory()} />
           </Show>
         </TabsV2.Content>
 
-        <TabsV2.Content value="github" class="settings-v2-panel" classList={{ "!hidden": tab() !== "github" }}>
+        <TabsV2.Content forceMount value="github" class="settings-v2-panel" classList={{ "!hidden": tab() !== "github" }}>
           <Show when={visited().has("github")}>
             <SettingsGithubV2 directory={directory()} />
           </Show>
         </TabsV2.Content>
 
-        <TabsV2.Content value="voices" class="settings-v2-panel" classList={{ "!hidden": tab() !== "voices" }}>
+        <TabsV2.Content forceMount value="voices" class="settings-v2-panel" classList={{ "!hidden": tab() !== "voices" }}>
           <Show when={visited().has("voices")}>
             <SettingsVoicesV2 />
           </Show>
         </TabsV2.Content>
 
-        <TabsV2.Content value="skills" class="settings-v2-panel" classList={{ "!hidden": tab() !== "skills" }}>
+        <TabsV2.Content forceMount value="skills" class="settings-v2-panel" classList={{ "!hidden": tab() !== "skills" }}>
           <Show when={visited().has("skills")}>
             <SettingsSkillsV2 directory={directory()} />
           </Show>
         </TabsV2.Content>
 
-        <TabsV2.Content value="sub-agents" class="settings-v2-panel" classList={{ "!hidden": tab() !== "sub-agents" }}>
+        <TabsV2.Content forceMount value="sub-agents" class="settings-v2-panel" classList={{ "!hidden": tab() !== "sub-agents" }}>
           <Show when={visited().has("sub-agents")}>
             <SettingsSubAgentsV2 directory={directory()} />
           </Show>
         </TabsV2.Content>
 
-        <TabsV2.Content value="mcp-plugins" class="settings-v2-panel" classList={{ "!hidden": tab() !== "mcp-plugins" }}>
+        <TabsV2.Content forceMount value="mcp-plugins" class="settings-v2-panel" classList={{ "!hidden": tab() !== "mcp-plugins" }}>
           <Show when={visited().has("mcp-plugins")}>
             <SettingsMcpPluginsV2 directory={directory()} />
           </Show>
         </TabsV2.Content>
 
-        <TabsV2.Content value="pets" class="settings-v2-panel" classList={{ "!hidden": tab() !== "pets" }}>
+        <TabsV2.Content forceMount value="pets" class="settings-v2-panel" classList={{ "!hidden": tab() !== "pets" }}>
           <Show when={visited().has("pets")}>
             <SettingsPetsV2 />
           </Show>

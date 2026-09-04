@@ -339,3 +339,49 @@ function voiceName(id: string) {
   const name = id.slice(id.indexOf("_") + 1)
   return name.charAt(0).toUpperCase() + name.slice(1)
 }
+
+export async function speakFishVoice(
+  text: string,
+  voiceId?: string,
+  apiKey?: string,
+  speed?: number,
+): Promise<{ mp3?: Uint8Array; error?: string }> {
+  const normalized = typeof text === "string" ? text.replace(/\s+/g, " ").trim() : ""
+  if (!normalized) return { error: "Text must be a non-empty string." }
+  const key = apiKey?.trim() || "sk-fish-JctE9rsGvKF4LthXgq0dZRxno7Wqm5ftrSAA3cfO8Uk"
+  try {
+    const response = await fetch("https://api.fish.audio/v1/tts", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+        model: "s2.1-pro-free",
+      },
+      body: JSON.stringify({
+        text: normalized,
+        reference_id: voiceId || undefined,
+        format: "mp3",
+        latency: "normal",
+        prosody: {
+          speed: speed ?? 1.0,
+          volume: 0,
+        },
+      }),
+    })
+
+    if (!response.ok) {
+      const errText = await response.text().catch(() => "")
+      return { error: `Fish Audio HTTP ${response.status}: ${errText || response.statusText}` }
+    }
+
+    const arrayBuffer = await response.arrayBuffer()
+    if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+      return { error: "Fish Audio devolvió un buffer de audio vacío." }
+    }
+
+    return { mp3: new Uint8Array(arrayBuffer) }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    return { error: `Error de red al conectar con Fish Audio: ${message}` }
+  }
+}
