@@ -116,6 +116,20 @@
   color: var(--v2-text-text-muted, #8e8e93);
 }
 
+.settings-v2-voices-waveform-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--v2-background-bg-layer-02, rgba(255, 255, 255, 0.05)) 85%, transparent);
+  border: 1px solid var(--v2-border-border-weak, rgba(255, 255, 255, 0.1));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  transition: all 0.2s ease;
+}
+
 .settings-v2-voices-selected {
   display: flex;
   align-items: center;

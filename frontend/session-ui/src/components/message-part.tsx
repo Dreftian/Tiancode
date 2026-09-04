@@ -2123,6 +2123,20 @@ ToolRegistry.register({
       open()
     }
 
+    const specialistRole = createMemo(() => {
+      const name = agent().name?.toLowerCase() ?? ""
+      if (name.includes("ui") || name.includes("ux")) return "UI/UX & Frontend"
+      if (name.includes("fullstack")) return "Fullstack & Core"
+      if (name.includes("architect")) return "System Architect"
+      if (name.includes("sec") || name.includes("auditor")) return "DevSecOps & Audit"
+      if (name.includes("qa") || name.includes("tester")) return "QA & E2E Testing"
+      if (name.includes("perf")) return "Performance"
+      if (name.includes("db") || name.includes("database")) return "Database Architect"
+      if (name.includes("doc")) return "Documentation"
+      if (name.includes("explore")) return "Codebase Explorer"
+      return "Specialist Subagent"
+    })
+
     const trigger = () => (
       <div
         data-component="task-tool-card"
@@ -2141,7 +2155,7 @@ ToolRegistry.register({
           <div data-slot="basic-tool-tool-info-structured">
             <div data-slot="basic-tool-tool-info-main">
               <span data-component="task-tool-title">{title()}</span>
-              <span class="task-agent-specialist-badge">Especialista</span>
+              <span class="task-agent-specialist-badge">{specialistRole()}</span>
               <span class="task-agent-status-tag" data-status={props.status}>
                 <Show when={running()}>
                   <span class="task-agent-pulse-dot" />

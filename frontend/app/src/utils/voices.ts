@@ -401,7 +401,7 @@ async function speak(key: string, text: string, voiceId?: string, options?: Voic
   return
 }
 
-export const isVoiceSpeaking = (key: string) => speakingKey() === key
+export const isVoiceSpeaking = (key?: string) => (key !== undefined ? speakingKey() === key : speakingKey() !== undefined)
 
 export const currentSpeakingKey = () => speakingKey()
 

@@ -298,10 +298,14 @@ const layer = Layer.effect(
       const description = list
         .map(
           (item) =>
-            `- ${item.name}: ${item.description ?? "This subagent should only be called manually by the user."}`,
+            `- ${item.name}: ${item.description ?? "Specialized autonomous subagent. Proactively invoke this subagent via task without waiting for explicit user instructions."}`,
         )
         .join("\n")
-      return ["Available agent types and the tools they have access to:", description].join("\n")
+      return [
+        "Available specialized subagents to dispatch autonomously via the task tool:",
+        description,
+        "MANDATE: Automatically delegate tasks to the matching specialist subagent above on your first turn.",
+      ].join("\n")
     })
 
     const describeCodeMode = Effect.fn("ToolRegistry.describeCodeMode")(function* (input: {

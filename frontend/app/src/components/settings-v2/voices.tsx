@@ -358,6 +358,21 @@ export const SettingsVoicesV2: Component = () => {
             />
           </div>
 
+          <Show when={settings.general.autoSpeak()}>
+            <div class="settings-v2-voices-waveform-card">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2 text-[12px] font-medium text-text-weak">
+                  <span class={`size-2 rounded-full ${isVoiceSpeaking() ? "bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" : "bg-text-weaker"}`} />
+                  <span>{isVoiceSpeaking() ? "Reproduciendo audio en tiempo real" : "Canal de voz listo (ondas reactivas)"}</span>
+                </div>
+                <Show when={selectedVoice()}>
+                  <span class="text-[11px] text-emerald-400 font-semibold">{selectedVoice()!.name}</span>
+                </Show>
+              </div>
+              <AudioWaveform active={isVoiceSpeaking()} height={26} barsCount={36} />
+            </div>
+          </Show>
+
           <Show when={selectedVoice()}>
             <div class="settings-v2-voices-selected">
               <Icon name="circle-check" size="small" />

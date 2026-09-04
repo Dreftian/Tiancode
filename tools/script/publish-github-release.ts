@@ -27,32 +27,36 @@ async function main() {
   const owner = "Dreftian"
   const repo = "Tiancode"
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
-  const version = desktopPkg.version || "1.0.2"
+  const version = desktopPkg.version || "1.0.5"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} - Activación Automática de Sub-agentes, UI Codex Desktop en Chat, Vista Previa Universal & Formas de Onda`
-  const body = `## 🚀 Tiancode v${version} — Activación Automática de Sub-agentes, UI Codex Desktop, Vista Previa Universal & Telemetría Local
+  const releaseName = `Tiancode v${version} - Activación Automática de Sub-agentes, UI Codex Desktop en Chat, Vista Previa Universal Multi-Lenguaje & Windows 11 Fluent Store`
+  const body = `## 🚀 Tiancode v${version} — Activación Automática de Sub-agentes, UI Codex Desktop, Vista Previa Universal & Windows 11 Fluent Store
 
 ### 🤖 Activación Automática y Proactiva de Sub-Agentes Especializados
-- **Orquestación Autónoma de Enjambres:** Mandato universal que obliga al agente principal a delegar tareas complejas, frontend, backend, arquitectura, testing y seguridad a sub-agentes especializados (\`ui-ux-master\`, \`fullstack-coder\`, \`software-architect\`, \`devsecops-auditor\`, \`qa-e2e-tester\`) sin necesidad de que el usuario lo solicite de forma manual.
-- **Inyección en Todos los Proveedores:** Integración exhaustiva en prompts de sistema para Anthropic Claude, OpenAI GPT, Google Gemini, Ollama y DeepSeek.
+- **Orquestación Autónoma de Enjambres:** Mandato universal que obliga al agente principal a delegar tareas complejas, frontend, backend, arquitectura, testing y seguridad a sub-agentes especializados (\`ui-ux-master\`, \`fullstack-coder\`, \`software-architect\`, \`devsecops-auditor\`, \`qa-e2e-tester\`) de forma 100% automática sin requerir que el usuario lo solicite de manera manual.
+- **Inyección en Todos los Proveedores:** Integración exhaustiva en prompts de sistema para Anthropic Claude, OpenAI GPT, Google Gemini, Ollama, DeepSeek y Kimi.
 
 ### 💼 Interfaz de Sub-agentes Estilo Codex Desktop en el Chat
-- **Tarjetas Ejecutivas de Especialistas:** Tarjetas rediseñadas con acentos cromáticos por especialidad, badges de rol (\`Frontend & Design\`, \`Fullstack & Core\`, \`Architecture\`, etc.) e indicador de pulso en vivo.
+- **Tarjetas Ejecutivas de Especialistas:** Tarjetas rediseñadas con acentos cromáticos por especialidad, badges de rol (\`UI/UX & Frontend\`, \`Fullstack & Core\`, \`System Architect\`, etc.) e indicador de pulso en vivo.
 - **Visualización Limpia de Resultados:** Vista previa de directivas, botón directo "Abrir sesión ↗" y bandeja colapsable con renderizado Markdown optimizado y copiado en un clic.
 
-### 🌐 Vista Previa Universal para Cualquier Website o App
-- **Soporte Multi-Lenguaje y Multi-Framework:** Compatibilidad transparente con Node.js, Python (FastAPI/Django/Flask), Go, Rust, PHP, Astro, Ruby y Java.
+### 🌐 Vista Previa Universal para Cualquier Website o App en Todos los Lenguajes
+- **Soporte Multi-Lenguaje y Multi-Framework Nativo:** Detección y arranque automático para Node.js/TypeScript, Python (FastAPI/Flask/Django/Streamlit/Gradio), Rust (Cargo/Trunk), Go, PHP (Laravel/Built-in), Ruby (Rails), Java/Kotlin (Spring Boot/Maven/Gradle), .NET/C#, Deno y HTML estático.
 - **Normalización HTTP/HTTPS Inteligente:** Corrección que fuerza \`http://\` en \`localhost\`, \`127.0.0.1\`, \`0.0.0.0\` y \`[::1]\`, erradicando los errores de protocolo SSL (\`ERR_SSL_PROTOCOL_ERROR\`).
-- **Control Responsive & Puertos Rápidos:** Selector de viewport (\`Desktop\`, \`Tablet\` a 768px, \`Mobile\` a 375px), botones de puertos de desarrollo (\`:3000\`, \`:5173\`, \`:8000\`, \`:8080\`, \`:5000\`, \`:4321\`), overlay de recuperación de errores y fallback web.
+- **Control Responsive & Puertos Rápidos:** Selector de viewport (\`Desktop\`, \`Tablet\` a 768px, \`Mobile\` a 375px), botones de puertos de desarrollo (\`:3000\`, \`:5173\`, \`:8000\`, \`:8080\`, \`:8501\`, \`:7860\`, \`:5000\`), overlay de recuperación de errores y fallback web.
+
+### 🪟 Catálogo "Descubrir" de MCP y Plugins Estilo Windows 11 Fluent Store
+- **Material Mica & Acrylic:** Banner Hero con gradiente radial Mica, chips de categorías redondeados con efecto glow Fluent y tarjetas estilo Microsoft Store con borde translúcido y elevación suave.
+- **Auditoría y Sincronización en Tiempo Real:** Corrección de formatos de entrada de plugins en la configuración para alternar activación y desactivación de forma sincronizada sin pérdidas de estado.
 
 ### 🎙️ Dictado por Voz Modernizado & Telemetría de Modelos Locales
-- **Formas de Onda Reactivas (Audio Waveform):** Canvas animado de ondas sonoras en tiempo real mientras el micrófono está activo.
+- **Formas de Onda Reactivas (Audio Waveform):** Canvas animado de ondas sonoras en tiempo real mientras el micrófono o la voz están activos.
 - **Telemetría y Estado de Runtimes:** Insignias de estado en tiempo real (Online / Offline) para Ollama y LM Studio, con visualización de puertos y monitor de VRAM / GPU libre.
 
 ### 📦 Descargas
 | Archivo | Tipo | Descripción |
 |---|---|---|
-| [**Tiancode.exe**](https://github.com/Dreftian/Tiancode/releases/download/${tag}/Tiancode.exe) | Instalador Windows | Instalador oficial con acceso directo y actualizador |
+| [**Tiancode.exe**](https://github.com/Dreftian/Tiancode/releases/download/${tag}/Tiancode.exe) | Instalador Windows | Instalador oficial con acceso directo y actualizador automático |
 | [**Tiancode-portable.exe**](https://github.com/Dreftian/Tiancode/releases/download/${tag}/Tiancode-portable.exe) | Portable Windows | Ejecutable directo sin instalación |
 | [**latest.yml**](https://github.com/Dreftian/Tiancode/releases/download/${tag}/latest.yml) | Metadatos | Registro para el actualizador automático |
 `

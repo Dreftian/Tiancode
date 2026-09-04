@@ -21,7 +21,8 @@ const LIVE_VIEW_SSE_STALE_MS = LIVE_VIEW_FALLBACK_POLL_MS + LIVE_VIEW_CHECK_MS
 // URL de un servidor de desarrollo local ("Local: http://localhost:5173") en
 // los logs que publica el agente; se detecta para navegar el panel solo.
 const DEV_SERVER_URL_RE = /https?:\/\/(?:localhost|127\.0\.0\.1):\d{2,5}(?:[/?#][^\s"']*)?/i
-const PREVIEW_ENTRY_RE = /(?:^|\/)(?:package\.json|index\.html|(?:main|index|app)\.(?:jsx|tsx))$/i
+const PREVIEW_ENTRY_RE =
+  /(?:^|\/)(?:package\.json|index\.html|requirements\.txt|pyproject\.toml|Pipfile|Cargo\.toml|go\.mod|composer\.json|artisan|Gemfile|pom\.xml|build\.gradle(?:\.kts)?|deno\.jsonc?|.*\.(?:jsx|tsx|html|htm|py|rs|go|php|rb|java|kt|cs))$/i
 export type LiveViewContent = "preview" | "code"
 
 // Each mode uses the entire panel. Web-only clients keep the dashboard as a

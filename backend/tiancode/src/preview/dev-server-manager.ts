@@ -251,6 +251,19 @@ function onOutput(managed: Managed, chunk: string) {
     return
   }
 
+  // Detección para servidores Python (Uvicorn, Flask, Django, Streamlit), Go, Rust, PHP, .NET
+  const multiLangMatch = /(?:Uvicorn running on|Running on|Starting development server at|Development Server|Local URL:|Network URL:|Now listening on:|listening at)\s+(https?:\/\/[^\s"'<>]+)/i.exec(chunk)
+  if (multiLangMatch?.[1]) {
+    try {
+      const parsed = new URL(multiLangMatch[1].replace("0.0.0.0", "127.0.0.1"))
+      const port = Number(parsed.port || (parsed.protocol === "https:" ? 443 : 80))
+      beginReadinessCheck(managed, parsed.origin, port, "El servidor local no respondió por HTTP.")
+      return
+    } catch {
+      // ignore URL parsing error
+    }
+  }
+
   // Salida de python -m http.server ("Serving HTTP on 127.0.0.1 port 8000").
   const pythonMatch = PYTHON_SERVING_RE.exec(chunk)
   if (pythonMatch) {
@@ -426,11 +439,48 @@ async function spawnServer(managed: Managed) {
     return
   }
 
-  const args = ["run", managed.detected.script]
-  // En Windows los gestores son .cmd: shell:true los resuelve (cmd.exe padre
-  // → taskkill /T mata todo el árbol). En Unix, detached + setsid permite
-  // matar el grupo de procesos.
-  const child = spawn(packageManager, args, {
+  let execCmd: string
+  let execArgs: string[]
+
+  if (packageManager === "python") {
+    const py = resolvePythonCommand()
+    execCmd = py[0]
+    const scriptParts = managed.detected.script.split(/\s+/).filter(Boolean)
+    execArgs = [...py.slice(1), ...scriptParts]
+  } else if (packageManager === "cargo") {
+    execCmd = "cargo"
+    execArgs = ["run"]
+  } else if (packageManager === "trunk") {
+    execCmd = "trunk"
+    execArgs = ["serve"]
+  } else if (packageManager === "go") {
+    execCmd = "go"
+    execArgs = ["run", "."]
+  } else if (packageManager === "php") {
+    execCmd = "php"
+    execArgs = managed.detected.script.replace(/^php\s+/, "").split(/\s+/).filter(Boolean)
+  } else if (packageManager === "bundle") {
+    execCmd = "bundle"
+    execArgs = managed.detected.script.replace(/^bundle\s+/, "").split(/\s+/).filter(Boolean)
+  } else if (packageManager === "dotnet") {
+    execCmd = "dotnet"
+    execArgs = ["run"]
+  } else if (packageManager === "deno") {
+    execCmd = "deno"
+    execArgs = managed.detected.script.replace(/^deno\s+/, "").split(/\s+/).filter(Boolean)
+  } else if (packageManager === "maven" || packageManager === "gradle") {
+    const parts = managed.detected.script.split(/\s+/).filter(Boolean)
+    execCmd = parts[0]
+    execArgs = parts.slice(1)
+  } else {
+    execCmd = packageManager
+    execArgs = ["run", managed.detected.script]
+  }
+
+  // En Windows los gestores son .cmd o comandos de shell: shell:true los resuelve
+  // (cmd.exe padre → taskkill /T mata todo el árbol). En Unix, detached + setsid
+  // permite matar el grupo de procesos.
+  const child = spawn(execCmd, execArgs, {
     cwd: targetDir,
     env: scrubEnv(),
     shell: isWin,
@@ -440,6 +490,16 @@ async function spawnServer(managed: Managed) {
   })
 
   managed.process = child
+
+  // Chequeo proactivo inmediato del puerto esperado mientras se escuchan logs
+  if (managed.detected.port && managed.detected.port > 0) {
+    beginReadinessCheck(
+      managed,
+      `http://127.0.0.1:${managed.detected.port}`,
+      managed.detected.port,
+      "El servidor de desarrollo no respondió por HTTP en el puerto esperado.",
+    )
+  }
 
   child.stdout?.on("data", (data: Buffer) => onOutput(managed, data.toString()))
   child.stderr?.on("data", (data: Buffer) => onOutput(managed, data.toString()))

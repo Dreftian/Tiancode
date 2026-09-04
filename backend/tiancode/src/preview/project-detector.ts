@@ -224,6 +224,177 @@ const PRIORITY_DIR_NAMES = [
   "src",
 ]
 
+async function detectMultiLanguageProject(dir: string, relDir: string): Promise<DetectedProject | null> {
+  // 1. Python projects (FastAPI, Flask, Django, Streamlit, Gradio, Python server)
+  const hasRequirements = existsSync(join(dir, "requirements.txt"))
+  const hasPyProject = existsSync(join(dir, "pyproject.toml"))
+  const hasPipfile = existsSync(join(dir, "Pipfile"))
+  const hasManagePy = existsSync(join(dir, "manage.py"))
+  const hasMainPy = existsSync(join(dir, "main.py"))
+  const hasAppPy = existsSync(join(dir, "app.py"))
+  const hasServerPy = existsSync(join(dir, "server.py"))
+
+  if (hasRequirements || hasPyProject || hasPipfile || hasManagePy || hasMainPy || hasAppPy || hasServerPy) {
+    let framework = "python"
+    let script = "main.py"
+    let port = 8000
+
+    if (hasManagePy) {
+      framework = "django"
+      script = "manage.py runserver 8000"
+      port = 8000
+    } else {
+      const activePyFile = hasMainPy ? "main.py" : hasAppPy ? "app.py" : hasServerPy ? "server.py" : undefined
+      const mainContent = activePyFile ? (await readProjectText(join(dir, activePyFile))) ?? "" : ""
+      const reqContent = (await readProjectText(join(dir, "requirements.txt"))) ?? ""
+      const pyprojContent = (await readProjectText(join(dir, "pyproject.toml"))) ?? ""
+      const combined = `${mainContent}\n${reqContent}\n${pyprojContent}`.toLowerCase()
+
+      if (combined.includes("streamlit")) {
+        framework = "streamlit"
+        script = `streamlit run ${activePyFile ?? "app.py"}`
+        port = 8501
+      } else if (combined.includes("gradio")) {
+        framework = "gradio"
+        script = activePyFile ?? "app.py"
+        port = 7860
+      } else if (combined.includes("fastapi") || combined.includes("uvicorn")) {
+        framework = "fastapi"
+        const entryBase = hasMainPy ? "main" : hasAppPy ? "app" : hasServerPy ? "server" : "main"
+        script = `uvicorn ${entryBase}:app --reload --port 8000`
+        port = 8000
+      } else if (combined.includes("flask")) {
+        framework = "flask"
+        script = "flask run --port 5000"
+        port = 5000
+      } else {
+        script = activePyFile ?? "main.py"
+        port = 8000
+      }
+    }
+
+    return {
+      framework,
+      packageManager: "python",
+      script,
+      port,
+      entry: hasMainPy ? "main.py" : hasAppPy ? "app.py" : hasServerPy ? "server.py" : undefined,
+      ...(relDir !== "." ? { workingDirectory: relDir } : {}),
+    }
+  }
+
+  // 2. Rust projects (Cargo, Trunk WASM)
+  if (existsSync(join(dir, "Cargo.toml"))) {
+    const hasTrunk = existsSync(join(dir, "Trunk.toml"))
+    return {
+      framework: hasTrunk ? "trunk" : "rust",
+      packageManager: hasTrunk ? "trunk" : "cargo",
+      script: hasTrunk ? "trunk serve" : "cargo run",
+      port: 8080,
+      ...(relDir !== "." ? { workingDirectory: relDir } : {}),
+    }
+  }
+
+  // 3. Go projects
+  if (existsSync(join(dir, "go.mod")) || existsSync(join(dir, "main.go"))) {
+    return {
+      framework: "go",
+      packageManager: "go",
+      script: "go run .",
+      port: 8080,
+      entry: existsSync(join(dir, "main.go")) ? "main.go" : undefined,
+      ...(relDir !== "." ? { workingDirectory: relDir } : {}),
+    }
+  }
+
+  // 4. PHP projects (Laravel Artisan, Built-in PHP server)
+  if (existsSync(join(dir, "artisan"))) {
+    return {
+      framework: "laravel",
+      packageManager: "php",
+      script: "php artisan serve --port 8000",
+      port: 8000,
+      ...(relDir !== "." ? { workingDirectory: relDir } : {}),
+    }
+  }
+  if (existsSync(join(dir, "index.php")) || existsSync(join(dir, "composer.json"))) {
+    return {
+      framework: "php",
+      packageManager: "php",
+      script: "php -S 127.0.0.1:8000",
+      port: 8000,
+      entry: existsSync(join(dir, "index.php")) ? "index.php" : undefined,
+      ...(relDir !== "." ? { workingDirectory: relDir } : {}),
+    }
+  }
+
+  // 5. Ruby projects (Rails, Sinatra, Rackup)
+  if (existsSync(join(dir, "Gemfile"))) {
+    const hasRails = existsSync(join(dir, "config", "application.rb"))
+    return {
+      framework: hasRails ? "rails" : "ruby",
+      packageManager: "bundle",
+      script: hasRails ? "bundle exec rails s -p 3000" : "bundle exec rackup -p 9292",
+      port: hasRails ? 3000 : 9292,
+      ...(relDir !== "." ? { workingDirectory: relDir } : {}),
+    }
+  }
+
+  // 6. Java / Kotlin (Maven / Gradle / Spring Boot)
+  if (existsSync(join(dir, "pom.xml"))) {
+    const mvnw = existsSync(join(dir, "mvnw")) ? (process.platform === "win32" ? "mvnw.cmd" : "./mvnw") : "mvn"
+    return {
+      framework: "spring-boot",
+      packageManager: "maven",
+      script: `${mvnw} spring-boot:run`,
+      port: 8080,
+      ...(relDir !== "." ? { workingDirectory: relDir } : {}),
+    }
+  }
+  if (existsSync(join(dir, "build.gradle")) || existsSync(join(dir, "build.gradle.kts"))) {
+    const gradlew = existsSync(join(dir, "gradlew")) ? (process.platform === "win32" ? "gradlew.bat" : "./gradlew") : "gradle"
+    return {
+      framework: "gradle",
+      packageManager: "gradle",
+      script: `${gradlew} bootRun`,
+      port: 8080,
+      ...(relDir !== "." ? { workingDirectory: relDir } : {}),
+    }
+  }
+
+  // 7. C# / .NET
+  try {
+    if (existsSync(dir)) {
+      const files = await readdir(dir)
+      const hasCsproj = files.some((f) => /\.csproj$/i.test(f) || /\.sln$/i.test(f))
+      if (hasCsproj) {
+        return {
+          framework: "dotnet",
+          packageManager: "dotnet",
+          script: "dotnet run",
+          port: 5000,
+          ...(relDir !== "." ? { workingDirectory: relDir } : {}),
+        }
+      }
+    }
+  } catch {
+    // ignore readdir error
+  }
+
+  // 8. Deno projects
+  if (existsSync(join(dir, "deno.json")) || existsSync(join(dir, "deno.jsonc"))) {
+    return {
+      framework: "deno",
+      packageManager: "deno",
+      script: "deno task dev",
+      port: 8000,
+      ...(relDir !== "." ? { workingDirectory: relDir } : {}),
+    }
+  }
+
+  return null
+}
+
 async function detectSingleDirectory(dir: string, rootDir: string): Promise<DetectedProject | null> {
   const configured = await detectConfiguredProject(dir)
   if (configured) {
@@ -249,6 +420,10 @@ async function detectSingleDirectory(dir: string, rootDir: string): Promise<Dete
       if (relDir !== ".") proj.workingDirectory = relDir
       return proj
     }
+
+    // Comprobar proyectos multi-lenguaje (Python, Rust, Go, PHP, Java, .NET, Ruby, Deno)
+    const multiLang = await detectMultiLanguageProject(dir, relDir)
+    if (multiLang) return multiLang
 
     if (existsSync(join(dir, "index.html"))) {
       return {

@@ -40,8 +40,10 @@ const DEV_PORTS = [
   { port: "3000", label: "3000", title: "Port 3000 (React / Next.js / Node)" },
   { port: "5173", label: "5173", title: "Port 5173 (Vite / Svelte / Vue)" },
   { port: "8000", label: "8000", title: "Port 8000 (Python FastAPI / Django / PHP)" },
-  { port: "8080", label: "8080", title: "Port 8080 (Go / Java / Spring)" },
-  { port: "5000", label: "5000", title: "Port 5000 (Python Flask)" },
+  { port: "8080", label: "8080", title: "Port 8080 (Go / Rust / Java Spring)" },
+  { port: "5000", label: "5000", title: "Port 5000 (Python Flask / .NET)" },
+  { port: "8501", label: "8501", title: "Port 8501 (Streamlit)" },
+  { port: "7860", label: "7860", title: "Port 7860 (Gradio)" },
   { port: "4321", label: "4321", title: "Port 4321 (Astro)" },
 ]
 

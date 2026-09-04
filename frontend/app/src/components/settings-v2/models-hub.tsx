@@ -1015,32 +1015,39 @@ export const SettingsModelsHubV2: Component<{
           <For each={(runtimes() ?? []).filter((r) => r.id === "ollama" || r.id === "lmstudio")}>
             {(rt) => (
               <div
-                class="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border"
+                class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all"
                 classList={{
-                  "bg-emerald-500/10 border-emerald-500/25 text-emerald-400": rt.available,
-                  "bg-slate-800/40 border-slate-700/40 text-slate-400": !rt.available,
+                  "bg-emerald-500/15 border-emerald-500/35 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.15)]": rt.available,
+                  "bg-slate-800/50 border-slate-700/50 text-slate-400": !rt.available,
                 }}
                 title={rt.available ? `${rt.name} conectado${rt.port ? ` en puerto ${rt.port}` : ""}` : `${rt.name} no detectado`}
               >
                 <span
-                  class="w-1.5 h-1.5 rounded-full"
+                  class="w-2 h-2 rounded-full"
                   classList={{
-                    "bg-emerald-400 animate-pulse": rt.available,
+                    "bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]": rt.available,
                     "bg-slate-500": !rt.available,
                   }}
                 />
-                <span>{rt.name}</span>
-                <span class="text-[10px] opacity-75">{rt.available ? "Online" : "Offline"}</span>
+                <span class="font-semibold">{rt.name}</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/30 font-mono">
+                  {rt.available ? (rt.port ? `:${rt.port}` : "Online") : "Offline"}
+                </span>
               </div>
             )}
           </For>
 
-          <span title="GPU / VRAM" class="text-xs text-slate-300">
-            🎮 <strong>{system()?.gpu ? system()!.gpu!.split(" ")[0] : "GPU"}</strong> ({formatBytes(vramFree())} libre)
-          </span>
-          <span title="RAM del Sistema" class="text-xs text-slate-300">
-            🧠 RAM: {formatBytes(ram())}
-          </span>
+          <div class="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/60 border border-slate-700/40 text-xs">
+            <span title="GPU / VRAM" class="text-slate-200 flex items-center gap-1">
+              🎮 <strong>{system()?.gpu ? system()!.gpu!.split(" ")[0] : "GPU"}</strong>
+              <span class="text-emerald-400 font-mono text-[11px]">({formatBytes(vramFree())} libre)</span>
+            </span>
+            <span class="text-slate-600">|</span>
+            <span title="RAM del Sistema" class="text-slate-200 flex items-center gap-1">
+              🧠 <strong>RAM:</strong>
+              <span class="text-cyan-400 font-mono text-[11px]">{formatBytes(ram())}</span>
+            </span>
+          </div>
         </div>
       </div>
 

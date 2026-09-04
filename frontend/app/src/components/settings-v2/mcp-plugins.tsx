@@ -534,28 +534,30 @@ export const SettingsMcpPluginsV2: Component<{
     const rawList = (configData().plugin ?? []) as PluginEntry[]
     const query = searchQuery().toLowerCase().trim()
 
-    // Base installed list
-    const configured = rawList.map((entry) => {
-      const name = pluginName(entry)
-      const display = displayName(entry)
-      const enabled = pluginEnabled(entry)
-      const origin = pluginOrigin(entry)
-      const catalogItem = CATALOG_ITEMS.find((item) => item.type === "plugin" && item.spec === name)
+    // Base installed list (exclude internal builtin-* which are managed in the Built-in section)
+    const configured = rawList
+      .filter((entry) => !pluginName(entry).startsWith("builtin-"))
+      .map((entry) => {
+        const name = pluginName(entry)
+        const display = displayName(entry)
+        const enabled = pluginEnabled(entry)
+        const origin = pluginOrigin(entry)
+        const catalogItem = CATALOG_ITEMS.find((item) => item.type === "plugin" && item.spec === name)
 
-      return {
-        entry,
-        name,
-        display: catalogItem?.name ?? display,
-        desc: catalogItem?.desc,
-        icon: catalogItem?.icon ?? "🧩",
-        category: catalogItem?.category ?? "extension",
-        enabled,
-        origin,
-        isLocal: origin === "local",
-      }
-    })
+        return {
+          entry,
+          name,
+          display: catalogItem?.name ?? display,
+          desc: catalogItem?.desc,
+          icon: catalogItem?.icon ?? "🧩",
+          category: catalogItem?.category ?? "extension",
+          enabled,
+          origin,
+          isLocal: origin === "local",
+        }
+      })
 
-    // If none configured, show all 23 default installed plugins ready to toggle
+    // If none configured, show all default installed catalog plugins ready to toggle
     const items = configured.length > 0 ? configured : CATALOG_ITEMS.filter((item) => item.type === "plugin").map((item) => ({
       entry: item.spec!,
       name: item.spec!,
@@ -629,14 +631,14 @@ export const SettingsMcpPluginsV2: Component<{
     }
   }
 
-  // Toggle Built-in Plugin
+  // Toggle Built-in Plugin with proper tuple handling
   const toggleBuiltinPlugin = async (id: string, currentEnabled: boolean) => {
     const nextEnabled = !currentEnabled
     const currentPlugins = [...((configData().plugin ?? []) as PluginEntry[])]
     const pluginId = `builtin-${id}`
     const updated = currentPlugins.filter((p) => pluginName(p) !== pluginId)
     if (!nextEnabled) {
-      updated.push({ spec: pluginId, enabled: false } as any)
+      updated.push([pluginId, { enabled: false }])
     }
     try {
       await serverSdk().client.config.update({ ...params(), config: { plugin: updated } as any })
@@ -650,7 +652,7 @@ export const SettingsMcpPluginsV2: Component<{
     }
   }
 
-  // Toggle Plugin
+  // Toggle Plugin with proper PluginEntry tuple format
   const togglePlugin = async (spec: PluginEntry, currentEnabled: boolean) => {
     const nextEnabled = !currentEnabled
     const currentPlugins = [...((configData().plugin ?? []) as PluginEntry[])]
@@ -660,14 +662,29 @@ export const SettingsMcpPluginsV2: Component<{
     const updated = currentPlugins.map((p) => {
       if (pluginName(p) === targetName) {
         found = true
-        if (typeof p === "string") return `${p}@${nextEnabled ? "enabled" : "disabled"}`
-        return { ...p, enabled: nextEnabled }
+        if (nextEnabled) {
+          if (Array.isArray(p)) {
+            const opts = { ...p[1] }
+            delete (opts as any).enabled
+            return Object.keys(opts).length > 0 ? ([p[0], opts] as PluginEntry) : p[0]
+          }
+          return p
+        } else {
+          if (Array.isArray(p)) {
+            return [p[0], { ...p[1], enabled: false }] as PluginEntry
+          }
+          return [p, { enabled: false }] as PluginEntry
+        }
       }
       return p
     })
 
     if (!found) {
-      updated.push({ spec: targetName, enabled: nextEnabled } as any)
+      if (!nextEnabled) {
+        updated.push([targetName, { enabled: false }])
+      } else {
+        updated.push(targetName)
+      }
     }
 
     try {
@@ -732,6 +749,8 @@ export const SettingsMcpPluginsV2: Component<{
         } else {
           currentMcp[name] = { type: "local", command: cmd.split(" "), enabled: true }
         }
+        await serverSdk().client.mcp.add({ ...params(), name, config: currentMcp[name] }).catch(() => {})
+        await serverSdk().client.mcp.connect({ ...params(), name }).catch(() => {})
         await serverSdk().client.config.update({ ...params(), config: { mcp: currentMcp } })
       } else {
         const currentPlugins = [...((configData().plugin ?? []) as PluginEntry[])]
@@ -1057,42 +1076,78 @@ export const SettingsMcpPluginsV2: Component<{
           </div>
         </Show>
 
-        {/* TAB 3: DISCOVER CATALOG */}
+        {/* TAB 3: DISCOVER CATALOG - WINDOWS 11 FLUENT STORE DESIGN */}
         <Show when={activeTab() === "discover"}>
-          <div class="flex flex-col gap-4">
-            <div class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+          <div class="win11-discover-wrapper">
+            {/* Windows 11 Mica Showcase Banner */}
+            <div class="win11-hero-banner">
+              <div class="win11-hero-glow" />
+              <div class="win11-hero-content">
+                <div class="flex items-start gap-3.5">
+                  <div class="win11-hero-icon-box">
+                    <span class="text-xl">🪟</span>
+                  </div>
+                  <div class="flex flex-col gap-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <h3 class="win11-hero-title">Catálogo de Extensiones Windows 11</h3>
+                      <span class="win11-badge-mica">Mica Fluent</span>
+                      <span class="win11-badge-store">Store Ready</span>
+                    </div>
+                    <p class="win11-hero-desc">
+                      Descubre herramientas oficiales del protocolo MCP y plugins modulares. Conexión nativa con un clic para tus sub-agentes autónomos y flujos de trabajo.
+                    </p>
+                  </div>
+                </div>
+                <div class="win11-hero-meta">
+                  <div class="win11-meta-stat">
+                    <span class="win11-meta-value">{catalogList().length}</span>
+                    <span class="win11-meta-label">Extensiones</span>
+                  </div>
+                  <div class="win11-meta-divider" />
+                  <div class="win11-meta-stat">
+                    <span class="win11-meta-value">{mcpServers().length + pluginsList().length}</span>
+                    <span class="win11-meta-label">Instaladas</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Windows 11 Fluent Category Filter Bar */}
+            <div class="win11-filter-bar no-scrollbar">
               <For
                 each={[
-                  { id: "all", label: "Todos" },
-                  { id: "desarrollo", label: "💻 Desarrollo" },
-                  { id: "ia", label: "🧠 IA & Agentes" },
-                  { id: "seguridad", label: "🛡️ Seguridad" },
-                  { id: "web", label: "🌐 Web & Navegador" },
-                  { id: "database", label: "🗄️ Bases de Datos" },
-                  { id: "cloud", label: "☁️ Cloud & DevOps" },
-                  { id: "finanzas", label: "💳 Finanzas" },
-                  { id: "diseno", label: "🎨 Diseño" },
-                  { id: "ventas", label: "📊 Ventas" },
-                  { id: "datos", label: "🏛️ Datos" },
+                  { id: "all", label: "Todos", icon: "🌐" },
+                  { id: "desarrollo", label: "Desarrollo", icon: "💻" },
+                  { id: "ia", label: "IA & Agentes", icon: "🧠" },
+                  { id: "seguridad", label: "Seguridad", icon: "🛡️" },
+                  { id: "web", label: "Web & Browser", icon: "🌍" },
+                  { id: "database", label: "Bases de Datos", icon: "🗄️" },
+                  { id: "cloud", label: "Cloud & DevOps", icon: "☁️" },
+                  { id: "finanzas", label: "Finanzas", icon: "💳" },
+                  { id: "diseno", label: "Diseño", icon: "🎨" },
+                  { id: "ventas", label: "Ventas", icon: "📊" },
+                  { id: "datos", label: "Datos", icon: "🏛️" },
                 ]}
               >
-                {(cat) => (
-                  <button
-                    type="button"
-                    class={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-all ${
-                      discoverCategory() === cat.id
-                        ? "bg-v2-background-bg-inverse text-v2-text-text-inverse shadow-sm"
-                        : "bg-v2-background-bg-layer-01 text-v2-text-text-muted hover:bg-v2-background-bg-layer-02 hover:text-v2-text-text-base border border-v2-border-border-muted"
-                    }`}
-                    onClick={() => setDiscoverCategory(cat.id)}
-                  >
-                    {cat.label}
-                  </button>
-                )}
+                {(cat) => {
+                  const isActive = () => discoverCategory() === cat.id
+                  return (
+                    <button
+                      type="button"
+                      class="win11-filter-chip"
+                      classList={{ active: isActive() }}
+                      onClick={() => setDiscoverCategory(cat.id)}
+                    >
+                      <span class="win11-chip-icon">{cat.icon}</span>
+                      <span>{cat.label}</span>
+                    </button>
+                  )
+                }}
               </For>
             </div>
 
-            <div class="mcp-plugins-grid">
+            {/* Windows 11 Fluent App Cards Grid */}
+            <div class="win11-store-grid">
               <For each={catalogList()}>
                 {(item) => {
                   const isInstalled = createMemo(() => {
@@ -1101,37 +1156,55 @@ export const SettingsMcpPluginsV2: Component<{
                   })
 
                   return (
-                    <div class="mcp-plugins-card">
-                      <div class="mcp-plugins-card-header">
-                        <div class="mcp-plugins-card-identity">
-                          <div class="mcp-plugins-icon-badge">
-                            <span>{item.icon}</span>
+                    <div class="win11-store-card">
+                      <div class="win11-card-top">
+                        <div class="win11-app-squircle">
+                          <span class="text-xl">{item.icon}</span>
+                        </div>
+                        <div class="win11-app-meta">
+                          <div class="flex items-center justify-between gap-1">
+                            <span class="win11-app-title" title={item.name}>{item.name}</span>
+                            <Show when={item.popular}>
+                              <span class="win11-badge-popular">⭐ Top</span>
+                            </Show>
                           </div>
-                          <div class="mcp-plugins-card-info">
-                            <span class="mcp-plugins-card-title">{item.name}</span>
-                            <span class="mcp-plugins-chip accent text-[10px]">
-                              {item.type === "mcp" ? "Servidor MCP" : "Plugin Runtime"}
+                          <div class="flex items-center gap-1.5 mt-0.5">
+                            <span
+                              class="win11-app-pill"
+                              classList={{
+                                "pill-mcp": item.type === "mcp",
+                                "pill-plugin": item.type === "plugin",
+                              }}
+                            >
+                              {item.type === "mcp" ? "Servidor MCP" : "Plugin"}
                             </span>
+                            <span class="win11-category-tag capitalize">{item.category}</span>
                           </div>
                         </div>
                       </div>
 
-                      <p class="mcp-plugins-card-desc text-[12px] text-v2-text-text-muted">
+                      <p class="win11-app-desc">
                         {item.desc}
                       </p>
 
-                      <div class="mcp-plugins-card-footer">
-                        <span class="text-[11px] font-mono text-v2-text-text-faint truncate max-w-[150px]">
-                          {item.command ?? item.spec}
-                        </span>
-                        <ButtonV2
-                          variant={isInstalled() ? "neutral" : "contrast"}
-                          size="small"
+                      <div class="win11-card-bottom">
+                        <div class="win11-spec-badge" title={item.command ?? item.spec}>
+                          <span class="truncate">{item.command ?? item.spec}</span>
+                        </div>
+                        <button
+                          type="button"
+                          class="win11-action-btn"
+                          classList={{
+                            "btn-installed": isInstalled(),
+                            "btn-install": !isInstalled(),
+                          }}
                           disabled={isInstalled()}
                           onClick={() => void installCatalogItem(item)}
                         >
-                          {isInstalled() ? "Instalado" : "Conectar"}
-                        </ButtonV2>
+                          <Show when={isInstalled()} fallback={<><span>Obtener</span><span class="text-xs">↗</span></>}>
+                            <span>✓ Instalado</span>
+                          </Show>
+                        </button>
                       </div>
                     </div>
                   )
