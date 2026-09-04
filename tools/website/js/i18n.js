@@ -133,8 +133,8 @@ export const I18N = {
   "stats.chartDonut": "Uso por proveedor de IA",
   "stats.donutCenter": "12.4k",
   "stats.donutCenterLabel": "usuarios activos",
-  "skills.title": "52+ Skills especializadas listas para usar",
-  "skills.sub": "Un catálogo de 52+ skills de ingeniería, activables una a una.",
+  "skills.title": "52+ Skills Especializadas de Ingeniería",
+  "skills.sub": "Playbooks operacionales pre-empaquetados listos para ejecutar TDD, auditorías de seguridad, revisiones de arquitectura y optimizaciones de rendimiento.",
   "sk.1": "Entrevistas de requisitos",
   "sk.2": "Test-Driven Development (TDD)",
   "sk.3": "Code Review",
@@ -305,8 +305,8 @@ export const I18N = {
   "guide.s6t": "Ajusta a tu gusto",
   "guide.s6d": "Personaliza el tema (claro u oscuro), el idioma y los atajos de teclado, y usa los toggles del titlebar para mostrar u ocultar el terminal y el panel. Todo se guarda localmente.",
   "guide.note": "¿Prefieres los detalles? Consulta la documentación completa o las preguntas frecuentes.",
-  "faq.title": "Todo lo que necesitas saber sobre Tiancode",
-  "faq.sub": "Las dudas más comunes sobre Tiancode, respondidas.",
+  "faq.title": "Preguntas Frecuentes",
+  "faq.sub": "Todo lo que necesitas saber sobre Tiancode, inferencia local y privacidad.",
   "faq.q1": "¿Mis datos o mi código salen de mi máquina?",
   "faq.a1": "No. Tiancode está diseñado bajo el paradigma local-first con cero telemetría de código. Cuando usas modelos locales GGUF, la inferencia corre 100% en tu CPU/GPU sin conexión a internet. Si conectas proveedores cloud, las peticiones van directamente desde tu máquina a la API sin intermediarios.",
   "faq.q2": "¿Qué hardware necesito para ejecutar modelos locales GGUF?",
@@ -398,7 +398,7 @@ export const I18N = {
   "nav.downloadPill": "Descargar v1.0.4",
   "hero.cosmicLeft": "TIAN",
   "hero.cosmicRight": "CODE",
-  "hero.cosmicReplayAria": "Reiniciar rotación de la galaxia cósmica",
+  "hero.cosmicReplayAria": "Reiniciar animación cósmica de TIANCODE",
   "hero.cosmicBadge": "MODELO DE INTELIGENCIA CÓSMICA · TIANCODE 1.0.4",
   "hero.eyebrowPill": "COMUNICADO DE PRODUCTO",
   "hero.eyebrowMeta": "SEPTIEMBRE 2026 · TIANCODE 1.0.4",
@@ -474,9 +474,9 @@ export const I18N = {
   "arch.step3.desc": "Invocación segura de herramientas MCP, validación de permisos locales e inspección de AST.",
   "arch.step4.title": "04. Diario de Eventos Persistido",
   "arch.step4.desc": "Replay determinista y recuperación de fallos sin pérdida de estado ni degradación.",
-  "skills.eyebrow": "HABILIDADES DE INGENIERÍA",
+  "skills.eyebrow": "Ecosistema",
   "skills.lead": "Activa o desactiva habilidades según el objetivo de tu sprint, desde pruebas TDD hasta pipelines CI/CD.",
-  "faq.eyebrow": "PREGUNTAS FRECUENTES",
+  "faq.eyebrow": "Preguntas Frecuentes",
   "faq.lead": "Respuestas claras a dudas sobre privacidad, modelos locales, integración MCP y licencias.",
   "dl.eyebrow": "DESCARGAS OFICIALES",
   "dl.lead": "Disponible para Windows 10 y 11 (64-bit). Elige entre el instalador nativo recomendado o la versión portable autónoma.",
@@ -486,7 +486,93 @@ export const I18N = {
   "dl.portableTitle": "Edición Portable para USB",
   "dl.portableDesc": "Ejecutable único sin instalación. Conserva sesiones, modelos y configuraciones en el mismo directorio.",
   "dl.portableBtn": "Descargar Tiancode-portable.exe",
-  "dl.shaText": "SHA-256 verificado en cada release oficial de GitHub."
+  "dl.shaText": "SHA-256 verificado en cada release oficial de GitHub.",
+  "overview.eyebrow": "Filosofía",
+  "overview.title": "Los Fundamentos del Desarrollo Soberano de IA",
+  "overview.sub": "La mayoría de herramientas de programación con IA tratan a tu ordenador como un cliente ligero para servidores remotos, exponiendo propiedad intelectual, introduciendo latencia de red y atándote a costes de suscripción en la nube. Tiancode invierte este paradigma: tu máquina es el motor de ejecución.",
+  "capabilities.eyebrow": "Capacidades",
+  "capabilities.title": "Diseñado para la Ingeniería de Software en Producción",
+  "capabilities.sub": "Cada módulo en Tiancode está concebido para resolver los cuellos de botella reales de la generación autónoma de código.",
+  "cap.c1.num": "01 / ENJAMBRES AUTÓNOMOS",
+  "cap.c1.title": "Orquestación de Enjambres Multi-Agente & Git Worktrees",
+  "cap.c1.desc": "Tiancode delega tareas en subagentes especializados que operan de forma concurrente en ramas aisladas de Git Worktree. Mientras un agente líder planifica la arquitectura, los subagentes ejecutan suites de TDD, auditan vulnerabilidades de seguridad y resuelven conflictos de fusión en paralelo.",
+  "cap.c1.tag1": "Worktrees Aislados",
+  "cap.c1.tag2": "Ejecución Concurrente",
+  "cap.c1.tag3": "Permisos Granulares",
+  "cap.c2.num": "02 / RUNTIME GGUF LOCAL",
+  "cap.c2.title": "Model Hub con Aceleración GPU Nativa",
+  "cap.c2.desc": "Descarga y ejecuta modelos GGUF de pesos abiertos directamente desde Hugging Face con descarga completa a VRAM (NVIDIA CUDA / DirectML). Cero telemetría, cero costes de API externas.",
+  "cap.c2.tag1": "HuggingFace GGUF",
+  "cap.c2.tag2": "Ollama & LM Studio",
+  "cap.c3.num": "03 / VISTA PREVIA UNIVERSAL",
+  "cap.c3.title": "Vista Previa en Vivo Universal & Inspector DOM",
+  "cap.c3.desc": "Detección automática de servidores de desarrollo para Next.js 15, Vite, Astro y HTML. Recarga en caliente por SSE en milisegundos, presets de pantallas responsivas e inspección visual del DOM lado a lado.",
+  "cap.c3.tag1": "Recarga en Vivo SSE",
+  "cap.c3.tag2": "Inspector DOM",
+  "cap.c4.num": "04 / NÚCLEO DURADERO V2",
+  "cap.c4.title": "Núcleo de Sesión V2 Duradero & Resiliencia Post-Crash",
+  "cap.c4.desc": "Cada prompt y acción de herramienta se registra de forma transaccional en SQLite con Drizzle ORM antes del envío al modelo. Si se corta la energía o expira la llamada al LLM, Tiancode se reanuda en el límite exacto de la transacción sin perder trabajo ni duplicar ejecuciones.",
+  "cap.c4.tag1": "Runtime Effect-TS",
+  "cap.c4.tag2": "Log Transaccional SQLite",
+  "cap.c4.tag3": "Despertares Tolerantes a Fallos",
+  "cap.c5.num": "05 / INTEGRACIÓN MCP",
+  "cap.c5.title": "Ecosistema Model Context Protocol (MCP)",
+  "cap.c5.desc": "Soporte nativo para servidores de Model Context Protocol: Playwright para pruebas headless, Chrome DevTools CDP, AWS S3/Lambda, SQLite y herramientas empresariales a medida.",
+  "cap.c5.tag1": "Protocolo Abierto",
+  "cap.c5.tag2": "15+ Herramientas Integradas",
+  "cap.c6.num": "06 / VOZ NEURAL",
+  "cap.c6.title": "TTS Neural Kokoro & Dictado Whisper",
+  "cap.c6.desc": "Motor de voz offline impulsado por Kokoro TTS y Whisper ONNX. Dicta instrucciones de programación y escucha explicaciones de arquitectura en español e inglés sin ningún acceso a internet.",
+  "cap.c6.tag1": "TTS 100% Offline",
+  "cap.c6.tag2": "Transcripción Whisper",
+  "benchmarks.eyebrow": "Evaluaciones",
+  "benchmarks.title": "Evaluaciones Empíricas y Rendimiento",
+  "benchmarks.sub": "Evaluación rigurosa a través de benchmarks estandarizados para desarrolladores, latencia de arranque en frío, sobrecarga de memoria y eficiencia de recursos.",
+  "bench.nav.swe": "SWE-bench Verificado",
+  "bench.nav.lat": "Latencia de Arranque",
+  "bench.nav.tok": "Eficiencia de Tokens",
+  "bench.nav.off": "Soberanía Offline",
+  "bench.stat1Label": "Tasa de resolución verificada en problemas reales de ingeniería de software.",
+  "bench.stat2Label": "Latencia hasta la primera ejecución de herramienta en máquina local.",
+  "bench.stat3Label": "Consumo de RAM en reposo al minimizar a la bandeja de Windows.",
+  "architecture.eyebrow": "Ingeniería",
+  "architecture.title": "Arquitectura Concurrente y Tolerante a Fallos",
+  "architecture.sub": "Un monorepo en TypeScript puro impulsado por Bun, Effect-TS, SolidJS y SQLite.",
+  "arch.blockTitle": "Diseñado para Resiliencia a Escala",
+  "arch.blockP1": "Los asistentes de programación tradicionales almacenan el estado de ejecución en memoria, volviéndolos propensos a fallos silenciosos, prompts perdidos y estados irrecuperables cuando los procesos finalizan. Tiancode implementa un coordinador SessionExecution global al proceso con límites estrictos.",
+  "arch.blockP2": "La admisión durable de prompts persiste cada fila de entrada en SQLite antes de iniciar cualquier turno del modelo. Los prompts guían de forma segura en los límites de turno, mientras que los prompts en cola esperan a que la sesión esté inactiva, garantizando bucles agénticos predecibles y reproducibles.",
+  "arch.tag1": "Núcleo Effect-TS",
+  "arch.tag2": "Drizzle SQLite",
+  "arch.tag3": "Ámbito de Ubicación",
+  "downloads.eyebrow": "Distribución",
+  "downloads.title": "Comienza con Tiancode",
+  "downloads.sub": "Gratuito para uso personal. Elige el formato de instalación que mejor se adapte a tu flujo de trabajo.",
+  "downloads.recBadge": "Recomendado",
+  "downloads.installerTitle": "Instalador Oficial de Windows",
+  "downloads.installerDesc": "Configuración estándar de Windows con accesos directos de escritorio, integración en la bandeja del sistema y actualizaciones automáticas en segundo plano.",
+  "downloads.installerF1": "Actualizaciones automáticas no destructivas (v1.0.4+)",
+  "downloads.installerF2": "Menú Inicio y accesos directos de escritorio",
+  "downloads.installerF3": "Notificaciones nativas del sistema e icono en la bandeja",
+  "downloads.installerCta": "Descargar Tiancode.exe",
+  "downloads.portBadge": "Sin Instalación",
+  "downloads.portableTitle": "Edición Portable Autónoma",
+  "downloads.portableDesc": "Ejecútalo directamente desde una memoria USB o cualquier carpeta sin instalación, claves de registro ni privilegios de administrador.",
+  "downloads.portableF1": "Cero permisos de administrador requeridos",
+  "downloads.portableF2": "Toda la configuración y modelos almacenados en la misma carpeta",
+  "downloads.portableF3": "Ideal para pendrives USB o PCs empresariales restringidos",
+  "downloads.portableCta": "Descargar Portable (.exe)",
+  "downloads.checksum": "Sumas de verificación de integridad SHA-256 disponibles en los",
+  "downloads.releasesLink": "Releases de GitHub",
+  "footer.status": "Todos los Sistemas Operativos · Desktop v1.0.4",
+  "footer.ecosystem": "Ecosistema",
+  "footer.docs": "Documentación",
+  "footer.guide": "Guía de inicio",
+  "footer.skills": "Catálogo 52+ Skills",
+  "footer.mit": "Licencia MIT",
+  "footer.privacy": "Política de privacidad",
+  "footer.terms": "Términos del servicio",
+  "footer.repo": "Repositorio GitHub",
+  "footer.crafted": "Creado con ♥ por"
 },
   en: {
   "page.title": "Tiancode — Autonomous Agentic Intelligence for Developers",
@@ -613,8 +699,8 @@ export const I18N = {
   "stats.chartDonut": "Usage by AI provider",
   "stats.donutCenter": "12.4k",
   "stats.donutCenterLabel": "active users",
-  "skills.title": "52+ Specialized skills ready out of the box",
-  "skills.sub": "A growing catalog of 52+ engineering skills, enabled one by one.",
+  "skills.title": "52+ Specialized Engineering Skills",
+  "skills.sub": "Pre-bundled operational playbooks ready to execute TDD, security audits, architecture reviews, and performance optimizations.",
   "sk.1": "Requirements interviews",
   "sk.2": "Test-Driven Development (TDD)",
   "sk.3": "Code Review",
@@ -644,7 +730,7 @@ export const I18N = {
   "footer.l7": "Privacy",
   "footer.l8": "Terms",
   "footer.l9": "License",
-  "footer.rights": "© 2026 Tiancode. Open source under the MIT License.",
+  "footer.rights": "© 2026 Tiancode. Open source under MIT License.",
   "footer.community": "Community",
   "footer.c1": "GitHub",
   "footer.c2": "Discord",
@@ -654,12 +740,12 @@ export const I18N = {
   "footer.by": "by",
   "nav.more": "Resources",
   "nav.dropdownAria": "Open resources menu",
-  "nav.m1": "Getting Started Guide",
+  "nav.m1": "Quickstart Guide",
   "nav.m2": "Documentation",
   "nav.m3": "Frequently Asked Questions",
-  "nav.m4": "What is new in v1.0.4",
+  "nav.m4": "What's New in v1.0.4",
   "nav.m5": "Portable Mode",
-  "nav.m6": "Download Center",
+  "nav.m6": "Downloads Center",
   "nav.m7": "MIT License",
   "nav.m8": "Terms of Service",
   "nav.m9": "Privacy Policy",
@@ -785,8 +871,8 @@ export const I18N = {
   "guide.s6t": "Make it yours",
   "guide.s6d": "Customize the theme (light or dark), the language, and your keyboard shortcuts, and use the title bar toggles to show or hide the terminal and the panel. Everything is stored locally.",
   "guide.note": "Want more detail? Check the full documentation or the FAQ.",
-  "faq.title": "Everything you need to know about Tiancode",
-  "faq.sub": "The most common questions about Tiancode, answered.",
+  "faq.title": "Frequently Asked Questions",
+  "faq.sub": "Everything you need to know about Tiancode, local inference, and privacy.",
   "faq.q1": "Does my code or private data ever leave my machine?",
   "faq.a1": "No. Tiancode is engineered under a local-first philosophy with zero code telemetry. When executing local GGUF models, inference runs 100% on your CPU/GPU without internet access. If you connect cloud providers, API requests travel directly from your machine to the endpoint.",
   "faq.q2": "What hardware is required to run local GGUF models?",
@@ -878,26 +964,26 @@ export const I18N = {
   "nav.downloadPill": "Download v1.0.4",
   "hero.cosmicLeft": "TIAN",
   "hero.cosmicRight": "CODE",
-  "hero.cosmicReplayAria": "Replay cosmic galaxy rotation",
+  "hero.cosmicReplayAria": "Restart cosmic TIANCODE animation",
   "hero.cosmicBadge": "COSMIC INTELLIGENCE MODEL · TIANCODE 1.0.4",
   "hero.eyebrowPill": "PRODUCT ANNOUNCEMENT",
   "hero.eyebrowMeta": "SEPTEMBER 2026 · TIANCODE 1.0.4",
   "hero.title": "Tiancode: Autonomous Agentic Intelligence for Developers",
-  "hero.lead": "A breakthrough in sovereign, local-first software engineering. Powered by autonomous multi-agent swarms, zero-telemetry privacy, native Model Hub GGUF execution, 52+ specialized engineering skills, and real-time Kokoro neural voice synthesis on Windows.",
+  "hero.lead": "A milestone in sovereign, local-first software engineering. Powered by autonomous multi-agent swarms, zero-telemetry privacy, native offline GGUF Model Hub, 52+ engineering skills, and real-time Kokoro neural voice synthesis for Windows.",
   "hero.ctaPortable": "Download Portable (.exe)",
   "hero.cmdCopyTitle": "Click to copy winget command",
   "hero.metaReleaseLabel": "Release",
   "hero.metaReleaseVal": "September 2026 · v1.0.4",
-  "hero.metaReleaseSub": "Production Stable Channel",
+  "hero.metaReleaseSub": "Stable Production Channel",
   "hero.metaPlatformLabel": "Platform",
   "hero.metaPlatformVal": "Windows 10 / 11 (64-bit)",
-  "hero.metaPlatformSub": "Native Electron & Portable USB",
+  "hero.metaPlatformSub": "Native Installer & Portable USB",
   "hero.metaArchLabel": "Core Architecture",
   "hero.metaArchVal": "Local-First · Effect V2 · SQLite",
-  "hero.metaArchSub": "Durable Session & Agent Swarm",
-  "hero.metaPrivacyLabel": "Runtime & Privacy",
+  "hero.metaArchSub": "Durable Sessions & Agent Swarm",
+  "hero.metaPrivacyLabel": "Privacy & Execution",
   "hero.metaPrivacyVal": "Zero Telemetry · Direct API Keys",
-  "hero.metaPrivacySub": "Local GGUF GPU Inference",
+  "hero.metaPrivacySub": "Local GPU GGUF Inference",
   "showcase.windowTitle": "Tiancode Desktop Studio — senior-dev swarm",
   "showcase.statusPill": "Local GPU Active · DirectML / CUDA",
   "showcase.tab1": "01 / Agent Swarm & AST",
@@ -954,9 +1040,9 @@ export const I18N = {
   "arch.step3.desc": "Sandboxed MCP tool invocation, local permission validation, and AST inspection.",
   "arch.step4.title": "04. Persisted Event Journal",
   "arch.step4.desc": "Deterministic replay and crash recovery without session state degradation.",
-  "skills.eyebrow": "ENGINEERING SKILLS",
+  "skills.eyebrow": "Ecosystem",
   "skills.lead": "Enable or toggle engineering skills based on your sprint requirements, from TDD to CI/CD pipelines.",
-  "faq.eyebrow": "FREQUENTLY ASKED QUESTIONS",
+  "faq.eyebrow": "FAQ",
   "faq.lead": "Clear answers regarding privacy, local models, MCP integration, and licensing.",
   "dl.eyebrow": "OFFICIAL DOWNLOADS",
   "dl.lead": "Available for Windows 10 and 11 (64-bit). Choose between the recommended installer or the standalone portable build.",
@@ -966,68 +1052,174 @@ export const I18N = {
   "dl.portableTitle": "Portable Edition for USB",
   "dl.portableDesc": "Single executable with no installation required. Retains sessions and models in the same directory.",
   "dl.portableBtn": "Download Tiancode-portable.exe",
-  "dl.shaText": "Verified SHA-256 checksums on each official GitHub release."
+  "dl.shaText": "Verified SHA-256 checksums on each official GitHub release.",
+  "overview.eyebrow": "Philosophy",
+  "overview.title": "The Foundation of Sovereign AI Development",
+  "overview.sub": "Most AI coding tools treat your computer as a thin client for remote servers, leaking intellectual property, introducing network latency, and locking you into cloud subscription costs. Tiancode inverts this paradigm: your machine is the execution engine.",
+  "capabilities.eyebrow": "Capabilities",
+  "capabilities.title": "Architected for Production Software Engineering",
+  "capabilities.sub": "Every module in Tiancode is engineered to solve the real-world bottlenecks of autonomous code generation.",
+  "cap.c1.num": "01 / AUTONOMOUS SWARMS",
+  "cap.c1.title": "Multi-Agent Swarm Orchestration & Git Worktrees",
+  "cap.c1.desc": "Tiancode delegates tasks to specialized subagents operating concurrently in isolated Git Worktree branches. While a senior lead agent plans the architecture, subagents execute TDD suites, audit security vulnerabilities, and resolve merge conflicts in parallel.",
+  "cap.c1.tag1": "Isolated Worktrees",
+  "cap.c1.tag2": "Concurrent Execution",
+  "cap.c1.tag3": "Granular Permissions",
+  "cap.c2.num": "02 / LOCAL GGUF RUNTIME",
+  "cap.c2.title": "Model Hub with Native GPU Acceleration",
+  "cap.c2.desc": "Download and run open-weights GGUF models directly from Hugging Face with full VRAM offloading (NVIDIA CUDA / DirectML). Zero telemetry, zero external API costs.",
+  "cap.c2.tag1": "HuggingFace GGUF",
+  "cap.c2.tag2": "Ollama & LM Studio",
+  "cap.c3.num": "03 / UNIVERSAL PREVIEW",
+  "cap.c3.title": "Universal Live Preview & DOM Inspector",
+  "cap.c3.desc": "Automatic dev-server discovery for Next.js 15, Vite, Astro, and HTML. Millisecond SSE hot-reload, responsive viewport presets, and side-by-side visual DOM inspection.",
+  "cap.c3.tag1": "SSE Live Reload",
+  "cap.c3.tag2": "DOM Inspector",
+  "cap.c4.num": "04 / DURABLE CORE V2",
+  "cap.c4.title": "Durable Session Core V2 & Post-Crash Resilience",
+  "cap.c4.desc": "Every prompt and tool action is transactionally logged into SQLite with Drizzle ORM before model dispatch. If power is interrupted or an LLM times out, Tiancode resumes at the exact transaction boundary without lost work or duplicate executions.",
+  "cap.c4.tag1": "Effect-TS Runtime",
+  "cap.c4.tag2": "SQLite Transaction Log",
+  "cap.c4.tag3": "Fault-Tolerant Wakes",
+  "cap.c5.num": "05 / MCP INTEGRATION",
+  "cap.c5.title": "Model Context Protocol (MCP) Ecosystem",
+  "cap.c5.desc": "Native support for Model Context Protocol servers: Playwright for headless testing, Chrome DevTools CDP, AWS S3/Lambda, SQLite, and custom enterprise tools.",
+  "cap.c5.tag1": "Open Protocol",
+  "cap.c5.tag2": "15+ Pre-bundled Tools",
+  "cap.c6.num": "06 / NEURAL SPEECH",
+  "cap.c6.title": "Kokoro Neural TTS & Whisper Dictation",
+  "cap.c6.desc": "Offline voice engine powered by Kokoro TTS and Whisper ONNX. Dictate coding instructions and listen to architecture explanations in Spanish and English with zero internet access.",
+  "cap.c6.tag1": "100% Offline TTS",
+  "cap.c6.tag2": "Whisper Speech-to-Text",
+  "benchmarks.eyebrow": "Evaluations",
+  "benchmarks.title": "Empirical Benchmarks & Performance",
+  "benchmarks.sub": "Rigorous evaluation across standardized developer benchmarks, cold-start latency, memory overhead, and resource efficiency.",
+  "bench.nav.swe": "SWE-bench Verified",
+  "bench.nav.lat": "Startup Latency",
+  "bench.nav.tok": "Token Efficiency",
+  "bench.nav.off": "Offline Sovereignty",
+  "bench.stat1Label": "Verified task resolution rate on real-world software engineering issues.",
+  "bench.stat2Label": "Latency to first tool invocation on local workstation.",
+  "bench.stat3Label": "Idle RAM footprint when minimized to Windows system tray.",
+  "architecture.eyebrow": "Engineering",
+  "architecture.title": "Fault-Tolerant, Concurrent Architecture",
+  "architecture.sub": "A pure TypeScript monorepo powered by Bun, Effect-TS, SolidJS, and SQLite.",
+  "arch.blockTitle": "Designed for Resilience at Scale",
+  "arch.blockP1": "Traditional coding assistants store execution state in memory, making them prone to silent failures, dropped prompts, and unrecoverable states when processes exit. Tiancode implements a process-global SessionExecution coordinator with strict boundaries.",
+  "arch.blockP2": "Durable prompt admission persists every input row into SQLite before any model turn is initiated. Prompts steer active turns safely at turn boundaries, while queued prompts wait until the session becomes idle, ensuring predictable, reproducible agentic loops.",
+  "arch.tag1": "Effect-TS Core",
+  "arch.tag2": "Drizzle SQLite",
+  "arch.tag3": "Location-Scoped",
+  "downloads.eyebrow": "Distribution",
+  "downloads.title": "Get Started with Tiancode",
+  "downloads.sub": "Free for personal use. Choose the installation format that fits your workflow.",
+  "downloads.recBadge": "Recommended",
+  "downloads.installerTitle": "Official Windows Installer",
+  "downloads.installerDesc": "Standard Windows setup with desktop shortcuts, system tray integration, and automatic background updates.",
+  "downloads.installerF1": "Automatic non-destructive updates (v1.0.4+)",
+  "downloads.installerF2": "Start Menu and desktop shortcuts",
+  "downloads.installerF3": "Native system notifications and tray icon",
+  "downloads.installerCta": "Download Tiancode.exe",
+  "downloads.portBadge": "Zero-Install",
+  "downloads.portableTitle": "Standalone Portable Edition",
+  "downloads.portableDesc": "Run directly from a USB flash drive or any folder without installation, registry keys, or administrator privileges.",
+  "downloads.portableF1": "Zero admin permissions required",
+  "downloads.portableF2": "All settings and models stored in the same folder",
+  "downloads.portableF3": "Ideal for USB pendrives or restricted enterprise PCs",
+  "downloads.portableCta": "Download Portable (.exe)",
+  "downloads.checksum": "SHA-256 integrity checksums available on",
+  "downloads.releasesLink": "GitHub Releases",
+  "footer.status": "All Systems Operational · Desktop v1.0.4",
+  "footer.ecosystem": "Ecosistema",
+  "footer.docs": "Documentation",
+  "footer.guide": "Quickstart Guide",
+  "footer.skills": "52+ Skills Catalog",
+  "footer.mit": "MIT License",
+  "footer.privacy": "Privacy Policy",
+  "footer.terms": "Terms of Service",
+  "footer.repo": "GitHub Repository",
+  "footer.crafted": "Crafted with ♥ by"
 }
 };
 
-/* ---------- Estado de idioma ---------- */
-let lang = readLS(LS_KEYS.lang, 'es');
-if (lang !== 'es' && lang !== 'en') lang = 'es';
+/* ---------- Estado del idioma ---------- */
+let currentLang = 'es';
 
 export function getLang() {
-  return lang;
+  return currentLang;
 }
 
-export function t(key) {
-  return I18N[lang][key];
+export function t(key, fallback = '') {
+  const dict = I18N[currentLang] || I18N.es;
+  return (dict && dict[key] !== undefined) ? dict[key] : (fallback || key);
 }
 
-/* Aplica el idioma a todo el DOM y notifica al resto de módulos */
-export function applyLang() {
-  const rootEl = document.documentElement;
-  writeLS(LS_KEYS.lang, lang);
-  rootEl.lang = lang;
-  document.title = t('page.title');
-
-  const meta = document.querySelector('meta[name="description"]');
-  if (meta) meta.setAttribute('content', t('page.description'));
-
-  // Traduce textos planos
-  document.querySelectorAll('[data-i18n]').forEach(function (el) {
-    const key = el.getAttribute('data-i18n');
-    if (t(key) !== undefined) el.textContent = t(key);
-  });
-
-  // Traduce atributos aria-label
-  document.querySelectorAll('[data-i18n-aria]').forEach(function (el) {
-    const key = el.getAttribute('data-i18n-aria');
-    if (t(key) !== undefined) el.setAttribute('aria-label', t(key));
-  });
-
-  // Traduce títulos
-  document.querySelectorAll('[data-i18n-title]').forEach(function (el) {
-    const key = el.getAttribute('data-i18n-title');
-    if (t(key) !== undefined) el.setAttribute('title', t(key));
-  });
-
-  // El botón muestra el idioma al que se puede cambiar (ej. EN cuando está en español)
-  const langToggle = document.getElementById('lang-toggle');
-  if (langToggle) {
-    const target = lang === 'es' ? 'EN' : 'ES';
-    langToggle.textContent = target;
-    langToggle.setAttribute('aria-label', t('lang.aria') + ' (' + target + ')');
+export function applyLang(lang) {
+  if (lang) {
+    currentLang = lang;
+    writeLS(LS_KEYS.LANG, lang);
+  } else {
+    currentLang = readLS(LS_KEYS.LANG, 'es');
   }
 
-  // Notificar cambio de idioma
-  document.dispatchEvent(new CustomEvent('tiancode:langchange', { detail: { lang } }));
+  document.documentElement.lang = currentLang;
+
+  const btn = document.getElementById('lang-toggle');
+  if (btn) {
+    btn.textContent = currentLang === 'es' ? 'EN' : 'ES';
+    btn.setAttribute('aria-label', currentLang === 'es' ? 'Cambiar a inglés' : 'Switch to Spanish');
+  }
+
+  // Actualizar todos los elementos con data-i18n
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    const val = t(key);
+    if (val !== undefined && val !== '') {
+      el.textContent = val;
+    }
+  });
+
+  // data-i18n-html para elementos con markup seguro
+  document.querySelectorAll('[data-i18n-html]').forEach(el => {
+    const key = el.getAttribute('data-i18n-html');
+    const val = t(key);
+    if (val !== undefined && val !== '') {
+      el.innerHTML = val;
+    }
+  });
+
+  // Atributos accesibles (aria-label, title, placeholder)
+  document.querySelectorAll('[data-i18n-aria]').forEach(el => {
+    const key = el.getAttribute('data-i18n-aria');
+    const val = t(key);
+    if (val) el.setAttribute('aria-label', val);
+  });
+
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    const key = el.getAttribute('data-i18n-title');
+    const val = t(key);
+    if (val) el.setAttribute('title', val);
+  });
+
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    const val = t(key);
+    if (val) el.setAttribute('placeholder', val);
+  });
+
+  // Sincronizar título de la página
+  const pageTitle = t('page.title');
+  if (pageTitle) document.title = pageTitle;
+
+  // Notificar a módulos dependientes (como charts.js y router.js)
+  window.dispatchEvent(new CustomEvent('tiancode:langchange', { detail: { lang: currentLang } }));
 }
 
 export function initI18n() {
-  const langToggle = document.getElementById('lang-toggle');
-  if (langToggle) {
-    langToggle.addEventListener('click', function () {
-      lang = lang === 'es' ? 'en' : 'es';
-      applyLang();
-    });
-  }
+  const btn = document.getElementById('lang-toggle');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    const next = currentLang === 'es' ? 'en' : 'es';
+    applyLang(next);
+  });
 }

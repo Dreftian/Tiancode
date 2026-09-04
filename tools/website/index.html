@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tiancode — Autonomous Agentic Intelligence for Developers</title>
+  <title>Tiancode — Inteligencia Agéntica Autónoma para Desarrolladores</title>
   <meta name="description" content="Tiancode v1.0.4: Estudio de desarrollo local-first para Windows con enjambre de agentes autónomos, Model Hub GGUF offline, 52+ skills de ingeniería y síntesis neural Kokoro.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Tiancode">
-  <meta property="og:title" content="Tiancode — Autonomous Agentic Intelligence for Developers">
-  <meta property="og:description" content="Tiancode v1.0.4: Sovereign, local-first agentic coding desktop app for Windows.">
+  <meta property="og:title" content="Tiancode — Inteligencia Agéntica Autónoma para Desarrolladores">
+  <meta property="og:description" content="Tiancode v1.0.4: Estudio de desarrollo local-first para Windows con enjambre de agentes autónomos, Model Hub GGUF offline, 52+ skills de ingeniería y síntesis neural Kokoro.">
   <meta property="og:url" content="https://tiancode.vercel.app/">
   <meta property="og:image" content="https://tiancode.vercel.app/img/og-image.png">
   <meta property="og:locale" content="es_ES">
   <meta property="og:locale:alternate" content="en_US">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Tiancode — Autonomous Agentic Intelligence for Developers">
-  <meta name="twitter:description" content="Tiancode v1.0.4: Sovereign, local-first agentic coding desktop app for Windows.">
+  <meta name="twitter:title" content="Tiancode — Inteligencia Agéntica Autónoma para Desarrolladores">
+  <meta name="twitter:description" content="Tiancode v1.0.4: Estudio de desarrollo local-first para Windows con enjambre de agentes autónomos, Model Hub GGUF offline, 52+ skills de ingeniería y síntesis neural Kokoro.">
   <meta name="twitter:image" content="https://tiancode.vercel.app/img/og-image.png">
   <link rel="canonical" href="https://tiancode.vercel.app/">
   <link rel="icon" type="image/png" href="img/favicon.png">
@@ -45,10 +45,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/tokens.css?v=1.0.4.3">
-  <link rel="stylesheet" href="css/layout.css?v=1.0.4.3">
-  <link rel="stylesheet" href="css/components.css?v=1.0.4.3">
-  <link rel="stylesheet" href="css/pages.css?v=1.0.4.3">
+  <link rel="stylesheet" href="css/tokens.css?v=1.0.4.5">
+  <link rel="stylesheet" href="css/layout.css?v=1.0.4.5">
+  <link rel="stylesheet" href="css/components.css?v=1.0.4.5">
+  <link rel="stylesheet" href="css/pages.css?v=1.0.4.5">
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -65,25 +65,34 @@
   }
   </script>
 
-  <!-- Critical CSS para el Hero Cósmico (Evita FOUC / Desalineación por caché del navegador) -->
-  <!-- Critical CSS para el Hero Cósmico Natural (100% fondo fluido y sin artefactos) -->
+  <!-- Critical CSS para el Fondo Astral y Escenario Cósmico Natural -->
   <style id="cosmic-critical-css">
+    .cosmic-canvas-container {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: -1;
+      background: #000000;
+      overflow: hidden;
+    }
+    #cosmic-galaxy-canvas {
+      width: 100vw;
+      height: 100vh;
+      display: block;
+    }
     .cosmic-hero-stage {
       position: relative;
       width: 100%;
       min-height: 85vh;
-      background-color: #000000 !important;
+      background: transparent !important;
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
       overflow: hidden !important;
       user-select: none;
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    }
-    #cosmic-galaxy-canvas {
-      width: 100%;
-      height: 100%;
-      display: block;
     }
     .cosmic-controls {
       position: absolute;
@@ -128,6 +137,11 @@
 </head>
 <body>
 
+  <!-- Fondo Cósmico Espacial Fijo para TODA la web -->
+  <div id="cosmic-canvas-container" class="cosmic-canvas-container" aria-hidden="true">
+    <canvas id="cosmic-galaxy-canvas"></canvas>
+  </div>
+
   <!-- ================= Loader ================= -->
   <div id="loader" role="status" aria-label="Cargando Tiancode">
     <div class="loader-aurora" aria-hidden="true">
@@ -150,7 +164,7 @@
       <span class="loader-pct">0%</span>
     </div>
 
-    <p class="loader-text">Loading Tiancode v1.0.4…</p>
+    <p class="loader-text" data-i18n="loader.text">Cargando Tiancode v1.0.4…</p>
   </div>
 
   <noscript>
@@ -167,7 +181,7 @@
       var fill = loader.querySelector('.loader-fill');
       var pct = loader.querySelector('.loader-pct');
       var start = Date.now();
-      var FALLBACK_MS = 3800;
+      var FALLBACK_MS = 450;
       var TARGET = 90;
 
       function setProgress(frac) {
@@ -219,7 +233,7 @@
           <div class="nav-dropdown">
             <button class="nav-dropdown-toggle" type="button" aria-expanded="false" aria-haspopup="true"
                     data-i18n-aria="nav.dropdownAria" aria-label="Abrir menú de recursos">
-              <span data-i18n="nav.more">Resources</span>
+              <span data-i18n="nav.more">Recursos</span>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <polyline points="6 9 12 15 18 9"/>
               </svg>
@@ -284,7 +298,6 @@
 
     <!-- ================= 00. Cosmic Motion Hero Stage (Constelación Cósmica Natural TIANCODE) ================= -->
     <section id="galaxy-hero" class="cosmic-hero-stage" aria-label="Visualizador de Inteligencia Cósmica Tiancode">
-      <canvas id="cosmic-galaxy-canvas"></canvas>
       <div class="cosmic-controls">
         <button id="cosmic-replay-btn" class="cosmic-replay-btn" type="button"
                 data-i18n-aria="hero.cosmicReplayAria" aria-label="Reiniciar animación cósmica de TIANCODE"
@@ -660,10 +673,10 @@
     <section id="overview" class="section">
       <div class="container container-narrow">
         <div class="section-head section-head-left reveal">
-          <span class="eyebrow">Philosophy</span>
-          <h2 class="section-title">The Foundation of Sovereign AI Development</h2>
-          <p class="section-sub">
-            Most AI coding tools treat your computer as a thin client for remote servers, leaking intellectual property, introducing network latency, and locking you into cloud subscription costs. Tiancode inverts this paradigm: your machine is the execution engine.
+          <span class="eyebrow" data-i18n="overview.eyebrow">Filosofía</span>
+          <h2 class="section-title" data-i18n="overview.title">Los Fundamentos del Desarrollo Soberano de IA</h2>
+          <p class="section-sub" data-i18n="overview.sub">
+            La mayoría de herramientas de programación con IA tratan a tu ordenador como un cliente ligero para servidores remotos, exponiendo propiedad intelectual, introduciendo latencia de red y atándote a costes de suscripción en la nube. Tiancode invierte este paradigma: tu máquina es el motor de ejecución.
           </p>
         </div>
       </div>
@@ -673,101 +686,101 @@
     <section id="capabilities" class="section section-alt">
       <div class="container">
         <div class="section-head reveal">
-          <span class="eyebrow">Capabilities</span>
-          <h2 class="section-title">Architected for Production Software Engineering</h2>
-          <p class="section-sub">Every module in Tiancode is engineered to solve the real-world bottlenecks of autonomous code generation.</p>
+          <span class="eyebrow" data-i18n="capabilities.eyebrow">Capacidades</span>
+          <h2 class="section-title" data-i18n="capabilities.title">Diseñado para la Ingeniería de Software en Producción</h2>
+          <p class="section-sub" data-i18n="capabilities.sub">Cada módulo en Tiancode está concebido para resolver los cuellos de botella reales de la generación autónoma de código.</p>
         </div>
 
         <div class="bento-grid">
           <!-- 01 -->
           <article class="bento-card bento-card-wide reveal" data-feature-id="agents">
             <div>
-              <span class="bento-num">01 / AUTONOMOUS SWARMS</span>
-              <h3 class="bento-title">Multi-Agent Swarm Orchestration &amp; Git Worktrees</h3>
-              <p class="bento-desc">
-                Tiancode delegates tasks to specialized subagents operating concurrently in isolated Git Worktree branches. While a senior lead agent plans the architecture, subagents execute TDD suites, audit security vulnerabilities, and resolve merge conflicts in parallel.
+              <span class="bento-num" data-i18n="cap.c1.num">01 / ENJAMBRES AUTÓNOMOS</span>
+              <h3 class="bento-title" data-i18n="cap.c1.title">Orquestación de Enjambres Multi-Agente &amp; Git Worktrees</h3>
+              <p class="bento-desc" data-i18n="cap.c1.desc">
+                Tiancode delega tareas en subagentes especializados que operan de forma concurrente en ramas aisladas de Git Worktree. Mientras un agente líder planifica la arquitectura, los subagentes ejecutan suites de TDD, auditan vulnerabilidades de seguridad y resuelven conflictos de fusión en paralelo.
               </p>
             </div>
             <div class="bento-footer">
-              <span class="bento-tag">Isolated Worktrees</span>
-              <span class="bento-tag">Concurrent Execution</span>
-              <span class="bento-tag">Granular Permissions</span>
+              <span class="bento-tag" data-i18n="cap.c1.tag1">Worktrees Aislados</span>
+              <span class="bento-tag" data-i18n="cap.c1.tag2">Ejecución Concurrente</span>
+              <span class="bento-tag" data-i18n="cap.c1.tag3">Permisos Granulares</span>
             </div>
           </article>
 
           <!-- 02 -->
           <article class="bento-card reveal" data-feature-id="models">
             <div>
-              <span class="bento-num">02 / LOCAL GGUF RUNTIME</span>
-              <h3 class="bento-title">Model Hub with Native GPU Acceleration</h3>
-              <p class="bento-desc">
-                Download and run open-weights GGUF models directly from Hugging Face with full VRAM offloading (NVIDIA CUDA / DirectML). Zero telemetry, zero external API costs.
+              <span class="bento-num" data-i18n="cap.c2.num">02 / RUNTIME GGUF LOCAL</span>
+              <h3 class="bento-title" data-i18n="cap.c2.title">Model Hub con Aceleración GPU Nativa</h3>
+              <p class="bento-desc" data-i18n="cap.c2.desc">
+                Descarga y ejecuta modelos GGUF de pesos abiertos directamente desde Hugging Face con descarga completa a VRAM (NVIDIA CUDA / DirectML). Cero telemetría, cero costes de API externas.
               </p>
             </div>
             <div class="bento-footer">
-              <span class="bento-tag">HuggingFace GGUF</span>
-              <span class="bento-tag">Ollama &amp; LM Studio</span>
+              <span class="bento-tag" data-i18n="cap.c2.tag1">HuggingFace GGUF</span>
+              <span class="bento-tag" data-i18n="cap.c2.tag2">Ollama &amp; LM Studio</span>
             </div>
           </article>
 
           <!-- 03 -->
           <article class="bento-card reveal" data-feature-id="preview">
             <div>
-              <span class="bento-num">03 / UNIVERSAL PREVIEW</span>
-              <h3 class="bento-title">Universal Live Preview &amp; DOM Inspector</h3>
-              <p class="bento-desc">
-                Automatic dev-server discovery for Next.js 15, Vite, Astro, and HTML. Millisecond SSE hot-reload, responsive viewport presets, and side-by-side visual DOM inspection.
+              <span class="bento-num" data-i18n="cap.c3.num">03 / VISTA PREVIA UNIVERSAL</span>
+              <h3 class="bento-title" data-i18n="cap.c3.title">Vista Previa en Vivo Universal &amp; Inspector DOM</h3>
+              <p class="bento-desc" data-i18n="cap.c3.desc">
+                Detección automática de servidores de desarrollo para Next.js 15, Vite, Astro y HTML. Recarga en caliente por SSE en milisegundos, presets de pantallas responsivas e inspección visual del DOM lado a lado.
               </p>
             </div>
             <div class="bento-footer">
-              <span class="bento-tag">SSE Live Reload</span>
-              <span class="bento-tag">DOM Inspector</span>
+              <span class="bento-tag" data-i18n="cap.c3.tag1">Recarga en Vivo SSE</span>
+              <span class="bento-tag" data-i18n="cap.c3.tag2">Inspector DOM</span>
             </div>
           </article>
 
           <!-- 04 -->
           <article class="bento-card bento-card-wide reveal" data-feature-id="architecture">
             <div>
-              <span class="bento-num">04 / DURABLE CORE V2</span>
-              <h3 class="bento-title">Durable Session Core V2 &amp; Post-Crash Resilience</h3>
-              <p class="bento-desc">
-                Every prompt and tool action is transactionally logged into SQLite with Drizzle ORM before model dispatch. If power is interrupted or an LLM times out, Tiancode resumes at the exact transaction boundary without lost work or duplicate executions.
+              <span class="bento-num" data-i18n="cap.c4.num">04 / NÚCLEO DURADERO V2</span>
+              <h3 class="bento-title" data-i18n="cap.c4.title">Núcleo de Sesión V2 Duradero &amp; Resiliencia Post-Crash</h3>
+              <p class="bento-desc" data-i18n="cap.c4.desc">
+                Cada prompt y acción de herramienta se registra de forma transaccional en SQLite con Drizzle ORM antes del envío al modelo. Si se corta la energía o expira la llamada al LLM, Tiancode se reanuda en el límite exacto de la transacción sin perder trabajo ni duplicar ejecuciones.
               </p>
             </div>
             <div class="bento-footer">
-              <span class="bento-tag">Effect-TS Runtime</span>
-              <span class="bento-tag">SQLite Transaction Log</span>
-              <span class="bento-tag">Fault-Tolerant Wakes</span>
+              <span class="bento-tag" data-i18n="cap.c4.tag1">Runtime Effect-TS</span>
+              <span class="bento-tag" data-i18n="cap.c4.tag2">Log Transaccional SQLite</span>
+              <span class="bento-tag" data-i18n="cap.c4.tag3">Despertares Tolerantes a Fallos</span>
             </div>
           </article>
 
           <!-- 05 -->
           <article class="bento-card reveal" data-feature-id="mcp">
             <div>
-              <span class="bento-num">05 / MCP INTEGRATION</span>
-              <h3 class="bento-title">Model Context Protocol (MCP) Ecosystem</h3>
-              <p class="bento-desc">
-                Native support for Model Context Protocol servers: Playwright for headless testing, Chrome DevTools CDP, AWS S3/Lambda, SQLite, and custom enterprise tools.
+              <span class="bento-num" data-i18n="cap.c5.num">05 / INTEGRACIÓN MCP</span>
+              <h3 class="bento-title" data-i18n="cap.c5.title">Ecosistema Model Context Protocol (MCP)</h3>
+              <p class="bento-desc" data-i18n="cap.c5.desc">
+                Soporte nativo para servidores de Model Context Protocol: Playwright para pruebas headless, Chrome DevTools CDP, AWS S3/Lambda, SQLite y herramientas empresariales a medida.
               </p>
             </div>
             <div class="bento-footer">
-              <span class="bento-tag">Open Protocol</span>
-              <span class="bento-tag">15+ Pre-bundled Tools</span>
+              <span class="bento-tag" data-i18n="cap.c5.tag1">Protocolo Abierto</span>
+              <span class="bento-tag" data-i18n="cap.c5.tag2">15+ Herramientas Integradas</span>
             </div>
           </article>
 
           <!-- 06 -->
           <article class="bento-card reveal" data-feature-id="voice">
             <div>
-              <span class="bento-num">06 / NEURAL SPEECH</span>
-              <h3 class="bento-title">Kokoro Neural TTS &amp; Whisper Dictation</h3>
-              <p class="bento-desc">
-                Offline voice engine powered by Kokoro TTS and Whisper ONNX. Dictate coding instructions and listen to architecture explanations in Spanish and English with zero internet access.
+              <span class="bento-num" data-i18n="cap.c6.num">06 / VOZ NEURAL</span>
+              <h3 class="bento-title" data-i18n="cap.c6.title">TTS Neural Kokoro &amp; Dictado Whisper</h3>
+              <p class="bento-desc" data-i18n="cap.c6.desc">
+                Motor de voz offline impulsado por Kokoro TTS y Whisper ONNX. Dicta instrucciones de programación y escucha explicaciones de arquitectura en español e inglés sin ningún acceso a internet.
               </p>
             </div>
             <div class="bento-footer">
-              <span class="bento-tag">100% Offline TTS</span>
-              <span class="bento-tag">Whisper Speech-to-Text</span>
+              <span class="bento-tag" data-i18n="cap.c6.tag1">TTS 100% Offline</span>
+              <span class="bento-tag" data-i18n="cap.c6.tag2">Transcripción Whisper</span>
             </div>
           </article>
         </div>
@@ -778,27 +791,27 @@
     <section id="benchmarks" class="section">
       <div class="container">
         <div class="section-head reveal">
-          <span class="eyebrow">Evaluations</span>
-          <h2 class="section-title">Empirical Benchmarks &amp; Performance</h2>
-          <p class="section-sub">
-            Rigorous evaluation across standardized developer benchmarks, cold-start latency, memory overhead, and resource efficiency.
+          <span class="eyebrow" data-i18n="benchmarks.eyebrow">Evaluaciones</span>
+          <h2 class="section-title" data-i18n="benchmarks.title">Evaluaciones Empíricas y Rendimiento</h2>
+          <p class="section-sub" data-i18n="benchmarks.sub">
+            Evaluación rigurosa a través de benchmarks estandarizados para desarrolladores, latencia de arranque en frío, sobrecarga de memoria y eficiencia de recursos.
           </p>
         </div>
 
         <div class="benchmarks-wrapper reveal">
           <!-- Botones de cambio de métrica -->
           <div class="benchmarks-nav">
-            <button class="benchmark-nav-btn is-active" type="button" data-metric="swe">SWE-bench Verified</button>
-            <button class="benchmark-nav-btn" type="button" data-metric="latency">Startup Latency</button>
-            <button class="benchmark-nav-btn" type="button" data-metric="tokens">Token Efficiency</button>
-            <button class="benchmark-nav-btn" type="button" data-metric="offline">Offline Sovereignty</button>
+            <button class="benchmark-nav-btn is-active" type="button" data-metric="swe" data-i18n="bench.nav.swe">SWE-bench Verificado</button>
+            <button class="benchmark-nav-btn" type="button" data-metric="latency" data-i18n="bench.nav.lat">Latencia de Arranque</button>
+            <button class="benchmark-nav-btn" type="button" data-metric="tokens" data-i18n="bench.nav.tok">Eficiencia de Tokens</button>
+            <button class="benchmark-nav-btn" type="button" data-metric="offline" data-i18n="bench.nav.off">Soberanía Offline</button>
           </div>
 
           <div class="benchmarks-grid">
             <div class="benchmark-card">
               <div class="benchmark-headline">
-                <h3 class="benchmark-title" id="eval-title">SWE-bench Verified Task Resolution</h3>
-                <span class="benchmark-unit" id="eval-unit">% resolved</span>
+                <h3 class="benchmark-title" id="eval-title">Resolución de Tareas SWE-bench Verificado</h3>
+                <span class="benchmark-unit" id="eval-unit">% resuelto</span>
               </div>
               <div class="eval-bars-list" id="eval-bars-container">
                 <!-- Se rellena dinámicamente con js/charts.js -->
@@ -808,15 +821,15 @@
             <div class="benchmark-stats-sidebar">
               <div class="stat-pill-box">
                 <span class="stat-pill-num" id="eval-stat-num">74.2%</span>
-                <span class="stat-pill-label" id="eval-stat-label">Tasa de resolución verificada en problemas reales de ingeniería de software.</span>
+                <span class="stat-pill-label" id="eval-stat-label" data-i18n="bench.stat1Label">Tasa de resolución verificada en problemas reales de ingeniería de software.</span>
               </div>
               <div class="stat-pill-box">
                 <span class="stat-pill-num">0.38s</span>
-                <span class="stat-pill-label">Latencia hasta la primera ejecución de herramienta en máquina local.</span>
+                <span class="stat-pill-label" data-i18n="bench.stat2Label">Latencia hasta la primera ejecución de herramienta en máquina local.</span>
               </div>
               <div class="stat-pill-box">
                 <span class="stat-pill-num">&lt;18 MB</span>
-                <span class="stat-pill-label">Consumo de RAM en reposo al minimizar a la bandeja de Windows.</span>
+                <span class="stat-pill-label" data-i18n="bench.stat3Label">Consumo de RAM en reposo al minimizar a la bandeja de Windows.</span>
               </div>
             </div>
           </div>
@@ -828,24 +841,24 @@
     <section id="architecture" class="section section-alt">
       <div class="container">
         <div class="section-head reveal">
-          <span class="eyebrow">Engineering</span>
-          <h2 class="section-title">Fault-Tolerant, Concurrent Architecture</h2>
-          <p class="section-sub">A pure TypeScript monorepo powered by Bun, Effect-TS, SolidJS, and SQLite.</p>
+          <span class="eyebrow" data-i18n="architecture.eyebrow">Ingeniería</span>
+          <h2 class="section-title" data-i18n="architecture.title">Arquitectura Concurrente y Tolerante a Fallos</h2>
+          <p class="section-sub" data-i18n="architecture.sub">Un monorepo en TypeScript puro impulsado por Bun, Effect-TS, SolidJS y SQLite.</p>
         </div>
 
         <div class="arch-grid reveal">
           <div class="arch-text">
-            <h3>Designed for Resilience at Scale</h3>
-            <p>
-              Traditional coding assistants store execution state in memory, making them prone to silent failures, dropped prompts, and unrecoverable states when processes exit. Tiancode implements a process-global <code>SessionExecution</code> coordinator with strict boundaries.
+            <h3 data-i18n="arch.blockTitle">Diseñado para Resiliencia a Escala</h3>
+            <p data-i18n="arch.blockP1">
+              Los asistentes de programación tradicionales almacenan el estado de ejecución en memoria, volviéndolos propensos a fallos silenciosos, prompts perdidos y estados irrecuperables cuando los procesos finalizan. Tiancode implementa un coordinador <code>SessionExecution</code> global al proceso con límites estrictos.
             </p>
-            <p>
-              Durable prompt admission persists every input row into SQLite before any model turn is initiated. Prompts steer active turns safely at turn boundaries, while queued prompts wait until the session becomes idle, ensuring predictable, reproducible agentic loops.
+            <p data-i18n="arch.blockP2">
+              La admisión durable de prompts persiste cada fila de entrada en SQLite antes de iniciar cualquier turno del modelo. Los prompts guían de forma segura en los límites de turno, mientras que los prompts en cola esperan a que la sesión esté inactiva, garantizando bucles agénticos predecibles y reproducibles.
             </p>
             <div style="display:flex; gap:10px; margin-top:8px;">
-              <span class="bento-tag">Effect-TS Core</span>
-              <span class="bento-tag">Drizzle SQLite</span>
-              <span class="bento-tag">Location-Scoped</span>
+              <span class="bento-tag" data-i18n="arch.tag1">Núcleo Effect-TS</span>
+              <span class="bento-tag" data-i18n="arch.tag2">Drizzle SQLite</span>
+              <span class="bento-tag" data-i18n="arch.tag3">Ámbito de Ubicación</span>
             </div>
           </div>
 
@@ -873,9 +886,9 @@ export const admitPrompt = (sessionID: SessionID, input: UserPrompt) =>
     <section id="skills" class="section">
       <div class="container">
         <div class="section-head reveal">
-          <span class="eyebrow">Ecosystem</span>
-          <h2 class="section-title">52+ Specialized Engineering Skills</h2>
-          <p class="section-sub">Pre-bundled operational playbooks ready to execute TDD, security audits, architecture reviews, and performance optimizations.</p>
+          <span class="eyebrow" data-i18n="skills.eyebrow">Ecosistema</span>
+          <h2 class="section-title" data-i18n="skills.title">52+ Skills Especializadas de Ingeniería</h2>
+          <p class="section-sub" data-i18n="skills.sub">Playbooks operacionales pre-empaquetados listos para ejecutar TDD, auditorías de seguridad, revisiones de arquitectura y optimizaciones de rendimiento.</p>
         </div>
 
         <div class="skills-cloud-wrap reveal">
@@ -905,56 +918,56 @@ export const admitPrompt = (sessionID: SessionID, input: UserPrompt) =>
     <section id="downloads" class="section section-alt">
       <div class="container">
         <div class="section-head reveal">
-          <span class="eyebrow">Distribution</span>
-          <h2 class="section-title">Get Started with Tiancode</h2>
-          <p class="section-sub">Free for personal use. Choose the installation format that fits your workflow.</p>
+          <span class="eyebrow" data-i18n="downloads.eyebrow">Distribución</span>
+          <h2 class="section-title" data-i18n="downloads.title">Comienza con Tiancode</h2>
+          <p class="section-sub" data-i18n="downloads.sub">Gratuito para uso personal. Elige el formato de instalación que mejor se adapte a tu flujo de trabajo.</p>
         </div>
 
         <div class="downloads-matrix reveal">
           <!-- Installer -->
           <article class="download-card">
             <div class="download-card-top">
-              <span class="download-badge">Recommended</span>
-              <h3 class="download-title">Official Windows Installer</h3>
-              <p class="download-desc">Standard Windows setup with desktop shortcuts, system tray integration, and automatic background updates.</p>
+              <span class="download-badge" data-i18n="downloads.recBadge">Recomendado</span>
+              <h3 class="download-title" data-i18n="downloads.installerTitle">Instalador Oficial de Windows</h3>
+              <p class="download-desc" data-i18n="downloads.installerDesc">Configuración estándar de Windows con accesos directos de escritorio, integración en la bandeja del sistema y actualizaciones automáticas en segundo plano.</p>
               <ul class="download-features-list">
-                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Automatic non-destructive updates (v1.0.4+)</li>
-                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Start Menu and desktop shortcuts</li>
-                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Native system notifications and tray icon</li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> <span data-i18n="downloads.installerF1">Actualizaciones automáticas no destructivas (v1.0.4+)</span></li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> <span data-i18n="downloads.installerF2">Menú Inicio y accesos directos de escritorio</span></li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> <span data-i18n="downloads.installerF3">Notificaciones nativas del sistema e icono en la bandeja</span></li>
               </ul>
             </div>
             <a href="https://github.com/Dreftian/Tiancode/releases/latest/download/Tiancode.exe" class="btn btn-primary btn-lg">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
               </svg>
-              <span>Download Tiancode.exe</span>
+              <span data-i18n="downloads.installerCta">Descargar Tiancode.exe</span>
             </a>
           </article>
 
           <!-- Portable -->
           <article class="download-card">
             <div class="download-card-top">
-              <span class="download-badge">Zero-Install</span>
-              <h3 class="download-title">Standalone Portable Edition</h3>
-              <p class="download-desc">Run directly from a USB flash drive or any folder without installation, registry keys, or administrator privileges.</p>
+              <span class="download-badge" data-i18n="downloads.portBadge">Sin Instalación</span>
+              <h3 class="download-title" data-i18n="downloads.portableTitle">Edición Portable Autónoma</h3>
+              <p class="download-desc" data-i18n="downloads.portableDesc">Ejecútalo directamente desde una memoria USB o cualquier carpeta sin instalación, claves de registro ni privilegios de administrador.</p>
               <ul class="download-features-list">
-                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Zero admin permissions required</li>
-                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> All settings and models stored in the same folder</li>
-                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Ideal for USB pendrives or restricted enterprise PCs</li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> <span data-i18n="downloads.portableF1">Cero permisos de administrador requeridos</span></li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> <span data-i18n="downloads.portableF2">Toda la configuración y modelos almacenados en la misma carpeta</span></li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> <span data-i18n="downloads.portableF3">Ideal para pendrives USB o PCs empresariales restringidos</span></li>
               </ul>
             </div>
             <a href="https://github.com/Dreftian/Tiancode/releases/latest/download/Tiancode-portable.exe" class="btn btn-secondary btn-lg">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
               </svg>
-              <span>Download Portable (.exe)</span>
+              <span data-i18n="downloads.portableCta">Descargar Portable (.exe)</span>
             </a>
           </article>
         </div>
 
         <div style="text-align:center; margin-top:32px;">
           <p style="font-size:13.5px; color:var(--text-3);">
-            SHA-256 integrity checksums available on <a href="https://github.com/Dreftian/Tiancode/releases" style="text-decoration:underline;" target="_blank" rel="noopener noreferrer">GitHub Releases</a>.
+            <span data-i18n="downloads.checksum">Sumas de verificación de integridad SHA-256 disponibles en los</span> <a href="https://github.com/Dreftian/Tiancode/releases" style="text-decoration:underline;" target="_blank" rel="noopener noreferrer" data-i18n="downloads.releasesLink">Releases de GitHub</a>.
           </p>
         </div>
       </div>
@@ -964,9 +977,9 @@ export const admitPrompt = (sessionID: SessionID, input: UserPrompt) =>
     <section id="faq" class="section">
       <div class="container">
         <div class="section-head reveal">
-          <span class="eyebrow">FAQ</span>
-          <h2 class="section-title">Frequently Asked Questions</h2>
-          <p class="section-sub">Everything you need to know about Tiancode, local inference, and privacy.</p>
+          <span class="eyebrow" data-i18n="faq.eyebrow">Preguntas Frecuentes</span>
+          <h2 class="section-title" data-i18n="faq.title">Preguntas Frecuentes</h2>
+          <p class="section-sub" data-i18n="faq.sub">Todo lo que necesitas saber sobre Tiancode, inferencia local y privacidad.</p>
         </div>
 
         <div class="faq-accordion reveal">
@@ -1781,7 +1794,7 @@ tiancode --version           # Muestra la versión instalada</code></pre>
           </p>
           <div class="footer-status-badge">
             <i></i>
-            <span>All Systems Operational · Desktop v1.0.4</span>
+            <span data-i18n="footer.status">Todos los Sistemas Operativos · Desktop v1.0.4</span>
           </div>
         </div>
 
@@ -1789,10 +1802,10 @@ tiancode --version           # Muestra la versión instalada</code></pre>
           <div class="footer-col">
             <span class="footer-col-title" data-i18n="footer.product">Producto</span>
             <a href="productos/app.html">Desktop Studio</a>
-            <a href="#capabilities">Capabilities</a>
-            <a href="#benchmarks">Benchmarks</a>
-            <a href="#downloads">Download</a>
-            <a href="recursos/portable.html">Portable Edition</a>
+            <a href="#capabilities" data-i18n="nav.capabilities">Capacidades</a>
+            <a href="#benchmarks" data-i18n="nav.benchmarks">Evaluaciones</a>
+            <a href="#downloads" data-i18n="nav.download">Descargar</a>
+            <a href="recursos/portable.html" data-i18n="nav.m5">Modo portable</a>
           </div>
           <div class="footer-col">
             <span class="footer-col-title" data-i18n="footer.resources">Recursos</span>
@@ -1802,25 +1815,25 @@ tiancode --version           # Muestra la versión instalada</code></pre>
             <a href="https://lmstudio.ai" target="_blank" rel="noopener noreferrer">LM Studio</a>
           </div>
           <div class="footer-col">
-            <span class="footer-col-title">Ecosystem</span>
-            <a href="recursos/docs.html">Documentation</a>
-            <a href="recursos/guia.html">Quickstart Guide</a>
-            <a href="#skills">52+ Skills Catalog</a>
+            <span class="footer-col-title" data-i18n="footer.ecosystem">Ecosistema</span>
+            <a href="recursos/docs.html" data-i18n="footer.docs">Documentación</a>
+            <a href="recursos/guia.html" data-i18n="footer.guide">Guía de inicio</a>
+            <a href="#skills" data-i18n="footer.skills">Catálogo 52+ Skills</a>
             <a href="https://github.com/modelcontextprotocol" target="_blank" rel="noopener noreferrer">Model Context Protocol</a>
           </div>
           <div class="footer-col">
             <span class="footer-col-title" data-i18n="footer.legal">Legal</span>
-            <a href="legal/licencia.html">MIT License</a>
-            <a href="legal/privacidad.html">Privacy Policy</a>
-            <a href="legal/terminos.html">Terms of Service</a>
-            <a href="https://github.com/Dreftian/Tiancode" target="_blank" rel="noopener noreferrer">GitHub Repository</a>
+            <a href="legal/licencia.html" data-i18n="footer.mit">Licencia MIT</a>
+            <a href="legal/privacidad.html" data-i18n="footer.privacy">Política de privacidad</a>
+            <a href="legal/terminos.html" data-i18n="footer.terms">Términos del servicio</a>
+            <a href="https://github.com/Dreftian/Tiancode" target="_blank" rel="noopener noreferrer" data-i18n="footer.repo">Repositorio GitHub</a>
           </div>
         </div>
       </div>
 
       <div class="footer-bottom-bar">
         <span data-i18n="footer.rights">© 2026 Tiancode. Código abierto bajo licencia MIT.</span>
-        <span>Crafted with ♥ by <a href="https://github.com/Dreftian" target="_blank" rel="noopener noreferrer">Dreftian</a></span>
+        <span data-i18n-html="footer.crafted">Creado con ♥ por <a href="https://github.com/Dreftian" target="_blank" rel="noopener noreferrer">Dreftian</a></span>
       </div>
     </div>
   </footer>
@@ -1860,6 +1873,6 @@ tiancode --version           # Muestra la versión instalada</code></pre>
     </div>
   </div>
 
-  <script type="module" src="js/main.js?v=1.0.4.3"></script>
+  <script type="module" src="js/main.js?v=1.0.4.5"></script>
 </body>
 </html>
