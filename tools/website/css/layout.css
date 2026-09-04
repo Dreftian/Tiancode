@@ -288,7 +288,7 @@
 }
 .nav-dropdown-sep { height: 1px; margin: 4px 6px; background: var(--border); }
 
-/* ================= Cosmic Motion Hero Stage (OpenAI Astra 6 Style) ================= */
+/* ================= Cosmic Motion Hero Stage (OpenAI Astra Style Natural Canvas) ================= */
 .cosmic-hero-stage {
   position: relative;
   width: 100%;
@@ -300,42 +300,6 @@
   overflow: hidden;
   user-select: none;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.cosmic-stage-inner {
-  position: relative;
-  width: 100%;
-  max-width: 1360px;
-  min-height: 85vh;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 clamp(24px, 6vw, 84px);
-  z-index: 2;
-  pointer-events: none;
-}
-
-.cosmic-word {
-  font-size: clamp(3.2rem, 7.8vw, 6.6rem);
-  font-weight: 500;
-  color: #ffffff;
-  letter-spacing: -0.04em;
-  line-height: 1;
-  text-shadow: 0 0 40px rgba(255, 255, 255, 0.18);
-  pointer-events: none;
-}
-
-.cosmic-word-left { text-align: left; }
-.cosmic-word-right { text-align: right; }
-
-.cosmic-canvas-wrap {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1;
-  pointer-events: auto;
 }
 
 #cosmic-galaxy-canvas {
@@ -352,12 +316,12 @@
 }
 
 .cosmic-replay-btn {
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  color: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.85);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -368,15 +332,15 @@
 }
 
 .cosmic-replay-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
   color: #ffffff;
-  transform: scale(1.08);
+  transform: scale(1.1);
 }
 
 .cosmic-replay-btn svg {
-  width: 18px;
-  height: 18px;
+  width: 19px;
+  height: 19px;
   transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -386,15 +350,6 @@
 
 @media (max-width: 768px) {
   .cosmic-hero-stage { min-height: 65vh; }
-  .cosmic-stage-inner {
-    min-height: 65vh;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 48px 20px;
-    align-items: center;
-  }
-  .cosmic-word { font-size: clamp(2.6rem, 12vw, 3.8rem); }
-  .cosmic-word-left, .cosmic-word-right { text-align: center; }
 }
 
 /* ================= Hero Editorial (OpenAI Announcement Style) ================= */
