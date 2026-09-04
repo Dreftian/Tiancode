@@ -29,31 +29,26 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.2"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} - Sub-Agentes Universales, Curaduría de Herramientas & UI V2`
-  const body = `## 🚀 Tiancode v${version} — Sub-Agentes Universales & Optimización V2
+  const releaseName = `Tiancode v${version} - Detección de Micrófonos de PC, Modo 2x Ultra-Rápido & Optimizador de Prompts`
+  const body = `## 🚀 Tiancode v${version} — Detección de Micrófonos, Modo 2x & Optimizador de Prompts
 
-### 🤖 Sub-Agentes Universales para Todos los Modelos
-- **Compatibilidad Total de Modelos:** Cualquier modelo actual o futuro (Claude 3.7/4/5, GPT-4o/5, o1/o3/o4, Gemini 2.0/2.5, DeepSeek R1/V3, Llama 3.3, Qwen 2.5 Coder, modelos locales GGUF) reconoce y delega tareas a los sub-agentes especializados automáticamente.
-- **Resolución Resiliente de Nombres:** Normalización tolerante a prefijos \`@\`, guiones bajos y variaciones de mayúsculas/minúsculas en el registro de agentes (e.g. \`@fullstack-coder\`, \`fullstack_coder\`).
-- **Descubrimiento Dinámico:** Los agentes personalizados e importados (.md) se inyectan automáticamente en el prompt de sistema del modelo principal.
-- **Enumeración Canónica en Schema:** Schema JSON enriquecido para evitar alucinaciones en modelos con decodificación guiada o de menor escala.
+### 🎙️ Detección y Selección de Micrófonos de la PC
+- **Enumeración Dinámica de Hardware:** Detección de todos los micrófonos conectados a la PC mediante \`navigator.mediaDevices.enumerateDevices\` con actualización automática en caliente (\`devicechange\`).
+- **Selector en la Interfaz:** Menú contextual (clic derecho en el botón de dictado) que lista los dispositivos, marca el micrófono activo con \`✓\` y distingue el micrófono predeterminado del sistema.
+- **Diagnóstico Proactivo:** Comprobación previa de hardware disponible; si no se detecta ningún micrófono conectado, se muestra una advertencia clara para evitar fallas silenciosas de grabación.
 
-### 🛡️ Curaduría y Armonización Anti-Colisión de Herramientas
-- **Catálogo MCP Optimizado:** Eliminación de presets redundantes (\`filesystem\`, \`fetch\`, \`time\`, \`git\`) que saturaban el contexto y colisionaban con herramientas nativas.
-- **Límites Claros de Jurisdicción:** Filesystem y Git unificados en el núcleo nativo de Tiancode; Playwright protegido con guardrails de aislamiento local.
-- **Presets de Alto Impacto:** Priorización de bases de datos (\`supabase\`, \`postgres\`, \`sqlite\`, \`duckdb\`, \`redis\`), DevOps (\`docker\`, \`sentry\`, \`e2b\`), diseño (\`figma\`) e investigación profunda (\`firecrawl\`, \`context7\`).
-- **Plugins Oficiales:** Nomenclatura oficial modernizada bajo la marca Tiancode (Android Emulator, iOS Simulator, Tiancode Guide, etc.).
+### ⚡ Modo 2x Ultra-Rápido para el Agente de IA
+- **Entrega Directa al LLM en el Backend:** Corrección en el núcleo de ejecución de sesiones (\`prompt.ts\`) garantizando que las directivas del sistema (\`lastUser.system\`) se inyecten siempre en el prompt del modelo.
+- **Ejecución Inmediata sin Rodeos:** Supresión de introducciones conversacionales, saludos y preámbulos. Invocación instantánea de herramientas de lectura, búsqueda y edición para máxima velocidad de respuesta.
 
-### 🎨 Mascota de Escritorio (Desktop Pet) & UI V2
-- **Glassmorphism Fluent Moderno:** Globo de diálogo translúcido con desenfoque profundo (\`backdrop-filter: blur(20px)\`), borde luminoso y sombra difusa adaptada a Windows 11 oscuro.
-- **Microinteracciones Reactivas:** Hover con escalado elástico, interacción de cariño con ráfaga de corazones (\`pet-burst\`) y doble clic para enfocar la app principal.
-- **Consumo Ultra-Bajo de CPU:** Animaciones aceleradas por GPU mediante transformaciones CSS puras (< 0.3% CPU en reposo).
+### ✨ Optimizador Inteligente de Prompts & Corrección de Erratas
+- **Corrección Ortográfica Avanzada:** Diccionario semántico que corrige erratas habituales de teclado y términos técnicos mal escritos en español e inglés (\`inpurt\` → \`input\`, \`microfono\` → \`micrófono\`, \`axcrtualizar\` → \`actualizar\`, \`portavle\` → \`portable\`).
+- **Inferencia de Intención:** Reestructuración de instrucciones ambiguas en objetivos claros (\`🎯 Objetivo Principal\`, \`📋 Requerimientos y Directivas Clave\`, \`🛠️ Directivas de Ejecución\`) sin alterar extensiones de archivo (\`.ts\`, \`.py\`, etc.).
 
 ### 🌐 Vista Previa Sandbox Universal & Explorador de Código
-- **Detección Recursiva de Proyectos:** Detección inteligente de cualquier proyecto web o aplicación (Vite, Next, React, Vue, Svelte, HTML/CSS/JS, Python web) tanto en la raíz como en subcarpetas anidadas (\`Dios/\`, \`frontend/\`, \`client/\`, \`web/\`, \`app/\`, etc.).
-- **Live Reload Instantáneo a Milisegundos:** Recarga en tiempo real mediante Server-Sent Events (SSE) y monitoreo de sistema de archivos nativo con debounce de 25ms para reflejar cambios del usuario o de la IA al instante.
-- **Ajuste de Entorno Moderno (2025/2026):** Presets actualizados y precisos para iPhone 16 / 16 Pro Max, Pixel 9 / Galaxy S24, iPad Pro, MacBook Pro 16", Desktop FHD y 4K UHD, con marcos de dispositivo adaptados y persistencia reactiva que no se resetea al seleccionar.
-- **Sidebar de Código Redimensionable y Scroll Horizontal:** Barra lateral de archivos en la pestaña "Código" deslizable mediante arrastre (drag & drop) y scroll horizontal automático para visualizar nombres largos sin cortes.
+- **Detección Recursiva de Proyectos:** Detección inteligente de cualquier proyecto web o aplicación tanto en la raíz como en subcarpetas.
+- **Live Reload Instantáneo a Milisegundos:** Recarga en tiempo real mediante SSE y monitoreo nativo con debounce de 25ms.
+- **Sidebar de Código Redimensionable:** Barra lateral con arrastre para redimensionar y scroll horizontal automático.
 
 ### 📦 Descargas
 | Archivo | Tipo | Descripción |
