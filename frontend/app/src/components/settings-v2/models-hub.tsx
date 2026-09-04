@@ -65,6 +65,7 @@ export type RuntimeInfo = {
   id: string
   name: string
   available: boolean
+  port?: number | string
   version?: string
   models?: string[]
 }
@@ -988,7 +989,7 @@ export const SettingsModelsHubV2: Component<{
         </div>
 
         {/* Telemetría Compacta de Hardware y Estado del Motor Nativo */}
-        <div class="lm-hw-telemetry flex items-center gap-3">
+        <div class="lm-hw-telemetry flex flex-wrap items-center gap-2.5">
           <Show when={engineStatus()?.status === "running"}>
             <div class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-medium">
               <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -1009,10 +1010,35 @@ export const SettingsModelsHubV2: Component<{
               <span>{engineStatus()?.binaryDownloading ? `Descargando motor (${engineStatus()?.downloadProgress ?? 0}%)...` : "Cargando en GPU..."}</span>
             </div>
           </Show>
-          <span title="GPU / VRAM">
+
+          {/* Runtimes Locales Externos (Ollama / LM Studio) */}
+          <For each={(runtimes() ?? []).filter((r) => r.id === "ollama" || r.id === "lmstudio")}>
+            {(rt) => (
+              <div
+                class="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border"
+                classList={{
+                  "bg-emerald-500/10 border-emerald-500/25 text-emerald-400": rt.available,
+                  "bg-slate-800/40 border-slate-700/40 text-slate-400": !rt.available,
+                }}
+                title={rt.available ? `${rt.name} conectado${rt.port ? ` en puerto ${rt.port}` : ""}` : `${rt.name} no detectado`}
+              >
+                <span
+                  class="w-1.5 h-1.5 rounded-full"
+                  classList={{
+                    "bg-emerald-400 animate-pulse": rt.available,
+                    "bg-slate-500": !rt.available,
+                  }}
+                />
+                <span>{rt.name}</span>
+                <span class="text-[10px] opacity-75">{rt.available ? "Online" : "Offline"}</span>
+              </div>
+            )}
+          </For>
+
+          <span title="GPU / VRAM" class="text-xs text-slate-300">
             🎮 <strong>{system()?.gpu ? system()!.gpu!.split(" ")[0] : "GPU"}</strong> ({formatBytes(vramFree())} libre)
           </span>
-          <span title="RAM del Sistema">
+          <span title="RAM del Sistema" class="text-xs text-slate-300">
             🧠 RAM: {formatBytes(ram())}
           </span>
         </div>

@@ -11,6 +11,7 @@ import {
   startLocalDictation,
 } from "@/utils/asr"
 import { ContextMenu } from "@tiancode-ai/ui/context-menu"
+import { AudioWaveform } from "@/components/audio-waveform"
 
 // Mic icon rendered inline; the icon set has no microphone.
 export function MicIcon(props: { class?: string }) {
@@ -225,7 +226,18 @@ export function VoiceDictationButton(props: {
         data-listening={listening() || undefined}
         onClick={toggle}
       >
-        <MicIcon class="size-4" />
+        <Show
+          when={listening()}
+          fallback={<MicIcon class="size-4" />}
+        >
+          <div class="inline-flex items-center gap-1.5 px-1 py-0.5 rounded-md bg-red-500/10 border border-red-500/25">
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+            </span>
+            <AudioWaveform active={true} barsCount={8} height={14} class="w-8 h-3.5" />
+          </div>
+        </Show>
       </ContextMenu.Trigger>
       <ContextMenu.Portal>
         <ContextMenu.Content class="min-w-[220px] max-w-[340px] text-xs">

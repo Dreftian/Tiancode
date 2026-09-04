@@ -2074,9 +2074,34 @@ ToolRegistry.register({
       return value
     })
     const running = createMemo(() => props.status === "pending" || props.status === "running")
+    const isCompleted = createMemo(() => props.status === "completed")
+    const isError = createMemo(() => props.status === "error")
 
     const href = createMemo(() => sessionLink(childSessionId(), data.sessionHref))
     const clickable = createMemo(() => !!(childSessionId() && (data.navigateToSession || href())))
+
+    const [copied, setCopied] = createSignal(false)
+
+    const rawOutput = createMemo(() => props.output || (props.metadata as any)?.output || "")
+    const cleanOutput = createMemo(() => {
+      const raw = rawOutput()
+      if (!raw) return ""
+      const resultMatch = /<task_result>([\s\S]*?)<\/task_result>/.exec(raw)
+      if (resultMatch?.[1]) return resultMatch[1].trim()
+      const errorMatch = /<task_error>([\s\S]*?)<\/task_error>/.exec(raw)
+      if (errorMatch?.[1]) return errorMatch[1].trim()
+      return raw.replace(/<\/?task[^>]*>/g, "").replace(/<\/?summary>/g, "").trim()
+    })
+
+    const handleCopy = async (e: MouseEvent) => {
+      e.stopPropagation()
+      const content = cleanOutput()
+      if (!content) return
+      if (await writeClipboard(content)) {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      }
+    }
 
     const open = () => {
       const id = childSessionId()
@@ -2087,6 +2112,7 @@ ToolRegistry.register({
     const navigate = (event: MouseEvent) => {
       if (!data.navigateToSession) return
       if (event.button !== 0 || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
+      if ((event.target as HTMLElement)?.closest?.(".task-tool-copy-btn, [data-slot=collapsible-arrow]")) return
       event.preventDefault()
       open()
     }
@@ -2101,9 +2127,11 @@ ToolRegistry.register({
       <div
         data-component="task-tool-card"
         data-running={running() || undefined}
+        data-completed={isCompleted() || undefined}
+        data-error={isError() || undefined}
         style={{
-          "--task-agent-color": v2Tone(),
-          "--task-agent-legacy-color": tone(),
+          "--task-agent-color": v2Tone() ?? tone() ?? "#38bdf8",
+          "--task-agent-legacy-color": tone() ?? "#38bdf8",
         }}
       >
         <div data-component="task-tool-surface">
@@ -2113,32 +2141,50 @@ ToolRegistry.register({
           <div data-slot="basic-tool-tool-info-structured">
             <div data-slot="basic-tool-tool-info-main">
               <span data-component="task-tool-title">{title()}</span>
+              <span class="task-agent-specialist-badge">Especialista</span>
               <span class="task-agent-status-tag" data-status={props.status}>
-                {running() ? "Ejecutando" : props.status === "error" ? "Error" : "Listo"}
+                <Show when={running()}>
+                  <span class="task-agent-pulse-dot" />
+                  Ejecutando
+                </Show>
+                <Show when={isCompleted()}>
+                  <span class="task-agent-check-icon">✓</span>
+                  Listo
+                </Show>
+                <Show when={isError()}>
+                  <span class="task-agent-error-icon">⚠</span>
+                  Error
+                </Show>
               </span>
               <Show when={subtitle()}>
-                <span data-slot="basic-tool-tool-subtitle">{subtitle()}</span>
+                <span data-slot="basic-tool-tool-subtitle" title={subtitle()}>
+                  {subtitle()}
+                </span>
               </Show>
             </div>
           </div>
-          <Show
-            when={running()}
-            fallback={
-              <Show when={clickable()}>
-                <div data-component="task-tool-action">
-                  <Icon name="square-arrow-top-right" size="small" />
-                </div>
-              </Show>
-            }
-          >
-            <span data-component="task-tool-spinner" style={{ color: tone() ?? "var(--icon-interactive-base)" }}>
-              <Show when={newLayout()} fallback={<Spinner />}>
-                <SessionProgressIndicatorV2
-                  style={{ color: v2Tone() ?? "light-dark(var(--v2-text-text-base), #ffffff)" }}
-                />
-              </Show>
-            </span>
-          </Show>
+          <div class="task-tool-actions-cluster">
+            <Show when={clickable()}>
+              <div
+                data-component="task-tool-action"
+                role="button"
+                title="Abrir sesión del sub-agente"
+                onClick={navigate}
+              >
+                <span class="task-tool-action-label">Abrir</span>
+                <Icon name="square-arrow-top-right" size="small" />
+              </div>
+            </Show>
+            <Show when={running()}>
+              <span data-component="task-tool-spinner" style={{ color: tone() ?? "var(--icon-interactive-base)" }}>
+                <Show when={newLayout()} fallback={<Spinner />}>
+                  <SessionProgressIndicatorV2
+                    style={{ color: v2Tone() ?? "light-dark(var(--v2-text-text-base), #ffffff)" }}
+                  />
+                </Show>
+              </span>
+            </Show>
+          </div>
         </div>
       </div>
     )
@@ -2148,13 +2194,29 @@ ToolRegistry.register({
         icon="task"
         status={props.status}
         trigger={trigger()}
-        hideDetails
+        hideDetails={!cleanOutput()}
+        allowOpenWhilePending
         triggerAsLink
         triggerHref={href()}
         clickable={clickable()}
         onTriggerClick={navigate}
         onTriggerKeyDown={navigateKey}
-      />
+      >
+        <Show when={cleanOutput()}>
+          <div data-component="task-tool-expanded-body">
+            <div class="task-tool-expanded-header">
+              <span class="task-tool-expanded-title">Resultado de {title()}</span>
+              <button type="button" class="task-tool-copy-btn" onClick={handleCopy} title="Copiar resultado">
+                <Icon name={copied() ? "check" : "copy"} size="small" />
+                <span>{copied() ? "Copiado" : "Copiar"}</span>
+              </button>
+            </div>
+            <div class="task-tool-output-content">
+              <Markdown text={cleanOutput()} />
+            </div>
+          </div>
+        </Show>
+      </BasicTool>
     )
   },
 })

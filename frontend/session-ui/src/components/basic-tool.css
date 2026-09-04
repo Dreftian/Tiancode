@@ -174,46 +174,82 @@
   width: 100%;
   min-width: 0;
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  border-radius: 8px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 12px;
   border: 1px solid color-mix(in srgb, var(--task-agent-color, #38bdf8) 25%, var(--border-weak-base, rgba(255, 255, 255, 0.08)));
-  background: color-mix(in srgb, var(--task-agent-color, #38bdf8) 4%, var(--background-base));
+  border-left: 3.5px solid var(--task-agent-color, #38bdf8);
+  background: color-mix(in srgb, var(--task-agent-color, #38bdf8) 5%, var(--v2-background-bg-layer-01, #12151c));
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
   transition:
-    border-color 0.15s ease,
-    background-color 0.15s ease,
-    box-shadow 0.15s ease,
-    color 0.15s ease;
+    border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 
   &[data-running="true"] {
-    border-color: color-mix(in srgb, var(--task-agent-color, #38bdf8) 55%, transparent);
-    box-shadow: 0 0 14px color-mix(in srgb, var(--task-agent-color, #38bdf8) 12%, transparent);
+    border-color: color-mix(in srgb, var(--task-agent-color, #38bdf8) 60%, transparent);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--task-agent-color, #38bdf8) 16%, transparent);
   }
 
   .task-agent-avatar {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    font-size: 16px;
-    background: color-mix(in srgb, var(--task-agent-color, #38bdf8) 15%, transparent);
-    border: 1px solid color-mix(in srgb, var(--task-agent-color, #38bdf8) 30%, transparent);
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    font-size: 18px;
+    background: color-mix(in srgb, var(--task-agent-color, #38bdf8) 16%, rgba(255, 255, 255, 0.04));
+    border: 1px solid color-mix(in srgb, var(--task-agent-color, #38bdf8) 35%, transparent);
+    box-shadow: inset 0 0 10px color-mix(in srgb, var(--task-agent-color, #38bdf8) 10%, transparent);
+    flex-shrink: 0;
+  }
+
+  .task-agent-specialist-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1.5px 7px;
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--task-agent-color, #38bdf8) 14%, transparent);
+    color: var(--task-agent-color, #38bdf8);
+    border: 0.5px solid color-mix(in srgb, var(--task-agent-color, #38bdf8) 30%, transparent);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
     flex-shrink: 0;
   }
 
   .task-agent-status-tag {
     display: inline-flex;
     align-items: center;
+    gap: 4.5px;
     font-size: 10px;
     font-weight: 600;
-    padding: 1px 6px;
+    padding: 1.5px 7px;
     border-radius: 9999px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     flex-shrink: 0;
+  }
+
+  .task-agent-pulse-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: #38bdf8;
+    box-shadow: 0 0 8px #38bdf8;
+    animation: task-agent-pulse 1.4s ease-in-out infinite;
+  }
+
+  .task-agent-check-icon {
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .task-agent-error-icon {
+    font-size: 11px;
   }
 
   .task-agent-status-tag[data-status="running"],
@@ -238,9 +274,9 @@
   [data-component="task-tool-surface"] {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     min-width: 0;
-    flex: 1 1 auto;
+    width: 100%;
   }
 
   [data-slot="basic-tool-tool-info-structured"] {
@@ -252,138 +288,145 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 6px 8px;
+    gap: 6px 9px;
     min-width: 0;
   }
 
-  [data-component="task-tool-spinner"] {
-    display: inline-flex;
+  .task-tool-actions-cluster {
+    display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 8px;
+    margin-left: auto;
     flex-shrink: 0;
-
-    [data-component="spinner"] {
-      width: 16px;
-      height: 16px;
-    }
   }
 
   [data-component="task-tool-action"] {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    color: var(--v2-text-text-faint);
-    margin-left: auto;
-    opacity: 0;
-    transition:
-      opacity 0.15s ease,
-      color 0.15s ease;
+    gap: 5px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--task-agent-color, #38bdf8) 12%, rgba(255, 255, 255, 0.05));
+    border: 0.5px solid color-mix(in srgb, var(--task-agent-color, #38bdf8) 25%, transparent);
+    color: var(--task-agent-color, var(--v2-text-text-base, #ffffff));
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover {
+      background: color-mix(in srgb, var(--task-agent-color, #38bdf8) 24%, rgba(255, 255, 255, 0.08));
+      transform: translateY(-1px);
+    }
+  }
+
+  .task-tool-action-label {
+    font-size: 11px;
+    letter-spacing: -0.01em;
   }
 
   [data-component="task-tool-title"] {
     flex-shrink: 0;
-    font-family: var(--font-family-sans);
+    font-family: var(--v2-font-family-sans, "Inter", sans-serif);
     font-size: 13.5px;
     font-style: normal;
-    font-weight: var(--font-weight-medium);
+    font-weight: 600;
     line-height: var(--line-height-large);
-    letter-spacing: var(--letter-spacing-normal);
-    text-transform: capitalize;
-    color: var(--task-agent-legacy-color, var(--text-strong));
+    letter-spacing: -0.01em;
+    color: var(--task-agent-color, var(--text-strong, #ffffff));
   }
 
   [data-slot="basic-tool-tool-subtitle"] {
-    color: var(--v2-text-text-base);
+    width: 100%;
+    color: var(--v2-text-text-muted, #94a3b8);
+    font-size: 12px;
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  [data-component="task-tool-expanded-body"] {
+    margin-top: 6px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .task-tool-expanded-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .task-tool-expanded-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--task-agent-color, #38bdf8);
+  }
+
+  .task-tool-copy-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 11px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--v2-text-text-muted, #94a3b8);
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+    }
+  }
+
+  .task-tool-output-content {
     font-size: 12.5px;
+    line-height: 1.5;
+    max-height: 380px;
+    overflow-y: auto;
+    color: var(--v2-text-text-base, #e2e8f0);
   }
 
   &:hover,
   &:focus-visible {
     border-color: color-mix(in srgb, var(--task-agent-color, #38bdf8) 45%, var(--border-weak-base, rgba(255, 255, 255, 0.15)));
-    background: color-mix(in srgb, var(--task-agent-color, #38bdf8) 8%, var(--background-stronger));
+    background: color-mix(in srgb, var(--task-agent-color, #38bdf8) 8%, var(--background-stronger, #151821));
+  }
+}
 
-    [data-component="task-tool-action"] {
-      opacity: 1;
-    }
+@keyframes task-agent-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.5;
   }
 }
 
 body[data-new-layout] {
   [data-component="task-tool-card"] {
-    gap: 8px;
-    padding: 0;
-    border-radius: 0;
-    border: 0;
-    border-color: transparent;
-    background: transparent;
-    box-shadow: none;
-
-    [data-component="task-tool-surface"] {
-      padding: 8px 12px;
-      border-radius: 8px;
-      background: color-mix(in srgb, var(--task-agent-color, #38bdf8) 4%, var(--v2-background-bg-layer-01));
-      border: 1px solid color-mix(in srgb, var(--task-agent-color, #38bdf8) 22%, var(--border-weak-base, rgba(255, 255, 255, 0.08)));
-      transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
-    }
-
-    &[data-running="true"] [data-component="task-tool-surface"] {
-      border-color: color-mix(in srgb, var(--task-agent-color, #38bdf8) 55%, transparent);
-      box-shadow: 0 0 14px color-mix(in srgb, var(--task-agent-color, #38bdf8) 12%, transparent);
-    }
-
-    [data-component="task-tool-spinner"],
-    [data-component="task-tool-icon"] {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-
-      [data-component="icon"] {
-        color: var(--task-agent-color, var(--v2-icon-icon-base));
-      }
-    }
-
-    [data-component="task-tool-title"] {
-      height: 20px;
-      font-family: var(--v2-font-family-sans, "Inter", sans-serif);
-      font-style: normal;
-      font-weight: 530;
-      font-size: 13px;
-      line-height: 20px;
-      letter-spacing: -0.04px;
-      color: var(--v2-text-text-base);
-      flex: none;
-      flex-grow: 0;
-    }
-
-    [data-slot="basic-tool-tool-subtitle"] {
-      font-family: var(--v2-font-family-sans, "Inter", sans-serif);
-      font-style: normal;
-      font-weight: 440;
-      font-size: 13px;
-      line-height: 20px;
-      letter-spacing: -0.04px;
-      color: var(--v2-text-text-base);
-      font-variation-settings: "slnt" 0;
-      flex: none;
-      flex-grow: 0;
-    }
-
-    [data-component="session-progress-indicator-v2"] {
-      color: var(--task-agent-color, light-dark(var(--v2-text-text-base), #ffffff));
-    }
-
-    &:hover,
-    &:focus-visible {
-      border-color: transparent;
-      background: transparent;
-
-      [data-component="task-tool-surface"] {
-        border-color: color-mix(in srgb, var(--task-agent-color, #38bdf8) 45%, var(--border-weak-base, rgba(255, 255, 255, 0.15)));
-        background: color-mix(in srgb, var(--task-agent-color, #38bdf8) 8%, var(--v2-background-bg-layer-01));
-      }
-    }
+    background: color-mix(in srgb, var(--task-agent-color, #38bdf8) 5%, var(--v2-background-bg-layer-01, #12151c));
+    border: 1px solid color-mix(in srgb, var(--task-agent-color, #38bdf8) 25%, var(--border-weak-base, rgba(255, 255, 255, 0.08)));
+    border-left: 3.5px solid var(--task-agent-color, #38bdf8);
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    padding: 10px 14px;
   }
 }
 

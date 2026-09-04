@@ -29,26 +29,25 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.2"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} - Detección de Micrófonos de PC, Modo 2x Ultra-Rápido & Optimizador de Prompts`
-  const body = `## 🚀 Tiancode v${version} — Detección de Micrófonos, Modo 2x & Optimizador de Prompts
+  const releaseName = `Tiancode v${version} - Activación Automática de Sub-agentes, UI Codex Desktop en Chat, Vista Previa Universal & Formas de Onda`
+  const body = `## 🚀 Tiancode v${version} — Activación Automática de Sub-agentes, UI Codex Desktop, Vista Previa Universal & Telemetría Local
 
-### 🎙️ Detección y Selección de Micrófonos de la PC
-- **Enumeración Dinámica de Hardware:** Detección de todos los micrófonos conectados a la PC mediante \`navigator.mediaDevices.enumerateDevices\` con actualización automática en caliente (\`devicechange\`).
-- **Selector en la Interfaz:** Menú contextual (clic derecho en el botón de dictado) que lista los dispositivos, marca el micrófono activo con \`✓\` y distingue el micrófono predeterminado del sistema.
-- **Diagnóstico Proactivo:** Comprobación previa de hardware disponible; si no se detecta ningún micrófono conectado, se muestra una advertencia clara para evitar fallas silenciosas de grabación.
+### 🤖 Activación Automática y Proactiva de Sub-Agentes Especializados
+- **Orquestación Autónoma de Enjambres:** Mandato universal que obliga al agente principal a delegar tareas complejas, frontend, backend, arquitectura, testing y seguridad a sub-agentes especializados (\`ui-ux-master\`, \`fullstack-coder\`, \`software-architect\`, \`devsecops-auditor\`, \`qa-e2e-tester\`) sin necesidad de que el usuario lo solicite de forma manual.
+- **Inyección en Todos los Proveedores:** Integración exhaustiva en prompts de sistema para Anthropic Claude, OpenAI GPT, Google Gemini, Ollama y DeepSeek.
 
-### ⚡ Modo 2x Ultra-Rápido para el Agente de IA
-- **Entrega Directa al LLM en el Backend:** Corrección en el núcleo de ejecución de sesiones (\`prompt.ts\`) garantizando que las directivas del sistema (\`lastUser.system\`) se inyecten siempre en el prompt del modelo.
-- **Ejecución Inmediata sin Rodeos:** Supresión de introducciones conversacionales, saludos y preámbulos. Invocación instantánea de herramientas de lectura, búsqueda y edición para máxima velocidad de respuesta.
+### 💼 Interfaz de Sub-agentes Estilo Codex Desktop en el Chat
+- **Tarjetas Ejecutivas de Especialistas:** Tarjetas rediseñadas con acentos cromáticos por especialidad, badges de rol (\`Frontend & Design\`, \`Fullstack & Core\`, \`Architecture\`, etc.) e indicador de pulso en vivo.
+- **Visualización Limpia de Resultados:** Vista previa de directivas, botón directo "Abrir sesión ↗" y bandeja colapsable con renderizado Markdown optimizado y copiado en un clic.
 
-### ✨ Optimizador Inteligente de Prompts & Corrección de Erratas
-- **Corrección Ortográfica Avanzada:** Diccionario semántico que corrige erratas habituales de teclado y términos técnicos mal escritos en español e inglés (\`inpurt\` → \`input\`, \`microfono\` → \`micrófono\`, \`axcrtualizar\` → \`actualizar\`, \`portavle\` → \`portable\`).
-- **Inferencia de Intención:** Reestructuración de instrucciones ambiguas en objetivos claros (\`🎯 Objetivo Principal\`, \`📋 Requerimientos y Directivas Clave\`, \`🛠️ Directivas de Ejecución\`) sin alterar extensiones de archivo (\`.ts\`, \`.py\`, etc.).
+### 🌐 Vista Previa Universal para Cualquier Website o App
+- **Soporte Multi-Lenguaje y Multi-Framework:** Compatibilidad transparente con Node.js, Python (FastAPI/Django/Flask), Go, Rust, PHP, Astro, Ruby y Java.
+- **Normalización HTTP/HTTPS Inteligente:** Corrección que fuerza \`http://\` en \`localhost\`, \`127.0.0.1\`, \`0.0.0.0\` y \`[::1]\`, erradicando los errores de protocolo SSL (\`ERR_SSL_PROTOCOL_ERROR\`).
+- **Control Responsive & Puertos Rápidos:** Selector de viewport (\`Desktop\`, \`Tablet\` a 768px, \`Mobile\` a 375px), botones de puertos de desarrollo (\`:3000\`, \`:5173\`, \`:8000\`, \`:8080\`, \`:5000\`, \`:4321\`), overlay de recuperación de errores y fallback web.
 
-### 🌐 Vista Previa Sandbox Universal & Explorador de Código
-- **Detección Recursiva de Proyectos:** Detección inteligente de cualquier proyecto web o aplicación tanto en la raíz como en subcarpetas.
-- **Live Reload Instantáneo a Milisegundos:** Recarga en tiempo real mediante SSE y monitoreo nativo con debounce de 25ms.
-- **Sidebar de Código Redimensionable:** Barra lateral con arrastre para redimensionar y scroll horizontal automático.
+### 🎙️ Dictado por Voz Modernizado & Telemetría de Modelos Locales
+- **Formas de Onda Reactivas (Audio Waveform):** Canvas animado de ondas sonoras en tiempo real mientras el micrófono está activo.
+- **Telemetría y Estado de Runtimes:** Insignias de estado en tiempo real (Online / Offline) para Ollama y LM Studio, con visualización de puertos y monitor de VRAM / GPU libre.
 
 ### 📦 Descargas
 | Archivo | Tipo | Descripción |

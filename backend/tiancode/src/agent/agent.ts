@@ -230,7 +230,7 @@ const layer = Layer.effect(
               }),
               user,
             ),
-            description: `Fast agent specialized for exploring codebases. Use this when you need to quickly find files by patterns (eg. "src/components/**/*.tsx"), search code for keywords (eg. "API endpoints"), or answer questions about the codebase (eg. "how do API endpoints work?"). When calling this agent, specify the desired thoroughness level: "quick" for basic searches, "medium" for moderate exploration, or "very thorough" for comprehensive analysis across multiple locations and naming conventions.`,
+            description: `Fast agent specialized for exploring codebases. PROACTIVELY USE THIS SUBAGENT for multi-file codebase exploration, searching patterns, mapping structures, and answering architectural questions across unfamiliar projects.`,
             prompt: PROMPT_EXPLORE,
             options: {},
             mode: "subagent",
@@ -238,7 +238,7 @@ const layer = Layer.effect(
           },
           "software-architect": {
             name: "software-architect",
-            description: "Diseño modular de sistemas, patrones de diseño limpios, domain-driven design y arquitectura desacoplada.",
+            description: "PROACTIVELY USE THIS SUBAGENT. Arquitectura modular de sistemas, diseño desacoplado, DDD y principios SOLID. Despachar automáticamente para planificar y estructurar sistemas.",
             prompt: "Eres un arquitecto de software senior de élite. Diseñas sistemas limpios, modulares y altamente escalables. Evalúas trade-offs arquitectónicos, defines límites de módulos y garantizas que el código cumpla con los principios SOLID y clean architecture.",
             options: {},
             mode: "subagent",
@@ -249,7 +249,7 @@ const layer = Layer.effect(
           },
           "fullstack-coder": {
             name: "fullstack-coder",
-            description: "Implementación ágil de features completas de frontend, backend, APIs y bases de datos.",
+            description: "PROACTIVELY USE THIS SUBAGENT. Implementación fullstack ágil de features completas, backend, APIs, rutas de servidor, base de datos y lógica de negocio. Despachar automáticamente para construir código.",
             prompt: "Eres un ingeniero fullstack senior. Implementas requerimientos de inicio a fin con código robusto, tipado estricto en TypeScript/Rust/Go/Python, integración fluida de APIs y componentes limpios.",
             options: {},
             mode: "subagent",
@@ -260,7 +260,7 @@ const layer = Layer.effect(
           },
           "devsecops-auditor": {
             name: "devsecops-auditor",
-            description: "Auditoría estricta de dependencias, CVEs, fugas de secretos y seguridad estática de código.",
+            description: "PROACTIVELY USE THIS SUBAGENT. Auditoría estricta de dependencias, CVEs, fugas de secretos y seguridad estática OWASP. Despachar automáticamente para verificar seguridad de código.",
             prompt: "Eres un auditor DevSecOps de élite. Tu función es inspeccionar dependencias, detectar vulnerabilidades de seguridad, evitar fugas de credenciales y validar que los cambios cumplan con los estándares OWASP.",
             options: {},
             mode: "subagent",
@@ -271,7 +271,7 @@ const layer = Layer.effect(
           },
           "ui-ux-master": {
             name: "ui-ux-master",
-            description: "Diseño visual moderno, Tailwind CSS, micro-interacciones fluidas y componentes accesibles.",
+            description: "PROACTIVELY USE THIS SUBAGENT. Diseño visual moderno, Tailwind CSS, layouts responsivos, componentes accesibles y micro-interacciones. Despachar automáticamente ante cualquier requerimiento de UI/UX o frontend.",
             prompt: "Eres un diseñador y desarrollador frontend experto en UI/UX moderna. Diseñas interfaces atractivas, limpias, con excelente jerarquía visual, espaciados precisos, transiciones suaves y soporte completo para temas oscuro/claro.",
             options: {},
             mode: "subagent",
@@ -282,7 +282,7 @@ const layer = Layer.effect(
           },
           "performance-optimizer": {
             name: "performance-optimizer",
-            description: "Perfilado de rendimiento, reducción de latencia, optimización de bundles y tiempos de carga.",
+            description: "PROACTIVELY USE THIS SUBAGENT. Perfilado de rendimiento, reducción de latencia, optimización de bundles y tiempos de carga. Despachar automáticamente ante problemas de rendimiento.",
             prompt: "Eres un especialista senior en rendimiento y optimización. Identificas cuellos de botella de CPU y memoria, optimizas bundles, eliminas re-renders innecesarios y aceleras tiempos de respuesta.",
             options: {},
             mode: "subagent",
@@ -293,7 +293,7 @@ const layer = Layer.effect(
           },
           "database-architect": {
             name: "database-architect",
-            description: "Optimización de esquemas, índices, planes de ejecución y migraciones seguras.",
+            description: "PROACTIVELY USE THIS SUBAGENT. Optimización de esquemas, índices, planes de ejecución y migraciones Drizzle/Prisma. Despachar automáticamente para tareas de bases de datos.",
             prompt: "Eres un arquitecto de bases de datos senior. Analizas consultas SQL, índices, normalización, migraciones Drizzle/Prisma y concurrencia para garantizar máximo rendimiento sin cuellos de botella.",
             options: {},
             mode: "subagent",
@@ -304,7 +304,7 @@ const layer = Layer.effect(
           },
           "docs-generator": {
             name: "docs-generator",
-            description: "Generación de especificaciones OpenAPI, documentación técnica Markdown y guías.",
+            description: "PROACTIVELY USE THIS SUBAGENT. Generación de especificaciones OpenAPI, documentación técnica Markdown y guías de arquitectura.",
             prompt: "Eres un redactor técnico y arquitecto de APIs. Documentas cada endpoint, tipo de dato, arquitectura de módulos y guías de contribución con claridad profesional en formato Markdown.",
             options: {},
             mode: "subagent",
@@ -315,7 +315,7 @@ const layer = Layer.effect(
           },
           "qa-e2e-tester": {
             name: "qa-e2e-tester",
-            description: "Creación de suites de pruebas unitarias, de integración y end-to-end con Vitest y Playwright.",
+            description: "PROACTIVELY USE THIS SUBAGENT. Creación de suites de pruebas unitarias, de integración y end-to-end con Vitest, Jest y Playwright. Despachar automáticamente para testing.",
             prompt: "Eres un ingeniero de QA y testing automatizado. Escribes suites de pruebas completas, validas casos borde y aseguras cobertura integral de código.",
             options: {},
             mode: "subagent",
