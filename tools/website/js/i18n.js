@@ -9,8 +9,8 @@ import { LS_KEYS, readLS, writeLS } from './utils.js';
 
 export const I18N = {
   es: {
-    'page.title': 'Tiancode — Asistente de IA para programar en Windows',
-    'page.description': 'Tiancode es la app de escritorio con IA para programar: agentes, skills de ingeniería y modelos locales GGUF, todo en tu terminal.',
+    'page.title': 'Tiancode — Autonomous Agentic Intelligence for Developers',
+    'page.description': 'Tiancode v1.0.4: Estudio de desarrollo local-first para Windows con enjambre de agentes autónomos, Model Hub GGUF offline, 52+ skills de ingeniería y síntesis neural Kokoro.',
     'loader.text': 'Cargando Tiancode…',
     'nav.showcase': 'Studio',
     'nav.features': 'Características',
@@ -419,8 +419,8 @@ export const I18N = {
   },
 
   en: {
-    'page.title': 'Tiancode — AI coding assistant for Windows',
-    'page.description': 'Tiancode is the desktop AI app for coding: agents, software engineering skills, and local GGUF models — all in your terminal.',
+    'page.title': 'Tiancode — Autonomous Agentic Intelligence for Developers',
+    'page.description': 'Tiancode v1.0.4: Sovereign, local-first agentic coding desktop app for Windows with multi-agent swarms, Model Hub GGUF, and Kokoro neural speech.',
     'loader.text': 'Loading Tiancode…',
     'nav.showcase': 'Studio',
     'nav.features': 'Features',
