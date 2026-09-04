@@ -1,4 +1,4 @@
-import { type Component, createSignal, onCleanup, onMount } from "solid-js"
+import { type Component, createEffect, onCleanup, onMount } from "solid-js"
 
 export const AudioWaveform: Component<{
   active?: boolean
@@ -9,68 +9,83 @@ export const AudioWaveform: Component<{
 }> = (props) => {
   let canvasRef: HTMLCanvasElement | undefined
   let animId: number | undefined
-  const [frequencies, setFrequencies] = createSignal<number[]>(
-    Array.from({ length: props.barsCount ?? 28 }, () => 0.1),
-  )
+  let phase = 0
 
-  onMount(() => {
-    let phase = 0
+  const drawBars = (isActive: boolean) => {
+    if (!canvasRef) return
+    const ctx = canvasRef.getContext("2d")
+    if (!ctx) return
     const count = props.barsCount ?? 28
+    const w = canvasRef.width
+    const h = canvasRef.height
+    ctx.clearRect(0, 0, w, h)
 
-    const render = () => {
-      phase += 0.08
-      const isActive = props.active ?? false
+    const barWidth = (w / count) * 0.65
+    const gap = (w - barWidth * count) / (count - 1)
 
-      const nextFreqs = Array.from({ length: count }, (_, i) => {
-        if (!isActive) return 0.08 + 0.04 * Math.sin(phase * 0.5 + i * 0.3)
+    for (let i = 0; i < count; i++) {
+      let val = 0.1
+      if (isActive) {
         const primary = Math.abs(Math.sin(phase * 1.8 + i * 0.45))
         const secondary = Math.abs(Math.cos(phase * 2.4 - i * 0.35))
-        return Math.min(1.0, 0.15 + 0.85 * (0.6 * primary + 0.4 * secondary))
-      })
-      setFrequencies(nextFreqs)
+        val = Math.min(1.0, 0.15 + 0.85 * (0.6 * primary + 0.4 * secondary))
+      } else {
+        val = 0.08 + 0.04 * Math.sin(i * 0.3)
+      }
+      const barH = Math.max(3, val * (h - 4))
+      const x = i * (barWidth + gap)
+      const y = (h - barH) / 2
 
-      if (canvasRef) {
-        const ctx = canvasRef.getContext("2d")
-        if (ctx) {
-          const w = canvasRef.width
-          const h = canvasRef.height
-          ctx.clearRect(0, 0, w, h)
-
-          const barWidth = (w / count) * 0.65
-          const gap = (w - barWidth * count) / (count - 1)
-
-          for (let i = 0; i < count; i++) {
-            const val = nextFreqs[i]
-            const barH = Math.max(3, val * (h - 4))
-            const x = i * (barWidth + gap)
-            const y = (h - barH) / 2
-
-            const grad = ctx.createLinearGradient(0, y, 0, y + barH)
-            if (isActive) {
-              grad.addColorStop(0, "#38bdf8")
-              grad.addColorStop(0.5, "#60a5fa")
-              grad.addColorStop(1, "#818cf8")
-            } else {
-              grad.addColorStop(0, "rgba(148, 163, 184, 0.3)")
-              grad.addColorStop(1, "rgba(100, 116, 139, 0.2)")
-            }
-
-            ctx.fillStyle = grad
-            ctx.beginPath()
-            ctx.roundRect(x, y, barWidth, barH, 2)
-            ctx.fill()
-          }
-        }
+      const grad = ctx.createLinearGradient(0, y, 0, y + barH)
+      if (isActive) {
+        grad.addColorStop(0, "#38bdf8")
+        grad.addColorStop(0.5, "#60a5fa")
+        grad.addColorStop(1, "#818cf8")
+      } else {
+        grad.addColorStop(0, "rgba(148, 163, 184, 0.3)")
+        grad.addColorStop(1, "rgba(100, 116, 139, 0.2)")
       }
 
-      animId = requestAnimationFrame(render)
+      ctx.fillStyle = grad
+      ctx.beginPath()
+      ctx.roundRect(x, y, barWidth, barH, 2)
+      ctx.fill()
     }
+  }
 
-    animId = requestAnimationFrame(render)
+  const startAnimation = () => {
+    stopAnimation()
+    const loop = () => {
+      phase += 0.08
+      drawBars(true)
+      animId = requestAnimationFrame(loop)
+    }
+    animId = requestAnimationFrame(loop)
+  }
+
+  const stopAnimation = () => {
+    if (animId !== undefined) {
+      cancelAnimationFrame(animId)
+      animId = undefined
+    }
+  }
+
+  onMount(() => {
+    drawBars(false)
+  })
+
+  createEffect(() => {
+    const isActive = props.active ?? false
+    if (isActive) {
+      startAnimation()
+    } else {
+      stopAnimation()
+      drawBars(false)
+    }
   })
 
   onCleanup(() => {
-    if (animId) cancelAnimationFrame(animId)
+    stopAnimation()
   })
 
   return (

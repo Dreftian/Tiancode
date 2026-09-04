@@ -42,27 +42,17 @@ export const DialogSettings: Component<{
       : props.defaultValue ?? "general"
   const [tab, setTab] = createSignal(initialTab)
 
-  const ALL_SETTINGS_TABS = [
-    "general",
-    "intelligence",
-    "ecosystem",
-    "computer-use",
-    "shortcuts",
-    "servers",
-    "providers",
-    "models",
-    "models-hub",
-    "github",
-    "voices",
-    "skills",
-    "sub-agents",
-    "mcp-plugins",
-    "pets",
-  ]
-  // Pre-seed all tabs so switching is buttery smooth, zero-flicker and 100% cached
-  const [visited, setVisited] = createSignal<Set<string>>(new Set(ALL_SETTINGS_TABS))
+  // Lazy cache (matching OpenCode Desktop): only mount the active tab initially,
+  // and keep visited tabs cached in DOM for instant 0ms switching without CPU/background thrashing.
+  const [visited, setVisited] = createSignal<Set<string>>(new Set([initialTab]))
   const markVisited = (val: string) => {
     setTab(val)
+    setVisited((prev) => {
+      if (prev.has(val)) return prev
+      const next = new Set(prev)
+      next.add(val)
+      return next
+    })
   }
 
   const rawDirectory = () => {

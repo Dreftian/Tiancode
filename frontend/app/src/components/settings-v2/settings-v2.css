@@ -12,6 +12,9 @@
   background: var(--v2-background-bg-base);
   width: min(calc(100vw - 32px), 1240px);
   height: min(calc(100vh - 72px), 760px);
+  isolation: isolate;
+  contain: layout paint;
+  transform: translateZ(0);
 }
 
 [data-component="dialog-v2"][data-variant="settings"] [data-slot="dialog-body"] {

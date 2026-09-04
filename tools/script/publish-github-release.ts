@@ -29,36 +29,22 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.6"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} - Fish Audio IPC Bridge, Cero Parpadeo, Conexión Instantánea OpenCode & Astral Loading`
-  const body = `## 🚀 Tiancode v${version} — Fish Audio IPC Bridge, Cero Parpadeo, Conexión Instantánea OpenCode & Astral Loading
+  const releaseName = `Tiancode v${version} - Cero Parpadeo en Configuración, Animación 3D Cósmica Vercel & Voces Fish Audio Ultra-fluidas`
+  const body = `## 🚀 Tiancode v${version} — Cero Parpadeo en Configuración, Animación 3D Cósmica Vercel & Voces Fish Audio Ultra-fluidas
 
-### 🐟 Corrección Definitiva de Fish Audio (IPC Bridge Nativo a 0% CORS)
-- **Bypass Total de CORS en Chromium:** Se implementó un IPC Bridge directo en el proceso principal de Electron (\`voices-speak-fish\`), eliminando por completo el error \`Failed to fetch\` causado por el navegador al enviar peticiones con cabeceras personalizadas.
-- **Modelo Oficial Gratuito \`s2.1-pro-free\`:** Síntesis ultra-fluida y de ultra-baja latencia (~70ms TTFA) en 83 idiomas, con prioridad en voces femeninas naturales en español (*Natasha*, *Española Conversacional y Viva*, *Española Profesional*, etc.).
-- **Reproducción Binaria Instantánea:** Conversión directa de bytes MP3 recibidos por IPC a un buffer de audio local con control dinámico de velocidad y reactividad de ondas.
+### ⚡ Eliminación Definitiva del Parpadeo de Fondo al Abrir Configuración
+- **Aislamiento de Capas GPU en Diálogo:** Se integró \`isolation: isolate\`, \`contain: layout paint\` y aceleración por hardware (\`transform: translateZ(0)\`) en la ventana modal de configuración, impidiendo la invalidación del compositor de Chromium y eliminando cualquier repintado en el chat.
+- **Lazy Mounting Inteligente con Persistencia (Estilo OpenCode):** Las pestañas ahora se montan bajo demanda en el primer clic y se mantienen en caché con \`forceMount\`, garantizando cambios instantáneos a 0ms sin sobrecargar el DOM.
+- **AudioWaveform en Pausa Inactiva:** Se detuvo el bucle \`requestAnimationFrame\` innecesario cuando el componente está inactivo y se eliminaron las señales de estado a 60 FPS que reactivaban el virtualizador de mensajes.
 
-### ⚡ Cero Parpadeos y Máxima Fluidez en Configuración (60 FPS)
-- **Persistencia en Memoria de Pestañas (\`forceMount\`):** Todas las pestañas de Configuración (GitHub, Voces, Skills, Proveedores, etc.) permanecen cacheadas e hidratadas en memoria con \`contain: paint layout\`, eliminando la destrucción y reconstrucción del DOM.
-- **Eliminación del Salto Dimensional:** Se pre-cargan los componentes para que el cambio entre pestañas sea un toggle CSS puro e instantáneo de 0ms sin pantallas blancas ni parpadeos.
+### 🌌 Animación 3D Cósmica Oficial de Carga (Port de tiancode.vercel.app)
+- **Motor de Constelaciones 3D Completo:** Port directo del motor cósmico de la web oficial a Canvas 2D interactivo con proyección en perspectiva 3D (\`fov: 520\`).
+- **Logo del Gato Cósmico Tiancode en 3D:** Polígonos vectoriales exactos de los ojos radiantes, sonrisa estelar y colmillos felinos formados por estrellas ensambladas desde el espacio profundo.
+- **Letras 3D "TIANCODE":** Rotación sutil y profundidad geométrica tridimensional con brazos espirales galácticos, auroras cósmicas y destellos de difracción en cruz (\`+\`).
 
-### ⚡ Conexión y Desconexión Instantánea de Proveedores (Estilo OpenCode)
-- **Actualización Optimista Inmediata:** Desconexión y conexión en menos de 1 ms en la interfaz con emisión inmediata del Toast de notificación.
-- **Persistencia Asíncrona en Segundo Plano:** El guardado de configuración, revocación de tokens y actualización de estado ocurren en segundo plano sin congelar la UI.
-
-### 🛡️ Catálogo de Skills Claude Code Desktop Integradas
-- Incorporación de las 7 skills clave de ingeniería de Anthropic:
-  - \`claude-code-review\`: Auditoría exhaustiva de código, calidad idiomática y detección de regresiones.
-  - \`claude-git-workflow\`: Commits convencionales atómicos, ramas limpias y PRs estructurados.
-  - \`claude-system-architecture\`: Descomposición modular y contratos limpios de dependencias.
-  - \`claude-terminal-automation\`: Automatización segura de terminal y diagnóstico de procesos.
-  - \`claude-deep-investigation\`: Arqueología profunda de código y reconstrucción de causas raíz.
-  - \`claude-performance-profiling\`: Perfilado extremo de rendimiento, eliminación de memory leaks y contención de renderizado.
-  - \`claude-security-auditor\`: Auditoría de vulnerabilidades y prevención OWASP.
-
-### 🌌 Pantalla de Carga Cósmica Estilo Astral.sh ("Tiancode")
-- **Lienzo de Constelaciones Interactivo:** Campo estelar dinámico con estrellas titilantes y líneas de constelación que se conectan orgánicamente en el espacio profundo.
-- **Convergencia en Logo e Identidad:** Las constelaciones y auroras cósmicas (cian y violeta) convergen en el emblema y el nombre iluminado "Tiancode".
-- **Barra de Progreso Cupertino/Astral:** Transición fluida con brillo pulsante para el inicio de la aplicación.
+### 🐟 Voces Femeninas Fish Audio S2.1 Pro Free
+- **Integración Nativa con IPC Bridge:** Verificación y validación de las 6 voces femeninas en español con el modelo gratuito \`s2.1-pro-free\` sin límites de CORS.
+- **Streaming y Respuesta Inmediata:** Latencia inferior a 100ms con reproducción en búfer de alta fidelidad.
 
 ### 🖥️ Sandbox Protegido y Live Preview Universal
 - Ejecución visual en Windows para proyectos GUI (.NET WPF, WinForms, Python GUI, Rust GUI) en entorno de aislamiento supervisado con terminal de logs en vivo.
