@@ -1,11 +1,13 @@
 /* ============================================================
-   Tiancode — Full-Page Astral Background & TIANCODE Constellation Engine
-   - Fondo astral espacial fijo para TODA la página web
-   - Animación de entrada: las estrellas convergen y forman TIANCODE
-   - Scroll reactivo: al hacer scroll hacia abajo, TIANCODE se desforma
-     y se dispersa en el fondo espacial profundo
-   - Al volver al tope, TIANCODE se vuelve a formar automáticamente
-   - Rotación cósmica 3D, estrellas con destellos en cruz (+) y nebulosa
+   Tiancode — Radiant Cosmic Astro & TIANCODE Constellation Engine
+   Inspirado en la cinemática cósmica de OpenAI (GPT-6 Astra):
+   - Fondo espacial continuo a pantalla completa (#000000)
+   - Trazos vectoriales luminosos con ribbons de plasma estelar
+   - Miles de partículas de alta luminosidad formando TIANCODE
+   - Convergencia majestuosa al abrir la página web
+   - Dispersión y deformación suave hacia el espacio profundo al hacer scroll
+   - Re-ensamblado automático al regresar a la parte superior
+   - Destellos de difracción en cruz (+) y rotación 3D reactiva al cursor
    ============================================================ */
 
 export function initGalaxy() {
@@ -26,7 +28,7 @@ export function initGalaxy() {
   let assembleT = 0; // 0 = disperso en el espacio, 1 = formado en TIANCODE
   let isInitialEntrance = true;
   let entranceStartTime = performance.now();
-  const ENTRANCE_DURATION = 2200; // ms
+  const ENTRANCE_DURATION = 2000; // ms
 
   // Scroll interactivo para dispersar TIANCODE
   let scrollFrac = 0; // 0 = en el hero, 1 = scrolleado hacia abajo
@@ -41,123 +43,84 @@ export function initGalaxy() {
 
   // Paleta de estrellas cósmicas
   const PALETTE = [
-    { r: 255, g: 255, b: 255 }, // Blanco diamante
+    { r: 255, g: 255, b: 255 }, // Blanco diamante estelar
     { r: 255, g: 255, b: 255 },
-    { r: 215, g: 240, b: 255 }, // Azul/Cian estelar
+    { r: 215, g: 240, b: 255 }, // Azul/Cian celestial
     { r: 165, g: 243, b: 252 },
-    { r: 254, g: 215, b: 170 }, // Ámbar cálido
+    { r: 254, g: 215, b: 170 }, // Dorado suave
     { r: 251, g: 191, b: 36 }
   ];
+
+  // Geometría vectorial de TIANCODE
+  const word = 'TIANCODE';
+  const letterW = 88;
+  const letterH = 130;
+  const gap = 26;
+  const totalW = word.length * letterW + (word.length - 1) * gap;
+  const startX = -totalW / 2;
+
+  const lines = [];
+  const arcs = [];
+
+  function addLine(x1, y1, x2, y2) {
+    lines.push({ x1, y1, x2, y2 });
+  }
+
+  function addArc(cx, cy, rx, ry, startAngle, endAngle) {
+    arcs.push({ cx, cy, rx, ry, startAngle, endAngle });
+  }
+
+  for (let idx = 0; idx < word.length; idx++) {
+    const char = word[idx];
+    const ox = startX + idx * (letterW + gap);
+    const oy = -letterH / 2;
+
+    switch (char) {
+      case 'T':
+        addLine(ox, oy, ox + letterW, oy);
+        addLine(ox + letterW * 0.5, oy, ox + letterW * 0.5, oy + letterH);
+        break;
+      case 'I':
+        addLine(ox + letterW * 0.2, oy, ox + letterW * 0.8, oy);
+        addLine(ox + letterW * 0.5, oy, ox + letterW * 0.5, oy + letterH);
+        addLine(ox + letterW * 0.2, oy + letterH, ox + letterW * 0.8, oy + letterH);
+        break;
+      case 'A':
+        addLine(ox, oy + letterH, ox + letterW * 0.5, oy);
+        addLine(ox + letterW * 0.5, oy, ox + letterW, oy + letterH);
+        addLine(ox + letterW * 0.22, oy + letterH * 0.62, ox + letterW * 0.78, oy + letterH * 0.62);
+        break;
+      case 'N':
+        addLine(ox, oy + letterH, ox, oy);
+        addLine(ox, oy, ox + letterW, oy + letterH);
+        addLine(ox + letterW, oy + letterH, ox + letterW, oy);
+        break;
+      case 'C':
+        addArc(ox + letterW * 0.5, oy + letterH * 0.5, letterW * 0.48, letterH * 0.48, 0.75, Math.PI * 2 - 0.75);
+        break;
+      case 'O':
+        addArc(ox + letterW * 0.5, oy + letterH * 0.5, letterW * 0.48, letterH * 0.48, 0, Math.PI * 2);
+        break;
+      case 'D':
+        addLine(ox, oy, ox, oy + letterH);
+        addLine(ox, oy, ox + letterW * 0.38, oy);
+        addLine(ox, oy + letterH, ox + letterW * 0.38, oy + letterH);
+        addArc(ox + letterW * 0.38, oy + letterH * 0.5, letterW * 0.52, letterH * 0.5, -Math.PI / 2, Math.PI / 2);
+        break;
+      case 'E':
+        addLine(ox, oy, ox, oy + letterH);
+        addLine(ox, oy, ox + letterW * 0.88, oy);
+        addLine(ox, oy + letterH * 0.5, ox + letterW * 0.72, oy + letterH * 0.5);
+        addLine(ox, oy + letterH, ox + letterW * 0.88, oy + letterH);
+        break;
+    }
+  }
 
   // Colecciones de partículas
   const bgStars = [];
   const constellationStars = [];
   const spiralStars = [];
   const heroSpikes = [];
-
-  // Generador vectorial determinista de las letras T - I - A - N - C - O - D - E
-  function buildConstellationPoints() {
-    const word = 'TIANCODE';
-    const letterW = 76;
-    const letterH = 104;
-    const gap = 22;
-    const totalW = word.length * letterW + (word.length - 1) * gap;
-    const startX = -totalW / 2;
-
-    const rawPoints = [];
-    const density = 32;
-
-    function addPoint(x, y, isCore = true) {
-      rawPoints.push({ x, y, isCore });
-    }
-
-    function addLine(x1, y1, x2, y2) {
-      const dx = x2 - x1;
-      const dy = y2 - y1;
-      const len = Math.hypot(dx, dy);
-      const steps = Math.max(8, Math.floor((len / 100) * density));
-      const nx = -dy / (len || 1);
-      const ny = dx / (len || 1);
-
-      for (let i = 0; i <= steps; i++) {
-        const t = i / steps;
-        const px = x1 + dx * t;
-        const py = y1 + dy * t;
-        // Estrella núcleo
-        addPoint(px, py, true);
-        // Polvo estelar acompañante para darle grosor y luminosidad celestial
-        if (Math.random() < 0.65) {
-          const offset = (Math.random() - 0.5) * 5.5;
-          addPoint(px + nx * offset, py + ny * offset, false);
-        }
-      }
-    }
-
-    function addArc(cx, cy, rx, ry, startAngle, endAngle) {
-      const arcLen = Math.abs(endAngle - startAngle) * ((rx + ry) / 2);
-      const steps = Math.max(12, Math.floor((arcLen / 100) * density * 1.3));
-
-      for (let i = 0; i <= steps; i++) {
-        const t = i / steps;
-        const angle = startAngle + (endAngle - startAngle) * t;
-        const px = cx + Math.cos(angle) * rx;
-        const py = cy + Math.sin(angle) * ry;
-        addPoint(px, py, true);
-        if (Math.random() < 0.65) {
-          const rJitter = (Math.random() - 0.5) * 5.5;
-          addPoint(cx + Math.cos(angle) * (rx + rJitter), cy + Math.sin(angle) * (ry + rJitter), false);
-        }
-      }
-    }
-
-    for (let idx = 0; idx < word.length; idx++) {
-      const char = word[idx];
-      const ox = startX + idx * (letterW + gap);
-      const oy = -letterH / 2;
-
-      switch (char) {
-        case 'T':
-          addLine(ox, oy, ox + letterW, oy);
-          addLine(ox + letterW * 0.5, oy, ox + letterW * 0.5, oy + letterH);
-          break;
-        case 'I':
-          addLine(ox + letterW * 0.2, oy, ox + letterW * 0.8, oy);
-          addLine(ox + letterW * 0.5, oy, ox + letterW * 0.5, oy + letterH);
-          addLine(ox + letterW * 0.2, oy + letterH, ox + letterW * 0.8, oy + letterH);
-          break;
-        case 'A':
-          addLine(ox, oy + letterH, ox + letterW * 0.5, oy);
-          addLine(ox + letterW * 0.5, oy, ox + letterW, oy + letterH);
-          addLine(ox + letterW * 0.22, oy + letterH * 0.62, ox + letterW * 0.78, oy + letterH * 0.62);
-          break;
-        case 'N':
-          addLine(ox, oy + letterH, ox, oy);
-          addLine(ox, oy, ox + letterW, oy + letterH);
-          addLine(ox + letterW, oy + letterH, ox + letterW, oy);
-          break;
-        case 'C':
-          addArc(ox + letterW * 0.5, oy + letterH * 0.5, letterW * 0.48, letterH * 0.48, 0.75, Math.PI * 2 - 0.75);
-          break;
-        case 'O':
-          addArc(ox + letterW * 0.5, oy + letterH * 0.5, letterW * 0.48, letterH * 0.48, 0, Math.PI * 2);
-          break;
-        case 'D':
-          addLine(ox, oy, ox, oy + letterH);
-          addLine(ox, oy, ox + letterW * 0.38, oy);
-          addLine(ox, oy + letterH, ox + letterW * 0.38, oy + letterH);
-          addArc(ox + letterW * 0.38, oy + letterH * 0.5, letterW * 0.52, letterH * 0.5, -Math.PI / 2, Math.PI / 2);
-          break;
-        case 'E':
-          addLine(ox, oy, ox, oy + letterH);
-          addLine(ox, oy, ox + letterW * 0.85, oy);
-          addLine(ox, oy + letterH * 0.5, ox + letterW * 0.7, oy + letterH * 0.5);
-          addLine(ox, oy + letterH, ox + letterW * 0.85, oy + letterH);
-          break;
-      }
-    }
-
-    return { rawPoints, totalW, letterH };
-  }
 
   function resizeAndInit() {
     width = window.innerWidth;
@@ -169,67 +132,113 @@ export function initGalaxy() {
     canvas.style.width = width + 'px';
     canvas.style.height = height + 'px';
 
-    ctx.scale(dpr, dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    // 1. Estrellas de fondo espacial (cubren TODA la ventana en fixed)
+    // 1. Estrellas de fondo espacial profundo
     bgStars.length = 0;
-    const NUM_BG = Math.min(380, Math.floor(width * 0.28));
+    const NUM_BG = Math.min(420, Math.floor(width * 0.3));
     for (let i = 0; i < NUM_BG; i++) {
       bgStars.push({
         x: Math.random() * width,
         y: Math.random() * height,
-        size: Math.random() * 1.5 + 0.3,
-        alpha: Math.random() * 0.65 + 0.25,
-        twinkleSpeed: Math.random() * 0.02 + 0.006,
+        size: Math.random() * 1.6 + 0.4,
+        alpha: Math.random() * 0.6 + 0.3,
+        twinkleSpeed: Math.random() * 0.025 + 0.008,
         twinklePhase: Math.random() * Math.PI * 2,
         color: PALETTE[Math.floor(Math.random() * PALETTE.length)]
       });
     }
 
-    // 2. Constelación TIANCODE
-    const { rawPoints, totalW } = buildConstellationPoints();
-    constellationStars.length = 0;
-
-    // Escala de TIANCODE para que quepa armoniosamente en pantalla
-    const maxTargetW = Math.min(width * 0.86, 1100);
+    // 2. Escala de TIANCODE para ajustarse armónicamente
+    const maxTargetW = Math.min(width * 0.88, 1150);
     const textScale = maxTargetW / totalW;
 
-    for (let i = 0; i < rawPoints.length; i++) {
-      const pt = rawPoints[i];
-      const tx = pt.x * textScale;
-      const ty = pt.y * textScale;
-      const tz = (Math.random() - 0.5) * 32;
+    // Generar partículas densas sobre las líneas y arcos
+    constellationStars.length = 0;
+    const starSpacing = 7; // píxeles entre estrellas a lo largo de cada trazo
 
-      // Posición dispersa en el espacio exterior (hacia donde se dispersan en scroll)
+    lines.forEach(function (line) {
+      const dx = line.x2 - line.x1;
+      const dy = line.y2 - line.y1;
+      const len = Math.hypot(dx, dy);
+      const steps = Math.max(8, Math.floor(len / starSpacing));
+      const nx = -dy / (len || 1);
+      const ny = dx / (len || 1);
+
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const px = line.x1 + dx * t;
+        const py = line.y1 + dy * t;
+
+        // Estrella principal
+        createConstellationStar(px, py, textScale, true);
+
+        // Polvo estelar y estrellas de soporte para darle volumen y grosor
+        if (Math.random() < 0.75) {
+          const offset = (Math.random() - 0.5) * 7.0;
+          createConstellationStar(px + nx * offset, py + ny * offset, textScale, false);
+        }
+      }
+    });
+
+    arcs.forEach(function (arc) {
+      const arcLen = Math.abs(arc.endAngle - arc.startAngle) * ((arc.rx + arc.ry) / 2);
+      const steps = Math.max(12, Math.floor(arcLen / starSpacing));
+
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const angle = arc.startAngle + (arc.endAngle - arc.startAngle) * t;
+        const px = arc.cx + Math.cos(angle) * arc.rx;
+        const py = arc.cy + Math.sin(angle) * arc.ry;
+
+        createConstellationStar(px, py, textScale, true);
+
+        if (Math.random() < 0.75) {
+          const rJitter = (Math.random() - 0.5) * 7.0;
+          createConstellationStar(
+            arc.cx + Math.cos(angle) * (arc.rx + rJitter),
+            arc.cy + Math.sin(angle) * (arc.ry + rJitter),
+            textScale,
+            false
+          );
+        }
+      }
+    });
+
+    function createConstellationStar(rawX, rawY, scale, isCore) {
+      const tx = rawX * scale;
+      const ty = rawY * scale;
+      const tz = (Math.random() - 0.5) * 30;
+
+      // Posición de dispersión en el espacio exterior
       const scatterAngle = Math.random() * Math.PI * 2;
-      const scatterDist = Math.random() * Math.min(width, height) * 0.9 + 220;
+      const scatterDist = Math.random() * Math.min(width, height) * 0.95 + 240;
       const sx = Math.cos(scatterAngle) * scatterDist;
       const sy = Math.sin(scatterAngle) * scatterDist;
-      const sz = (Math.random() - 0.5) * 450;
+      const sz = (Math.random() - 0.5) * 480;
 
-      const size = pt.isCore
-        ? (Math.random() < 0.25 ? Math.random() * 2.8 + 1.8 : Math.random() * 1.6 + 1.0)
-        : (Math.random() * 1.2 + 0.5);
+      const size = isCore
+        ? (Math.random() < 0.28 ? Math.random() * 2.2 + 2.8 : Math.random() * 1.5 + 1.8)
+        : (Math.random() * 1.4 + 1.0);
 
       constellationStars.push({
         tx, ty, tz,
         sx, sy, sz,
-        x: sx, y: sy, z: sz,
         size,
-        isCore: pt.isCore,
-        baseAlpha: pt.isCore ? (Math.random() * 0.3 + 0.7) : (Math.random() * 0.35 + 0.4),
+        isCore,
+        baseAlpha: isCore ? (Math.random() * 0.25 + 0.75) : (Math.random() * 0.3 + 0.45),
         color: PALETTE[Math.floor(Math.random() * PALETTE.length)],
-        twinkleSpeed: Math.random() * 0.03 + 0.015,
+        twinkleSpeed: Math.random() * 0.035 + 0.015,
         twinklePhase: Math.random() * Math.PI * 2,
         driftPhase: Math.random() * Math.PI * 2,
         driftSpeed: Math.random() * 0.02 + 0.01,
-        driftRadius: Math.random() * 1.8 + 0.4
+        driftRadius: Math.random() * 2.0 + 0.5
       });
     }
 
-    // 3. Brazos espirales del astro galáctico
+    // 3. Brazos espirales cósmicos
     spiralStars.length = 0;
-    const NUM_SPIRAL = 900;
+    const NUM_SPIRAL = 850;
     const ARMS = 2;
     const maxR = Math.min(width, height) * 0.56;
 
@@ -245,8 +254,8 @@ export function initGalaxy() {
         radius: r * maxR,
         baseAngle: angle,
         z: (Math.random() - 0.5) * maxR * 0.22,
-        size: Math.random() * 1.5 + 0.5,
-        alpha: Math.random() * 0.5 + 0.35,
+        size: Math.random() * 1.6 + 0.6,
+        alpha: Math.random() * 0.5 + 0.3,
         color: PALETTE[Math.floor(Math.random() * PALETTE.length)],
         twinkleSpeed: Math.random() * 0.02 + 0.01,
         twinklePhase: Math.random() * Math.PI * 2
@@ -256,11 +265,11 @@ export function initGalaxy() {
     // 4. Estrellas Hero con destellos en cruz (+)
     heroSpikes.length = 0;
     const coreStars = constellationStars.filter(s => s.isCore);
-    const stepHero = Math.max(1, Math.floor(coreStars.length / 20));
+    const stepHero = Math.max(1, Math.floor(coreStars.length / 24));
     for (let i = 0; i < coreStars.length; i += stepHero) {
       heroSpikes.push({
         particle: coreStars[i],
-        spikeLen: Math.random() * 16 + 14,
+        spikeLen: Math.random() * 16 + 16,
         color: { r: 255, g: 255, b: 255 }
       });
     }
@@ -272,7 +281,6 @@ export function initGalaxy() {
   // Escuchar Scroll: TIANCODE se desforma cuando el usuario baja
   window.addEventListener('scroll', function () {
     const sy = window.scrollY || document.documentElement.scrollTop;
-    // Se desforma gradualmente entre 0px y 420px de scroll
     scrollFrac = Math.min(1, Math.max(0, sy / 420));
   }, { passive: true });
 
@@ -297,13 +305,26 @@ export function initGalaxy() {
     });
   }
 
-  // Bucle de renderizado a 60 FPS
+  // Proyección 3D de un punto
+  function projectPoint(lx, ly, lz, cx, cy, cosX, sinX, cosY, sinY) {
+    const px3d = lx * cosY - lz * sinY;
+    const py3d = ly * cosX - (lx * sinY + lz * cosY) * sinX;
+    const pz3d = ly * sinX + (lx * sinY + lz * cosY) * cosX;
+
+    const scale = 1 / (1 + pz3d / 1000);
+    return {
+      x: cx + px3d * scale,
+      y: cy + py3d * scale,
+      scale: scale
+    };
+  }
+
+  // Bucle de renderizado continuo a 60 FPS
   function render(time) {
     // 1. Animación de convergencia inicial al abrir la web
     if (isInitialEntrance) {
       const elapsed = time - entranceStartTime;
       const p = Math.min(1, elapsed / ENTRANCE_DURATION);
-      // Easing cúbico de desaceleración suave
       assembleT = 1 - Math.pow(1 - p, 3);
       if (p >= 1) isInitialEntrance = false;
     } else {
@@ -323,12 +344,13 @@ export function initGalaxy() {
     ctx.clearRect(0, 0, width, height);
 
     const cx = width / 2;
-    // El centro del astro se sitúa en la parte media del hero inicial
+    // El centro del astro se sitúa en la parte media-alta del hero inicial
     const cy = height * 0.44;
+    const maxTargetW = Math.min(width * 0.88, 1150);
+    const textScale = maxTargetW / totalW;
 
+    // 4. Dibujar estrellas del fondo profundo
     ctx.globalCompositeOperation = 'lighter';
-
-    // 4. Dibujar estrellas del fondo profundo (visibles en toda la página)
     for (let i = 0; i < bgStars.length; i++) {
       const s = bgStars[i];
       const twinkle = Math.sin(time * s.twinkleSpeed + s.twinklePhase) * 0.35 + 0.65;
@@ -341,18 +363,18 @@ export function initGalaxy() {
     }
 
     // Parámetros de proyección 3D
-    const cosX = Math.cos(0.32 + currentTiltX);
-    const sinX = Math.sin(0.32 + currentTiltX);
+    const cosX = Math.cos(0.28 + currentTiltX);
+    const sinX = Math.sin(0.28 + currentTiltX);
     const cosY = Math.cos(currentTiltY);
     const sinY = Math.sin(currentTiltY);
 
-    // 5. Nebulosa y resplandor central (se desvanece suavemente al hacer scroll)
+    // 5. Nebulosa y resplandor central
     if (formationFactor > 0.04) {
-      const haloR = Math.min(width, height) * 0.48 * formationFactor;
+      const haloR = Math.min(width, height) * 0.52 * formationFactor;
       const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, haloR);
-      glow.addColorStop(0, 'rgba(255, 255, 255, ' + (0.24 * formationFactor).toFixed(2) + ')');
-      glow.addColorStop(0.22, 'rgba(200, 235, 255, ' + (0.14 * formationFactor).toFixed(2) + ')');
-      glow.addColorStop(0.55, 'rgba(56, 189, 248, ' + (0.05 * formationFactor).toFixed(2) + ')');
+      glow.addColorStop(0, 'rgba(255, 255, 255, ' + (0.28 * formationFactor).toFixed(2) + ')');
+      glow.addColorStop(0.2, 'rgba(165, 243, 252, ' + (0.16 * formationFactor).toFixed(2) + ')');
+      glow.addColorStop(0.5, 'rgba(56, 189, 248, ' + (0.06 * formationFactor).toFixed(2) + ')');
       glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
       ctx.fillStyle = glow;
@@ -370,27 +392,93 @@ export function initGalaxy() {
       const ly = Math.sin(curAngle) * sp.radius;
       const lz = sp.z;
 
-      const px3d = lx * cosY - lz * sinY;
-      const py3d = ly * cosX - (lx * sinY + lz * cosY) * sinX;
-      const pz3d = ly * sinX + (lx * sinY + lz * cosY) * cosX;
-
-      const scale = 1 / (1 + pz3d / 1200);
-      const px = cx + px3d * scale;
-      const py = cy + py3d * scale;
-
+      const pt = projectPoint(lx, ly, lz, cx, cy, cosX, sinX, cosY, sinY);
       const twinkle = Math.sin(time * sp.twinkleSpeed + sp.twinklePhase) * 0.3 + 0.7;
-      const alpha = sp.alpha * twinkle * Math.max(0.2, scale);
+      const alpha = sp.alpha * twinkle * Math.max(0.2, pt.scale);
 
-      if (px >= 0 && px <= width && py >= 0 && py <= height) {
+      if (pt.x >= 0 && pt.x <= width && pt.y >= 0 && pt.y <= height) {
         ctx.fillStyle = "rgba(" + sp.color.r + "," + sp.color.g + "," + sp.color.b + "," + alpha.toFixed(2) + ")";
         ctx.beginPath();
-        ctx.arc(px, py, sp.size * scale, 0, Math.PI * 2);
+        ctx.arc(pt.x, pt.y, sp.size * pt.scale, 0, Math.PI * 2);
         ctx.fill();
       }
     }
 
-    // 7. Partículas de la constelación TIANCODE
-    // Convergen en TIANCODE cuando formationFactor = 1; se dispersan al espacio cuando formationFactor = 0
+    // 7. TRAZOS VECTORIALES LUMINOSOS DE TIANCODE (Ribbons celestiales radiantes)
+    // Se dibujan con brillo cuando la palabra está formada para darle total legibilidad e impacto
+    if (formationFactor > 0.05) {
+      const ribbonAlpha = Math.pow(formationFactor, 2);
+
+      function drawProjectedLine(lx1, ly1, lx2, ly2) {
+        const p1 = projectPoint(lx1 * textScale, ly1 * textScale, 0, cx, cy, cosX, sinX, cosY, sinY);
+        const p2 = projectPoint(lx2 * textScale, ly2 * textScale, 0, cx, cy, cosX, sinX, cosY, sinY);
+
+        // Capa 1: Halo exterior cian/azul
+        ctx.strokeStyle = 'rgba(56, 189, 248, ' + (0.28 * ribbonAlpha).toFixed(2) + ')';
+        ctx.lineWidth = 14 * p1.scale;
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+
+        // Capa 2: Resplandor medio
+        ctx.strokeStyle = 'rgba(186, 230, 253, ' + (0.5 * ribbonAlpha).toFixed(2) + ')';
+        ctx.lineWidth = 6 * p1.scale;
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+
+        // Capa 3: Núcleo blanco diamante
+        ctx.strokeStyle = 'rgba(255, 255, 255, ' + (0.85 * ribbonAlpha).toFixed(2) + ')';
+        ctx.lineWidth = 2 * p1.scale;
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+      }
+
+      function drawProjectedArc(acx, acy, arx, ary, sa, ea) {
+        const steps = 28;
+        const pts = [];
+        for (let i = 0; i <= steps; i++) {
+          const t = i / steps;
+          const a = sa + (ea - sa) * t;
+          const lx = (acx + Math.cos(a) * arx) * textScale;
+          const ly = (acy + Math.sin(a) * ary) * textScale;
+          pts.push(projectPoint(lx, ly, 0, cx, cy, cosX, sinX, cosY, sinY));
+        }
+
+        // Capa 1: Halo exterior
+        ctx.strokeStyle = 'rgba(56, 189, 248, ' + (0.28 * ribbonAlpha).toFixed(2) + ')';
+        ctx.lineWidth = 14 * pts[0].scale;
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.stroke();
+
+        // Capa 2: Resplandor medio
+        ctx.strokeStyle = 'rgba(186, 230, 253, ' + (0.5 * ribbonAlpha).toFixed(2) + ')';
+        ctx.lineWidth = 6 * pts[0].scale;
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.stroke();
+
+        // Capa 3: Núcleo blanco diamante
+        ctx.strokeStyle = 'rgba(255, 255, 255, ' + (0.85 * ribbonAlpha).toFixed(2) + ')';
+        ctx.lineWidth = 2 * pts[0].scale;
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.stroke();
+      }
+
+      lines.forEach(l => drawProjectedLine(l.x1, l.y1, l.x2, l.y2));
+      arcs.forEach(a => drawProjectedArc(a.cx, a.cy, a.rx, a.ry, a.startAngle, a.endAngle));
+    }
+
+    // 8. Partículas de la constelación TIANCODE
     for (let i = 0; i < constellationStars.length; i++) {
       const p = constellationStars[i];
 
@@ -403,26 +491,26 @@ export function initGalaxy() {
       const ly = (p.sy + (p.ty - p.sy) * formationFactor) + (driftY * formationFactor);
       const lz = p.sz + (p.tz - p.sz) * formationFactor;
 
-      const px3d = lx * cosY - lz * sinY;
-      const py3d = ly * cosX - (lx * sinY + lz * cosY) * sinX;
-      const pz3d = ly * sinX + (lx * sinY + lz * cosY) * cosX;
-
-      const scale = 1 / (1 + pz3d / 1000);
-      const px = cx + px3d * scale;
-      const py = cy + py3d * scale;
-
+      const pt = projectPoint(lx, ly, lz, cx, cy, cosX, sinX, cosY, sinY);
       const twinkle = Math.sin(time * p.twinkleSpeed + p.twinklePhase) * 0.28 + 0.72;
       const alpha = p.baseAlpha * twinkle;
 
-      if (px >= 0 && px <= width && py >= 0 && py <= height) {
-        ctx.fillStyle = "rgba(" + p.color.r + "," + p.color.g + "," + p.color.b + "," + Math.min(1, alpha).toFixed(2) + ")";
+      if (pt.x >= 0 && pt.x <= width && pt.y >= 0 && pt.y <= height) {
+        // Halo suave exterior
+        ctx.fillStyle = "rgba(" + p.color.r + "," + p.color.g + "," + p.color.b + "," + (alpha * 0.45).toFixed(2) + ")";
         ctx.beginPath();
-        ctx.arc(px, py, Math.max(0.4, p.size * scale), 0, Math.PI * 2);
+        ctx.arc(pt.x, pt.y, Math.max(1.0, (p.size + 1.8) * pt.scale), 0, Math.PI * 2);
+        ctx.fill();
+
+        // Núcleo brillante
+        ctx.fillStyle = "rgba(255, 255, 255, " + Math.min(1, alpha * 1.2).toFixed(2) + ")";
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, Math.max(0.6, p.size * pt.scale), 0, Math.PI * 2);
         ctx.fill();
       }
     }
 
-    // 8. Destellos en cruz (+) en los vértices de TIANCODE (visibles cuando la palabra está formada)
+    // 9. Destellos de difracción en cruz (+) en los vértices principales
     if (formationFactor > 0.35) {
       for (let i = 0; i < heroSpikes.length; i++) {
         const h = heroSpikes[i];
@@ -432,35 +520,28 @@ export function initGalaxy() {
         const ly = p.sy + (p.ty - p.sy) * formationFactor;
         const lz = p.sz + (p.tz - p.sz) * formationFactor;
 
-        const px3d = lx * cosY - lz * sinY;
-        const py3d = ly * cosX - (lx * sinY + lz * cosY) * sinX;
-        const pz3d = ly * sinX + (lx * sinY + lz * cosY) * cosX;
-
-        const scale = 1 / (1 + pz3d / 1000);
-        const px = cx + px3d * scale;
-        const py = cy + py3d * scale;
-
+        const pt = projectPoint(lx, ly, lz, cx, cy, cosX, sinX, cosY, sinY);
         const twinkle = Math.sin(time * 0.018 + i * 1.5) * 0.35 + 0.75;
-        const spikeLen = h.spikeLen * scale * twinkle * formationFactor;
-        const alpha = (0.85 * twinkle * formationFactor).toFixed(2);
+        const spikeLen = h.spikeLen * pt.scale * twinkle * formationFactor;
+        const alpha = (0.95 * twinkle * formationFactor).toFixed(2);
 
-        if (px >= 10 && px <= width - 10 && py >= 10 && py <= height - 10) {
+        if (pt.x >= 15 && pt.x <= width - 15 && pt.y >= 15 && pt.y <= height - 15) {
           ctx.fillStyle = "rgba(255, 255, 255, " + alpha + ")";
           ctx.beginPath();
-          ctx.arc(px, py, p.size * scale * 1.3, 0, Math.PI * 2);
+          ctx.arc(pt.x, pt.y, (p.size + 1.0) * pt.scale, 0, Math.PI * 2);
           ctx.fill();
 
-          ctx.strokeStyle = "rgba(255, 255, 255, " + (alpha * 0.75).toFixed(2) + ")";
-          ctx.lineWidth = 1;
+          ctx.strokeStyle = "rgba(255, 255, 255, " + (alpha * 0.85).toFixed(2) + ")";
+          ctx.lineWidth = 1.2;
 
           ctx.beginPath();
-          ctx.moveTo(px - spikeLen, py);
-          ctx.lineTo(px + spikeLen, py);
+          ctx.moveTo(pt.x - spikeLen, pt.y);
+          ctx.lineTo(pt.x + spikeLen, pt.y);
           ctx.stroke();
 
           ctx.beginPath();
-          ctx.moveTo(px, py - spikeLen);
-          ctx.lineTo(px, py + spikeLen);
+          ctx.moveTo(pt.x, pt.y - spikeLen);
+          ctx.lineTo(pt.x, pt.y + spikeLen);
           ctx.stroke();
         }
       }

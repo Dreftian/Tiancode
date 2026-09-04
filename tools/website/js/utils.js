@@ -3,7 +3,7 @@
    Helpers compartidos por los módulos (sin dependencias).
    ============================================================ */
 
-export const LS_KEYS = { lang: 'tiancode-lang', theme: 'tiancode-theme' };
+export const LS_KEYS = { lang: 'tiancode-lang-v104', theme: 'tiancode-theme' };
 
 export const reducedMotion =
   typeof window !== 'undefined' && window.matchMedia
