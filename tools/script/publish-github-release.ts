@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process"
-import { readFileSync, statSync } from "node:fs"
+import { existsSync, readFileSync, statSync } from "node:fs"
 import path from "node:path"
 
 async function getGitHubToken(): Promise<string> {
@@ -125,11 +125,17 @@ async function main() {
 
   const uploadUrlBase = releaseData.upload_url.replace(/\{(\?.*)?\}$/, "")
 
+  const resolveFilePath = (name: string) => {
+    const distPath = path.resolve("frontend/desktop/dist", name)
+    const installPath = path.resolve("install", name)
+    return existsSync(distPath) ? distPath : installPath
+  }
+
   const filesToUpload = [
-    { name: "Tiancode.exe", path: "install/Tiancode.exe", contentType: "application/vnd.microsoft.portable-executable" },
-    { name: "Tiancode-portable.exe", path: "install/Tiancode-portable.exe", contentType: "application/vnd.microsoft.portable-executable" },
-    { name: "latest.yml", path: "install/latest.yml", contentType: "text/yaml" },
-    { name: "Tiancode.exe.blockmap", path: "install/Tiancode.exe.blockmap", contentType: "application/octet-stream" },
+    { name: "Tiancode.exe", path: resolveFilePath("Tiancode.exe"), contentType: "application/vnd.microsoft.portable-executable" },
+    { name: "Tiancode-portable.exe", path: resolveFilePath("Tiancode-portable.exe"), contentType: "application/vnd.microsoft.portable-executable" },
+    { name: "latest.yml", path: resolveFilePath("latest.yml"), contentType: "text/yaml" },
+    { name: "Tiancode.exe.blockmap", path: resolveFilePath("Tiancode.exe.blockmap"), contentType: "application/octet-stream" },
   ]
 
   for (const file of filesToUpload) {
