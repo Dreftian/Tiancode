@@ -29,13 +29,14 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.6"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} - Cero Parpadeo en Configuración, Animación 3D Cósmica Vercel & Voces Fish Audio Ultra-fluidas`
-  const body = `## 🚀 Tiancode v${version} — Cero Parpadeo en Configuración, Animación 3D Cósmica Vercel & Voces Fish Audio Ultra-fluidas
+  const releaseName = `Tiancode v${version} - Corrección Definitiva del Parpadeo en Modelos Locales y Caché Silencioso GPU Windows`
+  const body = `## 🚀 Tiancode v${version} — Corrección Definitiva del Parpadeo en Modelos Locales y Caché Silencioso GPU Windows
 
-### ⚡ Eliminación Definitiva del Parpadeo de Fondo al Abrir Configuración
-- **Aislamiento de Capas GPU en Diálogo:** Se integró \`isolation: isolate\`, \`contain: layout paint\` y aceleración por hardware (\`transform: translateZ(0)\`) en la ventana modal de configuración, impidiendo la invalidación del compositor de Chromium y eliminando cualquier repintado en el chat.
-- **Lazy Mounting Inteligente con Persistencia (Estilo OpenCode):** Las pestañas ahora se montan bajo demanda en el primer clic y se mantienen en caché con \`forceMount\`, garantizando cambios instantáneos a 0ms sin sobrecargar el DOM.
-- **AudioWaveform en Pausa Inactiva:** Se detuvo el bucle \`requestAnimationFrame\` innecesario cuando el componente está inactivo y se eliminaron las señales de estado a 60 FPS que reactivaban el virtualizador de mensajes.
+### ⚡ Eliminación Total del Parpadeo en Chat (Desde Modelos Locales y Pestañas Siguientes)
+- **Eliminación del Bucle Reactivo Infinito en Modelos Locales (\`models-hub.tsx\`):** Se identificó y resolvió el ciclo reactivo descontrolado donde \`createEffect\` leía \`jobs()\` y a su vez ejecutaba \`setJobs()\`, produciendo decenas de peticiones por segundo que invalidaban el virtualizador del chat de fondo.
+- **Pausa Inteligente de Sondeo en Pestañas Ocultas (\`active\` prop):** Las pestañas de Modelos Locales, MCP & Plugins y Uso de la PC ahora solo ejecutan temporizadores de consulta cuando están activas en primer plano, liberando al 100% el hilo principal de renderizado cuando están en segundo plano.
+- **Ejecución Silenciosa de Procesos en Windows (\`windowsHide: true\`):** Se blindaron todas las llamadas a \`powershell\` y \`taskkill\` en el backend con \`windowsHide: true\` y \`-WindowStyle Hidden\`, impidiendo que el Gestor de Ventanas de Windows (DWM) invalide la superficie gráfica y produzca desgarros ("se raya").
+- **Caché Permanente de Detección de Hardware:** La inspección de GPU y memoria VRAM se almacena permanentemente en memoria durante la ejecución de la aplicación, eliminando ejecuciones redundantes de scripts del sistema.
 
 ### 🌌 Animación 3D Cósmica Oficial de Carga (Port de tiancode.vercel.app)
 - **Motor de Constelaciones 3D Completo:** Port directo del motor cósmico de la web oficial a Canvas 2D interactivo con proyección en perspectiva 3D (\`fov: 520\`).

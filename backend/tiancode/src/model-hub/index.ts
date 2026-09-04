@@ -21,7 +21,7 @@ const execFileAsync = promisify(execFile)
 let cachedGpu: string | undefined
 let cachedGpuChecked = false
 let cachedVram: VramInfo | undefined
-let cachedVramCheckedAt = 0
+let cachedVramChecked = false
 
 // Detect the primary GPU. Windows exposes it via WMI (works for NVIDIA/AMD/
 // Intel); non-Windows falls back to lspci when available. Failures return
@@ -35,10 +35,13 @@ const detectGpu = Effect.fn("ModelHub.gpu")(function* () {
         "powershell",
         [
           "-NoProfile",
+          "-NonInteractive",
+          "-WindowStyle",
+          "Hidden",
           "-Command",
           "(Get-CimInstance Win32_VideoController | Where-Object { $_.Name } | Select-Object -First 1).Name",
         ],
-        { timeout: 3000 },
+        { timeout: 3000, windowsHide: true },
       ),
     ).pipe(Effect.catch(() => Effect.succeed(undefined)))
     const name = result?.stdout?.trim()
@@ -47,7 +50,7 @@ const detectGpu = Effect.fn("ModelHub.gpu")(function* () {
       return name
     }
   }
-  const lspci = yield* Effect.tryPromise(() => execFileAsync("lspci", [], { timeout: 3000 })).pipe(
+  const lspci = yield* Effect.tryPromise(() => execFileAsync("lspci", [], { timeout: 3000, windowsHide: true })).pipe(
     Effect.catch(() => Effect.succeed(undefined)),
   )
   const vga = lspci?.stdout?.split("\n").find((line) => /vga|3d|display/i.test(line))
@@ -76,11 +79,9 @@ const NVIDIA_SMI_PATHS = [
 ]
 
 const detectVram = Effect.fn("ModelHub.vram")(function* () {
-  const now = Date.now()
-  if (cachedVram !== undefined && now - cachedVramCheckedAt < 60_000) {
-    return cachedVram
-  }
-  cachedVramCheckedAt = now
+  if (cachedVram !== undefined) return cachedVram
+  if (cachedVramChecked) return cachedVram
+  cachedVramChecked = true
 
   // nvidia-smi is authoritative for NVIDIA: reports real total/free in MiB
   for (const binary of NVIDIA_SMI_PATHS) {
@@ -88,7 +89,7 @@ const detectVram = Effect.fn("ModelHub.vram")(function* () {
       execFileAsync(
         binary,
         ["--query-gpu=memory.total,memory.free,memory.used", "--format=csv,noheader,nounits"],
-        { timeout: 2000 },
+        { timeout: 2000, windowsHide: true },
       ),
     ).pipe(Effect.catch(() => Effect.succeed(undefined)))
     let best: VramInfo | undefined
@@ -111,10 +112,13 @@ const detectVram = Effect.fn("ModelHub.vram")(function* () {
       "powershell",
       [
         "-NoProfile",
+        "-NonInteractive",
+        "-WindowStyle",
+        "Hidden",
         "-Command",
         "(Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty AdapterRAM | Measure-Object -Maximum).Maximum",
       ],
-      { timeout: 3000 },
+      { timeout: 3000, windowsHide: true },
     ),
   ).pipe(Effect.catch(() => Effect.succeed(undefined)))
 
@@ -580,16 +584,11 @@ const layer = Layer.effect(
     }
 
     // Combined RAM + VRAM probe shared by the files list and system info.
-    // La detección de GPU lanza nvidia-smi / PowerShell; se cachea 30s para
-    // que el panel de ajustes no la re-ejecute en cada poll.
     let memoryCache: { ram: number; vram: VramInfo | undefined } | undefined
-    let memoryCachedAt = 0
     const memory = Effect.fn("ModelHub.memory")(function* () {
-      const now = Date.now()
-      if (memoryCache && now - memoryCachedAt < 30_000) return memoryCache
+      if (memoryCache) return memoryCache
       const vram = yield* detectVram()
       memoryCache = { ram: os.totalmem(), vram }
-      memoryCachedAt = now
       return memoryCache
     })
 
@@ -696,16 +695,13 @@ const layer = Layer.effect(
       return { ram, diskFree: diskFree ?? 0, cpu, gpu, vram, modelsDir }
     })
 
-    // GPU name detection spawns WMI/PowerShell (~1s); cache it alongside the
-    // memory probe so the settings panel does not re-run it on every poll.
+    // GPU name detection spawns WMI/PowerShell (~1s); cache it permanently
+    // so the settings panel never re-runs it.
     let gpuCache: string | undefined
-    let gpuCachedAt = 0
     const cachedGpu = Effect.fn("ModelHub.gpu.cached")(function* () {
-      const now = Date.now()
-      if (gpuCache !== undefined && now - gpuCachedAt < 30_000) return gpuCache
+      if (gpuCache !== undefined) return gpuCache
       const gpu = yield* detectGpu()
       gpuCache = gpu
-      gpuCachedAt = now
       return gpuCache
     })
 
@@ -981,8 +977,8 @@ const layer = Layer.effect(
       // Direct disk cleanup fallback for any loose files or folders matching id / decodedId
       yield* Effect.tryPromise(async () => {
         if (process.platform === "win32") {
-          await execFileAsync("taskkill", ["/F", "/IM", "llama-server.exe", "/T"]).catch(() => {})
-          await execFileAsync("taskkill", ["/F", "/IM", "llama.exe", "/T"]).catch(() => {})
+          await execFileAsync("taskkill", ["/F", "/IM", "llama-server.exe", "/T"], { windowsHide: true }).catch(() => {})
+          await execFileAsync("taskkill", ["/F", "/IM", "llama.exe", "/T"], { windowsHide: true }).catch(() => {})
         }
 
         const candidateDirs = [
@@ -1018,11 +1014,18 @@ const layer = Layer.effect(
             ) {
               await rm(fullPath, { recursive: true, force: true }).catch(async () => {
                 if (process.platform === "win32") {
-                  await execFileAsync("powershell", [
-                    "-NoProfile",
-                    "-Command",
-                    `Remove-Item -LiteralPath '${fullPath}' -Force -Recurse -ErrorAction SilentlyContinue`,
-                  ]).catch(() => {})
+                  await execFileAsync(
+                    "powershell",
+                    [
+                      "-NoProfile",
+                      "-NonInteractive",
+                      "-WindowStyle",
+                      "Hidden",
+                      "-Command",
+                      `Remove-Item -LiteralPath '${fullPath}' -Force -Recurse -ErrorAction SilentlyContinue`,
+                    ],
+                    { windowsHide: true },
+                  ).catch(() => {})
                 }
               })
             } else if (entry.isDirectory()) {

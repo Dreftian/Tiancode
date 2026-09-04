@@ -8,6 +8,7 @@ import { Icon } from "@tiancode-ai/ui/icon"
 import type { McpLocalConfig, McpRemoteConfig, McpStatus } from "@tiancode-ai/sdk/v2/client"
 import {
   type Component,
+  createEffect,
   createResource,
   For,
   Show,
@@ -437,6 +438,7 @@ const CATALOG_ITEMS = [
 
 export const SettingsMcpPluginsV2: Component<{
   directory?: string
+  active?: boolean
 }> = (props) => {
   const language = useLanguage()
   const serverSdk = useServerSDK()
@@ -479,8 +481,10 @@ export const SettingsMcpPluginsV2: Component<{
     { initialValue: {} as Record<string, McpStatus> },
   )
 
-  onMount(() => {
-    const timer = setInterval(() => void refetchStatus(), 8000)
+  createEffect(() => {
+    const isActive = props.active ?? true
+    if (!isActive) return
+    const timer = setInterval(() => void refetchStatus(), 10000)
     onCleanup(() => clearInterval(timer))
   })
 

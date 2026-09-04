@@ -355,6 +355,7 @@ const STAFF_PICKS: Model[] = [
 
 export const SettingsModelsHubV2: Component<{
   directory?: string
+  active?: boolean
 }> = (props) => {
   const language = useLanguage()
   const serverSdk = useServerSDK()
@@ -445,6 +446,9 @@ export const SettingsModelsHubV2: Component<{
     const completed = jobList.filter((j) => j.status === "completed")
     const newCompleted = completed.filter((j) => !syncedJobSet.has(j.id))
     if (!newCompleted.length) return
+    for (const j of newCompleted) {
+      syncedJobSet.add(j.id)
+    }
     try {
       const configRes = await serverSdk().client.config.get(params()).catch(() => undefined)
       const existingProviders = ((configRes?.data as any)?.provider ?? {}) as Record<string, any>
@@ -461,7 +465,6 @@ export const SettingsModelsHubV2: Component<{
           existingModels[cleanName] = { name: cleanName }
           changed = true
         }
-        syncedJobSet.add(j.id)
       }
       if (changed) {
         const updatedProviders = {
@@ -490,22 +493,32 @@ export const SettingsModelsHubV2: Component<{
     }
   }
 
+  let isRefreshing = false
   const refreshJobs = async () => {
+    if (isRefreshing) return
+    isRefreshing = true
     try {
       const res = await serverSdk().client.modelhub.downloads(params())
       const list = res.data ?? []
       setJobs(list)
       void syncCompletedModels(list)
-      void refetchEngine()
     } catch {
       // ignore transient polling error
+    } finally {
+      isRefreshing = false
     }
   }
 
+  // Controlled polling: runs ONLY when this tab is active (props.active === true)
+  // and does NOT track jobs() to avoid reactive runaway loops.
   createEffect(() => {
+    const isActive = props.active ?? true
+    if (!isActive) return
+
     void refreshJobs()
-    const intervalTime = jobs().some((j) => j.status === "downloading") ? 1500 : 4000
-    const timer = setInterval(() => void refreshJobs(), intervalTime)
+    const timer = setInterval(() => {
+      void refreshJobs()
+    }, 4000)
     onCleanup(() => clearInterval(timer))
   })
 

@@ -201,7 +201,7 @@ export const DialogSettings: Component<{
 
         <TabsV2.Content forceMount value="computer-use" class="settings-v2-panel" classList={{ "!hidden": tab() !== "computer-use" }}>
           <Show when={visited().has("computer-use")}>
-            <SettingsComputerUseV2 directory={directory()} />
+            <SettingsComputerUseV2 directory={directory()} active={tab() === "computer-use"} />
           </Show>
         </TabsV2.Content>
 
@@ -231,7 +231,7 @@ export const DialogSettings: Component<{
 
         <TabsV2.Content forceMount value="models-hub" class="settings-v2-panel" classList={{ "!hidden": tab() !== "models-hub" }}>
           <Show when={visited().has("models-hub")}>
-            <SettingsModelsHubV2 directory={directory()} />
+            <SettingsModelsHubV2 directory={directory()} active={tab() === "models-hub"} />
           </Show>
         </TabsV2.Content>
 
@@ -261,7 +261,7 @@ export const DialogSettings: Component<{
 
         <TabsV2.Content forceMount value="mcp-plugins" class="settings-v2-panel" classList={{ "!hidden": tab() !== "mcp-plugins" }}>
           <Show when={visited().has("mcp-plugins")}>
-            <SettingsMcpPluginsV2 directory={directory()} />
+            <SettingsMcpPluginsV2 directory={directory()} active={tab() === "mcp-plugins"} />
           </Show>
         </TabsV2.Content>
 

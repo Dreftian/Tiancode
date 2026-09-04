@@ -1,4 +1,4 @@
-import { For, Show, createMemo, createResource, createSignal, onCleanup, onMount, type Component } from "solid-js"
+import { For, Show, createEffect, createMemo, createResource, createSignal, onCleanup, onMount, type Component } from "solid-js"
 import { createStore } from "solid-js/store"
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
 import { SegmentedControlItemV2, SegmentedControlV2 } from "@tiancode-ai/ui/v2/segmented-control-v2"
@@ -23,6 +23,7 @@ const isLocalServer = (config: McpConfigValue): config is McpLocalConfig =>
 
 export const SettingsComputerUseV2: Component<{
   directory?: string
+  active?: boolean
 }> = (props) => {
   const language = useLanguage()
   const platform = usePlatform()
@@ -77,7 +78,9 @@ export const SettingsComputerUseV2: Component<{
     { initialValue: {} as Record<string, any> },
   )
 
-  onMount(() => {
+  createEffect(() => {
+    const isActive = props.active ?? true
+    if (!isActive) return
     const interval = setInterval(() => void refetchStatus(), 10_000)
     onCleanup(() => clearInterval(interval))
   })
