@@ -80,9 +80,10 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
 
   return (
     <div
-      class="relative w-full max-w-[640px] max-h-[92vh] bg-[#0b101e]/95 backdrop-blur-3xl border border-cyan-400/35 rounded-3xl p-7 flex flex-col justify-between text-white select-none overflow-hidden font-sans shadow-[0_32px_96px_rgba(0,0,0,0.9),0_0_60px_rgba(56,189,248,0.25)]"
+      class="relative w-full max-w-[540px] bg-[#0e0e12]/95 backdrop-blur-3xl border border-white/[0.09] rounded-2xl p-6 flex flex-col justify-between text-white select-none overflow-hidden font-sans shadow-[0_24px_64px_rgba(0,0,0,0.85),0_0_40px_rgba(56,189,248,0.15)]"
       style={{
         "font-family": "Segoe UI Variable, Segoe UI, -apple-system, BlinkMacSystemFont, Roboto, sans-serif",
+        "overflow": "hidden !important",
       }}
     >
       {/* Astra Cosmic subtle glowing highlights */}
@@ -329,22 +330,22 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
             {isEs() ? "Condiciones de uso y seguridad" : "Terms of use and security"}
           </span>
 
-          <div class="p-3.5 rounded-xl border border-white/[0.08] bg-white/[0.03] text-[12px] leading-relaxed text-neutral-300 flex flex-col gap-2 max-h-[170px] overflow-y-auto">
+          <div class="p-3 rounded-xl border border-white/[0.08] bg-white/[0.03] text-[11.5px] leading-relaxed text-neutral-300 flex flex-col gap-1.5">
             <div class="flex items-center gap-1.5 font-semibold text-white">
               <span>🛡️</span>
               <span>{isEs() ? "Compromiso de Privacidad y Ejecución Local:" : "Local Privacy & Execution Commitment:"}</span>
             </div>
-            <p>
+            <p class="m-0">
               {isEs()
                 ? "1. Tiancode ejecuta código y herramientas localmente en tu sistema bajo tu supervisión directa."
                 : "1. Tiancode executes code and tools locally on your system under your supervision."}
             </p>
-            <p>
+            <p class="m-0">
               {isEs()
                 ? "2. Las respuestas generadas son sugerencias asistivas. Verifica el código antes de usarlo en producción."
                 : "2. AI responses are suggestions. Review code carefully before production use."}
             </p>
-            <p>
+            <p class="m-0">
               {isEs()
                 ? "3. Tus claves API y datos se almacenan de forma privada y cifrada en tu equipo local."
                 : "3. Your API keys and data remain encrypted locally on your machine."}

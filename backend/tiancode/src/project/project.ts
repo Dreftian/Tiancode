@@ -10,7 +10,7 @@ import { GlobalBus } from "@/bus/global"
 import { which } from "@tiancode-ai/core/util/which"
 import { Command } from "@/command"
 import { InstanceState } from "@/effect/instance-state"
-import { Effect, Layer, Scope, Context, Stream, Types, Schema } from "effect"
+import { Effect, Layer, Scope, Context, Stream, Types, Schema, Schedule } from "effect"
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 import { FSUtil } from "@tiancode-ai/core/fs-util"
 import { AppProcess } from "@tiancode-ai/core/process"
@@ -286,7 +286,13 @@ const layer = Layer.effect(
           },
         })
         .run()
-        .pipe(Effect.orDie)
+        .pipe(
+          Effect.retry(Schedule.recurs(3)),
+          Effect.catch((error: unknown) =>
+            Effect.logWarning("Failed to persist project in database", { error }).pipe(Effect.asVoid),
+          ),
+          Effect.orDie,
+        )
 
       if (projectID !== ProjectV2.ID.global) {
         yield* db
@@ -294,7 +300,13 @@ const layer = Layer.effect(
           .set({ project_id: projectID })
           .where(and(eq(SessionTable.project_id, ProjectV2.ID.global), eq(SessionTable.directory, data.directory)))
           .run()
-          .pipe(Effect.orDie)
+          .pipe(
+            Effect.retry(Schedule.recurs(3)),
+            Effect.catch((error: unknown) =>
+              Effect.logWarning("Failed to update sessions for project in database", { error }).pipe(Effect.asVoid),
+            ),
+            Effect.orDie,
+          )
       }
 
       yield* saveProjectDirectory({

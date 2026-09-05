@@ -569,14 +569,14 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
 
       {/* Standalone First Launch Setup Screen (shown FIRST before anything else on fresh install) */}
       <Show when={firstLaunchActive()}>
-        <div class="fixed inset-0 z-[99998] w-full h-full bg-[#060913] flex items-center justify-center p-6 select-none overflow-y-auto">
-          {/* Astra Cosmic Starfield & Celestial Atmosphere */}
-          <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-cyan-950/40 via-[#060913] to-[#04060a] pointer-events-none" />
-          <div class="absolute -top-[15%] -left-[10%] w-[80vw] h-[80vw] max-w-[800px] max-h-[800px] rounded-full bg-gradient-to-br from-cyan-500/20 via-sky-600/10 to-transparent blur-[120px] pointer-events-none" />
-          <div class="absolute -bottom-[15%] -right-[10%] w-[80vw] h-[80vw] max-w-[800px] max-h-[800px] rounded-full bg-gradient-to-tl from-indigo-600/20 via-purple-600/10 to-transparent blur-[140px] pointer-events-none" />
-          <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[600px] bg-cyan-400/5 blur-[160px] pointer-events-none" />
-          {/* Fine orbital celestial ring */}
-          <div class="absolute w-[720px] h-[720px] rounded-full border border-cyan-500/15 pointer-events-none opacity-40 animate-spin" style={{ "animation-duration": "120s" }} />
+        <div
+          class="fixed inset-0 z-[99998] w-full h-full bg-[#08080a] flex items-center justify-center p-4 select-none"
+          style={{ "overflow": "hidden !important" }}
+        >
+          {/* Subtle website orbs */}
+          <div class="absolute inset-0 bg-[#08080a] pointer-events-none" />
+          <div class="absolute -top-[10%] -left-[10%] w-[520px] h-[520px] rounded-full bg-blue-600/10 blur-[130px] pointer-events-none" />
+          <div class="absolute -bottom-[10%] -right-[10%] w-[520px] h-[520px] rounded-full bg-cyan-500/08 blur-[130px] pointer-events-none" />
           <DialogWelcomeSetup onDone={handleDoneSetup} />
         </div>
       </Show>

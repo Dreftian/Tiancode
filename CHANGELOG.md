@@ -4,6 +4,27 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.14] — 2026-09-04
+### Nuevo y Mejorado
+
+- **Instalador con Tema Dark Acrylic / Glass y Cierre Seguro**:
+  - Ventana de instalación NSIS personalizada con tema Windows 11 Dark / Acrylic / Mica Glass vía API nativa DWM (`DwmSetWindowAttribute`).
+  - Cierre automático previo de procesos huérfanos (`taskkill /F /IM Tiancode.exe /T` y `tiancode-cli.exe`) en la inicialización del instalador para prevenir bloqueos de archivos en disco durante la actualización.
+- **Corrección de Error 500 al Actualizar (`attempt to write a readonly database`)**:
+  - Manejo resiliente en `Project.fromDirectory` con política de reintentos (`Schedule.recurs(3)`) y captura no fatal, evitando que una transición transitoria de bloqueo en SQLite WAL fracture la carga del proyecto.
+- **Modelos Locales — Explorador Hugging Face GGUF Rediseñado**:
+  - Telemetría de hardware (GPU, VRAM libre, RAM del sistema y estados de motor nativo/runtimes) en barra superior compacta y limpia.
+  - Buscador prominente de ancho completo con sugerencias rápidas ("DeepSeek-R1", "Qwen 2.5 Coder", "Llama 3.2", "Gemma 2", "Phi-4", "Nemotron").
+  - Estado inicial Hero elegante y explicativo: sin saturar la pantalla volcando todos los modelos; muestra las tarjetas técnicas detalladas únicamente al buscar o explorar.
+- **Sub-Agentes — Corrección de Espaciado del Switch**:
+  - Ampliado el ancho de la columna de Estado a `minmax(150px, 1.5fr)` con `gap: 12px` y `padding: 0 4px`, eliminando por completo la colisión entre el switch de activación y el chip de estado.
+- **MCP y Plugins — Listas Detalladas en Columnas y Colores de Tema**:
+  - Transformación de las pestañas de MCP Instalados, Plugins Instalados y Built-in Integrados en listas de columnas con paginación de 10x10 (`SettingsPagerV2`).
+  - Uso de variables del tema activo (`var(--interactive-accent)`) en badges, chips y botones activos.
+- **Asistente de Bienvenida — Perfeccionamiento Visual Sin Scroll**:
+  - Eliminación absoluta de barras de scroll horizontales y verticales (`overflow: hidden !important`).
+  - Tarjeta editorial flotante `rgba(14, 14, 18, 0.92)` con borde hairline `rgba(255, 255, 255, 0.09)` y fondo `#08080a` idéntico a la web oficial con halos sutiles.
+
 ## [1.0.13] — 2026-09-04
 ### Nuevo
 

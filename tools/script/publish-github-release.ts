@@ -27,46 +27,38 @@ async function main() {
   const owner = "Dreftian"
   const repo = "Tiancode"
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
-  const version = desktopPkg.version || "1.0.13"
+  const version = desktopPkg.version || "1.0.14"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — Hub de Modelos Locales, Vistas en Lista 10x10, GitHub Avanzado y Dictado Nativo`
-  const body = `## 🚀 Tiancode v${version} — Hub de Modelos Locales, Vistas en Lista 10x10, GitHub Avanzado y Dictado Nativo
+  const releaseName = `Tiancode v${version} — Instalador Glass, Explorador Hugging Face GGUF y Listas 10x10`
+  const body = `## 🚀 Tiancode v${version} — Instalador Glass, Explorador Hugging Face GGUF y Listas 10x10
 
-### 🖥️ Hub de Modelos Locales de Nueva Generación
-- **Diseño Espacioso de Ancho Completo:** Eliminada la barra lateral comprimida; ahora los modelos se presentan en tarjetas amplias con especificaciones detalladas, selector directo de cuantizaciones (Q4, Q8, FP16) con tamaños reales en disco e indicadores de ajuste en RAM/VRAM.
-- **Categorización Inteligente:** Filtros por Staff Picks, Coding, Razonamiento R1, Modelos Ligeros (<4GB) y Descargados.
-- **Benchmarks y Gestión Directa:** Descarga, activación, benchmarks locales de velocidad y eliminación con un solo clic.
-- **Paginación 10x10:** Navegación fluida de 10 en 10 sin barras de scroll infinitas.
+### 🪟 Instalador Windows 11 Dark Acrylic / Glass y Cierre Seguro
+- **Tema Glass Nativo:** Ventana del instalador NSIS estilizada con modo oscuro y efecto Acrylic/Mica Glass de Windows 11 mediante APIs de DWM.
+- **Cierre Previo Limpio:** Cierre automático forzado de procesos previos de Tiancode antes de descomprimir archivos, evitando bloqueos de DLLs y ejecutables durante actualizaciones automáticas.
 
-### 📋 Vistas en Lista Estructuradas y Paginación 10x10 (SettingsPagerV2)
-- **Sub-Agentes:** Tabla en columnas detallada (Sub-Agente, Rol & Especialidad, Modelo, Herramientas, Estado, Acciones) con paginación de 10x10.
-- **Mascotas:** Lista estructurada con las 13 mascotas oficiales, rasgos y especies, selección instantánea y paginación 10x10.
-- **MCP y Plugins:** Tienda de extensiones/herramientas en lista organizada con paginación 10x10.
-- **Voces:** Catálogo de voces en lista organizada con ecualizador de estudio y paginación 10x10.
+### 🛡️ Corrección de Error 500 en SQLite WAL
+- Manejo resiliente en \`Project.fromDirectory\` con reintentos automáticos (\`Schedule.recurs(3)\`) y captura de errores de concurrencia (\`attempt to write a readonly database\`), garantizando inicio perfecto tras una actualización.
 
-### 🐙 Integración con GitHub Pulida y Avanzada
-- **Perfil Enriquecido:** Anillo de estado en línea, métricas dinámicas (Total, Públicos, Privados) y confirmación de permisos (\`repo\`, \`read:user\`).
-- **Creación Directa de Repositorios:** Formulario integrado para crear repositorios públicos o privados en GitHub sin salir de Tiancode.
-- **Filtros y Paginación:** Filtros por visibilidad (Todos, Públicos, Privados), búsqueda en tiempo real y lista paginada de 10 en 10 con acciones de clonado directo y acceso web.
+### 🖥️ Explorador de Modelos Locales Hugging Face GGUF
+- **Telemetría Superior Compacta:** GPU, VRAM libre/total, RAM del sistema y estados de motor nativo y runtimes externos (Ollama/LM Studio).
+- **Buscador Prominente y Sugerencias Rápidas:** Barra de búsqueda espaciosa con etiquetas directas ("DeepSeek-R1", "Qwen 2.5 Coder", "Llama 3.2", "Gemma 2", "Phi-4", "Nemotron").
+- **Hero Inicial Explicativo:** Vista limpia sin volcar modelos de golpe; las tarjetas técnicas completas se despliegan al buscar o filtrar.
 
-### 🎙️ Micrófono y Dictado Nativo Instantáneo
-- Reconocimiento de voz ASR con modelos ONNX locales listos de inmediato (\`status: ready\`), eliminando la alerta de "Descargando..." al pulsar el botón de dictado.
+### 📋 Listas Detalladas en Columnas y Paginación 10x10
+- **Sub-Agentes:** Holgura amplia entre el switch y el indicador de estado sin colisiones visuales.
+- **MCP y Plugins:** Tablas estructuradas para Servidores MCP, Plugins Instalados y Built-in Integrados con paginación de 10 en 10.
+- **Colores de Tema Dinámicos:** Los badges y estados activos respetan el color de acento del tema activo (\`var(--interactive-accent)\`).
 
-### ✨ Motor de "Mejorar Input" y Modo Chat x2
-- **Mejorar Input de Alta Fidelidad:** Corrección ortográfica inteligente en español e inglés y prompts técnicos ejecutables sin plantillas robóticas.
-- **Chat x2 Fiel:** Activar el multiplicador x2 conserva íntegramente la variante seleccionada por el usuario sin degradar a \`low\`.
+### 🌌 Asistente de Bienvenida Sin Scroll
+- Eliminación de scrollbars horizontales y verticales (\`overflow: hidden !important\`), fondo \`#08080a\` a juego con la web y tarjeta editorial flotante \`rgba(14, 14, 18, 0.92)\`.
 
-### 🌌 Splash al 95% y Bienvenida Cósmica Astra
-- Corregida la tipografía "TIANCODE" (trazo inferior de la letra 'E') y contraste facial del gato cósmico.
-- Asistente de bienvenida con fondo Astra espacial luminoso sin recuadros oscuros.
-
-### 🔒 Actualización No Destructiva
-- Todas las claves de proveedores, configuraciones, sesiones y herramientas MCP se conservan íntegras tras la actualización.
+### 🔒 Actualización 100% No Destructiva
+- Se preservan de forma segura todas las claves de proveedores, configuraciones, sesiones y herramientas MCP del usuario.
 
 ### 📦 Descargas
 | Archivo | Tipo | Descripción |
 |---|---|---|
-| [**Tiancode.exe**](https://github.com/Dreftian/Tiancode/releases/download/${tag}/Tiancode.exe) | Instalador Windows | Instalador oficial con acceso directo y actualizador automático |
+| [**Tiancode.exe**](https://github.com/Dreftian/Tiancode/releases/download/${tag}/Tiancode.exe) | Instalador Windows | Instalador oficial con tema Glass y actualizador automático |
 | [**Tiancode-portable.exe**](https://github.com/Dreftian/Tiancode/releases/download/${tag}/Tiancode-portable.exe) | Portable Windows | Ejecutable directo sin instalación |
 | [**latest.yml**](https://github.com/Dreftian/Tiancode/releases/download/${tag}/latest.yml) | Metadatos | Registro para el actualizador automático |
 `

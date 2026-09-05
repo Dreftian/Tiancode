@@ -619,18 +619,30 @@ export const SettingsMcpPluginsV2: Component<{
     return pluginsList().slice(start, start + PLUGINS_PAGE_SIZE)
   })
 
+  // Pagination 10x10 for Built-in Plugins
+  const BUILTIN_PAGE_SIZE = 10
+  const [builtinPage, setBuiltinPage] = createSignal(1)
+  const builtinTotal = () => Math.max(1, Math.ceil(builtinPlugins().length / BUILTIN_PAGE_SIZE))
+  const pageBuiltinPlugins = createMemo(() => {
+    const page = Math.min(builtinPage(), builtinTotal())
+    const start = (page - 1) * BUILTIN_PAGE_SIZE
+    return builtinPlugins().slice(start, start + BUILTIN_PAGE_SIZE)
+  })
+
   createEffect(() => {
     discoverCategory()
     searchQuery()
     setDiscoverPage(1)
     setMcpPage(1)
     setPluginsPage(1)
+    setBuiltinPage(1)
   })
 
   createEffect(() => {
     if (discoverPage() > discoverTotal()) setDiscoverPage(discoverTotal())
     if (mcpPage() > mcpTotal()) setMcpPage(mcpTotal())
     if (pluginsPage() > pluginsTotal()) setPluginsPage(pluginsTotal())
+    if (builtinPage() > builtinTotal()) setBuiltinPage(builtinTotal())
   })
 
   // Toggle MCP Server
@@ -945,21 +957,29 @@ export const SettingsMcpPluginsV2: Component<{
                 </div>
               }
             >
-              <div class="mcp-plugins-grid">
-                <For each={pageMcpServers()}>
-                  {(server) => (
-                    <div
-                      class="mcp-plugins-card"
-                      classList={{ running: server.enabled && server.status === "connected" }}
-                    >
-                      <div class="mcp-plugins-card-header">
-                        <div class="mcp-plugins-card-identity">
-                          <div class="mcp-plugins-icon-badge">
-                            <span>🔌</span>
+              <div class="mcp-plugins-table mcp-plugins-table--mcp">
+                <div class="mcp-plugins-thead">
+                  <div>Servidor MCP</div>
+                  <div>Tipo & Alcance</div>
+                  <div>Comando / Endpoint SSE</div>
+                  <div>Estado</div>
+                  <div class="text-right">Acción</div>
+                </div>
+
+                <div class="divide-y divide-white/[0.04]">
+                  <For each={pageMcpServers()}>
+                    {(server) => (
+                      <div class="mcp-plugins-row">
+                        {/* 1. Servidor MCP */}
+                        <div class="mcp-plugins-cell gap-3 pr-2">
+                          <div class="size-9 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center shrink-0 text-lg shadow-sm">
+                            🔌
                           </div>
-                          <div class="mcp-plugins-card-info">
-                            <div class="flex items-center gap-2">
-                              <span class="mcp-plugins-card-title">{server.name}</span>
+                          <div class="flex flex-col min-w-0">
+                            <div class="flex items-center gap-1.5">
+                              <span class="text-xs font-semibold text-slate-100 truncate" title={server.name}>
+                                {server.name}
+                              </span>
                               <span
                                 class="mcp-plugins-status-dot"
                                 classList={{
@@ -970,32 +990,47 @@ export const SettingsMcpPluginsV2: Component<{
                                 title={`Estado: ${server.enabled ? server.status : "desactivado"}`}
                               />
                             </div>
-                            <span class="mcp-plugins-card-desc font-mono text-[11px] text-v2-text-text-faint truncate">
-                              {server.command}
+                            <span class="text-[10px] text-slate-400 truncate">
+                              {server.enabled && server.status === "connected" ? "Conectado" : !server.enabled ? "Desactivado" : server.status}
                             </span>
                           </div>
                         </div>
-                        <Switch
-                          checked={server.enabled}
-                          onChange={() => void toggleMcpServer(server.name, server.enabled)}
-                          hideLabel
-                        >
-                          {server.name}
-                        </Switch>
-                      </div>
 
-                      <div class="mcp-plugins-card-footer">
-                        <div class="mcp-plugins-badge-list">
-                          <span class="mcp-plugins-chip accent">
-                            {server.isLocal ? "Local" : "Remoto"}
+                        {/* 2. Tipo & Alcance */}
+                        <div class="mcp-plugins-cell gap-1.5 pr-2 flex-wrap">
+                          <span class="mcp-plugins-chip accent text-[10px]">
+                            {server.isLocal ? "Local (stdio)" : "Remoto (SSE)"}
                           </span>
                           <Show when={server.toolsCount > 0}>
-                            <span class="mcp-plugins-chip">
+                            <span class="mcp-plugins-chip text-[10px]">
                               {server.toolsCount} {server.toolsCount === 1 ? "herramienta" : "herramientas"}
                             </span>
                           </Show>
                         </div>
-                        <div class="flex items-center gap-1">
+
+                        {/* 3. Comando / Endpoint SSE */}
+                        <div class="mcp-plugins-cell pr-3">
+                          <div class="win11-spec-badge max-w-full text-[10.5px] py-0.5 px-2" title={server.command}>
+                            <span class="truncate font-mono">{server.command}</span>
+                          </div>
+                        </div>
+
+                        {/* 4. Estado */}
+                        <div class="mcp-plugins-cell mcp-plugins-cell--status">
+                          <Switch
+                            checked={server.enabled}
+                            onChange={() => void toggleMcpServer(server.name, server.enabled)}
+                          />
+                          <span
+                            class="settings-v2-chip text-[10px]"
+                            data-tone={server.enabled ? "accent" : "muted"}
+                          >
+                            {server.enabled ? "Activo" : "Inactivo"}
+                          </span>
+                        </div>
+
+                        {/* 5. Acción */}
+                        <div class="mcp-plugins-cell justify-end">
                           <IconButtonV2
                             type="button"
                             variant="ghost-muted"
@@ -1006,9 +1041,9 @@ export const SettingsMcpPluginsV2: Component<{
                           />
                         </div>
                       </div>
-                    </div>
-                  )}
-                </For>
+                    )}
+                  </For>
+                </div>
               </div>
 
               <Show when={mcpTotal() > 1}>
@@ -1034,47 +1069,67 @@ export const SettingsMcpPluginsV2: Component<{
                 </h3>
               </div>
 
-              <div class="mcp-plugins-grid">
-                <For each={pagePluginsList()}>
-                  {(plugin) => (
-                    <div class="mcp-plugins-card" classList={{ running: plugin.enabled }}>
-                      <div class="mcp-plugins-card-header">
-                        <div class="mcp-plugins-card-identity">
-                          <div class="mcp-plugins-icon-badge">
-                            <span>{plugin.icon}</span>
+              <div class="mcp-plugins-table mcp-plugins-table--plugins">
+                <div class="mcp-plugins-thead">
+                  <div>Plugin / Extensión</div>
+                  <div>Categoría & Tipo</div>
+                  <div>Descripción / Especificación</div>
+                  <div>Estado</div>
+                </div>
+
+                <div class="divide-y divide-white/[0.04]">
+                  <For each={pagePluginsList()}>
+                    {(plugin) => (
+                      <div class="mcp-plugins-row">
+                        {/* 1. Plugin */}
+                        <div class="mcp-plugins-cell gap-3 pr-2">
+                          <div class="size-9 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center shrink-0 text-lg shadow-sm">
+                            {plugin.icon}
                           </div>
-                          <div class="mcp-plugins-card-info">
-                            <span class="mcp-plugins-card-title">{plugin.display}</span>
-                            <span class="mcp-plugins-card-desc text-[11px] text-v2-text-text-muted line-clamp-2">
-                              {plugin.desc ?? plugin.name}
+                          <div class="flex flex-col min-w-0">
+                            <span class="text-xs font-semibold text-slate-100 truncate" title={plugin.display}>
+                              {plugin.display}
+                            </span>
+                            <span class="text-[10px] font-mono text-slate-400 truncate">
+                              {plugin.name}
                             </span>
                           </div>
                         </div>
-                        <Switch
-                          checked={plugin.enabled}
-                          onChange={() => void togglePlugin(plugin.entry, plugin.enabled)}
-                          hideLabel
-                        >
-                          {plugin.display}
-                        </Switch>
-                      </div>
 
-                      <div class="mcp-plugins-card-footer">
-                        <div class="mcp-plugins-badge-list">
-                          <span class="mcp-plugins-chip accent capitalize">
+                        {/* 2. Categoría & Tipo */}
+                        <div class="mcp-plugins-cell gap-1.5 pr-2 flex-wrap">
+                          <span class="mcp-plugins-chip accent capitalize text-[10px]">
                             {plugin.category}
                           </span>
-                          <span class="mcp-plugins-chip">
+                          <span class="mcp-plugins-chip text-[10px]">
                             {plugin.isLocal ? "Local" : "Plugin"}
                           </span>
                         </div>
-                        <span class="text-[11px] text-v2-text-text-muted">
-                          {plugin.enabled ? "Activo" : "Inactivo"}
-                        </span>
+
+                        {/* 3. Descripción */}
+                        <div class="mcp-plugins-cell pr-3">
+                          <p class="text-[11.5px] text-slate-400 line-clamp-1 leading-normal m-0" title={plugin.desc ?? plugin.name}>
+                            {plugin.desc ?? plugin.name}
+                          </p>
+                        </div>
+
+                        {/* 4. Estado */}
+                        <div class="mcp-plugins-cell mcp-plugins-cell--status">
+                          <Switch
+                            checked={plugin.enabled}
+                            onChange={() => void togglePlugin(plugin.entry, plugin.enabled)}
+                          />
+                          <span
+                            class="settings-v2-chip text-[10px]"
+                            data-tone={plugin.enabled ? "accent" : "muted"}
+                          >
+                            {plugin.enabled ? "Activo" : "Inactivo"}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </For>
+                    )}
+                  </For>
+                </div>
               </div>
 
               <Show when={pluginsTotal() > 1}>
@@ -1095,48 +1150,76 @@ export const SettingsMcpPluginsV2: Component<{
                 </h3>
               </div>
 
-              <div class="mcp-plugins-grid">
-                <For each={builtinPlugins()}>
-                  {(plugin) => (
-                    <div class="mcp-plugins-card" classList={{ running: plugin.enabled }}>
-                      <div class="mcp-plugins-card-header">
-                        <div class="mcp-plugins-card-identity">
-                          <div class="mcp-plugins-icon-badge">
-                            <span>{plugin.icon}</span>
+              <div class="mcp-plugins-table mcp-plugins-table--plugins">
+                <div class="mcp-plugins-thead">
+                  <div>Plugin Integrado</div>
+                  <div>Categoría & Tipo</div>
+                  <div>Descripción</div>
+                  <div>Estado</div>
+                </div>
+
+                <div class="divide-y divide-white/[0.04]">
+                  <For each={pageBuiltinPlugins()}>
+                    {(plugin) => (
+                      <div class="mcp-plugins-row">
+                        {/* 1. Plugin */}
+                        <div class="mcp-plugins-cell gap-3 pr-2">
+                          <div class="size-9 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center shrink-0 text-lg shadow-sm">
+                            {plugin.icon}
                           </div>
-                          <div class="mcp-plugins-card-info">
-                            <span class="mcp-plugins-card-title">{plugin.name}</span>
-                            <span class="mcp-plugins-card-desc text-[11px] text-v2-text-text-muted line-clamp-2">
-                              {plugin.desc}
+                          <div class="flex flex-col min-w-0">
+                            <span class="text-xs font-semibold text-slate-100 truncate" title={plugin.name}>
+                              {plugin.name}
+                            </span>
+                            <span class="text-[10px] font-mono text-slate-400 truncate">
+                              builtin-{plugin.id}
                             </span>
                           </div>
                         </div>
-                        <Switch
-                          checked={plugin.enabled}
-                          onChange={() => void toggleBuiltinPlugin(plugin.id, plugin.enabled)}
-                          hideLabel
-                        >
-                          {plugin.name}
-                        </Switch>
-                      </div>
 
-                      <div class="mcp-plugins-card-footer">
-                        <div class="mcp-plugins-badge-list">
-                          <span class="mcp-plugins-chip accent capitalize">
+                        {/* 2. Categoría & Tipo */}
+                        <div class="mcp-plugins-cell gap-1.5 pr-2 flex-wrap">
+                          <span class="mcp-plugins-chip accent capitalize text-[10px]">
                             {plugin.category}
                           </span>
-                          <span class="mcp-plugins-chip">
+                          <span class="mcp-plugins-chip text-[10px]">
                             Built-in
                           </span>
                         </div>
-                        <span class="text-[11px] text-v2-text-text-muted">
-                          {plugin.enabled ? "Activo" : "Inactivo"}
-                        </span>
+
+                        {/* 3. Descripción */}
+                        <div class="mcp-plugins-cell pr-3">
+                          <p class="text-[11.5px] text-slate-400 line-clamp-1 leading-normal m-0" title={plugin.desc}>
+                            {plugin.desc}
+                          </p>
+                        </div>
+
+                        {/* 4. Estado */}
+                        <div class="mcp-plugins-cell mcp-plugins-cell--status">
+                          <Switch
+                            checked={plugin.enabled}
+                            onChange={() => void toggleBuiltinPlugin(plugin.id, plugin.enabled)}
+                          />
+                          <span
+                            class="settings-v2-chip text-[10px]"
+                            data-tone={plugin.enabled ? "accent" : "muted"}
+                          >
+                            {plugin.enabled ? "Activo" : "Inactivo"}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </For>
+                    )}
+                  </For>
+                </div>
               </div>
+
+              <Show when={builtinTotal() > 1}>
+                <SettingsPagerV2
+                  page={builtinPage()}
+                  totalPages={builtinTotal()}
+                  onPage={setBuiltinPage}
+                />
+              </Show>
             </div>
           </div>
         </Show>

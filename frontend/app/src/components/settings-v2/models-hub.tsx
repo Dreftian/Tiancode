@@ -533,10 +533,32 @@ export const SettingsModelsHubV2: Component<{
 
   const activeModelList = createMemo<Model[]>(() => {
     let list: Model[] = []
-    if (submitted() && (searchedModels() ?? []).length > 0) {
-      list = [...searchedModels()!]
-    } else {
+    if (submitted()) {
+      list = [...(searchedModels() ?? [])]
+      if (list.length === 0) {
+        const needle = submitted().toLowerCase()
+        list = STAFF_PICKS.filter((m) => m.id.toLowerCase().includes(needle) || (m.description ?? "").toLowerCase().includes(needle))
+      }
+    } else if (hubCategory() === "downloaded") {
+      list = STAFF_PICKS.filter((m) => jobs().some((j) => j.model === m.id && j.status === "completed"))
+      for (const j of jobs().filter((j) => j.status === "completed")) {
+        if (!list.some((m) => m.id === j.model)) {
+          list.push({
+            id: j.model,
+            downloads: 1000,
+            likes: 50,
+            pipeline_tag: "text-generation",
+            author: j.model.includes("/") ? j.model.split("/")[0] : "local",
+            description: `Modelo local descargado en disco (${j.file}).`,
+            tags: ["gguf", "local"],
+            quantFiles: [{ file: j.file, quant: "GGUF", size: j.total, recommended: true }],
+          })
+        }
+      }
+    } else if (hubCategory() !== "all") {
       list = [...STAFF_PICKS]
+    } else {
+      return []
     }
 
     const sort = sortBy()
@@ -952,156 +974,23 @@ export const SettingsModelsHubV2: Component<{
 
   return (
     <div class="lm-hub-container">
-      {/* Barra de Búsqueda y Filtros Superior */}
-      <div class="lm-hub-topbar">
-        <form
-          class="lm-search-box"
-          onSubmit={(e) => {
-            e.preventDefault()
-            setSubmitted(query().trim())
-          }}
-        >
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" class="lm-search-icon">
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <input
-            type="text"
-            class="lm-search-input"
-            placeholder="Search Hugging Face (e.g. Llama-3.2, Qwen2.5, DeepSeek)..."
-            value={query()}
-            onInput={(e) => {
-              const val = e.currentTarget.value
-              setQuery(val)
-              if (val.trim().length >= 2) {
-                setSubmitted(val.trim())
-              } else if (val.trim().length === 0) {
-                setSubmitted("")
-              }
-            }}
-          />
-          <Show when={query()}>
-            <button type="button" class="lm-search-clear" onClick={() => { setQuery(""); setSubmitted("") }}>×</button>
-          </Show>
-        </form>
-
-        <div class="lm-topbar-pills relative flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            class="lm-pill-badge cursor-pointer"
-            classList={{ "lm-pill-active": hubCategory() === "all" }}
-            onClick={() => {
-              setHubCategory("all")
-              setQuery("")
-              setSubmitted("")
-            }}
-          >
-            🌟 Staff Picks
-          </button>
-          <button
-            type="button"
-            class="lm-pill-badge cursor-pointer"
-            classList={{ "lm-pill-active": hubCategory() === "coding" }}
-            onClick={() => setHubCategory("coding")}
-          >
-            💻 Coding & Código
-          </button>
-          <button
-            type="button"
-            class="lm-pill-badge cursor-pointer"
-            classList={{ "lm-pill-active": hubCategory() === "reasoning" }}
-            onClick={() => setHubCategory("reasoning")}
-          >
-            🧠 Razonamiento / R1
-          </button>
-          <button
-            type="button"
-            class="lm-pill-badge cursor-pointer"
-            classList={{ "lm-pill-active": hubCategory() === "lightweight" }}
-            onClick={() => setHubCategory("lightweight")}
-          >
-            ⚡ Ligeros (&lt; 4GB)
-          </button>
-          <button
-            type="button"
-            class="lm-pill-badge cursor-pointer"
-            classList={{ "lm-pill-active": hubCategory() === "downloaded" }}
-            onClick={() => setHubCategory("downloaded")}
-          >
-            ⬇️ Descargados ({jobs().filter((j) => j.status === "completed").length})
-          </button>
-
-          <div class="relative inline-block ml-auto">
-            <button
-              type="button"
-              class="lm-pill-badge cursor-pointer"
-              classList={{ "lm-pill-active": sortBy() !== "recommended" || showSortMenu() }}
-              onClick={() => setShowSortMenu(!showSortMenu())}
-            >
-              {sortBy() === "recommended"
-                ? "Recommended ▾"
-                : sortBy() === "downloads"
-                  ? "Most Downloads ▾"
-                  : sortBy() === "likes"
-                    ? "Most Likes ▾"
-                    : "Alphabetical ▾"}
-            </button>
-            <Show when={showSortMenu()}>
-              <div
-                class="absolute right-0 mt-1 w-48 rounded-md border border-[var(--v2-border-border-base)] bg-[var(--v2-background-bg-layer-02)] py-1 shadow-2xl z-50 text-xs"
-                style={{ "box-shadow": "0 8px 24px rgba(0,0,0,0.6)" }}
-              >
-                <button
-                  type="button"
-                  class="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-[var(--v2-background-bg-hover)] text-[var(--v2-text-text-base)]"
-                  onClick={() => {
-                    setSortBy("recommended")
-                    setShowSortMenu(false)
-                  }}
-                >
-                  <span>Recommended (Hardware Fit)</span>
-                  <Show when={sortBy() === "recommended"}><span class="text-cyan-400 font-bold">✓</span></Show>
-                </button>
-                <button
-                  type="button"
-                  class="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-[var(--v2-background-bg-hover)] text-[var(--v2-text-text-base)]"
-                  onClick={() => {
-                    setSortBy("downloads")
-                    setShowSortMenu(false)
-                  }}
-                >
-                  <span>Most Downloads</span>
-                  <Show when={sortBy() === "downloads"}><span class="text-cyan-400 font-bold">✓</span></Show>
-                </button>
-                <button
-                  type="button"
-                  class="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-[var(--v2-background-bg-hover)] text-[var(--v2-text-text-base)]"
-                  onClick={() => {
-                    setSortBy("likes")
-                    setShowSortMenu(false)
-                  }}
-                >
-                  <span>Most Likes</span>
-                  <Show when={sortBy() === "likes"}><span class="text-cyan-400 font-bold">✓</span></Show>
-                </button>
-                <button
-                  type="button"
-                  class="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-[var(--v2-background-bg-hover)] text-[var(--v2-text-text-base)]"
-                  onClick={() => {
-                    setSortBy("name")
-                    setShowSortMenu(false)
-                  }}
-                >
-                  <span>Alphabetical (A-Z)</span>
-                  <Show when={sortBy() === "name"}><span class="text-cyan-400 font-bold">✓</span></Show>
-                </button>
-              </div>
-            </Show>
+      {/* 1. Telemetría de Hardware & Runtimes */}
+      <div class="flex items-center justify-between gap-3 p-2.5 rounded-xl border border-white/10 bg-black/30 backdrop-blur-md flex-wrap">
+        <div class="flex items-center gap-2.5">
+          <div class="flex items-center gap-2 px-3 py-1 rounded-lg bg-white/[0.04] border border-white/10 text-xs">
+            <span title="GPU / VRAM" class="text-slate-200 flex items-center gap-1.5">
+              🎮 <strong>{system()?.gpu ? system()!.gpu!.split(" ")[0] : "GPU"}</strong>
+              <span class="text-emerald-400 font-mono text-[11px]">({formatBytes(vramFree())} libre / {formatBytes(vramTotal())})</span>
+            </span>
+            <span class="text-slate-600">|</span>
+            <span title="RAM del Sistema" class="text-slate-200 flex items-center gap-1.5">
+              🧠 <strong>RAM:</strong>
+              <span class="text-cyan-400 font-mono text-[11px]">{formatBytes(ram())}</span>
+            </span>
           </div>
         </div>
 
-        {/* Telemetría Compacta de Hardware y Estado del Motor Nativo */}
-        <div class="lm-hw-telemetry flex flex-wrap items-center gap-2.5">
+        <div class="flex items-center gap-2 flex-wrap">
           <Show when={engineStatus()?.status === "running"}>
             <div class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-medium">
               <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -1148,33 +1037,179 @@ export const SettingsModelsHubV2: Component<{
               </div>
             )}
           </For>
+        </div>
+      </div>
 
-          <div class="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/60 border border-slate-700/40 text-xs">
-            <span title="GPU / VRAM" class="text-slate-200 flex items-center gap-1">
-              🎮 <strong>{system()?.gpu ? system()!.gpu!.split(" ")[0] : "GPU"}</strong>
-              <span class="text-emerald-400 font-mono text-[11px]">({formatBytes(vramFree())} libre)</span>
-            </span>
-            <span class="text-slate-600">|</span>
-            <span title="RAM del Sistema" class="text-slate-200 flex items-center gap-1">
-              🧠 <strong>RAM:</strong>
-              <span class="text-cyan-400 font-mono text-[11px]">{formatBytes(ram())}</span>
-            </span>
+      {/* 2. Buscador Central y Filtros */}
+      <div class="flex flex-col gap-2.5">
+        <form
+          class="lm-search-box w-full"
+          onSubmit={(e) => {
+            e.preventDefault()
+            const val = query().trim()
+            if (val) setSubmitted(val)
+          }}
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" class="lm-search-icon">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input
+            type="text"
+            class="lm-search-input py-2 text-sm"
+            placeholder="Buscar modelos GGUF en Hugging Face (ej. DeepSeek-R1, Qwen2.5-Coder, Llama-3.2, Gemma-2)..."
+            value={query()}
+            onInput={(e) => {
+              const val = e.currentTarget.value
+              setQuery(val)
+              if (val.trim().length === 0) {
+                setSubmitted("")
+              }
+            }}
+          />
+          <Show when={query()}>
+            <button type="button" class="lm-search-clear mr-2" onClick={() => { setQuery(""); setSubmitted("") }}>×</button>
+          </Show>
+          <button
+            type="submit"
+            class="px-4 py-1.5 rounded-full text-xs font-semibold bg-sky-500 hover:bg-sky-400 text-white transition-all shadow-sm cursor-pointer"
+          >
+            Buscar
+          </button>
+        </form>
+
+        <div class="flex items-center justify-between gap-2 flex-wrap text-xs">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-[11px] font-medium text-slate-400 mr-1">Sugeridos:</span>
+            <For
+              each={[
+                { label: "DeepSeek-R1", tag: "DeepSeek-R1-Distill", icon: "🐋" },
+                { label: "Qwen 2.5 Coder", tag: "Qwen2.5-Coder", icon: "💻" },
+                { label: "Llama 3.2", tag: "Llama-3.2", icon: "🦙" },
+                { label: "Gemma 2", tag: "gemma-2", icon: "💎" },
+                { label: "Phi-4", tag: "Phi-4", icon: "🔬" },
+                { label: "Nemotron", tag: "Nemotron", icon: "⚡" },
+              ]}
+            >
+              {(item) => (
+                <button
+                  type="button"
+                  class="lm-quick-tag"
+                  onClick={() => {
+                    setQuery(item.tag)
+                    setSubmitted(item.tag)
+                    setHubCategory("all")
+                  }}
+                >
+                  <span>{item.icon}</span>
+                  <span>{item.label}</span>
+                </button>
+              )}
+            </For>
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            <button
+              type="button"
+              class="lm-pill-badge cursor-pointer"
+              classList={{ "lm-pill-active": hubCategory() === "downloaded" }}
+              onClick={() => {
+                setHubCategory(hubCategory() === "downloaded" ? "all" : "downloaded")
+                setQuery("")
+                setSubmitted("")
+              }}
+            >
+              ⬇️ Modelos en Disco ({jobs().filter((j) => j.status === "completed").length})
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Catálogo de Modelos Espacioso y Completo (10x10) */}
+      {/* 3. Área de Contenido Principal: Hero o Resultados Detallados */}
       <div class="flex-1 overflow-y-auto pr-1 flex flex-col gap-3 min-h-0">
         <Show
-          when={pageModelList().length > 0}
+          when={submitted() || hubCategory() === "downloaded"}
           fallback={
-            <div class="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02]">
-              <span class="text-3xl mb-2">🔍</span>
-              <span class="text-sm font-semibold text-slate-200">No se encontraron modelos</span>
-              <span class="text-xs text-slate-400 mt-1">Prueba con otro término de búsqueda o selecciona otra categoría.</span>
+            /* Estado Inicial Hero Limpio: Sin saturar la pantalla */
+            <div class="p-8 rounded-2xl border border-white/10 bg-slate-900/40 backdrop-blur-md flex flex-col items-center text-center gap-5 my-auto max-w-2xl mx-auto shadow-xl">
+              <div class="size-16 rounded-2xl bg-gradient-to-tr from-sky-500/20 via-indigo-500/20 to-cyan-400/20 border border-sky-400/30 flex items-center justify-center text-3xl shadow-lg">
+                🤗
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <h3 class="text-base font-bold text-white tracking-tight">
+                  Explorador de Modelos Locales Hugging Face
+                </h3>
+                <p class="text-xs text-slate-300 leading-relaxed max-w-lg">
+                  Escribe en el buscador o pulsa una etiqueta sugerida para buscar modelos en formato <strong>GGUF</strong> directamente desde Hugging Face y ver sus especificaciones completas, compatibilidad de GPU y cuantizaciones.
+                </p>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full text-left">
+                <div class="p-3.5 rounded-xl border border-white/10 bg-black/40 flex flex-col gap-1">
+                  <div class="flex items-center gap-2 text-xs font-semibold text-emerald-400">
+                    <span>🎮 Aceleración por GPU</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400 leading-normal m-0">
+                    {system()?.gpu ? system()!.gpu!.split(" ")[0] : "GPU"} detectada con {formatBytes(vramFree())} libres de {formatBytes(vramTotal())} de VRAM. Modelos de 3B a 8B se ejecutarán a máxima velocidad.
+                  </p>
+                </div>
+                <div class="p-3.5 rounded-xl border border-white/10 bg-black/40 flex flex-col gap-1">
+                  <div class="flex items-center gap-2 text-xs font-semibold text-cyan-400">
+                    <span>🧠 Descarga Híbrida RAM</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400 leading-normal m-0">
+                    Tu sistema tiene {formatBytes(ram())} de memoria RAM para albergar capas que sobrepasen la VRAM.
+                  </p>
+                </div>
+              </div>
+
+              <Show when={jobs().filter((j) => j.status === "completed").length > 0}>
+                <div class="w-full pt-2 border-t border-white/5 flex items-center justify-between gap-3 text-xs">
+                  <span class="text-slate-400">Tienes modelos descargados listos para usar:</span>
+                  <button
+                    type="button"
+                    class="px-3 py-1 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-400/30 font-medium cursor-pointer transition-all"
+                    onClick={() => setHubCategory("downloaded")}
+                  >
+                    Ver {jobs().filter((j) => j.status === "completed").length} modelo(s) en disco ↗
+                  </button>
+                </div>
+              </Show>
             </div>
           }
         >
+          {/* Resultados de Búsqueda o Modelos Descargados */}
+          <Show
+            when={searchedModels.loading}
+            fallback={
+              <Show
+                when={pageModelList().length > 0}
+                fallback={
+                  <div class="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02] my-auto">
+                    <span class="text-3xl mb-2">🔍</span>
+                    <span class="text-sm font-semibold text-slate-200">No se encontraron modelos</span>
+                    <span class="text-xs text-slate-400 mt-1">Prueba con otro término de búsqueda o selecciona una de las etiquetas sugeridas.</span>
+                  </div>
+                }
+              >
+                <div class="flex items-center justify-between text-xs text-slate-400 px-1 mb-1">
+                  <span>
+                    {hubCategory() === "downloaded"
+                      ? `Modelos descargados en disco (${activeModelList().length})`
+                      : `Resultados para "${submitted()}" (${activeModelList().length} modelos encontrados)`}
+                  </span>
+                  <button
+                    type="button"
+                    class="text-sky-400 hover:text-sky-300 font-medium cursor-pointer"
+                    onClick={() => {
+                      setSubmitted("")
+                      setQuery("")
+                      setHubCategory("all")
+                    }}
+                  >
+                    ✕ Limpiar búsqueda
+                  </button>
+                </div>
           <For each={pageModelList()}>
             {(model) => {
               const authorName = () => model.author || (model.id.includes("/") ? model.id.split("/")[0] : "huggingface")
@@ -1337,18 +1372,27 @@ export const SettingsModelsHubV2: Component<{
               )
             }}
           </For>
-        </Show>
 
-        <Show when={hubTotal() > 1}>
-          <div class="mt-2 mb-4">
-            <SettingsPagerV2
-              page={hubPage()}
-              totalPages={hubTotal()}
-              onPage={setHubPage}
-            />
-          </div>
+          <Show when={hubTotal() > 1}>
+            <div class="mt-2 mb-4">
+              <SettingsPagerV2
+                page={hubPage()}
+                totalPages={hubTotal()}
+                onPage={setHubPage}
+              />
+            </div>
+          </Show>
         </Show>
+      }
+    >
+      <div class="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02] my-auto">
+        <span class="lm-spinner size-8 mb-3" />
+        <span class="text-sm font-semibold text-slate-200">Consultando Hugging Face...</span>
+        <span class="text-xs text-slate-400 mt-1">Obteniendo archivos GGUF y compatibilidad de hardware.</span>
       </div>
+    </Show>
+  </Show>
+</div>
 
       {/* Cajón Inferior de Descargas Activas y Gestión de Disco */}
       <Show when={jobs().length > 0}>

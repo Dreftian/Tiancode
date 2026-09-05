@@ -983,7 +983,7 @@ export const SettingsSubAgentsV2: Component<{
                       </div>
 
                       {/* 5. Estado */}
-                      <div class="settings-v2-subagents-cell gap-2">
+                      <div class="settings-v2-subagents-cell settings-v2-subagents-cell--status">
                         <Switch
                           checked={isAgentActive(agent.name)}
                           disabled={agent.name === "build"}
@@ -991,7 +991,7 @@ export const SettingsSubAgentsV2: Component<{
                         />
                         <span
                           class="settings-v2-chip text-[10px]"
-                          data-tone={isAgentActive(agent.name) ? "green" : "muted"}
+                          data-tone={isAgentActive(agent.name) ? "accent" : "muted"}
                         >
                           {isAgentActive(agent.name) ? "Activo" : "Inactivo"}
                         </span>
@@ -1117,14 +1117,14 @@ export const SettingsSubAgentsV2: Component<{
                     </div>
 
                     {/* 5. Estado */}
-                    <div class="settings-v2-subagents-cell gap-2">
+                    <div class="settings-v2-subagents-cell settings-v2-subagents-cell--status">
                       <Switch
                         checked={isAgentActive(agent.name)}
                         onChange={(checked) => toggleAgent(agent.name, checked)}
                       />
                       <span
                         class="settings-v2-chip text-[10px]"
-                        data-tone={isAgentActive(agent.name) ? "green" : "muted"}
+                        data-tone={isAgentActive(agent.name) ? "accent" : "muted"}
                       >
                         {isAgentActive(agent.name) ? "Activo" : "Inactivo"}
                       </span>

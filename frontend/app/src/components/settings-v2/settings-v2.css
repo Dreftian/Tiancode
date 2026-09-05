@@ -1462,6 +1462,12 @@
   background-color: color-mix(in srgb, var(--v2-state-fg-success) 14%, transparent);
 }
 
+.settings-v2-chip[data-tone="accent"] {
+  color: var(--interactive-accent, #38bdf8);
+  background-color: color-mix(in srgb, var(--interactive-accent, #38bdf8) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--interactive-accent, #38bdf8) 28%, transparent);
+}
+
 .settings-v2-chip[data-tone="muted"] {
   color: var(--v2-text-text-muted);
   background-color: var(--v2-background-bg-layer-02);
