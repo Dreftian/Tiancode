@@ -61,6 +61,14 @@ export function VoiceDictationButton(props: {
 
   onMount(() => {
     void refreshDevices()
+    const api = asrAPI()
+    if (api) {
+      void api.status().then((s) => {
+        if (!s.ready && !s.downloading) {
+          void api.ensure().catch(() => {})
+        }
+      }).catch(() => {})
+    }
     const cleanupListener = onAudioDeviceChange(() => {
       void refreshDevices()
     })
@@ -114,10 +122,8 @@ export function VoiceDictationButton(props: {
         const status = await api.status().catch(() => undefined)
         if (status && !status.ready && !status.downloading) {
           setPreparing(true)
-          showToast({ variant: "default", title: language.t("chat.mic.downloading") })
           try {
             await api.ensure()
-            showToast({ variant: "success", title: language.t("chat.mic.downloaded") })
           } catch {
             showToast({
               variant: "error",

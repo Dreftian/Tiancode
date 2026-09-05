@@ -80,7 +80,7 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void }> = (props) =>
 
   return (
     <div
-      class="relative w-full max-w-[560px] max-h-[92vh] bg-[#0c1222]/95 backdrop-blur-3xl border border-cyan-500/25 rounded-2xl p-6 flex flex-col justify-between text-white select-none overflow-hidden font-sans shadow-[0_24px_64px_rgba(0,0,0,0.8),0_0_50px_rgba(56,189,248,0.15)]"
+      class="relative w-full max-w-[640px] max-h-[92vh] bg-[#0b101e]/95 backdrop-blur-3xl border border-cyan-400/35 rounded-3xl p-7 flex flex-col justify-between text-white select-none overflow-hidden font-sans shadow-[0_32px_96px_rgba(0,0,0,0.9),0_0_60px_rgba(56,189,248,0.25)]"
       style={{
         "font-family": "Segoe UI Variable, Segoe UI, -apple-system, BlinkMacSystemFont, Roboto, sans-serif",
       }}

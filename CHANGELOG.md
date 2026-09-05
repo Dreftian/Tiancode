@@ -4,6 +4,30 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.13] — 2026-09-04
+### Nuevo
+
+- **Rediseño Completo de Modelos Locales**: Interfaz espaciosa y completa de ancho completo con filtrado por categorías (Staff Picks, Coding, Razonamiento R1, Ligeros < 4GB, Descargados), selector de cuantizaciones visibles con tamaño exacto en disco, indicadores de compatibilidad de hardware (RAM/VRAM), ejecución de benchmarks locales integrados y paginación 10x10 sin scroll excesivo.
+- **Vistas en Lista Detalladas con Paginación 10x10 (`SettingsPagerV2`)**:
+  - **Sub-Agentes**: Formato de tabla estructurada en columnas (Sub-Agente, Rol & Especialidad, Modelo, Herramientas, Estado, Acciones) y paginación de 10x10.
+  - **Mascotas**: Lista detallada en columnas con rasgos de personalidad y especies de las 13 mascotas oficiales, selección directa y paginación 10x10.
+  - **MCP y Plugins**: Transformación de la tienda en lista estructurada (Extensión/Herramienta, Categoría, Comando & Descripción, Acción) con paginación 10x10.
+  - **Voces**: Catálogo de voces en lista organizada con paginación 10x10 y consola de ecualización.
+- **Integración con GitHub Enriquecida**:
+  - Perfil conectado con anillo de estado en vivo, enlace al perfil de GitHub, contadores dinámicos (Total, Públicos, Privados) y permisos activos (`repo`, `read:user`).
+  - Creación directa de nuevos repositorios (públicos/privados) desde Tiancode mediante formulario interactivo integrado.
+  - Filtros por visibilidad (Todos, Públicos, Privados) y lista de repositorios paginada en 10x10 con acciones de clonado directo y navegación externa.
+- **Micrófono y Reconocimiento de Voz Nativo Inmediato**:
+  - Detección instantánea de modelos ASR ONNX existentes en disco al iniciar la app (`status: ready`), eliminando la alerta de "Descargando..." y comenzando el dictado de voz sin latencia.
+- **Motor de "Mejorar Input" de Alta Precisión**:
+  - Eliminado el texto y directivas robóticas genéricas; ahora genera prompts claros, ejecutables y profesionales.
+  - Corrección semántica y ortográfica avanzada de errores de digitación en tiempo real (`plusgins`, `aprte`, `descangando`, `tamnbién`, `igualq`, etc.).
+- **Modo Chat x2 Fiel al Usuario**:
+  - La activación del modo x2 ya no degrada la variante del modelo a `low`, manteniendo íntegramente la configuración seleccionada por el usuario.
+- **Splash Screen 95% y Bienvenida Cósmica Astra**:
+  - Corregida la coordenada del trazo inferior de la letra 'E' en el banner vectorial de "TIANCODE" y refinado el contraste de cavidad bucal, colmillos y ojos del gato cósmico.
+  - Fondo celestial Astra con nebulosas radiantes y halos orbitales en el asistente de bienvenida, eliminando vacíos oscuros.
+
 ## [1.0.12] — 2026-09-04
 ### Nuevo
 

@@ -44,7 +44,19 @@ let recording = false
 let activeLanguage: "es" | "en" = "en"
 let chunks: Float32Array[] = []
 
+function checkModelReady(): boolean {
+  try {
+    const dir = modelDir()
+    return [ASR_MODEL.tokens, ASR_MODEL.encoder, ASR_MODEL.decoder].every((file) => existsSync(join(dir, file)))
+  } catch {
+    return false
+  }
+}
+
 export function getAsrStatus() {
+  if (status === "idle" && checkModelReady()) {
+    status = "ready"
+  }
   return {
     ready: status === "ready",
     downloading: status === "downloading" || undefined,
@@ -66,7 +78,10 @@ function modelDir() {
 }
 
 export function ensureAsrModel(): Promise<void> {
-  if (status === "ready") return Promise.resolve()
+  if (status === "ready" || checkModelReady()) {
+    status = "ready"
+    return Promise.resolve()
+  }
   if (modelPromise) return modelPromise
   modelPromise = (async () => {
     setStatus("downloading")

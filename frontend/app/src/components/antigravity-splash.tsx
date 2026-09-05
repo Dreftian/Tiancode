@@ -107,7 +107,7 @@ export const AntigravitySplash: Component<{
           addLine(ox, oy, ox, oy + letterH)
           addLine(ox, oy, ox + letterW * 0.88, oy)
           addLine(ox, oy + letterH * 0.5, ox + letterW * 0.72, oy + letterH * 0.5)
-          addLine(ox + letterW, oy + letterH, ox + letterW * 0.88, oy + letterH)
+          addLine(ox, oy + letterH, ox + letterW * 0.88, oy + letterH)
           break
       }
     }
@@ -480,9 +480,42 @@ export const AntigravitySplash: Component<{
         }
       }
 
-      // 4. EMBLEMA DEL GATO Y TRAZOS DE TIANCODE (Cintas y formas luminosas en 3D con contraste nítido)
+      // 4. Partículas de la constelación astral (Gato + TIANCODE) como halo luminoso
+      ctx.globalCompositeOperation = "lighter"
+      const settleFactor = formationFactor >= 0.7 ? Math.max(0, 1 - (formationFactor - 0.7) / 0.28) : 1.0
+
+      for (let i = 0; i < constellationStars.length; i++) {
+        const ptc = constellationStars[i]
+
+        const driftX = Math.cos(time * ptc.driftSpeed + ptc.driftPhase) * ptc.driftRadius * settleFactor
+        const driftY = Math.sin(time * ptc.driftSpeed + ptc.driftPhase) * ptc.driftRadius * settleFactor
+
+        const lx = ptc.sx + (ptc.tx - ptc.sx) * formationFactor + driftX * formationFactor
+        const ly = ptc.sy + (ptc.ty - ptc.sy) * formationFactor + driftY * formationFactor
+        const lz = ptc.sz + (ptc.tz - ptc.sz) * formationFactor
+
+        const pt = projectPoint(lx, ly, lz, cx, cy, cosX, sinX, cosY, sinY)
+        const twinkle = Math.sin(time * ptc.twinkleSpeed + ptc.twinklePhase) * 0.28 + 0.72
+        // Aumentar nitidez atenuando el exceso de partículas saturas cuando el emblema está formado
+        const alphaMultiplier = formationFactor >= 0.85 ? 0.35 : 1.0
+        const alpha = ptc.baseAlpha * twinkle * alphaMultiplier
+
+        if (pt.x >= 0 && pt.x <= width && pt.y >= 0 && pt.y <= height) {
+          ctx.fillStyle = `rgba(${ptc.color.r},${ptc.color.g},${ptc.color.b},${(alpha * 0.4).toFixed(2)})`
+          ctx.beginPath()
+          ctx.arc(pt.x, pt.y, Math.max(0.8, (ptc.size + 1.2) * pt.scale), 0, Math.PI * 2)
+          ctx.fill()
+
+          ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(0.9, alpha * 1.0).toFixed(2)})`
+          ctx.beginPath()
+          ctx.arc(pt.x, pt.y, Math.max(0.5, ptc.size * pt.scale), 0, Math.PI * 2)
+          ctx.fill()
+        }
+      }
+
+      // 5. EMBLEMA DEL GATO Y TRAZOS VECTORIALES DE TIANCODE (Renderizado nítido frontal con source-over)
       if (formationFactor > 0.06) {
-        const ribbonAlpha = Math.pow(formationFactor, 2)
+        const ribbonAlpha = Math.pow(formationFactor, 1.8)
         ctx.globalCompositeOperation = "source-over"
 
         CAT_POLYGONS.forEach((poly) => {
@@ -502,31 +535,31 @@ export const AntigravitySplash: Component<{
 
           if (isMouthOutline) {
             // Fondo oscuro contrastado para la cavidad bucal del gato
-            ctx.fillStyle = `rgba(7, 10, 18, ${(0.92 * ribbonAlpha).toFixed(2)})`
+            ctx.fillStyle = `rgba(6, 9, 16, ${(0.96 * ribbonAlpha).toFixed(2)})`
             ctx.fill()
 
             // Delineado exterior de la sonrisa en azul Astra radiante
-            ctx.strokeStyle = `rgba(56, 189, 248, ${(0.88 * ribbonAlpha).toFixed(2)})`
-            ctx.lineWidth = 2.4 * pts[0].scale
+            ctx.strokeStyle = `rgba(56, 189, 248, ${(0.92 * ribbonAlpha).toFixed(2)})`
+            ctx.lineWidth = 2.6 * pts[0].scale
             ctx.stroke()
           } else if (isTooth) {
             // Colmillos y dientes nítidos blancos diamante
-            ctx.fillStyle = `rgba(255, 255, 255, ${(0.98 * ribbonAlpha).toFixed(2)})`
+            ctx.fillStyle = `rgba(255, 255, 255, ${(1.0 * ribbonAlpha).toFixed(2)})`
             ctx.fill()
 
-            ctx.strokeStyle = `rgba(186, 230, 253, ${(0.82 * ribbonAlpha).toFixed(2)})`
-            ctx.lineWidth = 1.0 * pts[0].scale
+            ctx.strokeStyle = `rgba(186, 230, 253, ${(0.9 * ribbonAlpha).toFixed(2)})`
+            ctx.lineWidth = 1.2 * pts[0].scale
             ctx.stroke()
           } else if (isEye) {
             // Ojos radiantes con núcleo puro y delineado fino
-            ctx.fillStyle = `rgba(255, 255, 255, ${(0.98 * ribbonAlpha).toFixed(2)})`
+            ctx.fillStyle = `rgba(255, 255, 255, ${(1.0 * ribbonAlpha).toFixed(2)})`
             ctx.fill()
 
-            ctx.strokeStyle = `rgba(56, 189, 248, ${(0.6 * ribbonAlpha).toFixed(2)})`
+            ctx.strokeStyle = `rgba(56, 189, 248, ${(0.85 * ribbonAlpha).toFixed(2)})`
             ctx.lineWidth = 3.2 * pts[0].scale
             ctx.stroke()
 
-            ctx.strokeStyle = `rgba(255, 255, 255, ${(0.95 * ribbonAlpha).toFixed(2)})`
+            ctx.strokeStyle = `rgba(255, 255, 255, ${(0.98 * ribbonAlpha).toFixed(2)})`
             ctx.lineWidth = 1.4 * pts[0].scale
             ctx.stroke()
           }
@@ -536,22 +569,25 @@ export const AntigravitySplash: Component<{
           const p1 = projectPoint(lx1 * textScale, ly1 * textScale, 0, cx, cy, cosX, sinX, cosY, sinY)
           const p2 = projectPoint(lx2 * textScale, ly2 * textScale, 0, cx, cy, cosX, sinX, cosY, sinY)
 
-          ctx.strokeStyle = `rgba(56, 189, 248, ${(0.28 * ribbonAlpha).toFixed(2)})`
-          ctx.lineWidth = 12 * p1.scale
+          // Aura suave cian exterior
+          ctx.strokeStyle = `rgba(56, 189, 248, ${(0.22 * ribbonAlpha).toFixed(2)})`
+          ctx.lineWidth = 10 * p1.scale
           ctx.beginPath()
           ctx.moveTo(p1.x, p1.y)
           ctx.lineTo(p2.x, p2.y)
           ctx.stroke()
 
-          ctx.strokeStyle = `rgba(186, 230, 253, ${(0.5 * ribbonAlpha).toFixed(2)})`
-          ctx.lineWidth = 5 * p1.scale
+          // Delineado intermedio azul cielo
+          ctx.strokeStyle = `rgba(186, 230, 253, ${(0.6 * ribbonAlpha).toFixed(2)})`
+          ctx.lineWidth = 4.5 * p1.scale
           ctx.beginPath()
           ctx.moveTo(p1.x, p1.y)
           ctx.lineTo(p2.x, p2.y)
           ctx.stroke()
 
-          ctx.strokeStyle = `rgba(255, 255, 255, ${(0.85 * ribbonAlpha).toFixed(2)})`
-          ctx.lineWidth = 1.8 * p1.scale
+          // Núcleo nítido de alta definición
+          ctx.strokeStyle = `rgba(255, 255, 255, ${(0.98 * ribbonAlpha).toFixed(2)})`
+          ctx.lineWidth = 2.2 * p1.scale
           ctx.beginPath()
           ctx.moveTo(p1.x, p1.y)
           ctx.lineTo(p2.x, p2.y)
@@ -559,7 +595,7 @@ export const AntigravitySplash: Component<{
         }
 
         const drawProjectedArc = (acx: number, acy: number, arx: number, ary: number, sa: number, ea: number) => {
-          const steps = 24
+          const steps = 28
           const pts = []
           for (let i = 0; i <= steps; i++) {
             const t = i / steps
@@ -569,22 +605,22 @@ export const AntigravitySplash: Component<{
             pts.push(projectPoint(lx, ly, 0, cx, cy, cosX, sinX, cosY, sinY))
           }
 
-          ctx.strokeStyle = `rgba(56, 189, 248, ${(0.28 * ribbonAlpha).toFixed(2)})`
-          ctx.lineWidth = 12 * pts[0].scale
+          ctx.strokeStyle = `rgba(56, 189, 248, ${(0.22 * ribbonAlpha).toFixed(2)})`
+          ctx.lineWidth = 10 * pts[0].scale
           ctx.beginPath()
           ctx.moveTo(pts[0].x, pts[0].y)
           for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y)
           ctx.stroke()
 
-          ctx.strokeStyle = `rgba(186, 230, 253, ${(0.5 * ribbonAlpha).toFixed(2)})`
-          ctx.lineWidth = 5 * pts[0].scale
+          ctx.strokeStyle = `rgba(186, 230, 253, ${(0.6 * ribbonAlpha).toFixed(2)})`
+          ctx.lineWidth = 4.5 * pts[0].scale
           ctx.beginPath()
           ctx.moveTo(pts[0].x, pts[0].y)
           for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y)
           ctx.stroke()
 
-          ctx.strokeStyle = `rgba(255, 255, 255, ${(0.85 * ribbonAlpha).toFixed(2)})`
-          ctx.lineWidth = 1.8 * pts[0].scale
+          ctx.strokeStyle = `rgba(255, 255, 255, ${(0.98 * ribbonAlpha).toFixed(2)})`
+          ctx.lineWidth = 2.2 * pts[0].scale
           ctx.beginPath()
           ctx.moveTo(pts[0].x, pts[0].y)
           for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y)
@@ -593,35 +629,6 @@ export const AntigravitySplash: Component<{
 
         lines.forEach((l) => drawProjectedLine(l.x1, l.y1, l.x2, l.y2))
         arcs.forEach((a) => drawProjectedArc(a.cx, a.cy, a.rx, a.ry, a.startAngle, a.endAngle))
-      }
-
-      // 5. Partículas de la constelación (Gato + TIANCODE)
-      ctx.globalCompositeOperation = "lighter"
-      for (let i = 0; i < constellationStars.length; i++) {
-        const ptc = constellationStars[i]
-
-        const driftX = Math.cos(time * ptc.driftSpeed + ptc.driftPhase) * ptc.driftRadius
-        const driftY = Math.sin(time * ptc.driftSpeed + ptc.driftPhase) * ptc.driftRadius
-
-        const lx = ptc.sx + (ptc.tx - ptc.sx) * formationFactor + driftX * formationFactor
-        const ly = ptc.sy + (ptc.ty - ptc.sy) * formationFactor + driftY * formationFactor
-        const lz = ptc.sz + (ptc.tz - ptc.sz) * formationFactor
-
-        const pt = projectPoint(lx, ly, lz, cx, cy, cosX, sinX, cosY, sinY)
-        const twinkle = Math.sin(time * ptc.twinkleSpeed + ptc.twinklePhase) * 0.28 + 0.72
-        const alpha = ptc.baseAlpha * twinkle
-
-        if (pt.x >= 0 && pt.x <= width && pt.y >= 0 && pt.y <= height) {
-          ctx.fillStyle = `rgba(${ptc.color.r},${ptc.color.g},${ptc.color.b},${(alpha * 0.45).toFixed(2)})`
-          ctx.beginPath()
-          ctx.arc(pt.x, pt.y, Math.max(1.0, (ptc.size + 1.6) * pt.scale), 0, Math.PI * 2)
-          ctx.fill()
-
-          ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(1, alpha * 1.2).toFixed(2)})`
-          ctx.beginPath()
-          ctx.arc(pt.x, pt.y, Math.max(0.6, ptc.size * pt.scale), 0, Math.PI * 2)
-          ctx.fill()
-        }
       }
 
       // 6. Destellos de difracción en cruz (+) en los vértices

@@ -23,7 +23,7 @@ import { createPromptSubmissionState } from "./submission-state"
 import { normalizeSessionInfo } from "@/utils/session"
 import { Event } from "@tiancode-ai/schema/event"
 import { blobDataUrl } from "@/utils/draft-store"
-import { isSpeed2xActive, resolveFastVariant, SPEED_MODE_2X_DIRECTIVE } from "@/utils/speed-mode"
+import { isSpeed2xActive, SPEED_MODE_2X_DIRECTIVE } from "@/utils/speed-mode"
 
 type PendingPrompt = {
   abort: AbortController
@@ -401,9 +401,8 @@ export function createPromptSubmit(input: PromptSubmitInput) {
     }
 
     let session = input.info()
-    const effectiveVariant = isSpeed2xActive()
-      ? (resolveFastVariant(modelSelection.variant.list()) ?? variant)
-      : variant
+    // En modo 2x se preserva exactamente la variante seleccionada por el usuario (sin forzar 'low')
+    const effectiveVariant = variant
     if (!session && isNewSession) {
       const created = await sdk()
         .api.session.create({

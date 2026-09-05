@@ -46,7 +46,7 @@ describe("prompt-optimizer", () => {
     const result = enhancePromptText(raw, true)
 
     expect(result).toContain("🎯 Objetivo Principal")
-    expect(result).toContain("🛠️ Directivas de Ejecución para el Agente")
+    expect(result).toContain("📋 Requerimientos y Directivas Clave")
     expect(result).not.toContain("1. **Modelado & Tipos:**")
   })
 

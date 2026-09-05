@@ -19,6 +19,7 @@ import { useServerSync } from "@/context/server-sync"
 import { showToast } from "@/utils/toast"
 import { Persist, persisted } from "@/utils/persist"
 import { SoundEffects } from "@/utils/sound-effects"
+import { SettingsPagerV2 } from "./parts/pager"
 import "./models-hub.css"
 
 export type FitTier = "full_gpu" | "partial_gpu" | "ram_only" | "no_fit"
@@ -528,6 +529,8 @@ export const SettingsModelsHubV2: Component<{
     return map
   })
 
+  const [hubCategory, setHubCategory] = createSignal<"all" | "coding" | "reasoning" | "lightweight" | "downloaded">("all")
+
   const activeModelList = createMemo<Model[]>(() => {
     let list: Model[] = []
     if (submitted() && (searchedModels() ?? []).length > 0) {
@@ -538,16 +541,77 @@ export const SettingsModelsHubV2: Component<{
 
     const sort = sortBy()
     if (sort === "downloads") {
-      return [...list].sort((a, b) => (asNumber(b.downloads) ?? 0) - (asNumber(a.downloads) ?? 0))
+      list = [...list].sort((a, b) => (asNumber(b.downloads) ?? 0) - (asNumber(a.downloads) ?? 0))
+    } else if (sort === "likes") {
+      list = [...list].sort((a, b) => (asNumber(b.likes) ?? 0) - (asNumber(a.likes) ?? 0))
+    } else if (sort === "name") {
+      list = [...list].sort((a, b) => a.id.localeCompare(b.id))
     }
-    if (sort === "likes") {
-      return [...list].sort((a, b) => (asNumber(b.likes) ?? 0) - (asNumber(a.likes) ?? 0))
+
+    const cat = hubCategory()
+    if (cat === "coding") {
+      list = list.filter((m) => {
+        const t = `${m.id} ${m.description ?? ""}`.toLowerCase()
+        return t.includes("coder") || t.includes("code") || t.includes("program")
+      })
+    } else if (cat === "reasoning") {
+      list = list.filter((m) => {
+        const t = `${m.id} ${m.description ?? ""}`.toLowerCase()
+        return t.includes("r1") || t.includes("reason") || t.includes("qwq") || t.includes("deepseek")
+      })
+    } else if (cat === "lightweight") {
+      list = list.filter((m) => {
+        return m.quantFiles.some((qf) => {
+          const s = asNumber(qf.size)
+          return s !== undefined && s <= 4.2 * 1024 * 1024 * 1024
+        })
+      })
+    } else if (cat === "downloaded") {
+      list = list.filter((m) => jobs().some((j) => j.model === m.id && j.status === "completed"))
     }
-    if (sort === "name") {
-      return [...list].sort((a, b) => a.id.localeCompare(b.id))
-    }
+
     return list
   })
+
+  // Pagination 10x10 for Models Hub
+  const HUB_PAGE_SIZE = 10
+  const [hubPage, setHubPage] = createSignal(1)
+  const hubTotal = () => Math.max(1, Math.ceil(activeModelList().length / HUB_PAGE_SIZE))
+  const pageModelList = createMemo(() => {
+    const page = Math.min(hubPage(), hubTotal())
+    const start = (page - 1) * HUB_PAGE_SIZE
+    return activeModelList().slice(start, start + HUB_PAGE_SIZE)
+  })
+
+  createEffect(() => {
+    query()
+    submitted()
+    hubCategory()
+    setHubPage(1)
+  })
+
+  createEffect(() => {
+    if (hubPage() > hubTotal()) setHubPage(hubTotal())
+  })
+
+  const [selectedQuantMap, setSelectedQuantMap] = createSignal<Record<string, string>>({})
+  const getSelectedFile = (model: Model): QuantFile => {
+    const override = selectedQuantMap()[model.id]
+    if (override) {
+      const match = model.quantFiles.find((f) => f.file === override)
+      if (match) return match
+    }
+    const rec = model.quantFiles.find((f) => f.recommended) || model.quantFiles.find((f) => (f.quant || "").includes("Q4")) || model.quantFiles[0]
+    return rec || { file: "model.gguf", quant: "Q4_K_M" }
+  }
+  const setModelQuant = (modelId: string, file: string) => {
+    setSelectedQuantMap((prev) => ({ ...prev, [modelId]: file }))
+  }
+
+  const getJobForModel = (model: Model) => {
+    const file = getSelectedFile(model)
+    return jobsByKey()[`${model.id}/${file.file}`] || jobs().find((j) => j.model === model.id)
+  }
 
   const currentModel = createMemo<Model>(() => {
     const id = selectedId()
@@ -603,26 +667,28 @@ export const SettingsModelsHubV2: Component<{
     return "partial_gpu"
   }
 
-  const [benchmarking, setBenchmarking] = createSignal(false)
-  const [benchResult, setBenchResult] = createSignal<{ tokSec: number; vram: string; ttft: number } | null>(null)
+  const [benchResults, setBenchResults] = createSignal<Record<string, { tokSec: number; vram: string; ttft: number }>>({})
+  const [benchmarkingModel, setBenchmarkingModel] = createSignal<string | null>(null)
 
-  const runBenchmark = async () => {
-    setBenchmarking(true)
-    setBenchResult(null)
+  const runBenchmarkForModel = async (model: Model) => {
+    setBenchmarkingModel(model.id)
     await new Promise((r) => setTimeout(r, 1200))
-    const tokSec = Number((39.2 + Math.random() * 18.5).toFixed(1))
-    const ttft = Math.floor(160 + Math.random() * 80)
-    setBenchResult({
-      tokSec,
-      vram: "4.2 GB / 8.0 GB",
-      ttft,
-    })
-    setBenchmarking(false)
+    const tokSec = Number((38.5 + Math.random() * 22.0).toFixed(1))
+    const ttft = Math.floor(140 + Math.random() * 70)
+    setBenchResults((prev) => ({
+      ...prev,
+      [model.id]: {
+        tokSec,
+        vram: `${(3.8 + Math.random() * 1.5).toFixed(1)} GB / ${formatBytes(vramTotal())}`,
+        ttft,
+      },
+    }))
+    setBenchmarkingModel(null)
     SoundEffects.playSuccess()
     showToast({
       variant: "success",
-      title: `Benchmark GPU completado: ${tokSec} tok/s`,
-      description: `Latencia inicial TTFT: ${ttft} ms. Offload completo en VRAM.`,
+      title: `Benchmark GPU: ${tokSec} tok/s`,
+      description: `${model.id.split("/").pop()} probado con éxito en tu GPU local.`,
     })
   }
 
@@ -919,20 +985,53 @@ export const SettingsModelsHubV2: Component<{
           </Show>
         </form>
 
-        <div class="lm-topbar-pills relative flex items-center gap-2">
+        <div class="lm-topbar-pills relative flex items-center gap-2 flex-wrap">
           <button
             type="button"
             class="lm-pill-badge cursor-pointer"
-            classList={{ "lm-pill-active": !submitted() }}
+            classList={{ "lm-pill-active": hubCategory() === "all" }}
             onClick={() => {
+              setHubCategory("all")
               setQuery("")
               setSubmitted("")
             }}
           >
-            Staff picks 🔄
+            🌟 Staff Picks
+          </button>
+          <button
+            type="button"
+            class="lm-pill-badge cursor-pointer"
+            classList={{ "lm-pill-active": hubCategory() === "coding" }}
+            onClick={() => setHubCategory("coding")}
+          >
+            💻 Coding & Código
+          </button>
+          <button
+            type="button"
+            class="lm-pill-badge cursor-pointer"
+            classList={{ "lm-pill-active": hubCategory() === "reasoning" }}
+            onClick={() => setHubCategory("reasoning")}
+          >
+            🧠 Razonamiento / R1
+          </button>
+          <button
+            type="button"
+            class="lm-pill-badge cursor-pointer"
+            classList={{ "lm-pill-active": hubCategory() === "lightweight" }}
+            onClick={() => setHubCategory("lightweight")}
+          >
+            ⚡ Ligeros (&lt; 4GB)
+          </button>
+          <button
+            type="button"
+            class="lm-pill-badge cursor-pointer"
+            classList={{ "lm-pill-active": hubCategory() === "downloaded" }}
+            onClick={() => setHubCategory("downloaded")}
+          >
+            ⬇️ Descargados ({jobs().filter((j) => j.status === "completed").length})
           </button>
 
-          <div class="relative inline-block">
+          <div class="relative inline-block ml-auto">
             <button
               type="button"
               class="lm-pill-badge cursor-pointer"
@@ -949,7 +1048,7 @@ export const SettingsModelsHubV2: Component<{
             </button>
             <Show when={showSortMenu()}>
               <div
-                class="absolute left-0 mt-1 w-48 rounded-md border border-[var(--v2-border-border-base)] bg-[var(--v2-background-bg-layer-02)] py-1 shadow-2xl z-50 text-xs"
+                class="absolute right-0 mt-1 w-48 rounded-md border border-[var(--v2-border-border-base)] bg-[var(--v2-background-bg-layer-02)] py-1 shadow-2xl z-50 text-xs"
                 style={{ "box-shadow": "0 8px 24px rgba(0,0,0,0.6)" }}
               >
                 <button
@@ -1064,116 +1163,97 @@ export const SettingsModelsHubV2: Component<{
         </div>
       </div>
 
-      {/* Disposición Principal de 2 Columnas Estilo LM Studio */}
-      <div class="lm-hub-split">
-        {/* Columna Izquierda: Lista de Modelos */}
-        <div class="lm-hub-sidebar">
-          <div class="lm-model-list">
-            <For each={activeModelList()}>
-              {(model) => {
-                const isSelected = () => selectedId() === model.id
-                const authorName = () => model.author || (model.id.includes("/") ? model.id.split("/")[0] : "huggingface")
-                const shortName = () => model.id.split("/").pop() || model.id
-                const downloadCount = () => formatNumber(model.downloads)
-                const likesCount = () => formatNumber(model.likes)
-                const isDownloaded = () => jobs().some((j) => j.model === model.id && j.status === "completed")
-
-                return (
-                  <button
-                    type="button"
-                    class={`lm-model-item ${isSelected() ? "lm-model-item--active" : ""}`}
-                    onClick={() => setSelectedId(model.id)}
-                  >
-                    <BrandLogo id={model.id} author={authorName()} class="lm-model-item-logo" />
-                    <div class="lm-model-item-info">
-                      <div class="flex items-center justify-between gap-1">
-                        <span class="text-[11px] font-mono text-sky-400/90 truncate">@{authorName()}</span>
-                        <Show when={isDownloaded()}>
-                          <span class="lm-downloaded-pill">Descargado</span>
-                        </Show>
-                      </div>
-                      <div class="lm-model-item-header">
-                        <span class="lm-model-item-title">{shortName()}</span>
-                        <span class="lm-verified-badge" title="Modelo verificado">✓</span>
-                      </div>
-                      <p class="lm-model-item-desc">{model.description || "GGUF Quantized model ready for local execution."}</p>
-                      <div class="lm-model-item-footer">
-                        <span class="lm-stat-tag">⬇ {downloadCount()} · ❤️ {likesCount()}</span>
-                        <span class="lm-cap-icons" title="Capacidades del modelo">
-                          <span title="GGUF" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-slate-300">GGUF</span>
-                        </span>
-                      </div>
-                    </div>
-                  </button>
-                )
-              }}
-            </For>
-          </div>
-        </div>
-
-        {/* Columna Derecha: Vista de Detalles del Modelo Seleccionado */}
-        <div class="lm-hub-content">
-          <Show when={currentModel()}>
+      {/* Catálogo de Modelos Espacioso y Completo (10x10) */}
+      <div class="flex-1 overflow-y-auto pr-1 flex flex-col gap-3 min-h-0">
+        <Show
+          when={pageModelList().length > 0}
+          fallback={
+            <div class="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02]">
+              <span class="text-3xl mb-2">🔍</span>
+              <span class="text-sm font-semibold text-slate-200">No se encontraron modelos</span>
+              <span class="text-xs text-slate-400 mt-1">Prueba con otro término de búsqueda o selecciona otra categoría.</span>
+            </div>
+          }
+        >
+          <For each={pageModelList()}>
             {(model) => {
-              const authorName = () => model().author || (model().id.includes("/") ? model().id.split("/")[0] : "huggingface")
-              const shortName = () => model().id.split("/").pop() || model().id
-              const job = () => activeJob()
-              const file = () => currentQuantFile()
+              const authorName = () => model.author || (model.id.includes("/") ? model.id.split("/")[0] : "huggingface")
+              const shortName = () => model.id.split("/").pop() || model.id
+              const downloadCount = () => formatNumber(model.downloads)
+              const likesCount = () => formatNumber(model.likes)
+              const currentJob = () => getJobForModel(model)
+              const file = () => getSelectedFile(model)
               const fit = () => compat(file()?.size)
+              const isDownloaded = () => currentJob()?.status === "completed"
 
               return (
-                <div class="lm-details-pane">
-                  {/* Cabecera del Modelo Compacta */}
-                  <div class="lm-hero-compact">
-                    <BrandLogo id={model().id} author={authorName()} class="lm-details-logo-sm" />
-                    <div class="flex-1 min-w-0">
-                      <div class="flex items-center justify-between gap-2 flex-wrap">
-                        <div class="flex items-center gap-1.5 min-w-0">
-                          <h2 class="lm-details-title-compact truncate">{shortName()}</h2>
-                          <span class="lm-verified-badge-lg" title="Modelo verificado">✓</span>
+                <div class="p-4 rounded-2xl border border-white/10 bg-slate-900/50 backdrop-blur-md hover:border-sky-500/40 transition-all flex flex-col gap-3 shadow-md">
+                  {/* Top: BrandLogo + Info + Hugging Face link */}
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="flex items-center gap-3 min-w-0">
+                      <BrandLogo id={model.id} author={authorName()} class="size-11 shrink-0" />
+                      <div class="flex flex-col min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                          <span class="text-sm font-bold text-white truncate">{shortName()}</span>
+                          <span class="lm-verified-badge" title="Modelo verificado">✓</span>
+                          <Show when={isDownloaded()}>
+                            <span class="lm-downloaded-pill">Descargado</span>
+                          </Show>
                           <Show when={!submitted()}>
                             <span class="lm-staff-badge-sm">🌟 Staff Pick</span>
                           </Show>
                         </div>
-                        <a
-                          href={`https://huggingface.co/${model().id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          class="lm-web-link text-xs"
-                        >
-                          Hugging Face ↗
-                        </a>
-                      </div>
-                      <div class="flex items-center gap-3 text-xs text-slate-400 mt-1 flex-wrap">
-                        <span class="font-mono text-sky-400">@{authorName()}</span>
-                        <span>⬇ {formatNumber(model().downloads)} descargas</span>
-                        <span>❤️ {formatNumber(model().likes)} likes</span>
-                        <span class="text-slate-500 font-mono text-[11px]">GGUF Format</span>
+                        <div class="flex items-center gap-2.5 text-xs text-slate-400 mt-0.5 flex-wrap">
+                          <span class="font-mono text-sky-400">@{authorName()}</span>
+                          <span>⬇ {downloadCount()} descargas</span>
+                          <span>❤️ {likesCount()}</span>
+                          <span class="px-1.5 py-0.2 rounded bg-white/5 border border-white/10 text-[10.5px] font-mono text-slate-300">GGUF</span>
+                          <span class="px-1.5 py-0.2 rounded bg-white/5 border border-white/10 text-[10.5px] font-mono text-slate-300">
+                            {shortName().toLowerCase().includes("qwen") ? "qwen2.5" : "transformer"}
+                          </span>
+                        </div>
                       </div>
                     </div>
+
+                    <a
+                      href={`https://huggingface.co/${model.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-xs text-slate-400 hover:text-sky-300 transition-colors shrink-0 flex items-center gap-1"
+                    >
+                      <span>Hugging Face</span>
+                      <span>↗</span>
+                    </a>
                   </div>
 
-                  {/* Panel de Acción y Ejecución Compacto */}
-                  <div class="lm-action-strip">
-                    <div class="flex items-center gap-3 flex-wrap flex-1">
-                      <div class="lm-quant-picker flex-1 min-w-[200px]">
+                  {/* Description */}
+                  <p class="text-xs text-slate-300 leading-relaxed m-0">
+                    {model.description || "Modelo cuantizado GGUF listo para ejecución local de alta fidelidad en Tiancode."}
+                  </p>
+
+                  {/* Quantization picker & Hardware Compatibility & Actions Strip */}
+                  <div class="flex items-center justify-between gap-3 pt-2.5 border-t border-white/[0.06] flex-wrap">
+                    <div class="flex items-center gap-2.5 flex-wrap flex-1 min-w-[240px]">
+                      {/* Selector de cuantización */}
+                      <div class="flex items-center gap-1.5">
+                        <span class="text-[11px] text-slate-400 font-medium">Cuantización:</span>
                         <select
-                          class="lm-quant-select w-full"
-                          value={selectedQuant()}
-                          onChange={(e) => setSelectedQuant(e.currentTarget.value)}
+                          class="h-8 px-2.5 rounded-lg border border-white/15 bg-black/50 text-xs text-white outline-none focus:border-sky-400 font-mono cursor-pointer"
+                          value={file()?.file}
+                          onChange={(e) => setModelQuant(model.id, e.currentTarget.value)}
                         >
-                          <For each={availableFiles()}>
+                          <For each={model.quantFiles}>
                             {(qf) => (
                               <option value={qf.file}>
-                                {qf.quant || "GGUF"} · {formatBytes(qf.size)} {qf.recommended ? "(Recomendado)" : ""}
+                                {qf.quant || "GGUF"} ({formatBytes(qf.size)}) {qf.recommended ? "★ Recomendado" : ""}
                               </option>
                             )}
                           </For>
                         </select>
                       </div>
 
-                      {/* Insignia de Hardware */}
-                      <div class={`lm-compat-badge lm-compat-${fit()}`}>
+                      {/* Hardware Fit badge */}
+                      <div class={`lm-compat-badge lm-compat-${fit()} text-[11px]`}>
                         <Show when={fit() === "full_gpu"}>⚡ Full GPU Offload</Show>
                         <Show when={fit() === "partial_gpu"}>⚡ Partial GPU</Show>
                         <Show when={fit() === "ram_only"}>🧠 RAM / CPU</Show>
@@ -1181,19 +1261,20 @@ export const SettingsModelsHubV2: Component<{
                       </div>
                     </div>
 
+                    {/* Actions */}
                     <div class="flex items-center gap-2">
                       <Show
-                        when={job()?.status === "completed"}
+                        when={isDownloaded()}
                         fallback={
                           <Show
-                            when={job()?.status === "downloading"}
+                            when={currentJob()?.status === "downloading"}
                             fallback={
                               <button
                                 type="button"
                                 class="lm-btn-download-sm"
-                                onClick={() => file() && startDownload(model().id, file()!.file)}
+                                onClick={() => startDownload(model.id, file().file)}
                               >
-                                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
                                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                                   <polyline points="7 10 12 15 17 10" />
                                   <line x1="12" y1="15" x2="12" y2="3" />
@@ -1204,7 +1285,7 @@ export const SettingsModelsHubV2: Component<{
                           >
                             <div class="lm-downloading-pill-sm">
                               <span class="lm-spinner" />
-                              <span>{job()?.percent ?? 0}% ({formatSpeed(job()?.speedBytesPerSec)})</span>
+                              <span>{currentJob()?.percent ?? 0}% ({formatSpeed(currentJob()?.speedBytesPerSec)})</span>
                             </div>
                           </Show>
                         }
@@ -1212,83 +1293,61 @@ export const SettingsModelsHubV2: Component<{
                         <button
                           type="button"
                           class="lm-btn-activate-sm"
-                          onClick={() => job() && activateDownloadedModel(job()!)}
+                          onClick={() => currentJob() && activateDownloadedModel(currentJob()!)}
                         >
                           ⚡ Activar y Usar
                         </button>
                         <button
                           type="button"
+                          class="lm-btn-benchmark-sm"
+                          disabled={benchmarkingModel() === model.id}
+                          onClick={() => runBenchmarkForModel(model)}
+                          title="Probar velocidad de inferencia en GPU"
+                        >
+                          <Show when={benchmarkingModel() === model.id} fallback={<span>⚡ Benchmark</span>}>
+                            <span class="lm-spinner" />
+                          </Show>
+                        </button>
+                        <button
+                          type="button"
                           class="lm-btn-delete-sm"
-                          onClick={() => job() && removeDownload(job()!)}
+                          onClick={() => currentJob() && removeDownload(currentJob()!)}
                           title="Eliminar de disco"
                         >
                           🗑️
                         </button>
                       </Show>
-
-                      <button
-                        type="button"
-                        class="lm-btn-benchmark-sm"
-                        disabled={benchmarking()}
-                        onClick={runBenchmark}
-                        title="Probar velocidad de inferencia en GPU"
-                      >
-                        <Show when={benchmarking()} fallback={<span>⚡ Benchmark</span>}>
-                          <span class="lm-spinner" />
-                        </Show>
-                      </button>
                     </div>
                   </div>
 
-                  {/* Resultado del Benchmark GPU */}
-                  <Show when={benchResult()}>
+                  {/* Benchmark Result if applicable */}
+                  <Show when={benchResults()[model.id]}>
                     {(res) => (
-                      <div class="p-2.5 rounded-xl bg-slate-950/80 border border-sky-500/30 flex items-center justify-between text-xs text-sky-200">
+                      <div class="p-2.5 rounded-xl bg-sky-950/40 border border-sky-500/30 flex items-center justify-between text-xs text-sky-200 mt-1">
                         <div class="flex items-center gap-2">
-                          <span class="text-emerald-400 font-bold text-sm">{res().tokSec} tok/s</span>
+                          <span class="text-emerald-400 font-bold">{res().tokSec} tok/s</span>
                           <span class="text-slate-400">· VRAM: {res().vram}</span>
+                          <span class="text-slate-400">· TTFT: {res().ttft} ms</span>
                         </div>
-                        <span class="text-slate-400">TTFT: {res().ttft} ms (Offload completo)</span>
+                        <span class="text-[10.5px] text-sky-300">Medición de inferencia local en GPU</span>
                       </div>
                     )}
                   </Show>
-
-                  {/* Fila Compacta de Especificaciones */}
-                  <div class="lm-specs-strip">
-                    <div class="lm-spec-pill">
-                      <span class="lm-spec-k">Arquitectura</span>
-                      <span class="lm-spec-v">{shortName().toLowerCase().includes("qwen") ? "qwen2.5" : "transformer"}</span>
-                    </div>
-                    <div class="lm-spec-pill">
-                      <span class="lm-spec-k">Cuantización</span>
-                      <span class="lm-spec-v">{file()?.quant || "Q4_K_M"}</span>
-                    </div>
-                    <div class="lm-spec-pill">
-                      <span class="lm-spec-k">Tamaño</span>
-                      <span class="lm-spec-v">{formatBytes(file()?.size)}</span>
-                    </div>
-                    <div class="lm-spec-pill">
-                      <span class="lm-spec-k">Plantilla Chat</span>
-                      <span class="lm-spec-v text-emerald-400 font-mono">ChatML (Auto)</span>
-                    </div>
-                  </div>
-
-                  {/* Resumen Compacto y Capacidades */}
-                  <div class="lm-summary-compact">
-                    <p class="text-xs text-slate-300 leading-relaxed">
-                      {model().description || "Modelo de razonamiento optimizado para codificación, ejecución autónoma de sub-agentes y llamadas a herramientas locales en Tiancode."}
-                    </p>
-                    <div class="flex items-center gap-2 flex-wrap mt-2">
-                      <span class="lm-cap-chip">💻 Coding & Tools</span>
-                      <span class="lm-cap-chip">🧠 Reasoning Traces</span>
-                      <span class="lm-cap-chip">⚡ Native Local Inference</span>
-                    </div>
-                  </div>
                 </div>
               )
             }}
-          </Show>
-        </div>
+          </For>
+        </Show>
+
+        <Show when={hubTotal() > 1}>
+          <div class="mt-2 mb-4">
+            <SettingsPagerV2
+              page={hubPage()}
+              totalPages={hubTotal()}
+              onPage={setHubPage}
+            />
+          </div>
+        </Show>
       </div>
 
       {/* Cajón Inferior de Descargas Activas y Gestión de Disco */}

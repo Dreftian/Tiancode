@@ -27,6 +27,7 @@ import {
   pluginOrigin,
   type PluginEntry,
 } from "./plugins-origin"
+import { SettingsPagerV2 } from "./parts/pager"
 import "./mcp-plugins.css"
 
 type McpConfigValue = McpLocalConfig | McpRemoteConfig | { enabled: boolean }
@@ -588,6 +589,50 @@ export const SettingsMcpPluginsV2: Component<{
     })
   })
 
+  // Pagination 10x10 for Discover Catalog
+  const DISCOVER_PAGE_SIZE = 10
+  const [discoverPage, setDiscoverPage] = createSignal(1)
+  const discoverTotal = () => Math.max(1, Math.ceil(catalogList().length / DISCOVER_PAGE_SIZE))
+  const pageDiscoverItems = createMemo(() => {
+    const page = Math.min(discoverPage(), discoverTotal())
+    const start = (page - 1) * DISCOVER_PAGE_SIZE
+    return catalogList().slice(start, start + DISCOVER_PAGE_SIZE)
+  })
+
+  // Pagination 10x10 for MCP Servers
+  const MCP_PAGE_SIZE = 10
+  const [mcpPage, setMcpPage] = createSignal(1)
+  const mcpTotal = () => Math.max(1, Math.ceil(mcpServers().length / MCP_PAGE_SIZE))
+  const pageMcpServers = createMemo(() => {
+    const page = Math.min(mcpPage(), mcpTotal())
+    const start = (page - 1) * MCP_PAGE_SIZE
+    return mcpServers().slice(start, start + MCP_PAGE_SIZE)
+  })
+
+  // Pagination 10x10 for Installed Plugins
+  const PLUGINS_PAGE_SIZE = 10
+  const [pluginsPage, setPluginsPage] = createSignal(1)
+  const pluginsTotal = () => Math.max(1, Math.ceil(pluginsList().length / PLUGINS_PAGE_SIZE))
+  const pagePluginsList = createMemo(() => {
+    const page = Math.min(pluginsPage(), pluginsTotal())
+    const start = (page - 1) * PLUGINS_PAGE_SIZE
+    return pluginsList().slice(start, start + PLUGINS_PAGE_SIZE)
+  })
+
+  createEffect(() => {
+    discoverCategory()
+    searchQuery()
+    setDiscoverPage(1)
+    setMcpPage(1)
+    setPluginsPage(1)
+  })
+
+  createEffect(() => {
+    if (discoverPage() > discoverTotal()) setDiscoverPage(discoverTotal())
+    if (mcpPage() > mcpTotal()) setMcpPage(mcpTotal())
+    if (pluginsPage() > pluginsTotal()) setPluginsPage(pluginsTotal())
+  })
+
   // Toggle MCP Server
   const toggleMcpServer = async (name: string, currentEnabled: boolean) => {
     const nextEnabled = !currentEnabled
@@ -901,7 +946,7 @@ export const SettingsMcpPluginsV2: Component<{
               }
             >
               <div class="mcp-plugins-grid">
-                <For each={mcpServers()}>
+                <For each={pageMcpServers()}>
                   {(server) => (
                     <div
                       class="mcp-plugins-card"
@@ -965,6 +1010,14 @@ export const SettingsMcpPluginsV2: Component<{
                   )}
                 </For>
               </div>
+
+              <Show when={mcpTotal() > 1}>
+                <SettingsPagerV2
+                  page={mcpPage()}
+                  totalPages={mcpTotal()}
+                  onPage={setMcpPage}
+                />
+              </Show>
             </Show>
           </div>
         </Show>
@@ -982,7 +1035,7 @@ export const SettingsMcpPluginsV2: Component<{
               </div>
 
               <div class="mcp-plugins-grid">
-                <For each={pluginsList()}>
+                <For each={pagePluginsList()}>
                   {(plugin) => (
                     <div class="mcp-plugins-card" classList={{ running: plugin.enabled }}>
                       <div class="mcp-plugins-card-header">
@@ -1023,6 +1076,14 @@ export const SettingsMcpPluginsV2: Component<{
                   )}
                 </For>
               </div>
+
+              <Show when={pluginsTotal() > 1}>
+                <SettingsPagerV2
+                  page={pluginsPage()}
+                  totalPages={pluginsTotal()}
+                  onPage={setPluginsPage}
+                />
+              </Show>
             </div>
 
             {/* Built-in Plugins */}
@@ -1150,71 +1211,101 @@ export const SettingsMcpPluginsV2: Component<{
               </For>
             </div>
 
-            {/* Windows 11 Fluent App Cards Grid */}
-            <div class="win11-store-grid">
-              <For each={catalogList()}>
-                {(item) => {
-                  const isInstalled = createMemo(() => {
-                    if (item.type === "mcp") return mcpServers().some((s) => s.name === item.id)
-                    return pluginsList().some((p) => p.name === item.spec)
-                  })
+            {/* Windows 11 Fluent App List View (10x10) */}
+            <div class="mcp-plugins-table">
+              <div class="mcp-plugins-thead">
+                <div>Extensión / Herramienta</div>
+                <div>Categoría</div>
+                <div>Comando / Especificación & Descripción</div>
+                <div class="text-right">Acción</div>
+              </div>
 
-                  return (
-                    <div class="win11-store-card">
-                      <div class="win11-card-top">
-                        <div class="win11-app-squircle">
-                          <span class="text-xl">{item.icon}</span>
+              <div class="divide-y divide-white/[0.04]">
+                <For each={pageDiscoverItems()}>
+                  {(item) => {
+                    const isInstalled = createMemo(() => {
+                      if (item.type === "mcp") return mcpServers().some((s) => s.name === item.id)
+                      return pluginsList().some((p) => p.name === item.spec)
+                    })
+
+                    return (
+                      <div class="mcp-plugins-row">
+                        {/* 1. Extensión / Herramienta */}
+                        <div class="mcp-plugins-cell gap-3 pr-2">
+                          <div class="size-9 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center shrink-0 text-lg shadow-sm">
+                            {item.icon}
+                          </div>
+                          <div class="flex flex-col min-w-0">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                              <span class="text-xs font-semibold text-slate-100 truncate" title={item.name}>
+                                {item.name}
+                              </span>
+                              <Show when={item.popular}>
+                                <span class="win11-badge-popular text-[9px] py-0 px-1.5">⭐ Top</span>
+                              </Show>
+                            </div>
+                            <div class="flex items-center gap-1.5 mt-0.5">
+                              <span
+                                class="win11-app-pill text-[9.5px]"
+                                classList={{
+                                  "pill-mcp": item.type === "mcp",
+                                  "pill-plugin": item.type === "plugin",
+                                }}
+                              >
+                                {item.type === "mcp" ? "MCP" : "Plugin"}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        <div class="win11-app-meta">
-                          <div class="flex items-center justify-between gap-1">
-                            <span class="win11-app-title" title={item.name}>{item.name}</span>
-                            <Show when={item.popular}>
-                              <span class="win11-badge-popular">⭐ Top</span>
+
+                        {/* 2. Categoría */}
+                        <div class="mcp-plugins-cell pr-2">
+                          <span class="text-[10.5px] font-medium px-2 py-0.5 rounded-md bg-white/[0.06] border border-white/10 text-slate-300 capitalize">
+                            {item.category}
+                          </span>
+                        </div>
+
+                        {/* 3. Comando / Especificación & Descripción */}
+                        <div class="mcp-plugins-cell flex-col items-start gap-1 pr-3">
+                          <div class="win11-spec-badge max-w-full text-[10.5px] py-0.5 px-2" title={item.command ?? item.spec}>
+                            <span class="truncate font-mono">{item.command ?? item.spec}</span>
+                          </div>
+                          <p class="text-[11px] text-slate-400 line-clamp-1 leading-normal m-0">
+                            {item.desc}
+                          </p>
+                        </div>
+
+                        {/* 4. Estado / Acción */}
+                        <div class="mcp-plugins-cell justify-end">
+                          <button
+                            type="button"
+                            class="win11-action-btn text-xs py-1.5 px-3"
+                            classList={{
+                              "btn-installed": isInstalled(),
+                              "btn-install": !isInstalled(),
+                            }}
+                            disabled={isInstalled()}
+                            onClick={() => void installCatalogItem(item)}
+                          >
+                            <Show when={isInstalled()} fallback={<><span>Obtener</span><span class="text-xs">↗</span></>}>
+                              <span>✓ Instalado</span>
                             </Show>
-                          </div>
-                          <div class="flex items-center gap-1.5 mt-0.5">
-                            <span
-                              class="win11-app-pill"
-                              classList={{
-                                "pill-mcp": item.type === "mcp",
-                                "pill-plugin": item.type === "plugin",
-                              }}
-                            >
-                              {item.type === "mcp" ? "Servidor MCP" : "Plugin"}
-                            </span>
-                            <span class="win11-category-tag capitalize">{item.category}</span>
-                          </div>
+                          </button>
                         </div>
                       </div>
-
-                      <p class="win11-app-desc">
-                        {item.desc}
-                      </p>
-
-                      <div class="win11-card-bottom">
-                        <div class="win11-spec-badge" title={item.command ?? item.spec}>
-                          <span class="truncate">{item.command ?? item.spec}</span>
-                        </div>
-                        <button
-                          type="button"
-                          class="win11-action-btn"
-                          classList={{
-                            "btn-installed": isInstalled(),
-                            "btn-install": !isInstalled(),
-                          }}
-                          disabled={isInstalled()}
-                          onClick={() => void installCatalogItem(item)}
-                        >
-                          <Show when={isInstalled()} fallback={<><span>Obtener</span><span class="text-xs">↗</span></>}>
-                            <span>✓ Instalado</span>
-                          </Show>
-                        </button>
-                      </div>
-                    </div>
-                  )
-                }}
-              </For>
+                    )
+                  }}
+                </For>
+              </div>
             </div>
+
+            <Show when={discoverTotal() > 1}>
+              <SettingsPagerV2
+                page={discoverPage()}
+                totalPages={discoverTotal()}
+                onPage={setDiscoverPage}
+              />
+            </Show>
           </div>
         </Show>
       </div>

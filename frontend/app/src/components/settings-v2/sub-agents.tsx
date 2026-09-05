@@ -466,9 +466,17 @@ export const SettingsSubAgentsV2: Component<{
   const visibleUserAgents = createMemo(() => visibleByStatus(userAgents().filter(matchesQuery)))
   const visibleBuiltinAgents = createMemo(() => visibleByStatus(builtinAgents().filter(matchesQuery)))
 
-  // Paginación de la lista de agentes de usuario: 5 filas en pantalla,
-  // sin scroll largo. La página se re-ajusta si la lista se encoge.
-  const USER_PAGE_SIZE = 5
+  // Paginación 10x10 para Sub-Agentes sin scroll excesivo
+  const BUILTIN_PAGE_SIZE = 10
+  const [builtinPage, setBuiltinPage] = createSignal(1)
+  const builtinTotal = () => Math.max(1, Math.ceil(visibleBuiltinAgents().length / BUILTIN_PAGE_SIZE))
+  const pageBuiltinAgents = createMemo(() => {
+    const page = Math.min(builtinPage(), builtinTotal())
+    const start = (page - 1) * BUILTIN_PAGE_SIZE
+    return { items: visibleBuiltinAgents().slice(start, start + BUILTIN_PAGE_SIZE), page, total: builtinTotal() }
+  })
+
+  const USER_PAGE_SIZE = 10
   const [userPage, setUserPage] = createSignal(1)
   const userTotal = () => Math.max(1, Math.ceil(visibleUserAgents().length / USER_PAGE_SIZE))
   const pageUserAgents = createMemo(() => {
@@ -476,14 +484,16 @@ export const SettingsSubAgentsV2: Component<{
     const start = (page - 1) * USER_PAGE_SIZE
     return { items: visibleUserAgents().slice(start, start + USER_PAGE_SIZE), page, total: userTotal() }
   })
+
   createEffect(() => {
+    if (builtinPage() > builtinTotal()) setBuiltinPage(builtinTotal())
     if (userPage() > userTotal()) setUserPage(userTotal())
   })
-  // Al cambiar la búsqueda o el filtro se vuelve a la primera página: seguir
-  // en la página 5 de una lista filtrada desorienta.
+
   createEffect(() => {
     query()
     status()
+    setBuiltinPage(1)
     setUserPage(1)
   })
 
@@ -898,8 +908,18 @@ export const SettingsSubAgentsV2: Component<{
                 {language.t("settings.subAgents.list.builtin.hint")}
               </span>
             </div>
-            <div class="settings-v2-sub-agents-grid">
-              <For each={visibleBuiltinAgents()}>
+
+            <div class="settings-v2-subagents-table">
+              <div class="settings-v2-subagents-thead">
+                <div>Sub-Agente</div>
+                <div>Rol y Especialidad</div>
+                <div>Modelo</div>
+                <div>Herramientas</div>
+                <div>Estado</div>
+                <div class="text-right">Acción</div>
+              </div>
+
+              <For each={pageBuiltinAgents().items}>
                 {(agent) => {
                   const meta = () => AGENT_META[agent.name] || {
                     title: agent.name,
@@ -911,77 +931,96 @@ export const SettingsSubAgentsV2: Component<{
                   }
 
                   return (
-                    <div
-                      class="settings-v2-sub-agents-card"
-                      data-builtin=""
-                      style={{ "--card-accent": meta().color }}
-                    >
-                      <div>
-                        <div class="settings-v2-sub-agents-card-header">
-                          <div class="settings-v2-sub-agents-card-identity">
-                            <div class="settings-v2-sub-agents-card-avatar">
-                              {meta().icon}
-                            </div>
-                            <div class="settings-v2-sub-agents-card-title-group">
-                              <div class="settings-v2-sub-agents-card-name">{meta().title}</div>
-                              <div class="settings-v2-sub-agents-card-role">{meta().role}</div>
-                            </div>
-                          </div>
-                          <span class="settings-v2-sub-agents-card-category">{meta().category}</span>
+                    <div class="settings-v2-subagents-row">
+                      {/* 1. Sub-Agente */}
+                      <div class="settings-v2-subagents-cell gap-2.5 pr-2">
+                        <div
+                          class="settings-v2-sub-agents-card-avatar shrink-0 size-8 text-base rounded-lg flex items-center justify-center"
+                          style={{
+                            "background-color": `color-mix(in srgb, ${meta().color} 18%, transparent)`,
+                            "border-color": `color-mix(in srgb, ${meta().color} 40%, transparent)`,
+                          }}
+                        >
+                          {meta().icon}
                         </div>
-
-                        <div class="settings-v2-sub-agents-card-description mt-2.5">
-                          {meta().description || nativeDescription(agent)}
+                        <div class="flex flex-col min-w-0">
+                          <span class="text-xs font-semibold text-slate-100 truncate">{meta().title}</span>
+                          <span class="text-[10px] font-mono text-slate-400 truncate">@{agent.name}</span>
                         </div>
                       </div>
 
-                      <div>
-                        <div class="settings-v2-sub-agents-badges mb-2">
-                          <span class="settings-v2-sub-agents-badge settings-v2-sub-agents-badge--accent">
-                            {agent.model?.modelID ?? language.t("settings.subAgents.list.model.inherit")}
+                      {/* 2. Rol y Especialidad */}
+                      <div class="settings-v2-subagents-cell flex-col items-start gap-1 pr-3">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                          <span class="settings-v2-sub-agents-card-category text-[9.5px] px-1.5 py-0.5">
+                            {meta().category}
                           </span>
-                          <span class="settings-v2-sub-agents-badge">
-                            {hasRestrictedTools(agent)
-                              ? language.t("settings.subAgents.list.tools.summary", {
-                                  count: allowedToolCount(agent),
-                                })
-                              : language.t("settings.subAgents.list.tools.all")}
-                          </span>
-                          <span class="settings-v2-sub-agents-badge !text-slate-400">
-                            🔒 {language.t("settings.subAgents.list.group.builtin")}
+                          <span class="text-[11px] font-medium text-slate-300 truncate max-w-[200px]">
+                            {meta().role}
                           </span>
                         </div>
+                        <p class="text-[11px] text-slate-400 line-clamp-1 leading-normal m-0">
+                          {meta().description || nativeDescription(agent)}
+                        </p>
+                      </div>
 
-                        <div class="settings-v2-sub-agents-card-footer">
-                          <span class="text-[10.5px] font-mono text-slate-500">@{agent.name}</span>
-                          <div class="flex items-center gap-2">
-                            <span
-                              class="settings-v2-chip"
-                              data-tone={isAgentActive(agent.name) ? "green" : "muted"}
-                            >
-                              {isAgentActive(agent.name) ? "Activo" : "Inactivo"}
-                            </span>
-                            <Switch
-                              checked={isAgentActive(agent.name)}
-                              disabled={agent.name === "build"}
-                              onChange={(checked) => toggleAgent(agent.name, checked)}
-                            />
-                            <button
-                              type="button"
-                              class="settings-v2-sub-agents-card-btn"
-                              onClick={() => cloneToCustom(agent)}
-                              title="Cargar como base en el editor para crear tu versión personalizada"
-                            >
-                              ✨ Personalizar
-                            </button>
-                          </div>
-                        </div>
+                      {/* 3. Modelo */}
+                      <div class="settings-v2-subagents-cell">
+                        <span class="settings-v2-sub-agents-badge settings-v2-sub-agents-badge--accent text-[10.5px]">
+                          {agent.model?.modelID ?? language.t("settings.subAgents.list.model.inherit")}
+                        </span>
+                      </div>
+
+                      {/* 4. Herramientas */}
+                      <div class="settings-v2-subagents-cell">
+                        <span class="settings-v2-sub-agents-badge text-[10.5px]">
+                          {hasRestrictedTools(agent)
+                            ? language.t("settings.subAgents.list.tools.summary", {
+                                count: allowedToolCount(agent),
+                              })
+                            : language.t("settings.subAgents.list.tools.all")}
+                        </span>
+                      </div>
+
+                      {/* 5. Estado */}
+                      <div class="settings-v2-subagents-cell gap-2">
+                        <Switch
+                          checked={isAgentActive(agent.name)}
+                          disabled={agent.name === "build"}
+                          onChange={(checked) => toggleAgent(agent.name, checked)}
+                        />
+                        <span
+                          class="settings-v2-chip text-[10px]"
+                          data-tone={isAgentActive(agent.name) ? "green" : "muted"}
+                        >
+                          {isAgentActive(agent.name) ? "Activo" : "Inactivo"}
+                        </span>
+                      </div>
+
+                      {/* 6. Acciones */}
+                      <div class="settings-v2-subagents-cell justify-end gap-1.5">
+                        <button
+                          type="button"
+                          class="settings-v2-sub-agents-card-btn text-xs py-1 px-2.5"
+                          onClick={() => cloneToCustom(agent)}
+                          title="Cargar como base en el editor para crear tu versión personalizada"
+                        >
+                          ✨ Personalizar
+                        </button>
                       </div>
                     </div>
                   )
                 }}
               </For>
             </div>
+
+            <Show when={pageBuiltinAgents().total > 1}>
+              <SettingsPagerV2
+                page={pageBuiltinAgents().page}
+                totalPages={pageBuiltinAgents().total}
+                onPage={(p) => setBuiltinPage(p)}
+              />
+            </Show>
           </div>
         </Show>
 
@@ -1019,98 +1058,116 @@ export const SettingsSubAgentsV2: Component<{
               </div>
             }
           >
-            <div class="settings-v2-sub-agents-grid">
+            <div class="settings-v2-subagents-table">
+              <div class="settings-v2-subagents-thead">
+                <div>Sub-Agente</div>
+                <div>Rol y Descripción</div>
+                <div>Modelo</div>
+                <div>Herramientas</div>
+                <div>Estado</div>
+                <div class="text-right">Acciones</div>
+              </div>
+
               <For each={pageUserAgents().items}>
                 {(agent) => (
-                  <div
-                    class="settings-v2-sub-agents-card"
-                    style={{ "--card-accent": agent.color || "#38bdf8" }}
-                  >
-                    <div>
-                      <div class="settings-v2-sub-agents-card-header">
-                        <div class="settings-v2-sub-agents-card-identity">
-                          <div class="settings-v2-sub-agents-card-avatar">
-                            {agent.icon || "🤖"}
-                          </div>
-                          <div class="settings-v2-sub-agents-card-title-group">
-                            <div class="settings-v2-sub-agents-card-name">{agent.name}</div>
-                            <div class="settings-v2-sub-agents-card-role">
-                              {(agent as any).role ?? (agent.mode === "primary" ? "Agente Principal" : "Sub-Agente Especialista")}
-                            </div>
-                          </div>
-                        </div>
-                        <span class="settings-v2-sub-agents-card-category">Personalizado</span>
+                  <div class="settings-v2-subagents-row">
+                    {/* 1. Sub-Agente */}
+                    <div class="settings-v2-subagents-cell gap-2.5 pr-2">
+                      <div
+                        class="settings-v2-sub-agents-card-avatar shrink-0 size-8 text-base rounded-lg flex items-center justify-center"
+                        style={{
+                          "background-color": `color-mix(in srgb, ${agent.color || "#38bdf8"} 18%, transparent)`,
+                          "border-color": `color-mix(in srgb, ${agent.color || "#38bdf8"} 40%, transparent)`,
+                        }}
+                      >
+                        {agent.icon || "🤖"}
                       </div>
-
-                      <div class="settings-v2-sub-agents-card-description mt-2.5">
-                        {agent.description || "Sub-agente especializado personalizado."}
+                      <div class="flex flex-col min-w-0">
+                        <span class="text-xs font-semibold text-slate-100 truncate">{agent.name}</span>
+                        <span class="text-[10px] font-mono text-slate-400 truncate">@{agent.name}</span>
                       </div>
                     </div>
 
-                    <div>
-                      <div class="settings-v2-sub-agents-badges mb-2">
-                        <span class="settings-v2-sub-agents-badge settings-v2-sub-agents-badge--accent">
-                          {agent.model?.modelID ?? language.t("settings.subAgents.list.model.inherit")}
-                        </span>
-                        <span class="settings-v2-sub-agents-badge">
-                          {hasRestrictedTools(agent)
-                            ? language.t("settings.subAgents.list.tools.summary", {
-                                count: allowedToolCount(agent),
-                              })
-                            : language.t("settings.subAgents.list.tools.all")}
-                        </span>
-                      </div>
+                    {/* 2. Rol y Descripción */}
+                    <div class="settings-v2-subagents-cell flex-col items-start gap-1 pr-3">
+                      <span class="text-[11px] font-medium text-slate-300 truncate max-w-[200px]">
+                        {(agent as any).role ?? (agent.mode === "primary" ? "Agente Principal" : "Sub-Agente Especialista")}
+                      </span>
+                      <p class="text-[11px] text-slate-400 line-clamp-1 leading-normal m-0">
+                        {agent.description || "Sub-agente especializado personalizado."}
+                      </p>
+                    </div>
 
-                      <div class="settings-v2-sub-agents-card-footer">
-                        <span class="text-[10.5px] font-mono text-slate-500">@{agent.name}</span>
-                        <div class="flex items-center gap-2">
-                          <span
-                            class="settings-v2-chip"
-                            data-tone={isAgentActive(agent.name) ? "green" : "muted"}
-                          >
-                            {isAgentActive(agent.name) ? "Activo" : "Inactivo"}
-                          </span>
-                          <Switch
-                            checked={isAgentActive(agent.name)}
-                            onChange={(checked) => toggleAgent(agent.name, checked)}
-                          />
-                          <button
-                            type="button"
-                            class="settings-v2-sub-agents-card-btn"
-                            onClick={() => startEdit(agent)}
-                            title="Editar este sub-agente"
-                          >
-                            ✏️ Editar
-                          </button>
-                          <button
-                            type="button"
-                            class="settings-v2-sub-agents-card-btn"
-                            onClick={() => {
-                              setName(agent.name)
-                              setDescription(agent.description ?? "")
-                              setPrompt(agent.prompt ?? "")
-                              setColor(agent.color ?? "#3B82F6")
-                              exportAgentMarkdown()
-                            }}
-                            title="Exportar archivo .agent.md"
-                          >
-                            📥
-                          </button>
-                          <button
-                            type="button"
-                            class="settings-v2-sub-agents-card-btn !text-red-400 hover:!text-red-300"
-                            onClick={() => void removeAgent(agent)}
-                            title="Eliminar este sub-agente"
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                      </div>
+                    {/* 3. Modelo */}
+                    <div class="settings-v2-subagents-cell">
+                      <span class="settings-v2-sub-agents-badge settings-v2-sub-agents-badge--accent text-[10.5px]">
+                        {agent.model?.modelID ?? language.t("settings.subAgents.list.model.inherit")}
+                      </span>
+                    </div>
+
+                    {/* 4. Herramientas */}
+                    <div class="settings-v2-subagents-cell">
+                      <span class="settings-v2-sub-agents-badge text-[10.5px]">
+                        {hasRestrictedTools(agent)
+                          ? language.t("settings.subAgents.list.tools.summary", {
+                              count: allowedToolCount(agent),
+                            })
+                          : language.t("settings.subAgents.list.tools.all")}
+                      </span>
+                    </div>
+
+                    {/* 5. Estado */}
+                    <div class="settings-v2-subagents-cell gap-2">
+                      <Switch
+                        checked={isAgentActive(agent.name)}
+                        onChange={(checked) => toggleAgent(agent.name, checked)}
+                      />
+                      <span
+                        class="settings-v2-chip text-[10px]"
+                        data-tone={isAgentActive(agent.name) ? "green" : "muted"}
+                      >
+                        {isAgentActive(agent.name) ? "Activo" : "Inactivo"}
+                      </span>
+                    </div>
+
+                    {/* 6. Acciones */}
+                    <div class="settings-v2-subagents-cell justify-end gap-1.5">
+                      <button
+                        type="button"
+                        class="settings-v2-sub-agents-card-btn text-xs py-1 px-2"
+                        onClick={() => startEdit(agent)}
+                        title="Editar este sub-agente"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        type="button"
+                        class="settings-v2-sub-agents-card-btn text-xs py-1 px-2"
+                        onClick={() => {
+                          setName(agent.name)
+                          setDescription(agent.description ?? "")
+                          setPrompt(agent.prompt ?? "")
+                          setColor(agent.color ?? "#3B82F6")
+                          exportAgentMarkdown()
+                        }}
+                        title="Exportar archivo .agent.md"
+                      >
+                        📥
+                      </button>
+                      <button
+                        type="button"
+                        class="settings-v2-sub-agents-card-btn !text-red-400 hover:!text-red-300 text-xs py-1 px-2"
+                        onClick={() => void removeAgent(agent)}
+                        title="Eliminar este sub-agente"
+                      >
+                        🗑️
+                      </button>
                     </div>
                   </div>
                 )}
               </For>
             </div>
+
             <Show when={pageUserAgents().total > 1}>
               <SettingsPagerV2
                 page={pageUserAgents().page}

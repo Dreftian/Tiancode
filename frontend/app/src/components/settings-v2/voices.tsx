@@ -39,9 +39,10 @@ import { stopAutoSpeak } from "@/utils/auto-speak"
 import { AudioWaveform } from "@/components/audio-waveform"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
+import { SettingsPagerV2 } from "./parts/pager"
 import "./voices.css"
 
-const PAGE_SIZE = 8
+const PAGE_SIZE = 10
 const PROBE_TEXT_EN = "Hello! This is Tiancode speaking."
 const PROBE_TEXT_ES = "Hola, soy la voz de Tiancode en español."
 const voiceProbeKey = (voiceID: string) => `voice:${voiceID}`
@@ -907,28 +908,12 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
                   </Show>
                 </SettingsListV2>
                 <Show when={pages() > 1}>
-                  <div class="settings-v2-voices-pagination">
-                    <ButtonV2
-                      type="button"
-                      variant="ghost"
-                      size="small"
-                      disabled={currentPage() <= 0}
-                      onClick={() => setPage((value) => Math.max(0, value - 1))}
-                    >
-                      {language.t("settings.voices.pagination.prev")}
-                    </ButtonV2>
-                    <span class="settings-v2-voices-pagination-label">
-                      {language.t("settings.voices.pagination.page", { current: currentPage() + 1, total: pages() })}
-                    </span>
-                    <ButtonV2
-                      type="button"
-                      variant="ghost"
-                      size="small"
-                      disabled={currentPage() >= pages() - 1}
-                      onClick={() => setPage((value) => Math.min(pages() - 1, value + 1))}
-                    >
-                      {language.t("settings.voices.pagination.next")}
-                    </ButtonV2>
+                  <div class="mt-3">
+                    <SettingsPagerV2
+                      page={currentPage() + 1}
+                      totalPages={pages()}
+                      onPage={(p) => setPage(p - 1)}
+                    />
                   </div>
                 </Show>
               </Show>

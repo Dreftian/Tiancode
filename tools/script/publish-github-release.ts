@@ -27,30 +27,41 @@ async function main() {
   const owner = "Dreftian"
   const repo = "Tiancode"
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
-  const version = desktopPkg.version || "1.0.12"
+  const version = desktopPkg.version || "1.0.13"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — Estudio de Voces, Galería de Sub-Agentes y Fluidez Total`
-  const body = `## 🚀 Tiancode v${version} — Estudio de Voces, Galería de Sub-Agentes y Fluidez Total
+  const releaseName = `Tiancode v${version} — Hub de Modelos Locales, Vistas en Lista 10x10, GitHub Avanzado y Dictado Nativo`
+  const body = `## 🚀 Tiancode v${version} — Hub de Modelos Locales, Vistas en Lista 10x10, GitHub Avanzado y Dictado Nativo
 
-### 🎙️ Estudio de Voces Femeninas de Alta Fidelidad
-- **Experiencia de Voz Fluida sin Barreras:** Acceso inmediato a síntesis de voz natural y fluida en español sin descargar el modelo local de 1GB de Kokoro (bloque descargable opcional solo al activar el motor neural explícito).
-- **Voces Femeninas Naturales:** Integración de voces premium en español como Natasha Pro, Conversacional, Profesional y Suave mediante síntesis Edge/Windows Neural y Fish Audio S2.1 Pro.
-- **Controles de Estudio:** Ajuste en tiempo real de velocidad (0.75x a 2.0x), Pitch/Tono de voz (Grave, Natural, Agudo), Ganancia de volumen (50% a 120%) y analizador de espectro de onda reactivo a la reproducción de audio.
+### 🖥️ Hub de Modelos Locales de Nueva Generación
+- **Diseño Espacioso de Ancho Completo:** Eliminada la barra lateral comprimida; ahora los modelos se presentan en tarjetas amplias con especificaciones detalladas, selector directo de cuantizaciones (Q4, Q8, FP16) con tamaños reales en disco e indicadores de ajuste en RAM/VRAM.
+- **Categorización Inteligente:** Filtros por Staff Picks, Coding, Razonamiento R1, Modelos Ligeros (<4GB) y Descargados.
+- **Benchmarks y Gestión Directa:** Descarga, activación, benchmarks locales de velocidad y eliminación con un solo clic.
+- **Paginación 10x10:** Navegación fluida de 10 en 10 sin barras de scroll infinitas.
 
-### ⚡ Eliminación Total del Parpadeo en Configuración
-- **Navegación 100% Fluida:** Solución definitiva al problema de parpadeo y artefactos en el fondo del chat al cambiar repetidamente entre pestañas de Configuración (Skills, Sub-Agentes, GitHub, Mascotas).
-- **Aislamiento GPU de Capas:** Aislamiento con \`content-visibility: hidden !important\` y \`contain: strict !important\` que evita repintados innecesarios del compositor de Chromium y retiene los datos en memoria sin reconstrucciones destructivas del DOM.
+### 📋 Vistas en Lista Estructuradas y Paginación 10x10 (SettingsPagerV2)
+- **Sub-Agentes:** Tabla en columnas detallada (Sub-Agente, Rol & Especialidad, Modelo, Herramientas, Estado, Acciones) con paginación de 10x10.
+- **Mascotas:** Lista estructurada con las 13 mascotas oficiales, rasgos y especies, selección instantánea y paginación 10x10.
+- **MCP y Plugins:** Tienda de extensiones/herramientas en lista organizada con paginación 10x10.
+- **Voces:** Catálogo de voces en lista organizada con ecualizador de estudio y paginación 10x10.
 
-### 🤖 Galería Completa de Sub-Agentes y Modal Astra Cósmico
-- **Rejilla Panorámica:** Nueva vista en rejilla responsiva a ancho completo con tarjetas informativas, chips de color y estados de activación en tiempo real.
-- **Modal Flotante Astra Cósmico:** Creación y edición intuitiva en un diálogo flotante de alta gama con paleta de colores, selección de herramientas y soporte para exportar e importar especificaciones \`.agent.md\`.
+### 🐙 Integración con GitHub Pulida y Avanzada
+- **Perfil Enriquecido:** Anillo de estado en línea, métricas dinámicas (Total, Públicos, Privados) y confirmación de permisos (\`repo\`, \`read:user\`).
+- **Creación Directa de Repositorios:** Formulario integrado para crear repositorios públicos o privados en GitHub sin salir de Tiancode.
+- **Filtros y Paginación:** Filtros por visibilidad (Todos, Públicos, Privados), búsqueda en tiempo real y lista paginada de 10 en 10 con acciones de clonado directo y acceso web.
 
-### 🌌 Asistente de Bienvenida Astra y Splash al 95%
-- **Diseño Glass Cósmico:** Asistente de bienvenida rediseñado sin contenedor oscuro de fondo, destacando la tarjeta flotante con halos translúcidos cian e índigo.
-- **Splash Screen de Alta Claridad:** Calibración precisa de opacidades y contraste en el rostro y tipografía "TIANCODE" al 95% de carga para máxima nitidez visual.
+### 🎙️ Micrófono y Dictado Nativo Instantáneo
+- Reconocimiento de voz ASR con modelos ONNX locales listos de inmediato (\`status: ready\`), eliminando la alerta de "Descargando..." al pulsar el botón de dictado.
+
+### ✨ Motor de "Mejorar Input" y Modo Chat x2
+- **Mejorar Input de Alta Fidelidad:** Corrección ortográfica inteligente en español e inglés y prompts técnicos ejecutables sin plantillas robóticas.
+- **Chat x2 Fiel:** Activar el multiplicador x2 conserva íntegramente la variante seleccionada por el usuario sin degradar a \`low\`.
+
+### 🌌 Splash al 95% y Bienvenida Cósmica Astra
+- Corregida la tipografía "TIANCODE" (trazo inferior de la letra 'E') y contraste facial del gato cósmico.
+- Asistente de bienvenida con fondo Astra espacial luminoso sin recuadros oscuros.
 
 ### 🔒 Actualización No Destructiva
-- Todas las configuraciones de usuario, proveedores, claves API, sesiones de chat y herramientas MCP se conservan íntegras tras la actualización.
+- Todas las claves de proveedores, configuraciones, sesiones y herramientas MCP se conservan íntegras tras la actualización.
 
 ### 📦 Descargas
 | Archivo | Tipo | Descripción |
@@ -59,6 +70,7 @@ async function main() {
 | [**Tiancode-portable.exe**](https://github.com/Dreftian/Tiancode/releases/download/${tag}/Tiancode-portable.exe) | Portable Windows | Ejecutable directo sin instalación |
 | [**latest.yml**](https://github.com/Dreftian/Tiancode/releases/download/${tag}/latest.yml) | Metadatos | Registro para el actualizador automático |
 `
+
 
   console.log(`[1/4] Verificando release ${tag} en GitHub...`)
   const headers = {

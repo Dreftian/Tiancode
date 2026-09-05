@@ -122,6 +122,14 @@ export const COMMON_SPELL_MAP: Record<string, string> = {
   "previa": "previa",
   "mascota": "mascota",
   "mascotas": "mascotas",
+  "plusgins": "plugins",
+  "plusgin": "plugin",
+  "aprte": "parte",
+  "cfarpeta": "carpeta",
+  "descangando": "descargando",
+  "tamnbién": "también",
+  "tamnbien": "también",
+  "igualq": "igual que",
   "voz": "voz",
   "voces": "voces",
   "femenina": "femenina",
@@ -377,22 +385,6 @@ export function enhancePromptText(rawText: string, isSpanish: boolean): string {
       if (files.length > 0) {
         sections.push(`\n**Archivos / Módulos en Observación:**\n${files.map((f) => `- \`${f}\``).join("\n")}`)
       }
-      sections.push("\n### 🔍 Hipótesis de Causa Raíz & Puntos Críticos")
-      sections.push(
-        [
-          "- Inspeccionar posibles desincronizaciones de estado reactivo, condiciones de carrera o referencias nulas.",
-          "- Validar el ciclo de vida de componentes y liberación de recursos (procesos, locks o listeners).",
-        ].join("\n"),
-      )
-      sections.push("\n### 🛠️ Directivas de Solución")
-      sections.push(
-        [
-          "- Aplicar una solución quirúrgica y mínima que ataque la causa raíz sin efectos secundarios en otras áreas.",
-          "- Asegurar compatibilidad de tipos TypeScript estricta y manejo explícito de errores.",
-        ].join("\n"),
-      )
-      sections.push("\n### ✅ Criterios de Verificación")
-      sections.push("- Confirmar la resolución del fallo con typecheck limpio y validación de escenarios de borde.")
       return sections.join("\n")
     }
 
@@ -406,16 +398,6 @@ export function enhancePromptText(rawText: string, isSpanish: boolean): string {
       if (files.length > 0) {
         sections.push(`\n**Archivos Afectados:**\n${files.map((f) => `- \`${f}\``).join("\n")}`)
       }
-      sections.push("\n### 📐 Directivas Arquitectónicas")
-      sections.push(
-        [
-          "- **Invariante de Comportamiento:** Preservar intactas las firmas públicas y el comportamiento observable existente.",
-          "- **Desacoplamiento:** Reducir complejidad ciclomática, eliminar duplicación de código y definir límites limpios.",
-          "- **Rendimiento:** Optimizar consumo de recursos, memoria y evitar renders/cálculos innecesarios.",
-        ].join("\n"),
-      )
-      sections.push("\n### 🧪 Verificación de No-Regresión")
-      sections.push("- Validar compilación estricta con `typecheck` y asegurar que todas las suites de prueba sigan pasando.")
       return sections.join("\n")
     }
 
@@ -426,14 +408,6 @@ export function enhancePromptText(rawText: string, isSpanish: boolean): string {
         sections.push("\n**Aspectos Específicos a Evaluar:**")
         sections.push(formattedRequirements.join("\n"))
       }
-      sections.push("\n### ⚖️ Dimensiones de Análisis Requeridas")
-      sections.push(
-        [
-          "- **Trade-offs Técnicos:** Comparar viabilidad, rendimiento, complejidad de adopción y costo de mantenimiento.",
-          "- **Patrones y Buenas Prácticas:** Evaluar estándares de la industria y alternativas recomendadas.",
-          "- **Entregables:** Proporcionar explicaciones claras acompañadas de ejemplos de código idiomáticos y aplicables.",
-        ].join("\n"),
-      )
       return sections.join("\n")
     }
 
@@ -447,14 +421,6 @@ export function enhancePromptText(rawText: string, isSpanish: boolean): string {
     if (files.length > 0) {
       sections.push(`\n**Archivos / Módulos Involucrados:**\n${files.map((f) => `- \`${f}\``).join("\n")}`)
     }
-    sections.push("\n### 🛠️ Directivas de Ejecución para el Agente")
-    sections.push(
-      [
-        "- Implementar una solución quirúrgica, modular y sin efectos secundarios en el resto del proyecto.",
-        "- Respetar contratos existentes, tipado TypeScript estricto y manejo defensivo de errores.",
-        "- Validar compilación limpia (typecheck), ejecución de pruebas y verificación de no-regresión.",
-      ].join("\n"),
-    )
     return sections.join("\n")
   }
 
@@ -471,22 +437,6 @@ export function enhancePromptText(rawText: string, isSpanish: boolean): string {
     if (files.length > 0) {
       sections.push(`\n**Target Files:**\n${files.map((f) => `- \`${f}\``).join("\n")}`)
     }
-    sections.push("\n### 🔍 Root Cause Hypotheses & Key Inspection Points")
-    sections.push(
-      [
-        "- Inspect reactive state desynchronizations, race conditions, or unhandled null/undefined values.",
-        "- Verify lifecycle cleanup of resources, background tasks, or active locks.",
-      ].join("\n"),
-    )
-    sections.push("\n### 🛠️ Solution Directives")
-    sections.push(
-      [
-        "- Apply a surgical, minimal fix addressing the root cause without touching unrelated modules.",
-        "- Ensure strict TypeScript type safety and defensive error boundaries.",
-      ].join("\n"),
-    )
-    sections.push("\n### ✅ Verification Criteria")
-    sections.push("- Confirm bug resolution with clean typecheck and zero regression.")
     return sections.join("\n")
   }
 
@@ -500,16 +450,6 @@ export function enhancePromptText(rawText: string, isSpanish: boolean): string {
     if (files.length > 0) {
       sections.push(`\n**Target Files:**\n${files.map((f) => `- \`${f}\``).join("\n")}`)
     }
-    sections.push("\n### 📐 Architectural Directives")
-    sections.push(
-      [
-        "- **Behavioral Invariant:** Keep public API signatures and observable behavior strictly preserved.",
-        "- **Decoupling:** Reduce cyclomatic complexity, remove duplication, and isolate boundaries.",
-        "- **Efficiency:** Eliminate unnecessary re-renders or allocations.",
-      ].join("\n"),
-    )
-    sections.push("\n### 🧪 Non-Regression Verification")
-    sections.push("- Validate with strict typecheck and ensure all existing test suites pass.")
     return sections.join("\n")
   }
 
@@ -520,14 +460,6 @@ export function enhancePromptText(rawText: string, isSpanish: boolean): string {
       sections.push("\n**Specific Dimensions to Evaluate:**")
       sections.push(formattedRequirements.join("\n"))
     }
-    sections.push("\n### ⚖️ Required Analysis")
-    sections.push(
-      [
-        "- **Technical Trade-offs:** Compare feasibility, performance, adoption complexity, and maintenance overhead.",
-        "- **Patterns & Best Practices:** Assess industry standards and clean design patterns.",
-        "- **Deliverables:** Provide structured insights with idiomatic, actionable code snippets.",
-      ].join("\n"),
-    )
     return sections.join("\n")
   }
 
@@ -541,13 +473,5 @@ export function enhancePromptText(rawText: string, isSpanish: boolean): string {
   if (files.length > 0) {
     sections.push(`\n**Target Files / Modules:**\n${files.map((f) => `- \`${f}\``).join("\n")}`)
   }
-  sections.push("\n### 🛠️ Agent Execution Directives")
-  sections.push(
-    [
-      "- Apply a surgical, modular implementation without introducing regressions or side effects.",
-      "- Ensure strict TypeScript type safety, clean contracts, and defensive error handling.",
-      "- Verify with clean compilation (typecheck), test execution, and behavior verification.",
-    ].join("\n"),
-  )
   return sections.join("\n")
 }
