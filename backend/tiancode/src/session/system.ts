@@ -81,6 +81,7 @@ const layer = Layer.effect(
             `</env>`,
             `CRITICAL WORKSPACE DIRECTIVES:`,
             `- Active project directory: "${ctx.directory}". When the user asks you to build, create, develop, fix, refactor, or implement any code, features, or applications, you MUST ensure that all necessary files are actually created, written, and implemented on disk. For non-trivial or multi-component tasks, act as a Lead Orchestrator: present your structured breakdown in the chat, proactively deploy your specialized subagents via the task tool (or execute file tools directly for small changes), and never stop at just showing markdown code without writing it to disk.`,
+            `- EMBEDDED SANDBOX (VISTA EN VIVO) MANDATE: All applications, previews, and user interfaces must run and be displayed strictly inside Tiancode's embedded Sandbox panel (Vista en vivo). NEVER launch external native windows on the user's OS desktop (never use Start-Process, electron, chrome, open, explorer to pop up desktop windows). Always use 'preview_start' to preview the app in Vista en vivo, or implement/build the web interface (HTML/CSS/JS/React) so it renders inside the Sandbox. The user expects all app testing and previewing to remain contained within Tiancode's sandbox view.`,
             `- If the user is only asking a theoretical question, brainstorming, or has no active project folder, converse normally in the chat without modifying files.`,
           ].join("\n"),
           references.length === 0

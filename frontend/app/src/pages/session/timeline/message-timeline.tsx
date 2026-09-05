@@ -25,6 +25,7 @@ import {
   MessageDivider,
   Part as MessagePart,
   partDefaultOpen,
+  SubagentGroup,
   type UserActions,
 } from "@tiancode-ai/session-ui/message-part"
 import { DiffChanges } from "@tiancode-ai/ui/diff-changes"
@@ -1074,6 +1075,32 @@ export function MessageTimeline(props: {
           parts={parts()}
           open={open()}
           onOpenChange={(value) => setToolOpen(contextOpenKey(), value)}
+          busy={
+            workingTurn(row().userMessageID) && lastAssistantGroupKey().get(row().userMessageID) === row().group.key
+          }
+          onSizeChange={onSizeChange}
+        />
+      )
+    }
+
+    if (row().group.type === "subagents") {
+      const parts = createMemo(() => {
+        const group = row().group
+        if (group.type !== "subagents") return emptyTools
+        return group.refs
+          .map((ref) => getMsgPart(ref.messageID, ref.partID))
+          .filter((part): part is ToolPart => part?.type === "tool")
+      })
+      const subagentsOpenKey = () => `subagents:${row().group.key}`
+      const open = createMemo(() => {
+        return toolOpen[subagentsOpenKey()] ?? true
+      })
+
+      return (
+        <SubagentGroup
+          parts={parts()}
+          open={open()}
+          onOpenChange={(value) => setToolOpen(subagentsOpenKey(), value)}
           busy={
             workingTurn(row().userMessageID) && lastAssistantGroupKey().get(row().userMessageID) === row().group.key
           }

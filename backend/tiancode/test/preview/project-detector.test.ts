@@ -201,4 +201,35 @@ describe("detectProject", () => {
       workingDirectory: "site",
     })
   })
+
+  test("serves static web assets in sandbox for desktop/Electron projects without web dev script", async () => {
+    await using tmp = await tmpdir()
+    await Bun.write(
+      path.join(tmp.path, "package.json"),
+      JSON.stringify({
+        name: "test-electron-app",
+        scripts: {
+          start: "node scripts/build.mjs && electron .",
+          dev: "node scripts/build.mjs && electron . --dev",
+          build: "node scripts/build.mjs",
+        },
+        devDependencies: {
+          electron: "^37.0.0",
+        },
+      }),
+    )
+    await Bun.write(
+      path.join(tmp.path, "dist", "index.html"),
+      "<!doctype html><html><body><h1>Electron App UI</h1></body></html>",
+    )
+
+    expect(await detectProject(tmp.path)).toEqual({
+      framework: "html",
+      packageManager: "static",
+      script: "",
+      port: 4173,
+      entry: "index.html",
+      workingDirectory: "dist",
+    })
+  })
 })

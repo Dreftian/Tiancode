@@ -27,36 +27,22 @@ async function main() {
   const owner = "Dreftian"
   const repo = "Tiancode"
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
-  const version = desktopPkg.version || "1.0.21"
+  const version = desktopPkg.version || "1.0.25"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — AgentShield Security, Sub-Agentes de Élite ECC, Motor RTK (-80% Tokens) y Soporte GPT-6 Astra`
-  const body = `## 🚀 Tiancode v${version} — AgentShield, Sub-Agentes de Élite ECC, Motor RTK y Soporte GPT-6 Astra
+  const releaseName = `Tiancode v${version} — Rediseño Compacto de Sub-Agentes (Estilo Claude/Codex) y Sandbox Embebido Total`
+  const body = `## 🚀 Tiancode v${version} — Sub-Agentes Compactos (Claude/Codex) y Sandbox Embebido Total
 
-### 🛡️ AgentShield Security Engine
-- **Protección Proactiva de Sistema:** Detección y contención de comandos destructivos (\`rm -rf /\`, \`rmdir /s /q c:\\\`, formateo de volúmenes o manipulación del registro).
-- **Prevención de Fuga de Secretos:** Bloqueo y advertencias ante intentos de exponer archivos \`.env\`, claves privadas SSH (\`id_rsa\`, \`id_ed25519\`) o tokens de nube (AWS, GCP, GitHub).
-- **Defensa ante Ejecución Remota Insegura:** Alertas ante scripts remotos canalizados a shells sin verificación (\`curl | sh\`, \`iwr | iex\`).
-- **Integración Nativa en Terminal Bash:** Alertas contextuales inyectadas para guiar al modelo a reconsiderar comandos de alto riesgo sin romper el flujo.
+### 👥 Rediseño de Sub-Agentes de Élite (Estilo Claude Desktop & Codex Desktop)
+- **Contenedor Agrupado Elegante:** Todos los sub-agentes ejecutados en paralelo o secuencia se agrupan en una tarjeta unificada con diseño minimalista oscuro, eliminando marcos gigantes y bordes saturados.
+- **Filas Compactas de ~36px:** Cada sub-agente muestra su avatar de 20px, nombre, badge de especialidad (TDD, DevSecOps, Docs, etc.), resumen de tarea truncado con cero desbordamiento visual y botón directo "Abrir ↗".
+- **Indicadores de Estado en Vivo:** Chips de resumen en la cabecera (\`X en ejecución\`, \`✓ Y listos\`, \`⚠ Z errores\`) y acordeón colapsable para inspeccionar la salida cuando se desee.
+- **Reconciliación de Línea de Tiempo Fluida:** Estabilidad visual durante el streaming sin parpadeos ni solapamientos de tarjetas en el chat.
 
-### 🧪 Sub-Agentes de Élite Integrados (Arquitectura ECC)
-- **🧪 TDD Specialist:** Arquitecto Test-First con ciclo estricto Red-Green-Refactor. Pruebas antes de código de producción.
-- **🔍 Code Reviewer:** Auditoría de calidad, legibilidad, seguridad y estándares en contexto fresco.
-- **🛡️ AgentShield Sentinel:** Centinela de ciberseguridad, análisis estático de dependencias y principios OWASP.
-- **🔧 Build Repair Specialist:** Diagnóstico y reparación quirúrgica de fallos de compilación, linters y tipos TypeScript sin modificar lógica de negocio.
-
-### ⚡ Motor Nativo de Reducción de Tokens CLI (Estilo RTK)
-- **Ahorro del 60% al 90% en Tokens de Terminal:** Módulo \`OutputDistiller\` que limpia ruido ANSI, barras de progreso y deduplica líneas repetidas en comandos \`git\`, \`test\` y compiladores.
-- **Modo Failure Focus & Fail-Safe:** Aislamiento quirúrgico de fallos en tests ignorando pruebas exitosas y ruido de \`node_modules/\`. Preservación del 100% de la salida en errores no reconocidos.
-- **Arquitectura de Salida Dual:** Salida compacta para el LLM a máxima velocidad y registro completo para el usuario.
-
-### 🤖 Soporte de Versiones Enteras GPT y GPT-6 Astra (OpenCode v1.18.29)
-- **Filtrado OAuth en Codex:** Reconocimiento de versiones enteras (\`gpt-6\`, \`gpt-6-astra\`, \`gpt-7\`) en la integración de OpenAI Plus/Pro.
-- **Opciones de Razonamiento:** Configuración optimizada de razonamiento cifrado para familias GPT-5 y GPT-6.
-
-### 🌳 Mejoras de la Suite: Swarm Hierarchy Tree, Whisper Offline y Hugging Face Hub
-- **Árbol de Recursión RLM:** Visualización jerárquica de la arquitectura de enjambre en tiempo real.
-- **Dictado por Voz Nativo:** Whisper offline sin fallos de runtime y con detección automática de micrófonos de PC.
-- **Hugging Face Hub Autónomo:** Motor de inferencia nativo de Tiancode (\`llama-server.exe\` integrado) sin requerir Ollama ni LM Studio.
+### 🛡️ Sandbox Embebido Total (Vista en Vivo Sin Ventanas en el Escritorio)
+- **Cero Ventanas Flotantes en Windows:** Las aplicaciones creadas o ejecutadas (incluyendo Electron, Tauri, frameworks híbridos y webs estáticas) se ejecutan y visualizan exclusivamente dentro del panel derecho "Vista en vivo" (Sandbox) de Tiancode.
+- **Detección Automática de Activos Web en Proyectos de Escritorio:** En proyectos Electron o GUI que poseen archivos HTML (\`dist/index.html\`, \`start.html\`, etc.), Tiancode sirve la interfaz web directamente mediante su servidor estático interno con recarga en tiempo real.
+- **Entorno Embebido con Mock de Electron:** Inyección automática de mocks de \`window.electron\` (\`ipcRenderer\`) y \`process\` para que las aplicaciones de escritorio se rendericen interactivamente en el Sandbox sin fallos de API.
+- **Guardia Preventiva de Shell Reforzada:** Detección y bloqueo de comandos de consola que intentan lanzar procesos externos (\`electron .\`, \`Start-Process\`, etc.), redirigiendo el flujo a \`preview_start\` dentro del Sandbox.
 
 ### 🔒 Actualización 100% No Destructiva
 - Todas tus claves de API de proveedores, configuraciones, sesiones, backups y servidores MCP se preservan intactos.

@@ -624,12 +624,12 @@ export const ShellTool = Tool.define(
                 return {
                   title: "Vista previa externa bloqueada",
                   metadata: {
-                    output: "Usa preview_start: Tiancode mostrará la URL local dentro de Vista en vivo.",
+                    output: "Usa preview_start: Tiancode mostrará la aplicación dentro de Vista en vivo (Sandbox).",
                     exit: null,
                     truncated: false,
                   },
                   output:
-                    "No se abrió un navegador externo para una URL local de preview. Usa preview_start y revisa Vista en vivo; solo abre un navegador externo si el usuario lo pide explícitamente.",
+                    "No se abrió un navegador ni ventana externa en el escritorio. Todas las aplicaciones deben ejecutarse y visualizarse dentro del Sandbox (Vista en vivo) de Tiancode. Usa preview_start y revisa el panel de Vista en vivo; nunca abras ventanas en el escritorio del sistema operativo.",
                 }
               }
               const instanceCtx = yield* InstanceState.context

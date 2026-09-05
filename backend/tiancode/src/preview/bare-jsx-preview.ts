@@ -299,7 +299,12 @@ async function handleStaticRequest(
       return
     }
 
-    const index = resolveProjectFile(directory, "index.html")
+    const index =
+      resolveProjectFile(directory, "index.html") ??
+      resolveProjectFile(directory, "start.html") ??
+      resolveProjectFile(directory, "app.html") ??
+      resolveProjectFile(directory, "home.html") ??
+      resolveProjectFile(directory, "main.html")
     const requested = url.pathname === "/" ? index : resolveProjectFile(directory, url.pathname)
     const file = requested ?? (!extname(url.pathname) && !url.pathname.split("/").some((part) => part.startsWith(".")) ? index : null)
     if (!file) {

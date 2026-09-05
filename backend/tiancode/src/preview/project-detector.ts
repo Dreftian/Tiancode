@@ -602,11 +602,83 @@ async function detectSingleDirectory(dir: string, rootDir: string): Promise<Dete
   // abra ventanas de escritorio separadas en el sistema del usuario.
   const standardScript = DEV_SCRIPTS.find((key) => typeof scripts[key] === "string")
   const standardCmd = standardScript ? String(scripts[standardScript]) : ""
-  const isDesktop = standardCmd && DESKTOP_RUNNER_RE.test(standardCmd)
+  const isElectron = Boolean(deps.electron || (pkg.devDependencies as Record<string, unknown> | undefined)?.electron)
+  const isDesktop = Boolean((standardCmd && DESKTOP_RUNNER_RE.test(standardCmd)) || isElectron)
 
   let script: string | undefined
   if (isDesktop) {
-    script = WEB_DEV_SCRIPTS.find((key) => typeof scripts[key] === "string") ?? standardScript
+    script = WEB_DEV_SCRIPTS.find((key) => typeof scripts[key] === "string")
+    if (!script) {
+      // Si es un proyecto de escritorio (como Electron o Tauri) sin script web dedicado,
+      // servimos la interfaz web (dist/index.html, index.html, start.html, etc.) en el Sandbox
+      // de Tiancode para que no se abran ventanas flotantes en el escritorio de Windows.
+      const distIndex = existsSync(join(dir, "dist", "index.html"))
+        ? "index.html"
+        : existsSync(join(dir, "dist", "start.html"))
+          ? "start.html"
+          : null
+      if (distIndex) {
+        return {
+          framework: "html",
+          packageManager: "static",
+          script: "",
+          port: FRAMEWORK_PORTS.html,
+          entry: distIndex,
+          workingDirectory: relDir !== "." ? join(relDir, "dist") : "dist",
+        }
+      }
+
+      const rootHtml = existsSync(join(dir, "index.html"))
+        ? "index.html"
+        : existsSync(join(dir, "start.html"))
+          ? "start.html"
+          : existsSync(join(dir, "app.html"))
+            ? "app.html"
+            : null
+      if (rootHtml) {
+        return {
+          framework: "html",
+          packageManager: "static",
+          script: "",
+          port: FRAMEWORK_PORTS.html,
+          entry: rootHtml,
+          ...(relDir !== "." ? { workingDirectory: relDir } : {}),
+        }
+      }
+
+      if (existsSync(join(dir, "build", "index.html"))) {
+        return {
+          framework: "html",
+          packageManager: "static",
+          script: "",
+          port: FRAMEWORK_PORTS.html,
+          entry: "index.html",
+          workingDirectory: relDir !== "." ? join(relDir, "build") : "build",
+        }
+      }
+
+      if (existsSync(join(dir, "public", "index.html"))) {
+        return {
+          framework: "html",
+          packageManager: "static",
+          script: "",
+          port: FRAMEWORK_PORTS.html,
+          entry: "index.html",
+          workingDirectory: relDir !== "." ? join(relDir, "public") : "public",
+        }
+      }
+
+      if (typeof scripts.build === "string") {
+        return {
+          framework: "html",
+          packageManager: "static",
+          script: "",
+          port: FRAMEWORK_PORTS.html,
+          entry: "index.html",
+          workingDirectory: relDir !== "." ? join(relDir, "dist") : "dist",
+        }
+      }
+    }
   } else {
     script = standardScript ?? WEB_DEV_SCRIPTS.find((key) => typeof scripts[key] === "string")
   }

@@ -411,6 +411,13 @@ export function LivePreview(props: {
             isSandbox: true,
           }
         }
+        if (!win.process) {
+          win.process = {
+            platform: "win32",
+            versions: { electron: "37.0.0", chrome: "130.0.0", node: "22.0.0" },
+            env: {},
+          }
+        }
         if (!win.ventd) {
           win.ventd = {
             getState: async () => ({ connection: "idle", config: {} }),
@@ -1109,13 +1116,13 @@ export function LivePreview(props: {
                     </span>
                     <div>
                       <div class="flex items-center gap-2">
-                        <span class="text-13-medium text-text-base">Aplicación Nativa de Windows</span>
+                        <span class="text-13-medium text-text-base">Entorno Desktop Sandbox</span>
                         <span class="rounded bg-cyan-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-cyan-300">
                           {devServer()?.framework || "Desktop GUI"}
                         </span>
                       </div>
                       <p class="text-11-regular text-text-weak">
-                        Esta aplicación se ejecuta en una ventana nativa de tu sistema operativo Windows.
+                        Aplicación en ejecución contenida en segundo plano sin ventanas externas en el escritorio.
                       </p>
                     </div>
                   </div>
@@ -1133,7 +1140,7 @@ export function LivePreview(props: {
                     />
                     <span class="text-11-medium text-text-weak">
                       {devServer()?.status === "ready"
-                        ? "En ejecución en Windows"
+                        ? "En ejecución (Sandbox)"
                         : devServer()?.status === "starting"
                           ? "Iniciando proceso..."
                           : devServer()?.status === "error"

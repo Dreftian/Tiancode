@@ -5,7 +5,7 @@
 // salir del sidecar.
 
 import { execFileSync, spawn, spawnSync, type ChildProcess } from "node:child_process"
-import { existsSync, readdirSync } from "node:fs"
+import { existsSync, readFileSync, readdirSync } from "node:fs"
 import { dirname, join, resolve } from "node:path"
 import net from "node:net"
 import { startBareJsxPreview, startStaticPreview, type BareJsxPreview, type StaticPreview } from "./bare-jsx-preview"
@@ -359,6 +359,17 @@ async function spawnServer(managed: Managed) {
       setStatus(managed, { status: "error", errorMessage: "No hay puertos libres para el servidor estatico." })
       return
     }
+    if (!existsSync(targetDir) && existsSync(join(managed.directory, "package.json"))) {
+      try {
+        const pkgRaw = readFileSync(join(managed.directory, "package.json"), "utf8")
+        const pkg = JSON.parse(pkgRaw) as { scripts?: Record<string, string> }
+        if (pkg.scripts?.build) {
+          spawnSync("npm", ["run", "build"], { cwd: managed.directory, windowsHide: true, shell: true })
+        }
+      } catch {
+        // ignore build error
+      }
+    }
     try {
       const preview = await startStaticPreview(targetDir, localPort)
       managed.staticPreview = preview
@@ -369,10 +380,12 @@ async function spawnServer(managed: Managed) {
         managed.staticPreview = null
         if (managed.state.status === "starting" || managed.state.status === "ready") setStatus(managed, { status: "stopped" })
       })
-      if (await respondsToHttp(preview.url)) {
-        setStatus(managed, { url: preview.url, port: localPort, status: "ready", errorMessage: null })
+      const entrySuffix = managed.detected.entry && managed.detected.entry !== "index.html" ? `/${managed.detected.entry}` : ""
+      const fullUrl = `${preview.url}${entrySuffix}`
+      if (await respondsToHttp(fullUrl)) {
+        setStatus(managed, { url: fullUrl, port: localPort, status: "ready", errorMessage: null })
       } else {
-        beginReadinessCheck(managed, preview.url, localPort, "La vista previa estatica no respondio por HTTP.")
+        beginReadinessCheck(managed, fullUrl, localPort, "La vista previa estatica no respondio por HTTP.")
       }
       return
     } catch (error) {
@@ -519,7 +532,7 @@ async function spawnServer(managed: Managed) {
     env: scrubEnv(),
     shell: useShell,
     detached: !isWin,
-    windowsHide: !isDesktop,
+    windowsHide: true,
     stdio: ["ignore", "pipe", "pipe"],
   })
 

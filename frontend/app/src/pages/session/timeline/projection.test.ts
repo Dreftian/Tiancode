@@ -17,8 +17,33 @@ const context = (key: string, partIDs: string[], userMessageID = "user-1") =>
 const user = (userMessageID = "user-1") => new TimelineRow.UserMessage({ userMessageID, anchor: true })
 const keys = (rows: TimelineRow.TimelineRow[]) => rows.map(TimelineRow.key)
 
+const subagent = (key: string, partIDs: string[], userMessageID = "user-1") =>
+  new TimelineRow.AssistantPart({
+    userMessageID,
+    group: {
+      key,
+      type: "subagents",
+      refs: partIDs.map((partID) => ({ messageID: "assistant-1", partID })),
+    } satisfies PartGroup,
+    previousAssistantPart: false,
+  })
+
 describe("reuseTimelineRows", () => {
   test.each([
+    {
+      name: "reuses an unchanged subagents group",
+      previous: [subagent("subagents:a", ["a", "b"])],
+      rows: [subagent("subagents:a", ["a", "b"])],
+      expected: ["assistant-part:user-1:subagents:a"],
+      reused: [[0, 0]],
+    },
+    {
+      name: "preserves the subagents group key when a member is appended",
+      previous: [subagent("subagents:a", ["a"])],
+      rows: [subagent("subagents:a", ["a", "b"])],
+      expected: ["assistant-part:user-1:subagents:a"],
+      reused: [],
+    },
     {
       name: "reuses an unchanged context group",
       previous: [context("context:a", ["a", "b"])],

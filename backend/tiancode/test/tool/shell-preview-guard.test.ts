@@ -26,6 +26,15 @@ describe("opensLocalPreviewOutsideTiancode", () => {
     expect(opensLocalPreviewOutsideTiancode("yarn start --open")).toBe(true)
   })
 
+  test("blocks native desktop app launchers to keep previews inside sandbox", () => {
+    expect(opensLocalPreviewOutsideTiancode("electron .")).toBe(true)
+    expect(opensLocalPreviewOutsideTiancode("npx electron .")).toBe(true)
+    expect(opensLocalPreviewOutsideTiancode("node_modules\\.bin\\electron.cmd .")).toBe(true)
+    expect(opensLocalPreviewOutsideTiancode("Start-Process node_modules\\electron\\dist\\electron.exe")).toBe(true)
+    expect(opensLocalPreviewOutsideTiancode("Start-Process app.exe")).toBe(true)
+    expect(opensLocalPreviewOutsideTiancode("tauri dev")).toBe(true)
+  })
+
   test("keeps local server and ordinary URL commands usable", () => {
     expect(opensLocalPreviewOutsideTiancode("python -m http.server 4173 --bind 127.0.0.1")).toBe(false)
     expect(opensLocalPreviewOutsideTiancode("curl http://127.0.0.1:4173/health")).toBe(false)

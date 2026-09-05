@@ -676,6 +676,11 @@ export type PartGroup =
       type: "context"
       refs: PartRef[]
     }
+  | {
+      key: string
+      type: "subagents"
+      refs: PartRef[]
+    }
 
 function sameRef(a: PartRef, b: PartRef) {
   return a.messageID === b.messageID && a.partID === b.partID
@@ -689,9 +694,17 @@ function sameGroup(a: PartGroup, b: PartGroup) {
     if (b.type !== "part") return false
     return sameRef(a.ref, b.ref)
   }
-  if (b.type !== "context") return false
-  if (a.refs.length !== b.refs.length) return false
-  return a.refs.every((ref, i) => sameRef(ref, b.refs[i]!))
+  if (a.type === "context") {
+    if (b.type !== "context") return false
+    if (a.refs.length !== b.refs.length) return false
+    return a.refs.every((ref, i) => sameRef(ref, b.refs[i]!))
+  }
+  if (a.type === "subagents") {
+    if (b.type !== "subagents") return false
+    if (a.refs.length !== b.refs.length) return false
+    return a.refs.every((ref, i) => sameRef(ref, b.refs[i]!))
+  }
+  return false
 }
 
 export function sameGroups(a: readonly PartGroup[] | undefined, b: readonly PartGroup[] | undefined) {
@@ -703,34 +716,62 @@ export function sameGroups(a: readonly PartGroup[] | undefined, b: readonly Part
 
 export function groupParts(parts: { messageID: string; part: PartType }[]) {
   const result: PartGroup[] = []
-  let start = -1
+  let contextStart = -1
+  let subagentStart = -1
 
-  const flush = (end: number) => {
-    if (start < 0) return
-    const first = parts[start]
+  const flushContext = (end: number) => {
+    if (contextStart < 0) return
+    const first = parts[contextStart]
     const last = parts[end]
     if (!first || !last) {
-      start = -1
+      contextStart = -1
       return
     }
     result.push({
       key: `context:${first.part.id}`,
       type: "context",
-      refs: parts.slice(start, end + 1).map((item) => ({
+      refs: parts.slice(contextStart, end + 1).map((item) => ({
         messageID: item.messageID,
         partID: item.part.id,
       })),
     })
-    start = -1
+    contextStart = -1
+  }
+
+  const flushSubagents = (end: number) => {
+    if (subagentStart < 0) return
+    const first = parts[subagentStart]
+    const last = parts[end]
+    if (!first || !last) {
+      subagentStart = -1
+      return
+    }
+    result.push({
+      key: `subagents:${first.part.id}`,
+      type: "subagents",
+      refs: parts.slice(subagentStart, end + 1).map((item) => ({
+        messageID: item.messageID,
+        partID: item.part.id,
+      })),
+    })
+    subagentStart = -1
   }
 
   parts.forEach((item, index) => {
     if (isContextGroupTool(item.part)) {
-      if (start < 0) start = index
+      flushSubagents(index - 1)
+      if (contextStart < 0) contextStart = index
       return
     }
 
-    flush(index - 1)
+    if (isSubagentTool(item.part)) {
+      flushContext(index - 1)
+      if (subagentStart < 0) subagentStart = index
+      return
+    }
+
+    flushContext(index - 1)
+    flushSubagents(index - 1)
     result.push({
       key: `part:${item.messageID}:${item.part.id}`,
       type: "part",
@@ -741,7 +782,8 @@ export function groupParts(parts: { messageID: string; part: PartType }[]) {
     })
   })
 
-  flush(parts.length - 1)
+  flushContext(parts.length - 1)
+  flushSubagents(parts.length - 1)
   return result
 }
 
@@ -834,6 +876,28 @@ export function AssistantParts(props: {
                 )
               })()}
             </Match>
+            <Match when={entryType() === "subagents"}>
+              {(() => {
+                const parts = createMemo(
+                  () => {
+                    const entry = entryAccessor()
+                    if (entry.type !== "subagents") return emptyTools
+                    return entry.refs
+                      .map((ref) => part().get(ref.messageID)?.get(ref.partID))
+                      .filter((part): part is ToolPart => !!part && isSubagentTool(part))
+                  },
+                  emptyTools,
+                  { equals: same },
+                )
+                const busy = createMemo(() => props.working && last() === entryAccessor().key)
+
+                return (
+                  <Show when={parts().length > 0}>
+                    <SubagentGroup parts={parts()} busy={busy()} />
+                  </Show>
+                )
+              })()}
+            </Match>
             <Match when={entryType() === "part"}>
               {(() => {
                 const message = createMemo(() => {
@@ -876,6 +940,10 @@ export function AssistantParts(props: {
 
 function isContextGroupTool(part: PartType): part is ToolPart {
   return part.type === "tool" && CONTEXT_GROUP_TOOLS.has(part.tool)
+}
+
+function isSubagentTool(part: PartType): part is ToolPart {
+  return part.type === "tool" && part.tool === "task"
 }
 
 function contextToolDetail(part: ToolPart): string | undefined {
@@ -1070,6 +1138,27 @@ export function AssistantMessageDisplay(props: {
                 )
               })()}
             </Match>
+            <Match when={entryType() === "subagents"}>
+              {(() => {
+                const parts = createMemo(
+                  () => {
+                    const entry = entryAccessor()
+                    if (entry.type !== "subagents") return emptyTools
+                    return entry.refs
+                      .map((ref) => part().get(ref.partID))
+                      .filter((part): part is ToolPart => !!part && isSubagentTool(part))
+                  },
+                  emptyTools,
+                  { equals: same },
+                )
+
+                return (
+                  <Show when={parts().length > 0}>
+                    <SubagentGroup parts={parts()} />
+                  </Show>
+                )
+              })()}
+            </Match>
             <Match when={entryType() === "part"}>
               {(() => {
                 const item = createMemo(() => {
@@ -1208,6 +1297,289 @@ export function ContextToolGroup(props: {
         </div>
       </Collapsible.Content>
     </Collapsible>
+  )
+}
+
+export function SubagentGroup(props: {
+  parts: ToolPart[]
+  busy?: boolean
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  onSizeChange?: () => void
+}) {
+  const [localOpen, setLocalOpen] = createSignal(true)
+  const open = () => props.open ?? localOpen()
+  const handleOpenChange = (value: boolean) => {
+    if (props.open === undefined) setLocalOpen(value)
+    props.onOpenChange?.(value)
+    props.onSizeChange?.()
+  }
+
+  const runningCount = createMemo(
+    () => props.parts.filter((p) => p.state.status === "pending" || p.state.status === "running").length,
+  )
+  const completedCount = createMemo(
+    () => props.parts.filter((p) => p.state.status === "completed").length,
+  )
+  const errorCount = createMemo(
+    () => props.parts.filter((p) => p.state.status === "error").length,
+  )
+  const totalCount = () => props.parts.length
+  const isSingle = () => props.parts.length === 1
+
+  return (
+    <div
+      data-component="subagent-group"
+      data-timeline-part-ids={props.parts.map((p) => p.id).join(",")}
+      data-single={isSingle() ? "true" : undefined}
+    >
+      <Show
+        when={!isSingle()}
+        fallback={
+          <SubagentRow part={props.parts[0]!} standalone onSizeChange={props.onSizeChange} />
+        }
+      >
+        <Collapsible
+          open={open()}
+          onOpenChange={handleOpenChange}
+          class="subagent-group-collapsible"
+        >
+          <Collapsible.Trigger class="subagent-group-header">
+            <div class="subagent-group-header-left">
+              <span class="subagent-group-icon">
+                <Icon name="brain" size="small" />
+              </span>
+              <span class="subagent-group-title">
+                Sub-agentes
+                <span class="subagent-group-count">({totalCount()})</span>
+              </span>
+              <div class="subagent-group-status-pills">
+                <Show when={runningCount() > 0}>
+                  <span class="subagent-pill subagent-pill-running">
+                    <span class="subagent-pill-dot" />
+                    {runningCount()} en ejecución
+                  </span>
+                </Show>
+                <Show when={completedCount() > 0}>
+                  <span class="subagent-pill subagent-pill-completed">
+                    ✓ {completedCount()} {completedCount() === 1 ? "listo" : "listos"}
+                  </span>
+                </Show>
+                <Show when={errorCount() > 0}>
+                  <span class="subagent-pill subagent-pill-error">
+                    ⚠ {errorCount()} {errorCount() === 1 ? "error" : "errores"}
+                  </span>
+                </Show>
+              </div>
+            </div>
+            <div class="subagent-group-header-right">
+              <span class="subagent-group-arrow">
+                <Icon
+                  name="chevron-down"
+                  size="small"
+                  class={open() ? "rotate-180 transition-transform" : "transition-transform"}
+                />
+              </span>
+            </div>
+          </Collapsible.Trigger>
+          <Collapsible.Content>
+            <div class="subagent-group-list">
+              <For each={props.parts}>
+                {(part) => (
+                  <SubagentRow part={part} onSizeChange={props.onSizeChange} />
+                )}
+              </For>
+            </div>
+          </Collapsible.Content>
+        </Collapsible>
+      </Show>
+    </div>
+  )
+}
+
+export function SubagentRow(props: {
+  part: ToolPart
+  standalone?: boolean
+  onSizeChange?: () => void
+}) {
+  const data = useData()
+  const [copied, setCopied] = createSignal(false)
+  const [showOutput, setShowOutput] = createSignal(false)
+
+  const childSessionId = createMemo(() => {
+    const value = (props.part.state as any)?.metadata?.sessionId
+    if (typeof value === "string" && value) return value
+    return taskSession(props.part.state.input, data.sessionID, data.store.session, data.store.agent)
+  })
+
+  const agent = createMemo(() => taskAgent(props.part.state.input?.subagent_type, data.store.agent))
+  const title = createMemo(() => agent().name ?? (props.part.state.input?.subagent_type as string) ?? "Sub-agente")
+  const tone = createMemo(() => agent().color)
+  const v2Tone = createMemo(() => agent().v2Color)
+
+  const specialistRole = createMemo(() => {
+    const rawType = ((props.part.state.input?.subagent_type as string) ?? "").toLowerCase()
+    const name = (agent().name ?? rawType).toLowerCase()
+    if (name.includes("ui") || name.includes("ux")) return "UI/UX & Frontend"
+    if (name.includes("fullstack")) return "Fullstack & Core"
+    if (name.includes("architect")) return "System Architect"
+    if (name.includes("sec") || name.includes("auditor")) return "DevSecOps & Audit"
+    if (name.includes("qa") || name.includes("tester")) return "QA & E2E Testing"
+    if (name.includes("perf")) return "Performance"
+    if (name.includes("db") || name.includes("database")) return "Database Architect"
+    if (name.includes("doc")) return "Documentation"
+    if (name.includes("explore")) return "Codebase Explorer"
+    return "Especialista"
+  })
+
+  const subtitle = createMemo(() => {
+    const desc = props.part.state.input?.description
+    if (typeof desc === "string" && desc) return desc
+    return childSessionId() ?? ""
+  })
+
+  const status = () => props.part.state.status
+  const isRunning = createMemo(() => status() === "pending" || status() === "running")
+  const isCompleted = createMemo(() => status() === "completed")
+  const isError = createMemo(() => status() === "error")
+
+  const href = createMemo(() => sessionLink(childSessionId(), data.sessionHref))
+  const clickable = createMemo(() => !!(childSessionId() && (data.navigateToSession || href())))
+
+  const rawOutput = createMemo(() => (props.part.state as any)?.output || (props.part.state as any)?.metadata?.output || "")
+  const cleanOutput = createMemo(() => {
+    const raw = rawOutput()
+    if (!raw) return ""
+    const resultMatch = /<task_result>([\s\S]*?)<\/task_result>/.exec(raw)
+    if (resultMatch?.[1]) return resultMatch[1].trim()
+    const errorMatch = /<task_error>([\s\S]*?)<\/task_error>/.exec(raw)
+    if (errorMatch?.[1]) return errorMatch[1].trim()
+    return raw.replace(/<\/?task[^>]*>/g, "").replace(/<\/?summary>/g, "").trim()
+  })
+
+  const openSession = (e?: MouseEvent) => {
+    e?.stopPropagation()
+    const id = childSessionId()
+    if (id && data.navigateToSession) {
+      data.navigateToSession(id)
+    }
+  }
+
+  const toggleOutput = (e: MouseEvent) => {
+    e.stopPropagation()
+    setShowOutput(!showOutput())
+    props.onSizeChange?.()
+  }
+
+  const handleCopy = async (e: MouseEvent) => {
+    e.stopPropagation()
+    const text = cleanOutput()
+    if (!text) return
+    if (await writeClipboard(text)) {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  return (
+    <div
+      data-component="subagent-row"
+      data-status={status()}
+      data-standalone={props.standalone ? "true" : undefined}
+      style={{
+        "--subagent-accent": v2Tone() ?? tone() ?? "#38bdf8",
+      }}
+    >
+      <div
+        class="subagent-row-bar"
+        onClick={() => {
+          if (cleanOutput()) {
+            setShowOutput(!showOutput())
+            props.onSizeChange?.()
+          } else if (clickable()) {
+            openSession()
+          }
+        }}
+      >
+        <div class="subagent-row-left">
+          {/* Status Indicator */}
+          <div class="subagent-status-icon" data-status={status()}>
+            <Show when={isRunning()}>
+              <span class="subagent-spinner-dot" />
+            </Show>
+            <Show when={isCompleted()}>
+              <span class="subagent-check-icon">✓</span>
+            </Show>
+            <Show when={isError()}>
+              <span class="subagent-error-icon">⚠</span>
+            </Show>
+          </div>
+
+          {/* Avatar Icon */}
+          <span class="subagent-avatar">
+            {agent().icon ?? "🤖"}
+          </span>
+
+          {/* Subagent Name */}
+          <span class="subagent-name">{title()}</span>
+
+          {/* Role Pill */}
+          <span class="subagent-role">{specialistRole()}</span>
+
+          {/* Description Preview (Cleanly truncated, no line break or squashing) */}
+          <Show when={subtitle()}>
+            <span class="subagent-desc" title={subtitle()}>
+              {subtitle()}
+            </span>
+          </Show>
+        </div>
+
+        <div class="subagent-row-right" onClick={(e) => e.stopPropagation()}>
+          <Show when={cleanOutput()}>
+            <button
+              type="button"
+              class="subagent-btn subagent-btn-ghost"
+              onClick={toggleOutput}
+              title={showOutput() ? "Ocultar detalles" : "Ver resultado"}
+            >
+              <span>{showOutput() ? "Ocultar" : "Resultado"}</span>
+              <Icon
+                name="chevron-down"
+                size="small"
+                class={showOutput() ? "rotate-180 transition-transform" : "transition-transform"}
+              />
+            </button>
+          </Show>
+          <Show when={clickable()}>
+            <button
+              type="button"
+              class="subagent-btn subagent-btn-primary"
+              onClick={openSession}
+              title="Abrir sesión del sub-agente"
+            >
+              <span>Abrir</span>
+              <Icon name="square-arrow-top-right" size="small" />
+            </button>
+          </Show>
+        </div>
+      </div>
+
+      {/* Output drawer if expanded */}
+      <Show when={showOutput() && cleanOutput()}>
+        <div class="subagent-output-drawer">
+          <div class="subagent-output-bar">
+            <span class="subagent-output-title">Resultado de {title()}</span>
+            <button type="button" class="subagent-btn subagent-btn-ghost" onClick={handleCopy}>
+              <Icon name={copied() ? "check" : "copy"} size="small" />
+              <span>{copied() ? "Copiado" : "Copiar"}</span>
+            </button>
+          </div>
+          <div class="subagent-output-body">
+            <Markdown text={cleanOutput()} />
+          </div>
+        </div>
+      </Show>
+    </div>
   )
 }
 
@@ -2053,185 +2425,18 @@ ToolRegistry.register({
 ToolRegistry.register({
   name: "task",
   render(props) {
-    const data = useData()
-    const i18n = useI18n()
-    const childSessionId = createMemo(() => {
-      const value = props.metadata.sessionId
-      if (typeof value === "string" && value) return value
-      return taskSession(props.input, data.sessionID, data.store.session, data.store.agent)
+    const syntheticPart = () => ({
+      id: props.metadata?.partId ?? `task-${props.sessionID}`,
+      type: "tool" as const,
+      tool: "task" as const,
+      state: {
+        status: props.status,
+        input: props.input,
+        metadata: props.metadata,
+        output: props.output,
+      },
     })
-    const agent = createMemo(() => taskAgent(props.input.subagent_type, data.store.agent))
-    const title = createMemo(() => agent().name ?? i18n.t("ui.tool.agent.default"))
-    const tone = createMemo(() => agent().color)
-    const v2Tone = createMemo(() => agent().v2Color)
-    const subtitle = createMemo(() => {
-      const value =
-        typeof props.input.description === "string" && props.input.description
-          ? props.input.description
-          : childSessionId()
-      if (!value) return value
-      if (props.metadata.background === true) return `${value} (background)`
-      return value
-    })
-    const running = createMemo(() => props.status === "pending" || props.status === "running")
-    const isCompleted = createMemo(() => props.status === "completed")
-    const isError = createMemo(() => props.status === "error")
-
-    const href = createMemo(() => sessionLink(childSessionId(), data.sessionHref))
-    const clickable = createMemo(() => !!(childSessionId() && (data.navigateToSession || href())))
-
-    const [copied, setCopied] = createSignal(false)
-
-    const rawOutput = createMemo(() => props.output || (props.metadata as any)?.output || "")
-    const cleanOutput = createMemo(() => {
-      const raw = rawOutput()
-      if (!raw) return ""
-      const resultMatch = /<task_result>([\s\S]*?)<\/task_result>/.exec(raw)
-      if (resultMatch?.[1]) return resultMatch[1].trim()
-      const errorMatch = /<task_error>([\s\S]*?)<\/task_error>/.exec(raw)
-      if (errorMatch?.[1]) return errorMatch[1].trim()
-      return raw.replace(/<\/?task[^>]*>/g, "").replace(/<\/?summary>/g, "").trim()
-    })
-
-    const handleCopy = async (e: MouseEvent) => {
-      e.stopPropagation()
-      const content = cleanOutput()
-      if (!content) return
-      if (await writeClipboard(content)) {
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
-      }
-    }
-
-    const open = () => {
-      const id = childSessionId()
-      if (!id) return
-      data.navigateToSession?.(id)
-    }
-
-    const navigate = (event: MouseEvent) => {
-      if (!data.navigateToSession) return
-      if (event.button !== 0 || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
-      if ((event.target as HTMLElement)?.closest?.(".task-tool-copy-btn, [data-slot=collapsible-arrow]")) return
-      event.preventDefault()
-      open()
-    }
-    const navigateKey = (event: KeyboardEvent) => {
-      if (!clickable() || href()) return
-      if (event.key !== "Enter" && event.key !== " ") return
-      event.preventDefault()
-      open()
-    }
-
-    const specialistRole = createMemo(() => {
-      const name = agent().name?.toLowerCase() ?? ""
-      if (name.includes("ui") || name.includes("ux")) return "UI/UX & Frontend"
-      if (name.includes("fullstack")) return "Fullstack & Core"
-      if (name.includes("architect")) return "System Architect"
-      if (name.includes("sec") || name.includes("auditor")) return "DevSecOps & Audit"
-      if (name.includes("qa") || name.includes("tester")) return "QA & E2E Testing"
-      if (name.includes("perf")) return "Performance"
-      if (name.includes("db") || name.includes("database")) return "Database Architect"
-      if (name.includes("doc")) return "Documentation"
-      if (name.includes("explore")) return "Codebase Explorer"
-      return "Specialist Subagent"
-    })
-
-    const trigger = () => (
-      <div
-        data-component="task-tool-card"
-        data-running={running() || undefined}
-        data-completed={isCompleted() || undefined}
-        data-error={isError() || undefined}
-        style={{
-          "--task-agent-color": v2Tone() ?? tone() ?? "#38bdf8",
-          "--task-agent-legacy-color": tone() ?? "#38bdf8",
-        }}
-      >
-        <div data-component="task-tool-surface">
-          <span class="task-agent-avatar" style={{ "border-color": v2Tone() ?? tone() ?? "#38bdf8" }}>
-            {agent().icon ?? "🤖"}
-          </span>
-          <div data-slot="basic-tool-tool-info-structured">
-            <div data-slot="basic-tool-tool-info-main">
-              <span data-component="task-tool-title">{title()}</span>
-              <span class="task-agent-specialist-badge">{specialistRole()}</span>
-              <span class="task-agent-status-tag" data-status={props.status}>
-                <Show when={running()}>
-                  <span class="task-agent-pulse-dot" />
-                  Ejecutando
-                </Show>
-                <Show when={isCompleted()}>
-                  <span class="task-agent-check-icon">✓</span>
-                  Listo
-                </Show>
-                <Show when={isError()}>
-                  <span class="task-agent-error-icon">⚠</span>
-                  Error
-                </Show>
-              </span>
-              <Show when={subtitle()}>
-                <span data-slot="basic-tool-tool-subtitle" title={subtitle()}>
-                  {subtitle()}
-                </span>
-              </Show>
-            </div>
-          </div>
-          <div class="task-tool-actions-cluster">
-            <Show when={clickable()}>
-              <div
-                data-component="task-tool-action"
-                role="button"
-                title="Abrir sesión del sub-agente"
-                onClick={navigate}
-              >
-                <span class="task-tool-action-label">Abrir</span>
-                <Icon name="square-arrow-top-right" size="small" />
-              </div>
-            </Show>
-            <Show when={running()}>
-              <span data-component="task-tool-spinner" style={{ color: tone() ?? "var(--icon-interactive-base)" }}>
-                <Show when={newLayout()} fallback={<Spinner />}>
-                  <SessionProgressIndicatorV2
-                    style={{ color: v2Tone() ?? "light-dark(var(--v2-text-text-base), #ffffff)" }}
-                  />
-                </Show>
-              </span>
-            </Show>
-          </div>
-        </div>
-      </div>
-    )
-
-    return (
-      <BasicTool
-        icon="task"
-        status={props.status}
-        trigger={trigger()}
-        hideDetails={!cleanOutput()}
-        allowOpenWhilePending
-        triggerAsLink
-        triggerHref={href()}
-        clickable={clickable()}
-        onTriggerClick={navigate}
-        onTriggerKeyDown={navigateKey}
-      >
-        <Show when={cleanOutput()}>
-          <div data-component="task-tool-expanded-body">
-            <div class="task-tool-expanded-header">
-              <span class="task-tool-expanded-title">Resultado de {title()}</span>
-              <button type="button" class="task-tool-copy-btn" onClick={handleCopy} title="Copiar resultado">
-                <Icon name={copied() ? "check" : "copy"} size="small" />
-                <span>{copied() ? "Copiado" : "Copiar"}</span>
-              </button>
-            </div>
-            <div class="task-tool-output-content">
-              <Markdown text={cleanOutput()} />
-            </div>
-          </div>
-        </Show>
-      </BasicTool>
-    )
+    return <SubagentRow part={syntheticPart() as any} standalone />
   },
 })
 
