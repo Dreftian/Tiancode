@@ -4,6 +4,22 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.24] — 2026-09-05
+### Seguridad, Sub-Agentes de Élite y Compatibilidad
+
+- **AgentShield Security Engine & Presets de Sub-Agentes de Élite (Arquitectura ECC)**:
+  - Creación de `AgentShield` (`backend/core/src/security/agent-shield.ts`), escudo de protección proactiva contra ejecuciones destructivas del sistema (`rm -rf /`, formateo de volúmenes, manipulación del registro), filtrado y bloqueo de fugas de secretos (`.env`, claves privadas SSH `id_rsa`, tokens de AWS/GCP/GitHub) y prevención de ejecuciones remotas inseguras sin verificación previa (`curl | sh`, `iwr | iex`).
+  - Integración nativa de advertencias de seguridad de AgentShield en la herramienta `bash` (`backend/core/src/tool/bash.ts`), guiando al agente a reconsiderar comandos de alto riesgo sin romper el flujo de trabajo.
+  - Nuevos Sub-Agentes de Élite integrados inspirados en ECC (Agent Harness Operating System):
+    - 🧪 **TDD Specialist** (Arquitecto Test-First): ciclo Red-Green-Refactor estricto, pruebas antes de producción.
+    - 🔍 **Code Reviewer** (Revisor de Código en Contexto Fresco): auditoría de calidad, legibilidad, seguridad y estándares.
+    - 🛡️ **AgentShield Sentinel** (Centinela de Ciberseguridad): auditoría estricta de OWASP Top 10, permisos y contención de dependencias.
+    - 🔧 **Build Repair Specialist** (Especialista en CI/CD y Compilación): resolución quirúrgica de fallos de compilación, linters y tipos TypeScript sin modificar lógica de negocio.
+- **Soporte para Modelos GPT de Versión Entera y GPT-6 Astra (Paridad OpenCode v1.18.29)**:
+  - Compatibilidad completa en el filtrado de modelos OAuth de OpenAI/Codex (`backend/tiancode/src/plugin/openai/codex.ts`) para reconocer versiones enteras de GPT (`gpt-6`, `gpt-6-astra`, `gpt-7`) además de decimales (`gpt-5.5`).
+  - Corrección de la omisión de `gpt-6-astra` para usuarios con suscripciones activas de OpenAI Plus/Pro.
+  - Actualización de opciones predeterminadas de OpenAI en `backend/llm/src/providers/openai-options.ts` para aplicar el modo de razonamiento cifrado a familias GPT-5 y GPT-6.
+
 ## [1.0.23] — 2026-09-05
 ### Novedades y Rendimiento
 

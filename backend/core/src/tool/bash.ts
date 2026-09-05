@@ -11,6 +11,7 @@ import { LocationMutation } from "../location-mutation"
 import { AppProcess } from "../process"
 import { PermissionV2 } from "../permission"
 import { PositiveInt } from "../schema"
+import { AgentShield } from "../security/agent-shield"
 import { OutputDistiller } from "./output-distiller"
 import { ToolRegistry } from "./registry"
 import { Tool } from "./tool"
@@ -138,10 +139,18 @@ const layer = Layer.effectDiscard(
                   agent: context.agent,
                   source,
                 })
-              const warnings = (yield* externalCommandDirectories(fs, input.command, target.canonical)).map(
-                (directory) =>
-                  `Command argument references external directory ${path.join(directory, "*").replaceAll("\\", "/")}. Bash runs with host-user filesystem, process, and network authority; this scan is advisory only.`,
+              const shieldResult = AgentShield.scanCommand(input.command)
+              const shieldWarnings = shieldResult.threats.map(
+                (threat) =>
+                  `[AgentShield ${threat.level.toUpperCase()}]: ${threat.description} (Patrón: "${threat.matched}").`,
               )
+              const warnings = [
+                ...(yield* externalCommandDirectories(fs, input.command, target.canonical)).map(
+                  (directory) =>
+                    `Command argument references external directory ${path.join(directory, "*").replaceAll("\\", "/")}. Bash runs with host-user filesystem, process, and network authority; this scan is advisory only.`,
+                ),
+                ...shieldWarnings,
+              ]
               yield* permission.assert({
                 action: name,
                 resources: [input.command],
