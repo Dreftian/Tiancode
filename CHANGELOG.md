@@ -4,6 +4,14 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.16] — 2026-09-04
+### Nuevo y Mejorado
+
+- **Instalador con Tema Oscuro Sólido y Cierre Seguro sin Auto-Eliminación**:
+  - Corrección de cierre inmediato del instalador: el comando `taskkill` ahora excluye explícitamente el PID del instalador (`/FI "PID ne $0"`), evitando que el proceso se auto-termine al iniciarse.
+  - Interfaz gráfica sólida en tema oscuro nativo (`#181A20` con texto `#F0F2F5` y botones `#252836`), garantizando máxima visibilidad y contraste sin depender de transparencias de ventana.
+  - Flujo completo visible con barra de progreso fluida y pantalla de finalización ("Ejecutar Tiancode").
+
 ## [1.0.15] — 2026-09-04
 ### Nuevo y Mejorado
 
