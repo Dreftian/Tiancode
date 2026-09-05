@@ -51,7 +51,7 @@ export function setupAutoUpdater(stop: () => Promise<void>) {
         // flag the quit first to keep window ids persisted for restore.
         setAppQuitting()
         try {
-          autoUpdater.quitAndInstall()
+          autoUpdater.quitAndInstall(false, true)
         } catch (error) {
           // The install failed and the app keeps running; clear the flag so
           // deliberate window closes prune ids again.

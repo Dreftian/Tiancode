@@ -4,6 +4,15 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.15] — 2026-09-04
+### Nuevo y Mejorado
+
+- **Instalador con Ventana Activa Glass (#1E1F28) y Progreso Fluido**:
+  - Configuración asistida de un solo paso (`oneClick: false` con salto directo a `MUI_PAGE_INSTFILES`) que garantiza que la ventana del instalador sea siempre visible tanto en instalaciones limpias como en actualizaciones automáticas.
+  - Paleta exacta de cristal acrílico oscuro `#1E1F28` con atributos DWM (`DwmSetWindowAttribute` para Dark Mode 19/20, Acrylic Backdrop 38, esquinas redondeadas 33 y colores de caption/borde nativos).
+  - Ocultamiento de controles innecesarios y botones obsoletos para un diseño ultra limpio, mostrando la barra de progreso fluida y lanzando Tiancode automáticamente al finalizar.
+  - Llamada explícita de `autoUpdater.quitAndInstall(false, true)` asegurando que la actualización visual se ejecute sin modo silencioso (`/S`) y reinicie la app de forma no destructiva.
+
 ## [1.0.14] — 2026-09-04
 ### Nuevo y Mejorado
 

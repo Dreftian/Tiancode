@@ -27,14 +27,16 @@ async function main() {
   const owner = "Dreftian"
   const repo = "Tiancode"
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
-  const version = desktopPkg.version || "1.0.14"
+  const version = desktopPkg.version || "1.0.15"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — Instalador Glass, Explorador Hugging Face GGUF y Listas 10x10`
-  const body = `## 🚀 Tiancode v${version} — Instalador Glass, Explorador Hugging Face GGUF y Listas 10x10
+  const releaseName = `Tiancode v${version} — Instalador Visible Dark Acrylic Glass (#1E1F28)`
+  const body = `## 🚀 Tiancode v${version} — Instalador Visible Dark Acrylic Glass (#1E1F28)
 
-### 🪟 Instalador Windows 11 Dark Acrylic / Glass y Cierre Seguro
-- **Tema Glass Nativo:** Ventana del instalador NSIS estilizada con modo oscuro y efecto Acrylic/Mica Glass de Windows 11 mediante APIs de DWM.
-- **Cierre Previo Limpio:** Cierre automático forzado de procesos previos de Tiancode antes de descomprimir archivos, evitando bloqueos de DLLs y ejecutables durante actualizaciones automáticas.
+### 🪟 Instalador Visible con Tema Glass (#1E1F28) y Progreso Fluido
+- **Ventana de Instalación y Actualización Activa:** Eliminada la ejecución invisible. El instalador se abre de inmediato con un diseño fluido que muestra el progreso de instalación en tiempo real.
+- **Paleta Glass Precisa (#1E1F28):** Integración nativa con Desktop Window Manager de Windows 10/11 (\`DwmSetWindowAttribute\`) para Dark Mode (19/20), Backdrop Acrílico/Glass (38), esquinas redondeadas (33) y colores de fondo y subtítulos translúcidos.
+- **Flujo One-Click con Auto-Lanzamiento:** Al finalizar la extracción o actualización, Tiancode se inicia automáticamente y el instalador se cierra sin requerir clics adicionales.
+- **Cierre Seguro Previo:** Finalización forzada de instancias previas antes de extraer para prevenir bloqueos de DLLs.
 
 ### 🛡️ Corrección de Error 500 en SQLite WAL
 - Manejo resiliente en \`Project.fromDirectory\` con reintentos automáticos (\`Schedule.recurs(3)\`) y captura de errores de concurrencia (\`attempt to write a readonly database\`), garantizando inicio perfecto tras una actualización.

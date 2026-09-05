@@ -153,8 +153,12 @@ const getBase = (appId: string): Configuration => ({
     // secrets del CI, no en el repo).
   },
   nsis: {
-    oneClick: true,
+    oneClick: false,
     perMachine: false,
+    allowToChangeInstallationDirectory: false,
+    allowElevation: true,
+    createDesktopShortcut: "always",
+    createStartMenuShortcut: true,
     installerIcon: `resources/icons/icon.ico`,
     installerHeaderIcon: `resources/icons/icon.ico`,
     uninstallerIcon: `resources/icons/icon.ico`,
