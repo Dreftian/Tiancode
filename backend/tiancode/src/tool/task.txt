@@ -8,6 +8,15 @@ When using the Task tool, specify the `subagent_type` parameter to select which 
 - ui-ux-master: UI/UX design, Tailwind CSS layouts, responsive styling, web app interfaces.
 - fullstack-coder: Fullstack implementation, APIs, backend routes, database queries, logic.
 - software-architect: System modularity, clean architecture, SOLID patterns, domain design.
+- python-data-engineer: Python 3.12+, FastAPI, PyTorch, Pandas, NumPy, Scikit-learn, ETL & AI.
+- rust-systems-engineer: Rust 2024, Tokio, Axum, memory safety, WebAssembly, low-level concurrency.
+- go-backend-dev: Go 1.22+, Goroutines, gRPC, Gin/Fiber, distributed microservices.
+- mobile-app-developer: Flutter, React Native/Expo, Swift/SwiftUI, Kotlin/Compose, mobile UX.
+- cloud-devops-engineer: Docker, Kubernetes, Helm, Terraform, CI/CD GitHub Actions, AWS/GCP.
+- cpp-systems-expert: C++20/C++23, CMake, native low-level systems, embedded, memory optimization.
+- java-enterprise-architect: Java 21 LTS, Spring Boot 3, Hibernate/JPA, enterprise microservices.
+- dotnet-core-expert: C# 12, .NET 8/9, ASP.NET Core, Entity Framework Core, enterprise APIs.
+- php-laravel-expert: PHP 8.3+, Laravel 11, Eloquent ORM, Livewire, modern web applications.
 - explore: Fast exploration of multi-file codebases, grep searching, code pattern discovery.
 - qa-e2e-tester: Comprehensive test suites (Vitest, Jest, Playwright), edge-case validation.
 - performance-optimizer: Latency reduction, bundle optimization, memory leak prevention.

@@ -167,20 +167,54 @@
 .mcp-plugins-chip {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 2px 7px;
+  justify-content: center;
+  gap: 4px;
+  padding: 2px 8px;
   font-size: 10.5px;
-  font-weight: 500;
-  border-radius: 4px;
+  font-weight: 550;
+  border-radius: 5px;
   background-color: var(--v2-background-bg-layer-03);
   color: var(--v2-text-text-muted);
   border: 0.5px solid var(--v2-border-border-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .mcp-plugins-chip.accent {
   background-color: color-mix(in srgb, var(--interactive-accent, #38bdf8) 14%, transparent);
   color: var(--interactive-accent, #38bdf8);
   border-color: color-mix(in srgb, var(--interactive-accent, #38bdf8) 28%, transparent);
+}
+
+.mcp-plugins-chip--category {
+  min-width: 96px;
+  text-align: center;
+  justify-content: center;
+}
+
+.mcp-plugins-chip--type {
+  min-width: 68px;
+  text-align: center;
+  justify-content: center;
+}
+
+.mcp-category-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 92px;
+  height: 24px;
+  padding: 2px 10px;
+  font-size: 10.5px;
+  font-weight: 550;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  text-align: center;
+  white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .mcp-plugins-dialog-backdrop {
@@ -569,7 +603,7 @@
 
 .mcp-plugins-thead {
   display: grid;
-  grid-template-columns: 2.2fr 1.1fr 3.5fr 1.2fr;
+  grid-template-columns: minmax(200px, 2.4fr) minmax(130px, 1.3fr) minmax(240px, 3.2fr) minmax(120px, 1.1fr);
   padding: 10px 16px;
   background: rgba(255, 255, 255, 0.03);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -582,7 +616,7 @@
 
 .mcp-plugins-row {
   display: grid;
-  grid-template-columns: 2.2fr 1.1fr 3.5fr 1.2fr;
+  grid-template-columns: minmax(200px, 2.4fr) minmax(130px, 1.3fr) minmax(240px, 3.2fr) minmax(120px, 1.1fr);
   align-items: center;
   padding: 12px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
@@ -591,12 +625,12 @@
 
 .mcp-plugins-table--mcp .mcp-plugins-thead,
 .mcp-plugins-table--mcp .mcp-plugins-row {
-  grid-template-columns: minmax(180px, 2.2fr) minmax(110px, 1.2fr) minmax(220px, 2.8fr) minmax(140px, 1.4fr) minmax(80px, 0.8fr);
+  grid-template-columns: minmax(190px, 2.2fr) minmax(210px, 1.8fr) minmax(220px, 2.6fr) minmax(140px, 1.3fr) minmax(80px, 0.7fr);
 }
 
 .mcp-plugins-table--plugins .mcp-plugins-thead,
 .mcp-plugins-table--plugins .mcp-plugins-row {
-  grid-template-columns: minmax(180px, 2.2fr) minmax(110px, 1.2fr) minmax(240px, 3.2fr) minmax(140px, 1.4fr);
+  grid-template-columns: minmax(190px, 2.2fr) minmax(210px, 1.8fr) minmax(240px, 3fr) minmax(140px, 1.3fr);
 }
 
 .mcp-plugins-row:last-child {

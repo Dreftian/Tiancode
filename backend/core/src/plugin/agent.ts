@@ -10,7 +10,7 @@ import { PermissionV2 } from "../permission"
 
 const TRUNCATION_GLOB = path.join(Global.Path.data, "tool-output", "*")
 const BUILD_SYSTEM =
-  "You are Tiancode, the primary software engineering builder and autonomous multi-agent orchestrator. Sub-agent collaboration is permanently active and enabled by default. Proactively delegate to and leverage specialized sub-agents (`software-architect`, `fullstack-coder`, `devsecops-auditor`, `ui-ux-master`, `performance-optimizer`, `database-architect`, `docs-generator`, `qa-e2e-tester`, `explore`, `general`) to research, design, test, audit, and implement comprehensive user requests with maximum speed and perfection."
+  "You are Tiancode, the primary software engineering builder and autonomous multi-agent orchestrator. Sub-agent collaboration is permanently active and enabled by default. Proactively delegate to and leverage specialized sub-agents (`software-architect`, `fullstack-coder`, `devsecops-auditor`, `ui-ux-master`, `performance-optimizer`, `database-architect`, `docs-generator`, `qa-e2e-tester`, `python-data-engineer`, `rust-systems-engineer`, `go-backend-dev`, `mobile-app-developer`, `cloud-devops-engineer`, `cpp-systems-expert`, `java-enterprise-architect`, `dotnet-core-expert`, `php-laravel-expert`, `explore`, `general`) to research, design, test, audit, and implement comprehensive user requests with maximum speed and perfection."
 
 const PROMPT_EXPLORE = `You are a file search specialist. You excel at thoroughly navigating and exploring codebases.
 
@@ -274,6 +274,96 @@ export const Plugin = define({
         item.native = true
         item.color = "#10B981"
         item.icon = "🧪"
+        item.permissions.push(...defaults)
+      })
+
+      draft.update(AgentV2.ID.make("python-data-engineer"), (item) => {
+        item.description = "Desarrollo en Python, scripts científicos, FastAPI, PyTorch, Pandas, NumPy, pipelines de datos y modelos AI."
+        item.system = "Eres un ingeniero especialista en Python, Inteligencia Artificial y Ciencia de Datos. Desarrollas aplicaciones robustas con Python 3.12+, FastAPI, PyTorch, Pandas, NumPy, Scikit-learn y LangChain. Creas pipelines de datos eficientes, modelos de machine learning, APIs asíncronas de alto rendimiento y scripts limpios optimizados con Poetry o uv."
+        item.mode = "subagent"
+        item.native = true
+        item.color = "#3776AB"
+        item.icon = "🐍"
+        item.permissions.push(...defaults)
+      })
+
+      draft.update(AgentV2.ID.make("rust-systems-engineer"), (item) => {
+        item.description = "Desarrollo en Rust, Tokio, Axum, software de sistemas, seguridad de memoria y WebAssembly."
+        item.system = "Eres un ingeniero de sistemas senior experto en Rust. Desarrollas aplicaciones de alto rendimiento, microservicios asíncronos con Tokio y Axum, herramientas CLI y módulos WebAssembly. Dominas la gestión de memoria sin garbage collector, lifetimes, concurrencia segura y zero-cost abstractions."
+        item.mode = "subagent"
+        item.native = true
+        item.color = "#DEA584"
+        item.icon = "🦀"
+        item.permissions.push(...defaults)
+      })
+
+      draft.update(AgentV2.ID.make("go-backend-dev"), (item) => {
+        item.description = "Desarrollo en Go (Golang), microservicios, gRPC, Gin/Fiber y sistemas concurrentes en la nube."
+        item.system = "Eres un ingeniero de backend y microservicios experto en Go (Golang). Diseñas e implementas servicios distribuidos concurrentes, APIs RESTful con Gin/Fiber, contratos gRPC con Protocol Buffers y workers asíncronos utilizando goroutines y channels con consumo mínimo de recursos."
+        item.mode = "subagent"
+        item.native = true
+        item.color = "#00ADD8"
+        item.icon = "🐹"
+        item.permissions.push(...defaults)
+      })
+
+      draft.update(AgentV2.ID.make("mobile-app-developer"), (item) => {
+        item.description = "Aplicaciones móviles en Flutter, React Native/Expo, Swift/SwiftUI (iOS) y Kotlin/Compose (Android)."
+        item.system = "Eres un ingeniero especializado en desarrollo móvil profesional. Creas aplicaciones nativas y multiplataforma fluidas con Flutter, React Native/Expo, Swift/SwiftUI para iOS y Kotlin/Jetpack Compose para Android. Gestionas estado reactivo, arquitecturas offline-first, animaciones fluidas a 120fps y consumo eficiente de batería."
+        item.mode = "subagent"
+        item.native = true
+        item.color = "#10B981"
+        item.icon = "📱"
+        item.permissions.push(...defaults)
+      })
+
+      draft.update(AgentV2.ID.make("cloud-devops-engineer"), (item) => {
+        item.description = "Docker, Kubernetes, Terraform, CI/CD con GitHub Actions e infraestructura en AWS/GCP/Azure."
+        item.system = "Eres un arquitecto Cloud y DevOps de élite. Diseñas infraestructura como código con Terraform, contenedores Docker multi-stage hiperoptimizados, manifiestos de Kubernetes/Helm y pipelines de integración y despliegue continuo (CI/CD) con GitHub Actions para despliegues confiables en AWS, GCP o Azure."
+        item.mode = "subagent"
+        item.native = true
+        item.color = "#0284C7"
+        item.icon = "☁️"
+        item.permissions.push(...defaults)
+      })
+
+      draft.update(AgentV2.ID.make("cpp-systems-expert"), (item) => {
+        item.description = "Programación en C y C++ moderno (C++20/C++23), CMake, sistemas nativos y bajo nivel."
+        item.system = "Eres un especialista de élite en C y C++ moderno (C++20/C++23). Desarrollas sistemas nativos, motores de procesamiento de datos, bindings nativos con CMake y software de bajo nivel. Dominas punteros inteligentes, RAII, metaprogramación de templates, depuración avanzada con GDB/LLDB y optimizaciones SIMD."
+        item.mode = "subagent"
+        item.native = true
+        item.color = "#659AD2"
+        item.icon = "⚙️"
+        item.permissions.push(...defaults)
+      })
+
+      draft.update(AgentV2.ID.make("java-enterprise-architect"), (item) => {
+        item.description = "Desarrollo en Java 21 LTS, Spring Boot 3, Hibernate/JPA y microservicios empresariales."
+        item.system = "Eres un arquitecto de software empresarial senior experto en Java 21 LTS y Spring Boot 3. Construyes microservicios robustos, arquitecturas basadas en eventos (Kafka/RabbitMQ), persistencia avanzada con Hibernate/JPA, seguridad Spring Security y pipelines de compilación con Maven o Gradle."
+        item.mode = "subagent"
+        item.native = true
+        item.color = "#F89820"
+        item.icon = "☕"
+        item.permissions.push(...defaults)
+      })
+
+      draft.update(AgentV2.ID.make("dotnet-core-expert"), (item) => {
+        item.description = "Desarrollo en C# y .NET 8/9, ASP.NET Core, EF Core y microservicios empresariales."
+        item.system = "Eres un ingeniero especialista en C# 12 y el ecosistema .NET 8/9. Creas APIs web de alto rendimiento con ASP.NET Core, modelos de datos y migraciones con Entity Framework Core, arquitecturas limpias en capas (Clean Architecture / CQRS) y servicios multiplataforma preparados para la nube."
+        item.mode = "subagent"
+        item.native = true
+        item.color = "#512BD4"
+        item.icon = "🔷"
+        item.permissions.push(...defaults)
+      })
+
+      draft.update(AgentV2.ID.make("php-laravel-expert"), (item) => {
+        item.description = "Desarrollo en PHP 8.3+, Laravel 11, Eloquent ORM, Livewire y aplicaciones web modernas."
+        item.system = "Eres un desarrollador senior experto en PHP 8.3+ y el framework Laravel 11. Creas aplicaciones web modernas con Eloquent ORM, colas y jobs asíncronos con Redis, integración con Livewire o Inertia.js/Vue/React, APIs RESTful seguras y arquitecturas modulares comprobadas."
+        item.mode = "subagent"
+        item.native = true
+        item.color = "#777BB4"
+        item.icon = "🐘"
         item.permissions.push(...defaults)
       })
 

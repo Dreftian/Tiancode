@@ -4,6 +4,33 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.21] — 2026-09-05
+### Nuevo y Mejorado
+
+- **9 Sub-Agentes Nativos de Nivel Profesional para Todos los Lenguajes y Ecosistemas**:
+  - `python-data-engineer`: Python 3.12+, FastAPI, PyTorch, Pandas, NumPy, Scikit-learn, LangChain, pipelines ETL e ingeniería de datos e IA.
+  - `rust-systems-engineer`: Rust 2024, Tokio, Axum, seguridad de memoria, concurrencia de alto rendimiento y WebAssembly.
+  - `go-backend-dev`: Go 1.22+, Goroutines, Channels, microservicios nativos en la nube, gRPC, Gin y Fiber.
+  - `mobile-app-developer`: Desarrollo móvil multiplataforma y nativo (Flutter, React Native/Expo, Swift/SwiftUI en iOS y Kotlin/Compose en Android).
+  - `cloud-devops-engineer`: Docker multi-stage, Kubernetes, Helm, Terraform, CI/CD GitHub Actions y despliegue multi-cloud (AWS, GCP, Azure).
+  - `cpp-systems-expert`: C++20/C++23 moderno, CMake, bajo nivel, optimización de memoria, SIMD y sistemas embebidos.
+  - `java-enterprise-architect`: Java 21 LTS, Spring Boot 3, Hibernate/JPA, arquitectura limpia y microservicios empresariales.
+  - `dotnet-core-expert`: C# 12, .NET 8/9, ASP.NET Core, Entity Framework Core y arquitecturas CQRS.
+  - `php-laravel-expert`: PHP 8.3+, Laravel 11, Eloquent ORM, Livewire, Inertia.js y APIs RESTful seguras.
+  - Todos los agentes cuentan con prompts de orquestación en el enjambre (`task.txt`), integración en `backend/tiancode/src/agent/agent.ts`, plugins y visibilidad completa con iconos y descripciones en la sección de Sub-agentes en Configuración.
+- **Alineación Perfecta y Dimensiones Uniformes en Tablas y Chips de Plugins & MCP**:
+  - Ampliación de la columna "CATEGORÍA & TIPO" a `minmax(210px, 1.8fr)` en tablas de Plugins y Servidores MCP, impidiendo saltos de línea desordenados.
+  - Chips de categoría (`min-width: 96px`) y tipo (`min-width: 68px`) estandarizados con texto centrado y márgenes consistentes.
+  - Badges de categoría en el catálogo Discover con dimensiones uniformes (`min-width: 92px`, `h-6`).
+  - Nombres de categoría con ortografía y acentuación en español ("Diseño", "Documentación", "IA & ML", "Base de Datos", "Ciencia Datos", "Ventas & CRM").
+- **Asistente de Bienvenida Rediseñado, Compacto y con Soporte Completo Modo Claro/Oscuro**:
+  - Rediseño compacto (`max-w-[510px]`) idéntico a la referencia del usuario, eliminando pasos redundantes y mostrando únicamente Selección de Idioma (ES / EN) y Modo de Color (Oscuro / Claro / Sistema).
+  - Soporte reactivo integral para modo claro y oscuro con tarjetas, bordes, resplandores y tipografía de alto contraste.
+  - Fondo de bienvenida adaptable dinámicamente al tema seleccionado (`#f1f5f9` en modo claro y `#08080a` en modo oscuro).
+  - Transición directa e instantánea al entorno de trabajo al presionar "Siguiente".
+- **Actualización 100% No Destructiva**:
+  - Claves de API de proveedores, sesiones, preferencias y servidores MCP completamente preservadas.
+
 ## [1.0.20] — 2026-09-04
 ### Mejorado y Corregido
 

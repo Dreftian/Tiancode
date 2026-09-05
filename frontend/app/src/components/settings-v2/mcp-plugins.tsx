@@ -93,6 +93,27 @@ const BUILTIN_PLUGINS = [
   },
 ] as const
 
+const formatCategory = (cat?: string) => {
+  if (!cat) return "General"
+  const map: Record<string, string> = {
+    diseno: "Diseño",
+    web: "Web",
+    backend: "Backend",
+    seguridad: "Seguridad",
+    finanzas: "Finanzas",
+    ia: "IA & ML",
+    desarrollo: "Desarrollo",
+    herramientas: "Herramientas",
+    sistema: "Sistema",
+    documentacion: "Documentación",
+    database: "Base de Datos",
+    cloud: "Cloud & DevOps",
+    ventas: "Ventas & CRM",
+    datos: "Ciencia Datos",
+  }
+  return map[cat.toLowerCase()] || cat.charAt(0).toUpperCase() + cat.slice(1)
+}
+
 // 23 Installed & Catalog Plugins
 const CATALOG_ITEMS = [
   {
@@ -1041,12 +1062,12 @@ export const SettingsMcpPluginsV2: Component<{
                         </div>
 
                         {/* 2. Tipo & Alcance */}
-                        <div class="mcp-plugins-cell gap-1.5 pr-2 flex-wrap">
-                          <span class="mcp-plugins-chip accent text-[10px]">
+                        <div class="mcp-plugins-cell gap-2 pr-2">
+                          <span class="mcp-plugins-chip mcp-plugins-chip--category accent text-[10px]">
                             {server.isLocal ? "Local (stdio)" : "Remoto (SSE)"}
                           </span>
                           <Show when={server.toolsCount > 0}>
-                            <span class="mcp-plugins-chip text-[10px]">
+                            <span class="mcp-plugins-chip mcp-plugins-chip--type text-[10px]">
                               {server.toolsCount} {server.toolsCount === 1 ? "herramienta" : "herramientas"}
                             </span>
                           </Show>
@@ -1141,11 +1162,11 @@ export const SettingsMcpPluginsV2: Component<{
                         </div>
 
                         {/* 2. Categoría & Tipo */}
-                        <div class="mcp-plugins-cell gap-1.5 pr-2 flex-wrap">
-                          <span class="mcp-plugins-chip accent capitalize text-[10px]">
-                            {plugin.category}
+                        <div class="mcp-plugins-cell gap-2 pr-2">
+                          <span class="mcp-plugins-chip mcp-plugins-chip--category accent text-[10px]">
+                            {formatCategory(plugin.category)}
                           </span>
-                          <span class="mcp-plugins-chip text-[10px]">
+                          <span class="mcp-plugins-chip mcp-plugins-chip--type text-[10px]">
                             {plugin.isLocal ? "Local" : "Plugin"}
                           </span>
                         </div>
@@ -1222,11 +1243,11 @@ export const SettingsMcpPluginsV2: Component<{
                         </div>
 
                         {/* 2. Categoría & Tipo */}
-                        <div class="mcp-plugins-cell gap-1.5 pr-2 flex-wrap">
-                          <span class="mcp-plugins-chip accent capitalize text-[10px]">
-                            {plugin.category}
+                        <div class="mcp-plugins-cell gap-2 pr-2">
+                          <span class="mcp-plugins-chip mcp-plugins-chip--category accent text-[10px]">
+                            {formatCategory(plugin.category)}
                           </span>
-                          <span class="mcp-plugins-chip text-[10px]">
+                          <span class="mcp-plugins-chip mcp-plugins-chip--type text-[10px]">
                             Built-in
                           </span>
                         </div>
@@ -1387,8 +1408,8 @@ export const SettingsMcpPluginsV2: Component<{
 
                         {/* 2. Categoría */}
                         <div class="mcp-plugins-cell pr-2">
-                          <span class="text-[10.5px] font-medium px-2 py-0.5 rounded-md bg-white/[0.06] border border-white/10 text-slate-300 capitalize">
-                            {item.category}
+                          <span class="mcp-category-badge">
+                            {formatCategory(item.category)}
                           </span>
                         </div>
 

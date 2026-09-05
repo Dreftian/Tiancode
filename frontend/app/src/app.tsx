@@ -8,7 +8,7 @@ import { Font } from "@tiancode-ai/ui/font"
 import { Splash } from "@tiancode-ai/ui/logo"
 import { AntigravitySplash } from "@/components/antigravity-splash"
 import { DialogWelcomeSetup, FIRST_LAUNCH_KEY } from "@/components/dialog-welcome-setup"
-import { ThemeProvider } from "@tiancode-ai/ui/theme/context"
+import { ThemeProvider, useTheme } from "@tiancode-ai/ui/theme/context"
 import { MetaProvider } from "@solidjs/meta"
 import {
   type BaseRouterProps,
@@ -473,6 +473,7 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
   const server = useServer()
   const checkServerHealth = useCheckServerHealth()
   const dialog = useDialog()
+  const theme = useTheme()
 
   const [checkMode, setCheckMode] = createSignal<"blocking" | "background">("blocking")
 
@@ -570,13 +571,27 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
       {/* Standalone First Launch Setup Screen (shown FIRST before anything else on fresh install) */}
       <Show when={firstLaunchActive()}>
         <div
-          class="fixed inset-0 z-[99998] w-full h-full bg-[#08080a] flex items-center justify-center p-4 select-none"
+          class={`fixed inset-0 z-[99998] w-full h-full flex items-center justify-center p-4 select-none transition-colors duration-200 ${
+            theme.colorScheme() === "light" ? "bg-[#f1f5f9]" : "bg-[#08080a]"
+          }`}
           style={{ "overflow": "hidden !important" }}
         >
           {/* Subtle website orbs */}
-          <div class="absolute inset-0 bg-[#08080a] pointer-events-none" />
-          <div class="absolute -top-[10%] -left-[10%] w-[520px] h-[520px] rounded-full bg-blue-600/10 blur-[130px] pointer-events-none" />
-          <div class="absolute -bottom-[10%] -right-[10%] w-[520px] h-[520px] rounded-full bg-cyan-500/08 blur-[130px] pointer-events-none" />
+          <div
+            class={`absolute inset-0 pointer-events-none transition-colors duration-200 ${
+              theme.colorScheme() === "light" ? "bg-[#f1f5f9]" : "bg-[#08080a]"
+            }`}
+          />
+          <div
+            class={`absolute -top-[10%] -left-[10%] w-[520px] h-[520px] rounded-full blur-[130px] pointer-events-none ${
+              theme.colorScheme() === "light" ? "bg-blue-400/15" : "bg-blue-600/10"
+            }`}
+          />
+          <div
+            class={`absolute -bottom-[10%] -right-[10%] w-[520px] h-[520px] rounded-full blur-[130px] pointer-events-none ${
+              theme.colorScheme() === "light" ? "bg-cyan-400/15" : "bg-cyan-500/08"
+            }`}
+          />
           <DialogWelcomeSetup onDone={handleDoneSetup} />
         </div>
       </Show>
