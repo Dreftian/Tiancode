@@ -12,7 +12,7 @@ export const EVAL_DATA_ES = {
     title: 'Resolución de Tareas SWE-bench Verificado',
     unit: '% resuelto',
     bars: [
-      { name: 'Tiancode v1.0.4 (Enjambre Multi-Agente)', val: '74.2%', pct: 74.2, highlight: true },
+      { name: 'Tiancode v1.0.24 (Enjambre Multi-Agente)', val: '74.2%', pct: 74.2, highlight: true },
       { name: 'IDE Cloud AI (Cursor / Copilot Agent)', val: '52.6%', pct: 52.6, highlight: false },
       { name: 'Chat Cloud Tradicional (ChatGPT Web)', val: '38.1%', pct: 38.1, highlight: false }
     ],
@@ -59,7 +59,7 @@ export const EVAL_DATA_EN = {
     title: 'SWE-bench Verified Task Resolution',
     unit: '% resolved',
     bars: [
-      { name: 'Tiancode v1.0.4 (Multi-Agent Swarm)', val: '74.2%', pct: 74.2, highlight: true },
+      { name: 'Tiancode v1.0.24 (Multi-Agent Swarm)', val: '74.2%', pct: 74.2, highlight: true },
       { name: 'Cloud AI IDE (Cursor / Copilot Agent)', val: '52.6%', pct: 52.6, highlight: false },
       { name: 'Traditional Cloud Chat (ChatGPT Web)', val: '38.1%', pct: 38.1, highlight: false }
     ],
