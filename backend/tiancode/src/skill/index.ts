@@ -46,14 +46,16 @@ import { builtinAgentSkills } from "./builtin/skills"
 const loadBuiltinSkills = Effect.fnUntraced(function* (s: State) {
   for (const [name, content] of Object.entries(builtinAgentSkills)) {
     const markdown = ConfigMarkdownCore.parseOption(content)
-    if (!markdown) continue
-    if (!isSkillFrontmatter(markdown.data)) continue
-    s.skills[markdown.data.name] = {
-      name: markdown.data.name,
-      description: markdown.data.description,
-      icon: markdown.data.icon,
+    const skillName = (markdown && isSkillFrontmatter(markdown.data) && markdown.data.name) ? markdown.data.name : name
+    const skillDesc = (markdown && isSkillFrontmatter(markdown.data)) ? markdown.data.description : undefined
+    const skillIcon = (markdown && isSkillFrontmatter(markdown.data)) ? markdown.data.icon : undefined
+    const skillContent = markdown?.content?.trim() || content.trim()
+    s.skills[skillName] = {
+      name: skillName,
+      description: skillDesc,
+      icon: skillIcon,
       location: `<built-in:${name}>`,
-      content: markdown.content,
+      content: skillContent,
     }
   }
 })

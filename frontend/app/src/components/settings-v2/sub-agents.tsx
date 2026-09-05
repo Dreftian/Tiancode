@@ -369,7 +369,13 @@ export const SettingsSubAgentsV2: Component<{
     { initialValue: [] },
   )
 
+  const [agentStatusOverrides, setAgentStatusOverrides] = createSignal<Record<string, boolean>>({})
+
   const isAgentActive = (agentName: string) => {
+    const overrides = agentStatusOverrides()
+    if (agentName in overrides) {
+      return overrides[agentName]
+    }
     const conf = configData()
     if (conf && (conf[agentName]?.disable === true || conf[agentName]?.disabled === true)) {
       return false
@@ -382,35 +388,51 @@ export const SettingsSubAgentsV2: Component<{
     return true
   }
 
-  const toggleAgent = async (agentName: string, enable: boolean) => {
-    try {
-      const conf = { ...(configData() ?? {}) }
-      conf[agentName] = {
-        ...(conf[agentName] ?? {}),
-        disable: !enable,
-        disabled: !enable,
-      }
-      await serverSdk().client.config.update({
+  const toggleAgent = (agentName: string, enable: boolean) => {
+    // 1. Reacción individual e inmediata (0 ms) en el switch y chip
+    setAgentStatusOverrides((prev) => ({ ...prev, [agentName]: enable }))
+
+    // 2. Feedback visual instantáneo
+    showToast({
+      variant: "success",
+      title: enable ? "Sub-agente activado" : "Sub-agente desactivado",
+      description: `@${agentName} ${enable ? "ahora está activo" : "ha sido desactivado"} para ${
+        scope() === "project" ? "este proyecto" : "la configuración global"
+      }.`,
+    })
+
+    // 3. Sincronización asíncrona en segundo plano sin congelar la animación
+    const conf = { ...(configData() ?? {}) }
+    conf[agentName] = {
+      ...(conf[agentName] ?? {}),
+      disable: !enable,
+      disabled: !enable,
+    }
+
+    void serverSdk()
+      .client.config.update({
         ...activeParams(),
         config: {
           agent: conf,
           agents: conf,
         } as any,
       })
-      await Promise.all([refetchConfig(), refetch()])
-      showToast({
-        variant: "success",
-        title: enable ? "Sub-agente activado" : "Sub-agente desactivado",
-        description: `@${agentName} ${enable ? "ahora está activo" : "ha sido desactivado"} para ${
-          scope() === "project" ? "este proyecto" : "la configuración global"
-        }.`,
+      .then(() => {
+        void refetchConfig()
+        void refetch()
       })
-    } catch {
-      showToast({
-        variant: "error",
-        title: "Error al actualizar estado del sub-agente",
+      .catch(() => {
+        // Rollback en caso de error
+        setAgentStatusOverrides((prev) => {
+          const next = { ...prev }
+          delete next[agentName]
+          return next
+        })
+        showToast({
+          variant: "error",
+          title: "Error al actualizar estado del sub-agente",
+        })
       })
-    }
   }
 
   const isNative = (agent: Agent) => agent.native === true || agent.name in NativeAgentDescriptionKeys || agent.name in AGENT_META

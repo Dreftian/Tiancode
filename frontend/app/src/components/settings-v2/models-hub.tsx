@@ -1273,13 +1273,18 @@ export const SettingsModelsHubV2: Component<{
                       <div class="flex items-center gap-1.5">
                         <span class="text-[11px] text-slate-400 font-medium">Cuantización:</span>
                         <select
-                          class="h-8 px-2.5 rounded-lg border border-white/15 bg-black/50 text-xs text-white outline-none focus:border-sky-400 font-mono cursor-pointer"
+                          class="lm-quant-select h-8 px-2.5 rounded-lg border border-white/20 bg-slate-900 text-xs text-slate-100 outline-none focus:border-sky-400 font-mono cursor-pointer"
+                          style={{ "color-scheme": "dark", "background-color": "#0f172a", "color": "#f8fafc" }}
                           value={file()?.file}
                           onChange={(e) => setModelQuant(model.id, e.currentTarget.value)}
                         >
                           <For each={model.quantFiles}>
                             {(qf) => (
-                              <option value={qf.file}>
+                              <option
+                                value={qf.file}
+                                style={{ "background-color": "#0f172a", "color": "#f8fafc" }}
+                                class="bg-slate-900 text-slate-100 py-1"
+                              >
                                 {qf.quant || "GGUF"} ({formatBytes(qf.size)}) {qf.recommended ? "★ Recomendado" : ""}
                               </option>
                             )}

@@ -670,21 +670,28 @@
 }
 
 .lm-quant-select {
-  padding: 8px 14px;
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 10px;
-  color: #ffffff;
-  font-size: 13px;
+  padding: 6px 12px;
+  background-color: #0f172a !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 8px;
+  color: #f8fafc !important;
+  font-size: 12px;
   font-weight: 500;
   outline: none;
   cursor: pointer;
+  color-scheme: dark !important;
   transition: all 0.15s ease;
 }
 
 .lm-quant-select:focus {
-  border-color: #2997ff;
-  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.25);
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
+}
+
+.lm-quant-select option {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  padding: 6px 10px;
 }
 
 .lm-compat-badge {

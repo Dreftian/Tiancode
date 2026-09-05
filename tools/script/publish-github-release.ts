@@ -29,20 +29,24 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.16"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — Instalador Compacto One-Click con Tema Oscuro Nativo (#181A20)`
-  const body = `## 🚀 Tiancode v${version} — Instalador Compacto One-Click con Tema Oscuro Nativo (#181A20)
+  const releaseName = `Tiancode v${version} — Sub-agentes y Toggles Instantáneos, Mascotas 3D Animadas, Skills Completas y Selector de Cuantización`
+  const body = `## 🚀 Tiancode v${version} — Toggles Instantáneos, Mascotas Animadas, Skills Completas y Selector de Cuantización
 
-### 🪟 Instalador Compacto One-Click en Tema Oscuro Nativo
-- **Estética Dark Nativa (#181A20):** La ventana compacta original de instalación inmediata se presenta totalmente estilizada en tema oscuro nativo, integrándose armónicamente con Windows 10 y 11.
-- **Inmersión DWM Completa:** Barra de título oscura con contraste blanco puro (\`#F0F2F5\`), bordes redondeados y contorno sutil (\`#2C2E3A\`).
-- **Barra de Progreso y Diálogos:** Fondo oscuro sólido (\`#181A20\`), track de barra de progreso a juego y barra indicadora verde vibrante (\`#6AD045\`).
-- **Ejecución Segura:** Cierre higiénico de instancias previas (\`taskkill /F /IM Tiancode.exe /FI "PID ne $0" /T\`) que previene la auto-terminación accidental y garantiza una instalación o actualización impecable.
+### ⚡ Reactividad Instantánea (0 ms) y Separación en Sub-Agentes
+- **Sub-Agentes Individuales e Instantáneos:** Separación aumentada (18px) entre el interruptor y la etiqueta de estado "Activo". Activación estrictamente individual e instantánea (0 ms) con animación fluida y sincronización en segundo plano sin bloqueos.
+- **Configuración Global Instantánea:** Toggles y notificaciones inmediatas en Servidores MCP, Plugins integrados, Plugins de catálogo y Skills, eliminando retardos perceptibles.
 
-### 🛡️ Corrección de Error 500 en SQLite WAL
-- Manejo resiliente en \`Project.fromDirectory\` con reintentos automáticos (\`Schedule.recurs(3)\`) y captura de errores de concurrencia (\`attempt to write a readonly database\`), garantizando inicio perfecto tras una actualización.
+### 🐾 Mascotas 3D Prominentes y Animadas
+- **Animaciones Vivas y Distintivas:** Los 13 compañeros interactivos cuentan con animaciones CSS fluidas (flotación, balanceo, respiración, parpadeo, llamas y destellos de gemas/visores).
+- **Contenedores Ampliados:** Contenedor de mascota expandido a 56px con icono de 44px y resplandor dinámico en el compañero activo.
 
-### 🖥️ Explorador de Modelos Locales Hugging Face GGUF
-- **Telemetría Superior Compacta:** GPU, VRAM libre/total, RAM del sistema y estados de motor nativo y runtimes externos (Ollama/LM Studio).
+### 🎛️ Selector de Cuantización en Modelos Locales
+- **Alto Contraste y Legibilidad:** Dropdown de cuantización GGUF con \`color-scheme: dark\`, fondo oscuro (\`#0f172a\`) y texto de alto contraste (\`#f8fafc\`), garantizando perfecta legibilidad en Windows/Electron.
+
+### 📚 Documentación Técnica Completa en Skills
+- **Contenido Exhaustivo Restaurado:** Se preserva el 100% de la documentación técnica completa, tablas, directivas y ejemplos prácticos de todas las skills sin sustituciones por textos breves o incompletos.
+- **Carga Robusta:** El motor de skills carga la totalidad de skills integradas con su documentación nativa completa.
+
 - **Buscador Prominente y Sugerencias Rápidas:** Barra de búsqueda espaciosa con etiquetas directas ("DeepSeek-R1", "Qwen 2.5 Coder", "Llama 3.2", "Gemma 2", "Phi-4", "Nemotron").
 - **Hero Inicial Explicativo:** Vista limpia sin volcar modelos de golpe; las tarjetas técnicas completas se despliegan al buscar o filtrar.
 

@@ -621,14 +621,19 @@ function localizeSkillDescription(name: string, defaultDesc: string | undefined,
 }
 
 function localizeSkillContent(name: string, content: string | undefined, isSpanish: boolean): string {
-  if (!content) return ""
-  if (!isSpanish) return content
+  if (!content || content.trim().length === 0) {
+    return SKILL_ES_CONTENTS[name] || ""
+  }
 
-  if (SKILL_ES_CONTENTS[name]) {
+  // Si content solo tiene el título o es un fallback muy breve (<150 caracteres), y tenemos un contenido en español
+  if (content.length < 150 && SKILL_ES_CONTENTS[name] && SKILL_ES_CONTENTS[name].length > content.length) {
     return SKILL_ES_CONTENTS[name]
   }
 
-  // Traducción automática enriquecida de títulos, subtítulos y términos comunes de Markdown
+  if (!isSpanish) return content
+
+  // Conserva el 100% de la documentación técnica completa, bloques de código, tablas y ejemplos,
+  // adaptando dinámicamente los encabezados y secciones estándar a español.
   return content
     .replace(/^#\s+Overview/gm, "# Descripción general")
     .replace(/^##\s+Overview/gm, "## Descripción general")
@@ -735,7 +740,17 @@ export const SettingsSkillsV2: Component<{
     return list
   })
 
-  const disabled = createMemo(() => data().disabled)
+  const [skillOverrides, setSkillOverrides] = createSignal<Record<string, boolean>>({})
+
+  const disabled = createMemo(() => {
+    const base = new Set(data().disabled)
+    const overrides = skillOverrides()
+    for (const [name, enabled] of Object.entries(overrides)) {
+      if (enabled) base.delete(name)
+      else base.add(name)
+    }
+    return base
+  })
   const autoSelect = createMemo(() => data().autoSelect)
   const pages = createMemo(() => Math.max(1, Math.ceil(filteredSkills().length / PAGE_SIZE)))
   const pageSkills = createMemo(() => filteredSkills().slice(page() * PAGE_SIZE, (page() + 1) * PAGE_SIZE))
@@ -828,18 +843,34 @@ export const SettingsSkillsV2: Component<{
     }
   }
 
-  const toggleSkill = async (name: string, enabled: boolean) => {
-    try {
-      const nextDisabled = new Set(disabled())
-      if (enabled) {
-        nextDisabled.delete(name)
-      } else {
-        nextDisabled.add(name)
-      }
-      await updateDisabledSkills(Array.from(nextDisabled))
-    } catch (e) {
-      console.warn("Failed to toggle skill", e)
+  const toggleSkill = (name: string, enabled: boolean) => {
+    // 1. Inmediato (0 ms) reactivo y toast
+    setSkillOverrides((prev) => ({ ...prev, [name]: enabled }))
+    showToast({
+      variant: "success",
+      title: enabled ? "Skill activada" : "Skill desactivada",
+      description: `${name} ${enabled ? "ha sido activada" : "ha sido desactivada"}.`,
+    })
+
+    // 2. Persistencia en segundo plano sin congelar la animación del switch
+    const nextDisabled = new Set(disabled())
+    if (enabled) {
+      nextDisabled.delete(name)
+    } else {
+      nextDisabled.add(name)
     }
+
+    void updateDisabledSkills(Array.from(nextDisabled)).catch(() => {
+      setSkillOverrides((prev) => {
+        const next = { ...prev }
+        delete next[name]
+        return next
+      })
+      showToast({
+        variant: "error",
+        title: "Error al actualizar la skill",
+      })
+    })
   }
 
   // Auto-selección: el modelo elige automáticamente las skills según las

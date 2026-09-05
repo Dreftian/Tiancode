@@ -489,18 +489,25 @@ export const SettingsMcpPluginsV2: Component<{
     onCleanup(() => clearInterval(timer))
   })
 
+  // Overrides reactivos inmediatos (0 ms) para evitar retrasos en switches y notificaciones
+  const [mcpOverrides, setMcpOverrides] = createSignal<Record<string, boolean>>({})
+  const [builtinOverrides, setBuiltinOverrides] = createSignal<Record<string, boolean>>({})
+  const [pluginOverrides, setPluginOverrides] = createSignal<Record<string, boolean>>({})
+
   // Connected MCP servers list
   const mcpServers = createMemo(() => {
     const configMcp = (configData().mcp ?? {}) as Record<string, McpConfigValue>
     const statusMap = mcpStatusData()
     const query = searchQuery().toLowerCase().trim()
+    const overrides = mcpOverrides()
 
     return Object.entries(configMcp)
       .map(([name, conf]) => {
         const isObject = typeof conf === "object" && conf !== null
         const isLocal = isObject && "type" in conf && conf.type === "local"
         const isRemote = isObject && "type" in conf && conf.type === "remote"
-        const enabled = isObject && "enabled" in conf ? (conf as any).enabled !== false : true
+        const configEnabled = isObject && "enabled" in conf ? (conf as any).enabled !== false : true
+        const enabled = name in overrides ? overrides[name] : configEnabled
         const statusObj = statusMap[name]
         const status = statusObj?.status ?? (enabled ? "connected" : "disabled")
         const command = isLocal ? (conf as McpLocalConfig).command.join(" ") : isRemote ? (conf as McpRemoteConfig).url : "Builtin MCP"
@@ -524,9 +531,11 @@ export const SettingsMcpPluginsV2: Component<{
   const builtinPlugins = createMemo(() => {
     const rawList = (configData().plugin ?? []) as PluginEntry[]
     const query = searchQuery().toLowerCase().trim()
+    const overrides = builtinOverrides()
     return BUILTIN_PLUGINS.map((p) => {
       const entry = rawList.find((item) => pluginName(item) === `builtin-${p.id}`)
-      const enabled = entry ? pluginEnabled(entry) : true
+      const configEnabled = entry ? pluginEnabled(entry) : true
+      const enabled = p.id in overrides ? overrides[p.id] : configEnabled
       return {
         ...p,
         enabled,
@@ -538,6 +547,7 @@ export const SettingsMcpPluginsV2: Component<{
   const pluginsList = createMemo(() => {
     const rawList = (configData().plugin ?? []) as PluginEntry[]
     const query = searchQuery().toLowerCase().trim()
+    const overrides = pluginOverrides()
 
     // Base installed list (exclude internal builtin-* which are managed in the Built-in section)
     const configured = rawList
@@ -545,7 +555,8 @@ export const SettingsMcpPluginsV2: Component<{
       .map((entry) => {
         const name = pluginName(entry)
         const display = displayName(entry)
-        const enabled = pluginEnabled(entry)
+        const configEnabled = pluginEnabled(entry)
+        const enabled = name in overrides ? overrides[name] : configEnabled
         const origin = pluginOrigin(entry)
         const catalogItem = CATALOG_ITEMS.find((item) => item.type === "plugin" && item.spec === name)
 
@@ -646,18 +657,26 @@ export const SettingsMcpPluginsV2: Component<{
   })
 
   // Toggle MCP Server
-  const toggleMcpServer = async (name: string, currentEnabled: boolean) => {
+  const toggleMcpServer = (name: string, currentEnabled: boolean) => {
     const nextEnabled = !currentEnabled
-    try {
-      const currentConfig = { ...((configData().mcp ?? {}) as Record<string, any>) }
-      const serverEntry = currentConfig[name]
-      const updatedEntry =
-        typeof serverEntry === "object" && serverEntry !== null
-          ? { ...serverEntry, enabled: nextEnabled }
-          : { enabled: nextEnabled }
+    // 1. Inmediato (0 ms) reactivo y toast
+    setMcpOverrides((prev) => ({ ...prev, [name]: nextEnabled }))
+    showToast({
+      variant: "success",
+      title: nextEnabled ? `Servidor "${name}" activado y en ejecución` : `Servidor "${name}" desactivado`,
+    })
 
-      currentConfig[name] = updatedEntry
+    // 2. Ejecutar sincronización en segundo plano sin bloquear UI
+    const currentConfig = { ...((configData().mcp ?? {}) as Record<string, any>) }
+    const serverEntry = currentConfig[name]
+    const updatedEntry =
+      typeof serverEntry === "object" && serverEntry !== null
+        ? { ...serverEntry, enabled: nextEnabled }
+        : { enabled: nextEnabled }
 
+    currentConfig[name] = updatedEntry
+
+    const syncTask = async () => {
       if (nextEnabled && typeof serverEntry === "object" && serverEntry !== null) {
         await serverSdk().client.mcp.add({ ...params(), name, config: updatedEntry as any }).catch(() => {})
         await serverSdk().client.mcp.connect({ ...params(), name }).catch(() => {})
@@ -665,16 +684,18 @@ export const SettingsMcpPluginsV2: Component<{
         await serverSdk().client.mcp.add({ ...params(), name, config: updatedEntry as any }).catch(() => {})
       }
       await serverSdk().client.config.update({ ...params(), config: { mcp: currentConfig } })
-
       void refetchConfig()
       void refetchStatus()
-      showToast({
-        variant: "success",
-        title: nextEnabled ? `Servidor "${name}" activado y en ejecución` : `Servidor "${name}" desactivado`,
-      })
-    } catch {
-      showToast({ variant: "error", title: "Error al actualizar el servidor MCP" })
     }
+
+    void syncTask().catch(() => {
+      setMcpOverrides((prev) => {
+        const next = { ...prev }
+        delete next[name]
+        return next
+      })
+      showToast({ variant: "error", title: "Error al actualizar el servidor MCP" })
+    })
   }
 
   // Remove MCP Server
@@ -693,32 +714,52 @@ export const SettingsMcpPluginsV2: Component<{
   }
 
   // Toggle Built-in Plugin with proper tuple handling
-  const toggleBuiltinPlugin = async (id: string, currentEnabled: boolean) => {
+  const toggleBuiltinPlugin = (id: string, currentEnabled: boolean) => {
     const nextEnabled = !currentEnabled
+    // 1. Inmediato (0 ms)
+    setBuiltinOverrides((prev) => ({ ...prev, [id]: nextEnabled }))
+    showToast({
+      variant: "success",
+      title: nextEnabled ? `Plugin integrado activado` : `Plugin integrado desactivado`,
+    })
+
+    // 2. Sincronización en segundo plano
     const currentPlugins = [...((configData().plugin ?? []) as PluginEntry[])]
     const pluginId = `builtin-${id}`
     const updated = currentPlugins.filter((p) => pluginName(p) !== pluginId)
     if (!nextEnabled) {
       updated.push([pluginId, { enabled: false }])
     }
-    try {
-      await serverSdk().client.config.update({ ...params(), config: { plugin: updated } as any })
-      void refetchConfig()
-      showToast({
-        variant: "success",
-        title: nextEnabled ? `Plugin integrado activado` : `Plugin integrado desactivado`,
+
+    void serverSdk()
+      .client.config.update({ ...params(), config: { plugin: updated } as any })
+      .then(() => {
+        void refetchConfig()
       })
-    } catch {
-      showToast({ variant: "error", title: "Error al actualizar plugin" })
-    }
+      .catch(() => {
+        setBuiltinOverrides((prev) => {
+          const next = { ...prev }
+          delete next[id]
+          return next
+        })
+        showToast({ variant: "error", title: "Error al actualizar plugin" })
+      })
   }
 
   // Toggle Plugin with proper PluginEntry tuple format
-  const togglePlugin = async (spec: PluginEntry, currentEnabled: boolean) => {
+  const togglePlugin = (spec: PluginEntry, currentEnabled: boolean) => {
     const nextEnabled = !currentEnabled
-    const currentPlugins = [...((configData().plugin ?? []) as PluginEntry[])]
     const targetName = pluginName(spec)
 
+    // 1. Inmediato (0 ms)
+    setPluginOverrides((prev) => ({ ...prev, [targetName]: nextEnabled }))
+    showToast({
+      variant: "success",
+      title: nextEnabled ? `Plugin activado` : `Plugin desactivado`,
+    })
+
+    // 2. Sincronización en segundo plano
+    const currentPlugins = [...((configData().plugin ?? []) as PluginEntry[])]
     let found = false
     const updated = currentPlugins.map((p) => {
       if (pluginName(p) === targetName) {
@@ -748,16 +789,19 @@ export const SettingsMcpPluginsV2: Component<{
       }
     }
 
-    try {
-      await serverSdk().client.config.update({ ...params(), config: { plugin: updated } as any })
-      void refetchConfig()
-      showToast({
-        variant: "success",
-        title: nextEnabled ? `Plugin activado` : `Plugin desactivado`,
+    void serverSdk()
+      .client.config.update({ ...params(), config: { plugin: updated } as any })
+      .then(() => {
+        void refetchConfig()
       })
-    } catch {
-      showToast({ variant: "error", title: "Error al actualizar el plugin" })
-    }
+      .catch(() => {
+        setPluginOverrides((prev) => {
+          const next = { ...prev }
+          delete next[targetName]
+          return next
+        })
+        showToast({ variant: "error", title: "Error al actualizar el plugin" })
+      })
   }
 
   // Add / Install from Catalog

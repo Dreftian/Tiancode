@@ -4,6 +4,23 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.18] — 2026-09-04
+### Nuevo y Mejorado
+
+- **Sub-Agentes con Mayor Separación y Activación Individual Instantánea (0 ms)**:
+  - Incremento del espaciado visual a 18px entre el switch y la etiqueta de estado "Activo".
+  - Control de activación individual instantáneo con señal reactiva dedicada (`agentStatusOverrides`), notificación inmediata y persistencia en segundo plano sin congelar la interfaz.
+- **Configuración Global Instantánea y Fluida (0 ms)**:
+  - Toggles instantáneos en Servidores MCP, Plugins integrados, Plugins de catálogo y Skills con respuesta en 0 ms y sincronización asíncrona con rollback.
+- **Mascotas 3D Vivas, Prominentes y Animadas**:
+  - Animaciones CSS fluidas para los 13 compañeros interactivos (flotación, balanceo, respiración, parpadeo, llamas y destellos de gemas/visores).
+  - Avatar expandido a 56px (`size-14`) con icono de 44px y resplandor dinámico en la mascota seleccionada.
+- **Modelos Locales con Selector de Cuantización de Alto Contraste**:
+  - Corrección de visibilidad de texto en selector de cuantización GGUF con `color-scheme: dark`, fondo `#0f172a` y texto nítido `#f8fafc`.
+- **Skills con Documentación Técnica Completa Restaurada**:
+  - Preservación del 100% del contenido original en Markdown (cientos de líneas, tablas, fragmentos de código, directivas y ejemplos) sin reemplazos por textos vacíos o recortados.
+  - Carga completa de todas las skills integradas en el motor de backend.
+
 ## [1.0.17] — 2026-09-04
 ### Nuevo y Mejorado
 

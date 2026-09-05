@@ -21,6 +21,70 @@ export const Pet3DIcon: Component<Pet3DIconProps> = (props) => {
       aria-hidden="true"
     >
       <defs>
+        <style>{`
+          .pet-anim-dewey { animation: pet-float 3.2s ease-in-out infinite, pet-wobble 4s ease-in-out infinite; transform-origin: 50% 64px; }
+          .pet-anim-fireball { animation: pet-flame 2.2s ease-in-out infinite alternate; transform-origin: 50% 60px; }
+          .pet-anim-hoots { animation: pet-float 4s ease-in-out infinite; transform-origin: 50% 58px; }
+          .pet-anim-hoots-eye { animation: pet-glow-eye 2.4s ease-in-out infinite alternate; }
+          .pet-anim-rocky { animation: pet-float 3.6s ease-in-out infinite; transform-origin: 50% 50px; }
+          .pet-anim-rocky-gem { animation: pet-glow-gem 2s ease-in-out infinite alternate; }
+          .pet-anim-seedy { animation: pet-sway 3s ease-in-out infinite alternate; transform-origin: 50% 86px; }
+          .pet-anim-stacky { animation: pet-float 2.8s ease-in-out infinite; transform-origin: 50% 50px; }
+          .pet-anim-bsod { animation: pet-crt 2.5s ease-in-out infinite; transform-origin: 50% 50px; }
+          .pet-anim-nullsignal { animation: pet-float 3s ease-in-out infinite; transform-origin: 50% 52px; }
+          .pet-anim-null-antenna { animation: pet-antenna-pulse 1.8s ease-in-out infinite alternate; }
+          .pet-anim-cat { animation: pet-breathe 3.4s ease-in-out infinite alternate; transform-origin: 50% 56px; }
+          .pet-anim-dog { animation: pet-wag 1.6s ease-in-out infinite alternate; transform-origin: 50% 64px; }
+          .pet-anim-rabbit { animation: pet-hop 2.6s ease-in-out infinite; transform-origin: 50% 70px; }
+          .pet-anim-panda { animation: pet-breathe 4s ease-in-out infinite alternate; transform-origin: 50% 56px; }
+          .pet-anim-fox { animation: pet-float 3.5s ease-in-out infinite; transform-origin: 50% 54px; }
+
+          @keyframes pet-float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+          }
+          @keyframes pet-wobble {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-2.5deg) scaleX(0.98); }
+            75% { transform: rotate(2.5deg) scaleX(1.02); }
+          }
+          @keyframes pet-flame {
+            0% { transform: scale(0.97) translateY(0); filter: drop-shadow(0 0 4px #f97316); }
+            100% { transform: scale(1.04) translateY(-3px); filter: drop-shadow(0 0 10px #ef4444); }
+          }
+          @keyframes pet-glow-eye {
+            0% { filter: drop-shadow(0 0 2px #0284c7); }
+            100% { filter: drop-shadow(0 0 7px #38bdf8); }
+          }
+          @keyframes pet-glow-gem {
+            0% { filter: drop-shadow(0 0 2px #7e22ce); }
+            100% { filter: drop-shadow(0 0 8px #c084fc); }
+          }
+          @keyframes pet-sway {
+            0% { transform: rotate(-3deg); }
+            100% { transform: rotate(3deg); }
+          }
+          @keyframes pet-crt {
+            0%, 100% { opacity: 0.98; filter: drop-shadow(0 0 3px #2563eb); }
+            50% { opacity: 0.88; filter: drop-shadow(0 0 8px #60a5fa); }
+          }
+          @keyframes pet-antenna-pulse {
+            0% { filter: drop-shadow(0 0 2px #0284c7); }
+            100% { filter: drop-shadow(0 0 9px #38bdf8); }
+          }
+          @keyframes pet-breathe {
+            0% { transform: scale(0.97); }
+            100% { transform: scale(1.03); }
+          }
+          @keyframes pet-wag {
+            0% { transform: rotate(-2.5deg); }
+            100% { transform: rotate(2.5deg); }
+          }
+          @keyframes pet-hop {
+            0%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-5px); }
+          }
+        `}</style>
         {/* Filtros de sombra y brillo 3D */}
         <filter id="pet3d-shadow" x="-20%" y="-20%" width="140%" height="140%">
           <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#000000" flood-opacity="0.45" />
@@ -178,7 +242,7 @@ export const Pet3DIcon: Component<Pet3DIconProps> = (props) => {
 
       {/* Renderizado por Kind */}
       {props.kind === "dewey" && (
-        <g filter="url(#pet3d-shadow)">
+        <g filter="url(#pet3d-shadow)" class="pet-anim-dewey">
           <path
             d="M50 12C50 12 24 45 24 64C24 78.3594 35.6406 90 50 90C64.3594 90 76 78.3594 76 64C76 45 50 12 50 12Z"
             fill="url(#dewey-body)"
@@ -200,7 +264,7 @@ export const Pet3DIcon: Component<Pet3DIconProps> = (props) => {
       )}
 
       {props.kind === "fireball" && (
-        <g filter="url(#pet3d-shadow)">
+        <g filter="url(#pet3d-shadow)" class="pet-anim-fireball">
           <path
             d="M50 6C54 18 64 24 68 34C74 44 76 56 72 68C66 82 52 90 38 88C24 84 16 70 18 56C20 40 32 30 38 18C42 10 48 6 50 6Z"
             fill="url(#fireball-flame)"
@@ -216,7 +280,7 @@ export const Pet3DIcon: Component<Pet3DIconProps> = (props) => {
       )}
 
       {props.kind === "hoots" && (
-        <g filter="url(#pet3d-shadow)">
+        <g filter="url(#pet3d-shadow)" class="pet-anim-hoots">
           <path d="M26 22L36 38L22 42Z" fill="#334155" />
           <path d="M74 22L64 38L78 42Z" fill="#334155" />
           <ellipse cx="50" cy="58" rx="32" ry="30" fill="url(#hoots-body)" />
@@ -224,23 +288,23 @@ export const Pet3DIcon: Component<Pet3DIconProps> = (props) => {
           <path d="M42 64L50 70L58 64" stroke="#64748b" stroke-width="2" stroke-linecap="round" />
           <path d="M44 70L50 75L56 70" stroke="#64748b" stroke-width="2" stroke-linecap="round" />
           <circle cx="37" cy="50" r="12" fill="#0f172a" stroke="#64748b" stroke-width="2" />
-          <circle cx="37" cy="50" r="8" fill="url(#hoots-eye-glow)" />
+          <circle cx="37" cy="50" r="8" fill="url(#hoots-eye-glow)" class="pet-anim-hoots-eye" />
           <circle cx="39" cy="48" r="2.5" fill="#ffffff" />
           <circle cx="63" cy="50" r="12" fill="#0f172a" stroke="#64748b" stroke-width="2" />
-          <circle cx="63" cy="50" r="8" fill="url(#hoots-eye-glow)" />
+          <circle cx="63" cy="50" r="8" fill="url(#hoots-eye-glow)" class="pet-anim-hoots-eye" />
           <circle cx="65" cy="48" r="2.5" fill="#ffffff" />
           <polygon points="50,54 44,62 56,62" fill="#f59e0b" />
         </g>
       )}
 
       {props.kind === "rocky" && (
-        <g filter="url(#pet3d-shadow)">
+        <g filter="url(#pet3d-shadow)" class="pet-anim-rocky">
           <polygon points="30,18 70,16 88,42 80,78 48,88 18,74 14,40" fill="url(#rocky-top)" />
           <polygon points="30,18 70,16 54,44 14,40" fill="#64748b" opacity="0.6" />
           <polygon points="70,16 88,42 62,56 54,44" fill="#475569" opacity="0.8" />
           <polygon points="88,42 80,78 48,88 62,56" fill="#334155" />
           <polygon points="14,40 54,44 48,88 18,74" fill="#475569" />
-          <polygon points="38,36 50,42 46,62 34,54" fill="url(#rocky-gem)" />
+          <polygon points="38,36 50,42 46,62 34,54" fill="url(#rocky-gem)" class="pet-anim-rocky-gem" />
           <polygon points="46,42 60,40 56,58 46,62" fill="#c084fc" opacity="0.8" />
           <ellipse cx="36" cy="46" rx="3.5" ry="4" fill="#020617" />
           <circle cx="37" cy="44.5" r="1.2" fill="#ffffff" />
@@ -250,7 +314,7 @@ export const Pet3DIcon: Component<Pet3DIconProps> = (props) => {
       )}
 
       {props.kind === "seedy" && (
-        <g filter="url(#pet3d-shadow)">
+        <g filter="url(#pet3d-shadow)" class="pet-anim-seedy">
           <path d="M50 86C50 65 48 50 48 38C48 26 54 18 54 18" stroke="url(#seedy-stem)" stroke-width="6" stroke-linecap="round" />
           <path d="M48 46C30 44 16 32 18 20C30 18 44 32 48 46Z" fill="url(#seedy-leaf1)" />
           <path d="M22 24C32 26 42 36 46 44" stroke="#dcfce7" stroke-width="1.5" stroke-linecap="round" opacity="0.8" />
@@ -264,7 +328,7 @@ export const Pet3DIcon: Component<Pet3DIconProps> = (props) => {
       )}
 
       {props.kind === "stacky" && (
-        <g filter="url(#pet3d-shadow)">
+        <g filter="url(#pet3d-shadow)" class="pet-anim-stacky">
           <ellipse cx="50" cy="74" rx="34" ry="14" fill="#9a3412" />
           <ellipse cx="50" cy="70" rx="34" ry="14" fill="url(#stacky-cake)" />
           <ellipse cx="50" cy="56" rx="32" ry="13" fill="#9a3412" />
@@ -283,7 +347,7 @@ export const Pet3DIcon: Component<Pet3DIconProps> = (props) => {
       )}
 
       {props.kind === "bsod" && (
-        <g filter="url(#pet3d-shadow)">
+        <g filter="url(#pet3d-shadow)" class="pet-anim-bsod">
           <rect x="14" y="16" width="72" height="60" rx="10" fill="url(#bsod-frame)" stroke="#475569" stroke-width="2" />
           <rect x="22" y="24" width="56" height="44" rx="6" fill="url(#bsod-screen)" />
           <line x1="26" y1="32" x2="42" y2="32" stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity="0.9" />
@@ -295,7 +359,7 @@ export const Pet3DIcon: Component<Pet3DIconProps> = (props) => {
       )}
 
       {props.kind === "nullsignal" && (
-        <g filter="url(#pet3d-shadow)">
+        <g filter="url(#pet3d-shadow)" class="pet-anim-nullsignal">
           <circle cx="50" cy="52" r="34" fill="url(#null-chassis)" />
           <path d="M22 46C22 36 34 34 50 34C66 34 78 36 78 46C78 56 66 60 50 60C34 60 22 56 22 46Z" fill="url(#null-visor)" stroke="#38bdf8" stroke-width="1.5" />
           <ellipse cx="40" cy="46" rx="5" ry="6" fill="#38bdf8" filter="url(#pet3d-glow)" />
@@ -303,12 +367,12 @@ export const Pet3DIcon: Component<Pet3DIconProps> = (props) => {
           <ellipse cx="60" cy="46" rx="5" ry="6" fill="#38bdf8" filter="url(#pet3d-glow)" />
           <circle cx="61" cy="44.5" r="1.5" fill="#ffffff" />
           <line x1="50" y1="18" x2="50" y2="10" stroke="#64748b" stroke-width="3" stroke-linecap="round" />
-          <circle cx="50" cy="8" r="4.5" fill="#38bdf8" filter="url(#pet3d-glow)" />
+          <circle cx="50" cy="8" r="4.5" fill="#38bdf8" filter="url(#pet3d-glow)" class="pet-anim-null-antenna" />
         </g>
       )}
 
       {props.kind === "cat" && (
-        <g filter="url(#pet3d-shadow)">
+        <g filter="url(#pet3d-shadow)" class="pet-anim-cat">
           <polygon points="20,40 32,14 46,32" fill="url(#cat-fur)" />
           <polygon points="26,36 34,20 42,32" fill="#f43f5e" opacity="0.6" />
           <polygon points="80,40 68,14 54,32" fill="url(#cat-fur)" />
@@ -330,7 +394,7 @@ export const Pet3DIcon: Component<Pet3DIconProps> = (props) => {
       )}
 
       {props.kind === "dog" && (
-        <g filter="url(#pet3d-shadow)">
+        <g filter="url(#pet3d-shadow)" class="pet-anim-dog">
           <path d="M22 35C14 45 14 65 24 72C28 70 30 55 30 42Z" fill="url(#dog-ear)" />
           <path d="M78 35C86 45 86 65 76 72C72 70 70 55 70 42Z" fill="url(#dog-ear)" />
           <circle cx="50" cy="54" r="30" fill="url(#dog-fur)" />
@@ -346,7 +410,7 @@ export const Pet3DIcon: Component<Pet3DIconProps> = (props) => {
       )}
 
       {props.kind === "rabbit" && (
-        <g filter="url(#pet3d-shadow)">
+        <g filter="url(#pet3d-shadow)" class="pet-anim-rabbit">
           <ellipse cx="36" cy="24" rx="8" ry="20" transform="rotate(-10 36 24)" fill="url(#rabbit-fur)" />
           <ellipse cx="36" cy="24" rx="4" ry="14" transform="rotate(-10 36 24)" fill="#fbcfe8" />
           <ellipse cx="64" cy="24" rx="8" ry="20" transform="rotate(10 64 24)" fill="url(#rabbit-fur)" />
@@ -364,7 +428,7 @@ export const Pet3DIcon: Component<Pet3DIconProps> = (props) => {
       )}
 
       {props.kind === "panda" && (
-        <g filter="url(#pet3d-shadow)">
+        <g filter="url(#pet3d-shadow)" class="pet-anim-panda">
           <circle cx="26" cy="28" r="11" fill="#0f172a" />
           <circle cx="74" cy="28" r="11" fill="#0f172a" />
           <circle cx="50" cy="56" r="30" fill="url(#panda-body)" />
@@ -381,7 +445,7 @@ export const Pet3DIcon: Component<Pet3DIconProps> = (props) => {
       )}
 
       {props.kind === "fox" && (
-        <g filter="url(#pet3d-shadow)">
+        <g filter="url(#pet3d-shadow)" class="pet-anim-fox">
           <polygon points="18,36 32,8 48,28" fill="url(#fox-fur)" />
           <polygon points="26,30 34,16 42,28" fill="#ffffff" />
           <polygon points="82,36 68,8 52,28" fill="url(#fox-fur)" />

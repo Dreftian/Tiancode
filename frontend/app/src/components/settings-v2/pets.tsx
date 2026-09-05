@@ -168,12 +168,18 @@ export const SettingsPetsV2: Component<{ active?: boolean }> = (_props) => {
                       }}
                     >
                       {/* 1. Mascota */}
-                      <div class="flex items-center gap-3 min-w-0 pr-2">
-                        <div class="size-10 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center shrink-0 shadow-sm transition-transform hover:scale-110">
-                          <Pet3DIcon kind={kind} size={32} />
+                      <div class="flex items-center gap-3.5 min-w-0 pr-2">
+                        <div
+                          class="size-14 rounded-2xl flex items-center justify-center shrink-0 shadow-md transition-all duration-300 hover:scale-110"
+                          classList={{
+                            "bg-gradient-to-br from-sky-500/20 to-sky-600/10 border-2 border-sky-400/60 shadow-sky-500/25 shadow-lg": selected(),
+                            "bg-white/[0.05] border border-white/10 hover:border-white/20 hover:bg-white/[0.08]": !selected(),
+                          }}
+                        >
+                          <Pet3DIcon kind={kind} size={44} />
                         </div>
                         <div class="flex flex-col min-w-0">
-                          <span class="text-xs font-semibold text-slate-100 truncate">
+                          <span class="text-sm font-semibold text-slate-100 truncate">
                             {language.t(`settings.pets.kind.${kind}`)}
                           </span>
                           <span class="text-[10px] font-mono text-slate-400 truncate">
