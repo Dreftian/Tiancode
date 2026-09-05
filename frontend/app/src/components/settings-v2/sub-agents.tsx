@@ -1,21 +1,10 @@
-import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
-import { CheckboxV2 } from "@tiancode-ai/ui/v2/checkbox-v2"
-import { Icon } from "@tiancode-ai/ui/v2/icon"
-import { IconButtonV2 } from "@tiancode-ai/ui/v2/icon-button-v2"
-import { SettingsItemIconV2, itemColor } from "./parts/item-icon"
-import { SegmentedControlItemV2, SegmentedControlV2 } from "@tiancode-ai/ui/v2/segmented-control-v2"
-import { SelectV2 } from "@tiancode-ai/ui/v2/select-v2"
 import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
-import { TextInputV2 } from "@tiancode-ai/ui/v2/text-input-v2"
-import { TextareaV2 } from "@tiancode-ai/ui/v2/textarea-v2"
 import type { Agent, PermissionRule } from "@tiancode-ai/sdk/v2/client"
 import { type Component, createEffect, createMemo, createResource, createSignal, For, Show } from "solid-js"
 import { useLanguage } from "@/context/language"
 import { useServerSDK } from "@/context/server-sdk"
 import { showToast } from "@/utils/toast"
-import { SettingsListV2 } from "./parts/list"
 import { SettingsPagerV2 } from "./parts/pager"
-import { SettingsRowV2 } from "./parts/row"
 import { RlmHierarchyTree } from "@/components/rlm-hierarchy-tree"
 import { AgentSwarmGraph } from "@/components/agent-swarm-graph"
 import "./sub-agents.css"
@@ -431,14 +420,6 @@ const AGENT_META: Record<string, AgentDisplayMeta> = {
 }
 
 type StatusId = "all" | "enabled" | "disabled"
-type FormMessage =
-  | "created"
-  | "failed"
-  | "updated"
-  | "updateFailed"
-  | "deleted"
-  | "deleteFailed"
-  | undefined
 
 // The backend rewrites tool lists into permission allow/deny rules and merges
 // them on top of the default ruleset (`*: allow` plus read/external_directory
@@ -481,19 +462,6 @@ export const SettingsSubAgentsV2: Component<{
   const language = useLanguage()
   const serverSdk = useServerSDK()
 
-  const [name, setName] = createSignal("")
-  const [description, setDescription] = createSignal("")
-  const [prompt, setPrompt] = createSignal("")
-  const [modelKind, setModelKind] = createSignal<"inherit" | "custom">("inherit")
-  const [modelValue, setModelValue] = createSignal("")
-  const [color, setColor] = createSignal("")
-  const [toolsMode, setToolsMode] = createSignal<"all" | "custom">("all")
-  const [tools, setTools] = createSignal<string[]>([])
-  const [injectAgentsMd, setInjectAgentsMd] = createSignal(true)
-  const [editing, setEditing] = createSignal<string | null>(null)
-  const [showModal, setShowModal] = createSignal(false)
-  const [saving, setSaving] = createSignal(false)
-  const [message, setMessage] = createSignal<FormMessage>(undefined)
   const [scope, setScope] = createSignal<"project" | "global">(props.directory ? "project" : "global")
 
   const params = () => (props.directory ? { directory: props.directory } : undefined)
@@ -623,12 +591,7 @@ export const SettingsSubAgentsV2: Component<{
     return list
   })
 
-  const userAgents = createMemo<Agent[]>(() => {
-    const serverList = agents() ?? []
-    return serverList.filter((a) => a && !isNative(a) && !(a.name in AGENT_META))
-  })
-
-  const agentList = createMemo(() => [...builtinAgents(), ...userAgents()])
+  const agentList = createMemo(() => builtinAgents())
 
   const [query, setQuery] = createSignal("")
   const [status, setStatus] = createSignal<StatusId>("all")
@@ -647,7 +610,6 @@ export const SettingsSubAgentsV2: Component<{
     if (s === "disabled") return agents.filter((a) => (a as { disabled?: boolean }).disabled === true || (a as { mode?: string }).mode === "disabled")
     return agents
   }
-  const visibleUserAgents = createMemo(() => visibleByStatus(userAgents().filter(matchesQuery)))
   const visibleBuiltinAgents = createMemo(() => visibleByStatus(builtinAgents().filter(matchesQuery)))
 
   // Paginación 10x10 para Sub-Agentes sin scroll excesivo
@@ -660,324 +622,20 @@ export const SettingsSubAgentsV2: Component<{
     return { items: visibleBuiltinAgents().slice(start, start + BUILTIN_PAGE_SIZE), page, total: builtinTotal() }
   })
 
-  const USER_PAGE_SIZE = 10
-  const [userPage, setUserPage] = createSignal(1)
-  const userTotal = () => Math.max(1, Math.ceil(visibleUserAgents().length / USER_PAGE_SIZE))
-  const pageUserAgents = createMemo(() => {
-    const page = Math.min(userPage(), userTotal())
-    const start = (page - 1) * USER_PAGE_SIZE
-    return { items: visibleUserAgents().slice(start, start + USER_PAGE_SIZE), page, total: userTotal() }
-  })
-
   createEffect(() => {
     if (builtinPage() > builtinTotal()) setBuiltinPage(builtinTotal())
-    if (userPage() > userTotal()) setUserPage(userTotal())
   })
 
   createEffect(() => {
     query()
     status()
     setBuiltinPage(1)
-    setUserPage(1)
   })
-
-  const editingAgent = createMemo(
-    () => agentList().find((agent: Agent) => agent.name === editing()) ?? null,
-  )
 
   const nativeDescription = (agent: Agent) => {
     const key = NativeAgentDescriptionKeys[agent.name]
     if (key) return language.t(key)
     return agent.description ?? ""
-  }
-
-  const nameValid = createMemo(() => {
-    const value = name().trim()
-    return value.length >= 3 && value.length <= 50 && /^[a-zA-Z0-9-]+$/.test(value)
-  })
-
-  const canSave = createMemo(
-    () => nameValid() && description().trim().length > 0 && prompt().trim().length > 0,
-  )
-
-  const toggleTool = (id: string) => {
-    setTools((current) =>
-      current.includes(id) ? current.filter((tool) => tool !== id) : [...current, id],
-    )
-  }
-
-  const resetForm = () => {
-    setEditing(null)
-    setName("")
-    setDescription("")
-    setPrompt("")
-    setColor("")
-    setModelKind("inherit")
-    setModelValue("")
-    setToolsMode("all")
-    setTools([])
-    setInjectAgentsMd(true)
-    setMessage(undefined)
-    setShowModal(false)
-  }
-
-  const startCreate = () => {
-    resetForm()
-    setShowModal(true)
-  }
-
-  const startEdit = (agent: Agent) => {
-    setEditing(agent.name)
-    setName(agent.name)
-    setDescription(agent.description ?? "")
-    setPrompt(agent.prompt ?? "")
-    const palette = AgentColors.find(
-      (swatch) => swatch.value.toLowerCase() === (agent.color ?? "").toLowerCase(),
-    )
-    setColor(palette?.value ?? agent.color ?? "")
-    setModelKind(agent.model ? "custom" : "inherit")
-    setModelValue(agent.model ? `${agent.model.providerID}/${agent.model.modelID}` : "")
-    const restricted = hasRestrictedTools(agent)
-    setToolsMode(restricted ? "custom" : "all")
-    setTools(
-      restricted
-        ? AgentTools.filter((tool) => effectiveToolRule(agent, tool.id)?.action !== "deny").map(
-            (tool) => tool.id,
-          )
-        : [],
-    )
-    setInjectAgentsMd(true)
-    setMessage(undefined)
-    setShowModal(true)
-  }
-
-  const exportAgentMarkdown = () => {
-    const agentName = name().trim() || "subagent"
-    const content = [
-      "---",
-      `name: "${agentName}"`,
-      `description: "${description().trim().replace(/"/g, '\\"')}"`,
-      `color: "${color().trim() || "#3B82F6"}"`,
-      `modelKind: "${modelKind()}"`,
-      `model: "${modelValue().trim()}"`,
-      `toolsMode: "${toolsMode()}"`,
-      "tools:",
-      ...(toolsMode() === "custom" ? tools().map((t) => `  - "${t}"`) : []),
-      `injectAgentsMd: ${injectAgentsMd()}`,
-      "---",
-      "",
-      "# System Prompt",
-      "",
-      prompt().trim() || "Eres un sub-agente especializado.",
-      "",
-    ].join("\n")
-
-    const blob = new Blob([content], { type: "text/markdown;charset=utf-8" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `${agentName}.agent.md`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-    showToast({ variant: "success", title: "Agente exportado en Markdown", description: `${agentName}.agent.md` })
-  }
-
-  const importAgentMarkdown = (file: File) => {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const text = e.target?.result as string
-      if (!text) return
-
-      const frontmatterMatch = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/)
-      if (frontmatterMatch) {
-        const yaml = frontmatterMatch[1]
-        const body = frontmatterMatch[2].replace(/^#\s*System Prompt\s*\r?\n/i, "").trim()
-
-        const getVal = (key: string) => {
-          const m = yaml.match(new RegExp(`^${key}:\\s*"?([^"\\r\\n]+)"?`, "m"))
-          return m ? m[1].trim() : ""
-        }
-
-        const parsedName = getVal("name")
-        const parsedDesc = getVal("description")
-        const parsedColor = getVal("color")
-        const parsedModelKind = getVal("modelKind")
-        const parsedModel = getVal("model")
-        const parsedToolsMode = getVal("toolsMode")
-        const parsedInject = getVal("injectAgentsMd")
-
-        const toolsMatches = yaml.match(/tools:\r?\n((?:\s+-\s*"?[^"\r\n]+"?\r?\n?)*)/)
-        const parsedTools: string[] = []
-        if (toolsMatches && toolsMatches[1]) {
-          const lines = toolsMatches[1].split(/\r?\n/)
-          for (const line of lines) {
-            const tm = line.match(/^\s+-\s*"?(.*?)"?\s*$/)
-            if (tm && tm[1]) parsedTools.push(tm[1])
-          }
-        }
-
-        if (parsedName) setName(parsedName)
-        if (parsedDesc) setDescription(parsedDesc)
-        if (parsedColor) setColor(parsedColor)
-        if (parsedModelKind === "custom" || parsedModelKind === "inherit") setModelKind(parsedModelKind)
-        if (parsedModel) setModelValue(parsedModel)
-        if (parsedToolsMode === "custom" || parsedToolsMode === "all") setToolsMode(parsedToolsMode)
-        if (parsedTools.length > 0) setTools(parsedTools)
-        if (parsedInject !== "") setInjectAgentsMd(parsedInject === "true")
-        if (body) setPrompt(body)
-
-        showToast({ variant: "success", title: "Agente importado correctamente", description: parsedName || file.name })
-      } else {
-        setPrompt(text.trim())
-        showToast({ variant: "default", title: "Prompt cargado desde archivo", description: file.name })
-      }
-    }
-    reader.readAsText(file)
-  }
-
-  const improveSubAgentPrompt = () => {
-    const rawName = name().trim() || "Especialista"
-    const rawDesc = description().trim() || "Asistente autónomo de desarrollo y resolución de tareas."
-    const currentPrompt = prompt().trim()
-    const activeToolsList = toolsMode() === "all" ? "Todas las herramientas habilitadas" : tools().join(", ") || "Lectura e Inspección"
-
-    const improved = [
-      `# Rol y Especialidad: ${rawName}`,
-      rawDesc,
-      "",
-      "## Objetivos y Responsabilidades",
-      `- Ejecutar tareas delegadas con máxima precisión, autonomía y verificación continua.`,
-      `- Mantener la arquitectura limpia, siguiendo estrictamente las convenciones del repositorio.`,
-      `- Identificar dependencias y efectos colaterales antes de realizar modificaciones.`,
-      "",
-      "## Protocolo de Ejecución Paso a Paso",
-      `1. **Investigación e Inspección**: Analizar archivos y contexto relevante utilizando las herramientas asignadas (${activeToolsList}).`,
-      `2. **Planificación Atómica**: Formular el plan de cambios específicos sin introducir regresiones.`,
-      `3. **Implementación Precisa**: Aplicar los cambios necesarios directamente en los archivos correspondientes.`,
-      `4. **Validación y Verificación**: Comprobar sintaxis, contratos de tipos y funcionalidad antes de concluir el turno.`,
-      "",
-      "## Reglas de Comportamiento y Salida",
-      `- Respuestas concisas, estructuradas en Markdown y orientadas a la acción.`,
-      `- Proporcionar siempre enlaces clicables a los archivos modificados o inspeccionados.`,
-      `- Si surge un error imprevisto, diagnosticar la causa raíz antes de proponer la corrección.`,
-      "",
-      ...(currentPrompt ? ["## Contexto y Directivas Adicionales", currentPrompt] : []),
-    ].join("\n")
-
-    setPrompt(improved)
-    showToast({
-      variant: "success",
-      title: "✨ Prompt de Sub-Agente optimizado",
-      description: "Se han estructurado los protocolos, responsabilidades y reglas de ejecución.",
-    })
-  }
-
-  const formBody = () => ({
-    name: name().trim(),
-    description: description().trim(),
-    mode: "subagent" as const,
-    ...(modelKind() === "custom" && modelValue().trim() ? { model: modelValue().trim() } : {}),
-    ...(color().trim() ? { color: color().trim() } : {}),
-    prompt: prompt().trim(),
-    injectAgentsMd: injectAgentsMd(),
-    ...(toolsMode() === "custom" ? { tools: tools() } : {}),
-  })
-
-  const submit = async () => {
-    if (!canSave() || saving()) return
-    setSaving(true)
-    setMessage(undefined)
-    const current = editing()
-    try {
-      if (current) {
-        await serverSdk().client.app.agents2.update({
-          ...params(),
-          path_name: current,
-          ...formBody(),
-          body_name: name().trim(),
-        })
-      } else {
-        await serverSdk().client.app.agents2.create({
-          ...params(),
-          ...formBody(),
-        })
-      }
-      resetForm()
-      setMessage(current ? "updated" : "created")
-      void refetch()
-    } catch {
-      setMessage(current ? "updateFailed" : "failed")
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const removeAgent = async (agent: Agent) => {
-    if (
-      typeof window === "object" &&
-      !window.confirm(language.t("settings.subAgents.form.delete.confirm", { name: agent.name }))
-    )
-      return
-    setSaving(true)
-    setMessage(undefined)
-    try {
-      await serverSdk().client.app.agents2.delete({ ...params(), name: agent.name })
-      if (editing() === agent.name) resetForm()
-      setMessage("deleted")
-      void refetch()
-    } catch {
-      setMessage("deleteFailed")
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const messageVariant = createMemo(() =>
-    message() === "created" || message() === "updated" || message() === "deleted" ? "success" : "error",
-  )
-
-  const messageText = createMemo(() => {
-    switch (message()) {
-      case "created":
-        return language.t("settings.subAgents.form.success")
-      case "failed":
-        return language.t("settings.subAgents.form.failed")
-      case "updated":
-        return language.t("settings.subAgents.form.updated")
-      case "updateFailed":
-        return language.t("settings.subAgents.form.updateFailed")
-      case "deleted":
-        return language.t("settings.subAgents.form.deleted")
-      case "deleteFailed":
-        return language.t("settings.subAgents.form.deleteFailed")
-    }
-  })
-
-  const cloneToCustom = (agent: Agent) => {
-    const meta = AGENT_META[agent.name]
-    setName(`${agent.name}-custom`)
-    setDescription(meta?.description || nativeDescription(agent) || agent.description || "")
-    setPrompt(agent.prompt || "")
-    setColor(meta?.color || agent.color || "#3B82F6")
-    setModelKind(agent.model ? "custom" : "inherit")
-    setModelValue(agent.model ? `${agent.model.providerID}/${agent.model.modelID}` : "")
-    const restricted = hasRestrictedTools(agent)
-    setToolsMode(restricted ? "custom" : "all")
-    setTools(
-      restricted
-        ? AgentTools.filter((tool) => effectiveToolRule(agent, tool.id)?.action !== "deny").map((tool) => tool.id)
-        : [],
-    )
-    setInjectAgentsMd(true)
-    setEditing(null)
-    setShowModal(true)
-    showToast({
-      variant: "success",
-      title: `Plantilla ${meta?.title || agent.name} cargada`,
-      description: "Ajusta las opciones en el formulario para crear tu sub-agente.",
-    })
   }
 
   return (
@@ -989,55 +647,14 @@ export const SettingsSubAgentsV2: Component<{
             <p class="settings-v2-tab-description">{language.t("settings.subAgents.description")}</p>
           </div>
           <div class="flex items-center gap-2 shrink-0">
-            <input
-              type="file"
-              id="subagent-import-input"
-              accept=".md,.markdown,.json"
-              style={{ display: "none" }}
-              onChange={(e) => {
-                const f = e.currentTarget.files?.[0]
-                if (f) importAgentMarkdown(f)
-                e.currentTarget.value = ""
-              }}
-            />
-            <ButtonV2
-              type="button"
-              variant="ghost"
-              size="normal"
-              class="whitespace-nowrap shrink-0"
-              onClick={() => document.getElementById("subagent-import-input")?.click()}
-            >
-              📥 Importar (.md)
-            </ButtonV2>
-            <ButtonV2
-              type="button"
-              variant="ghost"
-              size="normal"
-              class="whitespace-nowrap shrink-0"
-              onClick={exportAgentMarkdown}
-            >
-              📤 Exportar (.md)
-            </ButtonV2>
-            <ButtonV2
-              type="button"
-              variant="contrast"
-              size="normal"
-              icon="plus"
-              class="whitespace-nowrap shrink-0 font-medium"
-              onClick={startCreate}
-            >
-              {language.t("settings.subAgents.list.new")}
-            </ButtonV2>
+            <span class="px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 shadow-sm">
+              🛡️ {visibleBuiltinAgents().length} Sub-Agentes Nativos
+            </span>
           </div>
         </div>
       </div>
 
       <div class="settings-v2-tab-body settings-v2-sub-agents">
-        <Show when={message()}>
-          <div class="settings-v2-skills-message" data-variant={messageVariant()}>
-            {messageText()}
-          </div>
-        </Show>
 
         {/* Selector de Alcance Granular: Proyecto Actual vs Global */}
         <div class="flex items-center justify-between gap-3 mb-5 p-3 rounded-xl border border-white/10 bg-slate-900/40">
@@ -1100,7 +717,6 @@ export const SettingsSubAgentsV2: Component<{
                 <div>Modelo</div>
                 <div>Herramientas</div>
                 <div>Estado</div>
-                <div class="text-right">Acción</div>
               </div>
 
               <For each={pageBuiltinAgents().items}>
@@ -1180,18 +796,6 @@ export const SettingsSubAgentsV2: Component<{
                           {isAgentActive(agent.name) ? "Activo" : "Inactivo"}
                         </span>
                       </div>
-
-                      {/* 6. Acciones */}
-                      <div class="settings-v2-subagents-cell justify-end gap-1.5">
-                        <button
-                          type="button"
-                          class="settings-v2-sub-agents-card-btn text-xs py-1 px-2.5"
-                          onClick={() => cloneToCustom(agent)}
-                          title="Cargar como base en el editor para crear tu versión personalizada"
-                        >
-                          ✨ Personalizar
-                        </button>
-                      </div>
                     </div>
                   )
                 }}
@@ -1208,391 +812,14 @@ export const SettingsSubAgentsV2: Component<{
           </div>
         </Show>
 
-        {/* 2. Sub-Agentes Personalizados (Galería Completa) */}
-        <div class="settings-v2-section mb-6">
-          <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center gap-2">
-              <h3 class="settings-v2-section-title">
-                {language.t("settings.subAgents.list.group.user")}
-              </h3>
-              <span class="settings-v2-sub-agents-group-count">{visibleUserAgents().length}</span>
-            </div>
-            <ButtonV2
-              type="button"
-              variant="contrast"
-              size="small"
-              onClick={startCreate}
-            >
-              + Nuevo sub-agente
-            </ButtonV2>
-          </div>
-
-          <Show
-            when={visibleUserAgents().length > 0}
-            fallback={
-              <div class="p-8 rounded-2xl border border-dashed border-white/10 bg-white/[0.02] text-center text-xs text-slate-400 flex flex-col items-center gap-3 my-2">
-                <span class="text-3xl">🤖</span>
-                <div class="flex flex-col gap-1 max-w-md">
-                  <span class="font-semibold text-slate-200 text-sm">Sin sub-agentes personalizados creados</span>
-                  <span>Crea un sub-agente especializado con tus propias directivas o haz clic en "Personalizar" en cualquier sub-agente del catálogo superior.</span>
-                </div>
-                <ButtonV2 type="button" variant="contrast" size="small" onClick={startCreate}>
-                  + Crear Sub-Agente Personalizado
-                </ButtonV2>
-              </div>
-            }
-          >
-            <div class="settings-v2-subagents-table">
-              <div class="settings-v2-subagents-thead">
-                <div>Sub-Agente</div>
-                <div>Rol y Descripción</div>
-                <div>Modelo</div>
-                <div>Herramientas</div>
-                <div>Estado</div>
-                <div class="text-right">Acciones</div>
-              </div>
-
-              <For each={pageUserAgents().items}>
-                {(agent) => (
-                  <div class="settings-v2-subagents-row">
-                    {/* 1. Sub-Agente */}
-                    <div class="settings-v2-subagents-cell gap-2.5 pr-2">
-                      <div
-                        class="settings-v2-sub-agents-card-avatar shrink-0 size-8 text-base rounded-lg flex items-center justify-center"
-                        style={{
-                          "background-color": `color-mix(in srgb, ${agent.color || "#38bdf8"} 18%, transparent)`,
-                          "border-color": `color-mix(in srgb, ${agent.color || "#38bdf8"} 40%, transparent)`,
-                        }}
-                      >
-                        {agent.icon || "🤖"}
-                      </div>
-                      <div class="flex flex-col min-w-0">
-                        <span class="text-xs font-semibold text-slate-100 truncate">{agent.name}</span>
-                        <span class="text-[10px] font-mono text-slate-400 truncate">@{agent.name}</span>
-                      </div>
-                    </div>
-
-                    {/* 2. Rol y Descripción */}
-                    <div class="settings-v2-subagents-cell flex-col items-start gap-1 pr-3">
-                      <span class="text-[11px] font-medium text-slate-300 truncate max-w-[200px]">
-                        {(agent as any).role ?? (agent.mode === "primary" ? "Agente Principal" : "Sub-Agente Especialista")}
-                      </span>
-                      <p class="text-[11px] text-slate-400 line-clamp-1 leading-normal m-0">
-                        {agent.description || "Sub-agente especializado personalizado."}
-                      </p>
-                    </div>
-
-                    {/* 3. Modelo */}
-                    <div class="settings-v2-subagents-cell">
-                      <span class="settings-v2-sub-agents-badge settings-v2-sub-agents-badge--accent text-[10.5px]">
-                        {agent.model?.modelID ?? language.t("settings.subAgents.list.model.inherit")}
-                      </span>
-                    </div>
-
-                    {/* 4. Herramientas */}
-                    <div class="settings-v2-subagents-cell">
-                      <span class="settings-v2-sub-agents-badge text-[10.5px]">
-                        {hasRestrictedTools(agent)
-                          ? language.t("settings.subAgents.list.tools.summary", {
-                              count: allowedToolCount(agent),
-                            })
-                          : language.t("settings.subAgents.list.tools.all")}
-                      </span>
-                    </div>
-
-                    {/* 5. Estado */}
-                    <div class="settings-v2-subagents-cell settings-v2-subagents-cell--status">
-                      <Switch
-                        checked={isAgentActive(agent.name)}
-                        onChange={(checked) => toggleAgent(agent.name, checked)}
-                      />
-                      <span
-                        class="settings-v2-chip text-[10px]"
-                        data-tone={isAgentActive(agent.name) ? "accent" : "muted"}
-                      >
-                        {isAgentActive(agent.name) ? "Activo" : "Inactivo"}
-                      </span>
-                    </div>
-
-                    {/* 6. Acciones */}
-                    <div class="settings-v2-subagents-cell justify-end gap-1.5">
-                      <button
-                        type="button"
-                        class="settings-v2-sub-agents-card-btn text-xs py-1 px-2"
-                        onClick={() => startEdit(agent)}
-                        title="Editar este sub-agente"
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        type="button"
-                        class="settings-v2-sub-agents-card-btn text-xs py-1 px-2"
-                        onClick={() => {
-                          setName(agent.name)
-                          setDescription(agent.description ?? "")
-                          setPrompt(agent.prompt ?? "")
-                          setColor(agent.color ?? "#3B82F6")
-                          exportAgentMarkdown()
-                        }}
-                        title="Exportar archivo .agent.md"
-                      >
-                        📥
-                      </button>
-                      <button
-                        type="button"
-                        class="settings-v2-sub-agents-card-btn !text-red-400 hover:!text-red-300 text-xs py-1 px-2"
-                        onClick={() => void removeAgent(agent)}
-                        title="Eliminar este sub-agente"
-                      >
-                        🗑️
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </For>
-            </div>
-
-            <Show when={pageUserAgents().total > 1}>
-              <SettingsPagerV2
-                page={pageUserAgents().page}
-                totalPages={pageUserAgents().total}
-                onPage={(p) => setUserPage(p)}
-              />
-            </Show>
-          </Show>
-        </div>
-
-        {/* Modal Diálogo Flotante de Configuración de Sub-Agente */}
-        <Show when={showModal()}>
-          <div class="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md select-none">
-            <div
-              class="relative w-full max-w-2xl max-h-[90vh] bg-[#0c1222]/95 backdrop-blur-2xl border border-cyan-500/30 rounded-2xl p-6 flex flex-col justify-between text-white overflow-hidden shadow-[0_24px_64px_rgba(0,0,0,0.8),0_0_50px_rgba(56,189,248,0.2)]"
-            >
-              {/* Header Modal */}
-              <div class="flex items-center justify-between pb-3 border-b border-white/[0.08] mb-3">
-                <div class="flex items-center gap-3">
-                  <div class="size-9 rounded-xl bg-cyan-500/15 border border-cyan-400/30 flex items-center justify-center text-lg shadow-[0_0_12px_rgba(56,189,248,0.25)]">
-                    {editing() ? "✏️" : "✨"}
-                  </div>
-                  <div class="flex flex-col">
-                    <h3 class="text-base font-semibold text-white">
-                      {editing()
-                        ? language.t("settings.subAgents.form.edit.title", { name: editing() ?? "" })
-                        : language.t("settings.subAgents.form.new.title")}
-                    </h3>
-                    <p class="text-xs text-slate-400">
-                      Configura herramientas, modelo, prompt del sistema y comportamiento.
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  class="size-8 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 flex items-center justify-center text-slate-300 hover:text-white transition-all text-sm"
-                  aria-label="Cerrar"
-                >
-                  ✕
-                </button>
-              </div>
-
-              {/* Scrollable Form Body */}
-              <div class="flex-1 overflow-y-auto pr-2 my-1 flex flex-col gap-3">
-                <SettingsListV2>
-                  <SettingsRowV2 title={language.t("settings.subAgents.form.field.name")} description="">
-                    <TextInputV2
-                      type="text"
-                      appearance="base"
-                      value={name()}
-                      onInput={(event) => setName(event.currentTarget.value)}
-                      placeholder={language.t("settings.subAgents.form.field.name.placeholder")}
-                      disabled={!!editing()}
-                      spellcheck={false}
-                      autocomplete="off"
-                      aria-label={language.t("settings.subAgents.form.field.name")}
-                    />
-                  </SettingsRowV2>
-                  <SettingsRowV2 title={language.t("settings.subAgents.form.field.color")} description="">
-                    <div
-                      class="settings-v2-sub-agents-swatches"
-                      role="radiogroup"
-                      aria-label={language.t("settings.subAgents.form.field.color")}
-                    >
-                      <For each={AgentColors}>
-                        {(swatch) => (
-                          <button
-                            type="button"
-                            role="radio"
-                            class="settings-v2-sub-agents-swatch"
-                            data-selected={color().toLowerCase() === swatch.value.toLowerCase() ? "" : undefined}
-                            style={{ "--swatch": swatch.value }}
-                            aria-checked={color().toLowerCase() === swatch.value.toLowerCase()}
-                            aria-label={language.t(swatch.label)}
-                            title={language.t(swatch.label)}
-                            onClick={() => setColor(swatch.value)}
-                          />
-                        )}
-                      </For>
-                    </div>
-                  </SettingsRowV2>
-                  <SettingsRowV2 title={language.t("settings.subAgents.form.field.model")} description="">
-                    <div class="settings-v2-sub-agents-model-stack">
-                      <SelectV2
-                        appearance="inline"
-                        data-action="settings-sub-agent-model"
-                        options={ModelOptions}
-                        current={ModelOptions.find((option) => option.id === modelKind())}
-                        placement="bottom-end"
-                        gutter={6}
-                        value={(option) => option.id}
-                        label={(option) => language.t(option.label)}
-                        onSelect={(option) => {
-                          if (option) setModelKind(option.id)
-                        }}
-                      />
-                      <Show when={modelKind() === "custom"}>
-                        <TextInputV2
-                          type="text"
-                          appearance="base"
-                          value={modelValue()}
-                          onInput={(event) => setModelValue(event.currentTarget.value)}
-                          placeholder={language.t("settings.subAgents.form.field.model.placeholder")}
-                          spellcheck={false}
-                          autocomplete="off"
-                          aria-label={language.t("settings.subAgents.form.field.model")}
-                        />
-                      </Show>
-                    </div>
-                  </SettingsRowV2>
-                  <SettingsRowV2 title={language.t("settings.subAgents.form.field.description")} description="">
-                    <TextInputV2
-                      type="text"
-                      appearance="base"
-                      value={description()}
-                      onInput={(event) => setDescription(event.currentTarget.value)}
-                      placeholder={language.t("settings.subAgents.form.field.description.placeholder")}
-                      spellcheck={false}
-                      autocomplete="off"
-                      aria-label={language.t("settings.subAgents.form.field.description")}
-                    />
-                  </SettingsRowV2>
-                  <SettingsRowV2 title={language.t("settings.subAgents.form.field.tools")} description="">
-                    <div class="settings-v2-sub-agents-tools-stack">
-                      <SegmentedControlV2
-                        value={toolsMode()}
-                        onChange={(value) => setToolsMode((value ?? "all") as "all" | "custom")}
-                      >
-                        <SegmentedControlItemV2 value="all">
-                          {language.t("settings.subAgents.form.tools.all")}
-                        </SegmentedControlItemV2>
-                        <SegmentedControlItemV2 value="custom">
-                          {language.t("settings.subAgents.form.tools.custom")}
-                        </SegmentedControlItemV2>
-                      </SegmentedControlV2>
-                      <Show when={toolsMode() === "custom"}>
-                        <div class="settings-v2-sub-agents-tools-grid">
-                          <For each={AgentTools}>
-                            {(tool) => (
-                              <CheckboxV2
-                                checked={tools().includes(tool.id)}
-                                onChange={() => toggleTool(tool.id)}
-                                label={
-                                  <span class="settings-v2-sub-agents-tool-label">
-                                    {language.t(tool.label)}
-                                    <Show when={tool.sensitive}>
-                                      <span class="settings-v2-sub-agents-sensitive-chip">
-                                        {language.t("settings.subAgents.form.tools.sensitive")}
-                                      </span>
-                                    </Show>
-                                  </span>
-                                }
-                              />
-                            )}
-                          </For>
-                        </div>
-                      </Show>
-                    </div>
-                  </SettingsRowV2>
-                  <SettingsRowV2
-                    title={
-                      <div class="flex items-center justify-between w-full">
-                        <span>{language.t("settings.subAgents.form.field.prompt")}</span>
-                        <ButtonV2
-                          type="button"
-                          variant="ghost"
-                          size="small"
-                          onClick={improveSubAgentPrompt}
-                        >
-                          ✨ Mejorar Prompt
-                        </ButtonV2>
-                      </div>
-                    }
-                    description=""
-                  >
-                    <TextareaV2
-                      value={prompt()}
-                      onInput={(event) => setPrompt(event.currentTarget.value)}
-                      placeholder={language.t("settings.subAgents.form.field.prompt.placeholder")}
-                      rows={5}
-                      spellcheck={false}
-                      aria-label={language.t("settings.subAgents.form.field.prompt")}
-                    />
-                  </SettingsRowV2>
-                  <SettingsRowV2
-                    title={language.t("settings.subAgents.form.field.injectAgentsMd")}
-                    description={language.t("settings.subAgents.form.field.injectAgentsMd.description")}
-                  >
-                    <Switch checked={injectAgentsMd()} onChange={setInjectAgentsMd} hideLabel>
-                      {language.t("settings.subAgents.form.field.injectAgentsMd")}
-                    </Switch>
-                  </SettingsRowV2>
-                </SettingsListV2>
-              </div>
-
-              {/* Modal Footer Actions */}
-              <div class="flex items-center justify-between pt-3 border-t border-white/[0.08] mt-2">
-                <Show when={editing()}>
-                  <ButtonV2
-                    type="button"
-                    variant="danger"
-                    size="small"
-                    disabled={saving()}
-                    onClick={() => {
-                      const agent = editingAgent()
-                      if (agent) void removeAgent(agent)
-                    }}
-                  >
-                    {language.t("settings.subAgents.form.delete")}
-                  </ButtonV2>
-                </Show>
-                <div class="flex items-center gap-2 ml-auto">
-                  <ButtonV2 type="button" variant="ghost" size="small" onClick={resetForm}>
-                    {language.t("settings.subAgents.form.cancel")}
-                  </ButtonV2>
-                  <ButtonV2
-                    type="button"
-                    variant="contrast"
-                    size="small"
-                    disabled={saving() || !canSave()}
-                    onClick={() => void submit()}
-                  >
-                    {saving()
-                      ? language.t("settings.subAgents.form.saving")
-                      : language.t("settings.subAgents.form.save")}
-                  </ButtonV2>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Show>
-
         <div class="settings-v2-section mb-6">
           <RlmHierarchyTree />
         </div>
 
         <div class="settings-v2-sub-agents-list-footer">
           {language.t("settings.subAgents.list.footer", {
-            count: agentList().length,
-            enabled: agentList().length,
+            count: visibleBuiltinAgents().length,
+            enabled: visibleBuiltinAgents().filter((a) => isAgentActive(a.name)).length,
           })}
         </div>
       </div>

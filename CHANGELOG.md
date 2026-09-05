@@ -4,6 +4,29 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.22] — 2026-09-05
+### Mejorado y Corregido
+
+- **Corrección de Desborde en Buscador de AST CodeGraph**:
+  - Ajuste del contenedor de búsqueda a `overflow-hidden` con override estricto `!w-full max-w-full min-w-0` en `TextInputV2`, evitando que sobresalga del límite derecho de la tarjeta.
+- **Sub-Agentes Nativos Exclusivos y Depuración de Interfaz**:
+  - Eliminación completa de la sección obsoleta de "Sub-agentes de usuario" y modales flotantes innecesarios, dejando exclusivamente el catálogo de sub-agentes nativos de élite.
+  - Tabla limpia y uniforme de 5 columnas: Sub-Agente, Rol y Especialidad, Modelo, Herramientas y Estado con interruptor instantáneo (0 ms).
+- **Árbol de Recursión RLM (Swarm Hierarchy Tree) Mejorado**:
+  - Reemplazo de datos estáticos por la topología de orquestación jerárquica RLM (Nivel 0: Tiancode Prime Orchestrator; Nivel 1: Especialistas de Software Architect, Fullstack, DevSecOps y QA).
+  - Capacidad de expandir/colapsar, insignias de estado en tiempo real y flujo de descomposición recursiva de tareas.
+- **Dictado por Voz Nativo y Detección de Micrófonos sin Bloqueos**:
+  - Corrección del error de tiempo de ejecución `Cannot use 'in' operator to search for 'transducer' in undefined` en `asr.ts`.
+  - Estructura correcta de configuración para `OfflineRecognizer` (`featConfig` y `modelConfig.whisper`) y decodificación adecuada mediante `OfflineStream`.
+  - Detección nativa de micrófonos conectados a la PC mediante `navigator.mediaDevices.enumerateDevices()`.
+- **Modo ⚡ 2x Velocidad Optimizado**:
+  - Directivas reforzadas para velocidad 2x tanto en la fase de razonamiento interno como en la tasa de generación de respuesta.
+- **Hugging Face Local Models Hub con Motor Autónomo Tiancode**:
+  - Banner oficial prominente de Hugging Face (🤗) destacando la ejecución autónoma en GPU/CPU con motor nativo de Tiancode (`llama-server.exe` integrado) sin necesidad de LM Studio ni Ollama.
+  - Búsqueda en vivo de modelos GGUF en Hugging Face con navegación directa por Staff Picks y filtrado por modelos descargados en disco.
+- **Actualización 100% No Destructiva**:
+  - Preservación íntegra de claves de proveedores, configuraciones, sesiones, respaldos y estado del usuario.
+
 ## [1.0.21] — 2026-09-05
 ### Nuevo y Mejorado
 

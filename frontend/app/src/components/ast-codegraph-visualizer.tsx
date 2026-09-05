@@ -101,21 +101,22 @@ export const AstCodeGraphVisualizer: Component<{
   const otherNodes = () => nodes().slice(1)
 
   return (
-    <div class={`ast-codegraph-card rounded-xl border border-white/10 bg-slate-950/70 p-4 ${props.class ?? ""}`}>
+    <div class={`ast-codegraph-card rounded-xl border border-white/10 bg-slate-950/70 p-4 overflow-hidden ${props.class ?? ""}`}>
       {/* Header */}
       <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 min-w-0">
           <span class="text-sm font-semibold text-white">AST CodeGraph Visualizer</span>
           <span class="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[11px] font-medium text-emerald-400 border border-emerald-500/30">
             Símbolos Mapeados en Tiempo Real
           </span>
         </div>
-        <div class="flex items-center gap-2">
-          <div class="w-48">
+        <div class="flex items-center gap-2 min-w-0 max-w-full">
+          <div class="w-48 sm:w-56 max-w-full min-w-0">
             <TextInputV2
               type="text"
               size="small"
               appearance="base"
+              class="!w-full max-w-full min-w-0"
               placeholder="Buscar símbolo o archivo..."
               value={search()}
               onInput={(e) => setSearch(e.currentTarget.value)}

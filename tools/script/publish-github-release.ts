@@ -29,33 +29,33 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.21"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — Sub-Agentes Profesionales por Lenguaje, Tablas y Chips Uniformes, Asistente de Bienvenida Rediseñado y Soporte Claro/Oscuro`
-  const body = `## 🚀 Tiancode v${version} — Sub-Agentes Profesionales, Alineación Uniforme de Tablas y Nuevo Asistente de Bienvenida
+  const releaseName = `Tiancode v${version} — Sub-Agentes Nativos Exclusivos, Corrección de AST CodeGraph, Dictado por Voz Nativo, Modo ⚡ 2x y Hugging Face Models Hub`
+  const body = `## 🚀 Tiancode v${version} — Sub-Agentes Nativos, Dictado por Voz Robusto, Modo ⚡ 2x y Hub de Modelos Hugging Face
 
-### 🤖 9 Nuevos Sub-Agentes Especializados de Nivel Profesional
-- **Cobertura Integral de Lenguajes y Ecosistemas:** Se integraron 9 sub-agentes nativos de ingeniería avanzada con herramientas especializadas, directivas de orquestación swarm y visibilidad completa en Configuración:
-  1. 🐍 **Python Data & AI Engineer** (\`python-data-engineer\`): Especialista en Python 3.12+, FastAPI, PyTorch, Pandas, NumPy, Scikit-learn, LangChain, pipelines ETL y procesamiento de datos.
-  2. 🦀 **Rust Systems Engineer** (\`rust-systems-engineer\`): Experto en Rust 2024, Tokio, Axum, seguridad de memoria, concurrencia de alto rendimiento y WebAssembly.
-  3. 🐹 **Go Backend Developer** (\`go-backend-dev\`): Microservicios nativos en la nube, Goroutines, Channels, gRPC, Gin y Fiber.
-  4. 📱 **Mobile App Developer** (\`mobile-app-developer\`): Desarrollo multiplataforma con Flutter, React Native/Expo, Swift/SwiftUI (iOS) y Kotlin/Compose (Android).
-  5. ☁️ **Cloud & DevOps Engineer** (\`cloud-devops-engineer\`): Docker multi-stage, Kubernetes, Helm, Terraform, CI/CD GitHub Actions y orquestación multi-cloud (AWS, GCP, Azure).
-  6. ⚡ **C++ Systems Expert** (\`cpp-systems-expert\`): C++20/C++23 moderno, CMake, bajo nivel, optimizaciones de memoria y sistemas embebidos.
-  7. ☕ **Java Enterprise Architect** (\`java-enterprise-architect\`): Java 21 LTS, Spring Boot 3, Hibernate/JPA, arquitectura limpia y microservicios escalables.
-  8. 🔷 **.NET Core Expert** (\`dotnet-core-expert\`): C# 12, .NET 8/9, ASP.NET Core, Entity Framework Core y arquitecturas CQRS.
-  9. 🐘 **PHP & Laravel Expert** (\`php-laravel-expert\`): PHP 8.3+, Laravel 11, Eloquent ORM, Livewire, Inertia.js y APIs RESTful seguras.
+### 🔍 Corrección de Desborde en Buscador de AST CodeGraph
+- **Ajuste Estricto de Ancho:** Se corrigió el desborde del campo de búsqueda en el visualizador AST CodeGraph mediante \`overflow-hidden\` y clase \`!w-full max-w-full min-w-0\` en \`TextInputV2\`, manteniéndolo perfectamente alineado dentro del límite de la tarjeta.
 
-### 📐 Tablas y Chips de Plugins & MCP Uniformes y Ordenados
-- **Alineación Perfecta en una Sola Línea:** Se amplió la columna de "CATEGORÍA & TIPO" en las tablas de Plugins y MCP a \`minmax(210px, 1.8fr)\`, eliminando saltos de línea desordenados.
-- **Dimensiones Uniformes en Chips y Catálogo:** Todos los chips de categorías (\`min-width: 96px\`) y tipos (\`min-width: 68px\`) cuentan con anchos estandarizados y textos centrados en todas las tablas y tarjetas del catálogo Discover.
-- **Traducciones y Acentuación Pulida:** Nombres de categoría con acentos correctos en español ("Diseño", "Documentación", "IA & ML", "Base de Datos", "Ciencia Datos", "Ventas & CRM").
+### 🛡️ Sub-Agentes Nativos Exclusivos y Depuración de Interfaz
+- **Catálogo Exclusivo:** Se eliminó por completo la sección obsoleta de "Sub-agentes de usuario" y modales flotantes innecesarios, dejando únicamente los sub-agentes nativos de élite.
+- **Tabla Unificada de 5 Columnas:** Sub-Agente, Rol y Especialidad, Modelo, Herramientas y Estado con interruptor instantáneo (0 ms).
 
-### 🎨 Asistente de Bienvenida Rediseñado, Compacto y con Temas Claro / Oscuro
-- **Diseño Fiel a la Referencia:** Dimensiones compactas (\`max-w-[510px]\`), eliminando pasos redundantes y enfocándose directamente en la personalización inicial (Idioma y Modo de Color).
-- **Soporte Dinámico de Modo Claro y Oscuro:** Tanto la ventana flotante como el fondo del asistente responden de inmediato al cambio de tema seleccionado con tarjetas, bordes, brillos y tipografía de alto contraste.
-- **Transición Fluida:** Al presionar "Siguiente", la configuración se guarda al instante y el usuario pasa directamente al entorno de trabajo sin demoras.
+### 🌳 Árbol de Recursión RLM (Swarm Hierarchy Tree) Mejorado
+- **Topología de Orquestación Dinámica:** Representación jerárquica de la arquitectura de enjambre (Nivel 0: Tiancode Prime Orchestrator; Nivel 1: Especialistas de Software Architect, Fullstack, DevSecOps y QA).
+- **Control Expandir/Colapsar:** Insignias de estado en tiempo real y flujo de descomposición recursiva de tareas.
+
+### 🎙️ Dictado por Voz Nativo y Detección de Micrófonos sin Fallos
+- **Corrección de Runtime en Sherpa-ONNX:** Solucionado el error \`Cannot use 'in' operator to search for 'transducer' in undefined\` en \`asr.ts\`, configurando adecuadamente \`featConfig\` y \`modelConfig.whisper\` y decodificando mediante \`OfflineStream\`.
+- **Detección Confiable de Micrófonos de PC:** Enumeración de dispositivos conectados y dictado offline nativo sin interrupciones.
+
+### ⚡ Modo 2x Velocidad Optimizado
+- **Pensamiento y Respuesta Ultra-Rápidos:** Directivas específicas inyectadas para razonamiento acelerado sin sobrecarga de tokens y streaming fluido.
+
+### 🤗 Hugging Face Local Models Hub con Motor Autónomo Tiancode
+- **Branding Oficial Hugging Face:** Logo destacado (🤗) con indicador del motor nativo autónomo de Tiancode (\`llama-server.exe\` integrado), sin requerir LM Studio, Ollama ni dependencias externas.
+- **Búsqueda en Vivo y Staff Picks:** Navegación directa por modelos GGUF recomendados, selector de cuantización y filtro para modelos en disco.
 
 ### 🔒 Actualización 100% No Destructiva
-- Todas las claves de proveedores de IA, sesiones, historial, proyectos, personalizaciones y servidores MCP se preservan íntegramente.
+- Todas las claves de proveedores de IA, sesiones, historial, configuraciones y servidores MCP se preservan íntegramente.
 
 ### 📦 Descargas
 | Archivo | Tipo | Descripción |

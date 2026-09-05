@@ -193,13 +193,22 @@ async function getRecognizer(language: "es" | "en"): Promise<OfflineRecognizerLi
     createOfflineRecognizer(config: unknown): OfflineRecognizerLike
   }
   recognizer = sherpa.createOfflineRecognizer({
-    tokens: join(modelDir(), ASR_MODEL.tokens),
-    encoder: join(modelDir(), ASR_MODEL.encoder),
-    decoder: join(modelDir(), ASR_MODEL.decoder),
-    numThreads: 2,
-    sampleRate: 16000,
-    featureDim: 80,
-    language,
+    featConfig: {
+      sampleRate: 16000,
+      featureDim: 80,
+    },
+    modelConfig: {
+      whisper: {
+        encoder: join(modelDir(), ASR_MODEL.encoder),
+        decoder: join(modelDir(), ASR_MODEL.decoder),
+        language,
+        task: "transcribe",
+      },
+      tokens: join(modelDir(), ASR_MODEL.tokens),
+      numThreads: 2,
+      provider: "cpu",
+      modelType: "whisper",
+    },
   })
   recognizerLanguage = language
   return recognizer
@@ -231,10 +240,16 @@ export async function asrStop(): Promise<{ text?: string; error?: string }> {
   if (tooShort) return { error: "No speech detected." }
   try {
     const rec = await getRecognizer(activeLanguage)
-    rec.acceptWaveform({ sampleRate: 16000, samples })
-    const result = rec.decode()
-    const text = typeof result === "string" ? result : result.text
-    return { text: text.trim() }
+    const stream = rec.createStream()
+    try {
+      stream.acceptWaveform(16000, samples)
+      rec.decode(stream)
+      const result = rec.getResult(stream)
+      const text = typeof result === "string" ? result : (result?.text ?? "")
+      return { text: text.trim() }
+    } finally {
+      stream.free()
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     writeLog("asr", "recognition failed", { error: message }, "error")
@@ -243,7 +258,13 @@ export async function asrStop(): Promise<{ text?: string; error?: string }> {
 }
 
 type OfflineRecognizerLike = {
-  acceptWaveform(config: { sampleRate: number; samples: Float32Array }): void
-  decode(): { text: string } | string
+  createStream(): OfflineStreamLike
+  decode(stream: OfflineStreamLike): void
+  getResult(stream: OfflineStreamLike): { text: string } | string
+  free(): void
+}
+
+type OfflineStreamLike = {
+  acceptWaveform(sampleRate: number, samples: Float32Array): void
   free(): void
 }

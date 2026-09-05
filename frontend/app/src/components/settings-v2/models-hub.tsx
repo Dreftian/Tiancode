@@ -556,10 +556,8 @@ export const SettingsModelsHubV2: Component<{
           })
         }
       }
-    } else if (hubCategory() !== "all") {
-      list = [...STAFF_PICKS]
     } else {
-      return []
+      list = [...STAFF_PICKS]
     }
 
     const sort = sortBy()
@@ -975,6 +973,28 @@ export const SettingsModelsHubV2: Component<{
 
   return (
     <div class="lm-hub-container">
+      {/* Banner Oficial Hugging Face & Motor Autónomo Tiancode */}
+      <div class="flex items-center justify-between gap-4 p-4 rounded-2xl border border-yellow-500/20 bg-gradient-to-r from-yellow-500/10 via-slate-900/60 to-cyan-500/10 backdrop-blur-md mb-2">
+        <div class="flex items-center gap-3.5">
+          <div class="size-11 rounded-2xl bg-yellow-500/15 border border-yellow-400/30 flex items-center justify-center text-2xl shadow-[0_0_20px_rgba(255,210,30,0.25)] shrink-0">
+            🤗
+          </div>
+          <div class="flex flex-col">
+            <div class="flex items-center gap-2">
+              <h2 class="text-base font-bold text-white flex items-center gap-1.5">
+                Hugging Face Local Models Hub
+              </h2>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+                ⚡ Motor Autónomo Tiancode
+              </span>
+            </div>
+            <p class="text-xs text-slate-300 mt-0.5">
+              Descarga y ejecuta cualquier modelo GGUF directamente en tu GPU/CPU con el motor nativo de Tiancode. No requiere LM Studio, Ollama ni llama.cpp externo.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* 1. Telemetría de Hardware & Runtimes */}
       <div class="flex items-center justify-between gap-3 p-2.5 rounded-xl border border-white/10 bg-black/30 backdrop-blur-md flex-wrap">
         <div class="flex items-center gap-2.5">
@@ -1129,7 +1149,7 @@ export const SettingsModelsHubV2: Component<{
       {/* 3. Área de Contenido Principal: Hero o Resultados Detallados */}
       <div class="flex-1 overflow-y-auto pr-1 flex flex-col gap-3 min-h-0">
         <Show
-          when={submitted() || hubCategory() === "downloaded"}
+          when={submitted() || hubCategory() !== "all" || pageModelList().length > 0}
           fallback={
             /* Estado Inicial Hero Limpio: Sin saturar la pantalla */
             <div class="p-8 rounded-2xl border border-white/10 bg-slate-900/40 backdrop-blur-md flex flex-col items-center text-center gap-5 my-auto max-w-2xl mx-auto shadow-xl">

@@ -10,10 +10,11 @@ const SPEED_MODE_KEY = "tiancode.chat.speed_mode_2x"
 export const SPEED_MODE_2X_DIRECTIVE = `[UNIVERSAL SPEED MODE: 2X FAST EXECUTION ACTIVE]
 You are running in 2x High-Speed Execution Mode.
 Strict execution rules:
-1. Zero conversational filler: Skip greetings, pleasantries, preambles (e.g. "Sure, I can help with that", "Let me check...", "I will now edit..."), and closing summaries.
-2. Immediate tool use: Invoke tools directly to inspect, search, or edit files without announcing your intent beforehand.
-3. Surgical edits: Never rewrite whole files when a targeted modification or concise replacement suffices.
-4. Minimal output: Deliver only the necessary code changes or direct answers. Complete the task with maximum speed and minimal token overhead.`
+1. Ultra-fast reasoning & thinking: Keep internal chain-of-thought concise, direct, and focused solely on the immediate action. Do not repeat problem descriptions or over-analyze trivial steps.
+2. Zero conversational filler: Skip all greetings, pleasantries, preambles (e.g. "Sure, I can help with that", "Let me check...", "I will now edit..."), and closing summaries.
+3. Immediate tool use: Invoke tools directly to inspect, search, or edit files without announcing your intent beforehand.
+4. Surgical edits: Never rewrite whole files when a targeted modification or concise replacement suffices.
+5. High-speed response: Deliver code and answers with maximum brevity, speed, and precision.`
 
 export const [isSpeed2xActive, setSpeed2xActiveState] = createSignal<boolean>(
   typeof localStorage !== "undefined" ? localStorage.getItem(SPEED_MODE_KEY) === "true" : false,

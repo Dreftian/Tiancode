@@ -1,8 +1,5 @@
 import { Component, createMemo, createSignal, For, Show } from "solid-js"
-import { Icon as IconV2 } from "@tiancode-ai/ui/v2/icon"
-import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
 import { useLanguage } from "@/context/language"
-import { useServerSync } from "@/context/server-sync"
 
 export type RlmAgentNode = {
   id: string
@@ -10,6 +7,8 @@ export type RlmAgentNode = {
   role?: string
   status: "idle" | "running" | "completed" | "error"
   level: number
+  icon?: string
+  color?: string
   taskPrompt?: string
   children?: RlmAgentNode[]
   resultPreview?: string
@@ -22,35 +21,61 @@ export const RlmHierarchyTree: Component<{
 }> = (props) => {
   const language = useLanguage()
   const [selectedId, setSelectedId] = createSignal<string | null>(null)
+  const [expanded, setExpanded] = createSignal(true)
 
   const defaultNodes: RlmAgentNode[] = [
     {
-      id: "root-agent",
-      name: "Tiancode Master RLM",
-      role: "Orchestrator",
-      status: "completed",
+      id: "root-orchestrator",
+      name: "Tiancode Prime Orchestrator",
+      role: "Orquestador de Descomposición RLM (Nivel 0)",
+      status: "running",
       level: 0,
-      taskPrompt: "Objetivo Principal del Usuario",
+      icon: "🧠",
+      color: "#38bdf8",
+      taskPrompt: "Coordinación central, planificación atómica y reconciliación de contexto persistente.",
       children: [
         {
-          id: "sub-1",
-          name: "Codebase Researcher",
-          role: "Exploration Subagent",
+          id: "sub-arch",
+          name: "Software & System Architect",
+          role: "Arquitectura & Límites Modulares",
           status: "completed",
           level: 1,
-          taskPrompt: "Inspeccionar arquitectura de archivos y contratos de API",
-          resultPreview: "Identificados 14 módulos y 2 endpoints críticos.",
-          durationMs: 4200,
+          icon: "🏛️",
+          color: "#3B82F6",
+          taskPrompt: "Análisis de dependencias, diseño desacoplado y contratos de API limpios.",
+          resultPreview: "Estructura modular verificada sin ciclos de dependencia.",
         },
         {
-          id: "sub-2",
-          name: "Test & Verification Agent",
-          role: "Validation Subagent",
+          id: "sub-fullstack",
+          name: "Fullstack Senior Engineer",
+          role: "Implementación Multi-Lenguaje",
+          status: "running",
+          level: 1,
+          icon: "⚡",
+          color: "#8B5CF6",
+          taskPrompt: "Implementación de frontend, backend y lógica de negocio con tipado estricto.",
+          resultPreview: "Cambios aplicados de manera atómica con preservación de estado.",
+        },
+        {
+          id: "sub-devsecops",
+          name: "DevSecOps & Code Auditor",
+          role: "Auditoría de Seguridad & Dependencias",
           status: "completed",
           level: 1,
-          taskPrompt: "Ejecutar suites de pruebas y validar tipos en TypeScript",
-          resultPreview: "0 errores de compilación y tests unitarios pasando.",
-          durationMs: 6800,
+          icon: "🛡️",
+          color: "#EF4444",
+          taskPrompt: "Revisión estricta de CVEs, secretos y consistencia de compilación.",
+          resultPreview: "0 vulnerabilidades detectadas en paquetes y rutas críticas.",
+        },
+        {
+          id: "sub-qa",
+          name: "QA & Verification Specialist",
+          role: "Verificación Autónoma & Tipos",
+          status: "idle",
+          level: 1,
+          icon: "🧪",
+          color: "#10B981",
+          taskPrompt: "Ejecución de suites de prueba, verificación de tipos y validación de regresiones.",
         },
       ],
     },
@@ -60,15 +85,15 @@ export const RlmHierarchyTree: Component<{
 
   const renderNode = (node: RlmAgentNode) => {
     const isSelected = () => selectedId() === node.id
-    const indentPx = node.level * 24
+    const indentPx = node.level * 20
 
     return (
-      <div class="flex flex-col gap-1">
+      <div class="flex flex-col gap-1.5">
         <div
-          class={`flex items-center justify-between p-3 rounded-lg border transition-all cursor-pointer ${
+          class={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer select-none ${
             isSelected()
-              ? "border-v2-border-focus bg-v2-overlay-simple-overlay-hover shadow-sm"
-              : "border-v2-border-base bg-v2-surface-elevation-1 hover:border-v2-border-hover"
+              ? "border-cyan-500/60 bg-cyan-500/10 shadow-[0_0_16px_rgba(56,189,248,0.15)]"
+              : "border-white/[0.08] bg-slate-900/40 hover:border-white/20 hover:bg-white/[0.03]"
           }`}
           style={{ "margin-left": `${indentPx}px` }}
           onClick={() => {
@@ -76,42 +101,50 @@ export const RlmHierarchyTree: Component<{
             props.onSelectNode?.(node.id)
           }}
         >
-          <div class="flex items-center gap-3">
-            <span class="flex size-7 items-center justify-center rounded-md bg-purple-500/15 text-purple-400 font-bold text-xs font-mono">
-              L{node.level}
-            </span>
-            <div class="flex flex-col">
+          <div class="flex items-center gap-3 min-w-0">
+            <div
+              class="size-8 rounded-lg flex items-center justify-center text-sm font-semibold shrink-0 border"
+              style={{
+                "background-color": `color-mix(in srgb, ${node.color || "#38bdf8"} 18%, transparent)`,
+                "border-color": `color-mix(in srgb, ${node.color || "#38bdf8"} 40%, transparent)`,
+              }}
+            >
+              {node.icon || `L${node.level}`}
+            </div>
+            <div class="flex flex-col min-w-0">
               <div class="flex items-center gap-2">
-                <span class="font-semibold text-13-medium text-text-strong">{node.name}</span>
+                <span class="font-semibold text-xs text-slate-100 truncate">{node.name}</span>
                 <Show when={node.role}>
-                  <span class="text-[10px] uppercase tracking-wider text-text-weak px-1 py-0.5 rounded bg-v2-overlay-simple-overlay-active">
+                  <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-white/[0.06] text-slate-400 font-mono">
                     {node.role}
                   </span>
                 </Show>
               </div>
               <Show when={node.taskPrompt}>
-                <span class="text-11-regular text-text-weak line-clamp-1">{node.taskPrompt}</span>
+                <span class="text-[11px] text-slate-400 line-clamp-1 mt-0.5">{node.taskPrompt}</span>
+              </Show>
+              <Show when={node.resultPreview}>
+                <span class="text-[10.5px] text-emerald-400/90 font-mono line-clamp-1 mt-0.5">
+                  ✓ {node.resultPreview}
+                </span>
               </Show>
             </div>
           </div>
 
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 shrink-0 ml-3">
             <span
-              class={`text-xs px-2 py-0.5 rounded font-semibold uppercase ${
+              class={`text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider ${
                 node.status === "completed"
-                  ? "bg-emerald-500/15 text-emerald-400"
+                  ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
                   : node.status === "running"
-                  ? "bg-cyan-500/15 text-cyan-400 animate-pulse"
+                  ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 animate-pulse"
                   : node.status === "error"
-                  ? "bg-red-500/15 text-red-400"
-                  : "bg-zinc-500/15 text-zinc-400"
+                  ? "bg-red-500/15 text-red-400 border border-red-500/30"
+                  : "bg-slate-500/15 text-slate-400 border border-slate-500/30"
               }`}
             >
-              {node.status}
+              {node.status === "completed" ? "Completado" : node.status === "running" ? "Activo" : node.status === "error" ? "Error" : "En espera"}
             </span>
-            <Show when={node.durationMs}>
-              <span class="text-11-regular text-text-weak">{((node.durationMs ?? 0) / 1000).toFixed(1)}s</span>
-            </Show>
           </div>
         </div>
 
@@ -123,18 +156,29 @@ export const RlmHierarchyTree: Component<{
   }
 
   return (
-    <div class="flex flex-col gap-4 p-4 rounded-lg border border-v2-border-base bg-v2-surface-elevation-1">
-      <div class="flex items-center justify-between border-b border-v2-border-base pb-3">
-        <div class="flex items-center gap-2">
+    <div class="flex flex-col gap-3 p-4 rounded-2xl border border-white/10 bg-slate-900/50 backdrop-blur-sm">
+      <div class="flex items-center justify-between border-b border-white/[0.06] pb-3">
+        <div class="flex items-center gap-2.5">
           <span class="text-base">🌳</span>
-          <h3 class="text-14-medium text-text-strong">Árbol de Recursión RLM (Sub-Agentes)</h3>
+          <div class="flex flex-col">
+            <h3 class="text-xs font-semibold text-slate-200">Árbol de Recursión RLM (Sub-Agentes)</h3>
+            <span class="text-[11px] text-slate-400">Topología de orquestación jerárquica y delegación atómica</span>
+          </div>
         </div>
-        <span class="text-11-regular text-text-weak">Jerarquía estilo Prime Agent</span>
+        <button
+          type="button"
+          onClick={() => setExpanded(!expanded())}
+          class="px-2.5 py-1 text-[11px] rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-slate-300 border border-white/10 transition-all"
+        >
+          {expanded() ? "Colapsar" : "Expandir"}
+        </button>
       </div>
 
-      <div class="flex flex-col gap-2">
-        <For each={treeNodes()}>{(root) => renderNode(root)}</For>
-      </div>
+      <Show when={expanded()}>
+        <div class="flex flex-col gap-2 pt-1">
+          <For each={treeNodes()}>{(root) => renderNode(root)}</For>
+        </div>
+      </Show>
     </div>
   )
 }
