@@ -1123,12 +1123,30 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
     }
     const parts = rel.split("/").filter(Boolean)
     if (parts.length === 0) return undefined
-    const CONTAINER_NAMES = new Set(["proyectos", "projects", "apps", "packages", "workspace", "workspaces"])
-    if (parts.length >= 2 && CONTAINER_NAMES.has(parts[0].toLowerCase())) {
-      return normBase ? `${normBase}/${parts[0]}/${parts[1]}` : `${parts[0]}/${parts[1]}`
+    const CONTAINER_NAMES = new Set([
+      "desktop",
+      "escritorio",
+      "proyectos",
+      "projects",
+      "apps",
+      "packages",
+      "workspace",
+      "workspaces",
+      "repos",
+      "repositories",
+      "dev",
+      "development",
+      "code",
+      "documents",
+      "documentos",
+    ])
+    let idx = 0
+    while (idx < parts.length - 1 && CONTAINER_NAMES.has(parts[idx].toLowerCase())) {
+      idx++
     }
-    if (parts.length >= 2) {
-      return normBase ? `${normBase}/${parts[0]}` : parts[0]
+    if (idx < parts.length) {
+      const projectRel = parts.slice(0, idx + 1).join("/")
+      return normBase ? `${normBase}/${projectRel}` : projectRel
     }
     return normBase || undefined
   }
@@ -1149,7 +1167,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
     }
   })
 
-  // Inspeccionar partes de ejecución de herramientas (write, edit, apply_patch)
+  // Inspeccionar partes de ejecución de herramientas (write, edit, apply_patch, bash, etc.)
   createEffect(() => {
     const parts = sync().data.part
     const dir = sdk().directory
@@ -1158,12 +1176,25 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
       if (!list) continue
       for (const p of list) {
         if ((p as any).type === "tool") {
-          const toolName = (p as any).tool
-          if (toolName === "write" || toolName === "edit" || toolName === "apply_patch") {
-            const fp = (p as any).input?.filePath || (p as any).input?.path || (p as any).metadata?.filepath
-            if (fp && typeof fp === "string") {
-              const folder = resolveProjectFolder(fp, dir)
+          const input = (p as any).input
+          const cwd = input?.cwd || input?.directory || input?.workdir
+          if (cwd && typeof cwd === "string") {
+            const folder = resolveProjectFolder(cwd, dir)
+            if (folder && folder !== activeProjectDir()) setActiveProjectDir(folder)
+          }
+          if (typeof input?.command === "string") {
+            const cdMatch = /(?:^|\s)cd\s+["']?([^"'\n\r&;]+)["']?/i.exec(input.command)
+            if (cdMatch?.[1]) {
+              const folder = resolveProjectFolder(cdMatch[1].trim(), dir)
               if (folder && folder !== activeProjectDir()) setActiveProjectDir(folder)
+            }
+          }
+          const toolName = (p as any).tool
+          const fp = input?.filePath || input?.path || (p as any).metadata?.filepath
+          if (fp && typeof fp === "string") {
+            const folder = resolveProjectFolder(fp, dir)
+            if (folder && folder !== activeProjectDir()) setActiveProjectDir(folder)
+            if (toolName === "write" || toolName === "edit" || toolName === "apply_patch") {
               let rel = fp
               if (dir && rel.startsWith(dir)) {
                 rel = rel.slice(dir.length).replace(/^[/\\]+/, "")
@@ -1521,6 +1552,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
                   autoStartKey={autoStartKey}
                   externalDevice={() => viewportMode()}
                   onDeviceChange={(mode) => setViewportMode(mode)}
+                  onDirectoryChange={(dir) => setActiveProjectDir(dir)}
                   onManagedTarget={(url) => {
                     const directory = activeProjectDir() || sdk().directory
                     if (!directory || directory === "main") return

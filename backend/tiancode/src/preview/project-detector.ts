@@ -215,23 +215,38 @@ const IGNORED_DIRS = new Set([
 ])
 
 const CONTAINER_DIR_NAMES = new Set([
+  "desktop",
+  "escritorio",
   "proyectos",
   "projects",
   "apps",
   "packages",
   "workspace",
   "workspaces",
+  "repos",
+  "repositories",
+  "dev",
+  "development",
+  "code",
+  "documents",
+  "documentos",
 ])
 
 const PRIORITY_DIR_NAMES = [
+  "desktop",
+  "escritorio",
   "proyectos",
   "projects",
+  "apps",
+  "packages",
+  "workspace",
+  "workspaces",
   "dios",
+  "khaos",
   "frontend",
   "client",
   "web",
   "app",
-  "apps",
   "ui",
   "site",
   "website",
@@ -734,21 +749,21 @@ async function detectSingleDirectory(dir: string, rootDir: string): Promise<Dete
   }
 }
 
-export async function detectProject(dir: string): Promise<DetectedProject | null> {
-  // 1. Comprobar primero la raíz del espacio de trabajo
-  const rootDetected = await detectSingleDirectory(dir, dir)
-  if (rootDetected) return rootDetected
-
-  // 2. Si no se detecta en la raíz, escanear subdirectorios hasta profundidad 2
+async function findProjectInDirectory(
+  currentDir: string,
+  rootDir: string,
+  depth: number,
+  maxDepth: number,
+): Promise<DetectedProject | null> {
+  if (depth > maxDepth) return null
   try {
-    if (!existsSync(dir)) return null
-    const entries = await readdir(dir, { withFileTypes: true })
-    const subdirs = entries
+    if (!existsSync(currentDir)) return null
+    const entries = await readdir(currentDir, { withFileTypes: true })
+    const dirs = entries
       .filter((e) => e.isDirectory() && !e.name.startsWith(".") && !IGNORED_DIRS.has(e.name.toLowerCase()))
       .map((e) => e.name)
 
-    // Priorizar carpetas comunes de apps/frontend (dios, frontend, client, web, app, ui, etc.)
-    subdirs.sort((a, b) => {
+    dirs.sort((a, b) => {
       const aLower = a.toLowerCase()
       const bLower = b.toLowerCase()
       const aPriority = PRIORITY_DIR_NAMES.findIndex((p) => aLower === p || aLower.includes(p))
@@ -759,73 +774,46 @@ export async function detectProject(dir: string): Promise<DetectedProject | null
       return a.localeCompare(b)
     })
 
-    // Escaneo nivel 1: si la carpeta es un contenedor común (ej. "proyectos", "projects", "apps"),
-    // se exploran sus proyectos hijos inmediatamente antes de pasar a otras carpetas hermanas.
-    for (const sub of subdirs) {
-      const subPath = join(dir, sub)
-      if (CONTAINER_DIR_NAMES.has(sub.toLowerCase())) {
-        try {
-          const grandEntries = await readdir(subPath, { withFileTypes: true })
-          const grandDirs = grandEntries
-            .filter((e) => e.isDirectory() && !e.name.startsWith(".") && !IGNORED_DIRS.has(e.name.toLowerCase()))
-            .map((e) => e.name)
-
-          grandDirs.sort((a, b) => {
-            const aLower = a.toLowerCase()
-            const bLower = b.toLowerCase()
-            const aPriority = PRIORITY_DIR_NAMES.findIndex((p) => aLower === p || aLower.includes(p))
-            const bPriority = PRIORITY_DIR_NAMES.findIndex((p) => bLower === p || bLower.includes(p))
-            if (aPriority !== -1 && bPriority === -1) return -1
-            if (aPriority === -1 && bPriority !== -1) return 1
-            return a.localeCompare(b)
-          })
-
-          for (const grand of grandDirs) {
-            const grandPath = join(subPath, grand)
-            const found = await detectSingleDirectory(grandPath, dir)
-            if (found) return found
-          }
-        } catch {
-          // ignore
-        }
-      } else {
-        const found = await detectSingleDirectory(subPath, dir)
+    // Paso 1: Si alguna subcarpeta es un contenedor conocido (ej: Desktop, Proyectos, apps),
+    // explorar recursivamente esa rama primero con máxima prioridad.
+    for (const d of dirs) {
+      if (CONTAINER_DIR_NAMES.has(d.toLowerCase())) {
+        const subPath = join(currentDir, d)
+        const found = await findProjectInDirectory(subPath, rootDir, depth + 1, maxDepth)
         if (found) return found
       }
     }
 
-    // Escaneo nivel 2 para carpetas restantes (monorrepos, packages/web, apps/frontend, etc.)
-    for (const sub of subdirs) {
-      if (CONTAINER_DIR_NAMES.has(sub.toLowerCase())) continue
-      const subPath = join(dir, sub)
-      try {
-        const grandEntries = await readdir(subPath, { withFileTypes: true })
-        const grandDirs = grandEntries
-          .filter((e) => e.isDirectory() && !e.name.startsWith(".") && !IGNORED_DIRS.has(e.name.toLowerCase()))
-          .map((e) => e.name)
+    // Paso 2: Verificar si los hijos directos no-contenedores son proyectos válidos
+    for (const d of dirs) {
+      if (!CONTAINER_DIR_NAMES.has(d.toLowerCase())) {
+        const subPath = join(currentDir, d)
+        const found = await detectSingleDirectory(subPath, rootDir)
+        if (found) return found
+      }
+    }
 
-        grandDirs.sort((a, b) => {
-          const aLower = a.toLowerCase()
-          const bLower = b.toLowerCase()
-          const aPriority = PRIORITY_DIR_NAMES.findIndex((p) => aLower === p || aLower.includes(p))
-          const bPriority = PRIORITY_DIR_NAMES.findIndex((p) => bLower === p || bLower.includes(p))
-          if (aPriority !== -1 && bPriority === -1) return -1
-          if (aPriority === -1 && bPriority !== -1) return 1
-          return a.localeCompare(b)
-        })
-
-        for (const grand of grandDirs) {
-          const grandPath = join(subPath, grand)
-          const found = await detectSingleDirectory(grandPath, dir)
+    // Paso 3: Explorar subcarpetas restantes de proyectos no-contenedores (monorrepos nivel 2)
+    if (depth < 2) {
+      for (const d of dirs) {
+        if (!CONTAINER_DIR_NAMES.has(d.toLowerCase())) {
+          const subPath = join(currentDir, d)
+          const found = await findProjectInDirectory(subPath, rootDir, depth + 1, maxDepth)
           if (found) return found
         }
-      } catch {
-        // ignore errors on subfolders
       }
     }
   } catch {
-    // ignore directory read errors
+    // ignorar errores de lectura de carpetas
   }
-
   return null
+}
+
+export async function detectProject(dir: string): Promise<DetectedProject | null> {
+  // 1. Comprobar primero la raíz del espacio de trabajo
+  const rootDetected = await detectSingleDirectory(dir, dir)
+  if (rootDetected) return rootDetected
+
+  // 2. Si no se detecta en la raíz, buscar proyectos en subcarpetas priorizando contenedores
+  return findProjectInDirectory(dir, dir, 1, 4)
 }

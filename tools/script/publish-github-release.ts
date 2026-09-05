@@ -29,21 +29,20 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.25"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — Sandbox en Tiempo Real, Detección Profunda de Proyectos y Soporte Multi-Lenguaje`
-  const body = `## 🚀 Tiancode v${version} — Vista Previa y Sandbox en Tiempo Real
+  const releaseName = `Tiancode v${version} — Vista Previa Universal, Corrección Python Runner y Detección Recursiva`
+  const body = `## 🚀 Tiancode v${version} — Vista Previa Universal y Sandbox en Tiempo Real
 
-### 🌐 Detección Inteligente y Profunda de Proyectos
-- **Soporte de Contenedores y Subcarpetas:** Escaneo prioritario en subdirectorios de trabajo (\`proyectos\`, \`projects\`, \`apps\`, etc.) que garantiza que tus proyectos se detecten y ejecuten inmediatamente en el Sandbox, incluso si la sesión está abierta en el Escritorio o en una carpeta padre.
-- **Rastreo Dinámico del Directorio Activo:** \`LiveViewPanel\` detecta en tiempo real la subcarpeta exacta sobre la que cualquier modelo de IA trabaja o edita archivos, actualizando automáticamente el destino de la vista previa.
+### 🐍 Corrección Crítica del Runner Python
+- **Ejecución Universal de Módulos:** Corrección del error de arranque en servidores Python (\`uvicorn\`, \`streamlit\`, \`flask\`) ejecutándolos correctamente mediante \`python -m <modulo>\`.
+- **Detección Automática de Virtual Environments:** Priorización de intérpretes locales dentro de \`.venv\`, \`venv\` o \`env\` para proyectos Python.
 
-### ⚡ Eliminación de Bloqueos y Control Inmediato
-- **Cero Esperas Innecesarias:** Se eliminó el bloqueo de 45 segundos en estado "Iniciando...". Si un servidor finaliza o falla durante el arranque, se notifica de inmediato el error con sus logs correspondientes.
-- **Botón de Cancelación Instantánea:** Nuevo botón "Cancelar" tanto en la vista previa web como en la consola de sandbox de escritorio para abortar el arranque en cualquier momento.
-- **Compilación y Sondeo Asíncrono:** Reemplazo de llamadas síncronas bloqueantes por ejecución asíncrona, con verificación cruzada en \`127.0.0.1\` y \`localhost\`.
+### 🌐 Detección Recursiva y Prioritaria de Proyectos
+- **Soporte de Contenedores Anidados:** Detección en profundidad a través de rutas anidadas (ej. \`Escritorio/Proyectos/Khaos\`), evitando falsos positivos con carpetas hermanas en la raíz del usuario.
+- **Cambio de Proyecto en Barra de Vista Previa:** Ahora la barra superior del Sandbox permite introducir rutas locales de carpetas para cambiar o forzar el proyecto activo directamente.
+- **Seguimiento Dinámico de Comandos del Agente:** Captura inmediata del directorio de trabajo (\`cwd\`, comandos \`cd\`) de las herramientas del agente para alinear la vista previa en tiempo real.
 
-### 🖥️ Compatibilidad Total con Aplicaciones de Escritorio (Electron / Khaos)
-- **Shims y Stubs de Escritorio en Vista Previa Web:** Inyección automática de \`window.khaos\`, \`window.electron\` (\`ipcRenderer\`), \`window.api\` y \`window.process\` antes de los scripts de la app, permitiendo que navegadores y clientes de escritorio funcionen fluidamente dentro del Sandbox iframe.
-- **Sanitización de Directivas CSP:** Relajación automática de políticas restrictivas (\`connect-src 'none'\`) en modo preview local para habilitar recarga en caliente en tiempo real y comunicación sin errores.
+### 🖥️ Compatibilidad Universal Multi-Lenguaje
+- Soporte verificado para Node.js (Vite, React, Vue, Svelte, Next.js), Python (FastAPI, Flask, Streamlit, Django), Electron (Khaos con stubs y sanitización CSP), Rust, Go, PHP, .NET y HTML estático.
 
 ### 🔒 Actualización 100% No Destructiva
 - Todas tus claves de API de proveedores, configuraciones, sesiones, backups y servidores MCP se preservan intactos.

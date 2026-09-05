@@ -19,6 +19,7 @@ const READY_TIMEOUT_MS = 45_000
 const PORT_SCAN_RANGE = 20
 const HTTP_TIMEOUT_MS = 1_000
 const READINESS_POLL_MS = 250
+const isWin = process.platform === "win32"
 
 // "Local: http://localhost:5173/", "localhost:5173", "listening on 5173"
 const URL_RE = /(https?:\/\/(?:localhost|127\.0\.0\.1|\[::1\]|0\.0\.0\.0):(\d{2,5}))/i
@@ -56,6 +57,18 @@ function resolvePythonCommand(): string[] {
   })
   pythonCommand = usable ?? ["python"]
   return pythonCommand
+}
+
+function resolveProjectPython(dir: string): string[] {
+  const venvNames = [".venv", "venv", "env", ".virtualenv"]
+  const subdirs = isWin ? ["Scripts", "bin"] : ["bin", "Scripts"]
+  for (const venv of venvNames) {
+    for (const subdir of subdirs) {
+      const candidate = join(dir, venv, subdir, isWin ? "python.exe" : "python")
+      if (existsSync(candidate)) return [candidate]
+    }
+  }
+  return resolvePythonCommand()
 }
 
 type Managed = {
@@ -120,7 +133,13 @@ function idleState(detected: DetectedProject | null): PreviewState {
           ? `Tiancode JSX preview${detected.workingDirectory && detected.workingDirectory !== "." ? ` (${detected.workingDirectory})` : ""}`
           : detected.packageManager === "custom"
             ? "tiancode.preview.json"
-        : `${detected.packageManager} run ${detected.script}${detected.workingDirectory && detected.workingDirectory !== "." ? ` (${detected.workingDirectory})` : ""}`
+            : detected.packageManager === "python"
+              ? `python ${detected.script.endsWith(".py") || detected.script.startsWith("-m ") ? "" : "-m "}${detected.script}${detected.workingDirectory && detected.workingDirectory !== "." ? ` (${detected.workingDirectory})` : ""}`
+              : detected.packageManager === "cargo"
+                ? `cargo ${detected.script}`
+                : detected.packageManager === "go"
+                  ? `go ${detected.script}`
+                  : `${detected.packageManager} run ${detected.script}${detected.workingDirectory && detected.workingDirectory !== "." ? ` (${detected.workingDirectory})` : ""}`
       : null,
     errors: [],
     startedAt: null,
@@ -316,7 +335,6 @@ function clearReadyTimer(managed: Managed) {
 
 async function spawnServer(managed: Managed) {
   const { packageManager } = managed.detected
-  const isWin = process.platform === "win32"
   setStatus(managed, {
     status: "starting",
     url: null,
@@ -490,10 +508,15 @@ async function spawnServer(managed: Managed) {
   let execArgs: string[]
 
   if (packageManager === "python") {
-    const py = resolvePythonCommand()
+    const py = resolveProjectPython(targetDir)
     execCmd = py[0]
     const scriptParts = managed.detected.script.split(/\s+/).filter(Boolean)
-    execArgs = [...py.slice(1), ...scriptParts]
+    const first = scriptParts[0] ?? ""
+    const isPyFile = first.endsWith(".py") || existsSync(join(targetDir, first))
+    const isModule = !isPyFile && first !== "-m"
+    execArgs = isModule
+      ? [...py.slice(1), "-m", ...scriptParts]
+      : [...py.slice(1), ...scriptParts]
   } else if (packageManager === "cargo") {
     execCmd = "cargo"
     execArgs = ["run"]
@@ -517,7 +540,12 @@ async function spawnServer(managed: Managed) {
     execArgs = managed.detected.script.replace(/^deno\s+/, "").split(/\s+/).filter(Boolean)
   } else if (packageManager === "maven" || packageManager === "gradle") {
     const parts = managed.detected.script.split(/\s+/).filter(Boolean)
-    execCmd = parts[0]
+    let cmd = parts[0]
+    if (isWin) {
+      if ((cmd === "./mvnw" || cmd === "mvnw") && existsSync(join(targetDir, "mvnw.cmd"))) cmd = join(targetDir, "mvnw.cmd")
+      if ((cmd === "./gradlew" || cmd === "gradlew") && existsSync(join(targetDir, "gradlew.bat"))) cmd = join(targetDir, "gradlew.bat")
+    }
+    execCmd = cmd
     execArgs = parts.slice(1)
   } else {
     execCmd = packageManager

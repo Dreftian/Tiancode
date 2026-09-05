@@ -262,4 +262,53 @@ describe("detectProject", () => {
       isDesktop: true,
     })
   })
+
+  test("prioritizes nested desktop/proyectos projects over sibling projects at root", async () => {
+    await using tmp = await tmpdir()
+    // Sibling Python project at root (like OpenJarvis)
+    const openJarvisDir = path.join(tmp.path, "OpenJarvis")
+    await Bun.write(path.join(openJarvisDir, "requirements.txt"), "fastapi\nuvicorn\n")
+    await Bun.write(path.join(openJarvisDir, "main.py"), "from fastapi import FastAPI\napp = FastAPI()\n")
+
+    // Nested project in Desktop/Proyectos/Khaos (3 levels deep)
+    const khaosDir = path.join(tmp.path, "Desktop", "Proyectos", "Khaos")
+    await Bun.write(
+      path.join(khaosDir, "package.json"),
+      JSON.stringify({
+        name: "khaos-browser",
+        scripts: { dev: "node scripts/build.mjs && electron ." },
+        devDependencies: { electron: "^37.0.0" },
+      }),
+    )
+    await Bun.write(
+      path.join(khaosDir, "dist", "index.html"),
+      "<!doctype html><html><body>Khaos UI</body></html>",
+    )
+
+    const detected = await detectProject(tmp.path)
+    expect(detected).toEqual({
+      framework: "html",
+      packageManager: "static",
+      script: "",
+      port: 4173,
+      entry: "index.html",
+      workingDirectory: "Desktop/Proyectos/Khaos/dist",
+      isDesktop: true,
+    })
+  })
+
+  test("detects Python FastAPI project with uvicorn script", async () => {
+    await using tmp = await tmpdir()
+    await Bun.write(path.join(tmp.path, "requirements.txt"), "fastapi\nuvicorn\n")
+    await Bun.write(path.join(tmp.path, "main.py"), "from fastapi import FastAPI\napp = FastAPI()\n")
+
+    const detected = await detectProject(tmp.path)
+    expect(detected).toEqual({
+      framework: "fastapi",
+      packageManager: "python",
+      script: "uvicorn main:app --reload --port 8000",
+      port: 8000,
+      entry: "main.py",
+    })
+  })
 })

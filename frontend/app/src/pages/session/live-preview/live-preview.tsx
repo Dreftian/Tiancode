@@ -104,6 +104,7 @@ export function LivePreview(props: {
   onOpenSource?: (path: string) => void
   externalDevice?: () => "fluid" | "mobile" | "tablet" | "laptop" | undefined
   onDeviceChange?: (mode: "fluid" | "mobile" | "tablet" | "laptop") => void
+  onDirectoryChange?: (dir: string) => void
 }) {
   const language = useLanguage()
   const platform = usePlatform()
@@ -817,7 +818,22 @@ export function LivePreview(props: {
   }
 
   const navigateFromInput = () => {
-    const target = normalizeUrl(urlInput())
+    const raw = urlInput().trim()
+    if (!raw) return
+    const isWindowsPath = /^[a-zA-Z]:[/\\]/.test(raw)
+    const isPosixPath = raw.startsWith("/") || raw.startsWith("~") || raw.startsWith("./") || raw.startsWith("../")
+    const isLocalPath =
+      !raw.startsWith("http://") &&
+      !raw.startsWith("https://") &&
+      !raw.startsWith("localhost") &&
+      !raw.startsWith("127.0.0.1") &&
+      (isWindowsPath || isPosixPath || raw.includes("/") || raw.includes("\\"))
+    if (isLocalPath && props.onDirectoryChange) {
+      props.onDirectoryChange(raw)
+      void devServerAction("restart")
+      return
+    }
+    const target = normalizeUrl(raw)
     if (!target) return
     navigateTo(target)
   }
