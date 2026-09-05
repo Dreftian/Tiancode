@@ -29,8 +29,13 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.16"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — Sub-agentes y Toggles Instantáneos, Mascotas 3D Animadas, Skills Completas y Selector de Cuantización`
-  const body = `## 🚀 Tiancode v${version} — Toggles Instantáneos, Mascotas Animadas, Skills Completas y Selector de Cuantización
+  const releaseName = `Tiancode v${version} — Corrección de Actualizador en la App, Sub-agentes y Toggles Instantáneos, Mascotas 3D y Skills`
+  const body = `## 🚀 Tiancode v${version} — Corrección de Actualizador en la App, Sub-agentes y Toggles Instantáneos
+
+### 🛠️ Corrección Crítica en el Actualizador Automático
+- **Ciclo de Vida Limpio del Instalador:** Se corrigió la terminación de procesos en el instalador NSIS para no usar el flag de árbol \`/T\` al cerrar instancias previas de la app. Esto evita que el instalador termine prematuramente su propio proceso hijo cuando es lanzado por \`electron-updater\`.
+- **Aislamiento del Desinstalador:** Se aisló \`customCheckAppRunning\` y \`customInit\` dentro de \`!ifndef BUILD_UNINSTALLER\` para garantizar que el proceso de desinstalación previa nunca intente terminar la instancia principal del instalador durante una actualización.
+- **Tolerancia a Fallos en Actualización:** Se añadió \`customUnInstallCheck\` para permitir que la actualización continúe limpiamente sin interrupciones ni cuadros de diálogo residuales.
 
 ### ⚡ Reactividad Instantánea (0 ms) y Separación en Sub-Agentes
 - **Sub-Agentes Individuales e Instantáneos:** Separación aumentada (18px) entre el interruptor y la etiqueta de estado "Activo". Activación estrictamente individual e instantánea (0 ms) con animación fluida y sincronización en segundo plano sin bloqueos.

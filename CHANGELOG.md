@@ -4,6 +4,15 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.19] — 2026-09-04
+### Corregido
+
+- **Actualizador en la App (In-App Update) 100% Funcional y Fiable**:
+  - **Eliminación del flag `/T` en `taskkill`**: Al iniciar la actualización desde la app vía `electron-updater`, el nuevo instalador se genera como proceso hijo de la app en ejecución. El uso anterior de `/T` provocaba que la terminación del proceso padre arrastrase recursivamente al instalador recién lanzado. Al eliminar `/T`, la app se cierra limpiamente y el instalador sobrevive para completar la instalación.
+  - **Aislamiento de Macros en el Desinstalador**: `customCheckAppRunning` y `customInit` quedaron protegidos con `!ifndef BUILD_UNINSTALLER` para que el ejecutable de desinstalación previa nunca ejecute `taskkill` contra el instalador principal en espera.
+  - **Limpieza Preventiva del Desinstalador Heredado y Tolerancia a Fallos**: Se añade `customUnInstallCheck` y eliminación preventiva del desinstalador antiguo si existiese, evitando abortos silenciosos por códigos de salida residuales.
+  - **Gestión Limpia de la Pila NSIS**: Se balancea la pila con `Pop` tras cada llamada a `nsExec::Exec`, garantizando que ninguna función posterior reciba registros o valores de retorno corruptos.
+
 ## [1.0.18] — 2026-09-04
 ### Nuevo y Mejorado
 

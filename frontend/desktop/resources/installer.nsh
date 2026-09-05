@@ -21,19 +21,44 @@
 !endif
 
 ; ------------------------------------------------------------
-; Cierre limpio de procesos anteriores (sin auto-eliminarse)
+; Cierre limpio de procesos anteriores (sin auto-eliminarse ni matar árbol del instalador)
 ; ------------------------------------------------------------
+!ifndef BUILD_UNINSTALLER
 !macro customInit
+  ; Eliminar desinstalador anterior en el directorio de instalación para que no mate el instalador
+  ${if} ${FileExists} "$INSTDIR\Uninstall Tiancode.exe"
+    Delete "$INSTDIR\Uninstall Tiancode.exe"
+  ${endif}
+
   ; Obtener PID del instalador actual para no auto-eliminarse
   System::Call 'kernel32::GetCurrentProcessId() i .r0'
-  nsExec::Exec 'taskkill /F /IM Tiancode.exe /FI "PID ne $0" /T'
-  nsExec::Exec 'taskkill /F /IM Tiancode-portable.exe /FI "PID ne $0" /T'
-  nsExec::Exec 'taskkill /F /IM tiancode-cli.exe /FI "PID ne $0" /T'
+  ; Terminación sin /T para NO matar el proceso instalador hijo iniciado por el actualizador
+  nsExec::Exec 'taskkill /F /IM Tiancode.exe /FI "PID ne $0"'
+  Pop $1
+  nsExec::Exec 'taskkill /F /IM Tiancode-portable.exe /FI "PID ne $0"'
+  Pop $1
+  nsExec::Exec 'taskkill /F /IM tiancode-cli.exe /FI "PID ne $0"'
+  Pop $1
 !macroend
+!endif
+
+; ------------------------------------------------------------
+; Manejador de resultado de desinstalación previa (actualización tolerante a fallos)
+; ------------------------------------------------------------
+!ifndef BUILD_UNINSTALLER
+!macro customUnInstallCheck
+  ClearErrors
+!macroend
+
+!macro customUnInstallCheckCurrentUser
+  ClearErrors
+!macroend
+!endif
 
 ; ------------------------------------------------------------
 ; Estilo Dark Theme aplicado directamente a la ventana compacta (SpiderBanner / oneClick)
 ; ------------------------------------------------------------
+!ifndef BUILD_UNINSTALLER
 !macro customCheckAppRunning
   ${If} $hwndparent != 0
     ; 1. Dark Mode e inmersión nativa en la barra de título de SpiderBanner ($hwndparent)
@@ -113,11 +138,14 @@
     ${EndIf}
   ${EndIf}
 
-  ; Cierre limpio de procesos anteriores sin auto-terminarse
+  ; Cierre limpio de procesos anteriores sin auto-terminarse (sin /T para preservar el instalador)
   System::Call 'kernel32::GetCurrentProcessId() i .r0'
-  nsExec::Exec 'taskkill /F /IM Tiancode.exe /FI "PID ne $0" /T'
-  nsExec::Exec 'taskkill /F /IM tiancode-cli.exe /FI "PID ne $0" /T'
+  nsExec::Exec 'taskkill /F /IM Tiancode.exe /FI "PID ne $0"'
+  Pop $1
+  nsExec::Exec 'taskkill /F /IM tiancode-cli.exe /FI "PID ne $0"'
+  Pop $1
 !macroend
+!endif
 
 ; ------------------------------------------------------------
 ; Inicializacion grafica y tema oscuro nativo
