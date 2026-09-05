@@ -311,4 +311,31 @@ describe("bare JSX preview", () => {
       expect(stopPreviewServer(tmp.path).status).toBe("stopped")
     }
   })
+
+  test("injects desktop shim and relaxes restrictive CSP in static HTML", async () => {
+    await using tmp = await tmpdir()
+    await Bun.write(
+      path.join(tmp.path, "index.html"),
+      '<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="default-src \'self\'; connect-src \'none\'"></head><body><div id="app"></div></body></html>',
+    )
+
+    const preview = await startStaticPreview(tmp.path, 0)
+    try {
+      const page = await (await fetch(preview.url)).text()
+      const shimRes = await fetch(`${preview.url}/__tiancode__/desktop-shim.js`)
+      const shimText = await shimRes.text()
+
+      expect(page).toContain('desktop-shim.js')
+      expect(page).toContain('connect-src \'self\' ws: http: https:')
+      expect(page).not.toContain("connect-src 'none'")
+      expect(shimRes.status).toBe(200)
+      expect(shimText).toContain("window.khaos")
+      expect(shimText).toContain("window.electron")
+    } finally {
+      await new Promise<void>((resolveClose) => {
+        preview.server.once("close", resolveClose)
+        preview.close()
+      })
+    }
+  })
 })

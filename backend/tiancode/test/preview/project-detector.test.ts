@@ -162,6 +162,7 @@ describe("detectProject", () => {
       packageManager: "npm",
       script: "dev:vite",
       port: 5173,
+      isDesktop: true,
     })
   })
 
@@ -230,6 +231,35 @@ describe("detectProject", () => {
       port: 4173,
       entry: "index.html",
       workingDirectory: "dist",
+      isDesktop: true,
+    })
+  })
+
+  test("prioritizes projects inside container directories like proyectos", async () => {
+    await using tmp = await tmpdir()
+    const containerDir = path.join(tmp.path, "Proyectos", "Khaos")
+    await Bun.write(
+      path.join(containerDir, "package.json"),
+      JSON.stringify({
+        name: "khaos-browser",
+        scripts: { dev: "node scripts/build.mjs && electron ." },
+        devDependencies: { electron: "^37.0.0" },
+      }),
+    )
+    await Bun.write(
+      path.join(containerDir, "dist", "index.html"),
+      "<!doctype html><html><body>Khaos UI</body></html>",
+    )
+
+    const detected = await detectProject(tmp.path)
+    expect(detected).toEqual({
+      framework: "html",
+      packageManager: "static",
+      script: "",
+      port: 4173,
+      entry: "index.html",
+      workingDirectory: "Proyectos/Khaos/dist",
+      isDesktop: true,
     })
   })
 })

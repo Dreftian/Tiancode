@@ -434,6 +434,76 @@ export function LivePreview(props: {
             log: () => {},
           }
         }
+        if (!win.khaos) {
+          const mockState = {
+            tabs: [{ id: 1, title: "Khaos Browser - Vista Previa", url: "https://example.com", favicon: "", loading: false, canGoBack: false, canGoForward: false, audible: false, muted: false, isApp: false }],
+            activeTabId: 1,
+            blocker: { sessionBlocked: 14, listDomains: 42500, enabled: true },
+            totalCpu: 8,
+            totalMemory: 24,
+            privateWindow: false,
+          }
+          const mockSettings = {
+            themeAccent: "purple",
+            themeMode: "dark",
+            searchEngine: "google",
+            adBlockerEnabled: true,
+            smartHomeSync: false,
+            ramLimitMb: 4096,
+            cpuLimitPercent: 50,
+          }
+          const stateListeners = new Set<(s: typeof mockState) => void>()
+          win.khaos = {
+            onState: (cb: (s: typeof mockState) => void) => {
+              stateListeners.add(cb)
+              setTimeout(() => cb(mockState), 10)
+              return () => stateListeners.delete(cb)
+            },
+            getSettings: async () => mockSettings,
+            setSettings: async (patch: Partial<typeof mockSettings>) => {
+              Object.assign(mockSettings, patch)
+              return mockSettings
+            },
+            newTab: async (opts?: { url?: string; background?: boolean }) => {
+              const id = Date.now()
+              mockState.tabs.push({ id, title: "Nueva pestaña", url: opts?.url || "about:blank", favicon: "", loading: false, canGoBack: false, canGoForward: false, audible: false, muted: false, isApp: false })
+              if (!opts?.background) mockState.activeTabId = id
+              stateListeners.forEach((fn) => fn(mockState))
+              return id
+            },
+            closeTab: async (id: number) => {
+              mockState.tabs = mockState.tabs.filter((t) => t.id !== id)
+              if (mockState.activeTabId === id && mockState.tabs.length > 0) mockState.activeTabId = mockState.tabs[0].id
+              stateListeners.forEach((fn) => fn(mockState))
+            },
+            activateTab: async (id: number) => {
+              mockState.activeTabId = id
+              stateListeners.forEach((fn) => fn(mockState))
+            },
+            navigate: async (id: number, input: string) => {
+              const tab = mockState.tabs.find((t) => t.id === id)
+              if (tab) tab.url = input
+              stateListeners.forEach((fn) => fn(mockState))
+            },
+            goBack: async () => {},
+            goForward: async () => {},
+            reload: async () => {},
+            stop: async () => {},
+            discardTab: async () => {},
+            killTab: async () => {},
+            minimize: () => {},
+            toggleMaximize: () => {},
+            closeWindow: () => {},
+            listHistory: async () => [],
+            clearHistory: async () => {},
+            listBookmarks: async () => [],
+            toggleBookmark: async () => true,
+            runCleaner: async () => ({ freedMb: 120 }),
+            smartHomeStatus: async () => ({ connected: false }),
+            smartHomeTest: async () => false,
+            setChromeHeight: () => {},
+          }
+        }
       }
     } catch {
       // Cross-origin iframe
@@ -1104,6 +1174,16 @@ export function LivePreview(props: {
                     <span>{devServer()?.status === "error" ? (language.t("livePreview.retry") || "Reintentar") : (language.t("livePreview.startServer") || "Iniciar Vista Previa")}</span>
                   </button>
                 </Show>
+                <Show when={devServer()?.status === "starting"}>
+                  <button
+                    type="button"
+                    class="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[11px] font-medium hover:bg-rose-500/30 transition-all cursor-pointer shadow-sm"
+                    onClick={() => void devServerAction("stop")}
+                  >
+                    <span>⏹</span>
+                    <span>{language.t("livePreview.stop") || "Cancelar"}</span>
+                  </button>
+                </Show>
               </div>
             }
           >
@@ -1154,14 +1234,28 @@ export function LivePreview(props: {
                   <Show
                     when={devServer()?.status === "ready"}
                     fallback={
-                      <button
-                        type="button"
-                        class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[12px] font-medium hover:bg-cyan-500/30 transition-all cursor-pointer shadow-sm"
-                        onClick={() => void devServerAction(devServer()?.status === "error" ? "restart" : "start")}
+                      <Show
+                        when={devServer()?.status === "starting"}
+                        fallback={
+                          <button
+                            type="button"
+                            class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[12px] font-medium hover:bg-cyan-500/30 transition-all cursor-pointer shadow-sm"
+                            onClick={() => void devServerAction(devServer()?.status === "error" ? "restart" : "start")}
+                          >
+                            <span>▶</span>
+                            <span>{devServer()?.status === "error" ? "Reintentar Ejecución" : "Ejecutar Aplicación en Windows"}</span>
+                          </button>
+                        }
                       >
-                        <span>▶</span>
-                        <span>{devServer()?.status === "error" ? "Reintentar Ejecución" : "Ejecutar Aplicación en Windows"}</span>
-                      </button>
+                        <button
+                          type="button"
+                          class="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[11px] font-medium hover:bg-rose-500/30 transition-all cursor-pointer shadow-sm"
+                          onClick={() => void devServerAction("stop")}
+                        >
+                          <span>⏹</span>
+                          <span>Cancelar inicio</span>
+                        </button>
+                      </Show>
                     }
                   >
                     <button

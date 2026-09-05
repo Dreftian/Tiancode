@@ -166,6 +166,10 @@ async function handleRequest(
       send(response, 200, "text/javascript; charset=utf-8", RELOAD_MODULE)
       return
     }
+    if (url.pathname === "/__tiancode__/desktop-shim.js") {
+      send(response, 200, "text/javascript; charset=utf-8", DESKTOP_SHIM_SCRIPT)
+      return
+    }
     if (url.pathname === "/__tiancode__/revision") {
       send(response, 200, "application/json; charset=utf-8", JSON.stringify({ revision: await projectRevision(directory) }))
       return
@@ -294,6 +298,10 @@ async function handleStaticRequest(
       send(response, 200, "text/javascript; charset=utf-8", RELOAD_MODULE)
       return
     }
+    if (url.pathname === "/__tiancode__/desktop-shim.js") {
+      send(response, 200, "text/javascript; charset=utf-8", DESKTOP_SHIM_SCRIPT)
+      return
+    }
     if (url.pathname === "/__tiancode__/revision") {
       send(response, 200, "application/json; charset=utf-8", JSON.stringify({ revision: await projectRevision(directory) }))
       return
@@ -327,11 +335,42 @@ async function sendStaticFile(file: string, response: ServerResponse) {
 }
 
 function injectReloadModule(html: string) {
-  if (html.includes("/__tiancode__/reload")) return html
-  const tag = '<script src="/__tiancode__/reload" defer></script>'
-  const closingBody = html.toLowerCase().lastIndexOf("</body>")
-  if (closingBody >= 0) return `${html.slice(0, closingBody)}${tag}${html.slice(closingBody)}`
-  return `${html}${tag}`
+  let result = html
+
+  // 1. Relajar CSP restrictivas como `connect-src 'none'` en modo preview local
+  result = result.replace(
+    /<meta\b[^>]*http-equiv=["']Content-Security-Policy["'][^>]*>/gi,
+    (meta) => meta.replace(/connect-src\s+['"]none['"]/gi, "connect-src 'self' ws: http: https:"),
+  )
+
+  // 2. Inyectar shim de entorno desktop antes de scripts de la app
+  if (!result.includes("/__tiancode__/desktop-shim.js")) {
+    const shimTag = '<script src="/__tiancode__/desktop-shim.js"></script>'
+    const headOpen = result.toLowerCase().indexOf("<head>")
+    if (headOpen >= 0) {
+      result = `${result.slice(0, headOpen + 6)}${shimTag}${result.slice(headOpen + 6)}`
+    } else {
+      const firstScript = result.toLowerCase().indexOf("<script")
+      if (firstScript >= 0) {
+        result = `${result.slice(0, firstScript)}${shimTag}${result.slice(firstScript)}`
+      } else {
+        result = `${shimTag}${result}`
+      }
+    }
+  }
+
+  // 3. Inyectar cliente de recarga en tiempo real
+  if (!result.includes("/__tiancode__/reload")) {
+    const tag = '<script src="/__tiancode__/reload" defer></script>'
+    const closingBody = result.toLowerCase().lastIndexOf("</body>")
+    if (closingBody >= 0) {
+      result = `${result.slice(0, closingBody)}${tag}${result.slice(closingBody)}`
+    } else {
+      result = `${result}${tag}`
+    }
+  }
+
+  return result
 }
 
 async function projectRevision(directory: string) {
@@ -541,6 +580,7 @@ function htmlShell(entry: string, styles: readonly string[]) {
     <title>Vista previa JSX</title>
     ${styles.map((style) => `<link rel="stylesheet" href="${style}" />`).join("\n    ")}
     <style>html,body,#root{min-height:100%;margin:0}#tiancode-preview-error{font:14px/1.5 system-ui,sans-serif;padding:20px;color:#fee2e2;background:#450a0a;white-space:pre-wrap}</style>
+    <script src="/__tiancode__/desktop-shim.js"></script>
   </head>
   <body>
     <div id="root"></div>
@@ -592,6 +632,111 @@ async function refreshRevision() {
 
 void refreshRevision()
 window.setInterval(() => void refreshRevision(), 250)
+`
+
+const DESKTOP_SHIM_SCRIPT = String.raw`
+(function() {
+  if (typeof window === "undefined") return;
+  if (!window.process) {
+    window.process = { env: { NODE_ENV: "development" }, platform: "win32", type: "renderer", versions: { electron: "37.2.0", chrome: "130.0.0", node: "22.10.0" } };
+  }
+  if (!window.require) {
+    window.require = function(mod) {
+      if (mod === "electron") return window.electron || {};
+      return {};
+    };
+  }
+  var mockState = {
+    tabs: [
+      { id: 1, title: "Khaos Browser - Vista Previa", url: "https://example.com", favicon: "", loading: false, canGoBack: false, canGoForward: false, audible: false, muted: false, isApp: false }
+    ],
+    activeTabId: 1,
+    blocker: { sessionBlocked: 14, listDomains: 42500, enabled: true },
+    totalCpu: 8,
+    totalMemory: 24,
+    privateWindow: false,
+  };
+  var mockSettings = {
+    themeAccent: "purple",
+    themeMode: "dark",
+    searchEngine: "google",
+    adBlockerEnabled: true,
+    smartHomeSync: false,
+    ramLimitMb: 4096,
+    cpuLimitPercent: 50,
+  };
+  var stateListeners = new Set();
+  var mockKhaos = {
+    onState: function(cb) {
+      stateListeners.add(cb);
+      setTimeout(function() { cb(mockState); }, 10);
+      return function() { stateListeners.delete(cb); };
+    },
+    getSettings: function() { return Promise.resolve(mockSettings); },
+    setSettings: function(patch) {
+      Object.assign(mockSettings, patch);
+      return Promise.resolve(mockSettings);
+    },
+    newTab: function(opts) {
+      var id = Date.now();
+      mockState.tabs.push({ id: id, title: "Nueva pestaña", url: (opts && opts.url) || "about:blank", favicon: "", loading: false, canGoBack: false, canGoForward: false, audible: false, muted: false, isApp: false });
+      if (!opts || !opts.background) mockState.activeTabId = id;
+      stateListeners.forEach(function(fn) { fn(mockState); });
+      return Promise.resolve(id);
+    },
+    closeTab: function(id) {
+      mockState.tabs = mockState.tabs.filter(function(t) { return t.id !== id; });
+      if (mockState.activeTabId === id && mockState.tabs.length > 0) mockState.activeTabId = mockState.tabs[0].id;
+      stateListeners.forEach(function(fn) { fn(mockState); });
+      return Promise.resolve();
+    },
+    activateTab: function(id) {
+      mockState.activeTabId = id;
+      stateListeners.forEach(function(fn) { fn(mockState); });
+      return Promise.resolve();
+    },
+    navigate: function(id, input) {
+      var tab = mockState.tabs.find(function(t) { return t.id === id; });
+      if (tab) tab.url = input;
+      stateListeners.forEach(function(fn) { fn(mockState); });
+      return Promise.resolve();
+    },
+    goBack: function() { return Promise.resolve(); },
+    goForward: function() { return Promise.resolve(); },
+    reload: function() { return Promise.resolve(); },
+    stop: function() { return Promise.resolve(); },
+    discardTab: function() { return Promise.resolve(); },
+    killTab: function() { return Promise.resolve(); },
+    minimize: function() {},
+    toggleMaximize: function() {},
+    closeWindow: function() {},
+    listHistory: function() { return Promise.resolve([]); },
+    clearHistory: function() { return Promise.resolve(); },
+    listBookmarks: function() { return Promise.resolve([]); },
+    toggleBookmark: function() { return Promise.resolve(true); },
+    runCleaner: function() { return Promise.resolve({ freedMb: 120 }); },
+    smartHomeStatus: function() { return Promise.resolve({ connected: false }); },
+    smartHomeTest: function() { return Promise.resolve(false); },
+    setChromeHeight: function() {},
+  };
+  if (!window.khaos) {
+    window.khaos = mockKhaos;
+  }
+  if (!window.electron) {
+    window.electron = {
+      ipcRenderer: {
+        on: function() { return function() {}; },
+        once: function() {},
+        removeListener: function() {},
+        send: function() {},
+        invoke: function() { return Promise.resolve({}); }
+      }
+    };
+  }
+  if (!window.api) {
+    window.api = window.khaos;
+  }
+})();
 `
 
 function bootstrapModule(entry: string) {

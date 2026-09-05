@@ -29,20 +29,21 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.25"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — Rediseño Compacto de Sub-Agentes (Estilo Claude/Codex) y Sandbox Embebido Total`
-  const body = `## 🚀 Tiancode v${version} — Sub-Agentes Compactos (Claude/Codex) y Sandbox Embebido Total
+  const releaseName = `Tiancode v${version} — Sandbox en Tiempo Real, Detección Profunda de Proyectos y Soporte Multi-Lenguaje`
+  const body = `## 🚀 Tiancode v${version} — Vista Previa y Sandbox en Tiempo Real
 
-### 👥 Rediseño de Sub-Agentes de Élite (Estilo Claude Desktop & Codex Desktop)
-- **Contenedor Agrupado Elegante:** Todos los sub-agentes ejecutados en paralelo o secuencia se agrupan en una tarjeta unificada con diseño minimalista oscuro, eliminando marcos gigantes y bordes saturados.
-- **Filas Compactas de ~36px:** Cada sub-agente muestra su avatar de 20px, nombre, badge de especialidad (TDD, DevSecOps, Docs, etc.), resumen de tarea truncado con cero desbordamiento visual y botón directo "Abrir ↗".
-- **Indicadores de Estado en Vivo:** Chips de resumen en la cabecera (\`X en ejecución\`, \`✓ Y listos\`, \`⚠ Z errores\`) y acordeón colapsable para inspeccionar la salida cuando se desee.
-- **Reconciliación de Línea de Tiempo Fluida:** Estabilidad visual durante el streaming sin parpadeos ni solapamientos de tarjetas en el chat.
+### 🌐 Detección Inteligente y Profunda de Proyectos
+- **Soporte de Contenedores y Subcarpetas:** Escaneo prioritario en subdirectorios de trabajo (\`proyectos\`, \`projects\`, \`apps\`, etc.) que garantiza que tus proyectos se detecten y ejecuten inmediatamente en el Sandbox, incluso si la sesión está abierta en el Escritorio o en una carpeta padre.
+- **Rastreo Dinámico del Directorio Activo:** \`LiveViewPanel\` detecta en tiempo real la subcarpeta exacta sobre la que cualquier modelo de IA trabaja o edita archivos, actualizando automáticamente el destino de la vista previa.
 
-### 🛡️ Sandbox Embebido Total (Vista en Vivo Sin Ventanas en el Escritorio)
-- **Cero Ventanas Flotantes en Windows:** Las aplicaciones creadas o ejecutadas (incluyendo Electron, Tauri, frameworks híbridos y webs estáticas) se ejecutan y visualizan exclusivamente dentro del panel derecho "Vista en vivo" (Sandbox) de Tiancode.
-- **Detección Automática de Activos Web en Proyectos de Escritorio:** En proyectos Electron o GUI que poseen archivos HTML (\`dist/index.html\`, \`start.html\`, etc.), Tiancode sirve la interfaz web directamente mediante su servidor estático interno con recarga en tiempo real.
-- **Entorno Embebido con Mock de Electron:** Inyección automática de mocks de \`window.electron\` (\`ipcRenderer\`) y \`process\` para que las aplicaciones de escritorio se rendericen interactivamente en el Sandbox sin fallos de API.
-- **Guardia Preventiva de Shell Reforzada:** Detección y bloqueo de comandos de consola que intentan lanzar procesos externos (\`electron .\`, \`Start-Process\`, etc.), redirigiendo el flujo a \`preview_start\` dentro del Sandbox.
+### ⚡ Eliminación de Bloqueos y Control Inmediato
+- **Cero Esperas Innecesarias:** Se eliminó el bloqueo de 45 segundos en estado "Iniciando...". Si un servidor finaliza o falla durante el arranque, se notifica de inmediato el error con sus logs correspondientes.
+- **Botón de Cancelación Instantánea:** Nuevo botón "Cancelar" tanto en la vista previa web como en la consola de sandbox de escritorio para abortar el arranque en cualquier momento.
+- **Compilación y Sondeo Asíncrono:** Reemplazo de llamadas síncronas bloqueantes por ejecución asíncrona, con verificación cruzada en \`127.0.0.1\` y \`localhost\`.
+
+### 🖥️ Compatibilidad Total con Aplicaciones de Escritorio (Electron / Khaos)
+- **Shims y Stubs de Escritorio en Vista Previa Web:** Inyección automática de \`window.khaos\`, \`window.electron\` (\`ipcRenderer\`), \`window.api\` y \`window.process\` antes de los scripts de la app, permitiendo que navegadores y clientes de escritorio funcionen fluidamente dentro del Sandbox iframe.
+- **Sanitización de Directivas CSP:** Relajación automática de políticas restrictivas (\`connect-src 'none'\`) en modo preview local para habilitar recarga en caliente en tiempo real y comunicación sin errores.
 
 ### 🔒 Actualización 100% No Destructiva
 - Todas tus claves de API de proveedores, configuraciones, sesiones, backups y servidores MCP se preservan intactos.

@@ -1111,12 +1111,37 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
   })
 
   const [activeEditFile, setActiveEditFile] = createSignal<string | undefined>()
+  const [activeProjectDir, setActiveProjectDir] = createSignal<string | undefined>()
+
+  const resolveProjectFolder = (fp: string, baseDir?: string): string | undefined => {
+    if (!fp) return undefined
+    const normalized = fp.replace(/\\/g, "/")
+    const normBase = baseDir ? baseDir.replace(/\\/g, "/").replace(/\/+$/, "") : ""
+    let rel = normalized
+    if (normBase && rel.toLowerCase().startsWith(normBase.toLowerCase())) {
+      rel = rel.slice(normBase.length).replace(/^\/+/, "")
+    }
+    const parts = rel.split("/").filter(Boolean)
+    if (parts.length === 0) return undefined
+    const CONTAINER_NAMES = new Set(["proyectos", "projects", "apps", "packages", "workspace", "workspaces"])
+    if (parts.length >= 2 && CONTAINER_NAMES.has(parts[0].toLowerCase())) {
+      return normBase ? `${normBase}/${parts[0]}/${parts[1]}` : `${parts[0]}/${parts[1]}`
+    }
+    if (parts.length >= 2) {
+      return normBase ? `${normBase}/${parts[0]}` : parts[0]
+    }
+    return normBase || undefined
+  }
 
   // Seguimiento en tiempo real de archivos modificados por cualquier modelo de IA
   createEffect(() => {
     const diffs = sessionDiffs()
     if (diffs.length > 0) {
       const latest = diffs[diffs.length - 1].file
+      if (latest) {
+        const folder = resolveProjectFolder(latest, sdk().directory)
+        if (folder && folder !== activeProjectDir()) setActiveProjectDir(folder)
+      }
       if (latest && latest !== activeEditFile()) {
         setActiveEditFile(latest)
         window.dispatchEvent(new CustomEvent("tiancode:preview-reload", { detail: { path: latest } }))
@@ -1137,6 +1162,8 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
           if (toolName === "write" || toolName === "edit" || toolName === "apply_patch") {
             const fp = (p as any).input?.filePath || (p as any).input?.path || (p as any).metadata?.filepath
             if (fp && typeof fp === "string") {
+              const folder = resolveProjectFolder(fp, dir)
+              if (folder && folder !== activeProjectDir()) setActiveProjectDir(folder)
               let rel = fp
               if (dir && rel.startsWith(dir)) {
                 rel = rel.slice(dir.length).replace(/^[/\\]+/, "")
@@ -1182,7 +1209,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
     if (diffs.length > 0) return diffs.map((d) => d.file).join("|")
     return activeEditFile()
   })
-  const browserTarget = () => embeddedPreviewTarget(liveViewManagedTarget(), sdk().directory, snapshot())
+  const browserTarget = () => embeddedPreviewTarget(liveViewManagedTarget(), activeProjectDir() || sdk().directory, snapshot())
 
   // Aviso transitorio cuando la navegación vino de la detección de logs (no
   // de una URL fijada por el agente); se descarta con la X.
@@ -1489,13 +1516,13 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
                 class="size-full transition-all duration-300 flex flex-col"
               >
                 <LivePreview
-                  directory={() => sdk().directory}
+                  directory={() => activeProjectDir() || sdk().directory}
                   targetUrl={browserTarget}
                   autoStartKey={autoStartKey}
                   externalDevice={() => viewportMode()}
                   onDeviceChange={(mode) => setViewportMode(mode)}
                   onManagedTarget={(url) => {
-                    const directory = sdk().directory
+                    const directory = activeProjectDir() || sdk().directory
                     if (!directory || directory === "main") return
                     setLiveViewManagedTarget((current) =>
                       url ? { directory, url } : current?.directory === directory ? undefined : current,

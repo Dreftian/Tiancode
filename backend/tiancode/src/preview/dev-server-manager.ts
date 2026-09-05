@@ -191,12 +191,12 @@ function wait(milliseconds: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, milliseconds))
 }
 
-async function respondsToHttp(url: string) {
+async function probeUrl(target: string) {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), HTTP_TIMEOUT_MS)
   try {
-    const response = await fetch(url, { redirect: "manual", signal: controller.signal })
-    return response.status >= 200 && response.status < 400
+    const response = await fetch(target, { redirect: "manual", signal: controller.signal })
+    return response.status >= 200 && response.status < 500
   } catch {
     return false
   } finally {
@@ -204,12 +204,25 @@ async function respondsToHttp(url: string) {
   }
 }
 
+async function respondsToHttp(url: string) {
+  if (await probeUrl(url)) return true
+  if (url.includes("127.0.0.1")) {
+    const localhostUrl = url.replace("127.0.0.1", "localhost")
+    return await probeUrl(localhostUrl)
+  }
+  if (url.includes("localhost")) {
+    const ipUrl = url.replace("localhost", "127.0.0.1")
+    return await probeUrl(ipUrl)
+  }
+  return false
+}
+
 function beginReadinessCheck(managed: Managed, url: string, port: number, timeoutMessage?: string) {
   if (!isStarting(managed) || managed.readinessUrls.has(url)) return
   managed.readinessUrls.add(url)
   void (async () => {
     const deadline = Date.now() + READY_TIMEOUT_MS
-    while (isStarting(managed)) {
+    while (isStarting(managed) && managed.readinessUrls.has(url)) {
       if (await respondsToHttp(url)) {
         if (isStarting(managed)) {
           setStatus(managed, { url, port, status: "ready", errorMessage: null })
@@ -364,7 +377,11 @@ async function spawnServer(managed: Managed) {
         const pkgRaw = readFileSync(join(managed.directory, "package.json"), "utf8")
         const pkg = JSON.parse(pkgRaw) as { scripts?: Record<string, string> }
         if (pkg.scripts?.build) {
-          spawnSync("npm", ["run", "build"], { cwd: managed.directory, windowsHide: true, shell: true })
+          await new Promise<void>((resolveBuild) => {
+            const proc = spawn("npm", ["run", "build"], { cwd: managed.directory, windowsHide: true, shell: true })
+            proc.on("close", () => resolveBuild())
+            proc.on("error", () => resolveBuild())
+          })
         }
       } catch {
         // ignore build error
@@ -411,10 +428,17 @@ async function spawnServer(managed: Managed) {
       setStatus(managed, { status: "error", errorMessage: error.message })
       clearReadyTimer(managed)
     })
-    child.on("exit", () => {
+    child.on("exit", (code) => {
       clearReadyTimer(managed)
+      managed.readinessUrls.clear()
       managed.process = null
-      if (managed.state.status === "starting" || managed.state.status === "ready") {
+      if (managed.state.status === "starting") {
+        const last = managed.logs.slice(-3).join(" ")
+        setStatus(managed, {
+          status: "error",
+          errorMessage: last || (code !== null && code !== 0 ? `El proceso terminó prematuramente con código ${code}` : "El proceso terminó antes de iniciar."),
+        })
+      } else if (managed.state.status === "ready") {
         setStatus(managed, { status: "stopped" })
       }
     })
@@ -444,10 +468,19 @@ async function spawnServer(managed: Managed) {
       setStatus(managed, { status: "error", errorMessage: error.message })
       clearReadyTimer(managed)
     })
-    child.on("exit", () => {
+    child.on("exit", (code) => {
       clearReadyTimer(managed)
+      managed.readinessUrls.clear()
       managed.process = null
-      if (managed.state.status === "starting" || managed.state.status === "ready") setStatus(managed, { status: "stopped" })
+      if (managed.state.status === "starting") {
+        const last = managed.logs.slice(-3).join(" ")
+        setStatus(managed, {
+          status: "error",
+          errorMessage: last || (code !== null && code !== 0 ? `El adaptador terminó prematuramente con código ${code}` : "El proceso terminó antes de iniciar."),
+        })
+      } else if (managed.state.status === "ready") {
+        setStatus(managed, { status: "stopped" })
+      }
     })
     beginReadinessCheck(managed, url, managed.detected.port, "El adaptador de preview no respondio por HTTP.")
     return
@@ -553,7 +586,14 @@ async function spawnServer(managed: Managed) {
     })
     child.on("exit", (code) => {
       managed.process = null
-      if (managed.state.status === "starting" || managed.state.status === "ready") {
+      if (managed.state.status === "starting") {
+        const last = managed.logs.slice(-3).join(" ")
+        setStatus(managed, {
+          status: "error",
+          isDesktop: true,
+          errorMessage: last || (code && code !== 0 ? `El proceso terminó con código ${code}` : "El proceso terminó antes de iniciar."),
+        })
+      } else if (managed.state.status === "ready") {
         setStatus(managed, {
           status: "stopped",
           isDesktop: true,
@@ -580,10 +620,17 @@ async function spawnServer(managed: Managed) {
     setStatus(managed, { status: "error", errorMessage: error.message })
     clearReadyTimer(managed)
   })
-  child.on("exit", () => {
+  child.on("exit", (code) => {
     clearReadyTimer(managed)
+    managed.readinessUrls.clear()
     managed.process = null
-    if (managed.state.status === "starting" || managed.state.status === "ready") {
+    if (managed.state.status === "starting") {
+      const last = managed.logs.slice(-3).join(" ")
+      setStatus(managed, {
+        status: "error",
+        errorMessage: last || (code !== null && code !== 0 ? `El proceso terminó con código ${code}` : "El proceso terminó antes de iniciar."),
+      })
+    } else if (managed.state.status === "ready") {
       setStatus(managed, { status: "stopped" })
     }
   })

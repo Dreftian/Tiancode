@@ -214,15 +214,28 @@ const IGNORED_DIRS = new Set([
   "coverage",
 ])
 
+const CONTAINER_DIR_NAMES = new Set([
+  "proyectos",
+  "projects",
+  "apps",
+  "packages",
+  "workspace",
+  "workspaces",
+])
+
 const PRIORITY_DIR_NAMES = [
+  "proyectos",
+  "projects",
   "dios",
   "frontend",
   "client",
   "web",
   "app",
+  "apps",
   "ui",
   "site",
   "website",
+  "packages",
   "src",
 ]
 
@@ -624,7 +637,8 @@ async function detectSingleDirectory(dir: string, rootDir: string): Promise<Dete
           script: "",
           port: FRAMEWORK_PORTS.html,
           entry: distIndex,
-          workingDirectory: relDir !== "." ? join(relDir, "dist") : "dist",
+          workingDirectory: relDir !== "." ? join(relDir, "dist").split(sep).join("/") : "dist",
+          isDesktop: true,
         }
       }
 
@@ -642,6 +656,7 @@ async function detectSingleDirectory(dir: string, rootDir: string): Promise<Dete
           script: "",
           port: FRAMEWORK_PORTS.html,
           entry: rootHtml,
+          isDesktop: true,
           ...(relDir !== "." ? { workingDirectory: relDir } : {}),
         }
       }
@@ -653,7 +668,8 @@ async function detectSingleDirectory(dir: string, rootDir: string): Promise<Dete
           script: "",
           port: FRAMEWORK_PORTS.html,
           entry: "index.html",
-          workingDirectory: relDir !== "." ? join(relDir, "build") : "build",
+          workingDirectory: relDir !== "." ? join(relDir, "build").split(sep).join("/") : "build",
+          isDesktop: true,
         }
       }
 
@@ -664,7 +680,8 @@ async function detectSingleDirectory(dir: string, rootDir: string): Promise<Dete
           script: "",
           port: FRAMEWORK_PORTS.html,
           entry: "index.html",
-          workingDirectory: relDir !== "." ? join(relDir, "public") : "public",
+          workingDirectory: relDir !== "." ? join(relDir, "public").split(sep).join("/") : "public",
+          isDesktop: true,
         }
       }
 
@@ -675,7 +692,8 @@ async function detectSingleDirectory(dir: string, rootDir: string): Promise<Dete
           script: "",
           port: FRAMEWORK_PORTS.html,
           entry: "index.html",
-          workingDirectory: relDir !== "." ? join(relDir, "dist") : "dist",
+          workingDirectory: relDir !== "." ? join(relDir, "dist").split(sep).join("/") : "dist",
+          isDesktop: true,
         }
       }
     }
@@ -697,6 +715,7 @@ async function detectSingleDirectory(dir: string, rootDir: string): Promise<Dete
         packageManager: "static",
         script: "",
         port: FRAMEWORK_PORTS.html,
+        ...(isDesktop ? { isDesktop: true } : {}),
         ...(relDir !== "." ? { workingDirectory: relDir } : {}),
       }
     }
@@ -710,6 +729,7 @@ async function detectSingleDirectory(dir: string, rootDir: string): Promise<Dete
     packageManager,
     script,
     port,
+    ...(isDesktop ? { isDesktop: true } : {}),
     ...(relDir !== "." ? { workingDirectory: relDir } : {}),
   }
 }
@@ -739,15 +759,44 @@ export async function detectProject(dir: string): Promise<DetectedProject | null
       return a.localeCompare(b)
     })
 
-    // Escaneo nivel 1
+    // Escaneo nivel 1: si la carpeta es un contenedor común (ej. "proyectos", "projects", "apps"),
+    // se exploran sus proyectos hijos inmediatamente antes de pasar a otras carpetas hermanas.
     for (const sub of subdirs) {
       const subPath = join(dir, sub)
-      const found = await detectSingleDirectory(subPath, dir)
-      if (found) return found
+      if (CONTAINER_DIR_NAMES.has(sub.toLowerCase())) {
+        try {
+          const grandEntries = await readdir(subPath, { withFileTypes: true })
+          const grandDirs = grandEntries
+            .filter((e) => e.isDirectory() && !e.name.startsWith(".") && !IGNORED_DIRS.has(e.name.toLowerCase()))
+            .map((e) => e.name)
+
+          grandDirs.sort((a, b) => {
+            const aLower = a.toLowerCase()
+            const bLower = b.toLowerCase()
+            const aPriority = PRIORITY_DIR_NAMES.findIndex((p) => aLower === p || aLower.includes(p))
+            const bPriority = PRIORITY_DIR_NAMES.findIndex((p) => bLower === p || bLower.includes(p))
+            if (aPriority !== -1 && bPriority === -1) return -1
+            if (aPriority === -1 && bPriority !== -1) return 1
+            return a.localeCompare(b)
+          })
+
+          for (const grand of grandDirs) {
+            const grandPath = join(subPath, grand)
+            const found = await detectSingleDirectory(grandPath, dir)
+            if (found) return found
+          }
+        } catch {
+          // ignore
+        }
+      } else {
+        const found = await detectSingleDirectory(subPath, dir)
+        if (found) return found
+      }
     }
 
-    // Escaneo nivel 2 (monorrepos, packages/web, apps/frontend, etc.)
+    // Escaneo nivel 2 para carpetas restantes (monorrepos, packages/web, apps/frontend, etc.)
     for (const sub of subdirs) {
+      if (CONTAINER_DIR_NAMES.has(sub.toLowerCase())) continue
       const subPath = join(dir, sub)
       try {
         const grandEntries = await readdir(subPath, { withFileTypes: true })
