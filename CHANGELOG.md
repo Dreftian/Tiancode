@@ -4,6 +4,15 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.17] — 2026-09-04
+### Nuevo y Mejorado
+
+- **Instalador Compacto One-Click con Tema Oscuro Nativo (#181A20)**:
+  - Ventana compacta original de instalación inmediata (`oneClick: true`) estilizada completamente en tema oscuro nativo.
+  - Atributos inmersivos DWM de Windows 10/11 (`DwmSetWindowAttribute` 19/20, color de barra de título `#181A20`, texto blanco `#F0F2F5`, bordes redondeados y contorno sutil `#2C2E3A`).
+  - Fondo del diálogo principal y etiquetas de texto en alto contraste (`#181A20` con texto `#F0F2F5`), junto a barra de progreso con fondo oscuro y avance verde vibrante (`#6AD045`).
+  - Cierre higiénico y seguro de instancias previas (`taskkill /F /IM Tiancode.exe /FI "PID ne $0" /T`) garantizando que el proceso del instalador permanezca activo sin auto-eliminarse.
+
 ## [1.0.16] — 2026-09-04
 ### Nuevo y Mejorado
 

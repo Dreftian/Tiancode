@@ -29,13 +29,14 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.16"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — Instalador con Tema Oscuro Sólido (#181A20) y Proceso Seguro`
-  const body = `## 🚀 Tiancode v${version} — Instalador con Tema Oscuro Sólido (#181A20) y Proceso Seguro
+  const releaseName = `Tiancode v${version} — Instalador Compacto One-Click con Tema Oscuro Nativo (#181A20)`
+  const body = `## 🚀 Tiancode v${version} — Instalador Compacto One-Click con Tema Oscuro Nativo (#181A20)
 
-### 🪟 Instalador Visible con Tema Oscuro Nativo
-- **Visibilidad Inmediata Garantizada:** Corrección crítica en la inicialización donde el instalador se cerraba a sí mismo al ejecutar taskkill; ahora se filtra de forma estricta el PID del propio instalador (\`/FI "PID ne $0"\`).
-- **Tema Oscuro Nítido (#181A20):** Ventana completa, encabezados y diálogos con paleta oscura sólida (\`#181A20\`), botones estilizados (\`#252836\`) y tipografía blanca de alto contraste (\`#F0F2F5\`).
-- **Barra de Progreso y Finalización:** Visualización continua del proceso de extracción e instalación con transición suave a la ejecución de Tiancode.
+### 🪟 Instalador Compacto One-Click en Tema Oscuro Nativo
+- **Estética Dark Nativa (#181A20):** La ventana compacta original de instalación inmediata se presenta totalmente estilizada en tema oscuro nativo, integrándose armónicamente con Windows 10 y 11.
+- **Inmersión DWM Completa:** Barra de título oscura con contraste blanco puro (\`#F0F2F5\`), bordes redondeados y contorno sutil (\`#2C2E3A\`).
+- **Barra de Progreso y Diálogos:** Fondo oscuro sólido (\`#181A20\`), track de barra de progreso a juego y barra indicadora verde vibrante (\`#6AD045\`).
+- **Ejecución Segura:** Cierre higiénico de instancias previas (\`taskkill /F /IM Tiancode.exe /FI "PID ne $0" /T\`) que previene la auto-terminación accidental y garantiza una instalación o actualización impecable.
 
 ### 🛡️ Corrección de Error 500 en SQLite WAL
 - Manejo resiliente en \`Project.fromDirectory\` con reintentos automáticos (\`Schedule.recurs(3)\`) y captura de errores de concurrencia (\`attempt to write a readonly database\`), garantizando inicio perfecto tras una actualización.

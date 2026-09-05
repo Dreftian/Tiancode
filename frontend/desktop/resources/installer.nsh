@@ -32,6 +32,94 @@
 !macroend
 
 ; ------------------------------------------------------------
+; Estilo Dark Theme aplicado directamente a la ventana compacta (SpiderBanner / oneClick)
+; ------------------------------------------------------------
+!macro customCheckAppRunning
+  ${If} $hwndparent != 0
+    ; 1. Dark Mode e inmersión nativa en la barra de título de SpiderBanner ($hwndparent)
+    System::Call 'dwmapi::DwmSetWindowAttribute(i $hwndparent, i 19, *i 1, i 4)'
+    System::Call 'dwmapi::DwmSetWindowAttribute(i $hwndparent, i 20, *i 1, i 4)'
+    System::Call 'dwmapi::DwmSetWindowAttribute(i $hwndparent, i 35, *i 0x00201A18, i 4)'
+    System::Call 'dwmapi::DwmSetWindowAttribute(i $hwndparent, i 36, *i 0x00F0F2F5, i 4)'
+    System::Call 'dwmapi::DwmSetWindowAttribute(i $hwndparent, i 34, *i 0x003A2E2C, i 4)'
+    System::Call 'dwmapi::DwmSetWindowAttribute(i $hwndparent, i 33, *i 2, i 4)'
+    SetCtlColors $hwndparent 0xF0F2F5 0x181A20
+
+    ; Crear brocha sólida oscura para el fondo del sistema (#181A20)
+    System::Call 'gdi32::CreateSolidBrush(i 0x00201A18) i .r9'
+    System::Call 'user32::SetClassLongW(i $hwndparent, i -10, i r9)'
+
+    ; 2. Localizar diálogos hijos de SpiderBanner (#32770)
+    FindWindow $R0 "#32770" "" $hwndparent
+    FindWindow $R1 "#32770" "" $hwndparent $R0
+    ${If} $R1 == 0
+      StrCpy $R1 $R0
+    ${EndIf}
+
+    ${If} $R0 != 0
+      System::Call 'user32::SetClassLongW(i $R0, i -10, i r9)'
+      SetCtlColors $R0 0xF0F2F5 0x181A20
+    ${EndIf}
+
+    ${If} $R1 != 0
+      System::Call 'user32::SetClassLongW(i $R1, i -10, i r9)'
+      SetCtlColors $R1 0xF0F2F5 0x181A20
+
+      ; Control 1000 ("Instalando, espera un momento...")
+      GetDlgItem $R2 $R1 1000
+      ${If} $R2 != 0
+        SetCtlColors $R2 0xF0F2F5 0x181A20
+      ${EndIf}
+
+      ; Control 1002 (subtítulo)
+      GetDlgItem $R3 $R1 1002
+      ${If} $R3 != 0
+        SetCtlColors $R3 0xF0F2F5 0x181A20
+      ${EndIf}
+
+      ; Control 1003 (detalle)
+      GetDlgItem $R4 $R1 1003
+      ${If} $R4 != 0
+        SetCtlColors $R4 0xF0F2F5 0x181A20
+      ${EndIf}
+
+      ; Control 1025 (icono)
+      GetDlgItem $R5 $R1 1025
+      ${If} $R5 != 0
+        SetCtlColors $R5 0xF0F2F5 0x181A20
+      ${EndIf}
+
+      ; Control 1001 (barra de progreso msctls_progress32)
+      GetDlgItem $R6 $R1 1001
+      ${If} $R6 != 0
+        SendMessage $R6 0x2001 0 0x00201A18 ; PBM_SETBKCOLOR (#181A20)
+        SendMessage $R6 1033 0 0x0045D06A   ; PBM_SETBARCOLOR (verde vibrante #6AD045)
+      ${EndIf}
+    ${EndIf}
+
+    ; Buscar barra de progreso hija directa si existe
+    FindWindow $R7 "msctls_progress32" "" $hwndparent
+    ${If} $R7 != 0
+      SendMessage $R7 0x2001 0 0x00201A18
+      SendMessage $R7 1033 0 0x0045D06A
+    ${EndIf}
+
+    ; Forzar redibujado de la ventana y sus controles
+    System::Call 'user32::InvalidateRect(i $hwndparent, i 0, i 1)'
+    System::Call 'user32::UpdateWindow(i $hwndparent)'
+    ${If} $R1 != 0
+      System::Call 'user32::InvalidateRect(i $R1, i 0, i 1)'
+      System::Call 'user32::UpdateWindow(i $R1)'
+    ${EndIf}
+  ${EndIf}
+
+  ; Cierre limpio de procesos anteriores sin auto-terminarse
+  System::Call 'kernel32::GetCurrentProcessId() i .r0'
+  nsExec::Exec 'taskkill /F /IM Tiancode.exe /FI "PID ne $0" /T'
+  nsExec::Exec 'taskkill /F /IM tiancode-cli.exe /FI "PID ne $0" /T'
+!macroend
+
+; ------------------------------------------------------------
 ; Inicializacion grafica y tema oscuro nativo
 ; ------------------------------------------------------------
 !ifndef BUILD_UNINSTALLER
