@@ -124,8 +124,30 @@ export function PetCompanion() {
     settings.general.setPetKind(nextKind)
   }
 
-  // La mascota se muestra exclusivamente en el escritorio de Windows (Mascota Flotante Externa),
-  // manteniendo el interior de la ventana de Tiancode 100% limpio y despejado.
-  // La sincronización en vivo de estados, pensamientos y acariciar continúa operando hacia el escritorio.
-  return null
+  return (
+    <Show when={settings.general.petEnabled()}>
+      <div
+        class={`pet-companion pet-companion--${settings.general.petPosition()}`}
+        data-pet-companion
+        data-status={status()}
+        data-petted={petted() ? "" : undefined}
+        role="status"
+        aria-live="polite"
+        aria-label={label()}
+        onClick={onPet}
+        onDblClick={cycleNextPet}
+        title="Clic para acariciar / Doble clic para cambiar mascota"
+      >
+        <span class="pet-companion-glyph" aria-hidden="true">
+          <Pet3DIcon kind={settings.general.petKind()} size={36} />
+        </span>
+        <span class="pet-companion-status" aria-hidden="true">
+          {statusGlyph[status()]}
+        </span>
+        <span class="pet-companion-bubble" aria-hidden="true">
+          {bubbleText()}
+        </span>
+      </div>
+    </Show>
+  )
 }

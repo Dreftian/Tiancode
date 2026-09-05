@@ -144,6 +144,7 @@ export const SettingsPluginsV2: Component<{
   const [origin, setOrigin] = createSignal<OriginFilter>("all")
   const [catalogQuery, setCatalogQuery] = createSignal("")
   const [creating, setCreating] = createSignal(false)
+  const [pluginStatusOverrides, setPluginStatusOverrides] = createSignal<Record<string, boolean>>({})
 
   const params = () => (props.directory ? { directory: props.directory } : undefined)
 
@@ -244,8 +245,17 @@ export const SettingsPluginsV2: Component<{
 
   // Habilitar/deshabilitar conservando la entry en config: desactivado se
   // guarda como [spec, { enabled: false }] y el runtime lo omite al cargar.
-  const toggleEnabled = async (entry: PluginEntry, enabled: boolean) => {
+  const toggleEnabled = (entry: PluginEntry, enabled: boolean) => {
     const name = pluginName(entry)
+    // 1. Inmediato y fluido (0 ms) en la UI y notificación
+    setPluginStatusOverrides((prev) => ({ ...prev, [name]: enabled }))
+    showToast({
+      variant: "success",
+      title: enabled
+        ? language.t("settings.plugins.toggle.enabled", { name: displayName(entry) })
+        : language.t("settings.plugins.toggle.disabled", { name: displayName(entry) }),
+    })
+
     const next: PluginEntry = enabled
       ? (() => {
           const options = pluginOptions(entry)
@@ -254,21 +264,23 @@ export const SettingsPluginsV2: Component<{
           return Object.keys(rest).length === 0 ? name : [name, rest]
         })()
       : [name, { ...(pluginOptions(entry) ?? {}), enabled: false }]
-    try {
-      await serverSdk().client.config.update({
+
+    void serverSdk()
+      .client.config.update({
         ...params(),
         config: { plugin: pluginList().map((item) => (pluginName(item) === name ? next : item)) },
       })
-      showToast({
-        variant: "success",
-        title: enabled
-          ? language.t("settings.plugins.toggle.enabled", { name: displayName(entry) })
-          : language.t("settings.plugins.toggle.disabled", { name: displayName(entry) }),
+      .then(() => {
+        refetchAfterReload()
       })
-      refetchAfterReload()
-    } catch {
-      showToast({ variant: "error", title: language.t("settings.plugins.add.failed") })
-    }
+      .catch(() => {
+        setPluginStatusOverrides((prev) => {
+          const nextOverrides = { ...prev }
+          delete nextOverrides[name]
+          return nextOverrides
+        })
+        showToast({ variant: "error", title: language.t("settings.plugins.add.failed") })
+      })
   }
 
   const removePlugin = async (entry: PluginEntry) => {
@@ -393,7 +405,7 @@ export const SettingsPluginsV2: Component<{
               <For each={visiblePlugins()}>
                 {(entry) => {
                   const name = pluginName(entry)
-                  const enabled = pluginEnabled(entry)
+                  const enabled = pluginStatusOverrides()[name] !== undefined ? pluginStatusOverrides()[name] : pluginEnabled(entry)
                   const version = pluginVersion(entry)
                   const hooks = hooksBySpec()?.[name]
                   return (

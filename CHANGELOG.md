@@ -4,6 +4,24 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.20] — 2026-09-04
+### Mejorado y Corregido
+
+- **Mascotas 3D Vivas en App y Escritorio**:
+  - Rediseño completo de las animaciones SVG con desplazamientos pronunciados (8 a 12px), rotaciones elásticas (6° a 12°), respiración, llamas vivas y destellos de gemas/visores para los 13 compañeros interactivos.
+  - Restauración del componente interactivo dentro de la ventana de la aplicación con burbuja de pensamiento en vivo, acariciar y cambio con doble clic.
+  - Inyección de clases y estilos CSS de animación en el SVG de la mascota flotante de escritorio en Windows.
+- **Sub-Agentes con Mayor Separación y Activación Individual Instantánea (0 ms)**:
+  - Separación aumentada (gap de 22px, ancho mínimo de 185px) entre el interruptor y la etiqueta de estado "Activo".
+  - Control individual e instantáneo a 0 ms con sincronización en segundo plano y rollback ante fallos.
+- **Selector de Cuantización con Máxima Legibilidad en Modelos Locales**:
+  - Reemplazo del selector nativo HTML por el componente `SelectV2` con menú oscuro `#0f172a`, texto `#f8fafc` de alto contraste y soporte de temas en Windows.
+- **Información Real y Completa Restaurada en Skills**:
+  - Eliminación de resúmenes breves que sobreescribían la descripción nativa. Se muestra el 100% de la descripción y documentación técnica completa de `SKILL.md`.
+  - Panel de detalle sin recortes (`-webkit-line-clamp: unset`).
+- **Toggles Instantáneos en Toda la Configuración**:
+  - Optimistic UI a 0 ms en Plugins, Sub-agentes, Skills y demás módulos para una experiencia completamente fluida.
+
 ## [1.0.19] — 2026-09-04
 ### Corregido
 

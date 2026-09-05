@@ -27,44 +27,35 @@ async function main() {
   const owner = "Dreftian"
   const repo = "Tiancode"
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
-  const version = desktopPkg.version || "1.0.16"
+  const version = desktopPkg.version || "1.0.20"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — Corrección de Actualizador en la App, Sub-agentes y Toggles Instantáneos, Mascotas 3D y Skills`
-  const body = `## 🚀 Tiancode v${version} — Corrección de Actualizador en la App, Sub-agentes y Toggles Instantáneos
+  const releaseName = `Tiancode v${version} — Mascotas 3D Vivas en App y Escritorio, Separación de Sub-agentes y Toggles Instantáneos, Selector de Cuantización y Skills Completas`
+  const body = `## 🚀 Tiancode v${version} — Mascotas 3D Vivas, Separación y Toggles Instantáneos, Selector de Cuantización y Skills
 
-### 🛠️ Corrección Crítica en el Actualizador Automático
-- **Ciclo de Vida Limpio del Instalador:** Se corrigió la terminación de procesos en el instalador NSIS para no usar el flag de árbol \`/T\` al cerrar instancias previas de la app. Esto evita que el instalador termine prematuramente su propio proceso hijo cuando es lanzado por \`electron-updater\`.
-- **Aislamiento del Desinstalador:** Se aisló \`customCheckAppRunning\` y \`customInit\` dentro de \`!ifndef BUILD_UNINSTALLER\` para garantizar que el proceso de desinstalación previa nunca intente terminar la instancia principal del instalador durante una actualización.
-- **Tolerancia a Fallos en Actualización:** Se añadió \`customUnInstallCheck\` para permitir que la actualización continúe limpiamente sin interrupciones ni cuadros de diálogo residuales.
+### 🐾 Compañeros 3D Vivos y Animados (En App y Escritorio)
+- **Animaciones Vivas y Notables:** Rediseño completo de las animaciones CSS para los 13 compañeros 3D (Dewey, Fireball, Hoots, Rocky, Seedy, Stacky, BSOD, NullSignal, Cat, Dog, Rabbit, Panda y Fox) con amplitudes pronunciadas (desplazamientos de 8 a 12px, inclinaciones de 6° a 12°, rebotes elásticos, parpadeos, respiración y destellos de gemas/visores).
+- **Compañero en la Ventana de la App:** Se restauró la visualización del compañero interactivo dentro de la app cuando está activado, con burbuja de pensamiento en vivo, acariciar y cambio con doble clic.
+- **Mascota Flotante en Escritorio:** El widget flotante de escritorio ahora incluye todos los estilos y keyframes de animación en su SVG interno, animándose con total fluidez en Windows.
 
-### ⚡ Reactividad Instantánea (0 ms) y Separación en Sub-Agentes
-- **Sub-Agentes Individuales e Instantáneos:** Separación aumentada (18px) entre el interruptor y la etiqueta de estado "Activo". Activación estrictamente individual e instantánea (0 ms) con animación fluida y sincronización en segundo plano sin bloqueos.
-- **Configuración Global Instantánea:** Toggles y notificaciones inmediatas en Servidores MCP, Plugins integrados, Plugins de catálogo y Skills, eliminando retardos perceptibles.
+### ⚡ Mayor Separación y Activación Individual Instantánea en Sub-Agentes
+- **Separación Ampliada:** Se incrementó el ancho de la columna de estado y el espacio entre el interruptor y el chip "Activo" (gap de 22px, min-width de 185px), garantizando un diseño espacioso y despejado.
+- **Activación Individual Estricta:** Cada sub-agente se activa o desactiva de forma individual e instantánea (0 ms) con respuesta visual inmediata y sincronización en segundo plano sin congelamientos.
 
-### 🐾 Mascotas 3D Prominentes y Animadas
-- **Animaciones Vivas y Distintivas:** Los 13 compañeros interactivos cuentan con animaciones CSS fluidas (flotación, balanceo, respiración, parpadeo, llamas y destellos de gemas/visores).
-- **Contenedores Ampliados:** Contenedor de mascota expandido a 56px con icono de 44px y resplandor dinámico en el compañero activo.
+### 🎛️ Selector de Cuantización con Máxima Legibilidad en Modelos Locales
+- **Componente SelectV2 Integrado:** Se reemplazó el selector nativo HTML por el componente \`SelectV2\` de alta definición con menú flotante en modo oscuro (\`#0f172a\`), tipografía nítida de alto contraste (\`#f8fafc\`) y soporte completo para temas en Windows. Se acabaron los problemas de texto invisible en el menú de cuantización.
 
-### 🎛️ Selector de Cuantización en Modelos Locales
-- **Alto Contraste y Legibilidad:** Dropdown de cuantización GGUF con \`color-scheme: dark\`, fondo oscuro (\`#0f172a\`) y texto de alto contraste (\`#f8fafc\`), garantizando perfecta legibilidad en Windows/Electron.
+### 📚 Documentación Técnica Real y Completa de Skills
+- **Información Real Restaurada:** Se eliminó la sobreescritura de descripciones por resúmenes breves. Todas las skills ahora muestran su descripción real y completa proveniente de sus especificaciones \`SKILL.md\`.
+- **Vista Detallada Sin Recortes:** El panel de detalle muestra la descripción completa sin limitación de líneas (\`-webkit-line-clamp: unset\`), con todas sus directivas, tablas y ejemplos prácticos.
 
-### 📚 Documentación Técnica Completa en Skills
-- **Contenido Exhaustivo Restaurado:** Se preserva el 100% de la documentación técnica completa, tablas, directivas y ejemplos prácticos de todas las skills sin sustituciones por textos breves o incompletos.
-- **Carga Robusta:** El motor de skills carga la totalidad de skills integradas con su documentación nativa completa.
+### ⚡ Toggles Instantáneos y Fluidos en Toda la Configuración
+- **Optimistic UI a 0 ms:** La activación o desactivación de cualquier opción en Configuración (Plugins, Sub-agentes, Skills, Inteligencia, Ecosistema, etc.) se refleja inmediatamente a 0 ms en la interfaz y notificación toast, sincronizándose en segundo plano con tolerancia a fallos y rollback.
 
-- **Buscador Prominente y Sugerencias Rápidas:** Barra de búsqueda espaciosa con etiquetas directas ("DeepSeek-R1", "Qwen 2.5 Coder", "Llama 3.2", "Gemma 2", "Phi-4", "Nemotron").
-- **Hero Inicial Explicativo:** Vista limpia sin volcar modelos de golpe; las tarjetas técnicas completas se despliegan al buscar o filtrar.
-
-### 📋 Listas Detalladas en Columnas y Paginación 10x10
-- **Sub-Agentes:** Holgura amplia entre el switch y el indicador de estado sin colisiones visuales.
-- **MCP y Plugins:** Tablas estructuradas para Servidores MCP, Plugins Instalados y Built-in Integrados con paginación de 10 en 10.
-- **Colores de Tema Dinámicos:** Los badges y estados activos respetan el color de acento del tema activo (\`var(--interactive-accent)\`).
-
-### 🌌 Asistente de Bienvenida Sin Scroll
-- Eliminación de scrollbars horizontales y verticales (\`overflow: hidden !important\`), fondo \`#08080a\` a juego con la web y tarjeta editorial flotante \`rgba(14, 14, 18, 0.92)\`.
+### 🛠️ Actualizador en la App 100% Robusto
+- Proceso de actualización seguro y no destructivo sin bloqueos de árbol de procesos ni interferencias entre desinstalador e instalador.
 
 ### 🔒 Actualización 100% No Destructiva
-- Se preservan de forma segura todas las claves de proveedores, configuraciones, sesiones y herramientas MCP del usuario.
+- Todas las claves de proveedores de IA, sesiones, historial, ajustes y herramientas MCP permanecen intactas y preservadas.
 
 ### 📦 Descargas
 | Archivo | Tipo | Descripción |

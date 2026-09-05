@@ -22,67 +22,102 @@ export const Pet3DIcon: Component<Pet3DIconProps> = (props) => {
     >
       <defs>
         <style>{`
-          .pet-anim-dewey { animation: pet-float 3.2s ease-in-out infinite, pet-wobble 4s ease-in-out infinite; transform-origin: 50% 64px; }
-          .pet-anim-fireball { animation: pet-flame 2.2s ease-in-out infinite alternate; transform-origin: 50% 60px; }
-          .pet-anim-hoots { animation: pet-float 4s ease-in-out infinite; transform-origin: 50% 58px; }
-          .pet-anim-hoots-eye { animation: pet-glow-eye 2.4s ease-in-out infinite alternate; }
-          .pet-anim-rocky { animation: pet-float 3.6s ease-in-out infinite; transform-origin: 50% 50px; }
-          .pet-anim-rocky-gem { animation: pet-glow-gem 2s ease-in-out infinite alternate; }
-          .pet-anim-seedy { animation: pet-sway 3s ease-in-out infinite alternate; transform-origin: 50% 86px; }
-          .pet-anim-stacky { animation: pet-float 2.8s ease-in-out infinite; transform-origin: 50% 50px; }
-          .pet-anim-bsod { animation: pet-crt 2.5s ease-in-out infinite; transform-origin: 50% 50px; }
-          .pet-anim-nullsignal { animation: pet-float 3s ease-in-out infinite; transform-origin: 50% 52px; }
-          .pet-anim-null-antenna { animation: pet-antenna-pulse 1.8s ease-in-out infinite alternate; }
-          .pet-anim-cat { animation: pet-breathe 3.4s ease-in-out infinite alternate; transform-origin: 50% 56px; }
-          .pet-anim-dog { animation: pet-wag 1.6s ease-in-out infinite alternate; transform-origin: 50% 64px; }
-          .pet-anim-rabbit { animation: pet-hop 2.6s ease-in-out infinite; transform-origin: 50% 70px; }
-          .pet-anim-panda { animation: pet-breathe 4s ease-in-out infinite alternate; transform-origin: 50% 56px; }
-          .pet-anim-fox { animation: pet-float 3.5s ease-in-out infinite; transform-origin: 50% 54px; }
+          .pet-anim-dewey { animation: pet-dewey-squish 2s ease-in-out infinite; transform-origin: 50% 80px; }
+          .pet-anim-fireball { animation: pet-fireball-dance 1.4s ease-in-out infinite alternate; transform-origin: 50% 70px; }
+          .pet-anim-hoots { animation: pet-hoots-glide 2.4s ease-in-out infinite; transform-origin: 50% 60px; }
+          .pet-anim-hoots-eye { animation: pet-eye-pulse 1.8s ease-in-out infinite alternate; }
+          .pet-anim-rocky { animation: pet-rocky-hover 2.2s ease-in-out infinite; transform-origin: 50% 55px; }
+          .pet-anim-rocky-gem { animation: pet-gem-flare 1.6s ease-in-out infinite alternate; }
+          .pet-anim-seedy { animation: pet-seedy-sway 1.8s ease-in-out infinite alternate; transform-origin: 50% 86px; }
+          .pet-anim-stacky { animation: pet-stacky-spring 1.6s ease-in-out infinite; transform-origin: 50% 75px; }
+          .pet-anim-bsod { animation: pet-bsod-jitter 2s ease-in-out infinite; transform-origin: 50% 50px; }
+          .pet-anim-nullsignal { animation: pet-null-float 2.2s ease-in-out infinite; transform-origin: 50% 50px; }
+          .pet-anim-null-antenna { animation: pet-antenna-flare 1.4s ease-in-out infinite alternate; }
+          .pet-anim-cat { animation: pet-cat-waggle 2s ease-in-out infinite alternate; transform-origin: 50% 65px; }
+          .pet-anim-dog { animation: pet-dog-bounce 1.3s ease-in-out infinite alternate; transform-origin: 50% 70px; }
+          .pet-anim-rabbit { animation: pet-rabbit-hop 1.5s cubic-bezier(0.28, 0.84, 0.42, 1) infinite; transform-origin: 50% 75px; }
+          .pet-anim-panda { animation: pet-panda-roll 2.4s ease-in-out infinite alternate; transform-origin: 50% 60px; }
+          .pet-anim-fox { animation: pet-fox-float 2.2s ease-in-out infinite; transform-origin: 50% 55px; }
 
-          @keyframes pet-float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-4px); }
+          @keyframes pet-dewey-squish {
+            0%, 100% { transform: translateY(0) scale(1, 1) rotate(0deg); }
+            25% { transform: translateY(-7px) scale(0.92, 1.08) rotate(-4deg); }
+            50% { transform: translateY(-10px) scale(1.02, 0.98) rotate(0deg); }
+            75% { transform: translateY(-2px) scale(1.08, 0.92) rotate(4deg); }
           }
-          @keyframes pet-wobble {
-            0%, 100% { transform: rotate(0deg); }
-            25% { transform: rotate(-2.5deg) scaleX(0.98); }
-            75% { transform: rotate(2.5deg) scaleX(1.02); }
+          @keyframes pet-fireball-dance {
+            0% { transform: translateY(0) scale(0.95, 1.05) rotate(-3deg); filter: drop-shadow(0 0 6px #f97316); }
+            50% { transform: translateY(-8px) scale(1.06, 0.94) rotate(3deg); filter: drop-shadow(0 0 16px #ef4444); }
+            100% { transform: translateY(-4px) scale(0.98, 1.03) rotate(-2deg); filter: drop-shadow(0 0 10px #f59e0b); }
           }
-          @keyframes pet-flame {
-            0% { transform: scale(0.97) translateY(0); filter: drop-shadow(0 0 4px #f97316); }
-            100% { transform: scale(1.04) translateY(-3px); filter: drop-shadow(0 0 10px #ef4444); }
+          @keyframes pet-hoots-glide {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            35% { transform: translateY(-8px) rotate(-6deg); }
+            70% { transform: translateY(-4px) rotate(6deg); }
           }
-          @keyframes pet-glow-eye {
-            0% { filter: drop-shadow(0 0 2px #0284c7); }
-            100% { filter: drop-shadow(0 0 7px #38bdf8); }
+          @keyframes pet-eye-pulse {
+            0% { filter: drop-shadow(0 0 3px #0284c7); opacity: 0.85; }
+            100% { filter: drop-shadow(0 0 10px #38bdf8); opacity: 1; }
           }
-          @keyframes pet-glow-gem {
-            0% { filter: drop-shadow(0 0 2px #7e22ce); }
-            100% { filter: drop-shadow(0 0 8px #c084fc); }
+          @keyframes pet-rocky-hover {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            33% { transform: translateY(-8px) rotate(-4deg); }
+            66% { transform: translateY(-5px) rotate(4deg); }
           }
-          @keyframes pet-sway {
-            0% { transform: rotate(-3deg); }
-            100% { transform: rotate(3deg); }
+          @keyframes pet-gem-flare {
+            0% { filter: drop-shadow(0 0 3px #7e22ce); }
+            100% { filter: drop-shadow(0 0 12px #c084fc); }
           }
-          @keyframes pet-crt {
-            0%, 100% { opacity: 0.98; filter: drop-shadow(0 0 3px #2563eb); }
-            50% { opacity: 0.88; filter: drop-shadow(0 0 8px #60a5fa); }
+          @keyframes pet-seedy-sway {
+            0% { transform: rotate(-12deg) scale(0.98, 1.02); }
+            50% { transform: rotate(0deg) scale(1.03, 0.97) translateY(-4px); }
+            100% { transform: rotate(12deg) scale(0.98, 1.02); }
           }
-          @keyframes pet-antenna-pulse {
-            0% { filter: drop-shadow(0 0 2px #0284c7); }
-            100% { filter: drop-shadow(0 0 9px #38bdf8); }
+          @keyframes pet-stacky-spring {
+            0%, 100% { transform: translateY(0) scale(1, 1); }
+            30% { transform: translateY(-9px) scale(0.94, 1.06); }
+            60% { transform: translateY(-3px) scale(1.05, 0.95); }
+            80% { transform: translateY(0) scale(1.08, 0.92); }
           }
-          @keyframes pet-breathe {
-            0% { transform: scale(0.97); }
-            100% { transform: scale(1.03); }
+          @keyframes pet-bsod-jitter {
+            0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.98; filter: drop-shadow(0 0 4px #2563eb); }
+            30% { transform: translateY(-6px) rotate(-2deg); opacity: 0.9; filter: drop-shadow(0 0 10px #60a5fa); }
+            60% { transform: translateY(-4px) rotate(2deg); opacity: 0.95; filter: drop-shadow(0 0 6px #3b82f6); }
+            85% { transform: translateY(-1px) rotate(-1deg); opacity: 0.88; }
           }
-          @keyframes pet-wag {
-            0% { transform: rotate(-2.5deg); }
-            100% { transform: rotate(2.5deg); }
+          @keyframes pet-null-float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(-3deg); }
           }
-          @keyframes pet-hop {
-            0%, 80%, 100% { transform: translateY(0); }
-            40% { transform: translateY(-5px); }
+          @keyframes pet-antenna-flare {
+            0% { filter: drop-shadow(0 0 3px #0284c7); }
+            100% { filter: drop-shadow(0 0 12px #38bdf8); }
+          }
+          @keyframes pet-cat-waggle {
+            0% { transform: translateY(0) rotate(-6deg) scale(0.96); }
+            50% { transform: translateY(-6px) rotate(0deg) scale(1.04); }
+            100% { transform: translateY(0) rotate(6deg) scale(0.96); }
+          }
+          @keyframes pet-dog-bounce {
+            0% { transform: translateY(0) rotate(-8deg) scale(1, 1); }
+            50% { transform: translateY(-7px) rotate(0deg) scale(1.05, 0.95); }
+            100% { transform: translateY(0) rotate(8deg) scale(1, 1); }
+          }
+          @keyframes pet-rabbit-hop {
+            0%, 100% { transform: translateY(0) scale(1.08, 0.92); }
+            20% { transform: translateY(-4px) scale(0.95, 1.05); }
+            45% { transform: translateY(-12px) scale(0.92, 1.08) rotate(-3deg); }
+            70% { transform: translateY(-5px) scale(1.02, 0.98) rotate(3deg); }
+          }
+          @keyframes pet-panda-roll {
+            0% { transform: translateY(0) rotate(-7deg) scale(0.96, 1.04); }
+            50% { transform: translateY(-6px) rotate(0deg) scale(1.05, 0.95); }
+            100% { transform: translateY(0) rotate(7deg) scale(0.96, 1.04); }
+          }
+          @keyframes pet-fox-float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            35% { transform: translateY(-8px) rotate(-5deg); }
+            70% { transform: translateY(-4px) rotate(5deg); }
           }
         `}</style>
         {/* Filtros de sombra y brillo 3D */}

@@ -241,7 +241,7 @@
 
 .settings-v2-subagents-thead {
   display: grid;
-  grid-template-columns: minmax(180px, 2fr) minmax(220px, 2.8fr) minmax(110px, 1.2fr) minmax(110px, 1.2fr) minmax(150px, 1.5fr) minmax(130px, 1.2fr);
+  grid-template-columns: minmax(180px, 2fr) minmax(220px, 2.8fr) minmax(110px, 1.2fr) minmax(110px, 1.2fr) minmax(190px, 1.8fr) minmax(130px, 1.2fr);
   padding: 10px 16px;
   background: rgba(255, 255, 255, 0.03);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -254,7 +254,7 @@
 
 .settings-v2-subagents-row {
   display: grid;
-  grid-template-columns: minmax(180px, 2fr) minmax(220px, 2.8fr) minmax(110px, 1.2fr) minmax(110px, 1.2fr) minmax(150px, 1.5fr) minmax(130px, 1.2fr);
+  grid-template-columns: minmax(180px, 2fr) minmax(220px, 2.8fr) minmax(110px, 1.2fr) minmax(110px, 1.2fr) minmax(190px, 1.8fr) minmax(130px, 1.2fr);
   align-items: center;
   padding: 12px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
@@ -278,7 +278,7 @@
 .settings-v2-subagents-cell--status {
   display: flex;
   align-items: center;
-  gap: 18px;
-  min-width: 160px;
-  padding: 0 6px;
+  gap: 22px;
+  min-width: 185px;
+  padding: 0 8px;
 }

@@ -614,6 +614,10 @@ Análisis extremo de rendimiento para identificar cuellos de botella de CPU, fug
 }
 
 function localizeSkillDescription(name: string, defaultDesc: string | undefined, isSpanish: boolean): string {
+  // Always preserve the real, comprehensive description from the skill itself!
+  if (defaultDesc && defaultDesc.trim().length > 0) {
+    return defaultDesc
+  }
   if (isSpanish && SKILL_ES_DESCRIPTIONS[name]) {
     return SKILL_ES_DESCRIPTIONS[name]
   }
@@ -621,20 +625,12 @@ function localizeSkillDescription(name: string, defaultDesc: string | undefined,
 }
 
 function localizeSkillContent(name: string, content: string | undefined, isSpanish: boolean): string {
-  if (!content || content.trim().length === 0) {
-    return SKILL_ES_CONTENTS[name] || ""
-  }
+  if (content && content.trim().length > 0) {
+    if (!isSpanish) return content
 
-  // Si content solo tiene el título o es un fallback muy breve (<150 caracteres), y tenemos un contenido en español
-  if (content.length < 150 && SKILL_ES_CONTENTS[name] && SKILL_ES_CONTENTS[name].length > content.length) {
-    return SKILL_ES_CONTENTS[name]
-  }
-
-  if (!isSpanish) return content
-
-  // Conserva el 100% de la documentación técnica completa, bloques de código, tablas y ejemplos,
-  // adaptando dinámicamente los encabezados y secciones estándar a español.
-  return content
+    // Conserva el 100% de la documentación técnica completa, bloques de código, tablas y ejemplos,
+    // adaptando dinámicamente los encabezados y secciones estándar a español.
+    return content
     .replace(/^#\s+Overview/gm, "# Descripción general")
     .replace(/^##\s+Overview/gm, "## Descripción general")
     .replace(/^###\s+Overview/gm, "### Descripción general")
@@ -664,6 +660,8 @@ function localizeSkillContent(name: string, content: string | undefined, isSpani
     .replace(/^##\s+Checklist/gm, "## Lista de verificación")
     .replace(/^#\s+Rules/gm, "# Reglas principales")
     .replace(/^##\s+Rules/gm, "## Reglas principales")
+  }
+  return SKILL_ES_CONTENTS[name] || ""
 }
 
 export const SettingsSkillsV2: Component<{

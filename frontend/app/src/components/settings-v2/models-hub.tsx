@@ -1,4 +1,5 @@
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
+import { SelectV2 } from "@tiancode-ai/ui/v2/select-v2"
 import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
 import { TextInputV2 } from "@tiancode-ai/ui/v2/text-input-v2"
 import {
@@ -1269,28 +1270,25 @@ export const SettingsModelsHubV2: Component<{
                   {/* Quantization picker & Hardware Compatibility & Actions Strip */}
                   <div class="flex items-center justify-between gap-3 pt-2.5 border-t border-white/[0.06] flex-wrap">
                     <div class="flex items-center gap-2.5 flex-wrap flex-1 min-w-[240px]">
-                      {/* Selector de cuantización */}
-                      <div class="flex items-center gap-1.5">
-                        <span class="text-[11px] text-slate-400 font-medium">Cuantización:</span>
-                        <select
-                          class="lm-quant-select h-8 px-2.5 rounded-lg border border-white/20 bg-slate-900 text-xs text-slate-100 outline-none focus:border-sky-400 font-mono cursor-pointer"
-                          style={{ "color-scheme": "dark", "background-color": "#0f172a", "color": "#f8fafc" }}
-                          value={file()?.file}
-                          onChange={(e) => setModelQuant(model.id, e.currentTarget.value)}
-                        >
-                          <For each={model.quantFiles}>
-                            {(qf) => (
-                              <option
-                                value={qf.file}
-                                style={{ "background-color": "#0f172a", "color": "#f8fafc" }}
-                                class="bg-slate-900 text-slate-100 py-1"
-                              >
-                                {qf.quant || "GGUF"} ({formatBytes(qf.size)}) {qf.recommended ? "★ Recomendado" : ""}
-                              </option>
-                            )}
-                          </For>
-                        </select>
-                      </div>
+                        {/* Selector de cuantización */}
+                        <div class="flex items-center gap-1.5">
+                          <span class="text-[11px] text-slate-400 font-medium">Cuantización:</span>
+                          <Show
+                            when={model.quantFiles && model.quantFiles.length > 0}
+                            fallback={<span class="text-xs font-mono text-slate-200">GGUF</span>}
+                          >
+                            <SelectV2
+                              appearance="inline"
+                              options={model.quantFiles}
+                              current={file()}
+                              value={(qf) => qf.file}
+                              label={(qf) => `${qf.quant || "GGUF"} (${formatBytes(qf.size)})${qf.recommended ? " ★" : ""}`}
+                              onSelect={(qf) => qf && setModelQuant(model.id, qf.file)}
+                              placement="bottom-start"
+                              gutter={4}
+                            />
+                          </Show>
+                        </div>
 
                       {/* Hardware Fit badge */}
                       <div class={`lm-compat-badge lm-compat-${fit()} text-[11px]`}>
