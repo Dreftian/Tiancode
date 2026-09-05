@@ -4,6 +4,20 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.23] — 2026-09-05
+### Novedades y Rendimiento
+
+- **Motor Nativo de Reducción Inteligente de Tokens CLI (Estilo RTK)**:
+  - Implementación del módulo `OutputDistiller` en el núcleo de Tiancode (`backend/core/src/tool/output-distiller.ts`), inspirado en la arquitectura de RTK (Rust Token Killer).
+  - Reducción del 60% al 90% en consumo de tokens en comandos de terminal (`git status`, `git diff`, `npm test`, `vitest`, `cargo test`, `tsc`, `eslint`).
+  - Filtrado instantáneo de secuencias de escape ANSI (`\x1b[...]`) y barras de progreso interactivo con retornos de carro (`\r`).
+  - Modo *Failure Focus* en ejecutores de pruebas: colapso de cientos de pruebas exitosas a un resumen conciso y aislamiento preciso de errores y tracebacks con filtrado de ruido interno de `node_modules/`.
+  - Compresión estructural de `git status` y `git diff`, eliminando textos instructivos redundantes.
+  - Deduplicación de líneas consecutivas repetidas (`×N`).
+  - Principio *Fail-Safe* absoluto: preservación íntegra de la salida en errores no reconocidos con código de salida diferente de cero para no comprometer nunca el diagnóstico del agente.
+  - Arquitectura de Salida Dual: entrega del texto destilado al modelo LLM para máxima velocidad y ahorro de contexto, preservando la salida completa en el registro estructurado para el usuario.
+  - Configuración ampliable en `ConfigToolOutput` con `token_reduction`.
+
 ## [1.0.22] — 2026-09-05
 ### Mejorado y Corregido
 

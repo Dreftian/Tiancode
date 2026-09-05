@@ -6,4 +6,5 @@ import { PositiveInt } from "../schema"
 export class Info extends Schema.Class<Info>("ConfigV2.ToolOutput")({
   max_lines: PositiveInt.pipe(Schema.optional),
   max_bytes: PositiveInt.pipe(Schema.optional),
+  token_reduction: Schema.Boolean.pipe(Schema.optional),
 }) {}

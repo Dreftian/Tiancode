@@ -11,6 +11,7 @@ import { LocationMutation } from "../location-mutation"
 import { AppProcess } from "../process"
 import { PermissionV2 } from "../permission"
 import { PositiveInt } from "../schema"
+import { OutputDistiller } from "./output-distiller"
 import { ToolRegistry } from "./registry"
 import { Tool } from "./tool"
 import { Tools } from "./tools"
@@ -41,6 +42,8 @@ const StructuredOutput = Schema.Struct({
 const Output = Schema.Struct({
   ...StructuredOutput.fields,
   output: Schema.String,
+  distilled: Schema.String.pipe(Schema.optional),
+  savedTokens: Schema.Number.pipe(Schema.optional),
   warnings: Schema.Array(Schema.String).pipe(Schema.optional),
 })
 
@@ -116,7 +119,7 @@ const layer = Layer.effectDiscard(
             ...(output.timeout === undefined ? {} : { timeout: output.timeout }),
           }),
           toModelOutput: ({ output }) => [
-            { type: "text", text: output.output },
+            { type: "text", text: output.distilled ?? output.output },
             { type: "text", text: modelOutput(output) },
           ],
           execute: (input, context) =>
@@ -183,13 +186,21 @@ const layer = Layer.effectDiscard(
                 }
               }
 
-              const output = result.output?.toString("utf8") || "(no output)"
+              const rawOutput = result.output?.toString("utf8") || "(no output)"
               const notice = result.outputTruncated
                 ? "[output capture truncated at the in-memory safety limit]"
                 : undefined
+              const fullOutput = notice ? `${rawOutput}\n\n${notice}` : rawOutput
+              const distilled = OutputDistiller.distill({
+                command: input.command,
+                output: fullOutput,
+                exitCode: result.exitCode,
+              })
               return {
                 exit: result.exitCode,
-                output: notice ? `${output}\n\n${notice}` : output,
+                output: fullOutput,
+                distilled: distilled.distilled ? distilled.output : undefined,
+                savedTokens: distilled.savedTokens > 0 ? distilled.savedTokens : undefined,
                 truncated: result.outputTruncated === true,
                 ...(warnings.length ? { warnings } : {}),
               }

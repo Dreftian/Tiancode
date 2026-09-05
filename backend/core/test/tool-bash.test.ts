@@ -416,6 +416,41 @@ describe("BashTool", () => {
       (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
     ),
   )
+
+  it.live("distills verbose bash output for model while preserving structured output", () =>
+    Effect.acquireUseRelease(
+      Effect.promise(() => tmpdir()),
+      (tmp) => {
+        reset()
+        const verboseStatus = `On branch dev\nYour branch is up to date with 'origin/dev'.\n\nUntracked files:\n  (use "git add <file>..." to include in what will be committed)\n\ttest.txt\n\nnothing added to commit but untracked files present (use "git add" to track)`
+        result = {
+          command: "git status",
+          exitCode: 0,
+          output: Buffer.from(verboseStatus),
+          stdout: Buffer.from(verboseStatus),
+          stderr: Buffer.alloc(0),
+          outputTruncated: false,
+          stdoutTruncated: false,
+          stderrTruncated: false,
+        }
+        return withTool(tmp.path, (registry) => settleTool(registry, call({ command: "git status" }))).pipe(
+          Effect.andThen((settled) =>
+            Effect.sync(() => {
+              expect(settled.output?.structured).toMatchObject({
+                exit: 0,
+                truncated: false,
+              })
+              const text = settled.output?.content[0]?.type === "text" ? settled.output?.content[0]?.text : ""
+              expect(text).toContain("On branch dev")
+              expect(text).toContain("test.txt")
+              expect(text).not.toContain('(use "git add <file>..." to include in what will be committed)')
+            }),
+          ),
+        )
+      },
+      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+    ),
+  )
 })
 
 test("keeps locked deferred parity TODOs visible", async () => {
