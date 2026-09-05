@@ -29,38 +29,42 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.21"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — Sub-Agentes Nativos Exclusivos, Corrección de AST CodeGraph, Dictado por Voz Nativo, Modo ⚡ 2x y Hugging Face Models Hub`
-  const body = `## 🚀 Tiancode v${version} — Sub-Agentes Nativos, Dictado por Voz Robusto, Modo ⚡ 2x y Hub de Modelos Hugging Face
+  const releaseName = `Tiancode v${version} — AgentShield Security, Sub-Agentes de Élite ECC, Motor RTK (-80% Tokens) y Soporte GPT-6 Astra`
+  const body = `## 🚀 Tiancode v${version} — AgentShield, Sub-Agentes de Élite ECC, Motor RTK y Soporte GPT-6 Astra
 
-### 🔍 Corrección de Desborde en Buscador de AST CodeGraph
-- **Ajuste Estricto de Ancho:** Se corrigió el desborde del campo de búsqueda en el visualizador AST CodeGraph mediante \`overflow-hidden\` y clase \`!w-full max-w-full min-w-0\` en \`TextInputV2\`, manteniéndolo perfectamente alineado dentro del límite de la tarjeta.
+### 🛡️ AgentShield Security Engine
+- **Protección Proactiva de Sistema:** Detección y contención de comandos destructivos (\`rm -rf /\`, \`rmdir /s /q c:\\\`, formateo de volúmenes o manipulación del registro).
+- **Prevención de Fuga de Secretos:** Bloqueo y advertencias ante intentos de exponer archivos \`.env\`, claves privadas SSH (\`id_rsa\`, \`id_ed25519\`) o tokens de nube (AWS, GCP, GitHub).
+- **Defensa ante Ejecución Remota Insegura:** Alertas ante scripts remotos canalizados a shells sin verificación (\`curl | sh\`, \`iwr | iex\`).
+- **Integración Nativa en Terminal Bash:** Alertas contextuales inyectadas para guiar al modelo a reconsiderar comandos de alto riesgo sin romper el flujo.
 
-### 🛡️ Sub-Agentes Nativos Exclusivos y Depuración de Interfaz
-- **Catálogo Exclusivo:** Se eliminó por completo la sección obsoleta de "Sub-agentes de usuario" y modales flotantes innecesarios, dejando únicamente los sub-agentes nativos de élite.
-- **Tabla Unificada de 5 Columnas:** Sub-Agente, Rol y Especialidad, Modelo, Herramientas y Estado con interruptor instantáneo (0 ms).
+### 🧪 Sub-Agentes de Élite Integrados (Arquitectura ECC)
+- **🧪 TDD Specialist:** Arquitecto Test-First con ciclo estricto Red-Green-Refactor. Pruebas antes de código de producción.
+- **🔍 Code Reviewer:** Auditoría de calidad, legibilidad, seguridad y estándares en contexto fresco.
+- **🛡️ AgentShield Sentinel:** Centinela de ciberseguridad, análisis estático de dependencias y principios OWASP.
+- **🔧 Build Repair Specialist:** Diagnóstico y reparación quirúrgica de fallos de compilación, linters y tipos TypeScript sin modificar lógica de negocio.
 
-### 🌳 Árbol de Recursión RLM (Swarm Hierarchy Tree) Mejorado
-- **Topología de Orquestación Dinámica:** Representación jerárquica de la arquitectura de enjambre (Nivel 0: Tiancode Prime Orchestrator; Nivel 1: Especialistas de Software Architect, Fullstack, DevSecOps y QA).
-- **Control Expandir/Colapsar:** Insignias de estado en tiempo real y flujo de descomposición recursiva de tareas.
+### ⚡ Motor Nativo de Reducción de Tokens CLI (Estilo RTK)
+- **Ahorro del 60% al 90% en Tokens de Terminal:** Módulo \`OutputDistiller\` que limpia ruido ANSI, barras de progreso y deduplica líneas repetidas en comandos \`git\`, \`test\` y compiladores.
+- **Modo Failure Focus & Fail-Safe:** Aislamiento quirúrgico de fallos en tests ignorando pruebas exitosas y ruido de \`node_modules/\`. Preservación del 100% de la salida en errores no reconocidos.
+- **Arquitectura de Salida Dual:** Salida compacta para el LLM a máxima velocidad y registro completo para el usuario.
 
-### 🎙️ Dictado por Voz Nativo y Detección de Micrófonos sin Fallos
-- **Corrección de Runtime en Sherpa-ONNX:** Solucionado el error \`Cannot use 'in' operator to search for 'transducer' in undefined\` en \`asr.ts\`, configurando adecuadamente \`featConfig\` y \`modelConfig.whisper\` y decodificando mediante \`OfflineStream\`.
-- **Detección Confiable de Micrófonos de PC:** Enumeración de dispositivos conectados y dictado offline nativo sin interrupciones.
+### 🤖 Soporte de Versiones Enteras GPT y GPT-6 Astra (OpenCode v1.18.29)
+- **Filtrado OAuth en Codex:** Reconocimiento de versiones enteras (\`gpt-6\`, \`gpt-6-astra\`, \`gpt-7\`) en la integración de OpenAI Plus/Pro.
+- **Opciones de Razonamiento:** Configuración optimizada de razonamiento cifrado para familias GPT-5 y GPT-6.
 
-### ⚡ Modo 2x Velocidad Optimizado
-- **Pensamiento y Respuesta Ultra-Rápidos:** Directivas específicas inyectadas para razonamiento acelerado sin sobrecarga de tokens y streaming fluido.
-
-### 🤗 Hugging Face Local Models Hub con Motor Autónomo Tiancode
-- **Branding Oficial Hugging Face:** Logo destacado (🤗) con indicador del motor nativo autónomo de Tiancode (\`llama-server.exe\` integrado), sin requerir LM Studio, Ollama ni dependencias externas.
-- **Búsqueda en Vivo y Staff Picks:** Navegación directa por modelos GGUF recomendados, selector de cuantización y filtro para modelos en disco.
+### 🌳 Mejoras de la Suite: Swarm Hierarchy Tree, Whisper Offline y Hugging Face Hub
+- **Árbol de Recursión RLM:** Visualización jerárquica de la arquitectura de enjambre en tiempo real.
+- **Dictado por Voz Nativo:** Whisper offline sin fallos de runtime y con detección automática de micrófonos de PC.
+- **Hugging Face Hub Autónomo:** Motor de inferencia nativo de Tiancode (\`llama-server.exe\` integrado) sin requerir Ollama ni LM Studio.
 
 ### 🔒 Actualización 100% No Destructiva
-- Todas las claves de proveedores de IA, sesiones, historial, configuraciones y servidores MCP se preservan íntegramente.
+- Todas tus claves de API de proveedores, configuraciones, sesiones, backups y servidores MCP se preservan intactos.
 
 ### 📦 Descargas
 | Archivo | Tipo | Descripción |
 |---|---|---|
-| [**Tiancode.exe**](https://github.com/Dreftian/Tiancode/releases/download/${tag}/Tiancode.exe) | Instalador Windows | Instalador oficial con tema Glass y actualizador automático |
+| [**Tiancode.exe**](https://github.com/Dreftian/Tiancode/releases/download/${tag}/Tiancode.exe) | Instalador Windows | Instalador oficial con actualizaciones automáticas |
 | [**Tiancode-portable.exe**](https://github.com/Dreftian/Tiancode/releases/download/${tag}/Tiancode-portable.exe) | Portable Windows | Ejecutable directo sin instalación |
 | [**latest.yml**](https://github.com/Dreftian/Tiancode/releases/download/${tag}/latest.yml) | Metadatos | Registro para el actualizador automático |
 `
