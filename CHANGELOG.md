@@ -4,6 +4,19 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.33] — 2026-09-06
+### Optimización de Prompts con IA en Streaming en Vivo, Endpoint Backend y Modos de Ejecución
+
+- **Reescritura de Prompts con IA en Streaming en Tiempo Real**:
+  - **Endpoint Backend Dedicado (`POST /experimental/prompt/optimize`)**: Conexión directa y asíncrona con el servicio central `LLM.Service`, utilizando el proveedor y modelo activo del usuario o el modelo predeterminado configurado en el servidor.
+  - **Meta-Prompts de Alta Precisión**: Arquitectura de reescritura derivada de las mejores técnicas de `claude-opus-4.6-prompt-optimizer` y `prompt-refine-skill`, con preservación estricta de variables (`${var}`, `{{var}}`), rutas y fragmentos de código, cláusula anti-sobreingeniería y directiva de verificación.
+  - **Streaming Token por Token en Frontend**: El compositor de texto se actualiza en vivo conforme llegan los deltas de texto del LLM, permitiendo al usuario observar el proceso de razonamiento y expansión del prompt en tiempo real.
+  - **Selector Rápido de Modos (Clic Derecho)**:
+    - `✨ Estándar`: Balance ideal entre contexto, tarea, restricciones y verificación.
+    - `🔬 Riguroso (TDD)`: Enfoque estricto en pruebas previas, casos borde, tipado defensivo y validaciones.
+    - `🎯 Quirúrgico (Mínimo)`: Alcance microscópico centrado en el mínimo número de cambios, sin tocar código circundante ni refactorizar.
+  - **Fallback Local Infalible y Resiliente**: Si el usuario no tiene proveedores de IA configurados, está fuera de línea o la llamada a la API expira, el botón conmuta de manera 100% transparente al motor cliente determinista v2 con animación de máquina de escribir.
+
 ## [1.0.32] — 2026-09-06
 ### Motor de Optimización de Prompts v2 con Adaptación por Modelo, Tokens Aislados y Deshacer
 

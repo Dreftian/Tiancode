@@ -29,30 +29,22 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.25"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — Motor de Optimización de Prompts v2 con Adaptación por Modelo y Deshacer`
-  const body = `## 🚀 Tiancode v${version} — Motor de Optimización de Prompts v2 con Adaptación por Modelo y Deshacer
+  const releaseName = `Tiancode v${version} — Optimización de Prompts con IA en Streaming en Vivo y Selección de Modos`
+  const body = `## 🚀 Tiancode v${version} — Optimización de Prompts con IA en Streaming en Vivo y Selección de Modos
 
-### ✨ Motor Avanzado de Optimización de Prompts ("Mejorar Input") v2
-- **Estrategias Adaptativas por Modelo:** El prompt se reestructura de forma inteligente según la familia de modelo seleccionada:
-  - **Claude (Anthropic):** Etiquetas XML semánticas (\`<context>\`, \`<objective>\`, \`<instructions>\`, \`<constraints>\`, \`<verification>\`), contexto y archivos primero, y requerimientos delimitados.
-  - **OpenAI (GPT-4o, GPT-5, o-series):** Formato *outcome-first* en Markdown directo con metas concretas, criterios de aceptación estrictos y barra de verificación.
-  - **Google Gemini (Gemini 2.5/3):** Encabezados directos y concisos en Markdown limpio (sin delimitadores mixtos) y solicitud de profundidad en la implementación.
-  - **DeepSeek (V3/R1):** Especificaciones técnicas rigurosas y cero-shot directo.
-- **Aislamiento de Tokens Protegidos (Token Isolation):**
-  - Protección absoluta de bloques de código (\`\`\`...\`\`\`), código inline (\`...\`), URLs (\`https://...\`), variables (\`{{var}}\`, \`\${var}\`) y rutas de archivo complejas.
-- **Diccionario Técnico Masivo (+420 términos):**
-  - Normalización ortográfica técnica y preservación de mayúsculas en frameworks (\`Solid.js\`, \`React\`, \`Vue\`, \`Docker\`, \`PostgreSQL\`, \`SQLite\`, etc.), acrónimos (\`MCP\`, \`RPC\`, \`SDK\`, \`CI/CD\`) y corrección de typos frecuentes.
-- **Clasificador de Intención Multinivel:**
-  - Detección precisa de 6 categorías de intención: \`debugging\`, \`scaffolding\`, \`refactoring\`, \`conceptual\`, \`scripting\` y \`review\`.
-- **Cláusulas Anti-Sobreingeniería e Invariantes:**
-  - Instrucciones explícitas de alcance mínimo quirúrgico, respeto a la arquitectura existente y prohibición de código placeholder tipo TODO.
-- **Plan de Verificación Estructurado:**
-  - Directivas para verificar con tests unitarios, tipado estricto o pruebas de ejecución antes de finalizar.
-- **Función de Deshacer (Undo / Revertir):**
-  - El botón permite alternar y restaurar el texto original con un solo clic si el usuario desea revertir la optimización.
+### ✨ Optimización de Prompts con IA Real en Streaming en Vivo
+- **Endpoint Backend Dedicado (\`POST /experimental/prompt/optimize\`):** Conexión en tiempo real con \`LLM.Service\`, permitiendo reescribir y optimizar cualquier instrucción técnica con el modelo de IA activo del usuario (Claude, OpenAI, Gemini, DeepSeek o el modelo local/servidor).
+- **Streaming Token por Token en Directo:** El texto se actualiza de forma progresiva y en vivo en el compositor de chat conforme el modelo de IA genera la respuesta, permitiendo observar el proceso de optimización en tiempo real.
+- **Selector Rápido de Modos con Clic Derecho:**
+  - **✨ Modo Estándar:** Balance perfecto entre contexto, objetivo, instrucciones, restricciones y plan de verificación.
+  - **🔬 Modo Riguroso (TDD):** Máxima exigencia técnica, directivas obligatorias de tests unitarios, tipado defensivo y análisis de casos borde.
+  - **🎯 Modo Quirúrgico:** Alcance microscópico, modificaciones estrictamente acotadas a las líneas o archivos necesarios sin refactorizaciones no solicitadas.
+- **Meta-Prompts de Nivel Élite:** Reglas extraídas y sintetizadas de los mejores optimizadores de prompts para asistentes de código (\`claude-opus-4.6-prompt-optimizer\`, \`prompt-refine-skill\`), con salvaguardas anti-sobreingeniería y directivas explícitas de no introducir código stub (\`# TODO\`).
+- **Fallback Local Infalible v2:** Si el usuario no tiene proveedores de IA configurados, no tiene conexión o la llamada a la red expira, el botón conmuta de inmediato y de forma silenciosa al motor local determinista v2 con animación de máquina de escribir.
+- **Soporte de Deshacer (Undo / Revertir):** Permite restaurar el texto original con un solo clic si el desarrollador prefiere conservar su redacción inicial.
 
 ### 🔒 Actualización 100% No Destructiva
-- Todas tus claves de API, sesiones, historial, MCPs y credenciales se preservan de forma intacta.
+- Todas tus claves de API, sesiones, historial, MCPs y configuraciones se conservan intactas en tu equipo.
 
 ### 📦 Descargas
 | Archivo | Tipo | Descripción |

@@ -2,6 +2,7 @@ import { createSignal, Show, type JSX } from "solid-js"
 import { TooltipV2 } from "@tiancode-ai/ui/v2/tooltip-v2"
 import { useLanguage } from "@/context/language"
 import { useServerSDK } from "@/context/server-sdk"
+import { authTokenFromCredentials } from "@/utils/server"
 import {
   enhancePromptText,
   resolveModelFamily,
@@ -10,6 +11,8 @@ import {
 } from "@/utils/prompt-optimizer"
 
 export { enhancePromptText, resolveModelFamily, type PromptIntent, type ModelFamily }
+
+export type OptimizerStyle = "standard" | "rigorous" | "minimal"
 
 export function IconSparkles(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
   return (
@@ -63,6 +66,7 @@ export function PromptOptimizerButton(props: {
   const [justReverted, setJustReverted] = createSignal(false)
   const [lastOriginal, setLastOriginal] = createSignal("")
   const [lastOptimized, setLastOptimized] = createSignal("")
+  const [style, setStyle] = createSignal<OptimizerStyle>("standard")
 
   const isSpanish = () => language.intl().toLowerCase().startsWith("es")
   const hasText = () => props.input().trim().length > 0
@@ -73,12 +77,18 @@ export function PromptOptimizerButton(props: {
     return lastOptimized().length > 0 && cur === lastOptimized().trim() && lastOriginal().length > 0
   }
 
+  const styleLabel = () => {
+    if (style() === "rigorous") return isSpanish() ? "🔬 Riguroso (TDD)" : "🔬 Rigorous (TDD)"
+    if (style() === "minimal") return isSpanish() ? "🎯 Quirúrgico" : "🎯 Surgical (Minimal)"
+    return isSpanish() ? "✨ Estándar" : "✨ Standard"
+  }
+
   const tooltipText = () => {
     if (justReverted()) {
       return isSpanish() ? "¡Texto original restaurado!" : "Original text restored!"
     }
     if (justOptimized()) {
-      return isSpanish() ? "¡Prompt optimizado!" : "Prompt enhanced!"
+      return isSpanish() ? "¡Prompt optimizado con éxito!" : "Prompt successfully enhanced!"
     }
     if (isRevertMode()) {
       return isSpanish()
@@ -89,9 +99,21 @@ export function PromptOptimizerButton(props: {
       return language.t("prompt.optimize.empty")
     }
     if (optimizing()) {
-      return language.t("prompt.optimize.optimizing")
+      return isSpanish() ? "Reescribiendo prompt con IA en streaming..." : "Streaming AI prompt optimization..."
     }
-    return language.t("prompt.optimize.label")
+    const modeSwitchTip = isSpanish() ? "• Clic derecho: alternar modo" : "• Right-click: switch mode"
+    return `${language.t("prompt.optimize.label")} [${styleLabel()}] ${modeSwitchTip}`
+  }
+
+  const handleContextMenu = (e: MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const nextOrder: Record<OptimizerStyle, OptimizerStyle> = {
+      standard: "rigorous",
+      rigorous: "minimal",
+      minimal: "standard",
+    }
+    setStyle((s) => nextOrder[s])
   }
 
   const handleAction = async (e: MouseEvent) => {
@@ -114,21 +136,87 @@ export function PromptOptimizerButton(props: {
     setOptimizing(true)
     setLastOriginal(current)
     window.dispatchEvent(new CustomEvent("tiancode:prompt-optimizing", { detail: { active: true } }))
+
+    const currentModel = props.model?.()
+    const modelFamily = resolveModelFamily(
+      currentModel?.provider?.id ?? currentModel?.name ?? currentModel?.id,
+    )
+
+    let streamedWithAi = false
     try {
-      await new Promise((r) => setTimeout(r, 160))
-      
-      const currentModel = props.model?.()
-      const modelFamily = resolveModelFamily(
-        currentModel?.provider?.id ?? currentModel?.name ?? currentModel?.id,
-      )
+      const sdk = serverSdk()
+      const serverHttp = sdk?.server?.http
+      if (serverHttp?.url) {
+        const baseUrl = serverHttp.url.replace(/\/+$/, "")
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        }
+        if (serverHttp.password) {
+          headers["Authorization"] = `Basic ${authTokenFromCredentials({
+            username: serverHttp.username,
+            password: serverHttp.password,
+          })}`
+        }
+
+        const abortCtrl = new AbortController()
+        const timeoutId = setTimeout(() => abortCtrl.abort(), 30000)
+
+        const response = await fetch(`${baseUrl}/experimental/prompt/optimize`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            prompt: current,
+            providerID: currentModel?.provider?.id,
+            modelID: currentModel?.id,
+            language: isSpanish() ? "es" : "en",
+            style: style(),
+          }),
+          signal: abortCtrl.signal,
+        })
+        clearTimeout(timeoutId)
+
+        if (response.ok && response.body) {
+          const reader = response.body.getReader()
+          const decoder = new TextDecoder()
+          let accumulated = ""
+
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            const chunk = decoder.decode(value, { stream: true })
+            if (chunk) {
+              accumulated += chunk
+              props.onOptimized(accumulated)
+            }
+          }
+
+          const trimmed = accumulated.trim()
+          if (trimmed.length > 0) {
+            setLastOptimized(trimmed)
+            props.onOptimized(trimmed)
+            setJustOptimized(true)
+            streamedWithAi = true
+            window.dispatchEvent(
+              new CustomEvent("tiancode:prompt-optimizing", { detail: { active: false, done: true, ai: true } }),
+            )
+            setTimeout(() => setJustOptimized(false), 1600)
+          }
+        }
+      }
+    } catch {
+      // Error de red, timeout o sin proveedor: procedemos al fallback local
+    }
+
+    if (!streamedWithAi) {
+      // Fallback infalible de alta velocidad en cliente (v2)
       const optimized = enhancePromptText(current, isSpanish(), { modelFamily })
       setLastOptimized(optimized)
-      
+
       // Efecto progresivo de escritura y reemplazo en el textarea (estilo Trae.ai)
       const tokens = optimized.split(/(\s+|\n)/)
       let accumulated = ""
       const stepDelay = Math.max(5, Math.min(16, Math.floor(400 / Math.max(tokens.length, 1))))
-      
+
       for (let i = 0; i < tokens.length; i++) {
         accumulated += tokens[i]
         props.onOptimized(accumulated)
@@ -138,12 +226,14 @@ export function PromptOptimizerButton(props: {
       }
       props.onOptimized(optimized)
       setJustOptimized(true)
-      window.dispatchEvent(new CustomEvent("tiancode:prompt-optimizing", { detail: { active: false, done: true } }))
+      window.dispatchEvent(
+        new CustomEvent("tiancode:prompt-optimizing", { detail: { active: false, done: true, ai: false } }),
+      )
       setTimeout(() => setJustOptimized(false), 1600)
-    } finally {
-      setOptimizing(false)
-      window.dispatchEvent(new CustomEvent("tiancode:prompt-optimizing", { detail: { active: false } }))
     }
+
+    setOptimizing(false)
+    window.dispatchEvent(new CustomEvent("tiancode:prompt-optimizing", { detail: { active: false } }))
   }
 
   return (
@@ -191,6 +281,7 @@ export function PromptOptimizerButton(props: {
           type="button"
           disabled={!hasText() || optimizing() || props.disabled}
           onClick={handleAction}
+          onContextMenu={handleContextMenu}
           aria-label={tooltipText()}
           class={`
             trae-optimizer-btn relative flex size-7 shrink-0 items-center justify-center rounded-md
@@ -216,6 +307,14 @@ export function PromptOptimizerButton(props: {
             >
               <IconSparkles class="trae-sparkles size-4 transition-transform duration-200" />
             </Show>
+          </Show>
+
+          {/* Indicador sutil de estilo seleccionado (verde azulado para riguroso, violeta para quirúrgico) */}
+          <Show when={style() === "rigorous"}>
+            <span class="absolute top-1 right-1 size-1 rounded-full bg-cyan-400 shadow-[0_0_4px_#22d3ee]" />
+          </Show>
+          <Show when={style() === "minimal"}>
+            <span class="absolute top-1 right-1 size-1 rounded-full bg-purple-400 shadow-[0_0_4px_#c084fc]" />
           </Show>
         </button>
       </TooltipV2>

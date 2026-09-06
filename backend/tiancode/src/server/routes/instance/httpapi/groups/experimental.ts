@@ -87,6 +87,14 @@ export const SessionListQuery = Schema.Struct({
   archived: Schema.optional(QueryBoolean),
 })
 
+export const OptimizePromptPayload = Schema.Struct({
+  prompt: Schema.String,
+  providerID: Schema.optional(ProviderV2.ID),
+  modelID: Schema.optional(ModelV2.ID),
+  language: Schema.optional(Schema.String),
+  style: Schema.optional(Schema.Literals(["standard", "rigorous", "minimal"])),
+}).annotate({ identifier: "OptimizePromptPayload" })
+
 export const ExperimentalPaths = {
   capabilities: "/experimental/capabilities",
   console: "/experimental/console",
@@ -99,6 +107,7 @@ export const ExperimentalPaths = {
   session: "/experimental/session",
   sessionBackground: "/experimental/session/:sessionID/background",
   resource: "/experimental/resource",
+  promptOptimize: "/experimental/prompt/optimize",
 } as const
 
 export const ExperimentalApi = HttpApi.make("experimental")
@@ -253,6 +262,18 @@ export const ExperimentalApi = HttpApi.make("experimental")
             identifier: "experimental.resource.list",
             summary: "Get MCP resources",
             description: "Get all available MCP resources from connected servers. Optionally filter by name.",
+          }),
+        ),
+        HttpApiEndpoint.post("optimizePrompt", ExperimentalPaths.promptOptimize, {
+          query: WorkspaceRoutingQuery,
+          payload: OptimizePromptPayload,
+          success: Schema.String.pipe(HttpApiSchema.asText({ contentType: "text/plain" })),
+          error: HttpApiError.BadRequest,
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "experimental.prompt.optimize",
+            summary: "Stream optimized prompt",
+            description: "Stream an AI-enhanced version of a prompt tailored for AI coding assistants.",
           }),
         ),
       )
