@@ -7,7 +7,7 @@ import { Dynamic } from "solid-js/web"
 import { useFile } from "@/context/file"
 import { useFileComponent } from "@tiancode-ai/ui/context/file"
 import { useLanguage } from "@/context/language"
-import { type LiveViewTab } from "@/context/layout"
+import { useLayout, type LiveViewTab } from "@/context/layout"
 import { useSDK } from "@/context/sdk"
 import { useSync } from "@/context/sync"
 import { useSessionLayout } from "@/pages/session/session-layout"
@@ -1091,7 +1091,8 @@ function CodePane(props: {
 
 export function LiveViewPanel(props: { onCapture?: (file: File) => void; expandable?: boolean; sessionID?: string }) {
   const language = useLanguage()
-  const { view } = useSessionLayout()
+  const { view, tabs: sessionTabs } = useSessionLayout()
+  const layout = useLayout()
   const sync = useSync()
   const sdk = useSDK()
   const [requestedCodePath, setRequestedCodePath] = createSignal<string>()
@@ -1112,17 +1113,27 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
 
   const [activeEditFile, setActiveEditFile] = createSignal<string | undefined>()
   const [activeProjectDir, setActiveProjectDir] = createSignal<string | undefined>()
+  const [manualProjectDir, setManualProjectDir] = createSignal<string | undefined>()
+  const [projectSelectorOpen, setProjectSelectorOpen] = createSignal(false)
+  const [customDirInput, setCustomDirInput] = createSignal("")
+
+  const effectiveProjectDir = () => manualProjectDir() || activeProjectDir() || sdk().directory
+
+  const activeProjectName = createMemo(() => {
+    const dir = effectiveProjectDir()
+    if (!dir) return "Proyecto"
+    const normalized = dir.replace(/\\/g, "/").replace(/\/+$/, "")
+    const parts = normalized.split("/").filter(Boolean)
+    return parts[parts.length - 1] || dir
+  })
 
   const resolveProjectFolder = (fp: string, baseDir?: string): string | undefined => {
     if (!fp) return undefined
-    const normalized = fp.replace(/\\/g, "/")
+    let raw = fp.replace(/\\/g, "/")
+    if (raw.startsWith("file:///")) raw = raw.slice(8)
+    else if (raw.startsWith("file://")) raw = raw.slice(7)
+
     const normBase = baseDir ? baseDir.replace(/\\/g, "/").replace(/\/+$/, "") : ""
-    let rel = normalized
-    if (normBase && rel.toLowerCase().startsWith(normBase.toLowerCase())) {
-      rel = rel.slice(normBase.length).replace(/^\/+/, "")
-    }
-    const parts = rel.split("/").filter(Boolean)
-    if (parts.length === 0) return undefined
     const CONTAINER_NAMES = new Set([
       "desktop",
       "escritorio",
@@ -1139,17 +1150,150 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
       "code",
       "documents",
       "documentos",
+      "users",
+      "usuarios",
     ])
+
+    // Si la ruta está dentro de normBase
+    if (normBase && raw.toLowerCase().startsWith(normBase.toLowerCase())) {
+      const rel = raw.slice(normBase.length).replace(/^\/+/, "")
+      if (!rel) return normBase
+      const parts = rel.split("/").filter(Boolean)
+      if (parts.length === 0) return normBase
+      let idx = 0
+      while (idx < parts.length - 1 && CONTAINER_NAMES.has(parts[idx].toLowerCase())) {
+        idx++
+      }
+      if (idx < parts.length) {
+        return `${normBase}/${parts.slice(0, idx + 1).join("/")}`
+      }
+      return normBase
+    }
+
+    // Si es una ruta absoluta en Windows (C:/...)
+    const winDriveMatch = /^[A-Za-z]:/i.exec(raw)
+    if (winDriveMatch) {
+      const drive = winDriveMatch[0]
+      const rest = raw.slice(2).replace(/^\/+/, "")
+      const parts = rest.split("/").filter(Boolean)
+      if (parts.length === 0) return drive
+      let idx = 0
+      while (idx < parts.length - 1) {
+        const pLower = parts[idx].toLowerCase()
+        if (CONTAINER_NAMES.has(pLower)) {
+          if ((pLower === "users" || pLower === "usuarios") && idx + 1 < parts.length - 1) {
+            idx += 2
+            continue
+          }
+          idx++
+          continue
+        }
+        break
+      }
+      return `${drive}/${parts.slice(0, idx + 1).join("/")}`
+    }
+
+    // Si es una ruta absoluta en Unix (/home/...)
+    if (raw.startsWith("/")) {
+      const parts = raw.split("/").filter(Boolean)
+      let idx = 0
+      while (idx < parts.length - 1) {
+        const pLower = parts[idx].toLowerCase()
+        if (CONTAINER_NAMES.has(pLower)) {
+          if ((pLower === "home" || pLower === "users") && idx + 1 < parts.length - 1) {
+            idx += 2
+            continue
+          }
+          idx++
+          continue
+        }
+        break
+      }
+      return `/${parts.slice(0, idx + 1).join("/")}`
+    }
+
+    // Ruta relativa
+    const parts = raw.split("/").filter(Boolean)
+    if (parts.length === 0) return normBase || undefined
     let idx = 0
     while (idx < parts.length - 1 && CONTAINER_NAMES.has(parts[idx].toLowerCase())) {
       idx++
     }
-    if (idx < parts.length) {
-      const projectRel = parts.slice(0, idx + 1).join("/")
-      return normBase ? `${normBase}/${projectRel}` : projectRel
-    }
-    return normBase || undefined
+    const projectRel = parts.slice(0, idx + 1).join("/")
+    return normBase ? `${normBase}/${projectRel}` : projectRel
   }
+
+  // Detección reactiva de proyecto activo desde múltiples fuentes del editor
+  createEffect(() => {
+    if (manualProjectDir()) return
+    const dir = sdk().directory
+
+    // 1. Pestaña activa del editor
+    const activeTab = sessionTabs().active()
+    if (activeTab && activeTab !== "review") {
+      const folder = resolveProjectFolder(activeTab, dir)
+      if (folder && folder !== activeProjectDir()) {
+        setActiveProjectDir(folder)
+        return
+      }
+    }
+
+    // 2. Otras pestañas abiertas
+    const allTabs = sessionTabs().all()
+    for (const t of allTabs) {
+      if (t && t !== "review") {
+        const folder = resolveProjectFolder(t, dir)
+        if (folder && folder !== activeProjectDir()) {
+          setActiveProjectDir(folder)
+          return
+        }
+      }
+    }
+
+    // 3. Archivo en revisión
+    const reviewFile = view().review.file()
+    if (reviewFile) {
+      const folder = resolveProjectFolder(reviewFile, dir)
+      if (folder && folder !== activeProjectDir()) {
+        setActiveProjectDir(folder)
+        return
+      }
+    }
+
+    // 4. Directorio seleccionado en home
+    const homeDir = layout.home.selection()?.directory
+    if (homeDir) {
+      const folder = resolveProjectFolder(homeDir, dir)
+      if (folder && folder !== activeProjectDir()) {
+        setActiveProjectDir(folder)
+      }
+    }
+  })
+
+  // Lista de proyectos conocidos para cambio rápido con un clic
+  const knownProjectDirs = createMemo(() => {
+    const list: string[] = []
+    const seen = new Set<string>()
+    const add = (dir?: string) => {
+      if (!dir) return
+      const norm = dir.replace(/\\/g, "/").replace(/\/+$/, "")
+      if (!seen.has(norm.toLowerCase())) {
+        seen.add(norm.toLowerCase())
+        list.push(norm)
+      }
+    }
+    add(effectiveProjectDir())
+    add(sdk().directory)
+    for (const diff of sessionDiffs()) {
+      if (diff.file) add(resolveProjectFolder(diff.file, sdk().directory))
+    }
+    for (const tab of sessionTabs().all()) {
+      if (tab && tab !== "review") add(resolveProjectFolder(tab, sdk().directory))
+    }
+    const homeDir = layout.home.selection()?.directory
+    if (homeDir) add(resolveProjectFolder(homeDir, sdk().directory))
+    return list
+  })
 
   // Seguimiento en tiempo real de archivos modificados por cualquier modelo de IA
   createEffect(() => {
@@ -1158,7 +1302,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
       const latest = diffs[diffs.length - 1].file
       if (latest) {
         const folder = resolveProjectFolder(latest, sdk().directory)
-        if (folder && folder !== activeProjectDir()) setActiveProjectDir(folder)
+        if (folder && !manualProjectDir() && folder !== activeProjectDir()) setActiveProjectDir(folder)
       }
       if (latest && latest !== activeEditFile()) {
         setActiveEditFile(latest)
@@ -1180,20 +1324,20 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
           const cwd = input?.cwd || input?.directory || input?.workdir
           if (cwd && typeof cwd === "string") {
             const folder = resolveProjectFolder(cwd, dir)
-            if (folder && folder !== activeProjectDir()) setActiveProjectDir(folder)
+            if (folder && !manualProjectDir() && folder !== activeProjectDir()) setActiveProjectDir(folder)
           }
           if (typeof input?.command === "string") {
             const cdMatch = /(?:^|\s)cd\s+["']?([^"'\n\r&;]+)["']?/i.exec(input.command)
             if (cdMatch?.[1]) {
               const folder = resolveProjectFolder(cdMatch[1].trim(), dir)
-              if (folder && folder !== activeProjectDir()) setActiveProjectDir(folder)
+              if (folder && !manualProjectDir() && folder !== activeProjectDir()) setActiveProjectDir(folder)
             }
           }
           const toolName = (p as any).tool
           const fp = input?.filePath || input?.path || (p as any).metadata?.filepath
           if (fp && typeof fp === "string") {
             const folder = resolveProjectFolder(fp, dir)
-            if (folder && folder !== activeProjectDir()) setActiveProjectDir(folder)
+            if (folder && !manualProjectDir() && folder !== activeProjectDir()) setActiveProjectDir(folder)
             if (toolName === "write" || toolName === "edit" || toolName === "apply_patch") {
               let rel = fp
               if (dir && rel.startsWith(dir)) {
@@ -1240,7 +1384,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
     if (diffs.length > 0) return diffs.map((d) => d.file).join("|")
     return activeEditFile()
   })
-  const browserTarget = () => embeddedPreviewTarget(liveViewManagedTarget(), activeProjectDir() || sdk().directory, snapshot())
+  const browserTarget = () => embeddedPreviewTarget(liveViewManagedTarget(), effectiveProjectDir(), snapshot())
 
   // Aviso transitorio cuando la navegación vino de la detección de logs (no
   // de una URL fijada por el agente); se descarta con la X.
@@ -1434,6 +1578,139 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
           <span class="size-1.5 rounded-full bg-[var(--v2-state-fg-success)]" aria-hidden="true" />
           {language.t("liveView.sandbox")}
         </div>
+
+        {/* Selector interactivo de proyecto/carpeta activa */}
+        <div class="relative flex items-center shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              setCustomDirInput(effectiveProjectDir() || "")
+              setProjectSelectorOpen(!projectSelectorOpen())
+            }}
+            title={`Carpeta activa: ${effectiveProjectDir() || "Predeterminada"}\nHaz clic para cambiar de proyecto`}
+            class="flex h-7 items-center gap-1.5 rounded-md border border-v2-border-border-muted bg-v2-overlay-simple-overlay-pressed px-2 text-11-medium text-text-base hover:bg-v2-overlay-simple-overlay-hover hover:border-v2-border-border-strong transition-all max-w-[170px] sm:max-w-[240px]"
+          >
+            <span class="shrink-0 text-sky-400">📁</span>
+            <span class="truncate font-medium">{activeProjectName()}</span>
+            <span class="shrink-0 text-[9px] text-text-weak opacity-70">▼</span>
+          </button>
+
+          <Show when={projectSelectorOpen()}>
+            <div
+              class="absolute left-0 top-8 z-50 w-80 rounded-lg border border-v2-border-border-muted bg-v2-background-bg-base p-3 shadow-2xl text-12-regular"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div class="flex items-center justify-between pb-2 border-b border-v2-border-border-muted mb-2.5">
+                <div class="flex items-center gap-1.5 font-semibold text-text-base text-12-medium">
+                  <span>📁</span>
+                  <span>Carpeta del Sandbox</span>
+                </div>
+                <button
+                  type="button"
+                  class="text-text-weak hover:text-text-base px-1 text-12-regular"
+                  onClick={() => setProjectSelectorOpen(false)}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <Show when={knownProjectDirs().length > 1}>
+                <div class="mb-3">
+                  <span class="block text-[10px] uppercase font-semibold tracking-wider text-text-weak mb-1.5">
+                    Proyectos detectados:
+                  </span>
+                  <div class="flex flex-col gap-1 max-h-36 overflow-y-auto">
+                    <For each={knownProjectDirs()}>
+                      {(dir) => {
+                        const isCurrent = () => dir.toLowerCase() === (effectiveProjectDir() || "").toLowerCase()
+                        const folderName = () => {
+                          const parts = dir.split("/").filter(Boolean)
+                          return parts[parts.length - 1] || dir
+                        }
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setManualProjectDir(dir)
+                              setActiveProjectDir(dir)
+                              setProjectSelectorOpen(false)
+                            }}
+                            class={`flex items-center justify-between gap-2 rounded px-2 py-1 text-left text-11-regular transition-colors ${
+                              isCurrent()
+                                ? "bg-sky-500/10 text-sky-400 font-medium"
+                                : "hover:bg-v2-overlay-simple-overlay-hover text-text-base"
+                            }`}
+                          >
+                            <span class="truncate">📁 {folderName()}</span>
+                            <Show when={isCurrent()}>
+                              <span class="shrink-0 text-[10px] text-sky-400">● Activo</span>
+                            </Show>
+                          </button>
+                        )
+                      }}
+                    </For>
+                  </div>
+                </div>
+              </Show>
+
+              <div class="mb-2.5">
+                <label class="block text-[10px] uppercase font-semibold tracking-wider text-text-weak mb-1">
+                  Ruta directa:
+                </label>
+                <input
+                  type="text"
+                  value={customDirInput()}
+                  onInput={(e) => setCustomDirInput(e.currentTarget.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      const val = customDirInput().trim()
+                      if (val) {
+                        setManualProjectDir(val)
+                        setActiveProjectDir(val)
+                        setProjectSelectorOpen(false)
+                      }
+                    }
+                  }}
+                  placeholder="C:/ruta/a/mi-proyecto"
+                  class="w-full rounded border border-v2-border-border-muted bg-v2-overlay-simple-overlay-pressed px-2 py-1.5 text-11-regular font-mono text-text-base focus:border-sky-500 focus:outline-none"
+                />
+              </div>
+
+              <div class="flex items-center gap-2 justify-between pt-1 border-t border-v2-border-border-muted">
+                <Show
+                  when={manualProjectDir()}
+                  fallback={<span class="text-[10px] text-text-weak italic">Detección automática</span>}
+                >
+                  <button
+                    type="button"
+                    class="px-2 py-1 text-[11px] text-text-weak hover:text-text-base transition-colors"
+                    onClick={() => {
+                      setManualProjectDir(undefined)
+                      setActiveProjectDir(undefined)
+                      setProjectSelectorOpen(false)
+                    }}
+                  >
+                    Restablecer
+                  </button>
+                </Show>
+                <button
+                  type="button"
+                  class="rounded bg-sky-600 px-3 py-1 text-[11px] font-medium text-white hover:bg-sky-500 transition-colors ml-auto shadow-sm"
+                  onClick={() => {
+                    const val = customDirInput().trim()
+                    if (val) {
+                      setManualProjectDir(val)
+                      setActiveProjectDir(val)
+                      setProjectSelectorOpen(false)
+                    }
+                  }}
+                >
+                  Cambiar
+                </button>
+              </div>
+            </div>
+          </Show>
+        </div>
         <div class="flex min-w-0 flex-1 justify-center overflow-hidden gap-2">
           <div
             role="tablist"
@@ -1547,14 +1824,16 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
                 class="size-full transition-all duration-300 flex flex-col"
               >
                 <LivePreview
-                  directory={() => activeProjectDir() || sdk().directory}
+                  directory={effectiveProjectDir}
                   targetUrl={browserTarget}
                   autoStartKey={autoStartKey}
                   externalDevice={() => viewportMode()}
                   onDeviceChange={(mode) => setViewportMode(mode)}
-                  onDirectoryChange={(dir) => setActiveProjectDir(dir)}
+                  onDirectoryChange={(dir) => {
+                    setActiveProjectDir(dir)
+                  }}
                   onManagedTarget={(url) => {
-                    const directory = activeProjectDir() || sdk().directory
+                    const directory = effectiveProjectDir()
                     if (!directory || directory === "main") return
                     setLiveViewManagedTarget((current) =>
                       url ? { directory, url } : current?.directory === directory ? undefined : current,

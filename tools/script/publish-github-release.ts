@@ -29,23 +29,23 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.25"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — Vista Previa Universal, Corrección Python Runner y Detección Recursiva`
-  const body = `## 🚀 Tiancode v${version} — Vista Previa Universal y Sandbox en Tiempo Real
+  const releaseName = `Tiancode v${version} — Selector Interactivo de Proyecto en Sandbox y Detección Inteligente`
+  const body = `## 🚀 Tiancode v${version} — Selector Interactivo de Proyectos y Sandbox en Tiempo Real
 
-### 🐍 Corrección Crítica del Runner Python
-- **Ejecución Universal de Módulos:** Corrección del error de arranque en servidores Python (\`uvicorn\`, \`streamlit\`, \`flask\`) ejecutándolos correctamente mediante \`python -m <modulo>\`.
-- **Detección Automática de Virtual Environments:** Priorización de intérpretes locales dentro de \`.venv\`, \`venv\` o \`env\` para proyectos Python.
+### 📁 Selector Interactivo de Proyectos en el Sandbox
+- **Selector Rápido en la Barra Superior:** Ahora la barra del Sandbox incluye un botón con la carpeta activa (\`📁 Khaos\`, etc.) que permite cambiar de proyecto con 1 clic entre proyectos detectados o ingresar cualquier ruta local.
+- **Detección Reactiva Multi-Fuente:** Detección automática y priorizada desde pestañas activas del editor, archivos modificados por cualquier modelo de IA (GLM-5.3, Claude, GPT, etc.), y selecciones de la vista principal.
+- **Manejo Robusto de Rutas en Windows:** Soporte para unidades de disco (\`C:/\`), carpetas de usuario, y jerarquías anidadas complejas.
 
-### 🌐 Detección Recursiva y Prioritaria de Proyectos
-- **Soporte de Contenedores Anidados:** Detección en profundidad a través de rutas anidadas (ej. \`Escritorio/Proyectos/Khaos\`), evitando falsos positivos con carpetas hermanas en la raíz del usuario.
-- **Cambio de Proyecto en Barra de Vista Previa:** Ahora la barra superior del Sandbox permite introducir rutas locales de carpetas para cambiar o forzar el proyecto activo directamente.
-- **Seguimiento Dinámico de Comandos del Agente:** Captura inmediata del directorio de trabajo (\`cwd\`, comandos \`cd\`) de las herramientas del agente para alinear la vista previa en tiempo real.
+### 🧹 Limpieza Automática de Servidores Previos
+- **Cierre de Procesos Huérfanos:** Cuando se inicia una vista previa para un proyecto, cualquier servidor previo en el mismo puerto o en directorios ancestros/descendientes se detiene automáticamente para evitar colisiones.
+- **Priorización por Modificación Reciente:** Al explorar directorios contenedores, los proyectos modificados recientemente tienen prioridad sobre carpetas más antiguas.
 
-### 🖥️ Compatibilidad Universal Multi-Lenguaje
-- Soporte verificado para Node.js (Vite, React, Vue, Svelte, Next.js), Python (FastAPI, Flask, Streamlit, Django), Electron (Khaos con stubs y sanitización CSP), Rust, Go, PHP, .NET y HTML estático.
+### 🤖 Compatibilidad de Proveedores y Modelos
+- **Optimización para TokenRouter y OpenAI-Compatible:** Corrección en el mapeo de opciones de proveedores para modelos como GLM-5.3 (free), asegurando ejecuciones fluidas y sin interrupciones.
 
 ### 🔒 Actualización 100% No Destructiva
-- Todas tus claves de API de proveedores, configuraciones, sesiones, backups y servidores MCP se preservan intactos.
+- Todas tus claves de API de proveedores activos, configuraciones, sesiones, backups y servidores MCP se preservan intactos.
 
 ### 📦 Descargas
 | Archivo | Tipo | Descripción |

@@ -700,6 +700,18 @@ export async function startPreviewServer(directory: string) {
     return state
   }
 
+  // Detener cualquier servidor previo que comparta ancestro/descendiente o el mismo puerto
+  for (const [dir, running] of servers.entries()) {
+    if (dir !== directory && (running.state.status === "starting" || running.state.status === "ready")) {
+      const normDir = dir.replace(/\\/g, "/").toLowerCase()
+      const normTarget = directory.replace(/\\/g, "/").toLowerCase()
+      const related = normDir.startsWith(normTarget) || normTarget.startsWith(normDir) || running.state.port === detected.port
+      if (related) {
+        stopPreviewServer(dir)
+      }
+    }
+  }
+
   const managed: Managed = {
     directory,
     detected,

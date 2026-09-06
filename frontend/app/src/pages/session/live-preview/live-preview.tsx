@@ -760,6 +760,19 @@ export function LivePreview(props: {
 
   // Inicia el preview gestionado cuando el agente crea una entrada web ejecutable o se detecta un proyecto.
   let hasAutoStarted = false
+  let lastObservedDir: string | undefined
+  createEffect(() => {
+    const dir = devServerDirectory()
+    if (!dir) return
+    if (dir !== lastObservedDir) {
+      lastObservedDir = dir
+      hasAutoStarted = false
+      lastAutoStartKey = undefined
+      failedUrl = undefined
+      clearRetry()
+      void fetchDevServer()
+    }
+  })
   createEffect(() => {
     const status = devServer()?.status
     const command = devServer()?.command
