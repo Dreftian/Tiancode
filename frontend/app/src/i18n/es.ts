@@ -1912,9 +1912,24 @@ export const dict = {
   "settings.github.pull.success": "Pull realizado",
   "settings.github.pull.failed": "Error al hacer pull",
 
-  "settings.voices.title": "Voces",
+  "settings.voices.title": "Voz",
   "settings.voices.description":
-    "Elige una voz para leer las respuestas del asistente en voz alta y prueba el modelo de voz gratuito.",
+    "Configuración de entrada de micrófono, dictado y voces neurales para chat y lectura.",
+  "settings.voices.section.general": "General",
+  "settings.voices.section.dictation": "Dictado",
+  "settings.voices.section.speech": "Síntesis y Reproducción de Voz",
+  "settings.voices.mic.title": "Micrófono",
+  "settings.voices.mic.description": "Se usa para chat de voz y dictado",
+  "settings.voices.dictation.hold.title": "Atajo para dictado al mantener presionado",
+  "settings.voices.dictation.hold.description":
+    "Mantén presionado en cualquier parte del escritorio para dictar donde esté el cursor",
+  "settings.voices.dictation.toggle.title": "Alternar tecla rápida de dictado",
+  "settings.voices.dictation.toggle.description":
+    "Presiona una vez en cualquier parte del escritorio para dictar y vuelve a presionar para detener",
+  "settings.voices.dictation.dictionary.title": "Diccionario de dictado",
+  "settings.voices.dictation.dictionary.description": "Palabras o frases que el dictado debe reconocer",
+  "settings.voices.dictation.recordings.title": "Grabaciones recientes",
+  "settings.voices.dictation.recordings.description": "Tus últimas 20 grabaciones se guardan en este dispositivo",
   "settings.voices.desktopOnly": "Las voces están disponibles en la aplicación de escritorio.",
   "settings.voices.loading": "Cargando...",
   "settings.voices.download.title": "Modelo de voz no instalado",

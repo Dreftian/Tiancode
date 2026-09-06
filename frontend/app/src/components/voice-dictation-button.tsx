@@ -9,6 +9,8 @@ import {
   onAudioDeviceChange,
   setSelectedAudioDeviceId,
   startLocalDictation,
+  applyDictationDictionary,
+  addRecentRecording,
 } from "@/utils/asr"
 import { ContextMenu } from "@tiancode-ai/ui/context-menu"
 import { AudioWaveform } from "@/components/audio-waveform"
@@ -72,7 +74,27 @@ export function VoiceDictationButton(props: {
     const cleanupListener = onAudioDeviceChange(() => {
       void refreshDevices()
     })
-    onCleanup(cleanupListener)
+
+    const toggleListener = () => {
+      if (listening()) {
+        stop()
+      } else {
+        void start()
+      }
+    }
+    window.addEventListener("tiancode:voice-dictation-toggle", toggleListener)
+
+    const micListener = (event: Event) => {
+      const customEvent = event as CustomEvent<{ deviceId: string | null }>
+      setSelectedDeviceIdState(customEvent.detail?.deviceId ?? getSelectedAudioDeviceId())
+    }
+    window.addEventListener("tiancode:microphone-changed", micListener)
+
+    onCleanup(() => {
+      cleanupListener()
+      window.removeEventListener("tiancode:voice-dictation-toggle", toggleListener)
+      window.removeEventListener("tiancode:microphone-changed", micListener)
+    })
   })
 
   const stop = () => {
@@ -174,7 +196,11 @@ export function VoiceDictationButton(props: {
         rec.interimResults = false
         rec.onresult = (event) => {
           const transcript = event.results[0]?.[0]?.transcript
-          if (transcript) props.onResult(transcript.trim())
+          if (transcript) {
+            const processed = applyDictationDictionary(transcript.trim())
+            addRecentRecording({ text: processed })
+            props.onResult(processed)
+          }
           stop()
         }
         rec.onerror = (event) => {

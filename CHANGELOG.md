@@ -4,7 +4,25 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
-## [1.0.24] — 2026-09-05
+## [1.0.29] — 2026-09-06
+### Opciones de Micrófono, Prueba VU en Vivo y Dictado Estilo Codex Desktop
+
+- **Selector Global de Micrófono (Sección General en Voz)**:
+  - Selector de micrófono con detección reactiva de todos los dispositivos de audio conectados a la PC (`getAudioInputDevices()`).
+  - Sincronización global con el botón de dictado del chat y funciones de voz/interrupción (barge-in).
+  - Botón de actualización de dispositivos para escanear nuevos micrófonos al instante.
+- **Prueba de Funcionamiento del Micrófono en Tiempo Real**:
+  - Medidor VU de nivel de entrada (0% a 100%) con indicador de pico y lectura de decibelios (dB).
+  - Diagnóstico dinámico (*🟢 Señal óptima / 🟡 Esperando voz / 🔴 Error*).
+  - Visualizador de espectro senoidal en tiempo real sobre canvas.
+  - Modo retorno de audio (*loopback*) para escuchar la propia voz en auriculares.
+- **Sección de Dictado Avanzada**:
+  - Atajo rápido `Ctrl+Shift+M` para alternar dictado en cualquier ventana.
+  - Atajo push-to-talk para dictado continuo.
+  - Diccionario de dictado interactivo con soporte de términos personalizados guardados localmente.
+  - Historial de las últimas 20 grabaciones con duración y marcas de tiempo.
+
+## [1.0.28] — 2026-09-05
 ### Seguridad, Sub-Agentes de Élite y Compatibilidad
 
 - **AgentShield Security Engine & Presets de Sub-Agentes de Élite (Arquitectura ECC)**:

@@ -1799,9 +1799,24 @@ export const dict = {
   "settings.github.pull.success": "Pulled",
   "settings.github.pull.failed": "Pull failed",
 
-  "settings.voices.title": "Voices",
+  "settings.voices.title": "Voice",
   "settings.voices.description":
-    "Pick a voice for reading assistant responses out loud and test the free voice model.",
+    "Microphone input settings, dictation, and neural voices for chat and narration.",
+  "settings.voices.section.general": "General",
+  "settings.voices.section.dictation": "Dictation",
+  "settings.voices.section.speech": "Voice Synthesis & Playback",
+  "settings.voices.mic.title": "Microphone",
+  "settings.voices.mic.description": "Used for voice chat and dictation",
+  "settings.voices.dictation.hold.title": "Push-to-talk dictation shortcut",
+  "settings.voices.dictation.hold.description":
+    "Press and hold anywhere on the desktop to dictate at the cursor position",
+  "settings.voices.dictation.toggle.title": "Toggle dictation hotkey",
+  "settings.voices.dictation.toggle.description":
+    "Press once anywhere on the desktop to dictate and press again to stop",
+  "settings.voices.dictation.dictionary.title": "Dictation dictionary",
+  "settings.voices.dictation.dictionary.description": "Words or phrases dictation should prioritize",
+  "settings.voices.dictation.recordings.title": "Recent recordings",
+  "settings.voices.dictation.recordings.description": "Your last 20 recordings are saved on this device",
   "settings.voices.desktopOnly": "Voices are available in the desktop app.",
   "settings.voices.loading": "Loading...",
   "settings.voices.download.title": "Voice model not installed",

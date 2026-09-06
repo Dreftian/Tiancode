@@ -40,6 +40,22 @@ import { AudioWaveform } from "@/components/audio-waveform"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
 import { SettingsPagerV2 } from "./parts/pager"
+import { SelectV2 } from "@tiancode-ai/ui/v2/select-v2"
+import { MicTester } from "./mic-tester"
+import {
+  getAudioInputDevices,
+  getSelectedAudioDeviceId,
+  setSelectedAudioDeviceId,
+  onAudioDeviceChange,
+  getDictationDictionary,
+  addDictationDictionaryEntry,
+  removeDictationDictionaryEntry,
+  getRecentRecordings,
+  clearRecentRecordings,
+  type DictationRecording,
+  getHoldDictationShortcut,
+  getToggleDictationShortcut,
+} from "@/utils/asr"
 import "./voices.css"
 
 const PAGE_SIZE = 10
@@ -96,9 +112,92 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
   const [piperProgress, setPiperProgress] = createSignal<Record<string, number>>({})
   const [deleting, setDeleting] = createSignal<Record<string, boolean>>({})
 
+  const [audioDevices, setAudioDevices] = createSignal<MediaDeviceInfo[]>([])
+  const [selectedMicId, setSelectedMicId] = createSignal<string | null>(getSelectedAudioDeviceId())
+  const [dictWords, setDictWords] = createSignal<string[]>(getDictationDictionary())
+  const [newDictWord, setNewDictWord] = createSignal("")
+  const [isAddingWord, setIsAddingWord] = createSignal(false)
+  const [recentRecordings, setRecentRecordings] = createSignal<DictationRecording[]>(getRecentRecordings())
+  const [showRecentRecordings, setShowRecentRecordings] = createSignal(false)
+
+  const refreshAudioDevices = async () => {
+    try {
+      const list = await getAudioInputDevices()
+      setAudioDevices(list)
+    } catch {
+      setAudioDevices([])
+    }
+  }
+
+  const micOptions = createMemo<{ id: string; label: string }[]>(() => {
+    const defaultLabel = language.t("chat.mic.defaultDevice") ?? "Predeterminado del sistema"
+    const list = [{ id: "default", label: defaultLabel }]
+    audioDevices().forEach((dev, index) => {
+      list.push({
+        id: dev.deviceId,
+        label: dev.label || `Micrófono ${index + 1}`,
+      })
+    })
+    return list
+  })
+
+  const currentMic = createMemo(() => {
+    const id = selectedMicId() ?? "default"
+    return micOptions().find((opt) => opt.id === id) ?? micOptions()[0]
+  })
+
+  const handleSelectMic = (id: string) => {
+    const finalId = id === "default" ? null : id
+    setSelectedAudioDeviceId(finalId)
+    setSelectedMicId(finalId)
+    showToast({
+      title: language.t("chat.mic.selectDevice") ?? "Micrófono seleccionado",
+      description: finalId
+        ? audioDevices().find((d) => d.deviceId === finalId)?.label || "Micrófono"
+        : (language.t("chat.mic.defaultDevice") ?? "Predeterminado del sistema"),
+    })
+  }
+
+  const handleAddWord = () => {
+    const val = newDictWord().trim()
+    if (!val) return
+    addDictationDictionaryEntry(val)
+    setDictWords(getDictationDictionary())
+    setNewDictWord("")
+    setIsAddingWord(false)
+    showToast({
+      title: "Entrada añadida",
+      description: `"${val}" se priorizará en el dictado de voz.`,
+    })
+  }
+
+  const handleRemoveWord = (word: string) => {
+    removeDictationDictionaryEntry(word)
+    setDictWords(getDictationDictionary())
+  }
+
   let unsubscribe: (() => void) | undefined
   let piperUnsubscribe: (() => void) | undefined
+  let devCleanup: (() => void) | undefined
+  let onMicChange: ((event: Event) => void) | undefined
+  let onRecsChange: ((event: Event) => void) | undefined
+
   onMount(() => {
+    void refreshAudioDevices()
+    devCleanup = onAudioDeviceChange(() => {
+      void refreshAudioDevices()
+    })
+    onMicChange = (event: Event) => {
+      const custom = event as CustomEvent<{ deviceId: string | null }>
+      setSelectedMicId(custom.detail?.deviceId ?? getSelectedAudioDeviceId())
+    }
+    window.addEventListener("tiancode:microphone-changed", onMicChange)
+    onRecsChange = (event: Event) => {
+      const custom = event as CustomEvent<{ recordings: DictationRecording[] }>
+      setRecentRecordings(custom.detail?.recordings ?? getRecentRecordings())
+    }
+    window.addEventListener("tiancode:recent-recordings-changed", onRecsChange)
+
     const current = api
     if (!current) return
     unsubscribe = current.onProgress((event) => {
@@ -123,6 +222,16 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
     unsubscribe = undefined
     piperUnsubscribe?.()
     piperUnsubscribe = undefined
+    devCleanup?.()
+    devCleanup = undefined
+    if (onMicChange) {
+      window.removeEventListener("tiancode:microphone-changed", onMicChange)
+      onMicChange = undefined
+    }
+    if (onRecsChange) {
+      window.removeEventListener("tiancode:recent-recordings-changed", onRecsChange)
+      onRecsChange = undefined
+    }
   })
 
   const modelDownloading = () => downloading() || status()?.downloading === true
@@ -328,6 +437,251 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
               </Show>
             </div>
           </Show>
+
+          {/* ================================================================= */}
+          {/* 1. SECCIÓN GENERAL (Micrófono y Prueba de audio)                  */}
+          {/* ================================================================= */}
+          <div class="settings-v2-section">
+            <h3 class="settings-v2-section-title">{language.t("settings.voices.section.general") ?? "General"}</h3>
+            <SettingsListV2>
+              <SettingsRowV2
+                title={language.t("settings.voices.mic.title") ?? "Micrófono"}
+                description={language.t("settings.voices.mic.description") ?? "Se usa para chat de voz y dictado"}
+              >
+                <div class="flex items-center gap-2">
+                  <SelectV2
+                    appearance="inline"
+                    options={micOptions()}
+                    current={currentMic()}
+                    value={(item) => item.id}
+                    label={(item) => item.label}
+                    placement="bottom-end"
+                    gutter={6}
+                    onSelect={(option) => option && handleSelectMic(option.id)}
+                  />
+                  <IconButtonV2
+                    size="small"
+                    variant="ghost-muted"
+                    aria-label="Actualizar micrófonos"
+                    title="Buscar nuevos dispositivos de audio"
+                    icon={
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M13.5 8A5.5 5.5 0 1 1 11.6 4.1L13.5 6M13.5 2v4h-4" />
+                      </svg>
+                    }
+                    onClick={() => void refreshAudioDevices()}
+                  />
+                </div>
+              </SettingsRowV2>
+            </SettingsListV2>
+
+            {/* Comprobación de funcionamiento del micrófono en tiempo real */}
+            <MicTester selectedDeviceId={selectedMicId()} />
+          </div>
+
+          {/* ================================================================= */}
+          {/* 2. SECCIÓN DICTADO (Atajos, Diccionario, Grabaciones)             */}
+          {/* ================================================================= */}
+          <div class="settings-v2-section">
+            <h3 class="settings-v2-section-title">{language.t("settings.voices.section.dictation") ?? "Dictado"}</h3>
+            <SettingsListV2>
+              <SettingsRowV2
+                title={language.t("settings.voices.dictation.hold.title") ?? "Atajo para dictado al mantener presionado"}
+                description={
+                  language.t("settings.voices.dictation.hold.description") ??
+                  "Mantén presionado en cualquier parte del escritorio para dictar donde esté el cursor"
+                }
+              >
+                <div class="flex items-center gap-2">
+                  <span class="settings-v2-shortcut-badge">
+                    {getHoldDictationShortcut()}
+                  </span>
+                  <IconButtonV2
+                    size="small"
+                    variant="ghost-muted"
+                    aria-label="Configurar atajo"
+                    icon={
+                      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
+                        <path d="M11.5 2.5l2 2L5 13H3v-2L11.5 2.5z" />
+                      </svg>
+                    }
+                    onClick={() => {
+                      showToast({
+                        title: "Atajo para mantener presionado",
+                        description: "Próximamente personalizable con cualquier combinación de teclas global.",
+                      })
+                    }}
+                  />
+                </div>
+              </SettingsRowV2>
+
+              <SettingsRowV2
+                title={language.t("settings.voices.dictation.toggle.title") ?? "Alternar tecla rápida de dictado"}
+                description={
+                  language.t("settings.voices.dictation.toggle.description") ??
+                  "Presiona una vez en cualquier parte del escritorio para dictar y vuelve a presionar para detener"
+                }
+              >
+                <div class="flex items-center gap-2">
+                  <span class="settings-v2-shortcut-badge text-sky-400 border-sky-500/30 bg-sky-500/10">
+                    {getToggleDictationShortcut()}
+                  </span>
+                  <IconButtonV2
+                    size="small"
+                    variant="ghost-muted"
+                    aria-label="Editar tecla rápida"
+                    icon={
+                      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
+                        <path d="M11.5 2.5l2 2L5 13H3v-2L11.5 2.5z" />
+                      </svg>
+                    }
+                    onClick={() => {
+                      showToast({
+                        title: "Tecla rápida de dictado activa",
+                        description: "Usa Ctrl+Shift+M en cualquier ventana para activar o pausar el micrófono de inmediato.",
+                      })
+                    }}
+                  />
+                </div>
+              </SettingsRowV2>
+
+              <SettingsRowV2
+                title={language.t("settings.voices.dictation.dictionary.title") ?? "Diccionario de dictado"}
+                description={
+                  language.t("settings.voices.dictation.dictionary.description") ??
+                  "Palabras o frases que el dictado debe reconocer"
+                }
+              >
+                <ButtonV2
+                  type="button"
+                  variant="outline"
+                  size="small"
+                  onClick={() => setIsAddingWord(true)}
+                >
+                  <span class="flex items-center gap-1.5">
+                    <span>+</span>
+                    <span>Agregar entrada</span>
+                  </span>
+                </ButtonV2>
+              </SettingsRowV2>
+
+              {/* Formulario para añadir nueva palabra */}
+              <Show when={isAddingWord()}>
+                <div class="settings-v2-dictation-add-row p-2.5 rounded-lg bg-white/5 border border-white/10 flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="Palabra o frase (ej. Jane Doe, TypeScript)..."
+                    value={newDictWord()}
+                    onInput={(e) => setNewDictWord(e.currentTarget.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleAddWord()
+                      if (e.key === "Escape") setIsAddingWord(false)
+                    }}
+                    class="flex-1 h-8 rounded-md border border-neutral-700 bg-black/60 px-3 text-12-regular text-text-base outline-none focus:border-cyan-400"
+                    autofocus
+                  />
+                  <ButtonV2 type="button" variant="contrast" size="small" onClick={handleAddWord}>
+                    Guardar
+                  </ButtonV2>
+                  <ButtonV2 type="button" variant="ghost" size="small" onClick={() => setIsAddingWord(false)}>
+                    Cancelar
+                  </ButtonV2>
+                </div>
+              </Show>
+
+              {/* Lista de palabras en el diccionario */}
+              <Show when={dictWords().length > 0}>
+                <div class="settings-v2-dictation-dict-list">
+                  <For each={dictWords()}>
+                    {(word) => (
+                      <div class="settings-v2-dictation-dict-item">
+                        <span class="font-medium text-text-base">{word}</span>
+                        <IconButtonV2
+                          size="small"
+                          variant="ghost-muted"
+                          aria-label="Eliminar entrada"
+                          icon={
+                            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
+                              <path d="M3 4h10M6 4V2.5h4V4M4.5 4l.8 9.5a1.5 1.5 0 0 0 1.5 1.4h2.4a1.5 1.5 0 0 0 1.5-1.4l.8-9.5" />
+                            </svg>
+                          }
+                          onClick={() => handleRemoveWord(word)}
+                        />
+                      </div>
+                    )}
+                  </For>
+                </div>
+              </Show>
+
+              <SettingsRowV2
+                title={language.t("settings.voices.dictation.recordings.title") ?? "Grabaciones recientes"}
+                description={
+                  language.t("settings.voices.dictation.recordings.description") ??
+                  "Tus últimas 20 grabaciones se guardan en este dispositivo"
+                }
+              >
+                <div class="flex items-center gap-2">
+                  <span class="text-[12px] text-text-weaker font-mono">
+                    {recentRecordings().length} guardada{recentRecordings().length === 1 ? "" : "s"}
+                  </span>
+                  <ButtonV2
+                    type="button"
+                    variant="ghost"
+                    size="small"
+                    onClick={() => setShowRecentRecordings(!showRecentRecordings())}
+                  >
+                    {showRecentRecordings() ? "Ocultar" : "Ver grabaciones"}
+                  </ButtonV2>
+                  <Show when={recentRecordings().length > 0}>
+                    <ButtonV2
+                      type="button"
+                      variant="ghost"
+                      size="small"
+                      onClick={() => {
+                        clearRecentRecordings()
+                        setRecentRecordings([])
+                        showToast({ title: "Historial borrado", description: "Se han eliminado las grabaciones recientes." })
+                      }}
+                    >
+                      Limpiar
+                    </ButtonV2>
+                  </Show>
+                </div>
+              </SettingsRowV2>
+
+              {/* Historial desplegable de grabaciones recientes */}
+              <Show when={showRecentRecordings()}>
+                <div class="settings-v2-dictation-recordings-list">
+                  <Show
+                    when={recentRecordings().length > 0}
+                    fallback={
+                      <div class="p-3 text-[12px] text-text-weaker italic text-center">
+                        No hay grabaciones recientes aún. Las transcripciones que hagas en el chat aparecerán aquí.
+                      </div>
+                    }
+                  >
+                    <For each={recentRecordings()}>
+                      {(rec) => (
+                        <div class="settings-v2-dictation-recording-item">
+                          <span class="settings-v2-dictation-recording-text" title={rec.text}>
+                            "{rec.text}"
+                          </span>
+                          <span class="settings-v2-dictation-recording-meta">
+                            {rec.durationSeconds ? `${rec.durationSeconds}s • ` : ""}
+                            {new Date(rec.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                        </div>
+                      )}
+                    </For>
+                  </Show>
+                </div>
+              </Show>
+            </SettingsListV2>
+          </div>
+
+          <div class="settings-v2-section">
+            <h3 class="settings-v2-section-title">{language.t("settings.voices.section.speech") ?? "Síntesis y Reproducción de Voz"}</h3>
+          </div>
 
           {/* Tarjeta de Control Maestro de Voz */}
           <div class="settings-v2-voices-master-card" data-active={settings.general.autoSpeak()}>

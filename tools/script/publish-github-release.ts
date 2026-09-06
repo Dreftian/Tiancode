@@ -29,20 +29,24 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.25"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — Selector Interactivo de Proyecto en Sandbox y Detección Inteligente`
-  const body = `## 🚀 Tiancode v${version} — Selector Interactivo de Proyectos y Sandbox en Tiempo Real
+  const releaseName = `Tiancode v${version} — Opciones de Micrófono con Prueba VU en Vivo y Dictado Estilo Codex`
+  const body = `## 🚀 Tiancode v${version} — Opciones de Micrófono, Prueba en Vivo y Dictado Avanzado
 
-### 📁 Selector Interactivo de Proyectos en el Sandbox
-- **Selector Rápido en la Barra Superior:** Ahora la barra del Sandbox incluye un botón con la carpeta activa (\`📁 Khaos\`, etc.) que permite cambiar de proyecto con 1 clic entre proyectos detectados o ingresar cualquier ruta local.
-- **Detección Reactiva Multi-Fuente:** Detección automática y priorizada desde pestañas activas del editor, archivos modificados por cualquier modelo de IA (GLM-5.3, Claude, GPT, etc.), y selecciones de la vista principal.
-- **Manejo Robusto de Rutas en Windows:** Soporte para unidades de disco (\`C:/\`), carpetas de usuario, y jerarquías anidadas complejas.
+### 🎙️ Selector Global de Micrófono y Detección Dinámica
+- **Sección General en Ajustes de Voz:** Selector desplegable de micrófonos que detecta en tiempo real todos los dispositivos de audio físicos conectados a la PC (USB, Realtek, Bluetooth) junto con la opción predeterminada del sistema.
+- **Sincronización Total:** El micrófono seleccionado se aplica de forma unificada tanto al botón de dictado en el chat como a las funciones de voz e interrupción (barge-in).
+- **Actualización Reactiva de Dispositivos:** Detecta al instante la conexión o desconexión de micrófonos sin necesidad de reiniciar la app.
 
-### 🧹 Limpieza Automática de Servidores Previos
-- **Cierre de Procesos Huérfanos:** Cuando se inicia una vista previa para un proyecto, cualquier servidor previo en el mismo puerto o en directorios ancestros/descendientes se detiene automáticamente para evitar colisiones.
-- **Priorización por Modificación Reciente:** Al explorar directorios contenedores, los proyectos modificados recientemente tienen prioridad sobre carpetas más antiguas.
+### 📊 Prueba de Funcionamiento del Micrófono en Tiempo Real (VU Meter)
+- **Medidor de Nivel VU en Vivo:** Barra reactiva de 0% a 100% con indicador de pico y lectura precisa de ganancia en decibelios (dB).
+- **Diagnóstico Inteligente de Audio:** Indicador de estado que detecta si el micrófono capta la voz adecuadamente (*🟢 Señal óptima*), si hay silencio (*🟡 Esperando voz*) o si hay problemas de permisos.
+- **Visualizador de Espectro en Canvas:** Gráfica de onda senoidal en tiempo real durante la prueba de captura.
+- **Retorno de Audio (Hear Myself / Loopback):** Permite escuchar tu propia voz en los auriculares para comprobar nitidez, volumen y reducción de ruido.
 
-### 🤖 Compatibilidad de Proveedores y Modelos
-- **Optimización para TokenRouter y OpenAI-Compatible:** Corrección en el mapeo de opciones de proveedores para modelos como GLM-5.3 (free), asegurando ejecuciones fluidas y sin interrupciones.
+### ✍️ Sección de Dictado Avanzada
+- **Atajos Rápidos de Dictado:** Acceso rápido \`Ctrl+Shift+M\` para alternar el micrófono inmediatamente en el chat desde cualquier ventana.
+- **Diccionario de Dictado Personalizado:** Permite agregar y guardar términos técnicos, nombres y marcas para que el motor ASR Whisper los transcriba con máxima precisión.
+- **Historial de Grabaciones Recientes:** Registro de las últimas 20 transcripciones con duración en segundos y hora exacta.
 
 ### 🔒 Actualización 100% No Destructiva
 - Todas tus claves de API de proveedores activos, configuraciones, sesiones, backups y servidores MCP se preservan intactos.

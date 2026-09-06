@@ -384,3 +384,237 @@
   color: #d1d1d6;
   font-variant-numeric: tabular-nums;
 }
+
+/* ==========================================================================
+   Microphone & Dictation (Codex Desktop Style)
+   ========================================================================== */
+
+.settings-v2-mic-tester {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--v2-background-bg-layer-02, rgba(255, 255, 255, 0.04)) 95%, transparent);
+  border: 1px solid var(--v2-border-border-weak, rgba(255, 255, 255, 0.08));
+  margin-top: 6px;
+  transition: all 0.2s ease;
+}
+
+.settings-v2-mic-tester-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.settings-v2-mic-tester-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.settings-v2-mic-tester-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.settings-v2-mic-tester-heading {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--v2-text-text-base, #ffffff);
+}
+
+.settings-v2-mic-tester-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 10.5px;
+  font-weight: 550;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--v2-text-text-muted, #8e8e93);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.settings-v2-mic-tester-badge[data-variant="active"] {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+.settings-v2-mic-tester-badge[data-variant="listening"] {
+  background: rgba(234, 179, 8, 0.12);
+  color: #facc15;
+  border-color: rgba(234, 179, 8, 0.28);
+}
+
+.settings-v2-mic-tester-badge[data-variant="error"] {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.settings-v2-mic-tester-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: currentColor;
+}
+
+.settings-v2-mic-tester-badge[data-variant="active"] .settings-v2-mic-tester-dot {
+  box-shadow: 0 0 6px #34d399;
+  animation: pulse 1.5s infinite;
+}
+
+.settings-v2-mic-tester-desc {
+  font-size: 11.5px;
+  color: var(--v2-text-text-muted, #8e8e93);
+  line-height: 1.4;
+}
+
+.settings-v2-mic-meter-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.settings-v2-mic-meter-track {
+  position: relative;
+  height: 9px;
+  width: 100%;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.settings-v2-mic-meter-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #10b981 0%, #34d399 60%, #eab308 85%, #ef4444 100%);
+  transition: width 0.06s ease-out;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
+.settings-v2-mic-meter-peak {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #ffffff;
+  border-radius: 1px;
+  box-shadow: 0 0 4px #ffffff;
+  pointer-events: none;
+}
+
+.settings-v2-mic-meter-labels {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--v2-text-text-muted, #8e8e93);
+}
+
+.settings-v2-mic-waveform-wrap {
+  width: 100%;
+  margin-top: 2px;
+}
+
+.settings-v2-mic-options {
+  display: flex;
+  align-items: center;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Dictation dictionary styling */
+.settings-v2-dictation-dict-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.settings-v2-dictation-dict-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 12.5px;
+  color: var(--v2-text-text-base, #ffffff);
+  transition: all 0.15s ease;
+}
+
+.settings-v2-dictation-dict-item:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.settings-v2-dictation-add-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.settings-v2-shortcut-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 500;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--v2-text-text-base, #ffffff);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.settings-v2-dictation-recordings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 6px;
+}
+
+.settings-v2-dictation-recording-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 12px;
+}
+
+.settings-v2-dictation-recording-text {
+  flex: 1;
+  color: var(--v2-text-text-base, #ffffff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.settings-v2-dictation-recording-meta {
+  font-size: 11px;
+  color: var(--v2-text-text-muted, #8e8e93);
+  white-space: nowrap;
+}
+
