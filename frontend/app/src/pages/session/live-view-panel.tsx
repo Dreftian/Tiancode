@@ -1576,6 +1576,12 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
         } else if (e.key === "2" || e.code === "Digit2" || e.code === "Numpad2") {
           e.preventDefault()
           view().liveView.setTab("code")
+        } else if (e.key === "i" || e.key === "I" || e.code === "KeyI") {
+          e.preventDefault()
+          if (content() !== "preview") {
+            view().liveView.setTab("preview")
+          }
+          window.dispatchEvent(new CustomEvent("tiancode:toggle-inspector"))
         }
       }
     }
@@ -1891,38 +1897,40 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
         data-live-view-mode={content()}
         class="flex min-h-0 min-w-0 flex-1 flex-col"
       >
-        <Show
-          when={content() === "code"}
-          fallback={
-            <div class="flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden bg-v2-background-bg-base p-2">
-              <div
-                class="size-full transition-all duration-300 flex flex-col"
-              >
-                <LivePreview
-                  directory={effectiveProjectDir}
-                  targetUrl={browserTarget}
-                  autoStartKey={autoStartKey}
-                  externalDevice={() => viewportMode()}
-                  onDeviceChange={(mode) => setViewportMode(mode)}
-                  onDirectoryChange={(dir) => {
-                    setActiveProjectDir(dir)
-                  }}
-                  onManagedTarget={(url) => {
-                    const directory = effectiveProjectDir()
-                    if (!directory || directory === "main") return
-                    setLiveViewManagedTarget((current) =>
-                      url ? { directory, url } : current?.directory === directory ? undefined : current,
-                    );
-                  }}
-                  onCapture={props.onCapture}
-                  onOpenSource={(path) => {
-                    setRequestedCodePath(path)
-                    view().liveView.setTab("code")
-                  }}
-                />
-              </div>
-            </div>
-          }
+        <div
+          class="flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden bg-v2-background-bg-base p-2"
+          style={{ display: content() === "code" ? "none" : "flex" }}
+          aria-hidden={content() === "code" || undefined}
+        >
+          <div class="size-full transition-all duration-300 flex flex-col">
+            <LivePreview
+              directory={effectiveProjectDir}
+              targetUrl={browserTarget}
+              autoStartKey={autoStartKey}
+              externalDevice={() => viewportMode()}
+              onDeviceChange={(mode) => setViewportMode(mode)}
+              onDirectoryChange={(dir) => {
+                setActiveProjectDir(dir)
+              }}
+              onManagedTarget={(url) => {
+                const directory = effectiveProjectDir()
+                if (!directory || directory === "main") return
+                setLiveViewManagedTarget((current) =>
+                  url ? { directory, url } : current?.directory === directory ? undefined : current,
+                )
+              }}
+              onCapture={props.onCapture}
+              onOpenSource={(path) => {
+                setRequestedCodePath(path)
+                view().liveView.setTab("code")
+              }}
+            />
+          </div>
+        </div>
+        <div
+          class="size-full min-h-0 flex-1 flex flex-col overflow-hidden"
+          style={{ display: content() === "code" ? "flex" : "none" }}
+          aria-hidden={content() !== "code" || undefined}
         >
           <CodePane
             followPath={snapshot()?.current_file ?? activeEditFile() ?? undefined}
@@ -1930,7 +1938,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
             currentCode={snapshot()?.current_code}
             files={snapshot()?.files ?? sessionDiffs().map((d) => ({ rel: d.file, kind: "file" }))}
           />
-        </Show>
+        </div>
         <Show when={content() !== "code" && detectedUrl()}>
           {(url) => (
             <div class="flex shrink-0 items-center gap-2 border-t border-v2-border-border-muted px-3 py-1.5 text-11-regular text-text-weak">

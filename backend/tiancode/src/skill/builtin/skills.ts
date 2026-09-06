@@ -95,6 +95,12 @@ import web_artifacts_builder from "../../../../../skills/web-artifacts-builder.m
 import web_quality_audit from "../../../../../skills/web-quality-audit.md" with { type: "text" }
 import writing_plans from "../../../../../skills/writing-plans.md" with { type: "text" }
 import xlsx_spreadsheet_builder from "../../../../../skills/xlsx-spreadsheet-builder.md" with { type: "text" }
+// Design craft and anti-slop suite
+import tiancode_taste_frontend from "../../../../../skills/tiancode-taste-frontend.md" with { type: "text" }
+import emil_design_engineering from "../../../../../skills/emil-design-engineering.md" with { type: "text" }
+import anti_ai_slop_rules from "../../../../../skills/anti-ai-slop-rules.md" with { type: "text" }
+import typography_and_letterspacing from "../../../../../skills/typography-and-letterspacing.md" with { type: "text" }
+import state_coverage_and_accessibility from "../../../../../skills/state-coverage-and-accessibility.md" with { type: "text" }
 // Security suite (adaptada de usestrix/strix, vxcontrol/pentagi, SploitAgent y AI4I HackAgent — ver tools/docs/security-suite-sources-2026-09-06.md)
 import pentest_active_directory from "../../../../../skills/pentest-active-directory.md" with { type: "text" }
 import pentest_agentic_security from "../../../../../skills/pentest-agentic-security.md" with { type: "text" }
@@ -230,6 +236,12 @@ export const builtinAgentSkills: Record<string, string> = {
   "web-quality-audit": web_quality_audit,
   "writing-plans": writing_plans,
   "xlsx-spreadsheet-builder": xlsx_spreadsheet_builder,
+  // Design craft and anti-slop suite
+  "tiancode-taste-frontend": tiancode_taste_frontend,
+  "emil-design-engineering": emil_design_engineering,
+  "anti-ai-slop-rules": anti_ai_slop_rules,
+  "typography-and-letterspacing": typography_and_letterspacing,
+  "state-coverage-and-accessibility": state_coverage_and_accessibility,
   // Security suite
   "pentest-active-directory": pentest_active_directory,
   "pentest-agentic-security": pentest_agentic_security,

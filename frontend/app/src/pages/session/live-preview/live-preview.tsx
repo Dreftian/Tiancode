@@ -31,6 +31,21 @@ type DevServerState = {
   isDesktop?: boolean
 }
 
+type InspectedElementInfo = {
+  tag: string
+  classes: string
+  id: string
+  dimensions: string
+  margin: string
+  padding: string
+}
+
+type PreviewIssue = {
+  type: "runtime" | "whitescreen"
+  message: string
+  url?: string
+}
+
 // La vista previa local se muestra en un iframe dentro del renderer. Esto hace
 // que sus píxeles respeten el borde, el tamaño y el modo expandido del Sandbox.
 // WebContentsView queda como fallback para destinos no locales.
@@ -132,6 +147,8 @@ export function LivePreview(props: {
   const deviceId = () => previewPrefs.deviceId
   const setDeviceId = (id: DeviceId) => setPreviewPrefs("deviceId", id)
   const [inspectActive, setInspectActive] = createSignal(false)
+  const [selectedElement, setSelectedElement] = createSignal<InspectedElementInfo | null>(null)
+  const [previewIssue, setPreviewIssue] = createSignal<PreviewIssue | null>(null)
 
   let lastExternal = props.externalDevice?.()
   createEffect(() => {
@@ -191,6 +208,142 @@ export function LivePreview(props: {
   let iframe: HTMLIFrameElement | undefined
   let iframeHistory: string[] = []
   let iframeHistoryIndex = -1
+  let whiteScreenTimer: number | undefined
+  let inspectorCleanup: (() => void) | undefined
+
+  const clearWhiteScreenTimer = () => {
+    if (whiteScreenTimer !== undefined) {
+      window.clearTimeout(whiteScreenTimer)
+      whiteScreenTimer = undefined
+    }
+  }
+
+  const detachInspector = () => {
+    if (inspectorCleanup) {
+      inspectorCleanup()
+      inspectorCleanup = undefined
+    }
+  }
+
+  const attachInspector = () => {
+    detachInspector()
+    if (!iframe) return
+    try {
+      const doc = iframe.contentDocument
+      if (!doc || !doc.body) return
+
+      let overlay = doc.getElementById("__tiancode_inspector_overlay") as HTMLDivElement | null
+      if (!overlay) {
+        overlay = doc.createElement("div")
+        overlay.id = "__tiancode_inspector_overlay"
+        overlay.style.cssText =
+          "position:fixed;pointer-events:none;z-index:2147483647;display:none;box-sizing:border-box;border:2px solid #06b6d4;background:rgba(6,182,212,0.15);box-shadow:0 0 10px rgba(6,182,212,0.4);transition:top 0.05s ease,left 0.05s ease,width 0.05s ease,height 0.05s ease;"
+        doc.body.appendChild(overlay)
+      }
+
+      let badge = doc.getElementById("__tiancode_inspector_badge") as HTMLDivElement | null
+      if (!badge) {
+        badge = doc.createElement("div")
+        badge.id = "__tiancode_inspector_badge"
+        badge.style.cssText =
+          "position:absolute;bottom:100%;left:0;margin-bottom:4px;background:#083344;color:#67e8f9;padding:2px 6px;border-radius:4px;font-size:11px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:600;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.5);border:1px solid #06b6d4;pointer-events:none;"
+        overlay.appendChild(badge)
+      }
+
+      const handleMouseOver = (e: MouseEvent) => {
+        const target = e.target as HTMLElement | null
+        if (!target || target === overlay || overlay.contains(target) || target === doc.body || target === doc.documentElement) {
+          return
+        }
+        const rect = target.getBoundingClientRect()
+        overlay.style.display = "block"
+        overlay.style.top = `${rect.top}px`
+        overlay.style.left = `${rect.left}px`
+        overlay.style.width = `${rect.width}px`
+        overlay.style.height = `${rect.height}px`
+
+        const tag = target.tagName.toLowerCase()
+        const idStr = target.id ? `#${target.id}` : ""
+        const classStr =
+          typeof target.className === "string" && target.className.trim()
+            ? `.${target.className.trim().split(/\s+/).slice(0, 2).join(".")}`
+            : ""
+        const dimStr = `${Math.round(rect.width)} × ${Math.round(rect.height)}`
+        badge.textContent = `${tag}${idStr}${classStr}  ${dimStr}`
+
+        if (rect.top < 26) {
+          badge.style.bottom = "auto"
+          badge.style.top = "100%"
+          badge.style.marginTop = "4px"
+          badge.style.marginBottom = "0"
+        } else {
+          badge.style.bottom = "100%"
+          badge.style.top = "auto"
+          badge.style.marginTop = "0"
+          badge.style.marginBottom = "4px"
+        }
+      }
+
+      const handleClick = (e: MouseEvent) => {
+        const target = e.target as HTMLElement | null
+        if (!target || target === overlay || overlay.contains(target)) return
+        e.preventDefault()
+        e.stopPropagation()
+        const rect = target.getBoundingClientRect()
+        const win = doc.defaultView ?? window
+        const computed = win.getComputedStyle(target)
+        const tag = target.tagName.toLowerCase()
+        const classNames = typeof target.className === "string" ? target.className.trim() : ""
+        setSelectedElement({
+          tag,
+          classes: classNames,
+          id: target.id || "",
+          dimensions: `${Math.round(rect.width)}px × ${Math.round(rect.height)}px`,
+          margin: `${computed.marginTop} ${computed.marginRight} ${computed.marginBottom} ${computed.marginLeft}`,
+          padding: `${computed.paddingTop} ${computed.paddingRight} ${computed.paddingBottom} ${computed.paddingLeft}`,
+        })
+      }
+
+      const handleDocKeyDown = (e: KeyboardEvent) => {
+        if ((e.ctrlKey || e.metaKey) && e.altKey && (e.key === "i" || e.key === "I" || e.code === "KeyI")) {
+          e.preventDefault()
+          setInspectActive((prev) => !prev)
+        }
+      }
+
+      const handleScroll = () => {
+        overlay.style.display = "none"
+      }
+
+      doc.addEventListener("mouseover", handleMouseOver, true)
+      doc.addEventListener("click", handleClick, true)
+      doc.addEventListener("keydown", handleDocKeyDown, true)
+      doc.addEventListener("scroll", handleScroll, true)
+
+      inspectorCleanup = () => {
+        try {
+          doc.removeEventListener("mouseover", handleMouseOver, true)
+          doc.removeEventListener("click", handleClick, true)
+          doc.removeEventListener("keydown", handleDocKeyDown, true)
+          doc.removeEventListener("scroll", handleScroll, true)
+          overlay.remove()
+        } catch {
+          // ignore
+        }
+      }
+    } catch {
+      // Cross-origin iframe
+    }
+  }
+
+  createEffect(() => {
+    if (inspectActive()) {
+      attachInspector()
+    } else {
+      detachInspector()
+      setSelectedElement(null)
+    }
+  })
 
   const revealPreview = () => {
     if (!previewMounted || !nativePreviewActive() || previewVisible || !boundsReady || !previewContentReady) return
@@ -340,6 +493,8 @@ export function LivePreview(props: {
       failedUrl = undefined
       clearRetry()
     }
+    clearWhiteScreenTimer()
+    setPreviewIssue(null)
     requestedUrl = nextTarget
     setUrlInput(nextTarget)
     if (iframeTarget) {
@@ -363,6 +518,8 @@ export function LivePreview(props: {
   function reloadIframe() {
     const target = iframeUrl()
     if (!target) return
+    clearWhiteScreenTimer()
+    setPreviewIssue(null)
     setIframeLoading(true)
     setFail(null)
     updateIframeState(target, true)
@@ -393,9 +550,63 @@ export function LivePreview(props: {
   const completeIframeLoad = () => {
     const target = iframeUrl()
     if (!target) return
+    clearWhiteScreenTimer()
+    setPreviewIssue((current) => (current?.type === "whitescreen" ? null : current))
     try {
       if (iframe?.contentWindow) {
-        const win = iframe.contentWindow as any
+        const win = iframe.contentWindow as unknown as Record<string, unknown> & {
+          addEventListener: (type: string, listener: (event: unknown) => void) => void
+          console: Console
+          __tiancode_hooked?: boolean
+        }
+
+        if (!win.__tiancode_hooked) {
+          win.__tiancode_hooked = true
+
+          win.addEventListener("error", (event: unknown) => {
+            const ev = event as ErrorEvent
+            const errorMsg = ev.message || (ev.error && String(ev.error.message)) || "Error de ejecución en la vista previa"
+            setPreviewIssue({
+              type: "runtime",
+              message: errorMsg,
+              url: iframeUrl(),
+            })
+          })
+
+          win.addEventListener("unhandledrejection", (event: unknown) => {
+            const ev = event as PromiseRejectionEvent
+            const reason = ev.reason as unknown
+            const reasonRecord = typeof reason === "object" && reason !== null ? (reason as Record<string, unknown>) : undefined
+            const errorMsg = (reasonRecord?.message as string | undefined) || String(reason || "Promesa rechazada no controlada")
+            setPreviewIssue({
+              type: "runtime",
+              message: errorMsg,
+              url: iframeUrl(),
+            })
+          })
+
+          const origConsoleError = win.console.error
+          win.console.error = (...args: unknown[]) => {
+            origConsoleError.apply(win.console, args)
+            const text = args
+              .map((arg) => (typeof arg === "string" ? arg : arg instanceof Error ? `${arg.name}: ${arg.message}\n${arg.stack || ""}` : JSON.stringify(arg)))
+              .join(" ")
+            if (
+              text.includes("Uncaught") ||
+              text.includes("Error:") ||
+              text.includes("Failed to load resource") ||
+              text.includes("SyntaxError") ||
+              text.includes("ReferenceError") ||
+              text.includes("TypeError")
+            ) {
+              setPreviewIssue({
+                type: "runtime",
+                message: text.slice(0, 500),
+                url: iframeUrl(),
+              })
+            }
+          }
+        }
         if (!win.electron) {
           const ipcListeners = new Map<string, Set<Function>>()
           win.electron = {
@@ -696,6 +907,46 @@ export function LivePreview(props: {
             setChromeHeight: () => {},
           }
         }
+
+        // White Screen Detector: 0 elements painted after 4 seconds of load
+        whiteScreenTimer = window.setTimeout(() => {
+          whiteScreenTimer = undefined
+          if (!previewMounted || !iframeUrl()) return
+          try {
+            const doc = iframe?.contentDocument
+            if (!doc) return
+            const body = doc.body
+            if (!body) {
+              setPreviewIssue({
+                type: "whitescreen",
+                message: "Pantalla en blanco detectada: el documento no contiene cuerpo (<body>) renderizado.",
+                url: iframeUrl(),
+              })
+              return
+            }
+            const elements = body.querySelectorAll(
+              "*:not(script):not(style):not(noscript):not(meta):not(link):not(#__tiancode_inspector_overlay):not(#__tiancode_inspector_badge)",
+            )
+            const visible = Array.from(elements).filter((el) => {
+              const rect = el.getBoundingClientRect()
+              return rect.width > 0 && rect.height > 0
+            })
+            const hasText = Boolean(body.innerText && body.innerText.trim().length > 0)
+            if (visible.length === 0 && !hasText) {
+              setPreviewIssue({
+                type: "whitescreen",
+                message: "Pantalla en blanco detectada: 0 elementos renderizados en la vista previa tras 4 segundos de carga.",
+                url: iframeUrl(),
+              })
+            }
+          } catch {
+            // Cross-origin iframe
+          }
+        }, 4000)
+
+        if (inspectActive()) {
+          attachInspector()
+        }
       }
     } catch {
       // Cross-origin iframe
@@ -743,6 +994,7 @@ export function LivePreview(props: {
   const failIframeLoad = () => {
     const target = iframeUrl()
     if (!target) return
+    clearWhiteScreenTimer()
     setIframeLoading(false)
     updateIframeState(target, false)
     failedUrl = target
@@ -833,6 +1085,24 @@ export function LivePreview(props: {
   }
 
   onMount(() => {
+    const handleToggleInspector = () => setInspectActive((prev) => !prev)
+    window.addEventListener("tiancode:toggle-inspector", handleToggleInspector)
+
+    const handleWindowKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.altKey && (e.key === "i" || e.key === "I" || e.code === "KeyI")) {
+        e.preventDefault()
+        setInspectActive((prev) => !prev)
+      }
+    }
+    window.addEventListener("keydown", handleWindowKeyDown)
+
+    onCleanup(() => {
+      clearWhiteScreenTimer()
+      detachInspector()
+      window.removeEventListener("tiancode:toggle-inspector", handleToggleInspector)
+      window.removeEventListener("keydown", handleWindowKeyDown)
+    })
+
     const view = preview()
     const surface = container
     // Fetching the managed runtime must not depend on Electron's optional
@@ -1287,7 +1557,7 @@ export function LivePreview(props: {
         <button
           type="button"
           data-pressed={inspectActive() || undefined}
-          title={language.t("livePreview.designToCode.title")}
+          title={`${language.t("livePreview.designToCode.title")} (Ctrl+Alt+I)`}
           onClick={() => setInspectActive(!inspectActive())}
           class={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium border transition-all cursor-pointer ${
             inspectActive()
@@ -1297,6 +1567,13 @@ export function LivePreview(props: {
         >
           <span>{language.t("livePreview.designToCode.label")}</span>
         </button>
+
+        <Show when={inspectActive()}>
+          <span class="inline-flex items-center gap-1 rounded-full bg-cyan-500/20 px-2 py-0.5 font-mono text-[10px] font-semibold text-cyan-300 border border-cyan-400/40 animate-pulse select-none">
+            <span class="size-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_#22d3ee]" />
+            INSPECTOR ON
+          </span>
+        </Show>
 
         <Show when={deviceId() === "custom"}>
           <input
@@ -1333,6 +1610,88 @@ export function LivePreview(props: {
           </ToolButton>
         </div>
       </div>
+
+      <Show when={inspectActive() && selectedElement()}>
+        {(info) => (
+          <div class="flex shrink-0 items-center justify-between gap-3 border-b border-cyan-500/30 bg-cyan-950/40 px-3 py-1.5 font-mono text-[11px] text-cyan-200">
+            <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+              <span class="rounded bg-cyan-500/25 px-1.5 py-0.5 font-bold text-cyan-300">
+                &lt;{info().tag}&gt;
+              </span>
+              <Show when={info().id}>
+                <span class="text-amber-300 font-semibold">#{info().id}</span>
+              </Show>
+              <Show when={info().classes}>
+                <span class="max-w-[280px] truncate text-cyan-400/90" title={info().classes}>
+                  .{info().classes.split(/\s+/).join(".")}
+                </span>
+              </Show>
+              <span class="text-text-faint">|</span>
+              <span class="text-text-weak" title="Dimensiones">
+                📐 {info().dimensions}
+              </span>
+              <span class="text-text-faint">|</span>
+              <span class="text-text-weak" title="Margin">
+                Margin: {info().margin}
+              </span>
+              <span class="text-text-faint">|</span>
+              <span class="text-text-weak" title="Padding">
+                Padding: {info().padding}
+              </span>
+            </div>
+            <button
+              type="button"
+              class="shrink-0 text-text-faint hover:text-text-base cursor-pointer"
+              onClick={() => setSelectedElement(null)}
+              aria-label={language.t("common.close")}
+            >
+              <IconV2 name="xmark-small" size="small" />
+            </button>
+          </div>
+        )}
+      </Show>
+
+      <Show when={previewIssue()}>
+        {(issue) => (
+          <div class="flex shrink-0 items-center justify-between gap-2 border-b border-rose-500/30 bg-rose-500/10 px-3 py-1.5 text-11-regular text-rose-300">
+            <div class="flex min-w-0 flex-1 items-center gap-2">
+              <span class="shrink-0 text-sm">
+                {issue().type === "whitescreen" ? "⚪" : "⚠️"}
+              </span>
+              <span class="min-w-0 flex-1 truncate font-medium" title={issue().message}>
+                {issue().type === "whitescreen"
+                  ? "Pantalla en blanco detectada (0 elementos pintados tras 4s)"
+                  : `Error en la vista previa: ${issue().message}`}
+              </span>
+            </div>
+            <div class="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                class="flex shrink-0 items-center gap-1 rounded bg-amber-500/20 px-2.5 py-1 text-11-medium text-amber-300 hover:bg-amber-500/30 border border-amber-500/30 transition-colors cursor-pointer shadow-sm"
+                onClick={() => askAiToFix(issue().message)}
+              >
+                <span>✨</span>
+                <span>Reparar con Tiancode</span>
+              </button>
+              <button
+                type="button"
+                class="shrink-0 text-11-medium text-text-weak hover:text-text-base cursor-pointer px-1 py-0.5"
+                onClick={() => reloadPreview()}
+              >
+                {language.t("livePreview.retry")}
+              </button>
+              <button
+                type="button"
+                class="shrink-0 text-text-faint hover:text-text-base cursor-pointer"
+                onClick={() => setPreviewIssue(null)}
+                aria-label={language.t("common.close")}
+              >
+                <IconV2 name="xmark-small" size="small" />
+              </button>
+            </div>
+          </div>
+        )}
+      </Show>
 
       <Show when={fail()}>
         {(failed) => (
