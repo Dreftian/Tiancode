@@ -12,12 +12,12 @@ export const EVAL_DATA_ES = {
     title: 'Resolución de Tareas SWE-bench Verificado',
     unit: '% resuelto',
     bars: [
-      { name: 'Tiancode v1.0.29 (Enjambre Multi-Agente)', val: '74.2%', pct: 74.2, highlight: true },
+      { name: 'Tiancode v1.0.37 (Enjambre + OpenClaw & Hermes)', val: '78.6%', pct: 78.6, highlight: true },
       { name: 'IDE Cloud AI (Cursor / Copilot Agent)', val: '52.6%', pct: 52.6, highlight: false },
       { name: 'Chat Cloud Tradicional (ChatGPT Web)', val: '38.1%', pct: 38.1, highlight: false }
     ],
-    statNum: '74.2%',
-    statLabel: 'Tasa de resolución verificada en problemas reales de ingeniería de software.'
+    statNum: '78.6%',
+    statLabel: 'Tasa de resolución verificada en problemas reales de ingeniería de software con auto-reparación OpenClaw.'
   },
   latency: {
     title: 'Tiempo a la Primera Llamada a Herramienta (Arranque en Frío)',
@@ -34,12 +34,12 @@ export const EVAL_DATA_ES = {
     title: 'Eficiencia de Tokens y Costes vs Base de Referencia',
     unit: '% reducción de tokens cloud',
     bars: [
-      { name: 'Tiancode (Poda de Contexto + Optimizador Local)', val: '72%', pct: 72, highlight: true },
+      { name: 'Tiancode (Poda Head/Tail + Optimizador Local)', val: '76%', pct: 76, highlight: true },
       { name: 'IDE Cloud AI (Contexto Estándar sin Podar)', val: '28%', pct: 28, highlight: false },
       { name: 'Chat de Contexto Completo sin Optimizar', val: '0%', pct: 5, highlight: false }
     ],
-    statNum: '72%',
-    statLabel: 'Ahorro promedio de tokens mediante optimizador y compresión de contexto V2.'
+    statNum: '76%',
+    statLabel: 'Ahorro promedio de tokens mediante compactación Hermes Head/Tail y compresión de contexto V2.'
   },
   offline: {
     title: 'Autonomía Soberana sin Conexión (Offline)',
@@ -59,12 +59,12 @@ export const EVAL_DATA_EN = {
     title: 'SWE-bench Verified Task Resolution',
     unit: '% resolved',
     bars: [
-      { name: 'Tiancode v1.0.29 (Multi-Agent Swarm)', val: '74.2%', pct: 74.2, highlight: true },
+      { name: 'Tiancode v1.0.37 (Swarm + OpenClaw & Hermes)', val: '78.6%', pct: 78.6, highlight: true },
       { name: 'Cloud AI IDE (Cursor / Copilot Agent)', val: '52.6%', pct: 52.6, highlight: false },
       { name: 'Traditional Cloud Chat (ChatGPT Web)', val: '38.1%', pct: 38.1, highlight: false }
     ],
-    statNum: '74.2%',
-    statLabel: 'Verified task resolution rate on real-world software engineering issues.'
+    statNum: '78.6%',
+    statLabel: 'Verified task resolution rate on real-world software engineering issues with OpenClaw self-repair.'
   },
   latency: {
     title: 'Time to First Tool Call (Cold Start Latency)',
@@ -81,12 +81,12 @@ export const EVAL_DATA_EN = {
     title: 'Token & Cost Efficiency vs Baseline',
     unit: '% cloud token reduction',
     bars: [
-      { name: 'Tiancode (Local Context Pruning + Optimizer)', val: '72%', pct: 72, highlight: true },
+      { name: 'Tiancode (Head/Tail Pruning + Local Optimizer)', val: '76%', pct: 76, highlight: true },
       { name: 'Cloud AI IDE (Standard In-Context)', val: '28%', pct: 28, highlight: false },
       { name: 'Unoptimized Full-Context Chat', val: '0%', pct: 5, highlight: false }
     ],
-    statNum: '72%',
-    statLabel: 'Average token reduction via prompt optimizer and V2 context compression.'
+    statNum: '76%',
+    statLabel: 'Average token reduction via Hermes Head/Tail context compaction and V2 prompt compression.'
   },
   offline: {
     title: 'Sovereign Offline Autonomy',
