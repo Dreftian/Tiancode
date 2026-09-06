@@ -95,6 +95,43 @@ import web_artifacts_builder from "../../../../../skills/web-artifacts-builder.m
 import web_quality_audit from "../../../../../skills/web-quality-audit.md" with { type: "text" }
 import writing_plans from "../../../../../skills/writing-plans.md" with { type: "text" }
 import xlsx_spreadsheet_builder from "../../../../../skills/xlsx-spreadsheet-builder.md" with { type: "text" }
+// Security suite (adaptada de usestrix/strix, vxcontrol/pentagi, SploitAgent y AI4I HackAgent — ver tools/docs/security-suite-sources-2026-09-06.md)
+import pentest_active_directory from "../../../../../skills/pentest-active-directory.md" with { type: "text" }
+import pentest_agentic_security from "../../../../../skills/pentest-agentic-security.md" with { type: "text" }
+import pentest_api_testing from "../../../../../skills/pentest-api-testing.md" with { type: "text" }
+import pentest_auth_jwt from "../../../../../skills/pentest-auth-jwt.md" with { type: "text" }
+import pentest_browser_security from "../../../../../skills/pentest-browser-security.md" with { type: "text" }
+import pentest_business_logic from "../../../../../skills/pentest-business-logic.md" with { type: "text" }
+import pentest_counterevidence from "../../../../../skills/pentest-counterevidence.md" with { type: "text" }
+import pentest_csrf from "../../../../../skills/pentest-csrf.md" with { type: "text" }
+import pentest_electron_apps from "../../../../../skills/pentest-electron-apps.md" with { type: "text" }
+import pentest_engagement_scope from "../../../../../skills/pentest-engagement-scope.md" with { type: "text" }
+import pentest_fix_verification from "../../../../../skills/pentest-fix-verification.md" with { type: "text" }
+import pentest_graphql from "../../../../../skills/pentest-graphql.md" with { type: "text" }
+import pentest_http_probe from "../../../../../skills/pentest-http-probe.md" with { type: "text" }
+import pentest_idor from "../../../../../skills/pentest-idor.md" with { type: "text" }
+import pentest_llm_applications from "../../../../../skills/pentest-llm-applications.md" with { type: "text" }
+import pentest_llm_prompt_injection from "../../../../../skills/pentest-llm-prompt-injection.md" with { type: "text" }
+import pentest_oauth from "../../../../../skills/pentest-oauth.md" with { type: "text" }
+import pentest_path_traversal from "../../../../../skills/pentest-path-traversal.md" with { type: "text" }
+import pentest_race_conditions from "../../../../../skills/pentest-race-conditions.md" with { type: "text" }
+import pentest_rce from "../../../../../skills/pentest-rce.md" with { type: "text" }
+import pentest_recon_nmap from "../../../../../skills/pentest-recon-nmap.md" with { type: "text" }
+import pentest_recon_subdomains from "../../../../../skills/pentest-recon-subdomains.md" with { type: "text" }
+import pentest_request_smuggling from "../../../../../skills/pentest-request-smuggling.md" with { type: "text" }
+import pentest_scan_modes from "../../../../../skills/pentest-scan-modes.md" with { type: "text" }
+import pentest_scope_roe from "../../../../../skills/pentest-scope-roe.md" with { type: "text" }
+import pentest_severity_calibration from "../../../../../skills/pentest-severity-calibration.md" with { type: "text" }
+import pentest_sql_injection from "../../../../../skills/pentest-sql-injection.md" with { type: "text" }
+import pentest_ssrf from "../../../../../skills/pentest-ssrf.md" with { type: "text" }
+import pentest_ssti from "../../../../../skills/pentest-ssti.md" with { type: "text" }
+import pentest_vuln_scanning from "../../../../../skills/pentest-vuln-scanning.md" with { type: "text" }
+import pentest_web_fuzzing from "../../../../../skills/pentest-web-fuzzing.md" with { type: "text" }
+import pentest_xss from "../../../../../skills/pentest-xss.md" with { type: "text" }
+import pentest_xxe from "../../../../../skills/pentest-xxe.md" with { type: "text" }
+import redteam_ai_agents from "../../../../../skills/redteam-ai-agents.md" with { type: "text" }
+import redteam_injection_templates from "../../../../../skills/redteam-injection-templates.md" with { type: "text" }
+import web_pentest_runbook from "../../../../../skills/web-pentest-runbook.md" with { type: "text" }
 
 export const builtinAgentSkills: Record<string, string> = {
   "accessibility": accessibility,
@@ -193,4 +230,41 @@ export const builtinAgentSkills: Record<string, string> = {
   "web-quality-audit": web_quality_audit,
   "writing-plans": writing_plans,
   "xlsx-spreadsheet-builder": xlsx_spreadsheet_builder,
+  // Security suite
+  "pentest-active-directory": pentest_active_directory,
+  "pentest-agentic-security": pentest_agentic_security,
+  "pentest-api-testing": pentest_api_testing,
+  "pentest-auth-jwt": pentest_auth_jwt,
+  "pentest-browser-security": pentest_browser_security,
+  "pentest-business-logic": pentest_business_logic,
+  "pentest-counterevidence": pentest_counterevidence,
+  "pentest-csrf": pentest_csrf,
+  "pentest-electron-apps": pentest_electron_apps,
+  "pentest-engagement-scope": pentest_engagement_scope,
+  "pentest-fix-verification": pentest_fix_verification,
+  "pentest-graphql": pentest_graphql,
+  "pentest-http-probe": pentest_http_probe,
+  "pentest-idor": pentest_idor,
+  "pentest-llm-applications": pentest_llm_applications,
+  "pentest-llm-prompt-injection": pentest_llm_prompt_injection,
+  "pentest-oauth": pentest_oauth,
+  "pentest-path-traversal": pentest_path_traversal,
+  "pentest-race-conditions": pentest_race_conditions,
+  "pentest-rce": pentest_rce,
+  "pentest-recon-nmap": pentest_recon_nmap,
+  "pentest-recon-subdomains": pentest_recon_subdomains,
+  "pentest-request-smuggling": pentest_request_smuggling,
+  "pentest-scan-modes": pentest_scan_modes,
+  "pentest-scope-roe": pentest_scope_roe,
+  "pentest-severity-calibration": pentest_severity_calibration,
+  "pentest-sql-injection": pentest_sql_injection,
+  "pentest-ssrf": pentest_ssrf,
+  "pentest-ssti": pentest_ssti,
+  "pentest-vuln-scanning": pentest_vuln_scanning,
+  "pentest-web-fuzzing": pentest_web_fuzzing,
+  "pentest-xss": pentest_xss,
+  "pentest-xxe": pentest_xxe,
+  "redteam-ai-agents": redteam_ai_agents,
+  "redteam-injection-templates": redteam_injection_templates,
+  "web-pentest-runbook": web_pentest_runbook,
 }

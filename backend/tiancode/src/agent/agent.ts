@@ -15,6 +15,8 @@ import PROMPT_EXPLORE from "./prompt/explore.txt"
 import PROMPT_SUMMARY from "./prompt/summary.txt"
 import PROMPT_TITLE from "./prompt/title.txt"
 import PROMPT_WEBAPP from "./prompt/webapp.txt"
+import PROMPT_PENTEST from "./prompt/pentest.txt"
+import PROMPT_LLM_REDTEAM from "./prompt/llm-redteam.txt"
 import { Permission } from "@/permission"
 import { mergeDeep, pipe, sortBy, values } from "remeda"
 import { Global } from "@tiancode-ai/core/global"
@@ -235,6 +237,30 @@ const layer = Layer.effect(
             options: {},
             mode: "subagent",
             native: true,
+          },
+          pentest: {
+            name: "pentest",
+            description:
+              "PROACTIVELY USE THIS SUBAGENT. Auditoría de seguridad autorizada (web, red, APIs, AD): recon, validación de vulnerabilidades con evidencia, calibración de severidad y reporte accionable. Usa las skills pentest-* para la metodología y comandos exactos.",
+            prompt: PROMPT_PENTEST,
+            options: {},
+            mode: "subagent",
+            native: true,
+            color: "#e11d48",
+            icon: "🕵️",
+            permission: defaults,
+          },
+          "llm-redteam": {
+            name: "llm-redteam",
+            description:
+              "PROACTIVELY USE THIS SUBAGENT. Red teaming defensivo de agentes LLM propios (prompt injection, jailbreak, exceso de agencia): ataques, jueces de scoring y reporte de hardening.",
+            prompt: PROMPT_LLM_REDTEAM,
+            options: {},
+            mode: "subagent",
+            native: true,
+            color: "#c026d3",
+            icon: "🔐",
+            permission: defaults,
           },
           "software-architect": {
             name: "software-architect",

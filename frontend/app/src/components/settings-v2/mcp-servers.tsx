@@ -336,6 +336,24 @@ const DiscoverPresets: DiscoverPreset[] = [
     command: "npx -y @aikidosec/mcp",
     requiresKey: true,
   },
+  {
+    id: "pentest-mcp",
+    name: "PenTest MCP",
+    description:
+      "Auditoría de seguridad autorizada con nmap, sqlmap, hydra, hashcat, nuclei, ffuf y más; reportes con contexto de alcance (SoW) y mitigación de prompt injection.",
+    type: "local",
+    command: "npx -y pentest-mcp",
+    requiresSetup: true,
+  },
+  {
+    id: "kali-mcp",
+    name: "Kali MCP (Docker)",
+    description:
+      "Kali Linux en Docker con ~50 herramientas de seguridad y una API de ejecución de comandos (requiere el contenedor kali-mcp local en http://localhost:666/mcp).",
+    type: "remote",
+    url: "http://localhost:666/mcp",
+    requiresSetup: true,
+  },
 ]
 
 // Servers are grouped by status (Connected, Errors, Require Key, Disabled,
