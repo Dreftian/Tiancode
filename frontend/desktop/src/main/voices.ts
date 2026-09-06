@@ -1,6 +1,6 @@
-import { app, BrowserWindow } from "electron"
-import { join } from "node:path"
-import type { KokoroTTS } from "kokoro-js"
+import { app, BrowserWindow, utilityProcess, type UtilityProcess } from "electron"
+import { dirname, join } from "node:path"
+import { fileURLToPath } from "node:url"
 import type { ProgressInfo } from "@huggingface/transformers"
 import type { VoiceInfo, VoicesSpeakOptions, VoicesSpeakResult } from "../preload/types"
 import { write as writeLog } from "./logging"
@@ -75,8 +75,97 @@ type VoiceState = "idle" | "downloading" | "ready" | "error"
 let state: VoiceState = "idle"
 let progress: number | undefined
 let failure: string | undefined
-let ttsPromise: Promise<KokoroTTS> | undefined
+let ttsPromise: Promise<void> | undefined
 let synthesisBusy = false
+
+interface WorkerMessage {
+  id?: string
+  type: string
+  payload?: {
+    progress?: number
+    file?: string
+    samples?: Float32Array | number[]
+    sampleRate?: number
+  }
+  error?: string
+}
+
+let voiceWorker: UtilityProcess | undefined
+const pendingWorkerRequests = new Map<
+  string,
+  {
+    resolve: (data: unknown) => void
+    reject: (err: Error) => void
+  }
+>()
+let requestIdCounter = 0
+
+function getVoiceWorker(): UtilityProcess {
+  if (voiceWorker && !voiceWorker.pid) {
+    voiceWorker = undefined
+  }
+  if (!voiceWorker) {
+    const workerScript = join(dirname(fileURLToPath(import.meta.url)), "voice-worker.js")
+    const worker = utilityProcess.fork(workerScript, [], {
+      serviceName: "tiancode-voice-worker",
+      stdio: "pipe",
+    })
+
+    worker.on("message", (rawEvent: unknown) => {
+      const event = rawEvent as WorkerMessage | undefined
+      if (!event) return
+      if (event.type === "progress" && event.payload && typeof event.payload.progress === "number") {
+        onProgress({
+          status: "progress",
+          progress: event.payload.progress,
+          loaded: event.payload.progress,
+          total: 100,
+          file: event.payload.file ?? "",
+          name: event.payload.file ?? "",
+        })
+        return
+      }
+      if (event.id) {
+        const pending = pendingWorkerRequests.get(event.id)
+        if (pending) {
+          pendingWorkerRequests.delete(event.id)
+          if (event.type === "error" || event.error) {
+            pending.reject(new Error(event.error || "Voice worker error"))
+          } else {
+            pending.resolve(event.payload ?? event)
+          }
+        }
+      }
+    })
+
+    worker.on("exit", (code) => {
+      writeLog("voices", "voice worker exited", { code }, "warn")
+      voiceWorker = undefined
+      for (const pending of pendingWorkerRequests.values()) {
+        pending.reject(new Error(`Voice worker process terminated unexpectedly (code ${code})`))
+      }
+      pendingWorkerRequests.clear()
+    })
+
+    const cacheDir = join(app.getPath("userData"), "huggingface-cache")
+    worker.postMessage({ type: "init", payload: { cacheDir } })
+
+    voiceWorker = worker
+  }
+  return voiceWorker
+}
+
+function sendWorkerRequest<T>(type: string, payload?: Record<string, unknown>): Promise<T> {
+  const worker = getVoiceWorker()
+  const id = `req_${++requestIdCounter}_${Date.now()}`
+  return new Promise<T>((resolve, reject) => {
+    pendingWorkerRequests.set(id, {
+      resolve: (data: unknown) => resolve(data as T),
+      reject,
+    })
+    worker.postMessage({ id, type, payload })
+  })
+}
 
 const MAX_SPEECH_CHARS = 2_000
 const MAX_AUDIO_SAMPLES = 2_000_000
@@ -162,10 +251,16 @@ async function synthesizeVoice(text: string, voice: VoiceInfo): Promise<VoicesSp
     }
   }
   try {
-    const tts = await ensureReady()
-    // speed > 1 acelera el habla; 1.0 por defecto se percibe lento.
-    const audio = await tts.generate(text, { voice: voice.id as SupportedVoiceId, speed: 1.15 })
-    return wavResult(audio.audio, audio.sampling_rate)
+    await ensureReady()
+    const cacheDir = join(app.getPath("userData"), "huggingface-cache")
+    const result = await sendWorkerRequest<{ samples: Float32Array | number[]; sampleRate: number }>("synthesize", {
+      text,
+      voiceId: voice.id,
+      speed: 1.15,
+      cacheDir,
+    })
+    const samples = result.samples instanceof Float32Array ? result.samples : new Float32Array(result.samples)
+    return wavResult(samples, result.sampleRate)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     writeLog("voices", "synthesis failed", { error: message }, "error")
@@ -241,36 +336,23 @@ async function ensureReady() {
     state = "downloading"
     progress = 0
     failure = undefined
-    ttsPromise = loadTTS().then(
-      (tts) => {
+    const cacheDir = join(app.getPath("userData"), "huggingface-cache")
+    ttsPromise = sendWorkerRequest("download", { cacheDir }).then(
+      () => {
         state = "ready"
         progress = 100
         reportProgress({ progress: 100 })
-        return tts
       },
       (error) => {
         state = "error"
         failure = error instanceof Error ? error.message : String(error)
         ttsPromise = undefined
-        writeLog("voices", "failed to load kokoro tts", { error: failure }, "error")
+        writeLog("voices", "failed to load kokoro tts in worker", { error: failure }, "error")
         throw error
       },
     )
   }
   return ttsPromise
-}
-
-async function loadTTS() {
-  const { env } = await import("@huggingface/transformers")
-  // transformers.js defaults its cache next to the package dir; move it under
-  // userData so downloads survive across app launches in the packaged app.
-  env.cacheDir = join(app.getPath("userData"), "huggingface-cache")
-  const { KokoroTTS } = await import("kokoro-js")
-  return KokoroTTS.from_pretrained(KOKORO_MODEL_ID, {
-    dtype: "fp32",
-    device: "cpu",
-    progress_callback: onProgress,
-  })
 }
 
 // transformers.js 3.x reports per-file download progress only (no overall
