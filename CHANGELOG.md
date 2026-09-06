@@ -4,6 +4,18 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.32] — 2026-09-06
+### Motor de Optimización de Prompts v2 con Adaptación por Modelo, Tokens Aislados y Deshacer
+
+- **Motor Avanzado de Optimización de Prompts ("Mejorar Input") v2**:
+  - **Estrategias Adaptativas por Modelo**: El formateo de optimización se adapta dinámicamente al modelo activo en la sesión (etiquetas XML semánticas para Claude 3.5/3.7/Opus, enfoque *outcome-first* y criterios de aceptación para OpenAI, encabezados directos y concisos para Gemini, y especificaciones técnicas rigurosas para DeepSeek).
+  - **Aislamiento y Protección de Código (Token Isolation)**: Los bloques de código, fragmentos entre backticks, URLs, rutas de archivo complejas y variables (`{{var}}`, `${var}`) se protegen antes del análisis sintáctico para garantizar su preservación intacta.
+  - **Diccionario Técnico Expandido**: Más de 420 términos técnicos, nombres de frameworks (`Solid.js`, `React`, `Vue`, `Docker`, `Kubernetes`, `PostgreSQL`, `SQLite`, etc.), acrónimos (`MCP`, `RPC`, `SDK`, `CI/CD`) y correcciones ortográficas en español e inglés.
+  - **Clasificador de Intención Multinivel**: Detección inteligente de 6 categorías de intención (`debugging`, `scaffolding`, `refactoring`, `conceptual`, `scripting`, `review`).
+  - **Cláusula Anti-Sobreingeniería e Invariantes**: Incorporación sistemática de directivas de alcance mínimo, no refactorización no solicitada y respeto estricto a las convenciones y estilo del proyecto.
+  - **Plan de Verificación Integrado**: Requerimiento de comandos de comprobación, pruebas unitarias o compilación antes de dar la tarea por completada.
+  - **Función de Deshacer (Undo / Revertir)**: El botón ahora permite alternar y revertir instantáneamente al texto original si el usuario desea descartar la optimización.
+
 ## [1.0.31] — 2026-09-06
 ### Modernización del Ecosistema de Skills, TTS en Worker y Reparación con IA en Vista Previa
 

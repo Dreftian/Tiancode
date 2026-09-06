@@ -118,6 +118,7 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
         optimizeControl={
           <PromptOptimizerButton
             input={() => props.controller.value()}
+            model={() => props.controller.model.selection.current()}
             onOptimized={(text) =>
               props.controller.onInput(
                 text,

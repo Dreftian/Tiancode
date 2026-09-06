@@ -2,9 +2,14 @@ import { createSignal, Show, type JSX } from "solid-js"
 import { TooltipV2 } from "@tiancode-ai/ui/v2/tooltip-v2"
 import { useLanguage } from "@/context/language"
 import { useServerSDK } from "@/context/server-sdk"
-import { enhancePromptText, type PromptIntent } from "@/utils/prompt-optimizer"
+import {
+  enhancePromptText,
+  resolveModelFamily,
+  type PromptIntent,
+  type ModelFamily,
+} from "@/utils/prompt-optimizer"
 
-export { enhancePromptText, type PromptIntent }
+export { enhancePromptText, resolveModelFamily, type PromptIntent, type ModelFamily }
 
 export function IconSparkles(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
   return (
@@ -35,9 +40,19 @@ export function IconSparkles(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
   )
 }
 
+export function IconUndo(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
+  return (
+    <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 7v6h6" />
+      <path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13" />
+    </svg>
+  )
+}
+
 export function PromptOptimizerButton(props: {
   input: () => string
   onOptimized: (text: string) => void
+  model?: () => { provider?: { id: string }; name?: string; id?: string } | undefined
   disabled?: boolean
   class?: string
 }) {
@@ -45,13 +60,30 @@ export function PromptOptimizerButton(props: {
   const serverSdk = useServerSDK()
   const [optimizing, setOptimizing] = createSignal(false)
   const [justOptimized, setJustOptimized] = createSignal(false)
+  const [justReverted, setJustReverted] = createSignal(false)
+  const [lastOriginal, setLastOriginal] = createSignal("")
+  const [lastOptimized, setLastOptimized] = createSignal("")
 
   const isSpanish = () => language.intl().toLowerCase().startsWith("es")
   const hasText = () => props.input().trim().length > 0
 
+  // Se activa modo revertir si el contenido actual en el textarea coincide con el último optimizado
+  const isRevertMode = () => {
+    const cur = props.input().trim()
+    return lastOptimized().length > 0 && cur === lastOptimized().trim() && lastOriginal().length > 0
+  }
+
   const tooltipText = () => {
+    if (justReverted()) {
+      return isSpanish() ? "¡Texto original restaurado!" : "Original text restored!"
+    }
     if (justOptimized()) {
       return isSpanish() ? "¡Prompt optimizado!" : "Prompt enhanced!"
+    }
+    if (isRevertMode()) {
+      return isSpanish()
+        ? "Deshacer optimización (Volver al original)"
+        : "Revert enhancement (Undo)"
     }
     if (!hasText()) {
       return language.t("prompt.optimize.empty")
@@ -62,22 +94,40 @@ export function PromptOptimizerButton(props: {
     return language.t("prompt.optimize.label")
   }
 
-  const handleOptimize = async (e: MouseEvent) => {
+  const handleAction = async (e: MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
+
+    // 1. Si está en modo revertir, restauramos el texto original
+    if (isRevertMode()) {
+      const orig = lastOriginal()
+      props.onOptimized(orig)
+      setLastOptimized("")
+      setJustReverted(true)
+      setTimeout(() => setJustReverted(false), 1600)
+      return
+    }
+
     const current = props.input().trim()
     if (!current || optimizing()) return
 
     setOptimizing(true)
+    setLastOriginal(current)
     window.dispatchEvent(new CustomEvent("tiancode:prompt-optimizing", { detail: { active: true } }))
     try {
-      await new Promise((r) => setTimeout(r, 180))
-      const optimized = enhancePromptText(current, isSpanish())
+      await new Promise((r) => setTimeout(r, 160))
+      
+      const currentModel = props.model?.()
+      const modelFamily = resolveModelFamily(
+        currentModel?.provider?.id ?? currentModel?.name ?? currentModel?.id,
+      )
+      const optimized = enhancePromptText(current, isSpanish(), { modelFamily })
+      setLastOptimized(optimized)
       
       // Efecto progresivo de escritura y reemplazo en el textarea (estilo Trae.ai)
       const tokens = optimized.split(/(\s+|\n)/)
       let accumulated = ""
-      const stepDelay = Math.max(6, Math.min(18, Math.floor(450 / Math.max(tokens.length, 1))))
+      const stepDelay = Math.max(5, Math.min(16, Math.floor(400 / Math.max(tokens.length, 1))))
       
       for (let i = 0; i < tokens.length; i++) {
         accumulated += tokens[i]
@@ -118,6 +168,14 @@ export function PromptOptimizerButton(props: {
           box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
           color: #38bdf8;
         }
+        .trae-optimizer-btn.is-revert {
+          color: #fbbf24;
+        }
+        .trae-optimizer-btn.is-revert:hover:not(:disabled) {
+          background: rgba(251, 191, 36, 0.15);
+          box-shadow: 0 0 10px rgba(251, 191, 36, 0.25);
+          color: #f59e0b;
+        }
         .trae-optimizer-btn.is-optimizing {
           background: linear-gradient(90deg, rgba(56, 189, 248, 0.2) 0%, rgba(168, 85, 247, 0.35) 50%, rgba(56, 189, 248, 0.2) 100%);
           background-size: 200% 100%;
@@ -132,7 +190,7 @@ export function PromptOptimizerButton(props: {
         <button
           type="button"
           disabled={!hasText() || optimizing() || props.disabled}
-          onClick={handleOptimize}
+          onClick={handleAction}
           aria-label={tooltipText()}
           class={`
             trae-optimizer-btn relative flex size-7 shrink-0 items-center justify-center rounded-md
@@ -142,15 +200,22 @@ export function PromptOptimizerButton(props: {
                 : "cursor-not-allowed text-v2-icon-icon-muted opacity-40"
             }
             ${optimizing() ? "is-optimizing" : ""}
+            ${isRevertMode() ? "is-revert" : ""}
             ${justOptimized() ? "text-emerald-400 font-bold scale-105" : ""}
+            ${justReverted() ? "text-amber-400 font-bold scale-105" : ""}
             ${props.class ?? ""}
           `}
         >
           <Show
-            when={!justOptimized()}
+            when={!justOptimized() && !justReverted()}
             fallback={<span class="text-xs">✓</span>}
           >
-            <IconSparkles class="trae-sparkles size-4 transition-transform duration-200" />
+            <Show
+              when={!isRevertMode()}
+              fallback={<IconUndo class="size-4 transition-transform duration-200" />}
+            >
+              <IconSparkles class="trae-sparkles size-4 transition-transform duration-200" />
+            </Show>
           </Show>
         </button>
       </TooltipV2>

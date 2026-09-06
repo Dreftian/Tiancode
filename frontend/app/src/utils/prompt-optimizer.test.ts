@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test"
-import { enhancePromptText, normalizeSpellingAndTerms } from "./prompt-optimizer"
+import {
+  enhancePromptText,
+  normalizeSpellingAndTerms,
+  resolveModelFamily,
+  detectIntent,
+} from "./prompt-optimizer"
 
 describe("prompt-optimizer", () => {
   test("corrects spelling mistakes and typos in Spanish", () => {
@@ -67,5 +72,62 @@ describe("prompt-optimizer", () => {
     expect(result).toContain("🐛 Bug Diagnosis & Resolution")
     expect(result).toContain("input")
     expect(result).toContain("server.ts")
+  })
+
+  test("preserves protected tokens (code, URLs, variables)", () => {
+    const raw = "actualiza https://api.tiancode.ai/v1/auth y el helper `getUserSession()` con {{authToken}}"
+    const result = enhancePromptText(raw, true)
+
+    expect(result).toContain("https://api.tiancode.ai/v1/auth")
+    expect(result).toContain("`getUserSession()`")
+    expect(result).toContain("{{authToken}}")
+  })
+
+  test("adapts output for Claude model family with XML tags", () => {
+    const raw = "agrega un boton de exportar pdf en report.tsx"
+    const result = enhancePromptText(raw, true, { modelFamily: "claude" })
+
+    expect(result).toContain("<context>")
+    expect(result).toContain("<instructions>")
+    expect(result).toContain("<constraints>")
+    expect(result).toContain("<verification>")
+    expect(result).toContain("report.tsx")
+    expect(result).toContain("Alcance mínimo")
+  })
+
+  test("adapts output for OpenAI model family with outcome-driven sections", () => {
+    const raw = "create a redis cache client in cache.ts"
+    const result = enhancePromptText(raw, false, { modelFamily: "openai" })
+
+    expect(result).toContain("## 🎯 Primary Goal")
+    expect(result).toContain("## 📋 Acceptance Criteria")
+    expect(result).toContain("## 🛡️ Invariants & Constraints")
+    expect(result).toContain("## 🧪 Verification Bar")
+    expect(result).toContain("cache.ts")
+  })
+
+  test("adapts output for Gemini model family with direct headings", () => {
+    const raw = "implementa la busqueda semantica en search.ts"
+    const result = enhancePromptText(raw, true, { modelFamily: "gemini" })
+
+    expect(result).toContain("### 🎯 Objetivo")
+    expect(result).toContain("### 📋 Directivas de Implementación")
+    expect(result).toContain("### 🛡️ Restricciones")
+    expect(result).toContain("### 🧪 Verificación")
+  })
+
+  test("detects scripting and review intents", () => {
+    expect(detectIntent("crea un script en bash para automatizar el deploy")).toBe("scripting")
+    expect(detectIntent("revisa el codigo y audita la seguridad en auth.ts")).toBe("review")
+  })
+
+  test("resolves model family from names and providers accurately", () => {
+    expect(resolveModelFamily("claude-3-7-sonnet")).toBe("claude")
+    expect(resolveModelFamily("anthropic")).toBe("claude")
+    expect(resolveModelFamily("gpt-4o")).toBe("openai")
+    expect(resolveModelFamily("o3-mini")).toBe("openai")
+    expect(resolveModelFamily("gemini-2.5-pro")).toBe("gemini")
+    expect(resolveModelFamily("deepseek-chat")).toBe("deepseek")
+    expect(resolveModelFamily("mistral")).toBe("generic")
   })
 })

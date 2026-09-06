@@ -29,33 +29,27 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.25"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — Modernización de Skills, TTS en Worker y Reparación con IA en Vista Previa`
-  const body = `## 🚀 Tiancode v${version} — Modernización de Skills, TTS en Worker y Reparación con IA en Vista Previa
+  const releaseName = `Tiancode v${version} — Motor de Optimización de Prompts v2 con Adaptación por Modelo y Deshacer`
+  const body = `## 🚀 Tiancode v${version} — Motor de Optimización de Prompts v2 con Adaptación por Modelo y Deshacer
 
-### 🧠 Modernización del Ecosistema de Habilidades y Calidad de Agentes
-- **Superpoderes de Agentes:** Nuevas habilidades para flujos avanzados y confiables:
-  - \`subagent-driven-development\`: subagentes ejecutores aislados con doble filtro de calidad (especificación y código).
-  - \`systematic-debugging\`: protocolo de investigación de causa raíz en 4 fases ("La Ley de Hierro: sin arreglos sin causa raíz").
-  - \`constraint-driven-development\`: respeto estricto a restricciones de \`CONSTRAINTS.md\` sin rebajar estándares.
-  - \`receiving-code-review\`: evaluación rigurosa y técnica del feedback recibido.
-- **Mejores Prácticas y Proveedores Oficiales:**
-  - \`supabase-postgres-best-practices\`, \`cloudflare-workers-best-practices\`, \`stripe-payments-integration\`, \`better-auth-patterns\` y \`sentry-observability-and-fixes\`.
-- **Creadores de Artefactos y Documentación en Código Abierto Limpio:**
-  - \`mcp-builder\`, \`web-artifacts-builder\`, \`docx-document-creation\` (docx-js) y \`xlsx-spreadsheet-builder\` (exceljs).
-- **Corrección de Mapeo y Tokens Canónicos:**
-  - Corregido el mapeo de \`to-spec\` en \`builtin/skills.ts\` y registrado el sistema de diseño canónico \`design-system-spec\` (Rico UI DESIGN.md).
-
-### ⚡ Rendimiento de Voz: Offloading Neural Kokoro TTS a UtilityProcess
-- Síntesis de voz ONNX migrada completamente fuera del hilo principal de Electron hacia un \`utilityProcess\` dedicado (\`voice-worker.ts\`).
-- Eliminación total de congelamientos de 1-3 segundos en la interfaz y el bucle de eventos durante la locución de voz.
-
-### 🛡️ Terminación Limpia de Procesos PTY Zombies en Windows
-- Terminación en árbol con \`taskkill.exe /PID <pid> /T /F\` en sesiones de terminal de Windows, previniendo fugas de memoria o puertos ocupados.
-
-### 🖥️ Vista Previa en Vivo: Auto-Reparación y Renderizado Libre de Glitches
-- **Reparación con IA en 1 Clic (\`✨ Reparar con IA\`):** Botón directo en fallos de carga, compilación del Dev Server y sandbox Desktop que empaqueta el error y lo envía a solucionar automáticamente al agente.
-- **Corrección de Pantalla Blanca en Iframe (\`nudgePreviewIframeGeometry\`):** Eliminación de glitches de rasterizado en Chromium/Electron al cargar iframes sandboxed escalados.
-- **Bus Reactivo de Prompts (\`tiancode:insert-prompt\`):** Despacho e inyección fluida de instrucciones sin necesidad de copiar y pegar manualmente.
+### ✨ Motor Avanzado de Optimización de Prompts ("Mejorar Input") v2
+- **Estrategias Adaptativas por Modelo:** El prompt se reestructura de forma inteligente según la familia de modelo seleccionada:
+  - **Claude (Anthropic):** Etiquetas XML semánticas (\`<context>\`, \`<objective>\`, \`<instructions>\`, \`<constraints>\`, \`<verification>\`), contexto y archivos primero, y requerimientos delimitados.
+  - **OpenAI (GPT-4o, GPT-5, o-series):** Formato *outcome-first* en Markdown directo con metas concretas, criterios de aceptación estrictos y barra de verificación.
+  - **Google Gemini (Gemini 2.5/3):** Encabezados directos y concisos en Markdown limpio (sin delimitadores mixtos) y solicitud de profundidad en la implementación.
+  - **DeepSeek (V3/R1):** Especificaciones técnicas rigurosas y cero-shot directo.
+- **Aislamiento de Tokens Protegidos (Token Isolation):**
+  - Protección absoluta de bloques de código (\`\`\`...\`\`\`), código inline (\`...\`), URLs (\`https://...\`), variables (\`{{var}}\`, \`\${var}\`) y rutas de archivo complejas.
+- **Diccionario Técnico Masivo (+420 términos):**
+  - Normalización ortográfica técnica y preservación de mayúsculas en frameworks (\`Solid.js\`, \`React\`, \`Vue\`, \`Docker\`, \`PostgreSQL\`, \`SQLite\`, etc.), acrónimos (\`MCP\`, \`RPC\`, \`SDK\`, \`CI/CD\`) y corrección de typos frecuentes.
+- **Clasificador de Intención Multinivel:**
+  - Detección precisa de 6 categorías de intención: \`debugging\`, \`scaffolding\`, \`refactoring\`, \`conceptual\`, \`scripting\` y \`review\`.
+- **Cláusulas Anti-Sobreingeniería e Invariantes:**
+  - Instrucciones explícitas de alcance mínimo quirúrgico, respeto a la arquitectura existente y prohibición de código placeholder tipo TODO.
+- **Plan de Verificación Estructurado:**
+  - Directivas para verificar con tests unitarios, tipado estricto o pruebas de ejecución antes de finalizar.
+- **Función de Deshacer (Undo / Revertir):**
+  - El botón permite alternar y restaurar el texto original con un solo clic si el usuario desea revertir la optimización.
 
 ### 🔒 Actualización 100% No Destructiva
 - Todas tus claves de API, sesiones, historial, MCPs y credenciales se preservan de forma intacta.
