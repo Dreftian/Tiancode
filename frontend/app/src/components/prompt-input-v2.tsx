@@ -62,8 +62,24 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
       const detail = (e as CustomEvent<{ active?: boolean }>).detail
       setIsOptimizingPrompt(!!detail?.active)
     }
+    const handleInsertPrompt = (e: Event) => {
+      const detail = (e as CustomEvent<{ text: string; submit?: boolean }>).detail
+      if (!detail?.text) return
+      props.controller.onInput(
+        detail.text,
+        [{ type: "text", content: detail.text, start: 0, end: detail.text.length }],
+        detail.text.length,
+      )
+      if (detail.submit) {
+        props.controller.submit()
+      }
+    }
     window.addEventListener("tiancode:prompt-optimizing", handleOptimizing)
-    onCleanup(() => window.removeEventListener("tiancode:prompt-optimizing", handleOptimizing))
+    window.addEventListener("tiancode:insert-prompt", handleInsertPrompt)
+    onCleanup(() => {
+      window.removeEventListener("tiancode:prompt-optimizing", handleOptimizing)
+      window.removeEventListener("tiancode:insert-prompt", handleInsertPrompt)
+    })
   })
 
   return (

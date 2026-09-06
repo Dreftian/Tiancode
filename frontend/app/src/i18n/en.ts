@@ -1151,6 +1151,7 @@ export const dict = {
   "livePreview.selection.copyData": "Copy data",
   "livePreview.selection.copied": "Copied",
   "livePreview.retry": "Retry",
+  "livePreview.fixWithAi": "Fix with AI",
   "livePreview.inspector.unavailable": "This runtime does not permit direct DOM inspection. Use Dev tools for its own inspector.",
   "livePreview.timeline": "Changes",
   "livePreview.timeline.empty": "No confirmed preview events yet.",

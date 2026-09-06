@@ -515,6 +515,38 @@ export function LivePreview(props: {
     failedUrl = undefined
     clearRetry()
     setFail(null)
+    nudgePreviewIframeGeometry(iframe)
+  }
+
+  const nudgePreviewIframeGeometry = (element?: HTMLIFrameElement | null) => {
+    if (!element) return
+    const prevWidth = element.style.width
+    element.style.width = "calc(100% - 0.5px)"
+    const timer = window.setTimeout(() => {
+      if (element) element.style.width = prevWidth || "100%"
+    }, 120)
+    return () => window.clearTimeout(timer)
+  }
+
+  const askAiToFix = (errorDetails?: string) => {
+    const errorText = errorDetails || fail()?.description || devServer()?.errorMessage || "Error en la vista previa"
+    const currentUrl = iframeUrl() || fail()?.url || devServer()?.url || ""
+    const prompt = [
+      "Por favor soluciona el siguiente error que ocurre en la vista previa de la aplicación:",
+      currentUrl ? `Destino/Archivo: ${currentUrl}` : "",
+      "```",
+      errorText,
+      "```",
+      "Analiza el código del proyecto, localiza la causa del fallo y corrige los archivos para que la vista previa funcione correctamente.",
+    ]
+      .filter(Boolean)
+      .join("\n\n")
+
+    window.dispatchEvent(
+      new CustomEvent("tiancode:insert-prompt", {
+        detail: { text: prompt, submit: true },
+      }),
+    )
   }
 
   const failIframeLoad = () => {
@@ -1119,14 +1151,22 @@ export function LivePreview(props: {
             </span>
             <button
               type="button"
-              class="shrink-0 text-11-medium text-[var(--v2-state-fg-info)] hover:text-text-base"
+              class="flex shrink-0 items-center gap-1 rounded bg-amber-500/15 px-2 py-0.5 text-11-medium text-amber-300 hover:bg-amber-500/25 transition-colors cursor-pointer"
+              onClick={() => askAiToFix(failed().description)}
+            >
+              <span>✨</span>
+              <span>{language.t("livePreview.fixWithAi") || "Reparar con IA"}</span>
+            </button>
+            <button
+              type="button"
+              class="shrink-0 text-11-medium text-[var(--v2-state-fg-info)] hover:text-text-base cursor-pointer"
               onClick={retryPreview}
             >
               {language.t("livePreview.retry")}
             </button>
             <button
               type="button"
-              class="shrink-0 text-text-faint hover:text-text-base"
+              class="shrink-0 text-text-faint hover:text-text-base cursor-pointer"
               onClick={() => setFail(null)}
               aria-label={language.t("common.close")}
             >
@@ -1202,14 +1242,26 @@ export function LivePreview(props: {
               <div class="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center text-12-regular text-text-weak">
                 <span>{previewPlaceholder()}</span>
                 <Show when={devServer()?.status === "idle" || devServer()?.status === "stopped" || devServer()?.status === "error"}>
-                  <button
-                    type="button"
-                    class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[12px] font-medium hover:bg-cyan-500/30 transition-all cursor-pointer shadow-sm"
-                    onClick={() => void devServerAction(devServer()?.status === "stopped" ? "start" : devServer()?.status === "error" ? "restart" : "start")}
-                  >
-                    <span>▶</span>
-                    <span>{devServer()?.status === "error" ? (language.t("livePreview.retry") || "Reintentar") : (language.t("livePreview.startServer") || "Iniciar Vista Previa")}</span>
-                  </button>
+                  <div class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[12px] font-medium hover:bg-cyan-500/30 transition-all cursor-pointer shadow-sm"
+                      onClick={() => void devServerAction(devServer()?.status === "stopped" ? "start" : devServer()?.status === "error" ? "restart" : "start")}
+                    >
+                      <span>▶</span>
+                      <span>{devServer()?.status === "error" ? (language.t("livePreview.retry") || "Reintentar") : (language.t("livePreview.startServer") || "Iniciar Vista Previa")}</span>
+                    </button>
+                    <Show when={devServer()?.status === "error"}>
+                      <button
+                        type="button"
+                        class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[12px] font-medium hover:bg-amber-500/30 transition-all cursor-pointer shadow-sm"
+                        onClick={() => askAiToFix(devServer()?.errorMessage || devServer()?.errors?.[0]?.message || "Error al compilar o iniciar el dev server")}
+                      >
+                        <span>✨</span>
+                        <span>{language.t("livePreview.fixWithAi") || "Reparar con IA"}</span>
+                      </button>
+                    </Show>
+                  </div>
                 </Show>
                 <Show when={devServer()?.status === "starting"}>
                   <button
@@ -1319,8 +1371,16 @@ export function LivePreview(props: {
                   </Show>
                 </div>
                 <Show when={devServer()?.errorMessage}>
-                  <div class="rounded-lg bg-rose-500/10 border border-rose-500/20 px-3 py-2 text-[11px] text-rose-300">
-                    {devServer()?.errorMessage}
+                  <div class="rounded-lg bg-rose-500/10 border border-rose-500/20 px-3 py-2 text-[11px] text-rose-300 flex items-center justify-between gap-2">
+                    <span class="min-w-0 flex-1">{devServer()?.errorMessage}</span>
+                    <button
+                      type="button"
+                      class="flex shrink-0 items-center gap-1 rounded bg-amber-500/20 px-2 py-0.5 text-11-medium text-amber-300 hover:bg-amber-500/30 transition-colors cursor-pointer"
+                      onClick={() => askAiToFix(devServer()?.errorMessage || "")}
+                    >
+                      <span>✨</span>
+                      <span>{language.t("livePreview.fixWithAi") || "Reparar con IA"}</span>
+                    </button>
                   </div>
                 </Show>
               </div>
