@@ -29,37 +29,45 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.25"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — Rediseño GitHub, Voces en 4 Columnas, Skills Completas y Sandbox 100% Interactivo`
+  const releaseName = `Tiancode v${version} — Conexiones Gateway, Resiliencia OpenClaw, Memoria Hermes, OpenDesign UI y Sandbox Keep-Alive`
   const body = `## 🚀 Tiancode v${version}
 
-### 🐙 Rediseño Completo de GitHub en Ajustes
-- **Visualización Ampliada (1040px):** Mayor espacio, contraste y claridad para todos los elementos y detalles de repositorios y commits.
-- **Tarjetas de Repositorio Enriquecidas:** Muestran avatar del propietario, insignia de visibilidad (Público/Privado), indicador de Fork, rama por defecto, descripción completa sin cortes, punto de color y lenguaje de programación, contador de estrellas (⭐), forks (🍴) y fecha relativa de actualización.
-- **Acciones Rápidas:** Botón de copiar enlace directo al portapapeles, enlace "Ver ↗" en GitHub, y detección inteligente si el proyecto ya existe en tu equipo ("Abrir Proyecto") o si requiere clonación ("Clonar y Abrir").
-- **Control de Versiones (VCS) Mejorado:** Indicador en tiempo real de la rama actual y del estado del árbol de trabajo (árbol al día o archivos modificados pendientes).
-- **Ordenación:** Filtro por fecha de actualización, mayor número de estrellas o alfabético (A-Z).
+### 🌐 Apartado "Conexiones" en Configuración (Integraciones Externas)
+- **WhatsApp Gateway:** Emparejamiento interactivo mediante código temporal \`TIAN-XXXX-WAPP\` y notificaciones de compilación/pruebas.
+- **Telegram Bot:** Vinculación directa con token de bot, Chat ID, interruptor de enlace y botón de prueba ("Ping Test").
+- **Discord & Slack:** Soporte para Webhooks y bots entrantes para alertas de tareas en segundo plano.
+- **API Gateway & Webhooks Personalizados:** Disparo de eventos HTTP con firma criptográfica HMAC-SHA256 (\`session.completed\`, \`build.failed\`, \`task.interrupted\`).
 
-### 🎙️ Panel de Voces en 4 Columnas Compactas
-- **Grid de 4 Columnas:** Distribución limpia y semi-junta sin paginación excesiva para ver todas las 21 voces disponibles a simple vista.
-- **Adaptable:** Diseño responsive que se ajusta a 3, 2 o 1 columna según el ancho de la ventana.
+### 🛡️ Motor de Resiliencia (Inspirado en OpenClaw)
+- **Auto-reparación de Tool Calls:** Corrección sintáctica automática de JSON malformado emitido por LLMs (comillas faltantes, corchetes desbalanceados, comas finales y bloques markdown \`\`\`json).
+- **Detector de Bucles Infinitos SHA-256 & Circuit Breaker:** Monitoreo con hashes SHA-256 de herramientas y argumentos para detectar repeticiones exactas (\`generic_repeat\`), micro-variaciones erráticas (\`argument_churn\`), oscilaciones (\`ping_pong\`) y límite de seguridad de 25 llamadas a herramientas (\`circuit_breaker\`).
 
-### 🧠 Skills con Documentación Técnica Completa
-- **Manuales Exhaustivos:** Eliminación del truncamiento con puntos suspensivos en la lista de skills.
-- **Panel Detallado:** Renderizado de la documentación markdown completa con disparadores ("Cuándo Usar"), directivas de comportamiento del agente, ejemplos prácticos y comandos CLI (como \`database-drizzle-sqlite-pg\`).
+### 🧠 Inteligencia y Memoria Continua (Inspirado en Hermes Agent)
+- **Búsqueda Histórica Profunda (\`session_search\`):** Herramienta nativa para buscar en el historial SQLite soluciones, comandos y discusiones pasadas.
+- **Compactación con Protección Head & Tail:** Preserva el objetivo original del usuario (Turno 0) y los turnos recientes, podando salidas voluminosas de herramientas (>1,000 chars) antes de resumir.
+- **Streaming Scrubber para Modelos de Razonamiento:** Aislamiento y extracción limpia de bloques \`<think>...</think>\` (DeepSeek R1, Qwen QwQ) sin saturar el historial visible del usuario.
+- **Estándares de Autoría para Skills:** Metodología estricta de auto-aprendizaje continuo para creación de habilidades.
 
-### 🌐 Sandbox Preview 100% Interactivo
-- **Permisos Totales:** Se habilitaron en el iframe y en Electron los permisos de portapapeles (\`clipboard-read\`, \`clipboard-write\`), pantalla completa (\`fullscreen\`), puntero bloqueado (\`pointer-lock\` para juegos y 3D), audio/video, popups (\`allow-popups\`, \`allow-popups-to-escape-sandbox\`), y descarga.
-- **Khaos Browser y Web Apps:** Soporte interactivo completo con historial de navegación (\`goBack\`, \`goForward\`), recarga, marcadores dinámicos, limpieza de caché y eventos IPC simulados sin bloqueos.
+### 🎨 Motor de Diseño OpenDesign & Claude Design
+- **Anti-AI-Slop Rules:** Prohibición del índigo genérico de Tailwind (\`#6366f1\`), eliminación de degradados de dos paradas en encabezados y reemplazo de emojis por SVGs monolineales limpios.
+- **Calibración de Gusto con 3 Diales:** \`DESIGN_VARIANCE\`, \`MOTION_INTENSITY\` y \`VISUAL_DENSITY\`, junto con "Design Read" previo al código.
+- **Física de Micro-interacciones (Emil Kowalski):** Respuesta táctil con \`transform: scale(0.97)\` en \`:active\`, entradas naturales desde \`scale(0.95)\` y transiciones modernas con \`@starting-style\`.
+- **4 Presets de Diseño Canónicos:** Linear Dark, Claude Editorial, Vercel Precision y Stripe Modern.
+
+### 🖥️ Sandbox Keep-Alive & Inspector DOM Visual
+- **Iframe Keep-Alive Pool (Cero Recargas):** Alternancia no destructiva entre Código y Vista Previa mediante CSS; el estado de React/Vue, inputs de formularios, scroll y dev servers se mantienen 100% intactos.
+- **Inspector DOM en Tiempo Real (\`Ctrl+Alt+I\`):** Resaltado interactivo con borde cian de 2px, etiquetas semánticas, clases y cotas de dimensiones y márgenes.
+- **Detector de Pantalla Blanca & Auto-Fix:** Detección de fallos de renderizado en blanco (>4s con 0 elementos) con botón de 1-click **"Reparar con Tiancode"**.
 
 ### 🔒 Actualización 100% No Destructiva
-- Todas tus claves de API activas, configuraciones, sesiones, historial y MCPs se conservan intactas en tu equipo.
+- Todas tus claves de proveedores (Anthropic, OpenAI, OpenRouter, Google, Groq, etc.), configuraciones, sesiones, backups y servidores MCP se preservan intactos en tu equipo.
 
-### 📦 Descargas
+### 📦 Descargas Oficiales
 | Archivo | Tipo | Descripción |
 |---|---|---|
-| [**Tiancode.exe**](https://github.com/Dreftian/Tiancode/releases/download/${tag}/Tiancode.exe) | Instalador Windows | Instalador oficial con actualizaciones automáticas |
-| [**Tiancode-portable.exe**](https://github.com/Dreftian/Tiancode/releases/download/${tag}/Tiancode-portable.exe) | Portable Windows | Ejecutable directo sin instalación |
-| [**latest.yml**](https://github.com/Dreftian/Tiancode/releases/download/${tag}/latest.yml) | Metadatos | Registro para el actualizador automático |
+| [**Tiancode.exe**](https://github.com/Dreftian/Tiancode/releases/download/${tag}/Tiancode.exe) | Instalador Windows | Instalador oficial con actualizaciones automáticas no destructivas |
+| [**Tiancode-portable.exe**](https://github.com/Dreftian/Tiancode/releases/download/${tag}/Tiancode-portable.exe) | Portable Windows | Ejecutable autónomo sin instalación ni permisos administrativos |
+| [**latest.yml**](https://github.com/Dreftian/Tiancode/releases/download/${tag}/latest.yml) | Metadatos | Manifiesto criptográfico para el auto-updater |
 `
 
 
