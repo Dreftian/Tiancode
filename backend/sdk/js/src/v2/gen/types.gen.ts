@@ -2258,6 +2258,14 @@ export type McpResource = {
   client: string
 }
 
+export type OptimizePromptPayload = {
+  prompt: string
+  providerID?: string
+  modelID?: string
+  language?: string
+  style?: "standard" | "rigorous" | "minimal"
+}
+
 export type Symbol = {
   name: string
   kind: number
@@ -2337,6 +2345,12 @@ export type GithubRepo = {
   url: string
   private: boolean
   defaultBranch?: string
+  stars?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  forks?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  language?: string
+  updatedAt?: string
+  ownerAvatarUrl?: string
+  isFork?: boolean
 }
 
 export type GithubNotConnectedError = {
@@ -7979,6 +7993,35 @@ export type ExperimentalResourceListResponses = {
 export type ExperimentalResourceListResponse =
   ExperimentalResourceListResponses[keyof ExperimentalResourceListResponses]
 
+export type ExperimentalPromptOptimizeData = {
+  body?: OptimizePromptPayload
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/experimental/prompt/optimize"
+}
+
+export type ExperimentalPromptOptimizeErrors = {
+  /**
+   * BadRequest | InvalidRequestError
+   */
+  400: EffectHttpApiErrorBadRequest | InvalidRequestError
+}
+
+export type ExperimentalPromptOptimizeError = ExperimentalPromptOptimizeErrors[keyof ExperimentalPromptOptimizeErrors]
+
+export type ExperimentalPromptOptimizeResponses = {
+  /**
+   * Success
+   */
+  200: string
+}
+
+export type ExperimentalPromptOptimizeResponse =
+  ExperimentalPromptOptimizeResponses[keyof ExperimentalPromptOptimizeResponses]
+
 export type FindTextData = {
   body?: never
   path?: never
@@ -10376,6 +10419,7 @@ export type PreviewStatusResponses = {
     }>
     startedAt: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     errorMessage: string
+    isDesktop?: boolean
   }
 }
 
@@ -10420,6 +10464,7 @@ export type PreviewStartResponses = {
     }>
     startedAt: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     errorMessage: string
+    isDesktop?: boolean
   }
 }
 
@@ -10464,6 +10509,7 @@ export type PreviewStopResponses = {
     }>
     startedAt: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     errorMessage: string
+    isDesktop?: boolean
   }
 }
 
@@ -10508,6 +10554,7 @@ export type PreviewRestartResponses = {
     }>
     startedAt: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     errorMessage: string
+    isDesktop?: boolean
   }
 }
 

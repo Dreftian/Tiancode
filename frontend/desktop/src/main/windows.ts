@@ -24,9 +24,19 @@ const rendererRoot = join(root, "../renderer")
 const rendererProtocol = "oc"
 const rendererHost = "renderer"
 const clipboardWritePermission = "clipboard-sanitized-write"
+const clipboardReadPermission = "clipboard-read"
 const notificationPermission = "notifications"
 const mediaPermission = "media"
-const rendererPermissions = new Set([clipboardWritePermission, notificationPermission, mediaPermission])
+const fullscreenPermission = "fullscreen"
+const pointerLockPermission = "pointerLock"
+const rendererPermissions = new Set([
+  clipboardWritePermission,
+  clipboardReadPermission,
+  notificationPermission,
+  mediaPermission,
+  fullscreenPermission,
+  pointerLockPermission,
+])
 const oc2Theme = oc2ThemeJson as DesktopTheme
 const oc2Background = {
   light: resolveThemeVariant(oc2Theme.light, false)["background-base"],
@@ -615,7 +625,10 @@ function allowRendererPermissions(win: BrowserWindow) {
 }
 
 function isTrustedRendererUrl(value?: string) {
-  return isRendererUrl(value)
+  if (isRendererUrl(value)) return true
+  if (!value || !URL.canParse(value)) return false
+  const url = new URL(value)
+  return url.hostname === "127.0.0.1" || url.hostname === "localhost"
 }
 
 // Los <webview> de preview corren en particiones propias que los handlers de

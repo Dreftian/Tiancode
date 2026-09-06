@@ -58,7 +58,7 @@ import {
 } from "@/utils/asr"
 import "./voices.css"
 
-const PAGE_SIZE = 10
+const PAGE_SIZE = 24
 const PROBE_TEXT_EN = "Hello! This is Tiancode speaking."
 const PROBE_TEXT_ES = "Hola, soy la voz de Tiancode en español."
 const voiceProbeKey = (voiceID: string) => `voice:${voiceID}`
@@ -1047,16 +1047,18 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
                 when={filteredVoices().length > 0 || status.loading}
                 fallback={<div class="settings-v2-skills-status">{language.t("settings.voices.voices.empty")}</div>}
               >
-                <SettingsListV2>
+                <div class="settings-v2-voices-grid">
                   <Show
                     when={filteredVoices().length > 0}
                     fallback={
-                      <For each={[1, 2, 3, 4]}>
+                      <For each={[1, 2, 3, 4, 5, 6, 7, 8]}>
                         {() => (
-                          <div class="settings-v2-voices-row opacity-40 pointer-events-none">
-                            <span class="settings-v2-voices-row-radio" />
-                            <div class="settings-v2-voices-row-copy">
-                              <span class="settings-v2-voices-row-name">Cargando catálogo de voces...</span>
+                          <div class="settings-v2-voices-card opacity-40 pointer-events-none">
+                            <div class="settings-v2-voices-card-header">
+                              <div class="settings-v2-voices-card-lead">
+                                <span class="settings-v2-voices-card-radio" />
+                                <span class="settings-v2-voices-card-name">Cargando catálogo...</span>
+                              </div>
                             </div>
                           </div>
                         )}
@@ -1064,17 +1066,18 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
                     }
                   >
                     <For each={pageVoices()}>
-                    {(voice) => {
-                      const selectable = canSelect(voice)
-                      const downloadProgress = piperProgress()[voice.id]
-                      return (
-                        <>
+                      {(voice) => {
+                        const selectable = canSelect(voice)
+                        const downloadProgress = piperProgress()[voice.id]
+                        const isSelected = () => selected() === voice.id
+
+                        return (
                           <div
                             role="button"
                             tabIndex={selectable ? 0 : -1}
                             aria-disabled={!selectable || undefined}
-                            class="settings-v2-voices-row"
-                            data-selected={selected() === voice.id || undefined}
+                            class="settings-v2-voices-card"
+                            data-selected={isSelected() || undefined}
                             data-disabled={!selectable || undefined}
                             onClick={() => {
                               if (selectable) void selectVoice(voice)
@@ -1085,17 +1088,55 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
                               void selectVoice(voice)
                             }}
                           >
-                            <span
-                              class="settings-v2-voices-row-radio"
-                              data-checked={selected() === voice.id || undefined}
-                            >
-                              <Show when={selected() === voice.id}>
-                                <Icon name="check-small" size="small" />
-                              </Show>
-                            </span>
-                            <div class="settings-v2-voices-row-copy">
-                              <div class="settings-v2-voices-row-name-row">
-                                <span class="settings-v2-voices-row-name">{voice.name}</span>
+                            {/* 1. Cabecera: Radio + Nombre + Help + Switch */}
+                            <div class="settings-v2-voices-card-header">
+                              <div class="settings-v2-voices-card-lead">
+                                <span
+                                  class="settings-v2-voices-card-radio"
+                                  data-checked={isSelected() || undefined}
+                                >
+                                  <Show when={isSelected()}>
+                                    <Icon name="check-small" size="small" />
+                                  </Show>
+                                </span>
+                                <span class="settings-v2-voices-card-name" title={voice.name}>
+                                  {voice.name}
+                                </span>
+                              </div>
+
+                              <div class="settings-v2-voices-card-actions-top">
+                                <IconButtonV2
+                                  size="small"
+                                  variant="ghost-muted"
+                                  aria-label={language.t("settings.voices.voice.info")}
+                                  icon={<IconV2 name="help" size="small" />}
+                                  onClick={(event: MouseEvent) => {
+                                    event.stopPropagation()
+                                    setInfoVoice(infoVoice() === voice.id ? undefined : voice.id)
+                                  }}
+                                />
+                                <div class="settings-v2-voices-card-toggle" onClick={(e: MouseEvent) => e.stopPropagation()}>
+                                  <Switch
+                                    checked={voice.enabled !== false}
+                                    onChange={(enabled) => void toggleEnabled(voice, enabled)}
+                                    hideLabel
+                                  >
+                                    {language.t("settings.voices.voice.enabled")}
+                                  </Switch>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* 2. Cuerpo: Meta (Idioma / Tamaño) + Chips */}
+                            <div class="settings-v2-voices-card-body">
+                              <div class="settings-v2-voices-card-meta">
+                                <span>{languageLabel(voice.language)}</span>
+                                <Show when={voice.sizeMb}>
+                                  <span>• {voice.sizeMb} MB</span>
+                                </Show>
+                              </div>
+
+                              <div class="settings-v2-voices-card-chips">
                                 <span class="settings-v2-voices-chip" data-variant={voice.gender}>
                                   {language.t(
                                     voice.gender === "female"
@@ -1123,144 +1164,112 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
                                   </span>
                                 </Show>
                               </div>
-                              <div class="settings-v2-voices-row-meta">
-                                <span>{languageLabel(voice.language)}</span>
-                                <Show when={voice.sizeMb}>
-                                  <span>{language.t("settings.voices.voice.size", { size: voice.sizeMb! })}</span>
-                                </Show>
-                              </div>
                             </div>
-                            <IconButtonV2
-                              size="small"
-                              variant="ghost-muted"
-                              aria-label={language.t("settings.voices.voice.info")}
-                              icon={<IconV2 name="help" size="small" />}
-                              onClick={(event: MouseEvent) => {
-                                event.stopPropagation()
-                                setInfoVoice(infoVoice() === voice.id ? undefined : voice.id)
-                              }}
-                            />
-                            <div class="settings-v2-voices-row-toggle">
-                              <Switch
-                                checked={voice.enabled !== false}
-                                onChange={(enabled) => void toggleEnabled(voice, enabled)}
-                                hideLabel
+
+                            {/* Detalle informativo compacto si se activa info */}
+                            <Show when={infoVoice() === voice.id}>
+                              <div
+                                class="settings-v2-voices-card-info"
+                                onClick={(e: MouseEvent) => e.stopPropagation()}
                               >
-                                {language.t("settings.voices.voice.enabled")}
-                              </Switch>
-                            </div>
-                            <Show
-                              when={voice.engine === "piper" || voice.engine === "kokoro-es"}
-                              fallback={
-                                <span class="settings-v2-voices-chip" data-variant="builtin">
-                                  {language.t("settings.voices.voice.builtin")}
-                                </span>
-                              }
-                            >
-                              <Show
-                                when={downloadProgress !== undefined}
-                                fallback={
+                                <div class="flex items-center justify-between text-[11px] font-semibold text-text-base border-b border-white/10 pb-1 mb-1">
+                                  <span>{voice.name}</span>
+                                  <button
+                                    type="button"
+                                    class="text-text-weaker hover:text-text-base text-[11px] p-0.5 leading-none cursor-pointer"
+                                    onClick={() => setInfoVoice(undefined)}
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                                <div class="settings-v2-voices-info-grid">
+                                  <span class="settings-v2-voices-info-caption">Motor</span>
+                                  <span class="settings-v2-voices-info-value">{voice.engine}</span>
+                                  <span class="settings-v2-voices-info-caption">Licencia</span>
+                                  <span class="settings-v2-voices-info-value">{voice.license ?? "Apache 2.0"}</span>
+                                </div>
+                              </div>
+                            </Show>
+
+                            {/* 3. Pie: Estado / Descarga / Eliminar + Botón Probar */}
+                            <div class="settings-v2-voices-card-footer">
+                              <div class="settings-v2-voices-card-status">
+                                <Show
+                                  when={voice.engine === "piper" || voice.engine === "kokoro-es"}
+                                  fallback={
+                                    <span class="settings-v2-voices-chip" data-variant="builtin">
+                                      {language.t("settings.voices.voice.builtin")}
+                                    </span>
+                                  }
+                                >
                                   <Show
-                                    when={voice.downloaded === true}
+                                    when={downloadProgress !== undefined}
                                     fallback={
-                                      <ButtonV2
-                                        type="button"
-                                        variant="outline"
-                                        size="small"
-                                        onClick={(event: MouseEvent) => {
-                                          event.stopPropagation()
-                                          void downloadVoice(voice)
-                                        }}
+                                      <Show
+                                        when={voice.downloaded === true}
+                                        fallback={
+                                          <ButtonV2
+                                            type="button"
+                                            variant="outline"
+                                            size="small"
+                                            onClick={(event: MouseEvent) => {
+                                              event.stopPropagation()
+                                              void downloadVoice(voice)
+                                            }}
+                                          >
+                                            {language.t("settings.voices.voice.download")}
+                                          </ButtonV2>
+                                        }
                                       >
-                                        {language.t("settings.voices.voice.download")}
-                                      </ButtonV2>
+                                        <ButtonV2
+                                          type="button"
+                                          variant="danger"
+                                          size="small"
+                                          disabled={deleting()[voice.id] === true}
+                                          onClick={(event: MouseEvent) => {
+                                            event.stopPropagation()
+                                            void deleteVoice(voice)
+                                          }}
+                                        >
+                                          {language.t("settings.voices.voice.delete")}
+                                        </ButtonV2>
+                                      </Show>
                                     }
                                   >
-                                    <ButtonV2
-                                      type="button"
-                                      variant="danger"
-                                      size="small"
-                                      disabled={deleting()[voice.id] === true}
-                                      onClick={(event: MouseEvent) => {
-                                        event.stopPropagation()
-                                        void deleteVoice(voice)
-                                      }}
-                                    >
-                                      {language.t("settings.voices.voice.delete")}
-                                    </ButtonV2>
+                                    <div class="settings-v2-voices-card-progress">
+                                      <div class="settings-v2-voices-progress-track">
+                                        <div
+                                          class="settings-v2-voices-progress-fill"
+                                          style={{ width: `${Math.max(0, Math.min(100, downloadProgress))}%` }}
+                                        />
+                                      </div>
+                                      <span class="settings-v2-voices-card-progress-label">
+                                        {Math.max(0, Math.min(100, downloadProgress))}%
+                                      </span>
+                                    </div>
                                   </Show>
-                                }
-                              >
-                                <div class="settings-v2-voices-row-progress">
-                                  <div class="settings-v2-voices-progress-track">
-                                    <div
-                                      class="settings-v2-voices-progress-fill"
-                                      style={{ width: `${Math.max(0, Math.min(100, downloadProgress))}%` }}
-                                    />
-                                  </div>
-                                  <span class="settings-v2-voices-row-progress-label">
-                                    {Math.max(0, Math.min(100, downloadProgress))}%
-                                  </span>
-                                </div>
-                              </Show>
-                            </Show>
-                            <ButtonV2
-                              type="button"
-                              variant="outline"
-                              size="small"
-                              disabled={!voice.supported || deleting()[voice.id] === true}
-                              onClick={(event: MouseEvent) => {
-                                event.stopPropagation()
-                                void probe(voice)
-                              }}
-                            >
-                              {probeLabel(voice)}
-                            </ButtonV2>
-                          </div>
-                          <Show when={infoVoice() === voice.id}>
-                            <div class="settings-v2-voices-info">
-                              <div class="settings-v2-voices-info-title">{voice.name}</div>
-                              <div class="settings-v2-voices-info-grid">
-                                <span class="settings-v2-voices-info-caption">
-                                  {language.t(
-                                    voice.engine === "piper"
-                                      ? "settings.voices.voice.engine.piper"
-                                      : voice.engine === "kokoro-es"
-                                        ? "settings.voices.voice.engine.kokoroEs"
-                                        : "settings.voices.voice.engine.kokoro",
-                                  )}
-                                </span>
-                                <span class="settings-v2-voices-info-value">{languageLabel(voice.language)}</span>
-                                <span class="settings-v2-voices-info-caption">
-                                  {language.t(
-                                    voice.gender === "female"
-                                      ? "settings.voices.gender.female"
-                                      : "settings.voices.gender.male",
-                                  )}
-                                </span>
-                                <span class="settings-v2-voices-info-value">
-                                  {voice.sizeMb
-                                    ? language.t("settings.voices.voice.size", { size: voice.sizeMb })
-                                    : "—"}
-                                </span>
-                                <span class="settings-v2-voices-info-caption">
-                                  {language.t("settings.voices.voice.license")}
-                                </span>
-                                <span class="settings-v2-voices-info-value">{voice.license ?? "—"}</span>
-                                <Show when={selected() === voice.id}>
-                                  <span class="settings-v2-voices-chip" data-variant="builtin">
-                                    {language.t("settings.voices.select.title")}
-                                  </span>
                                 </Show>
                               </div>
+
+                              <ButtonV2
+                                type="button"
+                                variant="outline"
+                                size="small"
+                                disabled={!voice.supported || deleting()[voice.id] === true}
+                                onClick={(event: MouseEvent) => {
+                                  event.stopPropagation()
+                                  void probe(voice)
+                                }}
+                              >
+                                {probeLabel(voice)}
+                              </ButtonV2>
                             </div>
-                          </Show>
-                        </>
-                      )
-                    }}
-                  </For>
+                          </div>
+                        )
+                      }}
+                    </For>
                   </Show>
-                </SettingsListV2>
+                </div>
                 <Show when={pages() > 1}>
                   <div class="mt-3">
                     <SettingsPagerV2

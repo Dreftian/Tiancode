@@ -397,12 +397,48 @@ export function LivePreview(props: {
       if (iframe?.contentWindow) {
         const win = iframe.contentWindow as any
         if (!win.electron) {
+          const ipcListeners = new Map<string, Set<Function>>()
           win.electron = {
             ipcRenderer: {
-              send: () => {},
-              on: () => () => {},
-              invoke: async () => ({}),
-              removeListener: () => {},
+              send: (channel: string, ...args: any[]) => {
+                const listeners = ipcListeners.get(channel)
+                if (listeners) {
+                  listeners.forEach((fn) => {
+                    try { fn({}, ...args) } catch {}
+                  })
+                }
+              },
+              on: (channel: string, listener: Function) => {
+                if (!ipcListeners.has(channel)) ipcListeners.set(channel, new Set())
+                ipcListeners.get(channel)!.add(listener)
+                return () => ipcListeners.get(channel)?.delete(listener)
+              },
+              once: (channel: string, listener: Function) => {
+                const wrapper = (...args: any[]) => {
+                  ipcListeners.get(channel)?.delete(wrapper)
+                  listener(...args)
+                }
+                if (!ipcListeners.has(channel)) ipcListeners.set(channel, new Set())
+                ipcListeners.get(channel)!.add(wrapper)
+              },
+              invoke: async (channel: string, ...args: any[]) => {
+                if (channel === "get-version" || channel === "app:get-version") return "1.0.0"
+                if (channel === "get-platform" || channel === "app:get-platform") return "win32"
+                if (channel === "dialog:openFile" || channel === "dialog:showOpenDialog") return { canceled: false, filePaths: [] }
+                if (channel === "dialog:showSaveDialog") return { canceled: false, filePath: "output.txt" }
+                if (channel === "clipboard:readText") return navigator.clipboard?.readText?.() ?? ""
+                if (channel === "clipboard:writeText") {
+                  if (navigator.clipboard?.writeText && args[0]) navigator.clipboard.writeText(args[0])
+                  return true
+                }
+                return { success: true }
+              },
+              removeListener: (channel: string, listener: Function) => {
+                ipcListeners.get(channel)?.delete(listener)
+              },
+              removeAllListeners: (channel: string) => {
+                ipcListeners.delete(channel)
+              },
             },
           }
         }
@@ -416,7 +452,7 @@ export function LivePreview(props: {
           win.process = {
             platform: "win32",
             versions: { electron: "37.0.0", chrome: "130.0.0", node: "22.0.0" },
-            env: {},
+            env: { NODE_ENV: "development" },
           }
         }
         if (!win.ventd) {
@@ -436,8 +472,39 @@ export function LivePreview(props: {
           }
         }
         if (!win.khaos) {
+          type KhaosTab = {
+            id: number
+            title: string
+            url: string
+            favicon: string
+            loading: boolean
+            canGoBack: boolean
+            canGoForward: boolean
+            audible: boolean
+            muted: boolean
+            isApp: boolean
+            history: string[]
+            historyIndex: number
+          }
+          const initialUrl = "https://www.google.com"
+          const mockTabs: KhaosTab[] = [
+            {
+              id: 1,
+              title: "Nueva pestaña",
+              url: initialUrl,
+              favicon: "",
+              loading: false,
+              canGoBack: false,
+              canGoForward: false,
+              audible: false,
+              muted: false,
+              isApp: false,
+              history: [initialUrl],
+              historyIndex: 0,
+            },
+          ]
           const mockState = {
-            tabs: [{ id: 1, title: "Khaos Browser - Vista Previa", url: "https://example.com", favicon: "", loading: false, canGoBack: false, canGoForward: false, audible: false, muted: false, isApp: false }],
+            tabs: mockTabs,
             activeTabId: 1,
             blocker: { sessionBlocked: 14, listDomains: 42500, enabled: true },
             totalCpu: 8,
@@ -453,11 +520,28 @@ export function LivePreview(props: {
             ramLimitMb: 4096,
             cpuLimitPercent: 50,
           }
+          const bookmarks = [
+            { id: 1, title: "Google", url: "https://www.google.com", createdAt: Date.now() - 3600000 },
+            { id: 2, title: "GitHub", url: "https://github.com", createdAt: Date.now() - 7200000 },
+          ]
+          const historyList = [
+            { id: 1, title: "Google", url: "https://www.google.com", visitedAt: Date.now() - 1000 },
+          ]
           const stateListeners = new Set<(s: typeof mockState) => void>()
+          const notifyListeners = () => {
+            stateListeners.forEach((fn) => {
+              try { fn({ ...mockState, tabs: [...mockState.tabs] }) } catch {}
+            })
+          }
+
+          const getActiveTab = () => mockState.tabs.find((t) => t.id === mockState.activeTabId) || mockState.tabs[0]
+
           win.khaos = {
             onState: (cb: (s: typeof mockState) => void) => {
               stateListeners.add(cb)
-              setTimeout(() => cb(mockState), 10)
+              setTimeout(() => {
+                try { cb({ ...mockState, tabs: [...mockState.tabs] }) } catch {}
+              }, 10)
               return () => stateListeners.delete(cb)
             },
             getSettings: async () => mockSettings,
@@ -467,41 +551,148 @@ export function LivePreview(props: {
             },
             newTab: async (opts?: { url?: string; background?: boolean }) => {
               const id = Date.now()
-              mockState.tabs.push({ id, title: "Nueva pestaña", url: opts?.url || "about:blank", favicon: "", loading: false, canGoBack: false, canGoForward: false, audible: false, muted: false, isApp: false })
+              const url = opts?.url || "https://www.google.com"
+              const title = url.replace(/^https?:\/\//, "").split("/")[0] || "Nueva pestaña"
+              const tab: KhaosTab = {
+                id,
+                title,
+                url,
+                favicon: "",
+                loading: false,
+                canGoBack: false,
+                canGoForward: false,
+                audible: false,
+                muted: false,
+                isApp: false,
+                history: [url],
+                historyIndex: 0,
+              }
+              mockState.tabs.push(tab)
               if (!opts?.background) mockState.activeTabId = id
-              stateListeners.forEach((fn) => fn(mockState))
+              historyList.unshift({ id: Date.now(), title, url, visitedAt: Date.now() })
+              notifyListeners()
               return id
             },
             closeTab: async (id: number) => {
               mockState.tabs = mockState.tabs.filter((t) => t.id !== id)
-              if (mockState.activeTabId === id && mockState.tabs.length > 0) mockState.activeTabId = mockState.tabs[0].id
-              stateListeners.forEach((fn) => fn(mockState))
+              if (mockState.tabs.length === 0) {
+                const newId = Date.now()
+                mockState.tabs.push({
+                  id: newId,
+                  title: "Nueva pestaña",
+                  url: "about:blank",
+                  favicon: "",
+                  loading: false,
+                  canGoBack: false,
+                  canGoForward: false,
+                  audible: false,
+                  muted: false,
+                  isApp: false,
+                  history: ["about:blank"],
+                  historyIndex: 0,
+                })
+                mockState.activeTabId = newId
+              } else if (mockState.activeTabId === id) {
+                mockState.activeTabId = mockState.tabs[mockState.tabs.length - 1].id
+              }
+              notifyListeners()
             },
             activateTab: async (id: number) => {
               mockState.activeTabId = id
-              stateListeners.forEach((fn) => fn(mockState))
+              notifyListeners()
             },
             navigate: async (id: number, input: string) => {
               const tab = mockState.tabs.find((t) => t.id === id)
-              if (tab) tab.url = input
-              stateListeners.forEach((fn) => fn(mockState))
+              if (!tab) return
+              let targetUrl = input.trim()
+              if (!targetUrl.startsWith("http://") && !targetUrl.startsWith("https://") && !targetUrl.startsWith("about:")) {
+                if (targetUrl.includes(".") && !targetUrl.includes(" ")) {
+                  targetUrl = "https://" + targetUrl
+                } else {
+                  targetUrl = `https://www.google.com/search?q=${encodeURIComponent(targetUrl)}`
+                }
+              }
+              tab.history = tab.history.slice(0, tab.historyIndex + 1)
+              tab.history.push(targetUrl)
+              tab.historyIndex = tab.history.length - 1
+              tab.url = targetUrl
+              tab.title = targetUrl.replace(/^https?:\/\//, "").split("/")[0] || targetUrl
+              tab.canGoBack = tab.historyIndex > 0
+              tab.canGoForward = false
+              tab.loading = true
+              historyList.unshift({ id: Date.now(), title: tab.title, url: targetUrl, visitedAt: Date.now() })
+              notifyListeners()
+              setTimeout(() => {
+                tab.loading = false
+                notifyListeners()
+              }, 400)
             },
-            goBack: async () => {},
-            goForward: async () => {},
-            reload: async () => {},
-            stop: async () => {},
+            goBack: async () => {
+              const tab = getActiveTab()
+              if (tab && tab.historyIndex > 0) {
+                tab.historyIndex--
+                tab.url = tab.history[tab.historyIndex]
+                tab.title = tab.url.replace(/^https?:\/\//, "").split("/")[0] || tab.url
+                tab.canGoBack = tab.historyIndex > 0
+                tab.canGoForward = tab.historyIndex < tab.history.length - 1
+                notifyListeners()
+              }
+            },
+            goForward: async () => {
+              const tab = getActiveTab()
+              if (tab && tab.historyIndex < tab.history.length - 1) {
+                tab.historyIndex++
+                tab.url = tab.history[tab.historyIndex]
+                tab.title = tab.url.replace(/^https?:\/\//, "").split("/")[0] || tab.url
+                tab.canGoBack = tab.historyIndex > 0
+                tab.canGoForward = tab.historyIndex < tab.history.length - 1
+                notifyListeners()
+              }
+            },
+            reload: async () => {
+              const tab = getActiveTab()
+              if (tab) {
+                tab.loading = true
+                notifyListeners()
+                setTimeout(() => {
+                  tab.loading = false
+                  notifyListeners()
+                }, 350)
+              }
+            },
+            stop: async () => {
+              const tab = getActiveTab()
+              if (tab) {
+                tab.loading = false
+                notifyListeners()
+              }
+            },
             discardTab: async () => {},
             killTab: async () => {},
             minimize: () => {},
             toggleMaximize: () => {},
             closeWindow: () => {},
-            listHistory: async () => [],
-            clearHistory: async () => {},
-            listBookmarks: async () => [],
-            toggleBookmark: async () => true,
-            runCleaner: async () => ({ freedMb: 120 }),
-            smartHomeStatus: async () => ({ connected: false }),
-            smartHomeTest: async () => false,
+            listHistory: async () => historyList,
+            clearHistory: async () => {
+              historyList.length = 0
+              return true
+            },
+            listBookmarks: async () => bookmarks,
+            toggleBookmark: async (tabIdOrUrl?: any) => {
+              const url = typeof tabIdOrUrl === "string" ? tabIdOrUrl : getActiveTab()?.url || ""
+              const existingIndex = bookmarks.findIndex((b) => b.url === url)
+              if (existingIndex >= 0) {
+                bookmarks.splice(existingIndex, 1)
+                return false
+              } else {
+                const title = getActiveTab()?.title || url
+                bookmarks.push({ id: Date.now(), title, url, createdAt: Date.now() })
+                return true
+              }
+            },
+            runCleaner: async () => ({ freedMb: 142 }),
+            smartHomeStatus: async () => ({ connected: true, devices: [{ id: "dev-1", name: "Estudio Inteligente", state: "on" }] }),
+            smartHomeTest: async () => true,
             setChromeHeight: () => {},
           }
         }
@@ -1219,8 +1410,9 @@ export function LivePreview(props: {
                   data-slot="live-preview-iframe"
                   src={target}
                   title={language.t("liveView.tab.app")}
-                  sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-downloads"
-                  referrerpolicy="no-referrer"
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-downloads allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-top-navigation-by-user-activation allow-storage-access-by-user-activation"
+                  allow="accelerometer; autoplay; camera; clipboard-read; clipboard-write; display-capture; encrypted-media; fullscreen; gamepad; geolocation; gyroscope; hid; microphone; midi; payment; picture-in-picture; screen-wake-lock; usb; web-share"
+                  referrerpolicy="no-referrer-when-downgrade"
                   class="absolute inset-0 top-0 left-0 border-0 bg-white"
                   style={iframeStyle()}
                   onLoad={completeIframeLoad}

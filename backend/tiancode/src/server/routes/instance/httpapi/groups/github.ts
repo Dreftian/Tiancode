@@ -41,6 +41,12 @@ export const GithubRepo = Schema.Struct({
   url: Schema.String,
   private: Schema.Boolean,
   defaultBranch: Schema.optional(Schema.String),
+  stars: Schema.optional(Schema.Number),
+  forks: Schema.optional(Schema.Number),
+  language: Schema.optional(Schema.String),
+  updatedAt: Schema.optional(Schema.String),
+  ownerAvatarUrl: Schema.optional(Schema.String),
+  isFork: Schema.optional(Schema.Boolean),
 }).annotate({ identifier: "GithubRepo" })
 
 export const GithubReposQuery = Schema.Struct({

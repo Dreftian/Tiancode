@@ -29,28 +29,30 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.25"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — Security Suite: Agentes de Pruebas de Seguridad, Skills Curadas y MCPs`
-  const body = `## 🚀 Tiancode v${version} — Security Suite: Agentes de Pruebas de Seguridad, Skills Curadas y MCPs
+  const releaseName = `Tiancode v${version} — Rediseño GitHub, Voces en 4 Columnas, Skills Completas y Sandbox 100% Interactivo`
+  const body = `## 🚀 Tiancode v${version}
 
-### 🕵️ Nuevos Sub-agentes nativos
-- **\`pentest\`** — Especialista en auditoría de seguridad autorizada (web, red, APIs, AD): recon → validación con evidencia → calibración de severidad → reporte accionable. Incluye protocolo CLI anti-alucinación (verificar flags con \`--help\`, no asumir flags entre herramientas, quoting de payloads), reglas msfconsole (\`-x "…; exit"\`) y base de conocimiento de herramientas (nmap, ffuf, sqlmap, nuclei, hydra, impacket, radare2, searchsploit…).
-- **\`llm-redteam\`** — Red teaming **defensivo** de tus propios agentes LLM: pruebas de prompt injection/jailbreak con jueces de scoring (1-10), escalado h4rm3l → TAP → PAIR, catálogo de riesgos OWASP-LLM y recomendaciones de hardening. Solo sistemas propios o con permiso escrito.
+### 🐙 Rediseño Completo de GitHub en Ajustes
+- **Visualización Ampliada (1040px):** Mayor espacio, contraste y claridad para todos los elementos y detalles de repositorios y commits.
+- **Tarjetas de Repositorio Enriquecidas:** Muestran avatar del propietario, insignia de visibilidad (Público/Privado), indicador de Fork, rama por defecto, descripción completa sin cortes, punto de color y lenguaje de programación, contador de estrellas (⭐), forks (🍴) y fecha relativa de actualización.
+- **Acciones Rápidas:** Botón de copiar enlace directo al portapapeles, enlace "Ver ↗" en GitHub, y detección inteligente si el proyecto ya existe en tu equipo ("Abrir Proyecto") o si requiere clonación ("Clonar y Abrir").
+- **Control de Versiones (VCS) Mejorado:** Indicador en tiempo real de la rama actual y del estado del árbol de trabajo (árbol al día o archivos modificados pendientes).
+- **Ordenación:** Filtro por fecha de actualización, mayor número de estrellas o alfabético (A-Z).
 
-### 📚 Nueva biblioteca de skills de seguridad (30+ skills nativas)
-- **Metodología:** \`pentest-scope-roe\` (regla de oro: alcance primero, siempre; parar si no está claro), \`web-pentest-runbook\` (plan completo de auditoría web), \`pentest-engagement-scope\` (plantilla de alcance/SoW), \`pentest-scan-modes\` (quick/standard/deep).
-- **Recon y pruebas:** nmap, subdominios, fuzzing web, httpx, nuclei, sqlmap+SQLi, XSS, SSRF, RCE, IDOR, JWT, request smuggling, lógica de negocio, race conditions, path traversal/LFI, CSRF, XXE, SSTI, browser security, APIs, GraphQL, OAuth, Active Directory.
-- **Defensa de IA:** LLM applications (OWASP LLM01-10), prompt injection, agentic system security, electron desktop apps, red team de agentes + plantillas de ataque.
-- **Calidad de hallazgos:** calibración de severidad, counterevidence, verificación de fixes.
+### 🎙️ Panel de Voces en 4 Columnas Compactas
+- **Grid de 4 Columnas:** Distribución limpia y semi-junta sin paginación excesiva para ver todas las 21 voces disponibles a simple vista.
+- **Adaptable:** Diseño responsive que se ajusta a 3, 2 o 1 columna según el ancho de la ventana.
 
-### 🔌 Nuevos presets en el catálogo Discover (MCP)
-- **PenTest MCP** (\`npx -y pentest-mcp\`): nmap, sqlmap, hydra, hashcat, nuclei, ffuf… con contexto de alcance y mitigación de prompt injection.
-- **Kali MCP (Docker)**: Kali Linux en Docker con ~50 herramientas (requiere el contenedor local en \`http://localhost:666/mcp\`).
+### 🧠 Skills con Documentación Técnica Completa
+- **Manuales Exhaustivos:** Eliminación del truncamiento con puntos suspensivos en la lista de skills.
+- **Panel Detallado:** Renderizado de la documentación markdown completa con disparadores ("Cuándo Usar"), directivas de comportamiento del agente, ejemplos prácticos y comandos CLI (como \`database-drizzle-sqlite-pg\`).
 
-### ⚖️ Uso responsable
-Todas las capacidades de seguridad exigen alcance/autorización explícitas. Los agentes **nunca** prueban fuera de alcance y piden confirmación si el alcance no está claro. Material adaptado de proyectos open-source (MIT/Apache-2.0): usestrix/strix (skills), PentAGI (prompts), SploitAgent (scope-roe), AI4I HackAgent (red teaming), pentest-mcp y kali-mcp.
+### 🌐 Sandbox Preview 100% Interactivo
+- **Permisos Totales:** Se habilitaron en el iframe y en Electron los permisos de portapapeles (\`clipboard-read\`, \`clipboard-write\`), pantalla completa (\`fullscreen\`), puntero bloqueado (\`pointer-lock\` para juegos y 3D), audio/video, popups (\`allow-popups\`, \`allow-popups-to-escape-sandbox\`), y descarga.
+- **Khaos Browser y Web Apps:** Soporte interactivo completo con historial de navegación (\`goBack\`, \`goForward\`), recarga, marcadores dinámicos, limpieza de caché y eventos IPC simulados sin bloqueos.
 
 ### 🔒 Actualización 100% No Destructiva
-- Todas tus claves de API, sesiones, historial, MCPs y configuraciones se conservan intactas en tu equipo.
+- Todas tus claves de API activas, configuraciones, sesiones, historial y MCPs se conservan intactas en tu equipo.
 
 ### 📦 Descargas
 | Archivo | Tipo | Descripción |

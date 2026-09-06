@@ -493,6 +493,29 @@ Buenas prácticas para modelado de datos relacionales, consultas optimizadas y m
 - Migraciones incrementales y no destructivas.
 - Índices adecuados en columnas de búsqueda y filtrado frecuente.`,
 
+  "database-drizzle-sqlite-pg": `# Modelado de Bases de Datos con Drizzle ORM (SQLite, LibSQL y PostgreSQL)
+
+## Descripción General
+Directrices completas para diseñar bases de datos relacionales, crear esquemas tipados, ejecutar consultas de alto rendimiento y gestionar migraciones seguras sin tiempo de inactividad con Drizzle ORM.
+
+## Cuándo Usar
+- Creación, modificación o refactorización de tablas y entidades relacionales.
+- Configuración de clientes Drizzle (\`drizzle-orm/better-sqlite3\`, \`drizzle-orm/libsql\`, \`@effect/sql-sqlite-bun\`).
+- Definición de relaciones tipadas 1-a-1, 1-a-Muchos y Muchos-a-Muchos con Drizzle Relations.
+- Generación y ejecución de migraciones automáticas mediante \`drizzle-kit\`.
+- Validación de datos con esquemas Zod o Effect Schema en capas de entrada y salida.
+
+## Directivas Principales
+1. **Snake Case Estricto en SQL**: Define columnas como \`id\`, \`created_at\`, \`user_id\` de forma nativa para evitar discrepancias con el motor SQL.
+2. **Cero Tipos \`any\`**: Utiliza \`typeof table.$inferSelect\` y \`typeof table.$inferInsert\` para inferencia de tipos estricta.
+3. **Migraciones Seguras (Zero-Downtime)**: Toda nueva columna no nula (\`notNull()\`) debe incluir valor por defecto (\`default(...)\`).
+4. **Relaciones Declarativas**: Define \`relations(table, ({ one, many }) => ...)\` para permitir consultas con \`db.query.*\` y carga ansiosa (*eager loading*).
+
+## Comandos CLI Fundamentales
+- \`bunx drizzle-kit generate\`: Genera los archivos de migración SQL analizando los cambios de esquema.
+- \`bunx drizzle-kit push\`: Aplica cambios directamente al esquema de la base de datos para desarrollo ágil.
+- \`bunx drizzle-kit studio\`: Inicia el explorador visual de base de datos en el navegador.`,
+
   "documentation-and-guides": `# Documentación Técnica y Guías
 
 ## Descripción General
@@ -624,44 +647,53 @@ function localizeSkillDescription(name: string, defaultDesc: string | undefined,
   return defaultDesc ?? ""
 }
 
-function localizeSkillContent(name: string, content: string | undefined, isSpanish: boolean): string {
-  if (content && content.trim().length > 0) {
-    if (!isSpanish) return content
+function localizeSkillContent(name: string, content: string | undefined, isSpanish: boolean, description?: string): string {
+  const baseContent = (content && content.trim().length > 0 && content.trim() !== `# ${name}`)
+    ? content.trim()
+    : SKILL_ES_CONTENTS[name]
+
+  if (baseContent && baseContent.length > 0 && baseContent !== `# ${name}\n\n${description}`) {
+    if (!isSpanish) return baseContent
 
     // Conserva el 100% de la documentación técnica completa, bloques de código, tablas y ejemplos,
     // adaptando dinámicamente los encabezados y secciones estándar a español.
-    return content
-    .replace(/^#\s+Overview/gm, "# Descripción general")
-    .replace(/^##\s+Overview/gm, "## Descripción general")
-    .replace(/^###\s+Overview/gm, "### Descripción general")
-    .replace(/^#\s+When to Use/gm, "# Cuándo usar")
-    .replace(/^##\s+When to Use/gm, "## Cuándo usar")
-    .replace(/^###\s+When to Use/gm, "### Cuándo usar")
-    .replace(/^#\s+Core Principles/gm, "# Principios fundamentales")
-    .replace(/^##\s+Core Principles/gm, "## Principios fundamentales")
-    .replace(/^#\s+Guidelines/gm, "# Directivas y reglas")
-    .replace(/^##\s+Guidelines/gm, "## Directivas y reglas")
-    .replace(/^###\s+Guidelines/gm, "### Directivas y reglas")
-    .replace(/^#\s+Best Practices/gm, "# Buenas prácticas")
-    .replace(/^##\s+Best Practices/gm, "## Buenas prácticas")
-    .replace(/^#\s+Requirements/gm, "# Requisitos")
-    .replace(/^##\s+Requirements/gm, "## Requisitos")
-    .replace(/^#\s+Examples/gm, "# Ejemplos prácticos")
-    .replace(/^##\s+Examples/gm, "## Ejemplos prácticos")
-    .replace(/^#\s+How It Works/gm, "# Cómo funciona")
-    .replace(/^##\s+How It Works/gm, "## Cómo funciona")
-    .replace(/^#\s+Workflow/gm, "# Flujo de trabajo")
-    .replace(/^##\s+Workflow/gm, "## Flujo de trabajo")
-    .replace(/^#\s+Summary/gm, "# Resumen")
-    .replace(/^##\s+Summary/gm, "## Resumen")
-    .replace(/^#\s+Quick Reference/gm, "# Referencia rápida")
-    .replace(/^##\s+Quick Reference/gm, "## Referencia rápida")
-    .replace(/^#\s+Checklist/gm, "# Lista de verificación")
-    .replace(/^##\s+Checklist/gm, "## Lista de verificación")
-    .replace(/^#\s+Rules/gm, "# Reglas principales")
-    .replace(/^##\s+Rules/gm, "## Reglas principales")
+    return baseContent
+      .replace(/^#\s+Overview/gm, "# Descripción general")
+      .replace(/^##\s+Overview/gm, "## Descripción general")
+      .replace(/^###\s+Overview/gm, "### Descripción general")
+      .replace(/^#\s+When to Use/gm, "# Cuándo usar")
+      .replace(/^##\s+When to Use/gm, "## Cuándo usar")
+      .replace(/^###\s+When to Use/gm, "### Cuándo usar")
+      .replace(/^#\s+Core Principles/gm, "# Principios fundamentales")
+      .replace(/^##\s+Core Principles/gm, "## Principios fundamentales")
+      .replace(/^#\s+Guidelines/gm, "# Directivas y reglas")
+      .replace(/^##\s+Guidelines/gm, "## Directivas y reglas")
+      .replace(/^###\s+Guidelines/gm, "### Directivas y reglas")
+      .replace(/^#\s+Best Practices/gm, "# Buenas prácticas")
+      .replace(/^##\s+Best Practices/gm, "## Buenas prácticas")
+      .replace(/^#\s+Requirements/gm, "# Requisitos")
+      .replace(/^##\s+Requirements/gm, "## Requisitos")
+      .replace(/^#\s+Examples/gm, "# Ejemplos prácticos")
+      .replace(/^##\s+Examples/gm, "## Ejemplos prácticos")
+      .replace(/^#\s+How It Works/gm, "# Cómo funciona")
+      .replace(/^##\s+How It Works/gm, "## Cómo funciona")
+      .replace(/^#\s+Workflow/gm, "# Flujo de trabajo")
+      .replace(/^##\s+Workflow/gm, "## Flujo de trabajo")
+      .replace(/^#\s+Summary/gm, "# Resumen")
+      .replace(/^##\s+Summary/gm, "## Resumen")
+      .replace(/^#\s+Quick Reference/gm, "# Referencia rápida")
+      .replace(/^##\s+Quick Reference/gm, "## Referencia rápida")
+      .replace(/^#\s+Checklist/gm, "# Lista de verificación")
+      .replace(/^##\s+Checklist/gm, "## Lista de verificación")
+      .replace(/^#\s+Rules/gm, "# Reglas principales")
+      .replace(/^##\s+Rules/gm, "## Reglas principales")
   }
-  return SKILL_ES_CONTENTS[name] || ""
+
+  const desc = description || SKILL_ES_DESCRIPTIONS[name] || ""
+  if (isSpanish) {
+    return `## Descripción General\n${desc}\n\n## 🎯 Cuándo Usar\n- Tareas específicas de desarrollo, arquitectura y refactorización relacionadas con **${name}**.\n- Activación automática por el agente inteligente al detectar contexto afín en la conversación.\n\n## 📋 Directivas Principales\n- Aplicación rigurosa de estándares de calidad, código limpio y mantenibilidad.\n- Tipado estricto sin abstracciones innecesarias y validación continua.`
+  }
+  return `## Overview\n${desc}\n\n## 🎯 When to Use\n- Specialized workflows and requirements matching **${name}**.\n- Autonomous activation when context indicates specific engineering needs.\n\n## 📋 Core Guidelines\n- Strict quality assurance, type safety, and clean execution.`
 }
 
 export const SettingsSkillsV2: Component<{
@@ -687,16 +719,22 @@ export const SettingsSkillsV2: Component<{
       try {
         const p = params()
         const loc = p ? { location: p } : undefined
-        const [skills, config] = await Promise.all([
+        const [skillsRes, config] = await Promise.all([
           serverSdk()
-            .api.skill.list(loc)
-            .catch(() => ({ data: [] })),
+            .client.v2.skill.list(p ? { location: p } : undefined, { throwOnError: false })
+            .then((res) => ((res?.data as any)?.data ?? res?.data ?? []) as any[])
+            .catch(async () => {
+              const api = serverSdk().api as any
+              const apiRes = await (api?.skills ?? api?.skill)?.list?.(loc).catch(() => undefined)
+              return ((apiRes?.data as any)?.data ?? apiRes?.data ?? []) as any[]
+            })
+            .catch(() => [] as any[]),
           serverSdk()
             .client.config.get(p ?? undefined)
             .catch(() => ({ data: {} })),
         ])
         return {
-          skills: (skills?.data ?? []) as any[],
+          skills: (Array.isArray(skillsRes) ? skillsRes : []) as any[],
           disabled: new Set(((config?.data as any)?.skills?.disabled ?? []) as string[]),
           autoSelect: (config?.data as any)?.skills?.autoSelect !== false,
         }
@@ -1277,7 +1315,7 @@ export const SettingsSkillsV2: Component<{
                 </div>
 
                 <div class="settings-v2-skills-detail-body">
-                  <Markdown text={localizeSkillContent(skill().name, skill().content, isSpanish())} class="text-12-regular" />
+                  <Markdown text={localizeSkillContent(skill().name, skill().content, isSpanish(), skill().description)} class="text-12-regular" />
                 </div>
               </div>
             )}

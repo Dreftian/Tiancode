@@ -25,6 +25,12 @@ export type GithubRepo = {
   readonly url: string
   readonly private: boolean
   readonly defaultBranch?: string
+  readonly stars?: number
+  readonly forks?: number
+  readonly language?: string
+  readonly updatedAt?: string
+  readonly ownerAvatarUrl?: string
+  readonly isFork?: boolean
 }
 
 const client = (key: string) => new Octokit({ auth: key })
@@ -53,6 +59,12 @@ const repo = (data: {
   html_url: string
   private: boolean
   default_branch: string | null
+  stargazers_count?: number
+  forks_count?: number
+  language?: string | null
+  updated_at?: string | null
+  owner?: { avatar_url?: string } | null
+  fork?: boolean
 }): GithubRepo => ({
   name: data.name,
   fullName: data.full_name,
@@ -60,6 +72,12 @@ const repo = (data: {
   url: data.html_url,
   private: data.private,
   defaultBranch: data.default_branch ?? undefined,
+  stars: typeof data.stargazers_count === "number" ? data.stargazers_count : undefined,
+  forks: typeof data.forks_count === "number" ? data.forks_count : undefined,
+  language: data.language ?? undefined,
+  updatedAt: data.updated_at ?? undefined,
+  ownerAvatarUrl: data.owner?.avatar_url ?? undefined,
+  isFork: Boolean(data.fork),
 })
 
 /** Stored credential for the github provider, if any. */

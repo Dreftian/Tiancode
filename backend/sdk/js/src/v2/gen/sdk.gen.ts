@@ -51,6 +51,8 @@ import type {
   ExperimentalControlPlaneMoveSessionResponses,
   ExperimentalProjectCopyGenerateNameErrors,
   ExperimentalProjectCopyGenerateNameResponses,
+  ExperimentalPromptOptimizeErrors,
+  ExperimentalPromptOptimizeResponses,
   ExperimentalResourceListErrors,
   ExperimentalResourceListResponses,
   ExperimentalSessionBackgroundErrors,
@@ -160,6 +162,7 @@ import type {
   ModelhubSystemResponses,
   ModelRef,
   MoveSessionDestination,
+  OptimizePromptPayload,
   OutputFormat,
   Part as Part2,
   PartDeleteErrors,
@@ -1233,6 +1236,49 @@ export class Resource extends HeyApiClient {
   }
 }
 
+export class Prompt extends HeyApiClient {
+  /**
+   * Stream optimized prompt
+   *
+   * Stream an AI-enhanced version of a prompt tailored for AI coding assistants.
+   */
+  public optimize<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      optimizePromptPayload?: OptimizePromptPayload
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { key: "optimizePromptPayload", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      ExperimentalPromptOptimizeResponses,
+      ExperimentalPromptOptimizeErrors,
+      ThrowOnError
+    >({
+      url: "/experimental/prompt/optimize",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+}
+
 export class ProjectCopy extends HeyApiClient {
   /**
    * Generate project copy name
@@ -1575,6 +1621,11 @@ export class Experimental extends HeyApiClient {
   private _resource?: Resource
   get resource(): Resource {
     return (this._resource ??= new Resource({ client: this.client }))
+  }
+
+  private _prompt?: Prompt
+  get prompt(): Prompt {
+    return (this._prompt ??= new Prompt({ client: this.client }))
   }
 
   private _projectCopy?: ProjectCopy

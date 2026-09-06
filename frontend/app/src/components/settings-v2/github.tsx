@@ -63,6 +63,35 @@ function BranchIcon() {
   )
 }
 
+function StarIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  )
+}
+
+function ForkIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="18" r="3" />
+      <circle cx="6" cy="6" r="3" />
+      <circle cx="18" cy="6" r="3" />
+      <path d="M18 9v1a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9" />
+      <path d="M12 12v3" />
+    </svg>
+  )
+}
+
+function CopyIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  )
+}
+
 function PlusIcon() {
   return (
     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -70,6 +99,51 @@ function PlusIcon() {
       <line x1="5" y1="12" x2="19" y2="12" />
     </svg>
   )
+}
+
+const LANGUAGE_COLORS: Record<string, string> = {
+  TypeScript: "#3178c6",
+  JavaScript: "#f1e05a",
+  Python: "#3572A5",
+  Go: "#00ADD8",
+  Rust: "#dea584",
+  HTML: "#e34c26",
+  CSS: "#563d7c",
+  Vue: "#41b883",
+  React: "#61dafb",
+  Shell: "#89e051",
+  PowerShell: "#012456",
+  C: "#555555",
+  "C++": "#f34b7d",
+  "C#": "#178600",
+  Java: "#b07219",
+  Ruby: "#701516",
+  PHP: "#4F5D95",
+  Swift: "#F05138",
+  Kotlin: "#A97BFF",
+  Dart: "#00B4AB",
+  Other: "#8b949e",
+}
+
+function formatRelativeTime(dateString?: string): string {
+  if (!dateString) return ""
+  const date = new Date(dateString)
+  if (isNaN(date.getTime())) return ""
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  if (diffDays === 0) {
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+    if (diffHours === 0) {
+      const diffMins = Math.floor(diffMs / (1000 * 60))
+      return diffMins <= 1 ? "hace un momento" : `hace ${diffMins} min`
+    }
+    return `hace ${diffHours} h`
+  }
+  if (diffDays === 1) return "ayer"
+  if (diffDays < 30) return `hace ${diffDays} días`
+  if (diffDays < 365) return `hace ${Math.floor(diffDays / 30)} meses`
+  return `hace ${Math.floor(diffDays / 365)} años`
 }
 
 export const SettingsGithubV2: Component<{
@@ -134,9 +208,33 @@ export const SettingsGithubV2: Component<{
       }
     },
   )
+  const [vcsStatus, { refetch: refetchVcsStatus }] = createResource(
+    () => connected() && hasProject(),
+    async (canFetch) => {
+      if (!canFetch) return undefined
+      try {
+        return await serverSdk().client.vcs.status(params()).catch(() => undefined)
+      } catch {
+        return undefined
+      }
+    },
+  )
+  const [projects, { refetch: refetchProjects }] = createResource(
+    () => connected(),
+    async (isConnected) => {
+      if (!isConnected) return []
+      try {
+        const res = await serverSdk().client.project.list()
+        return res.data ?? []
+      } catch {
+        return []
+      }
+    },
+  )
 
   const [search, setSearch] = createSignal("")
   const [filterType, setFilterType] = createSignal<"all" | "public" | "private">("all")
+  const [sortBy, setSortBy] = createSignal<"updated" | "name" | "stars">("updated")
   const [showCreateForm, setShowCreateForm] = createSignal(false)
   const [repoPage, setRepoPage] = createSignal(1)
   const PAGE_SIZE = 10
@@ -171,7 +269,18 @@ export const SettingsGithubV2: Component<{
           repo.fullName.toLowerCase().includes(query) || (repo.description?.toLowerCase().includes(query) ?? false),
       )
     }
-    return list
+
+    return [...list].sort((a, b) => {
+      if (sortBy() === "stars") {
+        return Number(b.stars ?? 0) - Number(a.stars ?? 0)
+      }
+      if (sortBy() === "name") {
+        return a.fullName.localeCompare(b.fullName)
+      }
+      const timeA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0
+      const timeB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0
+      return timeB - timeA
+    })
   })
 
   const totalRepoPages = createMemo(() => Math.max(1, Math.ceil(filteredRepos().length / PAGE_SIZE)))
@@ -235,7 +344,28 @@ export const SettingsGithubV2: Component<{
     void refetchRepos()
     void refetchCurrent()
     void refetchRemote()
+    void refetchVcsStatus()
+    void refetchProjects()
     showToast({ variant: "success", title: "GitHub sincronizado correctamente" })
+  }
+
+  const copyUrl = (url: string) => {
+    navigator.clipboard.writeText(url)
+    showToast({ variant: "success", title: "URL copiada al portapapeles" })
+  }
+
+  const findLocalProject = (repo: GithubRepo) => {
+    const list = projects() ?? []
+    const repoName = repo.name.toLowerCase()
+    return list.find((p) => {
+      const wt = (p.worktree ?? "").replace(/\\/g, "/").toLowerCase()
+      return wt.endsWith("/" + repoName) || wt.endsWith("/" + repo.fullName.toLowerCase())
+    })
+  }
+
+  const openLocalProject = (worktree: string) => {
+    dialog.close()
+    navigate(`/${base64Encode(worktree)}`)
   }
 
   const cloneRepo = async (repo: GithubRepo) => {
@@ -543,6 +673,26 @@ export const SettingsGithubV2: Component<{
                   <div class="gh-vcs-title-row">
                     <BranchIcon />
                     <h4 class="gh-vcs-title">Control de Versiones (VCS)</h4>
+                    <span class="gh-repo-branch-tag">
+                      <BranchIcon /> {(remote()?.data as any)?.branch || "main"}
+                    </span>
+                    <Show when={vcsStatus()}>
+                      {(() => {
+                        const dirtyCount = vcsStatus()?.data?.length ?? 0
+                        if (dirtyCount === 0) {
+                          return (
+                            <span style="font-size: 11px; color: #30d158; display: inline-flex; align-items: center; gap: 4px; font-weight: 500;">
+                              ✓ Árbol limpio
+                            </span>
+                          )
+                        }
+                        return (
+                          <span style="font-size: 11px; color: #ff9f0a; display: inline-flex; align-items: center; gap: 4px; font-weight: 500;">
+                            ● {dirtyCount} modificado{dirtyCount > 1 ? "s" : ""}
+                          </span>
+                        )
+                      })()}
+                    </Show>
                   </div>
                   <p class="gh-vcs-path">{projectPath()}</p>
                 </div>
@@ -620,6 +770,20 @@ export const SettingsGithubV2: Component<{
                     Privados ({privateCount()})
                   </button>
                 </div>
+
+                <div class="gh-sort-row">
+                  <span>Ordenar:</span>
+                  <select
+                    value={sortBy()}
+                    onChange={(e) => setSortBy(e.currentTarget.value as any)}
+                    class="gh-filter-pill"
+                    style="background: rgba(255, 255, 255, 0.08); color: #fff; border: 1px solid rgba(255, 255, 255, 0.12); padding: 3px 8px; border-radius: 8px; cursor: pointer; outline: none;"
+                  >
+                    <option value="updated" style="background: #1c1c1e; color: #fff;">Más recientes</option>
+                    <option value="stars" style="background: #1c1c1e; color: #fff;">Más estrellas</option>
+                    <option value="name" style="background: #1c1c1e; color: #fff;">Nombre (A-Z)</option>
+                  </select>
+                </div>
               </div>
 
               <TextInputV2
@@ -647,11 +811,18 @@ export const SettingsGithubV2: Component<{
                 <For each={paginatedRepos()}>
                   {(repo) => (
                     <div class="gh-repo-row">
-                      <div class="gh-repo-icon-wrap" classList={{ "is-private": repo.private }}>
-                        <Show when={repo.private} fallback={<GlobeIcon />}>
-                          <LockIcon />
-                        </Show>
-                      </div>
+                      <Show
+                        when={repo.ownerAvatarUrl}
+                        fallback={
+                          <div class="gh-repo-icon-wrap" classList={{ "is-private": repo.private }}>
+                            <Show when={repo.private} fallback={<GlobeIcon />}>
+                              <LockIcon />
+                            </Show>
+                          </div>
+                        }
+                      >
+                        <img class="gh-repo-avatar" src={repo.ownerAvatarUrl} alt="" />
+                      </Show>
 
                       <div class="gh-repo-main">
                         <div class="gh-repo-title-line">
@@ -669,18 +840,57 @@ export const SettingsGithubV2: Component<{
                           >
                             {repo.private ? "Privado" : "Público"}
                           </span>
+                          <Show when={repo.isFork}>
+                            <span class="gh-repo-fork-tag">
+                              <ForkIcon /> Fork
+                            </span>
+                          </Show>
                           <Show when={repo.defaultBranch}>
                             <span class="gh-repo-branch-tag">
                               <BranchIcon /> {repo.defaultBranch}
                             </span>
                           </Show>
                         </div>
-                        <p class="gh-repo-description">
+                        <p class="gh-repo-description" classList={{ empty: !repo.description }}>
                           {repo.description || "Sin descripción proporcionada."}
                         </p>
+                        <div class="gh-repo-meta">
+                          <Show when={repo.language}>
+                            <span class="gh-repo-lang">
+                              <span
+                                class="gh-lang-dot"
+                                style={{ "background-color": LANGUAGE_COLORS[repo.language!] || "#8b949e" }}
+                              />
+                              {repo.language}
+                            </span>
+                          </Show>
+                          <Show when={repo.stars !== undefined && Number(repo.stars) > 0}>
+                            <span class="gh-repo-stat" title={`${repo.stars} estrellas`}>
+                              <StarIcon /> {repo.stars}
+                            </span>
+                          </Show>
+                          <Show when={repo.forks !== undefined && Number(repo.forks) > 0}>
+                            <span class="gh-repo-stat" title={`${repo.forks} forks`}>
+                              <ForkIcon /> {repo.forks}
+                            </span>
+                          </Show>
+                          <Show when={repo.updatedAt}>
+                            <span class="gh-repo-updated" title={new Date(repo.updatedAt!).toLocaleString()}>
+                              Actualizado {formatRelativeTime(repo.updatedAt)}
+                            </span>
+                          </Show>
+                        </div>
                       </div>
 
                       <div class="gh-repo-actions">
+                        <button
+                          type="button"
+                          class="gh-repo-copy-btn"
+                          onClick={() => copyUrl(repo.url)}
+                          title="Copiar URL del repositorio"
+                        >
+                          <CopyIcon />
+                        </button>
                         <a
                           href={repo.url}
                           target="_blank"
@@ -690,15 +900,33 @@ export const SettingsGithubV2: Component<{
                         >
                           Ver ↗
                         </a>
-                        <ButtonV2
-                          type="button"
-                          variant="outline"
-                          size="small"
-                          disabled={cloning() === repo.fullName}
-                          onClick={() => void cloneRepo(repo)}
-                        >
-                          {cloning() === repo.fullName ? "Clonando..." : "Clonar y Abrir"}
-                        </ButtonV2>
+                        {(() => {
+                          const local = findLocalProject(repo)
+                          if (local && local.worktree) {
+                            return (
+                              <ButtonV2
+                                type="button"
+                                variant="contrast"
+                                size="small"
+                                onClick={() => openLocalProject(local.worktree)}
+                                title="Este proyecto ya existe localmente. Haz clic para abrirlo directamente."
+                              >
+                                Abrir Proyecto
+                              </ButtonV2>
+                            )
+                          }
+                          return (
+                            <ButtonV2
+                              type="button"
+                              variant="outline"
+                              size="small"
+                              disabled={cloning() === repo.fullName}
+                              onClick={() => void cloneRepo(repo)}
+                            >
+                              {cloning() === repo.fullName ? "Clonando..." : "Clonar y Abrir"}
+                            </ButtonV2>
+                          )
+                        })()}
                       </div>
                     </div>
                   )}
