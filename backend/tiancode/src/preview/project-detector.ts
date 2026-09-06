@@ -714,6 +714,18 @@ async function detectSingleDirectory(dir: string, rootDir: string): Promise<Dete
       return proj
     }
 
+    if (typeof scripts.build === "string" || typeof scripts["build:web"] === "string") {
+      return {
+        framework: "html",
+        packageManager: "static",
+        script: "",
+        port: FRAMEWORK_PORTS.html,
+        entry: "index.html",
+        workingDirectory: relDir !== "." ? join(relDir, "dist").split(sep).join("/") : "dist",
+        ...(isDesktop ? { isDesktop: true } : {}),
+      }
+    }
+
     if (framework === "html" || existsSync(join(dir, "index.html"))) {
       return {
         framework: "html",

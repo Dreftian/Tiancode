@@ -29,27 +29,33 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.25"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — Opciones de Micrófono con Prueba VU en Vivo y Dictado Estilo Codex`
-  const body = `## 🚀 Tiancode v${version} — Opciones de Micrófono, Prueba en Vivo y Dictado Avanzado
+  const releaseName = `Tiancode v${version} — Motor de Actualización en Tiempo Real del Sandbox y Auto-Rebuild Incremental`
+  const body = `## 🚀 Tiancode v${version} — Motor de Actualización en Tiempo Real del Sandbox y Auto-Rebuild Incremental
 
-### 🎙️ Selector Global de Micrófono y Detección Dinámica
-- **Sección General en Ajustes de Voz:** Selector desplegable de micrófonos que detecta en tiempo real todos los dispositivos de audio físicos conectados a la PC (USB, Realtek, Bluetooth) junto con la opción predeterminada del sistema.
-- **Sincronización Total:** El micrófono seleccionado se aplica de forma unificada tanto al botón de dictado en el chat como a las funciones de voz e interrupción (barge-in).
-- **Actualización Reactiva de Dispositivos:** Detecta al instante la conexión o desconexión de micrófonos sin necesidad de reiniciar la app.
+### ⚡ Motor de Reconstrucción Incremental Automática (Sandbox Hot-Engine)
+- **Auto-Rebuild Reactivo:** Detecta scripts de compilación (\`build\`, \`build:web\`) en el proyecto (\`package.json\`) y reconstruye automáticamente en segundo plano cuando cualquier modelo de IA o el usuario modifica archivos en \`src/\`, templates o assets.
+- **Watcher Recursivo de Workspace:** El file watcher de vista previa vigila la raíz completa del proyecto con debounce de 150ms, eliminando los puntos ciegos cuando la carpeta servida es \`dist/\` o \`build/\`.
+- **Notificación Instantánea SSE:** En cuanto el build termina, emite un evento Server-Sent Events (\`reload\`) a todas las ventanas y vistas activas del Sandbox para reflejar los cambios al instante.
+- **Diagnóstico Estructurado de Compilación:** Si el código fuente tiene errores de sintaxis o build, se reportan claramente en el estado de preview y en la consola sin dejar la pantalla en blanco.
 
-### 📊 Prueba de Funcionamiento del Micrófono en Tiempo Real (VU Meter)
-- **Medidor de Nivel VU en Vivo:** Barra reactiva de 0% a 100% con indicador de pico y lectura precisa de ganancia en decibelios (dB).
-- **Diagnóstico Inteligente de Audio:** Indicador de estado que detecta si el micrófono capta la voz adecuadamente (*🟢 Señal óptima*), si hay silencio (*🟡 Esperando voz*) o si hay problemas de permisos.
-- **Visualizador de Espectro en Canvas:** Gráfica de onda senoidal en tiempo real durante la prueba de captura.
-- **Retorno de Audio (Hear Myself / Loopback):** Permite escuchar tu propia voz en los auriculares para comprobar nitidez, volumen y reducción de ruido.
+### 🛡️ Cabeceras Anti-Caché Estrictas y Bypass de Caché de Navegador
+- Servidor estático con cabeceras estrictas \`Cache-Control: no-store, no-cache, must-revalidate\`, \`Pragma: no-cache\` y \`Expires: 0\`.
+- Recarga forzada del iframe mediante timestamps únicos (\`_t=\${Date.now()}\`) y postMessage bidireccional, garantizando que Chromium nunca sirva vistas cacheadas u obsoletas.
 
-### ✍️ Sección de Dictado Avanzada
-- **Atajos Rápidos de Dictado:** Acceso rápido \`Ctrl+Shift+M\` para alternar el micrófono inmediatamente en el chat desde cualquier ventana.
-- **Diccionario de Dictado Personalizado:** Permite agregar y guardar términos técnicos, nombres y marcas para que el motor ASR Whisper los transcriba con máxima precisión.
-- **Historial de Grabaciones Recientes:** Registro de las últimas 20 transcripciones con duración en segundos y hora exacta.
+### 🔄 Despacho de Eventos Sin Bloqueos
+- Eliminación de la limitación que impedía emitir eventos de recarga cuando se editaba consecutivamente el mismo archivo.
+- Cada modificación generada por cualquier modelo (\`write\`, \`edit\`, \`apply_patch\`) dispara de inmediato la sincronización en vivo.
+
+### 🖥️ Emulación Desktop y Multipágina para Aplicaciones como Khaos
+- Inyección automática de host contenedor web para shells con marco de escritorio (\`#chrome\`), renderizando la vista activa (\`start.html\`) de forma nativa e interactiva.
+- Traducción automática de esquemas personalizados como \`khaos-ui://app/\` para navegación directa en el sandbox.
+
+### 📐 Preservación Total de Resoluciones y UI
+- Funcionamiento fluido en todas las resoluciones (Desktop 1920x1080, Compact, MacBook, Laptop, Tablet, Móviles y TV) y modos de zoom.
+- Mantiene el 100% de la interfaz existente sin alteraciones estéticas.
 
 ### 🔒 Actualización 100% No Destructiva
-- Todas tus claves de API de proveedores activos, configuraciones, sesiones, backups y servidores MCP se preservan intactos.
+- Todas tus claves de API, configuraciones de voz, sesiones, MCPs y credenciales se mantienen completamente intactas.
 
 ### 📦 Descargas
 | Archivo | Tipo | Descripción |

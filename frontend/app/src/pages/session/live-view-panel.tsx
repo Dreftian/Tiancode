@@ -1304,7 +1304,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
         const folder = resolveProjectFolder(latest, sdk().directory)
         if (folder && !manualProjectDir() && folder !== activeProjectDir()) setActiveProjectDir(folder)
       }
-      if (latest && latest !== activeEditFile()) {
+      if (latest) {
         setActiveEditFile(latest)
         window.dispatchEvent(new CustomEvent("tiancode:preview-reload", { detail: { path: latest } }))
       }
@@ -1344,7 +1344,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
                 rel = rel.slice(dir.length).replace(/^[/\\]+/, "")
               }
               rel = rel.replace(/\\/g, "/")
-              if (rel && rel !== activeEditFile()) {
+              if (rel) {
                 setActiveEditFile(rel)
                 window.dispatchEvent(new CustomEvent("tiancode:preview-reload", { detail: { path: rel } }))
               }

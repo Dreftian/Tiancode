@@ -5,7 +5,7 @@
 // salir del sidecar.
 
 import { execFileSync, spawn, spawnSync, type ChildProcess } from "node:child_process"
-import { existsSync, readFileSync, readdirSync } from "node:fs"
+import { existsSync, readFileSync, readdirSync, watch, type FSWatcher } from "node:fs"
 import { dirname, join, resolve } from "node:path"
 import net from "node:net"
 import { startBareJsxPreview, startStaticPreview, type BareJsxPreview, type StaticPreview } from "./bare-jsx-preview"
@@ -81,6 +81,10 @@ type Managed = {
   logs: string[]
   readyTimer: ReturnType<typeof setTimeout> | null
   readinessUrls: Set<string>
+  watcher?: FSWatcher | null
+  buildTimer?: ReturnType<typeof setTimeout> | null
+  isBuilding?: boolean
+  pendingBuild?: boolean
 }
 
 const servers = new Map<string, Managed>()
@@ -333,6 +337,137 @@ function clearReadyTimer(managed: Managed) {
   managed.readyTimer = null
 }
 
+async function runProjectBuild(managed: Managed): Promise<boolean> {
+  const pkgPath = join(managed.directory, "package.json")
+  if (!existsSync(pkgPath)) return false
+  try {
+    const pkgRaw = readFileSync(pkgPath, "utf8")
+    const pkg = JSON.parse(pkgRaw) as { scripts?: Record<string, string> }
+    const buildScript = pkg.scripts?.build ? "build" : pkg.scripts?.["build:web"] ? "build:web" : null
+    if (!buildScript) return false
+
+    managed.isBuilding = true
+    pushLog(managed, `[tiancode-engine] Compilando cambios del proyecto...`)
+
+    return await new Promise<boolean>((resolveBuild) => {
+      const pm = existsSync(join(managed.directory, "pnpm-lock.yaml"))
+        ? "pnpm"
+        : existsSync(join(managed.directory, "yarn.lock"))
+          ? "yarn"
+          : existsSync(join(managed.directory, "bun.lockb")) || existsSync(join(managed.directory, "bun.lock"))
+            ? "bun"
+            : "npm"
+
+      const child = spawn(pm, ["run", buildScript], {
+        cwd: managed.directory,
+        env: scrubEnv(),
+        windowsHide: true,
+        shell: true,
+      })
+
+      let buildOutput = ""
+      child.stdout?.on("data", (d: Buffer) => {
+        const text = d.toString()
+        buildOutput += text
+        pushLog(managed, text)
+      })
+      child.stderr?.on("data", (d: Buffer) => {
+        const text = d.toString()
+        buildOutput += text
+        pushLog(managed, text)
+      })
+
+      child.on("close", (code) => {
+        managed.isBuilding = false
+        if (code === 0) {
+          pushLog(managed, `[tiancode-engine] Compilación completada con éxito.`)
+          managed.state.errors = []
+          resolveBuild(true)
+        } else {
+          pushLog(managed, `[tiancode-engine] Error en compilación (código ${code}).`)
+          for (const line of buildOutput.split(/\r?\n/)) {
+            const error = parseBuildError(line)
+            if (error) {
+              managed.state.errors.push(error)
+              if (managed.state.errors.length > ERROR_MAX) managed.state.errors.shift()
+            }
+          }
+          resolveBuild(false)
+        }
+      })
+
+      child.on("error", (err) => {
+        managed.isBuilding = false
+        pushLog(managed, `[tiancode-engine] Error al ejecutar build: ${err.message}`)
+        resolveBuild(false)
+      })
+    })
+  } catch (err) {
+    managed.isBuilding = false
+    pushLog(managed, `[tiancode-engine] Excepción en build: ${err instanceof Error ? err.message : String(err)}`)
+    return false
+  }
+}
+
+function setupProjectWatcher(managed: Managed) {
+  if (managed.watcher) return
+  try {
+    const pkgPath = join(managed.directory, "package.json")
+    let hasBuild = false
+    if (existsSync(pkgPath)) {
+      try {
+        const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as { scripts?: Record<string, string> }
+        hasBuild = Boolean(pkg.scripts?.build || pkg.scripts?.["build:web"])
+      } catch {}
+    }
+
+    managed.watcher = watch(managed.directory, { recursive: true }, (_event, filename) => {
+      if (!filename) return
+      const norm = filename.replace(/\\/g, "/")
+      if (
+        norm.includes("node_modules") ||
+        norm.includes(".git") ||
+        norm.includes(".opencode") ||
+        norm.startsWith("dist/") ||
+        norm.startsWith("dist-electron/") ||
+        norm.startsWith("release/") ||
+        norm.startsWith("build/") ||
+        norm.startsWith(".next/") ||
+        norm.startsWith(".cache/") ||
+        norm.startsWith(".")
+      ) {
+        return
+      }
+
+      if (managed.buildTimer) clearTimeout(managed.buildTimer)
+      managed.buildTimer = setTimeout(async () => {
+        if (hasBuild) {
+          if (managed.isBuilding) {
+            managed.pendingBuild = true
+            return
+          }
+          const ok = await runProjectBuild(managed)
+          if (ok) {
+            managed.staticPreview?.reload(filename)
+            managed.bareJsx?.reload(filename)
+          }
+          if (managed.pendingBuild) {
+            managed.pendingBuild = false
+            const nextOk = await runProjectBuild(managed)
+            if (nextOk) {
+              managed.staticPreview?.reload(filename)
+              managed.bareJsx?.reload(filename)
+            }
+          }
+        } else {
+          managed.staticPreview?.reload(filename)
+          managed.bareJsx?.reload(filename)
+        }
+      }, 150)
+    })
+  } catch {}
+}
+
 async function spawnServer(managed: Managed) {
   const { packageManager } = managed.detected
   setStatus(managed, {
@@ -366,6 +501,7 @@ async function spawnServer(managed: Managed) {
     try {
       const preview = await startBareJsxPreview(targetDir, entry, port)
       managed.bareJsx = preview
+      setupProjectWatcher(managed)
       preview.server.on("error", (error) => {
         setStatus(managed, { status: "error", errorMessage: error.message })
       })
@@ -390,24 +526,22 @@ async function spawnServer(managed: Managed) {
       setStatus(managed, { status: "error", errorMessage: "No hay puertos libres para el servidor estatico." })
       return
     }
-    if (!existsSync(targetDir) && existsSync(join(managed.directory, "package.json"))) {
+    const pkgPath = join(managed.directory, "package.json")
+    if (existsSync(pkgPath)) {
       try {
-        const pkgRaw = readFileSync(join(managed.directory, "package.json"), "utf8")
+        const pkgRaw = readFileSync(pkgPath, "utf8")
         const pkg = JSON.parse(pkgRaw) as { scripts?: Record<string, string> }
-        if (pkg.scripts?.build) {
-          await new Promise<void>((resolveBuild) => {
-            const proc = spawn("npm", ["run", "build"], { cwd: managed.directory, windowsHide: true, shell: true })
-            proc.on("close", () => resolveBuild())
-            proc.on("error", () => resolveBuild())
-          })
+        if (pkg.scripts?.build || pkg.scripts?.["build:web"]) {
+          await runProjectBuild(managed)
         }
       } catch {
         // ignore build error
       }
     }
     try {
-      const preview = await startStaticPreview(targetDir, localPort)
+      const preview = await startStaticPreview(targetDir, localPort, managed.directory)
       managed.staticPreview = preview
+      setupProjectWatcher(managed)
       preview.server.on("error", (error) => {
         setStatus(managed, { status: "error", errorMessage: error.message })
       })
@@ -732,6 +866,10 @@ export function stopPreviewServer(directory: string) {
   const managed = servers.get(directory)
   if (!managed) return idleState(null)
   if (managed.process) killTree(managed.process)
+  managed.watcher?.close()
+  managed.watcher = null
+  if (managed.buildTimer) clearTimeout(managed.buildTimer)
+  managed.buildTimer = null
   managed.bareJsx?.close()
   managed.bareJsx = null
   managed.staticPreview?.close()

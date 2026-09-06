@@ -373,18 +373,18 @@ export function LivePreview(props: {
         // ignore
       }
       try {
-        iframe.contentWindow?.location.reload()
-      } catch {
-        // Cross-origin fallback: replace source with cache-busting timestamp
-      }
-      try {
         const u = new URL(target)
         u.searchParams.set("_t", String(Date.now()))
         iframe.src = u.toString()
+        return
       } catch {
-        iframe.src = target
+        try {
+          iframe.contentWindow?.location.reload()
+        } catch {
+          iframe.src = target
+        }
+        return
       }
-      return
     }
     setIframeUrl(undefined)
     window.requestAnimationFrame(() => setIframeUrl(target))
@@ -622,27 +622,33 @@ export function LivePreview(props: {
       measureViewport()
       observer?.observe(surface)
     }
+    let reloadDebounceTimer: number | undefined
     const handleReload = (event?: Event) => {
       const customEvent = event as CustomEvent<{ path?: string }> | undefined
       const path = customEvent?.detail?.path
-      if (iframeUrl()) {
-        reloadIframe()
-        if (iframe?.contentWindow) {
-          try {
-            iframe.contentWindow.postMessage({ type: "tiancode:file-change", path, timestamp: Date.now() }, "*")
-          } catch {
-            // ignore
+      if (reloadDebounceTimer !== undefined) window.clearTimeout(reloadDebounceTimer)
+      reloadDebounceTimer = window.setTimeout(() => {
+        reloadDebounceTimer = undefined
+        if (iframeUrl()) {
+          reloadIframe()
+          if (iframe?.contentWindow) {
+            try {
+              iframe.contentWindow.postMessage({ type: "tiancode:file-change", path, timestamp: Date.now() }, "*")
+            } catch {
+              // ignore
+            }
           }
         }
-      }
-      if (preview()) {
-        void preview()?.reload()
-      }
+        if (preview()) {
+          void preview()?.reload()
+        }
+      }, 50)
     }
     window.addEventListener("tiancode:preview-reload", handleReload)
 
     if (!view || !surface) {
       onCleanup(() => {
+        if (reloadDebounceTimer !== undefined) window.clearTimeout(reloadDebounceTimer)
         window.clearInterval(devTimer)
         observer?.disconnect()
         window.removeEventListener("resize", queueBounds)
@@ -725,6 +731,8 @@ export function LivePreview(props: {
       }
     })
     onCleanup(() => {
+      if (reloadDebounceTimer !== undefined) window.clearTimeout(reloadDebounceTimer)
+      window.removeEventListener("tiancode:preview-reload", handleReload)
       window.clearInterval(devTimer)
       observer?.disconnect()
       window.removeEventListener("resize", queueBounds)

@@ -4,6 +4,28 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.30] — 2026-09-06
+### Motor de Actualización en Tiempo Real del Sandbox y Auto-Rebuild Incremental
+
+- **Motor de Reconstrucción Incremental Automática en DevServerManager**:
+  - Detección reactiva de scripts de compilación (`build`, `build:web`) en el `package.json` del proyecto.
+  - File watcher recursivo a nivel de workspace (`managed.directory`) con exclusión de carpetas intermedias (`node_modules`, `.git`, `.opencode`, `dist`, `build`, etc.).
+  - Reconstrucción automática en segundo plano debouncada (150ms) en cuanto un modelo de IA o el usuario modifica código fuente (`src/`, templates, assets).
+  - Captura y reporte estructurado de errores de compilación hacia el estado del agente y la interfaz.
+- **File Watcher y Servidor Estático de Alto Rendimiento**:
+  - El servidor estático (`bare-jsx-preview.ts`) vigila la raíz completa del workspace, asegurando visibilidad total sobre carpetas de origen (`src/`) y salida (`dist/`).
+  - Cabeceras anti-caché estrictas (`Cache-Control: no-store, no-cache, must-revalidate`, `Pragma: no-cache`, `Expires: 0`) para prevenir vistas congeladas o lecturas obsoletas en Chromium.
+  - Auto-reconexión del stream SSE de recarga y soporte para recepción de mensajes entre ventanas.
+- **Despacho Incondicional de Recarga en Live View Panel**:
+  - Eliminación de la limitación que bloqueaba el evento `tiancode:preview-reload` cuando un modelo editaba consecutivamente el mismo archivo (`rel !== activeEditFile()`).
+  - Cada operación de edición (`write`, `edit`, `apply_patch`) de cualquier modelo refresca la vista previa instantáneamente.
+- **Emulación Multipágina y Host Desktop Sandbox para Aplicaciones como Khaos**:
+  - Inyección de contenedor web dinámico para shells Electron con `#chrome`, montando y sincronizando la vista activa de pestañas (`start.html`).
+  - Traducción fluida de esquemas personalizados como `khaos-ui://app/` hacia rutas relativas del servidor.
+- **Recarga Confiable del Iframe y Preservación de Resoluciones**:
+  - Despacho de recarga con timestamp anti-caché (`_t=Date.now()`) y postMessage hacia el iframe.
+  - Preservación perfecta de los presets de resolución seleccionados (FHD 1920x1080, tablet, mobile, tv, etc.) y nivel de zoom sin parpadeos.
+
 ## [1.0.29] — 2026-09-06
 ### Opciones de Micrófono, Prueba VU en Vivo y Dictado Estilo Codex Desktop
 

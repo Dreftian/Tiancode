@@ -20,25 +20,45 @@ export type BareJsxPreview = {
   server: Server
   url: string
   close(): void
+  reload(path?: string): void
 }
 
 export type StaticPreview = BareJsxPreview
 
-function setupWatcher(directory: string, sseClients: Set<ServerResponse>): FSWatcher | null {
+function broadcastReload(sseClients: Set<ServerResponse>, path?: string) {
+  const payload = `data: ${JSON.stringify({ type: "reload", ts: Date.now(), ...(path ? { path } : {}) })}\n\n`
+  for (const client of sseClients) {
+    try {
+      client.write(payload)
+    } catch {
+      sseClients.delete(client)
+    }
+  }
+}
+
+function setupWatcher(
+  directory: string,
+  sseClients: Set<ServerResponse>,
+  onFileChange?: (filename: string) => void,
+): FSWatcher | null {
   try {
     let timer: ReturnType<typeof setTimeout> | undefined
     return watch(directory, { recursive: true }, (_event, filename) => {
-      if (filename && (filename.includes("node_modules") || filename.startsWith("."))) return
+      if (
+        filename &&
+        (filename.includes("node_modules") ||
+          filename.includes(".git") ||
+          filename.includes(".opencode") ||
+          filename.includes("dist-electron") ||
+          filename.includes("release") ||
+          filename.startsWith("."))
+      ) {
+        return
+      }
+      if (filename && onFileChange) onFileChange(filename)
       if (timer) clearTimeout(timer)
       timer = setTimeout(() => {
-        const payload = `data: ${JSON.stringify({ type: "reload", ts: Date.now() })}\n\n`
-        for (const client of sseClients) {
-          try {
-            client.write(payload)
-          } catch {
-            sseClients.delete(client)
-          }
-        }
+        broadcastReload(sseClients, filename ?? undefined)
       }, 25)
     })
   } catch {
@@ -87,15 +107,24 @@ export async function startBareJsxPreview(directory: string, entry: string, port
       sseClients.clear()
       if (server.listening) server.close()
     },
+    reload: (path?: string) => {
+      broadcastReload(sseClients, path)
+    },
   }
 }
 
-export async function startStaticPreview(directory: string, port: number): Promise<StaticPreview> {
+export async function startStaticPreview(
+  directory: string,
+  port: number,
+  rootDirectory?: string,
+  onFileChange?: (filename: string) => void,
+): Promise<StaticPreview> {
   const sseClients = new Set<ServerResponse>()
-  const watcher = setupWatcher(directory, sseClients)
+  const watchDir = rootDirectory && existsSync(rootDirectory) ? rootDirectory : directory
+  const watcher = setupWatcher(watchDir, sseClients, onFileChange)
 
   const server = createServer((request, response) => {
-    void handleStaticRequest(directory, request, response, sseClients)
+    void handleStaticRequest(directory, request, response, sseClients, watchDir)
   })
 
   await new Promise<void>((resolveListen, rejectListen) => {
@@ -129,6 +158,9 @@ export async function startStaticPreview(directory: string, port: number): Promi
       }
       sseClients.clear()
       if (server.listening) server.close()
+    },
+    reload: (path?: string) => {
+      broadcastReload(sseClients, path)
     },
   }
 }
@@ -272,6 +304,7 @@ async function handleStaticRequest(
   request: IncomingMessage,
   response: ServerResponse,
   sseClients?: Set<ServerResponse>,
+  watchDir?: string,
 ) {
   if (request.method !== "GET" && request.method !== "HEAD") {
     send(response, 405, "text/plain; charset=utf-8", "Method not allowed")
@@ -303,7 +336,7 @@ async function handleStaticRequest(
       return
     }
     if (url.pathname === "/__tiancode__/revision") {
-      send(response, 200, "application/json; charset=utf-8", JSON.stringify({ revision: await projectRevision(directory) }))
+      send(response, 200, "application/json; charset=utf-8", JSON.stringify({ revision: await projectRevision(watchDir ?? directory) }))
       return
     }
 
@@ -312,8 +345,15 @@ async function handleStaticRequest(
       resolveProjectFile(directory, "start.html") ??
       resolveProjectFile(directory, "app.html") ??
       resolveProjectFile(directory, "home.html") ??
-      resolveProjectFile(directory, "main.html")
-    const requested = url.pathname === "/" ? index : resolveProjectFile(directory, url.pathname)
+      resolveProjectFile(directory, "main.html") ??
+      (watchDir
+        ? resolveProjectFile(watchDir, "start.html") ??
+          resolveProjectFile(watchDir, "index.html") ??
+          resolveProjectFile(watchDir, "app.html")
+        : null)
+    const requested = url.pathname === "/"
+      ? index
+      : resolveProjectFile(directory, url.pathname) ?? (watchDir ? resolveProjectFile(watchDir, url.pathname) : null)
     const file = requested ?? (!extname(url.pathname) && !url.pathname.split("/").some((part) => part.startsWith(".")) ? index : null)
     if (!file) {
       send(response, 404, "text/plain; charset=utf-8", "Not found")
@@ -501,7 +541,12 @@ function unsupportedModule(specifier: string) {
 }
 
 function send(response: ServerResponse, status: number, type: string, body: string | Buffer) {
-  response.writeHead(status, { "Cache-Control": "no-store", "Content-Type": type })
+  response.writeHead(status, {
+    "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+    Pragma: "no-cache",
+    Expires: "0",
+    "Content-Type": type,
+  })
   response.end(body)
 }
 
@@ -597,22 +642,44 @@ let reloading = false
 function triggerReload() {
   if (reloading) return
   reloading = true
-  window.location.reload()
+  try {
+    const url = new URL(window.location.href)
+    url.searchParams.set("_t", String(Date.now()))
+    window.location.replace(url.toString())
+  } catch {
+    window.location.reload()
+  }
 }
 
-try {
-  if (typeof EventSource !== "undefined") {
-    const es = new EventSource("/__tiancode__/events")
-    es.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data)
-        if (data && data.type === "reload") {
-          triggerReload()
-        }
-      } catch {}
+function initReloadEvents() {
+  try {
+    if (typeof EventSource !== "undefined") {
+      const es = new EventSource("/__tiancode__/events")
+      es.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          if (data && data.type === "reload") {
+            triggerReload()
+          }
+        } catch {}
+      }
+      es.onerror = () => {
+        es.close()
+        setTimeout(initReloadEvents, 1000)
+      }
     }
-  }
-} catch {}
+  } catch {}
+}
+
+initReloadEvents()
+
+if (typeof window !== "undefined") {
+  window.addEventListener("message", (e) => {
+    if (e.data && (e.data.type === "tiancode:reload" || e.data.type === "tiancode:file-change")) {
+      triggerReload()
+    }
+  })
+}
 
 async function refreshRevision() {
   try {
@@ -631,7 +698,7 @@ async function refreshRevision() {
 }
 
 void refreshRevision()
-window.setInterval(() => void refreshRevision(), 250)
+window.setInterval(() => void refreshRevision(), 300)
 `
 
 const DESKTOP_SHIM_SCRIPT = String.raw`
@@ -646,9 +713,19 @@ const DESKTOP_SHIM_SCRIPT = String.raw`
       return {};
     };
   }
+
+  function resolveInternalUrl(raw) {
+    if (!raw) return "/start.html";
+    var str = String(raw);
+    if (str.indexOf("khaos-ui://app/") === 0) {
+      return "/" + str.replace("khaos-ui://app/", "");
+    }
+    return str;
+  }
+
   var mockState = {
     tabs: [
-      { id: 1, title: "Khaos Browser - Vista Previa", url: "https://example.com", favicon: "", loading: false, canGoBack: false, canGoForward: false, audible: false, muted: false, isApp: false }
+      { id: 1, title: "Khaos Browser - Vista Previa", url: "/start.html", favicon: "", loading: false, canGoBack: false, canGoForward: false, audible: false, muted: false, isApp: false }
     ],
     activeTabId: 1,
     blocker: { sessionBlocked: 14, listDomains: 42500, enabled: true },
@@ -666,10 +743,40 @@ const DESKTOP_SHIM_SCRIPT = String.raw`
     cpuLimitPercent: 50,
   };
   var stateListeners = new Set();
+
+  function syncSandboxContent() {
+    try {
+      var app = document.getElementById("app");
+      var chrome = document.getElementById("chrome");
+      if (!app || !chrome) return;
+      var activeTab = mockState.tabs.find(function(t) { return t.id === mockState.activeTabId; }) || mockState.tabs[0];
+      var target = resolveInternalUrl(activeTab ? activeTab.url : "/start.html");
+      var host = document.getElementById("sandbox-tab-host");
+      if (!host) {
+        host = document.createElement("div");
+        host.id = "sandbox-tab-host";
+        host.style.cssText = "flex:1;min-height:0;width:100%;height:100%;position:relative;background:#f3f3f3;display:flex;";
+        var frame = document.createElement("iframe");
+        frame.id = "sandbox-tab-frame";
+        frame.style.cssText = "border:none;width:100%;height:100%;flex:1;";
+        frame.src = target;
+        frame.setAttribute("data-url", target);
+        host.appendChild(frame);
+        app.appendChild(host);
+      } else {
+        var frame = document.getElementById("sandbox-tab-frame");
+        if (frame && frame.getAttribute("data-url") !== target) {
+          frame.setAttribute("data-url", target);
+          frame.src = target;
+        }
+      }
+    } catch {}
+  }
+
   var mockKhaos = {
     onState: function(cb) {
       stateListeners.add(cb);
-      setTimeout(function() { cb(mockState); }, 10);
+      setTimeout(function() { cb(mockState); syncSandboxContent(); }, 10);
       return function() { stateListeners.delete(cb); };
     },
     getSettings: function() { return Promise.resolve(mockSettings); },
@@ -679,31 +786,42 @@ const DESKTOP_SHIM_SCRIPT = String.raw`
     },
     newTab: function(opts) {
       var id = Date.now();
-      mockState.tabs.push({ id: id, title: "Nueva pestaña", url: (opts && opts.url) || "about:blank", favicon: "", loading: false, canGoBack: false, canGoForward: false, audible: false, muted: false, isApp: false });
+      var target = resolveInternalUrl((opts && opts.url) || "/start.html");
+      mockState.tabs.push({ id: id, title: "Nueva pestaña", url: target, favicon: "", loading: false, canGoBack: false, canGoForward: false, audible: false, muted: false, isApp: false });
       if (!opts || !opts.background) mockState.activeTabId = id;
       stateListeners.forEach(function(fn) { fn(mockState); });
+      syncSandboxContent();
       return Promise.resolve(id);
     },
     closeTab: function(id) {
       mockState.tabs = mockState.tabs.filter(function(t) { return t.id !== id; });
       if (mockState.activeTabId === id && mockState.tabs.length > 0) mockState.activeTabId = mockState.tabs[0].id;
       stateListeners.forEach(function(fn) { fn(mockState); });
+      syncSandboxContent();
       return Promise.resolve();
     },
     activateTab: function(id) {
       mockState.activeTabId = id;
       stateListeners.forEach(function(fn) { fn(mockState); });
+      syncSandboxContent();
       return Promise.resolve();
     },
     navigate: function(id, input) {
       var tab = mockState.tabs.find(function(t) { return t.id === id; });
-      if (tab) tab.url = input;
+      if (tab) tab.url = resolveInternalUrl(input);
       stateListeners.forEach(function(fn) { fn(mockState); });
+      syncSandboxContent();
       return Promise.resolve();
     },
     goBack: function() { return Promise.resolve(); },
     goForward: function() { return Promise.resolve(); },
-    reload: function() { return Promise.resolve(); },
+    reload: function() {
+      var frame = document.getElementById("sandbox-tab-frame");
+      if (frame && frame.contentWindow) {
+        try { frame.contentWindow.location.reload(); } catch {}
+      }
+      return Promise.resolve();
+    },
     stop: function() { return Promise.resolve(); },
     discardTab: function() { return Promise.resolve(); },
     killTab: function() { return Promise.resolve(); },
@@ -718,6 +836,11 @@ const DESKTOP_SHIM_SCRIPT = String.raw`
     smartHomeStatus: function() { return Promise.resolve({ connected: false }); },
     smartHomeTest: function() { return Promise.resolve(false); },
     setChromeHeight: function() {},
+    reopenClosedTab: function() { return Promise.resolve(); },
+    newPrivateTab: function() { return mockKhaos.newTab({}); },
+    printTab: function() { return Promise.resolve(); },
+    setZoom: function() { return Promise.resolve(); },
+    toggleDevTools: function() { return Promise.resolve(); },
   };
   if (!window.khaos) {
     window.khaos = mockKhaos;
@@ -735,6 +858,14 @@ const DESKTOP_SHIM_SCRIPT = String.raw`
   }
   if (!window.api) {
     window.api = window.khaos;
+  }
+
+  if (typeof document !== "undefined") {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", syncSandboxContent);
+    } else {
+      setTimeout(syncSandboxContent, 60);
+    }
   }
 })();
 `

@@ -338,4 +338,52 @@ describe("bare JSX preview", () => {
       })
     }
   })
+
+  test("automatically runs incremental build and updates preview on source file changes", async () => {
+    await using tmp = await tmpdir()
+    await Bun.write(
+      path.join(tmp.path, "package.json"),
+      JSON.stringify({
+        name: "test-auto-build",
+        scripts: {
+          build: "node build.js",
+        },
+      }),
+    )
+    await Bun.write(
+      path.join(tmp.path, "build.js"),
+      [
+        'const fs = require("fs");',
+        'const path = require("path");',
+        'fs.mkdirSync(path.join(__dirname, "dist"), { recursive: true });',
+        'const msg = fs.readFileSync(path.join(__dirname, "src", "message.txt"), "utf8");',
+        'fs.writeFileSync(path.join(__dirname, "dist", "index.html"), `<!doctype html><html><body><div id="content">${msg}</div></body></html>`);',
+      ].join("\n"),
+    )
+    await Bun.write(path.join(tmp.path, "src", "message.txt"), "Version 1.0.0")
+
+    const state = await startPreviewServer(tmp.path)
+    try {
+      expect(state.status).toBe("ready")
+      expect(state.url).toBeTruthy()
+      const initialHtml = await (await fetch(state.url!)).text()
+      expect(initialHtml).toContain("Version 1.0.0")
+
+      // Simular cambio del modelo de IA o usuario en el código fuente
+      await Bun.write(path.join(tmp.path, "src", "message.txt"), "Version 2.0.0 Realtime")
+
+      const deadline = Date.now() + 5000
+      let updatedHtml = ""
+      while (Date.now() < deadline) {
+        await Bun.sleep(100)
+        try {
+          updatedHtml = await (await fetch(state.url!)).text()
+          if (updatedHtml.includes("Version 2.0.0 Realtime")) break
+        } catch {}
+      }
+      expect(updatedHtml).toContain("Version 2.0.0 Realtime")
+    } finally {
+      expect(stopPreviewServer(tmp.path).status).toBe("stopped")
+    }
+  })
 })
