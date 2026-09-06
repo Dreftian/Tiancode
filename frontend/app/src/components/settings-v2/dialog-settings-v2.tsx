@@ -13,6 +13,7 @@ import { SettingsSkillsV2 } from "./skills"
 import { SettingsSubAgentsV2 } from "./sub-agents"
 import { SettingsMcpPluginsV2 } from "./mcp-plugins"
 import { SettingsPetsV2 } from "./pets"
+import { SettingsConnectionsV2 } from "./connections"
 import { SettingsComputerUseV2 } from "./computer-use"
 import { SettingsGithubV2 } from "./github"
 import { SettingsIntelligenceV2 } from "./intelligence"
@@ -59,6 +60,15 @@ const IconSubAgents = () => (
 const IconMcpPlugins = () => (
   <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
     <path d="M7 3v4M13 3v4M5 7h10a1 1 0 011 1v2.5a5 5 0 01-5 5h-2a5 5 0 01-5-5V8a1 1 0 011-1zM10 15.5v2.5" />
+  </svg>
+)
+
+const IconConnections = () => (
+  <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="5" cy="6" r="2" />
+    <circle cx="15" cy="6" r="2" />
+    <circle cx="10" cy="15" r="2" />
+    <path d="M6.5 7.5L8.5 13M13.5 7.5L11.5 13M7 6h6" />
   </svg>
 )
 
@@ -212,6 +222,10 @@ export const DialogSettings: Component<{
                 <div class="flex flex-col gap-1.5">
                   <TabsV2.SectionTitle>{language.t("settings.section.integrations")}</TabsV2.SectionTitle>
                   <div class="flex flex-col gap-1 w-full">
+                    <TabsV2.Trigger value="connections">
+                      <IconConnections />
+                      {language.t("settings.tab.connections") || "Conexiones"}
+                    </TabsV2.Trigger>
                     <TabsV2.Trigger value="pets">
                       <IconPets />
                       {language.t("settings.tab.pets")}
@@ -309,6 +323,12 @@ export const DialogSettings: Component<{
         <TabsV2.Content forceMount value="mcp-plugins" class="settings-v2-panel" classList={{ "!hidden": tab() !== "mcp-plugins" }}>
           <Show when={visited().has("mcp-plugins")}>
             <SettingsMcpPluginsV2 directory={directory()} active={tab() === "mcp-plugins"} />
+          </Show>
+        </TabsV2.Content>
+
+        <TabsV2.Content forceMount value="connections" class="settings-v2-panel" classList={{ "!hidden": tab() !== "connections" }}>
+          <Show when={visited().has("connections")}>
+            <SettingsConnectionsV2 active={tab() === "connections"} />
           </Show>
         </TabsV2.Content>
 

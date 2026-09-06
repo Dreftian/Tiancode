@@ -4,17 +4,29 @@ import { Global } from "@tiancode-ai/core/global"
 import { FSUtil } from "@tiancode-ai/core/fs-util"
 import { InstanceState } from "@/effect/instance-state"
 import { Skill } from "../skill"
-import * as Tool from "./tool"
+import { Tool } from "./tool"
 
 export const Parameters = Schema.Struct({
   name: Schema.String.annotate({
     description: "The unique identifier name for the skill in kebab-case (e.g. 'deploy-preview', 'db-migrate', 'graphql-codegen')",
   }),
   description: Schema.String.annotate({
-    description: "Clear criteria and explanation of when and why this skill should be automatically or manually loaded",
+    description: "Hermes standard: Concise description of the skill in 60 characters or less for YAML frontmatter (e.g. 'Deploy preview environments with Kamal')",
   }),
-  content: Schema.String.annotate({
-    description: "The Markdown body of the skill containing instructions, scripts, templates, or workflows",
+  triggers: Schema.optional(Schema.String).annotate({
+    description: "Hermes standard: Specific trigger criteria — exact conditions, file patterns, or keywords when this skill must be loaded",
+  }),
+  procedure: Schema.optional(Schema.String).annotate({
+    description: "Hermes standard: Numbered step-by-step procedure to execute the workflow (1. ..., 2. ..., 3. ...)",
+  }),
+  verification: Schema.optional(Schema.String).annotate({
+    description: "Hermes standard: Verification steps and commands to confirm success and validate results",
+  }),
+  pits: Schema.optional(Schema.String).annotate({
+    description: "Hermes standard: Pitfalls, anti-patterns, common mistakes, and things to avoid",
+  }),
+  content: Schema.optional(Schema.String).annotate({
+    description: "Markdown body of the skill. If provided without separate sections, should follow the Hermes standard structure (Trigger Criteria, Procedure, Verification, Pits).",
   }),
   scope: Schema.optional(Schema.Literals(["project", "global"])).annotate({
     description: "Whether this skill is specific to the current 'project' (.tiancode/skills/) or 'global' across all projects (~/.config/tiancode/skills/) (default: project)",
@@ -32,7 +44,7 @@ export const SkillCreateTool = Tool.define<typeof Parameters, Metadata, FSUtil.S
 
     return {
       description:
-        "Create, distill, or update a reusable Skill (SKILL.md) for this project or globally. Use this after successfully solving a complex task or workflow to make it permanently reusable in future sessions.",
+        "Create, distill, or update a reusable Skill (SKILL.md) following Hermes authoring standards: concise description (<= 60 chars in frontmatter), trigger criteria, numbered procedure, verification steps, and pits (anti-patterns to avoid). Use this after successfully solving a complex task or workflow to make it permanently reusable.",
       parameters: Parameters,
       execute: (params: Schema.Schema.Type<typeof Parameters>, ctx: Tool.Context<Metadata>) =>
         Effect.gen(function* () {
@@ -43,6 +55,44 @@ export const SkillCreateTool = Tool.define<typeof Parameters, Metadata, FSUtil.S
             return {
               title: "Skill creation failed",
               output: "Error: Skill name cannot be empty.",
+              metadata: { success: false },
+            }
+          }
+
+          const rawDescription = params.description.trim().replace(/\r?\n/g, " ")
+          const frontmatterDescription =
+            rawDescription.length > 60 ? rawDescription.slice(0, 57) + "..." : rawDescription
+
+          let body = ""
+          if (params.procedure || params.triggers || params.verification || params.pits) {
+            const sections: string[] = []
+            if (params.content?.trim()) {
+              sections.push(params.content.trim())
+            }
+            if (params.triggers?.trim()) {
+              sections.push(`## Trigger Criteria\n${params.triggers.trim()}`)
+            } else if (rawDescription.length > 60) {
+              sections.push(`## Trigger Criteria\n${rawDescription}`)
+            }
+            if (params.procedure?.trim()) {
+              sections.push(`## Procedure\n${params.procedure.trim()}`)
+            }
+            if (params.verification?.trim()) {
+              sections.push(`## Verification\n${params.verification.trim()}`)
+            }
+            if (params.pits?.trim()) {
+              sections.push(`## Pits\n${params.pits.trim()}`)
+            }
+            body = sections.join("\n\n")
+          } else if (params.content?.trim()) {
+            body = params.content.trim()
+          }
+
+          if (!body) {
+            return {
+              title: "Skill creation failed",
+              output:
+                "Error: Skill must include content or procedure following Hermes authoring standards (concise description <= 60 chars, trigger criteria, numbered procedure, verification steps, pits).",
               metadata: { success: false },
             }
           }
@@ -58,10 +108,10 @@ export const SkillCreateTool = Tool.define<typeof Parameters, Metadata, FSUtil.S
           const fileContent = [
             "---",
             `name: ${sanitizedName}`,
-            `description: ${params.description.trim().replace(/\n/g, " ")}`,
+            `description: ${frontmatterDescription}`,
             "---",
             "",
-            params.content.trim(),
+            body,
             "",
           ].join("\n")
 
@@ -73,8 +123,9 @@ export const SkillCreateTool = Tool.define<typeof Parameters, Metadata, FSUtil.S
           return {
             title: `Created skill: ${sanitizedName}`,
             output: [
-              `Successfully created skill '${sanitizedName}' (${scope} scope).`,
+              `Successfully created skill '${sanitizedName}' (${scope} scope) following Hermes standards.`,
               `Location: ${filePath}`,
+              `Description: ${frontmatterDescription}`,
               "",
               "The skill has been indexed and is immediately available for use via the 'skill' tool or auto-selection.",
             ].join("\n"),

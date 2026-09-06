@@ -1332,6 +1332,9 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
               const folder = resolveProjectFolder(cdMatch[1].trim(), dir)
               if (folder && !manualProjectDir() && folder !== activeProjectDir()) setActiveProjectDir(folder)
             }
+            if (/(?:run\s+dev|npm\s+start|bun\s+dev|vite|next\s+dev|cargo\s+run|python\s+.*\.py|flask|uvicorn|fastapi)/i.test(input.command)) {
+              retryReloadDevServer(4, 750)
+            }
           }
           const toolName = (p as any).tool
           const fp = input?.filePath || input?.path || (p as any).metadata?.filepath
@@ -1403,6 +1406,28 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
   let syncingWorkspace = false
   let pendingWorkspaceSync = false
   const activeRequests = new Set<AbortController>()
+
+  const retryReloadDevServer = (attempts = 3, delay = 600) => {
+    let count = 0
+    const timer = window.setInterval(() => {
+      count++
+      if (!mounted) {
+        window.clearInterval(timer)
+        return
+      }
+      window.dispatchEvent(new CustomEvent("tiancode:preview-reload", { detail: { reason: `dev-server-retry-${count}` } }))
+      if (count >= attempts) window.clearInterval(timer)
+    }, delay)
+  }
+
+  let lastReportedTarget: string | undefined
+  createEffect(() => {
+    const target = serverTarget()
+    if (target && target !== lastReportedTarget) {
+      lastReportedTarget = target
+      window.dispatchEvent(new CustomEvent("tiancode:preview-reload", { detail: { url: target, reason: "server-target-changed" } }))
+    }
+  })
 
   const fetchLiveView = (path: string, init?: RequestInit) => {
     const controller = new AbortController()
@@ -1509,9 +1534,22 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
       latestEventAt = Date.now()
       setSnapshot((current) => applyLiveSnapshotUpdate(current, update))
       stopFallbackPolling()
-      if (update.type === "file_added" || update.type === "file_modified" || update.type === "file_changed" || update.type === "file_removed") {
+      if (
+        update.type === "file_added" ||
+        update.type === "file_modified" ||
+        update.type === "file_changed" ||
+        update.type === "file_removed" ||
+        update.type === "preview" ||
+        update.type === "dev_server_restarted"
+      ) {
         const rel = isRecord(update.data) && typeof update.data.rel === "string" ? update.data.rel : undefined
-        window.dispatchEvent(new CustomEvent("tiancode:preview-reload", { detail: { path: rel } }))
+        window.dispatchEvent(new CustomEvent("tiancode:preview-reload", { detail: { path: rel, reason: update.type } }))
+      }
+      if (update.type === "log" && isRecord(update.data) && typeof update.data.line === "string") {
+        const line = update.data.line
+        if (/(?:re-?started|ready in \d+|compiled (?:successfully|in)|server running at|Local:\s*http|listening on|vite.*ready|HMR connected)/i.test(line)) {
+          window.dispatchEvent(new CustomEvent("tiancode:preview-reload", { detail: { reason: "dev-server-ready" } }))
+        }
       }
       if (update.type === "session_created" || update.type === "tree_changed") void loadSnapshot()
     })
@@ -1519,6 +1557,9 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
       if (!mounted || eventSource !== source) return
       latestEventAt = Date.now()
       stopFallbackPolling()
+      void loadSnapshot().then(() => {
+        window.dispatchEvent(new CustomEvent("tiancode:preview-reload", { detail: { reason: "sse-reconnect" } }))
+      })
     }
     source.onerror = () => {
       if (!mounted || eventSource !== source) return
@@ -1527,12 +1568,29 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
   }
 
   onMount(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.altKey) {
+        if (e.key === "1" || e.code === "Digit1" || e.code === "Numpad1") {
+          e.preventDefault()
+          view().liveView.setTab("preview")
+        } else if (e.key === "2" || e.code === "Digit2" || e.code === "Numpad2") {
+          e.preventDefault()
+          view().liveView.setTab("code")
+        }
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+
     connectLiveEvents()
     syncWorkspaceSession()
     staleEventTimer = window.setInterval(() => {
       if (!eventSource || Date.now() - latestEventAt <= LIVE_VIEW_SSE_STALE_MS) return
       startFallbackPolling()
     }, LIVE_VIEW_FALLBACK_POLL_MS)
+
+    onCleanup(() => {
+      window.removeEventListener("keydown", handleKeyDown)
+    })
   })
 
   onCleanup(() => {
@@ -1727,8 +1785,12 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
                   data-selected={activeTab() === tab.id || undefined}
                   class="h-full shrink-0 rounded-md px-2.5 text-12-medium text-text-weak transition-colors hover:bg-v2-overlay-simple-overlay-hover hover:text-text-base focus-visible:outline focus-visible:outline-1 focus-visible:outline-v2-border-border-strong data-[selected]:bg-v2-background-bg-base data-[selected]:text-text-base data-[selected]:shadow-[var(--v2-elevation-raised)]"
                   onClick={() => view().liveView.setTab(tab.id)}
+                  title={`${tab.label} (${tab.id === "preview" ? "Ctrl+Alt+1" : "Ctrl+Alt+2"})`}
                 >
-                  {tab.label}
+                  <span>{tab.label}</span>
+                  <span class="ml-1.5 hidden md:inline text-[10px] opacity-50 font-mono">
+                    {tab.id === "preview" ? "Ctrl+Alt+1" : "Ctrl+Alt+2"}
+                  </span>
                 </button>
               )}
             </For>
@@ -1788,6 +1850,19 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
             </div>
           </Show>
         </div>
+        <IconButtonV2
+          type="button"
+          variant="ghost-muted"
+          size="large"
+          onClick={() => {
+            void loadSnapshot()
+            retryReloadDevServer(3, 500)
+            window.dispatchEvent(new CustomEvent("tiancode:preview-reload", { detail: { force: true } }))
+          }}
+          aria-label={language.intl().toLowerCase().startsWith("es") ? "Recargar Sandbox y Dev Server" : "Reload Sandbox & Dev Server"}
+          title={language.intl().toLowerCase().startsWith("es") ? "Recargar Sandbox y Dev Server" : "Reload Sandbox & Dev Server"}
+          icon={<IconV2 name="reset" />}
+        />
         <Show when={props.expandable}>
           <IconButtonV2
             type="button"

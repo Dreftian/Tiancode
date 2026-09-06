@@ -19,6 +19,7 @@ import { PreviewLogsTool, PreviewRestartTool, PreviewStartTool, PreviewStatusToo
 import { SkillTool } from "./skill"
 import { MemoryTool } from "./memory"
 import { SkillCreateTool } from "./skill-create"
+import { SessionSearchTool } from "./session-search"
 import * as Tool from "./tool"
 import { Config } from "@/config/config"
 import { type ToolContext as PluginToolContext, type ToolDefinition } from "@tiancode-ai/plugin"
@@ -122,6 +123,7 @@ const layer = Layer.effect(
     const skilltool = yield* SkillTool
     const memorytool = yield* MemoryTool
     const skillcreatetool = yield* SkillCreateTool
+    const sessionsearchtool = yield* SessionSearchTool
     const previewStart = yield* PreviewStartTool
     const previewStop = yield* PreviewStopTool
     const previewRestart = yield* PreviewRestartTool
@@ -234,6 +236,7 @@ const layer = Layer.effect(
           skill: Tool.init(skilltool),
           memory: Tool.init(memorytool),
           skillCreate: Tool.init(skillcreatetool),
+          sessionSearch: Tool.init(sessionsearchtool),
           patch: Tool.init(patchtool),
           question: Tool.init(question),
           lsp: Tool.init(lsptool),
@@ -264,6 +267,7 @@ const layer = Layer.effect(
             tool.skill,
             tool.memory,
             tool.skillCreate,
+            tool.sessionSearch,
             tool.patch,
             ...(tool.execute ? [tool.execute] : []),
             ...(flags.experimentalLspTool ? [tool.lsp] : []),

@@ -242,7 +242,7 @@ const layer = Layer.effect(
     // calls, then erases output of older tool calls to free context space
     const prune = Effect.fn("SessionCompaction.prune")(function* (input: { sessionID: SessionID }) {
       const cfg = yield* config.get()
-      if (!cfg.compaction?.prune) return
+      if (cfg.compaction?.prune === false) return
       yield* Effect.logInfo("pruning")
 
       const msgs = yield* session
@@ -348,6 +348,23 @@ const layer = Layer.effect(
       const nextPrompt = compacting.prompt ?? buildPrompt({ previousSummary, context: compacting.context })
       const msgs = structuredClone(selected.head)
       yield* plugin.trigger("experimental.chat.messages.transform", {}, { messages: msgs })
+
+      // Hermes-inspired Head & Tail protection: protect Head (turn 0) and Tail (retained via tail_start_id),
+      // aggressively prune old tool outputs (> 1000 chars) in middle turns before expensive LLM summarization.
+      const headTurns = turns(msgs)
+      const headEnd = headTurns[0]?.end ?? 0
+      for (let i = headEnd; i < msgs.length; i++) {
+        const msg = msgs[i]
+        for (const part of msg.parts) {
+          if (part.type === "tool" && part.state.status === "completed" && part.state.output) {
+            if (!PRUNE_PROTECTED_TOOLS.includes(part.tool) && part.state.output.length > 1000) {
+              const omitted = part.state.output.length - 1000
+              part.state.output = `${part.state.output.slice(0, 1000)}\n[Tool output pruned for compaction: omitted ${omitted} chars]`
+            }
+          }
+        }
+      }
+
       const modelMessages = yield* MessageV2.toModelMessagesEffect(msgs, model, {
         stripMedia: true,
         toolOutputMaxChars: TOOL_OUTPUT_MAX_CHARS,

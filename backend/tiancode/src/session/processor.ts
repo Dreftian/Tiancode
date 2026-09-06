@@ -25,8 +25,9 @@ import { isRecord } from "@/util/record"
 import { EventV2Bridge } from "@/event-v2-bridge"
 import { Database } from "@tiancode-ai/core/database/database"
 import { Usage, type LLMEvent } from "@tiancode-ai/llm"
+import { ToolCallRepair } from "./llm/tool-call-repair"
+import { LoopDetector } from "./loop-detector"
 
-const DOOM_LOOP_THRESHOLD = 3
 export type Result = "compact" | "stop" | "continue"
 
 export interface Handle {
@@ -351,7 +352,7 @@ const layer = Layer.effect(
               throw new Error(`Tool call not allowed while generating summary: ${value.name}`)
             }
             yield* ensureToolCall(value)
-            const input = isRecord(value.input) ? value.input : { value: value.input }
+            const input = ToolCallRepair.repairToolInput(value.input)
             yield* updateToolCall(value.id, (match) => ({
               ...match,
               tool: value.name,
@@ -371,30 +372,46 @@ const layer = Layer.effect(
             const parts = yield* MessageV2.parts(ctx.assistantMessage.id).pipe(
               Effect.provideService(Database.Service, database),
             )
-            const recentParts = parts.slice(-DOOM_LOOP_THRESHOLD)
+            const priorParts = parts.filter((part) => !(part.type === "tool" && part.callID === value.id))
+            const loopResult = LoopDetector.detectLoop(priorParts, value.name, input)
 
-            if (
-              recentParts.length !== DOOM_LOOP_THRESHOLD ||
-              !recentParts.every(
-                (part) =>
-                  part.type === "tool" &&
-                  part.tool === value.name &&
-                  part.state.status !== "pending" &&
-                  JSON.stringify(part.state.input) === JSON.stringify(input),
+            if (!loopResult.stuck) {
+              return
+            }
+
+            if (loopResult.reason === "circuit_breaker") {
+              yield* failToolCall(
+                value.id,
+                new Error(
+                  `${loopResult.message ?? "Circuit breaker tripped."} Execution halted. Please summarize your progress and change strategy.`,
+                ),
               )
-            ) {
               return
             }
 
             const agent = yield* agents.get(ctx.assistantMessage.agent)
-            yield* permission.ask({
-              permission: "doom_loop",
-              patterns: [value.name],
-              sessionID: ctx.assistantMessage.sessionID,
-              metadata: { tool: value.name, input },
-              always: [value.name],
-              ruleset: agent.permission,
-            })
+            const permitted = yield* permission
+              .ask({
+                permission: "doom_loop",
+                patterns: [value.name],
+                sessionID: ctx.assistantMessage.sessionID,
+                metadata: { tool: value.name, input, reason: loopResult.reason, message: loopResult.message },
+                always: [value.name],
+                ruleset: agent.permission,
+              })
+              .pipe(
+                Effect.as(true),
+                Effect.catch(() => Effect.succeed(false)),
+              )
+
+            if (!permitted) {
+              yield* failToolCall(
+                value.id,
+                new Error(
+                  `${loopResult.message ?? `Doom loop detected for '${value.name}'.`} Execution halted to avoid infinite loop. Please change your strategy and approach the task differently.`,
+                ),
+              )
+            }
             return
           }
 
