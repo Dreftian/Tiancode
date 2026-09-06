@@ -4,6 +4,25 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.31] — 2026-09-06
+### Modernización del Ecosistema de Skills, TTS en Worker y Reparación con IA en Vista Previa
+
+- **Ecosistema de Habilidades y Superpoderes de Agentes**:
+  - Corrección del mapeo en `backend/tiancode/src/skill/builtin/skills.ts` donde `"to-spec"` apuntaba erróneamente a `spec_driven_development` en lugar de `to_spec`.
+  - Registro canónico de la especificación de diseño `design-system-spec.md` con tokens de Rico UI DESIGN.md.
+  - Nuevas habilidades de calidad y arquitectura de agentes: `subagent-driven-development`, `systematic-debugging`, `constraint-driven-development` y `receiving-code-review`.
+  - Habilidades oficiales de proveedores y mejores prácticas: `supabase-postgres-best-practices`, `cloudflare-workers-best-practices`, `stripe-payments-integration`, `better-auth-patterns` y `sentry-observability-and-fixes`.
+  - Creadores de artefactos y documentos en código abierto limpio: `mcp-builder`, `web-artifacts-builder`, `docx-document-creation` (docx-js) y `xlsx-spreadsheet-builder` (exceljs).
+- **Rendimiento de Voz: Offloading de Kokoro TTS a UtilityProcess**:
+  - Migración completa de la síntesis de voz neural Kokoro ONNX desde el hilo principal de Electron hacia un proceso secundario dedicado (`utilityProcess` / `voice-worker.ts`).
+  - Eliminación total de congelamientos de 1-3 segundos en la interfaz y el bucle de eventos durante la generación de audio.
+- **Terminación Limpia de Procesos PTY en Windows**:
+  - Implementación de `terminateWindowsProcessTree` con `taskkill.exe /PID <pid> /T /F` para terminar de forma limpia e instantánea subprocesos zombies de terminal en Windows.
+- **Mejoras en el Sistema de Vista Previa (Live Preview)**:
+  - **Reparación con IA en 1 Clic (`✨ Reparar con IA`)**: botón integrado en el banner de error de carga, en la vista de fallo de compilación del Dev Server y en la consola de sandbox de escritorio. Envía el contexto del error automáticamente al agente.
+  - **Corrección de pantalla blanca en Iframe (`nudgePreviewIframeGeometry`)**: elimina glitches de rasterización en Chromium al cargar iframes sandboxed escalados.
+  - **Bus de inserción reactiva de prompts (`tiancode:insert-prompt`)**: comunicación fluida entre vistas secundarias y el compositor del chat.
+
 ## [1.0.30] — 2026-09-06
 ### Motor de Actualización en Tiempo Real del Sandbox y Auto-Rebuild Incremental
 

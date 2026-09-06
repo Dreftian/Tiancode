@@ -29,33 +29,36 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.25"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — Motor de Actualización en Tiempo Real del Sandbox y Auto-Rebuild Incremental`
-  const body = `## 🚀 Tiancode v${version} — Motor de Actualización en Tiempo Real del Sandbox y Auto-Rebuild Incremental
+  const releaseName = `Tiancode v${version} — Modernización de Skills, TTS en Worker y Reparación con IA en Vista Previa`
+  const body = `## 🚀 Tiancode v${version} — Modernización de Skills, TTS en Worker y Reparación con IA en Vista Previa
 
-### ⚡ Motor de Reconstrucción Incremental Automática (Sandbox Hot-Engine)
-- **Auto-Rebuild Reactivo:** Detecta scripts de compilación (\`build\`, \`build:web\`) en el proyecto (\`package.json\`) y reconstruye automáticamente en segundo plano cuando cualquier modelo de IA o el usuario modifica archivos en \`src/\`, templates o assets.
-- **Watcher Recursivo de Workspace:** El file watcher de vista previa vigila la raíz completa del proyecto con debounce de 150ms, eliminando los puntos ciegos cuando la carpeta servida es \`dist/\` o \`build/\`.
-- **Notificación Instantánea SSE:** En cuanto el build termina, emite un evento Server-Sent Events (\`reload\`) a todas las ventanas y vistas activas del Sandbox para reflejar los cambios al instante.
-- **Diagnóstico Estructurado de Compilación:** Si el código fuente tiene errores de sintaxis o build, se reportan claramente en el estado de preview y en la consola sin dejar la pantalla en blanco.
+### 🧠 Modernización del Ecosistema de Habilidades y Calidad de Agentes
+- **Superpoderes de Agentes:** Nuevas habilidades para flujos avanzados y confiables:
+  - \`subagent-driven-development\`: subagentes ejecutores aislados con doble filtro de calidad (especificación y código).
+  - \`systematic-debugging\`: protocolo de investigación de causa raíz en 4 fases ("La Ley de Hierro: sin arreglos sin causa raíz").
+  - \`constraint-driven-development\`: respeto estricto a restricciones de \`CONSTRAINTS.md\` sin rebajar estándares.
+  - \`receiving-code-review\`: evaluación rigurosa y técnica del feedback recibido.
+- **Mejores Prácticas y Proveedores Oficiales:**
+  - \`supabase-postgres-best-practices\`, \`cloudflare-workers-best-practices\`, \`stripe-payments-integration\`, \`better-auth-patterns\` y \`sentry-observability-and-fixes\`.
+- **Creadores de Artefactos y Documentación en Código Abierto Limpio:**
+  - \`mcp-builder\`, \`web-artifacts-builder\`, \`docx-document-creation\` (docx-js) y \`xlsx-spreadsheet-builder\` (exceljs).
+- **Corrección de Mapeo y Tokens Canónicos:**
+  - Corregido el mapeo de \`to-spec\` en \`builtin/skills.ts\` y registrado el sistema de diseño canónico \`design-system-spec\` (Rico UI DESIGN.md).
 
-### 🛡️ Cabeceras Anti-Caché Estrictas y Bypass de Caché de Navegador
-- Servidor estático con cabeceras estrictas \`Cache-Control: no-store, no-cache, must-revalidate\`, \`Pragma: no-cache\` y \`Expires: 0\`.
-- Recarga forzada del iframe mediante timestamps únicos (\`_t=\${Date.now()}\`) y postMessage bidireccional, garantizando que Chromium nunca sirva vistas cacheadas u obsoletas.
+### ⚡ Rendimiento de Voz: Offloading Neural Kokoro TTS a UtilityProcess
+- Síntesis de voz ONNX migrada completamente fuera del hilo principal de Electron hacia un \`utilityProcess\` dedicado (\`voice-worker.ts\`).
+- Eliminación total de congelamientos de 1-3 segundos en la interfaz y el bucle de eventos durante la locución de voz.
 
-### 🔄 Despacho de Eventos Sin Bloqueos
-- Eliminación de la limitación que impedía emitir eventos de recarga cuando se editaba consecutivamente el mismo archivo.
-- Cada modificación generada por cualquier modelo (\`write\`, \`edit\`, \`apply_patch\`) dispara de inmediato la sincronización en vivo.
+### 🛡️ Terminación Limpia de Procesos PTY Zombies en Windows
+- Terminación en árbol con \`taskkill.exe /PID <pid> /T /F\` en sesiones de terminal de Windows, previniendo fugas de memoria o puertos ocupados.
 
-### 🖥️ Emulación Desktop y Multipágina para Aplicaciones como Khaos
-- Inyección automática de host contenedor web para shells con marco de escritorio (\`#chrome\`), renderizando la vista activa (\`start.html\`) de forma nativa e interactiva.
-- Traducción automática de esquemas personalizados como \`khaos-ui://app/\` para navegación directa en el sandbox.
-
-### 📐 Preservación Total de Resoluciones y UI
-- Funcionamiento fluido en todas las resoluciones (Desktop 1920x1080, Compact, MacBook, Laptop, Tablet, Móviles y TV) y modos de zoom.
-- Mantiene el 100% de la interfaz existente sin alteraciones estéticas.
+### 🖥️ Vista Previa en Vivo: Auto-Reparación y Renderizado Libre de Glitches
+- **Reparación con IA en 1 Clic (\`✨ Reparar con IA\`):** Botón directo en fallos de carga, compilación del Dev Server y sandbox Desktop que empaqueta el error y lo envía a solucionar automáticamente al agente.
+- **Corrección de Pantalla Blanca en Iframe (\`nudgePreviewIframeGeometry\`):** Eliminación de glitches de rasterizado en Chromium/Electron al cargar iframes sandboxed escalados.
+- **Bus Reactivo de Prompts (\`tiancode:insert-prompt\`):** Despacho e inyección fluida de instrucciones sin necesidad de copiar y pegar manualmente.
 
 ### 🔒 Actualización 100% No Destructiva
-- Todas tus claves de API, configuraciones de voz, sesiones, MCPs y credenciales se mantienen completamente intactas.
+- Todas tus claves de API, sesiones, historial, MCPs y credenciales se preservan de forma intacta.
 
 ### 📦 Descargas
 | Archivo | Tipo | Descripción |
