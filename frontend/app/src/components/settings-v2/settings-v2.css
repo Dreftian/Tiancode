@@ -167,6 +167,8 @@
   display: flex;
   width: 100%;
   justify-content: flex-end;
+  min-width: 0;
+  max-width: 100%;
 }
 
 [data-slot="settings-v2-row-control"] > div:has([data-component="switch"]),
@@ -179,12 +181,15 @@
 @media (min-width: 640px) {
   [data-slot="settings-v2-row-control"] {
     width: auto;
-    flex-shrink: 0;
+    max-width: 100%;
+    min-width: 0;
+    flex-shrink: 1;
   }
 }
 
 [data-slot="settings-v2-row-control"] [data-component="text-input-v2"] {
   width: 100%;
+  min-width: 0;
 }
 
 [data-component="dialog-v2"][data-variant="settings"] [data-component="select-v2-root"] {

@@ -241,6 +241,15 @@ const SKILL_ES_DESCRIPTIONS: Record<string, string> = {
   "pptx": "Inspección, creación y formateo modular de presentaciones PowerPoint (.pptx).",
   "pdf": "Extracción de texto estructurado, metadatos, OCR y procesamiento de documentos PDF.",
   "mcp-builder": "Construcción, validación e integración rápida de servidores Model Context Protocol (MCP) en TypeScript y Python.",
+  "pen-design": "Crea diseños visuales de alta fidelidad: interfaces web, apps móviles, mockups, pantallas, dashboards y presentaciones con pen.dev CLI (@pen.dev/cli / pen). Genera archivos .pen y exportaciones PNG.",
+  "hermes-orchestrator": "Planificación y orquestación multi-fase autónoma de tareas complejas con retroalimentación continua y auto-corrección.",
+  "hermes-research": "Investigación técnica profunda autónoma en fuentes primarias, papers y documentación con síntesis estructurada.",
+  "hermes-sqlite-search": "Búsqueda semántica y estructurada de contexto en bases de datos SQLite y memoria episódica.",
+  "openclaw-resilience": "Tolerancia a fallos, circuit breaker ante bucles infinitos y reparación instantánea de llamadas a herramientas JSON.",
+  "openclaw-gateway": "Pasarela y proxy resiliente para orquestación de agentes distribuidos y rotación de modelos.",
+  "opendesign-ui": "Diseño de interfaces de usuario modernas, sistemas de diseño atómicos y prototipado visual interactivo.",
+  "pentest-redteam": "Auditoría adversaria de seguridad, análisis de superficie de ataque, validación OWASP y fortificación defensiva.",
+  "generative_ui": "Renderizado interactivo de componentes visuales, diagramas y widgets enriquecidos en el chat.",
 }
 
 export const SAFE_SKILLS = new Set([
@@ -295,6 +304,14 @@ export const SAFE_SKILLS = new Set([
   "agy-customizations",
   "credentials",
   "typescript-strict-patterns",
+  "pen-design",
+  "hermes-orchestrator",
+  "hermes-research",
+  "hermes-sqlite-search",
+  "openclaw-resilience",
+  "openclaw-gateway",
+  "opendesign-ui",
+  "generative_ui",
 ])
 
 export const CATEGORY_FRONTEND = new Set([
@@ -315,6 +332,8 @@ export const CATEGORY_FRONTEND = new Set([
   "tailwind-v4-styling",
   "web-quality-audit",
   "generative_ui",
+  "pen-design",
+  "opendesign-ui",
 ])
 
 export const CATEGORY_BACKEND = new Set([
@@ -330,6 +349,10 @@ export const CATEGORY_BACKEND = new Set([
   "observability-and-instrumentation",
   "incident-response",
   "deploy-checklist",
+  "hermes-orchestrator",
+  "hermes-sqlite-search",
+  "openclaw-resilience",
+  "openclaw-gateway",
 ])
 
 export const CATEGORY_TESTING = new Set([
@@ -344,6 +367,7 @@ export const CATEGORY_TESTING = new Set([
   "security-and-hardening",
   "security-sast-owasp",
   "security-and-vulnerability-audit",
+  "pentest-redteam",
 ])
 
 export const SPECIALIZED_CONFLICT_TIPS: Record<string, string> = {
@@ -634,6 +658,75 @@ Análisis extremo de rendimiento para identificar cuellos de botella de CPU, fug
 - **Contención de Pintura**: Usar \`contain: paint layout\` y capas GPU compuestas.
 - **Transferencias Zero-Copy**: Transmitir buffers binarios directos sin conversiones de cadenas intermedias.
 - **Arranque Instantáneo**: Carga perezosa de dependencias pesadas mediante importaciones dinámicas.`,
+
+  "pen-design": `# Diseño Visual Profesional con pen.dev CLI
+
+## Descripción General
+Crea diseños visuales de alta fidelidad: páginas web completas, pantallas de aplicaciones móviles, dashboards interactivos, diapositivas, carteles y gráficos utilizando pen.dev CLI (\`@pen.dev/cli\` / \`pen\`).
+
+El motor de pen.dev sincroniza parches AST de nodos JSON en memoria sobre un canvas WebAssembly/Emscripten sin parpadeos ni recargas de página.
+
+## Flujo de Trabajo Rápido
+1. **Crear un diseño inicial**:
+\`\`\`bash
+npx -y @pen.dev/cli create mi-diseño --type webpage
+\`\`\`
+Tipos soportados: \`webpage\`, \`app\`, \`dashboard\`, \`slide\`, \`poster\`.
+
+2. **Editar y sincronizar**:
+\`\`\`bash
+npx -y @pen.dev/cli edit mi-diseño.pen
+\`\`\`
+
+3. **Exportar a imagen**:
+\`\`\`bash
+npx -y @pen.dev/cli export mi-diseño.pen -o preview.png
+\`\`\`
+
+## Directivas Principales
+- **Estructura Declarativa**: Los archivos \`.pen\` representan árboles JSON con nodos de capas, vectores, textos y estilos.
+- **Sincronización Reactiva**: Modifica el árbol con actualizaciones incrementales para visualización fluida a 60fps.
+- **Integración con Tiancode**: Utiliza el sub-agente especializado \`@opendesign-ui-master\` para coordinar la generación visual y su posterior exportación a código Tailwind v4.`,
+
+  "hermes-orchestrator": `# Orquestador Autónomo Multi-Fase Hermes
+
+## Descripción General
+Orquestación multi-fase autónoma inspirada en Nous Research Hermes Agent. Planifica, divide en etapas secuenciales o paralelas, ejecuta herramientas y auto-corrige resultados con retroalimentación continua.
+
+## Puntos Clave
+- **Desglose en Fases**: Divide objetivos complejos en sub-metas atómicas con criterios claros de éxito.
+- **Bucle de Auto-Corrección**: Evalúa la salida de cada herramienta; si hay fallos o respuestas ambiguas, replanifica de inmediato.
+- **Integración con Memoria Episódica**: Consulta sesiones anteriores en bases SQLite para adoptar patrones probados.`,
+
+  "openclaw-resilience": `# Tolerancia a Fallos y Resiliencia OpenClaw
+
+## Descripción General
+Conjunto de mecanismos de resiliencia inspirado en OpenClaw para garantizar que las sesiones de agentes nunca se queden atascadas ni fallen por errores de formato.
+
+## Puntos Clave
+- **Auto-Reparación de Tool-Calls JSON**: Detecta JSONs truncados o mal cerrados devueltos por LLMs y los repara antes de pasarlos a la herramienta.
+- **Circuit Breaker Anti-Bucles**: Monitorea llamadas repetitivas con argumentos idénticos y rompe el ciclo automáticamente ofreciendo alternativas.
+- **Rotación Dinámica de Proveedores**: Si un endpoint devuelve 429 o 500, conmuta automáticamente a la réplica configurada.`,
+
+  "opendesign-ui": `# OpenDesign UI & Prototipado Visual
+
+## Descripción General
+Generación y conversión de interfaces de usuario modernas, integración con Figma/tokens de diseño y componentes limpios en Tailwind v4 y React/Solid.
+
+## Puntos Clave
+- **Diseño Atómico**: Creación de paletas semánticas, tipografía accesible y componentes modulares.
+- **Fidelidad Visual**: Estilos contemporáneos con glassmorphism, sombras sutiles y micro-interacciones a 60fps.
+- **Exportación Limpia**: Código sin dependencias innecesarias, fuertemente tipado y adaptable a temas claro/oscuro.`,
+
+  "pentest-redteam": `# Auditoría Adversaria de Seguridad y Pentesting
+
+## Descripción General
+Auditoría técnica rigurosa y red teaming defensivo: análisis de superficie de ataque, validación de vectores OWASP Top 10, permisos de herramientas y endurecimiento de agentes LLM.
+
+## Directivas
+- **Emulación Adversaria**: Simulación de inyecciones de prompts, evasión de restricciones y escalada de privilegios.
+- **Evidencia Concreta**: Cada hallazgo debe incluir prueba de concepto y calibración de severidad según CVSS.
+- **Mitigación y Hardening**: Recomendaciones exactas de parcheo y contramedidas defensivas aplicables de inmediato.`,
 }
 
 function localizeSkillDescription(name: string, defaultDesc: string | undefined, isSpanish: boolean): string {

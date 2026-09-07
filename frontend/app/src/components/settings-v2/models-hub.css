@@ -321,6 +321,7 @@
 .lm-brand-cohere { background: #16241d; border-color: rgba(212, 91, 75, 0.45); }
 .lm-brand-internlm { background: #0c0f17; border-color: rgba(56, 189, 248, 0.45); }
 .lm-brand-hf { background: #ffd21e; border-color: rgba(0, 0, 0, 0.18); box-shadow: 0 4px 14px rgba(255, 210, 30, 0.3); }
+.lm-brand-nous { background: linear-gradient(135deg, #581c87, #3b0764); box-shadow: 0 4px 14px rgba(147, 51, 234, 0.35); border-color: rgba(216, 180, 254, 0.4); }
 .lm-brand-hf-avatar { background: #181920; border-color: rgba(255, 255, 255, 0.14); }
 
 .lm-model-item-info {

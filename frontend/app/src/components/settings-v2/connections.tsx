@@ -373,18 +373,18 @@ export const SettingsConnectionsV2: Component<{ active?: boolean }> = (_props) =
                   title={language.t("settings.connections.telegram.token") || "Bot Token"}
                   description="Token generado por @BotFather en Telegram para autenticar la API del bot."
                 >
-                  <div class="flex items-center gap-2 w-full max-w-[340px]">
+                  <div class="flex items-center gap-2 w-full max-w-[340px] min-w-0">
                     <TextInputV2
                       type={showTelegramToken() ? "text" : "password"}
                       appearance="base"
-                      class="!w-full"
+                      class="!w-full min-w-0 flex-1"
                       value={store.telegram.botToken}
                       placeholder="123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ"
                       onInput={(e) => setStore("telegram", "botToken", e.currentTarget.value)}
                     />
                     <button
                       type="button"
-                      class="shrink-0 px-2 py-1 text-11-regular rounded border border-v2-border-border-muted bg-v2-background-bg-base hover:bg-v2-overlay-simple-overlay-hover text-text-weak transition-colors"
+                      class="shrink-0 px-2.5 py-1 text-11-regular rounded border border-v2-border-border-muted bg-v2-background-bg-base hover:bg-v2-overlay-simple-overlay-hover text-text-weak transition-colors cursor-pointer"
                       onClick={() => setShowTelegramToken(!showTelegramToken())}
                     >
                       {showTelegramToken() ? "Ocultar" : "Ver"}
@@ -396,11 +396,11 @@ export const SettingsConnectionsV2: Component<{ active?: boolean }> = (_props) =
                   title={language.t("settings.connections.telegram.chatId") || "Chat ID / Usuario"}
                   description="Tu ID numérico o el ID del grupo/canal donde Tiancode enviará las alertas."
                 >
-                  <div class="w-full max-w-[340px]">
+                  <div class="w-full max-w-[340px] min-w-0">
                     <TextInputV2
                       type="text"
                       appearance="base"
-                      class="!w-full"
+                      class="!w-full min-w-0"
                       value={store.telegram.chatId}
                       placeholder="ej. 987654321 o @mi_canal"
                       onInput={(e) => setStore("telegram", "chatId", e.currentTarget.value)}
@@ -494,11 +494,11 @@ export const SettingsConnectionsV2: Component<{ active?: boolean }> = (_props) =
                   title={language.t("settings.connections.whatsapp.phone") || "Número / ID de WhatsApp"}
                   description="Número telefónico en formato internacional con prefijo (ej. +34600112233)."
                 >
-                  <div class="w-full max-w-[340px]">
+                  <div class="w-full max-w-[340px] min-w-0">
                     <TextInputV2
                       type="text"
                       appearance="base"
-                      class="!w-full"
+                      class="!w-full min-w-0"
                       value={store.whatsapp.phoneOrId}
                       placeholder="+34 600 000 000"
                       onInput={(e) => setStore("whatsapp", "phoneOrId", e.currentTarget.value)}
@@ -630,11 +630,11 @@ export const SettingsConnectionsV2: Component<{ active?: boolean }> = (_props) =
                       : "Token de tu aplicación bot desde el portal de desarrolladores de Discord."
                   }
                 >
-                  <div class="flex items-center gap-2 w-full max-w-[340px]">
+                  <div class="flex items-center gap-2 w-full max-w-[340px] min-w-0">
                     <TextInputV2
                       type={showDiscordSecret() ? "text" : "password"}
                       appearance="base"
-                      class="!w-full"
+                      class="!w-full min-w-0 flex-1"
                       value={store.discord.authMode === "webhook" ? store.discord.webhookUrl : store.discord.botToken}
                       placeholder={
                         store.discord.authMode === "webhook"
@@ -643,7 +643,7 @@ export const SettingsConnectionsV2: Component<{ active?: boolean }> = (_props) =
                       }
                       onInput={(e) => {
                         if (store.discord.authMode === "webhook") {
-                          setStore("discord", "webhookUrl", e.currentTarget.value)
+                           setStore("discord", "webhookUrl", e.currentTarget.value)
                         } else {
                           setStore("discord", "botToken", e.currentTarget.value)
                         }
@@ -651,7 +651,7 @@ export const SettingsConnectionsV2: Component<{ active?: boolean }> = (_props) =
                     />
                     <button
                       type="button"
-                      class="shrink-0 px-2 py-1 text-11-regular rounded border border-v2-border-border-muted bg-v2-background-bg-base hover:bg-v2-overlay-simple-overlay-hover text-text-weak transition-colors"
+                      class="shrink-0 px-2.5 py-1 text-11-regular rounded border border-v2-border-border-muted bg-v2-background-bg-base hover:bg-v2-overlay-simple-overlay-hover text-text-weak transition-colors cursor-pointer"
                       onClick={() => setShowDiscordSecret(!showDiscordSecret())}
                     >
                       {showDiscordSecret() ? "Ocultar" : "Ver"}
@@ -663,11 +663,11 @@ export const SettingsConnectionsV2: Component<{ active?: boolean }> = (_props) =
                   title={language.t("settings.connections.discord.channel") || "Canal de avisos"}
                   description="Nombre o identificador del canal donde se publicarán los mensajes."
                 >
-                  <div class="w-full max-w-[340px]">
+                  <div class="w-full max-w-[340px] min-w-0">
                     <TextInputV2
                       type="text"
                       appearance="base"
-                      class="!w-full"
+                      class="!w-full min-w-0"
                       value={store.discord.channelName}
                       placeholder="#tiancode-builds"
                       onInput={(e) => setStore("discord", "channelName", e.currentTarget.value)}
@@ -748,11 +748,11 @@ export const SettingsConnectionsV2: Component<{ active?: boolean }> = (_props) =
                   title={language.t("settings.connections.slack.webhook") || "Incoming Webhook URL"}
                   description="URL generada por la App de Slack para publicar en tu canal."
                 >
-                  <div class="w-full max-w-[340px]">
+                  <div class="w-full max-w-[340px] min-w-0">
                     <TextInputV2
                       type="password"
                       appearance="base"
-                      class="!w-full"
+                      class="!w-full min-w-0"
                       value={store.slack.webhookUrl}
                       placeholder="https://hooks.slack.com/services/..."
                       onInput={(e) => setStore("slack", "webhookUrl", e.currentTarget.value)}
@@ -764,11 +764,11 @@ export const SettingsConnectionsV2: Component<{ active?: boolean }> = (_props) =
                   title={language.t("settings.connections.slack.channel") || "Canal Predeterminado"}
                   description="Canal de Slack de destino (ej. #general, #tiancode-feed)."
                 >
-                  <div class="w-full max-w-[340px]">
+                  <div class="w-full max-w-[340px] min-w-0">
                     <TextInputV2
                       type="text"
                       appearance="base"
-                      class="!w-full"
+                      class="!w-full min-w-0"
                       value={store.slack.channelName}
                       placeholder="#general"
                       onInput={(e) => setStore("slack", "channelName", e.currentTarget.value)}
@@ -849,11 +849,11 @@ export const SettingsConnectionsV2: Component<{ active?: boolean }> = (_props) =
                   title={language.t("settings.connections.webhooks.url") || "Endpoint URL"}
                   description="URL del servicio que recibirá los payloads POST de Tiancode."
                 >
-                  <div class="w-full max-w-[340px]">
+                  <div class="w-full max-w-[340px] min-w-0">
                     <TextInputV2
                       type="text"
                       appearance="base"
-                      class="!w-full"
+                      class="!w-full min-w-0"
                       value={store.webhooks.endpointUrl}
                       placeholder="https://mi-servidor.com/api/tiancode-webhook"
                       onInput={(e) => setStore("webhooks", "endpointUrl", e.currentTarget.value)}
@@ -865,18 +865,18 @@ export const SettingsConnectionsV2: Component<{ active?: boolean }> = (_props) =
                   title={language.t("settings.connections.webhooks.secret") || "Clave Secreta HMAC"}
                   description="Clave compartida para verificar la cabecera X-Tiancode-Signature en cada petición."
                 >
-                  <div class="flex items-center gap-2 w-full max-w-[340px]">
+                  <div class="flex items-center gap-2 w-full max-w-[340px] min-w-0">
                     <TextInputV2
                       type={showWebhookSecret() ? "text" : "password"}
                       appearance="base"
-                      class="!w-full"
+                      class="!w-full min-w-0 flex-1"
                       value={store.webhooks.secretToken}
                       placeholder="whsec_..."
                       onInput={(e) => setStore("webhooks", "secretToken", e.currentTarget.value)}
                     />
                     <button
                       type="button"
-                      class="shrink-0 px-2 py-1 text-11-regular rounded border border-v2-border-border-muted bg-v2-background-bg-base hover:bg-v2-overlay-simple-overlay-hover text-text-weak transition-colors"
+                      class="shrink-0 px-2.5 py-1 text-11-regular rounded border border-v2-border-border-muted bg-v2-background-bg-base hover:bg-v2-overlay-simple-overlay-hover text-text-weak transition-colors cursor-pointer"
                       onClick={() => setShowWebhookSecret(!showWebhookSecret())}
                     >
                       {showWebhookSecret() ? "Ocultar" : "Ver"}

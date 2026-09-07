@@ -252,6 +252,21 @@ function BrandLogo(props: { id: string; author?: string; class?: string }) {
     )
   }
 
+  // 8b. Nous Research Hermes (Hermes-3 official winged emblem)
+  if (text().includes("hermes") || text().includes("nous")) {
+    return (
+      <div class={`lm-brand-badge lm-brand-nous ${props.class ?? ""}`} title="Nous Research Hermes Official">
+        <svg viewBox="0 0 100 100" width="26" height="26" fill="none">
+          <circle cx="50" cy="50" r="40" fill="#18181b" stroke="#a855f7" stroke-width="2.5" />
+          <path d="M30 42C38 32 62 32 70 42C74 47 72 56 65 62L50 75L35 62C28 56 26 47 30 42Z" fill="#c084fc" opacity="0.9" />
+          <path d="M22 36C28 30 38 28 46 32L34 44C28 42 24 39 22 36Z" fill="#e9d5ff" />
+          <path d="M78 36C72 30 62 28 54 32L66 44C72 42 76 39 78 36Z" fill="#e9d5ff" />
+          <circle cx="50" cy="50" r="5" fill="#ffffff" />
+        </svg>
+      </div>
+    )
+  }
+
   // 9. Real Hugging Face Author / Org Avatar si está disponible
   const authName = author()
   if (authName && !imgError()) {
@@ -353,6 +368,19 @@ const STAFF_PICKS: Model[] = [
       { file: "DeepSeek-R1-Distill-Qwen-7B-Q8_0.gguf", quant: "Q8_0", size: 7.95e9 },
     ],
   },
+  {
+    id: "NousResearch/Hermes-3-Llama-3.1-8B-GGUF",
+    downloads: 480200,
+    likes: 2310,
+    pipeline_tag: "text-generation",
+    author: "NousResearch",
+    description: "State-of-the-art agentic & reasoning model from Nous Research with advanced tool-calling and structured JSON output.",
+    tags: ["agent", "reasoning", "tools", "gguf"],
+    quantFiles: [
+      { file: "Hermes-3-Llama-3.1-8B.Q4_K_M.gguf", quant: "Q4_K_M", size: 4.92e9, recommended: true },
+      { file: "Hermes-3-Llama-3.1-8B.Q8_0.gguf", quant: "Q8_0", size: 8.54e9 },
+    ],
+  },
 ]
 
 export const SettingsModelsHubV2: Component<{
@@ -364,6 +392,22 @@ export const SettingsModelsHubV2: Component<{
   const serverSync = useServerSync()
   const [query, setQuery] = createSignal("")
   const [submitted, setSubmitted] = createSignal("")
+  let searchDebounceTimer: ReturnType<typeof setTimeout> | undefined
+  const handleSearchInput = (val: string) => {
+    setQuery(val)
+    if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
+    const trimmed = val.trim()
+    if (!trimmed) {
+      setSubmitted("")
+      return
+    }
+    searchDebounceTimer = setTimeout(() => {
+      setSubmitted(trimmed)
+    }, 450)
+  }
+  onCleanup(() => {
+    if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
+  })
   const [selectedId, setSelectedId] = createSignal<string>(STAFF_PICKS[0].id)
   const [selectedQuant, setSelectedQuant] = createSignal<string>("")
   const [jobs, setJobs] = createSignal<DownloadJob[]>([])
@@ -534,11 +578,37 @@ export const SettingsModelsHubV2: Component<{
 
   const activeModelList = createMemo<Model[]>(() => {
     let list: Model[] = []
-    if (submitted()) {
-      list = [...(searchedModels() ?? [])]
-      if (list.length === 0) {
-        const needle = submitted().toLowerCase()
-        list = STAFF_PICKS.filter((m) => m.id.toLowerCase().includes(needle) || (m.description ?? "").toLowerCase().includes(needle))
+    const liveQuery = query().trim().toLowerCase()
+    const isSubmitted = submitted().trim().toLowerCase()
+
+    if (isSubmitted && searchedModels() && searchedModels()!.length > 0) {
+      list = [...searchedModels()!]
+      if (liveQuery && liveQuery !== isSubmitted) {
+        list = list.filter((m) => {
+          const t = `${m.id} ${m.author ?? ""} ${m.tags?.join(" ") ?? ""} ${m.description ?? ""}`.toLowerCase()
+          return t.includes(liveQuery)
+        })
+      }
+    } else if (liveQuery) {
+      // Instant exact search: filters matching models immediately as user types
+      list = STAFF_PICKS.filter((m) => {
+        const t = `${m.id} ${m.author ?? ""} ${m.tags?.join(" ") ?? ""} ${m.description ?? ""}`.toLowerCase()
+        return t.includes(liveQuery)
+      })
+      for (const j of jobs().filter((j) => j.status === "completed")) {
+        const t = `${j.model} ${j.file}`.toLowerCase()
+        if (t.includes(liveQuery) && !list.some((m) => m.id === j.model)) {
+          list.push({
+            id: j.model,
+            downloads: 1000,
+            likes: 50,
+            pipeline_tag: "text-generation",
+            author: j.model.includes("/") ? j.model.split("/")[0] : "local",
+            description: `Modelo local descargado en disco (${j.file}).`,
+            tags: ["gguf", "local"],
+            quantFiles: [{ file: j.file, quant: "GGUF", size: j.total, recommended: true }],
+          })
+        }
       }
     } else if (hubCategory() === "downloaded") {
       list = STAFF_PICKS.filter((m) => jobs().some((j) => j.model === m.id && j.status === "completed"))
@@ -1080,16 +1150,10 @@ export const SettingsModelsHubV2: Component<{
             class="lm-search-input py-2 text-sm"
             placeholder="Buscar modelos GGUF en Hugging Face (ej. DeepSeek-R1, Qwen2.5-Coder, Llama-3.2, Gemma-2)..."
             value={query()}
-            onInput={(e) => {
-              const val = e.currentTarget.value
-              setQuery(val)
-              if (val.trim().length === 0) {
-                setSubmitted("")
-              }
-            }}
+            onInput={(e) => handleSearchInput(e.currentTarget.value)}
           />
           <Show when={query()}>
-            <button type="button" class="lm-search-clear mr-2" onClick={() => { setQuery(""); setSubmitted("") }}>×</button>
+            <button type="button" class="lm-search-clear mr-2 cursor-pointer" onClick={() => { setQuery(""); setSubmitted("") }}>×</button>
           </Show>
           <button
             type="submit"
@@ -1106,6 +1170,7 @@ export const SettingsModelsHubV2: Component<{
               each={[
                 { label: "DeepSeek-R1", tag: "DeepSeek-R1-Distill", icon: "🐋" },
                 { label: "Qwen 2.5 Coder", tag: "Qwen2.5-Coder", icon: "💻" },
+                { label: "Hermes 3", tag: "Hermes-3", icon: "🏛️" },
                 { label: "Llama 3.2", tag: "Llama-3.2", icon: "🦙" },
                 { label: "Gemma 2", tag: "gemma-2", icon: "💎" },
                 { label: "Phi-4", tag: "Phi-4", icon: "🔬" },

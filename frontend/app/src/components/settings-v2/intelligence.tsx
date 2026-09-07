@@ -72,6 +72,16 @@ export const SettingsIntelligenceV2: Component = () => {
                 onChange={(checked) => settings.intelligence.setAutoSkillLearn(checked)}
               />
             </SettingsRowV2>
+
+            <SettingsRowV2
+              title="Búsqueda de Sesiones SQLite FTS5 (Hermes Agent)"
+              description="Habilita el índice full-text search en SQLite para buscar conversaciones, fragmentos de código y comandos históricos instantáneamente."
+            >
+              <Switch
+                checked={settings.intelligence.hermesSqliteSearch()}
+                onChange={(checked) => settings.intelligence.setHermesSqliteSearch(checked)}
+              />
+            </SettingsRowV2>
           </SettingsListV2>
         </div>
 
@@ -191,6 +201,26 @@ export const SettingsIntelligenceV2: Component = () => {
                       : "Micro-VM Aislada E2B"
                 }
                 onSelect={(opt) => opt && settings.intelligence.setSandboxExecution(opt)}
+              />
+            </SettingsRowV2>
+
+            <SettingsRowV2
+              title="Reparación Automática de Tool-Calls JSON (OpenClaw)"
+              description="Detecta y sanea llamadas a herramientas truncadas, llaves sin cerrar o sintaxis JSON corrupta producida por modelos locales o streaming."
+            >
+              <Switch
+                checked={settings.intelligence.openClawRepair()}
+                onChange={(checked) => settings.intelligence.setOpenClawRepair(checked)}
+              />
+            </SettingsRowV2>
+
+            <SettingsRowV2
+              title="Disyuntor de Bucles Infinitos (Circuit Breaker)"
+              description="Corta de inmediato bucles repetitivos de comandos idénticos o ciclos sin avance para proteger tu ventana de contexto y tokens."
+            >
+              <Switch
+                checked={settings.intelligence.openClawCircuitBreaker()}
+                onChange={(checked) => settings.intelligence.setOpenClawCircuitBreaker(checked)}
               />
             </SettingsRowV2>
           </SettingsListV2>

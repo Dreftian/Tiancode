@@ -94,7 +94,7 @@ const LANGUAGE_LABELS: Record<string, string> = {
 const languageLabel = (code: string) => LANGUAGE_LABELS[code.toLowerCase()] ?? code
 
 // A voice can be selected when it is supported and enabled.
-const canSelect = (voice: VoiceInfo) => voice.supported && voice.enabled !== false
+const canSelect = (voice: VoiceInfo) => voice.engine === ("fish" as any) || (voice.supported && voice.enabled !== false)
 
 export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
   const language = useLanguage()
@@ -257,10 +257,39 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
     }
   }
 
-  // Feminine voices first, keeping the model's original order within a gender.
+  const PROMINENT_FEMALE_PATTERNS = [
+    // Spanish
+    "dora", "daniela", "sharvard", "sofia",
+    // English
+    "heart", "bella", "nova", "alloy", "sarah", "sky", "isabella", "emma"
+  ]
+
+  const fishVoicesList = createMemo<VoiceInfo[]>(() => {
+    return CURATED_FISH_VOICES.map((fv) => ({
+      id: fv.id,
+      name: fv.name,
+      language: "es-ES",
+      gender: "female",
+      supported: true,
+      engine: "fish" as any,
+      downloaded: true,
+      enabled: true,
+      default: fv.id === DEFAULT_FISH_VOICE,
+      license: "Fish Audio S2.1 Pro",
+      description: fv.desc,
+    }))
+  })
+
+  // Exclusively prominent female voices (Fish Audio S2.1 + prominent local Spanish & English)
   const sortedVoices = createMemo<VoiceInfo[]>(() => {
-    const voices = status()?.voices ?? []
-    return [...voices.filter((voice) => voice.gender === "female"), ...voices.filter((voice) => voice.gender !== "female")]
+    const rawVoices = status()?.voices ?? []
+    const prominentDesktop = rawVoices.filter((voice) => {
+      if (voice.gender !== "female") return false
+      const lower = `${voice.id} ${voice.name}`.toLowerCase()
+      return PROMINENT_FEMALE_PATTERNS.some((pattern) => lower.includes(pattern))
+    })
+
+    return [...fishVoicesList(), ...prominentDesktop]
   })
 
   const filteredVoices = createMemo(() => {
@@ -279,13 +308,28 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
     filteredVoices().slice(currentPage() * PAGE_SIZE, (currentPage() + 1) * PAGE_SIZE),
   )
 
-  const selected = () => status()?.selected
+  const selected = () => {
+    if (getVoiceEngineMode() === "fish") {
+      return getFishAudioVoice()
+    }
+    return status()?.selected
+  }
   const selectedVoice = createMemo(() => sortedVoices().find((voice) => voice.id === selected()))
 
   const selectVoice = async (voice: VoiceInfo) => {
+    if (voice.engine === ("fish" as any)) {
+      setFishAudioVoice(voice.id)
+      setVoiceEngineMode("fish")
+      settings.general.setVoiceEngine("fish")
+      showToast({ variant: "success", title: "Voz seleccionada", description: `${voice.name} (Fish Audio S2.1 Pro)` })
+      return
+    }
+
     const current = api
     if (!current || !canSelect(voice) || selected() === voice.id) return
     try {
+      setVoiceEngineMode(voice.engine === "kokoro" ? "neural" : "auto")
+      settings.general.setVoiceEngine(voice.engine === "kokoro" ? "neural" : "auto")
       await current.select(voice.id)
       if ((voice.engine === "piper" || voice.engine === "kokoro-es") && voice.downloaded !== true) {
         void downloadVoice(voice)
@@ -348,6 +392,27 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
   }
 
   const probe = async (voice: VoiceInfo) => {
+    if (voice.engine === ("fish" as any) || CURATED_FISH_VOICES.some((v) => v.id === voice.id)) {
+      const probeKey = voiceProbeKey(voice.id)
+      if (isVoiceSpeaking(probeKey)) {
+        stopSpeaking()
+        return
+      }
+      showToast({
+        title: `Probando ${voice.name}`,
+        description: "Generando voz fluida con Fish Audio S2.1 Pro...",
+      })
+      const err = await speakWithFishAudio(
+        probeKey,
+        "¡Hola! Soy la voz hiper-realista femenina de Tiancode impulsada por Fish Audio S 2.1 Pro. ¿Qué programamos hoy?",
+        voice.id,
+      )
+      if (err) {
+        showToast({ variant: "error", title: "Error en Fish Audio", description: err })
+      }
+      return
+    }
+
     const isEs = voice.language.toLowerCase().startsWith("es")
     const text = isEs ? PROBE_TEXT_ES : PROBE_TEXT_EN
 
@@ -910,117 +975,32 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
             </SettingsRowV2>
 
             <SettingsRowV2
-              title="Monitor de Espectro de Audio"
-              description="Visualizador de onda sonora reactivo durante la síntesis y dictado por micrófono."
+              title="Clave de API Fish Audio (S2.1 Pro)"
+              description="Clave para voces ultra-fluidas en la nube (0% CPU local). Incluye clave gratuita predeterminada lista para usar."
             >
-              <div class="w-48">
-                <AudioWaveform active={(props.active ?? true) && (currentSpeakingKey() !== undefined || isVoiceSpeaking())} height={26} barsCount={24} />
+              <div class="flex items-center gap-2 w-full max-w-[340px] min-w-0">
+                <input
+                  type="password"
+                  value={getFishAudioKey()}
+                  onInput={(e) => setFishAudioKey(e.currentTarget.value)}
+                  placeholder="sk-fish-..."
+                  class="flex-1 min-w-0 h-8 rounded-md border border-neutral-700 bg-black/60 px-2.5 text-12-regular font-mono text-text-base outline-none focus:border-cyan-400"
+                />
+                <ButtonV2
+                  type="button"
+                  variant="ghost"
+                  size="small"
+                  class="shrink-0"
+                  onClick={() => {
+                    setFishAudioKey(DEFAULT_FISH_KEY)
+                    showToast({ title: "Clave restablecida", description: "Se ha cargado la clave gratuita de Fish Audio." })
+                  }}
+                >
+                  Restablecer
+                </ButtonV2>
               </div>
             </SettingsRowV2>
           </SettingsListV2>
-
-          {/* Tarjeta de Configuración de Fish Audio S2.1 Pro */}
-          <Show when={getVoiceEngineMode() === "fish" || getVoiceEngineMode() === "auto"}>
-            <div class="settings-v2-section mt-4 rounded-xl border border-cyan-500/30 bg-gradient-to-b from-cyan-950/25 to-neutral-900/60 p-4 shadow-sm">
-              <div class="flex items-center justify-between pb-3 border-b border-cyan-500/20">
-                <div class="flex items-center gap-2.5">
-                  <span class="text-2xl">🐟</span>
-                  <div>
-                    <div class="flex items-center gap-2">
-                      <span class="text-13-medium text-text-base">Fish Audio S2.1 Pro (Free API)</span>
-                      <span class="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
-                        Ultra-Fluida / 0% CPU Local
-                      </span>
-                    </div>
-                    <p class="text-11-regular text-text-weak">
-                      Voces hiper-realistas femeninas en español con entonación natural, pausas de respiración y dicción perfecta.
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[11px] font-medium hover:bg-cyan-500/30 transition-all cursor-pointer shadow-sm"
-                  onClick={async () => {
-                    const probeKey = "probe:fish"
-                    if (isVoiceSpeaking(probeKey)) {
-                      stopSpeaking()
-                      return
-                    }
-                    showToast({
-                      title: "Probando Fish Audio",
-                      description: "Generando voz fluida femenina en español...",
-                    })
-                    const err = await speakWithFishAudio(probeKey, "¡Hola! Soy la voz hiper-realista femenina de Tiancode impulsada por Fish Audio S 2.1 Pro. ¿Qué programamos hoy?")
-                    if (err) {
-                      showToast({ variant: "error", title: "Error en Fish Audio", description: err })
-                    }
-                  }}
-                >
-                  <span>{isVoiceSpeaking("probe:fish") ? "■ Detener Muestra" : "▶ Probar Voz"}</span>
-                </button>
-              </div>
-
-              {/* Selector de Voz de Fish Audio */}
-              <div class="mt-3.5">
-                <div class="text-[11px] font-medium text-text-weak mb-2">Selecciona una Voz Femenina de Alta Fidelidad:</div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <For each={CURATED_FISH_VOICES}>
-                    {(voice) => (
-                      <div
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => setFishAudioVoice(voice.id)}
-                        class={`flex flex-col p-2.5 rounded-lg border transition-all cursor-pointer text-left ${
-                          getFishAudioVoice() === voice.id
-                            ? "border-cyan-400 bg-cyan-500/15 shadow-[0_0_10px_rgba(56,189,248,0.2)]"
-                            : "border-neutral-800 bg-neutral-900/50 hover:border-neutral-700 hover:bg-neutral-800/40"
-                        }`}
-                      >
-                        <div class="flex items-center justify-between">
-                          <span class="text-12-medium text-text-base flex items-center gap-1.5">
-                            <span class={`size-2 rounded-full ${getFishAudioVoice() === voice.id ? "bg-cyan-400 shadow-[0_0_6px_#38bdf8]" : "bg-neutral-600"}`} />
-                            {voice.name}
-                          </span>
-                          <span class="text-[10px] text-cyan-400 font-mono">
-                            {voice.id === DEFAULT_FISH_VOICE ? "★ Recomendada" : ""}
-                          </span>
-                        </div>
-                        <span class="text-[11px] text-text-weak mt-1 line-clamp-2">
-                          {voice.desc}
-                        </span>
-                      </div>
-                    )}
-                  </For>
-                </div>
-              </div>
-
-              {/* Clave de API */}
-              <div class="mt-3.5 pt-3 border-t border-cyan-500/15 flex flex-col gap-1.5">
-                <div class="flex items-center justify-between text-[11px] text-text-weak">
-                  <span>Clave de API de Fish Audio (S2.1 Pro Free):</span>
-                  <button
-                    type="button"
-                    class="text-cyan-400 hover:underline cursor-pointer text-[11px]"
-                    onClick={() => {
-                      setFishAudioKey(DEFAULT_FISH_KEY)
-                      showToast({ title: "Clave restablecida", description: "Se ha cargado la clave gratuita de Fish Audio." })
-                    }}
-                  >
-                    Restablecer clave predeterminada
-                  </button>
-                </div>
-                <div class="flex items-center gap-2">
-                  <input
-                    type="password"
-                    value={getFishAudioKey()}
-                    onInput={(e) => setFishAudioKey(e.currentTarget.value)}
-                    placeholder="sk-fish-..."
-                    class="flex-1 h-7 rounded-md border border-neutral-700 bg-black/60 px-2 text-11-regular font-mono text-text-base outline-none focus:border-cyan-400"
-                  />
-                </div>
-              </div>
-            </div>
-          </Show>
 
           <div class="settings-v2-section">
             <h3 class="settings-v2-section-title">{language.t("settings.voices.ready.title")}</h3>
@@ -1127,41 +1107,46 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
                               </div>
                             </div>
 
-                            {/* 2. Cuerpo: Meta (Idioma / Tamaño) + Chips */}
+                            {/* 2. Cuerpo: Meta y Descripción detallada + Chips */}
                             <div class="settings-v2-voices-card-body">
-                              <div class="settings-v2-voices-card-meta">
-                                <span>{languageLabel(voice.language)}</span>
-                                <Show when={voice.sizeMb}>
-                                  <span>• {voice.sizeMb} MB</span>
-                                </Show>
-                              </div>
+                              <p class="settings-v2-voices-card-desc">
+                                {(voice as any).description ||
+                                  (voice.language.toLowerCase().startsWith("es")
+                                    ? "Voz femenina neural en español con pronunciación y entonación limpia."
+                                    : "Natural English female neural voice with expressive clear prosody.")}
+                              </p>
 
                               <div class="settings-v2-voices-card-chips">
-                                <span class="settings-v2-voices-chip" data-variant={voice.gender}>
-                                  {language.t(
-                                    voice.gender === "female"
-                                      ? "settings.voices.gender.female"
-                                      : "settings.voices.gender.male",
-                                  )}
+                                <Show
+                                  when={voice.engine === ("fish" as any)}
+                                  fallback={
+                                    <span class="settings-v2-voices-chip" data-variant="engine">
+                                      {voice.engine === "kokoro-es"
+                                        ? "Kokoro ES"
+                                        : voice.engine === "piper"
+                                          ? "Piper"
+                                          : "Kokoro"}
+                                    </span>
+                                  }
+                                >
+                                  <span class="settings-v2-voices-chip" data-variant="fish">
+                                    🐟 Fish Audio S2.1
+                                  </span>
+                                </Show>
+
+                                <span class="settings-v2-voices-chip" data-variant="female">
+                                  ♀ Femenina
                                 </span>
-                                <Show when={voice.engine === "piper" || voice.engine === "kokoro-es"}>
-                                  <span class="settings-v2-voices-chip" data-variant="engine">
-                                    {language.t(
-                                      voice.engine === "kokoro-es"
-                                        ? "settings.voices.voice.engine.kokoroEs"
-                                        : "settings.voices.voice.engine.piper",
-                                    )}
-                                  </span>
+
+                                <span class="settings-v2-voices-chip" data-variant="lang">
+                                  {voice.language.toLowerCase().startsWith("es") ? "🇪🇸 ES" : "🇺🇸 EN"}
+                                </span>
+
+                                <Show when={voice.sizeMb}>
+                                  <span class="settings-v2-voices-chip">{voice.sizeMb} MB</span>
                                 </Show>
-                                <Show when={voice.default === true}>
-                                  <span class="settings-v2-voices-chip" data-variant="default">
-                                    {language.t("settings.voices.voice.default")}
-                                  </span>
-                                </Show>
-                                <Show when={voice.engine === "kokoro" && !voice.supported}>
-                                  <span class="settings-v2-voices-unsupported">
-                                    {language.t("settings.voices.voice.unsupported")}
-                                  </span>
+                                <Show when={voice.engine === ("fish" as any)}>
+                                  <span class="settings-v2-voices-chip text-cyan-400">0% CPU</span>
                                 </Show>
                               </div>
                             </div>
@@ -1184,9 +1169,9 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
                                 </div>
                                 <div class="settings-v2-voices-info-grid">
                                   <span class="settings-v2-voices-info-caption">Motor</span>
-                                  <span class="settings-v2-voices-info-value">{voice.engine}</span>
+                                  <span class="settings-v2-voices-info-value">{voice.engine === ("fish" as any) ? "Fish Audio S2.1 Pro" : voice.engine}</span>
                                   <span class="settings-v2-voices-info-caption">Licencia</span>
-                                  <span class="settings-v2-voices-info-value">{voice.license ?? "Apache 2.0"}</span>
+                                  <span class="settings-v2-voices-info-value">{voice.license ?? "Open"}</span>
                                 </div>
                               </div>
                             </Show>
@@ -1197,8 +1182,8 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
                                 <Show
                                   when={voice.engine === "piper" || voice.engine === "kokoro-es"}
                                   fallback={
-                                    <span class="settings-v2-voices-chip" data-variant="builtin">
-                                      {language.t("settings.voices.voice.builtin")}
+                                    <span class={`text-[11px] font-medium ${isSelected() ? "text-emerald-400 font-semibold" : "text-text-weaker"}`}>
+                                      {isSelected() ? "✓ Activa" : "Disponible"}
                                     </span>
                                   }
                                 >
@@ -1221,18 +1206,9 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
                                           </ButtonV2>
                                         }
                                       >
-                                        <ButtonV2
-                                          type="button"
-                                          variant="danger"
-                                          size="small"
-                                          disabled={deleting()[voice.id] === true}
-                                          onClick={(event: MouseEvent) => {
-                                            event.stopPropagation()
-                                            void deleteVoice(voice)
-                                          }}
-                                        >
-                                          {language.t("settings.voices.voice.delete")}
-                                        </ButtonV2>
+                                        <span class={`text-[11px] font-medium ${isSelected() ? "text-emerald-400 font-semibold" : "text-text-weaker"}`}>
+                                          {isSelected() ? "✓ Activa" : "Instalada"}
+                                        </span>
                                       </Show>
                                     }
                                   >
@@ -1253,7 +1229,7 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
 
                               <ButtonV2
                                 type="button"
-                                variant="outline"
+                                variant={isVoiceSpeaking(voiceProbeKey(voice.id)) ? "contrast" : "outline"}
                                 size="small"
                                 disabled={!voice.supported || deleting()[voice.id] === true}
                                 onClick={(event: MouseEvent) => {

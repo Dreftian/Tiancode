@@ -54,6 +54,9 @@ export interface IntelligenceSettings {
   sandboxExecution: "host" | "docker" | "e2b"
   rlmAutoPruning: boolean
   thinkingBudget: string
+  openClawRepair: boolean
+  openClawCircuitBreaker: boolean
+  hermesSqliteSearch: boolean
 }
 
 export const defaultIntelligenceSettings: IntelligenceSettings = {
@@ -67,6 +70,9 @@ export const defaultIntelligenceSettings: IntelligenceSettings = {
   sandboxExecution: "host",
   rlmAutoPruning: true,
   thinkingBudget: "16384",
+  openClawRepair: true,
+  openClawCircuitBreaker: true,
+  hermesSqliteSearch: true,
 }
 
 export interface EcosystemSettings {
@@ -86,6 +92,8 @@ export interface EcosystemSettings {
   claudeSkills: boolean
   claudeMem: boolean
   graphify: boolean
+  openClaw: boolean
+  hermesAgent: boolean
 }
 
 export const defaultEcosystemSettings: EcosystemSettings = {
@@ -105,6 +113,8 @@ export const defaultEcosystemSettings: EcosystemSettings = {
   claudeSkills: true,
   claudeMem: true,
   graphify: true,
+  openClaw: true,
+  hermesAgent: true,
 }
 
 export interface Settings {
@@ -755,6 +765,27 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         setThinkingBudget(value: string) {
           setStore("intelligence", "thinkingBudget", value)
         },
+        openClawRepair: withFallback(
+          () => store.intelligence?.openClawRepair,
+          defaultSettings.intelligence.openClawRepair,
+        ),
+        setOpenClawRepair(value: boolean) {
+          setStore("intelligence", "openClawRepair", value)
+        },
+        openClawCircuitBreaker: withFallback(
+          () => store.intelligence?.openClawCircuitBreaker,
+          defaultSettings.intelligence.openClawCircuitBreaker,
+        ),
+        setOpenClawCircuitBreaker(value: boolean) {
+          setStore("intelligence", "openClawCircuitBreaker", value)
+        },
+        hermesSqliteSearch: withFallback(
+          () => store.intelligence?.hermesSqliteSearch,
+          defaultSettings.intelligence.hermesSqliteSearch,
+        ),
+        setHermesSqliteSearch(value: boolean) {
+          setStore("intelligence", "hermesSqliteSearch", value)
+        },
       },
       ecosystem: {
         masterEnabled: withFallback(
@@ -826,6 +857,14 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         graphify: withFallback(() => store.ecosystem?.graphify, defaultSettings.ecosystem.graphify),
         setGraphify(value: boolean) {
           setStore("ecosystem", "graphify", value)
+        },
+        openClaw: withFallback(() => store.ecosystem?.openClaw, defaultSettings.ecosystem.openClaw),
+        setOpenClaw(value: boolean) {
+          setStore("ecosystem", "openClaw", value)
+        },
+        hermesAgent: withFallback(() => store.ecosystem?.hermesAgent, defaultSettings.ecosystem.hermesAgent),
+        setHermesAgent(value: boolean) {
+          setStore("ecosystem", "hermesAgent", value)
         },
       },
     }

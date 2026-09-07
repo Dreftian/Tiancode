@@ -27,37 +27,35 @@ async function main() {
   const owner = "Dreftian"
   const repo = "Tiancode"
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
-  const version = desktopPkg.version || "1.0.25"
+  const version = desktopPkg.version || "1.0.38"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — Conexiones Gateway, Resiliencia OpenClaw, Memoria Hermes, OpenDesign UI y Sandbox Keep-Alive`
+  const releaseName = `Tiancode v${version} — Fix Imágenes Chat, Voces Femeninas & Fish S2.1, Conexiones Responsivas, Pen Design & Hub de Modelos`
   const body = `## 🚀 Tiancode v${version}
 
-### 🌐 Apartado "Conexiones" en Configuración (Integraciones Externas)
-- **WhatsApp Gateway:** Emparejamiento interactivo mediante código temporal \`TIAN-XXXX-WAPP\` y notificaciones de compilación/pruebas.
-- **Telegram Bot:** Vinculación directa con token de bot, Chat ID, interruptor de enlace y botón de prueba ("Ping Test").
-- **Discord & Slack:** Soporte para Webhooks y bots entrantes para alertas de tareas en segundo plano.
-- **API Gateway & Webhooks Personalizados:** Disparo de eventos HTTP con firma criptográfica HMAC-SHA256 (\`session.completed\`, \`build.failed\`, \`task.interrupted\`).
+### 🖼️ Corrección Crítica en Chat con Imágenes
+- **Fix "Failed to fetch":** Resuelto el error al adjuntar imágenes en el chat prompt. Reutilización directa de data URLs sin peticiones fetch innecesarias en memoria y fallback a IndexedDB.
 
-### 🛡️ Motor de Resiliencia (Inspirado en OpenClaw)
-- **Auto-reparación de Tool Calls:** Corrección sintáctica automática de JSON malformado emitido por LLMs (comillas faltantes, corchetes desbalanceados, comas finales y bloques markdown \`\`\`json).
-- **Detector de Bucles Infinitos SHA-256 & Circuit Breaker:** Monitoreo con hashes SHA-256 de herramientas y argumentos para detectar repeticiones exactas (\`generic_repeat\`), micro-variaciones erráticas (\`argument_churn\`), oscilaciones (\`ping_pong\`) y límite de seguridad de 25 llamadas a herramientas (\`circuit_breaker\`).
+### 🎙️ Voces Femeninas Destacadas & Fish Audio S2.1 Pro Nativo
+- **Lista Detallada en 4 Columnas Verticales:** Rediseño enfocado exclusivamente en las mejores voces femeninas en Español (Dora, Daniela, Sharvard, Sofia) e Inglés (Heart, Bella, Nova, Alloy, Sarah, Sky, Isabella, Emma).
+- **Integración Nativa de Fish Audio S2.1 Pro:** Voces de Fish Audio integradas directamente en el catálogo con audición instantánea y clave de API compacta en la configuración general sin ocupar espacio excesivo.
 
-### 🧠 Inteligencia y Memoria Continua (Inspirado en Hermes Agent)
-- **Búsqueda Histórica Profunda (\`session_search\`):** Herramienta nativa para buscar en el historial SQLite soluciones, comandos y discusiones pasadas.
-- **Compactación con Protección Head & Tail:** Preserva el objetivo original del usuario (Turno 0) y los turnos recientes, podando salidas voluminosas de herramientas (>1,000 chars) antes de resumir.
-- **Streaming Scrubber para Modelos de Razonamiento:** Aislamiento y extracción limpia de bloques \`<think>...</think>\` (DeepSeek R1, Qwen QwQ) sin saturar el historial visible del usuario.
-- **Estándares de Autoría para Skills:** Metodología estricta de auto-aprendizaje continuo para creación de habilidades.
+### 🌐 Conexiones y Gateways 100% Responsivos
+- **Ajuste Fluido en Cualquier Tamaño de Ventana:** Se eliminó cualquier colisión con el borde derecho en inputs de tokens, chat IDs y URLs de Webhooks en Telegram, WhatsApp, Discord, Slack y Custom Webhooks.
+- **Auto-adaptabilidad Cupertino:** Distribución flexible con \`min-w-0 flex-1\` y contenedores que respetan márgenes en ventanas estrechas.
 
-### 🎨 Motor de Diseño OpenDesign & Claude Design
-- **Anti-AI-Slop Rules:** Prohibición del índigo genérico de Tailwind (\`#6366f1\`), eliminación de degradados de dos paradas en encabezados y reemplazo de emojis por SVGs monolineales limpios.
-- **Calibración de Gusto con 3 Diales:** \`DESIGN_VARIANCE\`, \`MOTION_INTENSITY\` y \`VISUAL_DENSITY\`, junto con "Design Read" previo al código.
-- **Física de Micro-interacciones (Emil Kowalski):** Respuesta táctil con \`transform: scale(0.97)\` en \`:active\`, entradas naturales desde \`scale(0.95)\` y transiciones modernas con \`@starting-style\`.
-- **4 Presets de Diseño Canónicos:** Linear Dark, Claude Editorial, Vercel Precision y Stripe Modern.
+### 🐙 GitHub Totalmente Responsivo
+- **Media Queries para Móvil y Ventanas Compactas:** Tarjeta de perfil, barra de commits, panel VCS y lista de repositorios se apilan ordenadamente sin desbordar el contenedor en pantallas pequeñas.
 
-### 🖥️ Sandbox Keep-Alive & Inspector DOM Visual
-- **Iframe Keep-Alive Pool (Cero Recargas):** Alternancia no destructiva entre Código y Vista Previa mediante CSS; el estado de React/Vue, inputs de formularios, scroll y dev servers se mantienen 100% intactos.
-- **Inspector DOM en Tiempo Real (\`Ctrl+Alt+I\`):** Resaltado interactivo con borde cian de 2px, etiquetas semánticas, clases y cotas de dimensiones y márgenes.
-- **Detector de Pantalla Blanca & Auto-Fix:** Detección de fallos de renderizado en blanco (>4s con 0 elementos) con botón de 1-click **"Reparar con Tiancode"**.
+### 🎨 Nueva Skill \`pen-design\` & Suite Completa de Subagentes
+- **Skill \`pen-design\` Oficial:** Integración de flujos de trabajo con el CLI de \`pen.dev\` para generar interfaces de alta calidad, maquetas y componentes en archivos \`.pen\` y exportaciones PNG.
+- **Subagentes Especializados:** Registro formal en backend y frontend de \`hermes-orchestrator\`, \`hermes-researcher\`, \`openclaw-resilience\`, \`openclaw-gateway\`, \`opendesign-ui-master\` y \`pentest-redteam\`.
+
+### 🧠 Modelos Locales: Hub Rediseñado con Buscador Exacto Instantáneo
+- **Búsqueda Reactiva en Tiempo Real:** Filtrado exacto instantáneo al teclear y debounce automático (450ms) contra el catálogo de Hugging Face.
+- **Logo Vectorial SVG Oficial Nous Hermes:** Emblema SVG de alta fidelidad para Nous Research y añadido de \`NousResearch/Hermes-3-Llama-3.1-8B-GGUF\` a Staff Picks.
+
+### ⚙️ Ecosistema e Inteligencia
+- **Nuevos Controles en Inteligencia:** Switches para reparación automática de JSON Tool-Calls (OpenClaw), disyuntor de bucles infinitos (Circuit Breaker) y búsqueda histórica de sesiones con SQLite FTS5 (Hermes Agent).
 
 ### 🔒 Actualización 100% No Destructiva
 - Todas tus claves de proveedores (Anthropic, OpenAI, OpenRouter, Google, Groq, etc.), configuraciones, sesiones, backups y servidores MCP se preservan intactos en tu equipo.

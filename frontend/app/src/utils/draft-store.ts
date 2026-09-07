@@ -154,16 +154,65 @@ export function createBrowserDraftStore(): DraftStore {
 }
 
 export async function blobDataUrl(blob: BlobReference, mime: string) {
-  const data = await fetch(blob.url).then((response) => response.blob())
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader()
-    reader.addEventListener("error", () => reject(reader.error))
-    reader.addEventListener("load", () => {
-      const value = typeof reader.result === "string" ? reader.result : ""
-      resolve(`data:${mime};base64,${value.slice(value.indexOf(",") + 1)}`)
+  // 1. Si ya es una data URL, retornarla directamente sin fetch innecesario
+  if (typeof blob.url === "string" && blob.url.startsWith("data:")) {
+    return blob.url
+  }
+  if (typeof blob.id === "string" && blob.id.startsWith("data:")) {
+    return blob.id
+  }
+
+  const readBlob = (b: Blob) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.addEventListener("error", () => reject(reader.error))
+      reader.addEventListener("load", () => {
+        const value = typeof reader.result === "string" ? reader.result : ""
+        resolve(`data:${mime};base64,${value.slice(value.indexOf(",") + 1)}`)
+      })
+      reader.readAsDataURL(b)
     })
-    reader.readAsDataURL(data)
-  })
+
+  // 2. Intentar fetch del blob.url si es una URL accesible (blob: o http:)
+  if (typeof blob.url === "string" && blob.url.length > 0) {
+    try {
+      const response = await fetch(blob.url)
+      if (response.ok) {
+        const data = await response.blob()
+        return await readBlob(data)
+      }
+    } catch {
+      // Fallback si fetch no puede resolver la URL (ej. file:// o revoked object URL)
+    }
+  }
+
+  // 3. Fallback de recuperación directa desde IndexedDB
+  if (typeof indexedDB !== "undefined" && typeof blob.id === "string") {
+    try {
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const req = indexedDB.open("tiancode-drafts", 1)
+        req.onsuccess = () => resolve(req.result)
+        req.onerror = () => reject(req.error)
+      })
+      const tx = db.transaction("blobs", "readonly")
+      const rawBlob = await new Promise<Blob | null>((resolve) => {
+        const getReq = tx.objectStore("blobs").get(blob.id)
+        getReq.onsuccess = () => resolve((getReq.result as Blob) ?? null)
+        getReq.onerror = () => resolve(null)
+      })
+      if (rawBlob) {
+        return await readBlob(rawBlob)
+      }
+    } catch {
+      // IndexedDB fallback no disponible
+    }
+  }
+
+  // 4. Último recurso: devolver la URL existente o una data URL vacía en vez de fallar
+  if (typeof blob.url === "string" && blob.url.length > 0) {
+    return blob.url
+  }
+  return `data:${mime};base64,`
 }
 
 export function createLegacyBlobReference(dataUrl: string): BlobReference {

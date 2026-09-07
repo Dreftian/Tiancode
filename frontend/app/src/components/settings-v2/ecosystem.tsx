@@ -160,6 +160,26 @@ const REPO_MODULES: RepoModule[] = [
     description: "Flujos de trabajo estructurados para TDD, code review, arquitectura, git worktrees y auto-skills con /learn.",
     features: ["52+ skills activables", "Mejores prácticas TDD", "Auto-skills /learn"],
   },
+  {
+    id: "openClaw",
+    name: "OpenClaw Resilience Core",
+    repo: "openclaw/openclaw",
+    category: "exec",
+    icon: "shield-check",
+    title: "Motor de Resiliencia & Gateways Multicanal",
+    description: "Reparación automática de tool-calls malformados, disyuntor de bucles infinitos y pasarelas de conexión en tiempo real.",
+    features: ["JSON Tool-Call Repair", "Loop Circuit Breaker", "Multi-platform Gateways"],
+  },
+  {
+    id: "hermesAgent",
+    name: "Hermes Agent Framework",
+    repo: "NousResearch/Hermes-Agent",
+    category: "analysis",
+    icon: "sparkle",
+    title: "Búsqueda SQLite & Orquestación de Agentes",
+    description: "Índice FTS5 para búsqueda instantánea en transcripciones históricas, sub-agentes coordinados y memoria persistente.",
+    features: ["SQLite FTS5 Transcripts", "Multi-Agent Coordinator", "Role-based Prompting"],
+  },
 ]
 
 export const SettingsEcosystemV2: Component = () => {
