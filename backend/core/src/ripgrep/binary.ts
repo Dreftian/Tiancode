@@ -9,6 +9,7 @@ import { httpClient } from "../effect/app-node-platform"
 import { FSUtil } from "../fs-util"
 import { Global } from "../global"
 import { which } from "../util/which"
+import { Flag } from "../flag/flag"
 
 export namespace RipgrepBinary {
   const VERSION = "15.1.0"
@@ -91,6 +92,29 @@ export namespace RipgrepBinary {
       return Service.of({
         filepath: yield* Effect.cached(
           Effect.gen(function* () {
+            if (!Flag.TIANCODE_DISABLE_TGREP) {
+              const resourcesPath = (process as unknown as { resourcesPath?: string }).resourcesPath
+              const resourcesTgrep = resourcesPath
+                ? path.join(resourcesPath, process.platform === "win32" ? "tgrep.exe" : "tgrep")
+                : undefined
+              if (resourcesTgrep && (yield* fs.isFile(resourcesTgrep).pipe(Effect.orDie))) return resourcesTgrep
+
+              const globalTgrep = path.join(Global.Path.bin, process.platform === "win32" ? "tgrep.exe" : "tgrep")
+              if (yield* fs.isFile(globalTgrep).pipe(Effect.orDie)) return globalTgrep
+
+              const localDevTgrep = path.join(
+                process.cwd(),
+                "frontend",
+                "desktop",
+                "resources",
+                process.platform === "win32" ? "tgrep.exe" : "tgrep",
+              )
+              if (yield* fs.isFile(localDevTgrep).pipe(Effect.orDie)) return localDevTgrep
+
+              const systemTgrep = yield* Effect.sync(() => which(process.platform === "win32" ? "tgrep.exe" : "tgrep"))
+              if (systemTgrep && (yield* fs.isFile(systemTgrep).pipe(Effect.orDie))) return systemTgrep
+            }
+
             const system = yield* Effect.sync(() => which(process.platform === "win32" ? "rg.exe" : "rg"))
             if (system && (yield* fs.isFile(system).pipe(Effect.orDie))) return system
 

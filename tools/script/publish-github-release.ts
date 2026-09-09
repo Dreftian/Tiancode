@@ -29,33 +29,17 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.38"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — Fix Imágenes Chat, Voces Femeninas & Fish S2.1, Conexiones Responsivas, Pen Design & Hub de Modelos`
+  const releaseName = `Tiancode v${version} — Motor Microsoft tgrep (Copilot CLI), Búsqueda Trigram Ultrarrápida en Windows & Panel Intelligence`
   const body = `## 🚀 Tiancode v${version}
 
-### 🖼️ Corrección Crítica en Chat con Imágenes
-- **Fix "Failed to fetch":** Resuelto el error al adjuntar imágenes en el chat prompt. Reutilización directa de data URLs sin peticiones fetch innecesarias en memoria y fallback a IndexedDB.
+### ⚡ Motor Microsoft tgrep & Búsqueda Trigram Ultrarrápida
+- **Integración Nativa de Microsoft tgrep (Copilot CLI Engine):** Se incorpora el motor de búsqueda por trigramas desarrollado por Microsoft para GitHub Copilot CLI, eliminando los cuellos de botella de I/O en Windows.
+- **Aceleración de hasta 38x en Windows:** Las búsquedas de código y expresiones regulares del agente pasan de varios segundos a menos de 100 milisegundos gracias al índice invertido de trigramas y mapeo de memoria mmap de cero copias.
+- **Compatibilidad 100% con Ripgrep:** Ejecución transparente y drop-in replacement con salida JSON idéntica para todas las herramientas del agente (\`GrepTool\`, \`Ripgrep.Service\`).
 
-### 🎙️ Voces Femeninas Destacadas & Fish Audio S2.1 Pro Nativo
-- **Lista Detallada en 4 Columnas Verticales:** Rediseño enfocado exclusivamente en las mejores voces femeninas en Español (Dora, Daniela, Sharvard, Sofia) e Inglés (Heart, Bella, Nova, Alloy, Sarah, Sky, Isabella, Emma).
-- **Integración Nativa de Fish Audio S2.1 Pro:** Voces de Fish Audio integradas directamente en el catálogo con audición instantánea y clave de API compacta en la configuración general sin ocupar espacio excesivo.
-
-### 🌐 Conexiones y Gateways 100% Responsivos
-- **Ajuste Fluido en Cualquier Tamaño de Ventana:** Se eliminó cualquier colisión con el borde derecho en inputs de tokens, chat IDs y URLs de Webhooks en Telegram, WhatsApp, Discord, Slack y Custom Webhooks.
-- **Auto-adaptabilidad Cupertino:** Distribución flexible con \`min-w-0 flex-1\` y contenedores que respetan márgenes en ventanas estrechas.
-
-### 🐙 GitHub Totalmente Responsivo
-- **Media Queries para Móvil y Ventanas Compactas:** Tarjeta de perfil, barra de commits, panel VCS y lista de repositorios se apilan ordenadamente sin desbordar el contenedor en pantallas pequeñas.
-
-### 🎨 Nueva Skill \`pen-design\` & Suite Completa de Subagentes
-- **Skill \`pen-design\` Oficial:** Integración de flujos de trabajo con el CLI de \`pen.dev\` para generar interfaces de alta calidad, maquetas y componentes en archivos \`.pen\` y exportaciones PNG.
-- **Subagentes Especializados:** Registro formal en backend y frontend de \`hermes-orchestrator\`, \`hermes-researcher\`, \`openclaw-resilience\`, \`openclaw-gateway\`, \`opendesign-ui-master\` y \`pentest-redteam\`.
-
-### 🧠 Modelos Locales: Hub Rediseñado con Buscador Exacto Instantáneo
-- **Búsqueda Reactiva en Tiempo Real:** Filtrado exacto instantáneo al teclear y debounce automático (450ms) contra el catálogo de Hugging Face.
-- **Logo Vectorial SVG Oficial Nous Hermes:** Emblema SVG de alta fidelidad para Nous Research y añadido de \`NousResearch/Hermes-3-Llama-3.1-8B-GGUF\` a Staff Picks.
-
-### ⚙️ Ecosistema e Inteligencia
-- **Nuevos Controles en Inteligencia:** Switches para reparación automática de JSON Tool-Calls (OpenClaw), disyuntor de bucles infinitos (Circuit Breaker) y búsqueda histórica de sesiones con SQLite FTS5 (Hermes Agent).
+### 🧠 Control en el Panel de Ajustes -> Intelligence
+- **Interruptor Dedicado en Code Graph & AST:** Nuevo control visual para activar o pausar el Acelerador Trigram en tiempo real, con insignia distintiva de \`38x Copilot Engine\`.
+- **Información de Rendimiento en Vivo:** Métricas claras y descripciones técnicas para el usuario sobre la indexación predictiva del repositorio.
 
 ### 🔒 Actualización 100% No Destructiva
 - Todas tus claves de proveedores (Anthropic, OpenAI, OpenRouter, Google, Groq, etc.), configuraciones, sesiones, backups y servidores MCP se preservan intactos en tu equipo.

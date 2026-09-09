@@ -87,6 +87,11 @@ const getBase = (appId: string): Configuration => ({
       from: "resources/llama-server",
       to: "llama-server",
     },
+    // Motor de búsqueda de alta velocidad por trigramas (Microsoft tgrep / Copilot CLI)
+    {
+      from: "resources/tgrep.exe",
+      to: "tgrep.exe",
+    },
     // MCP empaquetados (vista en vivo + suite): se sirven desde
     // resources/mcp tanto en instalado como en portable.
     {

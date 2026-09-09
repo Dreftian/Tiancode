@@ -57,6 +57,7 @@ export interface IntelligenceSettings {
   openClawRepair: boolean
   openClawCircuitBreaker: boolean
   hermesSqliteSearch: boolean
+  tgrepSearch: boolean
 }
 
 export const defaultIntelligenceSettings: IntelligenceSettings = {
@@ -73,6 +74,7 @@ export const defaultIntelligenceSettings: IntelligenceSettings = {
   openClawRepair: true,
   openClawCircuitBreaker: true,
   hermesSqliteSearch: true,
+  tgrepSearch: true,
 }
 
 export interface EcosystemSettings {
@@ -785,6 +787,13 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         ),
         setHermesSqliteSearch(value: boolean) {
           setStore("intelligence", "hermesSqliteSearch", value)
+        },
+        tgrepSearch: withFallback(
+          () => store.intelligence?.tgrepSearch,
+          defaultSettings.intelligence.tgrepSearch,
+        ),
+        setTgrepSearch(value: boolean) {
+          setStore("intelligence", "tgrepSearch", value)
         },
       },
       ecosystem: {

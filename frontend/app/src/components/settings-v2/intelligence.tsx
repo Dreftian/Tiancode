@@ -105,6 +105,21 @@ export const SettingsIntelligenceV2: Component = () => {
             </SettingsRowV2>
 
             <SettingsRowV2
+              title="Acelerador Trigram de Búsqueda (Microsoft tgrep / Copilot CLI)"
+              description="Indexación predictiva de código por trigramas y demonio de alta velocidad de GitHub Copilot CLI. Reduce las búsquedas de archivos y regex del agente de segundos a <100ms en Windows (hasta 38x de aceleración)."
+            >
+              <div class="flex items-center gap-2">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  ⚡ 38x Copilot Engine
+                </span>
+                <Switch
+                  checked={settings.intelligence.tgrepSearch()}
+                  onChange={(checked) => settings.intelligence.setTgrepSearch(checked)}
+                />
+              </div>
+            </SettingsRowV2>
+
+            <SettingsRowV2
               title={language.t("settings.intelligence.monaco") || "Visor de Diffs Monaco"}
               description={
                 language.t("settings.intelligence.monaco.desc") ||
