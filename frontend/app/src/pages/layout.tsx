@@ -16,6 +16,7 @@ import { useNavigate, useParams } from "@solidjs/router"
 import { PENDING_PROVIDER_SETUP_KEY } from "@/components/dialogs/dialog-welcome-setup"
 import { createSortClock } from "./layout/sort-clock"
 import { createDeepLinkListener } from "./layout/deep-link-listener"
+import { createSidebarHover } from "./layout/sidebar-hover"
 import { useLayout, LocalProject } from "@/context/layout"
 import { useServerSync } from "@/context/server-sync"
 import { Persist, persisted } from "@/utils/persist"
@@ -143,12 +144,8 @@ export default function LegacyLayout(props: ParentProps) {
   const [state, setState] = createStore({
     autoselect: !initialDirectory,
     busyWorkspaces: {} as Record<string, boolean>,
-    hoverProject: undefined as string | undefined,
     scrollSessionKey: undefined as string | undefined,
-    nav: undefined as HTMLElement | undefined,
     sizing: false,
-    peek: undefined as string | undefined,
-    peeked: false,
     debugTools: true,
   })
 
@@ -179,110 +176,33 @@ export default function LegacyLayout(props: ParentProps) {
     )
   }
   const isBusy = (directory: string) => !!state.busyWorkspaces[pathKey(directory)]
-  const navLeave = { current: undefined as number | undefined }
   const sortNow = createSortClock()
   let sizet: number | undefined
-  const aim = createAim({
-    enabled: () => !layout.sidebar.opened(),
-    active: () => state.hoverProject,
-    el: () => state.nav?.querySelector<HTMLElement>("[data-component='sidebar-rail']") ?? state.nav,
-    onActivate: (directory) => {
-      serverSync().child(directory)
-      setState("hoverProject", directory)
-    },
+  const sidebarHover = createSidebarHover({
+    sidebarOpened: () => layout.sidebar.opened(),
+    projects: () => layout.projects.list(),
+    onActivate: (directory) => serverSync().child(directory),
   })
+  const aim = sidebarHover.aim
 
   onCleanup(() => {
     dialogDead = true
     dialogRun += 1
-    if (navLeave.current !== undefined) clearTimeout(navLeave.current)
     if (sizet !== undefined) clearTimeout(sizet)
-    if (peekt !== undefined) clearTimeout(peekt)
-    aim.reset()
   })
 
   onMount(() => {
     const stop = () => setState("sizing", false)
-    const blur = () => reset()
+    const blur = () => sidebarHover.reset()
     const hide = () => {
       if (document.visibilityState !== "hidden") return
-      reset()
+      sidebarHover.reset()
     }
     makeEventListener(window, "pointerup", stop)
     makeEventListener(window, "pointercancel", stop)
     makeEventListener(window, "blur", stop)
     makeEventListener(window, "blur", blur)
     makeEventListener(document, "visibilitychange", hide)
-  })
-
-  const sidebarHovering = createMemo(() => !layout.sidebar.opened() && state.hoverProject !== undefined)
-  const sidebarExpanded = createMemo(() => layout.sidebar.opened() || sidebarHovering())
-  const setHoverProject = (value: string | undefined) => {
-    setState("hoverProject", value)
-    if (value !== undefined) return
-    aim.reset()
-  }
-  const clearHoverProjectSoon = () => queueMicrotask(() => setHoverProject(undefined))
-
-  const disarm = () => {
-    if (navLeave.current === undefined) return
-    clearTimeout(navLeave.current)
-    navLeave.current = undefined
-  }
-
-  const reset = () => {
-    disarm()
-    setHoverProject(undefined)
-  }
-
-  const arm = () => {
-    if (layout.sidebar.opened()) return
-    if (state.hoverProject === undefined) return
-    disarm()
-    navLeave.current = window.setTimeout(() => {
-      navLeave.current = undefined
-      setHoverProject(undefined)
-    }, 300)
-  }
-
-  let peekt: number | undefined
-
-  const hoverProjectData = createMemo(() => {
-    const id = state.hoverProject
-    if (!id) return
-    return layout.projects.list().find((project) => project.worktree === id)
-  })
-
-  const peekProject = createMemo(() => {
-    const id = state.peek
-    if (!id) return
-    return layout.projects.list().find((project) => project.worktree === id)
-  })
-
-  createEffect(() => {
-    const p = hoverProjectData()
-    if (p) {
-      if (peekt !== undefined) {
-        clearTimeout(peekt)
-        peekt = undefined
-      }
-      setState("peek", p.worktree)
-      setState("peeked", true)
-      return
-    }
-
-    setState("peeked", false)
-    if (state.peek === undefined) return
-    if (peekt !== undefined) clearTimeout(peekt)
-    peekt = window.setTimeout(() => {
-      peekt = undefined
-      setState("peek", undefined)
-    }, 180)
-  })
-
-  createEffect(() => {
-    if (!layout.sidebar.opened()) return
-    setHoverProject(undefined)
   })
 
   createEffect(() => {
@@ -302,7 +222,7 @@ export default function LegacyLayout(props: ParentProps) {
 
   const clearSidebarHoverState = () => {
     if (layout.sidebar.opened()) return
-    reset()
+    sidebarHover.reset()
   }
 
   const navigateWithSidebarReset = (href: string) => {
@@ -1775,7 +1695,7 @@ export default function LegacyLayout(props: ParentProps) {
   function handleDragStart(event: unknown) {
     const id = getDraggableId(event)
     if (!id) return
-    setHoverProject(undefined)
+    sidebarHover.setHoverProject(undefined)
     setStore("activeProject", id)
   }
 
@@ -1816,7 +1736,7 @@ export default function LegacyLayout(props: ParentProps) {
 
   const sidebarProject = createMemo(() => {
     if (layout.sidebar.opened()) return currentProject()
-    const hovered = hoverProjectData()
+    const hovered = sidebarHover.hoverProjectData()
     if (hovered) return hovered
     return currentProject()
   })
@@ -1898,9 +1818,9 @@ export default function LegacyLayout(props: ParentProps) {
   const workspaceSidebarCtx: WorkspaceSidebarContext = {
     currentDir,
     navList: currentSessions,
-    sidebarExpanded,
-    sidebarHovering,
-    clearHoverProjectSoon,
+    sidebarExpanded: sidebarHover.expanded,
+    sidebarHovering: sidebarHover.hovering,
+    clearHoverProjectSoon: sidebarHover.clearHoverProjectSoon,
     prefetchSession,
     archiveSession,
     workspaceName,
@@ -1926,14 +1846,14 @@ export default function LegacyLayout(props: ParentProps) {
     currentDir,
     currentProject,
     sidebarOpened: () => layout.sidebar.opened(),
-    sidebarHovering,
-    hoverProject: () => state.hoverProject,
+    sidebarHovering: sidebarHover.hovering,
+    hoverProject: sidebarHover.hoverProject,
     onProjectMouseEnter: (worktree, event) => aim.enter(worktree, event),
     onProjectMouseLeave: (worktree) => aim.leave(worktree),
     onProjectFocus: (worktree) => aim.activate(worktree),
     onHoverOpenChanged: (worktree, hoverOpen) => {
-      if (!hoverOpen && state.hoverProject && state.hoverProject !== worktree) return
-      setState("hoverProject", hoverOpen ? worktree : undefined)
+      if (!hoverOpen && sidebarHover.hoverProject() && sidebarHover.hoverProject() !== worktree) return
+      sidebarHover.setHoverProject(hoverOpen ? worktree : undefined)
     },
     navigateToProject,
     openSidebar: () => layout.sidebar.open(),
@@ -1945,8 +1865,8 @@ export default function LegacyLayout(props: ParentProps) {
     workspaceLabel,
     sessionProps: {
       navList: currentSessions,
-      sidebarExpanded,
-      clearHoverProjectSoon,
+      sidebarExpanded: sidebarHover.expanded,
+      clearHoverProjectSoon: sidebarHover.clearHoverProjectSoon,
       prefetchSession,
       archiveSession,
     },
@@ -2066,7 +1986,7 @@ export default function LegacyLayout(props: ParentProps) {
                     </Tooltip>
                   </div>
 
-                  <DropdownMenu modal={!sidebarHovering()}>
+                  <DropdownMenu modal={!sidebarHover.hovering()}>
                     <DropdownMenu.Trigger
                       as={IconButton}
                       icon="dot-grid"
@@ -2308,16 +2228,16 @@ export default function LegacyLayout(props: ParentProps) {
               }}
               style={{ width: `${side()}px` }}
               ref={(el) => {
-                setState("nav", el)
+                sidebarHover.setNav(el)
               }}
               onMouseEnter={() => {
-                disarm()
+                sidebarHover.disarm()
               }}
               onMouseLeave={() => {
-                aim.reset()
-                if (!sidebarHovering()) return
+                sidebarHover.aim.reset()
+                if (!sidebarHover.hovering()) return
 
-                arm()
+                sidebarHover.arm()
               }}
             >
               <div class="@container w-full h-full contain-strict">{sidebarContent()}</div>
@@ -2400,36 +2320,36 @@ export default function LegacyLayout(props: ParentProps) {
             <div
               classList={{
                 "hidden xl:flex absolute inset-y-0 start-16 z-30": true,
-                "opacity-100 translate-x-0 pointer-events-auto": state.peeked && !layout.sidebar.opened(),
+                "opacity-100 translate-x-0 pointer-events-auto": sidebarHover.peeked() && !layout.sidebar.opened(),
                 "opacity-0 ltr:-translate-x-2 rtl:translate-x-2 pointer-events-none":
-                  !state.peeked || layout.sidebar.opened(),
+                  !sidebarHover.peeked() || layout.sidebar.opened(),
                 "transition-[opacity,transform] motion-reduce:transition-none": true,
-                "duration-180 ease-out": state.peeked && !layout.sidebar.opened(),
-                "duration-120 ease-in": !state.peeked || layout.sidebar.opened(),
+                "duration-180 ease-out": sidebarHover.peeked() && !layout.sidebar.opened(),
+                "duration-120 ease-in": !sidebarHover.peeked() || layout.sidebar.opened(),
               }}
-              onMouseMove={disarm}
+              onMouseMove={sidebarHover.disarm}
               onMouseEnter={() => {
-                disarm()
-                aim.reset()
+                sidebarHover.disarm()
+                sidebarHover.aim.reset()
               }}
-              onPointerDown={disarm}
+              onPointerDown={sidebarHover.disarm}
               onMouseLeave={() => {
-                arm()
+                sidebarHover.arm()
               }}
             >
-              <Show when={peekProject()}>
-                <SidebarPanel project={peekProject} merged={false} />
+              <Show when={sidebarHover.peekProject()}>
+                <SidebarPanel project={sidebarHover.peekProject} merged={false} />
               </Show>
             </div>
 
             <div
               classList={{
                 "hidden xl:block pointer-events-none absolute inset-y-0 end-0 z-25 overflow-hidden": true,
-                "opacity-100 translate-x-0": state.peeked && !layout.sidebar.opened(),
-                "opacity-0 ltr:-translate-x-2 rtl:translate-x-2": !state.peeked || layout.sidebar.opened(),
+                "opacity-100 translate-x-0": sidebarHover.peeked() && !layout.sidebar.opened(),
+                "opacity-0 ltr:-translate-x-2 rtl:translate-x-2": !sidebarHover.peeked() || layout.sidebar.opened(),
                 "transition-[opacity,transform] motion-reduce:transition-none": true,
-                "duration-180 ease-out": state.peeked && !layout.sidebar.opened(),
-                "duration-120 ease-in": !state.peeked || layout.sidebar.opened(),
+                "duration-180 ease-out": sidebarHover.peeked() && !layout.sidebar.opened(),
+                "duration-120 ease-in": !sidebarHover.peeked() || layout.sidebar.opened(),
               }}
               style={{ "inset-inline-start": `calc(4rem + ${panel()}px)` }}
             >
