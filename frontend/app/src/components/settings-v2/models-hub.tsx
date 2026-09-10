@@ -14,6 +14,7 @@ import {
   onMount,
 } from "solid-js"
 import { createStore } from "solid-js/store"
+import { compatibilityFor, type FitTier } from "@tiancode-ai/core/model-fit"
 import { useLanguage } from "@/context/language"
 import { useServerSDK } from "@/context/server-sdk"
 import { useServerSync } from "@/context/server-sync"
@@ -23,7 +24,7 @@ import { SoundEffects } from "@/utils/sound-effects"
 import { SettingsPagerV2 } from "./parts/pager"
 import "./models-hub.css"
 
-export type FitTier = "full_gpu" | "partial_gpu" | "ram_only" | "no_fit"
+export type { FitTier } from "@tiancode-ai/core/model-fit"
 export type DownloadStatus = "downloading" | "paused" | "completed" | "failed"
 
 type Numish = number | "NaN" | "Infinity" | "-Infinity"
@@ -733,30 +734,15 @@ export const SettingsModelsHubV2: Component<{
     return availableFiles().find((item) => item.file === f) || availableFiles()[0]
   })
 
-  const compat = (sizeBytes: Numish | undefined): FitTier => {
-    const size = asNumber(sizeBytes)
-    if (size === undefined) return "partial_gpu"
-    const needed = size * 1.1
-    const gpuOn = memoryPrefs.useGpu && vramTotal() > 0
-    const ramOn = memoryPrefs.useRamFallback && ram() > 0
-    if (gpuOn && ramOn) {
-      const fullCap = vramFree() > 0 ? vramFree() : vramTotal()
-      if (needed <= fullCap) return "full_gpu"
-      if (needed <= vramTotal() + ram()) return "partial_gpu"
-      if (needed <= ram()) return "ram_only"
-      return "no_fit"
-    }
-    if (gpuOn) {
-      const cap = vramFree() > 0 ? vramFree() : vramTotal()
-      if (needed <= cap) return "full_gpu"
-      return "no_fit"
-    }
-    if (ramOn) {
-      if (needed <= ram()) return "ram_only"
-      return "no_fit"
-    }
-    return "partial_gpu"
-  }
+  // Shared with the server so the badge can never disagree with the server's own answer.
+  const compat = (sizeBytes: Numish | undefined): FitTier =>
+    compatibilityFor({
+      sizeBytes: asNumber(sizeBytes),
+      ramBytes: ram(),
+      vram: vramTotal() > 0 ? { total: vramTotal(), free: vramFree() } : undefined,
+      useGpu: memoryPrefs.useGpu,
+      useRamFallback: memoryPrefs.useRamFallback,
+    })
 
   const [benchResults, setBenchResults] = createSignal<Record<string, { tokSec: number; vram: string; ttft: number }>>({})
   const [benchmarkingModel, setBenchmarkingModel] = createSignal<string | null>(null)
@@ -1377,10 +1363,10 @@ export const SettingsModelsHubV2: Component<{
 
                       {/* Hardware Fit badge */}
                       <div class={`lm-compat-badge lm-compat-${fit()} text-[11px]`}>
-                        <Show when={fit() === "full_gpu"}>⚡ Full GPU Offload</Show>
-                        <Show when={fit() === "partial_gpu"}>⚡ Partial GPU</Show>
-                        <Show when={fit() === "ram_only"}>🧠 RAM / CPU</Show>
-                        <Show when={fit() === "no_fit"}>⚠️ Memoria Insuficiente</Show>
+                        <Show when={fit() === "full_gpu"}>⚡ {language.t("settings.modelsHub.fit.fullGpu")}</Show>
+                        <Show when={fit() === "partial_gpu"}>⚡ {language.t("settings.modelsHub.fit.partialGpu")}</Show>
+                        <Show when={fit() === "ram_only"}>🧠 {language.t("settings.modelsHub.fit.ramOnly")}</Show>
+                        <Show when={fit() === "no_fit"}>⚠️ {language.t("settings.modelsHub.fit.noFit")}</Show>
                       </div>
                     </div>
 

@@ -15,12 +15,19 @@ import { Context, Effect, Layer, Option, Schema, Scope, Types } from "effect"
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
 import { FSUtil } from "@tiancode-ai/core/fs-util"
 import { Global } from "@tiancode-ai/core/global"
+import {
+  compatibilityFor as coreCompatibilityFor,
+  FIT_LABELS as CORE_FIT_LABELS,
+  type FitTier as CoreFitTier,
+  type VramInfo as CoreVramInfo,
+} from "@tiancode-ai/core/model-fit"
+
 
 const execFileAsync = promisify(execFile)
 
 let cachedGpu: string | undefined
 let cachedGpuChecked = false
-let cachedVram: VramInfo | undefined
+let cachedVram: CoreVramInfo | undefined
 let cachedVramChecked = false
 
 // Detect the primary GPU. Windows exposes it via WMI (works for NVIDIA/AMD/
@@ -67,10 +74,6 @@ const detectGpu = Effect.fn("ModelHub.gpu")(function* () {
 // first and system RAM only backs it up when the model overflows the GPU.
 // NVIDIA reports real numbers through nvidia-smi; AMD/Intel and any fallback
 // use fast cached queries. Returns total + free bytes or undefined.
-export interface VramInfo {
-  readonly total: number
-  readonly free: number
-}
 
 const NVIDIA_SMI_PATHS = [
   "nvidia-smi",
@@ -92,7 +95,7 @@ const detectVram = Effect.fn("ModelHub.vram")(function* () {
         { timeout: 2000, windowsHide: true },
       ),
     ).pipe(Effect.catch(() => Effect.succeed(undefined)))
-    let best: VramInfo | undefined
+    let best: CoreVramInfo | undefined
     for (const line of (result?.stdout ?? "").split("\n")) {
       const [total, free] = line.split(",").map((part) => Number(part.trim()) * 1024 * 1024)
       if (!total || free === undefined || Number.isNaN(total) || Number.isNaN(free)) continue
@@ -247,73 +250,36 @@ export function parseQuantFiles(siblings: readonly HfSibling[] | undefined): Qua
 
 // --- Memory compatibility (LM Studio-style fit tiers) ----------------------------
 
-// LM Studio-style fit estimation. The GPU VRAM is the primary memory for
-// local models (fast), and system RAM backs it up when the model overflows
-// the GPU:
-// - full_gpu:  the model fits entirely in the free VRAM (full GPU offload)
-// - partial_gpu: it does not fit in VRAM but fits in VRAM + RAM (partial
-//   offload, the RAM portion backs up the layers that overflow the GPU)
-// - ram_only:  it does not fit with GPU offload but fits in RAM alone — the
-//   model can still run CPU-only ("Fits without GPU")
-// - no_fit:    it does not fit anywhere (will not run)
-// A ~10% overhead is added for the KV cache and runtime buffers.
-const MEMORY_OVERHEAD = 1.1
-
-export type FitTier = "full_gpu" | "partial_gpu" | "ram_only" | "no_fit"
-
-export const FIT_LABELS: Record<FitTier, string> = {
-  full_gpu: "Full GPU Offload Possible",
-  partial_gpu: "Partial GPU Offload Possible",
-  ram_only: "Fits without GPU",
-  no_fit: "Will not fit",
-}
+// Fit estimation lives in @tiancode-ai/core/model-fit so the server and the Models Hub UI
+// share one copy of the rules; these wrappers keep the positional signature used by existing
+// callers and tests.
+export type { FitTier, VramInfo } from "@tiancode-ai/core/model-fit"
+export { FIT_LABELS, FIT_TIER_KEYS, MEMORY_OVERHEAD } from "@tiancode-ai/core/model-fit"
 
 export interface FitInfo {
-  readonly tier: FitTier
+  readonly tier: CoreFitTier
   readonly label: string
 }
 
 export function fitFor(
   sizeBytes: number | undefined,
   ramBytes: number,
-  vram: VramInfo | undefined,
+  vram: CoreVramInfo | undefined,
   useGpu = true,
   useRamFallback = true,
 ): FitInfo {
   const tier = compatibilityFor(sizeBytes, ramBytes, vram, useGpu, useRamFallback)
-  return { tier, label: FIT_LABELS[tier] }
+  return { tier, label: CORE_FIT_LABELS[tier] }
 }
 
 export function compatibilityFor(
   sizeBytes: number | undefined,
   ramBytes: number,
-  vram: VramInfo | undefined,
+  vram: CoreVramInfo | undefined,
   useGpu = true,
   useRamFallback = true,
-): FitTier {
-  if (sizeBytes === undefined) return "partial_gpu"
-  const needed = sizeBytes * MEMORY_OVERHEAD
-  const gpuOn = useGpu && vram !== undefined && vram.total > 0
-  const ramOn = useRamFallback && ramBytes > 0
-  if (gpuOn && ramOn) {
-    // Prefer free VRAM for the full-offload tier (LM Studio caps offload to
-    // the available VRAM); fall back to total when free is unknown.
-    const fullCap = vram.free > 0 ? vram.free : vram.total
-    if (needed <= fullCap) return "full_gpu"
-    if (needed <= vram.total + ramBytes) return "partial_gpu"
-    if (needed <= ramBytes) return "ram_only"
-    return "no_fit"
-  }
-  if (gpuOn) {
-    const cap = vram.free > 0 ? vram.free : vram.total
-    if (needed <= cap) return "full_gpu"
-    return "no_fit"
-  }
-  if (ramOn) {
-    if (needed <= ramBytes) return "ram_only"
-    return "no_fit"
-  }
-  return "partial_gpu"
+): CoreFitTier {
+  return coreCompatibilityFor({ sizeBytes, ramBytes, vram, useGpu, useRamFallback })
 }
 
 // --- Local runtime detection (Ollama / LM Studio) ---------------------------------
@@ -498,7 +464,7 @@ export interface SystemInfo {
   readonly diskFree: number
   readonly cpu: string | undefined
   readonly gpu: string | undefined
-  readonly vram: VramInfo | undefined
+  readonly vram: CoreVramInfo | undefined
   readonly modelsDir: string
 }
 
@@ -584,7 +550,7 @@ const layer = Layer.effect(
     }
 
     // Combined RAM + VRAM probe shared by the files list and system info.
-    let memoryCache: { ram: number; vram: VramInfo | undefined } | undefined
+    let memoryCache: { ram: number; vram: CoreVramInfo | undefined } | undefined
     const memory = Effect.fn("ModelHub.memory")(function* () {
       if (memoryCache) return memoryCache
       const vram = yield* detectVram()
