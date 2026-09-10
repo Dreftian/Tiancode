@@ -160,7 +160,8 @@ function writeGlobalAtomic(file: string, content: string) {
   })
 }
 
-function patchJsonc(input: string, patch: unknown, path: string[] = []): string {  if (!isRecord(patch)) {
+function patchJsonc(input: string, patch: unknown, path: string[] = []): string {
+  if (!isRecord(patch)) {
     const edits = modify(input, path, patch, {
       formattingOptions: {
         insertSpaces: true,
