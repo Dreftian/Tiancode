@@ -69,6 +69,26 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
   alias o relativo. Se elimina `diagram-renderer.tsx`, 103 líneas que nadie importaba.
 - **`session.tsx`**: se extraen el límite de errores de la ruta y los marcos de presentación a módulos
   hermanos.
+- **Sincronización con opencode upstream (1.18.15 → 1.18.30)**: los paquetes core de Tiancode estaban
+  fijados en opencode 1.18.14. Se comparó contra el tag v1.18.30 normalizando el renombrado del fork y se
+  portaron las correcciones de fiabilidad, **sin tocar el diseño v2 ni la configuración**:
+  - *Proveedores*: un error de API con un `code` no reconocido salía del `switch` devolviendo `undefined`,
+    así que nunca se clasificaba como reintentable y la petición fallaba en seco. `textVerbosity` se enviaba
+    a todo proveedor compatible con OpenAI salvo Azure, en vez de sólo a los que lo implementan. El
+    *thinking block binding* de Anthropic se activaba ante IDs no reconocidos, que despliegues antiguos
+    rechazan. Más el mapeo de MERGE Gateway, el muestreo de DeepSeek V4 Flash y el guardado de razonamiento
+    replicable para cualquier proveedor que lo firme, no sólo Bedrock.
+  - *Reintentos*: eran **ilimitados** (un proveedor caído reintentaba para siempre) y sin jitter, así que
+    todas las sesiones volvían en el mismo instante tras una caída. Ahora hay tope de 5 y dispersión del 25%.
+    Se reconocen además `network-error`/`network_error` y la redacción de capacidad que devuelve xAI.
+  - *Sub-agentes*: un sub-agente que fallaba devolvía **cadena vacía**, indistinguible de uno que no produjo
+    texto; el agente padre seguía como si el trabajo estuviera hecho. Ahora el fallo se expone con el
+    `task_id` para poder reanudarlo.
+  - *Compactación*: el presupuesto de contexto reciente sube de 8k a 15k tokens y los turnos se estiman bajo
+    demanda en vez de todos por adelantado.
+  Estos comportamientos ya tenían tests heredados del fork que llevaban tiempo fallando: `provider.test.ts`
+  pasa de 74 aciertos / 26 fallos a 87 / 13 (los 13 restantes son timeouts de red contra APIs reales).
+
 - **Suite de tests del frontend en verde**: arrancaba con 14 fallos en un checkout intacto, todos por
   el mismo patrón — un cambio de comportamiento deliberado cuyo test nunca se actualizó, dejando además
   un parámetro que ya no hacía nada. `submit.test.ts` (8) ni siquiera cargaba: su mock de toast omitía
