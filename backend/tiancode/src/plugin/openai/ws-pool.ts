@@ -113,7 +113,10 @@ export function createWebSocketFetch(options?: CreateWebSocketFetchOptions) {
         onConnectionInvalid: (error) => {
           entry.busy = false
           entry.lastUsedAt = Date.now()
-          if (!entry.fallback) recordStreamFailure(entry)
+          // A close for an oversized message will happen again on every retry, since the body is
+          // what is too big. Fall back to HTTP now rather than spending the retry budget first.
+          if (isMessageSizeError(error)) entry.fallback = true
+          else if (!entry.fallback) recordStreamFailure(entry)
           invalidate(entry)
           resolveFirstEvent(false)
         },

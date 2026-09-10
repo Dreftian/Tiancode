@@ -713,6 +713,29 @@ describe("plugin.openai.ws-pool", () => {
     fetch.close()
   })
 
+  test("uses HTTP immediately when the websocket rejects an oversized message", async () => {
+    let connections = 0
+    await using server = await createWebSocketServer((socket) => {
+      connections += 1
+      socket.once("message", () => {
+        socket.close(1009, "message too big")
+      })
+    })
+    const fetch = OpenAIWebSocketPool.createWebSocketFetch({
+      url: server.url,
+      streamRetries: 2,
+    })
+
+    // The body is what does not fit, so retrying over the socket would fail identically. The
+    // very first request has to reach HTTP rather than burning the retry budget on 1009s.
+    expect(await (await fetch(server.url, streamRequest())).text()).toBe("http")
+    expect(await (await fetch(server.url, streamRequest())).text()).toBe("http")
+
+    expect(connections).toBe(1)
+    expect(server.httpRequests).toHaveLength(2)
+    fetch.close()
+  })
+
   test("does not keep HTTP fallback active after aborting a websocket response", async () => {
     let connections = 0
     await using server = await createWebSocketServer((socket) => {
