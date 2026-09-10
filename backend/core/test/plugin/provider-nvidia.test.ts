@@ -39,7 +39,7 @@ describe("NvidiaPlugin", () => {
       yield* addPlugin()
       expect((yield* catalog.provider.get(ProviderV2.ID.make("nvidia")))?.request.headers).toEqual({
         Existing: "value",
-        "HTTP-Referer": "https://opencode.ai/",
+        "HTTP-Referer": "https://tiancode.vercel.app/",
         "X-Title": "tiancode",
         "X-BILLING-INVOKE-ORIGIN": "Tiancode",
       })
@@ -62,7 +62,7 @@ describe("NvidiaPlugin", () => {
       yield* addPlugin()
 
       expect((yield* catalog.provider.get(ProviderV2.ID.make("nvidia")))?.request.headers).toEqual({
-        "HTTP-Referer": "https://opencode.ai/",
+        "HTTP-Referer": "https://tiancode.vercel.app/",
         "X-Title": "tiancode",
         "X-BILLING-INVOKE-ORIGIN": "Tiancode",
       })
@@ -88,7 +88,7 @@ describe("NvidiaPlugin", () => {
       yield* addPlugin()
 
       expect((yield* catalog.provider.get(ProviderV2.ID.make("nvidia")))?.request.headers).toEqual({
-        "HTTP-Referer": "https://opencode.ai/",
+        "HTTP-Referer": "https://tiancode.vercel.app/",
         "X-Title": "tiancode",
         "X-BILLING-INVOKE-ORIGIN": "CustomOrigin",
       })
