@@ -5,13 +5,13 @@
    menú desplegable de recursos).
    ============================================================ */
 
-import { initTheme } from './theme.js?v=1.0.38';
-import { applyLang, initI18n } from './i18n.js?v=1.0.38';
-import { initRouter, closeDropdown } from './router.js?v=1.0.38';
-import { initAnimations } from './animations.js?v=1.0.38';
-import { initCharts } from './charts.js?v=1.0.38';
-import { initFaq } from './faq.js?v=1.0.38';
-import { initGalaxy } from './galaxy.js?v=1.0.38';
+import { initTheme } from './theme.js?v=1.0.39';
+import { applyLang, initI18n } from './i18n.js?v=1.0.39';
+import { initRouter, closeDropdown } from './router.js?v=1.0.39';
+import { initAnimations } from './animations.js?v=1.0.39';
+import { initCharts } from './charts.js?v=1.0.39';
+import { initFaq } from './faq.js?v=1.0.39';
+import { initGalaxy } from './galaxy.js?v=1.0.39';
 
 /* ---------- Inicialización de módulos ---------- */
 initTheme();
@@ -140,7 +140,7 @@ const FEATURES_INFO = {
   },
   skills: {
     category: 'Metodología de Ingeniería',
-    title: 'Catálogo de 52+ Skills de Ingeniería',
+    title: 'Catálogo de 120+ Skills de Ingeniería',
     desc: 'Flujos de trabajo estandarizados: Test-Driven Development, revisiones de código estático, auditorías de seguridad OWASP, optimización y planning.',
     codeTitle: 'Invocación de Skills',
     code: 'tiancode --skill test-driven-development --skill security-and-hardening',
@@ -296,7 +296,7 @@ const SKILLS_INFO = {
   'Entrevistas de requisitos': {
     name: 'Entrevistas de Requisitos (Grill-Me)',
     desc: 'Formula preguntas dirigidas y clarifica casos de borde antes de escribir una sola línea de código, evitando retrabajos.',
-    cmd: 'tiancode --skill grill-me --prompt "Diseña el flujo de autenticación con OAuth2"'
+    cmd: 'tiancode --skill interview-me --prompt "Diseña el flujo de autenticación con OAuth2"'
   },
   'Test-Driven Development (TDD)': {
     name: 'Test-Driven Development (TDD)',

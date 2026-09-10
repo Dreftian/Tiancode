@@ -4,6 +4,46 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [Sin publicar]
+### Auditoría de funcionamiento: correcciones verificadas en composer, voces, vista previa e Intelligence
+
+- **Modo ⚡ 2x ahora acelera el modelo de verdad**: antes sólo inyectaba una directiva de texto en el
+  system prompt. Se conecta al sistema de `variants` de `Model.Info`, bajando el modelo activo a su
+  nivel de razonamiento más barato **sólo para esa petición** (la variante guardada del usuario no se
+  toca y vuelve al desactivar). Además se corrige `resolveFastVariant`, cuyo respaldo devolvía
+  `variants[0]`: en una lista descendente como `["high","medium","low"]` elegía la **más lenta**.
+- **Asistente de Bienvenida**: anunciaba "Paso 1 de 3" pero sólo existía un paso. Se implementan los
+  pasos de proveedor y espacio de trabajo (que por fin pasa un valor real a
+  `finishFirstLaunchOnboarding`, antes fijo en `false`), con Atrás/Omitir, activación por teclado, los
+  7 idiomas y desplazamiento interno para no recortarse en ventanas bajas.
+- **Vista previa "Building" en vivo**: el gestor ya recompilaba al cambiar archivos, pero `isBuilding`
+  vivía en un campo privado que nunca se publicaba. `PreviewState` expone ahora un bloque `build` y la
+  interfaz muestra "Compilando src/App.tsx…" con la duración de la última compilación, recargando el
+  iframe cuando termina con éxito. La decisión se basa en un contador monótono `sequence`, no en
+  `running`: el estado se consulta cada 2 s y una compilación que empiece y acabe dentro de ese
+  intervalo nunca se observaría en curso.
+- **Voces**: "Paloma" y "Tania" apuntaban a repositorios de HuggingFace que **no existen** (HTTP 401),
+  así que su descarga siempre fallaba. Se sustituyen por `es_ES-miro-high` y `es_ES-glados-medium`,
+  verificadas. Se añade `verify-piper-voices.ts` al pipeline de release, que comprueba las 10 voces.
+- **Intelligence conectado al agente**: los ajustes del renderer se guardaban sólo en `localStorage` y
+  nunca llegaban al servidor, así que ninguno podía influir en el agente. Los interruptores de memoria
+  de usuario/proyecto y de guardrails viajan ahora por `experimental.intelligence` en la configuración
+  del servidor y gobiernan de verdad el system prompt y `AgentShield`.
+- **Traducciones**: 53 claves usadas por el código faltaban en los 7 diccionarios (toda la pestaña
+  *Intelligence* caía a texto en español fijo para usuarios en inglés, chino, japonés, coreano y ruso),
+  más 9 descripciones de sub-agentes y 3 divergencias `en`/`en-150`. Las dos pruebas de paridad que
+  fallaban vuelven a pasar.
+- **Responsividad**: las tablas de sub-agentes y de MCP/plugins declaraban rejillas con suelos de 690,
+  840 y 880 px sin **ninguna** media query, forzando desplazamiento horizontal. Reescritas mobile-first
+  con `@container settings-panel`, verificadas en navegador entre 360 y 1300 px.
+- **Catálogo de skills**: se retiran 16 skills muertas o duplicadas — `grill-me` y `grill-with-docs`
+  invocaban un comando `/grilling` inexistente, y 13 stubs `claude-*` de 15–17 líneas repetían skills
+  hermanas mucho más completas. Como la descripción de cada skill se inyecta en **cada** petición, esto
+  ahorra unos 910 tokens por mensaje.
+- **Modelos locales**: la estimación de encaje en memoria estaba duplicada entre servidor e interfaz;
+  ambas usan ahora `@tiancode-ai/core/model-fit`. Las insignias mezclaban inglés y español teniendo ya
+  las traducciones disponibles sin usar.
+
 ## [1.0.33] — 2026-09-06
 ### Optimización de Prompts con IA en Streaming en Vivo, Endpoint Backend y Modos de Ejecución
 
