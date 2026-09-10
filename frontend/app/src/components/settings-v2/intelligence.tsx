@@ -1,8 +1,10 @@
-import { type Component } from "solid-js"
+import { createEffect, onCleanup, type Component } from "solid-js"
 import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
 import { SelectV2 } from "@tiancode-ai/ui/v2/select-v2"
 import { useLanguage } from "@/context/language"
 import { useSettings } from "@/context/settings"
+import { useServerSDK } from "@/context/server-sdk"
+import { syncIntelligenceConfig } from "@/utils/intelligence-config"
 import { AstCodeGraphVisualizer } from "@/components/ast-codegraph-visualizer"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
@@ -12,6 +14,21 @@ const sandboxOptions: ("host" | "docker" | "e2b")[] = ["host", "docker", "e2b"]
 export const SettingsIntelligenceV2: Component = () => {
   const language = useLanguage()
   const settings = useSettings()
+  const serverSdk = useServerSDK()
+
+  // These switches only take effect server-side, so mirror them into the server config
+  // whenever they change. The renderer's settings store is localStorage-only and the
+  // agent never sees it.
+  createEffect(() => {
+    const switches = {
+      userMemory: settings.intelligence.userMemory(),
+      projectMemory: settings.intelligence.projectMemory(),
+      guardrails: settings.intelligence.guardrails(),
+    }
+    const controller = new AbortController()
+    onCleanup(() => controller.abort())
+    void syncIntelligenceConfig(serverSdk()?.server?.http, switches, controller.signal)
+  })
 
   return (
     <>

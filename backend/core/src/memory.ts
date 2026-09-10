@@ -20,7 +20,7 @@ export interface Interface {
   readonly saveUser: (entry: string, category?: MemoryCategory) => Effect.Effect<void>
   readonly saveProject: (entry: string, category?: MemoryCategory) => Effect.Effect<void>
   readonly recall: (query?: string) => Effect.Effect<{ user: string; project: string; matching: string[] }>
-  readonly format: () => Effect.Effect<string | undefined>
+  readonly format: (include?: { user?: boolean; project?: boolean }) => Effect.Effect<string | undefined>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@tiancode/Memory") {}
@@ -134,9 +134,12 @@ const layer = Layer.effect(
       }
     })
 
-    const format = Effect.fn("Memory.format")(function* () {
-      const user = yield* readUser()
-      const project = yield* readProject()
+    // `include` lets the caller honour the user's Intelligence switches without Memory
+    // needing to reach for Config itself (which would add a dependency to this layer).
+    // Both sources default to on, so existing callers are unaffected.
+    const format = Effect.fn("Memory.format")(function* (include?: { user?: boolean; project?: boolean }) {
+      const user = include?.user === false ? "" : yield* readUser()
+      const project = include?.project === false ? "" : yield* readProject()
 
       if (!user.trim() && !project.trim()) return undefined
 

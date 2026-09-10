@@ -12,6 +12,7 @@ import { AppProcess } from "../process"
 import { PermissionV2 } from "../permission"
 import { PositiveInt } from "../schema"
 import { AgentShield } from "../security/agent-shield"
+import { ConfigIntelligence } from "../config/intelligence"
 import { OutputDistiller } from "./output-distiller"
 import { ToolRegistry } from "./registry"
 import { Tool } from "./tool"
@@ -139,7 +140,12 @@ const layer = Layer.effectDiscard(
                   agent: context.agent,
                   source,
                 })
-              const shieldResult = AgentShield.scanCommand(input.command)
+              // Settings → Intelligence can turn the shell screening off; it defaults to on.
+              // Read per invocation so toggling it mid-session takes effect immediately.
+              const intelligence = ConfigIntelligence.fromEntries(yield* config.entries())
+              const shieldResult = intelligence.guardrails
+                ? AgentShield.scanCommand(input.command)
+                : { threats: [] as ReturnType<typeof AgentShield.scanCommand>["threats"] }
               const shieldWarnings = shieldResult.threats.map(
                 (threat) =>
                   `[AgentShield ${threat.level.toUpperCase()}]: ${threat.description} (Patrón: "${threat.matched}").`,

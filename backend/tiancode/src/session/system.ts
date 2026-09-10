@@ -24,6 +24,7 @@ import { LocationServiceMap, locationServiceMapLayer } from "@tiancode-ai/core/l
 import { Reference } from "@tiancode-ai/core/reference"
 import { MCP } from "@/mcp"
 import { Memory } from "@tiancode-ai/core/memory"
+import { ConfigIntelligence } from "@tiancode-ai/core/config/intelligence"
 import { PermissionV1 } from "@tiancode-ai/core/v1/permission"
 
 export function provider(model: Provider.Model) {
@@ -201,7 +202,9 @@ const layer = Layer.effect(
         const ctx = yield* InstanceState.context
         return yield* Effect.gen(function* () {
           const mem = yield* Memory.Service
-          return yield* mem.format()
+          // Settings → Intelligence decides which memory files reach the prompt.
+          const intelligence = yield* ConfigIntelligence.resolve()
+          return yield* mem.format({ user: intelligence.userMemory, project: intelligence.projectMemory })
         }).pipe(Effect.provide(locations.get(Location.Ref.make({ directory: AbsolutePath.make(ctx.directory) }))))
       }),
     })
