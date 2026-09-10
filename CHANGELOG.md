@@ -92,6 +92,45 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
     ofrecer un login que no puede completarse.
   - *Cerebras*: plugin nuevo que limpia `maxOutputTokens` cuando ya viaja `max_completion_tokens`. Cerebras
     expresa su límite con el segundo, así que enviar ambos aplicaba un tope extra y truncaba las respuestas.
+  - *Sub-agentes en `run`*: el bucle de eventos sólo atendía peticiones de permiso cuya `sessionID`
+    coincidía con la sesión raíz, así que cuando un sub-agente pedía permiso nadie contestaba y la
+    ejecución se quedaba colgada hasta el timeout. Ahora se sigue el árbol de sesiones hijas.
+  - *Configuración*: `Config.update()` fusionaba sobre la configuración **ya cargada**, no sobre el
+    archivo. Cargar resuelve `{env:...}` y `{file:...}` y descarta toda clave que el esquema no conozca,
+    así que cada guardado desde Ajustes reescribía el archivo del usuario con sus secretos **en claro** y
+    sin las claves que no reconocía (las de otra herramienta, o las de una versión más nueva). Se fusiona
+    ahora contra el texto tal cual está escrito en disco.
+  - *Bedrock*: los IDs de modelo recibían prefijo de región indiscriminadamente, rompiendo los ARN
+    completos, y el prefijo `"deepseek"` capturaba cualquier modelo DeepSeek en vez de sólo R1.
+  - *GitHub Copilot*: se declaraba soporte de PDF fijo por familia de modelo en vez de leer lo que
+    anuncia el propio modelo, y faltaba la cabecera `X-Interaction-Id` que Copilot usa para correlacionar
+    la conversación.
+  - *Codex*: el filtro de modelos comparaba la versión con `parseFloat`, y `parseFloat("5.10")` es 5.1;
+    un futuro `gpt-5.10` habría quedado fuera de la lista por parecer anterior al corte de 5.4. Se comparan
+    mayor y menor como enteros. **No** se portó la unificación de límites de `gpt-5.5`/`gpt-5.6` del mismo
+    hunk: Tiancode declara 500k/372k para `gpt-5.6` a propósito.
+  - *Codex, residencia de cómputo*: la cabecera no se enviaba **nunca**, por tres motivos a la vez — se
+    leía el claim `workspace_compute_residency` (OpenAI lo llama `chatgpt_compute_residency`), el valor se
+    devolvía en un campo que el esquema de `Auth` no declara y por tanto se perdía antes de llegar a
+    `auth.json`, y el nombre de la cabecera no era el que lee el backend de Codex. Ahora se lee del token
+    de acceso vivo en cada petición, así que no hace falta persistirla y sigue siendo correcta tras cada
+    renovación. `no_constraint` cuenta como "sin restricción" en vez de reenviarse como si lo fuera.
+  - *WebSocket de OpenAI*: un cierre 1009 significa que el cuerpo no cabe en una trama, así que reintentar
+    por el socket no puede funcionar. El pool sólo reconocía ese caso cuando el error se lanzaba, no cuando
+    llegaba por `onConnectionInvalid` — que es por donde llega un código de cierre —, de modo que una
+    petición grande gastaba todo el presupuesto de reintentos reenviando un cuerpo que nunca iba a caber y
+    devolvía el fallo al llamante en lugar de la respuesta HTTP que sí habría funcionado.
+  - *Cloudflare AI Gateway*: el token de la pasarela autentica **ante Cloudflare** y viaja en
+    `cf-aig-authorization`. Se estaba pasando además como `apiKey` de los SDK de modelo, lo que lo coloca en
+    `Authorization`, y `ai-gateway-provider` reenvía `Authorization` tal cual al proveedor de destino: cada
+    petición entregaba un token de cuenta de Cloudflare a OpenAI, Anthropic o Google. La librería sustituye
+    un centinela y elimina la cabecera cuando no se le da clave, que es lo que hace su propio ejemplo de
+    BYOK; la pasarela aplica entonces la clave guardada del lado de Cloudflare.
+  - *GitHub, intercambio de token*: la rama de error llamaba a `response.json()` sobre el cuerpo fallido.
+    Un HTML de proxy, un error de pasarela en texto plano o un cuerpo vacío hacen que eso lance, y el
+    `SyntaxError` sustituía al estado HTTP que sí decía qué había pasado.
+  - *Cabeceras de atribución*: once tests seguían esperando `https://opencode.ai/`, que el código dejó de
+    enviar al renombrarse. `backend/core/test/plugin` pasa de 210/12 a 222/0.
   Los tests upstream de ambos plugins se portan sin cambios y pasan: Azure 9/9, Cerebras 3/3.
   No se portó `config/v2-compat.ts` (449 líneas que traducen campos de config V2 a forma V1) por la misma
   razón que los defaults de compactación: cambia cómo se interpretan los archivos de configuración.
@@ -107,7 +146,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
   el 2026-08-28); conviene decirlo claro porque asusta: **es el valor por defecto deliberado del producto,
   no un bypass de permisos**. Los otros 5 de ese archivo pasaban de forma vacua por la misma razón. Ahora
   862 tests, 0 fallos, y se cubren el gate global y el modo 2x, que no tenían ninguna prueba.
-- - **`layout.tsx`**: se separan en hooks propios los tres grupos de estado reactivo que sí eran
+- **`layout.tsx`**: se separan en hooks propios los tres grupos de estado reactivo que sí eran
   independientes — el reloj de ordenación por minuto, la escucha de deep links y el comportamiento de
   hover/peek de la barra lateral. Cada uno se invoca desde el cuerpo del componente, así que hereda la
   propiedad reactiva de SolidJS y su limpieza sigue registrada igual que antes. El archivo baja de 2523 a
