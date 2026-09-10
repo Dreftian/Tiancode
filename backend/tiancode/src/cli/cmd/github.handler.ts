@@ -151,6 +151,17 @@ const USER_EVENTS = ["issue_comment", "pull_request_review_comment", "issues", "
 const REPO_EVENTS = ["schedule", "workflow_dispatch"] as const
 const SUPPORTED_EVENTS = [...USER_EVENTS, ...REPO_EVENTS] as const
 
+/** Best-effort detail for a failed token exchange, whatever shape the body came back in. */
+function exchangeErrorDetail(body: string) {
+  const text = body.trim()
+  if (!text) return undefined
+  try {
+    const parsed = JSON.parse(text) as { error?: unknown }
+    if (typeof parsed.error === "string" && parsed.error) return parsed.error
+  } catch {}
+  return text.slice(0, 200)
+}
+
 type UserEvent = (typeof USER_EVENTS)[number]
 type RepoEvent = (typeof REPO_EVENTS)[number]
 
@@ -1004,8 +1015,12 @@ export const githubRun = Effect.fn("Cli.github.run")(function* (args: { event?: 
           })
 
       if (!response.ok) {
-        const responseJson = (await response.json()) as { error?: string }
-        throw new Error(`App token exchange failed: ${response.status} ${response.statusText} - ${responseJson.error}`)
+        // A failed exchange often answers with a proxy's HTML page or an empty body. Letting
+        // .json() throw there would replace the status with a JSON parse error.
+        const detail = exchangeErrorDetail(await response.text().catch(() => ""))
+        throw new Error(
+          `App token exchange failed: ${response.status} ${response.statusText}${detail ? ` - ${detail}` : ""}`,
+        )
       }
 
       const responseJson = (await response.json()) as { token: string }
