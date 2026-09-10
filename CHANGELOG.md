@@ -86,6 +86,16 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
     `task_id` para poder reanudarlo.
   - *Compactación*: el presupuesto de contexto reciente sube de 8k a 15k tokens y los turnos se estiman bajo
     demanda en vez de todos por adelantado.
+  - *Azure*: el plugin era un stub de 24 líneas con sólo clave de API. Ahora ofrece además **inicio de
+    sesión con Microsoft Entra ID** vía Azure CLI: toma el token de `az account get-access-token`, lo cachea
+    por ámbito y lo renueva antes de expirar. El método se oculta si `az` no está instalado, en vez de
+    ofrecer un login que no puede completarse.
+  - *Cerebras*: plugin nuevo que limpia `maxOutputTokens` cuando ya viaja `max_completion_tokens`. Cerebras
+    expresa su límite con el segundo, así que enviar ambos aplicaba un tope extra y truncaba las respuestas.
+  Los tests upstream de ambos plugins se portan sin cambios y pasan: Azure 9/9, Cerebras 3/3.
+  No se portó `config/v2-compat.ts` (449 líneas que traducen campos de config V2 a forma V1) por la misma
+  razón que los defaults de compactación: cambia cómo se interpretan los archivos de configuración.
+
   Estos comportamientos ya tenían tests heredados del fork que llevaban tiempo fallando: `provider.test.ts`
   pasa de 74 aciertos / 26 fallos a 87 / 13 (los 13 restantes son timeouts de red contra APIs reales).
 
