@@ -132,6 +132,8 @@ export function LivePreview(props: {
   externalDevice?: () => "fluid" | "mobile" | "tablet" | "laptop" | undefined
   onDeviceChange?: (mode: "fluid" | "mobile" | "tablet" | "laptop") => void
   onDirectoryChange?: (dir: string) => void
+  /** File the agent is currently writing, tracked from write/edit/apply_patch tool parts. */
+  activeEditFile?: () => string | undefined
 }) {
   const language = useLanguage()
   const platform = usePlatform()
@@ -1565,7 +1567,20 @@ export function LivePreview(props: {
             <span class="truncate">{buildLabel()}</span>
           </span>
         </Show>
-        <Show when={!isBuilding() && devServer()?.build?.ok === true && devServer()?.build?.durationMs}>
+        <Show when={!isBuilding() && props.activeEditFile?.()}>
+          {(file) => (
+            <span
+              class="flex min-w-0 shrink items-center gap-1.5 rounded-md bg-[var(--v2-state-fg-info)]/10 px-1.5 py-0.5 text-11-regular text-[var(--v2-state-fg-info)]"
+              role="status"
+              aria-live="polite"
+              title={language.t("livePreview.writingFile", { file: file() })}
+            >
+              <IconV2 name="edit" class="size-3 shrink-0" />
+              <span class="truncate">{shortenBuildTrigger(file()) ?? file()}</span>
+            </span>
+          )}
+        </Show>
+        <Show when={!isBuilding() && !props.activeEditFile?.() && devServer()?.build?.ok === true && devServer()?.build?.durationMs}>
           {(duration) => (
             <span
               class="shrink-0 text-11-regular text-text-weak/70 tabular-nums"

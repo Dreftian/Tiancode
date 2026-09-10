@@ -2045,4 +2045,5 @@ export const dict = {
   "settings.subAgents.list.column.model": "모델",
   "settings.subAgents.list.column.tools": "도구",
   "settings.subAgents.list.column.status": "상태",
+  "livePreview.writingFile": "{{file}} 작성 중",
 }

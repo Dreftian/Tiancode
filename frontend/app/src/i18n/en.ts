@@ -2056,4 +2056,5 @@ export const dict = {
   "settings.subAgents.list.column.model": "Model",
   "settings.subAgents.list.column.tools": "Tools",
   "settings.subAgents.list.column.status": "Status",
+  "livePreview.writingFile": "Writing {{file}}",
 }

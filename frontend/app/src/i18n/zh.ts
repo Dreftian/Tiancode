@@ -2107,4 +2107,5 @@ export const dict = {
   "settings.subAgents.list.column.model": "模型",
   "settings.subAgents.list.column.tools": "工具",
   "settings.subAgents.list.column.status": "状态",
+  "livePreview.writingFile": "正在写入 {{file}}",
 } satisfies Partial<Record<Keys, string>>

@@ -2047,4 +2047,5 @@ export const dict = {
   "settings.subAgents.list.column.model": "モデル",
   "settings.subAgents.list.column.tools": "ツール",
   "settings.subAgents.list.column.status": "ステータス",
+  "livePreview.writingFile": "{{file}} を書き込み中",
 }

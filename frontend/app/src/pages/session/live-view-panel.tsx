@@ -1907,6 +1907,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
               directory={effectiveProjectDir}
               targetUrl={browserTarget}
               autoStartKey={autoStartKey}
+              activeEditFile={activeEditFile}
               externalDevice={() => viewportMode()}
               onDeviceChange={(mode) => setViewportMode(mode)}
               onDirectoryChange={(dir) => {
