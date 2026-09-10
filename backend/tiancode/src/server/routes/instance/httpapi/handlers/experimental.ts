@@ -394,7 +394,20 @@ export const experimentalHandlers = HttpApiBuilder.group(InstanceHttpApi, "exper
           Stream.filter(LLMEvent.is.textDelta),
           Stream.map((event) => event.text),
           Stream.encodeText,
-          Stream.catchCause(() => Stream.empty),
+          // A failure here (bad credentials, rate limit, model refusal) must not break the
+          // composer: the client falls back to its local optimizer when the stream is empty.
+          // Log the cause first, though — swallowing it silently leaves the user with a
+          // second-rate result and nothing to diagnose it from.
+          Stream.catchCause((cause) =>
+            Stream.unwrap(
+              Effect.logError("prompt optimizer stream failed", {
+                cause,
+                providerID: targetModel.providerID,
+                modelID: targetModel.id,
+                style: ctx.payload.style ?? "standard",
+              }).pipe(Effect.as(Stream.empty)),
+            ),
+          ),
         )
 
       return HttpServerResponse.stream(stream, {
