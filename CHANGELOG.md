@@ -62,6 +62,15 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
   contrato de salida ni condición de parada. Comparten ahora un contrato operativo.
 - **Optimizador de prompts**: dejaba de emitir en silencio ante cualquier fallo del LLM; ahora se
   registra la causa antes de recurrir al motor local.
+- **Estructura de `components/`**: la carpeta tenía 97 archivos sueltos en la raíz — todos los diálogos,
+  la barra de título, el compositor, el árbol de archivos y las mascotas mezclados. Se agrupan 77 en ocho
+  carpetas por funcionalidad y quedan 19 realmente transversales. El reescritor de imports recalcula cada
+  especificador desde la nueva ubicación del importador (114 en 57 archivos), preservando el estilo con
+  alias o relativo. Se elimina `diagram-renderer.tsx`, 103 líneas que nadie importaba.
+- **`session.tsx`**: se extraen el límite de errores de la ruta y los marcos de presentación a módulos
+  hermanos. `layout.tsx` se deja intacto a propósito: es una única función con 45 primitivas reactivas en
+  un mismo closure, y partirla cambiaría la semántica de propiedad de SolidJS sin que el typecheck lo
+  detecte.
 
 ## [1.0.33] — 2026-09-06
 ### Optimización de Prompts con IA en Streaming en Vivo, Endpoint Backend y Modos de Ejecución
