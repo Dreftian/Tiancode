@@ -36,7 +36,7 @@ export const collectOpenProjectDeepLinks = (urls: string[]) =>
 export const collectNewSessionDeepLinks = (urls: string[]) =>
   urls.map(parseNewSessionDeepLink).filter((link): link is { directory: string; prompt?: string } => !!link)
 
-type TiancodeWindow = Window & {
+export type TiancodeWindow = Window & {
   __TIANCODE__?: {
     deepLinks?: string[]
   }
