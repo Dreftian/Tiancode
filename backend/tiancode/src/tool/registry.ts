@@ -18,6 +18,7 @@ import { InvalidTool } from "./invalid"
 import { PreviewLogsTool, PreviewRestartTool, PreviewStartTool, PreviewStatusTool, PreviewStopTool } from "./preview"
 import { SkillTool } from "./skill"
 import { MemoryTool } from "./memory"
+import { CodeGraphTool } from "./codegraph"
 import { SkillCreateTool } from "./skill-create"
 import { SessionSearchTool } from "./session-search"
 import * as Tool from "./tool"
@@ -122,6 +123,7 @@ const layer = Layer.effect(
     const patchtool = yield* ApplyPatchTool
     const skilltool = yield* SkillTool
     const memorytool = yield* MemoryTool
+    const codegraphtool = yield* CodeGraphTool
     const skillcreatetool = yield* SkillCreateTool
     const sessionsearchtool = yield* SessionSearchTool
     const previewStart = yield* PreviewStartTool
@@ -235,6 +237,7 @@ const layer = Layer.effect(
           search: Tool.init(websearch),
           skill: Tool.init(skilltool),
           memory: Tool.init(memorytool),
+          codegraph: Tool.init(codegraphtool),
           skillCreate: Tool.init(skillcreatetool),
           sessionSearch: Tool.init(sessionsearchtool),
           patch: Tool.init(patchtool),

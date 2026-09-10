@@ -14,12 +14,14 @@ export interface Resolved {
   readonly userMemory: boolean
   readonly projectMemory: boolean
   readonly guardrails: boolean
+  readonly codeGraph: boolean
 }
 
 export const DEFAULTS: Resolved = {
   userMemory: true,
   projectMemory: true,
   guardrails: true,
+  codeGraph: true,
 }
 
 /**
@@ -40,6 +42,7 @@ export function fromEntries(entries: readonly Config.Entry[]): Resolved {
       userMemory: intelligence.userMemory ?? resolved.userMemory,
       projectMemory: intelligence.projectMemory ?? resolved.projectMemory,
       guardrails: intelligence.guardrails ?? resolved.guardrails,
+      codeGraph: intelligence.codeGraph ?? resolved.codeGraph,
     }
   }
   return resolved

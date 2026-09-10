@@ -24,6 +24,7 @@ export const SettingsIntelligenceV2: Component = () => {
       userMemory: settings.intelligence.userMemory(),
       projectMemory: settings.intelligence.projectMemory(),
       guardrails: settings.intelligence.guardrails(),
+      codeGraph: settings.intelligence.codeGraph(),
     }
     const controller = new AbortController()
     onCleanup(() => controller.abort())

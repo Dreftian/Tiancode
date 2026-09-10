@@ -33,6 +33,9 @@ export class Intelligence extends Schema.Class<Intelligence>("ConfigV2.Experimen
   guardrails: Schema.Boolean.pipe(Schema.optional).annotate({
     description: "Screen shell commands with AgentShield before running them",
   }),
+  codeGraph: Schema.Boolean.pipe(Schema.optional).annotate({
+    description: "Allow the agent to query the code graph (symbol, dependents, dependencies, outline)",
+  }),
 }) {}
 
 export class Experimental extends Schema.Class<Experimental>("ConfigV2.Experimental")({

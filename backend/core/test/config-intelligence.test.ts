@@ -11,6 +11,7 @@ describe("ConfigIntelligence.fromEntries", () => {
       userMemory: true,
       projectMemory: true,
       guardrails: true,
+      codeGraph: true,
     })
   })
 
@@ -24,6 +25,12 @@ describe("ConfigIntelligence.fromEntries", () => {
     // Untouched switches keep their default.
     expect(resolved.projectMemory).toBe(true)
     expect(resolved.guardrails).toBe(true)
+    expect(resolved.codeGraph).toBe(true)
+  })
+
+  test("the code graph switch resolves like the others", () => {
+    expect(ConfigIntelligence.fromEntries([doc({ codeGraph: false })]).codeGraph).toBe(false)
+    expect(ConfigIntelligence.fromEntries([doc({ codeGraph: false }), doc({ codeGraph: true })]).codeGraph).toBe(true)
   })
 
   test("a later document wins, since entries run general-to-specific", () => {

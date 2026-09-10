@@ -1,7 +1,7 @@
 import { describe, expect, test, mock, afterEach } from "bun:test"
 import { syncIntelligenceConfig } from "./intelligence-config"
 
-const SWITCHES = { userMemory: true, projectMemory: false, guardrails: true }
+const SWITCHES = { userMemory: true, projectMemory: false, guardrails: true, codeGraph: true }
 const originalFetch = globalThis.fetch
 
 afterEach(() => {

@@ -16,6 +16,7 @@ export interface IntelligenceSwitches {
   userMemory: boolean
   projectMemory: boolean
   guardrails: boolean
+  codeGraph: boolean
 }
 
 export interface ServerHttp {
