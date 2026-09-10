@@ -29,20 +29,60 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.38"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — Motor Microsoft tgrep (Copilot CLI), Búsqueda Trigram Ultrarrápida en Windows & Panel Intelligence`
+  const releaseName = `Tiancode v${version} — Modo 2x Real, Asistente de Bienvenida, Vista Previa en Vivo, Voces Reparadas & Panel Intelligence Conectado`
+
   const body = `## 🚀 Tiancode v${version}
 
-### ⚡ Motor Microsoft tgrep & Búsqueda Trigram Ultrarrápida
-- **Integración Nativa de Microsoft tgrep (Copilot CLI Engine):** Se incorpora el motor de búsqueda por trigramas desarrollado por Microsoft para GitHub Copilot CLI, eliminando los cuellos de botella de I/O en Windows.
-- **Aceleración de hasta 38x en Windows:** Las búsquedas de código y expresiones regulares del agente pasan de varios segundos a menos de 100 milisegundos gracias al índice invertido de trigramas y mapeo de memoria mmap de cero copias.
-- **Compatibilidad 100% con Ripgrep:** Ejecución transparente y drop-in replacement con salida JSON idéntica para todas las herramientas del agente (\`GrepTool\`, \`Ripgrep.Service\`).
+Esta versión es el resultado de una auditoría funcional completa: se revisó una por una cada
+característica añadida a Tiancode y se corrigió todo lo que no cumplía su función. Varias cosas
+que parecían funcionar en realidad no hacían nada.
 
-### 🧠 Control en el Panel de Ajustes -> Intelligence
-- **Interruptor Dedicado en Code Graph & AST:** Nuevo control visual para activar o pausar el Acelerador Trigram en tiempo real, con insignia distintiva de \`38x Copilot Engine\`.
-- **Información de Rendimiento en Vivo:** Métricas claras y descripciones técnicas para el usuario sobre la indexación predictiva del repositorio.
+### ⚡ El modo 2x ahora acelera el modelo de verdad
+- Antes sólo inyectaba una frase en el system prompt. Ahora se conecta al sistema de \`variants\` del modelo y baja el razonamiento a su nivel más barato **sólo para esa petición**.
+- Tu variante guardada no se toca y vuelve sola al desactivarlo.
+- Corregido \`resolveFastVariant\`: su respaldo elegía \`variants[0]\`, que en una lista descendente como \`["high","medium","low"]\` era la **más lenta**.
 
-### 🔒 Actualización 100% No Destructiva
-- Todas tus claves de proveedores (Anthropic, OpenAI, OpenRouter, Google, Groq, etc.), configuraciones, sesiones, backups y servidores MCP se preservan intactos en tu equipo.
+### 🧭 Asistente de Bienvenida completo
+- Anunciaba "Paso 1 de 3" pero sólo existía un paso. Ahora están los tres: proveedor, espacio de trabajo y cierre.
+- Botones Atrás/Omitir, navegación por teclado, los 7 idiomas y desplazamiento interno para que no se recorte en ventanas bajas.
+
+### 👁️ Vista previa con estado "Compilando" en vivo
+- El gestor ya recompilaba al guardar, pero el estado vivía en un campo privado que nunca se publicaba.
+- Ahora verás **"Compilando src/App.tsx…"** con la duración de la última compilación, y el iframe se recarga al terminar bien.
+
+### 🔊 Voces reparadas
+- "Paloma" y "Tania" apuntaban a repositorios de HuggingFace que **no existen** (HTTP 401): su descarga fallaba siempre.
+- Sustituidas por \`es_ES-miro-high\` y \`es_ES-glados-medium\`, verificadas.
+- Nuevo \`verify-piper-voices\` en el pipeline de release: un repositorio muerto ya no puede volver a publicarse.
+
+### 🧠 Panel Intelligence conectado al agente
+- Los ajustes se guardaban sólo en \`localStorage\` y nunca llegaban al servidor, así que ninguno influía en el agente.
+- Memoria de usuario/proyecto y guardrails viajan ahora por \`experimental.intelligence\` y gobiernan de verdad el system prompt y \`AgentShield\`.
+
+### 🔒 Seguridad
+- **Los guardados de Ajustes ya no escriben tus secretos en claro.** \`Config.update()\` fusionaba sobre la configuración *ya cargada*, que resuelve \`{env:...}\` y \`{file:...}\`, así que cada guardado reescribía tu archivo con las claves resueltas y borraba las claves que el esquema no reconocía.
+- **Cloudflare AI Gateway ya no entrega tu token de Cloudflare a terceros.** Viajaba en \`Authorization\`, que la pasarela reenvía tal cual a OpenAI, Anthropic o Google.
+
+### 🔌 Proveedores y modelos
+- **Azure**: inicio de sesión con Microsoft Entra ID vía Azure CLI, además de clave de API.
+- **Cerebras**: nuevo plugin que evita el truncado de respuestas por doble tope de tokens.
+- **Codex**: se envía por fin la cabecera de residencia de cómputo (estaba rota por tres motivos a la vez) y los modelos con minor de dos dígitos dejan de descartarse.
+- **OpenAI**: un cierre WebSocket 1009 cae de inmediato a HTTP en vez de gastar todos los reintentos con un cuerpo que nunca iba a caber.
+- **Reintentos**: eran ilimitados y sin dispersión; ahora tope de 5 y jitter del 25%.
+
+### 🎨 Interfaz y traducciones
+- Tablas de sub-agentes y MCP reescritas mobile-first con container queries: se acabó el desplazamiento horizontal entre 360 y 1300 px.
+- 53 claves de traducción que faltaban en los 7 idiomas (toda la pestaña *Intelligence* caía a español fijo para el resto de idiomas).
+- Catálogo de skills: 16 skills muertas o duplicadas retiradas.
+
+### ✅ Calidad
+- Suite del frontend: **862 tests, 0 fallos**.
+- \`backend/core/test/plugin\`: de 210/12 a **222/0**.
+- Typecheck: 27/27 paquetes.
+
+### 🔄 Actualización 100% no destructiva
+Todas tus claves de proveedores, configuraciones, sesiones, backups y servidores MCP se preservan intactos.
+Desde la app: **Ayuda → Buscar actualizaciones**.
 
 ### 📦 Descargas Oficiales
 | Archivo | Tipo | Descripción |
@@ -61,7 +101,15 @@ async function main() {
   }
 
   let releaseData: any
-  const getRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases/tags/${tag}`, { headers })
+  // Un borrador todavía no tiene tag, así que GET /releases/tags/<tag> nunca lo encuentra y
+  // se acabaría creando una segunda release al lado. Se busca en el listado, que sí los incluye.
+  const listRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases?per_page=100`, { headers })
+  const existing = listRes.ok
+    ? ((await listRes.json()) as any[]).find((r) => r.tag_name === tag)
+    : undefined
+  const getRes = existing
+    ? { ok: true, json: async () => existing }
+    : await fetch(`https://api.github.com/repos/${owner}/${repo}/releases/tags/${tag}`, { headers })
   if (getRes.ok) {
     releaseData = await getRes.json()
     console.log(`Release encontrada con id ${releaseData.id}`)
@@ -123,6 +171,10 @@ async function main() {
   for (const file of filesToUpload) {
     console.log(`[Upload] Preparando ${file.name}...`)
     const existingAsset = releaseData.assets?.find((a: any) => a.name === file.name)
+    if (existingAsset && existingAsset.size === statSync(file.path).size) {
+      console.log(`✓ ${file.name} ya está subido con el mismo tamaño, se omite`)
+      continue
+    }
     if (existingAsset) {
       console.log(`Eliminando asset existente ${file.name} (id: ${existingAsset.id})...`)
       await fetch(`https://api.github.com/repos/${owner}/${repo}/releases/assets/${existingAsset.id}`, {
