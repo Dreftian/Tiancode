@@ -4,7 +4,7 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
-## [Sin publicar]
+## [1.0.40] — 2026-09-10
 ### Auditoría de funcionamiento: correcciones verificadas en composer, voces, vista previa e Intelligence
 
 - **Modo ⚡ 2x ahora acelera el modelo de verdad**: antes sólo inyectaba una directiva de texto en el
