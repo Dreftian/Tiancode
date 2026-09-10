@@ -4,6 +4,7 @@ import {
   parseJwtClaims,
   extractAccountIdFromClaims,
   extractAccountId,
+  extractResidency,
   renderOAuthError,
   type IdTokenClaims,
 } from "../../src/plugin/openai/codex"
@@ -307,6 +308,21 @@ describe("plugin.codex", () => {
       { authorization: "Bearer access-new", accountId: "acc-123" },
       { authorization: "Bearer access-new", accountId: "acc-123" },
     ])
+  })
+
+  test("reads the compute-residency constraint from either claim location", () => {
+    expect(extractResidency(createTestJwt({ chatgpt_compute_residency: "eu" }))).toBe("eu")
+    expect(
+      extractResidency(createTestJwt({ "https://api.openai.com/auth": { chatgpt_compute_residency: "eu" } })),
+    ).toBe("eu")
+  })
+
+  test("treats an unconstrained or unreadable token as having no residency", () => {
+    // "no_constraint" is what an unrestricted workspace reports; forwarding it as a header would
+    // pin requests to a constraint the workspace does not actually have.
+    expect(extractResidency(createTestJwt({ chatgpt_compute_residency: "no_constraint" }))).toBeUndefined()
+    expect(extractResidency(createTestJwt({ email: "a@b.c" }))).toBeUndefined()
+    expect(extractResidency("not-a-jwt")).toBeUndefined()
   })
 })
 
