@@ -68,9 +68,13 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
   especificador desde la nueva ubicación del importador (114 en 57 archivos), preservando el estilo con
   alias o relativo. Se elimina `diagram-renderer.tsx`, 103 líneas que nadie importaba.
 - **`session.tsx`**: se extraen el límite de errores de la ruta y los marcos de presentación a módulos
-  hermanos. `layout.tsx` se deja intacto a propósito: es una única función con 45 primitivas reactivas en
-  un mismo closure, y partirla cambiaría la semántica de propiedad de SolidJS sin que el typecheck lo
-  detecte.
+  hermanos.
+- **`layout.tsx`**: se separan en hooks propios los tres grupos de estado reactivo que sí eran
+  independientes — el reloj de ordenación por minuto, la escucha de deep links y el comportamiento de
+  hover/peek de la barra lateral. Cada uno se invoca desde el cuerpo del componente, así que hereda la
+  propiedad reactiva de SolidJS y su limpieza sigue registrada igual que antes. El archivo baja de 2523 a
+  2400 líneas y los campos de hover salen del store compartido, con lo que pasar el ratón deja de
+  notificar a todo lo demás que observaba ese store.
 
 ## [1.0.33] — 2026-09-06
 ### Optimización de Prompts con IA en Streaming en Vivo, Endpoint Backend y Modos de Ejecución
