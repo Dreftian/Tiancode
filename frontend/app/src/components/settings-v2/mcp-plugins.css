@@ -601,9 +601,12 @@
   margin-bottom: 12px;
 }
 
+/* Mobile-first. These grids have hard floors of 690px (4 columns) and 840px (5), so with no
+   breakpoint the tables could not shrink and forced sideways scrolling inside the settings
+   panel. Below the breakpoint each row stacks; the cells are self-describing (name, badge,
+   command, switch), so the header is simply hidden rather than repeated per cell. */
 .mcp-plugins-thead {
-  display: grid;
-  grid-template-columns: minmax(200px, 2.4fr) minmax(130px, 1.3fr) minmax(240px, 3.2fr) minmax(120px, 1.1fr);
+  display: none;
   padding: 10px 16px;
   background: rgba(255, 255, 255, 0.03);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -616,21 +619,39 @@
 
 .mcp-plugins-row {
   display: grid;
-  grid-template-columns: minmax(200px, 2.4fr) minmax(130px, 1.3fr) minmax(240px, 3.2fr) minmax(120px, 1.1fr);
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  align-items: start;
   padding: 12px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   transition: all 0.15s ease;
 }
 
-.mcp-plugins-table--mcp .mcp-plugins-thead,
-.mcp-plugins-table--mcp .mcp-plugins-row {
-  grid-template-columns: minmax(190px, 2.2fr) minmax(210px, 1.8fr) minmax(220px, 2.6fr) minmax(140px, 1.3fr) minmax(80px, 0.7fr);
-}
+@container settings-panel (min-width: 900px) {
+  .mcp-plugins-thead,
+  .mcp-plugins-row {
+    display: grid;
+    grid-template-columns:
+      minmax(200px, 2.4fr) minmax(130px, 1.3fr) minmax(240px, 3.2fr) minmax(120px, 1.1fr);
+    gap: 0;
+  }
 
-.mcp-plugins-table--plugins .mcp-plugins-thead,
-.mcp-plugins-table--plugins .mcp-plugins-row {
-  grid-template-columns: minmax(190px, 2.2fr) minmax(210px, 1.8fr) minmax(240px, 3fr) minmax(140px, 1.3fr);
+  .mcp-plugins-row {
+    align-items: center;
+  }
+
+  .mcp-plugins-table--mcp .mcp-plugins-thead,
+  .mcp-plugins-table--mcp .mcp-plugins-row {
+    grid-template-columns:
+      minmax(190px, 2.2fr) minmax(210px, 1.8fr) minmax(220px, 2.6fr)
+      minmax(140px, 1.3fr) minmax(80px, 0.7fr);
+  }
+
+  .mcp-plugins-table--plugins .mcp-plugins-thead,
+  .mcp-plugins-table--plugins .mcp-plugins-row {
+    grid-template-columns:
+      minmax(190px, 2.2fr) minmax(210px, 1.8fr) minmax(240px, 3fr) minmax(140px, 1.3fr);
+  }
 }
 
 .mcp-plugins-row:last-child {

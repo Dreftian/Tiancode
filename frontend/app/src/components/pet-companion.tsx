@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, Show } from "solid-js"
+import { createEffect, createMemo, createSignal, onCleanup, Show } from "solid-js"
 import { useParams } from "@solidjs/router"
 import type { Part as MessagePart, TextPart } from "@tiancode-ai/sdk/v2"
 import { useLanguage } from "@/context/language"
@@ -80,11 +80,21 @@ export function PetCompanion() {
     return text.length > 240 ? text.slice(0, 240) : text
   })
   const [petted, setPetted] = createSignal(false)
+  // Tracked so a rapid second pet restarts the animation rather than being cut short by the
+  // first timer, and so nothing fires into an unmounted component.
+  let pettedTimer: ReturnType<typeof setTimeout> | undefined
   const onPet = (e: MouseEvent) => {
     e.stopPropagation()
     setPetted(true)
-    setTimeout(() => setPetted(false), 900)
+    if (pettedTimer !== undefined) clearTimeout(pettedTimer)
+    pettedTimer = setTimeout(() => {
+      pettedTimer = undefined
+      setPetted(false)
+    }, 900)
   }
+  onCleanup(() => {
+    if (pettedTimer !== undefined) clearTimeout(pettedTimer)
+  })
 
   // Sincronización continua con la Mascota Flotante de Escritorio en Windows
   createEffect(() => {
