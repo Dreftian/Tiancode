@@ -2160,4 +2160,7 @@ export const dict = {
   "welcome.next": "Siguiente",
   "welcome.finish": "Finalizar",
   "welcome.skip": "Omitir configuración",
+  "livePreview.building": "Compilando…",
+  "livePreview.buildingFile": "Compilando {{file}}…",
+  "livePreview.builtIn": "Última compilación en {{ms}} ms",
 }

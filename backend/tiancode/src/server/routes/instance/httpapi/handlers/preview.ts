@@ -5,6 +5,7 @@ import { InstanceHttpApi } from "../api"
 import { WorkspaceRouteContext } from "../middleware/workspace-routing"
 import { detectPreviewState, getPreviewLogs, getPreviewState, restartPreviewServer, startPreviewServer, stopPreviewServer } from "@/preview/dev-server-manager"
 import type { PreviewState } from "@/preview/types"
+import { IDLE_BUILD } from "@/preview/types"
 
 function failed(message: string): PreviewState {
   return {
@@ -17,6 +18,7 @@ function failed(message: string): PreviewState {
     errors: [],
     startedAt: null,
     errorMessage: message,
+    build: { ...IDLE_BUILD },
   }
 }
 

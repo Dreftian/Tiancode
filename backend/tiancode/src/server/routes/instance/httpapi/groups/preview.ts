@@ -20,6 +20,16 @@ export const PreviewErrorSchema = Schema.Struct({
   message: Schema.String,
 })
 
+/** Progress of an incremental rebuild; see PreviewBuild in @/preview/types. */
+export const PreviewBuildSchema = Schema.Struct({
+  running: Schema.Boolean,
+  startedAt: Schema.Union([Schema.Null, Schema.Number]),
+  durationMs: Schema.Union([Schema.Null, Schema.Number]),
+  ok: Schema.Union([Schema.Null, Schema.Boolean]),
+  trigger: Schema.Union([Schema.Null, Schema.String]),
+  sequence: Schema.Number,
+})
+
 export const PreviewStateSchema = Schema.Struct({
   status: Schema.Literals(["idle", "starting", "ready", "error", "stopped"]),
   url: Schema.Union([Schema.Null, Schema.String]),
@@ -31,6 +41,7 @@ export const PreviewStateSchema = Schema.Struct({
   startedAt: Schema.Union([Schema.Null, Schema.Number]),
   errorMessage: Schema.Union([Schema.Null, Schema.String]),
   isDesktop: Schema.optional(Schema.Boolean),
+  build: PreviewBuildSchema,
 })
 
 export const PreviewApi = HttpApi.make("preview")

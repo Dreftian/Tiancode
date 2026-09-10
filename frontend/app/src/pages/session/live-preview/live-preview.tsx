@@ -1,6 +1,7 @@
 import { IconButtonV2 } from "@tiancode-ai/ui/v2/icon-button-v2"
 import { Icon as IconV2 } from "@tiancode-ai/ui/v2/icon"
 import { SelectV2 } from "@tiancode-ai/ui/v2/select-v2"
+import { Spinner } from "@tiancode-ai/ui/spinner"
 import { createEffect, createSignal, For, onCleanup, onMount, Show } from "solid-js"
 import { createStore } from "solid-js/store"
 import { Persist, persisted } from "@/utils/persist"
@@ -15,6 +16,7 @@ import { previewActionUrl, previewLogsUrl, previewStatusUrl, type PreviewAction 
 import { PREVIEW_RETRY_MAX_ATTEMPTS, isRetryablePreviewLoadFailure, previewRetryDelay, samePreviewUrl } from "./live-preview-retry"
 import { iframePreviewUrl, usesIframePreview } from "./live-preview-transport"
 import { orientedPreviewDimensions } from "./preview-experience"
+import { reactToBuild, shortenBuildTrigger } from "./live-preview-build"
 import { fittedPreviewViewport } from "./preview-viewport"
 
 // Estado del dev server gestionado por el agente (DevServerManager, /preview).
@@ -29,6 +31,16 @@ type DevServerState = {
   startedAt: number | null
   errorMessage: string | null
   isDesktop?: boolean
+  // Incremental rebuild progress. The server stays "ready" while a rebuild runs, so this is
+  // the only signal that work is in flight after the agent (or the user) touches a file.
+  build?: {
+    running: boolean
+    startedAt: number | null
+    durationMs: number | null
+    ok: boolean | null
+    trigger: string | null
+    sequence: number
+  }
 }
 
 type InspectedElementInfo = {
@@ -188,6 +200,8 @@ export function LivePreview(props: {
   const [availableViewport, setAvailableViewport] = createSignal({ width: 0, height: 0 })
   // Dev server gestionado por el agente (DevServerManager del backend).
   const [devServer, setDevServer] = createSignal<DevServerState | null>(null)
+  // Last rebuild we already reacted to; see fetchDevServer for why this is a counter.
+  let lastBuildSequence = 0
 
   let container: HTMLDivElement | undefined
   // La navegación manual (URL tecleada, atrás/adelante) gana sobre la
@@ -1055,7 +1069,10 @@ export function LivePreview(props: {
       if (res.ok) {
         const data = (await res.json()) as DevServerState
         setDevServer(data)
-        if (data.isDesktop || data.status === "starting" || data.status === "ready") {
+        const reaction = reactToBuild({ build: data.build, lastSequence: lastBuildSequence })
+        lastBuildSequence = reaction.sequence
+        if (reaction.reload) reloadIframe()
+        if (data.isDesktop || data.status === "starting" || data.status === "ready" || data.build?.running) {
           void fetchDevServerLogs()
         }
       }
@@ -1462,6 +1479,21 @@ export function LivePreview(props: {
 
   const devServerRunning = () => devServer()?.status === "ready" || devServer()?.status === "starting"
 
+  // "Building" covers both cold start and every incremental rebuild, which is what makes the
+  // panel feel live while the agent writes code.
+  const isBuilding = () => devServer()?.build?.running === true || devServer()?.status === "starting"
+
+  /** Short workspace-relative name of the file that kicked off the running build. */
+  const buildTrigger = () => shortenBuildTrigger(devServer()?.build?.trigger)
+
+  const buildLabel = () => {
+    if (devServer()?.status === "starting") return language.t("livePreview.starting")
+    const trigger = buildTrigger()
+    return trigger
+      ? language.t("livePreview.buildingFile", { file: trigger })
+      : language.t("livePreview.building")
+  }
+
   return (
     <div class="flex size-full min-h-0 flex-col" role="region" aria-label={language.t("liveView.tab.app")}>
       {/* Fila 1: navegación (igual que el webview anterior). */}
@@ -1515,7 +1547,34 @@ export function LivePreview(props: {
           title={devServerStatusLabel() ?? (url() || undefined)}
           aria-hidden="true"
         />
-        <span class="max-w-28 shrink truncate text-11-regular text-text-weak">{devServerStatusLabel() ?? language.t("livePreview.fit")}</span>
+        <Show
+          when={isBuilding()}
+          fallback={
+            <span class="max-w-28 shrink truncate text-11-regular text-text-weak">
+              {devServerStatusLabel() ?? language.t("livePreview.fit")}
+            </span>
+          }
+        >
+          <span
+            class="flex min-w-0 shrink items-center gap-1.5 rounded-md bg-[var(--v2-state-fg-warning)]/10 px-1.5 py-0.5 text-11-regular text-[var(--v2-state-fg-warning)]"
+            role="status"
+            aria-live="polite"
+            title={buildLabel()}
+          >
+            <Spinner class="size-3 shrink-0" />
+            <span class="truncate">{buildLabel()}</span>
+          </span>
+        </Show>
+        <Show when={!isBuilding() && devServer()?.build?.ok === true && devServer()?.build?.durationMs}>
+          {(duration) => (
+            <span
+              class="shrink-0 text-11-regular text-text-weak/70 tabular-nums"
+              title={language.t("livePreview.builtIn", { ms: String(duration()) })}
+            >
+              {(duration() / 1000).toFixed(1)}s
+            </span>
+          )}
+        </Show>
         <SelectV2
           appearance="base"
           class="w-48 max-w-full shrink"

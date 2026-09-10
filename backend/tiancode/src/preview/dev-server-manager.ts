@@ -12,6 +12,7 @@ import { startBareJsxPreview, startStaticPreview, type BareJsxPreview, type Stat
 import { parseBuildError } from "./error-parser"
 import { detectProject, findCompiledExecutable, type DetectedProject } from "./project-detector"
 import type { PreviewError, PreviewState } from "./types"
+import { IDLE_BUILD } from "./types"
 
 const LOG_MAX = 500
 const ERROR_MAX = 20
@@ -149,6 +150,7 @@ function idleState(detected: DetectedProject | null): PreviewState {
     startedAt: null,
     errorMessage: null,
     isDesktop: detected?.isDesktop ?? false,
+    build: { ...IDLE_BUILD },
   }
 }
 
@@ -204,6 +206,11 @@ function killTree(proc: ChildProcess) {
 
 function setStatus(managed: Managed, state: Partial<PreviewState>) {
   managed.state = { ...managed.state, ...state }
+}
+
+/** Merges incremental-build progress into the published state the UI polls. */
+function setBuild(managed: Managed, build: Partial<PreviewState["build"]>) {
+  managed.state = { ...managed.state, build: { ...managed.state.build, ...build } }
 }
 
 function isStarting(managed: Managed) {
@@ -337,7 +344,7 @@ function clearReadyTimer(managed: Managed) {
   managed.readyTimer = null
 }
 
-async function runProjectBuild(managed: Managed): Promise<boolean> {
+async function runProjectBuild(managed: Managed, trigger?: string | null): Promise<boolean> {
   const pkgPath = join(managed.directory, "package.json")
   if (!existsSync(pkgPath)) return false
   try {
@@ -346,7 +353,16 @@ async function runProjectBuild(managed: Managed): Promise<boolean> {
     const buildScript = pkg.scripts?.build ? "build" : pkg.scripts?.["build:web"] ? "build:web" : null
     if (!buildScript) return false
 
+    const startedAt = Date.now()
     managed.isBuilding = true
+    setBuild(managed, {
+      running: true,
+      startedAt,
+      durationMs: null,
+      ok: null,
+      trigger: trigger ?? null,
+      sequence: managed.state.build.sequence + 1,
+    })
     pushLog(managed, `[tiancode-engine] Compilando cambios del proyecto...`)
 
     return await new Promise<boolean>((resolveBuild) => {
@@ -379,6 +395,7 @@ async function runProjectBuild(managed: Managed): Promise<boolean> {
 
       child.on("close", (code) => {
         managed.isBuilding = false
+        setBuild(managed, { running: false, durationMs: Date.now() - startedAt, ok: code === 0 })
         if (code === 0) {
           pushLog(managed, `[tiancode-engine] Compilación completada con éxito.`)
           managed.state.errors = []
@@ -398,12 +415,14 @@ async function runProjectBuild(managed: Managed): Promise<boolean> {
 
       child.on("error", (err) => {
         managed.isBuilding = false
+        setBuild(managed, { running: false, durationMs: Date.now() - startedAt, ok: false })
         pushLog(managed, `[tiancode-engine] Error al ejecutar build: ${err.message}`)
         resolveBuild(false)
       })
     })
   } catch (err) {
     managed.isBuilding = false
+    setBuild(managed, { running: false, ok: false })
     pushLog(managed, `[tiancode-engine] Excepción en build: ${err instanceof Error ? err.message : String(err)}`)
     return false
   }
@@ -446,14 +465,14 @@ function setupProjectWatcher(managed: Managed) {
             managed.pendingBuild = true
             return
           }
-          const ok = await runProjectBuild(managed)
+          const ok = await runProjectBuild(managed, norm)
           if (ok) {
             managed.staticPreview?.reload(filename)
             managed.bareJsx?.reload(filename)
           }
           if (managed.pendingBuild) {
             managed.pendingBuild = false
-            const nextOk = await runProjectBuild(managed)
+            const nextOk = await runProjectBuild(managed, norm)
             if (nextOk) {
               managed.staticPreview?.reload(filename)
               managed.bareJsx?.reload(filename)

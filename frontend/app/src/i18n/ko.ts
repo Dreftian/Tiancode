@@ -2037,4 +2037,7 @@ export const dict = {
   "welcome.next": "다음",
   "welcome.finish": "완료",
   "welcome.skip": "설정 건너뛰기",
+  "livePreview.building": "빌드 중…",
+  "livePreview.buildingFile": "{{file}} 빌드 중…",
+  "livePreview.builtIn": "마지막 빌드 {{ms}}ms 소요",
 }

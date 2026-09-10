@@ -2046,4 +2046,7 @@ export const dict = {
   "welcome.next": "Next",
   "welcome.finish": "Finish",
   "welcome.skip": "Skip setup",
+  "livePreview.building": "Building…",
+  "livePreview.buildingFile": "Building {{file}}…",
+  "livePreview.builtIn": "Last build finished in {{ms}} ms",
 }

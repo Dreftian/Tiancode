@@ -2131,4 +2131,7 @@ export const dict = {
   "welcome.next": "Далее",
   "welcome.finish": "Готово",
   "welcome.skip": "Пропустить настройку",
+  "livePreview.building": "Сборка…",
+  "livePreview.buildingFile": "Сборка {{file}}…",
+  "livePreview.builtIn": "Последняя сборка заняла {{ms}} мс",
 }

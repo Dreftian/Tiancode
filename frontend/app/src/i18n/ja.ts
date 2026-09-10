@@ -2039,4 +2039,7 @@ export const dict = {
   "welcome.next": "次へ",
   "welcome.finish": "完了",
   "welcome.skip": "設定をスキップ",
+  "livePreview.building": "ビルド中…",
+  "livePreview.buildingFile": "{{file}} をビルド中…",
+  "livePreview.builtIn": "前回のビルドは {{ms}} ミリ秒で完了",
 }

@@ -2099,4 +2099,7 @@ export const dict = {
   "welcome.next": "下一步",
   "welcome.finish": "完成",
   "welcome.skip": "跳过设置",
+  "livePreview.building": "构建中…",
+  "livePreview.buildingFile": "正在构建 {{file}}…",
+  "livePreview.builtIn": "上次构建耗时 {{ms}} 毫秒",
 } satisfies Partial<Record<Keys, string>>
