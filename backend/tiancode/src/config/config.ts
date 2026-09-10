@@ -710,7 +710,13 @@ const layer = Layer.effect(
       const dir = yield* InstanceState.directory
       const file = yield* projectConfigFile(dir)
       const existing = yield* loadFile(file).pipe(Effect.orElseSucceed(() => ({})))
-      const merged = mergeDeep(writable(existing), writable(config)) as Record<string, unknown>
+      // Merge into the file as written, not as loaded. loadFile() resolves {env:...} and
+      // {file:...} and drops every key the schema does not know, so merging the loaded value
+      // wrote resolved secrets back in plaintext and deleted the user's unrecognised keys.
+      const text = yield* readConfigFile(file)
+      const original = text ? ConfigParse.jsonc(text, file) : undefined
+      const base = isRecord(original) ? original : writable(existing)
+      const merged = mergeDeep(base, writable(config)) as Record<string, unknown>
       if (config.plugin !== undefined) {
         merged.plugin = config.plugin
       }
