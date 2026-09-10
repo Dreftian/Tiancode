@@ -38,6 +38,7 @@ let params: { id?: string } = {}
 let search: { draftId?: string } = {}
 let selected = "/repo/worktree-a"
 let variant: string | undefined
+let variantList: string[] = []
 let permissionServer = "server-a"
 let createSessionGate: Promise<void> | undefined
 
@@ -135,6 +136,10 @@ beforeAll(async () => {
   mock.module("@tiancode-ai/ui/toast", () => ({
     Toast: { Region: () => null },
     showToast: () => 0,
+    // utils/toast.tsx also imports `toaster` for dismiss(); omitting it here made the whole
+    // module fail to load with "Export named 'toaster' not found", taking every test in this
+    // file with it.
+    toaster: { dismiss: () => {} },
   }))
 
   mock.module("@tiancode-ai/core/util/encode", () => ({
@@ -145,7 +150,9 @@ beforeAll(async () => {
     useLocal: () => ({
       model: {
         current: () => ({ id: "model", provider: { id: "provider" } }),
-        variant: { current: () => variant },
+        // `list` is part of ModelSelection: 2x Speed Mode reads it to find the model's
+        // cheapest reasoning tier. A stub without it does not match the real contract.
+        variant: { current: () => variant, list: () => variantList },
       },
       agent: {
         current: () => ({ name: "agent" }),
@@ -304,6 +311,28 @@ beforeEach(() => {
   for (const key of Object.keys(storedSessions)) delete storedSessions[key]
 })
 
+/** The submit input every test uses; individual tests vary the module-level stubs instead. */
+function baseSubmitInput() {
+  return {
+    prompt,
+    info: () => ({ id: "session-1" }),
+    imageAttachments: () => [],
+    commentCount: () => 0,
+    autoAccept: () => false,
+    mode: () => "normal" as const,
+    working: () => false,
+    editor: () => undefined,
+    queueScroll: () => undefined,
+    promptLength: (value: Prompt) =>
+      value.reduce((sum, part) => sum + ("content" in part ? part.content.length : 0), 0),
+    addToHistory: () => undefined,
+    resetHistoryNavigation: () => undefined,
+    setMode: () => undefined,
+    setPopover: () => undefined,
+    onSubmit: () => undefined,
+  }
+}
+
 describe("prompt submit worktree selection", () => {
   test("reads the latest worktree accessor value per submit", async () => {
     const submit = createPromptSubmit({
@@ -447,6 +476,51 @@ describe("prompt submit worktree selection", () => {
     expect(promotedDrafts).toEqual([{ draftID: "draft-1", server: "project-server", sessionId: "session-1" }])
   })
 
+  test("2x Speed Mode swaps in the model's cheapest reasoning tier for that request", async () => {
+    // The button used to only inject a system-prompt directive, which changed nothing about
+    // how fast the model ran. It now overrides the variant for this request only.
+    const { setSpeed2xActive } = await import("@/utils/speed-mode")
+    params = { id: "session-1" }
+    variant = "high"
+    variantList = ["high", "medium", "low"]
+    setSpeed2xActive(true)
+
+    try {
+      const submit = createPromptSubmit(baseSubmitInput())
+      await submit.handleSubmit({ preventDefault: () => undefined } as unknown as Event)
+      await Bun.sleep(0)
+
+      expect(optimistic[0]).toMatchObject({
+        message: { model: { variant: "low" } },
+      })
+    } finally {
+      setSpeed2xActive(false)
+      variantList = []
+    }
+  })
+
+  test("2x Speed Mode keeps the user's variant when the model exposes no rankable tier", async () => {
+    // Guessing here would risk selecting a *slower* tier than the user picked.
+    const { setSpeed2xActive } = await import("@/utils/speed-mode")
+    params = { id: "session-1" }
+    variant = "custom-b"
+    variantList = ["custom-a", "custom-b"]
+    setSpeed2xActive(true)
+
+    try {
+      const submit = createPromptSubmit(baseSubmitInput())
+      await submit.handleSubmit({ preventDefault: () => undefined } as unknown as Event)
+      await Bun.sleep(0)
+
+      expect(optimistic[0]).toMatchObject({
+        message: { model: { variant: "custom-b" } },
+      })
+    } finally {
+      setSpeed2xActive(false)
+      variantList = []
+    }
+  })
+
   test("includes the selected variant on optimistic prompts", async () => {
     params = { id: "session-1" }
     variant = "high"
@@ -537,7 +611,7 @@ describe("prompt submit worktree selection", () => {
     params = { id: "session-1" }
     const model = {
       current: () => ({ id: "draft-model", provider: { id: "draft-provider" } }),
-      variant: { current: () => "draft-variant" },
+      variant: { current: () => "draft-variant", list: () => [] },
     } as unknown as ModelSelection
     const submit = createPromptSubmit({
       prompt,

@@ -14,11 +14,20 @@ const permission = (sessionID: string) =>
     sessionID,
   }) as Pick<PermissionRequest, "sessionID">
 
+/**
+ * autoRespondsPermission short-circuits to true unless the global switch is explicitly off
+ * (Settings' "auto-accept permissions", added 2026-08-28). Every case below is about the
+ * lineage and directory rules underneath it, so each map turns that gate off first — without
+ * it these assertions would pass no matter what the lineage logic did.
+ */
+const GLOBAL_GATE_OFF = { "*": false }
+
 describe("autoRespondsPermission", () => {
   test("uses a parent session's directory-scoped auto-accept", () => {
     const directory = "/tmp/project"
     const sessions = [session({ id: "root" }), session({ id: "child", parentID: "root" })]
     const autoAccept = {
+      ...GLOBAL_GATE_OFF,
       [`${base64Encode(directory)}/root`]: true,
     }
 
@@ -28,12 +37,13 @@ describe("autoRespondsPermission", () => {
   test("uses a parent session's legacy auto-accept key", () => {
     const sessions = [session({ id: "root" }), session({ id: "child", parentID: "root" })]
 
-    expect(autoRespondsPermission({ root: true }, sessions, permission("child"), "/tmp/project")).toBe(true)
+    expect(autoRespondsPermission({ ...GLOBAL_GATE_OFF, root: true }, sessions, permission("child"), "/tmp/project")).toBe(true)
   })
 
   test("defaults to requiring approval when no lineage override exists", () => {
     const sessions = [session({ id: "root" }), session({ id: "child", parentID: "root" }), session({ id: "other" })]
     const autoAccept = {
+      ...GLOBAL_GATE_OFF,
       other: true,
     }
 
@@ -44,6 +54,7 @@ describe("autoRespondsPermission", () => {
     const directory = "/tmp/project"
     const sessions = [session({ id: "root" }), session({ id: "child", parentID: "root" })]
     const autoAccept = {
+      ...GLOBAL_GATE_OFF,
       [`${base64Encode(directory)}/root`]: false,
     }
 
@@ -54,6 +65,7 @@ describe("autoRespondsPermission", () => {
     const directory = "/tmp/project"
     const sessions = [session({ id: "root" }), session({ id: "child", parentID: "root" })]
     const autoAccept = {
+      ...GLOBAL_GATE_OFF,
       [`${base64Encode(directory)}/root`]: false,
       [`${base64Encode(directory)}/child`]: true,
     }
@@ -65,6 +77,7 @@ describe("autoRespondsPermission", () => {
     const directory = "/tmp/project"
     const sessions = [session({ id: "root" })]
     const autoAccept = {
+      ...GLOBAL_GATE_OFF,
       [`${base64Encode(directory)}/*`]: true,
     }
 
@@ -76,6 +89,7 @@ describe("autoRespondsPermission", () => {
     const directory = "/tmp/project"
     const sessions = [session({ id: "root" })]
     const autoAccept = {
+      ...GLOBAL_GATE_OFF,
       [`${base64Encode(directory)}/*`]: true,
       [`${base64Encode(directory)}/root`]: false,
     }
@@ -87,6 +101,7 @@ describe("autoRespondsPermission", () => {
     const directory = "/tmp/project"
     const sessions = [session({ id: "root" }), session({ id: "child", parentID: "root" })]
     const autoAccept = {
+      ...GLOBAL_GATE_OFF,
       [`${base64Encode(directory)}/*`]: true,
       [`${base64Encode(directory)}/root`]: false,
     }
@@ -98,11 +113,33 @@ describe("autoRespondsPermission", () => {
     const directory = "/tmp/project"
     const sessions = [session({ id: "root" }), session({ id: "child", parentID: "root" })]
     const autoAccept = {
+      ...GLOBAL_GATE_OFF,
       [`${base64Encode(directory)}/*`]: false,
       [`${base64Encode(directory)}/root`]: true,
     }
 
     expect(autoRespondsPermission(autoAccept, sessions, permission("child"), directory)).toBe(true)
+  })
+})
+
+describe("the global auto-accept gate", () => {
+  const sessions = [session({ id: "root" })]
+
+  test("auto-accepts everything when the switch has never been set", () => {
+    // The product default: a local-first agent the user has opted into.
+    expect(autoRespondsPermission({}, sessions, permission("root"), "/tmp/project")).toBe(true)
+  })
+
+  test("auto-accepts even where no lineage or directory rule would", () => {
+    expect(autoRespondsPermission({ other: true }, sessions, permission("root"), "/tmp/project")).toBe(true)
+  })
+
+  test("turning it off hands control back to the lineage and directory rules", () => {
+    expect(autoRespondsPermission({ "*": false }, sessions, permission("root"), "/tmp/project")).toBe(false)
+  })
+
+  test("an explicit true is the same as unset", () => {
+    expect(autoRespondsPermission({ "*": true }, sessions, permission("root"), "/tmp/project")).toBe(true)
   })
 })
 
