@@ -13,6 +13,7 @@ import {
 } from "solid-js"
 import { makeEventListener } from "@solid-primitives/event-listener"
 import { useNavigate, useParams } from "@solidjs/router"
+import { PENDING_PROVIDER_SETUP_KEY } from "@/components/dialog-welcome-setup"
 import { useLayout, LocalProject } from "@/context/layout"
 import { useServerSync } from "@/context/server-sync"
 import { Persist, persisted } from "@/utils/persist"
@@ -1168,13 +1169,26 @@ export default function LegacyLayout(props: ParentProps) {
     })
   }
 
-  function openSettings() {
+  function openSettings(defaultValue?: string) {
     const run = ++dialogRun
     void import("../components/settings-v2/dialog-settings-v2").then((x) => {
       if (dialogDead || dialogRun !== run) return
-      dialog.show(() => <x.DialogSettings />)
+      dialog.show(() => <x.DialogSettings defaultValue={defaultValue} />)
     })
   }
+
+  // The welcome wizard cannot open Settings itself: it unmounts before the layout exists.
+  // It leaves a flag instead, which we consume exactly once on the first layout mount.
+  onMount(() => {
+    let pending = false
+    try {
+      pending = localStorage.getItem(PENDING_PROVIDER_SETUP_KEY) === "true"
+      if (pending) localStorage.removeItem(PENDING_PROVIDER_SETUP_KEY)
+    } catch {
+      return
+    }
+    if (pending) openSettings("providers")
+  })
 
   function projectRoot(directory: string) {
     const key = pathKey(directory)
