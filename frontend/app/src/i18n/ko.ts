@@ -2040,4 +2040,9 @@ export const dict = {
   "livePreview.building": "빌드 중…",
   "livePreview.buildingFile": "{{file}} 빌드 중…",
   "livePreview.builtIn": "마지막 빌드 {{ms}}ms 소요",
+  "settings.subAgents.list.column.agent": "서브 에이전트",
+  "settings.subAgents.list.column.role": "역할 및 전문 분야",
+  "settings.subAgents.list.column.model": "모델",
+  "settings.subAgents.list.column.tools": "도구",
+  "settings.subAgents.list.column.status": "상태",
 }

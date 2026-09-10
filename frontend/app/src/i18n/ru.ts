@@ -2134,4 +2134,9 @@ export const dict = {
   "livePreview.building": "Сборка…",
   "livePreview.buildingFile": "Сборка {{file}}…",
   "livePreview.builtIn": "Последняя сборка заняла {{ms}} мс",
+  "settings.subAgents.list.column.agent": "Субагент",
+  "settings.subAgents.list.column.role": "Роль и специализация",
+  "settings.subAgents.list.column.model": "Модель",
+  "settings.subAgents.list.column.tools": "Инструменты",
+  "settings.subAgents.list.column.status": "Состояние",
 }

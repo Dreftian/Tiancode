@@ -2102,4 +2102,9 @@ export const dict = {
   "livePreview.building": "构建中…",
   "livePreview.buildingFile": "正在构建 {{file}}…",
   "livePreview.builtIn": "上次构建耗时 {{ms}} 毫秒",
+  "settings.subAgents.list.column.agent": "子代理",
+  "settings.subAgents.list.column.role": "角色与专长",
+  "settings.subAgents.list.column.model": "模型",
+  "settings.subAgents.list.column.tools": "工具",
+  "settings.subAgents.list.column.status": "状态",
 } satisfies Partial<Record<Keys, string>>

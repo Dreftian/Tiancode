@@ -2051,4 +2051,9 @@ export const dict = {
   "livePreview.building": "Building…",
   "livePreview.buildingFile": "Building {{file}}…",
   "livePreview.builtIn": "Last build finished in {{ms}} ms",
+  "settings.subAgents.list.column.agent": "Sub-agent",
+  "settings.subAgents.list.column.role": "Role & speciality",
+  "settings.subAgents.list.column.model": "Model",
+  "settings.subAgents.list.column.tools": "Tools",
+  "settings.subAgents.list.column.status": "Status",
 }

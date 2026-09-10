@@ -856,11 +856,11 @@ export const SettingsSubAgentsV2: Component<{
 
             <div class="settings-v2-subagents-table">
               <div class="settings-v2-subagents-thead">
-                <div>Sub-Agente</div>
-                <div>Rol y Especialidad</div>
-                <div>Modelo</div>
-                <div>Herramientas</div>
-                <div>Estado</div>
+                <div>{language.t("settings.subAgents.list.column.agent")}</div>
+                <div>{language.t("settings.subAgents.list.column.role")}</div>
+                <div>{language.t("settings.subAgents.list.column.model")}</div>
+                <div>{language.t("settings.subAgents.list.column.tools")}</div>
+                <div>{language.t("settings.subAgents.list.column.status")}</div>
               </div>
 
               <For each={pageBuiltinAgents().items}>
@@ -877,7 +877,7 @@ export const SettingsSubAgentsV2: Component<{
                   return (
                     <div class="settings-v2-subagents-row">
                       {/* 1. Sub-Agente */}
-                      <div class="settings-v2-subagents-cell gap-2.5 pr-2">
+                      <div class="settings-v2-subagents-cell gap-2.5 pr-2" data-label={language.t("settings.subAgents.list.column.agent")}>
                         <div
                           class="settings-v2-sub-agents-card-avatar shrink-0 size-8 text-base rounded-lg flex items-center justify-center"
                           style={{
@@ -894,7 +894,7 @@ export const SettingsSubAgentsV2: Component<{
                       </div>
 
                       {/* 2. Rol y Especialidad */}
-                      <div class="settings-v2-subagents-cell flex-col items-start gap-1 pr-3">
+                      <div class="settings-v2-subagents-cell flex-col items-start gap-1 pr-3" data-label={language.t("settings.subAgents.list.column.role")}>
                         <div class="flex items-center gap-1.5 flex-wrap">
                           <span class="settings-v2-sub-agents-card-category text-[9.5px] px-1.5 py-0.5">
                             {meta().category}
@@ -909,14 +909,14 @@ export const SettingsSubAgentsV2: Component<{
                       </div>
 
                       {/* 3. Modelo */}
-                      <div class="settings-v2-subagents-cell">
+                      <div class="settings-v2-subagents-cell" data-label={language.t("settings.subAgents.list.column.model")}>
                         <span class="settings-v2-sub-agents-badge settings-v2-sub-agents-badge--accent text-[10.5px]">
                           {agent.model?.modelID ?? language.t("settings.subAgents.list.model.inherit")}
                         </span>
                       </div>
 
                       {/* 4. Herramientas */}
-                      <div class="settings-v2-subagents-cell">
+                      <div class="settings-v2-subagents-cell" data-label={language.t("settings.subAgents.list.column.tools")}>
                         <span class="settings-v2-sub-agents-badge text-[10.5px]">
                           {hasRestrictedTools(agent)
                             ? language.t("settings.subAgents.list.tools.summary", {
@@ -927,7 +927,7 @@ export const SettingsSubAgentsV2: Component<{
                       </div>
 
                       {/* 5. Estado */}
-                      <div class="settings-v2-subagents-cell settings-v2-subagents-cell--status">
+                      <div class="settings-v2-subagents-cell settings-v2-subagents-cell--status" data-label={language.t("settings.subAgents.list.column.status")}>
                         <Switch
                           checked={isAgentActive(agent.name)}
                           disabled={agent.name === "build"}

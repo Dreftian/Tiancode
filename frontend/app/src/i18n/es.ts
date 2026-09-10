@@ -2163,4 +2163,9 @@ export const dict = {
   "livePreview.building": "Compilando…",
   "livePreview.buildingFile": "Compilando {{file}}…",
   "livePreview.builtIn": "Última compilación en {{ms}} ms",
+  "settings.subAgents.list.column.agent": "Sub-Agente",
+  "settings.subAgents.list.column.role": "Rol y Especialidad",
+  "settings.subAgents.list.column.model": "Modelo",
+  "settings.subAgents.list.column.tools": "Herramientas",
+  "settings.subAgents.list.column.status": "Estado",
 }
