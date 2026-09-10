@@ -69,7 +69,15 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
   alias o relativo. Se elimina `diagram-renderer.tsx`, 103 líneas que nadie importaba.
 - **`session.tsx`**: se extraen el límite de errores de la ruta y los marcos de presentación a módulos
   hermanos.
-- **`layout.tsx`**: se separan en hooks propios los tres grupos de estado reactivo que sí eran
+- **Suite de tests del frontend en verde**: arrancaba con 14 fallos en un checkout intacto, todos por
+  el mismo patrón — un cambio de comportamiento deliberado cuyo test nunca se actualizó, dejando además
+  un parámetro que ya no hacía nada. `submit.test.ts` (8) ni siquiera cargaba: su mock de toast omitía
+  `toaster`. Debajo apareció un fallo real mío: el doble de `ModelSelection` no proveía `variant.list()`,
+  que el modo 2x necesita. Los 4 de permisos precedían al interruptor global de auto-aceptación (añadido
+  el 2026-08-28); conviene decirlo claro porque asusta: **es el valor por defecto deliberado del producto,
+  no un bypass de permisos**. Los otros 5 de ese archivo pasaban de forma vacua por la misma razón. Ahora
+  862 tests, 0 fallos, y se cubren el gate global y el modo 2x, que no tenían ninguna prueba.
+- - **`layout.tsx`**: se separan en hooks propios los tres grupos de estado reactivo que sí eran
   independientes — el reloj de ordenación por minuto, la escucha de deep links y el comportamiento de
   hover/peek de la barra lateral. Cada uno se invoca desde el cuerpo del componente, así que hereda la
   propiedad reactiva de SolidJS y su limpieza sigue registrada igual que antes. El archivo baja de 2523 a
