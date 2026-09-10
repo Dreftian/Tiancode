@@ -30,9 +30,14 @@ export const CloudflareAIGatewayPlugin = define({
           apiKey: config.apiKey,
           options: gatewayOptions(evt.options, metadata),
         } as any)
-        const unified = createUnified({ apiKey: config.apiKey })
-        const openai = createOpenAI({ apiKey: config.apiKey })
-        const anthropic = createAnthropic({ apiKey: config.apiKey })
+        // The gateway token authenticates us to Cloudflare and travels in cf-aig-authorization,
+        // which createAiGateway sets. Passing it as the model's apiKey as well puts it in
+        // Authorization, which the gateway forwards verbatim to OpenAI/Anthropic/whichever
+        // upstream the model routes to. Construct these without a key so the library strips that
+        // header and the gateway applies the BYOK key stored on the Cloudflare side.
+        const unified = createUnified()
+        const openai = createOpenAI()
+        const anthropic = createAnthropic()
         evt.sdk = {
           languageModel(modelID: string) {
             if (modelID.startsWith("openai/")) {

@@ -1034,7 +1034,12 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
         apiKey: apiToken,
         ...(Object.values(opts).some((v) => v !== undefined) ? { options: opts } : {}),
       })
-      const unified = createUnified({ apiKey: apiToken })
+      // The gateway token authenticates us to Cloudflare and travels in cf-aig-authorization,
+      // which createAiGateway sets. Passing it as the model's apiKey as well puts it in
+      // Authorization, which the gateway forwards verbatim to OpenAI/Anthropic/whichever
+      // upstream the model routes to. Construct these without a key so the library strips that
+      // header and the gateway applies the BYOK key stored on the Cloudflare side.
+      const unified = createUnified()
 
       return {
         autoload: true,

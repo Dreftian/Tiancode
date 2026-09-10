@@ -42,6 +42,7 @@ function withEnv<A, E, R>(vars: Record<string, string | undefined>, fx: () => Ef
 const aiGatewayCalls: Record<string, unknown>[] = []
 const unifiedCalls: string[] = []
 const gatewayModelCalls: unknown[] = []
+const upstreamFactoryArgs: unknown[] = []
 
 function captureAiGatewayOptions(options: Record<string, unknown>) {
   const nested =
@@ -66,6 +67,7 @@ function resetCalls() {
   aiGatewayCalls.length = 0
   unifiedCalls.length = 0
   gatewayModelCalls.length = 0
+  upstreamFactoryArgs.length = 0
 }
 
 function cloudflareEnv(overrides: Record<string, string | undefined> = {}) {
@@ -93,7 +95,8 @@ mock.module("ai-gateway-provider", () => ({
 }))
 
 mock.module("ai-gateway-provider/providers/unified", () => ({
-  createUnified() {
+  createUnified(options?: unknown) {
+    upstreamFactoryArgs.push(options)
     return (modelID: string) => {
       unifiedCalls.push(modelID)
       return { unifiedModelID: modelID }
@@ -390,13 +393,25 @@ describe("CloudflareAIGatewayPlugin", () => {
           options: { name: "cloudflare-ai-gateway" },
         })
 
-        expect(result.sdk.languageModel("anthropic/claude-sonnet-4-5")).toEqual({
-          modelId: { unifiedModelID: "anthropic/claude-sonnet-4-5" },
+        // Only IDs without a dedicated branch reach the unified provider, and they keep their
+        // prefix there because that is what tells the gateway which upstream to route to.
+        expect(result.sdk.languageModel("google/gemini-2.5-pro")).toEqual({
+          modelId: { unifiedModelID: "google/gemini-2.5-pro" },
           provider: "cloudflare-ai-gateway",
           specificationVersion: "v3",
         })
-        expect(unifiedCalls).toEqual(["anthropic/claude-sonnet-4-5"])
-        expect(gatewayModelCalls).toEqual([{ unifiedModelID: "anthropic/claude-sonnet-4-5" }])
+        expect(unifiedCalls).toEqual(["google/gemini-2.5-pro"])
+        expect(gatewayModelCalls).toEqual([{ unifiedModelID: "google/gemini-2.5-pro" }])
+
+        // anthropic/ and openai/ have their own SDKs, which take the ID with the prefix removed.
+        const anthropic = result.sdk.languageModel("anthropic/claude-sonnet-4-5") as {
+          modelId: { modelId: string }
+        }
+        expect(anthropic.modelId.modelId).toBe("claude-sonnet-4-5")
+
+        // The Cloudflare token belongs in cf-aig-authorization only. Handing it to an upstream
+        // SDK would put it in Authorization, which the gateway forwards straight to that provider.
+        expect(upstreamFactoryArgs).toEqual([undefined])
       }),
     ),
   )
