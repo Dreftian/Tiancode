@@ -1303,7 +1303,11 @@ export function toPublicInfo(provider: Info): Info {
 }
 
 export function defaultModelIDs<T extends { models: Record<string, { id: string }> }>(providers: Record<string, T>) {
-  return mapValues(providers, (item) => sort(Object.values(item.models))[0].id)
+  // A provider can legitimately carry no models — a whitelist that matches nothing, a catalog
+  // that has not been fetched yet — and reading [0].id off an empty list would throw for the
+  // whole request rather than for that one provider.
+  const withModels = pickBy(providers, (item) => Object.keys(item.models).length > 0)
+  return mapValues(withModels, (item) => sort(Object.values(item.models))[0].id)
 }
 
 export class ModelNotFoundError extends Schema.TaggedErrorClass<ModelNotFoundError>()("ProviderModelNotFoundError", {

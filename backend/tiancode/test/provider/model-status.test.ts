@@ -59,3 +59,17 @@ describe("provider model status schemas", () => {
     ).toBe("active")
   })
 })
+
+describe("Provider.defaultModelIDs", () => {
+  test("picks one default per provider and skips any that has no models", () => {
+    // GET /provider merges the catalog with the connected providers, and a provider can carry
+    // an empty model list — a whitelist that matches nothing, a catalog not fetched yet. Reading
+    // the first model off that list unguarded would fail the whole request, not just that entry.
+    expect(
+      Provider.defaultModelIDs({
+        anthropic: { models: { "claude-sonnet-4-5": { id: "claude-sonnet-4-5" }, other: { id: "other" } } },
+        empty: { models: {} },
+      }),
+    ).toEqual({ anthropic: "claude-sonnet-4-5" })
+  })
+})
