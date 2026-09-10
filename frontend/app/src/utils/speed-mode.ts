@@ -36,14 +36,40 @@ export function toggleSpeed2x() {
 }
 
 /**
- * Resolves the fastest variant for models that support reasoning variants (CoT/effort).
+ * Reasoning-effort variant names ordered from cheapest/fastest to most expensive.
+ * Providers expose these under different names, so we match case-insensitively.
+ */
+const FAST_VARIANT_CANDIDATES = ["none", "off", "disabled", "minimal", "low", "fast", "quick", "standard", "medium"]
+
+/**
+ * Resolves the fastest reasoning variant a model exposes.
+ *
+ * Returns `undefined` when the model has no variant we can confidently rank as fast:
+ * picking an arbitrary entry would be a coin flip, and guessing wrong makes 2x Mode
+ * *slower* than the user's own selection (e.g. `["high", "medium", "low"]` — the first
+ * entry is the slowest one).
  */
 export function resolveFastVariant(variants: string[] | undefined): string | undefined {
   if (!variants || variants.length === 0) return undefined
-  const candidates = ["none", "off", "low", "fast", "minimal", "standard"]
-  for (const candidate of candidates) {
+  for (const candidate of FAST_VARIANT_CANDIDATES) {
     const match = variants.find((v) => v.toLowerCase() === candidate)
     if (match) return match
   }
-  return variants[0]
+  return undefined
+}
+
+/**
+ * The variant to actually send while 2x Mode is active.
+ *
+ * This overrides the request only — the user's saved variant selection is untouched, so
+ * toggling 2x off restores their choice. When the model exposes no rankable fast variant
+ * we keep whatever the user picked rather than risk slowing the model down.
+ */
+export function resolveSpeedVariant(input: {
+  variants: string[] | undefined
+  selected: string | undefined
+  active: boolean
+}): string | undefined {
+  if (!input.active) return input.selected
+  return resolveFastVariant(input.variants) ?? input.selected
 }

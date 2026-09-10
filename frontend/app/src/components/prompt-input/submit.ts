@@ -23,7 +23,7 @@ import { createPromptSubmissionState } from "./submission-state"
 import { normalizeSessionInfo } from "@/utils/session"
 import { Event } from "@tiancode-ai/schema/event"
 import { blobDataUrl } from "@/utils/draft-store"
-import { isSpeed2xActive, SPEED_MODE_2X_DIRECTIVE } from "@/utils/speed-mode"
+import { isSpeed2xActive, resolveSpeedVariant, SPEED_MODE_2X_DIRECTIVE } from "@/utils/speed-mode"
 
 type PendingPrompt = {
   abort: AbortController
@@ -401,8 +401,15 @@ export function createPromptSubmit(input: PromptSubmitInput) {
     }
 
     let session = input.info()
-    // En modo 2x se preserva exactamente la variante seleccionada por el usuario (sin forzar 'low')
-    const effectiveVariant = variant
+    // En modo 2x bajamos el esfuerzo de razonamiento del modelo activo para esta petición.
+    // Es un override por-request: la selección guardada del usuario no se toca, así que al
+    // desactivar 2x vuelve su variante. Si el modelo no expone una variante rápida reconocible,
+    // resolveSpeedVariant conserva la del usuario en lugar de arriesgarse a hacerlo más lento.
+    const effectiveVariant = resolveSpeedVariant({
+      variants: modelSelection.variant.list(),
+      selected: variant,
+      active: isSpeed2xActive(),
+    })
     if (!session && isNewSession) {
       const created = await sdk()
         .api.session.create({
