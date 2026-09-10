@@ -14,6 +14,9 @@ export class HeaderTimeoutError extends Error {
 
 export class ResponseStreamError extends Error {
   public override readonly name = "ProviderResponseStreamError"
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options)
+  }
 }
 
 function isOpenAiErrorRetryable(e: APICallError) {
@@ -139,6 +142,15 @@ export function parseStreamError(input: unknown): ParsedStreamError | undefined 
         isRetryable: true,
         responseBody,
       }
+  }
+
+  // An error payload we do not recognise is still an error the provider reported. Treating it
+  // as a retryable server error beats falling through and failing the request outright.
+  return {
+    type: "api_error",
+    message: typeof body?.error?.message === "string" ? body.error.message : "Server error.",
+    isRetryable: true,
+    responseBody,
   }
 }
 
