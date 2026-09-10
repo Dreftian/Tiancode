@@ -194,6 +194,24 @@ describe("plugin.codex", () => {
     )
   })
 
+  test("keeps a GPT model whose minor version has two digits", async () => {
+    const hooks = await CodexAuthPlugin({} as never)
+    const limit = { context: 400_000, input: 272_000, output: 128_000 }
+    const provider = {
+      models: Object.fromEntries(
+        ["gpt-5.3", "gpt-5.10", "gpt-5.11"].map((id) => [id, { id, api: { id }, limit, cost: {}, options: {} }]),
+      ),
+    }
+
+    const models = await hooks.provider!.models!(provider as never, { auth: { type: "oauth" } } as never)
+
+    // parseFloat("5.10") is 5.1, so a numeric-literal comparison against the 5.4 cutoff would
+    // silently drop these two even though both are newer than it.
+    expect(models["gpt-5.10"]).toBeDefined()
+    expect(models["gpt-5.11"]).toBeDefined()
+    expect(models["gpt-5.3"]).toBeUndefined()
+  })
+
   test("deduplicates concurrent Codex token refreshes", async () => {
     let auth = {
       type: "oauth" as const,

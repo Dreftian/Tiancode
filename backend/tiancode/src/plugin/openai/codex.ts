@@ -301,8 +301,13 @@ export async function CodexAuthPlugin(input: PluginInput, options: CodexAuthPlug
               if (ALLOWED_MODELS.has(model.api.id)) return true
               if (DISALLOWED_MODELS.has(model.api.id)) return false
               if (model.api.id === "gpt-5.6") return false
-              const match = model.api.id.match(/^gpt-(\d+(?:\.\d+)?)/)
-              return match ? parseFloat(match[1]) > 5.4 : false
+              // parseFloat("5.10") is 5.1, so a future gpt-5.10 would read as older than 5.4 and be
+              // dropped from the list. Compare the parts as integers instead.
+              const match = model.api.id.match(/^gpt-(\d+)(?:\.(\d+))?/)
+              if (!match) return false
+              const major = Number(match[1])
+              const minor = Number(match[2] ?? 0)
+              return major > 5 || (major === 5 && minor > 4)
             })
             .map(([modelID, model]) => [
               modelID,
