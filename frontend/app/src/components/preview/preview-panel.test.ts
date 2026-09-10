@@ -2,9 +2,10 @@ import { describe, expect, test } from "bun:test"
 import { normalizeUrl, supportsPreviewPanel } from "./preview-panel"
 
 describe("preview availability", () => {
-  test("only enables the webview in the desktop renderer", () => {
-    expect(supportsPreviewPanel("desktop")).toBe(true)
-    expect(supportsPreviewPanel("web")).toBe(false)
+  test("is available on every platform", () => {
+    // Desktop-only until "universal preview" (2026-09-03), when the web build gained an
+    // iframe fallback for the Electron WebContentsView.
+    expect(supportsPreviewPanel()).toBe(true)
   })
 })
 

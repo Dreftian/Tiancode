@@ -252,7 +252,7 @@ export function SessionHeader() {
     liveViewLabel: language.t("liveView.sandbox"),
     liveViewOpened: view().liveView.opened(),
     onLiveViewToggle: () => view().liveView.toggle(),
-    browserVisible: supportsPreviewPanel(platform.platform) && settings.general.showBrowser(),
+    browserVisible: supportsPreviewPanel() && settings.general.showBrowser(),
     browserOpened: previewPanelOpen(),
     browserLabel: language.t("preview.open"),
     onBrowserToggle: () => setPreviewPanelOpen(!previewPanelOpen()),

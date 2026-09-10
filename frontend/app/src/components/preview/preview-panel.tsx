@@ -34,7 +34,14 @@ export const normalizeUrl = (value: string) => {
   return `https://${trimmed}`
 }
 
-export const supportsPreviewPanel = (platform: "web" | "desktop") => true
+/**
+ * The preview panel is available everywhere.
+ *
+ * It was desktop-only until "universal preview" (2026-09-03) made the web build use an
+ * iframe instead of the Electron WebContentsView. Kept as a function so callers keep
+ * reading as a capability check rather than a hardcoded true.
+ */
+export const supportsPreviewPanel = () => true
 
 const DEV_PORTS = [
   { port: "3000", label: "3000", title: "Port 3000 (React / Next.js / Node)" },

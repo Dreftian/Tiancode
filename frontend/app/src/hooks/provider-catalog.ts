@@ -8,7 +8,6 @@ type DirectoryCatalog = {
 }
 
 type ProviderCatalogInput = {
-  explicit?: boolean
   directory?: string
   catalog?: DirectoryCatalog
   global?: NormalizedProviderListResponse
