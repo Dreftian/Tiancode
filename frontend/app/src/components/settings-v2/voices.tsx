@@ -36,7 +36,7 @@ import {
   speakWithFishAudio,
 } from "@/utils/voices"
 import { stopAutoSpeak } from "@/utils/auto-speak"
-import { AudioWaveform } from "@/components/audio-waveform"
+import { AudioWaveform } from "@/components/visualization/audio-waveform"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
 import { SettingsPagerV2 } from "./parts/pager"

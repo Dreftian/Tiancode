@@ -1,7 +1,7 @@
 import type { SnapshotFileDiff, VcsFileDiff } from "@tiancode-ai/sdk/v2"
 import type { FileDiffInfo } from "@tiancode-ai/client/promise"
-import type { Kind } from "@/components/file-tree-v2"
-import { normalizeFileTreeV2Path } from "@/components/file-tree-v2-model"
+import type { Kind } from "@/components/file-tree/file-tree-v2"
+import { normalizeFileTreeV2Path } from "@/components/file-tree/file-tree-v2-model"
 
 export type RenderDiff = FileDiffInfo | (SnapshotFileDiff & { file: string }) | VcsFileDiff
 

@@ -26,7 +26,7 @@ import {
   displayPickerPath,
   pickerParent,
   pickerRoot,
-} from "./directory-picker-domain"
+} from "../file-tree/directory-picker-domain"
 import "./dialog-select-directory-v2.css"
 import { DividerV2 } from "@tiancode-ai/ui/v2/divider-v2"
 import { getFilename } from "@tiancode-ai/core/util/path"

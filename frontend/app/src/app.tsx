@@ -7,7 +7,7 @@ import { File } from "@tiancode-ai/session-ui/file"
 import { Font } from "@tiancode-ai/ui/font"
 import { Splash } from "@tiancode-ai/ui/logo"
 import { AntigravitySplash } from "@/components/antigravity-splash"
-import { DialogWelcomeSetup, FIRST_LAUNCH_KEY } from "@/components/dialog-welcome-setup"
+import { DialogWelcomeSetup, FIRST_LAUNCH_KEY } from "@/components/dialogs/dialog-welcome-setup"
 import { ThemeProvider, useTheme } from "@tiancode-ai/ui/theme/context"
 import { MetaProvider } from "@solidjs/meta"
 import {

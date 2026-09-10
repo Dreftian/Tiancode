@@ -3,7 +3,7 @@ import { createEffect, createMemo, onCleanup } from "solid-js"
 import { createStore } from "solid-js/store"
 import type { Todo } from "@tiancode-ai/sdk/v2"
 import { useServerSync } from "@/context/global-sync"
-import { PromptInput } from "@/components/prompt-input"
+import { PromptInput } from "@/components/prompt-input/prompt-input"
 import { usePrompt } from "@/context/prompt"
 import {
   SessionComposerRegion,

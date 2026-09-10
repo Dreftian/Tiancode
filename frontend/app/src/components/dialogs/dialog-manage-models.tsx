@@ -18,9 +18,9 @@ import { useLanguage } from "@/context/language"
 import { useDialog } from "@tiancode-ai/ui/context/dialog"
 import { DialogConnectProvider } from "./dialog-connect-provider"
 import { decode64 } from "@/utils/base64"
-import { SettingsListV2 } from "./settings-v2/parts/list"
-import { SettingsRowV2 } from "./settings-v2/parts/row"
-import "./settings-v2/settings-v2.css"
+import { SettingsListV2 } from "../settings-v2/parts/list"
+import { SettingsRowV2 } from "../settings-v2/parts/row"
+import "../settings-v2/settings-v2.css"
 
 type ModelItem = ReturnType<ReturnType<typeof useLocal>["model"]["list"]>[number]
 

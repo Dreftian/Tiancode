@@ -141,7 +141,7 @@ export function createHomeSessionsController(home: HomeController) {
         if (!conn) return
         const ctx = home.server.focusedContext()
         if (!ctx) return
-        const { DialogHomeCommandPaletteV2 } = await import("@/components/dialog-command-palette-v2")
+        const { DialogHomeCommandPaletteV2 } = await import("@/components/dialogs/dialog-command-palette-v2")
         void dialog.show(() => (
           <DialogHomeCommandPaletteV2
             server={conn}

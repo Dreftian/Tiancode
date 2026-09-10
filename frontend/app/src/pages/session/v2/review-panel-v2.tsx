@@ -18,7 +18,7 @@ import type {
   SessionReviewFocus,
   SessionReviewLineComment,
 } from "@tiancode-ai/session-ui/session-review"
-import FileTreeV2 from "@/components/file-tree-v2"
+import FileTreeV2 from "@/components/file-tree/file-tree-v2"
 import { useLanguage } from "@/context/language"
 import { useSDK } from "@/context/sdk"
 import {

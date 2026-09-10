@@ -5,8 +5,8 @@ import { useLanguage } from "@/context/language"
 import { useServerSDK } from "@/context/server-sdk"
 import { showToast } from "@/utils/toast"
 import { SettingsPagerV2 } from "./parts/pager"
-import { RlmHierarchyTree } from "@/components/rlm-hierarchy-tree"
-import { AgentSwarmGraph } from "@/components/agent-swarm-graph"
+import { RlmHierarchyTree } from "@/components/visualization/rlm-hierarchy-tree"
+import { AgentSwarmGraph } from "@/components/visualization/agent-swarm-graph"
 import "./sub-agents.css"
 
 const SPECIALIZED_PRESETS = [

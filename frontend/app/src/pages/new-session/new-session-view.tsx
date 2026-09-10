@@ -7,14 +7,14 @@ import { Show, createMemo, createSignal, type Accessor } from "solid-js"
 import { createStore } from "solid-js/store"
 import { Portal } from "solid-js/web"
 import createPresence from "solid-presence"
-import { PromptInputV2Composer } from "@/components/prompt-input-v2"
-import { PromptGitStatus, PromptWorkspaceSelector } from "@/components/prompt-workspace-selector"
+import { PromptInputV2Composer } from "@/components/prompt-input/prompt-input-v2"
+import { PromptGitStatus, PromptWorkspaceSelector } from "@/components/prompt-input/prompt-workspace-selector"
 import {
   PromptProjectAddButton,
   PromptProjectSelector,
   type PromptProjectController,
-} from "@/components/prompt-project-selector"
-import { StatusPopoverV2 } from "@/components/status-popover"
+} from "@/components/prompt-input/prompt-project-selector"
+import { StatusPopoverV2 } from "@/components/status/status-popover"
 import { useLanguage } from "@/context/language"
 import { useSDK } from "@/context/sdk"
 import { useServerSync } from "@/context/server-sync"
@@ -115,7 +115,7 @@ function ProviderTip() {
     element: () => ref() ?? null,
   })
   const openProviders = () => {
-    void import("@/components/dialog-connect-provider").then(({ DialogConnectProvider }) => {
+    void import("@/components/dialogs/dialog-connect-provider").then(({ DialogConnectProvider }) => {
       void dialog.show(() => <DialogConnectProvider directory={() => sdk().directory} />)
     })
   }

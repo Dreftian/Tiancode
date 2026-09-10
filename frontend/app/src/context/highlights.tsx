@@ -5,7 +5,7 @@ import { useDialog } from "@tiancode-ai/ui/context/dialog"
 import { usePlatform } from "@/context/platform"
 import { useSettings } from "@/context/settings"
 import { persisted } from "@/utils/persist"
-import { DialogReleaseNotes, type Highlight } from "@/components/dialog-release-notes"
+import { DialogReleaseNotes, type Highlight } from "@/components/dialogs/dialog-release-notes"
 
 const CHANGELOG_URL = "https://tiancode.ai/changelog.json"
 

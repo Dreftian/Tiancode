@@ -6,7 +6,7 @@ import { useDialog } from "@tiancode-ai/ui/context/dialog"
 import { type Component, Show, createEffect, createSignal, onCleanup, onMount } from "solid-js"
 import { useLanguage } from "@/context/language"
 import { type ServerConnection } from "@/context/server"
-import { useServerManagementController } from "../dialog-select-server"
+import { useServerManagementController } from "../dialogs/dialog-select-server"
 import "./settings-v2.css"
 
 export const DialogServerV2: Component<{

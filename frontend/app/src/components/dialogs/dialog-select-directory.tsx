@@ -8,7 +8,7 @@ import { createMemo, createResource, createSignal } from "solid-js"
 import { useLanguage } from "@/context/language"
 import { ServerConnection } from "@/context/server"
 import { useGlobal } from "@/context/global"
-import { cleanPickerInput, createDirectorySearch, displayPickerPath } from "./directory-picker-domain"
+import { cleanPickerInput, createDirectorySearch, displayPickerPath } from "../file-tree/directory-picker-domain"
 import type { Path } from "@tiancode-ai/sdk/v2/client"
 
 interface DialogSelectDirectoryProps {

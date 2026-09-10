@@ -14,7 +14,7 @@ import {
 import { Dynamic } from "solid-js/web"
 import type { FileNode } from "@tiancode-ai/sdk/v2"
 import { Icon } from "@tiancode-ai/ui/v2/icon"
-import { pathToFileUrl, withFileDragImage, type Kind } from "@/components/file-tree"
+import { pathToFileUrl, withFileDragImage, type Kind } from "@/components/file-tree/file-tree"
 import { createVirtualizer, defaultRangeExtractor } from "@tanstack/solid-virtual"
 import {
   buildFileTreeV2Model,
@@ -22,10 +22,10 @@ import {
   flattenLiveFileTreeV2,
   normalizeFileTreeV2Path,
   type FileTreeV2Node,
-} from "@/components/file-tree-v2-model"
+} from "@/components/file-tree/file-tree-v2-model"
 import { virtualScrollElement } from "@/components/virtual-scroll-element"
 
-export type { Kind } from "@/components/file-tree"
+export type { Kind } from "@/components/file-tree/file-tree"
 
 const INDENT_STEP = 16
 

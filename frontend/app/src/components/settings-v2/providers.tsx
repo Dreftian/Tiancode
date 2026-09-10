@@ -8,8 +8,8 @@ import { createMemo, createSignal, type Accessor, type Component, For, Show } fr
 import { useLanguage } from "@/context/language"
 import { useServerProtocol, useServerSDK } from "@/context/server-sdk"
 import { useServerSync } from "@/context/server-sync"
-import { DialogConnectProvider, useProviderConnectController } from "../dialog-connect-provider"
-import { DialogCustomProvider } from "../dialog-custom-provider"
+import { DialogConnectProvider, useProviderConnectController } from "../dialogs/dialog-connect-provider"
+import { DialogCustomProvider } from "../dialogs/dialog-custom-provider"
 import { SettingsListV2 } from "./parts/list"
 import "./settings-v2.css"
 

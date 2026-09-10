@@ -11,7 +11,7 @@ import { useLanguage } from "@/context/language"
 import { getProjectAvatarVariant, type LocalProject } from "@/context/layout"
 import { ServerConnection } from "@/context/server"
 import { getProjectAvatarSource } from "@/pages/layout/helpers"
-import { createEditProjectModel } from "./edit-project"
+import { createEditProjectModel } from "../edit-project"
 
 export function DialogEditProjectV2(props: { project: LocalProject; server: ServerConnection.Any }) {
   const language = useLanguage()

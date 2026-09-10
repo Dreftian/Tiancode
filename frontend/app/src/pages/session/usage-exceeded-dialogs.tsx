@@ -5,7 +5,7 @@ import { onCleanup } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useSessionLayout } from "./session-layout"
 import { useDialog } from "@tiancode-ai/ui/context"
-import { DialogUsageExceeded } from "@/components/dialog-usage-exceeded"
+import { DialogUsageExceeded } from "@/components/dialogs/dialog-usage-exceeded"
 import { useI18n } from "@tiancode-ai/ui/context"
 
 const GO_UPSELL_FREE_TIER_LAST_SEEN_AT = "go_upsell_last_seen_at"
@@ -76,7 +76,7 @@ export function useUsageExceededDialogs() {
               setGoUpsellState(keys.lastSeenAt, Date.now())
               if (dontShowAgain) setGoUpsellState(keys.dontShow, Date.now())
               else {
-                void import("../../components/dialog-connect-provider").then((x) => {
+                void import("../../components/dialogs/dialog-connect-provider").then((x) => {
                   const controller = x.useProviderConnectController()
                   controller.select("tiancode-go")
                   void dialog.show(() => <x.DialogConnectProvider controller={controller} />)

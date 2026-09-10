@@ -13,7 +13,7 @@ import {
 } from "solid-js"
 import { makeEventListener } from "@solid-primitives/event-listener"
 import { useNavigate, useParams } from "@solidjs/router"
-import { PENDING_PROVIDER_SETUP_KEY } from "@/components/dialog-welcome-setup"
+import { PENDING_PROVIDER_SETUP_KEY } from "@/components/dialogs/dialog-welcome-setup"
 import { useLayout, LocalProject } from "@/context/layout"
 import { useServerSync } from "@/context/server-sync"
 import { Persist, persisted } from "@/utils/persist"
@@ -56,8 +56,8 @@ import { useCommand, type CommandOption } from "@/context/command"
 import { ConstrainDragXAxis, getDraggableId } from "@/utils/solid-dnd"
 import { DebugBar } from "@/components/debug-bar"
 import { TabsInfoPopup } from "@/components/help-button"
-import { Titlebar, type TitlebarUpdate } from "@/components/titlebar"
-import { useDirectoryPicker } from "@/components/directory-picker"
+import { Titlebar, type TitlebarUpdate } from "@/components/titlebar/titlebar"
+import { useDirectoryPicker } from "@/components/file-tree/directory-picker"
 import { ServerConnection, useServer } from "@/context/server"
 import { useLanguage, type Locale } from "@/context/language"
 import { pathKey } from "@/utils/path-key"
@@ -1155,7 +1155,7 @@ export default function LegacyLayout(props: ParentProps) {
 
   function connectProvider() {
     const run = ++dialogRun
-    void import("@/components/dialog-connect-provider").then((x) => {
+    void import("@/components/dialogs/dialog-connect-provider").then((x) => {
       if (dialogDead || dialogRun !== run) return
       void dialog.show(() => <x.DialogConnectProvider />)
     })
@@ -1163,7 +1163,7 @@ export default function LegacyLayout(props: ParentProps) {
 
   function openServer() {
     const run = ++dialogRun
-    void import("@/components/dialog-select-server").then((x) => {
+    void import("@/components/dialogs/dialog-select-server").then((x) => {
       if (dialogDead || dialogRun !== run) return
       dialog.show(() => <x.DialogSelectServer />)
     })
@@ -1427,7 +1427,7 @@ export default function LegacyLayout(props: ParentProps) {
 
   const showEditProjectDialog = (conn: ServerConnection.Any, project: LocalProject) => {
     const run = ++dialogRun
-    void import("@/components/dialog-edit-project-v2").then((x) => {
+    void import("@/components/dialogs/dialog-edit-project-v2").then((x) => {
       if (dialogDead || dialogRun !== run) return
       dialog.show(() => <x.DialogEditProjectV2 server={conn} project={project} />)
     })

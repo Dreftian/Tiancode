@@ -1,6 +1,6 @@
 import { useSearchParams } from "@solidjs/router"
 import { createEffect, untrack } from "solid-js"
-import { usePromptInputV2Controller } from "@/components/prompt-input-v2"
+import { usePromptInputV2Controller } from "@/components/prompt-input/prompt-input-v2"
 import { useComments } from "@/context/comments"
 import { useLocal } from "@/context/local"
 import { usePrompt } from "@/context/prompt"

@@ -10,7 +10,7 @@ import { useLocal } from "@/context/local"
 import { useProviders } from "@/hooks/use-providers"
 import { decode64 } from "@/utils/base64"
 import { useLanguage } from "@/context/language"
-import { ModelTooltip } from "./model-tooltip"
+import { ModelTooltip } from "../model-tooltip"
 
 type ModelState = ReturnType<typeof useLocal>["model"]
 const featuredProviders = ["tiancode", "tiancode-go", "openai", "anthropic", "google", "github-copilot"]

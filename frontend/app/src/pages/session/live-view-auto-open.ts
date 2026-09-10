@@ -1,5 +1,5 @@
 import { createEffect, onCleanup } from "solid-js"
-import { setPreviewPanelOpen } from "@/components/preview-panel"
+import { setPreviewPanelOpen } from "@/components/preview/preview-panel"
 import { useSDK } from "@/context/sdk"
 import { useServer } from "@/context/server"
 import { useSessionLayout } from "@/pages/session/session-layout"

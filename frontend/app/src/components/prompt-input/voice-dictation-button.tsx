@@ -13,7 +13,7 @@ import {
   addRecentRecording,
 } from "@/utils/asr"
 import { ContextMenu } from "@tiancode-ai/ui/context-menu"
-import { AudioWaveform } from "@/components/audio-waveform"
+import { AudioWaveform } from "@/components/visualization/audio-waveform"
 
 // Mic icon rendered inline; the icon set has no microphone.
 export function MicIcon(props: { class?: string }) {

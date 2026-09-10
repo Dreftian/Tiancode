@@ -8,7 +8,7 @@ import { Tooltip } from "@tiancode-ai/ui/tooltip"
 import { type Component, Show } from "solid-js"
 import { useLocal } from "@/context/local"
 import { popularProviders, useProviders } from "@/hooks/use-providers"
-import { ModelTooltip } from "./model-tooltip"
+import { ModelTooltip } from "../model-tooltip"
 import { useLanguage } from "@/context/language"
 import { decode64 } from "@/utils/base64"
 

@@ -160,7 +160,7 @@ export function StatusPopoverServerBody() {
         manageLabel: language.t("status.popover.action.manageServers"),
         onManage: () => {
           const run = ++dialogRun
-          void import("./dialog-select-server").then((x) => {
+          void import("../dialogs/dialog-select-server").then((x) => {
             if (dialogDead || dialogRun !== run) return
             dialog.show(() => <x.DialogSelectServer />, defaultServer.refresh)
           })
@@ -401,7 +401,7 @@ export function StatusPopoverBody(props: { shown: Accessor<boolean> }) {
                   class="mt-3 self-start h-8 px-3 py-1.5"
                   onClick={() => {
                     const run = ++dialogRun
-                    void import("./dialog-select-server").then((x) => {
+                    void import("../dialogs/dialog-select-server").then((x) => {
                       if (dialogDead || dialogRun !== run) return
                       dialog.show(() => <x.DialogSelectServer />, defaultServer.refresh)
                     })

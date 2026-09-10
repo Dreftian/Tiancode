@@ -21,7 +21,7 @@ import {
   createServerSessionEntries,
   uniqueCommandPaletteEntries,
   type CommandPaletteEntry,
-} from "./command-palette"
+} from "../command-palette"
 import "./dialog-command-palette-v2.css"
 
 function groups(entries: CommandPaletteEntry[]) {

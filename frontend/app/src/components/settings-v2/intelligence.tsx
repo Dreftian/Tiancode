@@ -5,7 +5,7 @@ import { useLanguage } from "@/context/language"
 import { useSettings } from "@/context/settings"
 import { useServerSDK } from "@/context/server-sdk"
 import { syncIntelligenceConfig } from "@/utils/intelligence-config"
-import { AstCodeGraphVisualizer } from "@/components/ast-codegraph-visualizer"
+import { AstCodeGraphVisualizer } from "@/components/visualization/ast-codegraph-visualizer"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
 

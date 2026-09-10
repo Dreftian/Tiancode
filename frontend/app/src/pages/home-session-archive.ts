@@ -1,4 +1,4 @@
-import { notifySessionTabsRemoved } from "@/components/titlebar-session-events"
+import { notifySessionTabsRemoved } from "@/components/titlebar/titlebar-session-events"
 import type { ServerConnection } from "@/context/server"
 
 type HomeSession = {

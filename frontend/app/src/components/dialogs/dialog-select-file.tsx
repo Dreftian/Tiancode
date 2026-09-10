@@ -19,7 +19,7 @@ import {
   createCommandPaletteModel,
   uniqueCommandPaletteEntries,
   type CommandPaletteEntry,
-} from "./command-palette"
+} from "../command-palette"
 import { DialogCommandPaletteV2 } from "./dialog-command-palette-v2"
 
 const DialogSelectFileV2 = lazy(() =>

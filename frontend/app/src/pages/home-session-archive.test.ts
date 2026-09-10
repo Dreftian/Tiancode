@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { SESSION_TABS_REMOVED_EVENT, readSessionTabsRemovedDetail } from "@/components/titlebar-session-events"
+import { SESSION_TABS_REMOVED_EVENT, readSessionTabsRemovedDetail } from "@/components/titlebar/titlebar-session-events"
 import { archiveHomeSession } from "./home-session-archive"
 import type { ServerConnection } from "@/context/server"
 

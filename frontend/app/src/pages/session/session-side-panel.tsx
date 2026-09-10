@@ -28,8 +28,8 @@ import type { FileDiffInfo } from "@tiancode-ai/client/promise"
 import { ConstrainDragYAxis, getDraggableId } from "@/utils/solid-dnd"
 import { useDialog } from "@tiancode-ai/ui/context/dialog"
 
-import FileTree from "@/components/file-tree"
-import { normalizeFileTreeV2Path } from "@/components/file-tree-v2-model"
+import FileTree from "@/components/file-tree/file-tree"
+import { normalizeFileTreeV2Path } from "@/components/file-tree/file-tree-v2-model"
 import { SessionContextUsage } from "@/components/session-context-usage"
 
 const reviewTabID = "session-side-panel-review-tab"
@@ -453,7 +453,7 @@ export function SessionSidePanel(props: {
                                     iconSize="large"
                                     class="!rounded-md"
                                     onClick={() => {
-                                      void import("@/components/dialog-select-file").then((x) => {
+                                      void import("@/components/dialogs/dialog-select-file").then((x) => {
                                         dialog.show(() => <x.DialogSelectFile mode="files" onOpenFile={showAllFiles} />)
                                       })
                                     }}

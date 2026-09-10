@@ -1,5 +1,5 @@
-import { useDirectoryPicker } from "@/components/directory-picker"
-import { useServerManagementController } from "@/components/dialog-select-server"
+import { useDirectoryPicker } from "@/components/file-tree/directory-picker"
+import { useServerManagementController } from "@/components/dialogs/dialog-select-server"
 import { useSettingsCommand } from "@/components/settings-dialog"
 import { DialogServerV2 } from "@/components/settings-v2/dialog-server-v2"
 import { type LocalProject } from "@/context/layout"
@@ -72,7 +72,7 @@ export function createHomeProjectsController(home: HomeController) {
       add: home.project.add,
       openNewSession: home.project.openProjectNewSession,
       edit: (conn: ServerConnection.Any, project: LocalProject) => {
-        void import("@/components/dialog-edit-project-v2").then(({ DialogEditProjectV2 }) => {
+        void import("@/components/dialogs/dialog-edit-project-v2").then(({ DialogEditProjectV2 }) => {
           void dialog.show(() => <DialogEditProjectV2 server={conn} project={project} />)
         })
       },

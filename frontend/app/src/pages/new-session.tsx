@@ -1,5 +1,5 @@
-import { createPromptProjectController } from "@/components/prompt-project-selector"
-import { useTitlebarRightMount } from "@/components/titlebar"
+import { createPromptProjectController } from "@/components/prompt-input/prompt-project-selector"
+import { useTitlebarRightMount } from "@/components/titlebar/titlebar"
 import { useSettings } from "@/context/settings"
 import { createEffect, createResource } from "solid-js"
 import { createNewSessionDraftController } from "./new-session/new-session-draft-controller"

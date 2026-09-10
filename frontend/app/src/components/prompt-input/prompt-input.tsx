@@ -43,44 +43,44 @@ import { TooltipV2 } from "@tiancode-ai/ui/v2/tooltip-v2"
 import { IconButton } from "@tiancode-ai/ui/icon-button"
 import { Select } from "@tiancode-ai/ui/select"
 import { useDialog } from "@tiancode-ai/ui/context/dialog"
-import { ModelSelectorPopover, ModelSelectorPopoverV2 } from "@/components/dialog-select-model"
-import { DialogSelectModelUnpaid } from "@/components/dialog-select-model-unpaid"
-import { DialogSelectModelUnpaidV2 } from "@/components/dialog-select-model-unpaid-v2"
+import { ModelSelectorPopover, ModelSelectorPopoverV2 } from "@/components/dialogs/dialog-select-model"
+import { DialogSelectModelUnpaid } from "@/components/dialogs/dialog-select-model-unpaid"
+import { DialogSelectModelUnpaidV2 } from "@/components/dialogs/dialog-select-model-unpaid-v2"
 import { useCommand } from "@/context/command"
 import { usePermission } from "@/context/permission"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { createSessionTabs } from "@/pages/session/helpers"
-import { createTextFragment, getCursorPosition, setCursorPosition, setRangeEdge } from "./prompt-input/editor-dom"
-import { createPromptAttachments } from "./prompt-input/attachments"
-import { ACCEPTED_FILE_TYPES, pickAttachmentFiles } from "./prompt-input/files"
+import { createTextFragment, getCursorPosition, setCursorPosition, setRangeEdge } from "./editor-dom"
+import { createPromptAttachments } from "./attachments"
+import { ACCEPTED_FILE_TYPES, pickAttachmentFiles } from "./files"
 import {
   canNavigateHistoryAtCursor,
   navigatePromptHistory,
   type PromptHistoryComment,
   type PromptHistoryEntry,
   promptLength,
-} from "./prompt-input/history"
+} from "./history"
 import {
   createPersistedPromptInputHistory,
   createPromptInputHistory,
   type PromptInputHistory,
-} from "./prompt-input/history-store"
+} from "./history-store"
 import {
   type PromptInputControls,
   type PromptInputProps,
   type PromptInputState,
   type PromptInputSubmission,
-} from "./prompt-input/contracts"
-import { createPromptSubmit } from "./prompt-input/submit"
-import { PromptPopover, type AtOption, type SlashCommand } from "./prompt-input/slash-popover"
-import { PromptContextItems } from "./prompt-input/context-items"
-import { PromptImageAttachments } from "./prompt-input/image-attachments"
-import { PromptDragOverlay } from "./prompt-input/drag-overlay"
-import { promptPlaceholder } from "./prompt-input/placeholder"
-import { createPromptInputTransientState } from "./prompt-input/transient-state"
+} from "./contracts"
+import { createPromptSubmit } from "./submit"
+import { PromptPopover, type AtOption, type SlashCommand } from "./slash-popover"
+import { PromptContextItems } from "./context-items"
+import { PromptImageAttachments } from "./image-attachments"
+import { PromptDragOverlay } from "./drag-overlay"
+import { promptPlaceholder } from "./placeholder"
+import { createPromptInputTransientState } from "./transient-state"
 import { showToast } from "@/utils/toast"
-import { VoiceDictationButton } from "@/components/voice-dictation-button"
+import { VoiceDictationButton } from "@/components/prompt-input/voice-dictation-button"
 import { ImagePreview } from "@tiancode-ai/ui/image-preview"
 import type { ReferenceInfo } from "@tiancode-ai/sdk/v2/client"
 
