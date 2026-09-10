@@ -43,6 +43,25 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 - **Modelos locales**: la estimación de encaje en memoria estaba duplicada entre servidor e interfaz;
   ambas usan ahora `@tiancode-ai/core/model-fit`. Las insignias mezclaban inglés y español teniendo ya
   las traducciones disponibles sin usar.
+- **Catálogo de skills unificado**: estaba transcrito a mano en dos registros que habían divergido en 41
+  skills, así que el conjunto disponible dependía de qué ruta de carga se usara. Ahora se genera desde
+  el directorio `skills/` y un test falla si vuelve a divergir. El proceso destapó una skill huérfana
+  (`vibe-coding-workflow`) que no cargaba nunca y seis sin frontmatter, que se registraban sin nombre ni
+  descripción — justo lo que el modelo usa para decidir si cargarlas.
+- **Skills fantasma**: la pestaña listaba ~60 skills inexistentes (un clúster bioinformático completo,
+  `docx`/`pdf`/`pptx`/`xlsx`, `hermes-*`, `openclaw-*`) porque añadía toda entrada codificada que el
+  servidor no devolvía. Eran navegables y activables, pero jamás podían cargarse. La lista del servidor
+  es ahora la autoridad.
+- **Herramienta `codegraph`**: `CodeGraph` eran 166 líneas de servicio registrado que nadie invocaba.
+  Se expone al agente (localizar un símbolo, listar dependientes o dependencias de un archivo, esquema
+  de un archivo) y con ello el interruptor de grafo de código pasa a gobernar algo real.
+- **Vista previa**: además del estado de compilación, la barra muestra el archivo que el agente está
+  escribiendo, tomado de las herramientas `write`/`edit`/`apply_patch` que ya se rastreaban pero nunca
+  se mostraban.
+- **Sub-agentes**: los 23 nativos tenían prompts de dos frases sin método, política de herramientas,
+  contrato de salida ni condición de parada. Comparten ahora un contrato operativo.
+- **Optimizador de prompts**: dejaba de emitir en silencio ante cualquier fallo del LLM; ahora se
+  registra la causa antes de recurrir al motor local.
 
 ## [1.0.33] — 2026-09-06
 ### Optimización de Prompts con IA en Streaming en Vivo, Endpoint Backend y Modos de Ejecución
