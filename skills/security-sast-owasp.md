@@ -1,3 +1,8 @@
+---
+name: security-sast-owasp
+description: Static application security review against OWASP: committed secrets and credentials, injection vectors (SQL, HTML, eval, shell), broken access control, and CSP/CORS/security headers. Use when auditing a codebase for vulnerabilities or hardening it before release.
+---
+
 # Static Application Security Testing (SAST) & OWASP Hardening
 
 Provides rigorous checklists for auditing codebases against common vulnerabilities, hardcoded secrets, injection vectors, and broken access controls.

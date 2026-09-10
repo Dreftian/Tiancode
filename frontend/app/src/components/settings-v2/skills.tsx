@@ -127,8 +127,6 @@ const SKILL_ES_DESCRIPTIONS: Record<string, string> = {
   "codebase-design": "Vocabulario y diseño de módulos profundos, desacoplamiento y arquitectura escalable.",
   "context-engineering": "Optimización del contexto de agentes, reglas de proyecto y configuración de sesiones.",
   "core-web-vitals": "Optimización de Core Web Vitals (LCP, INP, CLS) para mejor experiencia y rendimiento.",
-  "customize-tiancode": "Personaliza Tiancode con instrucciones a medida, reglas de proyecto y flujos de trabajo.",
-  "database-design-and-migration": "Diseño de esquemas de bases de datos relacionales/NoSQL y migraciones seguras.",
   "database-drizzle-sqlite-pg": "Modelado y consultas de base de datos con Drizzle ORM, SQLite y PostgreSQL.",
   "debugging-and-error-recovery": "Metodología sistemática para depuración de causa raíz y resolución de errores.",
   "deploy-checklist": "Lista de verificación previa al despliegue en producción y planes de reversión (rollback).",
@@ -137,15 +135,12 @@ const SKILL_ES_DESCRIPTIONS: Record<string, string> = {
   "doc-coauthoring": "Flujo estructurado para redacción colaborativa de documentación técnica y especificaciones.",
   "docker-deploy-pipeline": "Contenedorización con Docker, compose y automatización de pipelines de despliegue.",
   "documentation-and-adrs": "Registro de decisiones arquitectónicas (ADRs), contratos y documentación viva del código.",
-  "documentation-and-guides": "Generación y mantenimiento de documentación técnica, guías y READMEs completos.",
   "domain-modeling": "Modelado de dominio y definición de lenguaje ubicuo para sistemas empresariales.",
   "doubt-driven-development": "Revisión adversaria rigurosa antes de confirmar decisiones críticas en producción.",
   "finishing-a-development-branch": "Directrices para integrar ramas de desarrollo, verificación final y merge seguro.",
   "frontend-design": "Diseño visual distintivo e intencional, tipografía cuidada y dirección estética moderna.",
   "frontend-ui-engineering": "Desarrollo de interfaces de usuario modernas, accesibles y responsivas de alto nivel.",
-  "frontend-ui-ux": "Desarrollo de interfaces fluidas, diseño UX/UI de alta calidad y diseño responsivo.",
   "fullstack-nextjs-tailwind": "Desarrollo fullstack moderno con Next.js App Router, React Server Components y Tailwind.",
-  "git-workflow-and-releases": "Gestión de ramas Git, resolución de conflictos, versionado y creación de releases.",
   "git-workflow-and-versioning": "Buenas prácticas de versionado semántico, ramas limpias y commits estructurados.",
   "handoff": "Generación de resumen y contexto de transferencia estructurado para otro agente o sesión.",
   "idea-refine": "Refinamiento de ideas iniciales en conceptos ejecutables mediante pensamiento estructurado.",
@@ -154,14 +149,12 @@ const SKILL_ES_DESCRIPTIONS: Record<string, string> = {
   "incremental-implementation": "Implementación incremental de cambios complejos dividida en pasos verificables.",
   "interview-me": "Extracción de requerimientos reales del usuario mediante preguntas dirigidas paso a paso.",
   "observability-and-instrumentation": "Instrumentación de código: logs estructurados, métricas, trazas y alertas.",
-  "performance-and-profiling": "Optimización del rendimiento, perfiles de memoria y velocidad de ejecución.",
   "performance-optimization": "Optimización integral de rendimiento en frontend, backend, consultas SQL y carga.",
   "planning-and-task-breakdown": "Desglose de requerimientos en tareas ordenadas, estimaciones y dependencias.",
   "requesting-code-review": "Solicitud y preparación de revisiones de código exhaustivas antes de fusionar ramas.",
   "research": "Investigación técnica basada en fuentes primarias con reporte estructurado en Markdown.",
   "resolving-merge-conflicts": "Resolución sistemática de conflictos en operaciones de merge y rebase de Git.",
   "security-and-hardening": "Protección contra vulnerabilidades, sanitización de entradas y fortificación de código.",
-  "security-and-vulnerability-audit": "Auditoría de seguridad, prevención de vulnerabilidades y buenas prácticas de seguridad.",
   "security-sast-owasp": "Análisis estático de seguridad (SAST) y prevención de vulnerabilidades OWASP Top 10.",
   "shipping-and-launch": "Preparación de lanzamientos a producción, despliegues escalonados y monitorización.",
   "skill-creator": "Creación, edición, optimización y benchmarking de nuevas habilidades para agentes.",
@@ -172,7 +165,6 @@ const SKILL_ES_DESCRIPTIONS: Record<string, string> = {
   "system-design": "Diseño de sistemas distribuidos, microservicios, APIs y límites de servicio escalables.",
   "tech-debt": "Identificación, priorización y reducción planificada de deuda técnica acumulada.",
   "test-driven-development": "Desarrollo guiado por pruebas (TDD): ciclo red-green-refactor y cobertura sólida.",
-  "testing-and-coverage": "Creación de pruebas unitarias, de integración y análisis de cobertura de código.",
   "testing-strategy": "Estrategia integral de pruebas: pirámide de tests, pruebas unitarias, integración y E2E.",
   "tiancode-spec-kit": "Kit de especificaciones y directivas para proyectos desarrollados con Tiancode.",
   "to-spec": "Conversión de requerimientos informales en especificaciones técnicas formales y ejecutables.",
@@ -181,65 +173,12 @@ const SKILL_ES_DESCRIPTIONS: Record<string, string> = {
   "verification-before-completion": "Protocolo estricto de verificación previa antes de dar una tarea por completada.",
   "web-quality-audit": "Auditoría integral de calidad web: rendimiento, accesibilidad, SEO y buenas prácticas.",
   "writing-plans": "Estructuración de planes de implementación claros, ejecutables y fáciles de revisar.",
-  "agy-customizations": "Guía completa y referencia para personalizar Antigravity / Tiancode (skills, reglas, plugins, hooks).",
-  "android-cli": "Herramientas de línea de comandos para desarrollo, prueba y gestión de aplicaciones Android.",
-  "alphafold-database-fetch-and-analyze": "Recupera y analiza estructuras de proteínas predichas por AlphaFold con métricas pLDDT.",
-  "alphagenome-single-variant-analysis": "Analiza los efectos de variantes genéticas en la expresión génica y factores de transcripción.",
-  "chembl-database": "Consulta la base de datos ChEMBL para moléculas bioactivas, dianas de fármacos y bioactividad.",
-  "clinical-trials-database": "Consulta ensayos clínicos en ClinicalTrials.gov por condición médica, fármaco o ubicación.",
-  "clinvar-database": "Consulta clasificaciones de patogenicidad y evidencia clínica para variantes genómicas humanas.",
-  "credentials": "Instrucciones para gestionar de forma segura claves de API, tokens y credenciales de autenticación.",
-  "dbsnp-database": "Búsqueda y mapeo de variantes genéticas cortas (SNPs, indeles) en la base de datos dbSNP.",
-  "embl-ebi-ols": "Consulta términos de ontología biomédica, definiciones y jerarquías en el servicio EMBL-EBI OLS.",
-  "encode-ccres-database": "Consulta elementos regulatorios cis (cCREs) y datos experimentales en ENCODE.",
-  "ensembl-database": "Consulta genes, secuencias genómicas, estructuras de exones y predicciones de variantes en Ensembl.",
-  "foldseek-structural-search": "Búsqueda estructural 3D de proteínas contra bases de datos PDB, AlphaFold y CATH.",
-  "gnomad-database": "Consulta frecuencias alélicas y restricciones génicas en el genoma de referencia gnomAD.",
-  "gtex-database": "Recupera datos de expresión cuantitativa de ARN e información de eQTL en tejidos de GTEx.",
-  "human-protein-atlas-database": "Recupera expresión de proteínas y localización espacial del Human Protein Atlas (HPA).",
-  "interpro-database": "Identifica dominios, familias y sitios funcionales en proteínas con la base de datos InterPro.",
-  "jaspar-database": "Consulta perfiles de unión de factores de transcripción (PFMs/PWMs) en JASPAR.",
-  "literature-search-arxiv": "Búsqueda de artículos científicos, preprints y publicaciones académicas en arXiv.",
-  "literature-search-biorxiv": "Búsqueda y descarga de preprints en ciencias de la vida y medicina en bioRxiv y medRxiv.",
-  "literature-search-europepmc": "Búsqueda de literatura científica, artículos completos y citas en Europe PMC.",
-  "literature-search-openalex": "Consulta la base de datos académica global OpenAlex para artículos, autores y fuentes.",
-  "ncbi-sequence-fetch": "Recupera secuencias biológicas de proteínas y nucleótidos de las bases de datos NCBI.",
-  "openfda-database": "Consulta datos de seguridad, efectos adversos, retiros y aprobaciones de medicamentos en OpenFDA.",
-  "opentargets-database": "Consulta asociaciones diana-enfermedad y descubrimiento de fármacos en Open Targets.",
-  "pdb-database": "Búsqueda y descarga de estructuras 3D de biomoléculas determinadas experimentalmente en el PDB.",
-  "predictingthepast": "Restauración, atribución, datación y contextualización de textos e inscripciones antiguas.",
-  "protein-sequence-msa": "Alineamiento múltiple de secuencias de proteínas utilizando EBI Clustal Omega.",
-  "protein-sequence-similarity-search": "Búsqueda de secuencias de proteínas homólogas con MMseqs2 o BLAST.",
-  "pubchem-database": "Búsqueda de sustancias químicas, fórmulas, propiedades y bioactividad en PubChem.",
-  "pubmed-database": "Búsqueda en PubMed de artículos científicos y literatura médica biomédica.",
-  "pymol": "Visualización, análisis y renderizado tridimensional de estructuras moleculares con PyMOL.",
-  "quickgo-database": "Mapeo de genes a procesos biológicos, funciones moleculares y jerarquía Gene Ontology.",
-  "reactome-database": "Análisis de rutas biológicas, reacciones y enriquecimiento de vías en Reactome.",
-  "science-skills-common": "Librería compartida con cliente HTTP unificado para peticiones científicas y rate limiting.",
-  "string-database": "Consulta interacciones proteína-proteína, redes funcionales y homología en STRING.",
-  "ucsc-conservation-and-tfbs": "Puntajes de conservación evolutiva y sitios de unión TF en el Navegador UCSC.",
-  "unibind-database": "Conjuntos de datos de sitios de unión de factores de transcripción validados en UniBind.",
-  "uniprot-database": "Metadatos de proteínas, función, taxonomía y secuencias en UniProtKB.",
-  "uv": "Verifica e instala el gestor ultra-rápido de paquetes y entornos virtuales de Python uv.",
   "nextjs-app-router-expert": "Especialista en Next.js 15, App Router, React Server Components (RSC), Server Actions y caché.",
   "typescript-strict-patterns": "Patrones avanzados de tipado estricto en TypeScript 5+: branded types, discriminated unions y cero any.",
   "tailwind-v4-styling": "Estilizado moderno con Tailwind CSS v4: variables de tema CSS (@theme), utilidades nativas y diseño Apple.",
   "docker-containerization-expert": "Contenedorización avanzada con Docker: builds multi-stage, compose, seguridad non-root y healthchecks.",
   "playwright-e2e-testing": "Automatización y pruebas End-to-End con Playwright: Page Object Model (POM), fixtures y visual regression.",
-  "docx": "Lectura, extracción estructurada, edición y generación de documentos Word (.docx).",
-  "xlsx": "Análisis de fórmulas, validación de datos y manipulación estructurada de hojas de cálculo Excel (.xlsx).",
-  "pptx": "Inspección, creación y formateo modular de presentaciones PowerPoint (.pptx).",
-  "pdf": "Extracción de texto estructurado, metadatos, OCR y procesamiento de documentos PDF.",
   "mcp-builder": "Construcción, validación e integración rápida de servidores Model Context Protocol (MCP) en TypeScript y Python.",
-  "pen-design": "Crea diseños visuales de alta fidelidad: interfaces web, apps móviles, mockups, pantallas, dashboards y presentaciones con pen.dev CLI (@pen.dev/cli / pen). Genera archivos .pen y exportaciones PNG.",
-  "hermes-orchestrator": "Planificación y orquestación multi-fase autónoma de tareas complejas con retroalimentación continua y auto-corrección.",
-  "hermes-research": "Investigación técnica profunda autónoma en fuentes primarias, papers y documentación con síntesis estructurada.",
-  "hermes-sqlite-search": "Búsqueda semántica y estructurada de contexto en bases de datos SQLite y memoria episódica.",
-  "openclaw-resilience": "Tolerancia a fallos, circuit breaker ante bucles infinitos y reparación instantánea de llamadas a herramientas JSON.",
-  "openclaw-gateway": "Pasarela y proxy resiliente para orquestación de agentes distribuidos y rotación de modelos.",
-  "opendesign-ui": "Diseño de interfaces de usuario modernas, sistemas de diseño atómicos y prototipado visual interactivo.",
-  "pentest-redteam": "Auditoría adversaria de seguridad, análisis de superficie de ataque, validación OWASP y fortificación defensiva.",
-  "generative_ui": "Renderizado interactivo de componentes visuales, diagramas y widgets enriquecidos en el chat.",
 }
 
 export const SAFE_SKILLS = new Set([
@@ -430,17 +369,6 @@ Automatiza las puertas de calidad para garantizar que ningún cambio llegue a pr
 3. **Pruebas Automatizadas**: Pruebas unitarias y de integración.
 4. **Compilación de Producción**: Generación y verificación de artefactos finales.`,
 
-  "customize-tiancode": `# Personalización de Tiancode
-
-## Descripción General
-Aprende a configurar y adaptar Tiancode según tu flujo de trabajo: gestión de agentes, configuración de modelos, reglas de proyecto, atajos de teclado y extensiones MCP.
-
-## Componentes Personalizables
-- **Reglas del Proyecto**: Define directivas y convenciones en \`AGENTS.md\`.
-- **Sub-agentes**: Crea agentes especializados con roles y permisos específicos.
-- **Modelos y Proveedores**: Conecta modelos locales (Ollama, LM Studio) o en la nube.
-- **Servidores MCP**: Amplía las capacidades con herramientas externas y APIs.`,
-
   "api-and-interface-design": `# Diseño de APIs e Interfaces
 
 ## Descripción General
@@ -480,16 +408,6 @@ Identificación y eliminación de complejidad accidental, código muerto y sobre
 - **Menos es Más**: Elimina funciones auxiliares de un solo uso cuando el código es más claro en el punto de llamada.
 - **Flujo Lineal**: Prefiere retornos tempranos en lugar de estructuras if/else anidadas.`,
 
-  "database-design-and-migration": `# Diseño de Bases de Datos y Migraciones
-
-## Descripción General
-Buenas prácticas para modelado de datos relacionales, consultas optimizadas y migraciones seguras con Drizzle, Prisma o SQL nativo.
-
-## Buenas Prácticas
-- Esquemas con nombres en snake_case y claves foráneas explícitas.
-- Migraciones incrementales y no destructivas.
-- Índices adecuados en columnas de búsqueda y filtrado frecuente.`,
-
   "database-drizzle-sqlite-pg": `# Modelado de Bases de Datos con Drizzle ORM (SQLite, LibSQL y PostgreSQL)
 
 ## Descripción General
@@ -513,56 +431,6 @@ Directrices completas para diseñar bases de datos relacionales, crear esquemas 
 - \`bunx drizzle-kit push\`: Aplica cambios directamente al esquema de la base de datos para desarrollo ágil.
 - \`bunx drizzle-kit studio\`: Inicia el explorador visual de base de datos en el navegador.`,
 
-  "documentation-and-guides": `# Documentación Técnica y Guías
-
-## Descripción General
-Creación de documentación clara, precisa y accesible para desarrolladores y usuarios finales.
-
-## Estructura Recomendada
-- Resúmenes concisos al inicio.
-- Ejemplos prácticos y ejecutables de código.
-- Secciones de solución de problemas y preguntas frecuentes.`,
-
-  "frontend-ui-ux": `# Desarrollo Frontend, UI y UX
-
-## Descripción General
-Directrices para crear interfaces modernas, fluidas, accesibles y estéticamente refinadas.
-
-## Principios Visuales
-- **Jerarquía Visual**: Tipografía equilibrada, espaciado armónico y contraste accesible.
-- **Micro-interacciones**: Estados de hover, animaciones sutiles y transiciones fluidas.
-- **Diseño Responsivo**: Adaptabilidad completa a cualquier tamaño de pantalla.`,
-
-  "git-workflow-and-releases": `# Flujo de Git, Ramas y Releases
-
-## Descripción General
-Convenciones para ramas cortas, commits semánticos y empaquetado seguro de versiones.
-
-## Convenciones
-- **Nombres de Ramas**: Máximo 3 palabras separadas por guiones (ej. \`session-recovery\`).
-- **Mensajes de Commit**: Formato convencional \`tipo(alcance): descripción\` (\`feat\`, \`fix\`, \`chore\`, etc.).
-- **Releases**: Incrementos de versión no destructivos preservando configuraciones y datos de usuario.`,
-
-  "performance-and-profiling": `# Rendimiento y Optimización
-
-## Descripción General
-Diagnóstico de cuellos de botella, optimización de renderizado, consumo de CPU y memoria.
-
-## Técnicas
-- Reducción del tamaño de paquetes y eliminación de dependencias no utilizadas.
-- Memorización selectiva y optimización de reactividad.
-- Carga perezosa (lazy loading) de módulos pesados.`,
-
-  "security-and-vulnerability-audit": `# Auditoría de Seguridad y Vulnerabilidades
-
-## Descripción General
-Evaluación de seguridad, prevención de inyecciones (OWASP Top 10) y manejo seguro de credenciales.
-
-## Puntos Críticos
-- Validación estricta de entradas de usuario y desinfección de HTML/scripts.
-- Almacenamiento seguro de claves de API y tokens de autenticación.
-- Políticas de permisos restrictivas por defecto.`,
-
   "testing-strategy": `# Estrategias de Pruebas y Cobertura
 
 ## Descripción General
@@ -572,75 +440,6 @@ Estrategias para pruebas unitarias, de integración y de extremo a extremo (E2E)
 - Probar el comportamiento real en lugar de detalles internos de implementación.
 - Minimizar el uso de mocks complejos.
 - Pruebas rápidas, deterministas y aisladas.`,
-
-  "pen-design": `# Diseño Visual Profesional con pen.dev CLI
-
-## Descripción General
-Crea diseños visuales de alta fidelidad: páginas web completas, pantallas de aplicaciones móviles, dashboards interactivos, diapositivas, carteles y gráficos utilizando pen.dev CLI (\`@pen.dev/cli\` / \`pen\`).
-
-El motor de pen.dev sincroniza parches AST de nodos JSON en memoria sobre un canvas WebAssembly/Emscripten sin parpadeos ni recargas de página.
-
-## Flujo de Trabajo Rápido
-1. **Crear un diseño inicial**:
-\`\`\`bash
-npx -y @pen.dev/cli create mi-diseño --type webpage
-\`\`\`
-Tipos soportados: \`webpage\`, \`app\`, \`dashboard\`, \`slide\`, \`poster\`.
-
-2. **Editar y sincronizar**:
-\`\`\`bash
-npx -y @pen.dev/cli edit mi-diseño.pen
-\`\`\`
-
-3. **Exportar a imagen**:
-\`\`\`bash
-npx -y @pen.dev/cli export mi-diseño.pen -o preview.png
-\`\`\`
-
-## Directivas Principales
-- **Estructura Declarativa**: Los archivos \`.pen\` representan árboles JSON con nodos de capas, vectores, textos y estilos.
-- **Sincronización Reactiva**: Modifica el árbol con actualizaciones incrementales para visualización fluida a 60fps.
-- **Integración con Tiancode**: Utiliza el sub-agente especializado \`@opendesign-ui-master\` para coordinar la generación visual y su posterior exportación a código Tailwind v4.`,
-
-  "hermes-orchestrator": `# Orquestador Autónomo Multi-Fase Hermes
-
-## Descripción General
-Orquestación multi-fase autónoma inspirada en Nous Research Hermes Agent. Planifica, divide en etapas secuenciales o paralelas, ejecuta herramientas y auto-corrige resultados con retroalimentación continua.
-
-## Puntos Clave
-- **Desglose en Fases**: Divide objetivos complejos en sub-metas atómicas con criterios claros de éxito.
-- **Bucle de Auto-Corrección**: Evalúa la salida de cada herramienta; si hay fallos o respuestas ambiguas, replanifica de inmediato.
-- **Integración con Memoria Episódica**: Consulta sesiones anteriores en bases SQLite para adoptar patrones probados.`,
-
-  "openclaw-resilience": `# Tolerancia a Fallos y Resiliencia OpenClaw
-
-## Descripción General
-Conjunto de mecanismos de resiliencia inspirado en OpenClaw para garantizar que las sesiones de agentes nunca se queden atascadas ni fallen por errores de formato.
-
-## Puntos Clave
-- **Auto-Reparación de Tool-Calls JSON**: Detecta JSONs truncados o mal cerrados devueltos por LLMs y los repara antes de pasarlos a la herramienta.
-- **Circuit Breaker Anti-Bucles**: Monitorea llamadas repetitivas con argumentos idénticos y rompe el ciclo automáticamente ofreciendo alternativas.
-- **Rotación Dinámica de Proveedores**: Si un endpoint devuelve 429 o 500, conmuta automáticamente a la réplica configurada.`,
-
-  "opendesign-ui": `# OpenDesign UI & Prototipado Visual
-
-## Descripción General
-Generación y conversión de interfaces de usuario modernas, integración con Figma/tokens de diseño y componentes limpios en Tailwind v4 y React/Solid.
-
-## Puntos Clave
-- **Diseño Atómico**: Creación de paletas semánticas, tipografía accesible y componentes modulares.
-- **Fidelidad Visual**: Estilos contemporáneos con glassmorphism, sombras sutiles y micro-interacciones a 60fps.
-- **Exportación Limpia**: Código sin dependencias innecesarias, fuertemente tipado y adaptable a temas claro/oscuro.`,
-
-  "pentest-redteam": `# Auditoría Adversaria de Seguridad y Pentesting
-
-## Descripción General
-Auditoría técnica rigurosa y red teaming defensivo: análisis de superficie de ataque, validación de vectores OWASP Top 10, permisos de herramientas y endurecimiento de agentes LLM.
-
-## Directivas
-- **Emulación Adversaria**: Simulación de inyecciones de prompts, evasión de restricciones y escalada de privilegios.
-- **Evidencia Concreta**: Cada hallazgo debe incluir prueba de concepto y calibración de severidad según CVSS.
-- **Mitigación y Hardening**: Recomendaciones exactas de parcheo y contramedidas defensivas aplicables de inmediato.`,
 }
 
 function localizeSkillDescription(name: string, defaultDesc: string | undefined, isSpanish: boolean): string {
@@ -764,11 +563,12 @@ export const SettingsSkillsV2: Component<{
 
   const skills = createMemo(() => {
     const serverSkills = data().skills
-    if (serverSkills.length > 0) {
-      const names = new Set(serverSkills.map((s) => s.name))
-      const extra = builtInSkills().filter((s) => !names.has(s.name))
-      return [...serverSkills, ...extra]
-    }
+    // The server list is authoritative. This used to append every hardcoded entry the server
+    // had not returned, which surfaced ~60 skills that do not exist in skills/ — they could be
+    // browsed and toggled but never loaded. The Spanish map is a translation layer
+    // (localizeSkillDescription), not a second catalogue.
+    if (serverSkills.length > 0) return serverSkills
+    // Offline or server not reachable yet: fall back to the bundled list.
     return builtInSkills()
   })
 

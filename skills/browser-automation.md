@@ -1,3 +1,8 @@
+---
+name: browser-automation
+description: Automating browser workflows with Playwright or DevTools: navigation and page lifecycle, DOM interaction, screenshots, scraping JavaScript-rendered pages, and verifying end-to-end journeys. Use when testing, inspecting, scraping or automating a web app or local dev server, or when checking layout, responsiveness or visual regressions.
+---
+
 # Browser Automation & Web Interaction Skill
 
 This skill guides the agent on automating browser workflows, headless and headed page navigation, capturing screenshots, interacting with DOM elements, scraping dynamic JavaScript web apps, and verifying end-to-end user journeys using Playwright / DevTools.

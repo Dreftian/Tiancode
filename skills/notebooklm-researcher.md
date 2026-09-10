@@ -1,3 +1,8 @@
+---
+name: notebooklm-researcher
+description: Grounded, citation-backed research over private Google NotebookLM notebooks through the notebooklm-mcp server, including Audio Overviews. Use when an answer must cite the user's own documents exactly rather than rely on model recall.
+---
+
 # Google NotebookLM Researcher Skill
 
 This skill guides the agent on querying, researching, managing, and extracting grounded, citation-backed knowledge from **Google NotebookLM** using the `notebooklm-mcp` server.

@@ -1,3 +1,8 @@
+---
+name: system-automation-windows
+description: Reliable PowerShell and command patterns for Windows automation: services and background jobs, process and listening-port inspection, port-conflict diagnosis, environment variables, batch file operations and scheduling. Use when automating or diagnosing Windows system tasks.
+---
+
 # Windows System Automation & OS Control Skill
 
 This skill provides protocols and reliable PowerShell/Command patterns for automating Windows system tasks, managing services, inspecting running processes, modifying environment variables, managing network ports, and executing administrative automation safely.

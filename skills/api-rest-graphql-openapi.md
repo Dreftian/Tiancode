@@ -1,3 +1,8 @@
+---
+name: api-rest-graphql-openapi
+description: Contract-first API design with OpenAPI 3.1: exact request/response schemas (Zod or Effect Schema), typed handlers on Hono/Express/Fastify, structured error envelopes with correct HTTP status codes, and generated interactive docs. Use when designing, validating, documenting or testing a REST or GraphQL API.
+---
+
 # API Design with OpenAPI 3.1 and REST
 
 Protocol for designing, validating, documenting, and testing robust APIs contract-first using OpenAPI 3.1 and schema validation libraries.

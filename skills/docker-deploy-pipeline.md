@@ -1,3 +1,8 @@
+---
+name: docker-deploy-pipeline
+description: Minimal, cache-optimised, rootless Docker images for web and backend services: multi-stage builds, layer-cache ordering, non-root runtime users, healthchecks and graceful SIGTERM shutdown. Use when writing or reviewing a Dockerfile or a container deployment pipeline.
+---
+
 # Docker Containerization & Multi-Stage Deployment
 
 Standards for creating minimal, cache-optimized, rootless Docker images for web and backend services.
