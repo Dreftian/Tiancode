@@ -76,6 +76,17 @@ function merge<T extends object>(base: T, patch: Partial<T> | undefined): T {
   return next
 }
 
+/** Applies one document's block on top of already-resolved settings. */
+export function apply(base: Resolved, connections: ConfigExperimental.Connections | undefined): Resolved {
+  if (!connections) return base
+  return {
+    telegram: merge(base.telegram, connections.telegram),
+    discord: merge(base.discord, connections.discord),
+    slack: merge(base.slack, connections.slack),
+    webhook: merge(base.webhook, connections.webhook),
+  }
+}
+
 /**
  * Folds the layered config documents into the effective settings. Later documents override
  * earlier ones key by key, matching Config.entries() order (general first, most specific last).
@@ -84,14 +95,7 @@ export function fromEntries(entries: Documents): Resolved {
   let resolved = DEFAULTS
   for (const entry of entries) {
     if (entry.type !== "document") continue
-    const connections: ConfigExperimental.Connections | undefined = entry.info.experimental?.connections
-    if (!connections) continue
-    resolved = {
-      telegram: merge(resolved.telegram, connections.telegram),
-      discord: merge(resolved.discord, connections.discord),
-      slack: merge(resolved.slack, connections.slack),
-      webhook: merge(resolved.webhook, connections.webhook),
-    }
+    resolved = apply(resolved, entry.info.experimental?.connections)
   }
   return resolved
 }

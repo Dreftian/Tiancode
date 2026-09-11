@@ -2030,7 +2030,78 @@ export type Config = {
     continue_loop_on_deny?: boolean
     mcp_timeout?: number
     policies?: Array<ConfigV2ExperimentalPolicy>
+    intelligence?: {
+      userMemory?: boolean
+      projectMemory?: boolean
+      guardrails?: boolean
+      codeGraph?: boolean
+    }
+    connections?: {
+      telegram?: {
+        enabled?: boolean
+        chatId?: string
+        notifyIdle?: boolean
+        notifyError?: boolean
+        inbound?: boolean
+        directory?: string
+      }
+      discord?: {
+        enabled?: boolean
+        mode?: "webhook" | "bot"
+        channelId?: string
+        notifyIdle?: boolean
+        notifyError?: boolean
+      }
+      slack?: {
+        enabled?: boolean
+        notifyIdle?: boolean
+        notifyError?: boolean
+      }
+      webhook?: {
+        enabled?: boolean
+        url?: string
+        events?: Array<string>
+      }
+    }
   }
+}
+
+export type ConnectionProvider = "telegram" | "discord" | "slack" | "webhook"
+
+export type ConnectionStatus = {
+  provider: ConnectionProvider
+  enabled: boolean
+  configured: boolean
+  hasSecret: boolean
+  settings: {
+    [key: string]: unknown
+  }
+  lastDeliveryAt?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  lastError?: string
+  inbound?: {
+    running: boolean
+    lastUpdateAt?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    sessions: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  }
+}
+
+export type ConnectionsUpdateInput = {
+  settings?: {
+    [key: string]: unknown
+  }
+  secret?: string
+}
+
+export type ConnectionsInvalidSettingsError = {
+  _tag: "ConnectionsInvalidSettingsError"
+  message: string
+}
+
+export type ConnectionTestResult = {
+  ok: boolean
+  status?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  message: string
+  latencyMs: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
 }
 
 export type Model = {
@@ -7490,6 +7561,114 @@ export type GlobalUpgradeResponses = {
 
 export type GlobalUpgradeResponse = GlobalUpgradeResponses[keyof GlobalUpgradeResponses]
 
+export type GlobalConnectionsListData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/global/connections"
+}
+
+export type GlobalConnectionsListErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalConnectionsListError = GlobalConnectionsListErrors[keyof GlobalConnectionsListErrors]
+
+export type GlobalConnectionsListResponses = {
+  /**
+   * Status of every gateway
+   */
+  200: {
+    data: Array<ConnectionStatus>
+  }
+}
+
+export type GlobalConnectionsListResponse = GlobalConnectionsListResponses[keyof GlobalConnectionsListResponses]
+
+export type GlobalConnectionsRemoveData = {
+  body?: never
+  path: {
+    provider: ConnectionProvider
+  }
+  query?: never
+  url: "/global/connections/{provider}"
+}
+
+export type GlobalConnectionsRemoveErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalConnectionsRemoveError = GlobalConnectionsRemoveErrors[keyof GlobalConnectionsRemoveErrors]
+
+export type GlobalConnectionsRemoveResponses = {
+  /**
+   * Gateway disabled and its secret removed
+   */
+  200: ConnectionStatus
+}
+
+export type GlobalConnectionsRemoveResponse = GlobalConnectionsRemoveResponses[keyof GlobalConnectionsRemoveResponses]
+
+export type GlobalConnectionsUpdateData = {
+  body?: ConnectionsUpdateInput
+  path: {
+    provider: ConnectionProvider
+  }
+  query?: never
+  url: "/global/connections/{provider}"
+}
+
+export type GlobalConnectionsUpdateErrors = {
+  /**
+   * ConnectionsInvalidSettingsError | InvalidRequestError
+   */
+  400: ConnectionsInvalidSettingsError | InvalidRequestError
+}
+
+export type GlobalConnectionsUpdateError = GlobalConnectionsUpdateErrors[keyof GlobalConnectionsUpdateErrors]
+
+export type GlobalConnectionsUpdateResponses = {
+  /**
+   * Updated gateway status
+   */
+  200: ConnectionStatus
+}
+
+export type GlobalConnectionsUpdateResponse = GlobalConnectionsUpdateResponses[keyof GlobalConnectionsUpdateResponses]
+
+export type GlobalConnectionsTestData = {
+  body?: never
+  path: {
+    provider: ConnectionProvider
+  }
+  query?: never
+  url: "/global/connections/{provider}/test"
+}
+
+export type GlobalConnectionsTestErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalConnectionsTestError = GlobalConnectionsTestErrors[keyof GlobalConnectionsTestErrors]
+
+export type GlobalConnectionsTestResponses = {
+  /**
+   * Outcome of a real delivery
+   */
+  200: ConnectionTestResult
+}
+
+export type GlobalConnectionsTestResponse = GlobalConnectionsTestResponses[keyof GlobalConnectionsTestResponses]
+
 export type EventSubscribeData = {
   body?: never
   path?: never
@@ -10420,6 +10599,14 @@ export type PreviewStatusResponses = {
     startedAt: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     errorMessage: string
     isDesktop?: boolean
+    build: {
+      running: boolean
+      startedAt: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      durationMs: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      ok: boolean
+      trigger: string
+      sequence: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    }
   }
 }
 
@@ -10465,6 +10652,14 @@ export type PreviewStartResponses = {
     startedAt: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     errorMessage: string
     isDesktop?: boolean
+    build: {
+      running: boolean
+      startedAt: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      durationMs: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      ok: boolean
+      trigger: string
+      sequence: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    }
   }
 }
 
@@ -10510,6 +10705,14 @@ export type PreviewStopResponses = {
     startedAt: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     errorMessage: string
     isDesktop?: boolean
+    build: {
+      running: boolean
+      startedAt: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      durationMs: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      ok: boolean
+      trigger: string
+      sequence: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    }
   }
 }
 
@@ -10555,6 +10758,14 @@ export type PreviewRestartResponses = {
     startedAt: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     errorMessage: string
     isDesktop?: boolean
+    build: {
+      running: boolean
+      startedAt: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      durationMs: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      ok: boolean
+      trigger: string
+      sequence: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    }
   }
 }
 

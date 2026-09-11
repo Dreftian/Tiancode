@@ -35,6 +35,8 @@ import type {
   ConfigProvidersResponses,
   ConfigUpdateErrors,
   ConfigUpdateResponses,
+  ConnectionProvider,
+  ConnectionsUpdateInput,
   EventSubscribeResponses,
   EventTuiCommandExecute,
   EventTuiPromptAppend,
@@ -107,6 +109,14 @@ import type {
   GlobalConfigGetResponses,
   GlobalConfigUpdateErrors,
   GlobalConfigUpdateResponses,
+  GlobalConnectionsListErrors,
+  GlobalConnectionsListResponses,
+  GlobalConnectionsRemoveErrors,
+  GlobalConnectionsRemoveResponses,
+  GlobalConnectionsTestErrors,
+  GlobalConnectionsTestResponses,
+  GlobalConnectionsUpdateErrors,
+  GlobalConnectionsUpdateResponses,
   GlobalDisposeErrors,
   GlobalDisposeResponses,
   GlobalEventErrors,
@@ -1677,6 +1687,106 @@ export class Config extends HeyApiClient {
   }
 }
 
+export class Connections extends HeyApiClient {
+  /**
+   * List messaging gateways
+   *
+   * Status and non-secret settings of the Telegram, Discord, Slack and webhook gateways.
+   */
+  public list<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).get<
+      GlobalConnectionsListResponses,
+      GlobalConnectionsListErrors,
+      ThrowOnError
+    >({ url: "/global/connections", ...options })
+  }
+
+  /**
+   * Disconnect a messaging gateway
+   *
+   * Disable the gateway, forget its secret and stop any inbound polling.
+   */
+  public remove<ThrowOnError extends boolean = false>(
+    parameters: {
+      provider: ConnectionProvider
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "path", key: "provider" }] }])
+    return (options?.client ?? this.client).delete<
+      GlobalConnectionsRemoveResponses,
+      GlobalConnectionsRemoveErrors,
+      ThrowOnError
+    >({
+      url: "/global/connections/{provider}",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Configure a messaging gateway
+   *
+   * Save non-secret settings to the global config and the secret to the credential store.
+   */
+  public update<ThrowOnError extends boolean = false>(
+    parameters: {
+      provider: ConnectionProvider
+      connectionsUpdateInput?: ConnectionsUpdateInput
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "provider" },
+            { key: "connectionsUpdateInput", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).put<
+      GlobalConnectionsUpdateResponses,
+      GlobalConnectionsUpdateErrors,
+      ThrowOnError
+    >({
+      url: "/global/connections/{provider}",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Test a messaging gateway
+   *
+   * Send a real test message through the gateway and report what the provider answered.
+   */
+  public test<ThrowOnError extends boolean = false>(
+    parameters: {
+      provider: ConnectionProvider
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "path", key: "provider" }] }])
+    return (options?.client ?? this.client).post<
+      GlobalConnectionsTestResponses,
+      GlobalConnectionsTestErrors,
+      ThrowOnError
+    >({
+      url: "/global/connections/{provider}/test",
+      ...options,
+      ...params,
+    })
+  }
+}
+
 export class Global extends HeyApiClient {
   /**
    * Get health
@@ -1741,6 +1851,11 @@ export class Global extends HeyApiClient {
   private _config?: Config
   get config(): Config {
     return (this._config ??= new Config({ client: this.client }))
+  }
+
+  private _connections?: Connections
+  get connections(): Connections {
+    return (this._connections ??= new Connections({ client: this.client }))
   }
 }
 
