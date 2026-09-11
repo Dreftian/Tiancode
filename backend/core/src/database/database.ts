@@ -7,6 +7,7 @@ import { Global } from "../global"
 import { Flag } from "../flag/flag"
 import { isAbsolute, join } from "path"
 import { DatabaseMigration } from "./migration"
+import { DatabaseMaintenance } from "./maintenance"
 import { InstallationChannel } from "../installation/version"
 import { makeGlobalNode } from "../effect/app-node"
 
@@ -29,6 +30,17 @@ const layer = Layer.effect(
     yield* db.run("PRAGMA busy_timeout = 5000").pipe(Effect.ignore)
     yield* db.run("PRAGMA cache_size = -64000").pipe(Effect.ignore)
     yield* db.run("PRAGMA foreign_keys = ON").pipe(Effect.ignore)
+    // A daily backup, an antivirus pass or a previous instance can still hold the file for a
+    // few seconds at startup. Without this the connection quietly degrades to read-only and
+    // every write fails for the rest of the session, which the desktop shows as "could not
+    // connect to the local server" right after an update. Retry, then give up loudly.
+    yield* DatabaseMaintenance.probeWritable(db)
+    // Deleted sessions leave their pages on the freelist and the file never shrinks by itself;
+    // one machine reached 5.5 GB for 28 MB of live data, which turns every copy or scan into a
+    // minute-long lock. Rewrite the file when most of it is empty.
+    yield* DatabaseMaintenance.compact(db).pipe(
+      Effect.catch((error) => Effect.logWarning("database compaction skipped", { error })),
+    )
     yield* DatabaseMigration.apply(db)
 
     return { db }
