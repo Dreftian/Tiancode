@@ -185,6 +185,15 @@ export const Info = Schema.Struct({
       policies: Schema.optional(Schema.mutable(Schema.Array(ConfigExperimental.Policy))).annotate({
         description: "Policy statements applied to supported resources, such as provider access",
       }),
+      // PATCH /global/config decodes its body with this struct, and a struct drops every key it
+      // does not declare. The settings panels write these two blocks through that route, so
+      // they have to be declared here as well as in the V2 schema or they never reach disk.
+      intelligence: Schema.optional(Schema.Struct(ConfigExperimental.Intelligence.fields)).annotate({
+        description: "Settings → Intelligence switches (memory, guardrails, code graph)",
+      }),
+      connections: Schema.optional(Schema.Struct(ConfigExperimental.Connections.fields)).annotate({
+        description: "Settings → Conexiones: messaging gateways (non-secret settings only)",
+      }),
     }),
   ),
 }).annotate({ identifier: "Config" })
