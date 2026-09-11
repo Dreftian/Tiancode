@@ -502,6 +502,8 @@ function localizeSkillContent(name: string, content: string | undefined, isSpani
   return `## Overview\n${desc}\n\n## 🎯 When to Use\n- Specialized workflows and requirements matching **${name}**.\n- Autonomous activation when context indicates specific engineering needs.\n\n## 📋 Core Guidelines\n- Strict quality assurance, type safety, and clean execution.`
 }
 
+type SkillFilter = "all" | "safe" | "specialized" | "frontend" | "backend" | "testing"
+
 export const SettingsSkillsV2: Component<{
   directory?: string
   active?: boolean
@@ -516,7 +518,7 @@ export const SettingsSkillsV2: Component<{
   const [message, setMessage] = createSignal<"success" | "error" | undefined>(undefined)
   const [selected, setSelected] = createSignal<string | undefined>(undefined)
   const [page, setPage] = createSignal(0)
-  const [filterCategory, setFilterCategory] = createSignal<"all" | "safe" | "specialized" | "frontend" | "backend" | "testing">("all")
+  const [filterCategory, setFilterCategory] = createSignal<SkillFilter>("all")
 
   const params = () => (props.directory ? { directory: props.directory } : undefined)
 
@@ -600,6 +602,18 @@ export const SettingsSkillsV2: Component<{
   const selectedSkill = createMemo(() => skills().find((skill) => skill.name === selected()) ?? filteredSkills()[0] ?? skills()[0])
 
   const enabledCount = createMemo(() => skills().filter((s) => !disabled().has(s.name)).length)
+  const filterOptions = createMemo<{ id: SkillFilter; label: string; count: number }[]>(() => {
+    const list = skills()
+    const count = (pred: (name: string) => boolean) => list.filter((s) => pred(s.name)).length
+    return [
+      { id: "all", label: language.t("settings.skills.filter.all"), count: list.length },
+      { id: "safe", label: language.t("settings.skills.filter.safe"), count: count((n) => SAFE_SKILLS.has(n)) },
+      { id: "specialized", label: language.t("settings.skills.filter.specialized"), count: count((n) => !SAFE_SKILLS.has(n)) },
+      { id: "frontend", label: language.t("settings.skills.filter.frontend"), count: count((n) => CATEGORY_FRONTEND.has(n)) },
+      { id: "backend", label: language.t("settings.skills.filter.backend"), count: count((n) => CATEGORY_BACKEND.has(n)) },
+      { id: "testing", label: language.t("settings.skills.filter.testing"), count: count((n) => CATEGORY_TESTING.has(n)) },
+    ]
+  })
   const safeEnabledCount = createMemo(() => skills().filter((s) => SAFE_SKILLS.has(s.name) && !disabled().has(s.name)).length)
   const specializedEnabledCount = createMemo(() => skills().filter((s) => !SAFE_SKILLS.has(s.name) && !disabled().has(s.name)).length)
 
@@ -691,8 +705,7 @@ export const SettingsSkillsV2: Component<{
     setSkillOverrides((prev) => ({ ...prev, [name]: enabled }))
     showToast({
       variant: "success",
-      title: enabled ? "Skill activada" : "Skill desactivada",
-      description: `${name} ${enabled ? "ha sido activada" : "ha sido desactivada"}.`,
+      title: language.t(enabled ? "settings.skills.toggle.enabled" : "settings.skills.toggle.disabled", { name }),
     })
 
     // 2. Persistencia en segundo plano sin congelar la animación del switch
@@ -709,10 +722,7 @@ export const SettingsSkillsV2: Component<{
         delete next[name]
         return next
       })
-      showToast({
-        variant: "error",
-        title: "Error al actualizar la skill",
-      })
+      showToast({ variant: "error", title: language.t("settings.skills.toggle.failed") })
     })
   }
 
@@ -817,98 +827,48 @@ export const SettingsSkillsV2: Component<{
                 </SettingsRowV2>
               </SettingsListV2>
 
-              {/* Barra de Herramientas Compacta: Acciones Rápidas y Filtros en 1 sola sección reducida */}
-              <div class="settings-v2-skills-toolbar-compact">
-                <div class="settings-v2-skills-quick-row">
-                  <div class="settings-v2-skills-quick-buttons">
-                    <button
-                      type="button"
-                      class="settings-v2-skills-action-btn settings-v2-skills-action-btn--enable"
-                      onClick={() => void enableAll()}
-                      title={isSpanish() ? "Activar todas las skills del catálogo" : "Enable all skills in catalog"}
-                    >
-                      ⚡ {isSpanish() ? "Activar Todas" : "Enable All"}
-                    </button>
-                    <button
-                      type="button"
-                      class="settings-v2-skills-action-btn settings-v2-skills-action-btn--safe"
-                      onClick={() => void enableSafeOnly()}
-                      title={isSpanish() ? "Activar sólo las skills 100% seguras" : "Enable safe skills"}
-                    >
-                      🛡️ {isSpanish() ? "Sólo Seguras" : "Safe Only"} ({skills().filter((s) => SAFE_SKILLS.has(s.name)).length})
-                    </button>
-                    <button
-                      type="button"
-                      class="settings-v2-skills-action-btn settings-v2-skills-action-btn--specialized"
-                      onClick={() => void toggleSpecialized()}
-                      title={isSpanish() ? "Activar o desactivar especializadas" : "Toggle specialized"}
-                    >
-                      ⚠️ {specializedEnabledCount() > 0 ? (isSpanish() ? "Desactivar Esp." : "Disable Spec.") : (isSpanish() ? "Especializadas" : "Specialized")}
-                    </button>
-                    <button
-                      type="button"
-                      class="settings-v2-skills-action-btn settings-v2-skills-action-btn--disable"
-                      onClick={() => void disableAll()}
-                      title={isSpanish() ? "Desactivar todas las skills" : "Disable all skills"}
-                    >
-                      🛑 {isSpanish() ? "Desactivar Todas" : "Disable All"}
-                    </button>
-                  </div>
+              <div class="settings-v2-skills-toolbar">
+                <div class="settings-v2-skills-toolbar-row">
                   <span class="settings-v2-skills-stats-pill">
-                    {enabledCount()}/{skills().length} {isSpanish() ? "activas" : "active"}
+                    {language.t("settings.skills.stats.active", { enabled: enabledCount(), total: skills().length })}
                   </span>
+                  <div class="settings-v2-skills-quick-buttons">
+                    <ButtonV2 type="button" variant="outline" size="small" onClick={() => void enableAll()}>
+                      {language.t("settings.skills.actions.enableAll")}
+                    </ButtonV2>
+                    <ButtonV2 type="button" variant="outline" size="small" onClick={() => void enableSafeOnly()}>
+                      {language.t("settings.skills.actions.safeOnly")}
+                    </ButtonV2>
+                    <ButtonV2 type="button" variant="outline" size="small" onClick={() => void toggleSpecialized()}>
+                      {language.t(
+                        specializedEnabledCount() > 0
+                          ? "settings.skills.actions.specialized.disable"
+                          : "settings.skills.actions.specialized.enable",
+                      )}
+                    </ButtonV2>
+                    <ButtonV2 type="button" variant="ghost" size="small" onClick={() => void disableAll()}>
+                      {language.t("settings.skills.actions.disableAll")}
+                    </ButtonV2>
+                  </div>
                 </div>
 
-                {/* Categorías de Filtro Compactas */}
                 <div class="settings-v2-skills-filters-row">
-                  <button
-                    type="button"
-                    class="settings-v2-skills-filter-btn"
-                    data-active={filterCategory() === "all" ? "" : undefined}
-                    onClick={() => { setFilterCategory("all"); setPage(0); }}
-                  >
-                    {isSpanish() ? "Todas" : "All"} ({skills().length})
-                  </button>
-                  <button
-                    type="button"
-                    class="settings-v2-skills-filter-btn"
-                    data-active={filterCategory() === "safe" ? "" : undefined}
-                    onClick={() => { setFilterCategory("safe"); setPage(0); }}
-                  >
-                    🛡️ {isSpanish() ? "Seguras" : "Safe"} ({skills().filter((s) => SAFE_SKILLS.has(s.name)).length})
-                  </button>
-                  <button
-                    type="button"
-                    class="settings-v2-skills-filter-btn"
-                    data-active={filterCategory() === "specialized" ? "" : undefined}
-                    onClick={() => { setFilterCategory("specialized"); setPage(0); }}
-                  >
-                    ⚠️ {isSpanish() ? "Especializadas" : "Specialized"} ({skills().filter((s) => !SAFE_SKILLS.has(s.name)).length})
-                  </button>
-                  <button
-                    type="button"
-                    class="settings-v2-skills-filter-btn"
-                    data-active={filterCategory() === "frontend" ? "" : undefined}
-                    onClick={() => { setFilterCategory("frontend"); setPage(0); }}
-                  >
-                    🎨 Frontend
-                  </button>
-                  <button
-                    type="button"
-                    class="settings-v2-skills-filter-btn"
-                    data-active={filterCategory() === "backend" ? "" : undefined}
-                    onClick={() => { setFilterCategory("backend"); setPage(0); }}
-                  >
-                    ⚙️ Backend
-                  </button>
-                  <button
-                    type="button"
-                    class="settings-v2-skills-filter-btn"
-                    data-active={filterCategory() === "testing" ? "" : undefined}
-                    onClick={() => { setFilterCategory("testing"); setPage(0); }}
-                  >
-                    🧪 Testing
-                  </button>
+                  <For each={filterOptions()}>
+                    {(option) => (
+                      <button
+                        type="button"
+                        class="settings-v2-skills-filter-btn"
+                        data-active={filterCategory() === option.id ? "" : undefined}
+                        onClick={() => {
+                          setFilterCategory(option.id)
+                          setPage(0)
+                        }}
+                      >
+                        {option.label}
+                        <span class="settings-v2-skills-filter-count">{option.count}</span>
+                      </button>
+                    )}
+                  </For>
                 </div>
               </div>
 
@@ -936,9 +896,9 @@ export const SettingsSkillsV2: Component<{
                             <span
                               class={`settings-v2-skill-badge ${SAFE_SKILLS.has(skill.name) ? "settings-v2-skill-badge--safe" : "settings-v2-skill-badge--specialized"}`}
                             >
-                              {SAFE_SKILLS.has(skill.name)
-                                ? (isSpanish() ? "🛡️ Seguro" : "🛡️ Safe")
-                                : (isSpanish() ? "⚠️ Especializado" : "⚠️ Specialized")}
+                              {language.t(
+                                SAFE_SKILLS.has(skill.name) ? "settings.skills.badge.safe" : "settings.skills.badge.specialized",
+                              )}
                             </span>
                           </div>
                           <div class="settings-v2-skills-item-description">
@@ -1086,9 +1046,9 @@ export const SettingsSkillsV2: Component<{
                       <span
                         class={`settings-v2-skill-badge ${SAFE_SKILLS.has(skill().name) ? "settings-v2-skill-badge--safe" : "settings-v2-skill-badge--specialized"}`}
                       >
-                        {SAFE_SKILLS.has(skill().name)
-                          ? (isSpanish() ? "🛡️ Seguro" : "🛡️ Safe")
-                          : (isSpanish() ? "⚠️ Especializado" : "⚠️ Specialized")}
+                        {language.t(
+                          SAFE_SKILLS.has(skill().name) ? "settings.skills.badge.safe" : "settings.skills.badge.specialized",
+                        )}
                       </span>
                     </div>
                     <div class="settings-v2-skills-item-description">
@@ -1112,13 +1072,8 @@ export const SettingsSkillsV2: Component<{
                   class={`settings-v2-skill-compatibility-callout ${SAFE_SKILLS.has(skill().name) ? "settings-v2-skill-compatibility-callout--safe" : "settings-v2-skill-compatibility-callout--specialized"}`}
                 >
                   {SAFE_SKILLS.has(skill().name)
-                    ? (isSpanish()
-                        ? "🛡️ Skill universal segura y compatible: puede estar activa junto a cualquier otra skill sin riesgo de interferencia ni bloqueos en el flujo de trabajo."
-                        : "🛡️ Safe & universal skill: compatible to run alongside any other skill without workflow conflicts.")
-                    : (SPECIALIZED_CONFLICT_TIPS[skill().name] ||
-                        (isSpanish()
-                          ? "⚠️ Skill especializada: diseñada para un propósito específico. Evita activarla junto a otras metodologías o estilos de diseño opuestos para mantener la fluidez y evitar respuestas contradictorias."
-                          : "⚠️ Specialized skill: designed for a specific workflow. Avoid combining with opposing methodologies or styling guides."))}
+                    ? language.t("settings.skills.callout.safe")
+                    : SPECIALIZED_CONFLICT_TIPS[skill().name] || language.t("settings.skills.callout.specialized")}
                 </div>
 
                 <div class="settings-v2-skills-detail-body">

@@ -610,6 +610,19 @@ export const SettingsMcpPluginsV2: Component<{
     return items.filter((plugin) => !query || plugin.name.toLowerCase().includes(query) || plugin.display.toLowerCase().includes(query))
   })
 
+  // A local plugin's name is its file:// URL; show the part under .tiancode/ instead of the
+  // whole absolute path, and never repeat the path as its description.
+  const shortPluginRef = (name: string) => {
+    const looksLikePath = /^file:/i.test(name) || /^[a-zA-Z]:[\\/]/.test(name) || name.startsWith("/")
+    if (!looksLikePath) return name
+    const normalized = name.replace(/\\/g, "/")
+    const idx = normalized.indexOf("/.tiancode/")
+    if (idx >= 0) return normalized.slice(idx + 1)
+    return normalized.split("/").filter(Boolean).slice(-2).join("/")
+  }
+  const pluginDescription = (plugin: { desc?: string; name: string; isLocal: boolean }) =>
+    plugin.desc ?? (plugin.isLocal ? language.t("settings.mcpPlugins.plugin.localDescription") : plugin.name)
+
   // Catalog filtered list
   const catalogList = createMemo(() => {
     const cat = discoverCategory()
@@ -684,7 +697,9 @@ export const SettingsMcpPluginsV2: Component<{
     setMcpOverrides((prev) => ({ ...prev, [name]: nextEnabled }))
     showToast({
       variant: "success",
-      title: nextEnabled ? `Servidor "${name}" activado y en ejecución` : `Servidor "${name}" desactivado`,
+      title: language.t(nextEnabled ? "settings.mcpPlugins.toast.serverEnabled" : "settings.mcpPlugins.toast.serverDisabled", {
+        name,
+      }),
     })
 
     // 2. Ejecutar sincronización en segundo plano sin bloquear UI
@@ -715,7 +730,7 @@ export const SettingsMcpPluginsV2: Component<{
         delete next[name]
         return next
       })
-      showToast({ variant: "error", title: "Error al actualizar el servidor MCP" })
+      showToast({ variant: "error", title: language.t("settings.mcpPlugins.toast.serverUpdateFailed") })
     })
   }
 
@@ -728,9 +743,9 @@ export const SettingsMcpPluginsV2: Component<{
       await serverSdk().client.config.update({ ...params(), config: { mcp: currentConfig } })
       void refetchConfig()
       void refetchStatus()
-      showToast({ variant: "success", title: `Servidor "${name}" eliminado` })
+      showToast({ variant: "success", title: language.t("settings.mcpPlugins.toast.serverRemoved", { name }) })
     } catch {
-      showToast({ variant: "error", title: "Error al eliminar el servidor MCP" })
+      showToast({ variant: "error", title: language.t("settings.mcpPlugins.toast.serverRemoveFailed") })
     }
   }
 
@@ -741,7 +756,7 @@ export const SettingsMcpPluginsV2: Component<{
     setBuiltinOverrides((prev) => ({ ...prev, [id]: nextEnabled }))
     showToast({
       variant: "success",
-      title: nextEnabled ? `Plugin integrado activado` : `Plugin integrado desactivado`,
+      title: language.t(nextEnabled ? "settings.mcpPlugins.toast.pluginEnabled" : "settings.mcpPlugins.toast.pluginDisabled"),
     })
 
     // 2. Sincronización en segundo plano
@@ -763,7 +778,7 @@ export const SettingsMcpPluginsV2: Component<{
           delete next[id]
           return next
         })
-        showToast({ variant: "error", title: "Error al actualizar plugin" })
+        showToast({ variant: "error", title: language.t("settings.mcpPlugins.toast.pluginUpdateFailed") })
       })
   }
 
@@ -776,7 +791,7 @@ export const SettingsMcpPluginsV2: Component<{
     setPluginOverrides((prev) => ({ ...prev, [targetName]: nextEnabled }))
     showToast({
       variant: "success",
-      title: nextEnabled ? `Plugin activado` : `Plugin desactivado`,
+      title: language.t(nextEnabled ? "settings.mcpPlugins.toast.pluginEnabled" : "settings.mcpPlugins.toast.pluginDisabled"),
     })
 
     // 2. Sincronización en segundo plano
@@ -821,7 +836,7 @@ export const SettingsMcpPluginsV2: Component<{
           delete next[targetName]
           return next
         })
-        showToast({ variant: "error", title: "Error al actualizar el plugin" })
+        showToast({ variant: "error", title: language.t("settings.mcpPlugins.toast.pluginUpdateFailed") })
       })
   }
 
@@ -841,7 +856,7 @@ export const SettingsMcpPluginsV2: Component<{
         await serverSdk().client.config.update({ ...params(), config: { mcp: currentMcp } })
         void refetchConfig()
         void refetchStatus()
-        showToast({ variant: "success", title: `Servidor MCP "${item.name}" conectado y corriendo` })
+        showToast({ variant: "success", title: language.t("settings.mcpPlugins.toast.serverConnected", { name: item.name }) })
       } else if (item.type === "plugin" && item.spec) {
         const currentPlugins = [...((configData().plugin ?? []) as PluginEntry[])]
         if (!currentPlugins.some((p) => pluginName(p) === item.spec)) {
@@ -849,10 +864,10 @@ export const SettingsMcpPluginsV2: Component<{
         }
         await serverSdk().client.config.update({ ...params(), config: { plugin: currentPlugins } })
         void refetchConfig()
-        showToast({ variant: "success", title: `Plugin "${item.name}" instalado con éxito` })
+        showToast({ variant: "success", title: language.t("settings.mcpPlugins.toast.pluginInstalled", { name: item.name }) })
       }
     } catch {
-      showToast({ variant: "error", title: `Error al instalar ${item.name}` })
+      showToast({ variant: "error", title: language.t("settings.mcpPlugins.toast.installFailed", { name: item.name }) })
     }
   }
 
@@ -861,7 +876,7 @@ export const SettingsMcpPluginsV2: Component<{
     const name = formName().trim()
     const cmd = formCommand().trim()
     if (!name || !cmd) {
-      showToast({ variant: "error", title: "Completa el nombre y comando / URL" })
+      showToast({ variant: "error", title: language.t("settings.mcpPlugins.toast.formIncomplete") })
       return
     }
 
@@ -891,9 +906,9 @@ export const SettingsMcpPluginsV2: Component<{
       setShowAddModal(false)
       setFormName("")
       setFormCommand("")
-      showToast({ variant: "success", title: "Añadido exitosamente" })
+      showToast({ variant: "success", title: language.t("settings.mcpPlugins.toast.added") })
     } catch {
-      showToast({ variant: "error", title: "Error al guardar la configuración" })
+      showToast({ variant: "error", title: language.t("settings.mcpPlugins.toast.saveFailed") })
     } finally {
       setSubmitting(false)
     }
@@ -905,10 +920,8 @@ export const SettingsMcpPluginsV2: Component<{
       <div class="settings-v2-tab-header settings-v2-tab-header--stacked">
         <div class="flex items-center justify-between gap-4 w-full">
           <div>
-            <h2 class="settings-v2-tab-title">Plugins y Servidores MCP</h2>
-            <p class="settings-v2-tab-description">
-              Extiende las capacidades del agente con herramientas MCP externas y plugins de ciclo de vida.
-            </p>
+            <h2 class="settings-v2-tab-title">{language.t("settings.mcpPlugins.title")}</h2>
+            <p class="settings-v2-tab-description">{language.t("settings.mcpPlugins.description")}</p>
           </div>
           <div class="flex items-center gap-2">
             <ButtonV2
@@ -921,7 +934,7 @@ export const SettingsMcpPluginsV2: Component<{
                 setShowAddModal(true)
               }}
             >
-              {activeTab() === "plugins" ? "Añadir Plugin" : "Añadir Servidor"}
+              {language.t(activeTab() === "plugins" ? "settings.mcpPlugins.add.plugin" : "settings.mcpPlugins.add.server")}
             </ButtonV2>
           </div>
         </div>
@@ -933,17 +946,20 @@ export const SettingsMcpPluginsV2: Component<{
           <SegmentedControlV2 value={activeTab()} onChange={(v) => setActiveTab(v as TabMode)}>
             <SegmentedControlItemV2 value="plugins">
               <span class="flex items-center gap-1.5 whitespace-nowrap">
-                <span>🧩 Plugins ({pluginsList().length + builtinPlugins().length})</span>
+                <span>{language.t("settings.mcpPlugins.tab.plugins")}</span>
+                <span class="mcp-plugins-tab-count">{pluginsList().length + builtinPlugins().length}</span>
               </span>
             </SegmentedControlItemV2>
             <SegmentedControlItemV2 value="mcp">
               <span class="flex items-center gap-1.5 whitespace-nowrap">
-                <span>🔌 Servidores MCP ({mcpServers().length})</span>
+                <span>{language.t("settings.mcpPlugins.tab.servers")}</span>
+                <span class="mcp-plugins-tab-count">{mcpServers().length}</span>
               </span>
             </SegmentedControlItemV2>
             <SegmentedControlItemV2 value="discover">
               <span class="flex items-center gap-1.5 whitespace-nowrap">
-                <span>✨ Descubrir ({catalogList().length})</span>
+                <span>{language.t("settings.mcpPlugins.tab.discover")}</span>
+                <span class="mcp-plugins-tab-count">{catalogList().length}</span>
               </span>
             </SegmentedControlItemV2>
           </SegmentedControlV2>
@@ -954,8 +970,8 @@ export const SettingsMcpPluginsV2: Component<{
               appearance="base"
               value={searchQuery()}
               onInput={(e) => setSearchQuery(e.currentTarget.value)}
-              placeholder="Buscar por nombre, herramienta o comando..."
-              aria-label="Buscar"
+              placeholder={language.t("settings.mcpPlugins.search.placeholder")}
+              aria-label={language.t("settings.mcpPlugins.search.placeholder")}
             />
           </div>
         </div>
@@ -963,27 +979,20 @@ export const SettingsMcpPluginsV2: Component<{
         {/* TAB 1: MCP SERVERS */}
         <Show when={activeTab() === "mcp"}>
           <div class="flex flex-col gap-4">
-            <div class="p-3.5 rounded-xl border border-cyan-500/20 bg-gradient-to-r from-cyan-950/20 via-slate-900/40 to-indigo-950/20">
-              <div class="flex items-start gap-3">
-                <div class="size-8 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center shrink-0 mt-0.5 font-bold text-sm">
-                  ⚡
-                </div>
-                <div class="flex flex-col gap-1">
-                  <div class="flex items-center gap-2">
-                    <h4 class="text-[13px] font-semibold text-v2-text-text-base">Arquitectura MCP (Model Context Protocol)</h4>
-                    <span class="mcp-plugins-chip accent text-[10px]">v1.0 Activo</span>
-                  </div>
-                  <p class="text-[12px] text-slate-300 leading-relaxed mt-1">
-                    <strong>MCP</strong> es un protocolo estándar que permite a los modelos de IA conectarse e interactuar de forma segura con herramientas externas, bases de datos (PostgreSQL, SQLite), software de diseño (Photoshop, Illustrator, InDesign), motores de videojuegos (Unreal Engine, Unity, Godot), navegadores y servicios web en tiempo real.
-                  </p>
-                  <div class="flex items-center gap-4 mt-2.5 pt-2 border-t border-white/5 text-[11px] text-slate-400 flex-wrap">
-                    <span class="flex items-center gap-1">
-                      <span class="text-cyan-400 font-bold">● Local (stdio):</span> Ejecución en tu máquina mediante scripts Python o comandos npx/uvx.
-                    </span>
-                    <span class="flex items-center gap-1">
-                      <span class="text-indigo-400 font-bold">● Remoto (HTTP/SSE):</span> Conexión segura a servidores MCP en la nube o en tu red local.
-                    </span>
-                  </div>
+            <div class="mcp-plugins-intro">
+              <div class="mcp-plugins-intro-icon">
+                <Icon name="mcp" size="small" />
+              </div>
+              <div class="mcp-plugins-intro-copy">
+                <h4 class="mcp-plugins-intro-title">{language.t("settings.mcpPlugins.intro.title")}</h4>
+                <p class="mcp-plugins-intro-body">{language.t("settings.mcpPlugins.intro.body")}</p>
+                <div class="mcp-plugins-intro-kinds">
+                  <span>
+                    <strong>{language.t("settings.mcpServers.type.local")}</strong> · {language.t("settings.mcpPlugins.intro.local")}
+                  </span>
+                  <span>
+                    <strong>{language.t("settings.mcpServers.type.remote")}</strong> · {language.t("settings.mcpPlugins.intro.remote")}
+                  </span>
                 </div>
               </div>
             </div>
@@ -995,9 +1004,9 @@ export const SettingsMcpPluginsV2: Component<{
                   <div class="size-12 rounded-2xl bg-cyan-400/10 text-cyan-400 flex items-center justify-center mb-3">
                     <Icon name="mcp" size="large" />
                   </div>
-                  <h3 class="text-[14px] font-medium text-v2-text-text-base">Sin servidores MCP conectados</h3>
+                  <h3 class="text-[14px] font-medium text-v2-text-text-base">{language.t("settings.mcpServers.empty")}</h3>
                   <p class="text-[12px] text-v2-text-text-muted max-w-sm mt-1 mb-4">
-                    Conecta herramientas externas como bases de datos, APIs o navegadores para que el agente las use libremente.
+                    {language.t("settings.mcpPlugins.empty.description")}
                   </p>
                   <div class="flex items-center gap-2">
                     <ButtonV2
@@ -1005,7 +1014,7 @@ export const SettingsMcpPluginsV2: Component<{
                       size="small"
                       onClick={() => setActiveTab("discover")}
                     >
-                      Explorar Catálogo
+                      {language.t("settings.mcpPlugins.empty.explore")}
                     </ButtonV2>
                     <ButtonV2
                       variant="contrast"
@@ -1016,7 +1025,7 @@ export const SettingsMcpPluginsV2: Component<{
                         setShowAddModal(true)
                       }}
                     >
-                      Añadir Manualmente
+                      {language.t("settings.mcpPlugins.empty.add")}
                     </ButtonV2>
                   </div>
                 </div>
@@ -1024,11 +1033,11 @@ export const SettingsMcpPluginsV2: Component<{
             >
               <div class="mcp-plugins-table mcp-plugins-table--mcp">
                 <div class="mcp-plugins-thead">
-                  <div>Servidor MCP</div>
-                  <div>Tipo & Alcance</div>
-                  <div>Comando / Endpoint SSE</div>
-                  <div>Estado</div>
-                  <div class="text-right">Acción</div>
+                  <div>{language.t("settings.mcpPlugins.column.server")}</div>
+                  <div>{language.t("settings.mcpPlugins.column.type")}</div>
+                  <div>{language.t("settings.mcpPlugins.column.command")}</div>
+                  <div>{language.t("settings.mcpPlugins.column.status")}</div>
+                  <div class="text-right">{language.t("settings.mcpPlugins.column.action")}</div>
                 </div>
 
                 <div class="divide-y divide-white/[0.04]">
@@ -1042,7 +1051,7 @@ export const SettingsMcpPluginsV2: Component<{
                           </div>
                           <div class="flex flex-col min-w-0">
                             <div class="flex items-center gap-1.5">
-                              <span class="text-xs font-semibold text-slate-100 truncate" title={server.name}>
+                              <span class="text-xs font-semibold text-v2-text-text-base truncate" title={server.name}>
                                 {server.name}
                               </span>
                               <span
@@ -1052,11 +1061,15 @@ export const SettingsMcpPluginsV2: Component<{
                                   error: server.status === "failed",
                                   disconnected: !server.enabled || server.status === "disabled" || server.status === "needs_auth",
                                 }}
-                                title={`Estado: ${server.enabled ? server.status : "desactivado"}`}
+                                title={server.enabled ? server.status : language.t("settings.mcpServers.status.disabled")}
                               />
                             </div>
-                            <span class="text-[10px] text-slate-400 truncate">
-                              {server.enabled && server.status === "connected" ? "Conectado" : !server.enabled ? "Desactivado" : server.status}
+                            <span class="text-[10px] text-v2-text-text-muted truncate">
+                              {server.enabled && server.status === "connected"
+                                ? language.t("settings.mcpServers.status.connected")
+                                : !server.enabled
+                                  ? language.t("settings.mcpServers.status.disabled")
+                                  : server.status}
                             </span>
                           </div>
                         </div>
@@ -1064,11 +1077,11 @@ export const SettingsMcpPluginsV2: Component<{
                         {/* 2. Tipo & Alcance */}
                         <div class="mcp-plugins-cell gap-2 pr-2">
                           <span class="mcp-plugins-chip mcp-plugins-chip--category accent text-[10px]">
-                            {server.isLocal ? "Local (stdio)" : "Remoto (SSE)"}
+                            {language.t(server.isLocal ? "settings.mcpServers.type.local" : "settings.mcpServers.type.remote")}
                           </span>
                           <Show when={server.toolsCount > 0}>
                             <span class="mcp-plugins-chip mcp-plugins-chip--type text-[10px]">
-                              {server.toolsCount} {server.toolsCount === 1 ? "herramienta" : "herramientas"}
+                              {language.t("settings.mcpServers.tools.count", { count: server.toolsCount })}
                             </span>
                           </Show>
                         </div>
@@ -1090,7 +1103,7 @@ export const SettingsMcpPluginsV2: Component<{
                             class="settings-v2-chip text-[10px]"
                             data-tone={server.enabled ? "accent" : "muted"}
                           >
-                            {server.enabled ? "Activo" : "Inactivo"}
+                            {language.t(server.enabled ? "settings.mcpPlugins.status.active" : "settings.mcpPlugins.status.inactive")}
                           </span>
                         </div>
 
@@ -1101,7 +1114,7 @@ export const SettingsMcpPluginsV2: Component<{
                             variant="ghost-muted"
                             size="small"
                             icon={<IconV2 name="trash" class="text-v2-icon-icon-muted hover:text-v2-state-fg-danger" />}
-                            aria-label="Eliminar servidor"
+                            aria-label={language.t("settings.mcpPlugins.remove.server")}
                             onClick={() => void removeMcpServer(server.name)}
                           />
                         </div>
@@ -1129,17 +1142,17 @@ export const SettingsMcpPluginsV2: Component<{
             <div class="flex flex-col gap-3">
               <div class="flex items-center justify-between">
                 <h3 class="text-[13px] font-semibold text-v2-text-text-base flex items-center gap-2">
-                  <span>Plugins Instalados y Extensiones</span>
+                  <span>{language.t("settings.mcpPlugins.section.installed")}</span>
                   <span class="mcp-plugins-chip">{pluginsList().length}</span>
                 </h3>
               </div>
 
               <div class="mcp-plugins-table mcp-plugins-table--plugins">
                 <div class="mcp-plugins-thead">
-                  <div>Plugin / Extensión</div>
-                  <div>Categoría & Tipo</div>
-                  <div>Descripción / Especificación</div>
-                  <div>Estado</div>
+                  <div>{language.t("settings.mcpPlugins.column.plugin")}</div>
+                  <div>{language.t("settings.mcpPlugins.column.category")}</div>
+                  <div>{language.t("settings.mcpPlugins.column.description")}</div>
+                  <div>{language.t("settings.mcpPlugins.column.status")}</div>
                 </div>
 
                 <div class="divide-y divide-white/[0.04]">
@@ -1152,11 +1165,11 @@ export const SettingsMcpPluginsV2: Component<{
                             {plugin.icon}
                           </div>
                           <div class="flex flex-col min-w-0">
-                            <span class="text-xs font-semibold text-slate-100 truncate" title={plugin.display}>
+                            <span class="text-xs font-semibold text-v2-text-text-base truncate" title={plugin.display}>
                               {plugin.display}
                             </span>
-                            <span class="text-[10px] font-mono text-slate-400 truncate">
-                              {plugin.name}
+                            <span class="text-[10px] font-mono text-v2-text-text-muted truncate" title={plugin.name}>
+                              {shortPluginRef(plugin.name)}
                             </span>
                           </div>
                         </div>
@@ -1167,14 +1180,14 @@ export const SettingsMcpPluginsV2: Component<{
                             {formatCategory(plugin.category)}
                           </span>
                           <span class="mcp-plugins-chip mcp-plugins-chip--type text-[10px]">
-                            {plugin.isLocal ? "Local" : "Plugin"}
+                            {language.t(plugin.isLocal ? "settings.mcpPlugins.origin.local" : "settings.mcpPlugins.origin.plugin")}
                           </span>
                         </div>
 
                         {/* 3. Descripción */}
                         <div class="mcp-plugins-cell pr-3">
-                          <p class="text-[11.5px] text-slate-400 line-clamp-1 leading-normal m-0" title={plugin.desc ?? plugin.name}>
-                            {plugin.desc ?? plugin.name}
+                          <p class="text-[11.5px] text-v2-text-text-muted line-clamp-1 leading-normal m-0" title={pluginDescription(plugin)}>
+                            {pluginDescription(plugin)}
                           </p>
                         </div>
 
@@ -1188,7 +1201,7 @@ export const SettingsMcpPluginsV2: Component<{
                             class="settings-v2-chip text-[10px]"
                             data-tone={plugin.enabled ? "accent" : "muted"}
                           >
-                            {plugin.enabled ? "Activo" : "Inactivo"}
+                            {language.t(plugin.enabled ? "settings.mcpPlugins.status.active" : "settings.mcpPlugins.status.inactive")}
                           </span>
                         </div>
                       </div>
@@ -1210,17 +1223,17 @@ export const SettingsMcpPluginsV2: Component<{
             <div class="flex flex-col gap-3 pt-4 border-t border-v2-border-border-muted">
               <div class="flex items-center justify-between">
                 <h3 class="text-[13px] font-semibold text-v2-text-text-base flex items-center gap-2">
-                  <span>Built-in Integrados</span>
+                  <span>{language.t("settings.mcpPlugins.section.builtin")}</span>
                   <span class="mcp-plugins-chip">{builtinPlugins().length}</span>
                 </h3>
               </div>
 
               <div class="mcp-plugins-table mcp-plugins-table--plugins">
                 <div class="mcp-plugins-thead">
-                  <div>Plugin Integrado</div>
-                  <div>Categoría & Tipo</div>
-                  <div>Descripción</div>
-                  <div>Estado</div>
+                  <div>{language.t("settings.mcpPlugins.column.plugin")}</div>
+                  <div>{language.t("settings.mcpPlugins.column.category")}</div>
+                  <div>{language.t("settings.mcpPlugins.column.description")}</div>
+                  <div>{language.t("settings.mcpPlugins.column.status")}</div>
                 </div>
 
                 <div class="divide-y divide-white/[0.04]">
@@ -1233,10 +1246,10 @@ export const SettingsMcpPluginsV2: Component<{
                             {plugin.icon}
                           </div>
                           <div class="flex flex-col min-w-0">
-                            <span class="text-xs font-semibold text-slate-100 truncate" title={plugin.name}>
+                            <span class="text-xs font-semibold text-v2-text-text-base truncate" title={plugin.name}>
                               {plugin.name}
                             </span>
-                            <span class="text-[10px] font-mono text-slate-400 truncate">
+                            <span class="text-[10px] font-mono text-v2-text-text-muted truncate">
                               builtin-{plugin.id}
                             </span>
                           </div>
@@ -1248,13 +1261,13 @@ export const SettingsMcpPluginsV2: Component<{
                             {formatCategory(plugin.category)}
                           </span>
                           <span class="mcp-plugins-chip mcp-plugins-chip--type text-[10px]">
-                            Built-in
+                            {language.t("settings.mcpPlugins.origin.builtin")}
                           </span>
                         </div>
 
                         {/* 3. Descripción */}
                         <div class="mcp-plugins-cell pr-3">
-                          <p class="text-[11.5px] text-slate-400 line-clamp-1 leading-normal m-0" title={plugin.desc}>
+                          <p class="text-[11.5px] text-v2-text-text-muted line-clamp-1 leading-normal m-0" title={plugin.desc}>
                             {plugin.desc}
                           </p>
                         </div>
@@ -1269,7 +1282,7 @@ export const SettingsMcpPluginsV2: Component<{
                             class="settings-v2-chip text-[10px]"
                             data-tone={plugin.enabled ? "accent" : "muted"}
                           >
-                            {plugin.enabled ? "Activo" : "Inactivo"}
+                            {language.t(plugin.enabled ? "settings.mcpPlugins.status.active" : "settings.mcpPlugins.status.inactive")}
                           </span>
                         </div>
                       </div>
@@ -1292,36 +1305,18 @@ export const SettingsMcpPluginsV2: Component<{
         {/* TAB 3: DISCOVER CATALOG - WINDOWS 11 FLUENT STORE DESIGN */}
         <Show when={activeTab() === "discover"}>
           <div class="win11-discover-wrapper">
-            {/* Windows 11 Mica Showcase Banner */}
-            <div class="win11-hero-banner">
-              <div class="win11-hero-glow" />
-              <div class="win11-hero-content">
-                <div class="flex items-start gap-3.5">
-                  <div class="win11-hero-icon-box">
-                    <span class="text-xl">🪟</span>
-                  </div>
-                  <div class="flex flex-col gap-1">
-                    <div class="flex items-center gap-2 flex-wrap">
-                      <h3 class="win11-hero-title">Catálogo de Extensiones Windows 11</h3>
-                      <span class="win11-badge-mica">Mica Fluent</span>
-                      <span class="win11-badge-store">Store Ready</span>
-                    </div>
-                    <p class="win11-hero-desc">
-                      Descubre herramientas oficiales del protocolo MCP y plugins modulares. Conexión nativa con un clic para tus sub-agentes autónomos y flujos de trabajo.
-                    </p>
-                  </div>
-                </div>
-                <div class="win11-hero-meta">
-                  <div class="win11-meta-stat">
-                    <span class="win11-meta-value">{catalogList().length}</span>
-                    <span class="win11-meta-label">Extensiones</span>
-                  </div>
-                  <div class="win11-meta-divider" />
-                  <div class="win11-meta-stat">
-                    <span class="win11-meta-value">{mcpServers().length + pluginsList().length}</span>
-                    <span class="win11-meta-label">Instaladas</span>
-                  </div>
-                </div>
+            <div class="mcp-plugins-discover-head">
+              <div class="mcp-plugins-discover-copy">
+                <h3 class="settings-v2-section-title">{language.t("settings.mcpPlugins.discover.title")}</h3>
+                <p class="mcp-plugins-discover-description">{language.t("settings.mcpPlugins.discover.description")}</p>
+              </div>
+              <div class="mcp-plugins-discover-stats">
+                <span class="settings-v2-chip" data-tone="muted">
+                  {language.t("settings.mcpPlugins.discover.available", { count: catalogList().length })}
+                </span>
+                <span class="settings-v2-chip" data-tone="accent">
+                  {language.t("settings.mcpPlugins.discover.installed", { count: mcpServers().length + pluginsList().length })}
+                </span>
               </div>
             </div>
 
@@ -1329,30 +1324,29 @@ export const SettingsMcpPluginsV2: Component<{
             <div class="win11-filter-bar no-scrollbar">
               <For
                 each={[
-                  { id: "all", label: "Todos", icon: "🌐" },
-                  { id: "desarrollo", label: "Desarrollo", icon: "💻" },
-                  { id: "ia", label: "IA & Agentes", icon: "🧠" },
-                  { id: "seguridad", label: "Seguridad", icon: "🛡️" },
-                  { id: "web", label: "Web & Browser", icon: "🌍" },
-                  { id: "database", label: "Bases de Datos", icon: "🗄️" },
-                  { id: "cloud", label: "Cloud & DevOps", icon: "☁️" },
-                  { id: "finanzas", label: "Finanzas", icon: "💳" },
-                  { id: "diseno", label: "Diseño", icon: "🎨" },
-                  { id: "ventas", label: "Ventas", icon: "📊" },
-                  { id: "datos", label: "Datos", icon: "🏛️" },
+                  "all",
+                  "desarrollo",
+                  "ia",
+                  "seguridad",
+                  "web",
+                  "database",
+                  "cloud",
+                  "finanzas",
+                  "diseno",
+                  "ventas",
+                  "datos",
                 ]}
               >
                 {(cat) => {
-                  const isActive = () => discoverCategory() === cat.id
+                  const isActive = () => discoverCategory() === cat
                   return (
                     <button
                       type="button"
                       class="win11-filter-chip"
                       classList={{ active: isActive() }}
-                      onClick={() => setDiscoverCategory(cat.id)}
+                      onClick={() => setDiscoverCategory(cat)}
                     >
-                      <span class="win11-chip-icon">{cat.icon}</span>
-                      <span>{cat.label}</span>
+                      <span>{language.t(`settings.mcpPlugins.discover.category.${cat}` as "settings.mcpPlugins.discover.category.all")}</span>
                     </button>
                   )
                 }}
@@ -1362,10 +1356,10 @@ export const SettingsMcpPluginsV2: Component<{
             {/* Windows 11 Fluent App List View (10x10) */}
             <div class="mcp-plugins-table">
               <div class="mcp-plugins-thead">
-                <div>Extensión / Herramienta</div>
-                <div>Categoría</div>
-                <div>Comando / Especificación & Descripción</div>
-                <div class="text-right">Acción</div>
+                <div>{language.t("settings.mcpPlugins.column.extension")}</div>
+                <div>{language.t("settings.mcpPlugins.column.category")}</div>
+                <div>{language.t("settings.mcpPlugins.column.spec")}</div>
+                <div class="text-right">{language.t("settings.mcpPlugins.column.action")}</div>
               </div>
 
               <div class="divide-y divide-white/[0.04]">
@@ -1385,11 +1379,11 @@ export const SettingsMcpPluginsV2: Component<{
                           </div>
                           <div class="flex flex-col min-w-0">
                             <div class="flex items-center gap-1.5 flex-wrap">
-                              <span class="text-xs font-semibold text-slate-100 truncate" title={item.name}>
+                              <span class="text-xs font-semibold text-v2-text-text-base truncate" title={item.name}>
                                 {item.name}
                               </span>
                               <Show when={item.popular}>
-                                <span class="win11-badge-popular text-[9px] py-0 px-1.5">⭐ Top</span>
+                                <span class="win11-badge-popular text-[9px] py-0 px-1.5">{language.t("settings.mcpPlugins.discover.popular")}</span>
                               </Show>
                             </div>
                             <div class="flex items-center gap-1.5 mt-0.5">
@@ -1418,7 +1412,7 @@ export const SettingsMcpPluginsV2: Component<{
                           <div class="win11-spec-badge max-w-full text-[10.5px] py-0.5 px-2" title={item.command ?? item.spec}>
                             <span class="truncate font-mono">{item.command ?? item.spec}</span>
                           </div>
-                          <p class="text-[11px] text-slate-400 line-clamp-1 leading-normal m-0">
+                          <p class="text-[11px] text-v2-text-text-muted line-clamp-1 leading-normal m-0">
                             {item.desc}
                           </p>
                         </div>
@@ -1435,8 +1429,8 @@ export const SettingsMcpPluginsV2: Component<{
                             disabled={isInstalled()}
                             onClick={() => void installCatalogItem(item)}
                           >
-                            <Show when={isInstalled()} fallback={<><span>Obtener</span><span class="text-xs">↗</span></>}>
-                              <span>✓ Instalado</span>
+                            <Show when={isInstalled()} fallback={<span>{language.t("settings.mcpPlugins.discover.get")}</span>}>
+                              <span>{language.t("settings.mcpPlugins.discover.installedBadge")}</span>
                             </Show>
                           </button>
                         </div>
@@ -1464,47 +1458,47 @@ export const SettingsMcpPluginsV2: Component<{
           <div class="mcp-plugins-modal" onClick={(e) => e.stopPropagation()}>
             <div class="flex items-center justify-between pb-2 border-b border-v2-border-border-muted">
               <h3 class="text-[16px] font-semibold text-v2-text-text-base">
-                {addMode() === "mcp" ? "Añadir Servidor MCP" : "Añadir Plugin"}
+                {language.t(addMode() === "mcp" ? "settings.mcpPlugins.add.server" : "settings.mcpPlugins.add.plugin")}
               </h3>
               <IconButtonV2
                 type="button"
                 variant="ghost-muted"
                 size="small"
                 icon={<IconV2 name="close" />}
-                aria-label="Cerrar"
+                aria-label={language.t("common.close")}
                 onClick={() => setShowAddModal(false)}
               />
             </div>
 
             <div class="flex flex-col gap-3">
               <label class="flex flex-col gap-1.5">
-                <span class="text-[12px] font-medium text-v2-text-text-base">Identificador / Nombre</span>
+                <span class="text-[12px] font-medium text-v2-text-text-base">{language.t("settings.mcpPlugins.form.name")}</span>
                 <TextInputV2
                   value={formName()}
                   onInput={(e) => setFormName(e.currentTarget.value)}
-                  placeholder="ej. filesystem, sqlite, analytics"
+                  placeholder={language.t("settings.mcpPlugins.form.name.placeholder")}
                 />
               </label>
 
               <label class="flex flex-col gap-1.5">
                 <span class="text-[12px] font-medium text-v2-text-text-base">
-                  {addMode() === "mcp" ? "Comando de ejecución o URL SSE" : "Paquete npm o ruta local"}
+                  {language.t(addMode() === "mcp" ? "settings.mcpPlugins.form.command.server" : "settings.mcpPlugins.form.command.plugin")}
                 </span>
                 <TextInputV2
                   value={formCommand()}
                   onInput={(e) => setFormCommand(e.currentTarget.value)}
-                  placeholder={
+                  placeholder={language.t(
                     addMode() === "mcp"
-                      ? "ej. npx -y @modelcontextprotocol/server-sqlite . o https://api.mcp.io/sse"
-                      : "ej. @org/plugin-name o .tiancode/plugins/my-plugin.ts"
-                  }
+                      ? "settings.mcpPlugins.form.command.server.placeholder"
+                      : "settings.mcpPlugins.form.command.plugin.placeholder",
+                  )}
                 />
               </label>
             </div>
 
             <div class="flex items-center justify-end gap-2 pt-2 border-t border-v2-border-border-muted">
               <ButtonV2 variant="neutral" size="normal" onClick={() => setShowAddModal(false)}>
-                Cancelar
+                {language.t("common.cancel")}
               </ButtonV2>
               <ButtonV2
                 variant="contrast"
@@ -1512,7 +1506,7 @@ export const SettingsMcpPluginsV2: Component<{
                 disabled={submitting() || !formName().trim() || !formCommand().trim()}
                 onClick={() => void handleSaveModal()}
               >
-                {submitting() ? "Guardando..." : "Guardar y Conectar"}
+                {submitting() ? language.t("common.saving") : language.t("settings.mcpPlugins.form.submit")}
               </ButtonV2>
             </div>
           </div>

@@ -16,6 +16,112 @@
   padding-bottom: 4px;
 }
 
+/* Segmented tabs size to their labels; equal thirds clipped the longest one. */
+.mcp-plugins-segmented-wrapper [data-slot="segmented-control-v2-item"] {
+  flex: 0 0 auto;
+}
+
+.mcp-plugins-tab-count {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--v2-text-text-muted);
+  background: var(--v2-background-bg-layer-02);
+}
+
+[data-slot="segmented-control-v2-item"][data-pressed] .mcp-plugins-tab-count {
+  color: var(--interactive-accent, #38bdf8);
+  background: color-mix(in srgb, var(--interactive-accent, #38bdf8) 14%, transparent);
+}
+
+/* Short explainer above the MCP server list. */
+.mcp-plugins-intro {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--v2-border-border-muted);
+  background: var(--v2-background-bg-layer-01);
+}
+
+.mcp-plugins-intro-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  color: var(--interactive-accent, #38bdf8);
+  background: color-mix(in srgb, var(--interactive-accent, #38bdf8) 12%, transparent);
+}
+
+.mcp-plugins-intro-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.mcp-plugins-intro-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--v2-text-text-base);
+}
+
+.mcp-plugins-intro-body {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--v2-text-text-muted);
+}
+
+.mcp-plugins-intro-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--v2-text-text-muted);
+}
+
+.mcp-plugins-intro-kinds strong {
+  font-weight: 600;
+  color: var(--v2-text-text-base);
+}
+
+/* Discover tab header. */
+.mcp-plugins-discover-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+
+.mcp-plugins-discover-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.mcp-plugins-discover-description {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--v2-text-text-muted);
+}
+
+.mcp-plugins-discover-stats {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+
 .mcp-plugins-search-box {
   position: relative;
   min-width: 200px;
@@ -339,7 +445,6 @@
   border-radius: 10px;
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(12px);
 }
 
 .win11-meta-stat {
@@ -593,9 +698,8 @@
 .mcp-plugins-table {
   width: 100%;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(15, 23, 42, 0.45);
-  backdrop-filter: blur(12px);
+  border: 1px solid var(--v2-border-border-muted);
+  background: var(--v2-background-bg-layer-01);
   overflow-x: auto;
   margin-top: 10px;
   margin-bottom: 12px;
@@ -607,9 +711,9 @@
    command, switch), so the header is simply hidden rather than repeated per cell. */
 .mcp-plugins-thead {
   display: none;
-  padding: 10px 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 9px 16px;
+  background: var(--v2-background-bg-layer-02);
+  border-bottom: 1px solid var(--v2-border-border-muted);
   font-size: 10.5px;
   font-weight: 650;
   letter-spacing: 0.05em;
@@ -622,9 +726,9 @@
   grid-template-columns: minmax(0, 1fr);
   gap: 6px;
   align-items: start;
-  padding: 12px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  transition: all 0.15s ease;
+  padding: 9px 16px;
+  border-bottom: 1px solid var(--v2-border-border-muted);
+  transition: background-color 0.15s ease;
 }
 
 @container settings-panel (min-width: 900px) {
@@ -659,7 +763,7 @@
 }
 
 .mcp-plugins-row:hover {
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--v2-background-bg-layer-02);
 }
 
 .mcp-plugins-cell {

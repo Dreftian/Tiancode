@@ -156,7 +156,7 @@ export const RlmHierarchyTree: Component<{
   }
 
   return (
-    <div class="flex flex-col gap-3 p-4 rounded-2xl border border-white/10 bg-slate-900/50 backdrop-blur-sm">
+    <div class="flex flex-col gap-3 p-4 rounded-2xl border border-white/10 bg-slate-900/50">
       <div class="flex items-center justify-between border-b border-white/[0.06] pb-3">
         <div class="flex items-center gap-2.5">
           <span class="text-base">🌳</span>

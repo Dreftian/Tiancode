@@ -1,4 +1,5 @@
 import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
+import { SegmentedControlItemV2, SegmentedControlV2 } from "@tiancode-ai/ui/v2/segmented-control-v2"
 import type { Agent, PermissionRule } from "@tiancode-ai/sdk/v2/client"
 import { type Component, createEffect, createMemo, createResource, createSignal, For, Show } from "solid-js"
 import { useLanguage } from "@/context/language"
@@ -669,10 +670,12 @@ export const SettingsSubAgentsV2: Component<{
     // 2. Feedback visual instantáneo
     showToast({
       variant: "success",
-      title: enable ? "Sub-agente activado" : "Sub-agente desactivado",
-      description: `@${agentName} ${enable ? "ahora está activo" : "ha sido desactivado"} para ${
-        scope() === "project" ? "este proyecto" : "la configuración global"
-      }.`,
+      title: language.t(enable ? "settings.subAgents.toggle.enabled" : "settings.subAgents.toggle.disabled", {
+        name: agentName,
+      }),
+      description: language.t(
+        scope() === "project" ? "settings.subAgents.scope.project.hint" : "settings.subAgents.scope.global.hint",
+      ),
     })
 
     // 3. Sincronización asíncrona en segundo plano sin congelar la animación
@@ -704,7 +707,7 @@ export const SettingsSubAgentsV2: Component<{
         })
         showToast({
           variant: "error",
-          title: "Error al actualizar estado del sub-agente",
+          title: language.t("settings.subAgents.toggle.failed"),
         })
       })
   }
@@ -791,8 +794,8 @@ export const SettingsSubAgentsV2: Component<{
             <p class="settings-v2-tab-description">{language.t("settings.subAgents.description")}</p>
           </div>
           <div class="flex items-center gap-2 shrink-0">
-            <span class="px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 shadow-sm">
-              🛡️ {visibleBuiltinAgents().length} Sub-Agentes Nativos
+            <span class="settings-v2-chip" data-tone="accent">
+              {language.t("settings.subAgents.native.count", { count: visibleBuiltinAgents().length })}
             </span>
           </div>
         </div>
@@ -800,43 +803,29 @@ export const SettingsSubAgentsV2: Component<{
 
       <div class="settings-v2-tab-body settings-v2-sub-agents">
 
-        {/* Selector de Alcance Granular: Proyecto Actual vs Global */}
-        <div class="flex items-center justify-between gap-3 mb-5 p-3 rounded-xl border border-white/10 bg-slate-900/40">
-          <div class="flex items-center gap-2.5">
-            <span class="text-xs font-semibold text-slate-300">Alcance de Configuración:</span>
-            <div class="flex items-center gap-1.5 p-0.5 rounded-lg bg-black/40 border border-white/10">
-              <button
-                type="button"
-                disabled={!props.directory}
-                onClick={() => setScope("project")}
-                class="px-2.5 py-1 text-xs rounded-md font-medium transition-all"
-                classList={{
-                  "bg-sky-500/25 text-sky-200 border border-sky-400/40 shadow-sm": scope() === "project",
-                  "text-slate-400 hover:text-slate-200": scope() !== "project",
-                  "opacity-50 cursor-not-allowed": !props.directory,
-                }}
-              >
-                📁 Proyecto Actual {props.directory ? `(${props.directory.split(/[\\/]/).pop()})` : ""}
-              </button>
-              <button
-                type="button"
-                onClick={() => setScope("global")}
-                class="px-2.5 py-1 text-xs rounded-md font-medium transition-all"
-                classList={{
-                  "bg-sky-500/25 text-sky-200 border border-sky-400/40 shadow-sm": scope() === "global",
-                  "text-slate-400 hover:text-slate-200": scope() !== "global",
-                }}
-              >
-                🌐 Global (Configuración Base)
-              </button>
-            </div>
+        <div class="settings-v2-sub-agents-scope">
+          <div class="settings-v2-sub-agents-scope-control">
+            <span class="settings-v2-sub-agents-scope-label">{language.t("settings.subAgents.scope.label")}</span>
+            <SegmentedControlV2
+              value={scope()}
+              onChange={(value) => {
+                if (value === "project" || value === "global") setScope(value)
+              }}
+            >
+              <SegmentedControlItemV2 value="project" disabled={!props.directory}>
+                <span>
+                  {language.t("settings.subAgents.scope.project")}
+                  {props.directory ? ` · ${props.directory.split(/[\\/]/).pop()}` : ""}
+                </span>
+              </SegmentedControlItemV2>
+              <SegmentedControlItemV2 value="global">
+                <span>{language.t("settings.subAgents.scope.global")}</span>
+              </SegmentedControlItemV2>
+            </SegmentedControlV2>
           </div>
-
-          <div class="text-xs text-slate-400">
-            {scope() === "project"
-              ? "Configuración aplicada exclusivamente a este repositorio."
-              : "Configuración base predeterminada para cualquier repositorio."}
-          </div>
+          <p class="settings-v2-sub-agents-scope-hint">
+            {language.t(scope() === "project" ? "settings.subAgents.scope.project.hint" : "settings.subAgents.scope.global.hint")}
+          </p>
         </div>
 
         {/* 1. Sub-Agentes Integrados de Élite (Fuente Principal) */}
@@ -849,7 +838,7 @@ export const SettingsSubAgentsV2: Component<{
                 </h3>
                 <span class="settings-v2-sub-agents-group-count">{visibleBuiltinAgents().length}</span>
               </div>
-              <span class="text-xs text-slate-400">
+              <span class="text-xs text-v2-text-text-muted">
                 {language.t("settings.subAgents.list.builtin.hint")}
               </span>
             </div>
@@ -867,10 +856,10 @@ export const SettingsSubAgentsV2: Component<{
                 {(agent) => {
                   const meta = () => AGENT_META[agent.name] || {
                     title: agent.name,
-                    role: "Especialista Autónomo",
+                    role: language.t("settings.subAgents.meta.role.default"),
                     icon: agent.icon || "🤖",
                     color: agent.color || "#3B82F6",
-                    category: "🤖 Agente",
+                    category: language.t("settings.subAgents.meta.category.default"),
                     description: nativeDescription(agent) || agent.description || "",
                   }
 
@@ -888,8 +877,8 @@ export const SettingsSubAgentsV2: Component<{
                           {meta().icon}
                         </div>
                         <div class="flex flex-col min-w-0">
-                          <span class="text-xs font-semibold text-slate-100 truncate">{meta().title}</span>
-                          <span class="text-[10px] font-mono text-slate-400 truncate">@{agent.name}</span>
+                          <span class="text-xs font-semibold text-v2-text-text-base truncate">{meta().title}</span>
+                          <span class="text-[10px] font-mono text-v2-text-text-muted truncate">@{agent.name}</span>
                         </div>
                       </div>
 
@@ -899,11 +888,11 @@ export const SettingsSubAgentsV2: Component<{
                           <span class="settings-v2-sub-agents-card-category text-[9.5px] px-1.5 py-0.5">
                             {meta().category}
                           </span>
-                          <span class="text-[11px] font-medium text-slate-300 truncate max-w-[200px]">
+                          <span class="text-[11px] font-medium text-v2-text-text-muted truncate max-w-[200px]">
                             {meta().role}
                           </span>
                         </div>
-                        <p class="text-[11px] text-slate-400 line-clamp-1 leading-normal m-0">
+                        <p class="text-[11px] text-v2-text-text-muted line-clamp-1 leading-normal m-0">
                           {meta().description || nativeDescription(agent)}
                         </p>
                       </div>
@@ -937,7 +926,9 @@ export const SettingsSubAgentsV2: Component<{
                           class="settings-v2-chip text-[10px]"
                           data-tone={isAgentActive(agent.name) ? "accent" : "muted"}
                         >
-                          {isAgentActive(agent.name) ? "Activo" : "Inactivo"}
+                          {language.t(
+                            isAgentActive(agent.name) ? "settings.subAgents.status.active" : "settings.subAgents.status.inactive",
+                          )}
                         </span>
                       </div>
                     </div>
