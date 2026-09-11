@@ -14,7 +14,6 @@
   height: min(calc(100vh - 72px), 760px);
   isolation: isolate;
   contain: layout paint;
-  transform: translateZ(0);
 }
 
 [data-component="dialog-v2"][data-variant="settings"] [data-slot="dialog-body"] {
@@ -33,9 +32,11 @@
   container-name: settings-panel;
   background-color: var(--v2-background-bg-base);
   min-height: 100%;
+  /* No forced compositor layer here. translateZ(0) + backface-visibility promoted every panel to its
+     own GPU layer, so showing a tab meant rasterising the whole panel (1,300+ nodes for skills) in
+     one go and repainting it on every pulse animation — the sidebar felt slower the longer the app
+     ran, on every tab but General, which has no animated element. Let Chromium tile it instead. */
   contain: paint layout;
-  backface-visibility: hidden;
-  transform: translateZ(0);
 }
 
 [data-slot="tabs-v2-content"][hidden],

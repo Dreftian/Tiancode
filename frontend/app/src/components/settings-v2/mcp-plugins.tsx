@@ -963,7 +963,7 @@ export const SettingsMcpPluginsV2: Component<{
         {/* TAB 1: MCP SERVERS */}
         <Show when={activeTab() === "mcp"}>
           <div class="flex flex-col gap-4">
-            <div class="p-3.5 rounded-xl border border-cyan-500/20 bg-gradient-to-r from-cyan-950/20 via-slate-900/40 to-indigo-950/20 backdrop-blur-sm">
+            <div class="p-3.5 rounded-xl border border-cyan-500/20 bg-gradient-to-r from-cyan-950/20 via-slate-900/40 to-indigo-950/20">
               <div class="flex items-start gap-3">
                 <div class="size-8 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center shrink-0 mt-0.5 font-bold text-sm">
                   ⚡

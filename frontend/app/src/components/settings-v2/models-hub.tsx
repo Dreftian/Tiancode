@@ -1030,7 +1030,7 @@ export const SettingsModelsHubV2: Component<{
   return (
     <div class="lm-hub-container">
       {/* Banner Oficial Hugging Face & Motor Autónomo Tiancode */}
-      <div class="flex items-center justify-between gap-4 p-4 rounded-2xl border border-yellow-500/20 bg-gradient-to-r from-yellow-500/10 via-slate-900/60 to-cyan-500/10 backdrop-blur-md mb-2">
+      <div class="flex items-center justify-between gap-4 p-4 rounded-2xl border border-yellow-500/20 bg-gradient-to-r from-yellow-500/10 via-slate-900/60 to-cyan-500/10 mb-2">
         <div class="flex items-center gap-3.5">
           <div class="size-11 rounded-2xl bg-yellow-500/15 border border-yellow-400/30 flex items-center justify-center text-2xl shadow-[0_0_20px_rgba(255,210,30,0.25)] shrink-0">
             🤗
@@ -1052,7 +1052,7 @@ export const SettingsModelsHubV2: Component<{
       </div>
 
       {/* 1. Telemetría de Hardware & Runtimes */}
-      <div class="flex items-center justify-between gap-3 p-2.5 rounded-xl border border-white/10 bg-black/30 backdrop-blur-md flex-wrap">
+      <div class="flex items-center justify-between gap-3 p-2.5 rounded-xl border border-white/10 bg-black/30 flex-wrap">
         <div class="flex items-center gap-2.5">
           <div class="flex items-center gap-2 px-3 py-1 rounded-lg bg-white/[0.04] border border-white/10 text-xs">
             <span title="GPU / VRAM" class="text-slate-200 flex items-center gap-1.5">
@@ -1070,7 +1070,7 @@ export const SettingsModelsHubV2: Component<{
         <div class="flex items-center gap-2 flex-wrap">
           <Show when={engineStatus()?.status === "running"}>
             <div class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-medium">
-              <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span class="inline-block w-2 h-2 rounded-full bg-emerald-400" />
               <span>Motor Nativo Activo: {engineStatus()?.modelName}</span>
               <button
                 type="button"
@@ -1103,7 +1103,7 @@ export const SettingsModelsHubV2: Component<{
                 <span
                   class="w-2 h-2 rounded-full"
                   classList={{
-                    "bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]": rt.available,
+                    "bg-emerald-400 shadow-[0_0_8px_#34d399]": rt.available,
                     "bg-slate-500": !rt.available,
                   }}
                 />
@@ -1203,7 +1203,7 @@ export const SettingsModelsHubV2: Component<{
           when={submitted() || hubCategory() !== "all" || pageModelList().length > 0}
           fallback={
             /* Estado Inicial Hero Limpio: Sin saturar la pantalla */
-            <div class="p-8 rounded-2xl border border-white/10 bg-slate-900/40 backdrop-blur-md flex flex-col items-center text-center gap-5 my-auto max-w-2xl mx-auto shadow-xl">
+            <div class="p-8 rounded-2xl border border-white/10 bg-slate-900/40 flex flex-col items-center text-center gap-5 my-auto max-w-2xl mx-auto shadow-xl">
               <div class="size-16 rounded-2xl bg-gradient-to-tr from-sky-500/20 via-indigo-500/20 to-cyan-400/20 border border-sky-400/30 flex items-center justify-center text-3xl shadow-lg">
                 🤗
               </div>
@@ -1294,7 +1294,7 @@ export const SettingsModelsHubV2: Component<{
               const isDownloaded = () => currentJob()?.status === "completed"
 
               return (
-                <div class="p-4 rounded-2xl border border-white/10 bg-slate-900/50 backdrop-blur-md hover:border-sky-500/40 transition-all flex flex-col gap-3 shadow-md">
+                <div class="p-4 rounded-2xl border border-white/10 bg-slate-900/50 hover:border-sky-500/40 transition-all flex flex-col gap-3 shadow-md">
                   {/* Top: BrandLogo + Info + Hugging Face link */}
                   <div class="flex items-start justify-between gap-3">
                     <div class="flex items-center gap-3 min-w-0">

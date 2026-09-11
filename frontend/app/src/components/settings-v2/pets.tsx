@@ -143,7 +143,7 @@ export const SettingsPetsV2: Component<{ active?: boolean }> = (_props) => {
             <span class="text-xs text-slate-400">Total: {allKinds().length} compañeros 3D interactivos</span>
           </div>
 
-          <div class="w-full rounded-2xl border border-white/10 bg-slate-900/40 backdrop-blur-md overflow-hidden mb-3">
+          <div class="w-full rounded-2xl border border-white/10 bg-slate-900/40 overflow-hidden mb-3">
             {/* Thead */}
             <div class="grid grid-cols-[2fr_1.8fr_3.2fr_1.2fr_1.5fr] items-center px-4 py-2.5 bg-white/[0.03] border-b border-white/10 text-[10.5px] font-semibold tracking-wider text-slate-400 uppercase">
               <div>Mascota</div>
@@ -216,7 +216,7 @@ export const SettingsPetsV2: Component<{ active?: boolean }> = (_props) => {
                           }
                         >
                           <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10.5px] font-semibold">
-                            <span class="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            <span class="size-1.5 rounded-full bg-emerald-400" />
                             Activa
                           </span>
                         </Show>
