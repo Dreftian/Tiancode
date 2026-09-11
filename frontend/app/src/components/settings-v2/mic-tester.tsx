@@ -1,9 +1,9 @@
-import { Component, createSignal, onCleanup, Show } from "solid-js"
+import { Component, createEffect, createSignal, onCleanup, Show } from "solid-js"
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
 import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
 import { getSelectedAudioDeviceId } from "@/utils/asr"
 
-export const MicTester: Component<{ selectedDeviceId?: string | null }> = (props) => {
+export const MicTester: Component<{ selectedDeviceId?: string | null; active?: boolean }> = (props) => {
   const [testing, setTesting] = createSignal(false)
   const [volumePercent, setVolumePercent] = createSignal(0)
   const [peakPercent, setPeakPercent] = createSignal(0)
@@ -215,6 +215,11 @@ export const MicTester: Component<{ selectedDeviceId?: string | null }> = (props
       }
     } catch {}
   }
+
+  // The panel stays mounted behind other tabs: release the microphone when it is hidden.
+  createEffect(() => {
+    if (props.active === false) stopTest()
+  })
 
   onCleanup(() => {
     stopTest()

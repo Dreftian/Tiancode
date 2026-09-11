@@ -51,7 +51,7 @@ async function downloadKokoroEsInner() {
   for (const file of ["model.int8.onnx", "voices.bin", "tokens.txt", "lexicon-us-en.txt"]) {
     const dest = join(dir, file)
     if (existsSync(dest)) continue
-    await downloadFile(`${HF_BASE}/${KOKORO_ES_REPO}/resolve/main/${file}`, dest, undefined)
+    await downloadFile(`${HF_BASE}/${KOKORO_ES_REPO}/resolve/main/${file}`, dest, KOKORO_ES_VOICE_ID)
   }
 
   // dict/ (directorio pequeño con los diccionarios del tokenizador kokoro).
@@ -74,9 +74,20 @@ async function downloadKokoroEsInner() {
   writeLog("voices", "downloaded kokoro es voice", { voice: "ef_dora" })
 }
 
-export async function downloadKokoroEs(voiceId: string) {
-  await downloadKokoroEsInner()
-  reportProgress(voiceId, 100, undefined, true)
+const KOKORO_ES_VOICE_ID = "ef_dora"
+let inFlight: Promise<void> | undefined
+
+// select + download from the panel used to start two copies of the same files at once; one
+// in-flight promise makes every caller share the same download.
+export function downloadKokoroEs(voiceId: string) {
+  if (!inFlight) {
+    inFlight = downloadKokoroEsInner()
+      .then(() => reportProgress(voiceId, 100, undefined, true))
+      .finally(() => {
+        inFlight = undefined
+      })
+  }
+  return inFlight
 }
 
 export async function deleteKokoroEs() {

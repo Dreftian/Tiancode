@@ -280,16 +280,12 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
     }))
   })
 
-  // Exclusively prominent female voices (Fish Audio S2.1 + prominent local Spanish & English)
+  // The whole catalogue, downloaded voices first. A name filter used to hide 9 of the 21 local
+  // voices — including the ones repaired in 1.0.40 — and could hide the selected voice itself.
   const sortedVoices = createMemo<VoiceInfo[]>(() => {
-    const rawVoices = status()?.voices ?? []
-    const prominentDesktop = rawVoices.filter((voice) => {
-      if (voice.gender !== "female") return false
-      const lower = `${voice.id} ${voice.name}`.toLowerCase()
-      return PROMINENT_FEMALE_PATTERNS.some((pattern) => lower.includes(pattern))
-    })
-
-    return [...fishVoicesList(), ...prominentDesktop]
+    const rawVoices = [...(status()?.voices ?? [])]
+    rawVoices.sort((a, b) => Number(b.downloaded === true) - Number(a.downloaded === true))
+    return [...fishVoicesList(), ...rawVoices]
   })
 
   const filteredVoices = createMemo(() => {
@@ -330,10 +326,8 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
     try {
       setVoiceEngineMode(voice.engine === "kokoro" ? "neural" : "auto")
       settings.general.setVoiceEngine(voice.engine === "kokoro" ? "neural" : "auto")
+      // Main starts the download itself for voices not on disk; asking again here raced it.
       await current.select(voice.id)
-      if ((voice.engine === "piper" || voice.engine === "kokoro-es") && voice.downloaded !== true) {
-        void downloadVoice(voice)
-      }
       void refetch()
     } catch {
       // Selection is advisory; the status refetch shows the persisted value.
@@ -417,7 +411,8 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
     const text = isEs ? PROBE_TEXT_ES : PROBE_TEXT_EN
 
     // 1. Try local engine synthesis
-    const error = await speakWithVoices(voiceProbeKey(voice.id), text, voice.id)
+    // Preview the card's own engine whatever the global mode is set to.
+    const error = await speakWithVoices(voiceProbeKey(voice.id), text, voice.id, { engine: "local" })
     if (error) {
       // 2. Immediate audio preview sample or Web Speech API fallback for testing before install
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
@@ -541,7 +536,7 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
             </SettingsListV2>
 
             {/* Comprobación de funcionamiento del micrófono en tiempo real */}
-            <MicTester selectedDeviceId={selectedMicId()} />
+            <MicTester selectedDeviceId={selectedMicId()} active={props.active} />
           </div>
 
           {/* ================================================================= */}
@@ -550,35 +545,6 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
           <div class="settings-v2-section">
             <h3 class="settings-v2-section-title">{language.t("settings.voices.section.dictation") ?? "Dictado"}</h3>
             <SettingsListV2>
-              <SettingsRowV2
-                title={language.t("settings.voices.dictation.hold.title") ?? "Atajo para dictado al mantener presionado"}
-                description={
-                  language.t("settings.voices.dictation.hold.description") ??
-                  "Mantén presionado en cualquier parte del escritorio para dictar donde esté el cursor"
-                }
-              >
-                <div class="flex items-center gap-2">
-                  <span class="settings-v2-shortcut-badge">
-                    {getHoldDictationShortcut()}
-                  </span>
-                  <IconButtonV2
-                    size="small"
-                    variant="ghost-muted"
-                    aria-label="Configurar atajo"
-                    icon={
-                      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
-                        <path d="M11.5 2.5l2 2L5 13H3v-2L11.5 2.5z" />
-                      </svg>
-                    }
-                    onClick={() => {
-                      showToast({
-                        title: "Atajo para mantener presionado",
-                        description: "Próximamente personalizable con cualquier combinación de teclas global.",
-                      })
-                    }}
-                  />
-                </div>
-              </SettingsRowV2>
 
               <SettingsRowV2
                 title={language.t("settings.voices.dictation.toggle.title") ?? "Alternar tecla rápida de dictado"}
@@ -591,22 +557,6 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
                   <span class="settings-v2-shortcut-badge text-sky-400 border-sky-500/30 bg-sky-500/10">
                     {getToggleDictationShortcut()}
                   </span>
-                  <IconButtonV2
-                    size="small"
-                    variant="ghost-muted"
-                    aria-label="Editar tecla rápida"
-                    icon={
-                      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
-                        <path d="M11.5 2.5l2 2L5 13H3v-2L11.5 2.5z" />
-                      </svg>
-                    }
-                    onClick={() => {
-                      showToast({
-                        title: "Tecla rápida de dictado activa",
-                        description: "Usa Ctrl+Shift+M en cualquier ventana para activar o pausar el micrófono de inmediato.",
-                      })
-                    }}
-                  />
                 </div>
               </SettingsRowV2>
 
@@ -867,32 +817,6 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
             </SettingsRowV2>
 
             <SettingsRowV2
-              title={language.t("settings.voices.autoSpeak.title")}
-              description={language.t("settings.voices.autoSpeak.description")}
-            >
-              <Switch
-                checked={settings.general.autoSpeak()}
-                onChange={(value) => {
-                  settings.general.setAutoSpeak(value)
-                  if (!value) {
-                    stopSpeaking()
-                    stopAutoSpeak()
-                  }
-                }}
-              />
-            </SettingsRowV2>
-
-            <SettingsRowV2
-              title={language.t("settings.voices.speakReasoning.title") ?? "Leer pensamientos y plan en vivo"}
-              description={language.t("settings.voices.speakReasoning.description") ?? "Narra con la voz predeterminada femenina el razonamiento y pasos que la IA planifica hacer antes de ejecutarlos."}
-            >
-              <Switch
-                checked={settings.general.speakReasoning()}
-                onChange={(value) => settings.general.setSpeakReasoning(value)}
-              />
-            </SettingsRowV2>
-
-            <SettingsRowV2
               title="Velocidad de Reproducción (Rate)"
               description="Ajusta la velocidad de narración para una reproducción más rápida o pausada."
             >
@@ -912,9 +836,10 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
               </div>
             </SettingsRowV2>
 
+            <Show when={getVoiceEngineMode() === "system"}>
             <SettingsRowV2
               title="Tono de Voz (Pitch Studio)"
-              description="Modula la frecuencia fundamental para una voz más grave, natural o aguda."
+              description="Solo la voz del sistema (Web Speech) admite tono; los motores locales y Fish lo ignoran."
             >
               <div class="flex items-center gap-1">
                 <For each={[
@@ -935,6 +860,7 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
                 </For>
               </div>
             </SettingsRowV2>
+            </Show>
 
             <SettingsRowV2
               title="Volumen de Síntesis (Gain)"
@@ -945,7 +871,6 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
                   { val: 0.5, label: "50%" },
                   { val: 0.75, label: "75%" },
                   { val: 1.0, label: "100%" },
-                  { val: 1.2, label: "120%" },
                 ]}>
                   {(item) => (
                     <ButtonV2
@@ -1095,15 +1020,17 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
                                     setInfoVoice(infoVoice() === voice.id ? undefined : voice.id)
                                   }}
                                 />
-                                <div class="settings-v2-voices-card-toggle" onClick={(e: MouseEvent) => e.stopPropagation()}>
-                                  <Switch
-                                    checked={voice.enabled !== false}
-                                    onChange={(enabled) => void toggleEnabled(voice, enabled)}
-                                    hideLabel
-                                  >
-                                    {language.t("settings.voices.voice.enabled")}
-                                  </Switch>
-                                </div>
+                                <Show when={voice.engine !== ("fish" as any)}>
+                                  <div class="settings-v2-voices-card-toggle" onClick={(e: MouseEvent) => e.stopPropagation()}>
+                                    <Switch
+                                      checked={voice.enabled !== false}
+                                      onChange={(enabled) => void toggleEnabled(voice, enabled)}
+                                      hideLabel
+                                    >
+                                      {language.t("settings.voices.voice.enabled")}
+                                    </Switch>
+                                  </div>
+                                </Show>
                               </div>
                             </div>
 
@@ -1206,8 +1133,24 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
                                           </ButtonV2>
                                         }
                                       >
-                                        <span class={`text-[11px] font-medium ${isSelected() ? "text-emerald-400 font-semibold" : "text-text-weaker"}`}>
-                                          {isSelected() ? "✓ Activa" : "Instalada"}
+                                        <span class="settings-v2-voices-installed">
+                                          <span class={`text-[11px] font-medium ${isSelected() ? "text-emerald-400 font-semibold" : "text-text-weaker"}`}>
+                                            {isSelected() ? "✓ Activa" : "Instalada"}
+                                          </span>
+                                          <Show when={voice.engine === "piper" || voice.engine === "kokoro-es"}>
+                                            <ButtonV2
+                                              type="button"
+                                              variant="ghost-muted"
+                                              size="small"
+                                              icon="trash"
+                                              disabled={deleting()[voice.id] === true}
+                                              aria-label={language.t("settings.voices.voice.delete")}
+                                              onClick={(event: MouseEvent) => {
+                                                event.stopPropagation()
+                                                void deleteVoice(voice)
+                                              }}
+                                            />
+                                          </Show>
                                         </span>
                                       </Show>
                                     }

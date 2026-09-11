@@ -49,6 +49,9 @@ export type VoicesSpeakResult = {
   error?: string
 }
 
+/** Which engine speak() must use, overriding the global mode (the panel's preview buttons). */
+export type SpeakEngine = "local" | "fish" | "system"
+
 export type VoicesSpeakOptions = {
   automatic?: boolean
 }
@@ -135,7 +138,9 @@ export function setVoiceEngineMode(mode: VoiceEngineMode) {
 export const FISH_AUDIO_API_URL = "https://api.fish.audio/v1/tts"
 const FISH_KEY_STORAGE = "tiancode.voice.fish_audio_key"
 const FISH_VOICE_STORAGE = "tiancode.voice.fish_audio_voice_id"
-export const DEFAULT_FISH_KEY = "sk-fish-JctE9rsGvKF4LthXgq0dZRxno7Wqm5ftrSAA3cfO8Uk"
+// No key ships with the app: an empty key means Fish Audio is unavailable and the other
+// engines take over. The old bundled key was visible in devtools and shared by every install.
+export const DEFAULT_FISH_KEY = ""
 export const DEFAULT_FISH_VOICE = "07a03f5ca90849b3bf0638135b0a40c3" // Natasha (Spanish)
 
 export type FishVoice = {
@@ -236,6 +241,11 @@ export const getBargeInEnabled = () => bargeInEnabled()
 export const setBargeInEnabled = (val: boolean) => {
   setBargeInState(val)
   if (typeof localStorage !== "undefined") localStorage.setItem(BARGE_IN_KEY, String(val))
+  if (!val) disableBargeInListener()
+}
+
+export function clampVolume(value: number) {
+  return Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 1
 }
 
 export const getCustomVoices = () => customVoices()
@@ -248,12 +258,30 @@ export const addCustomVoice = (voice: VoiceInfo) => {
 // Barge-In Voice Activity Detection (VAD) listener
 let vadMediaStream: MediaStream | undefined
 let vadAudioContext: AudioContext | undefined
+let vadTimer: ReturnType<typeof setTimeout> | undefined
+
+const MIC_STORAGE = "tiancode.audio.selected_microphone"
+
+/** Releases the microphone; the OS indicator goes off. */
+export function disableBargeInListener() {
+  if (vadTimer) clearTimeout(vadTimer)
+  vadTimer = undefined
+  vadMediaStream?.getTracks().forEach((track) => track.stop())
+  vadMediaStream = undefined
+  void vadAudioContext?.close().catch(() => {})
+  vadAudioContext = undefined
+}
+
+export const isBargeInListening = () => vadAudioContext !== undefined
 
 export async function enableBargeInListener() {
   if (typeof window === "undefined" || !navigator.mediaDevices?.getUserMedia) return
   if (vadAudioContext) return
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    const deviceId = typeof localStorage !== "undefined" ? localStorage.getItem(MIC_STORAGE) : null
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: deviceId ? { deviceId: { exact: deviceId } } : true,
+    })
     vadMediaStream = stream
     const audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
     vadAudioContext = audioCtx
@@ -267,6 +295,12 @@ export async function enableBargeInListener() {
 
     const checkVolume = () => {
       if (!vadAudioContext) return
+      // Nothing to interrupt while nothing is playing: keep the loop idle instead of hot.
+      if (!isVoiceSpeaking()) {
+        speechFrames = 0
+        vadTimer = setTimeout(checkVolume, 250)
+        return
+      }
       analyser.getByteFrequencyData(buffer)
       let sum = 0
       for (let i = 0; i < buffer.length; i++) sum += buffer[i]
@@ -283,9 +317,9 @@ export async function enableBargeInListener() {
       } else {
         speechFrames = Math.max(0, speechFrames - 1)
       }
-      setTimeout(checkVolume, 80)
+      vadTimer = setTimeout(checkVolume, 80)
     }
-    setTimeout(checkVolume, 80)
+    vadTimer = setTimeout(checkVolume, 80)
   } catch {
     // ignore if mic permission not granted
   }
@@ -309,7 +343,7 @@ const playWav = (key: string, wav: Uint8Array) =>
       const url = URL.createObjectURL(blob)
       const audio = new Audio(url)
       audio.playbackRate = getVoiceSpeed()
-      audio.volume = getVoiceVolume()
+      audio.volume = clampVolume(getVoiceVolume())
       activeURL = url
       activeAudio = audio
       audio.onended = finish
@@ -383,8 +417,13 @@ import { cleanMarkdownForSpeech } from "./speech-cleaner"
 // report the active playback: pass the part id of the message being read.
 // Resolves when the audio finishes playing (or is stopped). Returns an error
 // message when synthesis fails, so callers can surface it.
-export async function speakWithVoices(key: string, text: string, voiceId?: string): Promise<string | undefined> {
-  return speak(key, text, voiceId)
+export async function speakWithVoices(
+  key: string,
+  text: string,
+  voiceId?: string,
+  options?: VoicesSpeakOptions & { engine?: SpeakEngine },
+): Promise<string | undefined> {
+  return speak(key, text, voiceId, options)
 }
 
 export async function speakAutomaticallyWithVoices(key: string, text: string): Promise<string | undefined> {
@@ -401,18 +440,21 @@ function speakWithWebSpeech(key: string, text: string): Promise<string | undefin
     try {
       window.speechSynthesis.cancel()
       const utterance = new SpeechSynthesisUtterance(text)
-      utterance.lang = "es-ES"
+      const spanish = isSpanishText(text)
+      utterance.lang = spanish ? "es-ES" : "en-US"
       utterance.rate = getVoiceSpeed() ?? 1.05
       utterance.pitch = getVoicePitch() ?? 1.0
       utterance.volume = getVoiceVolume() ?? 1.0
 
       const voices = window.speechSynthesis.getVoices()
       // Priorizar voces naturales en español de Windows (Microsoft Sabina, Helena, Laura, Dalia, etc.)
-      const femaleEsVoice = voices.find(
-        (v) =>
-          v.lang.toLowerCase().startsWith("es") &&
-          /sabina|helena|laura|elvira|dalia|sol|paulina|monica|paloma|natural|neural|female|mujer/i.test(v.name),
-      ) || voices.find((v) => v.lang.toLowerCase().startsWith("es"))
+      const prefix = spanish ? "es" : "en"
+      const femaleEsVoice =
+        voices.find(
+          (v) =>
+            v.lang.toLowerCase().startsWith(prefix) &&
+            /sabina|helena|laura|elvira|dalia|sol|paulina|monica|paloma|zira|aria|jenny|natural|neural|female|mujer/i.test(v.name),
+        ) || voices.find((v) => v.lang.toLowerCase().startsWith(prefix))
 
       if (femaleEsVoice) utterance.voice = femaleEsVoice
 
@@ -438,6 +480,12 @@ export async function speakWithFishAudio(
   text: string,
   voiceId?: string,
 ): Promise<string | undefined> {
+  // Callable on its own (the panel's preview button): claim the speaking slot like speak() does,
+  // otherwise the generation guards below return before the audio ever plays.
+  if (speakingKey() !== key) {
+    stopSpeaking()
+    setSpeakingKey(key)
+  }
   const apiKey = getFishAudioKey()
   if (!apiKey) return "Clave de API de Fish Audio no configurada."
 
@@ -508,8 +556,9 @@ export async function speakWithFishAudio(
         const blob = new Blob([audioBuffer as BlobPart], { type: "audio/mpeg" })
         const url = URL.createObjectURL(blob)
         const audio = new Audio(url)
-        audio.playbackRate = getVoiceSpeed()
-        audio.volume = getVoiceVolume()
+        // The server already applied prosody.speed; a second playbackRate would square it.
+        audio.playbackRate = 1
+        audio.volume = clampVolume(getVoiceVolume())
         activeURL = url
         activeAudio = audio
         audio.onended = finish
@@ -526,7 +575,28 @@ export async function speakWithFishAudio(
   }
 }
 
-async function speak(key: string, text: string, voiceId?: string, options?: VoicesSpeakOptions): Promise<string | undefined> {
+/** The voice the user selected in Settings, when it is a downloaded local one. */
+async function selectedLocalVoice(): Promise<string | undefined> {
+  const api = voicesAPI()
+  if (!api) return undefined
+  try {
+    const current = await api.status()
+    const selected = current.voices.find((v) => v.id === current.selected)
+    if (!selected || selected.downloaded !== true) return undefined
+    return selected.engine === "piper" || selected.engine === "kokoro-es" || selected.engine === "kokoro"
+      ? selected.id
+      : undefined
+  } catch {
+    return undefined
+  }
+}
+
+async function speak(
+  key: string,
+  text: string,
+  voiceId?: string,
+  options?: VoicesSpeakOptions & { engine?: SpeakEngine },
+): Promise<string | undefined> {
   // Limpia y normaliza Markdown a lenguaje hablado fluido natural (estilo Sol de ChatGPT)
   const cleaned = cleanMarkdownForSpeech(text)
   const normalized = cleaned.replace(/\s+/g, " ").trim()
@@ -539,23 +609,36 @@ async function speak(key: string, text: string, voiceId?: string, options?: Voic
   stopSpeaking()
   setSpeakingKey(key)
   const expectedGeneration = speechGeneration
+  // The barge-in switch survives restarts but the microphone listener does not: bring it back
+  // the first time something is spoken.
+  if (bargeInEnabled() && !isBargeInListening()) void enableBargeInListener()
 
+  const forced = options?.engine
+  let apiOptions: VoicesSpeakOptions | undefined
+  if (options) {
+    const { engine: _engine, ...rest } = options
+    apiOptions = rest
+  }
   const isFishVoice = Boolean(voiceId && (CURATED_FISH_VOICES.some((v) => v.id === voiceId) || voiceId.length === 32))
-  if (isFishVoice || getVoiceEngineMode() === "fish") {
-    const err = await speakWithFishAudio(key, normalized, voiceId)
+  const mode = getVoiceEngineMode()
+  if (forced === "system" || (!forced && mode === "system")) return speakWithWebSpeech(key, normalized)
+  if (forced === "fish" || (!forced && (isFishVoice || mode === "fish"))) {
+    // Only a Fish id may travel as reference_id; a Piper id there is a guaranteed API error.
+    const err = await speakWithFishAudio(key, normalized, isFishVoice ? voiceId : undefined)
     if (!err) return
     return speakWithWebSpeech(key, normalized)
   }
 
-  if (getVoiceEngineMode() === "system") {
-    return speakWithWebSpeech(key, normalized)
-  }
-
-  if (getVoiceEngineMode() === "auto") {
-    const fishKey = getFishAudioKey()
-    if (fishKey) {
-      const err = await speakWithFishAudio(key, normalized, voiceId)
-      if (!err) return
+  if (!forced && mode === "auto") {
+    // A local voice the user downloaded and selected wins; Fish is the fallback, not the default.
+    const local = voiceId ?? (await selectedLocalVoice())
+    if (speechGeneration !== expectedGeneration || speakingKey() !== key) return
+    if (!local) {
+      const fishKey = getFishAudioKey()
+      if (fishKey) {
+        const err = await speakWithFishAudio(key, normalized, undefined)
+        if (!err) return
+      }
     }
   }
 
@@ -570,7 +653,7 @@ async function speak(key: string, text: string, voiceId?: string, options?: Voic
   if (speechGeneration !== expectedGeneration || speakingKey() !== key) return
   let result: VoicesSpeakResult
   try {
-    result = await api.speak(normalized, effectiveVoice, options)
+    result = await api.speak(normalized, effectiveVoice, apiOptions)
   } catch {
     return speakWithWebSpeech(key, normalized)
   }

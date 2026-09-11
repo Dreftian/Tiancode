@@ -38,15 +38,17 @@ export type DictationRecording = {
   durationSeconds?: number
 }
 
+// An empty dictionary is empty. "Jane Doe" used to come back whenever nothing was stored, so the
+// last entry could never be removed and a made-up contact sat in every user's list.
 export function getDictationDictionary(): string[] {
-  if (typeof localStorage === "undefined") return ["Jane Doe"]
+  if (typeof localStorage === "undefined") return []
   try {
     const raw = localStorage.getItem(DICTATION_DICT_KEY)
-    if (!raw) return ["Jane Doe"]
+    if (!raw) return []
     const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : ["Jane Doe"]
+    return Array.isArray(parsed) ? parsed.filter((w) => typeof w === "string") : []
   } catch {
-    return ["Jane Doe"]
+    return []
   }
 }
 

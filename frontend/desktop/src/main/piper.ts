@@ -66,9 +66,21 @@ async function downloadPiperVoiceInner(voiceId: string) {
 // The espeak-ng phonemizer data is shared by every piper voice. The tree API
 // lists the full recursive file set in one call; a ".complete" marker turns
 // the directory into a downloaded-once cache that survives partial failures.
-export async function ensureSharedData() {
+let sharedDataInFlight: Promise<void> | undefined
+
+export function ensureSharedData() {
+  if (isSharedDataDownloaded()) return Promise.resolve()
+  // Two voices downloading at once must not both write the same files.
+  if (!sharedDataInFlight) {
+    sharedDataInFlight = ensureSharedDataInner().finally(() => {
+      sharedDataInFlight = undefined
+    })
+  }
+  return sharedDataInFlight
+}
+
+async function ensureSharedDataInner() {
   const dataDir = sharedDataDir()
-  if (isSharedDataDownloaded()) return
   await mkdir(dataDir, { recursive: true })
   const res = await fetch(`${HF_API}/${PIPER_VOICES[0].repo}/tree/main/${SHARED_DATA_DIR}?recursive=true`)
   if (!res.ok) throw new Error(`Failed to list ${SHARED_DATA_DIR}: HTTP ${res.status}`)
@@ -162,7 +174,8 @@ export async function synthesizePiper(text: string, voiceId: string): Promise<Pi
 
   const tts = await getTts(def)
   try {
-    const result = tts.generate({ text: sanitized, sid: def.sid ?? 0, speed: 1.2, silenceScale: 0.12 })
+    // Neutral rate: the renderer applies the user's speed once via playbackRate.
+    const result = tts.generate({ text: sanitized, sid: def.sid ?? 0, speed: 1.0, silenceScale: 0.12 })
     if (!result || !result.samples || result.samples.length === 0) {
       throw new Error("Audio vacío generado por el motor Piper.")
     }

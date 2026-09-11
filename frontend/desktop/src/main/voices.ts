@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs"
 import { app, BrowserWindow, utilityProcess, type UtilityProcess } from "electron"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -170,9 +171,15 @@ function sendWorkerRequest<T>(type: string, payload?: Record<string, unknown>): 
 const MAX_SPEECH_CHARS = 2_000
 const MAX_AUDIO_SAMPLES = 2_000_000
 
+// Loading the model happens lazily; a cached download is as good as ready for the panel and
+// for automatic speech, which used to show "not installed" on every launch until then.
+function isKokoroCached() {
+  return existsSync(join(app.getPath("userData"), "huggingface-cache", `models--${KOKORO_MODEL_ID.replace("/", "--")}`))
+}
+
 export function getVoicesStatus() {
   return {
-    ready: state === "ready",
+    ready: state === "ready" || isKokoroCached(),
     downloading: state === "downloading" || undefined,
     progress,
     voices: VOICE_CATALOG.map((voice) => ({
@@ -256,7 +263,7 @@ async function synthesizeVoice(text: string, voice: VoiceInfo): Promise<VoicesSp
     const result = await sendWorkerRequest<{ samples: Float32Array | number[]; sampleRate: number }>("synthesize", {
       text,
       voiceId: voice.id,
-      speed: 1.15,
+      speed: 1.0,
       cacheDir,
     })
     const samples = result.samples instanceof Float32Array ? result.samples : new Float32Array(result.samples)
@@ -271,7 +278,7 @@ async function synthesizeVoice(text: string, voice: VoiceInfo): Promise<VoicesSp
 function isVoiceReadyForAutomaticSpeech(voice: VoiceInfo) {
   if (voice.engine === "piper") return isPiperDownloaded(voice.id)
   if (voice.engine === "kokoro-es") return isKokoroEsReadyForSynthesis()
-  return state === "ready"
+  return state === "ready" || isKokoroCached()
 }
 
 function wavResult(samples: Float32Array, sampleRate: number): VoicesSpeakResult {
@@ -430,7 +437,8 @@ export async function speakFishVoice(
 ): Promise<{ mp3?: Uint8Array; error?: string }> {
   const normalized = typeof text === "string" ? text.replace(/\s+/g, " ").trim() : ""
   if (!normalized) return { error: "Text must be a non-empty string." }
-  const key = apiKey?.trim() || "sk-fish-JctE9rsGvKF4LthXgq0dZRxno7Wqm5ftrSAA3cfO8Uk"
+  const key = apiKey?.trim()
+  if (!key) return { error: "Fish Audio API key not configured." }
   try {
     const response = await fetch("https://api.fish.audio/v1/tts", {
       method: "POST",
