@@ -26,7 +26,9 @@ export function isAllowedCorsOrigin(input: string | undefined, opts?: CorsOption
     // autenticado con password. Sin password, el flujo local es same-origin
     // (el UI embebido lo sirve el propio servidor) o requiere listar el
     // origen en server.cors.
-    return Flag.TIANCODE_SERVER_PASSWORD !== undefined
+    // Listing the origin in server.cors / --cors is the documented alternative to a password;
+    // this used to return before ever looking at the list.
+    return Flag.TIANCODE_SERVER_PASSWORD !== undefined || (opts?.cors?.includes(input) ?? false)
   }
   if (input.startsWith("oc://renderer")) return true
   if (input === "tauri://localhost" || input === "http://tauri.localhost" || input === "https://tauri.localhost")
