@@ -1,0 +1,264 @@
+/* Settings → Conexiones. Everything is token-driven except the two status hues below,
+   which have no semantic token yet; both read on light and dark surfaces. */
+.settings-v2-connections {
+  --connections-ok: var(--v2-icon-icon-accent);
+  --connections-warn: #d99a2b;
+  --connections-bad: #d9534f;
+  --connections-off: var(--v2-icon-icon-muted);
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+/* ---- overview chips in the header ------------------------------------------------ */
+.settings-v2-connections-overview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+@container settings-panel (min-width: 640px) {
+  .settings-v2-connections-overview {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.settings-v2-connections-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--v2-border-border-muted);
+  border-radius: 10px;
+  background: var(--v2-background-bg-layer-01);
+  color: var(--v2-text-text-base);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
+}
+
+.settings-v2-connections-chip:hover {
+  border-color: var(--v2-border-border-base);
+}
+
+.settings-v2-connections-chip[aria-pressed="true"] {
+  border-color: var(--v2-border-border-focus);
+  background: var(--v2-background-bg-layer-02);
+}
+
+.settings-v2-connections-chip-name {
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.settings-v2-connections-chip-state {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--v2-text-text-weak);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- status dot: shared by chips and section titles ------------------------------ */
+.settings-v2-connections-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--connections-off);
+}
+
+[data-state="active"] > .settings-v2-connections-dot,
+[data-state="active"] .settings-v2-section-title > .settings-v2-connections-dot {
+  background: var(--connections-ok);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--connections-ok) 22%, transparent);
+}
+
+[data-state="missing"] > .settings-v2-connections-dot,
+[data-state="missing"] .settings-v2-section-title > .settings-v2-connections-dot {
+  background: var(--connections-warn);
+}
+
+[data-state="error"] > .settings-v2-connections-dot,
+[data-state="error"] .settings-v2-section-title > .settings-v2-connections-dot {
+  background: var(--connections-bad);
+}
+
+[data-state="paused"] > .settings-v2-connections-dot,
+[data-state="paused"] .settings-v2-section-title > .settings-v2-connections-dot {
+  background: var(--v2-icon-icon-base);
+}
+
+/* ---- sections ------------------------------------------------------------------- */
+.settings-v2-connections-section {
+  border: 1px solid var(--v2-border-border-muted);
+  border-radius: 12px;
+  background: var(--v2-background-bg-layer-01);
+  overflow: hidden;
+}
+
+.settings-v2-connections-section + .settings-v2-connections-section {
+  margin-top: 14px;
+}
+
+.settings-v2-connections-section-head {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--v2-border-border-muted);
+}
+
+@container settings-panel (min-width: 560px) {
+  .settings-v2-connections-section-head {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+}
+
+.settings-v2-connections-section-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.settings-v2-connections-section .settings-v2-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.settings-v2-connections-state {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--v2-text-text-weak);
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--v2-background-bg-layer-02);
+}
+
+[data-state="active"] .settings-v2-connections-state {
+  color: var(--v2-text-text-accent);
+}
+
+[data-state="error"] .settings-v2-connections-state,
+[data-state="missing"] .settings-v2-connections-state {
+  color: var(--v2-text-text-base);
+}
+
+.settings-v2-connections-section-description {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--v2-text-text-weak);
+}
+
+.settings-v2-connections-last-error,
+.settings-v2-connections-last-delivery {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-connections-last-error {
+  color: var(--connections-bad);
+  word-break: break-word;
+}
+
+.settings-v2-connections-actions {
+  display: flex;
+  flex: none;
+  gap: 6px;
+  align-items: center;
+}
+
+/* ---- rows ----------------------------------------------------------------------- */
+.settings-v2-connections-section [data-component="settings-v2-list"] {
+  padding: 4px 16px 8px;
+}
+
+.settings-v2-connections-input {
+  width: 100%;
+  min-width: 0;
+}
+
+@container settings-panel (min-width: 720px) {
+  .settings-v2-connections-input {
+    width: 320px;
+  }
+}
+
+.settings-v2-connections-secret {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+@container settings-panel (min-width: 720px) {
+  .settings-v2-connections-secret {
+    width: auto;
+    flex-wrap: nowrap;
+  }
+}
+
+.settings-v2-connections-secret-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-v2-connections-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--v2-text-text-accent);
+}
+
+.settings-v2-connections-problem,
+.settings-v2-connections-inbound {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+.settings-v2-connections-problem {
+  color: var(--connections-bad);
+}
+
+.settings-v2-connections-inbound {
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-connections-inbound[data-running="true"] {
+  color: var(--v2-text-text-accent);
+}
+
+.settings-v2-connections-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--connections-bad) 40%, transparent);
+  border-radius: 10px;
+  color: var(--v2-text-text-base);
+  font-size: 12px;
+}
+
+.settings-v2-connections-note {
+  margin-top: 16px;
+}
