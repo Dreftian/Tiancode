@@ -2077,6 +2077,8 @@ export const dict = {
   "settings.intelligence.sandbox.desc": "选择终端命令在宿主系统上运行，还是在隔离容器中运行。",
   "settings.github.repo.create.failed": "无法创建仓库",
   "settings.github.repo.create.success": "已创建仓库 {{name}}",
+  "settings.github.sync.success": "GitHub 已刷新",
+  "settings.github.sync.failed": "无法刷新 GitHub：请检查令牌和网络连接",
   "settings.mcpServers.health.cleaned": "已清理 {{count}} 个失败的服务器",
   "settings.mcpServers.health.noneCleanable": "没有需要清理的失败服务器",
   "settings.voices.speakReasoning.title": "朗读推理与计划",

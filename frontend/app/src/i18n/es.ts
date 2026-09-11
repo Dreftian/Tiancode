@@ -2170,6 +2170,8 @@ export const dict = {
   "settings.intelligence.sandbox.desc": "Selecciona si los comandos de terminal se ejecutan en el sistema anfitrión o en un contenedor aislado.",
   "settings.github.repo.create.failed": "No se pudo crear el repositorio",
   "settings.github.repo.create.success": "Repositorio {{name}} creado",
+  "settings.github.sync.success": "GitHub sincronizado",
+  "settings.github.sync.failed": "No se pudo sincronizar GitHub: revisa el token y la conexión",
   "settings.mcpServers.health.cleaned": "Se limpiaron {{count}} servidores fallidos",
   "settings.mcpServers.health.noneCleanable": "No hay servidores fallidos que limpiar",
   "settings.voices.speakReasoning.title": "Leer pensamientos y plan en vivo",

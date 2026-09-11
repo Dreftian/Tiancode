@@ -2015,6 +2015,8 @@ export const dict = {
   "settings.intelligence.sandbox.desc": "터미널 명령을 호스트 시스템에서 실행할지 격리된 컨테이너에서 실행할지 선택합니다.",
   "settings.github.repo.create.failed": "저장소를 만들지 못했습니다",
   "settings.github.repo.create.success": "저장소 {{name}}을(를) 만들었습니다",
+  "settings.github.sync.success": "GitHub를 새로고침했습니다",
+  "settings.github.sync.failed": "GitHub를 새로고침할 수 없습니다. 토큰과 연결을 확인하세요",
   "settings.mcpServers.health.cleaned": "실패한 서버 {{count}}개를 정리했습니다",
   "settings.mcpServers.health.noneCleanable": "정리할 실패한 서버가 없습니다",
   "settings.voices.speakReasoning.title": "추론과 계획을 소리내어 읽기",

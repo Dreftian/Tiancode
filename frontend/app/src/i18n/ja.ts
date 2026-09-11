@@ -2017,6 +2017,8 @@ export const dict = {
   "settings.intelligence.sandbox.desc": "ターミナルコマンドをホスト上で実行するか、隔離コンテナ内で実行するかを選択します。",
   "settings.github.repo.create.failed": "リポジトリを作成できませんでした",
   "settings.github.repo.create.success": "リポジトリ {{name}} を作成しました",
+  "settings.github.sync.success": "GitHub を更新しました",
+  "settings.github.sync.failed": "GitHub を更新できませんでした。トークンと接続を確認してください",
   "settings.mcpServers.health.cleaned": "失敗したサーバー {{count}} 件を整理しました",
   "settings.mcpServers.health.noneCleanable": "整理が必要な失敗サーバーはありません",
   "settings.voices.speakReasoning.title": "推論と計画を読み上げる",

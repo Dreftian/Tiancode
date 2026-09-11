@@ -2024,6 +2024,8 @@ export const dict = {
   "settings.intelligence.sandbox.desc": "Chooses whether terminal commands run on the host system or inside an isolated container.",
   "settings.github.repo.create.failed": "Could not create the repository",
   "settings.github.repo.create.success": "Repository {{name}} created",
+  "settings.github.sync.success": "GitHub refreshed",
+  "settings.github.sync.failed": "Could not refresh GitHub: check the token and your connection",
   "settings.mcpServers.health.cleaned": "Cleaned up {{count}} failed servers",
   "settings.mcpServers.health.noneCleanable": "No failed servers to clean up",
   "settings.voices.speakReasoning.title": "Read reasoning and plan aloud",

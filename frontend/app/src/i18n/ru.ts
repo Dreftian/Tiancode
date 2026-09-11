@@ -2109,6 +2109,8 @@ export const dict = {
   "settings.intelligence.sandbox.desc": "Определяет, выполняются ли команды терминала на хосте или в изолированном контейнере.",
   "settings.github.repo.create.failed": "Не удалось создать репозиторий",
   "settings.github.repo.create.success": "Репозиторий {{name}} создан",
+  "settings.github.sync.success": "GitHub обновлён",
+  "settings.github.sync.failed": "Не удалось обновить GitHub: проверьте токен и подключение",
   "settings.mcpServers.health.cleaned": "Очищено серверов с ошибками: {{count}}",
   "settings.mcpServers.health.noneCleanable": "Нет серверов с ошибками для очистки",
   "settings.voices.speakReasoning.title": "Озвучивать рассуждения и план",

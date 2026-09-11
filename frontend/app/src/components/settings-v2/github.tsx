@@ -197,12 +197,24 @@ export const SettingsGithubV2: Component<{
       }
     },
   )
+  const hasProject = () => props.directory !== undefined || current()?.data !== undefined
   const [remote, { refetch: refetchRemote }] = createResource(
     () => connected(),
     async (isConnected) => {
       if (!isConnected) return undefined
       try {
         return await serverSdk().client.vcs.remote(params()).catch(() => undefined)
+      } catch {
+        return undefined
+      }
+    },
+  )
+  const [vcs, { refetch: refetchVcs }] = createResource(
+    () => connected() && hasProject(),
+    async (canFetch) => {
+      if (!canFetch) return undefined
+      try {
+        return await serverSdk().client.vcs.get(params()).catch(() => undefined)
       } catch {
         return undefined
       }
@@ -297,7 +309,6 @@ export const SettingsGithubV2: Component<{
     setRepoPage(1)
   })
 
-  const hasProject = () => props.directory !== undefined || current()?.data !== undefined
   const projectPath = () => current()?.data?.worktree ?? props.directory
   const hasRemote = () => remote()?.data?.hasRemote === true
 
@@ -339,14 +350,28 @@ export const SettingsGithubV2: Component<{
     }
   }
 
-  const syncAll = () => {
-    void refetchStatus()
-    void refetchRepos()
-    void refetchCurrent()
-    void refetchRemote()
-    void refetchVcsStatus()
-    void refetchProjects()
-    showToast({ variant: "success", title: "GitHub sincronizado correctamente" })
+  const [syncing, setSyncing] = createSignal(false)
+  const syncAll = async () => {
+    if (syncing()) return
+    setSyncing(true)
+    try {
+      await Promise.all([
+        refetchStatus(),
+        refetchRepos(),
+        refetchCurrent(),
+        refetchRemote(),
+        refetchVcs(),
+        refetchVcsStatus(),
+        refetchProjects(),
+      ])
+      const ok = connected() && repos()?.data !== undefined
+      showToast({
+        variant: ok ? "success" : "error",
+        title: language.t(ok ? "settings.github.sync.success" : "settings.github.sync.failed"),
+      })
+    } finally {
+      setSyncing(false)
+    }
   }
 
   const copyUrl = (url: string) => {
@@ -428,12 +453,15 @@ export const SettingsGithubV2: Component<{
     try {
       const result = await serverSdk().client.vcs.commit({ ...params(), vcsCommitPayload: { message } })
       if (result.error || result.data?.success === false) {
+        // git's own words ("nothing to commit", "rejected", …) beat a generic toast.
+        setBanner((result.data as any)?.output || language.t("settings.github.commit.failed"))
         showToast({ variant: "error", title: language.t("settings.github.commit.failed") })
         return
       }
       setCommitMessage("")
       showToast({ variant: "success", title: language.t("settings.github.commit.success") })
-      void refetchRemote()
+      void refetchVcsStatus()
+      void refetchVcs()
     } catch {
       showToast({ variant: "error", title: language.t("settings.github.commit.failed") })
     } finally {
@@ -447,6 +475,7 @@ export const SettingsGithubV2: Component<{
     try {
       const result = await serverSdk().client.vcs.push({ ...params() })
       if (result.error || result.data?.success === false) {
+        setBanner((result.data as any)?.output || language.t("settings.github.push.failed"))
         showToast({ variant: "error", title: language.t("settings.github.push.failed") })
         return
       }
@@ -455,7 +484,8 @@ export const SettingsGithubV2: Component<{
       showToast({ variant: "error", title: language.t("settings.github.push.failed") })
     } finally {
       setPushing(false)
-      void refetchRemote()
+      void refetchVcsStatus()
+      void refetchVcs()
     }
   }
 
@@ -465,6 +495,7 @@ export const SettingsGithubV2: Component<{
     try {
       const result = await serverSdk().client.vcs.pull({ ...params() })
       if (result.error || result.data?.success === false) {
+        setBanner((result.data as any)?.output || language.t("settings.github.pull.failed"))
         showToast({ variant: "error", title: language.t("settings.github.pull.failed") })
         return
       }
@@ -473,7 +504,8 @@ export const SettingsGithubV2: Component<{
       showToast({ variant: "error", title: language.t("settings.github.pull.failed") })
     } finally {
       setPulling(false)
-      void refetchRemote()
+      void refetchVcsStatus()
+      void refetchVcs()
     }
   }
 
@@ -493,11 +525,8 @@ export const SettingsGithubV2: Component<{
             <div class="gh-logo-wrapper">
               <GitHubLogo size={64} />
             </div>
-            <h2 class="gh-hero-title">Conectar con GitHub</h2>
-            <p class="gh-hero-desc">
-              Sincroniza tus repositorios, clona proyectos directamente en Tiancode, realiza commits atómicos
-              y empuja cambios de forma automatizada mediante tus agentes y flujos de trabajo.
-            </p>
+            <h2 class="gh-hero-title">{language.t("settings.github.connect.title")}</h2>
+            <p class="gh-hero-desc">{language.t("settings.github.connect.description")}</p>
 
             <div class="gh-token-box">
               <span class="gh-token-label">Personal Access Token (PAT)</span>
@@ -526,7 +555,7 @@ export const SettingsGithubV2: Component<{
               disabled={connecting() || !token().trim() || status.loading}
               onClick={() => void connect()}
             >
-              {connecting() ? "Conectando con GitHub..." : "Vincular Cuenta de GitHub"}
+              {connecting() ? language.t("settings.github.connecting") : language.t("settings.github.connect.button")}
             </ButtonV2>
           </div>
         }
@@ -672,9 +701,9 @@ export const SettingsGithubV2: Component<{
                 <div>
                   <div class="gh-vcs-title-row">
                     <BranchIcon />
-                    <h4 class="gh-vcs-title">Control de Versiones (VCS)</h4>
+                    <h4 class="gh-vcs-title">{language.t("settings.github.project.title")}</h4>
                     <span class="gh-repo-branch-tag">
-                      <BranchIcon /> {(remote()?.data as any)?.branch || "main"}
+                      <BranchIcon /> {(vcs()?.data as any)?.branch ?? "…"}
                     </span>
                     <Show when={vcsStatus()}>
                       {(() => {

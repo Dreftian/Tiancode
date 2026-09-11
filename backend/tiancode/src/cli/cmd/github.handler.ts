@@ -166,6 +166,15 @@ type UserEvent = (typeof USER_EVENTS)[number]
 type RepoEvent = (typeof REPO_EVENTS)[number]
 
 export const githubInstall = Effect.fn("Cli.github.install")(function* () {
+  // The GitHub App this points at (github.com/apps/tiancode-agent), the token-exchange API host
+  // and the `Dreftian/Tiancode/github@latest` action the workflow references do not exist yet, so
+  // the file it wrote could never run. Say so instead of leaving a broken workflow in the repo.
+  if (!process.env.TIANCODE_GITHUB_APP_READY) {
+    UI.println(
+      "`tiancode github install` is not available yet: the Tiancode GitHub App and its token exchange service have not been published. Run the agent through the desktop app or the CLI instead.",
+    )
+    return
+  }
   const maybeCtx = yield* InstanceRef
   if (!maybeCtx) return yield* Effect.die("InstanceRef not provided")
   const ctx = maybeCtx
