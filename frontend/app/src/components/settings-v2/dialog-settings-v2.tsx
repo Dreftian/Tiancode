@@ -17,7 +17,6 @@ import { SettingsConnectionsV2 } from "./connections"
 import { SettingsComputerUseV2 } from "./computer-use"
 import { SettingsGithubV2 } from "./github"
 import { SettingsIntelligenceV2 } from "./intelligence"
-import { SettingsEcosystemV2 } from "./ecosystem"
 import { SettingsVoicesV2 } from "./voices"
 import "./settings-v2.css"
 import { SettingsServersV2 } from "./servers"
@@ -25,17 +24,6 @@ import { useDialog } from "@tiancode-ai/ui/context/dialog"
 import { useLayout } from "@/context/layout"
 import { useTabs } from "@/context/tabs"
 import { useServerSync } from "@/context/server-sync"
-
-const IconEcosystem = () => (
-  <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="10" cy="10" r="2.5" fill="currentColor" fill-opacity="0.2" />
-    <circle cx="4" cy="6" r="2" />
-    <circle cx="16" cy="6" r="2" />
-    <circle cx="5" cy="15" r="2" />
-    <circle cx="15" cy="15" r="2" />
-    <path d="M5.5 7.5L8.5 9M14.5 7.5L11.5 9M6.5 14L8.5 11M13.5 14L11.5 11M6 6h8" />
-  </svg>
-)
 
 const IconVoices = () => (
   <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -153,10 +141,6 @@ export const DialogSettings: Component<{
                       <Icon name="brain" />
                       {language.t("settings.tab.intelligence") || "Intelligence"}
                     </TabsV2.Trigger>
-                    <TabsV2.Trigger value="ecosystem">
-                      <IconEcosystem />
-                      Ecosistema IA
-                    </TabsV2.Trigger>
                     <TabsV2.Trigger value="computer-use">
                       <Icon name="window-cursor" />
                       {language.t("settings.tab.computerUse") || "Uso de la PC"}
@@ -251,12 +235,6 @@ export const DialogSettings: Component<{
         <TabsV2.Content forceMount value="intelligence" class="settings-v2-panel" classList={{ "!hidden": tab() !== "intelligence" }}>
           <Show when={visited().has("intelligence")}>
             <SettingsIntelligenceV2 />
-          </Show>
-        </TabsV2.Content>
-
-        <TabsV2.Content forceMount value="ecosystem" class="settings-v2-panel" classList={{ "!hidden": tab() !== "ecosystem" }}>
-          <Show when={visited().has("ecosystem")}>
-            <SettingsEcosystemV2 />
           </Show>
         </TabsV2.Content>
 

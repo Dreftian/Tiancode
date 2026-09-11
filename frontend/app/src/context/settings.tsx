@@ -77,48 +77,6 @@ export const defaultIntelligenceSettings: IntelligenceSettings = {
   tgrepSearch: true,
 }
 
-export interface EcosystemSettings {
-  masterEnabled?: boolean
-  preset?: "recommended" | "all" | "none" | "custom"
-  llamacoder: boolean
-  tauri: boolean
-  treeSitter: boolean
-  fragments: boolean
-  boltDiy: boolean
-  openInterpreter: boolean
-  e2b: boolean
-  pipelines: boolean
-  monaco: boolean
-  openDesign: boolean
-  firecrawl: boolean
-  claudeSkills: boolean
-  claudeMem: boolean
-  graphify: boolean
-  openClaw: boolean
-  hermesAgent: boolean
-}
-
-export const defaultEcosystemSettings: EcosystemSettings = {
-  masterEnabled: true,
-  preset: "recommended",
-  llamacoder: true,
-  tauri: true,
-  treeSitter: true,
-  fragments: true,
-  boltDiy: true,
-  openInterpreter: true,
-  e2b: true,
-  pipelines: true,
-  monaco: true,
-  openDesign: true,
-  firecrawl: true,
-  claudeSkills: true,
-  claudeMem: true,
-  graphify: true,
-  openClaw: true,
-  hermesAgent: true,
-}
-
 export interface Settings {
   general: {
     autoSave: boolean
@@ -163,7 +121,6 @@ export interface Settings {
   notifications: NotificationSettings
   sounds: SoundSettings
   intelligence: IntelligenceSettings
-  ecosystem: EcosystemSettings
 }
 
 export const monoDefault = "System Mono"
@@ -342,7 +299,6 @@ const defaultSettings: Settings = {
     errors: "nope-03",
   },
   intelligence: defaultIntelligenceSettings,
-  ecosystem: defaultEcosystemSettings,
 }
 
 function withFallback<T>(read: () => T | undefined, fallback: T) {
@@ -794,86 +750,6 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         ),
         setTgrepSearch(value: boolean) {
           setStore("intelligence", "tgrepSearch", value)
-        },
-      },
-      ecosystem: {
-        masterEnabled: withFallback(
-          () => store.ecosystem?.masterEnabled,
-          defaultSettings.ecosystem.masterEnabled ?? true,
-        ),
-        setMasterEnabled(value: boolean) {
-          setStore("ecosystem", "masterEnabled", value)
-        },
-        preset: withFallback(
-          () => store.ecosystem?.preset,
-          defaultSettings.ecosystem.preset ?? "recommended",
-        ),
-        setPreset(value: "recommended" | "all" | "none" | "custom") {
-          setStore("ecosystem", "preset", value)
-        },
-        llamacoder: withFallback(() => store.ecosystem?.llamacoder, defaultSettings.ecosystem.llamacoder),
-        setLlamacoder(value: boolean) {
-          setStore("ecosystem", "llamacoder", value)
-        },
-        tauri: withFallback(() => store.ecosystem?.tauri, defaultSettings.ecosystem.tauri),
-        setTauri(value: boolean) {
-          setStore("ecosystem", "tauri", value)
-        },
-        treeSitter: withFallback(() => store.ecosystem?.treeSitter, defaultSettings.ecosystem.treeSitter),
-        setTreeSitter(value: boolean) {
-          setStore("ecosystem", "treeSitter", value)
-        },
-        fragments: withFallback(() => store.ecosystem?.fragments, defaultSettings.ecosystem.fragments),
-        setFragments(value: boolean) {
-          setStore("ecosystem", "fragments", value)
-        },
-        boltDiy: withFallback(() => store.ecosystem?.boltDiy, defaultSettings.ecosystem.boltDiy),
-        setBoltDiy(value: boolean) {
-          setStore("ecosystem", "boltDiy", value)
-        },
-        openInterpreter: withFallback(() => store.ecosystem?.openInterpreter, defaultSettings.ecosystem.openInterpreter),
-        setOpenInterpreter(value: boolean) {
-          setStore("ecosystem", "openInterpreter", value)
-        },
-        e2b: withFallback(() => store.ecosystem?.e2b, defaultSettings.ecosystem.e2b),
-        setE2b(value: boolean) {
-          setStore("ecosystem", "e2b", value)
-        },
-        pipelines: withFallback(() => store.ecosystem?.pipelines, defaultSettings.ecosystem.pipelines),
-        setPipelines(value: boolean) {
-          setStore("ecosystem", "pipelines", value)
-        },
-        monaco: withFallback(() => store.ecosystem?.monaco, defaultSettings.ecosystem.monaco),
-        setMonaco(value: boolean) {
-          setStore("ecosystem", "monaco", value)
-        },
-        openDesign: withFallback(() => store.ecosystem?.openDesign, defaultSettings.ecosystem.openDesign),
-        setOpenDesign(value: boolean) {
-          setStore("ecosystem", "openDesign", value)
-        },
-        firecrawl: withFallback(() => store.ecosystem?.firecrawl, defaultSettings.ecosystem.firecrawl),
-        setFirecrawl(value: boolean) {
-          setStore("ecosystem", "firecrawl", value)
-        },
-        claudeSkills: withFallback(() => store.ecosystem?.claudeSkills, defaultSettings.ecosystem.claudeSkills),
-        setClaudeSkills(value: boolean) {
-          setStore("ecosystem", "claudeSkills", value)
-        },
-        claudeMem: withFallback(() => store.ecosystem?.claudeMem, defaultSettings.ecosystem.claudeMem),
-        setClaudeMem(value: boolean) {
-          setStore("ecosystem", "claudeMem", value)
-        },
-        graphify: withFallback(() => store.ecosystem?.graphify, defaultSettings.ecosystem.graphify),
-        setGraphify(value: boolean) {
-          setStore("ecosystem", "graphify", value)
-        },
-        openClaw: withFallback(() => store.ecosystem?.openClaw, defaultSettings.ecosystem.openClaw),
-        setOpenClaw(value: boolean) {
-          setStore("ecosystem", "openClaw", value)
-        },
-        hermesAgent: withFallback(() => store.ecosystem?.hermesAgent, defaultSettings.ecosystem.hermesAgent),
-        setHermesAgent(value: boolean) {
-          setStore("ecosystem", "hermesAgent", value)
         },
       },
     }
