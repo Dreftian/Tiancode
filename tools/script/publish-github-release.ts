@@ -29,55 +29,46 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.38"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — Modo 2x Real, Asistente de Bienvenida, Vista Previa en Vivo, Voces Reparadas & Panel Intelligence Conectado`
+  const releaseName = `Tiancode v${version} — Ajustes Fluidos, Conexiones Reales, Base de Datos Protegida & Rediseño de Skills, Sub-agentes y MCP`
 
   const body = `## 🚀 Tiancode v${version}
 
-Esta versión es el resultado de una auditoría funcional completa: se revisó una por una cada
-característica añadida a Tiancode y se corrigió todo lo que no cumplía su función. Varias cosas
-que parecían funcionar en realidad no hacían nada.
+Esta versión arregla el problema más grave reportado tras la 1.0.40 ("No se pudo conectar con
+Servidor local"), devuelve la fluidez al panel de Ajustes, convierte Conexiones en una integración
+real y rediseña las pestañas de Skills, Sub-agentes y MCP/Plugins.
 
-### ⚡ El modo 2x ahora acelera el modelo de verdad
-- Antes sólo inyectaba una frase en el system prompt. Ahora se conecta al sistema de \`variants\` del modelo y baja el razonamiento a su nivel más barato **sólo para esa petición**.
-- Tu variante guardada no se toca y vuelve sola al desactivarlo.
-- Corregido \`resolveFastVariant\`: su respaldo elegía \`variants[0]\`, que en una lista descendente como \`["high","medium","low"]\` era la **más lenta**.
+### 🗄️ Base de datos protegida frente a la copia de seguridad
+- La copia diaria copiaba \`tiancode.db\` mientras el servidor escribía: dejaba una copia rota y un bloqueo que ponía SQLite en **solo lectura**. De ahí el "No se pudo conectar".
+- La copia se hace ahora con \`VACUUM INTO\` (instantánea consistente y compacta) y nunca toca \`-wal\`/\`-shm\`.
+- Al arrancar, el servidor comprueba que puede escribir (reintenta hasta 30 s antes de fallar con un error claro) y compacta la base automáticamente cuando acumula espacio libre.
 
-### 🧭 Asistente de Bienvenida completo
-- Anunciaba "Paso 1 de 3" pero sólo existía un paso. Ahora están los tres: proveedor, espacio de trabajo y cierre.
-- Botones Atrás/Omitir, navegación por teclado, los 7 idiomas y desplazamiento interno para que no se recorte en ventanas bajas.
+### ⚡ Ajustes vuelve a ser fluido
+- El diálogo y cada panel forzaban capas de GPU, varias tablas usaban desenfoque de fondo y había animaciones permanentes: con 12 paneles montados a la vez, cada cambio de pestaña recomponía todo. *General* era el único panel sin esos efectos y por eso el único fluido.
+- Se retiran las capas forzadas, los desenfoques y los pulsos estáticos.
 
-### 👁️ Vista previa con estado "Compilando" en vivo
-- El gestor ya recompilaba al guardar, pero el estado vivía en un campo privado que nunca se publicaba.
-- Ahora verás **"Compilando src/App.tsx…"** con la duración de la última compilación, y el iframe se recarga al terminar bien.
+### 🔗 Conexiones reales (Telegram, Discord, Slack, Webhooks)
+- El panel anterior guardaba todo en el navegador, "probaba" con un temporizador y el emparejamiento de WhatsApp era un número aleatorio.
+- Nuevo servicio en el servidor con API \`/global/connections\`: los tokens viven en el almacén de credenciales y nunca vuelven a la interfaz, cada sesión que termina o falla envía un resumen, los webhooks van firmados con HMAC-SHA256 y el bot de Telegram abre sesiones y responde desde el chat.
+- WhatsApp se retira hasta contar con una integración real.
 
-### 🔊 Voces reparadas
-- "Paloma" y "Tania" apuntaban a repositorios de HuggingFace que **no existen** (HTTP 401): su descarga fallaba siempre.
-- Sustituidas por \`es_ES-miro-high\` y \`es_ES-glados-medium\`, verificadas.
-- Nuevo \`verify-piper-voices\` en el pipeline de release: un repositorio muerto ya no puede volver a publicarse.
+### 🎨 Skills, Sub-agentes y MCP/Plugins rediseñados
+- **Skills**: barra de acciones y filtros con recuentos (sin emojis), descripciones a dos líneas en la lista, textos traducidos.
+- **Sub-agentes**: selector de alcance proyecto/global como control segmentado, tabla más densa, estados traducidos.
+- **MCP y Plugins**: las pestañas ya no recortan su etiqueta, explicación compacta de MCP, ruta de los plugins locales una sola vez, catálogo con cabecera limpia.
+- 105 claves de traducción nuevas en los 7 idiomas; la paleta fija se sustituye por los tokens del tema.
 
-### 🧠 Panel Intelligence conectado al agente
-- Los ajustes se guardaban sólo en \`localStorage\` y nunca llegaban al servidor, así que ninguno influía en el agente.
-- Memoria de usuario/proyecto y guardrails viajan ahora por \`experimental.intelligence\` y gobiernan de verdad el system prompt y \`AgentShield\`.
+### 🔊 Voces
+- Catálogo completo con las descargadas primero, sin doble descarga ni velocidad 120 %.
+- La clave de Fish Audio deja de ir incluida en el binario; velocidad natural por defecto en Kokoro y Piper.
+- Botón de eliminar restaurado, tono solo cuando el motor lo admite, el probador de micrófono libera el micro al cambiar de pestaña.
 
-### 🔒 Seguridad
-- **Los guardados de Ajustes ya no escriben tus secretos en claro.** \`Config.update()\` fusionaba sobre la configuración *ya cargada*, que resuelve \`{env:...}\` y \`{file:...}\`, así que cada guardado reescribía tu archivo con las claves resueltas y borraba las claves que el esquema no reconocía.
-- **Cloudflare AI Gateway ya no entrega tu token de Cloudflare a terceros.** Viajaba en \`Authorization\`, que la pasarela reenvía tal cual a OpenAI, Anthropic o Google.
-
-### 🔌 Proveedores y modelos
-- **Azure**: inicio de sesión con Microsoft Entra ID vía Azure CLI, además de clave de API.
-- **Cerebras**: nuevo plugin que evita el truncado de respuestas por doble tope de tokens.
-- **Codex**: se envía por fin la cabecera de residencia de cómputo (estaba rota por tres motivos a la vez) y los modelos con minor de dos dígitos dejan de descartarse.
-- **OpenAI**: un cierre WebSocket 1009 cae de inmediato a HTTP en vez de gastar todos los reintentos con un cuerpo que nunca iba a caber.
-- **Reintentos**: eran ilimitados y sin dispersión; ahora tope de 5 y jitter del 25%.
-
-### 🎨 Interfaz y traducciones
-- Tablas de sub-agentes y MCP reescritas mobile-first con container queries: se acabó el desplazamiento horizontal entre 360 y 1300 px.
-- 53 claves de traducción que faltaban en los 7 idiomas (toda la pestaña *Intelligence* caía a español fijo para el resto de idiomas).
-- Catálogo de skills: 16 skills muertas o duplicadas retiradas.
+### 🐙 GitHub e Inteligencia
+- La rama actual se lee del control de versiones (antes siempre "main"), "Sincronizar" espera a todas las peticiones y los fallos de commit/push/pull muestran la salida real de git.
+- Los ajustes de memoria y guardrails de *Inteligencia* llegan por fin al servidor por HTTP: el esquema V1 los descartaba en silencio.
+- Se retira la pestaña *Ecosistema IA*: 9 de sus 16 tarjetas describían integraciones inexistentes y ningún interruptor tenía efecto.
 
 ### ✅ Calidad
-- Suite del frontend: **862 tests, 0 fallos**.
-- \`backend/core/test/plugin\`: de 210/12 a **222/0**.
+- Suite del frontend: **868 tests, 0 fallos**. Desktop 75/0. Conexiones 17/17.
 - Typecheck: 27/27 paquetes.
 
 ### 🔄 Actualización 100% no destructiva
@@ -91,7 +82,6 @@ Desde la app: **Ayuda → Buscar actualizaciones**.
 | [**Tiancode-portable.exe**](https://github.com/Dreftian/Tiancode/releases/download/${tag}/Tiancode-portable.exe) | Portable Windows | Ejecutable autónomo sin instalación ni permisos administrativos |
 | [**latest.yml**](https://github.com/Dreftian/Tiancode/releases/download/${tag}/latest.yml) | Metadatos | Manifiesto criptográfico para el auto-updater |
 `
-
 
   console.log(`[1/4] Verificando release ${tag} en GitHub...`)
   const headers = {

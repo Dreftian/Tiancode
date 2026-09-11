@@ -4,6 +4,51 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.41] — 2026-09-11
+### Ajustes fluidos, Conexiones reales, base de datos protegida y rediseño de Skills, Sub-agentes y MCP
+
+- **"No se pudo conectar con Servidor local" tras actualizar**: la copia de seguridad diaria copiaba
+  `tiancode.db` (5,5 GB) con `copyFile` mientras el servidor escribía; dejaba una copia rota de 5,56 GB
+  y un bloqueo que ponía SQLite en modo solo lectura (`SQLITE_READONLY`). La copia se hace ahora con
+  `VACUUM INTO` (instantánea consistente y ya compactada), nunca se copian los archivos `-wal`/`-shm`
+  y la restauración tampoco los toca. Al arrancar, el servidor comprueba que puede escribir (reintenta
+  40 × 750 ms antes de fallar con `DatabaseLockedError`) y compacta la base automáticamente cuando más
+  de la mitad son páginas libres (`backend/core/src/database/maintenance.ts`, 5 tests).
+- **Lag al cambiar de pestaña en Ajustes**: el contenedor del diálogo y cada panel forzaban capas de
+  GPU (`transform: translateZ(0)`, `backface-visibility: hidden`), varias tablas y tarjetas usaban
+  `backdrop-filter: blur()` y había `animate-pulse` permanentes; con 12 paneles montados a la vez cada
+  cambio recomponía todo. *General* era el único panel sin esos efectos y por eso el único fluido. Se
+  retiran las capas forzadas, los desenfoques de tablas/tarjetas y los pulsos estáticos.
+- **Conexiones (Telegram, Discord, Slack, Webhook) reales**: el panel guardaba todo en `localStorage`,
+  "probaba" con un `setTimeout` y el emparejamiento de WhatsApp era `Math.random()`. Nuevo servicio
+  `Connections` en el servidor con API `/global/connections` (listar, configurar, eliminar, probar):
+  los secretos viven en el almacén de credenciales y nunca vuelven al renderer, cada sesión que
+  termina o falla envía un resumen (con deduplicación de 3 s), los webhooks van firmados con HMAC
+  `sha256=` en `x-tiancode-signature`, y un poller de Telegram crea sesiones y responde desde el chat.
+  WhatsApp se retira hasta contar con una integración real. 17 tests nuevos.
+- **Ecosistema IA**: 9 de las 16 tarjetas describían integraciones inexistentes y ningún interruptor
+  lo leía nadie; la pestaña se elimina junto con su estado.
+- **GitHub**: la rama se leía de un endpoint que no la devuelve (siempre "main"); ahora sale de
+  `GET /vcs`. "Sincronizar" mostraba éxito antes de que terminara una sola petición; espera a todas y
+  reporta el fallo. Commit, push y pull muestran la salida real de git en vez de un toast genérico y
+  refrescan el estado del repositorio. `tiancode github install` avisa de que la GitHub App aún no está
+  publicada en vez de escribir un workflow que no podía ejecutarse.
+- **Voces**: catálogo completo con las descargadas primero, sin doble descarga ni velocidad 120 %,
+  la clave de Fish Audio deja de ir incluida en el binario, velocidad 1.0 por defecto en Kokoro y
+  Piper, botón de eliminar restaurado, tono solo con Web Speech (los motores locales lo ignoran), el
+  probador de micrófono libera el micro al ocultar la pestaña, el "barge-in" vuelve a escuchar tras
+  reiniciar y la vista previa de cada voz usa su propio motor sea cual sea el modo global.
+- **Inteligencia**: el puente `experimental.intelligence` de la 1.0.40 nunca llegaba al disco por HTTP
+  porque el esquema V1 de `PATCH /global/config` lo descartaba; corregido y cubierto por test, igual que
+  `experimental.connections`.
+- **Skills, Sub-agentes y MCP/Plugins rediseñados**: barra de acciones y filtros sin emojis y con
+  recuentos, descripciones a dos líneas en la lista, selector de alcance como control segmentado,
+  pestañas MCP que ya no recortan su etiqueta, ruta de los plugins locales una sola vez, explicación de
+  MCP y catálogo con cabeceras compactas, paleta fija `slate` sustituida por los tokens del tema y todos
+  los textos por i18n (105 claves nuevas en los 7 idiomas).
+- **CORS**: `serve --cors http://localhost:3000` no se aplicaba a orígenes localhost sin contraseña.
+- **Calidad**: typecheck 27/27, frontend **868 tests, 0 fallos**, desktop 75/0, conexiones 17/17.
+
 ## [1.0.40] — 2026-09-10
 ### Auditoría de funcionamiento: correcciones verificadas en composer, voces, vista previa e Intelligence
 
