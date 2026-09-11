@@ -4,18 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Novedades — Tiancode</title>
-  <meta name="description" content="Novedades de Tiancode v1.0.40: modo 2x real, Asistente de Bienvenida completo, vista previa «Compilando» en vivo, voces reparadas y panel Intelligence conectado.">
+  <meta name="description" content="Novedades de Tiancode v1.0.41: Ajustes fluidos, Conexiones reales con Telegram, Discord, Slack y Webhooks, base de datos protegida frente a la copia de seguridad y rediseño de Skills, Sub-agentes y MCP.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Tiancode">
   <meta property="og:title" content="Novedades — Tiancode">
-  <meta property="og:description" content="Novedades de Tiancode v1.0.40: modo 2x real, Asistente de Bienvenida completo, vista previa «Compilando» en vivo, voces reparadas y panel Intelligence conectado.">
+  <meta property="og:description" content="Novedades de Tiancode v1.0.41: Ajustes fluidos, Conexiones reales con Telegram, Discord, Slack y Webhooks, base de datos protegida frente a la copia de seguridad y rediseño de Skills, Sub-agentes y MCP.">
   <meta property="og:url" content="https://tiancode.vercel.app/recursos/novedades.html">
   <meta property="og:image" content="https://tiancode.vercel.app/img/og-image.png">
   <meta property="og:locale" content="es_ES">
   <meta property="og:locale:alternate" content="en_US">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Novedades — Tiancode">
-  <meta name="twitter:description" content="Novedades de Tiancode v1.0.40: modo 2x real, Asistente de Bienvenida completo, vista previa «Compilando» en vivo, voces reparadas y panel Intelligence conectado.">
+  <meta name="twitter:description" content="Novedades de Tiancode v1.0.41: Ajustes fluidos, Conexiones reales con Telegram, Discord, Slack y Webhooks, base de datos protegida frente a la copia de seguridad y rediseño de Skills, Sub-agentes y MCP.">
   <meta name="twitter:image" content="https://tiancode.vercel.app/img/og-image.png">
   <link rel="canonical" href="https://tiancode.vercel.app/recursos/novedades.html">
   <link rel="icon" type="image/png" href="img/favicon.png">
@@ -121,12 +121,33 @@
           <header class="page-head reveal">
             <span class="eyebrow">Recursos</span>
             <h1 class="page-title">Novedades</h1>
-            <p class="page-sub">Todo lo que trae Tiancode 1.0.40, la versión estable.</p>
+            <p class="page-sub">Todo lo que trae Tiancode 1.0.41, la versión estable, y las anteriores.</p>
           </header>
           <div class="page-body reveal" style="--rd:.08s">
               <div class="news-version">
-                <h2>Versión 1.0.40</h2>
+                <h2>Versión 1.0.41</h2>
                 <span class="news-tag">Última versión</span>
+                <span class="news-date">11 de septiembre de 2026</span>
+              </div>
+              <div class="news-block news-block--new">
+                <h3>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  <span>Ajustes fluidos, Conexiones reales, base de datos protegida y rediseño de Skills, Sub-agentes y MCP en v1.0.41</span>
+                </h3>
+                <ul class="news-list news-list--new">
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Servidor local que no conectaba:</strong> la copia de seguridad diaria copiaba la base de datos mientras el servidor escribía y la dejaba en modo solo lectura. Ahora se hace con instantáneas VACUUM INTO, el servidor comprueba al arrancar que puede escribir y compacta la base cuando acumula espacio libre.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Ajustes fluidos:</strong> el diálogo y cada panel forzaban capas de GPU, varias tablas usaban desenfoque de fondo y había animaciones permanentes; con 12 paneles montados, cada cambio de pestaña recomponía todo. Se retiran.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Conexiones reales:</strong> Telegram, Discord, Slack y Webhooks se configuran y prueban contra el servidor. Los tokens viven en el almacén de credenciales, cada sesión terminada envía un resumen, los webhooks van firmados con HMAC-SHA256 y el bot de Telegram abre sesiones desde el chat. WhatsApp se retira hasta contar con una integración real.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Skills, Sub-agentes y MCP rediseñados:</strong> barra de acciones y filtros con recuentos, descripciones a dos líneas, selector de alcance como control segmentado, pestañas MCP sin recortes, ruta de los plugins locales una sola vez y 105 traducciones nuevas en los 7 idiomas.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Voces:</strong> catálogo completo con las descargadas primero, sin doble descarga ni velocidad 120 %, clave de Fish Audio fuera del binario, velocidad natural por defecto en Kokoro y Piper y el probador de micrófono libera el micro al cambiar de pestaña.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>GitHub:</strong> la rama actual se lee del control de versiones, «Sincronizar» espera a todas las peticiones y los fallos de commit, push y pull muestran la salida real de git.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Inteligencia:</strong> los ajustes de memoria y guardrails llegan por fin al servidor por HTTP; el esquema V1 los descartaba en silencio. Se retira la pestaña «Ecosistema IA», cuyos interruptores no tenían efecto.</span></li>
+                </ul>
+              </div>
+
+              <div class="news-version">
+                <h2>Versión 1.0.40</h2>
+                <span class="news-tag">Estable</span>
                 <span class="news-date">10 de septiembre de 2026</span>
               </div>
               <div class="news-block news-block--new">
@@ -335,7 +356,7 @@
           </a>
           <p>El asistente de IA para programar, hecho para Windows.</p>
         </div>
-        <span class="footer-version"><i aria-hidden="true"></i>v1.0.40 · MIT</span>
+        <span class="footer-version"><i aria-hidden="true"></i>v1.0.41 · MIT</span>
       </div>
       <div class="footer-grid">
         <nav class="footer-col" aria-label="Producto">
