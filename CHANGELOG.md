@@ -86,6 +86,15 @@ siempre, porque ahí suele haber contraseñas.
   el rasgo completos (antes se cortaban a una línea a mitad de frase), especie y rasgo traducidos a
   los siete idiomas en vez de sólo español, y una tira que muestra el estado real de la mascota del
   escritorio leyendo un IPC que ya existía y que nadie llamaba.
+- **Modelos Locales — el botón «Benchmark» no medía nada.** Esperaba 1.200 ms y mostraba
+  `38,5 + Math.random() * 22` tok/s, un TTFT y un consumo de VRAM igual de inventados, con un aviso
+  que decía «probado con éxito en tu GPU local». Borrado entero: una medición falsa presentada como
+  real es peor que no ofrecer la medición. Con él se van dos invenciones más del mismo panel: los
+  contadores de descargas y «me gusta» que se fabricaban (1.000 y 50) para cualquier modelo local y
+  se pintaban como estadísticas de Hugging Face, y los valores de hardware por defecto (16 GB de RAM,
+  8 GB de VRAM, 6 libres) que hacían que el panel afirmara con seguridad que un modelo cabe en una
+  GPU que nunca llegó a leer. Ahora, sin lectura real del sistema, la insignia de compatibilidad se
+  queda en su respuesta neutra y la tarjeta lo dice en vez de inventarse la máquina.
 - **Modelos Locales**: deja de ser una tarjeta dentro de otra tarjeta y adopta la cabecera estándar.
   Pasa de 4 referencias a tokens de tema frente a 99 literales hexadecimales, a 101 frente a 25: el
   panel ya no se ve oscuro sobre un tema claro. Su único punto de ruptura por ancho de ventana pasa
@@ -320,6 +329,9 @@ vida. `preview_inspect` ya no informa del valor de un campo de contraseña.
 - **Voces**: "Paloma" y "Tania" apuntaban a repositorios de HuggingFace que **no existen** (HTTP 401),
   así que su descarga siempre fallaba. Se sustituyen por `es_ES-miro-high` y `es_ES-glados-medium`,
   verificadas. Se añade `verify-piper-voices.ts` al pipeline de release, que comprueba las 10 voces.
+  (Nota posterior: en 1.0.45 estas dos se retiran del catálogo. `miro` es una voz masculina y su
+  licencia real es no comercial pese a declararse CC BY 4.0; `glados` es una voz de personaje sin
+  cadena de licencia verificable. Que el repositorio respondiera 200 sólo probaba que existía.)
 - **Intelligence conectado al agente**: los ajustes del renderer se guardaban sólo en `localStorage` y
   nunca llegaban al servidor, así que ninguno podía influir en el agente. Los interruptores de memoria
   de usuario/proyecto y de guardrails viajan ahora por `experimental.intelligence` en la configuración

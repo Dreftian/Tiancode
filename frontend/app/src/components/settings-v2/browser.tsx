@@ -117,7 +117,7 @@ export const SettingsBrowserV2: Component = () => {
 
           <div class="settings-v2-section">
             <h3 class="settings-v2-section-title">{language.t("settings.browser.section.screenshots")}</h3>
-            <p class="settings-v2-pets-note">{language.t("settings.browser.screenshots.note")}</p>
+            <p class="settings-v2-note">{language.t("settings.browser.screenshots.note")}</p>
           </div>
         </Show>
       </div>

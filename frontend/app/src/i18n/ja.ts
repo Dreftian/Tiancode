@@ -2263,4 +2263,5 @@ export const dict = {
   "settings.mcpPlugins.form.oauth.description": "追加後にブラウザーを開いてサーバーを承認します。",
   "settings.mcpPlugins.toast.authStarted": "ブラウザーで {{name}} のサインインを完了してください",
   "settings.mcpPlugins.toast.authFailed": "{{name}} のサインインを開始できませんでした",
+  "command.category.prompt": "プロンプト",
 }

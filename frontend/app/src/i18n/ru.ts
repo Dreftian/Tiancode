@@ -2355,4 +2355,5 @@ export const dict = {
   "settings.mcpPlugins.form.oauth.description": "После добавления откроет браузер для авторизации сервера.",
   "settings.mcpPlugins.toast.authStarted": "Завершите вход в {{name}} в браузере",
   "settings.mcpPlugins.toast.authFailed": "Не удалось начать вход в {{name}}",
+  "command.category.prompt": "Промпт",
 }

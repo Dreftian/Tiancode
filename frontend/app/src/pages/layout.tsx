@@ -939,8 +939,8 @@ export default function LegacyLayout(props: ParentProps) {
       },
       {
         id: "prompt.optimize",
-        title: "Optimizar Prompt / Instrucción (Estilo Trae)",
-        category: "Prompt",
+        title: language.t("prompt.optimize.label"),
+        category: language.t("command.category.prompt"),
         keybind: "mod+shift+o",
         onSelect: () => {
           const btn = document.querySelector(".trae-optimizer-btn") as HTMLButtonElement | null

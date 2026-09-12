@@ -1745,6 +1745,9 @@ export default function Page() {
         serverSync: serverSync(),
         draft: item,
         optimisticBusy: item.sessionDirectory === sdk().directory,
+        // Un borrador en cola puede sobrevivir a una recarga de la página, y entonces el Blob ya no
+        // está en memoria: sin este lector el adjunto se pierde al vaciar la cola.
+        getBlob: (id) => (platform.draftStore ? platform.draftStore.getBlob(id) : Promise.resolve(null)),
       }).catch((err) => {
         setFollowup("failed", input.sessionID, input.id)
         fail(err)

@@ -484,9 +484,12 @@ export const SettingsModelsHubV2: Component<{
     },
   )
 
-  const ram = createMemo(() => asNumber(system()?.ram) ?? 16e9)
-  const vramTotal = createMemo(() => asNumber(system()?.vram?.total) ?? 8e9)
-  const vramFree = createMemo(() => asNumber(system()?.vram?.free) ?? 6e9)
+  // Sin lectura del sistema devolvemos undefined, no una cifra inventada: estos tres valores
+  // alimentan la insignia de compatibilidad, así que un 8 GB de VRAM supuesto hacía que el panel
+  // afirmara con seguridad que un modelo cabe en una GPU que nunca llegó a consultar.
+  const ram = createMemo(() => asNumber(system()?.ram))
+  const vramTotal = createMemo(() => asNumber(system()?.vram?.total))
+  const vramFree = createMemo(() => asNumber(system()?.vram?.free))
 
   const syncedJobSet = new Set<string>()
 
@@ -602,8 +605,6 @@ export const SettingsModelsHubV2: Component<{
         if (t.includes(liveQuery) && !list.some((m) => m.id === j.model)) {
           list.push({
             id: j.model,
-            downloads: 1000,
-            likes: 50,
             pipeline_tag: "text-generation",
             author: j.model.includes("/") ? j.model.split("/")[0] : "local",
             description: `Modelo local descargado en disco (${j.file}).`,
@@ -618,8 +619,6 @@ export const SettingsModelsHubV2: Component<{
         if (!list.some((m) => m.id === j.model)) {
           list.push({
             id: j.model,
-            downloads: 1000,
-            likes: 50,
             pipeline_tag: "text-generation",
             author: j.model.includes("/") ? j.model.split("/")[0] : "local",
             description: `Modelo local descargado en disco (${j.file}).`,
@@ -739,36 +738,15 @@ export const SettingsModelsHubV2: Component<{
   const compat = (sizeBytes: Numish | undefined): FitTier =>
     compatibilityFor({
       sizeBytes: asNumber(sizeBytes),
-      ramBytes: ram(),
-      vram: vramTotal() > 0 ? { total: vramTotal(), free: vramFree() } : undefined,
+      // Sin lectura del sistema van en 0 / undefined, y compatibilityFor responde "partial_gpu":
+      // su respuesta neutra documentada, que no promete descarga completa ni descarta el modelo.
+      ramBytes: ram() ?? 0,
+      vram: (vramTotal() ?? 0) > 0 ? { total: vramTotal()!, free: vramFree() ?? 0 } : undefined,
       useGpu: memoryPrefs.useGpu,
       useRamFallback: memoryPrefs.useRamFallback,
     })
 
-  const [benchResults, setBenchResults] = createSignal<Record<string, { tokSec: number; vram: string; ttft: number }>>({})
-  const [benchmarkingModel, setBenchmarkingModel] = createSignal<string | null>(null)
 
-  const runBenchmarkForModel = async (model: Model) => {
-    setBenchmarkingModel(model.id)
-    await new Promise((r) => setTimeout(r, 1200))
-    const tokSec = Number((38.5 + Math.random() * 22.0).toFixed(1))
-    const ttft = Math.floor(140 + Math.random() * 70)
-    setBenchResults((prev) => ({
-      ...prev,
-      [model.id]: {
-        tokSec,
-        vram: `${(3.8 + Math.random() * 1.5).toFixed(1)} GB / ${formatBytes(vramTotal())}`,
-        ttft,
-      },
-    }))
-    setBenchmarkingModel(null)
-    SoundEffects.playSuccess()
-    showToast({
-      variant: "success",
-      title: `Benchmark GPU: ${tokSec} tok/s`,
-      description: `${model.id.split("/").pop()} probado con éxito en tu GPU local.`,
-    })
-  }
 
   const handleSearch = (e?: Event) => {
     e?.preventDefault()
@@ -1044,14 +1022,20 @@ export const SettingsModelsHubV2: Component<{
             <span class="lm-hub-dot" />
             <span class="lm-hub-stat-k">{system()?.gpu ? system()!.gpu!.split(" ")[0] : "GPU"}</span>
             <span class="lm-hub-stat-v" title={`${formatBytes(vramFree())} libres de ${formatBytes(vramTotal())}`}>
-              {formatBytes(vramFree())} / {formatBytes(vramTotal())}
+              <Show when={vramTotal() !== undefined} fallback="—">
+                {formatBytes(vramFree())} / {formatBytes(vramTotal())}
+              </Show>
             </span>
           </div>
 
           <div class="lm-hub-stat" data-state="info" title="RAM del sistema">
             <span class="lm-hub-dot" />
             <span class="lm-hub-stat-k">RAM</span>
-            <span class="lm-hub-stat-v">{formatBytes(ram())}</span>
+            <span class="lm-hub-stat-v">
+              <Show when={ram() !== undefined} fallback="—">
+                {formatBytes(ram())}
+              </Show>
+            </span>
           </div>
 
           <Show when={engineStatus()?.status === "running"}>
@@ -1192,13 +1176,21 @@ export const SettingsModelsHubV2: Component<{
                   <div class="lm-hub-empty-card">
                     <span class="lm-hub-empty-card-title">🎮 Aceleración por GPU</span>
                     <p class="lm-hub-empty-card-body">
-                      {system()?.gpu ? system()!.gpu!.split(" ")[0] : "GPU"} detectada con {formatBytes(vramFree())} libres de {formatBytes(vramTotal())} de VRAM. Modelos de 3B a 8B se ejecutarán a máxima velocidad.
+                      <Show
+                        when={vramTotal() !== undefined}
+                        fallback="No hemos podido leer la GPU de este equipo, así que la insignia de compatibilidad de cada modelo se queda en «parcial» en vez de afirmar algo que no sabemos."
+                      >
+                        {system()?.gpu ? system()!.gpu!.split(" ")[0] : "GPU"} detectada con {formatBytes(vramFree())}{" "}
+                        libres de {formatBytes(vramTotal())} de VRAM.
+                      </Show>
                     </p>
                   </div>
                   <div class="lm-hub-empty-card">
                     <span class="lm-hub-empty-card-title">🧠 Descarga Híbrida RAM</span>
                     <p class="lm-hub-empty-card-body">
-                      Tu sistema tiene {formatBytes(ram())} de memoria RAM para albergar capas que sobrepasen la VRAM.
+                      <Show when={ram() !== undefined} fallback="Memoria del sistema no disponible.">
+                        Tu sistema tiene {formatBytes(ram())} de memoria RAM para albergar capas que sobrepasen la VRAM.
+                      </Show>
                     </p>
                   </div>
                 </div>
@@ -1373,17 +1365,6 @@ export const SettingsModelsHubV2: Component<{
                                 </button>
                                 <button
                                   type="button"
-                                  class="lm-btn-benchmark-sm"
-                                  disabled={benchmarkingModel() === model.id}
-                                  onClick={() => runBenchmarkForModel(model)}
-                                  title="Probar velocidad de inferencia en GPU"
-                                >
-                                  <Show when={benchmarkingModel() === model.id} fallback={<span>⚡ Benchmark</span>}>
-                                    <span class="lm-spinner" />
-                                  </Show>
-                                </button>
-                                <button
-                                  type="button"
                                   class="lm-btn-delete-sm"
                                   onClick={() => currentJob() && removeDownload(currentJob()!)}
                                   title="Eliminar de disco"
@@ -1393,20 +1374,6 @@ export const SettingsModelsHubV2: Component<{
                               </Show>
                             </div>
                           </div>
-
-                          {/* Benchmark Result if applicable */}
-                          <Show when={benchResults()[model.id]}>
-                            {(res) => (
-                              <div class="lm-result-card-bench">
-                                <div class="lm-result-card-bench-metrics">
-                                  <strong>{res().tokSec} tok/s</strong>
-                                  <span>· VRAM: {res().vram}</span>
-                                  <span>· TTFT: {res().ttft} ms</span>
-                                </div>
-                                <span>Medición de inferencia local en GPU</span>
-                              </div>
-                            )}
-                          </Show>
                         </div>
                       )
                     }}

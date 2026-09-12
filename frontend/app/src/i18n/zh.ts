@@ -2323,4 +2323,5 @@ export const dict = {
   "settings.mcpPlugins.form.oauth.description": "添加后将打开浏览器以授权该服务器。",
   "settings.mcpPlugins.toast.authStarted": "请在浏览器中完成 {{name}} 的登录",
   "settings.mcpPlugins.toast.authFailed": "无法开始 {{name}} 的登录",
+  "command.category.prompt": "提示词",
 } satisfies Partial<Record<Keys, string>>

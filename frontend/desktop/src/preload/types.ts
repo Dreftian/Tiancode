@@ -30,6 +30,8 @@ export type UpdaterAPI = {
   install: () => Promise<void>
 }
 
+// "kokoro" ya no tiene voces en el catálogo (las 10 inglesas se retiraron en 1.0.45); se conserva
+// en la unión porque una preferencia guardada de un usuario antiguo todavía puede traer ese valor.
 export type VoiceEngine = "kokoro" | "piper" | "kokoro-es"
 
 export type VoiceInfo = {
@@ -37,12 +39,12 @@ export type VoiceInfo = {
   name: string
   language: string
   gender: "female" | "male"
-  // Whether kokoro-js can synthesize this voice (English voices only; the
-  // bundled espeak-ng phonemizer has no multilingual voices). Piper voices
-  // are always supported once downloaded.
+  // Siempre true desde 1.0.45: el catálogo son 6 voces españolas (ef_dora en kokoro-es y 5 de
+  // piper) y todas se sintetizan. Se mantiene el campo como guarda para una futura voz que llegue
+  // sin soporte en la plataforma del usuario.
   supported: boolean
-  // Synthesis engine: kokoro voices ship with the app, piper voices are
-  // downloaded on demand (sherpa-onnx + espeak-ng phonemizer).
+  // Motor de síntesis. Ninguna voz viene dentro del instalador: kokoro-es y piper se descargan
+  // bajo demanda (sherpa-onnx + el fonemizador espeak-ng).
   engine: VoiceEngine
   // Whether this is the app's default voice for Spanish announcements.
   default?: boolean
@@ -342,7 +344,8 @@ export type ElectronAPI = {
 }
 
 export type DesktopPetState = {
-  kind: "cat" | "dog" | "rabbit"
+  /** Cualquiera de las 13 de `petKinds`; la lista corta de antes dejaba fuera 10 mascotas reales. */
+  kind: string
   status: "ready" | "running" | "needs-input" | "blocked"
   text: string
   petted?: boolean

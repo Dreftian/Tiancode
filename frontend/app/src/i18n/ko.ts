@@ -2261,4 +2261,5 @@ export const dict = {
   "settings.mcpPlugins.form.oauth.description": "추가한 뒤 브라우저를 열어 서버를 승인합니다.",
   "settings.mcpPlugins.toast.authStarted": "브라우저에서 {{name}} 로그인을 완료하세요",
   "settings.mcpPlugins.toast.authFailed": "{{name}} 로그인을 시작할 수 없습니다",
+  "command.category.prompt": "프롬프트",
 }

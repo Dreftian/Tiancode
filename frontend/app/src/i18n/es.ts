@@ -2383,4 +2383,5 @@ export const dict = {
   "settings.mcpPlugins.form.oauth.description": "Abre el navegador para autorizar el servidor justo después de añadirlo.",
   "settings.mcpPlugins.toast.authStarted": "Termina de iniciar sesión en {{name}} desde el navegador",
   "settings.mcpPlugins.toast.authFailed": "No se pudo iniciar la sesión de {{name}}",
+  "command.category.prompt": "Prompt",
 }
