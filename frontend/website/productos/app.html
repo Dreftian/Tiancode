@@ -133,11 +133,12 @@
                 <li><strong>Multi-proveedor:</strong> OpenAI, Anthropic y otros proveedores, o combínalos con modelos locales.</li>
                 <li><strong>Modo portable:</strong> llévate Tiancode en un USB, sin instalación.</li>
               </ul>
-              <h2>Todo lo nuevo en v1.0.46</h2>
+              <h2>Todo lo nuevo en v1.0.47</h2>
               <ul class="page-list">
-                <li><strong>El botón de mejorar el prompt:</strong> usa el modelo y el nivel de razonamiento que elegiste —la variante se descartaba en tres sitios a la vez—, avisa cuando el modelo que nombraste no está disponible en lugar de responderte con otro, y separa credenciales, límite de peticiones, saldo agotado y «no produjo nada» en cuatro mensajes distintos.</li>
-                <li><strong>Micrófono con consentimiento:</strong> ya transcribía en local, sin conexión y en español; ahora pide permiso antes de descargar sus 146 MB y enseña el progreso en el botón, dicta al final de lo que escribiste sin borrar los adjuntos, no congela la app, no corta en silencio a los 64 segundos y entiende los 99 idiomas del modelo.</li>
-                <li><strong>Cabecera del Sandbox y GitHub:</strong> la pestaña «Vista previa / Código» deja de cortarse a media palabra, con una escalera responsive de cinco pasos y un menú de dispositivo; y el panel de GitHub se centra, se lee en el tema claro, explica las seis capacidades que da conectar y muestra los permisos y los contadores reales.</li>
+                <li><strong>Seguridad de la vista previa:</strong> el agente ya no puede leer ni pulsar una página que tú no estás viendo. La única comprobación era «¿es http o https?», sin comparar el origen, y la vista nativa se ocultaba sin cambiar de página: el modelo llegaba a recibir la URL, el título, 4.000 caracteres de texto y todos los elementos interactivos de una página tuya con la sesión iniciada. Ahora manda el origen esperado, las dos tools de vista previa piden permiso nombrándolo, aprobar una captura de ventana ya no concede la pantalla entera, y un clic del modelo no puede abrir tu navegador real en cualquier URL.</li>
+                <li><strong>Uso del navegador:</strong> el navegador integrado era alcanzable por accidente y sin permiso; ahora es deliberado. Las tools preguntan al navegador qué página tiene abierta y piden permiso citando ese sitio antes de tocarlo: tu sesión, permiso por sitio. Los navegadores externos no se soportan, y la razón es honesta: Chrome 153 y Edge 153 rechazan los dos «--remote-debugging-port» sobre el perfil por defecto.</li>
+                <li><strong>Uso del computador:</strong> una tool que mueve el ratón y escribe de verdad en Windows —move, click, type, key, scroll— sobre un proceso PowerShell persistente con user32, sin dependencias nuevas. Rechaza las ventanas elevadas y la suya propia, parte de una lista de apps permitidas vacía que releé la ventana activa tras su propio diálogo, muestra un indicador con botón de parada y atajo global, y caduca a los 2 minutos de inactividad. Sólo Windows en esta v1.</li>
+                <li><strong>Ajustes de transcripción:</strong> tamaño del texto (pequeño / medio / grande) y ancho de la transcripción (estrecho / medio / ancho) en Ajustes → Apariencia. El ancho sólo aplica en ventanas de 768 px o más, y lo dice; «medio» reproduce exactamente lo de hoy.</li>
                 <li><strong>Conexiones Gateway:</strong> Controla y consulta a Tiancode desde WhatsApp (emparejamiento con código), Telegram Bot con test ping, Discord, Slack y Webhooks protegidos por HMAC-SHA256.</li>
                 <li><strong>OpenClaw Resilience Engine:</strong> Auto-reparador de JSON truncado y parser sintáctico para tool calls rotas, con disyuntor por hash SHA-256 tras 25 llamadas repetidas.</li>
                 <li><strong>Hermes Agent & Memoria:</strong> Búsqueda SQLite histórica de sesiones, compactación de contexto Head/Tail (76% ahorro de tokens) y scrubber en streaming de bloques de razonamiento <code>&lt;think&gt;</code>.</li>
@@ -182,7 +183,7 @@
           </a>
           <p>El asistente de IA para programar, hecho para Windows.</p>
         </div>
-        <span class="footer-version"><i aria-hidden="true"></i>v1.0.46 · MIT</span>
+        <span class="footer-version"><i aria-hidden="true"></i>v1.0.47 · MIT</span>
       </div>
       <div class="footer-grid">
         <nav class="footer-col" aria-label="Producto">

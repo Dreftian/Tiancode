@@ -4,18 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Novedades — Tiancode</title>
-  <meta name="description" content="Novedades de Tiancode v1.0.46: el botón de mejorar el prompt usa el modelo y el esfuerzo que elegiste, el micrófono deja de descargar 146 MB sin preguntar y GitHub deja de inventarse permisos y contadores.">
+  <meta name="description" content="Novedades de Tiancode v1.0.47, una versión de seguridad: el agente ya no puede leer ni pulsar una página que tú no estás viendo, las dos tools de vista previa piden permiso nombrando el origen, y llegan el uso del navegador y el uso del computador con permiso explícito.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Tiancode">
   <meta property="og:title" content="Novedades — Tiancode">
-  <meta property="og:description" content="Novedades de Tiancode v1.0.46: el botón de mejorar el prompt usa el modelo y el esfuerzo que elegiste, el micrófono deja de descargar 146 MB sin preguntar y GitHub deja de inventarse permisos y contadores.">
+  <meta property="og:description" content="Novedades de Tiancode v1.0.47, una versión de seguridad: el agente ya no puede leer ni pulsar una página que tú no estás viendo, las dos tools de vista previa piden permiso nombrando el origen, y llegan el uso del navegador y el uso del computador con permiso explícito.">
   <meta property="og:url" content="https://tiancode.vercel.app/recursos/novedades.html">
   <meta property="og:image" content="https://tiancode.vercel.app/img/og-image.png">
   <meta property="og:locale" content="es_ES">
   <meta property="og:locale:alternate" content="en_US">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Novedades — Tiancode">
-  <meta name="twitter:description" content="Novedades de Tiancode v1.0.46: el botón de mejorar el prompt usa el modelo y el esfuerzo que elegiste, el micrófono deja de descargar 146 MB sin preguntar y GitHub deja de inventarse permisos y contadores.">
+  <meta name="twitter:description" content="Novedades de Tiancode v1.0.47, una versión de seguridad: el agente ya no puede leer ni pulsar una página que tú no estás viendo, las dos tools de vista previa piden permiso nombrando el origen, y llegan el uso del navegador y el uso del computador con permiso explícito.">
   <meta name="twitter:image" content="https://tiancode.vercel.app/img/og-image.png">
   <link rel="canonical" href="https://tiancode.vercel.app/recursos/novedades.html">
   <link rel="icon" type="image/png" href="img/favicon.png">
@@ -121,12 +121,34 @@
           <header class="page-head reveal">
             <span class="eyebrow">Recursos</span>
             <h1 class="page-title">Novedades</h1>
-            <p class="page-sub">Todo lo que trae Tiancode 1.0.46, la versión estable, y las anteriores.</p>
+            <p class="page-sub">Todo lo que trae Tiancode 1.0.47, la versión estable, y las anteriores.</p>
           </header>
           <div class="page-body reveal" style="--rd:.08s">
               <div class="news-version">
-                <h2>Versión 1.0.46</h2>
+                <h2>Versión 1.0.47</h2>
                 <span class="news-tag">Última versión</span>
+                <span class="news-date">12 de septiembre de 2026</span>
+              </div>
+              <div class="news-block news-block--new">
+                <h3>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  <span>Seguridad: el agente ya no puede leer una página que tú no ves, y ahora sí puede usar tu navegador y tu PC — con permiso — en v1.0.47</span>
+                </h3>
+                <ul class="news-list news-list--new">
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>El agente podía leer y pulsar una página que tú no estabas viendo:</strong> la única comprobación para decidir sobre qué frame actuar era «¿es http o https?». No se comparaba el origen. Y la Vista en vivo es un navegador completo: barra de direcciones y cookies persistentes. Al arrancar un dev server local, la vista nativa se ocultaba sin cambiar de página. La secuencia real: navegas a un sitio donde tienes la sesión iniciada, arrancas tu proyecto, y el modelo recibía la URL, el título, 4.000 caracteres de texto visible y todos los elementos interactivos de esa página oculta con tu sesión iniciada — y podía pulsarla. Ahora manda el origen esperado: si no coincide, no hay superficie; y una vista oculta se manda a about:blank en vez de quedarse aparcada en tu sitio.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Ninguna de las dos tools de vista previa pedía permiso:</strong> leer y pulsar una página viva estaba menos vigilado que «glob». Ahora piden permiso nombrando el origen concreto, así que un «sí» para este proyecto no es un «sí» para la siguiente página que se abra.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Aceptar una captura inofensiva concedía la pantalla completa para siempre:</strong> la tool de captura pasaba «always» con un patrón comodín, y el sistema de permisos apunta una regla por patrón: aprobar una captura de ventana escribía una regla que también valía para la pantalla entera.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Un clic del modelo podía abrir tu navegador real en cualquier URL:</strong> «navigate» sí estaba bloqueado al origen, pero un clic sobre un enlace no: un enlace con target «_blank» terminaba en shell.openExternal. Ahora se deniega mientras hay una acción del agente en curso.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>«Uso del navegador», ahora deliberado y por sitio:</strong> el navegador integrado ya era alcanzable por el agente — por accidente, como último candidato del árbol de frames y sin permiso. Eso se acabó, y en su lugar hay algo explícito: las tools aceptan la superficie «browser», preguntan al navegador qué página tiene abierta y piden permiso citando ese sitio antes de tocarlo. Sesión tuya, permiso por sitio. Sobre el navegador externo la respuesta honesta es que no se puede como esperarías: Chrome 153 y Edge 153 rechazan los dos «--remote-debugging-port» sobre el perfil por defecto, así que sólo se podría automatizar un perfil desechable y sin tus sesiones, que es justo lo que le quita el sentido. Por eso el objetivo es el navegador integrado.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>«Uso del computador» — nuevo, y real:</strong> una tool «computer» que mueve el ratón y escribe de verdad en Windows: move, click, type, key, scroll, más leer la posición del cursor y la ventana en primer plano. Sin dependencias nuevas y sin addon nativo: un proceso PowerShell persistente con user32, 0,05 ms por acción frente a 310 ms si se lanzara uno por acción.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Las protecciones son la función, no un extra, y se aplican en el proceso principal:</strong> rechaza las ventanas elevadas, porque Windows descarta la entrada sintética hacia un proceso con más privilegios devolviendo éxito y el agente creería haber hecho clic; rechaza su propia ventana, para que no pueda pulsar los botones de su propio diálogo de permiso; parte de una lista de apps permitidas vacía, y como ese diálogo nativo roba el foco, vuelve a leer la ventana activa después y no ejecuta si cambió; hay un indicador siempre visible con botón de parada y un atajo global, que al parar suelta los modificadores, mata el proceso y olvida la lista; y caduca sola a los 2 minutos de inactividad. El permiso usa un patrón por acción, así que aprobar «scroll» para siempre nunca se convierte en aprobar «type» para siempre. Es sólo Windows en esta v1, y lo dice explícitamente en macOS y Linux en vez de fallar raro.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Ajustes de transcripción, al estilo Claude Code:</strong> tamaño del texto (pequeño / medio / grande) y ancho de la transcripción (estrecho / medio / ancho), en Ajustes → Apariencia. Dos honestidades en la letra pequeña: el ancho sólo aplica en ventanas de 768 px o más, y lo dice; y para que «grande» no fuera un ajuste roto se escalaron los 30 tamaños de fuente fijos de los mensajes. «Medio» reproduce exactamente lo de hoy, así que quien no toque nada no ve ningún cambio. De paso se recupera un ajuste «fontSize» que existía sin que nadie lo leyera, en vez de dejar dos controles de tamaño.</span></li>
+                </ul>
+              </div>
+
+              <div class="news-version">
+                <h2>Versión 1.0.46</h2>
+                <span class="news-tag">Estable</span>
                 <span class="news-date">12 de septiembre de 2026</span>
               </div>
               <div class="news-block news-block--new">
@@ -468,7 +490,7 @@
           </a>
           <p>El asistente de IA para programar, hecho para Windows.</p>
         </div>
-        <span class="footer-version"><i aria-hidden="true"></i>v1.0.46 · MIT</span>
+        <span class="footer-version"><i aria-hidden="true"></i>v1.0.47 · MIT</span>
       </div>
       <div class="footer-grid">
         <nav class="footer-col" aria-label="Producto">

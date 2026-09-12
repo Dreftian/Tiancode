@@ -5,13 +5,13 @@
    menú desplegable de recursos).
    ============================================================ */
 
-import { initTheme } from './theme.js?v=1.0.46';
-import { applyLang, initI18n } from './i18n.js?v=1.0.46';
-import { initRouter, closeDropdown } from './router.js?v=1.0.46';
-import { initAnimations } from './animations.js?v=1.0.46';
-import { initCharts } from './charts.js?v=1.0.46';
-import { initFaq } from './faq.js?v=1.0.46';
-import { initGalaxy } from './galaxy.js?v=1.0.46';
+import { initTheme } from './theme.js?v=1.0.47';
+import { applyLang, initI18n } from './i18n.js?v=1.0.47';
+import { initRouter, closeDropdown } from './router.js?v=1.0.47';
+import { initAnimations } from './animations.js?v=1.0.47';
+import { initCharts } from './charts.js?v=1.0.47';
+import { initFaq } from './faq.js?v=1.0.47';
+import { initGalaxy } from './galaxy.js?v=1.0.47';
 
 /* ---------- Inicialización de módulos ---------- */
 initTheme();
