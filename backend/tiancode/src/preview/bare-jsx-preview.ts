@@ -638,6 +638,20 @@ function htmlShell(entry: string, styles: readonly string[]) {
 const RELOAD_MODULE = String.raw`
 let revision
 let reloading = false
+// When Tiancode's Sandbox hosts this page it asks to perform reloads itself (it swaps in a
+// second, already-loaded frame so the page never flashes). Until that handshake arrives the
+// page reloads on its own, so any other host keeps working.
+let hostDelegates = false
+
+function requestReload(path) {
+  if (hostDelegates && window.parent !== window) {
+    try {
+      window.parent.postMessage({ type: "tiancode:reload-request", path: path || null }, "*")
+      return
+    } catch {}
+  }
+  triggerReload()
+}
 
 function triggerReload() {
   if (reloading) return
@@ -659,7 +673,7 @@ function initReloadEvents() {
         try {
           const data = JSON.parse(event.data)
           if (data && data.type === "reload") {
-            triggerReload()
+            requestReload(data.path)
           }
         } catch {}
       }
@@ -675,10 +689,19 @@ initReloadEvents()
 
 if (typeof window !== "undefined") {
   window.addEventListener("message", (e) => {
+    if (e.data && e.data.type === "tiancode:host") {
+      hostDelegates = !!e.data.delegateReloads
+      return
+    }
     if (e.data && (e.data.type === "tiancode:reload" || e.data.type === "tiancode:file-change")) {
       triggerReload()
     }
   })
+  if (window.parent !== window) {
+    try {
+      window.parent.postMessage({ type: "tiancode:preview-client", version: 1 }, "*")
+    } catch {}
+  }
 }
 
 async function refreshRevision() {
@@ -692,7 +715,8 @@ async function refreshRevision() {
       return
     }
     if (next !== revision) {
-      triggerReload()
+      revision = next
+      requestReload()
     }
   } catch {}
 }

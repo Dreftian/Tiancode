@@ -1123,6 +1123,11 @@ export const dict = {
   "liveView.code.filter.backend": "Backend",
   "liveView.code.files": "{{count}} archivos",
   "liveView.code.emptyFilter": "No hay archivos para este filtro.",
+  "liveView.device.mobile": "Móvil (393 px)",
+  "liveView.device.tablet": "Tablet (820 px)",
+  "liveView.device.laptop": "Portátil (1366 px)",
+  "liveView.device.fluid": "Fluido, ocupa todo el panel",
+  "liveView.reloadAll": "Recargar el Sandbox y el servidor de desarrollo",
 
   "livePreview.fit": "Ajustar",
   "livePreview.device.desktop": "Escritorio",
@@ -2317,4 +2322,7 @@ export const dict = {
   "settings.subAgents.meta.role.default": "Especialista autónomo",
   "settings.subAgents.meta.category.default": "Agente",
   "livePreview.writingFile": "Escribiendo {{file}}",
+  "livePreview.zoomAuto": "Ajustar al panel",
+  "livePreview.zoomReset": "Tamaño real (100 %)",
+  "livePreview.reloading": "Actualizando…",
 }

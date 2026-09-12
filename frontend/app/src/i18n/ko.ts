@@ -563,6 +563,11 @@ export const dict = {
   "liveView.code.filter.backend": "백엔드",
   "liveView.code.files": "{{count}}개 파일",
   "liveView.code.emptyFilter": "이 필터와 일치하는 파일이 없습니다.",
+  "liveView.device.mobile": "휴대폰 (393 px)",
+  "liveView.device.tablet": "태블릿 (820 px)",
+  "liveView.device.laptop": "노트북 (1366 px)",
+  "liveView.device.fluid": "유동형, 패널 전체",
+  "liveView.reloadAll": "샌드박스와 개발 서버 새로 고침",
 
   "livePreview.fit": "맞춤",
   "livePreview.device.desktop": "데스크톱",
@@ -2194,4 +2199,7 @@ export const dict = {
   "settings.subAgents.meta.role.default": "자율 전문가",
   "settings.subAgents.meta.category.default": "에이전트",
   "livePreview.writingFile": "{{file}} 작성 중",
+  "livePreview.zoomAuto": "패널에 맞추기",
+  "livePreview.zoomReset": "실제 크기 (100%)",
+  "livePreview.reloading": "새로 고치는 중…",
 }

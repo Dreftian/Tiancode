@@ -2,7 +2,7 @@ import { IconButtonV2 } from "@tiancode-ai/ui/v2/icon-button-v2"
 import { Icon as IconV2 } from "@tiancode-ai/ui/v2/icon"
 import { SelectV2 } from "@tiancode-ai/ui/v2/select-v2"
 import { Spinner } from "@tiancode-ai/ui/spinner"
-import { createEffect, createSignal, For, onCleanup, onMount, Show } from "solid-js"
+import { createEffect, createSignal, For, on, onCleanup, onMount, Show } from "solid-js"
 import { createStore } from "solid-js/store"
 import { Persist, persisted } from "@/utils/persist"
 import { normalizeUrl } from "@/components/preview/preview-panel"
@@ -17,7 +17,9 @@ import { PREVIEW_RETRY_MAX_ATTEMPTS, isRetryablePreviewLoadFailure, previewRetry
 import { iframePreviewUrl, usesIframePreview } from "./live-preview-transport"
 import { orientedPreviewDimensions } from "./preview-experience"
 import { reactToBuild, shortenBuildTrigger } from "./live-preview-build"
-import { fittedPreviewViewport } from "./preview-viewport"
+import { clampZoom, fittedPreviewViewport, nextZoomStep, type PreviewZoom } from "./preview-viewport"
+import { createReloadScheduler } from "./live-preview-reload"
+import "./live-preview.css"
 
 // Estado del dev server gestionado por el agente (DevServerManager, /preview).
 type DevServerState = {
@@ -62,12 +64,11 @@ type PreviewIssue = {
 // que sus píxeles respeten el borde, el tamaño y el modo expandido del Sandbox.
 // WebContentsView queda como fallback para destinos no locales.
 
-const ZOOM_MIN = 0.25
-const ZOOM_MAX = 5
-const ZOOM_STEP = 0.2
 const CUSTOM_MIN = 80
 const CUSTOM_MAX = 4096
 const HIDDEN_PREVIEW_BOUNDS = { x: 0, y: 0, width: 0, height: 0 }
+const IFRAME_SANDBOX = "allow-scripts allow-same-origin allow-forms allow-modals allow-downloads allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-top-navigation-by-user-activation allow-storage-access-by-user-activation"
+const IFRAME_ALLOW = "accelerometer; autoplay; camera; clipboard-read; clipboard-write; display-capture; encrypted-media; fullscreen; gamepad; geolocation; gyroscope; hid; microphone; midi; payment; picture-in-picture; screen-wake-lock; usb; web-share"
 
 export function isBlankPreviewUrl(url: string | undefined) {
   return !url || url.startsWith("about:blank")
@@ -96,6 +97,14 @@ const DEVICE_PRESETS = {
 } as const
 
 type DeviceId = "fit" | keyof typeof DEVICE_PRESETS | "custom"
+export type ExternalDeviceMode = "fluid" | "mobile" | "tablet" | "laptop"
+
+const externalModeOf = (id: DeviceId): ExternalDeviceMode => {
+  if (id === "fit") return "fluid"
+  if (id === "mobile" || id === "mobileMax" || id === "mobileCompact" || id === "androidPhone") return "mobile"
+  if (id === "tablet" || id === "tabletCompact" || id === "androidTablet") return "tablet"
+  return "laptop"
+}
 type IframeHistoryMode = "push" | "traverse"
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max)
@@ -129,8 +138,13 @@ export function LivePreview(props: {
   onManagedTarget?: (url: string | undefined) => void
   onCapture?: (file: File) => void
   onOpenSource?: (path: string) => void
-  externalDevice?: () => "fluid" | "mobile" | "tablet" | "laptop" | undefined
-  onDeviceChange?: (mode: "fluid" | "mobile" | "tablet" | "laptop") => void
+  /**
+   * Quick device buttons of the Sandbox header. `seq` grows on every press so a press always
+   * applies, even when the mode equals the one already highlighted.
+   */
+  externalDevice?: () => { mode: ExternalDeviceMode; seq: number } | undefined
+  /** Reports which quick-button family the current (persisted) preset belongs to. */
+  onDeviceChange?: (mode: ExternalDeviceMode) => void
   onDirectoryChange?: (dir: string) => void
   /** File the agent is currently writing, tracked from write/edit/apply_patch tool parts. */
   activeEditFile?: () => string | undefined
@@ -150,39 +164,42 @@ export function LivePreview(props: {
       deviceId: "fit" as DeviceId,
       customWidth: 1600,
       customHeight: 900,
+      // `zoom` is the manual scale and only applies while `zoomMode` is "manual". Preferences
+      // saved before 1.0.42 have no `zoomMode`, which reads as auto-fit.
       zoom: 1,
+      zoomMode: "auto" as "auto" | "manual",
     }),
   )
-  const zoom = () => previewPrefs.zoom
-  const setZoom = (value: number | ((prev: number) => number)) => {
-    const next = typeof value === "function" ? value(previewPrefs.zoom) : value
-    setPreviewPrefs("zoom", clamp(next, ZOOM_MIN, ZOOM_MAX))
+  const previewZoom = (): PreviewZoom =>
+    previewPrefs.zoomMode === "manual" ? { mode: "manual", scale: clampZoom(previewPrefs.zoom) } : { mode: "auto" }
+  const setManualZoom = (scale: number) => {
+    setPreviewPrefs("zoom", clampZoom(scale))
+    setPreviewPrefs("zoomMode", "manual")
   }
+  const setAutoZoom = () => setPreviewPrefs("zoomMode", "auto")
   const deviceId = () => previewPrefs.deviceId
   const setDeviceId = (id: DeviceId) => setPreviewPrefs("deviceId", id)
   const [inspectActive, setInspectActive] = createSignal(false)
   const [selectedElement, setSelectedElement] = createSignal<InspectedElementInfo | null>(null)
   const [previewIssue, setPreviewIssue] = createSignal<PreviewIssue | null>(null)
 
-  let lastExternal = props.externalDevice?.()
+  // The Sandbox header's quick buttons arrive as {mode, seq}. Keying on `seq` makes every press
+  // count: before, a remount reset the header to "fluid" while the persisted preset stayed a
+  // desktop silhouette, and pressing "fluid" then did nothing because it "already" was fluid.
+  let lastExternalSeq = props.externalDevice?.()?.seq
   createEffect(() => {
     const ext = props.externalDevice?.()
-    if (!ext || ext === lastExternal) return
-    lastExternal = ext
-    if (ext === "mobile") {
-      setDeviceId("mobile")
-      setZoom(1)
-    } else if (ext === "tablet") {
-      setDeviceId("tablet")
-      setZoom(1)
-    } else if (ext === "laptop") {
-      setDeviceId("laptop")
-      setZoom(1)
-    } else if (ext === "fluid") {
-      setDeviceId("fit")
-      setZoom(1)
-    }
+    if (!ext || ext.seq === lastExternalSeq) return
+    lastExternalSeq = ext.seq
+    if (ext.mode === "mobile") setDeviceId("mobile")
+    else if (ext.mode === "tablet") setDeviceId("tablet")
+    else if (ext.mode === "laptop") setDeviceId("laptop")
+    else setDeviceId("fit")
+    if (ext.mode === "fluid") setRotated(false)
+    setAutoZoom()
   })
+  // Keep the header highlight honest, including after the persisted preference hydrates.
+  createEffect(() => props.onDeviceChange?.(externalModeOf(deviceId())))
 
   const [rotated, setRotated] = createSignal(false)
   const customSize = () => ({ width: previewPrefs.customWidth, height: previewPrefs.customHeight })
@@ -222,6 +239,33 @@ export function LivePreview(props: {
   let lastBounds: string | undefined
   let lastNativeZoom: number | undefined
   let iframe: HTMLIFrameElement | undefined
+  // Reloads are double-buffered: the next document loads in a hidden second iframe and is
+  // swapped in only once it has loaded, so the page the agent is editing never blanks out
+  // between two of its writes. `frames` holds at most two entries; `activeFrameId` is the one
+  // on screen and `iframe` always points at its element.
+  type PreviewFrame = { id: number; src: string; url: string }
+  let frameSequence = 0
+  const frameElements = new Map<number, HTMLIFrameElement>()
+  const [frames, setFrames] = createSignal<PreviewFrame[]>([])
+  const [activeFrameId, setActiveFrameId] = createSignal<number | undefined>(undefined)
+  const [reloading, setReloading] = createSignal(false)
+  const frameIdOf = (element: HTMLIFrameElement) => {
+    for (const [id, candidate] of frameElements) if (candidate === element) return id
+    return undefined
+  }
+  const discardFrame = (id: number) => {
+    frameElements.delete(id)
+    setFrames((current) => current.filter((frame) => frame.id !== id))
+  }
+  const bustCache = (target: string) => {
+    try {
+      const u = new URL(target)
+      u.searchParams.set("_t", String(Date.now()))
+      return u.toString()
+    } catch {
+      return target
+    }
+  }
   let iframeHistory: string[] = []
   let iframeHistoryIndex = -1
   let whiteScreenTimer: number | undefined
@@ -239,6 +283,36 @@ export function LivePreview(props: {
       inspectorCleanup()
       inspectorCleanup = undefined
     }
+  }
+
+  // Promote the hidden frame that just loaded. The old document stays mounted for two more
+  // animation frames so the new one has painted before anything disappears.
+  const swapFrames = (nextId: number) => {
+    const previousId = activeFrameId()
+    const next = frameElements.get(nextId)
+    if (!next) return
+    const previous = previousId !== undefined ? frameElements.get(previousId) : undefined
+    let scroll: { x: number; y: number } | undefined
+    try {
+      const win = previous?.contentWindow
+      if (win) scroll = { x: win.scrollX, y: win.scrollY }
+    } catch {
+      // cross-origin document: nothing to carry over
+    }
+    detachInspector()
+    iframe = next
+    setActiveFrameId(nextId)
+    if (scroll && (scroll.x || scroll.y)) {
+      try {
+        next.contentWindow?.scrollTo(scroll.x, scroll.y)
+      } catch {
+        // ignore
+      }
+    }
+    if (previousId === undefined) return
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => discardFrame(previousId))
+    })
   }
 
   const attachInspector = () => {
@@ -352,6 +426,21 @@ export function LivePreview(props: {
     }
   }
 
+  createEffect(
+    on(iframeUrl, (target) => {
+      frameElements.clear()
+      setReloading(false)
+      if (!target) {
+        setFrames([])
+        setActiveFrameId(undefined)
+        return
+      }
+      frameSequence += 1
+      setActiveFrameId(frameSequence)
+      setFrames([{ id: frameSequence, src: target, url: target }])
+    }),
+  )
+
   createEffect(() => {
     if (inspectActive()) {
       attachInspector()
@@ -381,7 +470,7 @@ export function LivePreview(props: {
       retryTimer = undefined
       if (!samePreviewUrl(requestedUrl, target)) return
       if (usesIframePreview(target)) {
-        reloadIframe()
+        reloadScheduler.request("retry")
         return
       }
       void preview()?.navigate(target)
@@ -407,7 +496,7 @@ export function LivePreview(props: {
     return 8
   }
 
-  const previewViewport = () => fittedPreviewViewport(availableViewport(), deviceSize() ?? undefined, zoom(), deviceFrame())
+  const previewViewport = () => fittedPreviewViewport(availableViewport(), deviceSize() ?? undefined, previewZoom(), deviceFrame())
 
   const measureViewport = () => {
     if (!container) return
@@ -437,7 +526,7 @@ export function LivePreview(props: {
     const viewport = previewViewport()
     const width = Math.max(1, Math.round(device ? viewport.width - viewport.frame * 2 : rect.width))
     const height = Math.max(1, Math.round(device ? viewport.height - viewport.frame * 2 : rect.height))
-    const nextZoom = device ? viewport.scale : zoom()
+    const nextZoom = viewport.scale
     if (nextZoom !== lastNativeZoom) {
       lastNativeZoom = nextZoom
       void view.setZoom(nextZoom)
@@ -536,36 +625,40 @@ export function LivePreview(props: {
     if (!target) return
     clearWhiteScreenTimer()
     setPreviewIssue(null)
-    setIframeLoading(true)
     setFail(null)
     updateIframeState(target, true)
-    if (iframe) {
-      try {
-        iframe.contentWindow?.postMessage({ type: "tiancode:reload", timestamp: Date.now() }, "*")
-      } catch {
-        // ignore
-      }
-      try {
-        const u = new URL(target)
-        u.searchParams.set("_t", String(Date.now()))
-        iframe.src = u.toString()
-        return
-      } catch {
-        try {
-          iframe.contentWindow?.location.reload()
-        } catch {
-          iframe.src = target
-        }
+    const active = activeFrameId()
+    const activeElement = active !== undefined ? frameElements.get(active) : undefined
+    // First document still loading (or no frame yet): bump it in place, overlay and all.
+    if (!activeElement || iframeLoading()) {
+      setIframeLoading(true)
+      if (activeElement) {
+        activeElement.src = bustCache(target)
         return
       }
+      setIframeUrl(undefined)
+      window.requestAnimationFrame(() => setIframeUrl(target))
+      return
     }
-    setIframeUrl(undefined)
-    window.requestAnimationFrame(() => setIframeUrl(target))
+    // Load the fresh document behind the current one; completeIframeLoad swaps them.
+    setReloading(true)
+    const spare = frames().find((frame) => frame.id !== active)
+    if (spare) {
+      const element = frameElements.get(spare.id)
+      if (element) element.src = bustCache(target)
+      return
+    }
+    frameSequence += 1
+    setFrames((current) => [...current, { id: frameSequence, src: bustCache(target), url: target }])
   }
 
-  const completeIframeLoad = () => {
+  const completeIframeLoad = (element?: HTMLIFrameElement) => {
     const target = iframeUrl()
     if (!target) return
+    const loaded = element ?? iframe
+    const loadedId = loaded ? frameIdOf(loaded) : undefined
+    if (loadedId !== undefined && loadedId !== activeFrameId()) swapFrames(loadedId)
+    else if (loaded) iframe = loaded
     clearWhiteScreenTimer()
     setPreviewIssue((current) => (current?.type === "whitescreen" ? null : current))
     try {
@@ -968,12 +1061,14 @@ export function LivePreview(props: {
       // Cross-origin iframe
     }
     setIframeLoading(false)
+    setReloading(false)
     updateIframeState(target, false)
     retryAttempts = 0
     failedUrl = undefined
     clearRetry()
     setFail(null)
     nudgePreviewIframeGeometry(iframe)
+    reloadScheduler.settled()
   }
 
   const nudgePreviewIframeGeometry = (element?: HTMLIFrameElement | null) => {
@@ -1007,23 +1102,52 @@ export function LivePreview(props: {
     )
   }
 
-  const failIframeLoad = () => {
+  const failIframeLoad = (element?: HTMLIFrameElement) => {
     const target = iframeUrl()
     if (!target) return
+    const failedId = element ? frameIdOf(element) : undefined
+    if (failedId !== undefined && failedId !== activeFrameId()) {
+      // The hidden replacement failed: keep showing the document we already have.
+      discardFrame(failedId)
+      setReloading(false)
+      reloadScheduler.settled()
+      return
+    }
     clearWhiteScreenTimer()
     setIframeLoading(false)
+    setReloading(false)
     updateIframeState(target, false)
     failedUrl = target
     setFail({ code: 0, description: language.t("livePreview.serverError"), url: target })
+    reloadScheduler.settled()
     scheduleRetry(target)
   }
 
-  const zoomStep = (delta: number) => {
-    const next = clamp(zoom() + delta, ZOOM_MIN, ZOOM_MAX)
-    setZoom(next)
-    if (iframeUrl()) return
-    void preview()?.setZoom(next)
-  }
+  // Every "the app changed" signal (tool parts, session diffs, the watcher, the build poll, the
+  // reload button, the page itself) funnels through one scheduler: a burst becomes one reload
+  // and nothing restarts a document that is still loading.
+  const reloadScheduler = createReloadScheduler({
+    delayMs: 250,
+    run: () => {
+      if (iframeUrl()) {
+        reloadIframe()
+        return
+      }
+      const native = preview()
+      if (!native) {
+        reloadScheduler.settled()
+        return
+      }
+      Promise.resolve(native.reload())
+        .catch(() => undefined)
+        .finally(() => reloadScheduler.settled())
+    },
+  })
+
+  // Steps walk the ladder from the scale on screen, so "+" from a 54 % auto-fit shows 67 %
+  // instead of nudging a hidden preference that the fit then clamped away.
+  const zoomStep = (direction: 1 | -1) => setManualZoom(nextZoomStep(previewViewport().scale, direction))
+  const zoomActualSize = () => setManualZoom(1)
 
   const retryPreview = () => {
     setFail(null)
@@ -1073,7 +1197,7 @@ export function LivePreview(props: {
         setDevServer(data)
         const reaction = reactToBuild({ build: data.build, lastSequence: lastBuildSequence })
         lastBuildSequence = reaction.sequence
-        if (reaction.reload) reloadIframe()
+        if (reaction.reload) reloadScheduler.request(data.build?.trigger ?? "build")
         if (data.isDesktop || data.status === "starting" || data.status === "ready" || data.build?.running) {
           void fetchDevServerLogs()
         }
@@ -1134,38 +1258,43 @@ export function LivePreview(props: {
       measureViewport()
       observer?.observe(surface)
     }
-    let reloadDebounceTimer: number | undefined
     const handleReload = (event?: Event) => {
-      const customEvent = event as CustomEvent<{ path?: string }> | undefined
-      const path = customEvent?.detail?.path
-      if (reloadDebounceTimer !== undefined) window.clearTimeout(reloadDebounceTimer)
-      reloadDebounceTimer = window.setTimeout(() => {
-        reloadDebounceTimer = undefined
-        if (iframeUrl()) {
-          reloadIframe()
-          if (iframe?.contentWindow) {
-            try {
-              iframe.contentWindow.postMessage({ type: "tiancode:file-change", path, timestamp: Date.now() }, "*")
-            } catch {
-              // ignore
-            }
-          }
-        }
-        if (preview()) {
-          void preview()?.reload()
-        }
-      }, 50)
+      const customEvent = event as CustomEvent<{ path?: string; reason?: string }> | undefined
+      reloadScheduler.request(customEvent?.detail?.path ?? customEvent?.detail?.reason)
     }
+    // The reload client injected by the managed static/JSX preview offers to delegate its
+    // own reloads to us, so a file change produces one buffered swap instead of a self-reload
+    // (white flash) plus ours.
+    const handleMessage = (event: MessageEvent) => {
+      const data = event.data as { type?: unknown; path?: unknown } | null
+      if (!data || typeof data.type !== "string" || !event.source) return
+      let known = false
+      for (const element of frameElements.values()) if (element.contentWindow === event.source) known = true
+      if (!known) return
+      if (data.type === "tiancode:preview-client") {
+        try {
+          ;(event.source as Window).postMessage({ type: "tiancode:host", delegateReloads: true }, "*")
+        } catch {
+          // ignore
+        }
+        return
+      }
+      if (data.type === "tiancode:reload-request") {
+        reloadScheduler.request(typeof data.path === "string" ? data.path : "watcher")
+      }
+    }
+    window.addEventListener("message", handleMessage)
     window.addEventListener("tiancode:preview-reload", handleReload)
 
     if (!view || !surface) {
       onCleanup(() => {
-        if (reloadDebounceTimer !== undefined) window.clearTimeout(reloadDebounceTimer)
+        reloadScheduler.dispose()
         window.clearInterval(devTimer)
         observer?.disconnect()
         window.removeEventListener("resize", queueBounds)
         window.removeEventListener("fullscreenchange", queueBounds)
         window.removeEventListener("tiancode:preview-reload", handleReload)
+        window.removeEventListener("message", handleMessage)
         clearRetry()
       })
       return
@@ -1243,8 +1372,9 @@ export function LivePreview(props: {
       }
     })
     onCleanup(() => {
-      if (reloadDebounceTimer !== undefined) window.clearTimeout(reloadDebounceTimer)
+      reloadScheduler.dispose()
       window.removeEventListener("tiancode:preview-reload", handleReload)
+      window.removeEventListener("message", handleMessage)
       window.clearInterval(devTimer)
       observer?.disconnect()
       window.removeEventListener("resize", queueBounds)
@@ -1257,6 +1387,10 @@ export function LivePreview(props: {
       setNativePreviewActive(false)
       setIframeUrl(undefined)
       setIframeLoading(false)
+      setReloading(false)
+      frameElements.clear()
+      setFrames([])
+      setActiveFrameId(undefined)
       iframe = undefined
       boundsReady = false
       previewContentReady = false
@@ -1338,7 +1472,7 @@ export function LivePreview(props: {
   createEffect(() => {
     void deviceSize()
     void rotated()
-    void zoom()
+    void previewZoom()
     queueBounds()
   })
 
@@ -1391,13 +1525,7 @@ export function LivePreview(props: {
     void preview()?.forward()
   }
 
-  const reloadPreview = () => {
-    if (iframeUrl()) {
-      reloadIframe()
-      return
-    }
-    void preview()?.reload()
-  }
+  const reloadPreview = () => reloadScheduler.request("manual")
 
   const previewFrameStyle = () => {
     const device = deviceSize()
@@ -1413,13 +1541,27 @@ export function LivePreview(props: {
     const device = deviceSize()
     const viewport = previewViewport()
     if (!device) {
+      const scale = viewport.scale
+      if (scale === 1) {
+        return {
+          width: "100%",
+          height: "100%",
+          top: "0px",
+          left: "0px",
+          right: "0px",
+          bottom: "0px",
+          position: "absolute" as const,
+        }
+      }
+      // Fluid mode with a manual zoom: the document keeps filling the panel at its own size
+      // and is scaled as a whole, like a browser's page zoom.
       return {
-        width: "100%",
-        height: "100%",
+        width: `${100 / scale}%`,
+        height: `${100 / scale}%`,
         top: "0px",
         left: "0px",
-        right: "0px",
-        bottom: "0px",
+        transform: `scale(${scale})`,
+        "transform-origin": "top left",
         position: "absolute" as const,
       }
     }
@@ -1602,20 +1744,8 @@ export function LivePreview(props: {
           onSelect={(option) => {
             if (!option) return
             setDeviceId(option.id)
-            if (option.id === "fit") {
-              setRotated(false)
-              lastExternal = "fluid"
-              props.onDeviceChange?.("fluid")
-            } else if (option.id === "mobile" || option.id === "mobileMax" || option.id === "mobileCompact" || option.id === "androidPhone") {
-              lastExternal = "mobile"
-              props.onDeviceChange?.("mobile")
-            } else if (option.id === "tablet" || option.id === "tabletCompact" || option.id === "androidTablet") {
-              lastExternal = "tablet"
-              props.onDeviceChange?.("tablet")
-            } else {
-              lastExternal = "laptop"
-              props.onDeviceChange?.("laptop")
-            }
+            setAutoZoom()
+            if (option.id === "fit") setRotated(false)
           }}
         />
         <ToolButton
@@ -1673,14 +1803,22 @@ export function LivePreview(props: {
           />
         </Show>
         <div class="flex shrink-0 items-center">
-          <ToolButton title={language.t("livePreview.zoomOut")} onClick={() => zoomStep(-ZOOM_STEP)}>
+          <ToolButton title={language.t("livePreview.zoomOut")} onClick={() => zoomStep(-1)}>
             −
           </ToolButton>
-          <span class="min-w-10 text-center text-11-regular text-text-weak tabular-nums">
+          <button
+            type="button"
+            class="min-w-10 rounded-md px-1 text-center text-11-regular text-text-weak tabular-nums transition-colors hover:bg-v2-overlay-simple-overlay-hover hover:text-text-base"
+            title={language.t("livePreview.zoomReset")}
+            onClick={zoomActualSize}
+          >
             {Math.round(previewViewport().scale * 100)}%
-          </span>
-          <ToolButton title={language.t("livePreview.zoomIn")} onClick={() => zoomStep(ZOOM_STEP)}>
+          </button>
+          <ToolButton title={language.t("livePreview.zoomIn")} onClick={() => zoomStep(1)}>
             +
+          </ToolButton>
+          <ToolButton pressed={previewViewport().mode === "auto"} title={language.t("livePreview.zoomAuto")} onClick={setAutoZoom}>
+            {language.t("livePreview.fit")}
           </ToolButton>
         </div>
       </div>
@@ -1805,7 +1943,16 @@ export function LivePreview(props: {
       <div class="relative min-h-0 flex-1 overflow-hidden bg-v2-background-bg-base" ref={container}>
         <Show when={iframeUrl()} keyed>
           {(target) => (
-            <div class={`absolute inset-0 flex items-center justify-center overflow-hidden ${deviceSize() ? "p-3" : "p-0"}`}>
+            <div
+              class="absolute inset-0 flex"
+              classList={{
+                "p-3": !!deviceSize(),
+                "p-0": !deviceSize(),
+                // Auto-fit centres the silhouette; a manual zoom that no longer fits scrolls instead.
+                "items-center justify-center overflow-hidden": !previewViewport().overflow,
+                "items-start justify-start overflow-auto": previewViewport().overflow,
+              }}
+            >
               <div
                 class={`relative shrink-0 overflow-hidden bg-white ${
                   deviceSize()
@@ -1836,22 +1983,37 @@ export function LivePreview(props: {
                 <Show when={deviceId() === "tv"}>
                   <div class="pointer-events-none absolute bottom-0.5 left-1/2 z-10 h-1 w-6 -translate-x-1/2 rounded-full bg-neutral-600/60" aria-hidden="true" />
                 </Show>
-                <iframe
-                  ref={(element) => {
-                    iframe = element
-                  }}
-                  data-slot="live-preview-iframe"
-                  src={target}
-                  title={language.t("liveView.tab.app")}
-                  sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-downloads allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-top-navigation-by-user-activation allow-storage-access-by-user-activation"
-                  allow="accelerometer; autoplay; camera; clipboard-read; clipboard-write; display-capture; encrypted-media; fullscreen; gamepad; geolocation; gyroscope; hid; microphone; midi; payment; picture-in-picture; screen-wake-lock; usb; web-share"
-                  referrerpolicy="no-referrer-when-downgrade"
-                  class="absolute inset-0 top-0 left-0 border-0 bg-white"
-                  style={iframeStyle()}
-                  onLoad={completeIframeLoad}
-                  onError={failIframeLoad}
-                />
+                <For each={frames().filter((frame) => frame.url === target)}>
+                  {(frame) => (
+                    <iframe
+                      ref={(element) => {
+                        frameElements.set(frame.id, element)
+                        if (frame.id === activeFrameId()) iframe = element
+                      }}
+                      data-slot="live-preview-iframe"
+                      data-active={frame.id === activeFrameId() || undefined}
+                      src={frame.src}
+                      title={language.t("liveView.tab.app")}
+                      sandbox={IFRAME_SANDBOX}
+                      allow={IFRAME_ALLOW}
+                      referrerpolicy="no-referrer-when-downgrade"
+                      class="absolute inset-0 top-0 left-0 border-0 bg-white"
+                      style={{
+                        ...iframeStyle(),
+                        visibility: frame.id === activeFrameId() ? "visible" : "hidden",
+                        "pointer-events": frame.id === activeFrameId() ? "auto" : "none",
+                      }}
+                      onLoad={(event) => completeIframeLoad(event.currentTarget)}
+                      onError={(event) => failIframeLoad(event.currentTarget)}
+                    />
+                  )}
+                </For>
               </div>
+              <Show when={reloading() && !iframeLoading()}>
+                <div class="pointer-events-none absolute inset-x-0 top-0 z-10 h-0.5 overflow-hidden" aria-hidden="true">
+                  <div class="live-preview-reloading-bar h-full w-1/3 rounded-full bg-[var(--v2-state-fg-info)]" />
+                </div>
+              </Show>
               <Show when={iframeLoading()}>
                 <div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-v2-background-bg-base px-6 text-center text-12-regular text-text-weak">
                   {language.t("livePreview.starting")}

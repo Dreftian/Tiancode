@@ -892,6 +892,11 @@ export const dict = {
   "liveView.code.filter.backend": "后端",
   "liveView.code.files": "{{count}} 个文件",
   "liveView.code.emptyFilter": "没有与此筛选条件匹配的文件。",
+  "liveView.device.mobile": "手机 (393 px)",
+  "liveView.device.tablet": "平板 (820 px)",
+  "liveView.device.laptop": "笔记本 (1366 px)",
+  "liveView.device.fluid": "自适应，填满面板",
+  "liveView.reloadAll": "重新加载沙盒和开发服务器",
 
   "livePreview.fit": "适应",
   "livePreview.device.desktop": "桌面",
@@ -2256,4 +2261,7 @@ export const dict = {
   "settings.subAgents.meta.role.default": "自主专家",
   "settings.subAgents.meta.category.default": "代理",
   "livePreview.writingFile": "正在写入 {{file}}",
+  "livePreview.zoomAuto": "适应面板",
+  "livePreview.zoomReset": "实际大小 (100%)",
+  "livePreview.reloading": "正在刷新…",
 } satisfies Partial<Record<Keys, string>>

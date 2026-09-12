@@ -814,6 +814,11 @@ export const dict = {
   "liveView.code.filter.backend": "バックエンド",
   "liveView.code.files": "{{count}} ファイル",
   "liveView.code.emptyFilter": "このフィルターに一致するファイルはありません。",
+  "liveView.device.mobile": "スマートフォン (393 px)",
+  "liveView.device.tablet": "タブレット (820 px)",
+  "liveView.device.laptop": "ノート PC (1366 px)",
+  "liveView.device.fluid": "フルード（パネル全体）",
+  "liveView.reloadAll": "サンドボックスと開発サーバーを再読み込み",
 
   "livePreview.fit": "フィット",
   "livePreview.device.desktop": "デスクトップ",
@@ -2196,4 +2201,7 @@ export const dict = {
   "settings.subAgents.meta.role.default": "自律スペシャリスト",
   "settings.subAgents.meta.category.default": "エージェント",
   "livePreview.writingFile": "{{file}} を書き込み中",
+  "livePreview.zoomAuto": "パネルに合わせる",
+  "livePreview.zoomReset": "実際のサイズ (100%)",
+  "livePreview.reloading": "更新中…",
 }

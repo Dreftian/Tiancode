@@ -908,6 +908,11 @@ export const dict = {
   "liveView.code.filter.backend": "Бэкенд",
   "liveView.code.files": "Файлов: {{count}}",
   "liveView.code.emptyFilter": "Нет файлов для этого фильтра.",
+  "liveView.device.mobile": "Телефон (393 px)",
+  "liveView.device.tablet": "Планшет (820 px)",
+  "liveView.device.laptop": "Ноутбук (1366 px)",
+  "liveView.device.fluid": "Резиновый, на всю панель",
+  "liveView.reloadAll": "Перезагрузить песочницу и dev-сервер",
 
   "livePreview.fit": "По размеру",
   "livePreview.device.desktop": "Рабочий стол",
@@ -2288,4 +2293,7 @@ export const dict = {
   "settings.subAgents.meta.role.default": "Автономный специалист",
   "settings.subAgents.meta.category.default": "Агент",
   "livePreview.writingFile": "Запись {{file}}",
+  "livePreview.zoomAuto": "По размеру панели",
+  "livePreview.zoomReset": "Реальный размер (100%)",
+  "livePreview.reloading": "Обновление…",
 }

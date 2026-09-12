@@ -1616,6 +1616,12 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
   })
 
   const [viewportMode, setViewportMode] = createSignal<"fluid" | "mobile" | "tablet" | "laptop">("fluid")
+  // Every press bumps `seq` so LivePreview applies it even when the highlight already matched.
+  const [deviceRequestSeq, setDeviceRequestSeq] = createSignal(0)
+  const requestDevice = (mode: "fluid" | "mobile" | "tablet" | "laptop") => {
+    setViewportMode(mode)
+    setDeviceRequestSeq((seq) => seq + 1)
+  }
 
   const viewportMaxWidth = () => {
     switch (viewportMode()) {
@@ -1637,14 +1643,17 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
       aria-label={language.t("liveView.sandbox")}
       class="flex size-full min-h-0 flex-col overflow-hidden rounded-[10px] border border-v2-border-border-muted bg-v2-background-bg-base shadow-[var(--v2-elevation-raised)] ring-1 ring-white/[0.025]"
     >
-      <div class="flex h-11 shrink-0 items-center gap-2 border-b border-v2-border-border-muted bg-[linear-gradient(180deg,var(--v2-background-bg-base),var(--v2-overlay-simple-overlay-pressed))] px-2.5">
-        <div class="flex shrink-0 items-center gap-1.5 rounded-md bg-v2-overlay-simple-overlay-hover px-1.5 py-1 text-13-medium text-text-base select-none">
+      <div class="@container flex h-11 min-w-0 shrink-0 items-center gap-2 border-b border-v2-border-border-muted bg-[linear-gradient(180deg,var(--v2-background-bg-base),var(--v2-overlay-simple-overlay-pressed))] px-2.5">
+        <div
+          class="flex shrink-0 items-center gap-1.5 rounded-md bg-v2-overlay-simple-overlay-hover px-1.5 py-1 text-13-medium text-text-base select-none"
+          title={language.t("liveView.sandbox")}
+        >
           <span class="size-1.5 rounded-full bg-[var(--v2-state-fg-success)]" aria-hidden="true" />
-          {language.t("liveView.sandbox")}
+          <span class="hidden @[520px]:inline">{language.t("liveView.sandbox")}</span>
         </div>
 
         {/* Selector interactivo de proyecto/carpeta activa */}
-        <div class="relative flex items-center shrink-0">
+        <div class="relative flex min-w-0 max-w-28 shrink items-center @[640px]:max-w-44">
           <button
             type="button"
             onClick={() => {
@@ -1775,7 +1784,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
             </div>
           </Show>
         </div>
-        <div class="flex min-w-0 flex-1 justify-center overflow-hidden gap-2">
+        <div class="flex min-w-0 flex-1 items-center justify-center-safe gap-2 overflow-hidden">
           <div
             role="tablist"
             aria-label={language.t("liveView.sandbox")}
@@ -1794,7 +1803,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
                   title={`${tab.label} (${tab.id === "preview" ? "Ctrl+Alt+1" : "Ctrl+Alt+2"})`}
                 >
                   <span>{tab.label}</span>
-                  <span class="ml-1.5 hidden md:inline text-[10px] opacity-50 font-mono">
+                  <span class="ml-1.5 hidden @[640px]:inline text-[10px] opacity-50 font-mono">
                     {tab.id === "preview" ? "Ctrl+Alt+1" : "Ctrl+Alt+2"}
                   </span>
                 </button>
@@ -1804,52 +1813,52 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
 
           {/* Selector de Dispositivos Responsivos */}
           <Show when={content() === "preview"}>
-            <div class="hidden sm:flex h-8 items-center rounded-lg border border-v2-border-border-muted bg-v2-overlay-simple-overlay-pressed p-0.5 shadow-inner gap-0.5">
+            <div class="hidden @[540px]:flex h-8 items-center rounded-lg border border-v2-border-border-muted bg-v2-overlay-simple-overlay-pressed p-0.5 shadow-inner gap-0.5">
               <button
                 type="button"
-                title="Móvil (390px)"
+                title={language.t("liveView.device.mobile")}
                 class={`px-2 h-full rounded text-[11px] font-medium transition-all ${
                   viewportMode() === "mobile"
                     ? "bg-v2-background-bg-base text-sky-400 shadow-sm"
                     : "text-text-weak hover:text-text-base"
                 }`}
-                onClick={() => setViewportMode("mobile")}
+                onClick={() => requestDevice("mobile")}
               >
                 📱
               </button>
               <button
                 type="button"
-                title="Tablet (820px)"
+                title={language.t("liveView.device.tablet")}
                 class={`px-2 h-full rounded text-[11px] font-medium transition-all ${
                   viewportMode() === "tablet"
                     ? "bg-v2-background-bg-base text-sky-400 shadow-sm"
                     : "text-text-weak hover:text-text-base"
                 }`}
-                onClick={() => setViewportMode("tablet")}
+                onClick={() => requestDevice("tablet")}
               >
                 📲
               </button>
               <button
                 type="button"
-                title="Laptop (1024px)"
+                title={language.t("liveView.device.laptop")}
                 class={`px-2 h-full rounded text-[11px] font-medium transition-all ${
                   viewportMode() === "laptop"
                     ? "bg-v2-background-bg-base text-sky-400 shadow-sm"
                     : "text-text-weak hover:text-text-base"
                 }`}
-                onClick={() => setViewportMode("laptop")}
+                onClick={() => requestDevice("laptop")}
               >
                 💻
               </button>
               <button
                 type="button"
-                title="100% Fluido"
+                title={language.t("liveView.device.fluid")}
                 class={`px-2 h-full rounded text-[11px] font-medium transition-all ${
                   viewportMode() === "fluid"
                     ? "bg-v2-background-bg-base text-sky-400 shadow-sm"
                     : "text-text-weak hover:text-text-base"
                 }`}
-                onClick={() => setViewportMode("fluid")}
+                onClick={() => requestDevice("fluid")}
               >
                 🖥️
               </button>
@@ -1865,8 +1874,8 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
             retryReloadDevServer(3, 500)
             window.dispatchEvent(new CustomEvent("tiancode:preview-reload", { detail: { force: true } }))
           }}
-          aria-label={language.intl().toLowerCase().startsWith("es") ? "Recargar Sandbox y Dev Server" : "Reload Sandbox & Dev Server"}
-          title={language.intl().toLowerCase().startsWith("es") ? "Recargar Sandbox y Dev Server" : "Reload Sandbox & Dev Server"}
+          aria-label={language.t("liveView.reloadAll")}
+          title={language.t("liveView.reloadAll")}
           icon={<IconV2 name="reset" />}
         />
         <Show when={props.expandable}>
@@ -1908,7 +1917,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
               targetUrl={browserTarget}
               autoStartKey={autoStartKey}
               activeEditFile={activeEditFile}
-              externalDevice={() => viewportMode()}
+              externalDevice={() => ({ mode: viewportMode(), seq: deviceRequestSeq() })}
               onDeviceChange={(mode) => setViewportMode(mode)}
               onDirectoryChange={(dir) => {
                 setActiveProjectDir(dir)

@@ -1,0 +1,13 @@
+/* Thin progress bar shown while a buffered reload loads behind the visible document. */
+@keyframes live-preview-reloading {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
+.live-preview-reloading-bar {
+  animation: live-preview-reloading 900ms linear infinite;
+}
