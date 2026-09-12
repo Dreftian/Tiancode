@@ -29,36 +29,41 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.38"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — El optimizador usa tu modelo y el micrófono deja de descargar a tus espaldas`
+  const releaseName = `Tiancode v${version} — Seguridad en el Sandbox, uso del navegador y uso del computador`
 
   const body = `## 🚀 Tiancode v${version}
 
-### ✨ El botón de mejorar el prompt ahora sí usa el modelo que tienes puesto
-- **Tu nivel de razonamiento se descartaba en tres capas a la vez**: el payload no tenía campo, el botón no lo enviaba, y el handler pasaba \`small: true\`, que además de descartar la variante sustituye las opciones del proveedor por las de **menor esfuerzo**. Elegir «Max» en la barra del prompt no cambiaba nada aquí. Ahora viaja, y \`small\` sólo se aplica cuando el servidor eligió el modelo por su cuenta.
-- **Un modelo que no resolvía te devolvía texto de otro modelo sin avisar** — el error se tragaba y caía al modelo pequeño de otro proveedor. Ahora se te dice, con un atajo para elegir otro.
-- **«Tu clave fue rechazada» y «el modelo no dijo nada» eran el mismo mensaje.** Ahora son cuatro mensajes distintos: credenciales, límite de peticiones, saldo agotado y salida vacía.
+> **Actualización recomendada.** Corrige cuatro fallos de seguridad reales en el puente de la vista previa que venían publicados en versiones anteriores.
 
-### 🎙️ El micrófono: ya transcribía — se portaba mal
-Conviene decirlo claro: **el botón no era un adorno**. Transcribe en local, sin conexión y en español, con Whisper sobre sherpa-onnx. Lo roto era todo lo de alrededor:
-- **Descargaba 146 MB sin preguntar** al abrir una sesión: sin consentimiento, sin progreso y sin ajuste que lo impidiera — justo después de que 1.0.45 quitara 644 MB de descargas no pedidas. Ahora se pide en el primer clic, diciendo el tamaño, con progreso visible.
-- **El tamaño declarado estaba mal** (100 MB en el código, ~150 en un comentario, 146 en disco). Ahora se calcula desde los bytes reales.
-- **Dictar borraba lo que habías escrito** y tiraba las imágenes adjuntas. Ahora se añade al final.
-- **Congelaba la app 1–2 s en cada dictado** porque decodificaba en el proceso principal. Movido a un proceso aparte.
-- **Cortaba en silencio a los 64 s**, **sólo entendía español e inglés** (el modelo cubre 99 idiomas), su **propio campo de diccionario era ilegible** en tema claro (contraste 1,1:1), **dos ajustes de atajo no hacían nada**, y el texto de privacidad decía que se guardaban tus grabaciones cuando **no se guarda ningún audio**, sólo el texto.
+### 🔒 El agente ya no puede leer una página que tú no ves
+La pregunta era «¿puede cualquier modelo usar el Sandbox con seguridad?». La respuesta era **no**:
+- **La única comprobación para elegir sobre qué página actuar era «¿es http o https?»** — no se comparaba el origen. Y la Vista en vivo es un navegador completo, con barra de direcciones y cookies persistentes. Al arrancar un dev server local la vista nativa se **ocultaba sin cambiar de página**. Resultado: navegas a un sitio donde tienes sesión, arrancas tu proyecto, y el modelo recibe la URL, el título, 4.000 caracteres de texto y todos los elementos interactivos de **la página oculta con tu sesión iniciada** — y podía pulsarla.
+- **Ninguna de las dos tools de vista previa pedía permiso.** Leer y pulsar una página viva estaba menos vigilado que \`glob\`. Ahora piden permiso nombrando el **origen concreto**.
+- **Aceptar una captura de ventana concedía la pantalla entera para siempre** (\`always: ["*"]\` escribía una regla que también valía para \`screen\`).
+- **Un clic del modelo sobre un enlace podía abrir tu navegador real en cualquier URL.**
 
-### 🪟 La cabecera «Vista previa / Código»
-La pastilla de pestañas se **cortaba a media palabra**, sin puntos suspensivos y sin poder pulsar el trozo cortado: el contenedor central tenía base 0, así que nunca entraba en el reparto de espacio. Y sus tres puntos de ruptura disparaban expansiones a la vez contra una caja que no crecía. Ahora hay una escalera real de cinco pasos, las pestañas se reducen a icono conservando su nombre accesible, y los cuatro botones de dispositivo pasan a ser un menú (~100 px recuperados, y con estado seleccionado de verdad: antes era un color aplicado a un emoji, que no hace nada).
+### 🌐 Uso del navegador
+El navegador integrado ya era alcanzable por el agente **por accidente**, como último candidato del árbol de frames y sin permiso. Eso se cierra, y se sustituye por algo deliberado: las tools aceptan \`surface: "browser"\`, **preguntan al navegador qué página tiene abierta** y piden permiso citando ese sitio antes de tocarlo.
 
-### 🐙 GitHub
-- **Centrado de verdad**: nada lo centraba en vertical y la tarjeta medía 1040 px envolviendo una columna de 480.
-- **Era invisible en el tema claro** — logo y título fijados a \`#ffffff\` sobre panel blanco.
-- **Ahora explica qué te da conectar**, con seis capacidades verificadas contra el código, empezando por clonar un repositorio privado y abrirlo como proyecto. Nada de issues, PRs, forks ni Actions: ese token no los usa.
-- **La insignia de permisos era falsa** (\`repo · read:user\` fijo, titulada «permisos activos del token»). Ahora lee \`x-oauth-scopes\`, y dice cuando no llega.
-- **Los contadores eran de los primeros 30 repos presentados como totales.**
-- **Una fuga de credenciales real**: ante un fallo de arranque de git, la línea de comandos completa —con el token en base64— acababa pintada en el aviso de error. Redactada.
+*Sobre el navegador externo, la respuesta honesta:* comprobé Chrome 153 y Edge 153 en una máquina real y **ambos rechazan \`--remote-debugging-port\` sobre el perfil por defecto**. Sólo se puede automatizar un perfil desechable sin tus sesiones — justo lo que le quita el sentido. Por eso el objetivo es el navegador integrado.
+
+### 🖱️ Uso del computador — nuevo, y de verdad
+Una tool \`computer\` que mueve el ratón y escribe realmente en Windows: \`move\`, \`click\`, \`type\`, \`key\`, \`scroll\`, más leer el cursor y la ventana activa. **Sin dependencias nuevas ni addon nativo**: un proceso PowerShell persistente con user32, a 0,05 ms por acción en vez de 310 ms.
+
+Las protecciones **son** la función, y se aplican en el proceso principal:
+- **Rechaza ventanas elevadas.** Windows descarta la entrada sintética hacia un proceso con más privilegios **devolviendo éxito**, así que el agente creería haber hecho clic.
+- **Rechaza su propia ventana**, para que no pueda pulsar los botones de su propio diálogo de permiso.
+- **Lista de apps permitidas**, vacía al empezar. Como el diálogo de consentimiento roba el foco, **se vuelve a leer la ventana activa después**: si cambió, no se ejecuta.
+- **Indicador siempre visible + botón de parada + atajo global.** Al parar se sueltan los modificadores y se olvida la lista. Caduca sola a los 2 minutos.
+- Aprobar \`scroll\` para siempre nunca se convierte en aprobar \`type\` para siempre.
+
+Sólo Windows en esta v1; en macOS y Linux lo dice claramente en vez de fallar raro.
+
+### 📐 Ajustes de transcripción (estilo Claude Code)
+**Tamaño del texto** (pequeño/medio/grande) y **ancho de la transcripción** (estrecho/medio/ancho) en Ajustes → Apariencia. El ancho sólo aplica a partir de 768 px y **la descripción lo dice**; se escalaron los 30 tamaños de fuente fijos de los mensajes para que «grande» no sea un ajuste roto; y «medio» reproduce exactamente el diseño actual, así que quien no toque nada no ve ningún cambio.
 
 ### ✅ Calidad
-Typecheck **27/27** · Lint **0 errores** · **906** tests de frontend · **113** de escritorio.
+Typecheck **27/27** · Lint **0 errores** · **906** tests de frontend · **144** de escritorio · **54** del puente.
 
 ### 🔄 Actualización 100% no destructiva
 Todas tus claves de proveedores, configuraciones, sesiones, backups y servidores MCP se preservan intactos.
