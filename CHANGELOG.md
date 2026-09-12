@@ -4,6 +4,65 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.44] — 2026-09-12
+### Un bloqueo real de la base de datos, un lint que vuelve a servir y un Sandbox que se ve
+
+Las ocho mejoras que quedaron apuntadas al cerrar la 1.0.43, planificadas contra el código real y
+después revisadas de forma adversarial: los 20 hallazgos confirmados de esa revisión van corregidos
+en esta misma versión.
+
+- **La base de datos congelaba la app 5 segundos y nadie lo sabía.** `bun:sqlite` es síncrono, así
+  que dos inicializaciones del mismo archivo competían por `BEGIN IMMEDIATE` y bloqueaban el bucle
+  de eventos entero durante `PRAGMA busy_timeout` (5 s) antes de fallar. Medido en este repo: 5,8 s
+  con dos compilaciones concurrentes, 52 ms con el cerrojo por ruta que se añade ahora. Era un
+  defecto de producción que un test llevaba meses señalando; de paso quita 28 timeouts de cinco
+  segundos de la suite del backend, que pasa de no terminar en 40 minutos a terminar en 12,6.
+- **Los otros tres tests que fallaban desde siempre estaban obsoletos, no rotos**: `DESIGN.md` es un
+  literal del código, la lista de agentes integrados creció en 18 entradas, y el coordinador de
+  sesiones conserva a propósito el "wake" pendiente al interrumpir. Cada test afirma ahora lo que
+  hace producción, y el coordinador gana el test hermano que la reescritura habría perdido.
+- **La vista previa dejaba de compilar el proyecto entero en cada tecla.** La condición era "¿hay
+  script de build?"; ahora es "¿Tiancode sirve esto desde una carpeta de salida?". Una vista JSX
+  transpila por petición y un dev server recarga solo: compilar ahí eran segundos de trabajo que
+  nadie consumía. Un proyecto Electron servido desde `dist/` sí sigue compilando — ese caso tiene
+  script `dev` y se habría perdido con la condición obvia.
+- **El vigilante de archivos usa el watcher nativo** cuando su binding está disponible: poda
+  `node_modules` y la salida de compilación en el sistema operativo en vez de filtrar después, y
+  vuelve a `fs.watch` si no. Y el `catch {}` mudo ahora escribe en el log: un ENOSPC de inotify en
+  Linux mataba la recarga en vivo para el resto de la sesión sin dejar rastro.
+- **Una carpeta sin git ya no dice que su raíz es `/`.** En Windows eso era la raíz del disco, así
+  que la resolución de `@menciones`, la línea "Workspace root folder" del prompt y el destino
+  `.tiancode/agents` del CLI apuntaban ahí. Las listas de sesión se acotan por carpeta para la fila
+  de proyecto "global" compartida, y el escritorio deja de resolver cada sesión sin git a la última
+  carpeta que escribió esa fila.
+- **Skills pierde su segundo catálogo**: ~340 líneas de resúmenes en español escritos a mano que
+  tapaban el SKILL.md real del servidor, más diez avisos de conflicto que se mostraban en español a
+  todos los idiomas. Un esqueleto cubre la carga y "no hay skills" sólo se dice cuando de verdad se
+  agotaron los reintentos.
+- **`bun run lint` pasa de 5.145 avisos / 0 errores a 882 / 0**, con cinco reglas en nivel *error*
+  que rompen el gate ante cualquier caso nuevo. Las 15 reglas desactivadas llevan justificación y un
+  sitio real de ejemplo; el intercambio se dice claro: con `no-unsafe-type-assertion` apagada, el
+  typecheck es el único guardián de los `as`. `no-dupe-keys` cazó una línea genuinamente muerta.
+- **El puente del agente distingue "alguien pregunta" de "alguien puede actuar"**: la presencia es
+  ahora `surface`/`opening`/`incapable`/`none`, un endpoint de sólo lectura permite que el vigía
+  abra la Vista en vivo cuando el agente la está esperando, una acción reclamada por un panel que se
+  cierra se reencola en vez de perderse, y cada estado le dice al agente si merece la pena insistir.
+- **Y el Sandbox por fin enseña la app de escritorio en vez de describirla**: un espejo de su
+  ventana real de Windows, emparejada recorriendo el árbol de procesos hasta su *handle*, con un
+  selector cuando la evidencia es débil. Es un espejo, no un embebido — Electron no puede reparentar
+  ni escribir en una ventana ajena — así que `preview_inspect` y `preview_interact` lo dicen para una
+  app lanzada como proceso en vez de fallar de forma opaca. Siguen funcionando para un proyecto
+  Electron servido como página.
+
+De la revisión adversarial: el espejo se pausa en vez de autodestruirse cuando se oculta la ventana
+(antes no podía volver), nunca se arma para un sidecar de WSL (un pid de Linux comparado contra la
+tabla de procesos de Windows podía reflejar una ventana ajena y mandarla al modelo), se apoya en
+`supported()` para no tocar macOS ni Linux, comprueba que la ventana fijada siga existiendo,
+sobrevive a una recarga del renderer, y encauza una ventana elegida a mano por el mismo ciclo de
+vida. `preview_inspect` ya no informa del valor de un campo de contraseña.
+
+47 tests nuevos. Frontend 916 tests, 0 fallos; typecheck 27/27; lint 0 errores.
+
 ## [1.0.43] — 2026-09-11
 ### El agente puede usar el Sandbox, el modo 2x deja de pensar menos y `.tiancode` deja de aparecer en `C:\`
 

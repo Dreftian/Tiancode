@@ -29,42 +29,39 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.38"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — El agente usa el Sandbox, el modo 2x no piensa menos y nada se escribe en la raíz del disco`
+  const releaseName = `Tiancode v${version} — Un bloqueo real de la base de datos, un lint que vuelve a servir y un Sandbox que se ve`
 
   const body = `## 🚀 Tiancode v${version}
 
-Versión centrada en tres cosas que rompían la confianza: el agente no podía comprobar lo que
-construía, el modo ⚡ 2x rebajaba en silencio el razonamiento que habías elegido, y la app dejaba
-archivos propios en la raíz del disco.
+Las ocho mejoras que quedaron apuntadas al cerrar la 1.0.43, planificadas contra el código real y
+revisadas después de forma adversarial: los 20 hallazgos confirmados de esa revisión van corregidos
+en esta misma versión.
 
-### 🤖 El agente ya puede usar la app del Sandbox
-- Antes sólo podía arrancar el servidor y leer logs, así que terminaba diciendo "no pude abrir la ventana, sólo validé que compila".
-- **\`preview_inspect\`**: lee la pantalla real — URL y título, texto visible, cada botón, enlace, campo y desplegable con una referencia \`e12\`, y los errores de la consola.
-- **\`preview_interact\`**: \`click\`, \`fill\`, \`select\`, \`press\`, \`scroll\` y \`navigate\`, y devuelve la pantalla resultante. Recorre un flujo entero y lo verifica de verdad antes de darlo por terminado.
-- Funciona tanto en el iframe del Sandbox como en la vista nativa: la acción se ejecuta en el frame real desde el proceso principal.
+### 🧊 Un bloqueo de 5 segundos que nadie veía
+- \`bun:sqlite\` es síncrono, así que dos inicializaciones del mismo archivo competían por \`BEGIN IMMEDIATE\` y **congelaban el bucle de eventos 5 segundos** antes de fallar.
+- Medido aquí: 5,8 s con dos arranques concurrentes → **52 ms** con el nuevo cerrojo por ruta. La suite del backend pasa de no terminar en 40 minutos a terminar en 12,6.
 
-### 🔁 "Compilando dist…" que no paraba
-- Windows anuncia el cambio de la carpeta de salida como \`dist\` a secas, sin barra, y el filtro sólo descartaba \`dist/\`: cada compilación se re-armaba con su propia salida y el proyecto se recompilaba en bucle.
-- Los descartes se comparan ahora por segmento de ruta, a cualquier profundidad, y la etiqueta muestra el nombre del archivo en lugar de una ruta cortada a media palabra.
+### 🖥️ El Sandbox por fin enseña la app de escritorio
+- Un espejo en vivo de la ventana real de Windows de la app que lanzas, emparejada recorriendo el árbol de procesos hasta su *handle*, con un selector cuando la evidencia es débil.
+- Es un espejo, no un embebido: Electron no puede reparentar ni escribir en una ventana ajena. \`preview_inspect\` y \`preview_interact\` lo dicen ahora en vez de fallar de forma opaca.
 
-### 🗂️ Nada de \`.tiancode\` en la raíz del disco
-- Una carpeta sin repositorio resolvía su proyecto a la raíz del disco, así que \`MEMORY.md\`, los plugins (con su \`node_modules\`) y las skills acababan en lo alto de la unidad.
-- Una carpeta sin git es ahora su propio proyecto, y ninguna ruta puede escribir en una raíz de sistema.
+### 🤖 El agente ya no se queda ciego
+- La Vista en vivo se abre sola cuando el agente está esperando una página, y una acción reclamada por un panel que se cierra vuelve a la cola en lugar de perderse.
+- \`preview_inspect\` ya no informa del valor de un campo de contraseña.
 
-### ⚡ El modo 2x respeta tu nivel de razonamiento
-- Bajaba el modelo a su variante más barata: elegir "Max" y activar 2x te daba un modelo más superficial del que pediste. Ahora 2x sólo quita preámbulo y relleno.
+### ⚡ La vista previa deja de recompilar el proyecto entero en cada tecla
+- Compilar sólo tiene sentido cuando Tiancode sirve desde una carpeta de salida; una vista JSX transpila por petición y un dev server recarga solo.
+- El vigilante de archivos usa el watcher nativo y poda \`node_modules\` en el sistema operativo, y el \`catch {}\` mudo que mataba la recarga en vivo ahora deja rastro en el log.
 
-### 🔌 Proveedores y modelos al instante
-- Conectar cierra el diálogo y notifica en el mismo momento; desconectar quita la fila **y todos los modelos de ese proveedor** en el mismo fotograma.
-- Tras actualizar, un catálogo vacío ya no se queda cacheado hasta reiniciar: se vuelve a pedir a los 0,8 s, 2 s y 5 s. Lo mismo en Skills, que es por lo que la ficha grande mostraba un resumen en vez del SKILL.md completo.
-- Ollama y LM Studio salen de Proveedores: el camino real para modelos locales es el motor integrado (GGUF) en Modelos Locales.
+### 🧹 Un lint que vuelve a servir
+- De **5.145 avisos / 0 errores a 882 / 0**, con cinco reglas en nivel *error* que rompen el gate ante cualquier caso nuevo. Cada regla desactivada lleva justificación y un ejemplo real.
 
-### 📐 Responsivo de verdad
-- Los paneles de Ajustes media-consultaban el ancho de la **ventana** aunque viven dentro del diálogo. Todos pasan a container queries del propio panel.
-- El sondeo de la vista previa va con lo que ocurre (0,9 s / 2 s / 6 s) y los logs sólo se piden cuando hay algo que mirar.
+### 🗂️ Menos mentiras en las rutas
+- Una carpeta sin git ya no dice que su raíz es \`/\` (en Windows, la raíz del disco).
+- Skills pierde 340 líneas de resúmenes escritos a mano que tapaban el SKILL.md real del servidor.
 
 ### ✅ Calidad
-- 34 tests nuevos. Frontend **899 tests, 0 fallos**. Typecheck 27/27.
+- 47 tests nuevos. Frontend **916 tests, 0 fallos**. Typecheck 27/27. Lint 0 errores.
 
 ### 🔄 Actualización 100% no destructiva
 Todas tus claves de proveedores, configuraciones, sesiones, backups y servidores MCP se preservan intactos.
