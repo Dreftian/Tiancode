@@ -4,6 +4,34 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.42] — 2026-09-11
+### Vista previa en vivo: zoom real, recarga sin parpadeo y cabecera del Sandbox
+
+- **El zoom de la vista previa no podía pasar del ajuste automático**: con un preset grande (p. ej.
+  Escritorio FHD 1920×1080) el panel mostraba ~54 % y los botones "+"/"−" no hacían nada, porque el
+  zoom manual era solo un *techo* sobre la escala de ajuste y `zoom = 1` significaba "auto", así que un
+  100 % real era inalcanzable. Ahora el modo es explícito (`zoomMode: auto | manual`): "+"/"−"
+  recorren una escalera de escalones (25 %–400 %) desde la escala en pantalla, el porcentaje es un
+  botón que fija el 100 % y "Ajustar" vuelve al ajuste automático; a escalas mayores que el panel la
+  vista se desplaza en vez de recortarse. En modo fluido el zoom manual actúa como zoom de página.
+- **El botón "Fluido" de la cabecera del Sandbox no respondía** cuando la preferencia guardada era un
+  preset de escritorio: la cabecera arrancaba en "fluido" mientras la vista previa seguía en FHD, y
+  pulsar "fluido" no cambiaba nada porque "ya lo era". Las pulsaciones llevan ahora un contador y la
+  cabecera refleja siempre el preset persistido, también tras hidratar la preferencia.
+- **Recarga sin parpadeo mientras el agente escribe**: cada cambio (partes de herramientas, diffs de
+  sesión, vigilante de archivos, sondeo de compilación, botón de recarga) pasa por un planificador que
+  agrupa ráfagas en 250 ms y nunca reinicia un documento a medio cargar; el documento nuevo se carga en
+  un segundo iframe oculto y se intercambia al terminar (con la posición de scroll conservada), así que
+  la página en construcción ya no se pone en blanco entre dos escrituras ni muestra la capa
+  "Iniciando…". El cliente de recarga inyectado en las vistas estáticas/JSX delega sus recargas al
+  Sandbox cuando este lo hospeda: una sola recarga por cambio en lugar de tres.
+- **Cabecera del Sandbox**: se maqueta con container queries del propio panel (no de la ventana):
+  los atajos y los botones de dispositivo se ocultan en paneles estrechos, "Sandbox" y el nombre de la
+  carpeta ceden espacio y las pestañas "Vista previa / Código" nunca se recortan ni se superponen al
+  selector de carpeta.
+- 8 claves de traducción nuevas en los 7 idiomas; 12 tests nuevos (`preview-viewport`,
+  `live-preview-reload`). Frontend 879 tests, 0 fallos; typecheck 27/27.
+
 ## [1.0.41] — 2026-09-11
 ### Ajustes fluidos, Conexiones reales, base de datos protegida y rediseño de Skills, Sub-agentes y MCP
 

@@ -29,47 +29,28 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.38"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — Ajustes Fluidos, Conexiones Reales, Base de Datos Protegida & Rediseño de Skills, Sub-agentes y MCP`
+  const releaseName = `Tiancode v${version} — Vista Previa en Vivo: Zoom Real, Recarga sin Parpadeo y Cabecera del Sandbox`
 
   const body = `## 🚀 Tiancode v${version}
 
-Esta versión arregla el problema más grave reportado tras la 1.0.40 ("No se pudo conectar con
-Servidor local"), devuelve la fluidez al panel de Ajustes, convierte Conexiones en una integración
-real y rediseña las pestañas de Skills, Sub-agentes y MCP/Plugins.
+Versión centrada en la vista previa del Sandbox mientras un modelo construye el frontend: el zoom
+vuelve a obedecer, los cambios del agente aparecen sin parpadeos y la cabecera deja de recortarse.
 
-### 🗄️ Base de datos protegida frente a la copia de seguridad
-- La copia diaria copiaba \`tiancode.db\` mientras el servidor escribía: dejaba una copia rota y un bloqueo que ponía SQLite en **solo lectura**. De ahí el "No se pudo conectar".
-- La copia se hace ahora con \`VACUUM INTO\` (instantánea consistente y compacta) y nunca toca \`-wal\`/\`-shm\`.
-- Al arrancar, el servidor comprueba que puede escribir (reintenta hasta 30 s antes de fallar con un error claro) y compacta la base automáticamente cuando acumula espacio libre.
+### 🔍 Zoom real en la vista previa
+- Con un preset grande (Escritorio FHD 1920×1080) el panel mostraba ~54 % y "+"/"−" no hacían nada: el zoom manual era solo un techo sobre el ajuste automático y el 100 % real era inalcanzable.
+- Ahora "+"/"−" recorren escalones (25 %–400 %) desde la escala en pantalla, el porcentaje es un botón que fija el 100 % y **Ajustar** vuelve al ajuste automático. Si no cabe, la vista se desplaza en vez de recortarse.
+- El botón "Fluido" de la cabecera funciona siempre, aunque la preferencia guardada fuera un preset de escritorio; la cabecera refleja el preset real.
 
-### ⚡ Ajustes vuelve a ser fluido
-- El diálogo y cada panel forzaban capas de GPU, varias tablas usaban desenfoque de fondo y había animaciones permanentes: con 12 paneles montados a la vez, cada cambio de pestaña recomponía todo. *General* era el único panel sin esos efectos y por eso el único fluido.
-- Se retiran las capas forzadas, los desenfoques y los pulsos estáticos.
+### ⚡ Ver al agente construir paso a paso
+- Cada cambio pasa por un planificador que agrupa ráfagas (250 ms) y nunca reinicia un documento a medio cargar.
+- El documento nuevo se carga en un segundo iframe oculto y se intercambia al terminar, conservando la posición de scroll: sin pantalla en blanco ni capa "Iniciando…" entre dos escrituras.
+- El cliente de recarga de las vistas estáticas/JSX delega en el Sandbox: una recarga por cambio en lugar de tres.
 
-### 🔗 Conexiones reales (Telegram, Discord, Slack, Webhooks)
-- El panel anterior guardaba todo en el navegador, "probaba" con un temporizador y el emparejamiento de WhatsApp era un número aleatorio.
-- Nuevo servicio en el servidor con API \`/global/connections\`: los tokens viven en el almacén de credenciales y nunca vuelven a la interfaz, cada sesión que termina o falla envía un resumen, los webhooks van firmados con HMAC-SHA256 y el bot de Telegram abre sesiones y responde desde el chat.
-- WhatsApp se retira hasta contar con una integración real.
-
-### 🎨 Skills, Sub-agentes y MCP/Plugins rediseñados
-- **Skills**: barra de acciones y filtros con recuentos (sin emojis), descripciones a dos líneas en la lista, textos traducidos.
-- **Sub-agentes**: selector de alcance proyecto/global como control segmentado, tabla más densa, estados traducidos.
-- **MCP y Plugins**: las pestañas ya no recortan su etiqueta, explicación compacta de MCP, ruta de los plugins locales una sola vez, catálogo con cabecera limpia.
-- 105 claves de traducción nuevas en los 7 idiomas; la paleta fija se sustituye por los tokens del tema.
-
-### 🔊 Voces
-- Catálogo completo con las descargadas primero, sin doble descarga ni velocidad 120 %.
-- La clave de Fish Audio deja de ir incluida en el binario; velocidad natural por defecto en Kokoro y Piper.
-- Botón de eliminar restaurado, tono solo cuando el motor lo admite, el probador de micrófono libera el micro al cambiar de pestaña.
-
-### 🐙 GitHub e Inteligencia
-- La rama actual se lee del control de versiones (antes siempre "main"), "Sincronizar" espera a todas las peticiones y los fallos de commit/push/pull muestran la salida real de git.
-- Los ajustes de memoria y guardrails de *Inteligencia* llegan por fin al servidor por HTTP: el esquema V1 los descartaba en silencio.
-- Se retira la pestaña *Ecosistema IA*: 9 de sus 16 tarjetas describían integraciones inexistentes y ningún interruptor tenía efecto.
+### 🧭 Cabecera del Sandbox
+- Se adapta al ancho del propio panel: atajos y botones de dispositivo se ocultan en paneles estrechos, el nombre de la carpeta cede espacio y las pestañas "Vista previa / Código" nunca se superponen.
 
 ### ✅ Calidad
-- Suite del frontend: **868 tests, 0 fallos**. Desktop 75/0. Conexiones 17/17.
-- Typecheck: 27/27 paquetes.
+- Frontend: **879 tests, 0 fallos** (12 nuevos). Typecheck 27/27.
 
 ### 🔄 Actualización 100% no destructiva
 Todas tus claves de proveedores, configuraciones, sesiones, backups y servidores MCP se preservan intactos.
