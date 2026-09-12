@@ -29,49 +29,36 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.38"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — Las imágenes llegan al modelo y los paneles dejan de mentir`
+  const releaseName = `Tiancode v${version} — El optimizador usa tu modelo y el micrófono deja de descargar a tus espaldas`
 
   const body = `## 🚀 Tiancode v${version}
 
-Nueve áreas investigadas contra el código real y después implementadas. El hilo común: donde había un control que prometía algo que el código no hacía, o se ha cableado de verdad o se ha borrado.
+### ✨ El botón de mejorar el prompt ahora sí usa el modelo que tienes puesto
+- **Tu nivel de razonamiento se descartaba en tres capas a la vez**: el payload no tenía campo, el botón no lo enviaba, y el handler pasaba \`small: true\`, que además de descartar la variante sustituye las opciones del proveedor por las de **menor esfuerzo**. Elegir «Max» en la barra del prompt no cambiaba nada aquí. Ahora viaja, y \`small\` sólo se aplica cuando el servidor eligió el modelo por su cuenta.
+- **Un modelo que no resolvía te devolvía texto de otro modelo sin avisar** — el error se tragaba y caía al modelo pequeño de otro proveedor. Ahora se te dice, con un atajo para elegir otro.
+- **«Tu clave fue rechazada» y «el modelo no dijo nada» eran el mismo mensaje.** Ahora son cuatro mensajes distintos: credenciales, límite de peticiones, saldo agotado y salida vacía.
 
-### 🖼️ Las imágenes del chat: tres causas distintas, las tres corregidas
-- **El renderer enviaba una URL que no era un data URL.** Dos respaldos rotos acababan mandando la \`blob:\` URL tal cual, o un \`data:image/png;base64,\` vacío. El backend respondía «Image URL must be a base64 data URL».
-- **Un error de imagen tumbaba el prompt entero.** Ahora cada adjunto falla por su cuenta y el resto del mensaje sí se envía.
-- **El redimensionador llevaba muerto en las builds empaquetadas**: el parche de photon lee \`__OPENCODE_PHOTON_WASM_PATH\` y el código escribía otro nombre, así que **ninguna imagen se redimensionaba nunca** y una captura 4K salía al proveedor a tamaño completo → 400 imposible de rastrear.
-- **175 modelos que sí leen imágenes decían que no**, porque el filtro de capacidades ignoraba la bandera \`attachment\` del catálogo.
+### 🎙️ El micrófono: ya transcribía — se portaba mal
+Conviene decirlo claro: **el botón no era un adorno**. Transcribe en local, sin conexión y en español, con Whisper sobre sherpa-onnx. Lo roto era todo lo de alrededor:
+- **Descargaba 146 MB sin preguntar** al abrir una sesión: sin consentimiento, sin progreso y sin ajuste que lo impidiera — justo después de que 1.0.45 quitara 644 MB de descargas no pedidas. Ahora se pide en el primer clic, diciendo el tamaño, con progreso visible.
+- **El tamaño declarado estaba mal** (100 MB en el código, ~150 en un comentario, 146 en disco). Ahora se calcula desde los bytes reales.
+- **Dictar borraba lo que habías escrito** y tiraba las imágenes adjuntas. Ahora se añade al final.
+- **Congelaba la app 1–2 s en cada dictado** porque decodificaba en el proceso principal. Movido a un proceso aparte.
+- **Cortaba en silencio a los 64 s**, **sólo entendía español e inglés** (el modelo cubre 99 idiomas), su **propio campo de diccionario era ilegible** en tema claro (contraste 1,1:1), **dos ajustes de atajo no hacían nada**, y el texto de privacidad decía que se guardaban tus grabaciones cuando **no se guarda ningún audio**, sólo el texto.
 
-### 🔄 El error al actualizar con un proyecto abierto
-- «UnsupportedContentType» era literalmente el nombre del enum: \`ClientError\` usa el motivo como mensaje. Ahora se traduce a prosa en los siete idiomas.
-- \`retry()\` **no podía reintentar precisamente esos errores** — comparaba el mensaje contra una lista de textos y nunca miraba \`.cause\`.
-- Nada reconectaba la parte REST. Ahora la app detecta que el servidor volvió y recarga sola; el aviso sólo sale si el fallo persiste.
-- El instalador mataba el servidor **antes** de instalar: si \`quitAndInstall\` fallaba, quedaba una ventana viva apuntando a un puerto muerto para siempre.
+### 🪟 La cabecera «Vista previa / Código»
+La pastilla de pestañas se **cortaba a media palabra**, sin puntos suspensivos y sin poder pulsar el trozo cortado: el contenedor central tenía base 0, así que nunca entraba en el reparto de espacio. Y sus tres puntos de ruptura disparaban expansiones a la vez contra una caja que no crecía. Ahora hay una escalera real de cinco pasos, las pestañas se reducen a icono conservando su nombre accesible, y los cuatro botones de dispositivo pasan a ser un menú (~100 px recuperados, y con estado seleccionado de verdad: antes era un color aplicado a un emoji, que no hace nada).
 
-### 🧠 «Inteligencia»: de 14 controles, 4 funcionaban
-Ahora hay **9 y todos llegan al agente**. Se cablean de verdad el destilador de salida de \`bash\`, la reparación de tool-calls, el cortacircuitos de bucles, la extracción web limpia y la creación de skills. Se borran cuatro que no existían en ninguna forma — incluido **el selector de sandbox host/docker/e2b**, que prometía aislamiento en contenedor mientras \`bash\` siempre ejecuta en la máquina con los permisos del usuario.
-
-### 💻 «Uso de la PC»: 11 de 15 controles eran decorado
-Fuera «Zona Segura», que venía **activada** y decía bloquear clics en gestores de contraseñas, banca online y ventanas de Administrador: no hay nada en el repo capaz de hacer clic, así que no bloqueaba nada. A cambio el panel gana dos capacidades **reales**: herramienta \`screenshot\` y portapapeles, con permiso propio y el del portapapeles preguntando siempre.
-
-### ✨ El botón de mejorar el prompt
-- **Borraba las imágenes adjuntas** al reemplazar el prompt entero por texto plano.
-- **Mentía sobre qué motor respondía**: ante cualquier fallo caía a un «optimizador local» de 1.017 líneas — 425 de ellas un diccionario de erratas que cambiaba tu vocabulario — con un tecleo falso hecho con \`setTimeout\`. Borrado: si el modelo no responde, tu texto se queda como lo escribiste y te lo decimos.
-- Ahora se puede cancelar, el deshacer sobrevive a seguir escribiendo, y todo está en los siete idiomas.
-
-### 🔊 Voces, 🐾 Mascotas y 📦 Modelos Locales
-- **Voces: de 27 tarjetas a 6**, todas femeninas y en español. Se retiran una voz masculina con nombre femenino inventado, otra masculina con licencia **no comercial** pese a declararse CC BY 4.0, y una voz de personaje sin cadena de licencia. **~644 MB menos de descarga** por usuario.
-- **Mascotas**: las 13 en una cuadrícula, con descripción y rasgo **completos** (antes se cortaban a mitad de frase), traducidos a los siete idiomas, y estado real de la mascota del escritorio.
-- **Modelos Locales**: deja de verse oscuro sobre tema claro (de 4 tokens de tema frente a 99 hexadecimales, a 101 frente a 25). Fuera una insignia de «modelo verificado» que no verificaba nada.
-
-### 📚 Skills
-- **El panel no cargaba nada**: llamaba a un método del SDK que no existe. Ya usa el endpoint real.
-- Se incorpora **\`i-have-adhd\`** (MIT, © 2026 Ayoub Ghriss) como skill **opcional**, invocable con \`/i-have-adhd\`. Nunca se autoselecciona.
-
-### 🧹 Estructura
-Frontend a \`frontend/\`, auditorías a \`tools/docs/\`, 11 módulos sin referencias borrados y un panel MCP de 1.661 líneas inalcanzable retirado —portando antes su OAuth al panel que sí se usa—. Neto: **−3.400 líneas**.
+### 🐙 GitHub
+- **Centrado de verdad**: nada lo centraba en vertical y la tarjeta medía 1040 px envolviendo una columna de 480.
+- **Era invisible en el tema claro** — logo y título fijados a \`#ffffff\` sobre panel blanco.
+- **Ahora explica qué te da conectar**, con seis capacidades verificadas contra el código, empezando por clonar un repositorio privado y abrirlo como proyecto. Nada de issues, PRs, forks ni Actions: ese token no los usa.
+- **La insignia de permisos era falsa** (\`repo · read:user\` fijo, titulada «permisos activos del token»). Ahora lee \`x-oauth-scopes\`, y dice cuando no llega.
+- **Los contadores eran de los primeros 30 repos presentados como totales.**
+- **Una fuga de credenciales real**: ante un fallo de arranque de git, la línea de comandos completa —con el token en base64— acababa pintada en el aviso de error. Redactada.
 
 ### ✅ Calidad
-Typecheck **27/27**. Lint **0 errores**. Frontend **906 tests, 0 fallos**. Desktop **112 tests, 0 fallos**.
+Typecheck **27/27** · Lint **0 errores** · **906** tests de frontend · **113** de escritorio.
 
 ### 🔄 Actualización 100% no destructiva
 Todas tus claves de proveedores, configuraciones, sesiones, backups y servidores MCP se preservan intactos.
