@@ -4,6 +4,8 @@ import { showToast } from "@/utils/toast"
 import { getSpeechRecognition, speechRecognitionLang, type SpeechRecognitionLike } from "@/utils/voices"
 import {
   asrAPI,
+  asrLanguageForLocale,
+  DictationError,
   getAudioInputDevices,
   getSelectedAudioDeviceId,
   onAudioDeviceChange,
@@ -11,6 +13,7 @@ import {
   startLocalDictation,
   applyDictationDictionary,
   addRecentRecording,
+  type AsrErrorCode,
 } from "@/utils/asr"
 import { ContextMenu } from "@tiancode-ai/ui/context-menu"
 import { AudioWaveform } from "@/components/visualization/audio-waveform"
@@ -29,10 +32,11 @@ export function MicIcon(props: { class?: string }) {
   )
 }
 
-// Microphone button for the chat composer. Uses the Web Speech API when the
-// platform exposes it (browser), otherwise streams the mic to the local
-// sherpa-onnx recognizer in the desktop main process. It never submits
-// automatically so the user can review the transcript before sending.
+// Microphone button for the chat composer. On the desktop it streams the mic
+// to the local sherpa-onnx recognizer (a utilityProcess, see asr-worker.ts);
+// the Web Speech API branch below only runs on the web build, where the
+// preload does not define window.api.asr. It never submits automatically so
+// the user can review the transcript before sending.
 // Right-click opens the PC microphone selector to choose between detected audio inputs.
 export function VoiceDictationButton(props: {
   class?: string
@@ -44,6 +48,7 @@ export function VoiceDictationButton(props: {
   const language = useLanguage()
   const [listening, setListening] = createSignal(false)
   const [preparing, setPreparing] = createSignal(false)
+  const [downloadPercent, setDownloadPercent] = createSignal(0)
   const [devices, setDevices] = createSignal<MediaDeviceInfo[]>([])
   const [selectedDeviceId, setSelectedDeviceIdState] = createSignal<string | null>(getSelectedAudioDeviceId())
 
@@ -61,16 +66,11 @@ export function VoiceDictationButton(props: {
     }
   }
 
+  // El modelo NO se descarga al montar. Abrir una sesión traía 146 MB de pesos
+  // de Whisper sin avisar; ahora start() los pide en el primer clic, con
+  // consentimiento y progreso.
   onMount(() => {
     void refreshDevices()
-    const api = asrAPI()
-    if (api) {
-      void api.status().then((s) => {
-        if (!s.ready && !s.downloading) {
-          void api.ensure().catch(() => {})
-        }
-      }).catch(() => {})
-    }
     const cleanupListener = onAudioDeviceChange(() => {
       void refreshDevices()
     })
@@ -123,6 +123,23 @@ export function VoiceDictationButton(props: {
     })
   }
 
+  const errorText = (code: AsrErrorCode) => {
+    switch (code) {
+      case "no-devices":
+        return language.t("chat.mic.noDevices")
+      case "no-speech":
+        return language.t("chat.mic.error.noSpeech")
+      case "not-recording":
+        return language.t("chat.mic.error.notRecording")
+      default:
+        return language.t("chat.mic.error.engine")
+    }
+  }
+
+  const reportError = (code: AsrErrorCode) => {
+    showToast({ variant: "error", title: language.t("chat.mic.error"), description: errorText(code) })
+  }
+
   const start = async () => {
     if (starting || listening()) return
     starting = true
@@ -138,50 +155,65 @@ export function VoiceDictationButton(props: {
         return
       }
 
-      // 1. Electron Desktop: dictado local offline con sherpa-onnx / Whisper (proceso principal)
+      // 1. Electron Desktop: dictado local offline con sherpa-onnx / Whisper
       const api = asrAPI()
       if (api) {
         const status = await api.status().catch(() => undefined)
-        if (status && !status.ready && !status.downloading) {
+        if (!status) {
+          reportError("engine-failed")
+          return
+        }
+        if (!status.ready && !status.downloading) {
+          // La primera vez hay que bajarse el modelo entero: se pide permiso
+          // antes de gastar los megas y se enseña el progreso, si no el botón
+          // parece colgado durante toda la descarga.
+          if (!window.confirm(language.t("chat.mic.confirmDownload", { size: status.sizeMb }))) return
           setPreparing(true)
+          setDownloadPercent(0)
+          const unsubscribe = api.onProgress((event) => setDownloadPercent(event.progress))
           try {
-            await api.ensure()
+            await api.ensure(asrLanguageForLocale(language.locale()))
+            showToast({ variant: "default", title: language.t("chat.mic.downloaded") })
           } catch {
             showToast({
               variant: "error",
               title: language.t("chat.mic.error"),
               description: language.t("chat.mic.downloadFailed"),
             })
-            setPreparing(false)
             return
+          } finally {
+            unsubscribe()
+            setPreparing(false)
+            setDownloadPercent(0)
           }
-          setPreparing(false)
+          if (disposed) return
         }
-        const locale = language.locale() === "es" ? "es" : "en"
         try {
-          stopLocalRef = await startLocalDictation(
-            locale,
-            (text) => {
+          stopLocalRef = await startLocalDictation({
+            language: asrLanguageForLocale(language.locale()),
+            deviceId: selectedDeviceId() || undefined,
+            onResult: (text) => {
               props.onResult(text)
               stop()
             },
-            (message) => {
-              showToast({ variant: "error", title: language.t("chat.mic.error"), description: message })
+            onError: (code) => {
+              reportError(code)
               stop()
             },
-            selectedDeviceId() || undefined,
-          )
+            onLimit: (seconds) => {
+              showToast({
+                variant: "default",
+                title: language.t("chat.mic.limitReached", { seconds }),
+              })
+            },
+          })
           if (disposed) {
             stop()
             return
           }
           setListening(true)
         } catch (error) {
-          showToast({
-            variant: "error",
-            title: language.t("chat.mic.error"),
-            description: error instanceof Error ? error.message : String(error),
-          })
+          reportError(error instanceof DictationError ? error.code : "engine-failed")
         }
         return
       }
@@ -205,7 +237,8 @@ export function VoiceDictationButton(props: {
         }
         rec.onerror = (event) => {
           if (event.error !== "aborted" && event.error !== "no-speech") {
-            const desc = event.error === "network" ? "Servicio de voz no disponible o sin conexión" : event.error
+            const desc =
+              event.error === "network" ? language.t("chat.mic.error.unavailable") : event.error
             showToast({ variant: "error", title: language.t("chat.mic.error"), description: desc })
           }
           stop()
@@ -237,9 +270,12 @@ export function VoiceDictationButton(props: {
 
   const tooltipTitle = () => {
     if (listening()) return props.listeningLabel
-    if (preparing()) return language.t("chat.mic.downloading")
+    if (preparing())
+      return downloadPercent() > 0
+        ? language.t("chat.mic.downloadingPercent", { percent: downloadPercent() })
+        : language.t("chat.mic.downloading")
     const activeMic = selectedDeviceId() ? devices().find((d) => d.deviceId === selectedDeviceId())?.label : null
-    const hint = language.locale() === "es" ? "(Clic derecho: elegir micrófono PC)" : "(Right-click: select PC mic)"
+    const hint = language.t("chat.mic.hint.rightClick")
     return activeMic ? `${props.ariaLabel} [${activeMic}] ${hint}` : `${props.ariaLabel} ${hint}`
   }
 
@@ -260,7 +296,11 @@ export function VoiceDictationButton(props: {
       >
         <Show
           when={listening()}
-          fallback={<MicIcon class="size-4" />}
+          fallback={
+            <Show when={preparing()} fallback={<MicIcon class="size-4" />}>
+              <span class="text-[10px] font-mono tabular-nums">{downloadPercent()}%</span>
+            </Show>
+          }
         >
           <div class="inline-flex items-center gap-1.5 px-1 py-0.5 rounded-md bg-red-500/10 border border-red-500/25">
             <span class="relative flex h-2 w-2">
@@ -282,7 +322,7 @@ export function VoiceDictationButton(props: {
               {language.t("chat.mic.defaultDevice") ?? "Predeterminado del sistema"}
             </span>
             <Show when={selectedDeviceId() === null}>
-              <span class="ml-2 font-bold text-sky-400">✓</span>
+              <span class="ml-2 font-bold text-v2-text-text-accent">✓</span>
             </Show>
           </ContextMenu.Item>
           <ContextMenu.Separator />
@@ -296,7 +336,7 @@ export function VoiceDictationButton(props: {
           >
             <For each={devices()}>
               {(device, index) => {
-                const label = () => device.label || `Micrófono ${index() + 1}`
+                const label = () => device.label || language.t("chat.mic.device.fallback", { index: index() + 1 })
                 const isCurrent = () => selectedDeviceId() === device.deviceId
                 return (
                   <ContextMenu.Item onSelect={() => handleSelectDevice(device.deviceId)}>
@@ -304,7 +344,7 @@ export function VoiceDictationButton(props: {
                       {label()}
                     </span>
                     <Show when={isCurrent()}>
-                      <span class="ml-2 font-bold text-sky-400">✓</span>
+                      <span class="ml-2 font-bold text-v2-text-text-accent">✓</span>
                     </Show>
                   </ContextMenu.Item>
                 )

@@ -683,6 +683,18 @@ export type SpeechRecognitionLike = {
 
 export const getSpeechRecognition = () => getSpeechRecognitionCtor<SpeechRecognitionLike>(window)
 
-// Dictation language for the Web Speech API follows the app locale; anything
-// that is not Spanish falls back to English.
-export const speechRecognitionLang = (locale: string) => (locale === "es" ? "es-ES" : "en-US")
+// Dictation language for the Web Speech API follows the app locale. Every
+// locale the app ships gets its own BCP-47 tag: collapsing everything but
+// Spanish to en-US made ja/ko/ru/zh dictation transcribe as English.
+const SPEECH_RECOGNITION_LANGS: Record<string, string> = {
+  en: "en-US",
+  "en-150": "en-GB",
+  es: "es-ES",
+  ja: "ja-JP",
+  ko: "ko-KR",
+  ru: "ru-RU",
+  zh: "zh-CN",
+}
+
+export const speechRecognitionLang = (locale: string) =>
+  SPEECH_RECOGNITION_LANGS[locale] ?? SPEECH_RECOGNITION_LANGS[locale.split("-")[0] ?? ""] ?? "en-US"

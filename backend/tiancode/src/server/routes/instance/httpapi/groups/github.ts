@@ -28,6 +28,10 @@ export const GithubStatus = Schema.Struct({
   connected: Schema.Boolean,
   login: Schema.optional(Schema.String),
   avatarUrl: Schema.optional(Schema.String),
+  // The scopes GitHub actually reports for the stored token (x-oauth-scopes).
+  // Absent for fine-grained tokens, which do not send the header: consumers must
+  // treat "missing" as unknown rather than displaying an assumed permission set.
+  scopes: Schema.optional(Schema.Array(Schema.String)),
 }).annotate({ identifier: "GithubStatus" })
 
 export const GithubDisconnectResult = Schema.Struct({

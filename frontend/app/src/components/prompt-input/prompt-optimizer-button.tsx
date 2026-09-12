@@ -10,6 +10,17 @@ export type OptimizerStyle = "standard" | "rigorous" | "minimal"
 
 const REQUEST_TIMEOUT = 30000
 
+/** Debe coincidir con OPTIMIZE_ERROR_MARK en el handler: NUL nunca aparece en texto del modelo. */
+const OPTIMIZE_ERROR_MARK = "\u0000"
+
+/** Códigos que emite el backend tras el centinela, mapeados a lo que ve el usuario. */
+const OPTIMIZE_FAILURE_KEYS: Record<string, string> = {
+  auth: "prompt.optimize.failed.auth",
+  rateLimit: "prompt.optimize.failed.rateLimit",
+  quota: "prompt.optimize.failed.quota",
+  unknown: "prompt.optimize.failed.unknown",
+}
+
 export function IconSparkles(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
   return (
     <svg {...props} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -60,6 +71,8 @@ export function PromptOptimizerButton(props: {
   input: () => string
   onOptimized: (text: string) => void
   model?: () => { provider?: { id: string }; name?: string; id?: string } | undefined
+  /** Nivel de razonamiento activo; el mismo que el chat envía al enviar un mensaje. */
+  variant?: () => string | undefined
   directory?: () => string | undefined
   class?: string
 }) {
@@ -147,6 +160,9 @@ export function PromptOptimizerButton(props: {
     const directory = props.directory?.()
     const query = directory ? `?directory=${encodeURIComponent(directory)}` : ""
     const model = props.model?.()
+    // El nivel de razonamiento que el usuario eligió en la barra del prompt. Sin esto el
+    // optimizador corre con el mismo modelo pero a otro esfuerzo que el chat.
+    const variant = props.variant?.()
 
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
@@ -174,6 +190,7 @@ export function PromptOptimizerButton(props: {
           prompt,
           providerID: model?.provider?.id,
           modelID: model?.id,
+          variant,
           language: language.intl(),
           style: style(),
         }),
@@ -182,6 +199,14 @@ export function PromptOptimizerButton(props: {
 
       if (response.status === 400) {
         fail(language.t("prompt.optimize.noModel"), [
+          { label: language.t("command.model.choose"), onClick: () => command.trigger("model.choose") },
+        ])
+        return
+      }
+      // 422: el modelo que el usuario tiene seleccionado no se pudo resolver aquí. El backend
+      // prefiere decirlo antes que devolver texto de otro modelo, que parecería un éxito.
+      if (response.status === 422) {
+        fail(language.t("prompt.optimize.modelUnavailable", { model: model?.id ?? "" }), [
           { label: language.t("command.model.choose"), onClick: () => command.trigger("model.choose") },
         ])
         return
@@ -203,9 +228,17 @@ export function PromptOptimizerButton(props: {
         props.onOptimized(accumulated)
       }
 
-      // El backend convierte credenciales inválidas, límites de tasa y negativas del
-      // modelo en un 200 vacío: sin esta comprobación se anunciarían como éxito.
-      const optimized = accumulated.trim()
+      // Las cabeceras 200 se envían antes de llamar al modelo, así que un fallo a mitad del
+      // stream sólo puede cerrar el cuerpo. El backend añade NUL + un código de motivo al final
+      // para que aquí se pueda distinguir "tu clave fue rechazada" de "el modelo no dijo nada".
+      const [body, failureCode] = accumulated.split(OPTIMIZE_ERROR_MARK)
+      const optimized = (body ?? "").trim()
+      if (failureCode !== undefined) {
+        props.onOptimized(source)
+        const reason = OPTIMIZE_FAILURE_KEYS[failureCode.trim()] ?? "prompt.optimize.failed.unknown"
+        fail(language.t(reason as Parameters<typeof language.t>[0]))
+        return
+      }
       if (!optimized) {
         fail(language.t("prompt.optimize.noOutput"))
         return

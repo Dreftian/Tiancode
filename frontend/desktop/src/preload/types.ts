@@ -112,25 +112,44 @@ export type VoicesAPI = {
 
 // Local speech-to-text (sherpa-onnx Whisper) for mic dictation. The renderer
 // captures audio with getUserMedia and streams PCM chunks to the main process.
+
+// The bundled Whisper tiny model is multilingual, so every app locale is
+// decoded in its own language instead of being forced through English.
+export type AsrLanguage = "en" | "es" | "ja" | "ko" | "ru" | "zh"
+
 export type AsrStatus = {
   ready: boolean
   downloading?: boolean
   progress?: number
   error?: string
+  // Download size announced to the user before they consent to it.
+  sizeMb: number
 }
+
+// Stable machine codes: the engine's own messages are English literals and
+// used to land verbatim in a translated toast.
+export type AsrErrorCode = "not-recording" | "no-speech" | "engine-failed"
 
 export type AsrResult = {
   text?: string
-  error?: string
+  code?: AsrErrorCode
+}
+
+// Out-of-band events during a recording: the 64 s cap was reached, or the
+// recognizer process died and the renderer must release the microphone.
+export type AsrNotice = {
+  reason: "limit" | "crashed"
+  seconds?: number
 }
 
 export type AsrAPI = {
   status: () => Promise<AsrStatus>
-  ensure: () => Promise<void>
-  start: (language: "es" | "en") => Promise<void>
+  ensure: (language: AsrLanguage) => Promise<void>
+  start: (language: AsrLanguage) => Promise<void>
   chunk: (samples: Float32Array) => void
   stop: () => Promise<AsrResult>
   onProgress: (cb: (event: { progress: number; file?: string }) => void) => () => void
+  onNotice: (cb: (event: AsrNotice) => void) => () => void
 }
 
 // Instalación local de runtimes de modelos (Ollama / LM Studio).

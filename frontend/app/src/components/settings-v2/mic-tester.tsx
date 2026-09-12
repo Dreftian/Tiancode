@@ -1,9 +1,11 @@
 import { Component, createEffect, createSignal, onCleanup, Show } from "solid-js"
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
 import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
+import { useLanguage } from "@/context/language"
 import { getSelectedAudioDeviceId } from "@/utils/asr"
 
 export const MicTester: Component<{ selectedDeviceId?: string | null; active?: boolean }> = (props) => {
+  const language = useLanguage()
   const [testing, setTesting] = createSignal(false)
   const [volumePercent, setVolumePercent] = createSignal(0)
   const [peakPercent, setPeakPercent] = createSignal(0)
@@ -311,7 +313,11 @@ export const MicTester: Component<{ selectedDeviceId?: string | null; active?: b
             <div class="flex items-center gap-1.5 text-[11px] text-text-weaker font-mono">
               <span>{Math.round(audioInfo()!.sampleRate / 1000)} kHz</span>
               <span>•</span>
-              <span>{audioInfo()!.channelCount === 1 ? "Mono" : "Estéreo"}</span>
+              <span>
+              {audioInfo()!.channelCount === 1
+                ? language.t("settings.voices.mic.channels.mono")
+                : language.t("settings.voices.mic.channels.stereo")}
+            </span>
             </div>
           </Show>
         </div>
@@ -324,7 +330,7 @@ export const MicTester: Component<{ selectedDeviceId?: string | null; active?: b
             ref={canvasRef}
             width={380}
             height={28}
-            class="w-full h-7 rounded bg-black/40 border border-white/5"
+            class="w-full h-7 rounded bg-v2-background-bg-layer-01 border border-v2-border-border-muted"
           />
         </div>
       </Show>

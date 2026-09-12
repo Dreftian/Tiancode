@@ -16,7 +16,12 @@ export class GithubApiError extends Schema.TaggedErrorClass<GithubApiError>()(
   { httpApiStatus: 400 },
 ) {}
 
-export type GithubUser = { readonly login: string; readonly name?: string; readonly avatar_url?: string }
+export type GithubUser = {
+  readonly login: string
+  readonly name?: string
+  readonly avatar_url?: string
+  readonly scopes?: ReadonlyArray<string>
+}
 
 export type GithubRepo = {
   readonly name: string
@@ -106,19 +111,58 @@ export const removeToken = Effect.fn("Github.removeToken")(function* () {
   yield* auth.remove(KEY).pipe(Effect.orDie)
 })
 
+// GitHub reports a classic PAT's granted scopes in x-oauth-scopes. Fine-grained
+// tokens omit the header, so `undefined` means "not reported", never "none" — the
+// UI must not render a permission list it was never given.
+const scopesFrom = (header: string | number | undefined): ReadonlyArray<string> | undefined => {
+  if (typeof header !== "string") return undefined
+  const scopes = header
+    .split(",")
+    .map((scope) => scope.trim())
+    .filter(Boolean)
+  return scopes.length > 0 ? scopes : undefined
+}
+
 export const user = (key: string) =>
   request(key, (client) => client.rest.users.getAuthenticated()).pipe(
-    Effect.map(({ data }) => ({
-      login: data.login,
-      name: data.name ?? undefined,
-      avatar_url: data.avatar_url ?? undefined,
-    })),
+    Effect.map(
+      ({ data, headers }) =>
+        ({
+          login: data.login,
+          name: data.name ?? undefined,
+          avatar_url: data.avatar_url ?? undefined,
+          scopes: scopesFrom(headers["x-oauth-scopes"]),
+        }) satisfies GithubUser,
+    ),
   )
 
 export const listRepos = (key: string, perPage: number) =>
   request(key, (client) =>
     client.rest.repos.listForAuthenticatedUser({ per_page: perPage, sort: "updated", direction: "desc" }),
   ).pipe(Effect.map(({ data }) => data.map(repo)))
+
+// One page of listForAuthenticatedUser silently truncates both the list and every
+// count derived from it, so callers that present a total must walk the pages.
+// Bounded so an account with thousands of repositories cannot stall the request.
+export const MAX_REPOS = 1000
+const REPO_PAGE_SIZE = 100
+
+export const listAllRepos = (key: string, limit: number = MAX_REPOS) =>
+  request(key, async (client) => {
+    const all: GithubRepo[] = []
+    for (let page = 1; all.length < limit; page++) {
+      const { data } = await client.rest.repos.listForAuthenticatedUser({
+        per_page: REPO_PAGE_SIZE,
+        page,
+        sort: "updated",
+        direction: "desc",
+      })
+      all.push(...data.map(repo))
+      // This route reports no total, so a short page is the only end-of-list signal.
+      if (data.length < REPO_PAGE_SIZE) break
+    }
+    return all.length > limit ? all.slice(0, limit) : all
+  })
 
 export const searchRepos = (key: string, query: string, perPage: number) =>
   request(key, (client) => client.rest.search.repos({ q: query, per_page: perPage })).pipe(

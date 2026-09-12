@@ -91,9 +91,22 @@ export const OptimizePromptPayload = Schema.Struct({
   prompt: Schema.String,
   providerID: Schema.optional(ProviderV2.ID),
   modelID: Schema.optional(ModelV2.ID),
+  // The reasoning variant the user picked in the prompt bar. Without it the optimizer runs at a
+  // different effort than the chat does with the very same model.
+  variant: Schema.optional(Schema.String),
   language: Schema.optional(Schema.String),
   style: Schema.optional(Schema.Literals(["standard", "rigorous", "minimal"])),
 }).annotate({ identifier: "OptimizePromptPayload" })
+
+// Distinct from the generic 400 ("no model at all"): the caller named a model and it did not
+// resolve here. Falling through to another provider's model would look like success.
+export class OptimizePromptModelError extends Schema.ErrorClass<OptimizePromptModelError>("OptimizePromptModelError")(
+  {
+    name: Schema.Literal("OptimizePromptModelUnavailableError"),
+    data: Schema.Struct({ providerID: Schema.String, modelID: Schema.String }),
+  },
+  { httpApiStatus: 422 },
+) {}
 
 export const ExperimentalPaths = {
   capabilities: "/experimental/capabilities",
@@ -268,7 +281,7 @@ export const ExperimentalApi = HttpApi.make("experimental")
           query: WorkspaceRoutingQuery,
           payload: OptimizePromptPayload,
           success: Schema.String.pipe(HttpApiSchema.asText({ contentType: "text/plain" })),
-          error: HttpApiError.BadRequest,
+          error: [HttpApiError.BadRequest, OptimizePromptModelError],
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "experimental.prompt.optimize",

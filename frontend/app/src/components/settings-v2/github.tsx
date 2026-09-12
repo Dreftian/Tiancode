@@ -101,6 +101,39 @@ function PlusIcon() {
   )
 }
 
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  )
+}
+
+// Every bullet below is a capability that demonstrably consumes the stored PAT.
+// Cloning leads because it is the only one that turns a private repository into a
+// local project. Nothing about issues, pull requests, forking, branches, Actions or
+// releases belongs here: `tiancode pr` shells out to the `gh` CLI and never reads
+// this token, and no other code path does either.
+const CAPABILITIES = [
+  "settings.github.capabilities.clone",
+  "settings.github.capabilities.browse",
+  "settings.github.capabilities.create",
+  "settings.github.capabilities.git",
+  "settings.github.capabilities.identity",
+  "settings.github.capabilities.reopen",
+] as const
+
+// Mirrors Github.MAX_REPOS: /github/repos without an explicit perPage walks every
+// page of listForAuthenticatedUser and stops there. At the cap the list — and so
+// every count taken from it — is a floor, not a total, and is labelled "N+".
+const REPO_LIMIT = 1000
+
+/** Rows per page in the local pager; the full list is already in memory. */
+const PAGE_SIZE = 10
+
+// GitHub's own linguist colours. These stay hardcoded on purpose: they are brand
+// identifiers for the language, not theme colours, and mapping them to --v2-*
+// tokens would make every dot the same and destroy what the dot is for.
 const LANGUAGE_COLORS: Record<string, string> = {
   TypeScript: "#3178c6",
   JavaScript: "#f1e05a",
@@ -125,25 +158,30 @@ const LANGUAGE_COLORS: Record<string, string> = {
   Other: "#8b949e",
 }
 
-function formatRelativeTime(dateString?: string): string {
+const MINUTE = 60 * 1000
+const RELATIVE_UNITS: ReadonlyArray<readonly [Intl.RelativeTimeFormatUnit, number]> = [
+  ["year", 365 * 24 * 60 * MINUTE],
+  ["month", 30 * 24 * 60 * MINUTE],
+  ["day", 24 * 60 * MINUTE],
+  ["hour", 60 * MINUTE],
+  ["minute", MINUTE],
+]
+
+// Intl picks the plural form and the idiomatic wording ("yesterday", "hace 2 días",
+// "2 日前") per locale, so the dictionary only carries the sub-minute case — no
+// RelativeTimeFormat unit expresses it well, and hand-rolled plural rules here
+// would be wrong in ru the moment the count reaches 2.
+function formatRelativeTime(locale: string, justNow: string, dateString?: string): string {
   if (!dateString) return ""
   const date = new Date(dateString)
-  if (isNaN(date.getTime())) return ""
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-  if (diffDays === 0) {
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-    if (diffHours === 0) {
-      const diffMins = Math.floor(diffMs / (1000 * 60))
-      return diffMins <= 1 ? "hace un momento" : `hace ${diffMins} min`
-    }
-    return `hace ${diffHours} h`
+  if (Number.isNaN(date.getTime())) return ""
+  const elapsed = Date.now() - date.getTime()
+  const format = new Intl.RelativeTimeFormat(locale, { numeric: "auto" })
+  for (const [unit, size] of RELATIVE_UNITS) {
+    const value = Math.floor(elapsed / size)
+    if (value >= 1) return format.format(-value, unit)
   }
-  if (diffDays === 1) return "ayer"
-  if (diffDays < 30) return `hace ${diffDays} días`
-  if (diffDays < 365) return `hace ${Math.floor(diffDays / 30)} meses`
-  return `hace ${Math.floor(diffDays / 365)} años`
+  return justNow
 }
 
 export const SettingsGithubV2: Component<{
@@ -174,6 +212,12 @@ export const SettingsGithubV2: Component<{
   const connected = () => (status()?.data as any)?.connected === true
   const login = () => (status()?.data as any)?.login
   const avatarUrl = () => (status()?.data as any)?.avatarUrl
+  // Only classic PATs report x-oauth-scopes; a fine-grained token yields nothing
+  // here, and showing a guessed permission list would be worse than showing none.
+  const scopes = (): string[] => {
+    const value = (status()?.data as any)?.scopes
+    return Array.isArray(value) ? value : []
+  }
 
   const [repos, { refetch: refetchRepos }] = createResource(
     () => connected(),
@@ -249,7 +293,6 @@ export const SettingsGithubV2: Component<{
   const [sortBy, setSortBy] = createSignal<"updated" | "name" | "stars">("updated")
   const [showCreateForm, setShowCreateForm] = createSignal(false)
   const [repoPage, setRepoPage] = createSignal(1)
-  const PAGE_SIZE = 10
 
   const [cloning, setCloning] = createSignal<string | undefined>(undefined)
   const [createName, setCreateName] = createSignal("")
@@ -265,6 +308,11 @@ export const SettingsGithubV2: Component<{
   const repoList = () => repos()?.data ?? []
   const publicCount = createMemo(() => repoList().filter((r) => !r.private).length)
   const privateCount = createMemo(() => repoList().filter((r) => r.private).length)
+  const capped = createMemo(() => repoList().length >= REPO_LIMIT)
+  // A count off a capped list is "at least this many", never a total.
+  const count = (value: number) => (capped() ? `${value}+` : String(value))
+  const countTitle = () =>
+    capped() ? language.t("settings.github.stats.capped", { count: REPO_LIMIT }) : undefined
 
   const filteredRepos = createMemo(() => {
     let list = repoList()
@@ -376,7 +424,7 @@ export const SettingsGithubV2: Component<{
 
   const copyUrl = (url: string) => {
     navigator.clipboard.writeText(url)
-    showToast({ variant: "success", title: "URL copiada al portapapeles" })
+    showToast({ variant: "success", title: language.t("settings.github.repo.copied") })
   }
 
   const findLocalProject = (repo: GithubRepo) => {
@@ -510,7 +558,9 @@ export const SettingsGithubV2: Component<{
   }
 
   return (
-    <div class="gh-container">
+    // The panel is a full-height column flex; `is-empty` lets the short
+    // disconnected card claim that height and centre itself in it.
+    <div class="gh-container" classList={{ "is-empty": !connected() }}>
       <Show when={banner()}>
         <div class="settings-v2-skills-message" data-variant="error">
           {banner()}
@@ -520,7 +570,7 @@ export const SettingsGithubV2: Component<{
       <Show
         when={connected()}
         fallback={
-          /* Vista Desconectada: Centrada, informativa y profesional */
+          /* Vista desconectada: tarjeta centrada con el formulario y lo que el token habilita */
           <div class="gh-hero-card">
             <div class="gh-logo-wrapper">
               <GitHubLogo size={64} />
@@ -529,22 +579,20 @@ export const SettingsGithubV2: Component<{
             <p class="gh-hero-desc">{language.t("settings.github.connect.description")}</p>
 
             <div class="gh-token-box">
-              <span class="gh-token-label">Personal Access Token (PAT)</span>
+              <span class="gh-token-label">{language.t("settings.github.connect.token.label")}</span>
               <TextInputV2
                 type="password"
                 appearance="base"
                 class="gh-token-input"
                 value={token()}
                 onInput={(event) => setToken(event.currentTarget.value)}
-                placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                placeholder={language.t("settings.github.connect.token.placeholder")}
                 spellcheck={false}
                 autocomplete="off"
                 disabled={status.loading}
-                aria-label="GitHub Personal Access Token"
+                aria-label={language.t("settings.github.connect.token.label")}
               />
-              <span class="gh-token-hint">
-                Requiere permisos <code>repo</code> y <code>read:user</code>. Puedes generarlo en GitHub &gt; Settings &gt; Developer settings &gt; Personal access tokens.
-              </span>
+              <span class="gh-token-hint">{language.t("settings.github.connect.hint")}</span>
             </div>
 
             <ButtonV2
@@ -557,24 +605,60 @@ export const SettingsGithubV2: Component<{
             >
               {connecting() ? language.t("settings.github.connecting") : language.t("settings.github.connect.button")}
             </ButtonV2>
+
+            <div class="gh-info">
+              <h3 class="gh-info-title">{language.t("settings.github.capabilities.title")}</h3>
+              <ul class="gh-info-list">
+                <For each={CAPABILITIES}>
+                  {(key) => (
+                    <li class="gh-info-item">
+                      <span class="gh-info-check">
+                        <CheckIcon />
+                      </span>
+                      <span>{language.t(key)}</span>
+                    </li>
+                  )}
+                </For>
+              </ul>
+              {/* The file name is a parameter so each locale keeps its own word order. */}
+              <p class="gh-info-storage">{language.t("settings.github.capabilities.storage", { file: "auth.json" })}</p>
+              <p class="gh-info-storage">{language.t("settings.github.capabilities.encrypted")}</p>
+            </div>
           </div>
         }
       >
-        {/* Vista Conectada: Tarjeta de perfil extendida + VCS + Repositorios */}
+        {/* Vista conectada: perfil + estado del repositorio abierto + explorador */}
         <div class="gh-connected-wrapper">
-          {/* Header de Perfil Pulido y Extendido con Métricas */}
           <div class="gh-profile-card">
             <div class="gh-profile-left">
               <div class="gh-avatar-container">
                 <Show when={avatarUrl()} fallback={<GitHubLogo size={52} />}>
                   <img class="gh-profile-avatar" src={avatarUrl()} alt={login() ?? ""} />
                 </Show>
-                <div class="gh-online-dot" title="Conectado y autenticado" />
+                <div class="gh-online-dot" title={language.t("settings.github.status.authenticated")} />
               </div>
               <div class="gh-profile-copy">
                 <div class="gh-profile-badge-row">
-                  <span class="gh-badge-connected">✓ Cuenta Vinculada</span>
-                  <span class="gh-badge-scope" title="Permisos activos del token">repo · read:user</span>
+                  <span class="gh-badge-connected">
+                    <CheckIcon /> {language.t("settings.github.badge.linked")}
+                  </span>
+                  {/* Only classic PATs report x-oauth-scopes. The badge used to state
+                      "repo · read:user" no matter what the token could actually do. */}
+                  <Show
+                    when={scopes().length > 0}
+                    fallback={
+                      <span
+                        class="gh-badge-scope is-unknown"
+                        title={language.t("settings.github.scopes.unknown.title")}
+                      >
+                        {language.t("settings.github.scopes.unknown")}
+                      </span>
+                    }
+                  >
+                    <span class="gh-badge-scope" title={language.t("settings.github.scopes.title")}>
+                      {scopes().join(" · ")}
+                    </span>
+                  </Show>
                 </div>
                 <div class="gh-username-row">
                   <h3 class="gh-profile-username">@{login()}</h3>
@@ -583,20 +667,20 @@ export const SettingsGithubV2: Component<{
                     target="_blank"
                     rel="noopener noreferrer"
                     class="gh-profile-link"
-                    title="Abrir perfil de GitHub en el navegador"
+                    title={language.t("settings.github.profile.view.title")}
                   >
-                    Ver perfil ↗
+                    {language.t("settings.github.profile.view")}
                   </a>
                 </div>
                 <div class="gh-stats-row">
-                  <span class="gh-stat-chip gh-stat-total">
-                    <strong>{repoList().length}</strong> repositorios
+                  <span class="gh-stat-chip gh-stat-total" title={countTitle()}>
+                    <strong>{count(repoList().length)}</strong> {language.t("settings.github.stats.total")}
                   </span>
-                  <span class="gh-stat-chip gh-stat-public">
-                    <GlobeIcon /> <strong>{publicCount()}</strong> públicos
+                  <span class="gh-stat-chip gh-stat-public" title={countTitle()}>
+                    <GlobeIcon /> <strong>{count(publicCount())}</strong> {language.t("settings.github.repo.public")}
                   </span>
-                  <span class="gh-stat-chip gh-stat-private">
-                    <LockIcon /> <strong>{privateCount()}</strong> privados
+                  <span class="gh-stat-chip gh-stat-private" title={countTitle()}>
+                    <LockIcon /> <strong>{count(privateCount())}</strong> {language.t("settings.github.repo.private")}
                   </span>
                 </div>
               </div>
@@ -610,65 +694,70 @@ export const SettingsGithubV2: Component<{
                 onClick={() => setShowCreateForm(!showCreateForm())}
                 class="gh-btn-new-repo"
               >
-                <PlusIcon /> {showCreateForm() ? "Cerrar" : "Nuevo Repositorio"}
+                <PlusIcon /> {showCreateForm() ? language.t("common.close") : language.t("settings.github.create.title")}
               </ButtonV2>
-              <ButtonV2 type="button" variant="outline" size="small" onClick={syncAll} title="Sincronizar repositorios y estado">
-                🔄 Sincronizar
+              <ButtonV2 type="button" variant="outline" size="small" disabled={syncing()} onClick={syncAll}>
+                {language.t("settings.github.refresh")}
               </ButtonV2>
               <ButtonV2 type="button" variant="ghost" size="small" onClick={() => void disconnect()} class="gh-btn-disconnect">
-                Desvincular
+                {language.t("settings.github.disconnect.button")}
               </ButtonV2>
             </div>
           </div>
 
-          {/* Formulario Expandible para Crear Nuevo Repositorio */}
+          {/* Formulario expandible para crear un repositorio personal */}
           <Show when={showCreateForm()}>
             <div class="gh-create-repo-card">
               <div class="gh-create-repo-header">
-                <h4 class="gh-create-repo-title">Crear Nuevo Repositorio en GitHub</h4>
+                <h4 class="gh-create-repo-title">{language.t("settings.github.create.title")}</h4>
+                {/* rest.repos.createForAuthenticatedUser only creates personal repos;
+                    the form must not suggest an organisation can be picked. */}
                 <p class="gh-create-repo-sub">
-                  El repositorio se creará directamente bajo tu cuenta personal @{login()}
+                  {language.t("settings.github.create.owner", { login: login() ?? "" })}
                 </p>
               </div>
 
               <div class="gh-create-fields">
                 <div class="gh-field-group">
-                  <label class="gh-field-label">Nombre del Repositorio *</label>
+                  <label class="gh-field-label">{language.t("settings.github.create.name")}</label>
                   <TextInputV2
                     type="text"
                     appearance="base"
                     value={createName()}
                     onInput={(e) => setCreateName(e.currentTarget.value)}
-                    placeholder="ej. mi-proyecto-genial"
+                    placeholder={language.t("settings.github.create.name.placeholder")}
                   />
                 </div>
 
                 <div class="gh-field-group">
-                  <label class="gh-field-label">Descripción (opcional)</label>
+                  <label class="gh-field-label">{language.t("settings.github.create.description.label")}</label>
                   <TextInputV2
                     type="text"
                     appearance="base"
                     value={createDescription()}
                     onInput={(e) => setCreateDescription(e.currentTarget.value)}
-                    placeholder="Breve resumen del propósito del repositorio..."
+                    placeholder={language.t("settings.github.create.description.placeholder")}
                   />
                 </div>
 
                 <div class="gh-create-privacy-row">
                   <div class="gh-privacy-info">
                     <span class="gh-privacy-label">
-                      {createPrivate() ? "Repositorio Privado" : "Repositorio Público"}
+                      {createPrivate()
+                        ? language.t("settings.github.repo.private")
+                        : language.t("settings.github.repo.public")}
                     </span>
                     <span class="gh-privacy-desc">
                       {createPrivate()
-                        ? "Solo tú y las personas a las que des acceso podrán ver este repositorio."
-                        : "Cualquier persona en Internet podrá ver este repositorio."}
+                        ? language.t("settings.github.create.private.description")
+                        : language.t("settings.github.create.public.description")}
                     </span>
                   </div>
-                  <Switch
-                    checked={createPrivate()}
-                    onChange={(checked) => setCreatePrivate(checked)}
-                  />
+                  {/* The visible copy changes with the state, so the control keeps a
+                      stable screen-reader label of its own. */}
+                  <Switch checked={createPrivate()} onChange={(checked) => setCreatePrivate(checked)} hideLabel>
+                    {language.t("settings.github.create.private")}
+                  </Switch>
                 </div>
 
                 <div class="gh-create-actions">
@@ -678,7 +767,7 @@ export const SettingsGithubV2: Component<{
                     size="small"
                     onClick={() => setShowCreateForm(false)}
                   >
-                    Cancelar
+                    {language.t("common.cancel")}
                   </ButtonV2>
                   <ButtonV2
                     type="button"
@@ -687,14 +776,16 @@ export const SettingsGithubV2: Component<{
                     disabled={creating() || !createName().trim()}
                     onClick={() => void createRepo()}
                   >
-                    {creating() ? "Creando en GitHub..." : "Crear Repositorio"}
+                    {creating()
+                      ? language.t("settings.github.create.creating")
+                      : language.t("settings.github.create.button")}
                   </ButtonV2>
                 </div>
               </div>
             </div>
           </Show>
 
-          {/* Estado de VCS del Proyecto Actual */}
+          {/* Estado del proyecto abierto */}
           <Show when={hasProject()}>
             <div class="gh-vcs-card">
               <div class="gh-vcs-header">
@@ -703,27 +794,35 @@ export const SettingsGithubV2: Component<{
                     <BranchIcon />
                     <h4 class="gh-vcs-title">{language.t("settings.github.project.title")}</h4>
                     <span class="gh-repo-branch-tag">
-                      <BranchIcon /> {(vcs()?.data as any)?.branch ?? "…"}
+                      <BranchIcon /> {(vcs()?.data as any)?.branch ?? language.t("common.loading.ellipsis")}
                     </span>
                     <Show when={vcsStatus()}>
                       {(() => {
-                        const dirtyCount = vcsStatus()?.data?.length ?? 0
-                        if (dirtyCount === 0) {
-                          return (
-                            <span style="font-size: 11px; color: #30d158; display: inline-flex; align-items: center; gap: 4px; font-weight: 500;">
-                              ✓ Árbol limpio
-                            </span>
-                          )
-                        }
+                        const dirtyCount = () => vcsStatus()?.data?.length ?? 0
                         return (
-                          <span style="font-size: 11px; color: #ff9f0a; display: inline-flex; align-items: center; gap: 4px; font-weight: 500;">
-                            ● {dirtyCount} modificado{dirtyCount > 1 ? "s" : ""}
-                          </span>
+                          <Show
+                            when={dirtyCount() > 0}
+                            fallback={
+                              <span class="gh-vcs-state is-clean">
+                                <CheckIcon /> {language.t("settings.github.vcs.clean")}
+                              </span>
+                            }
+                          >
+                            <span class="gh-vcs-state is-dirty">
+                              {language.t("settings.github.vcs.dirty", { count: dirtyCount() })}
+                            </span>
+                          </Show>
                         )
                       })()}
                     </Show>
                   </div>
                   <p class="gh-vcs-path">{projectPath()}</p>
+                  {/* Push and pull are disabled without a remote; say why instead of
+                      leaving two dead buttons. Only once the probe has answered —
+                      an unresolved resource also reads as "no remote". */}
+                  <Show when={remote()?.data !== undefined && !hasRemote()}>
+                    <p class="gh-vcs-no-remote">{language.t("settings.github.project.noRemote")}</p>
+                  </Show>
                 </div>
                 <div class="gh-vcs-buttons">
                   <ButtonV2
@@ -733,7 +832,7 @@ export const SettingsGithubV2: Component<{
                     disabled={pulling() || !hasRemote()}
                     onClick={() => void pull()}
                   >
-                    {pulling() ? "Trayendo cambios..." : "⬇ Pull"}
+                    {pulling() ? language.t("settings.github.pulling") : language.t("settings.github.pull.button")}
                   </ButtonV2>
                   <ButtonV2
                     type="button"
@@ -742,7 +841,7 @@ export const SettingsGithubV2: Component<{
                     disabled={pushing() || !hasRemote()}
                     onClick={() => void push()}
                   >
-                    {pushing() ? "Empujando cambios..." : "⬆ Push"}
+                    {pushing() ? language.t("settings.github.pushing") : language.t("settings.github.push.button")}
                   </ButtonV2>
                 </div>
               </div>
@@ -753,7 +852,8 @@ export const SettingsGithubV2: Component<{
                   appearance="base"
                   value={commitMessage()}
                   onInput={(e) => setCommitMessage(e.currentTarget.value)}
-                  placeholder="Mensaje de commit (ej. feat: nueva funcionalidad)..."
+                  placeholder={language.t("settings.github.commit.placeholder")}
+                  aria-label={language.t("settings.github.commit.placeholder")}
                 />
                 <ButtonV2
                   type="button"
@@ -762,55 +862,62 @@ export const SettingsGithubV2: Component<{
                   disabled={committing() || !commitMessage().trim()}
                   onClick={() => void commit()}
                 >
-                  {committing() ? "Guardando..." : "Commit"}
+                  {committing()
+                    ? language.t("settings.github.committing")
+                    : language.t("settings.github.commit.button")}
                 </ButtonV2>
               </div>
             </div>
           </Show>
 
-          {/* Explorador de Repositorios con Filtros y Paginación 10x10 */}
+          {/* Explorador de repositorios: filtros, búsqueda y paginación local */}
           <div class="gh-repos-section">
             <div class="gh-repos-toolbar">
               <div class="gh-repos-toolbar-left">
-                <h4 class="gh-section-title">Repositorios de GitHub</h4>
+                <h4 class="gh-section-title">{language.t("settings.github.repos.title")}</h4>
                 <div class="gh-filter-pills">
                   <button
                     type="button"
                     class="gh-filter-pill"
                     classList={{ active: filterType() === "all" }}
                     onClick={() => setFilterType("all")}
+                    title={countTitle()}
                   >
-                    Todos ({repoList().length})
+                    {language.t("settings.github.repos.filter.all")} ({count(repoList().length)})
                   </button>
                   <button
                     type="button"
                     class="gh-filter-pill"
                     classList={{ active: filterType() === "public" }}
                     onClick={() => setFilterType("public")}
+                    title={countTitle()}
                   >
-                    Públicos ({publicCount()})
+                    {language.t("settings.github.repo.public")} ({count(publicCount())})
                   </button>
                   <button
                     type="button"
                     class="gh-filter-pill"
                     classList={{ active: filterType() === "private" }}
                     onClick={() => setFilterType("private")}
+                    title={countTitle()}
                   >
-                    Privados ({privateCount()})
+                    {language.t("settings.github.repo.private")} ({count(privateCount())})
                   </button>
                 </div>
 
                 <div class="gh-sort-row">
-                  <span>Ordenar:</span>
+                  <label class="gh-sort-label" for="gh-sort-select">
+                    {language.t("settings.github.sort.label")}
+                  </label>
                   <select
+                    id="gh-sort-select"
                     value={sortBy()}
                     onChange={(e) => setSortBy(e.currentTarget.value as any)}
-                    class="gh-filter-pill"
-                    style="background: rgba(255, 255, 255, 0.08); color: #fff; border: 1px solid rgba(255, 255, 255, 0.12); padding: 3px 8px; border-radius: 8px; cursor: pointer; outline: none;"
+                    class="gh-sort-select"
                   >
-                    <option value="updated" style="background: #1c1c1e; color: #fff;">Más recientes</option>
-                    <option value="stars" style="background: #1c1c1e; color: #fff;">Más estrellas</option>
-                    <option value="name" style="background: #1c1c1e; color: #fff;">Nombre (A-Z)</option>
+                    <option value="updated">{language.t("settings.github.sort.updated")}</option>
+                    <option value="stars">{language.t("settings.github.sort.stars")}</option>
+                    <option value="name">{language.t("settings.github.sort.name")}</option>
                   </select>
                 </div>
               </div>
@@ -821,7 +928,8 @@ export const SettingsGithubV2: Component<{
                 class="gh-repos-search"
                 value={search()}
                 onInput={(event) => setSearch(event.currentTarget.value)}
-                placeholder="Buscar por nombre o descripción..."
+                placeholder={language.t("settings.github.repos.search.placeholder")}
+                aria-label={language.t("settings.github.repos.search.placeholder")}
                 showClearButton={search().length > 0}
                 onClearClick={() => setSearch("")}
               />
@@ -833,7 +941,11 @@ export const SettingsGithubV2: Component<{
                 when={paginatedRepos().length > 0}
                 fallback={
                   <div class="gh-repos-empty">
-                    <p>No se encontraron repositorios con los filtros seleccionados.</p>
+                    <p>
+                      {repos.loading
+                        ? language.t("settings.github.loading")
+                        : language.t("settings.github.repos.empty")}
+                    </p>
                   </div>
                 }
               >
@@ -867,11 +979,13 @@ export const SettingsGithubV2: Component<{
                             class="gh-repo-vis-tag"
                             classList={{ "is-private": repo.private, "is-public": !repo.private }}
                           >
-                            {repo.private ? "Privado" : "Público"}
+                            {repo.private
+                              ? language.t("settings.github.repo.private")
+                              : language.t("settings.github.repo.public")}
                           </span>
                           <Show when={repo.isFork}>
                             <span class="gh-repo-fork-tag">
-                              <ForkIcon /> Fork
+                              <ForkIcon /> {language.t("settings.github.repo.fork")}
                             </span>
                           </Show>
                           <Show when={repo.defaultBranch}>
@@ -881,7 +995,7 @@ export const SettingsGithubV2: Component<{
                           </Show>
                         </div>
                         <p class="gh-repo-description" classList={{ empty: !repo.description }}>
-                          {repo.description || "Sin descripción proporcionada."}
+                          {repo.description || language.t("settings.github.repo.description.empty")}
                         </p>
                         <div class="gh-repo-meta">
                           <Show when={repo.language}>
@@ -894,18 +1008,27 @@ export const SettingsGithubV2: Component<{
                             </span>
                           </Show>
                           <Show when={repo.stars !== undefined && Number(repo.stars) > 0}>
-                            <span class="gh-repo-stat" title={`${repo.stars} estrellas`}>
+                            <span
+                              class="gh-repo-stat"
+                              title={language.t("settings.github.repo.stars.title", { count: Number(repo.stars) })}
+                            >
                               <StarIcon /> {repo.stars}
                             </span>
                           </Show>
                           <Show when={repo.forks !== undefined && Number(repo.forks) > 0}>
-                            <span class="gh-repo-stat" title={`${repo.forks} forks`}>
+                            <span
+                              class="gh-repo-stat"
+                              title={language.t("settings.github.repo.forks.title", { count: Number(repo.forks) })}
+                            >
                               <ForkIcon /> {repo.forks}
                             </span>
                           </Show>
                           <Show when={repo.updatedAt}>
-                            <span class="gh-repo-updated" title={new Date(repo.updatedAt!).toLocaleString()}>
-                              Actualizado {formatRelativeTime(repo.updatedAt)}
+                            <span
+                              class="gh-repo-updated"
+                              title={new Date(repo.updatedAt!).toLocaleString(language.intl())}
+                            >
+                              {formatRelativeTime(language.intl(), language.t("common.time.justNow"), repo.updatedAt)}
                             </span>
                           </Show>
                         </div>
@@ -916,7 +1039,8 @@ export const SettingsGithubV2: Component<{
                           type="button"
                           class="gh-repo-copy-btn"
                           onClick={() => copyUrl(repo.url)}
-                          title="Copiar URL del repositorio"
+                          title={language.t("settings.github.repo.copy")}
+                          aria-label={language.t("settings.github.repo.copy")}
                         >
                           <CopyIcon />
                         </button>
@@ -925,9 +1049,9 @@ export const SettingsGithubV2: Component<{
                           target="_blank"
                           rel="noopener noreferrer"
                           class="gh-repo-external-link"
-                          title="Ver en GitHub.com"
+                          title={language.t("settings.github.repo.view.title")}
                         >
-                          Ver ↗
+                          {language.t("settings.github.repo.view")}
                         </a>
                         {(() => {
                           const local = findLocalProject(repo)
@@ -938,9 +1062,9 @@ export const SettingsGithubV2: Component<{
                                 variant="contrast"
                                 size="small"
                                 onClick={() => openLocalProject(local.worktree)}
-                                title="Este proyecto ya existe localmente. Haz clic para abrirlo directamente."
+                                title={language.t("settings.github.repo.open.title")}
                               >
-                                Abrir Proyecto
+                                {language.t("settings.github.repo.open")}
                               </ButtonV2>
                             )
                           }
@@ -952,7 +1076,9 @@ export const SettingsGithubV2: Component<{
                               disabled={cloning() === repo.fullName}
                               onClick={() => void cloneRepo(repo)}
                             >
-                              {cloning() === repo.fullName ? "Clonando..." : "Clonar y Abrir"}
+                              {cloning() === repo.fullName
+                                ? language.t("settings.github.repo.cloning")
+                                : language.t("settings.github.repo.clone")}
                             </ButtonV2>
                           )
                         })()}
@@ -963,11 +1089,15 @@ export const SettingsGithubV2: Component<{
               </Show>
             </div>
 
-            {/* Paginación 10x10 sin scroll excesivo */}
+            {/* Paginación local sobre la lista completa que devuelve /github/repos */}
             <Show when={totalRepoPages() > 1}>
               <div class="gh-pagination-wrapper">
                 <span class="gh-pagination-summary">
-                  Mostrando {(repoPage() - 1) * PAGE_SIZE + 1} - {Math.min(repoPage() * PAGE_SIZE, filteredRepos().length)} de {filteredRepos().length} repositorios
+                  {language.t("settings.github.repos.range", {
+                    from: (Math.min(repoPage(), totalRepoPages()) - 1) * PAGE_SIZE + 1,
+                    to: Math.min(Math.min(repoPage(), totalRepoPages()) * PAGE_SIZE, filteredRepos().length),
+                    total: filteredRepos().length,
+                  })}
                 </span>
                 <SettingsPagerV2
                   page={repoPage()}

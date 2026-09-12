@@ -51,8 +51,6 @@ import {
   getRecentRecordings,
   clearRecentRecordings,
   type DictationRecording,
-  getHoldDictationShortcut,
-  getToggleDictationShortcut,
 } from "@/utils/asr"
 import "./voices.css"
 
@@ -96,7 +94,7 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
     audioDevices().forEach((dev, index) => {
       list.push({
         id: dev.deviceId,
-        label: dev.label || `Micrófono ${index + 1}`,
+        label: dev.label || language.t("chat.mic.device.fallback", { index: index + 1 }),
       })
     })
     return list
@@ -127,8 +125,8 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
     setNewDictWord("")
     setIsAddingWord(false)
     showToast({
-      title: "Entrada añadida",
-      description: `"${val}" se priorizará en el dictado de voz.`,
+      title: language.t("settings.voices.dictation.dictionary.added.title"),
+      description: language.t("settings.voices.dictation.dictionary.added.description", { word: val }),
     })
   }
 
@@ -136,6 +134,13 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
     removeDictationDictionaryEntry(word)
     setDictWords(getDictationDictionary())
   }
+
+  // El plural se elige aquí porque la lista de claves plurales del contexto de
+  // idioma es cerrada y no se puede ampliar desde este componente.
+  const savedCountLabel = (count: number) =>
+    count === 1
+      ? language.t("settings.voices.dictation.recordings.count.one", { count })
+      : language.t("settings.voices.dictation.recordings.count.other", { count })
 
   let piperUnsubscribe: (() => void) | undefined
   let devCleanup: (() => void) | undefined
@@ -401,26 +406,16 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
           </div>
 
           {/* ================================================================= */}
-          {/* 2. SECCIÓN DICTADO (Atajos, Diccionario, Grabaciones)             */}
+          {/* 2. SECCIÓN DICTADO (Diccionario, Dictados recientes)              */}
           {/* ================================================================= */}
           <div class="settings-v2-section">
             <h3 class="settings-v2-section-title">{language.t("settings.voices.section.dictation") ?? "Dictado"}</h3>
             <SettingsListV2>
 
-              <SettingsRowV2
-                title={language.t("settings.voices.dictation.toggle.title") ?? "Alternar tecla rápida de dictado"}
-                description={
-                  language.t("settings.voices.dictation.toggle.description") ??
-                  "Presiona una vez en cualquier parte del escritorio para dictar y vuelve a presionar para detener"
-                }
-              >
-                <div class="flex items-center gap-2">
-                  <span class="settings-v2-shortcut-badge text-sky-400 border-sky-500/30 bg-sky-500/10">
-                    {getToggleDictationShortcut()}
-                  </span>
-                </div>
-              </SettingsRowV2>
-
+              {/* Aquí había una fila con el atajo de dictado: enseñaba un
+                  valor de localStorage que la app nunca consultaba. El atajo
+                  real lo define el comando voice.dictation, que sí aparece en
+                  la paleta y en los ajustes de teclado. */}
               <SettingsRowV2
                 title={language.t("settings.voices.dictation.dictionary.title") ?? "Diccionario de dictado"}
                 description={
@@ -436,31 +431,31 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
                 >
                   <span class="flex items-center gap-1.5">
                     <span>+</span>
-                    <span>Agregar entrada</span>
+                    <span>{language.t("settings.voices.dictation.dictionary.add")}</span>
                   </span>
                 </ButtonV2>
               </SettingsRowV2>
 
               {/* Formulario para añadir nueva palabra */}
               <Show when={isAddingWord()}>
-                <div class="settings-v2-dictation-add-row p-2.5 rounded-lg bg-white/5 border border-white/10 flex items-center gap-2">
+                <div class="settings-v2-dictation-add-row p-2.5 rounded-lg bg-v2-background-bg-layer-01 border border-v2-border-border-muted flex items-center gap-2">
                   <input
                     type="text"
-                    placeholder="Palabra o frase (ej. Jane Doe, TypeScript)..."
+                    placeholder={language.t("settings.voices.dictation.dictionary.placeholder")}
                     value={newDictWord()}
                     onInput={(e) => setNewDictWord(e.currentTarget.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") handleAddWord()
                       if (e.key === "Escape") setIsAddingWord(false)
                     }}
-                    class="flex-1 h-8 rounded-md border border-neutral-700 bg-black/60 px-3 text-12-regular text-text-base outline-none focus:border-cyan-400"
+                    class="flex-1 h-8 rounded-md border border-v2-border-border-base bg-v2-background-bg-base px-3 text-12-regular text-v2-text-text-base placeholder:text-v2-text-text-muted outline-none focus:border-v2-border-border-focus"
                     autofocus
                   />
                   <ButtonV2 type="button" variant="contrast" size="small" onClick={handleAddWord}>
-                    Guardar
+                    {language.t("settings.voices.dictation.dictionary.save")}
                   </ButtonV2>
                   <ButtonV2 type="button" variant="ghost" size="small" onClick={() => setIsAddingWord(false)}>
-                    Cancelar
+                    {language.t("settings.voices.dictation.dictionary.cancel")}
                   </ButtonV2>
                 </div>
               </Show>
@@ -475,7 +470,7 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
                         <IconButtonV2
                           size="small"
                           variant="ghost-muted"
-                          aria-label="Eliminar entrada"
+                          aria-label={language.t("settings.voices.dictation.dictionary.remove")}
                           icon={
                             <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
                               <path d="M3 4h10M6 4V2.5h4V4M4.5 4l.8 9.5a1.5 1.5 0 0 0 1.5 1.4h2.4a1.5 1.5 0 0 0 1.5-1.4l.8-9.5" />
@@ -490,15 +485,15 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
               </Show>
 
               <SettingsRowV2
-                title={language.t("settings.voices.dictation.recordings.title") ?? "Grabaciones recientes"}
+                title={language.t("settings.voices.dictation.recordings.title") ?? "Dictados recientes"}
                 description={
                   language.t("settings.voices.dictation.recordings.description") ??
-                  "Tus últimas 20 grabaciones se guardan en este dispositivo"
+                  "El texto de tus últimos 20 dictados se guarda en este dispositivo. No se guarda ningún audio."
                 }
               >
                 <div class="flex items-center gap-2">
                   <span class="text-[12px] text-text-weaker font-mono">
-                    {recentRecordings().length} guardada{recentRecordings().length === 1 ? "" : "s"}
+                    {savedCountLabel(recentRecordings().length)}
                   </span>
                   <ButtonV2
                     type="button"
@@ -506,7 +501,9 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
                     size="small"
                     onClick={() => setShowRecentRecordings(!showRecentRecordings())}
                   >
-                    {showRecentRecordings() ? "Ocultar" : "Ver grabaciones"}
+                    {showRecentRecordings()
+                      ? language.t("settings.voices.dictation.recordings.hide")
+                      : language.t("settings.voices.dictation.recordings.show")}
                   </ButtonV2>
                   <Show when={recentRecordings().length > 0}>
                     <ButtonV2
@@ -516,10 +513,13 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
                       onClick={() => {
                         clearRecentRecordings()
                         setRecentRecordings([])
-                        showToast({ title: "Historial borrado", description: "Se han eliminado las grabaciones recientes." })
+                        showToast({
+                          title: language.t("settings.voices.dictation.recordings.cleared.title"),
+                          description: language.t("settings.voices.dictation.recordings.cleared.description"),
+                        })
                       }}
                     >
-                      Limpiar
+                      {language.t("settings.voices.dictation.recordings.clear")}
                     </ButtonV2>
                   </Show>
                 </div>
@@ -532,7 +532,7 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
                     when={recentRecordings().length > 0}
                     fallback={
                       <div class="p-3 text-[12px] text-text-weaker italic text-center">
-                        No hay grabaciones recientes aún. Las transcripciones que hagas en el chat aparecerán aquí.
+                        {language.t("settings.voices.dictation.recordings.empty")}
                       </div>
                     }
                   >
@@ -759,7 +759,7 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
                   value={getFishAudioKey()}
                   onInput={(e) => setFishAudioKey(e.currentTarget.value)}
                   placeholder="sk-fish-..."
-                  class="flex-1 min-w-0 h-8 rounded-md border border-neutral-700 bg-black/60 px-2.5 text-12-regular font-mono text-text-base outline-none focus:border-cyan-400"
+                  class="flex-1 min-w-0 h-8 rounded-md border border-v2-border-border-base bg-v2-background-bg-base px-2.5 text-12-regular font-mono text-v2-text-text-base placeholder:text-v2-text-text-muted outline-none focus:border-v2-border-border-focus"
                 />
                 <ButtonV2
                   type="button"
@@ -896,7 +896,7 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
                                 class="settings-v2-voices-card-info"
                                 onClick={(e: MouseEvent) => e.stopPropagation()}
                               >
-                                <div class="flex items-center justify-between text-[11px] font-semibold text-text-base border-b border-white/10 pb-1 mb-1">
+                                <div class="flex items-center justify-between text-[11px] font-semibold text-v2-text-text-base border-b border-v2-border-border-muted pb-1 mb-1">
                                   <span>{voice.name}</span>
                                   <button
                                     type="button"

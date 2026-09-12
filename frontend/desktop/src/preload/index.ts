@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, webUtils } from "electron"
 import type {
+  AsrNotice,
   ElectronAPI,
   PreviewViewEvent,
   RuntimeInstallState,
@@ -69,7 +70,7 @@ const api: ElectronAPI = {
   },
   asr: {
     status: () => ipcRenderer.invoke("asr-status"),
-    ensure: () => ipcRenderer.invoke("asr-ensure-model"),
+    ensure: (language) => ipcRenderer.invoke("asr-ensure-model", language),
     start: (language) => ipcRenderer.invoke("asr-start", language),
     chunk: (samples) => ipcRenderer.send("asr-chunk", samples),
     stop: () => ipcRenderer.invoke("asr-stop"),
@@ -77,6 +78,11 @@ const api: ElectronAPI = {
       const handler = (_: unknown, event: { progress: number; file?: string }) => cb(event)
       ipcRenderer.on("asr-progress", handler)
       return () => ipcRenderer.removeListener("asr-progress", handler)
+    },
+    onNotice: (cb) => {
+      const handler = (_: unknown, event: AsrNotice) => cb(event)
+      ipcRenderer.on("asr-notice", handler)
+      return () => ipcRenderer.removeListener("asr-notice", handler)
     },
   },
   runtime: {

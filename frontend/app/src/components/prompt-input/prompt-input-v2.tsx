@@ -105,13 +105,17 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
             listeningClass="!text-v2-state-fg-danger hover:!text-v2-state-fg-danger"
             ariaLabel={language.t("chat.mic.start")}
             listeningLabel={language.t("chat.mic.stop")}
-            onResult={(text) =>
+            onResult={(text) => {
+              // Dictar sustituía el compositor entero: quien escribía una frase y luego dictaba
+              // perdía lo escrito. Se añade al final, con un espacio sólo si hace falta.
+              const existing = props.controller.value()
+              const merged = existing && !/\s$/.test(existing) ? `${existing} ${text}` : existing + text
               props.controller.onInput(
-                text,
-                [{ type: "text", content: text, start: 0, end: text.length }],
-                text.length,
+                merged,
+                [{ type: "text", content: merged, start: 0, end: merged.length }],
+                merged.length,
               )
-            }
+            }}
           />
         }
         captureControl={
@@ -121,6 +125,7 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
           <PromptOptimizerButton
             input={() => props.controller.value()}
             model={() => props.controller.model.selection.current()}
+            variant={() => props.controller.model.selection.variant.current()}
             directory={() => sdk().directory}
             onOptimized={(text) =>
               props.controller.onInput(

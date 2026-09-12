@@ -1582,8 +1582,16 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                 ariaLabel={language.t("chat.mic.start")}
                 listeningLabel={language.t("chat.mic.stop")}
                 onResult={(text) => {
-                  setEditorText(text)
-                  prompt.set([{ type: "text", content: text, start: 0, end: text.length }], text.length)
+                  // Dictation appends to the composer. Replacing it threw away
+                  // whatever the user had already typed before dictating.
+                  const existing = (editorRef.textContent ?? "").replace(/​/g, "")
+                  const separator = existing.length > 0 && !/\s$/.test(existing) ? " " : ""
+                  const combined = `${existing}${separator}${text}`
+                  setEditorText(combined)
+                  prompt.set(
+                    [{ type: "text", content: combined, start: 0, end: combined.length }, ...imageAttachments()],
+                    combined.length,
+                  )
                   focusEditorEnd()
                 }}
               />

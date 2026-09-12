@@ -4,6 +4,79 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.46] — 2026-09-12
+### El botón de optimizar usa tu modelo, el micrófono deja de descargar a tus espaldas
+
+#### El botón de mejorar el prompt ahora sí usa el modelo que tienes puesto
+En 1.0.45 quitamos el falso optimizador local, así que ya sólo responde el modelo. Faltaba lo demás:
+
+- **Tu nivel de razonamiento se descartaba en tres sitios a la vez.** El payload no tenía campo para
+  la variante, el botón no la enviaba, y el handler pasaba `small: true`, que además de descartar la
+  variante sustituye las opciones del proveedor por las de menor esfuerzo del modelo. Elegir «Max»
+  en la barra del prompt no cambiaba nada aquí. Ahora la variante viaja, y `small` sólo se aplica
+  cuando el servidor eligió el modelo por su cuenta: si lo elegiste tú, se respeta tu esfuerzo.
+- **Un modelo que no resolvía te daba texto de otro modelo sin avisar.** El `getModel` inicial estaba
+  envuelto en un catch que se tragaba el error y caía al modelo pequeño de otro proveedor. Ahora, si
+  nombraste un modelo y no está disponible aquí, se te dice, con un atajo para elegir otro.
+- **«Tu clave fue rechazada» y «el modelo no dijo nada» eran el mismo mensaje.** Las cabeceras 200 se
+  envían antes de llamar al modelo, así que un fallo a mitad de stream sólo podía cerrar el cuerpo.
+  El backend añade ahora un centinela con el motivo y el cliente lo lee: credenciales, límite de
+  peticiones, saldo agotado y «no produjo nada» son cuatro mensajes distintos.
+
+#### El micrófono: ya transcribía, pero se portaba mal
+Conviene decirlo claro: **el botón no era un adorno**. Transcribe en local, sin conexión y en
+español, con Whisper vía sherpa-onnx. Lo que estaba mal era todo lo de alrededor.
+
+- **Descargaba 146 MB sin preguntar.** Abrir una sesión disparaba `ensure()` en el montaje: sin
+  consentimiento, sin barra de progreso y sin ajuste que lo impidiera. Justo después de que 1.0.45
+  quitara 644 MB de descargas de voces no pedidas. Ahora se pide en el primer clic, diciendo el
+  tamaño, y el progreso se ve en el botón — usando un canal IPC que ya existía y nadie escuchaba.
+- **El tamaño declarado estaba mal**: el código decía 100 MB y un comentario 150; en disco son 146.
+  Ahora se calcula a partir de los bytes reales, así que la cifra que aceptas no puede desviarse.
+- **Dictar borraba lo que habías escrito.** Reemplazaba el compositor entero. Ahora se añade al
+  final, y de paso deja de tirar las imágenes adjuntas.
+- **Congelaba la app 1–2 segundos en cada dictado**, porque decodificaba de forma síncrona en el
+  proceso principal. Se movió a un proceso aparte, con el mismo patrón que ya usaban las voces; si
+  ese proceso muere, el micrófono se suelta en vez de quedarse escuchando para siempre.
+- **Cortaba en silencio a los 64 segundos.** Ahora se detiene a la vista y te lo dice.
+- **Sólo entendía español e inglés** aunque el modelo cubre 99 idiomas: japonés, coreano, ruso y
+  chino se decodificaban como inglés.
+- **El campo del diccionario de dictado era ilegible** en el tema claro — texto gris sobre gris, con
+  un contraste de 1,1:1. Es el propio campo de la función.
+- **Dos ajustes de atajo no hacían nada**: nadie leía lo que guardaban y el atajo real estaba fijado
+  en el código. Borrados.
+- **Un texto de privacidad que no era cierto**: decía que «tus últimas 20 grabaciones se guardan en
+  este dispositivo». No se guarda ningún audio, sólo el texto. Corregido en los siete idiomas.
+
+#### La cabecera «Vista previa / Código»
+Los saltos que había se disparaban a la vez y contra una caja que no crecía: al llegar a cierto
+ancho aparecían los atajos, se ensanchaba el chip de carpeta y salía la etiqueta «Sandbox», los tres
+a la vez. Y la pestaña no se encogía: el contenedor central tenía base 0, así que nunca entraba en
+el reparto de espacio y la pastilla se **cortaba a media palabra**, sin puntos suspensivos y sin
+poder pulsar el trozo cortado. Ahora hay una escalera real de cinco pasos, las pestañas se reducen a
+icono en los anchos pequeños conservando su nombre accesible, y la tira de cuatro emojis de
+dispositivo pasa a ser un menú: recupera ~100 px, y gana el estado seleccionado que antes se
+señalaba con un color aplicado a un emoji, que no hace nada.
+
+#### GitHub
+- **Centrado de verdad.** La tarjeta se quedaba arriba de un panel alto porque nada la centraba en
+  vertical, y medía 1040 px envolviendo una columna de 480. 
+- **Era invisible en el tema claro**: el logo y el título estaban fijados a `#ffffff` sobre un panel
+  blanco. Todo el panel pasa a tokens.
+- **Ahora explica qué te da conectar**, con seis capacidades verificadas contra el código —
+  empezando por la más útil, clonar un repositorio privado y abrirlo como proyecto. No se menciona
+  nada de issues, pull requests, forks ni Actions, porque ese token no los usa.
+- **La insignia de permisos era una mentira**: mostraba `repo · read:user` fijo, con el título
+  «permisos activos del token», mientras nadie leía los permisos reales. Ahora lee la cabecera
+  `x-oauth-scopes`, y cuando no llega (tokens de grano fino) lo dice en vez de inventarse un juego.
+- **Los contadores eran de los primeros 30 repos presentados como totales.** Ahora se pagina de
+  verdad, y si se alcanza el tope se muestra «N+» en lugar de un total falso.
+- **Una fuga de credenciales real.** Ante un fallo de arranque de git (git ausente, timeout), la
+  línea de comandos completa acababa pintada en el aviso de error — y ahí viaja el token en base64,
+  que es codificación, no cifrado. Se redacta ahora en el único punto por el que pasan todas.
+
+Typecheck 27/27 · Lint 0 errores · 906 tests de frontend · 113 de escritorio.
+
 ## [1.0.45] — 2026-09-12
 ### Las imágenes llegan al modelo, los paneles dejan de mentir y seis voces en español
 

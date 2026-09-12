@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import { concatChunks } from "./asr-utils"
+import { MAX_CHUNKS, MAX_RECORDING_SECONDS } from "./asr-worker"
 
 describe("asr concatChunks", () => {
   test("concatena chunks PCM en el orden recibido", () => {
@@ -24,5 +25,16 @@ describe("asr concatChunks", () => {
     const first = new Float32Array([9, 9])
     concatChunks([first, new Float32Array([1])])
     expect(Array.from(first)).toEqual([9, 9])
+  })
+
+  // El tope de grabación se le anuncia al usuario en segundos cuando se
+  // alcanza, así que la constante del worker y esos segundos no pueden
+  // divergir: 250 chunks de 4096 muestras a 16 kHz son exactamente 64 s.
+  test("el tope de chunks equivale a los segundos que se reportan", () => {
+    const chunks = Array.from({ length: MAX_CHUNKS }, () => new Float32Array(4096))
+    const { samples, tooShort } = concatChunks(chunks)
+    expect(tooShort).toBe(false)
+    expect(samples.length).toBe(MAX_RECORDING_SECONDS * 16000)
+    expect(MAX_RECORDING_SECONDS).toBe(64)
   })
 })

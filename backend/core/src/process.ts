@@ -80,9 +80,19 @@ export const requireExitIn =
           }),
         )
 
+// Git credentials reach argv as `-c http.<host>.extraheader=AUTHORIZATION: basic <base64>`
+// (see Git.credentialArgs). This description is embedded in AppProcessError.command,
+// which git/index.ts surfaces as `stderr` and the settings UI renders verbatim in an
+// error banner — so a spawn-level failure would otherwise print the caller's PAT.
+// base64 is an encoding, not encryption. Redact here: it is the single chokepoint
+// every description flows through.
+const SECRET_ARGUMENT = /((?:extraheader|authorization)\s*[=:])\s*\S.*/i
+
+const describeArgument = (argument: string): string => argument.replace(SECRET_ARGUMENT, "$1 <redacted>")
+
 const describeCommand = (command: ChildProcess.Command): string => {
   if (command._tag === "StandardCommand") {
-    return command.args.length ? `${command.command} ${command.args.join(" ")}` : command.command
+    return command.args.length ? `${command.command} ${command.args.map(describeArgument).join(" ")}` : command.command
   }
   return `${describeCommand(command.left)} | ${describeCommand(command.right)}`
 }

@@ -2,34 +2,66 @@
 // dictado por micrófono. Electron no expone la Web Speech API, así que el
 // renderer captura audio con getUserMedia y envía chunks PCM de 16 kHz por IPC.
 
+// Whisper tiny es multilingüe (99 idiomas). Antes todo lo que no fuera "es"
+// se decodificaba como inglés, así que ja/ko/ru/zh salían destrozados.
+export type AsrLanguage = "en" | "es" | "ja" | "ko" | "ru" | "zh"
+
+// Códigos estables del proceso principal: los mensajes del motor son literales
+// en inglés y acababan tal cual dentro de un toast traducido.
+export type AsrErrorCode = "not-recording" | "no-speech" | "engine-failed" | "no-devices"
+
 export type AsrStatus = {
   ready: boolean
   downloading?: boolean
   progress?: number
   error?: string
+  // Peso de la descarga, para pedir permiso antes de gastarlo.
+  sizeMb: number
 }
 
 export type AsrResult = {
   text?: string
-  error?: string
+  code?: Exclude<AsrErrorCode, "no-devices">
+}
+
+// Avisos fuera de banda durante una grabación: se alcanzó el tope de 64 s o
+// el proceso del reconocedor murió y hay que soltar el micrófono.
+export type AsrNotice = {
+  reason: "limit" | "crashed"
+  seconds?: number
 }
 
 export type AsrAPI = {
   status: () => Promise<AsrStatus>
-  ensure: () => Promise<void>
-  start: (language: "es" | "en") => Promise<void>
+  ensure: (language: AsrLanguage) => Promise<void>
+  start: (language: AsrLanguage) => Promise<void>
   chunk: (samples: Float32Array) => void
   stop: () => Promise<AsrResult>
   onProgress: (cb: (event: { progress: number; file?: string }) => void) => () => void
+  onNotice: (cb: (event: AsrNotice) => void) => () => void
 }
 
 export const asrAPI = (): AsrAPI | undefined => window.api?.asr
 
+// El locale de la app (incluido en-150, que es inglés) al idioma de Whisper.
+const ASR_LANGUAGES: AsrLanguage[] = ["en", "es", "ja", "ko", "ru", "zh"]
+
+export function asrLanguageForLocale(locale: string): AsrLanguage {
+  const base = locale.split("-")[0] ?? "en"
+  return ASR_LANGUAGES.includes(base as AsrLanguage) ? (base as AsrLanguage) : "en"
+}
+
+// Error de dictado con código estable para que quien llama traduzca el texto.
+export class DictationError extends Error {
+  constructor(readonly code: AsrErrorCode) {
+    super(code)
+    this.name = "DictationError"
+  }
+}
+
 export const SELECTED_MIC_KEY = "tiancode.audio.selected_microphone"
 export const DICTATION_DICT_KEY = "tiancode.dictation.custom_dictionary"
 export const DICTATION_RECORDINGS_KEY = "tiancode.dictation.recent_recordings"
-export const DICTATION_HOLD_KEY = "tiancode.dictation.hold_shortcut"
-export const DICTATION_TOGGLE_KEY = "tiancode.dictation.toggle_shortcut"
 
 export type DictationRecording = {
   id: string
@@ -123,26 +155,6 @@ export function clearRecentRecordings(): void {
   }
 }
 
-export function getHoldDictationShortcut(): string {
-  if (typeof localStorage === "undefined") return "Desactivado"
-  return localStorage.getItem(DICTATION_HOLD_KEY) ?? "Desactivado"
-}
-
-export function setHoldDictationShortcut(shortcut: string): void {
-  if (typeof localStorage === "undefined") return
-  localStorage.setItem(DICTATION_HOLD_KEY, shortcut)
-}
-
-export function getToggleDictationShortcut(): string {
-  if (typeof localStorage === "undefined") return "Ctrl+Shift+M"
-  return localStorage.getItem(DICTATION_TOGGLE_KEY) ?? "Ctrl+Shift+M"
-}
-
-export function setToggleDictationShortcut(shortcut: string): void {
-  if (typeof localStorage === "undefined") return
-  localStorage.setItem(DICTATION_TOGGLE_KEY, shortcut)
-}
-
 /**
  * Detecta y enumera todos los micrófonos disponibles en la PC.
  */
@@ -186,27 +198,25 @@ export function onAudioDeviceChange(cb: () => void): () => void {
 }
 
 // Graba el micrófono y transcribe el clip completo al detenerse. Devuelve una
-// función de parada; el transcript llega por onResult (o el error por onError).
-export async function startLocalDictation(
-  language: "es" | "en",
-  onResult: (text: string) => void,
-  onError: (message: string) => void,
-  targetDeviceId?: string,
-): Promise<() => void> {
+// función de parada; el transcript llega por onResult (o el código de error
+// por onError). onLimit avisa de que se alcanzó el tope de grabación: el audio
+// posterior se descartaba en silencio y la grabación parece seguir viva.
+export async function startLocalDictation(options: {
+  language: AsrLanguage
+  deviceId?: string
+  onResult: (text: string) => void
+  onError: (code: AsrErrorCode) => void
+  onLimit?: (seconds: number) => void
+}): Promise<() => void> {
+  const { language, onResult, onError, onLimit } = options
   const api = asrAPI()
-  if (!api) throw new Error("Local dictation is unavailable")
+  if (!api) throw new DictationError("engine-failed")
 
   // Validar si la PC tiene micrófonos conectados
   const availableMics = await getAudioInputDevices()
-  if (availableMics.length === 0) {
-    throw new Error(
-      language === "es"
-        ? "No se detectó ningún micrófono conectado a la PC."
-        : "No microphone detected on this PC.",
-    )
-  }
+  if (availableMics.length === 0) throw new DictationError("no-devices")
 
-  const preferredDeviceId = targetDeviceId || getSelectedAudioDeviceId() || undefined
+  const preferredDeviceId = options.deviceId || getSelectedAudioDeviceId() || undefined
   const constraints: MediaTrackConstraints = {
     echoCancellation: true,
     noiseSuppression: true,
@@ -240,15 +250,19 @@ export async function startLocalDictation(
   const source = context.createMediaStreamSource(stream)
   const node = context.createScriptProcessor(4096, 1, 1)
   let stopped = false
+  const releaseAudio = () => {
+    node.onaudioprocess = null
+    node.disconnect()
+    source.disconnect()
+    void context.close().catch(() => {})
+    stream.getTracks().forEach((track) => track.stop())
+  }
   try {
     await api.start(language)
   } catch (error) {
     // El reconocedor no arrancó: liberar lo ya adquirido. Si no, el indicador
     // del micrófono del SO y el nodo de captura quedarían activos para siempre.
-    node.disconnect()
-    source.disconnect()
-    void context.close().catch(() => {})
-    stream.getTracks().forEach((track) => track.stop())
+    releaseAudio()
     throw error
   }
   node.onaudioprocess = (event) => {
@@ -258,16 +272,23 @@ export async function startLocalDictation(
   source.connect(node)
   node.connect(context.destination)
   const startTime = Date.now()
-  const stop = async () => {
+
+  const finish = async (transcribe: boolean) => {
     if (stopped) return
     stopped = true
-    node.disconnect()
-    source.disconnect()
-    await context.close().catch(() => {})
-    stream.getTracks().forEach((track) => track.stop())
-    const result = await api.stop()
-    if (result.error) {
-      onError(result.error)
+    unsubscribe()
+    releaseAudio()
+    if (!transcribe) return
+    let result: AsrResult
+    try {
+      result = await api.stop()
+    } catch {
+      // El proceso del reconocedor cayó con la petición en vuelo.
+      onError("engine-failed")
+      return
+    }
+    if (result.code) {
+      onError(result.code)
     } else if (result.text) {
       const processed = applyDictationDictionary(result.text)
       const durationSeconds = Math.max(1, Math.round((Date.now() - startTime) / 1000))
@@ -275,5 +296,18 @@ export async function startLocalDictation(
       onResult(processed)
     }
   }
-  return stop
+
+  const unsubscribe = api.onNotice((notice) => {
+    if (notice.reason === "limit") {
+      // Se llegó al tope: se transcribe lo grabado y se avisa, en vez de
+      // seguir "escuchando" mientras el audio se tira.
+      onLimit?.(notice.seconds ?? 0)
+      void finish(true)
+      return
+    }
+    onError("engine-failed")
+    void finish(false)
+  })
+
+  return () => finish(true)
 }

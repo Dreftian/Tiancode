@@ -949,8 +949,8 @@ export default function LegacyLayout(props: ParentProps) {
       },
       {
         id: "voice.dictation",
-        title: "Alternar Dictado por Voz",
-        category: "Voz",
+        title: language.t("command.voice.dictation"),
+        category: language.t("command.category.voice"),
         keybind: "mod+shift+m",
         onSelect: () => {
           window.dispatchEvent(new CustomEvent("tiancode:voice-dictation-toggle"))

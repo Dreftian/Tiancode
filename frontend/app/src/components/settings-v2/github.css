@@ -1,5 +1,11 @@
 /* ==========================================================================
-   GitHub Integration Settings — Apple / Cupertino Glassmorphism UI
+   GitHub Integration Settings
+
+   Every colour here comes from a --v2-* token. The panel used to be authored
+   against a dark backdrop (white text, rgba(255,255,255,…) surfaces, heavy
+   black shadows), which made the whole disconnected card invisible in the
+   default light theme: theme.css declares the LIGHT palette on bare :root and
+   dark only arrives through [data-color-scheme="dark"].
    ========================================================================== */
 
 .gh-container {
@@ -11,26 +17,37 @@
   max-width: 1040px;
   min-height: min(580px, 70vh);
   margin: 0 auto;
+  padding: 28px 32px 32px;
   gap: 16px;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+  font-family: var(--v2-font-family-sans);
   letter-spacing: -0.01em;
+  color: var(--v2-text-text-base);
 }
 
-/* Centered Hero Card for Disconnected State */
+/* Disconnected: one short card in a panel that is ~760px tall. The panel is a
+   full-height column flex, so the container has to claim the leftover space
+   (flex: 1) before justify-content: center has anything to centre — without it
+   the card hugs the top of a tall empty panel. */
+.gh-container.is-empty {
+  flex: 1 1 auto;
+  justify-content: center;
+  padding: 32px;
+}
+
+/* Hero Card — disconnected state */
 .gh-hero-card {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   width: 100%;
+  /* The content column inside caps at 480px; without a cap the card stretched
+     to the full 1040px and left the form marooned in the middle. */
+  max-width: 560px;
   padding: 36px 32px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background-color: var(--v2-background-bg-layer-01);
   border-radius: 20px;
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  margin: 12px 0;
+  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
 }
 
 .gh-logo-wrapper {
@@ -40,24 +57,23 @@
   width: 84px;
   height: 84px;
   border-radius: 22px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.03) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  background-color: var(--v2-background-bg-layer-02);
+  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
   margin-bottom: 16px;
-  color: #ffffff;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  color: var(--v2-text-text-base);
 }
 
 .gh-hero-title {
   font-size: 22px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--v2-text-text-base);
   letter-spacing: -0.02em;
   margin-bottom: 6px;
 }
 
 .gh-hero-desc {
   font-size: 13px;
-  color: #8e8e93;
+  color: var(--v2-text-text-muted);
   line-height: 1.5;
   margin-bottom: 22px;
   max-width: 480px;
@@ -76,7 +92,7 @@
 .gh-token-label {
   font-size: 12px;
   font-weight: 600;
-  color: #d1d1d6;
+  color: var(--v2-text-text-base);
 }
 
 .gh-token-input {
@@ -85,22 +101,72 @@
 
 .gh-token-hint {
   font-size: 11px;
-  color: #6e6e73;
+  color: var(--v2-text-text-faint);
   line-height: 1.4;
-}
-
-.gh-token-hint code {
-  background: rgba(255, 255, 255, 0.08);
-  padding: 1px 5px;
-  border-radius: 4px;
-  color: #2997ff;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 .gh-btn-connect {
   width: 100%;
   max-width: 480px;
   padding: 11px 16px;
+}
+
+/* What the stored token actually buys */
+.gh-info {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 480px;
+  text-align: left;
+  gap: 10px;
+  margin-top: 26px;
+  padding-top: 22px;
+  border-top: 1px solid var(--v2-border-border-muted);
+}
+
+.gh-info-title {
+  font-size: 13px;
+  font-weight: 640;
+  color: var(--v2-text-text-base);
+  margin: 0;
+}
+
+.gh-info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gh-info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--v2-text-text-muted);
+}
+
+.gh-info-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-top: 0;
+  border-radius: 50%;
+  background-color: var(--v2-state-bg-success);
+  color: var(--v2-state-fg-success);
+}
+
+.gh-info-storage {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--v2-text-text-faint);
+  margin: 0;
 }
 
 /* Connected State */
@@ -116,12 +182,9 @@
   align-items: center;
   justify-content: space-between;
   padding: 20px 24px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background-color: var(--v2-background-bg-layer-01);
   border-radius: 20px;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
   gap: 16px;
 }
 
@@ -136,14 +199,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  color: var(--v2-text-text-base);
 }
 
 .gh-profile-avatar {
   width: 56px;
   height: 56px;
   border-radius: 18px;
-  border: 2px solid rgba(41, 151, 255, 0.5);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--v2-border-border-muted);
   object-fit: cover;
 }
 
@@ -154,28 +217,33 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #30d158;
-  border: 2.5px solid #16181d;
-  box-shadow: 0 0 8px rgba(48, 209, 88, 0.6);
+  background-color: var(--v2-state-fg-success);
+  /* Ring punched out of whatever the card is painted with, in either theme. */
+  border: 2.5px solid var(--v2-background-bg-layer-01);
 }
 
 .gh-profile-copy {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .gh-profile-badge-row {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .gh-badge-connected {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   padding: 2px 9px;
-  background: rgba(52, 199, 89, 0.18);
-  border: 1px solid rgba(52, 199, 89, 0.4);
-  color: #30d158;
+  background-color: var(--v2-state-bg-success);
+  border: 1px solid var(--v2-state-border-success);
+  color: var(--v2-state-fg-success);
   border-radius: 9999px;
   font-size: 11px;
   font-weight: 600;
@@ -183,38 +251,45 @@
 
 .gh-badge-scope {
   padding: 2px 8px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #a1a1a6;
+  background-color: var(--v2-background-bg-layer-02);
+  border: 1px solid var(--v2-border-border-muted);
+  color: var(--v2-text-text-muted);
   border-radius: 9999px;
   font-size: 10.5px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.gh-badge-scope.is-unknown {
+  font-family: inherit;
+  font-style: italic;
+  color: var(--v2-text-text-faint);
 }
 
 .gh-username-row {
   display: flex;
   align-items: baseline;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .gh-profile-username {
   font-size: 18px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--v2-text-text-base);
   letter-spacing: -0.01em;
   margin: 0;
 }
 
 .gh-profile-link {
   font-size: 12px;
-  color: #2997ff;
+  color: var(--v2-text-text-accent);
   text-decoration: none;
   transition: color 0.15s ease;
 }
 
 .gh-profile-link:hover {
   text-decoration: underline;
-  color: #58a6ff;
+  color: var(--v2-text-text-accent-hover);
 }
 
 .gh-stats-row {
@@ -222,6 +297,7 @@
   align-items: center;
   gap: 8px;
   margin-top: 2px;
+  flex-wrap: wrap;
 }
 
 .gh-stat-chip {
@@ -231,33 +307,33 @@
   font-size: 11px;
   padding: 2px 8px;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.05);
-  color: #a1a1a6;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background-color: var(--v2-background-bg-layer-02);
+  color: var(--v2-text-text-muted);
+  border: 1px solid var(--v2-border-border-muted);
 }
 
 .gh-stat-chip strong {
-  color: #ffffff;
+  color: var(--v2-text-text-base);
 }
 
 .gh-stat-public {
-  background: rgba(48, 209, 88, 0.08);
-  border-color: rgba(48, 209, 88, 0.25);
-  color: #30d158;
+  background-color: var(--v2-state-bg-success);
+  border-color: var(--v2-state-border-success);
+  color: var(--v2-state-fg-success);
 }
 
 .gh-stat-public strong {
-  color: #30d158;
+  color: var(--v2-state-fg-success);
 }
 
 .gh-stat-private {
-  background: rgba(255, 159, 10, 0.08);
-  border-color: rgba(255, 159, 10, 0.25);
-  color: #ff9f0a;
+  background-color: var(--v2-state-bg-warning);
+  border-color: var(--v2-state-border-warning);
+  color: var(--v2-state-fg-warning);
 }
 
 .gh-stat-private strong {
-  color: #ff9f0a;
+  color: var(--v2-state-fg-warning);
 }
 
 .gh-profile-actions {
@@ -274,8 +350,8 @@
 }
 
 .gh-btn-disconnect:hover {
-  color: #ff453a;
-  background: rgba(255, 69, 58, 0.1);
+  color: var(--v2-state-fg-danger);
+  background-color: var(--v2-state-bg-danger);
 }
 
 /* Inline Create Repo Card */
@@ -284,18 +360,21 @@
   flex-direction: column;
   gap: 14px;
   padding: 18px 22px;
-  background: linear-gradient(145deg, rgba(41, 151, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
-  border: 1px solid rgba(41, 151, 255, 0.3);
+  background-color: var(--v2-state-bg-info);
+  border: 1px solid var(--v2-state-border-info);
   border-radius: 18px;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   animation: ghFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes ghFadeIn {
   from { opacity: 0; transform: translateY(-6px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gh-create-repo-card {
+    animation: none;
+  }
 }
 
 .gh-create-repo-header {
@@ -307,13 +386,13 @@
 .gh-create-repo-title {
   font-size: 15px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--v2-text-text-base);
   margin: 0;
 }
 
 .gh-create-repo-sub {
   font-size: 12px;
-  color: #8e8e93;
+  color: var(--v2-text-text-muted);
   margin: 0;
 }
 
@@ -332,7 +411,7 @@
 .gh-field-label {
   font-size: 11.5px;
   font-weight: 600;
-  color: #d1d1d6;
+  color: var(--v2-text-text-base);
 }
 
 .gh-create-privacy-row {
@@ -340,8 +419,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background-color: var(--v2-background-bg-layer-01);
+  border: 1px solid var(--v2-border-border-muted);
   border-radius: 12px;
   gap: 12px;
 }
@@ -355,12 +434,12 @@
 .gh-privacy-label {
   font-size: 12px;
   font-weight: 600;
-  color: #f5f5f7;
+  color: var(--v2-text-text-base);
 }
 
 .gh-privacy-desc {
   font-size: 11px;
-  color: #8e8e93;
+  color: var(--v2-text-text-muted);
 }
 
 .gh-create-actions {
@@ -377,39 +456,61 @@
   flex-direction: column;
   gap: 14px;
   padding: 16px 20px;
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background-color: var(--v2-background-bg-layer-01);
   border-radius: 16px;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
 }
 
 .gh-vcs-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
 }
 
 .gh-vcs-title-row {
   display: flex;
   align-items: center;
   gap: 7px;
-  color: #2997ff;
+  flex-wrap: wrap;
+  color: var(--v2-icon-icon-accent);
 }
 
 .gh-vcs-title {
   font-size: 14.5px;
   font-weight: 650;
-  color: #ffffff;
+  color: var(--v2-text-text-base);
   margin: 0;
+}
+
+.gh-vcs-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.gh-vcs-state.is-clean {
+  color: var(--v2-state-fg-success);
+}
+
+.gh-vcs-state.is-dirty {
+  color: var(--v2-state-fg-warning);
 }
 
 .gh-vcs-path {
   font-size: 11px;
-  color: #8e8e93;
+  color: var(--v2-text-text-muted);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   margin: 2px 0 0 0;
+}
+
+.gh-vcs-no-remote {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--v2-state-fg-warning);
+  margin: 0;
 }
 
 .gh-vcs-buttons {
@@ -448,15 +549,15 @@
 .gh-section-title {
   font-size: 15px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--v2-text-text-base);
   margin: 0;
 }
 
 .gh-filter-pills {
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background-color: var(--v2-background-bg-layer-01);
+  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
   border-radius: 9999px;
   padding: 2px;
   gap: 2px;
@@ -467,22 +568,53 @@
   border-radius: 9999px;
   font-size: 11.5px;
   font-weight: 500;
-  color: #8e8e93;
+  color: var(--v2-text-text-muted);
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .gh-filter-pill:hover {
-  color: #ffffff;
+  color: var(--v2-text-text-base);
 }
 
 .gh-filter-pill.active {
-  background: rgba(255, 255, 255, 0.14);
-  color: #ffffff;
+  /* layer-03 is darker than layer-01 in light and lighter in dark, so the
+     selected pill stands out from the track either way. */
+  background-color: var(--v2-background-bg-layer-03);
+  color: var(--v2-text-text-base);
   font-weight: 600;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.gh-sort-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--v2-text-text-muted);
+}
+
+.gh-sort-label {
+  color: var(--v2-text-text-muted);
+}
+
+.gh-sort-select {
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-family: inherit;
+  color: var(--v2-text-text-base);
+  background-color: var(--v2-background-bg-layer-01);
+  border: 1px solid var(--v2-border-border-muted);
+  cursor: pointer;
+  outline: none;
+}
+
+.gh-sort-select:focus-visible {
+  border-color: var(--v2-border-border-focus);
 }
 
 .gh-repos-search {
@@ -501,17 +633,28 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background-color: var(--v2-background-bg-layer-01);
+  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
   border-radius: 14px;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    background-color 0.15s ease,
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   gap: 14px;
 }
 
 .gh-repo-row:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.12);
+  background-color: var(--v2-background-bg-layer-02);
   transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gh-repo-row {
+    transition: background-color 0.15s ease;
+  }
+
+  .gh-repo-row:hover {
+    transform: none;
+  }
 }
 
 .gh-repo-icon-wrap {
@@ -521,16 +664,16 @@
   width: 32px;
   height: 32px;
   border-radius: 10px;
-  background: rgba(48, 209, 88, 0.12);
-  color: #30d158;
-  border: 1px solid rgba(48, 209, 88, 0.25);
+  background-color: var(--v2-state-bg-success);
+  color: var(--v2-state-fg-success);
+  border: 1px solid var(--v2-state-border-success);
   flex-shrink: 0;
 }
 
 .gh-repo-icon-wrap.is-private {
-  background: rgba(255, 159, 10, 0.12);
-  color: #ff9f0a;
-  border-color: rgba(255, 159, 10, 0.25);
+  background-color: var(--v2-state-bg-warning);
+  color: var(--v2-state-fg-warning);
+  border-color: var(--v2-state-border-warning);
 }
 
 .gh-repo-main {
@@ -551,7 +694,7 @@
 .gh-repo-name-link {
   font-size: 13.5px;
   font-weight: 600;
-  color: #f5f5f7;
+  color: var(--v2-text-text-base);
   text-decoration: none;
   white-space: nowrap;
   overflow: hidden;
@@ -559,7 +702,7 @@
 }
 
 .gh-repo-name-link:hover {
-  color: #2997ff;
+  color: var(--v2-text-text-accent);
   text-decoration: underline;
 }
 
@@ -571,15 +714,15 @@
 }
 
 .gh-repo-vis-tag.is-public {
-  background: rgba(48, 209, 88, 0.12);
-  color: #30d158;
-  border: 1px solid rgba(48, 209, 88, 0.25);
+  background-color: var(--v2-state-bg-success);
+  color: var(--v2-state-fg-success);
+  border: 1px solid var(--v2-state-border-success);
 }
 
 .gh-repo-vis-tag.is-private {
-  background: rgba(255, 159, 10, 0.12);
-  color: #ff9f0a;
-  border: 1px solid rgba(255, 159, 10, 0.25);
+  background-color: var(--v2-state-bg-warning);
+  color: var(--v2-state-fg-warning);
+  border: 1px solid var(--v2-state-border-warning);
 }
 
 .gh-repo-branch-tag {
@@ -589,9 +732,9 @@
   font-size: 10.5px;
   padding: 1px 6px;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #8e8e93;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background-color: var(--v2-background-bg-layer-02);
+  color: var(--v2-text-text-muted);
+  border: 1px solid var(--v2-border-border-muted);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
@@ -602,8 +745,8 @@
   font-size: 10px;
   padding: 1px 5px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.05);
-  color: #8e8e93;
+  background-color: var(--v2-background-bg-layer-02);
+  color: var(--v2-text-text-muted);
 }
 
 .gh-repo-avatar {
@@ -611,12 +754,13 @@
   height: 24px;
   border-radius: 6px;
   object-fit: cover;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--v2-border-border-muted);
+  flex-shrink: 0;
 }
 
 .gh-repo-description {
   font-size: 12px;
-  color: var(--v2-text-text-muted, #8e8e93);
+  color: var(--v2-text-text-muted);
   line-height: 1.45;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -627,15 +771,16 @@
 
 .gh-repo-description.empty {
   font-style: italic;
-  color: rgba(255, 255, 255, 0.25);
+  color: var(--v2-text-text-faint);
 }
 
 .gh-repo-meta {
   display: flex;
   align-items: center;
   gap: 14px;
+  flex-wrap: wrap;
   font-size: 11px;
-  color: var(--v2-text-text-muted, #8e8e93);
+  color: var(--v2-text-text-muted);
   margin-top: 4px;
 }
 
@@ -662,7 +807,7 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  color: var(--v2-text-text-faint, #6e6e73);
+  color: var(--v2-text-text-faint);
 }
 
 .gh-repo-actions {
@@ -679,48 +824,44 @@
   width: 28px;
   height: 28px;
   border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
-  color: #8e8e93;
+  border: 1px solid var(--v2-border-border-muted);
+  background-color: var(--v2-background-bg-layer-01);
+  color: var(--v2-icon-icon-muted);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .gh-repo-copy-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.16);
+  background-color: var(--v2-background-bg-layer-03);
+  color: var(--v2-icon-icon-base);
+  border-color: var(--v2-border-border-base);
 }
 
 .gh-repo-external-link {
   font-size: 12px;
-  color: #8e8e93;
+  color: var(--v2-text-text-muted);
   text-decoration: none;
   padding: 4px 8px;
   border-radius: 6px;
-  transition: all 0.15s ease;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .gh-repo-external-link:hover {
-  color: #2997ff;
-  background: rgba(41, 151, 255, 0.08);
-}
-
-.gh-sort-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: var(--v2-text-text-muted, #8e8e93);
+  color: var(--v2-text-text-accent);
+  background-color: var(--v2-overlay-simple-overlay-hover);
 }
 
 .gh-repos-empty {
   padding: 32px 16px;
   text-align: center;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px dashed rgba(255, 255, 255, 0.08);
+  background-color: var(--v2-background-bg-layer-01);
+  border: 1px dashed var(--v2-border-border-base);
   border-radius: 14px;
-  color: #8e8e93;
+  color: var(--v2-text-text-muted);
   font-size: 13px;
 }
 
@@ -729,14 +870,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   padding: 10px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--v2-border-border-muted);
   margin-top: 4px;
 }
 
 .gh-pagination-summary {
   font-size: 12px;
-  color: #8e8e93;
+  color: var(--v2-text-text-muted);
 }
 
 /* ==========================================================================
@@ -785,6 +927,14 @@
 }
 
 @container settings-panel (max-width: 640px) {
+  .gh-container {
+    padding: 20px 16px 24px;
+  }
+
+  .gh-container.is-empty {
+    padding: 20px 16px;
+  }
+
   .gh-hero-card {
     padding: 24px 16px;
   }
@@ -815,7 +965,7 @@
     width: 100%;
     justify-content: flex-start;
     flex-wrap: wrap;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border-top: 1px solid var(--v2-border-border-muted);
     padding-top: 8px;
   }
 
@@ -825,5 +975,3 @@
     gap: 10px;
   }
 }
-
-

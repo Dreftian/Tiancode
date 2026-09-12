@@ -14,17 +14,48 @@ import { LLMEvent } from "@tiancode-ai/llm"
 import { ToolJsonSchema } from "@/tool/json-schema"
 import { ToolRegistry } from "@/tool/registry"
 import { Worktree } from "@/worktree"
-import { Effect, Option, Stream } from "effect"
+import { Cause, Effect, Option, Stream } from "effect"
 import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
 import { HttpApiBuilder, HttpApiError } from "effect/unstable/httpapi"
 import { InstanceHttpApi } from "../api"
 import {
   ConsoleSwitchPayload,
+  OptimizePromptModelError,
   OptimizePromptPayload,
   SessionListQuery,
   ToolListQuery,
   WorktreeApiError,
 } from "../groups/experimental"
+
+/**
+ * Terminator for the optimizer body. The 200 and the text/plain headers are flushed before the
+ * model is ever called, so a failure mid-stream can only close the body early — which the client
+ * cannot tell apart from a model that produced nothing. Appending a NUL plus a reason code gives
+ * it something to read: NUL never occurs in model text, so the split is unambiguous.
+ */
+const OPTIMIZE_ERROR_MARK = "\u0000"
+
+type OptimizeFailure = "auth" | "rateLimit" | "quota" | "unknown"
+
+function classifyOptimizeFailure(error: unknown): OptimizeFailure {
+  const reason = (error as { reason?: unknown })?.reason ?? error
+  const tag = (reason as { _tag?: unknown })?._tag
+  if (tag === "Authentication") return "auth"
+  if (tag === "RateLimit") return "rateLimit"
+  if (tag === "QuotaExceeded") return "quota"
+
+  const status = (reason as { http?: { response?: { status?: number } } })?.http?.response?.status
+  if (status === 401 || status === 403) return "auth"
+  if (status === 429) return "rateLimit"
+  if (status === 402) return "quota"
+
+  // Providers that bypass the typed LLM route only leak the reason as prose.
+  const text = `${(error as Error)?.name ?? ""} ${(error as Error)?.message ?? ""}`.toLowerCase()
+  if (/api key|credential|unauthor|authentication|forbidden/.test(text)) return "auth"
+  if (/rate limit|rate_limit|too many requests/.test(text)) return "rateLimit"
+  if (/quota|insufficient|billing|credit/.test(text)) return "quota"
+  return "unknown"
+}
 
 const PROMPT_OPTIMIZER_AGENT: Agent.Info = {
   name: "prompt-optimizer",
@@ -326,13 +357,23 @@ export const experimentalHandlers = HttpApiBuilder.group(InstanceHttpApi, "exper
         return yield* Effect.fail(new HttpApiError.BadRequest({}))
       }
 
-      const resolveModel = Effect.gen(function* () {
-        if (ctx.payload.providerID && ctx.payload.modelID) {
-          const m = yield* provider
-            .getModel(ctx.payload.providerID, ctx.payload.modelID)
-            .pipe(Effect.catch(() => Effect.succeed(undefined)))
-          if (m) return m
-        }
+      // The caller naming a model is a deliberate choice — the composer sends whatever the user has
+      // selected for the chat. If that model does not resolve here we must say so, not quietly hand
+      // the work to another provider's cheap model and return text that looks like success.
+      const chosen = ctx.payload.providerID && ctx.payload.modelID ? ctx.payload : undefined
+      const explicitModel = chosen
+        ? yield* provider.getModel(chosen.providerID!, chosen.modelID!).pipe(Effect.catch(() => Effect.succeed(undefined)))
+        : undefined
+      if (chosen && !explicitModel) {
+        return yield* Effect.fail(
+          new OptimizePromptModelError({
+            name: "OptimizePromptModelUnavailableError",
+            data: { providerID: chosen.providerID!, modelID: chosen.modelID! },
+          }),
+        )
+      }
+
+      const resolveFallback = Effect.gen(function* () {
         const fallback = yield* provider.defaultModel().pipe(Effect.catch(() => Effect.succeed(undefined)))
         if (!fallback) return undefined
         return (
@@ -341,7 +382,7 @@ export const experimentalHandlers = HttpApiBuilder.group(InstanceHttpApi, "exper
         )
       }).pipe(Effect.catch(() => Effect.succeed(undefined)))
 
-      const targetModel = yield* resolveModel
+      const targetModel = explicitModel ?? (yield* resolveFallback)
       if (!targetModel) {
         return yield* Effect.fail(new HttpApiError.BadRequest({}))
       }
@@ -375,10 +416,14 @@ export const experimentalHandlers = HttpApiBuilder.group(InstanceHttpApi, "exper
             role: "user",
             time: { created: Date.now() },
             agent: PROMPT_OPTIMIZER_AGENT.name,
-            model: { providerID: targetModel.providerID, modelID: targetModel.id },
+            model: { providerID: targetModel.providerID, modelID: targetModel.id, variant: ctx.payload.variant },
           },
           system: [systemPrompt],
-          small: true,
+          // `small` discards the reasoning variant and swaps in the model's lowest-effort options
+          // (session/llm/request.ts). That is right for a model we picked ourselves and wrong for
+          // one the user chose: optimizing at a different effort than the chat uses is exactly the
+          // mismatch this endpoint is being asked to remove.
+          small: explicitModel === undefined,
           tools: {},
           model: targetModel,
           sessionID,
@@ -394,11 +439,10 @@ export const experimentalHandlers = HttpApiBuilder.group(InstanceHttpApi, "exper
           Stream.filter(LLMEvent.is.textDelta),
           Stream.map((event) => event.text),
           Stream.encodeText,
-          // A failure here (bad credentials, rate limit, model refusal) must not break the
-          // composer, so the stream ends empty rather than erroring mid-body. The client treats an
-          // empty 200 as a failure and leaves the user's text untouched with a toast — it used to
-          // rewrite it with a local dictionary and claim the model had done it. Log the cause:
-          // this is the only place the real reason survives.
+          // The 200 and the text/plain headers are flushed before the model is called, so a failure
+          // here can only end the body early — which the client cannot tell apart from a model that
+          // produced nothing. Append the sentinel plus a reason code so it can: NUL never occurs in
+          // model output, so the split is unambiguous and the client strips it before showing text.
           Stream.catchCause((cause) =>
             Stream.unwrap(
               Effect.logError("prompt optimizer stream failed", {
@@ -406,7 +450,13 @@ export const experimentalHandlers = HttpApiBuilder.group(InstanceHttpApi, "exper
                 providerID: targetModel.providerID,
                 modelID: targetModel.id,
                 style: ctx.payload.style ?? "standard",
-              }).pipe(Effect.as(Stream.empty)),
+              }).pipe(
+                Effect.as(
+                  Stream.succeed(OPTIMIZE_ERROR_MARK + classifyOptimizeFailure(Cause.squash(cause))).pipe(
+                    Stream.encodeText,
+                  ),
+                ),
+              ),
             ),
           ),
         )

@@ -1,7 +1,9 @@
 import { sampledChecksum } from "@tiancode-ai/core/util/encode"
 import { FileIcon } from "@tiancode-ai/ui/file-icon"
+import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
 import { Icon as IconV2 } from "@tiancode-ai/ui/v2/icon"
 import { IconButtonV2 } from "@tiancode-ai/ui/v2/icon-button-v2"
+import { MenuV2 } from "@tiancode-ai/ui/v2/menu-v2"
 import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show } from "solid-js"
 import { Dynamic } from "solid-js/web"
 import { useFile } from "@/context/file"
@@ -24,6 +26,30 @@ const DEV_SERVER_URL_RE = /https?:\/\/(?:localhost|127\.0\.0\.1):\d{2,5}(?:[/?#]
 const PREVIEW_ENTRY_RE =
   /(?:^|\/)(?:package\.json|index\.html|requirements\.txt|pyproject\.toml|Pipfile|Cargo\.toml|go\.mod|composer\.json|artisan|Gemfile|pom\.xml|build\.gradle(?:\.kts)?|deno\.jsonc?|.*\.(?:jsx|tsx|html|htm|py|rs|go|php|rb|java|kt|cs))$/i
 export type LiveViewContent = "preview" | "code"
+
+// El handler de teclado acepta ctrlKey O metaKey, así que la etiqueta del atajo
+// debe mostrar el modificador real de cada plataforma y no dar Ctrl por hecho.
+const IS_MAC = typeof navigator === "object" && /(Mac|iPod|iPhone|iPad)/.test(navigator.platform)
+const TAB_SHORTCUTS: Record<LiveViewContent, string> = {
+  preview: IS_MAC ? "⌘⌥1" : "Ctrl+Alt+1",
+  code: IS_MAC ? "⌘⌥2" : "Ctrl+Alt+2",
+}
+// El icono de cada pestaña sólo se usa cuando el encabezado es demasiado
+// estrecho para el texto; ambos nombres existen en el sprite de IconV2.
+const TAB_ICONS: Record<LiveViewContent, "globe" | "filetree"> = {
+  preview: "globe",
+  code: "filetree",
+}
+
+type ViewportMode = "fluid" | "mobile" | "tablet" | "laptop"
+// Orden del menú de tamaño: del más estrecho al panel completo.
+const VIEWPORT_MODES = ["mobile", "tablet", "laptop", "fluid"] as const satisfies readonly ViewportMode[]
+const VIEWPORT_LABEL_KEYS = {
+  mobile: "liveView.device.mobile",
+  tablet: "liveView.device.tablet",
+  laptop: "liveView.device.laptop",
+  fluid: "liveView.device.fluid",
+} as const
 
 // Each mode uses the entire panel. Web-only clients keep the dashboard as a
 // usable replacement for the embedded Preview tab.
@@ -933,7 +959,8 @@ function CodePane(props: {
             class="shrink-0 rounded-md border border-v2-border-border-muted px-2 py-1 text-11-medium text-text-weak transition-colors hover:bg-v2-overlay-simple-overlay-hover hover:text-text-base disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!dirty() || saving()}
             onClick={() => void save()}
-            title="Ctrl+S"
+            // Mismo caso que TAB_SHORTCUTS: el handler acepta ctrlKey o metaKey.
+            title={IS_MAC ? "⌘S" : "Ctrl+S"}
           >
             {saving() ? language.t("common.saving") : language.t("common.save")}
           </button>
@@ -1121,7 +1148,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
 
   const activeProjectName = createMemo(() => {
     const dir = effectiveProjectDir()
-    if (!dir) return "Proyecto"
+    if (!dir) return language.t("liveView.project.fallbackName")
     const normalized = dir.replace(/\\/g, "/").replace(/\/+$/, "")
     const parts = normalized.split("/").filter(Boolean)
     return parts[parts.length - 1] || dir
@@ -1615,10 +1642,10 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
     onCleanup(() => window.clearTimeout(timer))
   })
 
-  const [viewportMode, setViewportMode] = createSignal<"fluid" | "mobile" | "tablet" | "laptop">("fluid")
+  const [viewportMode, setViewportMode] = createSignal<ViewportMode>("fluid")
   // Every press bumps `seq` so LivePreview applies it even when the highlight already matched.
   const [deviceRequestSeq, setDeviceRequestSeq] = createSignal(0)
-  const requestDevice = (mode: "fluid" | "mobile" | "tablet" | "laptop") => {
+  const requestDevice = (mode: ViewportMode) => {
     setViewportMode(mode)
     setDeviceRequestSeq((seq) => seq + 1)
   }
@@ -1641,7 +1668,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
       id="live-view-panel"
       role="region"
       aria-label={language.t("liveView.sandbox")}
-      class="flex size-full min-h-0 flex-col overflow-hidden rounded-[10px] border border-v2-border-border-muted bg-v2-background-bg-base shadow-[var(--v2-elevation-raised)] ring-1 ring-white/[0.025]"
+      class="flex size-full min-h-0 flex-col overflow-hidden rounded-[10px] border border-v2-border-border-muted bg-v2-background-bg-base shadow-[var(--v2-elevation-raised)]"
     >
       <div class="@container flex h-11 min-w-0 shrink-0 items-center gap-2 border-b border-v2-border-border-muted bg-[linear-gradient(180deg,var(--v2-background-bg-base),var(--v2-overlay-simple-overlay-pressed))] px-2.5">
         <div
@@ -1652,20 +1679,31 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
           <span class="hidden @[520px]:inline">{language.t("liveView.sandbox")}</span>
         </div>
 
-        {/* Selector interactivo de proyecto/carpeta activa */}
-        <div class="relative flex min-w-0 max-w-28 shrink items-center @[640px]:max-w-44">
+        {/* Selector interactivo de proyecto/carpeta activa.
+            shrink-[3]: la zona izquierda es la única que cede ancho, así el pill
+            de pestañas del centro nunca se recorta al estrechar el panel. */}
+        <div class="relative flex min-w-0 max-w-28 shrink-[3] items-center @[720px]:max-w-44">
           <button
             type="button"
             onClick={() => {
               setCustomDirInput(effectiveProjectDir() || "")
               setProjectSelectorOpen(!projectSelectorOpen())
             }}
-            title={`Carpeta activa: ${effectiveProjectDir() || "Predeterminada"}\nHaz clic para cambiar de proyecto`}
-            class="flex h-7 items-center gap-1.5 rounded-md border border-v2-border-border-muted bg-v2-overlay-simple-overlay-pressed px-2 text-11-medium text-text-base hover:bg-v2-overlay-simple-overlay-hover hover:border-v2-border-border-strong transition-all max-w-[170px] sm:max-w-[240px]"
+            title={`${language.t("liveView.project.active", {
+              dir: effectiveProjectDir() || language.t("liveView.project.default"),
+            })}\n${language.t("liveView.project.changeHint")}`}
+            // Por debajo de @[420px] el chip se queda sin texto visible, así que
+            // el nombre accesible tiene que venir de aquí; incluye el nombre del
+            // proyecto para que siga cumpliendo label-in-name cuando sí se ve.
+            aria-label={language.t("liveView.project.change", { name: activeProjectName() })}
+            aria-expanded={projectSelectorOpen()}
+            class="flex h-7 min-w-0 items-center gap-1.5 rounded-md border border-v2-border-border-muted bg-v2-overlay-simple-overlay-pressed px-2 text-11-medium text-text-base hover:bg-v2-overlay-simple-overlay-hover hover:border-v2-border-border-strong transition-all max-w-[170px] @[720px]:max-w-[240px]"
           >
-            <span class="shrink-0 text-sky-400">📁</span>
-            <span class="truncate font-medium">{activeProjectName()}</span>
-            <span class="shrink-0 text-[9px] text-text-weak opacity-70">▼</span>
+            <IconV2 name="folder" size="small" class="shrink-0 text-v2-icon-icon-accent" />
+            <span class="hidden @[420px]:block truncate font-medium">{activeProjectName()}</span>
+            <span class="hidden @[420px]:inline shrink-0 text-[9px] text-text-weak opacity-70" aria-hidden="true">
+              ▼
+            </span>
           </button>
 
           <Show when={projectSelectorOpen()}>
@@ -1675,11 +1713,13 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
             >
               <div class="flex items-center justify-between pb-2 border-b border-v2-border-border-muted mb-2.5">
                 <div class="flex items-center gap-1.5 font-semibold text-text-base text-12-medium">
-                  <span>📁</span>
-                  <span>Carpeta del Sandbox</span>
+                  <IconV2 name="folder" size="small" class="shrink-0 text-v2-icon-icon-accent" />
+                  <span>{language.t("liveView.project.title")}</span>
                 </div>
                 <button
                   type="button"
+                  aria-label={language.t("common.close")}
+                  title={language.t("common.close")}
                   class="text-text-weak hover:text-text-base px-1 text-12-regular"
                   onClick={() => setProjectSelectorOpen(false)}
                 >
@@ -1690,7 +1730,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
               <Show when={knownProjectDirs().length > 1}>
                 <div class="mb-3">
                   <span class="block text-[10px] uppercase font-semibold tracking-wider text-text-weak mb-1.5">
-                    Proyectos detectados:
+                    {language.t("liveView.project.detected")}
                   </span>
                   <div class="flex flex-col gap-1 max-h-36 overflow-y-auto">
                     <For each={knownProjectDirs()}>
@@ -1710,13 +1750,16 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
                             }}
                             class={`flex items-center justify-between gap-2 rounded px-2 py-1 text-left text-11-regular transition-colors ${
                               isCurrent()
-                                ? "bg-sky-500/10 text-sky-400 font-medium"
+                                ? "bg-v2-state-bg-info text-v2-state-fg-info font-medium"
                                 : "hover:bg-v2-overlay-simple-overlay-hover text-text-base"
                             }`}
                           >
-                            <span class="truncate">📁 {folderName()}</span>
+                            <span class="flex min-w-0 items-center gap-1.5">
+                              <IconV2 name="folder" size="small" class="shrink-0" />
+                              <span class="truncate">{folderName()}</span>
+                            </span>
                             <Show when={isCurrent()}>
-                              <span class="shrink-0 text-[10px] text-sky-400">● Activo</span>
+                              <span class="shrink-0 text-[10px]">● {language.t("liveView.project.activeBadge")}</span>
                             </Show>
                           </button>
                         )
@@ -1727,10 +1770,14 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
               </Show>
 
               <div class="mb-2.5">
-                <label class="block text-[10px] uppercase font-semibold tracking-wider text-text-weak mb-1">
-                  Ruta directa:
+                <label
+                  for="live-view-project-path"
+                  class="block text-[10px] uppercase font-semibold tracking-wider text-text-weak mb-1"
+                >
+                  {language.t("liveView.project.pathLabel")}
                 </label>
                 <input
+                  id="live-view-project-path"
                   type="text"
                   value={customDirInput()}
                   onInput={(e) => setCustomDirInput(e.currentTarget.value)}
@@ -1744,31 +1791,38 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
                       }
                     }
                   }}
-                  placeholder="C:/ruta/a/mi-proyecto"
-                  class="w-full rounded border border-v2-border-border-muted bg-v2-overlay-simple-overlay-pressed px-2 py-1.5 text-11-regular font-mono text-text-base focus:border-sky-500 focus:outline-none"
+                  placeholder={language.t("liveView.project.pathPlaceholder")}
+                  class="w-full rounded border border-v2-border-border-muted bg-v2-overlay-simple-overlay-pressed px-2 py-1.5 text-11-regular font-mono text-text-base focus:border-v2-border-border-focus focus:outline-none"
                 />
               </div>
 
               <div class="flex items-center gap-2 justify-between pt-1 border-t border-v2-border-border-muted">
                 <Show
                   when={manualProjectDir()}
-                  fallback={<span class="text-[10px] text-text-weak italic">Detección automática</span>}
+                  fallback={
+                    <span class="text-[10px] text-text-weak italic">{language.t("liveView.project.auto")}</span>
+                  }
                 >
-                  <button
+                  <ButtonV2
                     type="button"
-                    class="px-2 py-1 text-[11px] text-text-weak hover:text-text-base transition-colors"
+                    variant="ghost-muted"
+                    size="small"
                     onClick={() => {
                       setManualProjectDir(undefined)
                       setActiveProjectDir(undefined)
                       setProjectSelectorOpen(false)
                     }}
                   >
-                    Restablecer
-                  </button>
+                    {language.t("liveView.project.reset")}
+                  </ButtonV2>
                 </Show>
-                <button
+                <ButtonV2
                   type="button"
-                  class="rounded bg-sky-600 px-3 py-1 text-[11px] font-medium text-white hover:bg-sky-500 transition-colors ml-auto shadow-sm"
+                  variant="contrast"
+                  size="small"
+                  class="ml-auto"
+                  // El onClick ignora una ruta vacía, así que el botón lo dice.
+                  disabled={!customDirInput().trim()}
                   onClick={() => {
                     const val = customDirInput().trim()
                     if (val) {
@@ -1778,17 +1832,21 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
                     }
                   }}
                 >
-                  Cambiar
-                </button>
+                  {language.t("liveView.project.apply")}
+                </ButtonV2>
               </div>
             </div>
           </Show>
         </div>
-        <div class="flex min-w-0 flex-1 items-center justify-center-safe gap-2 overflow-hidden">
+        {/* flex-auto en vez de flex-1: con base 0 el factor de encogimiento
+            efectivo también es 0 y esta zona quedaba fuera del reparto de ancho,
+            así que su contenido se salía y `overflow-hidden` lo cortaba a medias.
+            Con base automática sí participa y las pestañas se comprimen. */}
+        <div class="flex min-w-0 flex-auto items-center justify-center-safe gap-2">
           <div
             role="tablist"
             aria-label={language.t("liveView.sandbox")}
-            class="flex h-8 rounded-lg border border-v2-border-border-muted bg-v2-overlay-simple-overlay-pressed p-0.5 shadow-inner"
+            class="flex h-8 min-w-0 shrink rounded-lg border border-v2-border-border-muted bg-v2-overlay-simple-overlay-pressed p-0.5 shadow-inner"
           >
             <For each={tabs()}>
               {(tab) => (
@@ -1798,77 +1856,69 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
                   aria-selected={activeTab() === tab.id}
                   aria-controls="live-view-content"
                   data-selected={activeTab() === tab.id || undefined}
-                  class="h-full shrink-0 rounded-md px-2.5 text-12-medium text-text-weak transition-colors hover:bg-v2-overlay-simple-overlay-hover hover:text-text-base focus-visible:outline focus-visible:outline-1 focus-visible:outline-v2-border-border-strong data-[selected]:bg-v2-background-bg-base data-[selected]:text-text-base data-[selected]:shadow-[var(--v2-elevation-raised)]"
+                  // aria-label repite la etiqueta visible para que la pestaña
+                  // conserve nombre cuando por debajo de @[420px] sólo se ve el
+                  // icono, y siga cumpliendo label-in-name cuando se ve el texto.
+                  aria-label={tab.label}
+                  class="flex h-full min-w-0 shrink items-center justify-center rounded-md px-2.5 text-12-medium text-text-weak transition-colors hover:bg-v2-overlay-simple-overlay-hover hover:text-text-base focus-visible:outline focus-visible:outline-1 focus-visible:outline-v2-border-border-strong data-[selected]:bg-v2-background-bg-base data-[selected]:text-text-base data-[selected]:shadow-[var(--v2-elevation-raised)]"
                   onClick={() => view().liveView.setTab(tab.id)}
-                  title={`${tab.label} (${tab.id === "preview" ? "Ctrl+Alt+1" : "Ctrl+Alt+2"})`}
+                  title={`${tab.label} (${TAB_SHORTCUTS[tab.id]})`}
                 >
-                  <span>{tab.label}</span>
-                  <span class="ml-1.5 hidden @[640px]:inline text-[10px] opacity-50 font-mono">
-                    {tab.id === "preview" ? "Ctrl+Alt+1" : "Ctrl+Alt+2"}
+                  <IconV2 name={TAB_ICONS[tab.id]} size="small" class="shrink-0 @[420px]:hidden" />
+                  <span class="hidden @[420px]:block truncate">{tab.label}</span>
+                  <span class="ml-1.5 hidden @[820px]:inline shrink-0 text-[10px] opacity-50 font-mono">
+                    {TAB_SHORTCUTS[tab.id]}
                   </span>
                 </button>
               )}
             </For>
           </div>
 
-          {/* Selector de Dispositivos Responsivos */}
+          {/* Selector de tamaño de ventana. Sustituye a la tira de cuatro
+              emojis: `text-sky-400` no tiñe un emoji de color, así que la
+              selección sólo se veía por el fondo, ninguno tenía nombre accesible
+              ni semántica de radiogrupo, y entre los cuatro se comían ~100 px
+              del encabezado. Un único botón de 28 px deja sitio a las pestañas. */}
           <Show when={content() === "preview"}>
-            <div class="hidden @[540px]:flex h-8 items-center rounded-lg border border-v2-border-border-muted bg-v2-overlay-simple-overlay-pressed p-0.5 shadow-inner gap-0.5">
-              <button
-                type="button"
-                title={language.t("liveView.device.mobile")}
-                class={`px-2 h-full rounded text-[11px] font-medium transition-all ${
-                  viewportMode() === "mobile"
-                    ? "bg-v2-background-bg-base text-sky-400 shadow-sm"
-                    : "text-text-weak hover:text-text-base"
-                }`}
-                onClick={() => requestDevice("mobile")}
-              >
-                📱
-              </button>
-              <button
-                type="button"
-                title={language.t("liveView.device.tablet")}
-                class={`px-2 h-full rounded text-[11px] font-medium transition-all ${
-                  viewportMode() === "tablet"
-                    ? "bg-v2-background-bg-base text-sky-400 shadow-sm"
-                    : "text-text-weak hover:text-text-base"
-                }`}
-                onClick={() => requestDevice("tablet")}
-              >
-                📲
-              </button>
-              <button
-                type="button"
-                title={language.t("liveView.device.laptop")}
-                class={`px-2 h-full rounded text-[11px] font-medium transition-all ${
-                  viewportMode() === "laptop"
-                    ? "bg-v2-background-bg-base text-sky-400 shadow-sm"
-                    : "text-text-weak hover:text-text-base"
-                }`}
-                onClick={() => requestDevice("laptop")}
-              >
-                💻
-              </button>
-              <button
-                type="button"
-                title={language.t("liveView.device.fluid")}
-                class={`px-2 h-full rounded text-[11px] font-medium transition-all ${
-                  viewportMode() === "fluid"
-                    ? "bg-v2-background-bg-base text-sky-400 shadow-sm"
-                    : "text-text-weak hover:text-text-base"
-                }`}
-                onClick={() => requestDevice("fluid")}
-              >
-                🖥️
-              </button>
-            </div>
+            <MenuV2 gutter={4} modal={false} placement="bottom-end">
+              <MenuV2.Trigger
+                as={IconButtonV2}
+                variant="ghost-muted"
+                size="large"
+                class="shrink-0"
+                icon={<IconV2 name="monitor" />}
+                aria-label={language.t("liveView.device.current", {
+                  device: language.t(VIEWPORT_LABEL_KEYS[viewportMode()]),
+                })}
+                title={language.t("liveView.device.current", {
+                  device: language.t(VIEWPORT_LABEL_KEYS[viewportMode()]),
+                })}
+              />
+              <MenuV2.Portal>
+                <MenuV2.Content>
+                  <MenuV2.RadioGroup
+                    value={viewportMode()}
+                    onChange={(value) => requestDevice(value as ViewportMode)}
+                  >
+                    <MenuV2.GroupLabel>{language.t("liveView.device.label")}</MenuV2.GroupLabel>
+                    <For each={VIEWPORT_MODES}>
+                      {(mode) => (
+                        <MenuV2.RadioItem value={mode}>{language.t(VIEWPORT_LABEL_KEYS[mode])}</MenuV2.RadioItem>
+                      )}
+                    </For>
+                  </MenuV2.RadioGroup>
+                </MenuV2.Content>
+              </MenuV2.Portal>
+            </MenuV2>
           </Show>
         </div>
+        {/* shrink-0: IconButtonV2 no lo trae de serie y sin él los botones de la
+            derecha se aplastarían antes que el chip de carpeta. */}
         <IconButtonV2
           type="button"
           variant="ghost-muted"
           size="large"
+          class="shrink-0"
           onClick={() => {
             void loadSnapshot()
             retryReloadDevServer(3, 500)
@@ -1883,6 +1933,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
             type="button"
             variant="ghost-muted"
             size="large"
+            class="shrink-0"
             onClick={() => view().liveView.toggleExpanded()}
             aria-label={language.t(view().liveView.expanded() ? "session.todo.collapse" : "session.todo.expand")}
             title={language.t(view().liveView.expanded() ? "session.todo.collapse" : "session.todo.expand")}
@@ -1893,6 +1944,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
           type="button"
           variant="ghost-muted"
           size="large"
+          class="shrink-0"
           onClick={() => view().liveView.close()}
           aria-label={language.t("common.close")}
           title={language.t("common.close")}

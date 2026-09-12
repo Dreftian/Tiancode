@@ -30,7 +30,7 @@ export const githubHandlers = HttpApiBuilder.group(InstanceHttpApi, "github", (h
       if (!key) return yield* new InvalidRequestError({ message: "Token must not be empty", kind: "Payload", field: "token" })
       const user = yield* Github.user(key)
       yield* Github.setToken(key, { login: user.login })
-      return user
+      return { login: user.login, name: user.name, avatar_url: user.avatar_url }
     })
 
     const status = Effect.fn("GithubHttpApi.status")(function* () {
@@ -48,7 +48,12 @@ export const githubHandlers = HttpApiBuilder.group(InstanceHttpApi, "github", (h
         if (result.error.status === 401) yield* Github.removeToken()
         return { connected: false }
       }
-      return { connected: true, login: result.user.login, avatarUrl: result.user.avatar_url }
+      return {
+        connected: true,
+        login: result.user.login,
+        avatarUrl: result.user.avatar_url,
+        scopes: result.user.scopes,
+      }
     })
 
     const disconnect = Effect.fn("GithubHttpApi.disconnect")(function* () {
@@ -60,9 +65,12 @@ export const githubHandlers = HttpApiBuilder.group(InstanceHttpApi, "github", (h
       query: { query?: string; perPage?: number }
     }) {
       const key = yield* Github.token()
-      const perPage = ctx.query.perPage ?? 30
-      if (ctx.query.query) return yield* Github.searchRepos(key, ctx.query.query, perPage)
-      return yield* Github.listRepos(key, perPage)
+      if (ctx.query.query) return yield* Github.searchRepos(key, ctx.query.query, ctx.query.perPage ?? 30)
+      // Without an explicit page size, return every repository the token can see:
+      // callers that show a count ("N repositories") cannot tell a truncated first
+      // page from a complete list, and the old 30-item default made both wrong.
+      if (ctx.query.perPage === undefined) return yield* Github.listAllRepos(key)
+      return yield* Github.listRepos(key, ctx.query.perPage)
     })
 
     const createRepo = Effect.fn("GithubHttpApi.createRepo")(function* (ctx: {

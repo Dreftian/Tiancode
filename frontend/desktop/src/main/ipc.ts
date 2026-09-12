@@ -28,7 +28,7 @@ import { createUpdaterSubscriptions } from "./updater-subscriptions"
 import { createDesktopDraftStore } from "./draft-store"
 import { nativeT } from "./native-translations"
 import { downloadVoices, deleteVoice, downloadVoice, getVoicesStatus, listVoices, selectVoice, setVoiceEnabled, speakVoice, speakFishVoice } from "./voices"
-import { asrChunk, asrStart, asrStop, ensureAsrModel, getAsrStatus } from "./asr"
+import { asrChunk, asrStart, asrStop, ensureAsrModel, getAsrStatus, resolveAsrLanguage } from "./asr"
 import { getRuntimeInstallState, installRuntime } from "./runtime-install"
 import { captureArea, captureLiveView, capturePreview, captureScreen, captureWindow } from "./capture"
 import { backupNow, listBackups, restoreBackup } from "./backup"
@@ -236,10 +236,12 @@ export function registerIpcHandlers(deps: Deps) {
     setVoiceEnabled(voiceId, enabled),
   )
   ipcMain.handle("asr-status", () => getAsrStatus())
-  ipcMain.handle("asr-ensure-model", () => ensureAsrModel())
-  ipcMain.handle("asr-start", (_event: IpcMainInvokeEvent, language: "es" | "en") => {
-    asrStart(language === "es" ? "es" : "en")
-  })
+  ipcMain.handle("asr-ensure-model", (_event: IpcMainInvokeEvent, language: unknown) =>
+    ensureAsrModel(resolveAsrLanguage(language)),
+  )
+  ipcMain.handle("asr-start", (_event: IpcMainInvokeEvent, language: unknown) =>
+    asrStart(resolveAsrLanguage(language)),
+  )
   ipcMain.on("asr-chunk", (event: IpcMainEvent, samples: Float32Array) => {
     if (event.senderFrame !== event.sender.mainFrame) return
     asrChunk(samples)
