@@ -1,18 +1,14 @@
-import { createSignal, Show, type JSX } from "solid-js"
+import { createEffect, createSignal, onCleanup, Show, type JSX } from "solid-js"
 import { TooltipV2 } from "@tiancode-ai/ui/v2/tooltip-v2"
+import { useCommand } from "@/context/command"
 import { useLanguage } from "@/context/language"
 import { useServerSDK } from "@/context/server-sdk"
 import { authTokenFromCredentials } from "@/utils/server"
-import {
-  enhancePromptText,
-  resolveModelFamily,
-  type PromptIntent,
-  type ModelFamily,
-} from "@/utils/prompt-optimizer"
-
-export { enhancePromptText, resolveModelFamily, type PromptIntent, type ModelFamily }
+import { showToast } from "@/utils/toast"
 
 export type OptimizerStyle = "standard" | "rigorous" | "minimal"
+
+const REQUEST_TIMEOUT = 30000
 
 export function IconSparkles(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
   return (
@@ -52,57 +48,187 @@ export function IconUndo(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
   )
 }
 
+export function IconStop(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
+  return (
+    <svg {...props} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+      <rect x="7" y="7" width="10" height="10" rx="1.5" />
+    </svg>
+  )
+}
+
 export function PromptOptimizerButton(props: {
   input: () => string
   onOptimized: (text: string) => void
   model?: () => { provider?: { id: string }; name?: string; id?: string } | undefined
-  disabled?: boolean
+  directory?: () => string | undefined
   class?: string
 }) {
+  const command = useCommand()
   const language = useLanguage()
   const serverSdk = useServerSDK()
   const [optimizing, setOptimizing] = createSignal(false)
-  const [justOptimized, setJustOptimized] = createSignal(false)
-  const [justReverted, setJustReverted] = createSignal(false)
-  const [lastOriginal, setLastOriginal] = createSignal("")
-  const [lastOptimized, setLastOptimized] = createSignal("")
+  const [abort, setAbort] = createSignal<AbortController | undefined>()
+  const [undoable, setUndoable] = createSignal(false)
+  const [original, setOriginal] = createSignal("")
   const [style, setStyle] = createSignal<OptimizerStyle>("standard")
 
-  const isSpanish = () => language.intl().toLowerCase().startsWith("es")
+  // Distingue el abort del usuario (sin aviso) del timeout o el fallo de red (con aviso).
+  let stopped = false
+  let disposed = false
+
   const hasText = () => props.input().trim().length > 0
 
-  // Se activa modo revertir si el contenido actual en el textarea coincide con el último optimizado
-  const isRevertMode = () => {
-    const cur = props.input().trim()
-    return lastOptimized().length > 0 && cur === lastOptimized().trim() && lastOriginal().length > 0
-  }
+  // El deshacer sobrevive a las ediciones posteriores, pero no a un compositor vacío:
+  // al enviar o limpiar el prompt ya no hay nada a lo que volver.
+  createEffect(() => {
+    if (hasText()) return
+    setUndoable(false)
+    setOriginal("")
+  })
+
+  onCleanup(() => {
+    disposed = true
+    abort()?.abort()
+  })
 
   const styleLabel = () => {
-    if (style() === "rigorous") return isSpanish() ? "🔬 Riguroso (TDD)" : "🔬 Rigorous (TDD)"
-    if (style() === "minimal") return isSpanish() ? "🎯 Quirúrgico" : "🎯 Surgical (Minimal)"
-    return isSpanish() ? "✨ Estándar" : "✨ Standard"
+    if (style() === "rigorous") return language.t("prompt.optimize.style.rigorous")
+    if (style() === "minimal") return language.t("prompt.optimize.style.minimal")
+    return language.t("prompt.optimize.style.standard")
+  }
+
+  // El nombre accesible se mantiene estable: sólo la acción que dispara el clic.
+  const actionLabel = () => {
+    if (optimizing()) return language.t("prompt.optimize.stop")
+    if (undoable()) return language.t("prompt.optimize.undo")
+    return language.t("prompt.optimize.label")
   }
 
   const tooltipText = () => {
-    if (justReverted()) {
-      return isSpanish() ? "¡Texto original restaurado!" : "Original text restored!"
+    if (optimizing()) return `${language.t("prompt.optimize.streaming")} · ${language.t("prompt.optimize.stop")}`
+    if (undoable()) return language.t("prompt.optimize.undo")
+    if (!hasText()) return language.t("prompt.optimize.needsText")
+    return `${language.t("prompt.optimize.label")} · ${styleLabel()} · ${language.t("prompt.optimize.style.hint")}`
+  }
+
+  const setOptimizingFlag = (active: boolean) => {
+    setOptimizing(active)
+    window.dispatchEvent(new CustomEvent("tiancode:prompt-optimizing", { detail: { active } }))
+  }
+
+  const undo = () => {
+    props.onOptimized(original())
+    setUndoable(false)
+    setOriginal("")
+    showToast({ title: language.t("prompt.optimize.reverted") })
+  }
+
+  const optimize = async () => {
+    const source = props.input()
+    const prompt = source.trim()
+    if (!prompt || optimizing()) return
+
+    const serverHttp = serverSdk()?.server?.http
+    if (!serverHttp?.url) {
+      showToast({ variant: "error", title: language.t("prompt.optimize.failed") })
+      return
     }
-    if (justOptimized()) {
-      return isSpanish() ? "¡Prompt optimizado con éxito!" : "Prompt successfully enhanced!"
+
+    const headers: Record<string, string> = { "Content-Type": "application/json" }
+    if (serverHttp.password) {
+      headers["Authorization"] = `Basic ${authTokenFromCredentials({
+        username: serverHttp.username,
+        password: serverHttp.password,
+      })}`
     }
-    if (isRevertMode()) {
-      return isSpanish()
-        ? "Deshacer optimización (Volver al original)"
-        : "Revert enhancement (Undo)"
+
+    // Sin directory el enrutado de workspace resuelve al proyecto por defecto del
+    // servidor, no al de la sesión: el modelo resuelto sería el equivocado.
+    const directory = props.directory?.()
+    const query = directory ? `?directory=${encodeURIComponent(directory)}` : ""
+    const model = props.model?.()
+
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
+    stopped = false
+    setAbort(controller)
+    setOptimizingFlag(true)
+
+    // Cualquier salida que no sea una reescritura completa deja el texto tal cual lo
+    // escribió el usuario: el streaming ya ha ido pisando el compositor.
+    const fail = (description?: string, actions?: { label: string; onClick: () => void }[]) => {
+      props.onOptimized(source)
+      showToast({
+        variant: "error",
+        title: language.t("prompt.optimize.failed"),
+        ...(description ? { description } : {}),
+        ...(actions ? { actions } : {}),
+      })
     }
-    if (!hasText()) {
-      return language.t("prompt.optimize.empty")
+
+    try {
+      const response = await fetch(`${serverHttp.url.replace(/\/+$/, "")}/experimental/prompt/optimize${query}`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          prompt,
+          providerID: model?.provider?.id,
+          modelID: model?.id,
+          language: language.intl(),
+          style: style(),
+        }),
+        signal: controller.signal,
+      })
+
+      if (response.status === 400) {
+        fail(language.t("prompt.optimize.noModel"), [
+          { label: language.t("command.model.choose"), onClick: () => command.trigger("model.choose") },
+        ])
+        return
+      }
+      if (!response.ok || !response.body) {
+        fail()
+        return
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let accumulated = ""
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        const chunk = decoder.decode(value, { stream: true })
+        if (!chunk) continue
+        accumulated += chunk
+        props.onOptimized(accumulated)
+      }
+
+      // El backend convierte credenciales inválidas, límites de tasa y negativas del
+      // modelo en un 200 vacío: sin esta comprobación se anunciarían como éxito.
+      const optimized = accumulated.trim()
+      if (!optimized) {
+        fail(language.t("prompt.optimize.noOutput"))
+        return
+      }
+
+      props.onOptimized(optimized)
+      setOriginal(source)
+      setUndoable(true)
+      showToast({
+        variant: "success",
+        title: language.t("prompt.optimize.done"),
+        actions: [{ label: language.t("prompt.optimize.undo"), onClick: undo }],
+      })
+    } catch {
+      // Al desmontar el compositor el abort es nuestro: no hay texto que devolver ni a quién avisar.
+      if (disposed) return
+      if (stopped) props.onOptimized(source)
+      else fail()
+    } finally {
+      clearTimeout(timeout)
+      setAbort(undefined)
+      setOptimizingFlag(false)
     }
-    if (optimizing()) {
-      return isSpanish() ? "Reescribiendo prompt con IA en streaming..." : "Streaming AI prompt optimization..."
-    }
-    const modeSwitchTip = isSpanish() ? "• Clic derecho: alternar modo" : "• Right-click: switch mode"
-    return `${language.t("prompt.optimize.label")} [${styleLabel()}] ${modeSwitchTip}`
   }
 
   const handleContextMenu = (e: MouseEvent) => {
@@ -116,124 +242,21 @@ export function PromptOptimizerButton(props: {
     setStyle((s) => nextOrder[s])
   }
 
-  const handleAction = async (e: MouseEvent) => {
+  const handleAction = (e: MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
 
-    // 1. Si está en modo revertir, restauramos el texto original
-    if (isRevertMode()) {
-      const orig = lastOriginal()
-      props.onOptimized(orig)
-      setLastOptimized("")
-      setJustReverted(true)
-      setTimeout(() => setJustReverted(false), 1600)
+    if (optimizing()) {
+      stopped = true
+      abort()?.abort()
       return
     }
-
-    const current = props.input().trim()
-    if (!current || optimizing()) return
-
-    setOptimizing(true)
-    setLastOriginal(current)
-    window.dispatchEvent(new CustomEvent("tiancode:prompt-optimizing", { detail: { active: true } }))
-
-    const currentModel = props.model?.()
-    const modelFamily = resolveModelFamily(
-      currentModel?.provider?.id ?? currentModel?.name ?? currentModel?.id,
-    )
-
-    let streamedWithAi = false
-    try {
-      const sdk = serverSdk()
-      const serverHttp = sdk?.server?.http
-      if (serverHttp?.url) {
-        const baseUrl = serverHttp.url.replace(/\/+$/, "")
-        const headers: Record<string, string> = {
-          "Content-Type": "application/json",
-        }
-        if (serverHttp.password) {
-          headers["Authorization"] = `Basic ${authTokenFromCredentials({
-            username: serverHttp.username,
-            password: serverHttp.password,
-          })}`
-        }
-
-        const abortCtrl = new AbortController()
-        const timeoutId = setTimeout(() => abortCtrl.abort(), 30000)
-
-        const response = await fetch(`${baseUrl}/experimental/prompt/optimize`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
-            prompt: current,
-            providerID: currentModel?.provider?.id,
-            modelID: currentModel?.id,
-            language: isSpanish() ? "es" : "en",
-            style: style(),
-          }),
-          signal: abortCtrl.signal,
-        })
-        clearTimeout(timeoutId)
-
-        if (response.ok && response.body) {
-          const reader = response.body.getReader()
-          const decoder = new TextDecoder()
-          let accumulated = ""
-
-          while (true) {
-            const { done, value } = await reader.read()
-            if (done) break
-            const chunk = decoder.decode(value, { stream: true })
-            if (chunk) {
-              accumulated += chunk
-              props.onOptimized(accumulated)
-            }
-          }
-
-          const trimmed = accumulated.trim()
-          if (trimmed.length > 0) {
-            setLastOptimized(trimmed)
-            props.onOptimized(trimmed)
-            setJustOptimized(true)
-            streamedWithAi = true
-            window.dispatchEvent(
-              new CustomEvent("tiancode:prompt-optimizing", { detail: { active: false, done: true, ai: true } }),
-            )
-            setTimeout(() => setJustOptimized(false), 1600)
-          }
-        }
-      }
-    } catch {
-      // Error de red, timeout o sin proveedor: procedemos al fallback local
+    if (undoable()) {
+      undo()
+      return
     }
-
-    if (!streamedWithAi) {
-      // Fallback infalible de alta velocidad en cliente (v2)
-      const optimized = enhancePromptText(current, isSpanish(), { modelFamily })
-      setLastOptimized(optimized)
-
-      // Efecto progresivo de escritura y reemplazo en el textarea (estilo Trae.ai)
-      const tokens = optimized.split(/(\s+|\n)/)
-      let accumulated = ""
-      const stepDelay = Math.max(5, Math.min(16, Math.floor(400 / Math.max(tokens.length, 1))))
-
-      for (let i = 0; i < tokens.length; i++) {
-        accumulated += tokens[i]
-        props.onOptimized(accumulated)
-        if (i % 2 === 0) {
-          await new Promise((r) => setTimeout(r, stepDelay))
-        }
-      }
-      props.onOptimized(optimized)
-      setJustOptimized(true)
-      window.dispatchEvent(
-        new CustomEvent("tiancode:prompt-optimizing", { detail: { active: false, done: true, ai: false } }),
-      )
-      setTimeout(() => setJustOptimized(false), 1600)
-    }
-
-    setOptimizing(false)
-    window.dispatchEvent(new CustomEvent("tiancode:prompt-optimizing", { detail: { active: false } }))
+    if (!hasText()) return
+    void optimize()
   }
 
   return (
@@ -243,17 +266,12 @@ export function PromptOptimizerButton(props: {
           0% { background-position: -200% 0; }
           100% { background-position: 200% 0; }
         }
-        @keyframes trae-spin-pulse {
-          0% { transform: rotate(0deg) scale(0.9); opacity: 0.8; }
-          50% { transform: rotate(180deg) scale(1.2); opacity: 1; filter: drop-shadow(0 0 6px #38bdf8); }
-          100% { transform: rotate(360deg) scale(1); opacity: 0.9; }
-        }
         .trae-optimizer-btn {
           position: relative;
           overflow: hidden;
           transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .trae-optimizer-btn:hover:not(:disabled) {
+        .trae-optimizer-btn:hover:not([aria-disabled="true"]) {
           background: linear-gradient(135deg, rgba(56, 189, 248, 0.15), rgba(168, 85, 247, 0.15));
           box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
           color: #38bdf8;
@@ -261,7 +279,7 @@ export function PromptOptimizerButton(props: {
         .trae-optimizer-btn.is-revert {
           color: #fbbf24;
         }
-        .trae-optimizer-btn.is-revert:hover:not(:disabled) {
+        .trae-optimizer-btn.is-revert:hover {
           background: rgba(251, 191, 36, 0.15);
           box-shadow: 0 0 10px rgba(251, 191, 36, 0.25);
           color: #f59e0b;
@@ -271,45 +289,33 @@ export function PromptOptimizerButton(props: {
           background-size: 200% 100%;
           animation: trae-shimmer 1.2s infinite linear;
         }
-        .trae-optimizer-btn.is-optimizing .trae-sparkles {
-          animation: trae-spin-pulse 0.9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-          color: #38bdf8;
-        }
       `}</style>
       <TooltipV2 value={tooltipText()} placement="top">
         <button
           type="button"
-          disabled={!hasText() || optimizing() || props.disabled}
+          aria-disabled={!hasText() && !optimizing()}
           onClick={handleAction}
           onContextMenu={handleContextMenu}
-          aria-label={tooltipText()}
+          aria-label={actionLabel()}
           class={`
             trae-optimizer-btn relative flex size-7 shrink-0 items-center justify-center rounded-md
             ${
               hasText()
                 ? "cursor-pointer text-v2-icon-icon-muted hover:text-v2-text-text-base active:scale-95"
-                : "cursor-not-allowed text-v2-icon-icon-muted opacity-40"
+                : "cursor-default text-v2-icon-icon-muted opacity-40"
             }
             ${optimizing() ? "is-optimizing" : ""}
-            ${isRevertMode() ? "is-revert" : ""}
-            ${justOptimized() ? "text-emerald-400 font-bold scale-105" : ""}
-            ${justReverted() ? "text-amber-400 font-bold scale-105" : ""}
+            ${undoable() ? "is-revert" : ""}
             ${props.class ?? ""}
           `}
         >
-          <Show
-            when={!justOptimized() && !justReverted()}
-            fallback={<span class="text-xs">✓</span>}
-          >
-            <Show
-              when={!isRevertMode()}
-              fallback={<IconUndo class="size-4 transition-transform duration-200" />}
-            >
-              <IconSparkles class="trae-sparkles size-4 transition-transform duration-200" />
+          <Show when={!optimizing()} fallback={<IconStop class="size-3.5" />}>
+            <Show when={!undoable()} fallback={<IconUndo class="size-4 transition-transform duration-200" />}>
+              <IconSparkles class="size-4 transition-transform duration-200" />
             </Show>
           </Show>
 
-          {/* Indicador sutil de estilo seleccionado (verde azulado para riguroso, violeta para quirúrgico) */}
+          {/* Indicador sutil del estilo seleccionado (cian para riguroso, violeta para quirúrgico) */}
           <Show when={style() === "rigorous"}>
             <span class="absolute top-1 right-1 size-1 rounded-full bg-cyan-400 shadow-[0_0_4px_#22d3ee]" />
           </Show>

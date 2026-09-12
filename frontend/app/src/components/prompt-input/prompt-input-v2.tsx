@@ -14,6 +14,7 @@ import { DialogSelectModelUnpaidV2 } from "@/components/dialogs/dialog-select-mo
 import type { PromptInputProps } from "@/components/prompt-input/contracts"
 import { VoiceDictationButton } from "@/components/prompt-input/voice-dictation-button"
 import { CaptureControl } from "@/components/preview/capture-control"
+import { promptWithOptimizedText } from "@/components/prompt-input/optimized-prompt"
 import { PromptOptimizerButton } from "@/components/prompt-input/prompt-optimizer-button"
 import { SpeedModeButton } from "@/components/prompt-input/speed-mode-button"
 import { toggleSpeed2x } from "@/utils/speed-mode"
@@ -55,6 +56,7 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
   const dialog = useDialog()
   const command = useCommand()
   const language = useLanguage()
+  const sdk = useSDK()
   const [isOptimizingPrompt, setIsOptimizingPrompt] = createSignal(false)
 
   onMount(() => {
@@ -119,10 +121,11 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
           <PromptOptimizerButton
             input={() => props.controller.value()}
             model={() => props.controller.model.selection.current()}
+            directory={() => sdk().directory}
             onOptimized={(text) =>
               props.controller.onInput(
                 text,
-                [{ type: "text", content: text, start: 0, end: text.length }],
+                promptWithOptimizedText(props.controller.parts(), text),
                 text.length,
               )
             }

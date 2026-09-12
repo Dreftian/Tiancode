@@ -82,7 +82,7 @@ describe("updater controller", () => {
 
     await app.controller.install()
 
-    expect(app.calls).toEqual(["check", "download", "stop", "install"])
+    expect(app.calls).toEqual(["check", "download", "install"])
     expect(app.controller.getState()).toEqual({ status: "ready", version: "2.0.0" })
   })
 
@@ -90,22 +90,24 @@ describe("updater controller", () => {
     const app = setup()
     await app.controller.start()
 
+    // install() no longer stops the sidecar first — that left a live window pointed at a dead
+    // port whenever quitAndInstall failed. The only thing that can fail now is the install itself.
     const failed = createUpdaterController({
       enabled: true,
       currentVersion: "1.0.0",
       backend: {
         checkForUpdates: async () => ({ isUpdateAvailable: true, updateInfo: { version: "2.0.0" } }),
         downloadUpdate: async () => {},
-        quitAndInstall() {},
+        quitAndInstall() {
+          throw new Error("install failed")
+        },
       },
       persistence: { get: () => undefined, set() {}, clear() {} },
-      stop: async () => {
-        throw new Error("stop failed")
-      },
+      stop: async () => {},
     })
     await failed.start()
 
-    await expect(failed.install()).rejects.toThrow("stop failed")
+    await expect(failed.install()).rejects.toThrow("install failed")
     expect(failed.getState()).toEqual({ status: "ready", version: "2.0.0" })
   })
 })

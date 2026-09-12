@@ -1,4 +1,4 @@
-import { desktopCapturer, screen, webContents, type WebContents } from "electron"
+import { desktopCapturer, screen, systemPreferences, webContents, type WebContents } from "electron"
 import { getLiveViewGuestWebContentsId, getPreviewGuestWebContentsId } from "./windows"
 import { getPreviewViewWebContents } from "./preview-view"
 
@@ -24,7 +24,18 @@ function toPng(image: Electron.NativeImage): CaptureResult {
   return { buffer, width: out.width, height: out.height }
 }
 
+// macOS no falla cuando falta el permiso de grabación de pantalla: devuelve una imagen en negro.
+// Para el agente eso es peor que un error, porque describiría una pantalla que no ha visto.
+function assertScreenAccess() {
+  if (process.platform !== "darwin") return
+  if (systemPreferences.getMediaAccessStatus("screen") === "granted") return
+  throw new Error(
+    "macOS no ha concedido a Tiancode el permiso de grabación de pantalla. Actívalo en Ajustes del Sistema › Privacidad y seguridad › Grabación de pantalla y reinicia la app.",
+  )
+}
+
 async function capturePrimary(): Promise<Electron.NativeImage> {
+  assertScreenAccess()
   const display = screen.getPrimaryDisplay()
   const scale = display.scaleFactor || 1
   const width = Math.max(1280, Math.round(display.size.width * scale))

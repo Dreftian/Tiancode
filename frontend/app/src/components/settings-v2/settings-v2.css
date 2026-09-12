@@ -1508,64 +1508,173 @@
   background-color: var(--v2-background-bg-layer-02);
 }
 
-/* Tarjetas seleccionables de mascota (estilo Codex). */
+/* Tira de estado en vivo de la mascota de escritorio. El color del punto lo decide data-state,
+   nunca un intercambio de clases desde el TSX, igual que los puntos de connections.css. */
+.settings-v2-pets-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-top: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--v2-border-border-muted);
+  border-radius: 10px;
+  background: var(--v2-background-bg-layer-01);
+}
+
+.settings-v2-pets-state-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--v2-icon-icon-muted);
+}
+
+.settings-v2-pets-state[data-state="ready"] .settings-v2-pets-state-dot {
+  background: var(--v2-state-fg-success);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--v2-state-fg-success) 22%, transparent);
+}
+
+.settings-v2-pets-state[data-state="running"] .settings-v2-pets-state-dot {
+  background: var(--v2-icon-icon-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--v2-icon-icon-accent) 22%, transparent);
+}
+
+.settings-v2-pets-state[data-state="needs-input"] .settings-v2-pets-state-dot {
+  background: var(--v2-state-fg-warning);
+}
+
+.settings-v2-pets-state[data-state="blocked"] .settings-v2-pets-state-dot {
+  background: var(--v2-state-fg-danger);
+}
+
+.settings-v2-pets-state-label {
+  flex: none;
+  font-size: 12px;
+  font-weight: 560;
+  color: var(--v2-text-text-base);
+}
+
+.settings-v2-pets-state-text {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--v2-text-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-v2-pets-state-visibility {
+  flex: none;
+  font-size: 11px;
+  color: var(--v2-text-text-faint);
+}
+
+/* Aviso de "solo escritorio": ocupa la columna de control de una fila, no el hueco bajo una
+   sección, así que pierde el margen superior de .settings-v2-note. */
+.settings-v2-pets-unavailable {
+  margin-top: 0;
+  text-align: end;
+}
+
+/* Cabecera del catálogo: título a la izquierda, recuento a la derecha. */
+.settings-v2-pets-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.settings-v2-pets-count {
+  font-size: 11px;
+  color: var(--v2-text-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Una sola columna por defecto: la descripción va completa y necesita ancho. El panel vive en un
+   diálogo con carril de navegación, así que sólo el contenedor sabe cuánto sitio queda; las
+   media queries de ventana mentirían. */
 .settings-v2-pets-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  grid-template-columns: 1fr;
   gap: 10px;
   margin-top: 10px;
 }
 
+@container settings-panel (min-width: 560px) {
+  .settings-v2-pets-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container settings-panel (min-width: 880px) {
+  .settings-v2-pets-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 .settings-v2-pets-card {
-  position: relative;
-  overflow: hidden;
   display: flex;
-  align-items: center;
+  /* flex-start y no center: la copia ocupa varias líneas y centrada empujaría el icono hacia abajo. */
+  align-items: flex-start;
   gap: 14px;
+  min-width: 0;
   padding: 14px 16px;
   border: 1px solid var(--v2-border-border-muted);
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%), var(--v2-background-bg-layer-01);
+  background: var(--v2-background-bg-layer-01);
+  box-shadow: var(--v2-elevation-raised);
   text-align: start;
   cursor: pointer;
-  min-width: 0;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
   transition:
-    border-color 160ms ease,
-    background 160ms ease,
-    transform 160ms cubic-bezier(0.34, 1.56, 0.64, 1),
-    box-shadow 160ms ease;
+    border-color 120ms ease,
+    background-color 120ms ease,
+    box-shadow 120ms ease;
 }
 
 .settings-v2-pets-card:hover {
-  border-color: rgba(255, 255, 255, 0.25);
+  border-color: var(--v2-border-border-base);
   background: var(--v2-background-bg-layer-02);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
 }
 
-.settings-v2-pets-card:hover .settings-v2-pets-card-3d svg {
-  transform: scale(1.08) rotate(2deg);
+.settings-v2-pets-card:focus-visible {
+  outline: 2px solid var(--v2-border-border-focus);
+  outline-offset: 2px;
 }
 
+/* Después de :hover a propósito: así la tarjeta activa gana por orden y no hace falta !important. */
 .settings-v2-pets-card[data-selected] {
-  border-color: #3b82f6 !important;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.55), 0 8px 24px rgba(59, 130, 246, 0.25) !important;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.16) 0%, rgba(59, 130, 246, 0.05) 100%), var(--v2-background-bg-layer-02) !important;
+  border-color: var(--v2-border-border-focus);
+  background: color-mix(in srgb, var(--v2-background-bg-accent) 10%, var(--v2-background-bg-layer-01));
+  box-shadow: inset 0 0 0 1px var(--v2-border-border-focus);
 }
 
 .settings-v2-pets-card-glyph {
-  flex-shrink: 0;
   display: flex;
+  flex: none;
   align-items: center;
   justify-content: center;
   width: 44px;
   height: 44px;
 }
 
-.settings-v2-pets-card-3d svg {
+.settings-v2-pets-card-glyph svg {
   transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
+}
+
+.settings-v2-pets-card:hover .settings-v2-pets-card-glyph svg {
+  transform: scale(1.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-v2-pets-card-glyph svg {
+    transition: none;
+  }
+
+  .settings-v2-pets-card:hover .settings-v2-pets-card-glyph svg {
+    transform: none;
+  }
 }
 
 .settings-v2-pets-card-copy {
@@ -1573,36 +1682,56 @@
   min-width: 0;
   flex: 1;
   flex-direction: column;
-  gap: 3px;
+  gap: 5px;
 }
 
 .settings-v2-pets-card-name {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 6px;
+  min-width: 0;
   font-size: 13.5px;
   font-weight: 650;
   color: var(--v2-text-text-base);
-  min-width: 0;
 }
 
 .settings-v2-pets-card-selected {
-  flex-shrink: 0;
+  flex: none;
   padding: 1.5px 7px;
+  border: 1px solid color-mix(in srgb, var(--v2-border-border-focus) 45%, transparent);
   border-radius: 6px;
   font-size: 9px;
   font-weight: 650;
   letter-spacing: 0.02em;
-  color: #60a5fa;
-  background-color: rgba(59, 130, 246, 0.25);
-  border: 1px solid rgba(59, 130, 246, 0.45);
+  color: var(--v2-text-text-accent);
+  background-color: color-mix(in srgb, var(--v2-background-bg-accent) 14%, transparent);
 }
 
+.settings-v2-pets-card-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.settings-v2-pets-card-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10.5px;
+  color: var(--v2-text-text-faint);
+}
+
+/* text-muted y no text-faint: esta es la frase que antes iba recortada a una línea y en el gris
+   de menor contraste de la escala. */
 .settings-v2-pets-card-description {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 420;
-  line-height: 1.35;
+  line-height: 1.45;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-pets-card-trait {
+  font-size: 11.5px;
+  line-height: 1.45;
   color: var(--v2-text-text-faint);
 }
 

@@ -31,7 +31,6 @@ import {
   DEFAULT_FISH_KEY,
   getFishAudioVoice,
   setFishAudioVoice,
-  DEFAULT_FISH_VOICE,
   CURATED_FISH_VOICES,
   speakWithFishAudio,
 } from "@/utils/voices"
@@ -39,7 +38,6 @@ import { stopAutoSpeak } from "@/utils/auto-speak"
 import { AudioWaveform } from "@/components/visualization/audio-waveform"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
-import { SettingsPagerV2 } from "./parts/pager"
 import { SelectV2 } from "@tiancode-ai/ui/v2/select-v2"
 import { MicTester } from "./mic-tester"
 import {
@@ -58,40 +56,8 @@ import {
 } from "@/utils/asr"
 import "./voices.css"
 
-const PAGE_SIZE = 24
-const PROBE_TEXT_EN = "Hello! This is Tiancode speaking."
 const PROBE_TEXT_ES = "Hola, soy la voz de Tiancode en español."
 const voiceProbeKey = (voiceID: string) => `voice:${voiceID}`
-
-type VoiceFilter = "all" | "spanish" | "english"
-
-const FILTERS: { id: VoiceFilter; label: string }[] = [
-  { id: "all", label: "Todas (Femeninas ES / EN)" },
-  { id: "spanish", label: "🇪🇸 Español Neural" },
-  { id: "english", label: "🇺🇸 Inglés Neural" },
-]
-
-// Short map of the voice languages shipped with the bundled kokoro model and
-// the piper voices; unknown codes fall back to the raw ISO code.
-const LANGUAGE_LABELS: Record<string, string> = {
-  en: "English",
-  "en-us": "English (US)",
-  "en-gb": "English (UK)",
-  es: "Spanish",
-  "es-es": "Spanish",
-  "es-ar": "Spanish (Argentina)",
-  fr: "French",
-  "fr-fr": "French",
-  hi: "Hindi",
-  it: "Italian",
-  ja: "Japanese",
-  pt: "Portuguese",
-  "pt-br": "Portuguese (Brazil)",
-  zh: "Chinese",
-  "zh-cn": "Chinese (China)",
-}
-
-const languageLabel = (code: string) => LANGUAGE_LABELS[code.toLowerCase()] ?? code
 
 // A voice can be selected when it is supported and enabled.
 const canSelect = (voice: VoiceInfo) => voice.engine === ("fish" as any) || (voice.supported && voice.enabled !== false)
@@ -102,11 +68,6 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
   const api = voicesAPI()
 
   const [status, { refetch }] = createResource(async () => api?.status())
-  const [progress, setProgress] = createSignal(0)
-  const [file, setFile] = createSignal<string | undefined>(undefined)
-  const [downloading, setDownloading] = createSignal(false)
-  const [filter, setFilter] = createSignal<VoiceFilter>("all")
-  const [page, setPage] = createSignal(0)
   const [infoVoice, setInfoVoice] = createSignal<string | undefined>(undefined)
   // Per-voice piper download progress; entries vanish when the file lands.
   const [piperProgress, setPiperProgress] = createSignal<Record<string, number>>({})
@@ -176,7 +137,6 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
     setDictWords(getDictationDictionary())
   }
 
-  let unsubscribe: (() => void) | undefined
   let piperUnsubscribe: (() => void) | undefined
   let devCleanup: (() => void) | undefined
   let onMicChange: ((event: Event) => void) | undefined
@@ -200,10 +160,6 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
 
     const current = api
     if (!current) return
-    unsubscribe = current.onProgress((event) => {
-      setProgress(event.progress)
-      if (event.file) setFile(event.file)
-    })
     piperUnsubscribe = current.onPiperProgress((event) => {
       if (event.done) {
         setPiperProgress((prev) => {
@@ -218,8 +174,6 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
     })
   })
   onCleanup(() => {
-    unsubscribe?.()
-    unsubscribe = undefined
     piperUnsubscribe?.()
     piperUnsubscribe = undefined
     devCleanup?.()
@@ -234,75 +188,14 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
     }
   })
 
-  const modelDownloading = () => downloading() || status()?.downloading === true
-  // Main reports progress in 0-100 already; status().progress stays 0 until
-  // ready, so the live event value is the one that moves during downloads.
-  const progressPercent = createMemo(() => Math.max(0, Math.min(100, Math.round(progress()))))
-
-  const downloadModel = async () => {
-    const current = api
-    if (!current || modelDownloading()) return
-    setDownloading(true)
-    try {
-      await current.download()
-      void refetch()
-    } catch (error) {
-      showToast({
-        variant: "error",
-        title: language.t("settings.voices.download.failed"),
-        description: error instanceof Error ? error.message : undefined,
-      })
-    } finally {
-      setDownloading(false)
-    }
-  }
-
-  const PROMINENT_FEMALE_PATTERNS = [
-    // Spanish
-    "dora", "daniela", "sharvard", "sofia",
-    // English
-    "heart", "bella", "nova", "alloy", "sarah", "sky", "isabella", "emma"
-  ]
-
-  const fishVoicesList = createMemo<VoiceInfo[]>(() => {
-    return CURATED_FISH_VOICES.map((fv) => ({
-      id: fv.id,
-      name: fv.name,
-      language: "es-ES",
-      gender: "female",
-      supported: true,
-      engine: "fish" as any,
-      downloaded: true,
-      enabled: true,
-      default: fv.id === DEFAULT_FISH_VOICE,
-      license: "Fish Audio S2.1 Pro",
-      description: fv.desc,
-    }))
-  })
-
-  // The whole catalogue, downloaded voices first. A name filter used to hide 9 of the 21 local
-  // voices — including the ones repaired in 1.0.40 — and could hide the selected voice itself.
+  // The whole local catalogue, downloaded voices first. The Fish Audio voices used to be
+  // injected here too, but they cannot speak without an API key and the grid is the place
+  // to pick a voice that works; they stay reachable through the Fish engine mode.
   const sortedVoices = createMemo<VoiceInfo[]>(() => {
     const rawVoices = [...(status()?.voices ?? [])]
     rawVoices.sort((a, b) => Number(b.downloaded === true) - Number(a.downloaded === true))
-    return [...fishVoicesList(), ...rawVoices]
+    return rawVoices
   })
-
-  const filteredVoices = createMemo(() => {
-    const current = filter()
-    return sortedVoices().filter((voice) => {
-      if (current === "all") return true
-      if (current === "spanish") return voice.language.toLowerCase().startsWith("es")
-      if (current === "english") return voice.language.toLowerCase().startsWith("en")
-      return true
-    })
-  })
-
-  const pages = createMemo(() => Math.max(1, Math.ceil(filteredVoices().length / PAGE_SIZE)))
-  const currentPage = createMemo(() => Math.min(page(), pages() - 1))
-  const pageVoices = createMemo(() =>
-    filteredVoices().slice(currentPage() * PAGE_SIZE, (currentPage() + 1) * PAGE_SIZE),
-  )
 
   const selected = () => {
     if (getVoiceEngineMode() === "fish") {
@@ -324,8 +217,10 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
     const current = api
     if (!current || !canSelect(voice) || selected() === voice.id) return
     try {
-      setVoiceEngineMode(voice.engine === "kokoro" ? "neural" : "auto")
-      settings.general.setVoiceEngine(voice.engine === "kokoro" ? "neural" : "auto")
+      // Todas las voces del catálogo son locales, así que el modo automático es
+      // el único que las reproduce (y saca al usuario de un modo sin catálogo).
+      setVoiceEngineMode("auto")
+      settings.general.setVoiceEngine("auto")
       // Main starts the download itself for voices not on disk; asking again here raced it.
       await current.select(voice.id)
       void refetch()
@@ -407,17 +302,14 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
       return
     }
 
-    const isEs = voice.language.toLowerCase().startsWith("es")
-    const text = isEs ? PROBE_TEXT_ES : PROBE_TEXT_EN
-
     // 1. Try local engine synthesis
     // Preview the card's own engine whatever the global mode is set to.
-    const error = await speakWithVoices(voiceProbeKey(voice.id), text, voice.id, { engine: "local" })
+    const error = await speakWithVoices(voiceProbeKey(voice.id), PROBE_TEXT_ES, voice.id, { engine: "local" })
     if (error) {
       // 2. Immediate audio preview sample or Web Speech API fallback for testing before install
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
         window.speechSynthesis.cancel()
-        const utterance = new SpeechSynthesisUtterance(text)
+        const utterance = new SpeechSynthesisUtterance(PROBE_TEXT_ES)
         utterance.lang = voice.language
         const availableVoices = window.speechSynthesis.getVoices()
         const match = availableVoices.find(
@@ -465,37 +357,6 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
 
           <Show when={status.loading} fallback={null}>
             <div class="settings-v2-skills-status">{language.t("settings.voices.loading")}</div>
-          </Show>
-
-          <Show when={getVoiceEngineMode() === "neural" && !status.loading && status() && !status()!.ready}>
-            <div class="settings-v2-section">
-              <h3 class="settings-v2-section-title">{language.t("settings.voices.download.title")}</h3>
-              <p class="settings-v2-voices-description">{language.t("settings.voices.download.description")}</p>
-              <Show
-                when={modelDownloading()}
-                fallback={
-                  <div class="settings-v2-voices-actions">
-                    <ButtonV2 type="button" variant="contrast" size="small" onClick={() => void downloadModel()}>
-                      {language.t("settings.voices.download.button")}
-                    </ButtonV2>
-                  </div>
-                }
-              >
-                <div class="settings-v2-voices-progress">
-                  <div class="settings-v2-voices-progress-track">
-                    <div class="settings-v2-voices-progress-fill" style={{ width: `${progressPercent()}%` }} />
-                  </div>
-                  <div class="settings-v2-voices-progress-label">
-                    <span>
-                      {file()
-                        ? language.t("settings.voices.download.progress", { file: file()! })
-                        : language.t("settings.voices.download.downloading")}
-                    </span>
-                    <span>{progressPercent()}%</span>
-                  </div>
-                </div>
-              </Show>
-            </div>
           </Show>
 
           {/* ================================================================= */}
@@ -766,7 +627,7 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
           <SettingsListV2>
             <SettingsRowV2
               title="Motor de Síntesis de Voz"
-              description="Elige entre Fish Audio S2.1 Pro para voces humanas ultra-fluidas (0% CPU local), voz nativa de Windows (Microsoft Sabina) o el modelo neuronal local."
+              description="Elige entre Fish Audio S2.1 Pro para voces humanas ultra-fluidas (0% CPU local), la voz nativa de Windows (Microsoft Sabina) o el modo automático, que usa las voces en español instaladas más abajo."
             >
               <div class="flex items-center flex-wrap gap-1.5">
                 <ButtonV2
@@ -801,17 +662,6 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
                   }}
                 >
                   🔄 Automático
-                </ButtonV2>
-                <ButtonV2
-                  type="button"
-                  variant={getVoiceEngineMode() === "neural" ? "contrast" : "ghost"}
-                  size="small"
-                  onClick={() => {
-                    setVoiceEngineMode("neural")
-                    settings.general.setVoiceEngine("neural")
-                  }}
-                >
-                  🧠 Neural Kokoro
                 </ButtonV2>
               </div>
             </SettingsRowV2>
@@ -930,33 +780,15 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
           <div class="settings-v2-section">
             <h3 class="settings-v2-section-title">{language.t("settings.voices.ready.title")}</h3>
 
-              <div class="settings-v2-voices-filters">
-                <For each={FILTERS}>
-                  {(item) => (
-                    <ButtonV2
-                      type="button"
-                      variant={filter() === item.id ? "contrast" : "ghost"}
-                      size="small"
-                      onClick={() => {
-                        setFilter(item.id)
-                        setPage(0)
-                      }}
-                    >
-                      {item.label}
-                    </ButtonV2>
-                  )}
-                </For>
-              </div>
-
               <Show
-                when={filteredVoices().length > 0 || status.loading}
+                when={sortedVoices().length > 0 || status.loading}
                 fallback={<div class="settings-v2-skills-status">{language.t("settings.voices.voices.empty")}</div>}
               >
                 <div class="settings-v2-voices-grid">
                   <Show
-                    when={filteredVoices().length > 0}
+                    when={sortedVoices().length > 0}
                     fallback={
-                      <For each={[1, 2, 3, 4, 5, 6, 7, 8]}>
+                      <For each={[1, 2, 3, 4, 5, 6]}>
                         {() => (
                           <div class="settings-v2-voices-card opacity-40 pointer-events-none">
                             <div class="settings-v2-voices-card-header">
@@ -970,7 +802,7 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
                       </For>
                     }
                   >
-                    <For each={pageVoices()}>
+                    <For each={sortedVoices()}>
                       {(voice) => {
                         const selectable = canSelect(voice)
                         const downloadProgress = piperProgress()[voice.id]
@@ -1020,60 +852,40 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
                                     setInfoVoice(infoVoice() === voice.id ? undefined : voice.id)
                                   }}
                                 />
-                                <Show when={voice.engine !== ("fish" as any)}>
-                                  <div class="settings-v2-voices-card-toggle" onClick={(e: MouseEvent) => e.stopPropagation()}>
-                                    <Switch
-                                      checked={voice.enabled !== false}
-                                      onChange={(enabled) => void toggleEnabled(voice, enabled)}
-                                      hideLabel
-                                    >
-                                      {language.t("settings.voices.voice.enabled")}
-                                    </Switch>
-                                  </div>
-                                </Show>
+                                <div class="settings-v2-voices-card-toggle" onClick={(e: MouseEvent) => e.stopPropagation()}>
+                                  <Switch
+                                    checked={voice.enabled !== false}
+                                    onChange={(enabled) => void toggleEnabled(voice, enabled)}
+                                    hideLabel
+                                  >
+                                    {language.t("settings.voices.voice.enabled")}
+                                  </Switch>
+                                </div>
                               </div>
                             </div>
 
                             {/* 2. Cuerpo: Meta y Descripción detallada + Chips */}
                             <div class="settings-v2-voices-card-body">
                               <p class="settings-v2-voices-card-desc">
-                                {(voice as any).description ||
-                                  (voice.language.toLowerCase().startsWith("es")
-                                    ? "Voz femenina neural en español con pronunciación y entonación limpia."
-                                    : "Natural English female neural voice with expressive clear prosody.")}
+                                Voz femenina neural en español con pronunciación y entonación limpia.
                               </p>
 
                               <div class="settings-v2-voices-card-chips">
-                                <Show
-                                  when={voice.engine === ("fish" as any)}
-                                  fallback={
-                                    <span class="settings-v2-voices-chip" data-variant="engine">
-                                      {voice.engine === "kokoro-es"
-                                        ? "Kokoro ES"
-                                        : voice.engine === "piper"
-                                          ? "Piper"
-                                          : "Kokoro"}
-                                    </span>
-                                  }
-                                >
-                                  <span class="settings-v2-voices-chip" data-variant="fish">
-                                    🐟 Fish Audio S2.1
-                                  </span>
-                                </Show>
+                                <span class="settings-v2-voices-chip" data-variant="engine">
+                                  {voice.engine === "kokoro-es" ? "Kokoro ES" : voice.engine === "piper" ? "Piper" : voice.engine}
+                                </span>
 
-                                <span class="settings-v2-voices-chip" data-variant="female">
-                                  ♀ Femenina
+                                {/* El género viene del catálogo, no de una etiqueta fija en la tarjeta. */}
+                                <span class="settings-v2-voices-chip" data-variant={voice.gender}>
+                                  {voice.gender === "female" ? "♀ Femenina" : "♂ Masculina"}
                                 </span>
 
                                 <span class="settings-v2-voices-chip" data-variant="lang">
-                                  {voice.language.toLowerCase().startsWith("es") ? "🇪🇸 ES" : "🇺🇸 EN"}
+                                  {voice.language.toUpperCase()}
                                 </span>
 
                                 <Show when={voice.sizeMb}>
                                   <span class="settings-v2-voices-chip">{voice.sizeMb} MB</span>
-                                </Show>
-                                <Show when={voice.engine === ("fish" as any)}>
-                                  <span class="settings-v2-voices-chip text-cyan-400">0% CPU</span>
                                 </Show>
                               </div>
                             </div>
@@ -1096,7 +908,7 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
                                 </div>
                                 <div class="settings-v2-voices-info-grid">
                                   <span class="settings-v2-voices-info-caption">Motor</span>
-                                  <span class="settings-v2-voices-info-value">{voice.engine === ("fish" as any) ? "Fish Audio S2.1 Pro" : voice.engine}</span>
+                                  <span class="settings-v2-voices-info-value">{voice.engine}</span>
                                   <span class="settings-v2-voices-info-caption">Licencia</span>
                                   <span class="settings-v2-voices-info-value">{voice.license ?? "Open"}</span>
                                 </div>
@@ -1189,15 +1001,6 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
                     </For>
                   </Show>
                 </div>
-                <Show when={pages() > 1}>
-                  <div class="mt-3">
-                    <SettingsPagerV2
-                      page={currentPage() + 1}
-                      totalPages={pages()}
-                      onPage={(p) => setPage(p - 1)}
-                    />
-                  </div>
-                </Show>
               </Show>
             </div>
           </Show>

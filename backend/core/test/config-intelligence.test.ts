@@ -12,6 +12,11 @@ describe("ConfigIntelligence.fromEntries", () => {
       projectMemory: true,
       guardrails: true,
       codeGraph: true,
+      outputDistiller: true,
+      toolCallRepair: true,
+      loopBreaker: true,
+      cleanWeb: true,
+      autoSkillLearn: true,
     })
   })
 
@@ -49,5 +54,30 @@ describe("ConfigIntelligence.fromEntries", () => {
   test("directory entries are ignored", () => {
     const directory = { type: "directory" } as never
     expect(ConfigIntelligence.fromEntries([directory, doc({ userMemory: false })]).userMemory).toBe(false)
+  })
+
+  test("the switches gating the agent loop resolve like the others", () => {
+    const resolved = ConfigIntelligence.fromEntries([
+      doc({ outputDistiller: false, toolCallRepair: false, loopBreaker: false, cleanWeb: false }),
+      doc({ autoSkillLearn: false }),
+    ])
+    expect(resolved.outputDistiller).toBe(false)
+    expect(resolved.toolCallRepair).toBe(false)
+    expect(resolved.loopBreaker).toBe(false)
+    expect(resolved.cleanWeb).toBe(false)
+    expect(resolved.autoSkillLearn).toBe(false)
+  })
+})
+
+describe("ConfigIntelligence.fromConfig", () => {
+  test("an absent block is every default", () => {
+    expect(ConfigIntelligence.fromConfig(undefined)).toEqual(ConfigIntelligence.DEFAULTS)
+    expect(ConfigIntelligence.fromConfig({})).toEqual(ConfigIntelligence.DEFAULTS)
+  })
+
+  test("an explicit false wins and the rest stay on", () => {
+    const resolved = ConfigIntelligence.fromConfig({ loopBreaker: false })
+    expect(resolved.loopBreaker).toBe(false)
+    expect(resolved.toolCallRepair).toBe(true)
   })
 })

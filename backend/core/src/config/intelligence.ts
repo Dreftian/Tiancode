@@ -15,6 +15,11 @@ export interface Resolved {
   readonly projectMemory: boolean
   readonly guardrails: boolean
   readonly codeGraph: boolean
+  readonly outputDistiller: boolean
+  readonly toolCallRepair: boolean
+  readonly loopBreaker: boolean
+  readonly cleanWeb: boolean
+  readonly autoSkillLearn: boolean
 }
 
 export const DEFAULTS: Resolved = {
@@ -22,6 +27,28 @@ export const DEFAULTS: Resolved = {
   projectMemory: true,
   guardrails: true,
   codeGraph: true,
+  outputDistiller: true,
+  toolCallRepair: true,
+  loopBreaker: true,
+  cleanWeb: true,
+  autoSkillLearn: true,
+}
+
+/** One authored `experimental.intelligence` block: every switch optional. */
+export type Switches = { readonly [K in keyof Resolved]?: boolean | undefined }
+
+function apply(resolved: Resolved, switches: Switches): Resolved {
+  return {
+    userMemory: switches.userMemory ?? resolved.userMemory,
+    projectMemory: switches.projectMemory ?? resolved.projectMemory,
+    guardrails: switches.guardrails ?? resolved.guardrails,
+    codeGraph: switches.codeGraph ?? resolved.codeGraph,
+    outputDistiller: switches.outputDistiller ?? resolved.outputDistiller,
+    toolCallRepair: switches.toolCallRepair ?? resolved.toolCallRepair,
+    loopBreaker: switches.loopBreaker ?? resolved.loopBreaker,
+    cleanWeb: switches.cleanWeb ?? resolved.cleanWeb,
+    autoSkillLearn: switches.autoSkillLearn ?? resolved.autoSkillLearn,
+  }
 }
 
 /**
@@ -38,14 +65,18 @@ export function fromEntries(entries: readonly Config.Entry[]): Resolved {
     if (entry.type !== "document") continue
     const intelligence = entry.info.experimental?.intelligence
     if (!intelligence) continue
-    resolved = {
-      userMemory: intelligence.userMemory ?? resolved.userMemory,
-      projectMemory: intelligence.projectMemory ?? resolved.projectMemory,
-      guardrails: intelligence.guardrails ?? resolved.guardrails,
-      codeGraph: intelligence.codeGraph ?? resolved.codeGraph,
-    }
+    resolved = apply(resolved, intelligence)
   }
   return resolved
+}
+
+/**
+ * Same fold for callers that hold one already-merged config document instead of the layered
+ * entries — the session processor and the LLM runtime read it from their `Config.get()`,
+ * which has merged the layers for them.
+ */
+export function fromConfig(switches: Switches | undefined): Resolved {
+  return switches ? apply(DEFAULTS, switches) : DEFAULTS
 }
 
 /** Convenience wrapper for callers that can require Config.Service. */

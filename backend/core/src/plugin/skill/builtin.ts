@@ -3,9 +3,10 @@
 // file in skills/. builtin-skills.test.ts fails if this drifts from the directory.
 //
 // Built-in engineering workflow skills bundled from https://github.com/addyosmani/agent-skills
-// (MIT, (c) 2025 Addy Osmani), plus Tiancode's own. Each is a SKILL.md-style document whose
-// frontmatter supplies the name and description; they register before disk discovery, so a
-// user's own skill of the same name overrides them.
+// (MIT, (c) 2025 Addy Osmani) and https://github.com/ayghri/i-have-adhd (MIT, (c) 2026 Ayoub
+// Ghriss), plus Tiancode's own. Each is a SKILL.md-style document whose frontmatter supplies the
+// name and description; they register before disk discovery, so a user's own skill of the same
+// name overrides them.
 
 import accessibility from "../../../../../skills/accessibility.md" with { type: "text" }
 import anti_ai_slop_rules from "../../../../../skills/anti-ai-slop-rules.md" with { type: "text" }
@@ -44,6 +45,7 @@ import frontend_ui_engineering from "../../../../../skills/frontend-ui-engineeri
 import fullstack_nextjs_tailwind from "../../../../../skills/fullstack-nextjs-tailwind.md" with { type: "text" }
 import git_workflow_and_versioning from "../../../../../skills/git-workflow-and-versioning.md" with { type: "text" }
 import handoff from "../../../../../skills/handoff.md" with { type: "text" }
+import i_have_adhd from "../../../../../skills/i-have-adhd.md" with { type: "text" }
 import idea_refine from "../../../../../skills/idea-refine.md" with { type: "text" }
 import improve_codebase_architecture from "../../../../../skills/improve-codebase-architecture.md" with { type: "text" }
 import incident_response from "../../../../../skills/incident-response.md" with { type: "text" }
@@ -168,6 +170,7 @@ export const builtinAgentSkills: Record<string, string> = {
   "fullstack-nextjs-tailwind": fullstack_nextjs_tailwind,
   "git-workflow-and-versioning": git_workflow_and_versioning,
   "handoff": handoff,
+  "i-have-adhd": i_have_adhd,
   "idea-refine": idea_refine,
   "improve-codebase-architecture": improve_codebase_architecture,
   "incident-response": incident_response,

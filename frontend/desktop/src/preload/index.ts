@@ -160,6 +160,8 @@ const api: ElectronAPI = {
   openPath: (path, app) => ipcRenderer.invoke("open-path", path, app),
   revealPath: (path) => ipcRenderer.invoke("reveal-path", path),
   readClipboardImage: () => ipcRenderer.invoke("read-clipboard-image"),
+  readClipboardText: () => ipcRenderer.invoke("read-clipboard-text"),
+  writeClipboardText: (text) => ipcRenderer.invoke("write-clipboard-text", text),
   capture: {
     screen: () => ipcRenderer.invoke("capture-screen"),
     area: (bounds) => ipcRenderer.invoke("capture-area", bounds),

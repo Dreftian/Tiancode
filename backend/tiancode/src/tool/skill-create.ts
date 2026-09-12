@@ -2,6 +2,11 @@ import path from "path"
 import { Effect, Schema } from "effect"
 import { Global } from "@tiancode-ai/core/global"
 import { FSUtil } from "@tiancode-ai/core/fs-util"
+import { ConfigIntelligence } from "@tiancode-ai/core/config/intelligence"
+import { Config } from "@tiancode-ai/core/config"
+import { LocationServiceMap } from "@tiancode-ai/core/location-services"
+import { Location } from "@tiancode-ai/core/location"
+import { AbsolutePath } from "@tiancode-ai/core/schema"
 import { InstanceState } from "@/effect/instance-state"
 import { Skill } from "../skill"
 import { Tool } from "./tool"
@@ -35,12 +40,17 @@ export const Parameters = Schema.Struct({
 
 type Metadata = Record<string, unknown>
 
-export const SkillCreateTool = Tool.define<typeof Parameters, Metadata, FSUtil.Service | Global.Service | Skill.Service>(
+export const SkillCreateTool = Tool.define<
+  typeof Parameters,
+  Metadata,
+  FSUtil.Service | Global.Service | Skill.Service | LocationServiceMap.Service
+>(
   "skill_create",
   Effect.gen(function* () {
     const fsys = yield* FSUtil.Service
     const global = yield* Global.Service
     const skill = yield* Skill.Service
+    const locations = yield* LocationServiceMap.Service
 
     return {
       description:
@@ -49,6 +59,20 @@ export const SkillCreateTool = Tool.define<typeof Parameters, Metadata, FSUtil.S
       execute: (params: Schema.Schema.Type<typeof Parameters>, ctx: Tool.Context<Metadata>) =>
         Effect.gen(function* () {
           const instCtx = yield* InstanceState.context
+
+          // Config is location-scoped in core, so it resolves through the same layer.
+          const locLayer = locations.get(Location.Ref.make({ directory: AbsolutePath.make(instCtx.directory) }))
+          const config = yield* Config.Service.pipe(Effect.provide(locLayer))
+          const intelligence = ConfigIntelligence.fromEntries(yield* config.entries())
+          if (!intelligence.autoSkillLearn) {
+            return {
+              title: "Skill creation disabled",
+              output:
+                "Writing SKILL.md files is turned off in Settings → Intelligence. Enable it there, or write the file yourself with the write tool.",
+              metadata: { enabled: false },
+            }
+          }
+
           const sanitizedName = params.name.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "-")
 
           if (!sanitizedName) {

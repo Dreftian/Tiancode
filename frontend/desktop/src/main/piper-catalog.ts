@@ -19,9 +19,27 @@ export type PiperVoiceDef = {
   sid?: number
   sizeMb: number
   license: string
+  // Read from the upstream dataset card, never assumed: voices.ts used to stamp
+  // "female" on the whole catalogue, which is how a male model (es_MX-ald) ended
+  // up shipping under an invented female name.
+  gender: "female" | "male"
 }
 
+// Only voices whose upstream dataset card documents a female Spanish speaker and
+// a licence that allows redistribution. The name is the upstream dataset name plus
+// the accent; inventing a human name hides which model is actually being used.
 export const PIPER_VOICES: PiperVoiceDef[] = [
+  {
+    id: "piper-es_AR-daniela-high",
+    name: "Daniela (Argentina)",
+    language: "es-AR",
+    repo: "csukuangfj/vits-piper-es_AR-daniela-high",
+    modelFile: "es_AR-daniela-high.onnx",
+    sampleRate: 22050,
+    sizeMb: 114,
+    license: "CC BY-SA 4.0",
+    gender: "female",
+  },
   {
     id: "piper-es_ES-sharvard-medium",
     name: "Sharvard (España)",
@@ -32,16 +50,18 @@ export const PIPER_VOICES: PiperVoiceDef[] = [
     sid: 1,
     sizeMb: 77,
     license: "CC BY 3.0",
+    gender: "female",
   },
   {
-    id: "piper-es_AR-daniela-high",
-    name: "Daniela (Argentina)",
-    language: "es-AR",
-    repo: "csukuangfj/vits-piper-es_AR-daniela-high",
-    modelFile: "es_AR-daniela-high.onnx",
+    id: "piper-es_MX-claude-high",
+    name: "Claude (México)",
+    language: "es-MX",
+    repo: "csukuangfj/vits-piper-es_MX-claude-high",
+    modelFile: "es_MX-claude-high.onnx",
     sampleRate: 22050,
-    sizeMb: 114,
+    sizeMb: 110,
     license: "CC BY-SA 4.0",
+    gender: "female",
   },
   {
     id: "piper-es_ES-mls_9972-low",
@@ -52,6 +72,7 @@ export const PIPER_VOICES: PiperVoiceDef[] = [
     sampleRate: 16000,
     sizeMb: 63,
     license: "CC BY 4.0",
+    gender: "female",
   },
   {
     id: "piper-es_ES-mls_10246-low",
@@ -62,65 +83,6 @@ export const PIPER_VOICES: PiperVoiceDef[] = [
     sampleRate: 16000,
     sizeMb: 63,
     license: "CC BY 4.0",
-  },
-  {
-    id: "piper-es_MX-ald-medium",
-    name: "Sofia / Ald (México)",
-    language: "es-MX",
-    repo: "csukuangfj/vits-piper-es_MX-ald-medium",
-    modelFile: "es_MX-ald-medium.onnx",
-    sampleRate: 22050,
-    sizeMb: 75,
-    license: "CC BY 4.0",
-  },
-  {
-    id: "piper-es_MX-claude-high",
-    name: "Lucia / Claude (México)",
-    language: "es-MX",
-    repo: "csukuangfj/vits-piper-es_MX-claude-high",
-    modelFile: "es_MX-claude-high.onnx",
-    sampleRate: 22050,
-    sizeMb: 110,
-    license: "CC BY-SA 4.0",
-  },
-  {
-    id: "piper-es_ES-carlfm-x_low",
-    name: "Carlota (España)",
-    language: "es-ES",
-    repo: "csukuangfj/vits-piper-es_ES-carlfm-x_low",
-    modelFile: "es_ES-carlfm-x_low.onnx",
-    sampleRate: 16000,
-    sizeMb: 45,
-    license: "CC BY 4.0",
-  },
-  {
-    id: "piper-es_ES-davefx-medium",
-    name: "Elena (España)",
-    language: "es-ES",
-    repo: "csukuangfj/vits-piper-es_ES-davefx-medium",
-    modelFile: "es_ES-davefx-medium.onnx",
-    sampleRate: 22050,
-    sizeMb: 78,
-    license: "CC BY 4.0",
-  },
-  {
-    id: "piper-es_ES-miro-high",
-    name: "Miro (España)",
-    language: "es-ES",
-    repo: "csukuangfj/vits-piper-es_ES-miro-high",
-    modelFile: "es_ES-miro-high.onnx",
-    sampleRate: 22050,
-    sizeMb: 60,
-    license: "CC BY 4.0",
-  },
-  {
-    id: "piper-es_ES-glados-medium",
-    name: "GLaDOS (España)",
-    language: "es-ES",
-    repo: "csukuangfj/vits-piper-es_ES-glados-medium",
-    modelFile: "es_ES-glados-medium.onnx",
-    sampleRate: 22050,
-    sizeMb: 60,
-    license: "CC BY 4.0",
+    gender: "female",
   },
 ]

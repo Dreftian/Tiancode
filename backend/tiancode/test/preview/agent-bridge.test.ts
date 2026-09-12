@@ -4,6 +4,7 @@ import {
   pendingPreviewDemand,
   previewBridgePresence,
   reportPreviewBridgeClient,
+  requestDesktopAction,
   requestPreviewAction,
   resetPreviewBridge,
   settlePreviewCommand,
@@ -123,6 +124,40 @@ describe("preview agent bridge", () => {
     // Reading it twice must not eat the very action the watchdog is opening the panel for.
     expect(pendingPreviewDemand(DIR)).toMatchObject({ pending: 2, id: first.id })
     expect(await takePreviewCommands(DIR, 30, SURFACE)).toHaveLength(2)
+  })
+
+  test("a desktop action reaches a client with no page", async () => {
+    // Una captura no necesita frame: exigir `surface` la dejaría esperando a que cargue una
+    // página que no tiene nada que ver con lo que se va a fotografiar.
+    const pending = requestDesktopAction(DIR, { type: "capture", target: "screen" }, 5000)
+    const commands = await takePreviewCommands(DIR, 30, BLIND)
+    expect(commands).toHaveLength(1)
+    expect(commands[0]!.action).toEqual({ type: "capture", target: "screen" })
+
+    settlePreviewCommand(DIR, { id: commands[0]!.id, ok: true, output: "data:image/png;base64,AAA" })
+    await expect(pending).resolves.toMatchObject({ ok: true, output: "data:image/png;base64,AAA" })
+  })
+
+  test("a client with no page takes the desktop action and leaves the page action queued", async () => {
+    const click = requestPreviewAction(DIR, { type: "click", target: "e1" }, 5000)
+    const clipboard = requestDesktopAction(DIR, { type: "clipboard_read" }, 5000)
+
+    const blind = await takePreviewCommands(DIR, 30, BLIND)
+    expect(blind.map((c) => c.action.type)).toEqual(["clipboard_read"])
+    settlePreviewCommand(DIR, { id: blind[0]!.id, ok: true, output: "texto" })
+    await expect(clipboard).resolves.toMatchObject({ ok: true, output: "texto" })
+
+    const surface = await takePreviewCommands(DIR, 30, SURFACE)
+    expect(surface.map((c) => c.action.type)).toEqual(["click"])
+    settlePreviewCommand(DIR, { id: surface[0]!.id, ok: true, output: "Pulsado" })
+    await expect(click).resolves.toMatchObject({ ok: true })
+  })
+
+  test("a web client is told the desktop is out of reach, not that the page is", async () => {
+    reportPreviewBridgeClient(DIR, { capable: false })
+    const result = await requestDesktopAction(DIR, { type: "capture", target: "screen" })
+    expect(result.ok).toBe(false)
+    expect(result.output).toContain("escritorio")
   })
 
   test("a requeued command is delivered again and settles once", async () => {

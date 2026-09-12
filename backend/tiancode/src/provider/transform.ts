@@ -432,6 +432,11 @@ function unsupportedParts(msgs: ModelMessage[], model: Provider.Model): ModelMes
       const modality = mimeToModality(mime)
       if (!modality) return part
       if (model.capabilities.input[modality]) return part
+      // Most catalogue entries advertise attachments without listing "image" in
+      // their modalities. Trusting the narrower flag told image-capable models
+      // they were blind; let the attachment flag decide and let the provider be
+      // the one to reject an image it really cannot read.
+      if (modality === "image" && model.capabilities.attachment) return part
 
       const name = filename ? `"${filename}"` : modality
       return {

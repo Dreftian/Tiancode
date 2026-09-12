@@ -33,6 +33,7 @@ export const available = (skills: ReadonlyArray<Info>, agent: AgentV2.Info) =>
 const Frontmatter = Schema.Struct({
   name: Schema.String.pipe(Schema.optional),
   description: Schema.String.pipe(Schema.optional),
+  "disable-model-invocation": Schema.Boolean.pipe(Schema.optional),
   slash: Schema.Boolean.pipe(Schema.optional),
 })
 const decodeFrontmatter = Schema.decodeUnknownOption(Frontmatter)
@@ -95,6 +96,7 @@ const layer = Layer.effect(
           skills.push({
             name,
             description: frontmatter.description,
+            disableModelInvocation: frontmatter["disable-model-invocation"],
             slash: frontmatter.slash,
             location: AbsolutePath.make(filepath),
             content: markdown.content,

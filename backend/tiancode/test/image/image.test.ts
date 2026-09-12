@@ -1,4 +1,4 @@
-import { describe, expect } from "bun:test"
+import { describe, expect, test } from "bun:test"
 import { LayerNode } from "@tiancode-ai/core/effect/layer-node"
 import { Cause, Effect, Exit } from "effect"
 import { Image } from "@/image/image"
@@ -96,6 +96,32 @@ describe("Image", () => {
     }),
   )
 
+  it.effect("rejects a url that is not a base64 data url", () =>
+    Effect.gen(function* () {
+      const image = yield* Image.Service
+      const exit = yield* image
+        .normalize({ ...part("image/png", ""), url: "blob:http://localhost:5173/1a2b3c4d-5e6f" })
+        .pipe(Effect.exit)
+
+      expect(Exit.isFailure(exit)).toBe(true)
+      if (Exit.isFailure(exit)) {
+        expect(Cause.squash(exit.cause)).toBeInstanceOf(Image.InvalidDataUrlError)
+      }
+    }),
+  )
+
+  it.effect("fails to decode a data url with no payload", () =>
+    Effect.gen(function* () {
+      const image = yield* Image.Service
+      const exit = yield* image.normalize(part("image/png", "")).pipe(Effect.exit)
+
+      expect(Exit.isFailure(exit)).toBe(true)
+      if (Exit.isFailure(exit)) {
+        expect(Cause.squash(exit.cause)).toBeInstanceOf(Image.DecodeError)
+      }
+    }),
+  )
+
   tiny.effect("fails with a typed size error when no resized candidate fits", () =>
     Effect.gen(function* () {
       const photon = yield* Effect.promise(() => import("@silvia-odwyer/photon-node"))
@@ -118,4 +144,23 @@ describe("Image", () => {
       }
     }),
   )
+
+  // The "no resizer" branch cannot be provoked through a real photon import,
+  // so it is covered through the same decision normalize makes.
+  test("without a resizer an oversized image fails instead of being forwarded", () => {
+    const limits = { maxWidth: 2_000, maxHeight: 2_000, maxBase64Bytes: 1_024 }
+    const error = Image.oversizedWithoutResizer(2_048, limits)
+
+    expect(error).toBeInstanceOf(Image.SizeError)
+    expect(error?.resizable).toBe(false)
+    expect(error?.message).toContain("resizer is unavailable")
+    // No dimensions were read, so the message must not invent any.
+    expect(error?.message).not.toContain("0x0")
+  })
+
+  test("without a resizer an image within the byte limit still goes through", () => {
+    expect(Image.oversizedWithoutResizer(512, { maxWidth: 2_000, maxHeight: 2_000, maxBase64Bytes: 1_024 })).toBe(
+      undefined,
+    )
+  })
 })

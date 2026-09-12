@@ -239,15 +239,13 @@ export const sessionHandlers = HttpApiBuilder.group(InstanceHttpApi, "session", 
       payload: typeof InitPayload.Type
     }) {
       yield* requireSession(ctx.params.sessionID)
-      yield* promptSvc
-        .command({
-          sessionID: ctx.params.sessionID,
-          messageID: ctx.payload.messageID,
-          model: `${ctx.payload.providerID}/${ctx.payload.modelID}`,
-          command: Command.Default.INIT,
-          arguments: "",
-        })
-        .pipe(Effect.mapError(() => new HttpApiError.BadRequest({})))
+      yield* promptSvc.command({
+        sessionID: ctx.params.sessionID,
+        messageID: ctx.payload.messageID,
+        model: `${ctx.payload.providerID}/${ctx.payload.modelID}`,
+        command: Command.Default.INIT,
+        arguments: "",
+      })
       return true
     })
 
@@ -297,12 +295,12 @@ export const sessionHandlers = HttpApiBuilder.group(InstanceHttpApi, "session", 
       payload: typeof PromptPayload.Type
     }) {
       yield* requireSession(ctx.params.sessionID)
-      const message = yield* promptSvc
-        .prompt({
-          ...ctx.payload,
-          sessionID: ctx.params.sessionID,
-        })
-        .pipe(Effect.mapError(() => new HttpApiError.BadRequest({})))
+      // An unusable attachment no longer fails the prompt — it comes back as a
+      // note inside the message — so there is nothing left here to map to a 400.
+      const message = yield* promptSvc.prompt({
+        ...ctx.payload,
+        sessionID: ctx.params.sessionID,
+      })
       return HttpServerResponse.stream(Stream.make(JSON.stringify(message)).pipe(Stream.encodeText), {
         contentType: "application/json",
       })
@@ -317,9 +315,14 @@ export const sessionHandlers = HttpApiBuilder.group(InstanceHttpApi, "session", 
         Effect.catchCause((cause) =>
           Effect.gen(function* () {
             yield* Effect.logError("prompt_async failed", { sessionID: ctx.params.sessionID, cause })
+            // The client shows this message in its error banner, so a full
+            // Cause.pretty would dump a fiber trace on the user. The log above
+            // keeps it.
+            const failure = Cause.squash(cause)
+            const message = failure instanceof Error ? failure.message : Cause.pretty(cause)
             yield* events.publish(Session.Event.Error, {
               sessionID: ctx.params.sessionID,
-              error: new NamedError.Unknown({ message: Cause.pretty(cause) }).toObject(),
+              error: new NamedError.Unknown({ message }).toObject(),
             })
           }),
         ),
@@ -333,9 +336,7 @@ export const sessionHandlers = HttpApiBuilder.group(InstanceHttpApi, "session", 
       payload: typeof CommandPayload.Type
     }) {
       yield* requireSession(ctx.params.sessionID)
-      return yield* promptSvc
-        .command({ ...ctx.payload, sessionID: ctx.params.sessionID })
-        .pipe(Effect.mapError(() => new HttpApiError.BadRequest({})))
+      return yield* promptSvc.command({ ...ctx.payload, sessionID: ctx.params.sessionID })
     })
 
     const shell = Effect.fn("SessionHttpApi.shell")(function* (ctx: {

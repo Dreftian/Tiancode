@@ -56,6 +56,44 @@ type DevServerState = {
   }
 }
 
+// Acciones del agente que NO tocan la página: las ejecuta el proceso principal de Electron contra
+// el escritorio (tools `screenshot` y `clipboard`). Viajan por el mismo puente que las de página
+// porque el servidor es un proceso Bun sin acceso a Electron.
+type DesktopBridgeAction = {
+  type: "capture" | "clipboard_read" | "clipboard_write"
+  /** `capture`: screen, window o area. */
+  target?: string
+  /** `clipboard_write`: el texto a poner en el portapapeles. */
+  value?: string
+  bounds?: { x: number; y: number; width: number; height: number }
+}
+
+type BridgeAction = PreviewAgentAction | DesktopBridgeAction
+
+function isDesktopBridgeAction(action: BridgeAction): action is DesktopBridgeAction {
+  return action.type === "capture" || action.type === "clipboard_read" || action.type === "clipboard_write"
+}
+
+// `window.api` sólo está declarado en parte (el build web no tiene preload), así que el portapapeles
+// se estrecha aquí en vez de ensanchar un tipo global que el navegador nunca cumple.
+function desktopClipboardApi() {
+  return (
+    window as unknown as {
+      api?: { readClipboardText?: () => Promise<string>; writeClipboardText?: (text: string) => Promise<boolean> }
+    }
+  ).api
+}
+
+/** PNG → base64 por trozos: `fromCharCode(...bytes)` desborda la pila con una captura entera. */
+function toBase64(buffer: ArrayBuffer) {
+  const bytes = new Uint8Array(buffer)
+  let binary = ""
+  for (let i = 0; i < bytes.length; i += 8192) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 8192))
+  }
+  return btoa(binary)
+}
+
 type InspectedElementInfo = {
   tag: string
   classes: string
@@ -1494,7 +1532,35 @@ export function LivePreview(props: {
     const capable = !!agent
     let stopped = false
 
-    const runCommand = async (action: PreviewAgentAction): Promise<{ ok: boolean; output: string }> => {
+    const runDesktopCommand = async (action: DesktopBridgeAction): Promise<{ ok: boolean; output: string }> => {
+      if (action.type === "capture") {
+        const kind = action.target === "window" ? "window" : action.target === "area" ? "area" : "screen"
+        if (kind === "area" && !action.bounds)
+          return { ok: false, output: "Falta el recorte: `area` necesita bounds con x, y, width y height." }
+        const shot = await platform.captureScreenshot?.(kind, action.bounds ? { bounds: action.bounds } : undefined)
+        if (!shot) return { ok: false, output: "Tiancode no pudo capturar la pantalla." }
+        // La imagen viaja como data URL por el mismo canal de texto del puente; la tool la
+        // convierte en adjunto para que el modelo la vea.
+        return { ok: true, output: `data:image/png;base64,${toBase64(await shot.arrayBuffer())}` }
+      }
+      const clipboard = desktopClipboardApi()
+      if (action.type === "clipboard_read") {
+        if (!clipboard?.readClipboardText) return { ok: false, output: "Portapapeles no disponible en esta sesión." }
+        return { ok: true, output: await clipboard.readClipboardText() }
+      }
+      if (!clipboard?.writeClipboardText) return { ok: false, output: "Portapapeles no disponible en esta sesión." }
+      await clipboard.writeClipboardText(action.value ?? "")
+      return { ok: true, output: "Portapapeles actualizado." }
+    }
+
+    const runCommand = async (action: BridgeAction): Promise<{ ok: boolean; output: string }> => {
+      if (isDesktopBridgeAction(action)) {
+        try {
+          return await runDesktopCommand(action)
+        } catch (error) {
+          return { ok: false, output: error instanceof Error ? error.message : String(error) }
+        }
+      }
       if (!agent) return { ok: false, output: "Esta sesión no puede ejecutar acciones dentro de la página." }
       try {
         // El `src` del iframe activo: la recarga sin parpadeo mantiene dos vivos y los alterna,
@@ -1531,7 +1597,7 @@ export function LivePreview(props: {
             await new Promise((resolve) => setTimeout(resolve, 3000))
             continue
           }
-          const commands = (await res.json()) as { id: string; action: PreviewAgentAction }[]
+          const commands = (await res.json()) as { id: string; action: BridgeAction }[]
           for (const command of commands) {
             const post = (body: Record<string, unknown>) =>
               fetch(previewAgentResultUrl(url, dir), {

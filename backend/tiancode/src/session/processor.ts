@@ -27,6 +27,7 @@ import { Database } from "@tiancode-ai/core/database/database"
 import { Usage, type LLMEvent } from "@tiancode-ai/llm"
 import { ToolCallRepair } from "./llm/tool-call-repair"
 import { LoopDetector } from "./loop-detector"
+import { ConfigIntelligence } from "@tiancode-ai/core/config/intelligence"
 
 export type Result = "compact" | "stop" | "continue"
 
@@ -105,6 +106,10 @@ const layer = Layer.effect(
       // may execute tools internally before emitting start-step events,
       // so capturing inside the event handler can be too late.
       const initialSnapshot = yield* snapshot.track()
+      // Settings → Intelligence gates the tool-call repair and the loop breaker. Resolved once
+      // per run so a toggle flipped mid-stream cannot leave one tool call repaired but
+      // unchecked, or the reverse.
+      const intelligence = ConfigIntelligence.fromConfig((yield* config.get()).experimental?.intelligence)
       const ctx: ProcessorContext = {
         assistantMessage: input.assistantMessage,
         sessionID: input.sessionID,
@@ -352,7 +357,14 @@ const layer = Layer.effect(
               throw new Error(`Tool call not allowed while generating summary: ${value.name}`)
             }
             yield* ensureToolCall(value)
-            const input = ToolCallRepair.repairToolInput(value.input)
+            // With the repair off the arguments go through untouched: both runtimes already
+            // parse well-formed input, so only a malformed one changes shape here, and it then
+            // fails the tool's own schema check instead of being salvaged.
+            const input: Record<string, unknown> = intelligence.toolCallRepair
+              ? ToolCallRepair.repairToolInput(value.input)
+              : isRecord(value.input)
+                ? value.input
+                : {}
             yield* updateToolCall(value.id, (match) => ({
               ...match,
               tool: value.name,
@@ -368,6 +380,10 @@ const layer = Layer.effect(
                 ? { ...value.providerMetadata, providerExecuted: true }
                 : value.providerMetadata,
             }))
+
+            // With the loop breaker off nothing is ever stuck, so skip the part read the
+            // detector needs rather than compute a verdict no one acts on.
+            if (!intelligence.loopBreaker) return
 
             const parts = yield* MessageV2.parts(ctx.assistantMessage.id).pipe(
               Effect.provideService(Database.Service, database),
@@ -424,14 +440,11 @@ const layer = Layer.effect(
             }
             const rawOutput = toolResultOutput(value)
             const normalized = yield* Effect.forEach(rawOutput.attachments ?? [], (attachment) =>
+              // normalize no longer surfaces ResizerUnavailableError: when the resizer is missing it
+              // passes an in-limit image through untouched and fails an oversized one with SizeError,
+              // which is the case this branch already reports as "omitted".
               attachment.mime.startsWith("image/")
-                ? image.normalize(attachment).pipe(
-                    Effect.catchIf(
-                      (error) => error instanceof Image.ResizerUnavailableError,
-                      () => Effect.succeed(attachment),
-                    ),
-                    Effect.exit,
-                  )
+                ? image.normalize(attachment).pipe(Effect.exit)
                 : Effect.succeed(Exit.succeed<SessionV1.FilePart>(attachment)),
             )
             const omitted = normalized.filter(Exit.isFailure).length

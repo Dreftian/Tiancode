@@ -1,30 +1,45 @@
-import { createEffect, onCleanup, type Component } from "solid-js"
+import { createEffect, createSignal, onCleanup, onMount, type Component } from "solid-js"
 import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
-import { SelectV2 } from "@tiancode-ai/ui/v2/select-v2"
 import { useLanguage } from "@/context/language"
 import { useSettings } from "@/context/settings"
 import { useServerSDK } from "@/context/server-sdk"
-import { syncIntelligenceConfig } from "@/utils/intelligence-config"
-import { AstCodeGraphVisualizer } from "@/components/visualization/ast-codegraph-visualizer"
+import { loadIntelligenceConfig, syncIntelligenceConfig } from "@/utils/intelligence-config"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
-
-const sandboxOptions: ("host" | "docker" | "e2b")[] = ["host", "docker", "e2b"]
 
 export const SettingsIntelligenceV2: Component = () => {
   const language = useLanguage()
   const settings = useSettings()
   const serverSdk = useServerSDK()
 
+  // The server config owns these switches; the local store is only a cache of it. Seed the
+  // cache before the mirroring effect below is allowed to write, otherwise a fresh client
+  // PATCHes its all-on defaults over switches the user turned off somewhere else.
+  const [seeded, setSeeded] = createSignal(false)
+  onMount(() => {
+    const controller = new AbortController()
+    onCleanup(() => controller.abort())
+    void loadIntelligenceConfig(serverSdk()?.server?.http, controller.signal).then((remote) => {
+      if (remote) settings.intelligence.merge(remote)
+      setSeeded(true)
+    })
+  })
+
   // These switches only take effect server-side, so mirror them into the server config
   // whenever they change. The renderer's settings store is localStorage-only and the
   // agent never sees it.
   createEffect(() => {
+    if (!seeded()) return
     const switches = {
       userMemory: settings.intelligence.userMemory(),
       projectMemory: settings.intelligence.projectMemory(),
       guardrails: settings.intelligence.guardrails(),
       codeGraph: settings.intelligence.codeGraph(),
+      outputDistiller: settings.intelligence.outputDistiller(),
+      toolCallRepair: settings.intelligence.toolCallRepair(),
+      loopBreaker: settings.intelligence.loopBreaker(),
+      cleanWeb: settings.intelligence.cleanWeb(),
+      autoSkillLearn: settings.intelligence.autoSkillLearn(),
     }
     const controller = new AbortController()
     onCleanup(() => controller.abort())
@@ -41,7 +56,7 @@ export const SettingsIntelligenceV2: Component = () => {
         </div>
         <p class="settings-v2-tab-description">
           {language.t("settings.intelligence.description") ||
-            "Configura la memoria a largo plazo (LTM), extracción web inteligente, análisis de grafos y seguridad de ejecución."}
+            "Configure long-term memory (LTM), smart web extraction, graph analysis and execution safety."}
         </p>
       </div>
 
@@ -53,10 +68,10 @@ export const SettingsIntelligenceV2: Component = () => {
           </h3>
           <SettingsListV2>
             <SettingsRowV2
-              title={language.t("settings.intelligence.userMemory") || "Memoria de Usuario (USER.md)"}
+              title={language.t("settings.intelligence.userMemory") || "User memory (USER.md)"}
               description={
                 language.t("settings.intelligence.userMemory.desc") ||
-                "Recuerda preferencias globales de programación, estilo e idioma a través de todos tus proyectos."
+                "Remembers global coding, style and language preferences across all your projects."
               }
             >
               <Switch
@@ -66,10 +81,10 @@ export const SettingsIntelligenceV2: Component = () => {
             </SettingsRowV2>
 
             <SettingsRowV2
-              title={language.t("settings.intelligence.projectMemory") || "Memoria del Proyecto (MEMORY.md)"}
+              title={language.t("settings.intelligence.projectMemory") || "Project memory (MEMORY.md)"}
               description={
                 language.t("settings.intelligence.projectMemory.desc") ||
-                "Guarda la arquitectura técnica, puertos de red y particularidades de build de este repositorio."
+                "Stores this repository's technical architecture, network ports and build quirks."
               }
             >
               <Switch
@@ -79,10 +94,10 @@ export const SettingsIntelligenceV2: Component = () => {
             </SettingsRowV2>
 
             <SettingsRowV2
-              title={language.t("settings.intelligence.autoSkill") || "Auto-Destilación de Habilidades (/learn)"}
+              title={language.t("settings.intelligence.skillCreate") || "Skill authoring (SKILL.md)"}
               description={
-                language.t("settings.intelligence.autoSkill.desc") ||
-                "Sugiere empaquetar flujos complejos exitosos en archivos SKILL.md reutilizables automáticamente."
+                language.t("settings.intelligence.skillCreate.desc") ||
+                "Lets the agent save a workflow as a reusable SKILL.md under .tiancode/skills or your global skills folder. The agent decides when to write one."
               }
             >
               <Switch
@@ -90,30 +105,20 @@ export const SettingsIntelligenceV2: Component = () => {
                 onChange={(checked) => settings.intelligence.setAutoSkillLearn(checked)}
               />
             </SettingsRowV2>
-
-            <SettingsRowV2
-              title="Búsqueda de Sesiones SQLite FTS5 (Hermes Agent)"
-              description="Habilita el índice full-text search en SQLite para buscar conversaciones, fragmentos de código y comandos históricos instantáneamente."
-            >
-              <Switch
-                checked={settings.intelligence.hermesSqliteSearch()}
-                onChange={(checked) => settings.intelligence.setHermesSqliteSearch(checked)}
-              />
-            </SettingsRowV2>
           </SettingsListV2>
         </div>
 
-        {/* Section 2: Code Graph & AST */}
+        {/* Section 2: Code Graph & Context */}
         <div class="settings-v2-section">
           <h3 class="settings-v2-section-title">
-            🔍 {language.t("settings.intelligence.section.codegraph") || "Code Graph & AST"}
+            🔍 {language.t("settings.intelligence.section.context") || "Code Graph & Context"}
           </h3>
           <SettingsListV2>
             <SettingsRowV2
-              title={language.t("settings.intelligence.codeGraph") || "Análisis de Grafo de Código (CodeGraph)"}
+              title={language.t("settings.intelligence.codeGraph") || "Code graph analysis (CodeGraph)"}
               description={
                 language.t("settings.intelligence.codeGraph.desc") ||
-                "Indexa funciones, clases y dependencias para razonar sobre impactos arquitectónicos antes de editar."
+                "Indexes functions, classes and dependencies to reason about architectural impact before editing."
               }
             >
               <Switch
@@ -123,62 +128,18 @@ export const SettingsIntelligenceV2: Component = () => {
             </SettingsRowV2>
 
             <SettingsRowV2
-              title="Acelerador Trigram de Búsqueda (Microsoft tgrep / Copilot CLI)"
-              description="Indexación predictiva de código por trigramas y demonio de alta velocidad de GitHub Copilot CLI. Reduce las búsquedas de archivos y regex del agente de segundos a <100ms en Windows (hasta 38x de aceleración)."
-            >
-              <div class="flex items-center gap-2">
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                  ⚡ 38x Copilot Engine
-                </span>
-                <Switch
-                  checked={settings.intelligence.tgrepSearch()}
-                  onChange={(checked) => settings.intelligence.setTgrepSearch(checked)}
-                />
-              </div>
-            </SettingsRowV2>
-
-            <SettingsRowV2
-              title={language.t("settings.intelligence.monaco") || "Visor de Diffs Monaco"}
+              title={language.t("settings.intelligence.outputDistiller") || "Terminal output distillation"}
               description={
-                language.t("settings.intelligence.monaco.desc") ||
-                "Muestra comparaciones visuales lado a lado con resaltado de sintaxis antes de aplicar parches."
+                language.t("settings.intelligence.outputDistiller.desc") ||
+                "Shortens long terminal output before the model reads it. The complete output is still kept in the tool result."
               }
             >
               <Switch
-                checked={settings.intelligence.monacoDiffs()}
-                onChange={(checked) => settings.intelligence.setMonacoDiffs(checked)}
-              />
-            </SettingsRowV2>
-
-            <SettingsRowV2
-              title="Compresión Inteligente de Tokens RLM (Auto-Pruning)"
-              description="Resume automáticamente salidas gigantescas de terminal y logs para no agotar la ventana de contexto."
-            >
-              <Switch
-                checked={settings.intelligence.rlmAutoPruning()}
-                onChange={(checked) => settings.intelligence.setRlmAutoPruning(checked)}
-              />
-            </SettingsRowV2>
-
-            <SettingsRowV2
-              title="Presupuesto de Pensamiento (Thinking Budget)"
-              description="Límite máximo de tokens asignados al razonamiento profundo para DeepSeek-R1 y Claude 3.7 Thinking."
-            >
-              <SelectV2
-                appearance="inline"
-                options={["4096", "8192", "16384", "32768", "64000"]}
-                current={settings.intelligence.thinkingBudget()}
-                placement="bottom-end"
-                gutter={6}
-                label={(opt) => `${Number(opt).toLocaleString()} tokens`}
-                onSelect={(opt) => opt && settings.intelligence.setThinkingBudget(opt)}
+                checked={settings.intelligence.outputDistiller()}
+                onChange={(checked) => settings.intelligence.setOutputDistiller(checked)}
               />
             </SettingsRowV2>
           </SettingsListV2>
-
-          <div class="mt-4">
-            <AstCodeGraphVisualizer />
-          </div>
         </div>
 
         {/* Section 3: Web & Execution Safety */}
@@ -188,23 +149,23 @@ export const SettingsIntelligenceV2: Component = () => {
           </h3>
           <SettingsListV2>
             <SettingsRowV2
-              title={language.t("settings.intelligence.cleanWeb") || "Extracción Web Limpia (Firecrawl Engine)"}
+              title={language.t("settings.intelligence.webBoilerplate") || "Strip web page boilerplate"}
               description={
-                language.t("settings.intelligence.cleanWeb.desc") ||
-                "Descarta scripts, cookies y menús para convertir páginas web en Markdown puro optimizado para LLMs."
+                language.t("settings.intelligence.webBoilerplate.desc") ||
+                "Drops scripts, navigation, footers and forms when a fetched page is turned into Markdown. Turn it off for pages whose content lives inside those elements."
               }
             >
               <Switch
-                checked={settings.intelligence.cleanWebScraping()}
-                onChange={(checked) => settings.intelligence.setCleanWebScraping(checked)}
+                checked={settings.intelligence.cleanWeb()}
+                onChange={(checked) => settings.intelligence.setCleanWeb(checked)}
               />
             </SettingsRowV2>
 
             <SettingsRowV2
-              title={language.t("settings.intelligence.guardrails") || "Pipeline de Guardrails y Redacción de Secretos"}
+              title={language.t("settings.intelligence.shellScan") || "Shell command screening (AgentShield)"}
               description={
-                language.t("settings.intelligence.guardrails.desc") ||
-                "Enmascara contraseñas, tokens y claves privadas antes de enviar consultas a proveedores externos."
+                language.t("settings.intelligence.shellScan.desc") ||
+                "Scans every shell command for destructive deletions, reads of secret files and piped remote execution, and attaches a warning to the tool call. Advisory only: it blocks nothing and masks nothing."
               }
             >
               <Switch
@@ -214,46 +175,28 @@ export const SettingsIntelligenceV2: Component = () => {
             </SettingsRowV2>
 
             <SettingsRowV2
-              title={language.t("settings.intelligence.sandbox") || "Modo de Ejecución Sandbox"}
+              title={language.t("settings.intelligence.toolCallRepair") || "Tool-call argument repair"}
               description={
-                language.t("settings.intelligence.sandbox.desc") ||
-                "Selecciona si los comandos de terminal se ejecutan en el sistema anfitrión o en un contenedor aislado."
+                language.t("settings.intelligence.toolCallRepair.desc") ||
+                "Rebuilds malformed tool arguments — truncated JSON, unclosed braces, markdown fences — that local or streaming models emit. When off, a malformed call simply fails."
               }
             >
-              <SelectV2
-                appearance="inline"
-                options={sandboxOptions}
-                current={settings.intelligence.sandboxExecution()}
-                placement="bottom-end"
-                gutter={6}
-                label={(opt) =>
-                  opt === "host"
-                    ? "Sistema Anfitrión (Host)"
-                    : opt === "docker"
-                      ? "Contenedor Docker Local"
-                      : "Micro-VM Aislada E2B"
-                }
-                onSelect={(opt) => opt && settings.intelligence.setSandboxExecution(opt)}
+              <Switch
+                checked={settings.intelligence.toolCallRepair()}
+                onChange={(checked) => settings.intelligence.setToolCallRepair(checked)}
               />
             </SettingsRowV2>
 
             <SettingsRowV2
-              title="Reparación Automática de Tool-Calls JSON (OpenClaw)"
-              description="Detecta y sanea llamadas a herramientas truncadas, llaves sin cerrar o sintaxis JSON corrupta producida por modelos locales o streaming."
+              title={language.t("settings.intelligence.loopBreaker") || "Loop breaker"}
+              description={
+                language.t("settings.intelligence.loopBreaker.desc") ||
+                "Halts the agent when it repeats the same tool call or fires too many tools in one turn, and asks you before it carries on."
+              }
             >
               <Switch
-                checked={settings.intelligence.openClawRepair()}
-                onChange={(checked) => settings.intelligence.setOpenClawRepair(checked)}
-              />
-            </SettingsRowV2>
-
-            <SettingsRowV2
-              title="Disyuntor de Bucles Infinitos (Circuit Breaker)"
-              description="Corta de inmediato bucles repetitivos de comandos idénticos o ciclos sin avance para proteger tu ventana de contexto y tokens."
-            >
-              <Switch
-                checked={settings.intelligence.openClawCircuitBreaker()}
-                onChange={(checked) => settings.intelligence.setOpenClawCircuitBreaker(checked)}
+                checked={settings.intelligence.loopBreaker()}
+                onChange={(checked) => settings.intelligence.setLoopBreaker(checked)}
               />
             </SettingsRowV2>
           </SettingsListV2>

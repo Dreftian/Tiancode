@@ -17,8 +17,9 @@ export class Policy extends Schema.Class<Policy>("ConfigV2.Experimental.Policy")
  * Capability switches the desktop app exposes under Settings → Intelligence.
  *
  * These live in the server config rather than the renderer's local storage because the
- * behaviour they gate runs server-side: the system prompt builder and the bash tool read
- * them. A setting kept only in localStorage can never reach either.
+ * behaviour they gate runs server-side: the system prompt builder, the bash tool, the
+ * session processor and several tools read them. A setting kept only in localStorage can
+ * never reach any of them.
  *
  * Every field is optional and treated as ON when absent, so an existing config keeps today's
  * behaviour and nothing changes for users who never open the tab.
@@ -35,6 +36,21 @@ export class Intelligence extends Schema.Class<Intelligence>("ConfigV2.Experimen
   }),
   codeGraph: Schema.Boolean.pipe(Schema.optional).annotate({
     description: "Allow the agent to query the code graph (symbol, dependents, dependencies, outline)",
+  }),
+  outputDistiller: Schema.Boolean.pipe(Schema.optional).annotate({
+    description: "Distil long bash output before it reaches the model; off sends the raw output",
+  }),
+  toolCallRepair: Schema.Boolean.pipe(Schema.optional).annotate({
+    description: "Repair malformed tool-call arguments (truncated or fenced JSON) before running the tool",
+  }),
+  loopBreaker: Schema.Boolean.pipe(Schema.optional).annotate({
+    description: "Halt the agent when it repeats the same tool call (doom loop and circuit breaker)",
+  }),
+  cleanWeb: Schema.Boolean.pipe(Schema.optional).annotate({
+    description: "Strip boilerplate (nav, footer, forms, scripts) when webfetch converts HTML to Markdown",
+  }),
+  autoSkillLearn: Schema.Boolean.pipe(Schema.optional).annotate({
+    description: "Allow the agent to write SKILL.md files with the skill_create tool",
   }),
 }) {}
 

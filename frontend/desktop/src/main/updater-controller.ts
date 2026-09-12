@@ -109,16 +109,15 @@ export function createUpdaterController(input: {
       if (state.status !== "ready") throw new Error("Update is not ready to install")
       const version = state.version
       transition({ status: "installing", version })
-      await input
-        .stop()
-        .then(() => {
-          input.backend.quitAndInstall()
-          transition({ status: "ready", version })
-        })
-        .catch((error) => {
-          transition({ status: "ready", version })
-          throw error
-        })
+      // The sidecar is deliberately left running: quitAndInstall closes the windows and emits
+      // before-quit, and index.ts stops it from both before-quit and will-quit. Killing it here
+      // left the renderer pointed at a dead port whenever the install failed and the app kept
+      // running, with nothing to respawn the server.
+      try {
+        input.backend.quitAndInstall()
+      } finally {
+        transition({ status: "ready", version })
+      }
     },
   }
 }

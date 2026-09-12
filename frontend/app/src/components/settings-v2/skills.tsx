@@ -138,6 +138,15 @@ async function fetchGitHubSkills(source: GitHubSource): Promise<GitHubSkillFiles
 
 type SkillFilter = "all" | "safe" | "specialized" | "frontend" | "backend" | "testing"
 
+/** What GET /skill returns per entry (backend/tiancode/src/skill/index.ts `Info`). */
+type SkillInfo = {
+  name: string
+  description?: string
+  icon?: string
+  location: string
+  content: string
+}
+
 export const SettingsSkillsV2: Component<{
   directory?: string
   active?: boolean
@@ -158,33 +167,28 @@ export const SettingsSkillsV2: Component<{
 
   const [data, { refetch }] = createResource(
     async () => {
-      try {
-        const p = params()
-        const loc = p ? { location: p } : undefined
-        const [skillsRes, config] = await Promise.all([
-          serverSdk()
-            .client.v2.skill.list(p ? { location: p } : undefined, { throwOnError: false })
-            .then((res) => ((res?.data as any)?.data ?? res?.data ?? []) as any[])
-            .catch(async () => {
-              const api = serverSdk().api as any
-              const apiRes = await (api?.skills ?? api?.skill)?.list?.(loc).catch(() => undefined)
-              return ((apiRes?.data as any)?.data ?? apiRes?.data ?? []) as any[]
-            })
-            .catch(() => [] as any[]),
-          serverSdk()
-            .client.config.get(p ?? undefined)
-            .catch(() => ({ data: {} })),
-        ])
-        return {
-          skills: (Array.isArray(skillsRes) ? skillsRes : []) as any[],
-          disabled: new Set(((config?.data as any)?.skills?.disabled ?? []) as string[]),
-          autoSelect: (config?.data as any)?.skills?.autoSelect !== false,
-        }
-      } catch {
-        return { skills: [], disabled: new Set<string>(), autoSelect: true }
+      const p = params()
+      // `client.app.skills` is the real method — GET /skill, the same endpoint the import and
+      // toggle calls below already use. This used to call `client.v2.skill.list`, which does not
+      // exist on the client: it threw on every load, the catch chain swallowed it, and the panel
+      // silently fell back to a bundled stub catalogue. That fallback is gone, so a wrong call
+      // here now shows as an empty panel rather than as plausible-looking wrong data.
+      const [skillsRes, config] = await Promise.all([
+        serverSdk()
+          .client.app.skills(p, { throwOnError: false })
+          .then((res) => (Array.isArray(res?.data) ? res.data : []))
+          .catch(() => []),
+        serverSdk()
+          .client.config.get(p ?? undefined)
+          .catch(() => ({ data: {} })),
+      ])
+      return {
+        skills: skillsRes as SkillInfo[],
+        disabled: new Set(((config?.data as any)?.skills?.disabled ?? []) as string[]),
+        autoSelect: (config?.data as any)?.skills?.autoSelect !== false,
       }
     },
-    { initialValue: { skills: [], disabled: new Set<string>(), autoSelect: true } },
+    { initialValue: { skills: [] as SkillInfo[], disabled: new Set<string>(), autoSelect: true } },
   )
 
   // El servidor es la única fuente real del catálogo (incluye el SKILL.md completo de cada

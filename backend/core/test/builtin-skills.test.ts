@@ -6,10 +6,11 @@ import { builtinAgentSkills } from "@tiancode-ai/core/plugin/skill/builtin"
 // The registry is generated from this directory; the repo root is five levels up from
 // backend/core/test.
 const SKILLS_DIR = join(import.meta.dir, "..", "..", "..", "skills")
-const EXCLUDE = new Set(["LICENSE-ADDYOSMANI.md"])
+// Bundled licence texts, not skills. Same predicate the generator uses.
+const isLicence = (f: string) => f.startsWith("LICENSE-")
 
 const onDisk = readdirSync(SKILLS_DIR)
-  .filter((f) => f.endsWith(".md") && !EXCLUDE.has(f))
+  .filter((f) => f.endsWith(".md") && !isLicence(f))
   .map((f) => f.replace(/\.md$/, ""))
   .sort()
 

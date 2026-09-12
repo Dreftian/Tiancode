@@ -1,3 +1,4 @@
+import { Tag } from "@tiancode-ai/ui/v2/badge-v2"
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
 import { SelectV2 } from "@tiancode-ai/ui/v2/select-v2"
 import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
@@ -1028,53 +1029,39 @@ export const SettingsModelsHubV2: Component<{
   })
 
   return (
-    <div class="lm-hub-container">
-      {/* Banner Oficial Hugging Face & Motor Autónomo Tiancode */}
-      <div class="flex items-center justify-between gap-4 p-4 rounded-2xl border border-yellow-500/20 bg-gradient-to-r from-yellow-500/10 via-slate-900/60 to-cyan-500/10 mb-2">
-        <div class="flex items-center gap-3.5">
-          <div class="size-11 rounded-2xl bg-yellow-500/15 border border-yellow-400/30 flex items-center justify-center text-2xl shadow-[0_0_20px_rgba(255,210,30,0.25)] shrink-0">
-            🤗
-          </div>
-          <div class="flex flex-col">
-            <div class="flex items-center gap-2">
-              <h2 class="text-base font-bold text-white flex items-center gap-1.5">
-                Hugging Face Local Models Hub
-              </h2>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
-                ⚡ Motor Autónomo Tiancode
-              </span>
-            </div>
-            <p class="text-xs text-slate-300 mt-0.5">
-              Descarga y ejecuta cualquier modelo GGUF directamente en tu GPU/CPU con el motor nativo de Tiancode. No requiere LM Studio, Ollama ni llama.cpp externo.
-            </p>
-          </div>
+    <>
+      <div class="settings-v2-tab-header settings-v2-tab-header--stacked">
+        <div class="settings-v2-tab-header-row">
+          <h2 class="settings-v2-tab-title">{language.t("settings.modelsHub.title")}</h2>
         </div>
+        <p class="settings-v2-tab-description">{language.t("settings.modelsHub.description")}</p>
       </div>
 
-      {/* 1. Telemetría de Hardware & Runtimes */}
-      <div class="flex items-center justify-between gap-3 p-2.5 rounded-xl border border-white/10 bg-black/30 flex-wrap">
-        <div class="flex items-center gap-2.5">
-          <div class="flex items-center gap-2 px-3 py-1 rounded-lg bg-white/[0.04] border border-white/10 text-xs">
-            <span title="GPU / VRAM" class="text-slate-200 flex items-center gap-1.5">
-              🎮 <strong>{system()?.gpu ? system()!.gpu!.split(" ")[0] : "GPU"}</strong>
-              <span class="text-emerald-400 font-mono text-[11px]">({formatBytes(vramFree())} libre / {formatBytes(vramTotal())})</span>
-            </span>
-            <span class="text-slate-600">|</span>
-            <span title="RAM del Sistema" class="text-slate-200 flex items-center gap-1.5">
-              🧠 <strong>RAM:</strong>
-              <span class="text-cyan-400 font-mono text-[11px]">{formatBytes(ram())}</span>
+      <div class="lm-hub-container">
+        {/* 1. Telemetría de Hardware & Runtimes */}
+        <div class="lm-hub-telemetry">
+          <div class="lm-hub-stat" data-state="info" title="GPU detectada">
+            <span class="lm-hub-dot" />
+            <span class="lm-hub-stat-k">{system()?.gpu ? system()!.gpu!.split(" ")[0] : "GPU"}</span>
+            <span class="lm-hub-stat-v" title={`${formatBytes(vramFree())} libres de ${formatBytes(vramTotal())}`}>
+              {formatBytes(vramFree())} / {formatBytes(vramTotal())}
             </span>
           </div>
-        </div>
 
-        <div class="flex items-center gap-2 flex-wrap">
+          <div class="lm-hub-stat" data-state="info" title="RAM del sistema">
+            <span class="lm-hub-dot" />
+            <span class="lm-hub-stat-k">RAM</span>
+            <span class="lm-hub-stat-v">{formatBytes(ram())}</span>
+          </div>
+
           <Show when={engineStatus()?.status === "running"}>
-            <div class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-medium">
-              <span class="inline-block w-2 h-2 rounded-full bg-emerald-400" />
-              <span>Motor Nativo Activo: {engineStatus()?.modelName}</span>
+            <div class="lm-hub-stat" data-state="on" title="Motor Nativo activo">
+              <span class="lm-hub-dot" />
+              <span class="lm-hub-stat-k">Motor Nativo</span>
+              <span class="lm-hub-stat-v">{engineStatus()?.modelName}</span>
               <button
                 type="button"
-                class="ml-1 text-slate-400 hover:text-red-400 text-xs font-bold cursor-pointer"
+                class="lm-hub-stat-stop"
                 title="Detener motor y liberar VRAM"
                 onClick={stopNativeEngine}
               >
@@ -1082,10 +1069,16 @@ export const SettingsModelsHubV2: Component<{
               </button>
             </div>
           </Show>
+
           <Show when={engineStatus()?.status === "starting" || engineStatus()?.binaryDownloading}>
-            <div class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-medium">
-              <span class="inline-block w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-              <span>{engineStatus()?.binaryDownloading ? `Descargando motor (${engineStatus()?.downloadProgress ?? 0}%)...` : "Cargando en GPU..."}</span>
+            <div class="lm-hub-stat" data-state="pending">
+              <span class="lm-hub-dot" />
+              <span class="lm-hub-stat-k">Motor Nativo</span>
+              <span class="lm-hub-stat-v">
+                {engineStatus()?.binaryDownloading
+                  ? `Descargando ${engineStatus()?.downloadProgress ?? 0}%`
+                  : "Cargando en GPU"}
+              </span>
             </div>
           </Show>
 
@@ -1093,437 +1086,411 @@ export const SettingsModelsHubV2: Component<{
           <For each={(runtimes() ?? []).filter((r) => r.id === "ollama" || r.id === "lmstudio")}>
             {(rt) => (
               <div
-                class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all"
-                classList={{
-                  "bg-emerald-500/15 border-emerald-500/35 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.15)]": rt.available,
-                  "bg-slate-800/50 border-slate-700/50 text-slate-400": !rt.available,
-                }}
+                class="lm-hub-stat"
+                data-state={rt.available ? "on" : "off"}
                 title={rt.available ? `${rt.name} conectado${rt.port ? ` en puerto ${rt.port}` : ""}` : `${rt.name} no detectado`}
               >
-                <span
-                  class="w-2 h-2 rounded-full"
-                  classList={{
-                    "bg-emerald-400 shadow-[0_0_8px_#34d399]": rt.available,
-                    "bg-slate-500": !rt.available,
-                  }}
-                />
-                <span class="font-semibold">{rt.name}</span>
-                <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/30 font-mono">
-                  {rt.available ? (rt.port ? `:${rt.port}` : "Online") : "Offline"}
-                </span>
+                <span class="lm-hub-dot" />
+                <span class="lm-hub-stat-k">{rt.name}</span>
+                <span class="lm-hub-stat-v">{rt.available ? (rt.port ? `:${rt.port}` : "Online") : "Offline"}</span>
               </div>
             )}
           </For>
         </div>
-      </div>
 
-      {/* 2. Buscador Central y Filtros */}
-      <div class="flex flex-col gap-2.5">
-        <form
-          class="lm-search-box w-full"
-          onSubmit={(e) => {
-            e.preventDefault()
-            const val = query().trim()
-            if (val) setSubmitted(val)
-          }}
-        >
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" class="lm-search-icon">
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <input
-            type="text"
-            class="lm-search-input py-2 text-sm"
-            placeholder="Buscar modelos GGUF en Hugging Face (ej. DeepSeek-R1, Qwen2.5-Coder, Llama-3.2, Gemma-2)..."
-            value={query()}
-            onInput={(e) => handleSearchInput(e.currentTarget.value)}
-          />
-          <Show when={query()}>
-            <button type="button" class="lm-search-clear mr-2 cursor-pointer" onClick={() => { setQuery(""); setSubmitted("") }}>×</button>
-          </Show>
-          <button
-            type="submit"
-            class="px-4 py-1.5 rounded-full text-xs font-semibold bg-sky-500 hover:bg-sky-400 text-white transition-all shadow-sm cursor-pointer"
+        {/* 2. Buscador Central y Filtros */}
+        <div class="flex flex-col gap-2.5">
+          <form
+            class="lm-search-box w-full"
+            onSubmit={(e) => {
+              e.preventDefault()
+              const val = query().trim()
+              if (val) setSubmitted(val)
+            }}
           >
-            Buscar
-          </button>
-        </form>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" class="lm-search-icon">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="text"
+              class="lm-search-input py-2 text-sm"
+              placeholder="Buscar modelos GGUF en Hugging Face (ej. DeepSeek-R1, Qwen2.5-Coder, Llama-3.2, Gemma-2)..."
+              value={query()}
+              onInput={(e) => handleSearchInput(e.currentTarget.value)}
+            />
+            <Show when={query()}>
+              <button type="button" class="lm-search-clear mr-2 cursor-pointer" onClick={() => { setQuery(""); setSubmitted("") }}>×</button>
+            </Show>
+            <ButtonV2 type="submit" variant="contrast" size="small">
+              {language.t("settings.modelsHub.search.button")}
+            </ButtonV2>
+          </form>
 
-        <div class="flex items-center justify-between gap-2 flex-wrap text-xs">
-          <div class="flex items-center gap-1.5 flex-wrap">
-            <span class="text-[11px] font-medium text-slate-400 mr-1">Sugeridos:</span>
-            <For
-              each={[
-                { label: "DeepSeek-R1", tag: "DeepSeek-R1-Distill", icon: "🐋" },
-                { label: "Qwen 2.5 Coder", tag: "Qwen2.5-Coder", icon: "💻" },
-                { label: "Hermes 3", tag: "Hermes-3", icon: "🏛️" },
-                { label: "Llama 3.2", tag: "Llama-3.2", icon: "🦙" },
-                { label: "Gemma 2", tag: "gemma-2", icon: "💎" },
-                { label: "Phi-4", tag: "Phi-4", icon: "🔬" },
-                { label: "Nemotron", tag: "Nemotron", icon: "⚡" },
-              ]}
-            >
-              {(item) => (
-                <button
-                  type="button"
-                  class="lm-quick-tag"
-                  onClick={() => {
-                    setQuery(item.tag)
-                    setSubmitted(item.tag)
-                    setHubCategory("all")
-                  }}
-                >
-                  <span>{item.icon}</span>
-                  <span>{item.label}</span>
-                </button>
-              )}
-            </For>
-          </div>
-
-          <div class="flex items-center gap-1.5">
-            <button
-              type="button"
-              class="lm-pill-badge cursor-pointer"
-              classList={{ "lm-pill-active": hubCategory() === "downloaded" }}
-              onClick={() => {
-                setHubCategory(hubCategory() === "downloaded" ? "all" : "downloaded")
-                setQuery("")
-                setSubmitted("")
-              }}
-            >
-              ⬇️ Modelos en Disco ({jobs().filter((j) => j.status === "completed").length})
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. Área de Contenido Principal: Hero o Resultados Detallados */}
-      <div class="flex-1 overflow-y-auto pr-1 flex flex-col gap-3 min-h-0">
-        <Show
-          when={submitted() || hubCategory() !== "all" || pageModelList().length > 0}
-          fallback={
-            /* Estado Inicial Hero Limpio: Sin saturar la pantalla */
-            <div class="p-8 rounded-2xl border border-white/10 bg-slate-900/40 flex flex-col items-center text-center gap-5 my-auto max-w-2xl mx-auto shadow-xl">
-              <div class="size-16 rounded-2xl bg-gradient-to-tr from-sky-500/20 via-indigo-500/20 to-cyan-400/20 border border-sky-400/30 flex items-center justify-center text-3xl shadow-lg">
-                🤗
-              </div>
-              <div class="flex flex-col gap-1.5">
-                <h3 class="text-base font-bold text-white tracking-tight">
-                  Explorador de Modelos Locales Hugging Face
-                </h3>
-                <p class="text-xs text-slate-300 leading-relaxed max-w-lg">
-                  Escribe en el buscador o pulsa una etiqueta sugerida para buscar modelos en formato <strong>GGUF</strong> directamente desde Hugging Face y ver sus especificaciones completas, compatibilidad de GPU y cuantizaciones.
-                </p>
-              </div>
-
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full text-left">
-                <div class="p-3.5 rounded-xl border border-white/10 bg-black/40 flex flex-col gap-1">
-                  <div class="flex items-center gap-2 text-xs font-semibold text-emerald-400">
-                    <span>🎮 Aceleración por GPU</span>
-                  </div>
-                  <p class="text-[11px] text-slate-400 leading-normal m-0">
-                    {system()?.gpu ? system()!.gpu!.split(" ")[0] : "GPU"} detectada con {formatBytes(vramFree())} libres de {formatBytes(vramTotal())} de VRAM. Modelos de 3B a 8B se ejecutarán a máxima velocidad.
-                  </p>
-                </div>
-                <div class="p-3.5 rounded-xl border border-white/10 bg-black/40 flex flex-col gap-1">
-                  <div class="flex items-center gap-2 text-xs font-semibold text-cyan-400">
-                    <span>🧠 Descarga Híbrida RAM</span>
-                  </div>
-                  <p class="text-[11px] text-slate-400 leading-normal m-0">
-                    Tu sistema tiene {formatBytes(ram())} de memoria RAM para albergar capas que sobrepasen la VRAM.
-                  </p>
-                </div>
-              </div>
-
-              <Show when={jobs().filter((j) => j.status === "completed").length > 0}>
-                <div class="w-full pt-2 border-t border-white/5 flex items-center justify-between gap-3 text-xs">
-                  <span class="text-slate-400">Tienes modelos descargados listos para usar:</span>
-                  <button
-                    type="button"
-                    class="px-3 py-1 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-400/30 font-medium cursor-pointer transition-all"
-                    onClick={() => setHubCategory("downloaded")}
-                  >
-                    Ver {jobs().filter((j) => j.status === "completed").length} modelo(s) en disco ↗
-                  </button>
-                </div>
-              </Show>
-            </div>
-          }
-        >
-          {/* Resultados de Búsqueda o Modelos Descargados */}
-          <Show
-            when={searchedModels.loading}
-            fallback={
-              <Show
-                when={pageModelList().length > 0}
-                fallback={
-                  <div class="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02] my-auto">
-                    <span class="text-3xl mb-2">🔍</span>
-                    <span class="text-sm font-semibold text-slate-200">No se encontraron modelos</span>
-                    <span class="text-xs text-slate-400 mt-1">Prueba con otro término de búsqueda o selecciona una de las etiquetas sugeridas.</span>
-                  </div>
-                }
+          <div class="flex items-center justify-between gap-2 flex-wrap text-xs">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="lm-hub-filter-label">Sugeridos:</span>
+              <For
+                each={[
+                  { label: "DeepSeek-R1", tag: "DeepSeek-R1-Distill", icon: "🐋" },
+                  { label: "Qwen 2.5 Coder", tag: "Qwen2.5-Coder", icon: "💻" },
+                  { label: "Hermes 3", tag: "Hermes-3", icon: "🏛️" },
+                  { label: "Llama 3.2", tag: "Llama-3.2", icon: "🦙" },
+                  { label: "Gemma 2", tag: "gemma-2", icon: "💎" },
+                  { label: "Phi-4", tag: "Phi-4", icon: "🔬" },
+                  { label: "Nemotron", tag: "Nemotron", icon: "⚡" },
+                ]}
               >
-                <div class="flex items-center justify-between text-xs text-slate-400 px-1 mb-1">
-                  <span>
-                    {hubCategory() === "downloaded"
-                      ? `Modelos descargados en disco (${activeModelList().length})`
-                      : `Resultados para "${submitted()}" (${activeModelList().length} modelos encontrados)`}
-                  </span>
+                {(item) => (
                   <button
                     type="button"
-                    class="text-sky-400 hover:text-sky-300 font-medium cursor-pointer"
+                    class="lm-quick-tag"
                     onClick={() => {
-                      setSubmitted("")
-                      setQuery("")
+                      setQuery(item.tag)
+                      setSubmitted(item.tag)
                       setHubCategory("all")
                     }}
                   >
-                    ✕ Limpiar búsqueda
+                    <span>{item.icon}</span>
+                    <span>{item.label}</span>
                   </button>
-                </div>
-          <For each={pageModelList()}>
-            {(model) => {
-              const authorName = () => model.author || (model.id.includes("/") ? model.id.split("/")[0] : "huggingface")
-              const shortName = () => model.id.split("/").pop() || model.id
-              const downloadCount = () => formatNumber(model.downloads)
-              const likesCount = () => formatNumber(model.likes)
-              const currentJob = () => getJobForModel(model)
-              const file = () => getSelectedFile(model)
-              const fit = () => compat(file()?.size)
-              const isDownloaded = () => currentJob()?.status === "completed"
-
-              return (
-                <div class="p-4 rounded-2xl border border-white/10 bg-slate-900/50 hover:border-sky-500/40 transition-all flex flex-col gap-3 shadow-md">
-                  {/* Top: BrandLogo + Info + Hugging Face link */}
-                  <div class="flex items-start justify-between gap-3">
-                    <div class="flex items-center gap-3 min-w-0">
-                      <BrandLogo id={model.id} author={authorName()} class="size-11 shrink-0" />
-                      <div class="flex flex-col min-w-0">
-                        <div class="flex items-center gap-2 flex-wrap">
-                          <span class="text-sm font-bold text-white truncate">{shortName()}</span>
-                          <span class="lm-verified-badge" title="Modelo verificado">✓</span>
-                          <Show when={isDownloaded()}>
-                            <span class="lm-downloaded-pill">Descargado</span>
-                          </Show>
-                          <Show when={!submitted()}>
-                            <span class="lm-staff-badge-sm">🌟 Staff Pick</span>
-                          </Show>
-                        </div>
-                        <div class="flex items-center gap-2.5 text-xs text-slate-400 mt-0.5 flex-wrap">
-                          <span class="font-mono text-sky-400">@{authorName()}</span>
-                          <span>⬇ {downloadCount()} descargas</span>
-                          <span>❤️ {likesCount()}</span>
-                          <span class="px-1.5 py-0.2 rounded bg-white/5 border border-white/10 text-[10.5px] font-mono text-slate-300">GGUF</span>
-                          <span class="px-1.5 py-0.2 rounded bg-white/5 border border-white/10 text-[10.5px] font-mono text-slate-300">
-                            {shortName().toLowerCase().includes("qwen") ? "qwen2.5" : "transformer"}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <a
-                      href={`https://huggingface.co/${model.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="text-xs text-slate-400 hover:text-sky-300 transition-colors shrink-0 flex items-center gap-1"
-                    >
-                      <span>Hugging Face</span>
-                      <span>↗</span>
-                    </a>
-                  </div>
-
-                  {/* Description */}
-                  <p class="text-xs text-slate-300 leading-relaxed m-0">
-                    {model.description || "Modelo cuantizado GGUF listo para ejecución local de alta fidelidad en Tiancode."}
-                  </p>
-
-                  {/* Quantization picker & Hardware Compatibility & Actions Strip */}
-                  <div class="flex items-center justify-between gap-3 pt-2.5 border-t border-white/[0.06] flex-wrap">
-                    <div class="flex items-center gap-2.5 flex-wrap flex-1 min-w-[240px]">
-                        {/* Selector de cuantización */}
-                        <div class="flex items-center gap-1.5">
-                          <span class="text-[11px] text-slate-400 font-medium">Cuantización:</span>
-                          <Show
-                            when={model.quantFiles && model.quantFiles.length > 0}
-                            fallback={<span class="text-xs font-mono text-slate-200">GGUF</span>}
-                          >
-                            <SelectV2
-                              appearance="inline"
-                              options={model.quantFiles}
-                              current={file()}
-                              value={(qf) => qf.file}
-                              label={(qf) => `${qf.quant || "GGUF"} (${formatBytes(qf.size)})${qf.recommended ? " ★" : ""}`}
-                              onSelect={(qf) => qf && setModelQuant(model.id, qf.file)}
-                              placement="bottom-start"
-                              gutter={4}
-                            />
-                          </Show>
-                        </div>
-
-                      {/* Hardware Fit badge */}
-                      <div class={`lm-compat-badge lm-compat-${fit()} text-[11px]`}>
-                        <Show when={fit() === "full_gpu"}>⚡ {language.t("settings.modelsHub.fit.fullGpu")}</Show>
-                        <Show when={fit() === "partial_gpu"}>⚡ {language.t("settings.modelsHub.fit.partialGpu")}</Show>
-                        <Show when={fit() === "ram_only"}>🧠 {language.t("settings.modelsHub.fit.ramOnly")}</Show>
-                        <Show when={fit() === "no_fit"}>⚠️ {language.t("settings.modelsHub.fit.noFit")}</Show>
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div class="flex items-center gap-2">
-                      <Show
-                        when={isDownloaded()}
-                        fallback={
-                          <Show
-                            when={currentJob()?.status === "downloading"}
-                            fallback={
-                              <button
-                                type="button"
-                                class="lm-btn-download-sm"
-                                onClick={() => startDownload(model.id, file().file)}
-                              >
-                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                  <polyline points="7 10 12 15 17 10" />
-                                  <line x1="12" y1="15" x2="12" y2="3" />
-                                </svg>
-                                <span>Descargar {formatBytes(file()?.size)}</span>
-                              </button>
-                            }
-                          >
-                            <div class="lm-downloading-pill-sm">
-                              <span class="lm-spinner" />
-                              <span>{currentJob()?.percent ?? 0}% ({formatSpeed(currentJob()?.speedBytesPerSec)})</span>
-                            </div>
-                          </Show>
-                        }
-                      >
-                        <button
-                          type="button"
-                          class="lm-btn-activate-sm"
-                          onClick={() => currentJob() && activateDownloadedModel(currentJob()!)}
-                        >
-                          ⚡ Activar y Usar
-                        </button>
-                        <button
-                          type="button"
-                          class="lm-btn-benchmark-sm"
-                          disabled={benchmarkingModel() === model.id}
-                          onClick={() => runBenchmarkForModel(model)}
-                          title="Probar velocidad de inferencia en GPU"
-                        >
-                          <Show when={benchmarkingModel() === model.id} fallback={<span>⚡ Benchmark</span>}>
-                            <span class="lm-spinner" />
-                          </Show>
-                        </button>
-                        <button
-                          type="button"
-                          class="lm-btn-delete-sm"
-                          onClick={() => currentJob() && removeDownload(currentJob()!)}
-                          title="Eliminar de disco"
-                        >
-                          🗑️
-                        </button>
-                      </Show>
-                    </div>
-                  </div>
-
-                  {/* Benchmark Result if applicable */}
-                  <Show when={benchResults()[model.id]}>
-                    {(res) => (
-                      <div class="p-2.5 rounded-xl bg-sky-950/40 border border-sky-500/30 flex items-center justify-between text-xs text-sky-200 mt-1">
-                        <div class="flex items-center gap-2">
-                          <span class="text-emerald-400 font-bold">{res().tokSec} tok/s</span>
-                          <span class="text-slate-400">· VRAM: {res().vram}</span>
-                          <span class="text-slate-400">· TTFT: {res().ttft} ms</span>
-                        </div>
-                        <span class="text-[10.5px] text-sky-300">Medición de inferencia local en GPU</span>
-                      </div>
-                    )}
-                  </Show>
-                </div>
-              )
-            }}
-          </For>
-
-          <Show when={hubTotal() > 1}>
-            <div class="mt-2 mb-4">
-              <SettingsPagerV2
-                page={hubPage()}
-                totalPages={hubTotal()}
-                onPage={setHubPage}
-              />
+                )}
+              </For>
             </div>
-          </Show>
-        </Show>
-      }
-    >
-      <div class="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02] my-auto">
-        <span class="lm-spinner size-8 mb-3" />
-        <span class="text-sm font-semibold text-slate-200">Consultando Hugging Face...</span>
-        <span class="text-xs text-slate-400 mt-1">Obteniendo archivos GGUF y compatibilidad de hardware.</span>
-      </div>
-    </Show>
-  </Show>
-</div>
 
-      {/* Cajón Inferior de Descargas Activas y Gestión de Disco */}
-      <Show when={jobs().length > 0}>
-        <div class="lm-downloads-drawer">
-          <div class="lm-downloads-drawer-header">
-            <span class="lm-downloads-drawer-title">Descargas y Modelos en Disco ({jobs().length})</span>
-          </div>
-          <div class="lm-downloads-drawer-list">
-            <For each={jobs()}>
-              {(j) => {
-                const percent = () => asNumber(j.percent) ?? (j.status === "completed" ? 100 : 0)
-                const speed = () => formatSpeed(j.speedBytesPerSec)
-                const eta = () => formatEta(j.etaSeconds)
-
-                return (
-                  <div class="lm-drawer-item" data-status={j.status}>
-                    <div class="lm-drawer-item-info">
-                      <span class="lm-drawer-item-name">{j.file}</span>
-                      <span class="lm-drawer-item-sub">
-                        {j.status === "completed" ? "✓ Completado" : `${j.status} · ${percent()}%`}
-                        {speed() ? ` · ⚡ ${speed()}` : ""}
-                        {eta() ? ` · ⏱️ ${eta()}` : ""}
-                      </span>
-                    </div>
-
-                    <Show when={j.status === "downloading" || j.status === "paused"}>
-                      <div class="lm-drawer-progress-bar">
-                        <div class="lm-drawer-progress-fill" style={{ width: `${percent()}%` }} />
-                      </div>
-                    </Show>
-
-                    <div class="lm-drawer-item-actions">
-                      <Show when={j.status === "paused" || j.status === "failed"}>
-                        <button
-                          type="button"
-                          class="lm-btn-sm-activate !bg-sky-600 hover:!bg-sky-500 text-white font-medium"
-                          onClick={() => startDownload(j.model, j.file)}
-                        >
-                          ▶ Reanudar
-                        </button>
-                      </Show>
-                      <Show when={j.status === "completed"}>
-                        <button type="button" class="lm-btn-sm-activate" onClick={() => activateDownloadedModel(j)}>
-                          ⚡ Activar y Usar
-                        </button>
-                      </Show>
-                      <button type="button" class="lm-btn-sm-delete" onClick={() => removeDownload(j)}>
-                        Eliminar de disco
-                      </button>
-                    </div>
-                  </div>
-                )
-              }}
-            </For>
+            <div class="flex items-center gap-1.5">
+              <button
+                type="button"
+                class="lm-pill-badge"
+                classList={{ "lm-pill-active": hubCategory() === "downloaded" }}
+                onClick={() => {
+                  setHubCategory(hubCategory() === "downloaded" ? "all" : "downloaded")
+                  setQuery("")
+                  setSubmitted("")
+                }}
+              >
+                ⬇️ Modelos en Disco ({jobs().filter((j) => j.status === "completed").length})
+              </button>
+            </div>
           </div>
         </div>
-      </Show>
-    </div>
+
+        {/* 3. Área de Contenido Principal: Hero o Resultados Detallados */}
+        <div class="lm-hub-results">
+          <Show
+            when={submitted() || hubCategory() !== "all" || pageModelList().length > 0}
+            fallback={
+              /* Estado Inicial Hero Limpio: Sin saturar la pantalla */
+              <div class="lm-hub-empty">
+                <span class="lm-hub-empty-icon">🤗</span>
+                <h3 class="lm-hub-empty-title">Explorador de Modelos Locales Hugging Face</h3>
+                <p class="lm-hub-empty-body">
+                  Escribe en el buscador o pulsa una etiqueta sugerida para buscar modelos en formato <strong>GGUF</strong> directamente desde Hugging Face y ver sus especificaciones completas, compatibilidad de GPU y cuantizaciones.
+                </p>
+
+                <div class="lm-hub-empty-grid">
+                  <div class="lm-hub-empty-card">
+                    <span class="lm-hub-empty-card-title">🎮 Aceleración por GPU</span>
+                    <p class="lm-hub-empty-card-body">
+                      {system()?.gpu ? system()!.gpu!.split(" ")[0] : "GPU"} detectada con {formatBytes(vramFree())} libres de {formatBytes(vramTotal())} de VRAM. Modelos de 3B a 8B se ejecutarán a máxima velocidad.
+                    </p>
+                  </div>
+                  <div class="lm-hub-empty-card">
+                    <span class="lm-hub-empty-card-title">🧠 Descarga Híbrida RAM</span>
+                    <p class="lm-hub-empty-card-body">
+                      Tu sistema tiene {formatBytes(ram())} de memoria RAM para albergar capas que sobrepasen la VRAM.
+                    </p>
+                  </div>
+                </div>
+
+                <Show when={jobs().filter((j) => j.status === "completed").length > 0}>
+                  <div class="lm-hub-empty-footer">
+                    <span>Tienes modelos descargados listos para usar:</span>
+                    <ButtonV2 variant="outline" size="small" onClick={() => setHubCategory("downloaded")}>
+                      Ver {jobs().filter((j) => j.status === "completed").length} modelo(s) en disco ↗
+                    </ButtonV2>
+                  </div>
+                </Show>
+              </div>
+            }
+          >
+            {/* Resultados de Búsqueda o Modelos Descargados */}
+            <Show
+              when={searchedModels.loading}
+              fallback={
+                <Show
+                  when={pageModelList().length > 0}
+                  fallback={
+                    <div class="lm-hub-empty">
+                      <span class="lm-hub-empty-icon">🔍</span>
+                      <span class="lm-hub-empty-title">No se encontraron modelos</span>
+                      <p class="lm-hub-empty-body">Prueba con otro término de búsqueda o selecciona una de las etiquetas sugeridas.</p>
+                    </div>
+                  }
+                >
+                  <div class="lm-results-bar">
+                    <span>
+                      {hubCategory() === "downloaded"
+                        ? `Modelos descargados en disco (${activeModelList().length})`
+                        : `Resultados para "${submitted()}" (${activeModelList().length} modelos encontrados)`}
+                    </span>
+                    <button
+                      type="button"
+                      class="lm-results-clear"
+                      onClick={() => {
+                        setSubmitted("")
+                        setQuery("")
+                        setHubCategory("all")
+                      }}
+                    >
+                      ✕ Limpiar búsqueda
+                    </button>
+                  </div>
+
+                  <For each={pageModelList()}>
+                    {(model) => {
+                      const authorName = () => model.author || (model.id.includes("/") ? model.id.split("/")[0] : "huggingface")
+                      const shortName = () => model.id.split("/").pop() || model.id
+                      const downloadCount = () => formatNumber(model.downloads)
+                      const likesCount = () => formatNumber(model.likes)
+                      const currentJob = () => getJobForModel(model)
+                      const file = () => getSelectedFile(model)
+                      const fit = () => compat(file()?.size)
+                      const isDownloaded = () => currentJob()?.status === "completed"
+                      // El badge sólo es cierto para los modelos de la lista curada, no para
+                      // cualquier modelo que aparezca sin búsqueda activa (p.ej. los del disco).
+                      const isStaffPick = () => STAFF_PICKS.some((pick) => pick.id === model.id)
+
+                      return (
+                        <div class="lm-result-card">
+                          {/* Top: BrandLogo + Info + Hugging Face link */}
+                          <div class="lm-result-card-head">
+                            <div class="lm-result-card-identity">
+                              <BrandLogo id={model.id} author={authorName()} />
+                              <div class="lm-result-card-titles">
+                                <div class="lm-result-card-name-row">
+                                  <span class="lm-result-card-name">{shortName()}</span>
+                                  <Show when={isDownloaded()}>
+                                    <span class="lm-downloaded-pill">Descargado</span>
+                                  </Show>
+                                  <Show when={isStaffPick()}>
+                                    <span class="lm-staff-badge-sm">🌟 Staff Pick</span>
+                                  </Show>
+                                </div>
+                                <div class="lm-result-card-meta">
+                                  <span class="lm-result-card-author">@{authorName()}</span>
+                                  <span>⬇ {downloadCount()} descargas</span>
+                                  <span>❤️ {likesCount()}</span>
+                                  <Tag>GGUF</Tag>
+                                  <Show when={model.pipeline_tag}>
+                                    <Tag>{model.pipeline_tag}</Tag>
+                                  </Show>
+                                </div>
+                              </div>
+                            </div>
+
+                            <a
+                              href={`https://huggingface.co/${model.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              class="lm-result-card-link"
+                            >
+                              <span>Hugging Face</span>
+                              <span>↗</span>
+                            </a>
+                          </div>
+
+                          {/* Description */}
+                          <p class="lm-result-card-description">
+                            {model.description || "Modelo cuantizado GGUF listo para ejecución local de alta fidelidad en Tiancode."}
+                          </p>
+
+                          {/* Quantization picker & Hardware Compatibility & Actions Strip */}
+                          <div class="lm-result-card-footer">
+                            <div class="lm-result-card-picker">
+                              {/* Selector de cuantización */}
+                              <span class="lm-result-card-quant-label">Cuantización:</span>
+                              <Show
+                                when={model.quantFiles && model.quantFiles.length > 0}
+                                fallback={<Tag>GGUF</Tag>}
+                              >
+                                <SelectV2
+                                  appearance="inline"
+                                  options={model.quantFiles}
+                                  current={file()}
+                                  value={(qf) => qf.file}
+                                  label={(qf) => `${qf.quant || "GGUF"} (${formatBytes(qf.size)})${qf.recommended ? " ★" : ""}`}
+                                  onSelect={(qf) => qf && setModelQuant(model.id, qf.file)}
+                                  placement="bottom-start"
+                                  gutter={4}
+                                />
+                              </Show>
+
+                              {/* Hardware Fit badge */}
+                              <div class={`lm-compat-badge lm-compat-${fit()}`}>
+                                <Show when={fit() === "full_gpu"}>⚡ {language.t("settings.modelsHub.fit.fullGpu")}</Show>
+                                <Show when={fit() === "partial_gpu"}>⚡ {language.t("settings.modelsHub.fit.partialGpu")}</Show>
+                                <Show when={fit() === "ram_only"}>🧠 {language.t("settings.modelsHub.fit.ramOnly")}</Show>
+                                <Show when={fit() === "no_fit"}>⚠️ {language.t("settings.modelsHub.fit.noFit")}</Show>
+                              </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div class="lm-result-card-actions">
+                              <Show
+                                when={isDownloaded()}
+                                fallback={
+                                  <Show
+                                    when={currentJob()?.status === "downloading"}
+                                    fallback={
+                                      <button
+                                        type="button"
+                                        class="lm-btn-download-sm"
+                                        onClick={() => startDownload(model.id, file().file)}
+                                      >
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                          <polyline points="7 10 12 15 17 10" />
+                                          <line x1="12" y1="15" x2="12" y2="3" />
+                                        </svg>
+                                        <span>Descargar {formatBytes(file()?.size)}</span>
+                                      </button>
+                                    }
+                                  >
+                                    <div class="lm-downloading-pill-sm">
+                                      <span class="lm-spinner" />
+                                      <span>{currentJob()?.percent ?? 0}% ({formatSpeed(currentJob()?.speedBytesPerSec)})</span>
+                                    </div>
+                                  </Show>
+                                }
+                              >
+                                <button
+                                  type="button"
+                                  class="lm-btn-activate-sm"
+                                  onClick={() => currentJob() && activateDownloadedModel(currentJob()!)}
+                                >
+                                  ⚡ Activar y Usar
+                                </button>
+                                <button
+                                  type="button"
+                                  class="lm-btn-benchmark-sm"
+                                  disabled={benchmarkingModel() === model.id}
+                                  onClick={() => runBenchmarkForModel(model)}
+                                  title="Probar velocidad de inferencia en GPU"
+                                >
+                                  <Show when={benchmarkingModel() === model.id} fallback={<span>⚡ Benchmark</span>}>
+                                    <span class="lm-spinner" />
+                                  </Show>
+                                </button>
+                                <button
+                                  type="button"
+                                  class="lm-btn-delete-sm"
+                                  onClick={() => currentJob() && removeDownload(currentJob()!)}
+                                  title="Eliminar de disco"
+                                >
+                                  🗑️
+                                </button>
+                              </Show>
+                            </div>
+                          </div>
+
+                          {/* Benchmark Result if applicable */}
+                          <Show when={benchResults()[model.id]}>
+                            {(res) => (
+                              <div class="lm-result-card-bench">
+                                <div class="lm-result-card-bench-metrics">
+                                  <strong>{res().tokSec} tok/s</strong>
+                                  <span>· VRAM: {res().vram}</span>
+                                  <span>· TTFT: {res().ttft} ms</span>
+                                </div>
+                                <span>Medición de inferencia local en GPU</span>
+                              </div>
+                            )}
+                          </Show>
+                        </div>
+                      )
+                    }}
+                  </For>
+
+                  <Show when={hubTotal() > 1}>
+                    <div class="mt-2 mb-4">
+                      <SettingsPagerV2
+                        page={hubPage()}
+                        totalPages={hubTotal()}
+                        onPage={setHubPage}
+                      />
+                    </div>
+                  </Show>
+                </Show>
+              }
+            >
+              <div class="lm-hub-empty">
+                <span class="lm-spinner lm-hub-empty-spinner" />
+                <span class="lm-hub-empty-title">Consultando Hugging Face...</span>
+                <p class="lm-hub-empty-body">Obteniendo archivos GGUF y compatibilidad de hardware.</p>
+              </div>
+            </Show>
+          </Show>
+        </div>
+
+        {/* Cajón Inferior de Descargas Activas y Gestión de Disco */}
+        <Show when={jobs().length > 0}>
+          <div class="lm-downloads-drawer">
+            <div class="lm-downloads-drawer-header">
+              <span class="lm-downloads-drawer-title">Descargas y Modelos en Disco ({jobs().length})</span>
+            </div>
+            <div class="lm-downloads-drawer-list">
+              <For each={jobs()}>
+                {(j) => {
+                  const percent = () => asNumber(j.percent) ?? (j.status === "completed" ? 100 : 0)
+                  const speed = () => formatSpeed(j.speedBytesPerSec)
+                  const eta = () => formatEta(j.etaSeconds)
+
+                  return (
+                    <div class="lm-drawer-item" data-status={j.status}>
+                      <div class="lm-drawer-item-info">
+                        <span class="lm-drawer-item-name">{j.file}</span>
+                        <span class="lm-drawer-item-sub">
+                          {j.status === "completed" ? "✓ Completado" : `${j.status} · ${percent()}%`}
+                          {speed() ? ` · ⚡ ${speed()}` : ""}
+                          {eta() ? ` · ⏱️ ${eta()}` : ""}
+                        </span>
+                      </div>
+
+                      <Show when={j.status === "downloading" || j.status === "paused"}>
+                        <div class="lm-drawer-progress-bar">
+                          <div class="lm-drawer-progress-fill" style={{ width: `${percent()}%` }} />
+                        </div>
+                      </Show>
+
+                      <div class="lm-drawer-item-actions">
+                        <Show when={j.status === "paused" || j.status === "failed"}>
+                          <button
+                            type="button"
+                            class="lm-btn-sm-activate"
+                            data-variant="resume"
+                            onClick={() => startDownload(j.model, j.file)}
+                          >
+                            ▶ Reanudar
+                          </button>
+                        </Show>
+                        <Show when={j.status === "completed"}>
+                          <button type="button" class="lm-btn-sm-activate" onClick={() => activateDownloadedModel(j)}>
+                            ⚡ Activar y Usar
+                          </button>
+                        </Show>
+                        <button type="button" class="lm-btn-sm-delete" onClick={() => removeDownload(j)}>
+                          Eliminar de disco
+                        </button>
+                      </div>
+                    </div>
+                  )
+                }}
+              </For>
+            </div>
+          </div>
+        </Show>
+      </div>
+    </>
   )
 }

@@ -35,6 +35,8 @@ tsconfig.tsbuildinfo
 
 # Portable desktop builds
 install/*.exe
+install/*.blockmap
+install/latest.yml
 
 # ZCode session files
 .zcode/

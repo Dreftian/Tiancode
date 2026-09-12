@@ -1,16 +1,43 @@
 // @ts-ignore Bun's static file import is embedded by `bun build --compile`; some consumers also declare *.wasm.
 import photonWasm from "@silvia-odwyer/photon-node/photon_rs_bg.wasm" with { type: "file" }
 import { Effect } from "effect"
+import { existsSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { FileSystem } from "../filesystem"
 import { DecodeError, ResizerUnavailableError, SizeError } from "../image"
 
 const JPEG_QUALITIES = [80, 85, 70, 55, 40]
+const PHOTON_WASM = "photon_rs_bg.wasm"
+
+function fromUrl(file: string, base: string) {
+  try {
+    return fileURLToPath(new URL(file, base))
+  } catch {
+    return undefined
+  }
+}
+
+// Mirrors photonWasmPath() in backend/tiancode/src/image/image.ts, and must keep mirroring it:
+// both resizers share one photon module instance, so if this one fails to evaluate first the
+// failure is cached and the other dies with it. The global name is not ours to choose either —
+// backend/tools/patches/@silvia-odwyer%2Fphoton-node@0.3.4.patch reads __OPENCODE_PHOTON_WASM_PATH,
+// and its only fallback is a __dirname Bun bakes to the build machine's node_modules.
+function photonWasmPath() {
+  const baked = path.isAbsolute(photonWasm) ? photonWasm : fromUrl(photonWasm, import.meta.url)
+  const resources = (process as typeof process & { resourcesPath?: string }).resourcesPath
+  return (
+    [
+      baked,
+      fromUrl(`./${PHOTON_WASM}`, import.meta.url),
+      ...(resources ? [path.join(resources, PHOTON_WASM), path.join(resources, "app.asar.unpacked", PHOTON_WASM)] : []),
+    ].find((candidate) => candidate !== undefined && existsSync(candidate)) ?? baked
+  )
+}
 
 export const make = Effect.gen(function* () {
-  ;(globalThis as typeof globalThis & { __TIANCODE_PHOTON_WASM_PATH?: string }).__TIANCODE_PHOTON_WASM_PATH =
-    path.isAbsolute(photonWasm) ? photonWasm : fileURLToPath(new URL(photonWasm, import.meta.url))
+  ;(globalThis as typeof globalThis & { __OPENCODE_PHOTON_WASM_PATH?: string }).__OPENCODE_PHOTON_WASM_PATH =
+    photonWasmPath()
   const loadPhoton = yield* Effect.cached(
     Effect.tryPromise({
       try: () => import("@silvia-odwyer/photon-node"),

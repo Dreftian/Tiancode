@@ -17,13 +17,35 @@
 import { randomUUID } from "node:crypto"
 
 export type PreviewAgentAction = {
-  type: "inspect" | "click" | "fill" | "press" | "select" | "scroll" | "navigate"
-  /** Referencia (`e12`) de un inspect previo, selector CSS o texto visible del elemento. */
+  type: PreviewPageActionType | DesktopActionType
+  /**
+   * Acciones de página: referencia (`e12`) de un inspect previo, selector CSS o texto visible.
+   * `capture`: qué se fotografía — `screen`, `window` o `area`.
+   */
   target?: string
+  /** Texto a escribir en un campo, o el texto que `clipboard_write` pone en el portapapeles. */
   value?: string
   key?: string
   url?: string
   direction?: string
+  /** `capture` sobre `area`: recorte en coordenadas CSS de la pantalla principal. */
+  bounds?: { x: number; y: number; width: number; height: number }
+}
+
+export type PreviewPageActionType = "inspect" | "click" | "fill" | "press" | "select" | "scroll" | "navigate"
+
+/**
+ * Acciones que no tocan la página: las ejecuta el proceso principal de Electron contra el
+ * escritorio (captura de pantalla, portapapeles). Viajan por este mismo puente porque el
+ * servidor es un proceso Bun sin acceso a Electron, pero a diferencia de las de página no
+ * necesitan que haya un frame cargado — sólo una ventana de Tiancode que pueda ejecutarlas.
+ */
+export type DesktopActionType = "capture" | "clipboard_read" | "clipboard_write"
+
+const DESKTOP_ACTIONS = new Set<string>(["capture", "clipboard_read", "clipboard_write"] satisfies DesktopActionType[])
+
+function isDesktopAction(action: PreviewAgentAction) {
+  return DESKTOP_ACTIONS.has(action.type)
 }
 
 export type PreviewAgentCommand = {
@@ -54,11 +76,17 @@ type Waiter = {
   command: PreviewAgentCommand
 }
 
+/** Un long-poll parado: `surface` decide qué acciones puede recibir. */
+type Listener = {
+  surface: boolean
+  deliver: (commands: PreviewAgentCommand[]) => void
+}
+
 type Bridge = {
   queue: PreviewAgentCommand[]
   waiters: Map<string, Waiter>
-  /** Poll pendiente de un cliente CON página, para entregar sin esperar al siguiente ciclo. */
-  listeners: Set<(commands: PreviewAgentCommand[]) => void>
+  /** Polls pendientes de clientes que pueden ejecutar algo, para entregar sin esperar al siguiente ciclo. */
+  listeners: Set<Listener>
   /** Alguien preguntó, sea cual sea su capacidad. */
   attachedAt: number
   /** Un cliente que podría ejecutar la acción si hubiera página (app de escritorio). */
@@ -124,7 +152,20 @@ export function isPreviewBridgeAttached(directory: string): boolean {
 const INCAPABLE_MESSAGE =
   "Esta sesión se está viendo en el navegador, donde Tiancode no puede ejecutar acciones dentro de la página. No repitas la acción: usa preview_status y preview_logs, y describe al usuario qué debería ver."
 
-function timeoutMessage(presence: PreviewBridgePresence) {
+const DESKTOP_INCAPABLE_MESSAGE =
+  "Esta sesión se está viendo en el navegador, donde Tiancode no tiene acceso al escritorio: no hay captura de pantalla ni portapapeles. No repitas la acción: pide al usuario que la haga desde la app de escritorio."
+
+function incapableMessage(action: PreviewAgentAction) {
+  return isDesktopAction(action) ? DESKTOP_INCAPABLE_MESSAGE : INCAPABLE_MESSAGE
+}
+
+function timeoutMessage(presence: PreviewBridgePresence, action: PreviewAgentAction) {
+  if (isDesktopAction(action)) {
+    if (presence === "incapable") return DESKTOP_INCAPABLE_MESSAGE
+    if (presence === "none")
+      return "No hay ninguna ventana de Tiancode con esta carpeta abierta, así que nadie puede llegar al escritorio. No repitas la acción: dile al usuario que abra la app de escritorio."
+    return "La app de escritorio no devolvió el resultado a tiempo. Vuelve a intentarlo una vez; si vuelve a fallar, pide al usuario que lo compruebe."
+  }
   if (presence === "surface")
     return "La vista previa no respondió a tiempo. Puede estar recargando o bloqueada por un error de JavaScript; revisa preview_status y vuelve a intentarlo."
   if (presence === "opening")
@@ -133,9 +174,11 @@ function timeoutMessage(presence: PreviewBridgePresence) {
   return "No hay ninguna ventana de Tiancode con esta carpeta abierta, así que nadie puede ejecutar la acción. No repitas la acción: sigue con preview_status y preview_logs."
 }
 
-function timeoutFor(presence: PreviewBridgePresence) {
+function timeoutFor(presence: PreviewBridgePresence, desktop: boolean) {
   if (presence === "surface") return SURFACE_ACTION_TIMEOUT_MS
-  if (presence === "opening") return OPENING_ACTION_TIMEOUT_MS
+  // Una acción de escritorio no necesita la página, así que con una ventana capaz delante no hay
+  // ninguna carga que esperar: darle los 45 s del panel sólo quemaría el tiempo del agente.
+  if (presence === "opening") return desktop ? SURFACE_ACTION_TIMEOUT_MS : OPENING_ACTION_TIMEOUT_MS
   return COLD_ACTION_TIMEOUT_MS
 }
 
@@ -155,18 +198,18 @@ export function requestPreviewAction(
 
   // Encolar para un cliente que estructuralmente no puede actuar sólo gasta el tiempo del agente.
   if (presence === "incapable") {
-    return Promise.resolve({ id: command.id, ok: false, output: INCAPABLE_MESSAGE })
+    return Promise.resolve({ id: command.id, ok: false, output: incapableMessage(action) })
   }
 
   const bridge = bridgeFor(directory)
-  const wait = timeoutMs ?? timeoutFor(presence)
+  const wait = timeoutMs ?? timeoutFor(presence, isDesktopAction(action))
 
   return new Promise<PreviewAgentResult>((resolve) => {
     const timer = setTimeout(() => {
       bridge.waiters.delete(command.id)
       bridge.queue = bridge.queue.filter((item) => item.id !== command.id)
       // La presencia se lee AHORA, no al encolar: el panel pudo abrirse mientras esperábamos.
-      resolve({ id: command.id, ok: false, output: timeoutMessage(previewBridgePresence(directory)) })
+      resolve({ id: command.id, ok: false, output: timeoutMessage(previewBridgePresence(directory), action) })
     }, wait)
 
     bridge.waiters.set(command.id, { resolve, timer, command })
@@ -175,19 +218,42 @@ export function requestPreviewAction(
   })
 }
 
+/** Una acción que ejecuta el proceso principal de Electron, no la página. */
+export type DesktopAgentAction = PreviewAgentAction & { type: DesktopActionType }
+
+/**
+ * Hermana de `requestPreviewAction` para lo que vive fuera de la página: la captura de pantalla y
+ * el portapapeles del sistema.
+ *
+ * La diferencia no está aquí sino en la entrega: estas acciones no necesitan un frame cargado, así
+ * que `takePreviewCommands` también se las da a una ventana de escritorio con la Vista en vivo
+ * todavía abriéndose. La presencia es la misma de siempre — un cliente que no puede ejecutar
+ * scripts en la página tampoco puede llegar al escritorio.
+ */
+export function requestDesktopAction(
+  directory: string,
+  action: DesktopAgentAction,
+  timeoutMs?: number,
+): Promise<PreviewAgentResult> {
+  return requestPreviewAction(directory, action, timeoutMs)
+}
+
 function flush(bridge: Bridge) {
   if (bridge.queue.length === 0) return
   if (bridge.listeners.size === 0) return
   const now = Date.now()
-  const fresh = bridge.queue.filter((item) => now - item.createdAt < COMMAND_TTL_MS)
-  bridge.queue = []
-  if (fresh.length === 0) return
-  // Exactly one listener gets the batch. Two windows on the same folder both poll, and handing
-  // the action to both would click the button twice.
-  const [first] = bridge.listeners
-  if (!first) return
-  bridge.listeners.delete(first)
-  first(fresh)
+  bridge.queue = bridge.queue.filter((item) => now - item.createdAt < COMMAND_TTL_MS)
+  // Exactly one listener gets a given command. Two windows on the same folder both poll, and
+  // handing the action to both would click the button twice. A listener without a page only
+  // takes desktop actions: giving it a page action would destroy it.
+  for (const listener of bridge.listeners) {
+    if (bridge.queue.length === 0) return
+    const batch = bridge.queue.filter((item) => listener.surface || isDesktopAction(item.action))
+    if (batch.length === 0) continue
+    bridge.queue = bridge.queue.filter((item) => !batch.includes(item))
+    bridge.listeners.delete(listener)
+    listener.deliver(batch)
+  }
 }
 
 /**
@@ -195,8 +261,9 @@ function flush(bridge: Bridge) {
  * Esperar en vez de sondear cada pocos cientos de milisegundos mantiene la latencia de un clic
  * por debajo de lo que el usuario percibe sin encender la CPU mientras no pasa nada.
  *
- * Un cliente sin página se registra pero NO recibe nada: `flush` vacía la cola al entregar, así
- * que dársela a alguien que no puede ejecutarla la destruiría.
+ * Un cliente sin página recibe sólo las acciones de escritorio (captura, portapapeles), que no
+ * necesitan un frame: la entrega vacía la cola, así que darle una acción de página a quien no
+ * puede ejecutarla la destruiría. Un cliente web no recibe nada en absoluto.
  */
 export function takePreviewCommands(
   directory: string,
@@ -209,23 +276,27 @@ export function takePreviewCommands(
   if (client.capable) bridge.capableAt = now
   if (client.surface) bridge.surfaceAt = now
 
-  if (!client.surface) {
+  if (!client.capable) {
     return new Promise<PreviewAgentCommand[]>((resolve) => {
       setTimeout(() => resolve([]), waitMs)
     })
   }
 
-  const ready = bridge.queue.filter((item) => now - item.createdAt < COMMAND_TTL_MS)
+  const takes = (item: PreviewAgentCommand) => client.surface || isDesktopAction(item.action)
+  const ready = bridge.queue.filter((item) => now - item.createdAt < COMMAND_TTL_MS && takes(item))
   if (ready.length > 0) {
-    bridge.queue = []
+    bridge.queue = bridge.queue.filter((item) => now - item.createdAt < COMMAND_TTL_MS && !ready.includes(item))
     return Promise.resolve(ready)
   }
 
   return new Promise<PreviewAgentCommand[]>((resolve) => {
-    const listener = (commands: PreviewAgentCommand[]) => {
-      clearTimeout(timer)
-      bridge.listeners.delete(listener)
-      resolve(commands)
+    const listener: Listener = {
+      surface: client.surface,
+      deliver: (commands) => {
+        clearTimeout(timer)
+        bridge.listeners.delete(listener)
+        resolve(commands)
+      },
     }
     const timer = setTimeout(() => {
       bridge.listeners.delete(listener)

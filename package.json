@@ -9,7 +9,6 @@
     "dev": "bun run --cwd backend/tiancode --conditions=browser src/index.ts",
     "dev:desktop": "bun --cwd frontend/desktop dev",
     "dev:web": "bun --cwd frontend/app dev",
-    "dev:console": "ulimit -n 10240 2>/dev/null; bun run --cwd backend/console/app dev",
     "dev:stats": "bun sst shell --config backend/deploy/sst.config.ts --stage=production -- bun run --cwd backend/stats/app dev",
     "dev:storybook": "bun --cwd frontend/storybook storybook",
     "lint": "oxlint",
@@ -20,7 +19,8 @@
     "random": "echo 'Random script'",
     "sso": "aws sso login --sso-session=opencode --no-browser",
     "translate:app": "bun run backend/tools/script/translate-app.ts",
-    "clean:builds": "powershell -Command \"Remove-Item -Recurse -Force -ErrorAction SilentlyContinue frontend/desktop/dist, frontend/desktop/dist-final, frontend/desktop/out\"",
+    "clean:builds": "powershell -Command \"Remove-Item -Recurse -Force -ErrorAction SilentlyContinue frontend/desktop/dist, frontend/desktop/dist-final, frontend/desktop/out, install/Tiancode.exe, install/Tiancode-portable.exe, install/Tiancode.exe.blockmap\"",
+    "clean:turbo": "powershell -Command \"Get-ChildItem -Path . -Filter .turbo -Recurse -Directory -Force -ErrorAction SilentlyContinue | Where-Object { $_.FullName -notmatch 'node_modules' } | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue\"",
     "test": "echo 'do not run tests from root' && exit 1"
   },
   "workspaces": {
@@ -28,8 +28,7 @@
       "frontend/*",
       "backend/*",
       "backend/stats/*",
-      "backend/sdk/js",
-      "backend/slack"
+      "backend/sdk/js"
     ],
     "catalog": {
       "@effect/opentelemetry": "4.0.0-beta.83",

@@ -33,7 +33,7 @@ import "./mcp-plugins.css"
 type McpConfigValue = McpLocalConfig | McpRemoteConfig | { enabled: boolean }
 type TabMode = "mcp" | "plugins" | "discover"
 
-// 8 Built-in Plugins
+// 7 Built-in Plugins
 const BUILTIN_PLUGINS = [
   {
     id: "android-emulator",
@@ -83,13 +83,6 @@ const BUILTIN_PLUGINS = [
     desc: "Tiancode usage and self-diagnosis guide: teaches agents and users how to configure MCP servers, commands, skills, hooks, and extensions.",
     icon: "📖",
     category: "documentacion",
-  },
-  {
-    id: "computer-use",
-    name: "Computer Use",
-    desc: "Computer Use: automate desktop apps with mouse, keyboard, and UI element control.",
-    icon: "💻",
-    category: "sistema",
   },
 ] as const
 
@@ -473,6 +466,8 @@ export const SettingsMcpPluginsV2: Component<{
   // Form states
   const [formName, setFormName] = createSignal("")
   const [formCommand, setFormCommand] = createSignal("")
+  /** Sólo aplica a servidores remotos: un servidor local no tiene flujo OAuth. */
+  const [formOAuth, setFormOAuth] = createSignal(false)
   const [submitting, setSubmitting] = createSignal(false)
 
   const params = () => (props.directory ? { directory: props.directory } : undefined)
@@ -871,6 +866,17 @@ export const SettingsMcpPluginsV2: Component<{
     }
   }
 
+  /** Arranca el flujo OAuth: el backend abre el navegador y espera la vuelta del callback. */
+  const authenticate = async (serverName: string) => {
+    try {
+      await serverSdk().client.mcp.auth.authenticate({ ...params(), name: serverName })
+      showToast({ variant: "success", title: language.t("settings.mcpPlugins.toast.authStarted", { name: serverName }) })
+    } catch {
+      showToast({ variant: "error", title: language.t("settings.mcpPlugins.toast.authFailed", { name: serverName }) })
+    }
+    void refetchStatus()
+  }
+
   // Save Custom Add Modal
   const handleSaveModal = async () => {
     const name = formName().trim()
@@ -886,11 +892,18 @@ export const SettingsMcpPluginsV2: Component<{
         const isUrl = cmd.startsWith("http://") || cmd.startsWith("https://") || cmd.startsWith("sse://")
         const currentMcp = { ...((configData().mcp ?? {}) as Record<string, any>) }
         if (isUrl) {
-          currentMcp[name] = { type: "remote", url: cmd, enabled: true }
+          currentMcp[name] = { type: "remote", url: cmd, enabled: true, oauth: formOAuth() ? {} : false }
         } else {
           currentMcp[name] = { type: "local", command: cmd.split(" "), enabled: true }
         }
-        await serverSdk().client.mcp.add({ ...params(), name, config: currentMcp[name] }).catch(() => {})
+        const added = await serverSdk()
+          .client.mcp.add({ ...params(), name, config: currentMcp[name] })
+          .catch(() => undefined)
+        // Un servidor OAuth queda en "needs_auth" al darlo de alta: abrimos el navegador ahí mismo
+        // en vez de dejar al usuario con un servidor que aparece desconectado y sin explicación.
+        if (added !== undefined && "status" in added && (added as { status?: string }).status === "needs_auth") {
+          await authenticate(name)
+        }
         await serverSdk().client.mcp.connect({ ...params(), name }).catch(() => {})
         await serverSdk().client.config.update({ ...params(), config: { mcp: currentMcp } })
       } else {
@@ -906,6 +919,7 @@ export const SettingsMcpPluginsV2: Component<{
       setShowAddModal(false)
       setFormName("")
       setFormCommand("")
+      setFormOAuth(false)
       showToast({ variant: "success", title: language.t("settings.mcpPlugins.toast.added") })
     } catch {
       showToast({ variant: "error", title: language.t("settings.mcpPlugins.toast.saveFailed") })
@@ -1494,6 +1508,27 @@ export const SettingsMcpPluginsV2: Component<{
                   )}
                 />
               </label>
+
+              <Show
+                when={
+                  addMode() === "mcp" &&
+                  /^(https?|sse):\/\//.test(formCommand().trim())
+                }
+              >
+                <label class="flex items-center justify-between gap-3">
+                  <span class="flex flex-col gap-0.5">
+                    <span class="text-[12px] font-medium text-v2-text-text-base">
+                      {language.t("settings.mcpPlugins.form.oauth")}
+                    </span>
+                    <span class="text-[11px] text-v2-text-text-muted">
+                      {language.t("settings.mcpPlugins.form.oauth.description")}
+                    </span>
+                  </span>
+                  <Switch checked={formOAuth()} onChange={setFormOAuth} hideLabel>
+                    {language.t("settings.mcpPlugins.form.oauth")}
+                  </Switch>
+                </label>
+              </Show>
             </div>
 
             <div class="flex items-center justify-end gap-2 pt-2 border-t border-v2-border-border-muted">

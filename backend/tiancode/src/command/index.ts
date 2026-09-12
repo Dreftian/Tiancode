@@ -144,7 +144,7 @@ const layer = Layer.effect(
 
       for (const item of yield* skill.all()) {
         if (commands[item.name]) continue
-        const dir = item.location === "<built-in>" ? undefined : path.dirname(item.location)
+        const dir = Skill.isBuiltinLocation(item.location) ? undefined : path.dirname(item.location)
         commands[item.name] = {
           name: item.name,
           description: item.description,

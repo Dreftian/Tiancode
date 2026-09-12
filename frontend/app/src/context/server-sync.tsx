@@ -388,6 +388,22 @@ export function createServerSyncContextInner(serverSDK: ServerSDK) {
     },
   })
 
+  // El stream SSE se reconecta solo, pero nadie vuelve a pedir nada por REST: tras una caída del
+  // servidor (el sidecar reiniciándose al instalar una actualización, por ejemplo) la app se queda
+  // con los datos de antes. Al volver la conexión se recarga el arranque y cada proyecto abierto;
+  // createRefreshQueue deduplica por clave, así que repetir un push no cuesta nada.
+  createEffect<boolean>((previous) => {
+    const online = serverSDK.online()
+    if (online && !previous) {
+      queue.refresh()
+      for (const directory of Object.keys(children.children)) {
+        if (!children.active(directory)) continue
+        queue.push(directory)
+      }
+    }
+    return online
+  }, true)
+
   // Un catálogo de proveedores vacío justo después de arrancar suele significar que el servidor
   // todavía se estaba levantando, no que el usuario no tenga proveedores. Sin esto la respuesta
   // vacía se quedaba cacheada hasta cerrar y volver a abrir la app.
@@ -521,6 +537,7 @@ export function createServerSyncContextInner(serverSDK: ServerSDK) {
         queryClient,
         session,
         protocol: serverSDK.protocol,
+        online: serverSDK.online,
       })
     })
 

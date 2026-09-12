@@ -4,6 +4,110 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.45] — 2026-09-12
+### Las imágenes llegan al modelo, los paneles dejan de mentir y seis voces en español
+
+Nueve áreas investigadas contra el código real y después implementadas. El hilo común: donde había
+un control que prometía algo que el código no hacía, o se ha cableado de verdad o se ha borrado.
+
+#### Imágenes en el chat — tres causas distintas, las tres corregidas
+- **El renderer enviaba una URL que no era un data URL.** `blobDataUrl` tenía dos respaldos rotos:
+  uno abría IndexedDB buscando un almacén que en el escritorio no existe (ahí el borrador va por
+  IPC), y el último devolvía la `blob:` URL tal cual, o un `data:image/png;base64,` vacío. El
+  backend recibía eso y fallaba con "Image URL must be a base64 data URL". Ahora el Blob se guarda
+  en memoria mientras vive el borrador y se lee de ahí primero; si de verdad no se puede recuperar,
+  falla con un aviso legible en vez de enviar basura.
+- **Un error de imagen tumbaba el prompt entero.** Sólo se capturaba `ResizerUnavailableError`; los
+  demás escapaban al canal de error y mataban el mensaje completo. Ahora cada adjunto falla por su
+  cuenta y se sustituye por una nota, así el resto del prompt sí se envía.
+- **El redimensionador estaba muerto en las builds empaquetadas.** El parche de photon lee
+  `__OPENCODE_PHOTON_WASM_PATH` y el código escribía `__TIANCODE_PHOTON_WASM_PATH`, así que el
+  módulo caía a un `__dirname` que apunta al `node_modules` de la máquina de compilación. Resultado:
+  ninguna imagen se redimensionaba nunca y una captura 4K salía al proveedor a tamaño completo, que
+  respondía con un 400 imposible de rastrear. Corregido en los dos resizers, con la ruta resuelta en
+  tiempo de ejecución.
+- **Modelos que sí leen imágenes y decían que no.** El filtro de capacidades ignoraba la bandera
+  `attachment` del catálogo: 175 modelos la traen sin declarar la modalidad `image`. Ahora se
+  consulta, y de paso la ruta local del archivo deja de viajar al proveedor dentro del nombre.
+
+#### El error al actualizar con un proyecto abierto
+- **"UnsupportedContentType" era literalmente el nombre del enum.** `ClientError` usa el motivo como
+  mensaje y el formateador lo dejaba pasar tal cual. Ahora se traduce a prosa en los siete idiomas.
+- **`retry()` no podía reintentar precisamente esos errores**, porque comparaba el mensaje contra una
+  lista de textos y nunca miraba `.cause`. Ni siquiera `ClientError("Transport")` coincidía, y su
+  causa real es el `TypeError: Failed to fetch` que sí está en la lista.
+- **Nada reconectaba la parte REST.** El flujo SSE se recupera solo desde siempre; el bootstrap se
+  rendía al primer intento y sacaba el aviso. Ahora la app sabe cuándo vuelve el servidor y recarga
+  sola, y el aviso sólo aparece si el fallo persiste de verdad.
+- **El instalador mataba el servidor antes de instalar.** Si `quitAndInstall` fallaba —y el propio
+  código contempla que falle— quedaba una ventana viva apuntando a un puerto muerto para siempre.
+
+#### "Inteligencia": de 14 controles, 4 funcionaban
+Ahora hay 9 y todos llegan al agente. Se han cableado de verdad el destilador de salida de `bash`,
+la reparación de tool-calls, el cortacircuitos de bucles infinitos, la extracción web limpia y la
+creación de skills. Se han borrado cuatro: el visor de diffs Monaco (Monaco no es una dependencia de
+este repo), la búsqueda de sesiones FTS5 (no hay tabla, ni ruta, ni interfaz), el presupuesto de
+razonamiento (duplicaba el selector que ya funciona en la barra del prompt) y **el selector de
+sandbox host/docker/e2b**, que decía que los comandos podían correr aislados en un contenedor o una
+micro-VM mientras `bash` siempre los ejecuta en la máquina con los permisos del usuario. También se
+corrige una sincronización de un solo sentido que pisaba con los valores por defecto lo que hubiera
+en el servidor, y el texto de los guardarraíles, que prometía enmascarar contraseñas y tokens antes
+de enviarlos a proveedores externos: lo que hace es analizar comandos de shell y avisar.
+
+#### "Uso de la PC": 11 de 15 controles eran decorado
+Lo primero que se va es "Zona Segura", que venía activada y decía bloquear clics en gestores de
+contraseñas, banca online y ventanas elevadas de Administrador. No hay nada en este repo capaz de
+hacer clic en ningún sitio, así que no bloqueaba nada — y eso es peor que no tener la opción. Con
+ella se van el OCR, el auto-foco de ventanas ajenas (Electron no tiene API para eso), la cadencia
+del ratón y el resto de conmutadores que sólo escribían en `localStorage`. A cambio el panel gana
+dos capacidades reales: una herramienta `screenshot` y otra de portapapeles, ambas por el mismo
+puente que ya usa la Vista en vivo, cada una con su permiso y la del portapapeles preguntando
+siempre, porque ahí suele haber contraseñas.
+
+#### El botón de mejorar el prompt
+- **Borraba las imágenes adjuntas.** Reemplazaba el array del prompt entero con un único fragmento
+  de texto, y como se llamaba en cada trozo del stream, morían en el primero.
+- **Mentía sobre qué motor había respondido.** Ante cualquier fallo caía a un "optimizador local" de
+  1.017 líneas —425 de ellas un diccionario de erratas en español que cambiaba el vocabulario del
+  usuario ("fichero" por "archivo", "branch" por "rama")— y lo presentaba con un tecleo falso hecho
+  con `setTimeout`. Borrado entero: si el modelo no responde, tu texto se queda como lo escribiste y
+  te lo decimos.
+- Ahora se puede cancelar mientras trabaja, el deshacer sobrevive a que sigas escribiendo, y los
+  textos están en los siete idiomas en vez de sólo español e inglés.
+
+#### Voces, Mascotas y Modelos Locales
+- **Voces: de 27 tarjetas a 6**, todas femeninas y en español. Fuera las 10 inglesas de Kokoro y las
+  6 de Fish, que sin clave de API no podían hablar. De las 10 de Piper quedan 5: se retiran una voz
+  masculina publicada bajo un nombre femenino inventado, otra masculina cuya licencia real es **no
+  comercial** pese a declararse CC BY 4.0, una voz de personaje sin cadena de licencia, y dos cuyo
+  género no pudimos verificar contra su dataset. Ahorro de descarga: unos 644 MB por usuario, más un
+  barrido que borra los modelos ya descargados que salen del catálogo.
+- **Mascotas**: las 13 en una sola cuadrícula en vez de paginadas de 10 en 10, con la descripción y
+  el rasgo completos (antes se cortaban a una línea a mitad de frase), especie y rasgo traducidos a
+  los siete idiomas en vez de sólo español, y una tira que muestra el estado real de la mascota del
+  escritorio leyendo un IPC que ya existía y que nadie llamaba.
+- **Modelos Locales**: deja de ser una tarjeta dentro de otra tarjeta y adopta la cabecera estándar.
+  Pasa de 4 referencias a tokens de tema frente a 99 literales hexadecimales, a 101 frente a 25: el
+  panel ya no se ve oscuro sobre un tema claro. Su único punto de ruptura por ancho de ventana pasa
+  a ser por ancho del panel. Fuera una insignia de "modelo verificado" que no verificaba nada y una
+  etiqueta de arquitectura que se inventaba "qwen2.5" a partir del nombre del modelo.
+
+#### Skills
+- **El panel no cargaba nada**: llamaba a un método del SDK que no existe, el error se tragaba en
+  silencio y caía a un catálogo de relleno escrito a mano. Ahora usa el endpoint real, con un test
+  que lo respalda.
+- **Se incorpora `i-have-adhd`** (MIT, © 2026 Ayoub Ghriss) como skill opcional, invocable con
+  `/i-have-adhd`. No es predeterminada ni se autoselecciona: es una preferencia de accesibilidad y
+  debe dispararse cuando el usuario la pide, nunca por conjetura del modelo. Para que eso sea cierto
+  se implementa `disable-model-invocation`, que el cargador ignoraba por completo.
+
+#### Estructura y limpieza
+Todo lo de frontend pasa a `frontend/` (la web del producto y los iconos de marca) y los documentos
+de auditoría a `tools/docs/`. Se borran 11 módulos sin ninguna referencia, dos sondas de
+configuración de lint, un panel de MCP de 1.661 líneas inalcanzable desde la interfaz —portando
+antes su soporte de OAuth al panel que sí se usa, para no perder la función— y los artefactos de
+compilación que estaban versionados. Neto: **−3.400 líneas**.
+
 ## [1.0.44] — 2026-09-12
 ### Un bloqueo real de la base de datos, un lint que vuelve a servir y un Sandbox que se ve
 

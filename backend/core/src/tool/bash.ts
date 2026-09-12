@@ -206,16 +206,20 @@ const layer = Layer.effectDiscard(
                 ? "[output capture truncated at the in-memory safety limit]"
                 : undefined
               const fullOutput = notice ? `${rawOutput}\n\n${notice}` : rawOutput
-              const distilled = OutputDistiller.distill({
-                command: input.command,
-                output: fullOutput,
-                exitCode: result.exitCode,
-              })
+              // Same switch block as the shell screening above: with the distiller off both
+              // fields stay undefined and toModelOutput falls back to the raw output.
+              const distilled = intelligence.outputDistiller
+                ? OutputDistiller.distill({
+                    command: input.command,
+                    output: fullOutput,
+                    exitCode: result.exitCode,
+                  })
+                : undefined
               return {
                 exit: result.exitCode,
                 output: fullOutput,
-                distilled: distilled.distilled ? distilled.output : undefined,
-                savedTokens: distilled.savedTokens > 0 ? distilled.savedTokens : undefined,
+                distilled: distilled?.distilled ? distilled.output : undefined,
+                savedTokens: distilled && distilled.savedTokens > 0 ? distilled.savedTokens : undefined,
                 truncated: result.outputTruncated === true,
                 ...(warnings.length ? { warnings } : {}),
               }

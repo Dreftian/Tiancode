@@ -3,7 +3,8 @@ import { Config } from "@/config/config"
 import { SessionV1 } from "@tiancode-ai/core/v1/session"
 import type { MessageV2 } from "@/session/message-v2"
 import photonWasm from "@silvia-odwyer/photon-node/photon_rs_bg.wasm" with { type: "file" }
-import { Context, Effect, Layer, Schema } from "effect"
+import { Context, Effect, Layer, Option, Schema } from "effect"
+import { existsSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -12,6 +13,32 @@ const MAX_WIDTH = 2000
 const MAX_HEIGHT = 2000
 const AUTO_RESIZE = true
 const JPEG_QUALITIES = [80, 85, 70, 55, 40]
+const PHOTON_WASM = "photon_rs_bg.wasm"
+
+function fromUrl(file: string, base: string) {
+  try {
+    return fileURLToPath(new URL(file, base))
+  } catch {
+    return undefined
+  }
+}
+
+// The bundler emits the wasm next to the bundle, so the import usually points
+// at it. When a packaging step moves assets around, look for it instead: the
+// only fallback the patched module has is its own __dirname, which Bun bakes to
+// the build machine's node_modules and does not exist on the user's machine.
+function photonWasmPath() {
+  const baked = path.isAbsolute(photonWasm) ? photonWasm : fromUrl(photonWasm, import.meta.url)
+  const resources = (process as typeof process & { resourcesPath?: string }).resourcesPath
+  return (
+    [
+      baked,
+      fromUrl(`./${PHOTON_WASM}`, import.meta.url),
+      ...(resources ? [path.join(resources, PHOTON_WASM), path.join(resources, "app.asar.unpacked", PHOTON_WASM)] : []),
+    ].find((candidate) => candidate !== undefined && existsSync(candidate)) ?? baked
+  )
+}
+
 export class ResizerUnavailableError extends Schema.TaggedErrorClass<ResizerUnavailableError>()(
   "ImageResizerUnavailableError",
   {},
@@ -42,13 +69,40 @@ export class SizeError extends Schema.TaggedErrorClass<SizeError>()("ImageSizeEr
   height: Schema.Number,
   max_width: Schema.Number,
   max_height: Schema.Number,
+  resizable: Schema.optional(Schema.Boolean),
 }) {
   override get message() {
+    // With no resizer the dimensions were never read, so size is the only fact.
+    if (this.resizable === false)
+      return `Image with base64 size ${this.bytes} exceeds the ${this.max} byte limit and the image resizer is unavailable`
     return `Image ${this.width}x${this.height} with base64 size ${this.bytes} exceeds configured limits and could not be resized below ${this.max_width}x${this.max_height}/${this.max} bytes`
   }
 }
 
 export type Error = ResizerUnavailableError | InvalidDataUrlError | DecodeError | SizeError
+
+/**
+ * What to do with an attachment when there is no resizer: anything already
+ * within the limit goes through untouched, anything larger has to fail here.
+ * Forwarding it only buys an unexplained provider 400.
+ *
+ * @internal Exported for testing
+ */
+export function oversizedWithoutResizer(
+  bytes: number,
+  limits: { maxWidth: number; maxHeight: number; maxBase64Bytes: number },
+) {
+  if (bytes <= limits.maxBase64Bytes) return undefined
+  return new SizeError({
+    bytes,
+    max: limits.maxBase64Bytes,
+    width: 0,
+    height: 0,
+    max_width: limits.maxWidth,
+    max_height: limits.maxHeight,
+    resizable: false,
+  })
+}
 
 export interface Interface {
   readonly normalize: (input: SessionV1.FilePart) => Effect.Effect<SessionV1.FilePart, Error>
@@ -63,8 +117,9 @@ const layer = Layer.effect(
     const loadPhoton = yield* Effect.cached(
       Effect.sync(() => {
         // Patched photon-node reads this during module init so Bun compiled binaries use the embedded wasm path.
-        ;(globalThis as typeof globalThis & { __TIANCODE_PHOTON_WASM_PATH?: string }).__TIANCODE_PHOTON_WASM_PATH =
-          path.isAbsolute(photonWasm) ? photonWasm : fileURLToPath(new URL(photonWasm, import.meta.url))
+        // The name comes from the patch itself (backend/tools/patches), which still says __OPENCODE_*.
+        ;(globalThis as typeof globalThis & { __OPENCODE_PHOTON_WASM_PATH?: string }).__OPENCODE_PHOTON_WASM_PATH =
+          photonWasmPath()
       }).pipe(
         Effect.andThen(() => Effect.tryPromise(() => import("@silvia-odwyer/photon-node"))),
         Effect.tapError((error) => Effect.logWarning("failed to load photon", { error })),
@@ -86,7 +141,13 @@ const layer = Layer.effect(
       const base64 = input.url.slice(input.url.indexOf(";base64,") + ";base64,".length)
       const bytes = Buffer.byteLength(base64, "utf8")
 
-      const photon = yield* loadPhoton
+      const loaded = yield* loadPhoton.pipe(Effect.option)
+      if (Option.isNone(loaded)) {
+        const oversized = oversizedWithoutResizer(bytes, info)
+        if (oversized) return yield* oversized
+        return input
+      }
+      const photon = loaded.value
 
       const decoded = yield* Effect.try({
         try: () => photon.PhotonImage.new_from_byteslice(Buffer.from(base64, "base64")),

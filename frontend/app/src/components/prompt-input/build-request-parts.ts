@@ -200,7 +200,9 @@ export function buildRequestParts(input: BuildRequestPartsInput) {
       type: "file",
       mime: attachment.mime,
       url: attachment.dataUrl,
-      filename: attachment.sourcePath ?? attachment.filename,
+      // Solo el nombre: la ruta absoluta de origen llega al proveedor y se repite
+      // en sus mensajes de error. El adjunto ya viaja entero en la data URL.
+      filename: getFilename(attachment.sourcePath ?? attachment.filename),
     } satisfies PromptRequestPart
   })
 

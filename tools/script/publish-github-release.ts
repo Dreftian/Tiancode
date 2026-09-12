@@ -29,39 +29,49 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.38"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — Un bloqueo real de la base de datos, un lint que vuelve a servir y un Sandbox que se ve`
+  const releaseName = `Tiancode v${version} — Las imágenes llegan al modelo y los paneles dejan de mentir`
 
   const body = `## 🚀 Tiancode v${version}
 
-Las ocho mejoras que quedaron apuntadas al cerrar la 1.0.43, planificadas contra el código real y
-revisadas después de forma adversarial: los 20 hallazgos confirmados de esa revisión van corregidos
-en esta misma versión.
+Nueve áreas investigadas contra el código real y después implementadas. El hilo común: donde había un control que prometía algo que el código no hacía, o se ha cableado de verdad o se ha borrado.
 
-### 🧊 Un bloqueo de 5 segundos que nadie veía
-- \`bun:sqlite\` es síncrono, así que dos inicializaciones del mismo archivo competían por \`BEGIN IMMEDIATE\` y **congelaban el bucle de eventos 5 segundos** antes de fallar.
-- Medido aquí: 5,8 s con dos arranques concurrentes → **52 ms** con el nuevo cerrojo por ruta. La suite del backend pasa de no terminar en 40 minutos a terminar en 12,6.
+### 🖼️ Las imágenes del chat: tres causas distintas, las tres corregidas
+- **El renderer enviaba una URL que no era un data URL.** Dos respaldos rotos acababan mandando la \`blob:\` URL tal cual, o un \`data:image/png;base64,\` vacío. El backend respondía «Image URL must be a base64 data URL».
+- **Un error de imagen tumbaba el prompt entero.** Ahora cada adjunto falla por su cuenta y el resto del mensaje sí se envía.
+- **El redimensionador llevaba muerto en las builds empaquetadas**: el parche de photon lee \`__OPENCODE_PHOTON_WASM_PATH\` y el código escribía otro nombre, así que **ninguna imagen se redimensionaba nunca** y una captura 4K salía al proveedor a tamaño completo → 400 imposible de rastrear.
+- **175 modelos que sí leen imágenes decían que no**, porque el filtro de capacidades ignoraba la bandera \`attachment\` del catálogo.
 
-### 🖥️ El Sandbox por fin enseña la app de escritorio
-- Un espejo en vivo de la ventana real de Windows de la app que lanzas, emparejada recorriendo el árbol de procesos hasta su *handle*, con un selector cuando la evidencia es débil.
-- Es un espejo, no un embebido: Electron no puede reparentar ni escribir en una ventana ajena. \`preview_inspect\` y \`preview_interact\` lo dicen ahora en vez de fallar de forma opaca.
+### 🔄 El error al actualizar con un proyecto abierto
+- «UnsupportedContentType» era literalmente el nombre del enum: \`ClientError\` usa el motivo como mensaje. Ahora se traduce a prosa en los siete idiomas.
+- \`retry()\` **no podía reintentar precisamente esos errores** — comparaba el mensaje contra una lista de textos y nunca miraba \`.cause\`.
+- Nada reconectaba la parte REST. Ahora la app detecta que el servidor volvió y recarga sola; el aviso sólo sale si el fallo persiste.
+- El instalador mataba el servidor **antes** de instalar: si \`quitAndInstall\` fallaba, quedaba una ventana viva apuntando a un puerto muerto para siempre.
 
-### 🤖 El agente ya no se queda ciego
-- La Vista en vivo se abre sola cuando el agente está esperando una página, y una acción reclamada por un panel que se cierra vuelve a la cola en lugar de perderse.
-- \`preview_inspect\` ya no informa del valor de un campo de contraseña.
+### 🧠 «Inteligencia»: de 14 controles, 4 funcionaban
+Ahora hay **9 y todos llegan al agente**. Se cablean de verdad el destilador de salida de \`bash\`, la reparación de tool-calls, el cortacircuitos de bucles, la extracción web limpia y la creación de skills. Se borran cuatro que no existían en ninguna forma — incluido **el selector de sandbox host/docker/e2b**, que prometía aislamiento en contenedor mientras \`bash\` siempre ejecuta en la máquina con los permisos del usuario.
 
-### ⚡ La vista previa deja de recompilar el proyecto entero en cada tecla
-- Compilar sólo tiene sentido cuando Tiancode sirve desde una carpeta de salida; una vista JSX transpila por petición y un dev server recarga solo.
-- El vigilante de archivos usa el watcher nativo y poda \`node_modules\` en el sistema operativo, y el \`catch {}\` mudo que mataba la recarga en vivo ahora deja rastro en el log.
+### 💻 «Uso de la PC»: 11 de 15 controles eran decorado
+Fuera «Zona Segura», que venía **activada** y decía bloquear clics en gestores de contraseñas, banca online y ventanas de Administrador: no hay nada en el repo capaz de hacer clic, así que no bloqueaba nada. A cambio el panel gana dos capacidades **reales**: herramienta \`screenshot\` y portapapeles, con permiso propio y el del portapapeles preguntando siempre.
 
-### 🧹 Un lint que vuelve a servir
-- De **5.145 avisos / 0 errores a 882 / 0**, con cinco reglas en nivel *error* que rompen el gate ante cualquier caso nuevo. Cada regla desactivada lleva justificación y un ejemplo real.
+### ✨ El botón de mejorar el prompt
+- **Borraba las imágenes adjuntas** al reemplazar el prompt entero por texto plano.
+- **Mentía sobre qué motor respondía**: ante cualquier fallo caía a un «optimizador local» de 1.017 líneas — 425 de ellas un diccionario de erratas que cambiaba tu vocabulario — con un tecleo falso hecho con \`setTimeout\`. Borrado: si el modelo no responde, tu texto se queda como lo escribiste y te lo decimos.
+- Ahora se puede cancelar, el deshacer sobrevive a seguir escribiendo, y todo está en los siete idiomas.
 
-### 🗂️ Menos mentiras en las rutas
-- Una carpeta sin git ya no dice que su raíz es \`/\` (en Windows, la raíz del disco).
-- Skills pierde 340 líneas de resúmenes escritos a mano que tapaban el SKILL.md real del servidor.
+### 🔊 Voces, 🐾 Mascotas y 📦 Modelos Locales
+- **Voces: de 27 tarjetas a 6**, todas femeninas y en español. Se retiran una voz masculina con nombre femenino inventado, otra masculina con licencia **no comercial** pese a declararse CC BY 4.0, y una voz de personaje sin cadena de licencia. **~644 MB menos de descarga** por usuario.
+- **Mascotas**: las 13 en una cuadrícula, con descripción y rasgo **completos** (antes se cortaban a mitad de frase), traducidos a los siete idiomas, y estado real de la mascota del escritorio.
+- **Modelos Locales**: deja de verse oscuro sobre tema claro (de 4 tokens de tema frente a 99 hexadecimales, a 101 frente a 25). Fuera una insignia de «modelo verificado» que no verificaba nada.
+
+### 📚 Skills
+- **El panel no cargaba nada**: llamaba a un método del SDK que no existe. Ya usa el endpoint real.
+- Se incorpora **\`i-have-adhd\`** (MIT, © 2026 Ayoub Ghriss) como skill **opcional**, invocable con \`/i-have-adhd\`. Nunca se autoselecciona.
+
+### 🧹 Estructura
+Frontend a \`frontend/\`, auditorías a \`tools/docs/\`, 11 módulos sin referencias borrados y un panel MCP de 1.661 líneas inalcanzable retirado —portando antes su OAuth al panel que sí se usa—. Neto: **−3.400 líneas**.
 
 ### ✅ Calidad
-- 47 tests nuevos. Frontend **916 tests, 0 fallos**. Typecheck 27/27. Lint 0 errores.
+Typecheck **27/27**. Lint **0 errores**. Frontend **906 tests, 0 fallos**. Desktop **112 tests, 0 fallos**.
 
 ### 🔄 Actualización 100% no destructiva
 Todas tus claves de proveedores, configuraciones, sesiones, backups y servidores MCP se preservan intactos.

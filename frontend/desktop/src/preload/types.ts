@@ -289,6 +289,9 @@ export type ElectronAPI = {
   openPath: (path: string, app?: string) => Promise<void>
   revealPath: (path: string) => Promise<boolean>
   readClipboardImage: () => Promise<{ buffer: ArrayBuffer; width: number; height: number } | null>
+  /** Texto del portapapeles del sistema; lo usa la tool `clipboard` del agente. */
+  readClipboardText: () => Promise<string>
+  writeClipboardText: (text: string) => Promise<boolean>
   capture: {
     screen: () => Promise<{ buffer: ArrayBuffer; width: number; height: number }>
     area: (bounds: { x: number; y: number; width: number; height: number }) => Promise<{ buffer: ArrayBuffer; width: number; height: number }>

@@ -43,38 +43,36 @@ export const defaultPetSettings = {
   position: "bottom-right" as PetPosition,
 }
 
+/**
+ * Settings → Intelligence.
+ *
+ * One field per switch the server config actually honours, named exactly as it is named under
+ * `experimental.intelligence`: the panel mirrors this block to the server and seeds it back on
+ * mount, so a name that drifts here silently stops reaching the agent. The defaults match the
+ * server's own (everything on), which is what a client sees before the first read answers.
+ */
 export interface IntelligenceSettings {
   userMemory: boolean
   projectMemory: boolean
   codeGraph: boolean
-  cleanWebScraping: boolean
-  monacoDiffs: boolean
+  cleanWeb: boolean
   autoSkillLearn: boolean
   guardrails: boolean
-  sandboxExecution: "host" | "docker" | "e2b"
-  rlmAutoPruning: boolean
-  thinkingBudget: string
-  openClawRepair: boolean
-  openClawCircuitBreaker: boolean
-  hermesSqliteSearch: boolean
-  tgrepSearch: boolean
+  outputDistiller: boolean
+  toolCallRepair: boolean
+  loopBreaker: boolean
 }
 
 export const defaultIntelligenceSettings: IntelligenceSettings = {
   userMemory: true,
   projectMemory: true,
   codeGraph: true,
-  cleanWebScraping: true,
-  monacoDiffs: true,
+  cleanWeb: true,
   autoSkillLearn: true,
-  guardrails: false,
-  sandboxExecution: "host",
-  rlmAutoPruning: true,
-  thinkingBudget: "16384",
-  openClawRepair: true,
-  openClawCircuitBreaker: true,
-  hermesSqliteSearch: true,
-  tgrepSearch: true,
+  guardrails: true,
+  outputDistiller: true,
+  toolCallRepair: true,
+  loopBreaker: true,
 }
 
 export interface Settings {
@@ -89,7 +87,6 @@ export interface Settings {
     showTerminal: boolean
     showBrowser: boolean
     browserLinks: "integrated" | "system"
-    computerUseAutoApprove: boolean
     petEnabled: boolean
     petDesktop: boolean
     petKind: PetKind
@@ -261,7 +258,6 @@ const defaultSettings: Settings = {
     showTerminal: true,
     showBrowser: true,
     browserLinks: "integrated",
-    computerUseAutoApprove: false,
     petEnabled: defaultPetSettings.enabled,
     petDesktop: true,
     petKind: defaultPetSettings.kind,
@@ -471,13 +467,6 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         setBrowserLinks(value: "integrated" | "system") {
           setStore("general", "browserLinks", value)
         },
-        computerUseAutoApprove: withFallback(
-          () => store.general?.computerUseAutoApprove,
-          defaultSettings.general.computerUseAutoApprove,
-        ),
-        setComputerUseAutoApprove(value: boolean) {
-          setStore("general", "computerUseAutoApprove", value)
-        },
         petEnabled: withFallback(() => store.general?.petEnabled, defaultSettings.general.petEnabled),
         setPetEnabled(value: boolean) {
           setStore("general", "petEnabled", value)
@@ -674,19 +663,12 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         setCodeGraph(value: boolean) {
           setStore("intelligence", "codeGraph", value)
         },
-        cleanWebScraping: withFallback(
-          () => store.intelligence?.cleanWebScraping,
-          defaultSettings.intelligence.cleanWebScraping,
+        cleanWeb: withFallback(
+          () => store.intelligence?.cleanWeb,
+          defaultSettings.intelligence.cleanWeb,
         ),
-        setCleanWebScraping(value: boolean) {
-          setStore("intelligence", "cleanWebScraping", value)
-        },
-        monacoDiffs: withFallback(
-          () => store.intelligence?.monacoDiffs,
-          defaultSettings.intelligence.monacoDiffs,
-        ),
-        setMonacoDiffs(value: boolean) {
-          setStore("intelligence", "monacoDiffs", value)
+        setCleanWeb(value: boolean) {
+          setStore("intelligence", "cleanWeb", value)
         },
         autoSkillLearn: withFallback(
           () => store.intelligence?.autoSkillLearn,
@@ -702,54 +684,38 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         setGuardrails(value: boolean) {
           setStore("intelligence", "guardrails", value)
         },
-        sandboxExecution: withFallback(
-          () => store.intelligence?.sandboxExecution,
-          defaultSettings.intelligence.sandboxExecution,
+        outputDistiller: withFallback(
+          () => store.intelligence?.outputDistiller,
+          defaultSettings.intelligence.outputDistiller,
         ),
-        setSandboxExecution(value: "host" | "docker" | "e2b") {
-          setStore("intelligence", "sandboxExecution", value)
+        setOutputDistiller(value: boolean) {
+          setStore("intelligence", "outputDistiller", value)
         },
-        rlmAutoPruning: withFallback(
-          () => store.intelligence?.rlmAutoPruning,
-          defaultSettings.intelligence.rlmAutoPruning,
+        toolCallRepair: withFallback(
+          () => store.intelligence?.toolCallRepair,
+          defaultSettings.intelligence.toolCallRepair,
         ),
-        setRlmAutoPruning(value: boolean) {
-          setStore("intelligence", "rlmAutoPruning", value)
+        setToolCallRepair(value: boolean) {
+          setStore("intelligence", "toolCallRepair", value)
         },
-        thinkingBudget: withFallback(
-          () => store.intelligence?.thinkingBudget,
-          defaultSettings.intelligence.thinkingBudget,
+        loopBreaker: withFallback(
+          () => store.intelligence?.loopBreaker,
+          defaultSettings.intelligence.loopBreaker,
         ),
-        setThinkingBudget(value: string) {
-          setStore("intelligence", "thinkingBudget", value)
+        setLoopBreaker(value: boolean) {
+          setStore("intelligence", "loopBreaker", value)
         },
-        openClawRepair: withFallback(
-          () => store.intelligence?.openClawRepair,
-          defaultSettings.intelligence.openClawRepair,
-        ),
-        setOpenClawRepair(value: boolean) {
-          setStore("intelligence", "openClawRepair", value)
-        },
-        openClawCircuitBreaker: withFallback(
-          () => store.intelligence?.openClawCircuitBreaker,
-          defaultSettings.intelligence.openClawCircuitBreaker,
-        ),
-        setOpenClawCircuitBreaker(value: boolean) {
-          setStore("intelligence", "openClawCircuitBreaker", value)
-        },
-        hermesSqliteSearch: withFallback(
-          () => store.intelligence?.hermesSqliteSearch,
-          defaultSettings.intelligence.hermesSqliteSearch,
-        ),
-        setHermesSqliteSearch(value: boolean) {
-          setStore("intelligence", "hermesSqliteSearch", value)
-        },
-        tgrepSearch: withFallback(
-          () => store.intelligence?.tgrepSearch,
-          defaultSettings.intelligence.tgrepSearch,
-        ),
-        setTgrepSearch(value: boolean) {
-          setStore("intelligence", "tgrepSearch", value)
+        // Seeds the block from the server config the panel reads on mount. Only booleans are
+        // taken, so a switch the server omits — or carries as something else — keeps its
+        // current value instead of being reset.
+        merge(values: Partial<IntelligenceSettings>) {
+          setStore("intelligence", (current) => {
+            const next: IntelligenceSettings = { ...defaultSettings.intelligence, ...current }
+            for (const [key, value] of Object.entries(values)) {
+              if (typeof value === "boolean") next[key as keyof IntelligenceSettings] = value
+            }
+            return next
+          })
         },
       },
     }

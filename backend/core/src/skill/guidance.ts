@@ -50,8 +50,13 @@ const layer = Layer.effect(
         if (permitted.length === 0 && PermissionV2.evaluate("skill", "*", agent.permissions).effect === "deny")
           return SystemContext.empty
         const available = permitted
+          // A skill with `disable-model-invocation` is reachable through the skill tool and its
+          // slash command, but never listed here: listing it IS the invitation for the model to
+          // pick it unprompted.
           .flatMap((skill) =>
-            skill.description === undefined ? [] : [{ name: skill.name, description: skill.description }],
+            skill.description === undefined || skill.disableModelInvocation
+              ? []
+              : [{ name: skill.name, description: skill.description }],
           )
           .toSorted((a, b) => a.name.localeCompare(b.name))
         return SystemContext.make({

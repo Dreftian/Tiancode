@@ -411,6 +411,14 @@ export function registerIpcHandlers(deps: Deps) {
     return { buffer, width: size.width, height: size.height }
   })
 
+  // Portapapeles de texto: lo usa la tool `clipboard` del agente a través del puente de la Vista
+  // en vivo. El renderer no puede leerlo por su cuenta (navigator.clipboard exige foco y permiso).
+  ipcMain.handle("read-clipboard-text", () => clipboard.readText())
+  ipcMain.handle("write-clipboard-text", (_event: IpcMainInvokeEvent, text: string) => {
+    clipboard.writeText(text)
+    return true
+  })
+
   // Capturas para el chat (el modelo puede analizarlas vía un MCP de visión).
   ipcMain.handle("capture-screen", () => captureScreen())
   ipcMain.handle("capture-area", (_event: IpcMainInvokeEvent, bounds: { x: number; y: number; width: number; height: number }) =>

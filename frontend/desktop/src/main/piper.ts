@@ -11,7 +11,11 @@ export { PIPER_VOICES, type PiperVoiceDef } from "./piper-catalog"
 
 const HF_BASE = "https://huggingface.co"
 const HF_API = "https://huggingface.co/api/models"
-const SHARED_DATA_DIR = "espeak-ng-data"
+export const SHARED_DATA_DIR = "espeak-ng-data"
+// Every csukuangfj repo ships the same espeak-ng-data tree, but the source has to
+// be named explicitly: reading it off PIPER_VOICES[0] silently followed whatever
+// voice happened to sit first in the catalogue.
+const SHARED_DATA_REPO = "csukuangfj/vits-piper-es_AR-daniela-high"
 const COMPLETE_MARKER = ".complete"
 
 function resolvePiperVoice(id: string) {
@@ -82,14 +86,14 @@ export function ensureSharedData() {
 async function ensureSharedDataInner() {
   const dataDir = sharedDataDir()
   await mkdir(dataDir, { recursive: true })
-  const res = await fetch(`${HF_API}/${PIPER_VOICES[0].repo}/tree/main/${SHARED_DATA_DIR}?recursive=true`)
+  const res = await fetch(`${HF_API}/${SHARED_DATA_REPO}/tree/main/${SHARED_DATA_DIR}?recursive=true`)
   if (!res.ok) throw new Error(`Failed to list ${SHARED_DATA_DIR}: HTTP ${res.status}`)
   const entries = (await res.json()) as { path: string; type: string; size?: number }[]
   for (const entry of entries) {
     if (entry.type !== "file") continue
     const dest = join(dataDir, entry.path.slice(SHARED_DATA_DIR.length + 1))
     if (existsSync(dest)) continue
-    await downloadFile(`${HF_BASE}/${PIPER_VOICES[0].repo}/resolve/main/${entry.path}`, dest, undefined)
+    await downloadFile(`${HF_BASE}/${SHARED_DATA_REPO}/resolve/main/${entry.path}`, dest, undefined)
   }
   await writeFile(join(dataDir, COMPLETE_MARKER), "")
 }

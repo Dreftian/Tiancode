@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs"
+import { existsSync, readdirSync, rmSync } from "node:fs"
 import { app, BrowserWindow, utilityProcess, type UtilityProcess } from "electron"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -8,60 +8,55 @@ import { write as writeLog } from "./logging"
 import { getStore } from "./store"
 import { ENABLED_VOICES_KEY, SELECTED_VOICE_KEY } from "./store-keys"
 import { float32ToWav } from "./wav"
-import { PIPER_VOICES, deletePiperVoice, downloadPiperVoice, isPiperDownloaded, synthesizePiper } from "./piper"
+import {
+  PIPER_VOICES,
+  SHARED_DATA_DIR,
+  deletePiperVoice,
+  downloadPiperVoice,
+  isPiperDownloaded,
+  synthesizePiper,
+} from "./piper"
 import { deleteKokoroEs, downloadKokoroEs, isKokoroEsDownloaded, isKokoroEsReadyForSynthesis, synthesizeKokoroEs } from "./kokoro-es"
 
 
-export const DEFAULT_VOICE = "af_heart"
 // Voz femenina de español por defecto: kokoro ef_dora (el mismo style vector
 // de la voz "Sol" de Codex/ChatGPT), sintetizada con el motor kokoro de
 // sherpa-onnx + espeak-ng (ver kokoro-es.ts). Es la que usa el anuncio
 // automático en español (resolveSpanishVoice en frontend/app).
 const DEFAULT_ES_FEMALE_VOICE = "ef_dora"
 const KOKORO_MODEL_ID = "onnx-community/Kokoro-82M-v1.0-ONNX"
-// kokoro-js bundles US/UK English female voices, and kokoro-es / piper
-// provide high-quality neural Spanish female voices (ef_dora / Elena / Sofía / Lucía).
-const SUPPORTED_VOICE_IDS = [
-  "af_heart", "af_alloy", "af_nova", "af_bella", "af_sarah", "af_sky",
-  "bf_isabella", "bf_emma", "bf_alice", "bf_lily",
-] as const
-type SupportedVoiceId = (typeof SUPPORTED_VOICE_IDS)[number]
 
-// Only curated female voices for English and Spanish
+// El catálogo es únicamente de voces femeninas en español: ef_dora (kokoro-es) y
+// los modelos piper de piper-catalog.ts.
 const PREFIX_META: Record<string, { language: string; gender: "female" }> = {
-  af: { language: "en-US", gender: "female" },
-  bf: { language: "en-GB", gender: "female" },
   ef: { language: "es", gender: "female" },
 }
 
-// Curated high quality female voices list
-const VOICE_IDS = [
-  ...SUPPORTED_VOICE_IDS,
-  "ef_dora",
-] as const
+const VOICE_IDS = ["ef_dora"] as const
 
 const KOKORO_CATALOG: VoiceInfo[] = VOICE_IDS.map((id) => {
   const prefix = id.slice(0, 2)
-  const meta = PREFIX_META[prefix] ?? { language: "en-US", gender: "female" as const }
+  const meta = PREFIX_META[prefix] ?? { language: "es", gender: "female" as const }
   const isKokoroEs = id === "ef_dora"
   return {
     id,
     name: voiceName(id),
     language: meta.language,
-    gender: "female",
-    supported: isKokoroEs || (SUPPORTED_VOICE_IDS as readonly string[]).includes(id),
+    gender: meta.gender,
+    supported: true,
     engine: isKokoroEs ? "kokoro-es" : "kokoro",
     default: isKokoroEs,
     license: "Apache 2.0",
   }
 })
 
-// Piper (sherpa-onnx) voices are downloaded on demand (Spanish female voices).
+// Piper (sherpa-onnx) voices are downloaded on demand. The gender comes from the
+// catalogue entry: stamping "female" here is what let a male model ship as female.
 const PIPER_CATALOG: VoiceInfo[] = PIPER_VOICES.map((voice) => ({
   id: voice.id,
   name: voice.name,
   language: voice.language,
-  gender: "female",
+  gender: voice.gender,
   supported: true,
   engine: "piper",
   default: voice.id === DEFAULT_ES_FEMALE_VOICE,
@@ -177,7 +172,31 @@ function isKokoroCached() {
   return existsSync(join(app.getPath("userData"), "huggingface-cache", `models--${KOKORO_MODEL_ID.replace("/", "--")}`))
 }
 
+// Las voces retiradas del catálogo ya no se pueden borrar desde la UI y
+// deletePiperVoice ignora los ids desconocidos, así que quien ya se hubiera
+// descargado los modelos masculinos o sin licencia se quedaba con ellos (hasta
+// 318MB) para siempre. Se barren una vez por arranque, al pedir el estado.
+let orphanSweepDone = false
+
+function sweepOrphanPiperVoices() {
+  if (orphanSweepDone) return
+  orphanSweepDone = true
+  const root = join(app.getPath("userData"), "piper-voices")
+  if (!existsSync(root)) return
+  const known = new Set<string>([SHARED_DATA_DIR, ...PIPER_VOICES.map((voice) => voice.id)])
+  try {
+    for (const entry of readdirSync(root, { withFileTypes: true })) {
+      if (!entry.isDirectory() || known.has(entry.name)) continue
+      rmSync(join(root, entry.name), { recursive: true, force: true })
+      writeLog("voices", "removed orphan piper voice directory", { voiceId: entry.name })
+    }
+  } catch (error) {
+    writeLog("voices", "orphan piper voice sweep failed", { error: String(error) }, "warn")
+  }
+}
+
 export function getVoicesStatus() {
+  sweepOrphanPiperVoices()
   return {
     ready: state === "ready" || isKokoroCached(),
     downloading: state === "downloading" || undefined,
@@ -250,12 +269,10 @@ async function synthesizeVoice(text: string, voice: VoiceInfo): Promise<VoicesSp
       return { error: message }
     }
   }
+  // Defensive: the catalogue only ships supported voices, so this cannot trigger
+  // today. It stays as the guard for a future entry added as unsupported.
   if (!voice.supported) {
-    return {
-      error:
-        `Voice "${voice.id}" (${voice.language}) is not supported yet: ` +
-        "kokoro-js 1.2.1 can only synthesize English voices (af, am, bf, bm).",
-    }
+    return { error: `Voice "${voice.id}" (${voice.language}) cannot be synthesized.` }
   }
   try {
     await ensureReady()
@@ -403,8 +420,6 @@ function isSelectable(voice: VoiceInfo | undefined) {
 function firstSelectableVoice() {
   const femaleEs = VOICE_CATALOG.find((v) => v.id === "ef_dora" && isSelectable(v))
   if (femaleEs) return femaleEs
-  const femaleEn = VOICE_CATALOG.find((v) => v.id === "af_heart" && isSelectable(v))
-  if (femaleEn) return femaleEn
   const anyFemale = VOICE_CATALOG.find((v) => v.gender === "female" && isSelectable(v))
   if (anyFemale) return anyFemale
   return VOICE_CATALOG.find(isSelectable)

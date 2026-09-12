@@ -75,7 +75,7 @@ describe("buildRequestParts", () => {
     expect(files.map((part) => (part.type === "file" ? part.filename : ""))).toEqual(["a.png", "b.pdf"])
   })
 
-  test("preserves an external attachment source path for the model", () => {
+  test("sends only the basename of an external attachment, never its absolute path", () => {
     const result = buildRequestParts({
       prompt: [],
       context: [],
@@ -95,9 +95,40 @@ describe("buildRequestParts", () => {
       sessionDirectory: "C:\\Repos\\sst\\tiancode",
     })
 
-    expect(result.requestParts.find((part) => part.type === "file")?.filename).toBe(
-      "C:\\Users\\Luke\\AppData\\Roaming\\ai.tiancode.desktop.beta\\tiancode.global.dat",
-    )
+    const filePart = result.requestParts.find((part) => part.type === "file")
+    expect(filePart?.type === "file" && filePart.filename).toBe("tiancode.global.dat")
+    expect(JSON.stringify(result.requestParts)).not.toContain("Luke")
+  })
+
+  test("sends the basename of an attached image and keeps it an attachment", () => {
+    const result = buildRequestParts({
+      prompt: [],
+      context: [],
+      images: [
+        {
+          type: "image",
+          id: "img_shot",
+          filename: "screenshot.png",
+          sourcePath: "/home/dreitz/Pictures/screenshot.png",
+          mime: "image/png",
+          dataUrl: "data:image/png;base64,AAA",
+        },
+      ],
+      text: "what is this",
+      messageID: "msg_shot",
+      sessionID: "ses_shot",
+      sessionDirectory: "/repo",
+    })
+
+    const filePart = result.requestParts.find((part) => part.type === "file")
+    expect(filePart).toBeDefined()
+    if (filePart?.type === "file") {
+      expect(filePart.filename).toBe("screenshot.png")
+      expect(filePart.url).toBe("data:image/png;base64,AAA")
+      // Un `source` con rango de texto convertiría el adjunto en una mención
+      // inline (MessageFile.inline) y dejaría de renderizarse como imagen.
+      expect(filePart.source).toBeUndefined()
+    }
   })
 
   test("preserves reference aliases as directory file parts", () => {

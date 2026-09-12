@@ -1451,7 +1451,10 @@ function fromModelsDevModel(provider: ModelsDev.Provider, model: ModelsDev.Model
       input: {
         text: model.modalities?.input?.includes("text") ?? false,
         audio: model.modalities?.input?.includes("audio") ?? false,
-        image: model.modalities?.input?.includes("image") ?? false,
+        // Most catalogue entries carry no `modalities` block at all, so absence
+        // says nothing about images and `attachment` is the only signal we have.
+        // A block that exists and omits "image" is an explicit no.
+        image: model.modalities ? (model.modalities.input?.includes("image") ?? false) : (model.attachment ?? false),
         video: model.modalities?.input?.includes("video") ?? false,
         pdf: model.modalities?.input?.includes("pdf") ?? false,
       },
@@ -1800,7 +1803,12 @@ const layer = Layer.effect(
                 input: {
                   text: model.modalities?.input?.includes("text") ?? existingModel?.capabilities.input.text ?? true,
                   audio: model.modalities?.input?.includes("audio") ?? existingModel?.capabilities.input.audio ?? false,
-                  image: model.modalities?.input?.includes("image") ?? existingModel?.capabilities.input.image ?? false,
+                  // Same rule as the catalogue mapping above: no `modalities`
+                  // block means no statement about images, so fall back to the
+                  // catalogue entry and then to the attachment flag.
+                  image: model.modalities
+                    ? (model.modalities.input?.includes("image") ?? false)
+                    : (existingModel?.capabilities.input.image ?? model.attachment ?? false),
                   video: model.modalities?.input?.includes("video") ?? existingModel?.capabilities.input.video ?? false,
                   pdf: model.modalities?.input?.includes("pdf") ?? existingModel?.capabilities.input.pdf ?? false,
                 },

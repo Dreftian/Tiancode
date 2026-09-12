@@ -53,12 +53,29 @@ export const PreviewStateSchema = Schema.Struct({
  * opcionales porque cada `type` usa los suyos; el renderer valida lo que necesita.
  */
 export const PreviewAgentActionSchema = Schema.Struct({
-  type: Schema.Literals(["inspect", "click", "fill", "press", "select", "scroll", "navigate"]),
+  // `capture` y las dos de portapapeles no tocan la página: viajan por este mismo puente porque
+  // sólo el proceso principal de Electron puede atenderlas, y ya existe una cola por directorio.
+  type: Schema.Literals([
+    "inspect",
+    "click",
+    "fill",
+    "press",
+    "select",
+    "scroll",
+    "navigate",
+    "capture",
+    "clipboard_read",
+    "clipboard_write",
+  ]),
   target: Schema.optional(Schema.String),
   value: Schema.optional(Schema.String),
   key: Schema.optional(Schema.String),
   url: Schema.optional(Schema.String),
   direction: Schema.optional(Schema.String),
+  /** Región de la captura cuando `type` es "capture" y el objetivo es un área. */
+  bounds: Schema.optional(
+    Schema.Struct({ x: Schema.Number, y: Schema.Number, width: Schema.Number, height: Schema.Number }),
+  ),
 })
 
 export const PreviewAgentCommandSchema = Schema.Struct({

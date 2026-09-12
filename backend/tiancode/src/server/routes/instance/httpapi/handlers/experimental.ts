@@ -395,9 +395,10 @@ export const experimentalHandlers = HttpApiBuilder.group(InstanceHttpApi, "exper
           Stream.map((event) => event.text),
           Stream.encodeText,
           // A failure here (bad credentials, rate limit, model refusal) must not break the
-          // composer: the client falls back to its local optimizer when the stream is empty.
-          // Log the cause first, though — swallowing it silently leaves the user with a
-          // second-rate result and nothing to diagnose it from.
+          // composer, so the stream ends empty rather than erroring mid-body. The client treats an
+          // empty 200 as a failure and leaves the user's text untouched with a toast — it used to
+          // rewrite it with a local dictionary and claim the model had done it. Log the cause:
+          // this is the only place the real reason survives.
           Stream.catchCause((cause) =>
             Stream.unwrap(
               Effect.logError("prompt optimizer stream failed", {

@@ -37,7 +37,8 @@ const CUSTOMIZE_TIANCODE_SKILL_DESCRIPTION =
 const CUSTOMIZE_TIANCODE_SKILL_BODY = SkillPlugin.CustomizeOpencodeContent
 
 // Built-in engineering workflow skills that ship with tiancode, bundled from
-// https://github.com/addyosmani/agent-skills (MIT, (c) 2025 Addy Osmani).
+// https://github.com/addyosmani/agent-skills (MIT, (c) 2025 Addy Osmani) and
+// https://github.com/ayghri/i-have-adhd (MIT, (c) 2026 Ayoub Ghriss).
 // Each document is a SKILL.md-style file whose frontmatter provides the name
 // and description. They are registered before disk discovery so a user-disk
 // skill with the same name can override them.
@@ -46,24 +47,31 @@ import { builtinAgentSkills } from "./builtin/skills"
 const loadBuiltinSkills = Effect.fnUntraced(function* (s: State) {
   for (const [name, content] of Object.entries(builtinAgentSkills)) {
     const markdown = ConfigMarkdownCore.parseOption(content)
-    const skillName = (markdown && isSkillFrontmatter(markdown.data) && markdown.data.name) ? markdown.data.name : name
-    const skillDesc = (markdown && isSkillFrontmatter(markdown.data)) ? markdown.data.description : undefined
-    const skillIcon = (markdown && isSkillFrontmatter(markdown.data)) ? markdown.data.icon : undefined
+    const frontmatter = (markdown && isSkillFrontmatter(markdown.data)) ? markdown.data : undefined
+    const skillName = frontmatter?.name || name
     const skillContent = markdown?.content?.trim() || content.trim()
     s.skills[skillName] = {
       name: skillName,
-      description: skillDesc,
-      icon: skillIcon,
+      description: frontmatter?.description,
+      icon: frontmatter?.icon,
+      disableModelInvocation: frontmatter?.["disable-model-invocation"],
       location: `<built-in:${name}>`,
       content: skillContent,
     }
   }
 })
 
+// Bundled skills are recorded as `<built-in:name>`; customize-tiancode predates that form and is
+// plain `<built-in>`. Neither has a directory on disk, so callers must not path.dirname() them.
+export const isBuiltinLocation = (location: string) => location.startsWith("<built-in")
+
 export const Info = Schema.Struct({
   name: Schema.String,
   description: Schema.optional(Schema.String),
   icon: Schema.optional(Schema.String),
+  // Frontmatter `disable-model-invocation`: keeps the skill out of the list the model picks from,
+  // while leaving it invokable by the user through the skill tool and its slash command.
+  disableModelInvocation: Schema.optional(Schema.Boolean),
   location: Schema.String,
   content: Schema.String,
 })
@@ -77,12 +85,18 @@ const Issue = Schema.StructWithRest(
   [Schema.Record(Schema.String, Schema.Unknown)],
 )
 
-function isSkillFrontmatter(data: unknown): data is { name: string; description?: string; icon?: string } {
+function isSkillFrontmatter(data: unknown): data is {
+  name: string
+  description?: string
+  icon?: string
+  "disable-model-invocation"?: boolean
+} {
   return (
     isRecord(data) &&
     typeof data.name === "string" &&
     (data.description === undefined || typeof data.description === "string") &&
-    (data.icon === undefined || typeof data.icon === "string")
+    (data.icon === undefined || typeof data.icon === "string") &&
+    (data["disable-model-invocation"] === undefined || typeof data["disable-model-invocation"] === "boolean")
   )
 }
 
@@ -169,6 +183,7 @@ const add = Effect.fnUntraced(function* (state: State, match: string, events: Ev
     name: md.data.name,
     description: md.data.description,
     icon: md.data.icon,
+    disableModelInvocation: md.data["disable-model-invocation"],
     location: match,
     content: md.content,
   }
@@ -398,7 +413,9 @@ const layer = Layer.effect(
 )
 
 export function fmt(list: Info[], opts: { verbose: boolean }) {
-  const described = list.filter((skill) => skill.description !== undefined)
+  // A skill that opted out of model invocation is never advertised here: the model must not pick
+  // it on its own. It stays reachable through the skill tool and its slash command.
+  const described = list.filter((skill) => skill.description !== undefined && !skill.disableModelInvocation)
   if (described.length === 0) return "No skills are currently available."
   if (opts.verbose) {
     return [

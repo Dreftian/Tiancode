@@ -1,6 +1,6 @@
 // Verifies that every voice in the piper catalogue actually resolves on HuggingFace.
 //
-// Two voices ("paloma" and "tania") shipped pointing at repositories that do not exist:
+// The catalogue has already shipped entries pointing at repositories that do not exist:
 // every download attempt failed with HTTP 401 and the only existing TTS check
 // (verify-tts.ts) covers Kokoro, never this catalogue. This script closes that gap and
 // runs as part of `prepare:release`, so a dead repo cannot ship again.
@@ -47,6 +47,8 @@ for (const voice of PIPER_VOICES) {
 
 console.log(`\n${PIPER_VOICES.length} voices checked, ${broken.length} broken file(s).`)
 if (broken.length > 0) {
-  console.error("Some piper voices point at repositories that do not resolve. Fix the catalogue in src/main/piper.ts.")
+  console.error(
+    "Some piper voices point at repositories that do not resolve. Fix the catalogue in src/main/piper-catalog.ts.",
+  )
   process.exit(1)
 }

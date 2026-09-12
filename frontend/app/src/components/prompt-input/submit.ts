@@ -22,7 +22,8 @@ import { ScopedKey } from "@/utils/server-scope"
 import { createPromptSubmissionState } from "./submission-state"
 import { normalizeSessionInfo } from "@/utils/session"
 import { Event } from "@tiancode-ai/schema/event"
-import { blobDataUrl } from "@/utils/draft-store"
+import { blobDataUrl, BlobUnavailableError } from "@/utils/draft-store"
+import { usePlatform } from "@/context/platform"
 import { isSpeed2xActive, resolveSpeedVariant, SPEED_MODE_2X_DIRECTIVE } from "@/utils/speed-mode"
 
 type PendingPrompt = {
@@ -50,6 +51,9 @@ type FollowupSendInput = {
   messageID?: string
   optimisticBusy?: boolean
   before?: () => Promise<boolean> | boolean
+  // Solo hace falta para drafts restaurados tras recargar: el blob ya no está en
+  // memoria y hay que pedírselo al store.
+  getBlob?: (id: string) => Promise<Blob | null>
 }
 
 const draftText = (prompt: Prompt) => prompt.map((part) => ("content" in part ? part.content : "")).join("")
@@ -99,7 +103,7 @@ export async function sendFollowupDraft(input: FollowupSendInput) {
         },
         files: await Promise.all(
           images.map(async (attachment) => ({
-            uri: await blobDataUrl(attachment.blob, attachment.mime),
+            uri: await blobDataUrl(attachment.blob, attachment.mime, input.getBlob),
             name: attachment.filename,
           })),
         ),
@@ -115,7 +119,7 @@ export async function sendFollowupDraft(input: FollowupSendInput) {
   const encodedImages = await Promise.all(
     images.map(async (attachment) => ({
       ...attachment,
-      dataUrl: await blobDataUrl(attachment.blob, attachment.mime),
+      dataUrl: await blobDataUrl(attachment.blob, attachment.mime, input.getBlob),
     })),
   )
   const { requestParts, optimisticParts } = buildRequestParts({
@@ -240,6 +244,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
   const serverSync = useServerSync()
   const local = useLocal()
   const permission = usePermission()
+  const platform = usePlatform()
   const prompt = input.prompt
   const layout = useLayout()
   const language = useLanguage()
@@ -248,7 +253,13 @@ export function createPromptSubmit(input: PromptSubmitInput) {
   const tabs = useTabs()
   const pendingKey = (sessionID: string) => ScopedKey.from(sdk().scope, sessionID)
 
+  const getBlob = (id: string) => {
+    const store = platform.draftStore
+    return store ? store.getBlob(id) : Promise.resolve(null)
+  }
+
   const errorMessage = (err: unknown) => {
+    if (err instanceof BlobUnavailableError) return language.t("prompt.attachment.unavailable")
     if (err && typeof err === "object" && "message" in err && typeof err.message === "string") return err.message
     if (err && typeof err === "object" && "data" in err) {
       const data = (err as { data?: { message?: string } }).data
@@ -526,6 +537,23 @@ export function createPromptSubmit(input: PromptSubmitInput) {
         clearInput()
         const messageID = Identifier.ascending("message")
         serverSync().session.set("session_status", session.id, { type: "busy" })
+        const commandFailed = (description: string) => {
+          serverSync().session.set("session_status", session.id, { type: "idle" })
+          showToast({ title: language.t("prompt.toast.commandSendFailed.title"), description })
+          restoreInput()
+        }
+        // Codificar los adjuntos antes de la llamada: si falla aquí, el rechazo
+        // no lo vería el .catch() del request y el usuario no vería nada.
+        const files = await Promise.all(
+          images.map(async (attachment) => ({
+            uri: await blobDataUrl(attachment.blob, attachment.mime, getBlob),
+            name: attachment.filename,
+          })),
+        ).catch((err) => {
+          commandFailed(errorMessage(err))
+          return undefined
+        })
+        if (!files) return
         sdk()
           .api.session.command({
             sessionID: session.id,
@@ -534,20 +562,10 @@ export function createPromptSubmit(input: PromptSubmitInput) {
             arguments: args.join(" "),
             agent,
             model: { id: model.modelID, providerID: model.providerID, variant },
-            files: await Promise.all(
-              images.map(async (attachment) => ({
-                uri: await blobDataUrl(attachment.blob, attachment.mime),
-                name: attachment.filename,
-              })),
-            ),
+            files,
           })
           .catch((err) => {
-            serverSync().session.set("session_status", session.id, { type: "idle" })
-            showToast({
-              title: language.t("prompt.toast.commandSendFailed.title"),
-              description: formatServerError(err, language.t, language.t("common.requestFailed")),
-            })
-            restoreInput()
+            commandFailed(formatServerError(err, language.t, language.t("common.requestFailed")))
           })
         return
       }
@@ -633,6 +651,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
       messageID,
       optimisticBusy: sessionDirectory === projectDirectory,
       before: waitForWorktree,
+      getBlob,
     }).catch((err) => {
       pending.delete(pendingKey(session.id))
       if (sessionDirectory === projectDirectory) {

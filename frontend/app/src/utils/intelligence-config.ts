@@ -1,10 +1,10 @@
 /**
- * Pushes the Settings → Intelligence switches into the server config.
+ * Reads the Settings → Intelligence switches from the server config and pushes them back.
  *
  * The renderer's own settings store is `localStorage`-only, so anything kept there can never
- * influence the agent: the system prompt builder and the bash tool run server-side. These
- * switches therefore live in the server config under `experimental.intelligence`, where
- * ConfigIntelligence.resolve() reads them.
+ * influence the agent: the system prompt builder, the bash tool, the session processor and
+ * several tools all run server-side. These switches therefore live in the server config under
+ * `experimental.intelligence`, where ConfigIntelligence reads them.
  *
  * Written through a plain fetch rather than the generated SDK: the SDK's config type is
  * generated from the OpenAPI document and does not yet carry this field, and there is no
@@ -17,6 +17,11 @@ export interface IntelligenceSwitches {
   projectMemory: boolean
   guardrails: boolean
   codeGraph: boolean
+  outputDistiller: boolean
+  toolCallRepair: boolean
+  loopBreaker: boolean
+  cleanWeb: boolean
+  autoSkillLearn: boolean
 }
 
 export interface ServerHttp {
@@ -34,6 +39,32 @@ function headersFor(server: ServerHttp): Record<string, string> {
     })}`
   }
   return headers
+}
+
+/**
+ * Reads the switches the server currently has.
+ *
+ * The panel seeds its local store with this before it starts writing: the local defaults are
+ * all-on, so a client that only ever PATCHed would re-enable everything the user had turned
+ * off from another client or by hand in the config file.
+ *
+ * Returns undefined when there is no server, it cannot be reached, or it has no switch block
+ * yet — all of which mean "keep what you have" rather than "everything is off".
+ */
+export async function loadIntelligenceConfig(
+  server: ServerHttp | undefined,
+  signal?: AbortSignal,
+): Promise<Partial<IntelligenceSwitches> | undefined> {
+  if (!server?.url) return undefined
+  const base = server.url.replace(/\/+$/, "")
+  try {
+    const response = await fetch(`${base}/global/config`, { headers: headersFor(server), signal })
+    if (!response.ok) return undefined
+    const config = (await response.json()) as { experimental?: { intelligence?: Partial<IntelligenceSwitches> } }
+    return config.experimental?.intelligence
+  } catch {
+    return undefined
+  }
 }
 
 /**

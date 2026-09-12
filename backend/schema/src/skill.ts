@@ -20,6 +20,12 @@ export interface Info extends Schema.Schema.Type<typeof Info> {}
 export const Info = Schema.Struct({
   name: Schema.String,
   description: Schema.String.pipe(optional),
+  /**
+   * Frontmatter `disable-model-invocation`: the skill stays invocable by the user (skill tool,
+   * slash command) but is kept out of the list the model chooses from. Style and accessibility
+   * skills use it so they never fire on a guess.
+   */
+  disableModelInvocation: Schema.Boolean.pipe(optional),
   slash: Schema.Boolean.pipe(optional),
   icon: Schema.String.pipe(optional),
   location: AbsolutePath,

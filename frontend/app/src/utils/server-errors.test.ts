@@ -20,6 +20,9 @@ function useLanguageMock() {
     "error.chain.modelNotFound": "Modelo nao encontrado: {{provider}}/{{model}}",
     "error.chain.didYouMean": "Voce quis dizer: {{suggestions}}",
     "error.chain.checkConfig": "Revise provider/model no config",
+    "error.client.transport": "Nao foi possivel conectar ao servidor",
+    "error.client.badResponse": "Resposta inesperada do servidor",
+    "error.client.unexpectedStatus": "Resposta inesperada do servidor ({{status}})",
   }
   return {
     t(key: string, vars?: Record<string, string | number>) {
@@ -31,6 +34,13 @@ function useLanguageMock() {
 }
 
 const language = useLanguageMock()
+
+// Mirrors what backend/client throws: the reason enum is the message, the detail is the cause.
+function clientError(reason: string, cause?: unknown) {
+  const error = cause === undefined ? new Error(reason) : new Error(reason, { cause })
+  error.name = "ClientError"
+  return Object.assign(error, { reason })
+}
 
 describe("parseReadableConfigInvalidError", () => {
   test("formats issues with file path", () => {
@@ -128,6 +138,31 @@ describe("formatServerError", () => {
     expect(formatServerError(error, language.t)).toBe(
       ["Modelo nao encontrado: x/y", "Voce quis dizer: x/y2, x/y3", "Revise provider/model no config"].join("\n"),
     )
+  })
+
+  test("never shows a client error reason enum", () => {
+    expect(formatServerError(clientError("UnsupportedContentType"), language.t)).toBe("Resposta inesperada do servidor")
+    expect(formatServerError(clientError("MalformedResponse"), language.t)).toBe("Resposta inesperada do servidor")
+    expect(formatServerError(clientError("Transport", new TypeError("Failed to fetch")), language.t)).toBe(
+      "Nao foi possivel conectar ao servidor",
+    )
+    // A reason this app does not know yet must still not reach the user verbatim.
+    expect(formatServerError(clientError("SomethingNew"), language.t)).toBe("Resposta inesperada do servidor")
+  })
+
+  test("names the status of an unexpected response", () => {
+    expect(formatServerError(clientError("UnexpectedStatus", { status: 503 }), language.t)).toBe(
+      "Resposta inesperada do servidor (503)",
+    )
+    expect(formatServerError(clientError("UnexpectedStatus"), language.t)).toBe("Resposta inesperada do servidor")
+  })
+
+  test("falls back to English prose for client errors without a translator", () => {
+    expect(formatServerError(clientError("UnsupportedContentType"))).toBe("The server returned an unexpected response")
+    expect(formatServerError(clientError("UnexpectedStatus", { status: 502 }))).toBe(
+      "The server returned an unexpected response (502)",
+    )
+    expect(formatServerError(clientError("Transport"))).toBe("Could not reach the server")
   })
 
   test("unwraps SDK-wrapped errors from cause.body", () => {

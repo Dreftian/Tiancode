@@ -31,7 +31,9 @@ export const Plugin = define({
 
       for (const [name, rawContent] of Object.entries(builtinAgentSkills)) {
         const markdown = ConfigMarkdown.parseOption(rawContent)
-        const frontmatter = markdown?.data as { name?: string; description?: string; icon?: string } | undefined
+        const frontmatter = markdown?.data as
+          | { name?: string; description?: string; icon?: string; "disable-model-invocation"?: boolean }
+          | undefined
         const skillName = frontmatter?.name || name
         draft.source(
           SkillV2.EmbeddedSource.make({
@@ -39,6 +41,7 @@ export const Plugin = define({
             skill: SkillV2.Info.make({
               name: skillName,
               description: frontmatter?.description,
+              disableModelInvocation: frontmatter?.["disable-model-invocation"],
               location: AbsolutePath.make(`/builtin/${name}.md`),
               content: markdown?.content || rawContent,
             }),

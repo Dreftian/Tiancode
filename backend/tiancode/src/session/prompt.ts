@@ -101,10 +101,10 @@ function isOrphanedInterruptedTool(part: SessionV1.ToolPart) {
 
 export interface Interface {
   readonly cancel: (sessionID: SessionID) => Effect.Effect<void>
-  readonly prompt: (input: PromptInput) => Effect.Effect<SessionV1.WithParts, Image.Error>
+  readonly prompt: (input: PromptInput) => Effect.Effect<SessionV1.WithParts>
   readonly loop: (input: LoopInput) => Effect.Effect<SessionV1.WithParts>
   readonly shell: (input: ShellInput) => Effect.Effect<SessionV1.WithParts, Session.BusyError>
-  readonly command: (input: CommandInput) => Effect.Effect<SessionV1.WithParts, Image.Error>
+  readonly command: (input: CommandInput) => Effect.Effect<SessionV1.WithParts>
   readonly resolvePromptParts: (template: string) => Effect.Effect<PromptInput["parts"]>
 }
 
@@ -145,7 +145,7 @@ const layer = Layer.effect(
       return {
         cancel: (sessionID: SessionID) => cancel(sessionID),
         resolvePromptParts: (template: string) => resolvePromptParts(template),
-        prompt: (input: PromptInput) => prompt(input).pipe(Effect.catch(Effect.die)),
+        prompt: (input: PromptInput) => prompt(input),
       } satisfies TaskPromptOps
     })
 
@@ -1011,9 +1011,18 @@ const layer = Layer.effect(
       const parts = yield* Effect.forEach(resolvedParts, (part) =>
         part.type === "file" && part.mime.startsWith("image/")
           ? image.normalize(part).pipe(
-              Effect.catchIf(
-                (error) => error instanceof Image.ResizerUnavailableError,
-                () => Effect.succeed(part),
+              // One unusable attachment must not take the whole prompt down with
+              // it. Swap that part for a note so the rest of the message is sent
+              // and both the user and the model can see what went missing.
+              Effect.catch((error) =>
+                Effect.succeed({
+                  id: part.id,
+                  messageID: part.messageID,
+                  sessionID: part.sessionID,
+                  type: "text",
+                  synthetic: true,
+                  text: `[Could not attach ${part.filename ?? "image"}: ${error.message}]`,
+                } satisfies SessionV1.TextPart),
               ),
             )
           : Effect.succeed(part),
@@ -1049,32 +1058,32 @@ const layer = Layer.effect(
       return { info, parts }
     }, Effect.scoped)
 
-    const prompt: (input: PromptInput) => Effect.Effect<SessionV1.WithParts, Image.Error> = Effect.fn(
-      "SessionPrompt.prompt",
-    )(function* (input: PromptInput) {
-      const session = yield* sessions.get(input.sessionID).pipe(Effect.orDie)
-      yield* revert.cleanup(session)
-      const message = yield* createUserMessage(input)
-      yield* sessions.touch(input.sessionID)
+    const prompt: (input: PromptInput) => Effect.Effect<SessionV1.WithParts> = Effect.fn("SessionPrompt.prompt")(
+      function* (input: PromptInput) {
+        const session = yield* sessions.get(input.sessionID).pipe(Effect.orDie)
+        yield* revert.cleanup(session)
+        const message = yield* createUserMessage(input)
+        yield* sessions.touch(input.sessionID)
 
-      // Deprecated `tools` entries only add rules for tools that are not
-      // already configured, so they never replace the session's existing
-      // ruleset (e.g. user-approved `always` permissions).
-      const configured = new Set((session.permission ?? []).map((rule) => rule.permission))
-      const permissions: PermissionV1.Rule[] = []
-      for (const [t, enabled] of Object.entries(input.tools ?? {})) {
-        if (configured.has(t)) continue
-        permissions.push({ permission: t, action: enabled ? "allow" : "deny", pattern: "*" })
-      }
-      if (permissions.length > 0) {
-        const merged = [...(session.permission ?? []), ...permissions]
-        session.permission = merged
-        yield* sessions.setPermission({ sessionID: session.id, permission: merged })
-      }
+        // Deprecated `tools` entries only add rules for tools that are not
+        // already configured, so they never replace the session's existing
+        // ruleset (e.g. user-approved `always` permissions).
+        const configured = new Set((session.permission ?? []).map((rule) => rule.permission))
+        const permissions: PermissionV1.Rule[] = []
+        for (const [t, enabled] of Object.entries(input.tools ?? {})) {
+          if (configured.has(t)) continue
+          permissions.push({ permission: t, action: enabled ? "allow" : "deny", pattern: "*" })
+        }
+        if (permissions.length > 0) {
+          const merged = [...(session.permission ?? []), ...permissions]
+          session.permission = merged
+          yield* sessions.setPermission({ sessionID: session.id, permission: merged })
+        }
 
-      if (input.noReply === true) return message
-      return yield* loop({ sessionID: input.sessionID })
-    })
+        if (input.noReply === true) return message
+        return yield* loop({ sessionID: input.sessionID })
+      },
+    )
 
     const lastAssistant = Effect.fnUntraced(function* (sessionID: SessionID) {
       const match = yield* sessions.findMessage(sessionID, (m) => m.info.role !== "user").pipe(Effect.orDie)
@@ -1261,16 +1270,17 @@ const layer = Layer.effect(
             yield* plugin.trigger("experimental.chat.messages.transform", {}, { messages: msgs })
 
             const allAgents = yield* agents.list()
-            const [skills, autoSkills, subagentsPrompt, env, instructions, mcpInstructions, memoryPrompt, modelMsgs] = yield* Effect.all([
-              sys.skills(agent),
-              sys.autoSkills(agent),
-              sys.subagents(agent, allAgents),
-              sys.environment(model),
-              instruction.system().pipe(Effect.orDie),
-              sys.mcp(agent, session.permission),
-              sys.memory(),
-              MessageV2.toModelMessagesEffect(msgs, model),
-            ])
+            const [skills, autoSkills, subagentsPrompt, env, instructions, mcpInstructions, memoryPrompt, modelMsgs] =
+              yield* Effect.all([
+                sys.skills(agent),
+                sys.autoSkills(agent),
+                sys.subagents(agent, allAgents),
+                sys.environment(model),
+                instruction.system().pipe(Effect.orDie),
+                sys.mcp(agent, session.permission),
+                sys.memory(),
+                MessageV2.toModelMessagesEffect(msgs, model),
+              ])
             const system = [
               ...env,
               ...instructions,

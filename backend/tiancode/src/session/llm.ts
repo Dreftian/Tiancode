@@ -13,6 +13,7 @@ import type { LLMClientService } from "@tiancode-ai/llm/route"
 import { GitLabWorkflowLanguageModel } from "gitlab-ai-provider"
 import { ProviderTransform } from "@/provider/transform"
 import { Config } from "@/config/config"
+import { ConfigIntelligence } from "@tiancode-ai/core/config/intelligence"
 import type { Agent } from "@/agent/agent"
 import type { MessageV2 } from "./message-v2"
 import { Plugin } from "@/plugin"
@@ -102,6 +103,7 @@ const live: Layer.Layer<
         { concurrency: "unbounded" },
       )
 
+      const intelligence = ConfigIntelligence.fromConfig(cfg.experimental?.intelligence)
       const isWorkflow = language instanceof GitLabWorkflowLanguageModel
       const prepared = yield* LLMRequestPrep.prepare({
         ...input,
@@ -294,6 +296,9 @@ const live: Layer.Layer<
           // Copilot returns the authoritative billed amount only in provider-specific response fields.
           includeRawChunks: input.model.providerID.includes("github-copilot"),
           async experimental_repairToolCall(failed) {
+            // Settings → Intelligence can turn the repair off; returning null tells the AI SDK
+            // the call cannot be salvaged, so the provider error surfaces as it arrived.
+            if (!intelligence.toolCallRepair) return null
             const lower = failed.toolCall.toolName.toLowerCase()
             if (lower !== failed.toolCall.toolName && prepared.tools[lower]) {
               return {

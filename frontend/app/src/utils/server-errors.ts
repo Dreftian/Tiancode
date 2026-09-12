@@ -29,6 +29,8 @@ export function formatServerError(error: unknown, translate?: Translator, fallba
   const unwrapped = unwrapNamedError(error)
   if (isConfigInvalidErrorLike(unwrapped)) return parseReadableConfigInvalidError(unwrapped, translate)
   if (isProviderModelNotFoundErrorLike(unwrapped)) return parseReadableProviderModelNotFoundError(unwrapped, translate)
+  const client = parseReadableClientError(error, translate)
+  if (client) return client
   if (error instanceof Error && error.message) return error.message
   if (typeof error === "string" && error) return error
   if (fallback) return fallback
@@ -61,6 +63,24 @@ export function isSessionNotFoundError(error: unknown, sessionID: string) {
   if (typeof unwrapped !== "object" || unwrapped === null) return false
   const value = unwrapped as Record<string, unknown>
   return value._tag === "SessionNotFoundError" && value.sessionID === sessionID
+}
+
+// The generated client throws ClientError with the reason enum as its message ("Transport",
+// "UnsupportedContentType", ...), so the error.message passthrough would put that enum in front
+// of a user. Detected structurally to keep the backend class out of the app bundle; any
+// ClientError gets a human sentence, including a reason added later.
+function parseReadableClientError(error: unknown, translator?: Translator) {
+  if (!(error instanceof Error) || error.name !== "ClientError") return
+  const reason = (error as { reason?: string }).reason
+  if (reason === "Transport") return tr(translator, "error.client.transport", "Could not reach the server")
+  if (reason === "UnexpectedStatus") {
+    const status = (error.cause as { status?: number } | undefined)?.status
+    if (typeof status === "number")
+      return tr(translator, "error.client.unexpectedStatus", `The server returned an unexpected response (${status})`, {
+        status,
+      })
+  }
+  return tr(translator, "error.client.badResponse", "The server returned an unexpected response")
 }
 
 function isConfigInvalidErrorLike(error: unknown): error is ConfigInvalidError {

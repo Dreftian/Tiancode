@@ -10,11 +10,12 @@ import { join } from "node:path"
 
 const SKILLS_DIR = "skills"
 const OUT = "backend/core/src/plugin/skill/builtin.ts"
-// Bundled licence text, not a skill.
-const EXCLUDE = new Set(["LICENSE-ADDYOSMANI.md"])
+// Bundled licence texts, not skills. Matched by prefix so a new upstream's licence never
+// reaches the kebab-case slug guard below.
+const isLicence = (f: string) => f.startsWith("LICENSE-")
 
 const files = readdirSync(SKILLS_DIR)
-  .filter((f) => f.endsWith(".md") && !EXCLUDE.has(f))
+  .filter((f) => f.endsWith(".md") && !isLicence(f))
   .sort()
 
 const slugs = files.map((f) => f.replace(/\.md$/, ""))
@@ -36,9 +37,10 @@ const header = `// GENERATED FILE — do not edit by hand.
 // file in skills/. builtin-skills.test.ts fails if this drifts from the directory.
 //
 // Built-in engineering workflow skills bundled from https://github.com/addyosmani/agent-skills
-// (MIT, (c) 2025 Addy Osmani), plus Tiancode's own. Each is a SKILL.md-style document whose
-// frontmatter supplies the name and description; they register before disk discovery, so a
-// user's own skill of the same name overrides them.
+// (MIT, (c) 2025 Addy Osmani) and https://github.com/ayghri/i-have-adhd (MIT, (c) 2026 Ayoub
+// Ghriss), plus Tiancode's own. Each is a SKILL.md-style document whose frontmatter supplies the
+// name and description; they register before disk discovery, so a user's own skill of the same
+// name overrides them.
 `
 
 const imports = slugs.map((s) => `import ${ident(s)} from "../../../../../skills/${s}.md" with { type: "text" }`)

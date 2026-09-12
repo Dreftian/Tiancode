@@ -4,6 +4,12 @@ import { Parser } from "htmlparser2"
 import * as Tool from "./tool"
 import TurndownService from "turndown"
 import DESCRIPTION from "./webfetch.txt"
+import { ConfigIntelligence } from "@tiancode-ai/core/config/intelligence"
+import { Config } from "@tiancode-ai/core/config"
+import { LocationServiceMap } from "@tiancode-ai/core/location-services"
+import { Location } from "@tiancode-ai/core/location"
+import { AbsolutePath } from "@tiancode-ai/core/schema"
+import { InstanceState } from "@/effect/instance-state"
 import { isImageAttachment } from "@/util/media"
 import { lookup } from "node:dns/promises"
 import { isIP } from "node:net"
@@ -68,6 +74,17 @@ export const WebFetchTool = Tool.define(
   Effect.gen(function* () {
     const http = yield* HttpClient.HttpClient
     const httpOk = HttpClient.filterStatusOk(http)
+    const locations = yield* LocationServiceMap.Service
+
+    // Settings → Intelligence decides whether the HTML→Markdown conversion strips boilerplate.
+    // Config is location-scoped in core, so it resolves through the instance's location layer.
+    // Read per conversion so toggling it mid-session takes effect immediately.
+    const cleanWebEnabled = Effect.gen(function* () {
+      const instCtx = yield* InstanceState.context
+      const locLayer = locations.get(Location.Ref.make({ directory: AbsolutePath.make(instCtx.directory) }))
+      const config = yield* Config.Service.pipe(Effect.provide(locLayer))
+      return ConfigIntelligence.fromEntries(yield* config.entries()).cleanWeb
+    })
 
     return {
       description: DESCRIPTION,
@@ -175,7 +192,7 @@ export const WebFetchTool = Tool.define(
           switch (params.format) {
             case "markdown":
               if (contentType.includes("text/html")) {
-                const markdown = convertHTMLToMarkdown(content)
+                const markdown = convertHTMLToMarkdown(content, yield* cleanWebEnabled)
                 return {
                   output: markdown,
                   title,
@@ -225,7 +242,7 @@ function extractTextFromHTML(html: string) {
   return text.trim()
 }
 
-function convertHTMLToMarkdown(html: string): string {
+function convertHTMLToMarkdown(html: string, clean: boolean): string {
   const turndownService = new TurndownService({
     headingStyle: "atx",
     hr: "---",
@@ -233,22 +250,24 @@ function convertHTMLToMarkdown(html: string): string {
     codeBlockStyle: "fenced",
     emDelimiter: "*",
   })
-  // Firecrawl-style intelligent boilerplate removal
-  turndownService.remove([
-    "script",
-    "style",
-    "meta",
-    "link",
-    "noscript",
-    "iframe",
-    "object",
-    "embed",
-    "nav",
-    "footer",
-    "aside",
-    "dialog",
-    "form",
-  ])
+  // Firecrawl-style intelligent boilerplate removal. Optional: a page whose content lives in
+  // <nav> or <aside> loses it here, so the setting lets the user keep the whole document.
+  if (clean)
+    turndownService.remove([
+      "script",
+      "style",
+      "meta",
+      "link",
+      "noscript",
+      "iframe",
+      "object",
+      "embed",
+      "nav",
+      "footer",
+      "aside",
+      "dialog",
+      "form",
+    ])
 
   // Custom table rule to ensure tables stay clean markdown
   turndownService.addRule("tableKeep", {

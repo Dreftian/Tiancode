@@ -3,7 +3,7 @@ import type { Event } from "@tiancode-ai/sdk/v2/client"
 import { createSimpleContext } from "@tiancode-ai/ui/context"
 import { createGlobalEmitter } from "@solid-primitives/event-bus"
 import { makeEventListener } from "@solid-primitives/event-listener"
-import { type Accessor, batch, createMemo, createResource, onCleanup, onMount } from "solid-js"
+import { type Accessor, batch, createMemo, createResource, createSignal, onCleanup, onMount } from "solid-js"
 import { createApiForServer, createSdkForServer, type ServerApi } from "@/utils/server"
 import { useLanguage } from "./language"
 import { usePlatform } from "./platform"
@@ -179,6 +179,9 @@ type ServerSDKBase = {
     listen: ServerEventEmitter["listen"]
     start: () => Promise<void> | undefined
   }
+  // False while the event stream is failing for a reason other than a deliberate close, so
+  // consumers can re-run the REST work the stream cannot heal on its own.
+  online: Accessor<boolean>
   createClient: (
     opts: Omit<Parameters<typeof createSdkForServer>[0], "server" | "fetch">,
   ) => ReturnType<typeof createSdkForServer>
@@ -262,6 +265,7 @@ function createServerSdkContextBase(server: ServerConnection.Any, scope: ServerS
     timer = setTimeout(flush, Math.max(0, FLUSH_FRAME_MS - elapsed))
   }
 
+  const [online, setOnline] = createSignal(true)
   let streamErrorLogged = false
   const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
   let attempt: AbortController | undefined
@@ -291,6 +295,8 @@ function createServerSdkContextBase(server: ServerConnection.Any, scope: ServerS
               : eventApi.event.subscribe({ signal: attempt.signal })
           let yielded = Date.now()
           for await (const event of events) {
+            // A delivered event is the only proof the server is answering again.
+            setOnline(true)
             streamErrorLogged = false
             const legacy = "payload" in event
             if (legacy && event.payload.type === "sync") continue
@@ -303,13 +309,16 @@ function createServerSdkContextBase(server: ServerConnection.Any, scope: ServerS
             await wait(0)
           }
         } catch (error) {
-          if (!isStreamClosed(error, attempt?.signal) && !streamErrorLogged) {
-            streamErrorLogged = true
-            console.error("[global-sdk] event stream failed", {
-              url: server.http.url,
-              fetch: eventFetch ? "platform" : "webview",
-              error,
-            })
+          if (!isStreamClosed(error, attempt?.signal)) {
+            setOnline(false)
+            if (!streamErrorLogged) {
+              streamErrorLogged = true
+              console.error("[global-sdk] event stream failed", {
+                url: server.http.url,
+                fetch: eventFetch ? "platform" : "webview",
+                error,
+              })
+            }
           }
         } finally {
           abort.signal.removeEventListener("abort", onAbort)
@@ -374,6 +383,7 @@ function createServerSdkContextBase(server: ServerConnection.Any, scope: ServerS
       listen: emitter.listen.bind(emitter),
       start,
     },
+    online,
     createClient(opts: Omit<Parameters<typeof createSdkForServer>[0], "server" | "fetch">) {
       return createSdkForServer({
         server: server.http,

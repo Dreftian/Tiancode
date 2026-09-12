@@ -2,6 +2,13 @@ import type { AsyncStorage } from "@solid-primitives/storage"
 
 export type BlobReference = { id: string; url: string }
 
+export class BlobUnavailableError extends Error {
+  constructor(readonly blobID: string) {
+    super(`Attachment ${blobID} is no longer available`)
+    this.name = "BlobUnavailableError"
+  }
+}
+
 type Driver = {
   get(key: string): Promise<string | null>
   set(key: string, value: string): Promise<void>
@@ -10,10 +17,17 @@ type Driver = {
   getBlob(id: string): Promise<Blob | null>
 }
 
-export type DraftStore = AsyncStorage & { putBlob(blob: Blob): Promise<BlobReference> }
+export type DraftStore = AsyncStorage & {
+  putBlob(blob: Blob): Promise<BlobReference>
+  getBlob(id: string): Promise<Blob | null>
+}
 const urls = new Map<string, string>()
+// El Blob vive en memoria mientras dure el draft, así que guardarlo aquí evita
+// depender de que su object URL siga resolviendo al convertirlo a data URL.
+const blobs = new Map<string, Blob>()
 
 function blobUrl(id: string, blob: Blob) {
+  blobs.set(id, blob)
   const existing = urls.get(id)
   if (existing) return existing
   const url = URL.createObjectURL(blob)
@@ -91,6 +105,7 @@ export function createDraftStore(driver: Driver): DraftStore {
       await driver.remove(key)
     },
     putBlob,
+    getBlob: (id) => driver.getBlob(id),
   }
 }
 
@@ -153,7 +168,7 @@ export function createBrowserDraftStore(): DraftStore {
   })
 }
 
-export async function blobDataUrl(blob: BlobReference, mime: string) {
+export async function blobDataUrl(blob: BlobReference, mime: string, getBlob?: (id: string) => Promise<Blob | null>) {
   // 1. Si ya es una data URL, retornarla directamente sin fetch innecesario
   if (typeof blob.url === "string" && blob.url.startsWith("data:")) {
     return blob.url
@@ -173,7 +188,17 @@ export async function blobDataUrl(blob: BlobReference, mime: string) {
       reader.readAsDataURL(b)
     })
 
-  // 2. Intentar fetch del blob.url si es una URL accesible (blob: o http:)
+  // 2. El Blob original, que sigue en memoria mientras el draft exista
+  const cached = typeof blob.id === "string" ? blobs.get(blob.id) : undefined
+  if (cached) return await readBlob(cached)
+
+  // 3. Draft restaurado tras recargar: solo el driver del store conserva el blob
+  if (getBlob && typeof blob.id === "string") {
+    const stored = await getBlob(blob.id).catch(() => null)
+    if (stored) return await readBlob(stored)
+  }
+
+  // 4. Último intento: resolver el object URL, que puede estar ya revocado
   if (typeof blob.url === "string" && blob.url.length > 0) {
     try {
       const response = await fetch(blob.url)
@@ -186,33 +211,9 @@ export async function blobDataUrl(blob: BlobReference, mime: string) {
     }
   }
 
-  // 3. Fallback de recuperación directa desde IndexedDB
-  if (typeof indexedDB !== "undefined" && typeof blob.id === "string") {
-    try {
-      const db = await new Promise<IDBDatabase>((resolve, reject) => {
-        const req = indexedDB.open("tiancode-drafts", 1)
-        req.onsuccess = () => resolve(req.result)
-        req.onerror = () => reject(req.error)
-      })
-      const tx = db.transaction("blobs", "readonly")
-      const rawBlob = await new Promise<Blob | null>((resolve) => {
-        const getReq = tx.objectStore("blobs").get(blob.id)
-        getReq.onsuccess = () => resolve((getReq.result as Blob) ?? null)
-        getReq.onerror = () => resolve(null)
-      })
-      if (rawBlob) {
-        return await readBlob(rawBlob)
-      }
-    } catch {
-      // IndexedDB fallback no disponible
-    }
-  }
-
-  // 4. Último recurso: devolver la URL existente o una data URL vacía en vez de fallar
-  if (typeof blob.url === "string" && blob.url.length > 0) {
-    return blob.url
-  }
-  return `data:${mime};base64,`
+  // Devolver la blob: URL o una data URL vacía solo movía el fallo al proveedor,
+  // que responde con un 400 opaco. Fallar aquí deja el motivo a la vista.
+  throw new BlobUnavailableError(blob.id)
 }
 
 export function createLegacyBlobReference(dataUrl: string): BlobReference {
