@@ -62,6 +62,16 @@ const visible = (el) => {
 
 const clean = (value) => String(value == null ? "" : value).replace(/\\s+/g, " ").trim();
 
+// A password field's .value is the plaintext the user typed. It must never reach the snapshot,
+// which goes into the transcript and to the model provider.
+const isSecret = (el) => {
+  if (!el || !el.getAttribute) return false;
+  const type = (el.getAttribute("type") || "").toLowerCase();
+  if (type === "password") return true;
+  const auto = (el.getAttribute("autocomplete") || "").toLowerCase();
+  return auto === "current-password" || auto === "new-password" || auto === "one-time-code";
+};
+
 const nameOf = (el) => {
   const aria = el.getAttribute && el.getAttribute("aria-label");
   if (aria) return clean(aria);
@@ -76,7 +86,7 @@ const nameOf = (el) => {
   }
   const text = clean(el.innerText || el.textContent);
   if (text) return text.slice(0, 120);
-  const attrs = ["placeholder", "title", "alt", "name", "value"];
+  const attrs = isSecret(el) ? ["placeholder", "title", "alt", "name"] : ["placeholder", "title", "alt", "name", "value"];
   for (const attr of attrs) {
     const found = el.getAttribute && el.getAttribute(attr);
     if (found) return clean(found).slice(0, 120);
@@ -105,6 +115,7 @@ const collect = (root) => {
     if (tag === "input" || tag === "textarea") {
       bits.push("type=" + (node.getAttribute("type") || "text"));
       if (node.type === "checkbox" || node.type === "radio") bits.push(node.checked ? "checked" : "unchecked");
+      else if (isSecret(node)) bits.push(node.value ? "value=(oculto)" : "value=(vacío)");
       else if (node.value) bits.push("value=" + JSON.stringify(clean(node.value).slice(0, 80)));
     }
     if (tag === "select") {
@@ -236,7 +247,8 @@ export function buildPreviewAgentScript(action: PreviewAgentAction): string {
             setNativeValue(el, ${value});
           }
           await settle(250);
-          return snapshot("Escrito en " + JSON.stringify(nameOf(el) || ${target}) + ": " + JSON.stringify(${value}));
+          const echo = isSecret(el) ? "(oculto)" : JSON.stringify(${value});
+          return snapshot("Escrito en " + JSON.stringify(nameOf(el) || ${target}) + ": " + echo);
         `
       case "select":
         return `

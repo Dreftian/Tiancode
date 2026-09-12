@@ -10,7 +10,12 @@ import { Effect, Schema } from "effect"
 import { InstanceState } from "@/effect/instance-state"
 import * as Tool from "./tool"
 import { getPreviewLogs, getPreviewState, restartPreviewServer, startPreviewServer, stopPreviewServer } from "../preview/dev-server-manager"
-import { isPreviewBridgeAttached, requestPreviewAction, type PreviewAgentAction } from "../preview/agent-bridge"
+import {
+  previewBridgePresence,
+  requestPreviewAction,
+  type PreviewAgentAction,
+  type PreviewBridgePresence,
+} from "../preview/agent-bridge"
 import type { PreviewState } from "../preview/types"
 
 function describe(state: PreviewState) {
@@ -150,20 +155,35 @@ export const PreviewLogsTool = Tool.define(
 const NOT_RUNNING =
   "La vista previa no está en marcha. Ejecuta preview_start antes de inspeccionar o manejar la página."
 
-type AgentMetadata = { ok: boolean }
+// A desktop app launched as a process has no DOM to reach: the Sandbox mirrors its OS window as
+// an image, and Electron cannot send input into a foreign window. Say that plainly instead of
+// letting the agent hit an opaque "no frame" failure and retry it.
+//
+// The test is "no URL", NOT `isDesktop`: an Electron project whose web UI Tiancode serves out of
+// dist/ is detected as both static AND isDesktop, and that one really is a page.
+const DESKTOP_NO_DOM = [
+  "Este proyecto es una app de escritorio: el Sandbox refleja su ventana real como imagen, no como página.",
+  "No hay DOM que leer ni elementos que pulsar, así que esta herramienta no aplica aquí.",
+  "Usa preview_logs para stdout/stderr y preview_status para el estado, y pide al usuario que mire la ventana reflejada en Vista en vivo.",
+].join(" ")
+
+type AgentMetadata = { ok: boolean; presence?: PreviewBridgePresence }
 
 function previewRunning(state: PreviewState) {
   return state.status === "ready" || state.status === "starting"
 }
 
-function bridgeHint(directory: string) {
-  if (isPreviewBridgeAttached(directory)) return ""
-  return [
-    "",
-    "",
-    "Nota: el panel de Vista en vivo no está abierto, así que nadie puede ejecutar la acción.",
-    "Pide al usuario que abra Vista en vivo (o el Sandbox) en esta sesión.",
-  ].join("\n")
+// What the agent should do next, which differs sharply by state: "opening" fixes itself and is
+// worth retrying, the other two will not and retrying just burns turns.
+function bridgeHint(presence: PreviewBridgePresence) {
+  if (presence === "surface") return ""
+  const note =
+    presence === "opening"
+      ? "Nota: la Vista en vivo estaba cerrada y Tiancode la ha abierto para esta acción; la página necesita unos segundos para cargar. Vuelve a intentarlo."
+      : presence === "incapable"
+        ? "Nota: esta sesión se ve en el navegador, donde no se pueden ejecutar acciones dentro de la página. No insistas: valida con preview_status y preview_logs."
+        : "Nota: no hay ninguna ventana de Tiancode con esta carpeta abierta. No insistas: sigue con preview_status y preview_logs, y di al usuario qué debería comprobar."
+  return ["", "", note].join("\n")
 }
 
 const runAction = (
@@ -176,11 +196,15 @@ const runAction = (
     if (!previewRunning(state)) {
       return { title, output: NOT_RUNNING, metadata: { ok: false } }
     }
+    if (state.isDesktop && !state.url) {
+      return { title, output: DESKTOP_NO_DOM, metadata: { ok: false } }
+    }
     const result = yield* Effect.promise(() => requestPreviewAction(directory, action))
+    const presence = previewBridgePresence(directory)
     return {
       title,
-      output: result.ok ? result.output : `${result.output}${bridgeHint(directory)}`,
-      metadata: { ok: result.ok },
+      output: result.ok ? result.output : `${result.output}${bridgeHint(presence)}`,
+      metadata: { ok: result.ok, presence },
     }
   })
 
@@ -217,7 +241,7 @@ export const PreviewInspectTool = Tool.define<typeof InspectParameters, AgentMet
   "preview_inspect",
   Effect.succeed({
     description:
-      "Lee la página que se está mostrando en la Vista en vivo (el Sandbox): URL y título reales, el texto visible, los elementos con los que se puede interactuar (botones, enlaces, campos, selectores) cada uno con una referencia estable tipo `e12`, y los errores de JavaScript de la consola. Úsala después de preview_start y después de cada cambio para comprobar con tus propios ojos que la pantalla es la que esperabas, en vez de suponerlo desde el código. Las referencias que devuelve se usan tal cual en preview_interact.",
+      "Lee la página que se está mostrando en la Vista en vivo (el Sandbox): URL y título reales, el texto visible, los elementos con los que se puede interactuar (botones, enlaces, campos, selectores) cada uno con una referencia estable tipo `e12`, y los errores de JavaScript de la consola. Úsala después de preview_start y después de cada cambio para comprobar con tus propios ojos que la pantalla es la que esperabas, en vez de suponerlo desde el código. Las referencias que devuelve se usan tal cual en preview_interact. Si el resultado dice que no hay ninguna superficie disponible (build web o sin ventana abierta), no repitas la acción: continúa con preview_status y preview_logs y di al usuario qué debería comprobar.",
     parameters: InspectParameters,
     execute: (args) => runAction({ type: "inspect", target: args.target }, "Vista previa inspeccionada"),
   }),
@@ -227,7 +251,7 @@ export const PreviewInteractTool = Tool.define<typeof InteractParameters, AgentM
   "preview_interact",
   Effect.succeed({
     description:
-      "Maneja la página de la Vista en vivo como lo haría el usuario y devuelve el estado de la pantalla después de la acción. Acciones: `click` (pulsa un botón, enlace o pestaña), `fill` (escribe en un campo), `select` (elige una opción de un desplegable), `press` (pulsa una tecla, por ejemplo Enter o Escape), `scroll` (desplaza la página o un contenedor) y `navigate` (va a otra ruta de la misma app). `target` acepta una referencia de preview_inspect (`e12`), un selector CSS o el texto visible del elemento. Úsala para recorrer la app y verificar de verdad un flujo antes de darlo por terminado; no sustituye a preguntar al usuario por decisiones de producto.",
+      "Maneja la página de la Vista en vivo como lo haría el usuario y devuelve el estado de la pantalla después de la acción. Acciones: `click` (pulsa un botón, enlace o pestaña), `fill` (escribe en un campo), `select` (elige una opción de un desplegable), `press` (pulsa una tecla, por ejemplo Enter o Escape), `scroll` (desplaza la página o un contenedor) y `navigate` (va a otra ruta de la misma app). `target` acepta una referencia de preview_inspect (`e12`), un selector CSS o el texto visible del elemento. Úsala para recorrer la app y verificar de verdad un flujo antes de darlo por terminado; no sustituye a preguntar al usuario por decisiones de producto. Si el resultado dice que no hay ninguna superficie disponible (build web o sin ventana abierta), no repitas la acción: continúa con preview_status y preview_logs y di al usuario qué debería comprobar.",
     parameters: InteractParameters,
     execute: (args) =>
       runAction(

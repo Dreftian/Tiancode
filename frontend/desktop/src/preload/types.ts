@@ -201,6 +201,29 @@ export type PreviewViewAPI = {
   onEvent: (cb: (event: PreviewViewEvent) => void) => () => void
 }
 
+// Espejo de la ventana de una app de escritorio lanzada por el Sandbox
+// (frontend/desktop/src/main/window-mirror.ts). Es una imagen, no un embebido: no se puede
+// pulsar ni escribir en ella.
+export type WindowMirrorSource = { id: string; name: string; icon: string | null; thumb: string }
+
+export type WindowMirrorEvent =
+  | { type: "frame"; dataUrl: string; width: number; height: number; seq: number; title: string }
+  | { type: "gone" }
+  | { type: "blank" }
+
+export type WindowMirrorAPI = {
+  supported: () => Promise<boolean>
+  listSources: () => Promise<WindowMirrorSource[]>
+  snapshot: () => Promise<string[]>
+  match: (input: { pid: number | null; hints: string[]; before?: string[] }) => Promise<string | null>
+  start: (input: { sourceId: string; intervalMs?: number; width?: number }) => Promise<boolean>
+  setInterval: (intervalMs: number) => Promise<void>
+  /** Stop capturing but keep the chosen window, so set-interval can resume it. */
+  pause: () => Promise<boolean>
+  stop: () => Promise<void>
+  onEvent: (cb: (event: WindowMirrorEvent) => void) => () => void
+}
+
 // El agente maneja la página de la Vista en vivo: el script se evalúa en el frame de la propia
 // página desde el proceso principal (frontend/desktop/src/main/preview-agent.ts).
 export type PreviewAgentAPI = {
@@ -278,6 +301,7 @@ export type ElectronAPI = {
   clearWebviewData: () => Promise<void>
   previewView: PreviewViewAPI
   previewAgent: PreviewAgentAPI
+  windowMirror: WindowMirrorAPI
   backup: {
     now: () => Promise<string | null>
     list: () => Promise<{ name: string; createdAt: number }[]>

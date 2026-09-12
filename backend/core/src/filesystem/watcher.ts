@@ -1,7 +1,5 @@
 export * as Watcher from "./watcher"
 
-// @ts-ignore
-import { createWrapper } from "@parcel/watcher/wrapper"
 import type ParcelWatcher from "@parcel/watcher"
 import { makeLocationNode } from "../effect/app-node"
 import { Cause, Context, Effect, Layer } from "effect"
@@ -13,33 +11,13 @@ import { Flag } from "../flag/flag"
 import { FSUtil } from "../fs-util"
 import { Git } from "../git"
 import { Location } from "../location"
-import { lazy } from "../util/lazy"
 import { Ignore } from "./ignore"
+import { backend as getBackend, native as watcher } from "./native-watcher"
 import { Protected } from "./protected"
-
-declare const TIANCODE_LIBC: string | undefined
 
 const SUBSCRIBE_TIMEOUT_MS = 10_000
 
 export const Event = FileSystemWatcher.Event
-
-const watcher = lazy((): typeof import("@parcel/watcher") | undefined => {
-  try {
-    const libc = typeof TIANCODE_LIBC === "undefined" ? undefined : TIANCODE_LIBC
-    const binding = require(
-      `@parcel/watcher-${process.platform}-${process.arch}${process.platform === "linux" ? `-${libc || "glibc"}` : ""}`,
-    )
-    return createWrapper(binding) as typeof import("@parcel/watcher")
-  } catch {
-    return
-  }
-})
-
-function getBackend() {
-  if (process.platform === "win32") return "windows"
-  if (process.platform === "darwin") return "fs-events"
-  if (process.platform === "linux") return "inotify"
-}
 
 function protecteds(dir: string) {
   return Protected.paths().filter((item) => {

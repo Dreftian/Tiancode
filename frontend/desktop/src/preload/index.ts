@@ -1,5 +1,13 @@
 import { contextBridge, ipcRenderer, webUtils } from "electron"
-import type { ElectronAPI, PreviewViewEvent, RuntimeInstallState, VoicesPiperProgress, VoicesProgress, WslServersEvent } from "./types"
+import type {
+  ElectronAPI,
+  PreviewViewEvent,
+  RuntimeInstallState,
+  VoicesPiperProgress,
+  VoicesProgress,
+  WindowMirrorEvent,
+  WslServersEvent,
+} from "./types"
 import type { UpdaterState } from "@tiancode-ai/app/updater"
 
 const updaterCallbacks = new Set<(state: UpdaterState) => void>()
@@ -183,6 +191,21 @@ const api: ElectronAPI = {
   previewAgent: {
     execute: (code, frameUrl) => ipcRenderer.invoke("preview-agent:execute", code, frameUrl),
     available: (frameUrl) => ipcRenderer.invoke("preview-agent:available", frameUrl),
+  },
+  windowMirror: {
+    supported: () => ipcRenderer.invoke("window-mirror:supported"),
+    listSources: () => ipcRenderer.invoke("window-mirror:list-sources"),
+    snapshot: () => ipcRenderer.invoke("window-mirror:snapshot"),
+    match: (input) => ipcRenderer.invoke("window-mirror:match", input),
+    start: (input) => ipcRenderer.invoke("window-mirror:start", input),
+    setInterval: (intervalMs) => ipcRenderer.invoke("window-mirror:set-interval", intervalMs),
+    pause: () => ipcRenderer.invoke("window-mirror:pause"),
+    stop: () => ipcRenderer.invoke("window-mirror:stop"),
+    onEvent: (cb) => {
+      const handler = (_: unknown, event: WindowMirrorEvent) => cb(event)
+      ipcRenderer.on("window-mirror-event", handler)
+      return () => ipcRenderer.removeListener("window-mirror-event", handler)
+    },
   },
   backup: {
     now: () => ipcRenderer.invoke("backup-now"),

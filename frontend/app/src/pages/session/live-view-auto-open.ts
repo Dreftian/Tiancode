@@ -1,9 +1,10 @@
 import { createEffect, onCleanup } from "solid-js"
 import { setPreviewPanelOpen } from "@/components/preview/preview-panel"
+import { usePlatform } from "@/context/platform"
 import { useSDK } from "@/context/sdk"
 import { useServer } from "@/context/server"
 import { useSessionLayout } from "@/pages/session/session-layout"
-import { previewStatusUrl } from "@/pages/session/live-preview/live-preview-url"
+import { previewAgentDemandUrl, previewStatusUrl } from "@/pages/session/live-preview/live-preview-url"
 import { LIVE_VIEW_URL, serverTargetOf, setLiveViewManagedTarget } from "@/pages/session/live-view-panel"
 import { authTokenFromCredentials } from "@/utils/server"
 
@@ -35,6 +36,21 @@ function embeddedUrl(value: unknown) {
 // El estado administrado es la señal canónica después de preview_start. No se
 // infieren URLs de Start-Process, shells ni herramientas de navegador: esas
 // tools pueden abrir software externo y no representan un preview embebido.
+/**
+ * A stable key for "the agent is waiting for a page", or undefined when it is not.
+ *
+ * Keyed on the pending command id so each agent action opens the panel at most once: a user who
+ * closes it again during that same action is not fought, and the next action gets a fresh key.
+ */
+export function liveViewDemandKey(value: unknown) {
+  if (!isRecord(value)) return
+  const pending = value.pending
+  const id = value.id
+  if (typeof pending !== "number" || pending < 1) return
+  if (typeof id !== "string" || !id) return
+  return `agent:${id}`
+}
+
 export function managedPreviewTargetOf(value: unknown) {
   if (!isRecord(value)) return
   const state = value as ManagedPreviewState
@@ -63,6 +79,8 @@ export function useLiveViewAutoOpen(input: { enabled: () => boolean }) {
   const { view } = useSessionLayout()
   const sdk = useSDK()
   const server = useServer()
+  const platform = usePlatform()
+  const capable = !!platform.previewAgent
   let lastAutoOpenedKey: string | undefined
 
   createEffect(() => {
@@ -75,6 +93,7 @@ export function useLiveViewAutoOpen(input: { enabled: () => boolean }) {
       : undefined
     let dashboardRequest: AbortController | undefined
     let managedRequest: AbortController | undefined
+    let demandRequest: AbortController | undefined
     let polling = false
 
     const clearManagedTarget = () => {
@@ -103,6 +122,26 @@ export function useLiveViewAutoOpen(input: { enabled: () => boolean }) {
             .catch(() => undefined)
           window.clearTimeout(managedTimer)
           const target = managedPreviewTargetOf(payload)
+
+          // Checked even when a managed target already exists: the `return` below plus the
+          // lastAutoOpenedKey dedupe is exactly why a panel the user closed never reopened, and
+          // an agent action that cannot reach a page is a dead end mid-run.
+          demandRequest?.abort()
+          demandRequest = new AbortController()
+          const demandTimer = window.setTimeout(() => demandRequest?.abort(), LIVE_VIEW_CHECK_MS)
+          const demand = await fetch(previewAgentDemandUrl(http.url, directory, { capable }), {
+            headers,
+            signal: demandRequest.signal,
+          })
+            .then((res) => (res.ok ? res.json() : undefined))
+            .catch(() => undefined)
+          window.clearTimeout(demandTimer)
+          const demandKey = liveViewDemandKey(demand)
+          if (demandKey) {
+            open(demandKey, target?.url)
+            return
+          }
+
           if (target) {
             open(target.key, target.url)
             return
@@ -130,6 +169,7 @@ export function useLiveViewAutoOpen(input: { enabled: () => boolean }) {
       window.clearInterval(interval)
       dashboardRequest?.abort()
       managedRequest?.abort()
+      demandRequest?.abort()
     })
   })
 }

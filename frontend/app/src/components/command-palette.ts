@@ -169,7 +169,10 @@ export function createCommandPaletteModel(props: { filesOnly?: () => boolean; on
     }
     if (item.type === "session") {
       if (!item.sessionID || !item.server) return
-      const directory = item.project?.worktree ?? item.directory
+      // The shared "global" row's worktree is whichever non-git folder was opened last, so for a
+      // session under it the session's own directory is the only reliable answer.
+      const directory =
+        item.project?.id === "global" ? item.directory : (item.project?.worktree ?? item.directory)
       if (directory) {
         serverCtx.projects.open(directory)
         serverCtx.projects.touch(directory)

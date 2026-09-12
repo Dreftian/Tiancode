@@ -41,8 +41,36 @@ describe("DatabaseMigration", () => {
   test("serializes concurrent embedded initialization for one database path", async () => {
     await using tmp = await tmpdir()
     const filename = path.join(tmp.path, "embedded.sqlite")
-    const layers = [Database.layerFromPath(filename), Database.layerFromPath(filename)]
+    // Three, not two: two could pass on a lucky interleaving, three only passes with a real queue.
+    const layers = [
+      Database.layerFromPath(filename),
+      Database.layerFromPath(filename),
+      Database.layerFromPath(filename),
+    ]
 
+    const started = Date.now()
+    await Effect.runPromise(
+      Effect.all(
+        layers.map((layer) => Effect.scoped(Layer.build(layer))),
+        { concurrency: "unbounded" },
+      ),
+    )
+    // bun:sqlite is synchronous, so overlapping initializations contend on `BEGIN IMMEDIATE` and
+    // block the whole event loop for `PRAGMA busy_timeout` (5 s) before failing. Measuring the
+    // wall clock is the only way to tell "serialized" from "froze for five seconds and recovered":
+    // unserialized this took 5.8 s, serialized it takes ~50 ms.
+    expect(Date.now() - started).toBeLessThan(2_000)
+  })
+
+  test("initializes different database paths concurrently", async () => {
+    await using tmp = await tmpdir()
+    const layers = [
+      Database.layerFromPath(path.join(tmp.path, "a.sqlite")),
+      Database.layerFromPath(path.join(tmp.path, "b.sqlite")),
+    ]
+
+    // The lock is per path. One global lock would also make the test above pass, and would
+    // silently serialize every unrelated database in the process.
     await Effect.runPromise(
       Effect.all(
         layers.map((layer) => Effect.scoped(Layer.build(layer))),

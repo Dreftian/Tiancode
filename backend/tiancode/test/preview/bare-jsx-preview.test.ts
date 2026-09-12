@@ -339,6 +339,79 @@ describe("bare JSX preview", () => {
     }
   })
 
+  test("a JSX preview with a build script never runs a production build on save", async () => {
+    // The watcher used to run `<pm> run build` for anything with a build script. The bare-JSX
+    // preview transpiles each module per request, so that build produced bytes nobody served —
+    // seconds of work per keystroke.
+    await using tmp = await tmpdir()
+    await Bun.write(
+      path.join(tmp.path, "package.json"),
+      JSON.stringify({ name: "jsx-with-build", scripts: { build: "node build.js" } }),
+    )
+    await Bun.write(
+      path.join(tmp.path, "build.js"),
+      'require("fs").writeFileSync(require("path").join(__dirname, "built.marker"), "ran")',
+    )
+    await Bun.write(path.join(tmp.path, "App.tsx"), "export default function App() { return <main>v1</main> }")
+
+    const state = await startPreviewServer(tmp.path)
+    try {
+      expect(state.status).toBe("ready")
+      await Bun.write(path.join(tmp.path, "App.tsx"), "export default function App() { return <main>v2</main> }")
+      await Bun.sleep(1_500)
+
+      expect(await Bun.file(path.join(tmp.path, "built.marker")).exists()).toBe(false)
+      expect(getPreviewState(tmp.path).build.sequence).toBe(0)
+      expect(await (await fetch(`${state.url}/App.tsx`)).text()).toContain("v2")
+    } finally {
+      expect(stopPreviewServer(tmp.path).status).toBe("stopped")
+    }
+  })
+
+  test("a desktop project served from its build output still rebuilds on save", async () => {
+    // The discriminator must be the detected preview kind, not "has a dev script": an Electron
+    // project with `"dev": "electron ."` is deliberately served from dist/ and does need the build.
+    await using tmp = await tmpdir()
+    await Bun.write(
+      path.join(tmp.path, "package.json"),
+      JSON.stringify({
+        name: "electron-static",
+        scripts: { dev: "electron .", build: "node build.js" },
+        devDependencies: { electron: "^37.0.0" },
+      }),
+    )
+    await Bun.write(
+      path.join(tmp.path, "build.js"),
+      [
+        'const fs = require("fs");',
+        'const path = require("path");',
+        'fs.mkdirSync(path.join(__dirname, "dist"), { recursive: true });',
+        'const msg = fs.readFileSync(path.join(__dirname, "src", "message.txt"), "utf8");',
+        'fs.writeFileSync(path.join(__dirname, "dist", "index.html"), `<!doctype html><html><body><div>${msg}</div></body></html>`);',
+      ].join("\n"),
+    )
+    await Bun.write(path.join(tmp.path, "src", "message.txt"), "Desktop 1.0")
+
+    const state = await startPreviewServer(tmp.path)
+    try {
+      expect(state.status).toBe("ready")
+      expect(await (await fetch(state.url!)).text()).toContain("Desktop 1.0")
+
+      await Bun.write(path.join(tmp.path, "src", "message.txt"), "Desktop 2.0")
+      const deadline = Date.now() + 8_000
+      let html = ""
+      while (Date.now() < deadline) {
+        await Bun.sleep(100)
+        html = await (await fetch(state.url!)).text().catch(() => "")
+        if (html.includes("Desktop 2.0")) break
+      }
+      expect(html).toContain("Desktop 2.0")
+      expect(getPreviewState(tmp.path).build.sequence).toBeGreaterThan(0)
+    } finally {
+      expect(stopPreviewServer(tmp.path).status).toBe("stopped")
+    }
+  })
+
   test("automatically runs incremental build and updates preview on source file changes", async () => {
     await using tmp = await tmpdir()
     await Bun.write(

@@ -36,8 +36,8 @@ describe("syncIntelligenceConfig", () => {
 
     expect(await syncIntelligenceConfig({ url: "http://localhost:4096" }, SWITCHES)).toBe(true)
     expect(patched?.theme).toBe("dark")
-    expect((patched?.experimental as Record<string, unknown>).policies).toEqual([{ action: "read" }])
-    expect((patched?.experimental as Record<string, unknown>).intelligence).toEqual(SWITCHES)
+    expect((patched!.experimental as Record<string, unknown>).policies).toEqual([{ action: "read" }])
+    expect((patched!.experimental as Record<string, unknown>).intelligence).toEqual(SWITCHES)
   })
 
   test("strips a trailing slash from the server url", async () => {

@@ -18,6 +18,7 @@
     "no-unsafe-optional-chaining": "error",
     // `new Function(...)` / string-bodied setTimeout is a code-injection sink
     "typescript/no-implied-eval": "error",
+    "no-eval": "error",
 
     // ── warn: real debt, worth fixing later ──
     "typescript/no-base-to-string": "warn",

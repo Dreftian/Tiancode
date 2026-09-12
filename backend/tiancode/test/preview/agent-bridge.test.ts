@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test"
 import {
   isPreviewBridgeAttached,
+  pendingPreviewDemand,
+  previewBridgePresence,
+  reportPreviewBridgeClient,
   requestPreviewAction,
   resetPreviewBridge,
   settlePreviewCommand,
@@ -8,12 +11,16 @@ import {
 } from "@/preview/agent-bridge"
 
 const DIR = "C:\\proyecto"
+/** A client with a loaded page: the only kind that may be handed work. */
+const SURFACE = { surface: true, capable: true }
+/** The desktop app with the Live view closed, or its page still loading. */
+const BLIND = { surface: false, capable: true }
 
 afterEach(() => resetPreviewBridge())
 
 describe("preview agent bridge", () => {
   test("delivers an action to a waiting client and returns its result", async () => {
-    const poll = takePreviewCommands(DIR, 2000)
+    const poll = takePreviewCommands(DIR, 2000, SURFACE)
     const pending = requestPreviewAction(DIR, { type: "click", target: "e3" })
 
     const commands = await poll
@@ -26,14 +33,14 @@ describe("preview agent bridge", () => {
 
   test("an action queued before the client polls is not lost", async () => {
     const pending = requestPreviewAction(DIR, { type: "inspect" })
-    const commands = await takePreviewCommands(DIR, 2000)
+    const commands = await takePreviewCommands(DIR, 2000, SURFACE)
     expect(commands).toHaveLength(1)
     settlePreviewCommand(DIR, { id: commands[0]!.id, ok: true, output: "ok" })
     await expect(pending).resolves.toMatchObject({ ok: true })
   })
 
   test("the directory key ignores trailing separators and case", async () => {
-    const poll = takePreviewCommands("C:\\proyecto\\", 2000)
+    const poll = takePreviewCommands("C:\\proyecto\\", 2000, SURFACE)
     const pending = requestPreviewAction("c:\\Proyecto", { type: "inspect" })
     const commands = await poll
     expect(commands).toHaveLength(1)
@@ -44,12 +51,12 @@ describe("preview agent bridge", () => {
   test("without a client the action fails with an explanation instead of hanging", async () => {
     const result = await requestPreviewAction(DIR, { type: "click", target: "e1" }, 40)
     expect(result.ok).toBe(false)
-    expect(result.output).toContain("Vista en vivo")
+    expect(result.output).toContain("ventana de Tiancode")
     expect(isPreviewBridgeAttached(DIR)).toBe(false)
   })
 
   test("a poll with nothing queued resolves empty instead of blocking forever", async () => {
-    const commands = await takePreviewCommands(DIR, 30)
+    const commands = await takePreviewCommands(DIR, 30, SURFACE)
     expect(commands).toEqual([])
     expect(isPreviewBridgeAttached(DIR)).toBe(true)
   })
@@ -59,13 +66,75 @@ describe("preview agent bridge", () => {
   })
 
   test("two windows on the same folder do not both run the action", async () => {
-    const first = takePreviewCommands(DIR, 2000)
-    const second = takePreviewCommands(DIR, 60)
+    const first = takePreviewCommands(DIR, 2000, SURFACE)
+    const second = takePreviewCommands(DIR, 60, SURFACE)
     requestPreviewAction(DIR, { type: "click", target: "e1" }, 2000)
 
     const [a, b] = await Promise.all([first, second])
     // One of them gets the click; the other times out empty. Handing it to both would press
     // the button twice.
     expect(a.length + b.length).toBe(1)
+  })
+
+  test("a client with no page never consumes a queued action", async () => {
+    const pending = requestPreviewAction(DIR, { type: "click", target: "e1" }, 5000)
+    // Delivery empties the queue, so handing the batch to a client that cannot execute it would
+    // destroy the action. It must wait for a real surface instead.
+    expect(await takePreviewCommands(DIR, 30, BLIND)).toEqual([])
+
+    const commands = await takePreviewCommands(DIR, 30, SURFACE)
+    expect(commands).toHaveLength(1)
+    settlePreviewCommand(DIR, { id: commands[0]!.id, ok: true, output: "ok" })
+    await expect(pending).resolves.toMatchObject({ ok: true })
+  })
+
+  test("presence separates a blind client from one that can act", async () => {
+    expect(previewBridgePresence(DIR)).toBe("none")
+
+    await takePreviewCommands(DIR, 5, BLIND)
+    expect(previewBridgePresence(DIR)).toBe("opening")
+    expect(isPreviewBridgeAttached(DIR)).toBe(false)
+
+    await takePreviewCommands(DIR, 5, SURFACE)
+    expect(previewBridgePresence(DIR)).toBe("surface")
+    expect(isPreviewBridgeAttached(DIR)).toBe(true)
+  })
+
+  test("a web client is told immediately rather than left waiting", async () => {
+    reportPreviewBridgeClient(DIR, { capable: false })
+    expect(previewBridgePresence(DIR)).toBe("incapable")
+
+    const started = Date.now()
+    const result = await requestPreviewAction(DIR, { type: "inspect" })
+    expect(Date.now() - started).toBeLessThan(1000)
+    expect(result.ok).toBe(false)
+    expect(result.output).toContain("navegador")
+    // And it was not queued: nothing is left behind for a later surface to run.
+    expect(await takePreviewCommands(DIR, 10, SURFACE)).toEqual([])
+  })
+
+  test("pendingPreviewDemand reports without consuming", async () => {
+    requestPreviewAction(DIR, { type: "inspect" }, 5000)
+    requestPreviewAction(DIR, { type: "click", target: "e1" }, 5000)
+
+    const first = pendingPreviewDemand(DIR)
+    expect(first.pending).toBe(2)
+    expect(first.id).toBeTruthy()
+    // Reading it twice must not eat the very action the watchdog is opening the panel for.
+    expect(pendingPreviewDemand(DIR)).toMatchObject({ pending: 2, id: first.id })
+    expect(await takePreviewCommands(DIR, 30, SURFACE)).toHaveLength(2)
+  })
+
+  test("a requeued command is delivered again and settles once", async () => {
+    const pending = requestPreviewAction(DIR, { type: "inspect" }, 5000)
+    const first = await takePreviewCommands(DIR, 30, SURFACE)
+    expect(first).toHaveLength(1)
+
+    settlePreviewCommand(DIR, { id: first[0]!.id, ok: false, output: "cerrado" }, { requeue: true })
+    const second = await takePreviewCommands(DIR, 30, SURFACE)
+    expect(second.map((c) => c.id)).toEqual([first[0]!.id])
+
+    settlePreviewCommand(DIR, { id: second[0]!.id, ok: true, output: "hecho" })
+    await expect(pending).resolves.toMatchObject({ ok: true, output: "hecho" })
   })
 })

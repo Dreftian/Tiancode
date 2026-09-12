@@ -1553,6 +1553,8 @@ export const dict = {
   "settings.skills.autoSelect.description": "Elegir automáticamente las skills según el proyecto (framework, tooling, etc.) en cada conversación",
   "settings.skills.section.import": "Importar skill",
   "settings.skills.empty": "Aún no hay skills instalados",
+  "settings.skills.empty.filtered": "No hay skills en esta categoría",
+  "settings.skills.loading": "Cargando skills…",
   "settings.skills.import.folder.title": "Importar desde carpeta",
   "settings.skills.import.folder.description": "Selecciona una carpeta de skill que contenga un archivo SKILL.md",
   "settings.skills.import.folder.button": "Elegir carpeta",

@@ -1442,6 +1442,8 @@ export const dict = {
   "settings.skills.autoSelect.description": "毎回の会話でプロジェクトに合ったスキル（フレームワーク、ツールなど）を自動的に選びます",
   "settings.skills.section.import": "スキルをインポート",
   "settings.skills.empty": "インストール済みのスキルはまだありません",
+  "settings.skills.empty.filtered": "このカテゴリにスキルはありません",
+  "settings.skills.loading": "スキルを読み込み中…",
   "settings.skills.import.folder.title": "フォルダーからインポート",
   "settings.skills.import.folder.description": "SKILL.md ファイルを含むスキルフォルダーを選択します",
   "settings.skills.import.folder.button": "フォルダーを選択",

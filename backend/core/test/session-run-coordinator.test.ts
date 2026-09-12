@@ -215,7 +215,53 @@ describe("SessionRunCoordinator", () => {
     ),
   )
 
-  it.effect("interrupts active execution and clears its pending wake", () =>
+  it.effect("interrupts active execution and keeps its pending wake", () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const started = yield* Deferred.make<void>()
+        const interrupted = yield* Deferred.make<void>()
+        const secondStarted = yield* Deferred.make<void>()
+        const forces: boolean[] = []
+        let runs = 0
+        const coordinator = yield* SessionRunCoordinator.make<string, never>({
+          drain: (_key, force) =>
+            Effect.sync(() => {
+              forces.push(force)
+              return ++runs
+            }).pipe(
+              Effect.flatMap((run) =>
+                run === 1
+                  ? Deferred.succeed(started, undefined).pipe(
+                      Effect.andThen(Effect.never),
+                      Effect.onInterrupt(() => Deferred.succeed(interrupted, undefined)),
+                    )
+                  : Deferred.succeed(secondStarted, undefined).pipe(Effect.asVoid),
+              ),
+            ),
+        })
+
+        const resumed = yield* coordinator.run("session").pipe(Effect.forkChild)
+        yield* Deferred.await(started)
+        yield* coordinator.wake("session")
+        yield* coordinator.interrupt("session")
+        yield* Deferred.await(interrupted)
+
+        const exit = yield* Fiber.await(resumed)
+        expect(Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause)).toBeTrue()
+        // The interrupt deliberately keeps the registered wake (see interrupt() in
+        // run-coordinator.ts), so settle() schedules a successor drain and the key stays active
+        // until that successor finishes. Clearing it here would drop an admitted prompt.
+        expect(Array.from(yield* coordinator.active)).toEqual(["session"])
+        yield* Deferred.await(secondStarted)
+        yield* Effect.yieldNow
+        expect(runs).toBe(2)
+        expect(forces).toEqual([true, false])
+        expect(Array.from(yield* coordinator.active)).toEqual([])
+      }),
+    ),
+  )
+
+  it.effect("releases the key when interrupted without a pending wake", () =>
     Effect.scoped(
       Effect.gen(function* () {
         const started = yield* Deferred.make<void>()
@@ -232,12 +278,11 @@ describe("SessionRunCoordinator", () => {
 
         const resumed = yield* coordinator.run("session").pipe(Effect.forkChild)
         yield* Deferred.await(started)
-        yield* coordinator.wake("session")
         yield* coordinator.interrupt("session")
         yield* Deferred.await(interrupted)
 
-        const exit = yield* Fiber.await(resumed)
-        expect(Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause)).toBeTrue()
+        yield* Fiber.await(resumed)
+        // No wake was registered, so there is no successor and the key is fully released.
         expect(Array.from(yield* coordinator.active)).toEqual([])
         expect(runs).toBe(1)
       }),

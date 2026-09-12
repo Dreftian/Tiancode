@@ -14,6 +14,7 @@ export const PreviewPaths = {
   logs: `${root}/logs`,
   agentPending: `${root}/agent/pending`,
   agentResult: `${root}/agent/result`,
+  agentDemand: `${root}/agent/demand`,
 } as const
 
 export const PreviewErrorSchema = Schema.Struct({
@@ -43,6 +44,7 @@ export const PreviewStateSchema = Schema.Struct({
   startedAt: Schema.Union([Schema.Null, Schema.Number]),
   errorMessage: Schema.Union([Schema.Null, Schema.String]),
   isDesktop: Schema.optional(Schema.Boolean),
+  pid: Schema.optional(Schema.Union([Schema.Null, Schema.Number])),
   build: PreviewBuildSchema,
 })
 
@@ -69,6 +71,15 @@ export const PreviewAgentResultSchema = Schema.Struct({
   id: Schema.String,
   ok: Schema.Boolean,
   output: Schema.String,
+  /** El cliente reclamó la acción y se cerró antes de ejecutarla: vuelve a la cola. */
+  requeue: Schema.optional(Schema.Boolean),
+})
+
+/** Lo que el agente está esperando, sin consumir la cola. */
+export const PreviewAgentDemandSchema = Schema.Struct({
+  pending: Schema.Number,
+  id: Schema.Union([Schema.Null, Schema.String]),
+  since: Schema.Union([Schema.Null, Schema.Number]),
 })
 
 export const PreviewApi = HttpApi.make("preview")
@@ -124,7 +135,12 @@ export const PreviewApi = HttpApi.make("preview")
           }),
         ),
         HttpApiEndpoint.get("agentPending", PreviewPaths.agentPending, {
-          query: Schema.Struct({ ...WorkspaceRoutingQueryFields, wait: Schema.optional(Schema.String) }),
+          query: Schema.Struct({
+            ...WorkspaceRoutingQueryFields,
+            wait: Schema.optional(Schema.String),
+            surface: Schema.optional(Schema.String),
+            capable: Schema.optional(Schema.String),
+          }),
           success: described(
             Schema.Array(PreviewAgentCommandSchema),
             "Acciones que el agente quiere ejecutar sobre la página (long-poll)",
@@ -133,6 +149,15 @@ export const PreviewApi = HttpApi.make("preview")
           OpenApi.annotations({
             identifier: "preview.agentPending",
             summary: "Acciones pendientes del agente sobre la vista previa",
+          }),
+        ),
+        HttpApiEndpoint.get("agentDemand", PreviewPaths.agentDemand, {
+          query: Schema.Struct({ ...WorkspaceRoutingQueryFields, capable: Schema.optional(Schema.String) }),
+          success: described(PreviewAgentDemandSchema, "Acciones del agente esperando una superficie"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "preview.agentDemand",
+            summary: "Demanda del agente sobre la vista previa",
           }),
         ),
         HttpApiEndpoint.post("agentResult", PreviewPaths.agentResult, {

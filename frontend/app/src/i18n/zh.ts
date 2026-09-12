@@ -1502,6 +1502,8 @@ export const dict = {
   "settings.skills.autoSelect.description": "在每次对话中自动选择与项目匹配的技能（框架、工具等）",
   "settings.skills.section.import": "导入技能",
   "settings.skills.empty": "尚未安装技能",
+  "settings.skills.empty.filtered": "此分类下没有技能",
+  "settings.skills.loading": "正在加载技能…",
   "settings.skills.import.folder.title": "从文件夹导入",
   "settings.skills.import.folder.description": "选择包含 SKILL.md 文件的技能文件夹",
   "settings.skills.import.folder.button": "选择文件夹",

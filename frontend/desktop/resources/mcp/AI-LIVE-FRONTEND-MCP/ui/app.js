@@ -176,7 +176,7 @@ function schedulePreviewReload() {
   if (frame.classList.contains("hidden") || !frame.src || frame.src.indexOf("/preview/") === -1) return;
   if (previewReloadTimer) clearTimeout(previewReloadTimer);
   previewReloadTimer = setTimeout(() => {
-    if (!frame.classList.contains("hidden")) frame.src = frame.src;
+    if (!frame.classList.contains("hidden")) frame.setAttribute("src", frame.src);
   }, 400);
 }
 

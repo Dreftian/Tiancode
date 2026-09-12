@@ -292,6 +292,10 @@ const createPlatform = (windowState: DesktopWindowState): Platform => {
     // El agente lee y maneja la página de la Vista en vivo (preview_inspect / preview_interact).
     previewAgent: window.api.previewAgent,
 
+    // Espejo de la ventana de una app de escritorio del Sandbox. Solo Windows: en el resto
+    // cada método responde vacío y el panel se queda con su consola.
+    windowMirror: window.api.windowMirror,
+
     onLiveViewNavigate: (cb) => window.api.onLiveViewNavigate(cb),
 
     getDisplayBackend: async () => {

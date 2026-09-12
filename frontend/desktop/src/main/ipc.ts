@@ -34,6 +34,7 @@ import { captureArea, captureLiveView, capturePreview, captureScreen, captureWin
 import { backupNow, listBackups, restoreBackup } from "./backup"
 import { registerPreviewViewIpc } from "./preview-view"
 import { registerPreviewAgentIpc } from "./preview-agent"
+import { registerWindowMirrorIpc } from "./window-mirror"
 import { registerDesktopPetIpc } from "./desktop-pet"
 
 // Apps "abrir con" que acepta open-path. En macOS y Linux el renderer envía
@@ -139,6 +140,10 @@ export function registerIpcHandlers(deps: Deps) {
   // El agente maneja la página de la Vista en vivo (leer la pantalla, pulsar, escribir).
   // Canales exclusivos preview-agent:*.
   registerPreviewAgentIpc()
+
+  // Espejo de la ventana real de una app de escritorio lanzada por el Sandbox (solo Windows).
+  // Canales exclusivos window-mirror:*.
+  registerWindowMirrorIpc()
 
   // Mascota de escritorio independiente
   registerDesktopPetIpc()

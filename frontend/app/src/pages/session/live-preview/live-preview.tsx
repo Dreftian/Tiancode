@@ -9,7 +9,7 @@ import { normalizeUrl } from "@/components/preview/preview-panel"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { useSDK } from "@/context/sdk"
-import { useServer } from "@/context/server"
+import { ServerConnection, useServer } from "@/context/server"
 import { authTokenFromCredentials } from "@/utils/server"
 import type { PreviewViewState } from "@/context/platform"
 import {
@@ -25,7 +25,7 @@ import { PREVIEW_RETRY_MAX_ATTEMPTS, isRetryablePreviewLoadFailure, previewRetry
 import { iframePreviewUrl, usesIframePreview } from "./live-preview-transport"
 import { orientedPreviewDimensions } from "./preview-experience"
 import { reactToBuild, shortenBuildTrigger } from "./live-preview-build"
-import { previewPollInterval, shouldFetchPreviewLogs } from "./preview-poll"
+import { mirrorFrameInterval, previewPollInterval, shouldArmMirror, shouldFetchPreviewLogs } from "./preview-poll"
 import { clampZoom, fittedPreviewViewport, nextZoomStep, type PreviewZoom } from "./preview-viewport"
 import { createReloadScheduler } from "./live-preview-reload"
 import "./live-preview.css"
@@ -42,6 +42,8 @@ type DevServerState = {
   startedAt: number | null
   errorMessage: string | null
   isDesktop?: boolean
+  /** Root pid of the spawned desktop app; on Windows this is the shell wrapper, not the GUI. */
+  pid?: number | null
   // Incremental rebuild progress. The server stays "ready" while a rebuild runs, so this is
   // the only signal that work is in flight after the agent (or the user) touches a file.
   build?: {
@@ -177,6 +179,9 @@ export function LivePreview(props: {
       // saved before 1.0.42 have no `zoomMode`, which reads as auto-fit.
       zoom: 1,
       zoomMode: "auto" as "auto" | "manual",
+      // Window the user pinned for a desktop project, per directory. The matcher gets it wrong
+      // for multi-window apps (a devtools window, a splash screen) and this is the escape hatch.
+      mirrorPins: {} as Record<string, string>,
     }),
   )
   const previewZoom = (): PreviewZoom =>
@@ -226,6 +231,20 @@ export function LivePreview(props: {
   const [iframeLoading, setIframeLoading] = createSignal(false)
   const [nativePreviewActive, setNativePreviewActive] = createSignal(false)
   const [availableViewport, setAvailableViewport] = createSignal({ width: 0, height: 0 })
+  // Espejo de la ventana de una app de escritorio del Sandbox: es una imagen, no un embebido.
+  type MirrorStatus = "idle" | "searching" | "live" | "blank" | "gone" | "nomatch"
+  const [mirrorStatus, setMirrorStatus] = createSignal<MirrorStatus>("idle")
+  const [mirrorFrame, setMirrorFrame] = createSignal<string>()
+  const [mirrorTitle, setMirrorTitle] = createSignal<string>()
+  const [mirrorSources, setMirrorSources] = createSignal<
+    { id: string; name: string; icon: string | null; thumb: string }[]
+  >([])
+  const [mirrorPicking, setMirrorPicking] = createSignal(false)
+  // Windows only. Without asking, macOS and Linux rendered a black panel that could never
+  // resolve, contradicting the renderer's own "keeps its console elsewhere" promise.
+  const [mirrorSupported, setMirrorSupported] = createSignal(false)
+  /** Set by startWindowMirror so the picker can hand a window to the same lifecycle. */
+  let mirrorAdopt: ((sourceId: string) => void) | undefined
   // Dev server gestionado por el agente (DevServerManager del backend).
   const [devServer, setDevServer] = createSignal<DevServerState | null>(null)
   // Last rebuild we already reacted to; see fetchDevServer for why this is a counter.
@@ -1246,12 +1265,237 @@ export function LivePreview(props: {
   // encola la acción y este bucle la recoge y la ejecuta contra el frame real. Long-poll en vez
   // de sondeo: un clic del agente llega en cuanto lo pide, y mientras no pide nada no se gasta
   // ni una petición por segundo.
+  // ── Espejo de la ventana de escritorio ───────────────────────────────────────
+  //
+  // El Sandbox podía lanzar una app de escritorio pero sólo enseñaba su stdout, así que "¿se ve
+  // bien?" no tenía respuesta sin salir de Tiancode. Esto fotografía su ventana real cada medio
+  // segundo. Es un espejo: no se puede pulsar ni escribir dentro, y el panel lo dice.
+  const mirrorHints = () => {
+    const dir = devServerDirectory()
+    const name = dir ? dir.split(/[\/]/).filter(Boolean).pop() : undefined
+    return [name, devServer()?.framework, devServer()?.command].filter((value): value is string => !!value)
+  }
+
+  const pinMirrorSource = (sourceId: string | undefined) => {
+    const dir = devServerDirectory()
+    if (!dir) return
+    const next = { ...previewPrefs.mirrorPins }
+    if (sourceId) next[dir] = sourceId
+    else delete next[dir]
+    setPreviewPrefs("mirrorPins", next)
+  }
+
+  const startWindowMirror = () => {
+    const mirror = platform.windowMirror
+    if (!mirror) return () => {}
+    let stopped = false
+    let armedFor: string | undefined
+    /** The window we settled on. Kept so a paused mirror can be resumed without re-matching. */
+    let armedSource: string | undefined
+    /** Whether the main process currently holds a mirror entry for this window. */
+    let running = false
+    let searchTimer: ReturnType<typeof setTimeout> | undefined
+    let attempts = 0
+
+    const unsubscribe = mirror.onEvent((event) => {
+      if (stopped) return
+      if (event.type === "frame") {
+        setMirrorFrame(event.dataUrl)
+        setMirrorTitle(event.title)
+        setMirrorStatus("live")
+        return
+      }
+      if (event.type === "blank") {
+        // Minimised, or a window the legacy capture path cannot read. Drop the frame too: keeping
+        // it would leave a stale picture on screen with no way to show this explanation.
+        setMirrorFrame(undefined)
+        setMirrorStatus("blank")
+        return
+      }
+      running = false
+      armedSource = undefined
+      setMirrorStatus("gone")
+      setMirrorFrame(undefined)
+    })
+
+    const disarm = () => {
+      clearTimeout(searchTimer)
+      armedFor = undefined
+      armedSource = undefined
+      running = false
+      attempts = 0
+      setMirrorFrame(undefined)
+      setMirrorTitle(undefined)
+      setMirrorStatus("idle")
+      void mirror.stop().catch(() => undefined)
+    }
+
+    const cadence = () =>
+      mirrorFrameInterval({
+        visible: typeof document === "undefined" || document.visibilityState === "visible",
+        focused: typeof document === "undefined" || document.hasFocus(),
+      })
+
+    const startAt = async (sourceId: string, interval: number) => {
+      armedSource = sourceId
+      if (interval === 0) {
+        // Nobody is looking. Remember the window and start when they are.
+        setMirrorStatus("searching")
+        return
+      }
+      running = (await mirror.start({ sourceId, intervalMs: interval, width: 1280 }).catch(() => false)) === true
+    }
+
+    const arm = async (key: string, pid: number) => {
+      const dir = devServerDirectory()
+      const pinned = dir ? previewPrefs.mirrorPins[dir] : undefined
+      let sourceId: string | undefined
+      if (pinned) {
+        // A pin is a window handle, which dies with the window it named. Treat it as a hint that
+        // has to still exist, not as an answer — otherwise picking a window once broke every
+        // later run of that project with "La ventana se cerró".
+        const live = await mirror.listSources().catch(() => [])
+        if (live.some((source) => source.id === pinned)) sourceId = pinned
+        else pinMirrorSource(undefined)
+      }
+      if (!sourceId) {
+        const before = await mirror.snapshot().catch(() => [])
+        const matched = await mirror.match({ pid, hints: mirrorHints(), before }).catch(() => null)
+        sourceId = matched ?? undefined
+      }
+      if (stopped || armedFor !== key) return
+      if (!sourceId) {
+        attempts += 1
+        // A GUI takes a moment to put its window up; keep looking for ~10s before giving up and
+        // offering the picker.
+        if (attempts < 10) {
+          searchTimer = setTimeout(() => void arm(key, pid), 1000)
+          return
+        }
+        setMirrorStatus("nomatch")
+        return
+      }
+      await startAt(sourceId, cadence())
+    }
+
+    createEffect(() => {
+      const state = devServer()
+      const dir = devServerDirectory()
+      const pid = state?.pid ?? null
+      const ok = shouldArmMirror({
+        isDesktop: state?.isDesktop === true,
+        status: state?.status,
+        // The pid belongs to the machine that spawned it. A WSL sidecar is reached over
+        // 127.0.0.1 too, so the URL says nothing — only the connection kind does.
+        local: !!server.current && ServerConnection.builtin(server.current),
+        pid,
+        available: mirrorSupported(),
+      })
+      if (!ok || !dir || typeof pid !== "number") {
+        if (armedFor) disarm()
+        return
+      }
+      const key = `${dir}:${pid}`
+      if (armedFor === key) return
+      clearTimeout(searchTimer)
+      armedFor = key
+      attempts = 0
+      setMirrorFrame(undefined)
+      setMirrorStatus("searching")
+      void arm(key, pid)
+    })
+
+    // Visibility and focus changes only ever throttle. Stopping outright used to destroy the
+    // main-process entry, and nothing could recreate it — the panel then showed a frozen frame
+    // under a green "live" dot for the rest of the session.
+    const retune = () => {
+      if (!armedSource) return
+      const interval = cadence()
+      if (interval === 0) {
+        if (running) {
+          running = false
+          void mirror.pause().catch(() => undefined)
+        }
+        return
+      }
+      if (running) {
+        void mirror.setInterval(interval).catch(() => undefined)
+        return
+      }
+      void startAt(armedSource, interval)
+    }
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", retune)
+      window.addEventListener("focus", retune)
+      window.addEventListener("blur", retune)
+    }
+
+    /** Used by the picker so a hand-chosen window joins the same lifecycle. */
+    mirrorAdopt = (sourceId: string) => {
+      clearTimeout(searchTimer)
+      attempts = 0
+      armedFor = armedFor ?? `manual:${devServerDirectory() ?? ""}`
+      setMirrorFrame(undefined)
+      setMirrorStatus("searching")
+      void startAt(sourceId, cadence())
+    }
+
+    return () => {
+      stopped = true
+      mirrorAdopt = undefined
+      clearTimeout(searchTimer)
+      unsubscribe()
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", retune)
+        window.removeEventListener("focus", retune)
+        window.removeEventListener("blur", retune)
+      }
+      void mirror.stop().catch(() => undefined)
+    }
+  }
+
+  /**
+   * Sends the current mirror frame to the chat.
+   *
+   * Only ever on this explicit click: the frame is of a window on the user's real desktop, so it
+   * is never attached to a message on its own.
+   */
+  const captureMirrorFrame = async () => {
+    const frame = mirrorFrame()
+    if (!frame || !props.onCapture) return
+    const blob = await fetch(frame)
+      .then((res) => res.blob())
+      .catch(() => undefined)
+    if (!blob) return
+    const name = (mirrorTitle() || "ventana").replace(/[^\p{L}\p{N}]+/gu, "-").slice(0, 40) || "ventana"
+    props.onCapture(new File([blob], `${name}.jpg`, { type: "image/jpeg" }))
+  }
+
+  const openMirrorPicker = async () => {
+    const mirror = platform.windowMirror
+    if (!mirror) return
+    setMirrorPicking(true)
+    setMirrorSources(await mirror.listSources().catch(() => []))
+  }
+
+  const chooseMirrorSource = (sourceId: string) => {
+    pinMirrorSource(sourceId)
+    setMirrorPicking(false)
+    // Through the controller, so this capture is throttled on blur and stopped on teardown like
+    // any other. Started directly, it outlived the panel with no indicator anywhere.
+    mirrorAdopt?.(sourceId)
+  }
+
   const startPreviewAgentBridge = () => {
     const agent = platform.previewAgent
-    if (!agent) return () => {}
+    // A web renderer still polls, slowly and with surface=0/capable=0, so the backend can answer
+    // "incapable" instead of "no window open" — that is the only way the tool can tell the agent
+    // it is on the wrong build rather than telling it to open a panel that does not exist here.
+    const capable = !!agent
     let stopped = false
 
     const runCommand = async (action: PreviewAgentAction): Promise<{ ok: boolean; output: string }> => {
+      if (!agent) return { ok: false, output: "Esta sesión no puede ejecutar acciones dentro de la página." }
       try {
         // El `src` del iframe activo: la recarga sin parpadeo mantiene dos vivos y los alterna,
         // así que sin esta pista el script podía ejecutarse en la copia oculta.
@@ -1273,20 +1517,36 @@ export function LivePreview(props: {
         }
         try {
           const headers = devServerHeaders()
-          const res = await fetch(previewAgentPendingUrl(url, dir, 20000), { headers })
+          // Ask the main process whether a frame really exists, rather than assuming one does
+          // because the component is mounted: `available` runs the same lookup as `execute`.
+          const surface = agent ? await agent.available(iframe?.src).catch(() => false) : false
+          // The short re-poll is only right while a page is genuinely on its way: an iframe URL is
+          // set, or the dev server is still starting. With no preview at all — the Sandbox empty
+          // state, or a desktop app that will never have a frame — "waiting for a page" is
+          // permanent, and 1.5 s meant ~40 requests a minute forever.
+          const loading = !!iframeUrl() || devServer()?.status === "starting"
+          const wait = surface || !capable || !loading ? 20000 : 1500
+          const res = await fetch(previewAgentPendingUrl(url, dir, wait, { surface, capable }), { headers })
           if (!res.ok) {
             await new Promise((resolve) => setTimeout(resolve, 3000))
             continue
           }
           const commands = (await res.json()) as { id: string; action: PreviewAgentAction }[]
           for (const command of commands) {
-            if (stopped) break
+            const post = (body: Record<string, unknown>) =>
+              fetch(previewAgentResultUrl(url, dir), {
+                method: "POST",
+                headers: { ...headers, "content-type": "application/json" },
+                body: JSON.stringify(body),
+              }).catch(() => undefined)
+            if (stopped) {
+              // Claimed but never run. Hand it back instead of dropping it on the floor — the
+              // agent is still waiting and a freshly opened panel can still execute it.
+              await post({ id: command.id, ok: false, output: "La Vista en vivo se cerró.", requeue: true })
+              continue
+            }
             const outcome = await runCommand(command.action)
-            await fetch(previewAgentResultUrl(url, dir), {
-              method: "POST",
-              headers: { ...headers, "content-type": "application/json" },
-              body: JSON.stringify({ id: command.id, ok: outcome.ok, output: outcome.output }),
-            }).catch(() => undefined)
+            await post({ id: command.id, ok: outcome.ok, output: outcome.output })
           }
         } catch {
           // Servidor caído o sesión cambiando: se reintenta sin ruido.
@@ -1304,6 +1564,12 @@ export function LivePreview(props: {
   onMount(() => {
     const stopAgentBridge = startPreviewAgentBridge()
     onCleanup(stopAgentBridge)
+    void platform.windowMirror
+      ?.supported()
+      .then((value) => setMirrorSupported(value === true))
+      .catch(() => undefined)
+    const stopWindowMirror = startWindowMirror()
+    onCleanup(stopWindowMirror)
 
     const handleToggleInspector = () => setInspectActive((prev) => !prev)
     window.addEventListener("tiancode:toggle-inspector", handleToggleInspector)
@@ -2182,7 +2448,7 @@ export function LivePreview(props: {
                         </span>
                       </div>
                       <p class="text-11-regular text-text-weak">
-                        Aplicación en ejecución contenida en segundo plano sin ventanas externas en el escritorio.
+                        La app abre su propia ventana en Windows; Tiancode la refleja aquí en vivo.
                       </p>
                     </div>
                   </div>
@@ -2278,6 +2544,108 @@ export function LivePreview(props: {
                   </div>
                 </Show>
               </div>
+
+              {/* Espejo de la ventana real de la app. Imagen, no embebido: no se puede pulsar. */}
+              <Show when={mirrorSupported() && devServer()?.isDesktop && devServer()?.status === "ready"}>
+                <div class="mt-3 flex min-h-0 flex-[2] flex-col overflow-hidden rounded-xl border border-v2-border-border-muted bg-neutral-950 shadow-inner">
+                  <div class="flex flex-wrap items-center gap-2 border-b border-neutral-800 px-3 py-2 text-[11px] text-neutral-400">
+                    <span
+                      class={`size-2 shrink-0 rounded-full ${
+                        mirrorStatus() === "live" ? "bg-emerald-400" : "bg-neutral-600"
+                      }`}
+                      aria-hidden="true"
+                    />
+                    <span class="min-w-0 flex-1 truncate font-medium" title={mirrorTitle()}>
+                      {mirrorTitle() ?? "Ventana de la aplicación"}
+                    </span>
+                    <span class="shrink-0 text-[10px] text-neutral-500">solo vista</span>
+                    <button
+                      type="button"
+                      class="shrink-0 cursor-pointer text-[10px] text-neutral-400 transition-colors hover:text-white"
+                      onClick={() => void openMirrorPicker()}
+                    >
+                      Elegir ventana
+                    </button>
+                    <Show when={mirrorFrame()}>
+                      <button
+                        type="button"
+                        class="shrink-0 cursor-pointer text-[10px] text-neutral-400 transition-colors hover:text-white"
+                        onClick={() => void captureMirrorFrame()}
+                      >
+                        Capturar
+                      </button>
+                    </Show>
+                  </div>
+
+                  <div class="relative flex min-h-0 flex-1 items-center justify-center bg-black">
+                    <Show
+                      when={mirrorFrame()}
+                      fallback={
+                        <div class="px-6 text-center text-[11px] text-neutral-500">
+                          {mirrorStatus() === "searching"
+                            ? "Buscando la ventana de la aplicación…"
+                            : mirrorStatus() === "blank"
+                              ? "La ventana está minimizada o no se puede capturar. Restáurala en el escritorio."
+                              : mirrorStatus() === "gone"
+                                ? "La ventana se cerró."
+                                : mirrorStatus() === "nomatch"
+                                  ? "No se pudo identificar la ventana automáticamente. Usa \"Elegir ventana\"."
+                                  : "Sin imagen todavía."}
+                        </div>
+                      }
+                    >
+                      {(frame) => (
+                        <img
+                          src={frame()}
+                          alt="Ventana de la aplicación en ejecución"
+                          class="max-h-full max-w-full object-contain"
+                          draggable={false}
+                        />
+                      )}
+                    </Show>
+
+                    <Show when={mirrorPicking()}>
+                      <div class="absolute inset-0 z-10 overflow-y-auto bg-neutral-950/95 p-3">
+                        <div class="mb-2 flex items-center justify-between text-[11px] text-neutral-400">
+                          <span>Elige la ventana de tu aplicación</span>
+                          <button
+                            type="button"
+                            class="cursor-pointer text-neutral-400 transition-colors hover:text-white"
+                            onClick={() => setMirrorPicking(false)}
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                        <div class="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-2">
+                          <For each={mirrorSources()}>
+                            {(source) => (
+                              <button
+                                type="button"
+                                class="flex cursor-pointer flex-col gap-1 rounded-lg border border-neutral-800 p-1.5 text-left transition-colors hover:border-cyan-500/50"
+                                onClick={() => chooseMirrorSource(source.id)}
+                              >
+                                <Show when={source.thumb}>
+                                  {(thumb) => (
+                                    <img src={thumb()} alt="" class="h-20 w-full rounded object-cover" draggable={false} />
+                                  )}
+                                </Show>
+                                <span class="truncate text-[10px] text-neutral-300" title={source.name}>
+                                  {source.name}
+                                </span>
+                              </button>
+                            )}
+                          </For>
+                        </div>
+                        <Show when={mirrorSources().length === 0}>
+                          <div class="py-6 text-center text-[11px] text-neutral-500">
+                            No hay ventanas que mostrar.
+                          </div>
+                        </Show>
+                      </div>
+                    </Show>
+                  </div>
+                </div>
+              </Show>
 
               {/* Consola de logs en vivo */}
               <div class="mt-3 flex min-h-0 flex-1 flex-col rounded-xl border border-v2-border-border-muted bg-neutral-950 p-3 shadow-inner">

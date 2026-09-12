@@ -214,7 +214,11 @@ const layer = Layer.effect(
       yield* Effect.logInfo("fromDirectory", { directory })
 
       const data = yield* projectV2.resolve(AbsolutePath.make(directory))
-      const worktree = data.id === ProjectV2.ID.make("global") && !data.vcs ? "/" : data.directory
+      // A folder without a repository used to report its worktree as "/", which on Windows is a
+      // drive root: `@mention` resolution, the "Workspace root folder" prompt line, the agent CLI's
+      // `.tiancode/agents` target and the favicon glob all pointed there. Core's ProjectV2.resolve
+      // now returns the opened folder for a non-git directory, so both branches agree.
+      const worktree = data.directory
 
       // Phase 2: upsert
       const projectID = ProjectV2.ID.make(data.id)
@@ -318,7 +322,7 @@ const layer = Layer.effect(
       if (projectID !== ProjectV2.ID.global && data.vcs?.type === "git") {
         yield* projectV2.commit({ store: data.vcs.store, id: data.id })
       }
-      return { project: result, sandbox: data.vcs ? data.directory : worktree }
+      return { project: result, sandbox: data.directory }
     })
 
     const discover = Effect.fn("Project.discover")(function* (input: Info) {

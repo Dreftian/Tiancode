@@ -552,6 +552,9 @@ const layer: Layer.Layer<
         projectID: ctx.project.id,
         experimentalWorkspaces: flags.experimentalWorkspaces,
         ...input,
+        // The HTTP handler nulls `directory` for scope "project", which is right for a real
+        // project but not for the shared global row, where "project" means this one folder.
+        directory: ctx.project.id === ProjectV2.ID.global ? ctx.directory : input?.directory,
       })
     })
 
@@ -959,6 +962,13 @@ function listByProject(
   },
 ) {
   const conditions = [eq(SessionTable.project_id, input.projectID)]
+
+  // Every non-git folder shares the single "global" project row, and `sessionPath` is now "" for
+  // them (worktree === directory), which skips the path filter below. Without this clamp the
+  // session list of one non-git folder would include every other non-git folder's sessions.
+  if (input.projectID === ProjectV2.ID.global && input.directory) {
+    conditions.push(eq(SessionTable.directory, input.directory))
+  }
 
   if (input.workspaceID) {
     conditions.push(eq(SessionTable.workspace_id, input.workspaceID))

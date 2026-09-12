@@ -6,9 +6,10 @@
 
 import { execFileSync, spawn, spawnSync, type ChildProcess } from "node:child_process"
 import { existsSync, readFileSync, readdirSync, watch, type FSWatcher } from "node:fs"
-import { dirname, join, resolve } from "node:path"
+import { dirname, join, relative, resolve } from "node:path"
 import net from "node:net"
 import { startBareJsxPreview, startStaticPreview, type BareJsxPreview, type StaticPreview } from "./bare-jsx-preview"
+import { backend as nativeBackend, native as nativeWatcher } from "@tiancode-ai/core/filesystem/native-watcher"
 import { parseBuildError } from "./error-parser"
 import { detectProject, findCompiledExecutable, type DetectedProject } from "./project-detector"
 import type { PreviewError, PreviewState } from "./types"
@@ -82,7 +83,9 @@ type Managed = {
   logs: string[]
   readyTimer: ReturnType<typeof setTimeout> | null
   readinessUrls: Set<string>
+  /** Only set on the fs.watch fallback path; `unwatch` is the closer for both backends. */
   watcher?: FSWatcher | null
+  unwatch?: (() => void) | null
   buildTimer?: ReturnType<typeof setTimeout> | null
   isBuilding?: boolean
   pendingBuild?: boolean
@@ -130,6 +133,17 @@ const WATCH_IGNORED_DIRS = new Set([
   ".idea",
   ".vscode",
 ])
+
+// The same list for the native watcher. A bare name prunes `<root>/<name>` only (parcel resolves
+// non-glob entries against the watched root); the globs are a best-effort bonus for nested
+// workspaces, so `shouldTriggerRebuild` must stay as the JS-side filter either way.
+const WATCH_IGNORE_NATIVE = [
+  ...WATCH_IGNORED_DIRS,
+  "**/node_modules/**",
+  "**/.git/**",
+  "**/dist/**",
+  "**/build/**",
+]
 
 // Editor scratch files and logs churn constantly and never change what the build produces.
 const WATCH_IGNORED_FILES = /(^|[/])(\.DS_Store|Thumbs\.db|.*\.(log|tmp|swp|swo|swx|lock|pid)|.*~|\d+)$/i
@@ -220,6 +234,7 @@ function idleState(detected: DetectedProject | null): PreviewState {
     startedAt: null,
     errorMessage: null,
     isDesktop: detected?.isDesktop ?? false,
+    pid: null,
     build: { ...IDLE_BUILD },
   }
 }
@@ -499,22 +514,26 @@ async function runProjectBuild(managed: Managed, trigger?: string | null): Promi
 }
 
 function setupProjectWatcher(managed: Managed) {
-  if (managed.watcher) return
+  if (managed.unwatch) return
   try {
     const pkgPath = join(managed.directory, "package.json")
+    // A production build on save is only ever right for a preview Tiancode serves out of a build
+    // output (`packageManager: "static"`): nothing else turns the sources into the bytes being
+    // served. The in-process JSX preview transpiles each module per request and pushes its own
+    // reload, and a spawned dev server hot-reloads — running `<pm> run build` for either is
+    // seconds of work per keystroke that nobody consumes. The discriminator has to be the
+    // detected preview kind, NOT "does package.json have a dev script": an Electron project with
+    // `"dev": "electron ."` is deliberately detected as static/dist and does need the build.
+    const servesBuildOutput = managed.detected.packageManager === "static"
     let hasBuild = false
-    if (existsSync(pkgPath)) {
+    if (servesBuildOutput && existsSync(pkgPath)) {
       try {
         const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as { scripts?: Record<string, string> }
         hasBuild = Boolean(pkg.scripts?.build || pkg.scripts?.["build:web"])
       } catch {}
     }
 
-    managed.watcher = watch(managed.directory, { recursive: true }, (_event, filename) => {
-      if (!filename) return
-      const norm = filename.replace(/\\/g, "/")
-      if (!shouldTriggerRebuild(norm)) return
-
+    const onChange = (norm: string) => {
       if (managed.buildTimer) clearTimeout(managed.buildTimer)
       managed.buildTimer = setTimeout(async () => {
         if (hasBuild) {
@@ -524,24 +543,85 @@ function setupProjectWatcher(managed: Managed) {
           }
           const ok = await runProjectBuild(managed, norm)
           if (ok) {
-            managed.staticPreview?.reload(filename)
-            managed.bareJsx?.reload(filename)
+            managed.staticPreview?.reload(norm)
+            managed.bareJsx?.reload(norm)
           }
           if (managed.pendingBuild) {
             managed.pendingBuild = false
             const nextOk = await runProjectBuild(managed, norm)
             if (nextOk) {
-              managed.staticPreview?.reload(filename)
-              managed.bareJsx?.reload(filename)
+              managed.staticPreview?.reload(norm)
+              managed.bareJsx?.reload(norm)
             }
           }
         } else {
-          managed.staticPreview?.reload(filename)
-          managed.bareJsx?.reload(filename)
+          managed.staticPreview?.reload(norm)
+          managed.bareJsx?.reload(norm)
         }
       }, WATCH_DEBOUNCE_MS)
-    })
-  } catch {}
+    }
+
+    // Prefer the native watcher: it prunes node_modules and the build output in the OS layer
+    // instead of reporting every write and filtering afterwards. On Linux that is the difference
+    // between one inotify descriptor per directory in the dependency tree (thousands, against a
+    // default limit of 8192) and a few dozen. `shouldTriggerRebuild` stays as the second line of
+    // defence for whatever the native ignore list misses.
+    const parcel = nativeWatcher()
+    const parcelBackend = nativeBackend()
+    if (parcel && parcelBackend) {
+      let disposed = false
+      const pending = parcel.subscribe(
+        managed.directory,
+        (error, updates) => {
+          if (error || disposed) return
+          for (const update of updates) {
+            const rel = relative(managed.directory, update.path).split("\\").join("/")
+            // Parcel reports absolute paths; everything downstream (the ignore filter, the reload
+            // client, the "Compilando <file>" chip) speaks workspace-relative.
+            if (!rel || rel.startsWith("..")) continue
+            if (!shouldTriggerRebuild(rel)) continue
+            onChange(rel)
+          }
+        },
+        { backend: parcelBackend, ignore: WATCH_IGNORE_NATIVE },
+      )
+      // Assigned synchronously so the re-entrancy guard above is never briefly empty.
+      managed.unwatch = () => {
+        disposed = true
+        void pending.then((subscription) => subscription.unsubscribe()).catch(() => undefined)
+      }
+      pending.catch((error: unknown) => {
+        if (disposed) return
+        managed.unwatch = null
+        pushLog(managed, `[tiancode-engine] Vigilante nativo no disponible (${String(error)}); usando fs.watch.`)
+        startFallbackWatch(managed, onChange)
+      })
+      return
+    }
+
+    startFallbackWatch(managed, onChange)
+  } catch (error) {
+    // This used to be a bare `catch {}`. A Linux ENOSPC from inotify exhaustion landed here and
+    // the preview silently stopped reloading for the rest of the session, with nothing in the log
+    // to explain why.
+    pushLog(
+      managed,
+      `[tiancode-engine] No se pudo iniciar el vigilante de archivos: ${error instanceof Error ? error.message : String(error)}`,
+    )
+  }
+}
+
+function startFallbackWatch(managed: Managed, onChange: (norm: string) => void) {
+  managed.watcher = watch(managed.directory, { recursive: true }, (_event, filename) => {
+    if (!filename) return
+    const norm = filename.split("\\").join("/")
+    if (!shouldTriggerRebuild(norm)) return
+    onChange(norm)
+  })
+  managed.unwatch = () => {
+    managed.watcher?.close()
+    managed.watcher = null
+  }
 }
 
 async function spawnServer(managed: Managed) {
@@ -815,12 +895,15 @@ async function spawnServer(managed: Managed) {
       url: null,
       port: null,
       isDesktop: true,
+      // The window mirror needs a pid to find the app's OS window. On Windows this is the shell
+      // wrapper, so the desktop side walks its descendants.
+      pid: child.pid ?? null,
       errorMessage: null,
     })
     child.stdout?.on("data", (data: Buffer) => onOutput(managed, data.toString()))
     child.stderr?.on("data", (data: Buffer) => onOutput(managed, data.toString()))
     child.on("error", (error) => {
-      setStatus(managed, { status: "error", isDesktop: true, errorMessage: error.message })
+      setStatus(managed, { status: "error", isDesktop: true, pid: null, errorMessage: error.message })
     })
     child.on("exit", (code) => {
       managed.process = null
@@ -829,12 +912,14 @@ async function spawnServer(managed: Managed) {
         setStatus(managed, {
           status: "error",
           isDesktop: true,
+          pid: null,
           errorMessage: last || (code && code !== 0 ? `El proceso terminó con código ${code}` : "El proceso terminó antes de iniciar."),
         })
       } else if (managed.state.status === "ready") {
         setStatus(managed, {
           status: "stopped",
           isDesktop: true,
+          pid: null,
           errorMessage: code && code !== 0 ? `El proceso terminó con código ${code}` : null,
         })
       }
@@ -942,7 +1027,8 @@ export function stopPreviewServer(directory: string) {
   const managed = servers.get(directory)
   if (!managed) return idleState(null)
   if (managed.process) killTree(managed.process)
-  managed.watcher?.close()
+  managed.unwatch?.()
+  managed.unwatch = null
   managed.watcher = null
   if (managed.buildTimer) clearTimeout(managed.buildTimer)
   managed.buildTimer = null

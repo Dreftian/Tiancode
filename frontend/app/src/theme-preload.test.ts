@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, test } from "bun:test"
 
 const src = await Bun.file(new URL("../public/oc-theme-preload.js", import.meta.url)).text()
 
+// oxlint-disable-next-line typescript/no-implied-eval -- evaluates our own preload script under test
 const run = () => Function(src)()
 
 beforeEach(() => {

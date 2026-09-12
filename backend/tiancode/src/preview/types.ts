@@ -40,6 +40,13 @@ export type PreviewState = {
   startedAt: number | null
   errorMessage: string | null
   isDesktop?: boolean
+  /**
+   * The root spawned pid, or null when nothing is running.
+   *
+   * On Windows the manager spawns with `shell: true`, so for an npm/Electron project this is the
+   * cmd.exe wrapper, not the process that owns the GUI window — consumers must walk descendants.
+   */
+  pid?: number | null
   build: PreviewBuild
 }
 

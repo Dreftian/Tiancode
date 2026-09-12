@@ -86,6 +86,32 @@ export type PreviewAgentPlatform = {
   available(frameUrl?: string): Promise<boolean>
 }
 
+export type WindowMirrorSource = { id: string; name: string; icon: string | null; thumb: string }
+
+export type WindowMirrorEvent =
+  | { type: "frame"; dataUrl: string; width: number; height: number; seq: number; title: string }
+  | { type: "gone" }
+  | { type: "blank" }
+
+/**
+ * A live image of a desktop app's own OS window, for the Sandbox panel.
+ *
+ * A mirror, not an embed: Electron cannot reparent a foreign window and cannot send input into
+ * one, so these frames are for looking at only.
+ */
+export type WindowMirrorPlatform = {
+  supported(): Promise<boolean>
+  listSources(): Promise<WindowMirrorSource[]>
+  snapshot(): Promise<string[]>
+  match(input: { pid: number | null; hints: string[]; before?: string[] }): Promise<string | null>
+  start(input: { sourceId: string; intervalMs?: number; width?: number }): Promise<boolean>
+  setInterval(intervalMs: number): Promise<void>
+  /** Stop capturing but keep the chosen window, so setInterval can resume it. */
+  pause(): Promise<boolean>
+  stop(): Promise<void>
+  onEvent(cb: (event: WindowMirrorEvent) => void): () => void
+}
+
 type PlatformBase = {
   /** App version */
   version?: string
@@ -185,6 +211,9 @@ type PlatformBase = {
 
   /** Drive the previewed page on the agent's behalf (desktop only) */
   previewAgent?: PreviewAgentPlatform
+
+  /** Mirror a spawned desktop app's OS window into the Sandbox (Windows only) */
+  windowMirror?: WindowMirrorPlatform
 
   /** Subscribe to preview targets routed by the desktop shell into the live view (desktop only) */
   onLiveViewNavigate?(cb: (url: string) => void): () => void

@@ -1440,6 +1440,8 @@ export const dict = {
   "settings.skills.autoSelect.description": "모든 대화에서 프로젝트에 맞는 스킬(프레임워크, 도구 등)을 자동으로 선택합니다",
   "settings.skills.section.import": "스킬 가져오기",
   "settings.skills.empty": "설치된 스킬이 아직 없습니다",
+  "settings.skills.empty.filtered": "이 카테고리에 스킬이 없습니다",
+  "settings.skills.loading": "스킬 불러오는 중…",
   "settings.skills.import.folder.title": "폴더에서 가져오기",
   "settings.skills.import.folder.description": "SKILL.md 파일이 포함된 스킬 폴더를 선택합니다",
   "settings.skills.import.folder.button": "폴더 선택",

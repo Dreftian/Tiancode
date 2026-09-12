@@ -106,7 +106,9 @@ export function projectForSession<T extends { id?: string; worktree: string; san
   projects: T[],
   byID: Map<string, T> = new Map(projects.flatMap((project) => (project.id ? [[project.id, project] as const] : []))),
 ) {
-  const direct = byID.get(session.projectID)
+  // Every non-git folder shares the id "global", so `byID` collapses them all onto one entry and
+  // an arbitrary folder would win. Fall through to the exact directory match below for that id.
+  const direct = session.projectID === "global" ? undefined : byID.get(session.projectID)
   if (direct) return direct
   const directory = pathKey(session.directory)
   return projects.find(

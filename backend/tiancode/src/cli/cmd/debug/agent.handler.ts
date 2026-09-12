@@ -107,6 +107,9 @@ function parseToolParams(input?: string) {
       return JSON.parse(trimmed)
     } catch (jsonError) {
       try {
+        // A debug-only CLI flag: `--params` accepts a bare JS object literal when JSON.parse
+        // fails, which is what the error message below tells the user.
+        // oxlint-disable-next-line typescript/no-implied-eval
         return new Function(`return (${trimmed})`)()
       } catch (evalError) {
         throw new Error(

@@ -1,9 +1,14 @@
 import { describe, expect, test } from "bun:test"
 import {
+  MIRROR_BLURRED_MS,
+  MIRROR_FOCUSED_MS,
+  MIRROR_STOPPED_MS,
   PREVIEW_POLL_ACTIVE_MS,
   PREVIEW_POLL_QUIET_MS,
   PREVIEW_POLL_READY_MS,
+  mirrorFrameInterval,
   previewPollInterval,
+  shouldArmMirror,
   shouldFetchPreviewLogs,
 } from "./preview-poll"
 
@@ -37,5 +42,43 @@ describe("shouldFetchPreviewLogs", () => {
   test("does not pull 500 log lines every couple of seconds for nothing", () => {
     expect(shouldFetchPreviewLogs({ status: "ready", building: false, desktop: false })).toBe(false)
     expect(shouldFetchPreviewLogs({ status: "idle", building: false, desktop: false })).toBe(false)
+  })
+})
+
+describe("mirrorFrameInterval", () => {
+  test("captures fastest only while the user is looking at it", () => {
+    expect(mirrorFrameInterval({ visible: true, focused: true })).toBe(MIRROR_FOCUSED_MS)
+    expect(mirrorFrameInterval({ visible: true, focused: false })).toBe(MIRROR_BLURRED_MS)
+  })
+
+  test("a hidden panel stops the timer entirely", () => {
+    // Each tick photographs every window on the desktop; running that for a panel nobody can see
+    // is pure cost.
+    expect(mirrorFrameInterval({ visible: false, focused: true })).toBe(MIRROR_STOPPED_MS)
+  })
+})
+
+describe("shouldArmMirror", () => {
+  const armed = { isDesktop: true, status: "ready" as const, pid: 1234, local: true, available: true }
+
+  test("arms for a running local desktop app with a pid", () => {
+    expect(shouldArmMirror(armed)).toBe(true)
+  })
+
+  test("never arms without a window to find", () => {
+    expect(shouldArmMirror({ ...armed, isDesktop: false })).toBe(false)
+    expect(shouldArmMirror({ ...armed, status: "starting" })).toBe(false)
+    expect(shouldArmMirror({ ...armed, pid: null })).toBe(false)
+    expect(shouldArmMirror({ ...armed, pid: 0 })).toBe(false)
+  })
+
+  test("never arms against a pid from another machine", () => {
+    // A WSL or remote sidecar reports a pid in its own namespace; matching it against this
+    // desktop's windows would confidently mirror something unrelated.
+    expect(shouldArmMirror({ ...armed, local: false })).toBe(false)
+  })
+
+  test("never arms where the platform has no mirror", () => {
+    expect(shouldArmMirror({ ...armed, available: false })).toBe(false)
   })
 })

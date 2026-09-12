@@ -47,6 +47,7 @@ describe("timeline fixture validation", () => {
   })
 })
 
+// oxlint-disable-next-line no-constant-condition -- type-only @ts-expect-error assertions; never executed
 if (false) {
   const userSeed = { id: "prt_type_user", type: "text", text: "typed" } satisfies PartSeed<"user">
   userMessage([userSeed])

@@ -248,7 +248,9 @@ describe("InstructionContext", () => {
       )
 
       expect(observed).toEqual({
-        targets: ["AGENTS.md"],
+        // Both names, matching the `targets` literal in src/instruction-context.ts — DESIGN.md
+        // was added there and this boundary test was never updated.
+        targets: ["AGENTS.md", "DESIGN.md"],
         start: FSUtil.resolve("/repo"),
         stop: FSUtil.resolve("/repo"),
       })

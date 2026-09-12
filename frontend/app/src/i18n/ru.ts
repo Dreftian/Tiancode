@@ -1534,6 +1534,8 @@ export const dict = {
   "settings.skills.autoSelect.description": "Автоматически подбирать навыки, соответствующие вашему проекту (фреймворк, инструменты и т. д.), в каждом разговоре",
   "settings.skills.section.import": "Импортировать навык",
   "settings.skills.empty": "Навыки ещё не установлены",
+  "settings.skills.empty.filtered": "В этой категории нет навыков",
+  "settings.skills.loading": "Загрузка навыков…",
   "settings.skills.import.folder.title": "Импорт из папки",
   "settings.skills.import.folder.description": "Выберите папку навыка, содержащую файл SKILL.md",
   "settings.skills.import.folder.button": "Выбрать папку",
