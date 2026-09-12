@@ -4,6 +4,65 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.43] — 2026-09-11
+### El agente puede usar el Sandbox, el modo 2x deja de pensar menos y `.tiancode` deja de aparecer en `C:\`
+
+- **El agente ya puede manejar la app del Sandbox, no sólo compilarla**: hasta ahora sus únicas
+  herramientas de vista previa eran arrancar el servidor y leer logs, así que terminaba diciendo
+  "no pude abrir la ventana, así que sólo validé que compila". Dos tools nuevas, `preview_inspect`
+  (URL y título reales, texto visible, todos los elementos con los que se puede interactuar con una
+  referencia `e12`, y los errores de la consola) y `preview_interact` (`click`, `fill`, `select`,
+  `press`, `scroll`, `navigate`), recorren la pantalla como lo haría el usuario y devuelven el
+  estado después de cada acción. El servidor no puede tocar el DOM de la vista previa — es de origen
+  cruzado respecto al renderer — así que la acción viaja por un puente con long-poll y el proceso
+  principal la ejecuta en el frame real con `WebFrameMain.executeJavaScript`: funciona igual en el
+  iframe del Sandbox y en el WebContentsView nativo. Si la Vista en vivo está cerrada, la tool lo
+  dice en vez de quedarse colgada.
+- **"Compilando dist…" que no paraba nunca**: el vigilante de archivos descartaba `dist/`, pero
+  Windows anuncia el cambio del directorio como `dist` a secas, sin barra, así que cada compilación
+  se re-armaba con su propia salida y el panel vivía en bucle recompilando el proyecto entero cada
+  par de segundos. Los descartes se comparan ahora **por segmento** de ruta (`dist`, `build`, `out`,
+  `release`, `target`, `node_modules`, `.next`, `.turbo`, `coverage`, cualquier carpeta oculta…) a
+  cualquier profundidad, y la etiqueta muestra el nombre del archivo en vez de una ruta cortada a
+  media palabra.
+- **`.tiancode` aparecía en `C:\`**: una carpeta sin repositorio resolvía su proyecto a la **raíz del
+  disco**, así que `MEMORY.md`, la instalación de plugins (con su `node_modules` y su
+  `package-lock.json`) y las skills de proyecto acababan en lo alto de `C:`. Una carpeta sin git es
+  ahora su propio proyecto, y ninguna ruta de la app puede escribir en una raíz de sistema:
+  `isFilesystemRoot` cubre `/`, `C:\` y los recursos UNC, donde antes sólo se comparaba con `"/"`.
+- **Tras actualizar, los modelos y proveedores no aparecían hasta cerrar y volver a abrir**: el
+  cliente de consultas tiene `refetchOnMount`/`refetchOnWindowFocus` desactivados, así que si el
+  servidor aún se estaba levantando al arrancar, el catálogo vacío se quedaba cacheado para siempre.
+  Ahora, mientras el catálogo esté vacío y el arranque haya terminado, se vuelve a pedir a los 0,8 s,
+  2 s y 5 s, y se para en cuanto llega algo. El panel de Skills hace lo mismo, que es por lo que la
+  ficha grande mostraba el resumen incrustado en vez del SKILL.md completo, y además se refresca al
+  volver a la pestaña.
+- **Conectar y desconectar un proveedor es inmediato**: conectar esperaba a reescribir la config,
+  desechar el runtime y recargar el catálogo antes de cerrar el diálogo. Ahora el diálogo se cierra
+  y la notificación sale en el mismo instante, con el proveedor marcado como conectado; lo demás
+  ocurre detrás. Al desconectar, la fila y **todos los modelos de ese proveedor** desaparecen en el
+  mismo fotograma, porque el estado optimista vive en `useProviders` y lo leen tanto Ajustes como el
+  selector de modelo.
+- **El modo ⚡ 2x ya no baja el nivel de razonamiento**: bajaba el modelo a su variante más barata,
+  así que elegir "Max" y activar 2x te daba en silencio un modelo más superficial del que habías
+  pedido. El esfuerzo de razonamiento es del usuario; 2x sólo quita preámbulo y relleno vía la
+  directiva del prompt, que ahora dice explícitamente que mantenga la profundidad de análisis.
+- **Ollama y LM Studio salen de Proveedores**: conectarlos allí sólo apuntaba a un endpoint HTTP
+  local que había que levantar aparte; el camino real para modelos locales es el motor integrado
+  (Tiancode Native / GGUF) en Modelos Locales.
+- **Responsivo de verdad**: los paneles de Ajustes (GitHub, MCP, Modelos Locales, Voces, filas de
+  proveedores y ajustes, Skills) media-consultaban el **ancho de la ventana** aunque viven dentro del
+  diálogo, así que una ventana ancha con un panel estrecho mantenía la maqueta de escritorio metida
+  a presión. Todas pasan a `@container settings-panel`. La cabecera de la vista previa deja de
+  recortar sus chips, la tarjeta del Sandbox envuelve en vez de empujar el comando fuera del panel, y
+  una tabla ancha de un SKILL.md se desplaza dentro de su columna.
+- **Menos ruido de fondo**: el sondeo del estado de la vista previa va con lo que ocurre (0,9 s
+  arrancando o compilando, 2 s en marcha, 6 s parado) y los logs sólo se piden cuando la consola del
+  Sandbox está a la vista o hay una compilación en curso, en lugar de traerse 500 líneas cada 2 s
+  para nada.
+- 34 tests nuevos (`agent-bridge`, `watch-filter`, `preview-agent-script`, `catalog-recovery`,
+  `use-providers`, `preview-poll`, `path`). Frontend 899 tests, 0 fallos; typecheck 27/27.
+
 ## [1.0.42] — 2026-09-11
 ### Vista previa en vivo: zoom real, recarga sin parpadeo y cabecera del Sandbox
 

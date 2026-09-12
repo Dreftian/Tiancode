@@ -41,10 +41,17 @@ export function reactToBuild(input: {
   return { sequence: build.sequence, reload: build.ok === true }
 }
 
-/** Shortens a workspace-relative path for display, keeping the last two segments. */
+/**
+ * Shortens a workspace-relative path for display.
+ *
+ * The header is a single narrow row shared with the device picker and the zoom controls, so a
+ * two-segment path was still wide enough to be cut mid-word ("Compilando dis…"). The file name
+ * alone is what identifies the change; the full path stays in the element's title.
+ */
 export function shortenBuildTrigger(trigger: string | null | undefined): string | undefined {
   if (!trigger) return undefined
-  const parts = trigger.split("/").filter(Boolean)
-  if (parts.length <= 2) return parts.join("/") || undefined
-  return `…/${parts.slice(-2).join("/")}`
+  const parts = trigger.split(/[/\\]/).filter(Boolean)
+  const name = parts[parts.length - 1]
+  if (!name) return undefined
+  return name.length > 28 ? `${name.slice(0, 27)}…` : name
 }

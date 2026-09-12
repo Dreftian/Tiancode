@@ -189,7 +189,7 @@ export const dict = {
   "command.prompt.speed.toggle": "Alternar Modo ⚡ 2x (Ultra Rápido)",
   "ui.promptInput.speedMode.enable": "Activar Modo ⚡ 2x (Ultra Rápido)",
   "ui.promptInput.speedMode.disable": "Desactivar Modo ⚡ 2x",
-  "ui.promptInput.speedMode.tooltip": "Modo 2x: baja el modelo activo a su nivel de razonamiento más rápido y elimina todo preámbulo. Tu variante guardada vuelve al desactivarlo.",
+  "ui.promptInput.speedMode.tooltip": "Modo 2x: sin preámbulos ni relleno, directo a las herramientas. Tu nivel de razonamiento se mantiene tal cual lo elegiste.",
   "command.permissions.autoaccept.enable": "Aceptar permisos automáticamente",
   "command.permissions.autoaccept.disable": "Dejar de aceptar permisos automáticamente",
   "command.workspace.toggle": "Activar o desactivar espacios de trabajo",

@@ -8,7 +8,7 @@ import type {
 } from "@tiancode-ai/sdk/v2/client"
 import { showToast } from "@/utils/toast"
 import { getFilename } from "@tiancode-ai/core/util/path"
-import { type Accessor, batch, createMemo, getOwner, onCleanup, onMount, untrack } from "solid-js"
+import { type Accessor, batch, createEffect, createMemo, getOwner, onCleanup, onMount, untrack } from "solid-js"
 import { createStore, produce, reconcile } from "solid-js/store"
 import { useLanguage } from "@/context/language"
 import type { InitError } from "../pages/error"
@@ -35,6 +35,7 @@ import { formatServerError } from "@/utils/server-errors"
 import { queryOptions, useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/solid-query"
 import type { SolidQueryOptions } from "@tanstack/solid-query"
 import { createRefreshQueue } from "./global-sync/queue"
+import { createCatalogRecovery } from "./global-sync/catalog-recovery"
 import { directoryKey } from "./global-sync/utils"
 import { PathKey } from "@/utils/path-key"
 import { createDirSyncContext } from "./directory-sync"
@@ -386,6 +387,26 @@ export function createServerSyncContextInner(serverSDK: ServerSDK) {
       provider: globalStore.provider,
     },
   })
+
+  // Un catálogo de proveedores vacío justo después de arrancar suele significar que el servidor
+  // todavía se estaba levantando, no que el usuario no tenga proveedores. Sin esto la respuesta
+  // vacía se quedaba cacheada hasta cerrar y volver a abrir la app.
+  const catalogRecovery = createCatalogRecovery({
+    size: () => globalStore.provider.all.size,
+    booting: () => bootstrap.isPending,
+    refresh: () => void refreshProviders().catch(() => undefined),
+    schedule: (run, delayMs) => {
+      const timer = setTimeout(run, delayMs)
+      return { cancel: () => clearTimeout(timer) }
+    },
+  })
+  createEffect(() => {
+    // Leídos aquí para que el efecto se vuelva a ejecutar cuando cambien.
+    void globalStore.provider.all.size
+    void bootstrap.isPending
+    catalogRecovery.sync()
+  })
+  onCleanup(() => catalogRecovery.stop())
 
   async function loadSessions(directory: string, options?: { limit?: number }) {
     const key = directoryKey(directory)

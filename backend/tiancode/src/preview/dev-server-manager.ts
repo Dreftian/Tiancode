@@ -88,6 +88,76 @@ type Managed = {
   pendingBuild?: boolean
 }
 
+// Directory names whose contents are never source: build output, dependency trees, caches and
+// VCS metadata. Matched per path SEGMENT — the old prefix test ("dist/") let the directory event
+// for `dist` itself through, so every build re-armed the watcher with its own output and the
+// panel sat on "Compilando dist…" forever.
+const WATCH_IGNORED_DIRS = new Set([
+  "node_modules",
+  ".git",
+  ".hg",
+  ".svn",
+  ".tiancode",
+  ".opencode",
+  ".claude",
+  "dist",
+  "dist-electron",
+  "dist-ssr",
+  "dist-final",
+  "build",
+  "out",
+  "output",
+  ".output",
+  "release",
+  "release-fixed",
+  "target",
+  "coverage",
+  ".next",
+  ".nuxt",
+  ".svelte-kit",
+  ".astro",
+  ".angular",
+  ".vite",
+  ".turbo",
+  ".cache",
+  ".parcel-cache",
+  ".gradle",
+  ".venv",
+  "venv",
+  "__pycache__",
+  "tmp",
+  "temp",
+  ".idea",
+  ".vscode",
+])
+
+// Editor scratch files and logs churn constantly and never change what the build produces.
+const WATCH_IGNORED_FILES = /(^|[/])(\.DS_Store|Thumbs\.db|.*\.(log|tmp|swp|swo|swx|lock|pid)|.*~|\d+)$/i
+
+/**
+ * Whether a path reported by the recursive watcher should start a rebuild.
+ *
+ * Exported for the tests: the loop this prevents is invisible from the outside (a spinner that
+ * never settles) and expensive (one full `npm run build` every couple of seconds).
+ */
+export function shouldTriggerRebuild(filename: string): boolean {
+  const normalized = filename.replace(/\\/g, "/").replace(/^\.\//, "")
+  if (!normalized) return false
+  const segments = normalized.split("/").filter(Boolean)
+  if (segments.length === 0) return false
+  for (const segment of segments) {
+    if (WATCH_IGNORED_DIRS.has(segment)) return false
+    // Any other dot-directory or dotfile: editors, tooling caches, lockfiles.
+    if (segment.startsWith(".") && segment !== ".env") return false
+  }
+  if (WATCH_IGNORED_FILES.test(normalized)) return false
+  return true
+}
+
+// Bursts of writes (a formatter, a multi-file edit) collapse into one build. Kept short: an edit
+// the agent just made should show up in the preview while it is still looking at it.
+const WATCH_DEBOUNCE_MS = 250
+
 const servers = new Map<string, Managed>()
 
 // Variables que no deben filtrarse al dev server (evita que Vite herede el
@@ -443,20 +513,7 @@ function setupProjectWatcher(managed: Managed) {
     managed.watcher = watch(managed.directory, { recursive: true }, (_event, filename) => {
       if (!filename) return
       const norm = filename.replace(/\\/g, "/")
-      if (
-        norm.includes("node_modules") ||
-        norm.includes(".git") ||
-        norm.includes(".opencode") ||
-        norm.startsWith("dist/") ||
-        norm.startsWith("dist-electron/") ||
-        norm.startsWith("release/") ||
-        norm.startsWith("build/") ||
-        norm.startsWith(".next/") ||
-        norm.startsWith(".cache/") ||
-        norm.startsWith(".")
-      ) {
-        return
-      }
+      if (!shouldTriggerRebuild(norm)) return
 
       if (managed.buildTimer) clearTimeout(managed.buildTimer)
       managed.buildTimer = setTimeout(async () => {
@@ -482,7 +539,7 @@ function setupProjectWatcher(managed: Managed) {
           managed.staticPreview?.reload(filename)
           managed.bareJsx?.reload(filename)
         }
-      }, 150)
+      }, WATCH_DEBOUNCE_MS)
     })
   } catch {}
 }

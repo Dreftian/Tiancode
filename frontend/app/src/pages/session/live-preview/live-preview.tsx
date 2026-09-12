@@ -12,11 +12,20 @@ import { useSDK } from "@/context/sdk"
 import { useServer } from "@/context/server"
 import { authTokenFromCredentials } from "@/utils/server"
 import type { PreviewViewState } from "@/context/platform"
-import { previewActionUrl, previewLogsUrl, previewStatusUrl, type PreviewAction } from "./live-preview-url"
+import {
+  previewActionUrl,
+  previewAgentPendingUrl,
+  previewAgentResultUrl,
+  previewLogsUrl,
+  previewStatusUrl,
+  type PreviewAction,
+} from "./live-preview-url"
+import { buildPreviewAgentScript, type PreviewAgentAction } from "./preview-agent-script"
 import { PREVIEW_RETRY_MAX_ATTEMPTS, isRetryablePreviewLoadFailure, previewRetryDelay, samePreviewUrl } from "./live-preview-retry"
 import { iframePreviewUrl, usesIframePreview } from "./live-preview-transport"
 import { orientedPreviewDimensions } from "./preview-experience"
 import { reactToBuild, shortenBuildTrigger } from "./live-preview-build"
+import { previewPollInterval, shouldFetchPreviewLogs } from "./preview-poll"
 import { clampZoom, fittedPreviewViewport, nextZoomStep, type PreviewZoom } from "./preview-viewport"
 import { createReloadScheduler } from "./live-preview-reload"
 import "./live-preview.css"
@@ -1198,7 +1207,13 @@ export function LivePreview(props: {
         const reaction = reactToBuild({ build: data.build, lastSequence: lastBuildSequence })
         lastBuildSequence = reaction.sequence
         if (reaction.reload) reloadScheduler.request(data.build?.trigger ?? "build")
-        if (data.isDesktop || data.status === "starting" || data.status === "ready" || data.build?.running) {
+        if (
+          shouldFetchPreviewLogs({
+            status: data.status,
+            building: data.build?.running === true,
+            desktop: data.isDesktop === true,
+          })
+        ) {
           void fetchDevServerLogs()
         }
       }
@@ -1227,7 +1242,67 @@ export function LivePreview(props: {
     }
   }
 
+  // El agente dentro de la app: el servidor no puede tocar el DOM de la vista previa, así que
+  // encola la acción y este bucle la recoge y la ejecuta contra el frame real. Long-poll en vez
+  // de sondeo: un clic del agente llega en cuanto lo pide, y mientras no pide nada no se gasta
+  // ni una petición por segundo.
+  const startPreviewAgentBridge = () => {
+    const agent = platform.previewAgent
+    if (!agent) return () => {}
+    let stopped = false
+
+    const runCommand = async (action: PreviewAgentAction): Promise<{ ok: boolean; output: string }> => {
+      try {
+        const result = await agent.execute(buildPreviewAgentScript(action))
+        if (!result.ok) return { ok: false, output: result.error }
+        return { ok: true, output: result.value }
+      } catch (error) {
+        return { ok: false, output: error instanceof Error ? error.message : String(error) }
+      }
+    }
+
+    const loop = async () => {
+      while (!stopped) {
+        const dir = devServerDirectory()
+        const url = server.current?.http.url
+        if (!dir || !url) {
+          await new Promise((resolve) => setTimeout(resolve, 2000))
+          continue
+        }
+        try {
+          const headers = devServerHeaders()
+          const res = await fetch(previewAgentPendingUrl(url, dir, 20000), { headers })
+          if (!res.ok) {
+            await new Promise((resolve) => setTimeout(resolve, 3000))
+            continue
+          }
+          const commands = (await res.json()) as { id: string; action: PreviewAgentAction }[]
+          for (const command of commands) {
+            if (stopped) break
+            const outcome = await runCommand(command.action)
+            await fetch(previewAgentResultUrl(url, dir), {
+              method: "POST",
+              headers: { ...headers, "content-type": "application/json" },
+              body: JSON.stringify({ id: command.id, ok: outcome.ok, output: outcome.output }),
+            }).catch(() => undefined)
+          }
+        } catch {
+          // Servidor caído o sesión cambiando: se reintenta sin ruido.
+          await new Promise((resolve) => setTimeout(resolve, 3000))
+        }
+      }
+    }
+
+    void loop()
+    return () => {
+      stopped = true
+    }
+  }
+
   onMount(() => {
+    const stopAgentBridge = startPreviewAgentBridge()
+    onCleanup(stopAgentBridge)
+
     const handleToggleInspector = () => setInspectActive((prev) => !prev)
     window.addEventListener("tiancode:toggle-inspector", handleToggleInspector)
 
@@ -1251,8 +1326,27 @@ export function LivePreview(props: {
     // Fetching the managed runtime must not depend on Electron's optional
     // WebContentsView. Local loopback previews use an iframe and can mount
     // before the native ref is available.
+    // El ritmo del sondeo sigue al estado: rápido mientras arranca o compila, tranquilo cuando
+    // no hay nada que mirar. Un intervalo fijo era lento donde importa y ruidoso donde no.
     void fetchDevServer()
-    const devTimer = window.setInterval(fetchDevServer, 2000)
+    let devTimer = 0
+    let devTimerDelay = 0
+    const scheduleDevPoll = () => {
+      const state = devServer()
+      const delay = previewPollInterval({
+        status: state?.status,
+        building: state?.build?.running === true,
+        desktop: state?.isDesktop === true,
+      })
+      if (delay === devTimerDelay && devTimer) return
+      if (devTimer) window.clearInterval(devTimer)
+      devTimerDelay = delay
+      devTimer = window.setInterval(() => {
+        void fetchDevServer()
+        scheduleDevPoll()
+      }, delay)
+    }
+    scheduleDevPoll()
     const observer = surface ? new ResizeObserver(queueBounds) : undefined
     if (surface) {
       measureViewport()
@@ -1638,6 +1732,12 @@ export function LivePreview(props: {
       : language.t("livePreview.building")
   }
 
+  /** The whole path, for the tooltip: the chip itself only has room for the file name. */
+  const buildLabelTitle = () => {
+    const full = devServer()?.build?.trigger
+    return full ? language.t("livePreview.buildingFile", { file: full }) : buildLabel()
+  }
+
   return (
     <div class="flex size-full min-h-0 flex-col" role="region" aria-label={language.t("liveView.tab.app")}>
       {/* Fila 1: navegación (igual que el webview anterior). */}
@@ -1699,26 +1799,28 @@ export function LivePreview(props: {
             </span>
           }
         >
+          {/* shrink-0: in a narrow panel the chip wraps to its own line instead of being cut
+              mid-word ("Compilando dis…"), which read like a file called "dis". */}
           <span
-            class="flex min-w-0 shrink items-center gap-1.5 rounded-md bg-[var(--v2-state-fg-warning)]/10 px-1.5 py-0.5 text-11-regular text-[var(--v2-state-fg-warning)]"
+            class="flex min-w-0 shrink-0 items-center gap-1.5 rounded-md bg-[var(--v2-state-fg-warning)]/10 px-1.5 py-0.5 text-11-regular whitespace-nowrap text-[var(--v2-state-fg-warning)]"
             role="status"
             aria-live="polite"
-            title={buildLabel()}
+            title={buildLabelTitle()}
           >
             <Spinner class="size-3 shrink-0" />
-            <span class="truncate">{buildLabel()}</span>
+            <span>{buildLabel()}</span>
           </span>
         </Show>
         <Show when={!isBuilding() && props.activeEditFile?.()}>
           {(file) => (
             <span
-              class="flex min-w-0 shrink items-center gap-1.5 rounded-md bg-[var(--v2-state-fg-info)]/10 px-1.5 py-0.5 text-11-regular text-[var(--v2-state-fg-info)]"
+              class="flex min-w-0 shrink-0 items-center gap-1.5 rounded-md bg-[var(--v2-state-fg-info)]/10 px-1.5 py-0.5 text-11-regular whitespace-nowrap text-[var(--v2-state-fg-info)]"
               role="status"
               aria-live="polite"
               title={language.t("livePreview.writingFile", { file: file() })}
             >
               <IconV2 name="edit" class="size-3 shrink-0" />
-              <span class="truncate">{shortenBuildTrigger(file()) ?? file()}</span>
+              <span>{shortenBuildTrigger(file()) ?? file()}</span>
             </span>
           )}
         </Show>
@@ -2065,13 +2167,13 @@ export function LivePreview(props: {
           >
             <div class="absolute inset-0 flex flex-col overflow-hidden bg-v2-background-bg-base p-4">
               <div class="flex flex-col gap-3 rounded-xl border border-v2-border-border-muted bg-v2-background-bg-surface p-4 shadow-sm">
-                <div class="flex items-center justify-between gap-2">
-                  <div class="flex items-center gap-2.5">
-                    <span class="flex size-9 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-400 text-lg">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <div class="flex min-w-0 flex-1 items-center gap-2.5">
+                    <span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-400 text-lg">
                       🖥️
                     </span>
-                    <div>
-                      <div class="flex items-center gap-2">
+                    <div class="min-w-0">
+                      <div class="flex flex-wrap items-center gap-2">
                         <span class="text-13-medium text-text-base">Entorno Desktop Sandbox</span>
                         <span class="rounded bg-cyan-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-cyan-300">
                           {devServer()?.framework || "Desktop GUI"}
@@ -2082,7 +2184,7 @@ export function LivePreview(props: {
                       </p>
                     </div>
                   </div>
-                  <div class="flex items-center gap-2">
+                  <div class="flex shrink-0 items-center gap-2">
                     <span
                       class={`size-2 rounded-full ${
                         devServer()?.status === "ready"
@@ -2106,7 +2208,7 @@ export function LivePreview(props: {
                   </div>
                 </div>
 
-                <div class="flex items-center gap-2 pt-1">
+                <div class="flex flex-wrap items-center gap-2 pt-1">
                   <Show
                     when={devServer()?.status === "ready"}
                     fallback={
@@ -2152,7 +2254,10 @@ export function LivePreview(props: {
                     </button>
                   </Show>
                   <Show when={devServer()?.command}>
-                    <span class="text-11-regular font-mono text-text-faint ml-auto">
+                    <span
+                      class="ml-auto min-w-0 max-w-full truncate text-11-regular font-mono text-text-faint"
+                      title={devServer()?.command ?? undefined}
+                    >
                       {devServer()?.command}
                     </span>
                   </Show>

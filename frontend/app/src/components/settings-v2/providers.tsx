@@ -3,8 +3,8 @@ import { Tag } from "@tiancode-ai/ui/v2/badge-v2"
 import { useDialog } from "@tiancode-ai/ui/context/dialog"
 import { ProviderIcon } from "@tiancode-ai/ui/provider-icon"
 import { showToast } from "@/utils/toast"
-import { popularProviders, useProviders } from "@/hooks/use-providers"
-import { createMemo, createSignal, type Accessor, type Component, For, Show } from "solid-js"
+import { clearProviderPending, markProviderPending, popularProviders, useProviders } from "@/hooks/use-providers"
+import { createMemo, type Accessor, type Component, For, Show } from "solid-js"
 import { useLanguage } from "@/context/language"
 import { useServerProtocol, useServerSDK } from "@/context/server-sdk"
 import { useServerSync } from "@/context/server-sync"
@@ -41,8 +41,6 @@ export const SettingsProvidersV2: Component<{
   const providers = useProviders(props.directory)
   const providerConnect = useProviderConnectController({ onBack: props.onBack })
 
-  const [disconnecting, setDisconnecting] = createSignal<Set<string>>(new Set())
-
   const connect = async (provider?: string) => {
     if (provider === "local") {
       showToast({
@@ -51,6 +49,7 @@ export const SettingsProvidersV2: Component<{
         title: language.t("provider.connect.toast.connected.title", { provider: "Tiancode Native / GGUF" }),
         description: "Motor nativo local conectado. Puedes descargar o activar modelos GGUF en 'Modelos Locales'.",
       })
+      markProviderPending("local", "connected")
       void (async () => {
         const currentConfig = serverSync().data.config
         const disabled = currentConfig.disabled_providers ?? []
@@ -73,6 +72,7 @@ export const SettingsProvidersV2: Component<{
           .catch(() => undefined)
         await serverSdk().client.global.dispose().catch(() => undefined)
         await serverSync().refreshProviders().catch(() => undefined)
+        clearProviderPending("local")
       })()
       return
     }
@@ -81,13 +81,11 @@ export const SettingsProvidersV2: Component<{
   }
 
   const connected = createMemo(() => {
+    // `providers.connected()` already reflects a connect/disconnect the user just triggered:
+    // the pending overlay lives in useProviders so this panel and the model picker agree.
     return providers
       .connected()
-      .filter(
-        (p) =>
-          !disconnecting().has(p.id) &&
-          (p.id !== "tiancode" || Object.values(p.models).find((m) => m.cost?.input)),
-      )
+      .filter((p) => p.id !== "tiancode" || Object.values(p.models).find((m) => m.cost?.input))
   })
 
   const popular = createMemo(() => {
@@ -133,10 +131,10 @@ export const SettingsProvidersV2: Component<{
   }
 
   const disconnect = (providerID: string, name: string) => {
-    // 1. Optimistic instant UI update: mark disconnecting immediately
-    setDisconnecting((prev) => new Set([...prev, providerID]))
+    // 1. The row and every model of this provider go away in this frame.
+    markProviderPending(providerID, "disconnected")
 
-    // 2. Instant notification toast (0ms latency like OpenCode)
+    // 2. The notification lands with the change, not after the round trip.
     showToast({
       variant: "success",
       icon: "circle-check",
@@ -178,11 +176,8 @@ export const SettingsProvidersV2: Component<{
         const message = err instanceof Error ? err.message : String(err)
         showToast({ title: language.t("common.requestFailed"), description: message })
       } finally {
-        setDisconnecting((prev) => {
-          const next = new Set(prev)
-          next.delete(providerID)
-          return next
-        })
+        // The catalogue now agrees (or the request failed and the truth should win again).
+        clearProviderPending(providerID)
       }
     })()
   }

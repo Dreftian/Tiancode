@@ -201,6 +201,13 @@ export type PreviewViewAPI = {
   onEvent: (cb: (event: PreviewViewEvent) => void) => () => void
 }
 
+// El agente maneja la página de la Vista en vivo: el script se evalúa en el frame de la propia
+// página desde el proceso principal (frontend/desktop/src/main/preview-agent.ts).
+export type PreviewAgentAPI = {
+  execute: (code: string) => Promise<{ ok: true; value: string } | { ok: false; error: string }>
+  available: () => Promise<boolean>
+}
+
 export type ElectronAPI = {
   killSidecar: () => Promise<void>
   relaunchApp: () => Promise<void>
@@ -269,6 +276,7 @@ export type ElectronAPI = {
   getLoginItem: () => Promise<boolean>
   clearWebviewData: () => Promise<void>
   previewView: PreviewViewAPI
+  previewAgent: PreviewAgentAPI
   backup: {
     now: () => Promise<string | null>
     list: () => Promise<{ name: string; createdAt: number }[]>

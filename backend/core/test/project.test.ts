@@ -39,7 +39,7 @@ async function rootCommit(dir: string) {
 }
 
 describe("ProjectV2.resolve", () => {
-  it.live("returns global for non-git directory", () =>
+  it.live("returns the directory itself for a non-git directory", () =>
     Effect.gen(function* () {
       const tmp = yield* Effect.acquireRelease(
         Effect.promise(() => tmpdir()),
@@ -50,7 +50,9 @@ describe("ProjectV2.resolve", () => {
       const result = yield* project.resolve(abs(tmp.path))
 
       expect(result.id).toBe(ProjectV2.ID.make("global"))
-      expect(path.resolve(result.directory)).toBe(path.parse(tmp.path).root)
+      // Never the filesystem root: project-scoped files belong in the opened folder.
+      expect(path.resolve(result.directory)).toBe(path.resolve(tmp.path))
+      expect(path.resolve(result.directory)).not.toBe(path.parse(tmp.path).root)
       expect(result.previous).toBeUndefined()
       expect(result.vcs).toBeUndefined()
     }),

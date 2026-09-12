@@ -2,7 +2,17 @@ import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
 import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
 import { TextInputV2 } from "@tiancode-ai/ui/v2/text-input-v2"
 import { Markdown } from "@tiancode-ai/session-ui/markdown"
-import { type Component, createResource, For, Show, createSignal, createMemo } from "solid-js"
+import {
+  type Component,
+  createEffect,
+  createMemo,
+  createResource,
+  createSignal,
+  For,
+  on,
+  onCleanup,
+  Show,
+} from "solid-js"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { useServerSDK } from "@/context/server-sdk"
@@ -551,6 +561,39 @@ export const SettingsSkillsV2: Component<{
       }
     },
     { initialValue: { skills: [], disabled: new Set<string>(), autoSelect: true } },
+  )
+
+  // El servidor es la única fuente real del catálogo (incluye el SKILL.md completo de cada
+  // skill). Si responde vacío porque todavía se estaba levantando — lo típico al abrir la app
+  // recién actualizada — el panel se quedaba con el resumen incrustado y sin la ficha completa
+  // hasta cerrar y volver a abrir. Se vuelve a preguntar unas pocas veces y al activar la
+  // pestaña, en vez de dar el vacío por definitivo.
+  const SKILL_RETRY_DELAYS_MS = [700, 2000, 5000]
+  let skillRetries = 0
+  let skillRetryTimer: ReturnType<typeof setTimeout> | undefined
+  onCleanup(() => clearTimeout(skillRetryTimer))
+  createEffect(() => {
+    if (data.loading) return
+    if (data().skills.length > 0) {
+      skillRetries = SKILL_RETRY_DELAYS_MS.length
+      return
+    }
+    const delay = SKILL_RETRY_DELAYS_MS[skillRetries]
+    if (delay === undefined) return
+    skillRetries += 1
+    clearTimeout(skillRetryTimer)
+    skillRetryTimer = setTimeout(() => void refetch(), delay)
+  })
+
+  // Volver a la pestaña es una petición implícita de "enséñame lo que hay ahora".
+  createEffect(
+    on(
+      () => props.active,
+      (active, previous) => {
+        if (active && !previous) void refetch()
+      },
+      { defer: true },
+    ),
   )
 
   const builtInSkills = createMemo(() => {

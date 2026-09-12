@@ -59,12 +59,16 @@ describe("shortenBuildTrigger", () => {
     expect(shortenBuildTrigger("")).toBeUndefined()
   })
 
-  test("keeps short paths intact", () => {
+  test("shows the file name, which is what fits in the header row", () => {
     expect(shortenBuildTrigger("App.tsx")).toBe("App.tsx")
-    expect(shortenBuildTrigger("src/App.tsx")).toBe("src/App.tsx")
+    expect(shortenBuildTrigger("src/App.tsx")).toBe("App.tsx")
+    expect(shortenBuildTrigger("packages/web/src/components/App.tsx")).toBe("App.tsx")
+    expect(shortenBuildTrigger("src\\components\\Card.tsx")).toBe("Card.tsx")
   })
 
-  test("elides the middle of deep paths", () => {
-    expect(shortenBuildTrigger("packages/web/src/components/App.tsx")).toBe("…/components/App.tsx")
+  test("a very long file name is elided rather than cut by the layout", () => {
+    expect(shortenBuildTrigger("src/a-really-long-generated-chunk-name-here.js")).toBe(
+      "a-really-long-generated-chu…",
+    )
   })
 })

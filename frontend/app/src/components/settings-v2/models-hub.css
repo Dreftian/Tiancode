@@ -203,7 +203,7 @@
   overflow: hidden;
 }
 
-@media (max-width: 960px) {
+@container settings-panel (max-width: 960px) {
   .lm-hub-split {
     grid-template-columns: 1fr;
   }

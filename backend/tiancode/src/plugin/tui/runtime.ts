@@ -34,6 +34,7 @@ import { Global } from "@tiancode-ai/core/global"
 import { Filesystem } from "@/util/filesystem"
 import { Process } from "@/util/process"
 import { Flock } from "@tiancode-ai/core/util/flock"
+import { isFilesystemRoot } from "@tiancode-ai/core/util/path"
 import { Flag } from "@tiancode-ai/core/flag/flag"
 import { internalTuiPlugins, type InternalTuiPlugin } from "./internal"
 import type { HostPluginApi, HostSlots } from "@tiancode-ai/tui/plugin/slots"
@@ -945,7 +946,7 @@ async function installPluginBySpec(
     spec,
     targets: manifest.targets,
     global,
-    vcs: dir.worktree && dir.worktree !== "/" ? "git" : undefined,
+    vcs: dir.worktree && !isFilesystemRoot(dir.worktree) ? "git" : undefined,
     worktree: dir.worktree,
     directory: dir.directory,
   })

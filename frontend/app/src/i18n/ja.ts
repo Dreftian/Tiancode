@@ -2143,7 +2143,7 @@ export const dict = {
   "settings.tab.mcpPlugins": "MCP とプラグイン",
   "ui.promptInput.speedMode.enable": "⚡ 2x スピードモードを有効化 (超高速)",
   "ui.promptInput.speedMode.disable": "⚡ 2x スピードモードを無効化",
-  "ui.promptInput.speedMode.tooltip": "2x モード: 現在のモデルを最速の推論レベルに下げ、冗長な前置きを省きます。無効にすると保存済みのバリアントに戻ります。",
+  "ui.promptInput.speedMode.tooltip": "2x モード: 前置きも冗長な説明もなく、すぐにツールを使います。推論の深さは選んだままです。",
   "settings.subAgents.native.webapp": "フロントエンド開発とフル JSX アプリ。リアルタイムプレビュー対応。",
   "settings.subAgents.native.softwareArchitect": "モジュール化されたシステム設計、クリーンアーキテクチャ、ドメイン駆動の疎結合化。",
   "settings.subAgents.native.fullstackCoder": "フロントエンド・バックエンド・API・データベースを横断するエンドツーエンドのフルスタック実装。",

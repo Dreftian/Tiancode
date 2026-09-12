@@ -32,7 +32,7 @@ export function SpeedModeButton(props: { class?: string }) {
 
   const tooltipDesc = () =>
     language.t("ui.promptInput.speedMode.tooltip") ??
-    "Modo 2x: Ejecución directa sin preámbulos y máxima velocidad para todos los modelos."
+    "Modo 2x: sin preámbulos ni relleno, directo a las herramientas. Tu nivel de razonamiento no cambia."
 
   return (
     <TooltipV2

@@ -15,7 +15,15 @@ import { TodoWriteTool } from "./todo"
 import { WebFetchTool } from "./webfetch"
 import { WriteTool } from "./write"
 import { InvalidTool } from "./invalid"
-import { PreviewLogsTool, PreviewRestartTool, PreviewStartTool, PreviewStatusTool, PreviewStopTool } from "./preview"
+import {
+  PreviewInspectTool,
+  PreviewInteractTool,
+  PreviewLogsTool,
+  PreviewRestartTool,
+  PreviewStartTool,
+  PreviewStatusTool,
+  PreviewStopTool,
+} from "./preview"
 import { SkillTool } from "./skill"
 import { MemoryTool } from "./memory"
 import { CodeGraphTool } from "./codegraph"
@@ -131,6 +139,8 @@ const layer = Layer.effect(
     const previewRestart = yield* PreviewRestartTool
     const previewStatus = yield* PreviewStatusTool
     const previewLogs = yield* PreviewLogsTool
+    const previewInspect = yield* PreviewInspectTool
+    const previewInteract = yield* PreviewInteractTool
     const agent = yield* Agent.Service
     const codeMode = flags.experimentalCodeMode ? yield* Effect.promise(() => import("./code-mode")) : undefined
     const codeModeTool = codeMode ? yield* codeMode.CodeModeTool : undefined
@@ -249,6 +259,8 @@ const layer = Layer.effect(
           previewRestart: Tool.init(previewRestart),
           previewStatus: Tool.init(previewStatus),
           previewLogs: Tool.init(previewLogs),
+          previewInspect: Tool.init(previewInspect),
+          previewInteract: Tool.init(previewInteract),
           ...(codeModeTool ? { execute: Tool.init(codeModeTool) } : {}),
         })
 
@@ -280,6 +292,8 @@ const layer = Layer.effect(
             tool.previewRestart,
             tool.previewStatus,
             tool.previewLogs,
+            tool.previewInspect,
+            tool.previewInteract,
           ],
           task: tool.task,
           read: tool.read,

@@ -2141,7 +2141,7 @@ export const dict = {
   "settings.tab.mcpPlugins": "MCP 및 플러그인",
   "ui.promptInput.speedMode.enable": "⚡ 2x 속도 모드 켜기 (초고속)",
   "ui.promptInput.speedMode.disable": "⚡ 2x 속도 모드 끄기",
-  "ui.promptInput.speedMode.tooltip": "2x 모드: 활성 모델을 가장 빠른 추론 단계로 낮추고 군더더기를 제거합니다. 끄면 저장된 변형으로 돌아갑니다.",
+  "ui.promptInput.speedMode.tooltip": "2x 모드: 서론과 군더더기 없이 바로 도구를 사용합니다. 추론 강도는 선택한 그대로 유지됩니다.",
   "settings.subAgents.native.webapp": "프런트엔드 개발과 전체 JSX 앱. 실시간 미리보기를 지원합니다.",
   "settings.subAgents.native.softwareArchitect": "모듈형 시스템 설계, 클린 아키텍처, 도메인 주도 결합도 분리.",
   "settings.subAgents.native.fullstackCoder": "프런트엔드, 백엔드, API, 데이터베이스를 아우르는 엔드투엔드 풀스택 구현.",

@@ -34,7 +34,7 @@ import { useServerSDK } from "@/context/server-sdk"
 import { useServerSync } from "@/context/server-sync"
 import { useLanguage } from "@/context/language"
 import { useSettings } from "@/context/settings"
-import { popularProviders, useProviders } from "@/hooks/use-providers"
+import { clearProviderPending, markProviderPending, popularProviders, useProviders } from "@/hooks/use-providers"
 import { CustomProviderForm } from "./dialog-custom-provider"
 import { decode64 } from "@/utils/base64"
 
@@ -717,18 +717,14 @@ function ProviderConnection(props: {
     }
   })
 
-  async function complete() {
-    const currentConfig = serverSync().data.config
-    const disabled = currentConfig.disabled_providers ?? []
-    if (disabled.includes(props.provider)) {
-      const nextDisabled = disabled.filter((id) => id !== props.provider)
-      serverSync().set("config", "disabled_providers", nextDisabled)
-      await serverSync().updateConfig({ disabled_providers: nextDisabled }).catch(() => undefined)
-    }
-    await serverSDK().client.global.dispose().catch(() => undefined)
-    await serverSync()
-      .refreshProviders()
-      .catch(() => undefined)
+  // The credentials are already stored by the time we get here; everything left (rewriting
+  // disabled_providers, disposing the provider runtime, refetching the catalogue) takes a
+  // second or two. Waiting for it kept the dialog open and the confirmation hidden, so the
+  // dialog closes and the toast fires now and the rest happens behind them — with the provider
+  // marked connected so its row and its models are there immediately.
+  function complete() {
+    const providerID = props.provider
+    markProviderPending(providerID, "connected")
     dialog.close()
     showToast({
       variant: "success",
@@ -736,6 +732,22 @@ function ProviderConnection(props: {
       title: language.t("provider.connect.toast.connected.title", { provider: provider().name }),
       description: language.t("provider.connect.toast.connected.description", { provider: provider().name }),
     })
+
+    void (async () => {
+      try {
+        const currentConfig = serverSync().data.config
+        const disabled = currentConfig.disabled_providers ?? []
+        if (disabled.includes(providerID)) {
+          const nextDisabled = disabled.filter((id) => id !== providerID)
+          serverSync().set("config", "disabled_providers", nextDisabled)
+          await serverSync().updateConfig({ disabled_providers: nextDisabled }).catch(() => undefined)
+        }
+        await serverSDK().client.global.dispose().catch(() => undefined)
+        await serverSync().refreshProviders().catch(() => undefined)
+      } finally {
+        clearProviderPending(providerID)
+      }
+    })()
   }
 
   function goBack() {
@@ -843,7 +855,7 @@ function ProviderConnection(props: {
         location: location(),
         key: apiKey,
       })
-      await complete()
+      complete()
     }
 
     if (newLayout())
@@ -978,7 +990,7 @@ function ProviderConnection(props: {
         .then(() => ({ ok: true as const }))
         .catch((error) => ({ ok: false as const, error }))
       if (result.ok) {
-        await complete()
+        complete()
         return
       }
       setFormStore("error", formatError(result.error, language.t("provider.connect.oauth.code.invalid")))
@@ -1081,7 +1093,7 @@ function ProviderConnection(props: {
           return
         }
         if (result.status.status === "complete") {
-          await complete()
+          complete()
           return
         }
         if (result.status.status === "failed") {

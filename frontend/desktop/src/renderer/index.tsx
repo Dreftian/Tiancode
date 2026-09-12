@@ -289,6 +289,9 @@ const createPlatform = (windowState: DesktopWindowState): Platform => {
     // Vista en vivo del panel de sesión (WebContentsView del main).
     previewView: window.api.previewView,
 
+    // El agente lee y maneja la página de la Vista en vivo (preview_inspect / preview_interact).
+    previewAgent: window.api.previewAgent,
+
     onLiveViewNavigate: (cb) => window.api.onLiveViewNavigate(cb),
 
     getDisplayBackend: async () => {

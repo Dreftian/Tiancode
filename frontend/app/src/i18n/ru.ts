@@ -2235,7 +2235,7 @@ export const dict = {
   "settings.tab.mcpPlugins": "MCP и плагины",
   "ui.promptInput.speedMode.enable": "Включить режим ⚡ 2x (сверхбыстро)",
   "ui.promptInput.speedMode.disable": "Выключить режим ⚡ 2x",
-  "ui.promptInput.speedMode.tooltip": "Режим 2x: переводит активную модель на самый быстрый уровень рассуждений и убирает вводные фразы. При выключении возвращается сохранённый вариант.",
+  "ui.promptInput.speedMode.tooltip": "Режим 2x: без вводных фраз и воды, сразу к инструментам. Уровень рассуждений остаётся тем, который вы выбрали.",
   "settings.subAgents.native.webapp": "Разработка фронтенда и полноценных JSX-приложений с предпросмотром в реальном времени.",
   "settings.subAgents.native.softwareArchitect": "Модульное проектирование систем, чистая архитектура и предметно-ориентированное разделение.",
   "settings.subAgents.native.fullstackCoder": "Сквозная full-stack разработка: фронтенд, бэкенд, API и базы данных.",

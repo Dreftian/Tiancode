@@ -2150,7 +2150,7 @@ export const dict = {
   "settings.voices.dictation.toggle.description": "Press once anywhere on the desktop to dictate and press again to stop",
   "ui.promptInput.speedMode.enable": "Enable ⚡ 2x Speed Mode (Ultra Fast)",
   "ui.promptInput.speedMode.disable": "Disable ⚡ 2x Speed Mode",
-  "ui.promptInput.speedMode.tooltip": "2x Mode: drops the active model to its fastest reasoning tier and strips all filler. Your saved variant is restored when you turn it off.",
+  "ui.promptInput.speedMode.tooltip": "2x Mode: no preamble, no filler, straight to the tools. Your reasoning effort stays exactly where you set it.",
   "settings.subAgents.native.webapp": "Frontend development and full-JSX apps with live real-time preview.",
   "settings.subAgents.native.softwareArchitect": "Modular system design, clean architecture, and domain-driven decoupling.",
   "settings.subAgents.native.fullstackCoder": "End-to-end fullstack implementation across frontend, backend, APIs, and databases.",

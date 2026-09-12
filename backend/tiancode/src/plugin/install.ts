@@ -11,6 +11,7 @@ import * as ConfigPaths from "@/config/paths"
 import { Global } from "@tiancode-ai/core/global"
 import { Filesystem } from "@/util/filesystem"
 import { Flock } from "@tiancode-ai/core/util/flock"
+import { isFilesystemRoot } from "@tiancode-ai/core/util/path"
 import { isRecord } from "@/util/record"
 
 import { parsePluginSpecifier, readPackageThemes, readPluginPackage, resolvePluginTarget } from "./shared"
@@ -332,8 +333,11 @@ export async function readPluginManifest(target: string): Promise<ManifestResult
 
 function patchDir(input: PatchInput) {
   if (input.global) return input.config ?? Global.Path.config
-  const git = input.vcs === "git" && input.worktree !== "/"
+  const git = input.vcs === "git" && !isFilesystemRoot(input.worktree)
   const root = git ? input.worktree : input.directory
+  // A filesystem root is never a project: installing there would drop `.tiancode/` (and the
+  // npm tree it pulls in) at the top of the drive. Fall back to the global config dir.
+  if (isFilesystemRoot(root)) return input.config ?? Global.Path.config
   return path.join(root, ".tiancode")
 }
 

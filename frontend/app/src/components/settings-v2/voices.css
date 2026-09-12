@@ -629,20 +629,20 @@
   width: 100%;
 }
 
-@media (max-width: 1120px) {
+@container settings-panel (max-width: 1120px) {
   .settings-v2-voices-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 840px) {
+@container settings-panel (max-width: 840px) {
   .settings-v2-voices-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
   }
 }
 
-@media (max-width: 520px) {
+@container settings-panel (max-width: 520px) {
   .settings-v2-voices-grid {
     grid-template-columns: 1fr;
   }

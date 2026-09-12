@@ -180,6 +180,10 @@ const api: ElectronAPI = {
       return () => ipcRenderer.removeListener("preview-view-event", handler)
     },
   },
+  previewAgent: {
+    execute: (code) => ipcRenderer.invoke("preview-agent:execute", code),
+    available: () => ipcRenderer.invoke("preview-agent:available"),
+  },
   backup: {
     now: () => ipcRenderer.invoke("backup-now"),
     list: () => ipcRenderer.invoke("backup-list"),

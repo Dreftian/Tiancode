@@ -2203,7 +2203,7 @@ export const dict = {
   "settings.tab.mcpPlugins": "MCP 与插件",
   "ui.promptInput.speedMode.enable": "启用 ⚡ 2x 极速模式",
   "ui.promptInput.speedMode.disable": "关闭 ⚡ 2x 极速模式",
-  "ui.promptInput.speedMode.tooltip": "2x 模式：将当前模型降至最快的推理档位并去除所有冗余表述。关闭后会恢复你保存的变体。",
+  "ui.promptInput.speedMode.tooltip": "2x 模式：没有铺垫和冗余，直接动用工具。推理档位保持你选择的设置不变。",
   "settings.subAgents.native.webapp": "前端开发与全 JSX 应用，支持实时预览。",
   "settings.subAgents.native.softwareArchitect": "模块化系统设计、整洁架构与领域驱动解耦。",
   "settings.subAgents.native.fullstackCoder": "端到端全栈实现，覆盖前端、后端、API 与数据库。",

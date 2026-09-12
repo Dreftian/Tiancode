@@ -29,28 +29,42 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.38"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — Vista Previa en Vivo: Zoom Real, Recarga sin Parpadeo y Cabecera del Sandbox`
+  const releaseName = `Tiancode v${version} — El agente usa el Sandbox, el modo 2x no piensa menos y nada se escribe en la raíz del disco`
 
   const body = `## 🚀 Tiancode v${version}
 
-Versión centrada en la vista previa del Sandbox mientras un modelo construye el frontend: el zoom
-vuelve a obedecer, los cambios del agente aparecen sin parpadeos y la cabecera deja de recortarse.
+Versión centrada en tres cosas que rompían la confianza: el agente no podía comprobar lo que
+construía, el modo ⚡ 2x rebajaba en silencio el razonamiento que habías elegido, y la app dejaba
+archivos propios en la raíz del disco.
 
-### 🔍 Zoom real en la vista previa
-- Con un preset grande (Escritorio FHD 1920×1080) el panel mostraba ~54 % y "+"/"−" no hacían nada: el zoom manual era solo un techo sobre el ajuste automático y el 100 % real era inalcanzable.
-- Ahora "+"/"−" recorren escalones (25 %–400 %) desde la escala en pantalla, el porcentaje es un botón que fija el 100 % y **Ajustar** vuelve al ajuste automático. Si no cabe, la vista se desplaza en vez de recortarse.
-- El botón "Fluido" de la cabecera funciona siempre, aunque la preferencia guardada fuera un preset de escritorio; la cabecera refleja el preset real.
+### 🤖 El agente ya puede usar la app del Sandbox
+- Antes sólo podía arrancar el servidor y leer logs, así que terminaba diciendo "no pude abrir la ventana, sólo validé que compila".
+- **\`preview_inspect\`**: lee la pantalla real — URL y título, texto visible, cada botón, enlace, campo y desplegable con una referencia \`e12\`, y los errores de la consola.
+- **\`preview_interact\`**: \`click\`, \`fill\`, \`select\`, \`press\`, \`scroll\` y \`navigate\`, y devuelve la pantalla resultante. Recorre un flujo entero y lo verifica de verdad antes de darlo por terminado.
+- Funciona tanto en el iframe del Sandbox como en la vista nativa: la acción se ejecuta en el frame real desde el proceso principal.
 
-### ⚡ Ver al agente construir paso a paso
-- Cada cambio pasa por un planificador que agrupa ráfagas (250 ms) y nunca reinicia un documento a medio cargar.
-- El documento nuevo se carga en un segundo iframe oculto y se intercambia al terminar, conservando la posición de scroll: sin pantalla en blanco ni capa "Iniciando…" entre dos escrituras.
-- El cliente de recarga de las vistas estáticas/JSX delega en el Sandbox: una recarga por cambio en lugar de tres.
+### 🔁 "Compilando dist…" que no paraba
+- Windows anuncia el cambio de la carpeta de salida como \`dist\` a secas, sin barra, y el filtro sólo descartaba \`dist/\`: cada compilación se re-armaba con su propia salida y el proyecto se recompilaba en bucle.
+- Los descartes se comparan ahora por segmento de ruta, a cualquier profundidad, y la etiqueta muestra el nombre del archivo en lugar de una ruta cortada a media palabra.
 
-### 🧭 Cabecera del Sandbox
-- Se adapta al ancho del propio panel: atajos y botones de dispositivo se ocultan en paneles estrechos, el nombre de la carpeta cede espacio y las pestañas "Vista previa / Código" nunca se superponen.
+### 🗂️ Nada de \`.tiancode\` en la raíz del disco
+- Una carpeta sin repositorio resolvía su proyecto a la raíz del disco, así que \`MEMORY.md\`, los plugins (con su \`node_modules\`) y las skills acababan en lo alto de la unidad.
+- Una carpeta sin git es ahora su propio proyecto, y ninguna ruta puede escribir en una raíz de sistema.
+
+### ⚡ El modo 2x respeta tu nivel de razonamiento
+- Bajaba el modelo a su variante más barata: elegir "Max" y activar 2x te daba un modelo más superficial del que pediste. Ahora 2x sólo quita preámbulo y relleno.
+
+### 🔌 Proveedores y modelos al instante
+- Conectar cierra el diálogo y notifica en el mismo momento; desconectar quita la fila **y todos los modelos de ese proveedor** en el mismo fotograma.
+- Tras actualizar, un catálogo vacío ya no se queda cacheado hasta reiniciar: se vuelve a pedir a los 0,8 s, 2 s y 5 s. Lo mismo en Skills, que es por lo que la ficha grande mostraba un resumen en vez del SKILL.md completo.
+- Ollama y LM Studio salen de Proveedores: el camino real para modelos locales es el motor integrado (GGUF) en Modelos Locales.
+
+### 📐 Responsivo de verdad
+- Los paneles de Ajustes media-consultaban el ancho de la **ventana** aunque viven dentro del diálogo. Todos pasan a container queries del propio panel.
+- El sondeo de la vista previa va con lo que ocurre (0,9 s / 2 s / 6 s) y los logs sólo se piden cuando hay algo que mirar.
 
 ### ✅ Calidad
-- Frontend: **879 tests, 0 fallos** (12 nuevos). Typecheck 27/27.
+- 34 tests nuevos. Frontend **899 tests, 0 fallos**. Typecheck 27/27.
 
 ### 🔄 Actualización 100% no destructiva
 Todas tus claves de proveedores, configuraciones, sesiones, backups y servidores MCP se preservan intactos.

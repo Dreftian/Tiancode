@@ -401,10 +401,8 @@ export function createPromptSubmit(input: PromptSubmitInput) {
     }
 
     let session = input.info()
-    // En modo 2x bajamos el esfuerzo de razonamiento del modelo activo para esta petición.
-    // Es un override por-request: la selección guardada del usuario no se toca, así que al
-    // desactivar 2x vuelve su variante. Si el modelo no expone una variante rápida reconocible,
-    // resolveSpeedVariant conserva la del usuario en lugar de arriesgarse a hacerlo más lento.
+    // El modo 2x no toca el esfuerzo de razonamiento: si el usuario eligió "Max", va en Max.
+    // Lo que 2x recorta es el preámbulo y el relleno, vía SPEED_MODE_2X_DIRECTIVE.
     const effectiveVariant = resolveSpeedVariant({
       variants: modelSelection.variant.list(),
       selected: variant,

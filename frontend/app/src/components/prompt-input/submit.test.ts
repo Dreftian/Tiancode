@@ -476,9 +476,9 @@ describe("prompt submit worktree selection", () => {
     expect(promotedDrafts).toEqual([{ draftID: "draft-1", server: "project-server", sessionId: "session-1" }])
   })
 
-  test("2x Speed Mode swaps in the model's cheapest reasoning tier for that request", async () => {
-    // The button used to only inject a system-prompt directive, which changed nothing about
-    // how fast the model ran. It now overrides the variant for this request only.
+  test("2x Speed Mode keeps the reasoning effort the user picked", async () => {
+    // It used to drop the model to its cheapest tier, so turning 2x on after choosing "high"
+    // quietly ran a shallower model than the one selected. Reasoning depth is the user's call.
     const { setSpeed2xActive } = await import("@/utils/speed-mode")
     params = { id: "session-1" }
     variant = "high"
@@ -491,7 +491,7 @@ describe("prompt submit worktree selection", () => {
       await Bun.sleep(0)
 
       expect(optimistic[0]).toMatchObject({
-        message: { model: { variant: "low" } },
+        message: { model: { variant: "high" } },
       })
     } finally {
       setSpeed2xActive(false)
@@ -499,8 +499,7 @@ describe("prompt submit worktree selection", () => {
     }
   })
 
-  test("2x Speed Mode keeps the user's variant when the model exposes no rankable tier", async () => {
-    // Guessing here would risk selecting a *slower* tier than the user picked.
+  test("2x Speed Mode keeps a custom variant untouched too", async () => {
     const { setSpeed2xActive } = await import("@/utils/speed-mode")
     params = { id: "session-1" }
     variant = "custom-b"

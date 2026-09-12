@@ -33,6 +33,7 @@ import { getRuntimeInstallState, installRuntime } from "./runtime-install"
 import { captureArea, captureLiveView, capturePreview, captureScreen, captureWindow } from "./capture"
 import { backupNow, listBackups, restoreBackup } from "./backup"
 import { registerPreviewViewIpc } from "./preview-view"
+import { registerPreviewAgentIpc } from "./preview-agent"
 import { registerDesktopPetIpc } from "./desktop-pet"
 
 // Apps "abrir con" que acepta open-path. En macOS y Linux el renderer envía
@@ -134,6 +135,10 @@ export function registerIpcHandlers(deps: Deps) {
   // el renderer (bounds del contenedor real, navegación, selección de
   // elementos). Canales exclusivos preview-view:*; nada existente cambia.
   registerPreviewViewIpc()
+
+  // El agente maneja la página de la Vista en vivo (leer la pantalla, pulsar, escribir).
+  // Canales exclusivos preview-agent:*.
+  registerPreviewAgentIpc()
 
   // Mascota de escritorio independiente
   registerDesktopPetIpc()

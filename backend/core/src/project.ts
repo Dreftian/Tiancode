@@ -109,7 +109,11 @@ const layer = Layer.effect(
 
     const resolve = Effect.fn("Project.resolve")(function* (input: AbsolutePath) {
       const repo = yield* git.repo.discover(input)
-      if (!repo) return { id: ID.global, directory: AbsolutePath.make(path.parse(input).root), vcs: undefined }
+      // A folder without a repository is its own project. This used to answer with the
+      // filesystem root, which made every project-scoped path (`.tiancode/MEMORY.md`, the
+      // plugin install dir, project skills) land in `C:\` or `/` — files the user never
+      // asked for, outside the folder they opened.
+      if (!repo) return { id: ID.global, directory: input, vcs: undefined }
 
       const previous = yield* cached(repo.commonDirectory)
       const id = (yield* remote(repo)) ?? previous ?? (yield* root(repo))

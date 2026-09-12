@@ -5,6 +5,7 @@ import { Context, Effect, Layer } from "effect"
 import { Location } from "./location"
 import { Global } from "./global"
 import { FSUtil } from "./fs-util"
+import { isFilesystemRoot } from "./util/path"
 import path from "path"
 
 export const USER_MAX_CHARS = 4_000
@@ -89,7 +90,12 @@ const layer = Layer.effect(
     const fsys = yield* FSUtil.Service
 
     const userMemoryPath = path.join(global.config, "USER.md")
-    const projectMemoryPath = path.join(location.project.directory, ".tiancode", "MEMORY.md")
+    // Never write project memory to a filesystem root: that drops `.tiancode/MEMORY.md` at the
+    // top of the user's drive. Such a "project" has no folder of its own, so it keeps its
+    // memory beside the global config instead.
+    const projectMemoryPath = isFilesystemRoot(location.project.directory)
+      ? path.join(global.config, "MEMORY.md")
+      : path.join(location.project.directory, ".tiancode", "MEMORY.md")
 
     const userPath = () => userMemoryPath
     const projectPath = () => projectMemoryPath

@@ -1,3 +1,23 @@
+/**
+ * Whether a path is a filesystem root — `/`, `C:\`, `\\server\share`.
+ *
+ * Project-scoped state (`.tiancode/`, plugin installs, memory) must never be written to one:
+ * it would drop app files into the top of the user's drive. Callers used to test
+ * `worktree === "/"`, which is blind to every Windows root.
+ */
+export function isFilesystemRoot(input: string | undefined) {
+  if (!input) return false
+  const value = input.trim()
+  if (!value) return false
+  const normalized = value.replace(/\\/g, "/")
+  if (normalized === "/") return true
+  // Drive roots: "C:", "C:/", "c:\\".
+  if (/^[a-zA-Z]:\/?$/.test(normalized)) return true
+  // UNC share roots: "//server/share" with nothing below it.
+  if (/^\/\/[^/]+\/[^/]+\/?$/.test(normalized)) return true
+  return false
+}
+
 export function getFilename(path: string | undefined) {
   if (!path) return ""
   const trimmed = path.replace(/[/\\]+$/, "")

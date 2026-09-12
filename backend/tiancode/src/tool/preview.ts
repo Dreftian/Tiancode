@@ -10,6 +10,7 @@ import { Effect, Schema } from "effect"
 import { InstanceState } from "@/effect/instance-state"
 import * as Tool from "./tool"
 import { getPreviewLogs, getPreviewState, restartPreviewServer, startPreviewServer, stopPreviewServer } from "../preview/dev-server-manager"
+import { isPreviewBridgeAttached, requestPreviewAction, type PreviewAgentAction } from "../preview/agent-bridge"
 import type { PreviewState } from "../preview/types"
 
 function describe(state: PreviewState) {
@@ -135,5 +136,110 @@ export const PreviewLogsTool = Tool.define(
           metadata: {},
         }
       }),
+  }),
+)
+
+// ---------------------------------------------------------------------------
+// El agente dentro de la app: ver y manejar la página del Sandbox.
+//
+// Sin esto el agente escribe código, comprueba que compila y termina diciendo "no pude abrir
+// la ventana, así que no sé si funciona". Con esto abre la pantalla, lee lo que hay, pulsa un
+// botón y comprueba el resultado — que es lo que haría el usuario.
+// ---------------------------------------------------------------------------
+
+const NOT_RUNNING =
+  "La vista previa no está en marcha. Ejecuta preview_start antes de inspeccionar o manejar la página."
+
+type AgentMetadata = { ok: boolean }
+
+function previewRunning(state: PreviewState) {
+  return state.status === "ready" || state.status === "starting"
+}
+
+function bridgeHint(directory: string) {
+  if (isPreviewBridgeAttached(directory)) return ""
+  return [
+    "",
+    "",
+    "Nota: el panel de Vista en vivo no está abierto, así que nadie puede ejecutar la acción.",
+    "Pide al usuario que abra Vista en vivo (o el Sandbox) en esta sesión.",
+  ].join("\n")
+}
+
+const runAction = (
+  action: PreviewAgentAction,
+  title: string,
+): Effect.Effect<Tool.ExecuteResult<AgentMetadata>> =>
+  Effect.gen(function* () {
+    const directory = yield* InstanceState.directory
+    const state = getPreviewState(directory)
+    if (!previewRunning(state)) {
+      return { title, output: NOT_RUNNING, metadata: { ok: false } }
+    }
+    const result = yield* Effect.promise(() => requestPreviewAction(directory, action))
+    return {
+      title,
+      output: result.ok ? result.output : `${result.output}${bridgeHint(directory)}`,
+      metadata: { ok: result.ok },
+    }
+  })
+
+const InspectParameters = Schema.Struct({
+  target: Schema.optional(Schema.String).annotate({
+    description:
+      "Opcional: selector CSS o texto visible para limitar la lectura a una parte de la pantalla (por ejemplo un diálogo o un panel).",
+  }),
+})
+
+const InteractParameters = Schema.Struct({
+  action: Schema.Literals(["click", "fill", "select", "press", "scroll", "navigate"]).annotate({
+    description: "Qué hacer sobre la página.",
+  }),
+  target: Schema.optional(Schema.String).annotate({
+    description:
+      "Elemento sobre el que actuar: referencia `e12` de preview_inspect, selector CSS o texto visible. Obligatorio salvo en `navigate` y en `scroll` sobre toda la página.",
+  }),
+  value: Schema.optional(Schema.String).annotate({
+    description: "Texto a escribir (`fill`) o valor de la opción a elegir (`select`).",
+  }),
+  key: Schema.optional(Schema.String).annotate({
+    description: "Tecla para `press`: Enter, Escape, Tab, ArrowDown, a…",
+  }),
+  url: Schema.optional(Schema.String).annotate({
+    description: "Ruta o URL para `navigate`, por ejemplo `/ajustes`.",
+  }),
+  direction: Schema.optional(Schema.String).annotate({
+    description: "Para `scroll`: up, down, top o bottom (por defecto down).",
+  }),
+})
+
+export const PreviewInspectTool = Tool.define<typeof InspectParameters, AgentMetadata, never>(
+  "preview_inspect",
+  Effect.succeed({
+    description:
+      "Lee la página que se está mostrando en la Vista en vivo (el Sandbox): URL y título reales, el texto visible, los elementos con los que se puede interactuar (botones, enlaces, campos, selectores) cada uno con una referencia estable tipo `e12`, y los errores de JavaScript de la consola. Úsala después de preview_start y después de cada cambio para comprobar con tus propios ojos que la pantalla es la que esperabas, en vez de suponerlo desde el código. Las referencias que devuelve se usan tal cual en preview_interact.",
+    parameters: InspectParameters,
+    execute: (args) => runAction({ type: "inspect", target: args.target }, "Vista previa inspeccionada"),
+  }),
+)
+
+export const PreviewInteractTool = Tool.define<typeof InteractParameters, AgentMetadata, never>(
+  "preview_interact",
+  Effect.succeed({
+    description:
+      "Maneja la página de la Vista en vivo como lo haría el usuario y devuelve el estado de la pantalla después de la acción. Acciones: `click` (pulsa un botón, enlace o pestaña), `fill` (escribe en un campo), `select` (elige una opción de un desplegable), `press` (pulsa una tecla, por ejemplo Enter o Escape), `scroll` (desplaza la página o un contenedor) y `navigate` (va a otra ruta de la misma app). `target` acepta una referencia de preview_inspect (`e12`), un selector CSS o el texto visible del elemento. Úsala para recorrer la app y verificar de verdad un flujo antes de darlo por terminado; no sustituye a preguntar al usuario por decisiones de producto.",
+    parameters: InteractParameters,
+    execute: (args) =>
+      runAction(
+        {
+          type: args.action,
+          target: args.target,
+          value: args.value,
+          key: args.key,
+          url: args.url,
+          direction: args.direction,
+        },
+        "Vista previa manejada",
+      ),
   }),
 )

@@ -74,6 +74,17 @@ export type PreviewViewPlatform = {
   onEvent(cb: (event: PreviewViewEvent) => void): () => void
 }
 
+/**
+ * Ejecuta un script del agente dentro de la página de la Vista en vivo.
+ *
+ * Lo resuelve el proceso principal: la vista previa es de origen cruzado respecto al renderer,
+ * así que desde aquí no se puede tocar su DOM directamente.
+ */
+export type PreviewAgentPlatform = {
+  execute(code: string): Promise<{ ok: true; value: string } | { ok: false; error: string }>
+  available(): Promise<boolean>
+}
+
 type PlatformBase = {
   /** App version */
   version?: string
@@ -170,6 +181,9 @@ type PlatformBase = {
 
   /** Preview view (panel "Vista en vivo"; desktop only) */
   previewView?: PreviewViewPlatform
+
+  /** Drive the previewed page on the agent's behalf (desktop only) */
+  previewAgent?: PreviewAgentPlatform
 
   /** Subscribe to preview targets routed by the desktop shell into the live view (desktop only) */
   onLiveViewNavigate?(cb: (url: string) => void): () => void
