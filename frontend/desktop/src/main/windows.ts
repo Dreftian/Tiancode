@@ -17,6 +17,7 @@ import { nativeT } from "./native-translations"
 import { createWindowRegistry } from "./window-registry"
 import { safeWindowURL } from "./window-state"
 import { resolveExternalURL, resolveLocalFilePath } from "./external-url"
+import { isAgentActionInFlight } from "./preview-view"
 import { isFirstLaunchOnboardingPending } from "./onboarding"
 
 const root = dirname(fileURLToPath(import.meta.url))
@@ -356,6 +357,13 @@ function wireNavigationPolicy(win: BrowserWindow) {
       sendLiveViewNavigate(win, url)
       return { action: "deny" }
     }
+    // El iframe del Sandbox lleva allow-popups-to-escape-sandbox, así que un `target="_blank"`
+    // pulsado por el agente sale del guest y acaba aquí. Abrir el navegador real del usuario en
+    // una URL que ha elegido el modelo no es una vista previa: se deniega y queda en el log.
+    if (isAgentActionInFlight()) {
+      writeLog("window", "blocked agent-initiated external open", { url }, "warn")
+      return { action: "deny" }
+    }
     if (!isRendererUrl(url)) openExternalURL(url)
     return { action: "deny" }
   })
@@ -366,6 +374,10 @@ function wireNavigationPolicy(win: BrowserWindow) {
     event.preventDefault()
     if (isLiveViewPreviewUrl(url)) {
       sendLiveViewNavigate(win, url)
+      return
+    }
+    if (isAgentActionInFlight()) {
+      writeLog("window", "blocked agent-initiated external navigation", { url }, "warn")
       return
     }
     openExternalURL(url)

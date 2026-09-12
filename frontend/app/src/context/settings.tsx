@@ -1,5 +1,6 @@
 import { createStore, reconcile } from "solid-js/store"
 import { batch, createEffect, createMemo, createSignal, onCleanup } from "solid-js"
+import { createMediaQuery } from "@solid-primitives/media"
 import { createSimpleContext } from "@tiancode-ai/ui/context"
 import { persisted } from "@/utils/persist"
 import { usePlatform } from "@/context/platform"
@@ -75,6 +76,53 @@ export const defaultIntelligenceSettings: IntelligenceSettings = {
   loopBreaker: true,
 }
 
+export const transcriptTextSizes = ["small", "medium", "large"] as const
+export type TranscriptTextSize = (typeof transcriptTextSizes)[number]
+export const transcriptWidths = ["narrow", "medium", "wide"] as const
+export type TranscriptWidth = (typeof transcriptWidths)[number]
+
+/**
+ * Escalón de texto de la transcripción a partir de lo que haya en disco.
+ *
+ * La clave `appearance.fontSize` almacenaba píxeles sueltos, así que un número
+ * se traduce al escalón más cercano en lugar de descartarse: quien tuviera un
+ * valor guardado conserva su intención al actualizar.
+ */
+export function transcriptTextSize(value: TranscriptTextSize | number | undefined): TranscriptTextSize {
+  if (typeof value === "number") {
+    if (value <= 13) return "small"
+    if (value >= 16) return "large"
+    return "medium"
+  }
+  return value && transcriptTextSizes.includes(value) ? value : "medium"
+}
+
+export function transcriptWidth(value: TranscriptWidth | undefined): TranscriptWidth {
+  return value && transcriptWidths.includes(value) ? value : "medium"
+}
+
+/**
+ * Topes de ancho de la transcripción: [base, a partir del breakpoint 2xl].
+ *
+ * La transcripción siempre ensanchó en pantallas grandes (`md:max-w-200` con un
+ * salto a 1000px en 2xl), así que cada opción conserva ese par y `medium`
+ * reproduce exactamente los valores previos: quien no toque el ajuste no ve
+ * ningún cambio de ancho.
+ */
+const transcriptMaxWidths: Record<TranscriptWidth, readonly [string, string]> = {
+  narrow: ["40rem", "48rem"],
+  medium: ["50rem", "62.5rem"],
+  wide: ["62.5rem", "80rem"],
+}
+
+// Factor sobre la base de 14px: 13px, 14px y 16px. Lo leen markdown.css y
+// message-part.css, que son las hojas que visten el cuerpo de la conversación.
+const transcriptTextScales: Record<TranscriptTextSize, string> = {
+  small: "0.929",
+  medium: "1",
+  large: "1.143",
+}
+
 export interface Settings {
   general: {
     autoSave: boolean
@@ -106,10 +154,14 @@ export interface Settings {
     shouldDisplayTabsToast?: boolean
   }
   appearance: {
-    fontSize: number
+    // `fontSize` guardó durante varias versiones un número de píxeles que nunca
+    // tuvo consumidor. Ahora nombra el tamaño del texto de la transcripción y el
+    // número antiguo se sigue leyendo para no huérfanar lo ya guardado.
+    fontSize: TranscriptTextSize | number
     mono: string
     sans: string
     terminal: string
+    transcriptWidth: TranscriptWidth
   }
   keybinds: Record<string, string>
   permissions: {
@@ -272,10 +324,11 @@ const defaultSettings: Settings = {
     mobileTitlebarPosition: "top",
   },
   appearance: {
-    fontSize: 14,
+    fontSize: "medium",
     mono: "",
     sans: "",
     terminal: "",
+    transcriptWidth: "medium",
   },
   keybinds: {},
   permissions: {
@@ -406,16 +459,36 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
       setStore("general", "newLayoutDesigns", true)
     })
 
+    // Breakpoint 2xl de Tailwind (96rem): el mismo en el que la transcripción ya
+    // ensanchaba antes de que el ancho fuera configurable.
+    const wideViewport = createMediaQuery("(min-width: 1536px)")
+
     createEffect(() => {
       if (typeof document === "undefined") return
       const root = document.documentElement
       root.style.setProperty("--font-family-mono", monoFontFamily(store.appearance?.mono))
       root.style.setProperty("--font-family-sans", sansFontFamily(store.appearance?.sans))
+      // La transcripción y el compositor leen estas dos variables para no poder
+      // separarse. Los atributos acompañan al valor para poder inspeccionarlo y
+      // para que una hoja de estilos pueda apuntar a un escalón concreto.
+      const width = transcriptWidth(store.appearance?.transcriptWidth)
+      const text = transcriptTextSize(store.appearance?.fontSize)
+      root.dataset.transcriptWidth = width
+      root.dataset.transcriptText = text
+      root.style.setProperty("--transcript-max-width", transcriptMaxWidths[width][wideViewport() ? 1 : 0])
+      root.style.setProperty("--transcript-text-scale", transcriptTextScales[text])
     })
 
     createEffect(() => {
       if (store.general?.followup !== "queue") return
       setStore("general", "followup", "steer")
+    })
+
+    // Reescribe el número heredado al escalón equivalente para que el disco deje
+    // de guardar la forma vieja en cuanto el usuario abre la app.
+    createEffect(() => {
+      if (!ready() || typeof store.appearance?.fontSize !== "number") return
+      setStore("appearance", "fontSize", transcriptTextSize(store.appearance.fontSize))
     })
 
     return {
@@ -558,9 +631,13 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         customAgents: visible(showCustomAgents),
       },
       appearance: {
-        fontSize: withFallback(() => store.appearance?.fontSize, defaultSettings.appearance.fontSize),
-        setFontSize(value: number) {
+        transcriptText: createMemo(() => transcriptTextSize(store.appearance?.fontSize)),
+        setTranscriptText(value: TranscriptTextSize) {
           setStore("appearance", "fontSize", value)
+        },
+        transcriptWidth: createMemo(() => transcriptWidth(store.appearance?.transcriptWidth)),
+        setTranscriptWidth(value: TranscriptWidth) {
+          setStore("appearance", "transcriptWidth", value)
         },
         font: withFallback(() => store.appearance?.mono, defaultSettings.appearance.mono),
         setFont(value: string) {

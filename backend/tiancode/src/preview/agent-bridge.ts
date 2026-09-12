@@ -16,8 +16,26 @@
 
 import { randomUUID } from "node:crypto"
 
+/**
+ * Superficie a la que va dirigida una acción de página.
+ *
+ * `preview` es la vista previa del proyecto; `browser` es el navegador integrado de Tiancode, que
+ * corre con la sesión iniciada del usuario. Son capacidades distintas y cada una necesita su
+ * propio permiso, así que el destino viaja explícito en la acción en vez de depender de qué frame
+ * encuentre antes el proceso principal.
+ *
+ * `PreviewAgentActionSchema` (server/routes/instance/httpapi/groups/preview.ts) transporta el
+ * campo y admite los `type` "origin" y "computer" desde 1.0.47. Antes los descartaba en silencio,
+ * y por eso esto estuvo montado y sin exponer: una tool que pida permiso para el navegador y
+ * acabe actuando sobre la vista previa sería peor que no tenerla. Si alguien vuelve a tocar ese
+ * esquema, el campo tiene que seguir viajando o la superficie vuelve a caer a "preview".
+ */
+export type PreviewActionSurface = "preview" | "browser"
+
 export type PreviewAgentAction = {
   type: PreviewPageActionType | DesktopActionType
+  /** Sólo acciones de página. Ausente equivale a `preview`. */
+  surface?: PreviewActionSurface
   /**
    * Acciones de página: referencia (`e12`) de un inspect previo, selector CSS o texto visible.
    * `capture`: qué se fotografía — `screen`, `window` o `area`.
@@ -32,20 +50,54 @@ export type PreviewAgentAction = {
   bounds?: { x: number; y: number; width: number; height: number }
 }
 
-export type PreviewPageActionType = "inspect" | "click" | "fill" | "press" | "select" | "scroll" | "navigate"
+/**
+ * `origin` no cambia nada de la página: devuelve su URL actual, para poner el ORIGEN real de lo
+ * que hay delante en el patrón del permiso antes de leer o pulsar nada. Es la pieza que le falta
+ * a la superficie `browser`; ver la nota de PreviewActionSurface sobre el esquema HTTP.
+ */
+export type PreviewPageActionType =
+  | "origin"
+  | "inspect"
+  | "click"
+  | "fill"
+  | "press"
+  | "select"
+  | "scroll"
+  | "navigate"
 
 /**
  * Acciones que no tocan la página: las ejecuta el proceso principal de Electron contra el
- * escritorio (captura de pantalla, portapapeles). Viajan por este mismo puente porque el
- * servidor es un proceso Bun sin acceso a Electron, pero a diferencia de las de página no
- * necesitan que haya un frame cargado — sólo una ventana de Tiancode que pueda ejecutarlas.
+ * escritorio (captura de pantalla, portapapeles, control de ratón/teclado). Viajan por este mismo
+ * puente porque el servidor es un proceso Bun sin acceso a Electron, pero a diferencia de las de
+ * página no necesitan que haya un frame cargado — sólo una ventana de Tiancode que las ejecute.
+ *
+ * `computer` es para la tool de control del ordenador que se está añadiendo aparte: el renderer ya
+ * la reenvía, pero igual que `origin` necesita que `PreviewAgentActionSchema` la acepte antes de
+ * poder viajar.
  */
-export type DesktopActionType = "capture" | "clipboard_read" | "clipboard_write"
+export type DesktopActionType = "capture" | "clipboard_read" | "clipboard_write" | "computer"
 
-const DESKTOP_ACTIONS = new Set<string>(["capture", "clipboard_read", "clipboard_write"] satisfies DesktopActionType[])
+const DESKTOP_ACTIONS = new Set<string>([
+  "capture",
+  "clipboard_read",
+  "clipboard_write",
+  "computer",
+] satisfies DesktopActionType[])
 
 function isDesktopAction(action: PreviewAgentAction) {
   return DESKTOP_ACTIONS.has(action.type)
+}
+
+/**
+ * Whether the action needs the project preview page in front of the user.
+ *
+ * A desktop action never does. Neither does one addressed to the integrated browser: that panel
+ * carries its own page and exists whether or not the Live view has loaded anything, so making it
+ * wait for a preview frame would strand it behind a dev server it has nothing to do with.
+ */
+function needsPreviewSurface(action: PreviewAgentAction) {
+  if (isDesktopAction(action)) return false
+  return action.surface !== "browser"
 }
 
 export type PreviewAgentCommand = {
@@ -174,11 +226,12 @@ function timeoutMessage(presence: PreviewBridgePresence, action: PreviewAgentAct
   return "No hay ninguna ventana de Tiancode con esta carpeta abierta, así que nadie puede ejecutar la acción. No repitas la acción: sigue con preview_status y preview_logs."
 }
 
-function timeoutFor(presence: PreviewBridgePresence, desktop: boolean) {
+function timeoutFor(presence: PreviewBridgePresence, needsSurface: boolean) {
   if (presence === "surface") return SURFACE_ACTION_TIMEOUT_MS
-  // Una acción de escritorio no necesita la página, así que con una ventana capaz delante no hay
-  // ninguna carga que esperar: darle los 45 s del panel sólo quemaría el tiempo del agente.
-  if (presence === "opening") return desktop ? SURFACE_ACTION_TIMEOUT_MS : OPENING_ACTION_TIMEOUT_MS
+  // Una acción que no necesita la página (escritorio, navegador integrado) no tiene ninguna carga
+  // que esperar con una ventana capaz delante: darle los 45 s del panel quemaría el tiempo del
+  // agente para nada.
+  if (presence === "opening") return needsSurface ? OPENING_ACTION_TIMEOUT_MS : SURFACE_ACTION_TIMEOUT_MS
   return COLD_ACTION_TIMEOUT_MS
 }
 
@@ -202,7 +255,7 @@ export function requestPreviewAction(
   }
 
   const bridge = bridgeFor(directory)
-  const wait = timeoutMs ?? timeoutFor(presence, isDesktopAction(action))
+  const wait = timeoutMs ?? timeoutFor(presence, needsPreviewSurface(action))
 
   return new Promise<PreviewAgentResult>((resolve) => {
     const timer = setTimeout(() => {
@@ -245,10 +298,10 @@ function flush(bridge: Bridge) {
   bridge.queue = bridge.queue.filter((item) => now - item.createdAt < COMMAND_TTL_MS)
   // Exactly one listener gets a given command. Two windows on the same folder both poll, and
   // handing the action to both would click the button twice. A listener without a page only
-  // takes desktop actions: giving it a page action would destroy it.
+  // takes what does not need one: giving it a preview-page action would destroy it.
   for (const listener of bridge.listeners) {
     if (bridge.queue.length === 0) return
-    const batch = bridge.queue.filter((item) => listener.surface || isDesktopAction(item.action))
+    const batch = bridge.queue.filter((item) => listener.surface || !needsPreviewSurface(item.action))
     if (batch.length === 0) continue
     bridge.queue = bridge.queue.filter((item) => !batch.includes(item))
     bridge.listeners.delete(listener)
@@ -261,9 +314,10 @@ function flush(bridge: Bridge) {
  * Esperar en vez de sondear cada pocos cientos de milisegundos mantiene la latencia de un clic
  * por debajo de lo que el usuario percibe sin encender la CPU mientras no pasa nada.
  *
- * Un cliente sin página recibe sólo las acciones de escritorio (captura, portapapeles), que no
- * necesitan un frame: la entrega vacía la cola, así que darle una acción de página a quien no
- * puede ejecutarla la destruiría. Un cliente web no recibe nada en absoluto.
+ * Un cliente sin página recibe sólo lo que no necesita un frame de la vista previa (captura,
+ * portapapeles, y las acciones dirigidas al navegador integrado): la entrega vacía la cola, así
+ * que darle una acción de página a quien no puede ejecutarla la destruiría. Un cliente web no
+ * recibe nada en absoluto.
  */
 export function takePreviewCommands(
   directory: string,
@@ -282,7 +336,7 @@ export function takePreviewCommands(
     })
   }
 
-  const takes = (item: PreviewAgentCommand) => client.surface || isDesktopAction(item.action)
+  const takes = (item: PreviewAgentCommand) => client.surface || !needsPreviewSurface(item.action)
   const ready = bridge.queue.filter((item) => now - item.createdAt < COMMAND_TTL_MS && takes(item))
   if (ready.length > 0) {
     bridge.queue = bridge.queue.filter((item) => now - item.createdAt < COMMAND_TTL_MS && !ready.includes(item))

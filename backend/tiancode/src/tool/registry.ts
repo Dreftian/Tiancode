@@ -26,6 +26,7 @@ import {
 } from "./preview"
 import { ScreenshotTool } from "./screenshot"
 import { ClipboardTool } from "./clipboard"
+import { ComputerTool } from "./computer"
 import { SkillTool } from "./skill"
 import { MemoryTool } from "./memory"
 import { CodeGraphTool } from "./codegraph"
@@ -145,6 +146,7 @@ const layer = Layer.effect(
     const previewInteract = yield* PreviewInteractTool
     const screenshot = yield* ScreenshotTool
     const clipboardtool = yield* ClipboardTool
+    const computertool = yield* ComputerTool
     const agent = yield* Agent.Service
     const codeMode = flags.experimentalCodeMode ? yield* Effect.promise(() => import("./code-mode")) : undefined
     const codeModeTool = codeMode ? yield* codeMode.CodeModeTool : undefined
@@ -267,6 +269,7 @@ const layer = Layer.effect(
           previewInteract: Tool.init(previewInteract),
           screenshot: Tool.init(screenshot),
           clipboard: Tool.init(clipboardtool),
+          computer: Tool.init(computertool),
           ...(codeModeTool ? { execute: Tool.init(codeModeTool) } : {}),
         })
 
@@ -302,6 +305,7 @@ const layer = Layer.effect(
             tool.previewInteract,
             tool.screenshot,
             tool.clipboard,
+            tool.computer,
           ],
           task: tool.task,
           read: tool.read,

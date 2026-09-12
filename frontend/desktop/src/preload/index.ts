@@ -215,6 +215,13 @@ const api: ElectronAPI = {
       return () => ipcRenderer.removeListener("window-mirror-event", handler)
     },
   },
+  // Uso del computador: ratón y teclado reales. El renderer sólo reenvía lo que pide el agente;
+  // los permisos y la parada los decide el proceso principal (main/computer-use.ts).
+  computer: {
+    perform: (action) => ipcRenderer.invoke("computer:perform", action),
+    stop: () => ipcRenderer.invoke("computer:stop"),
+    status: () => ipcRenderer.invoke("computer:status"),
+  },
   backup: {
     now: () => ipcRenderer.invoke("backup-now"),
     list: () => ipcRenderer.invoke("backup-list"),

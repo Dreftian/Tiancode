@@ -253,6 +253,46 @@ export type PreviewAgentAPI = {
   available: (frameUrl?: string) => Promise<boolean>
 }
 
+// Uso del computador: entrada real sobre el escritorio de Windows (ratón y teclado). La tool
+// `computer` del agente llega hasta aquí por el puente de la Vista en vivo, y el proceso
+// principal (frontend/desktop/src/main/computer-use.ts) es quien aplica los controles: ventana
+// elevada, lista de apps autorizadas, gestores de contraseñas, indicador y parada.
+export type ComputerAction = {
+  action: "move" | "click" | "type" | "key" | "scroll" | "cursor_position" | "foreground_window"
+  /** Píxeles físicos de la pantalla, con el origen arriba a la izquierda. */
+  x?: number
+  y?: number
+  button?: "left" | "right" | "middle"
+  double?: boolean
+  text?: string
+  /** Acorde tipo "ctrl+shift+p". */
+  keys?: string
+  direction?: "up" | "down" | "left" | "right"
+  amount?: number
+}
+
+export type ComputerStatus = {
+  /** Sólo Windows en la v1. */
+  supported: boolean
+  /** Hay una sesión de control viva (indicador abierto). */
+  active: boolean
+  /** Ejecutables autorizados por el usuario en esta sesión. */
+  allowed: string[]
+  actions: number
+  /** Acelerador de parada que el sistema aceptó, o null si no se pudo registrar ninguno. */
+  stopShortcut: string | null
+}
+
+export type ComputerAPI = {
+  /** Acepta la acción suelta o la acción del puente entera, que la lleva anidada en `computer`. */
+  perform: (
+    action: ComputerAction | { type?: string; computer?: ComputerAction },
+  ) => Promise<{ ok: boolean; output: string }>
+  /** Interruptor de parada: mata el host de entrada y olvida las apps autorizadas. */
+  stop: () => Promise<boolean>
+  status: () => Promise<ComputerStatus>
+}
+
 export type ElectronAPI = {
   killSidecar: () => Promise<void>
   relaunchApp: () => Promise<void>
@@ -326,6 +366,7 @@ export type ElectronAPI = {
   previewView: PreviewViewAPI
   previewAgent: PreviewAgentAPI
   windowMirror: WindowMirrorAPI
+  computer: ComputerAPI
   backup: {
     now: () => Promise<string | null>
     list: () => Promise<{ name: string; createdAt: number }[]>

@@ -160,6 +160,57 @@ describe("preview agent bridge", () => {
     expect(result.output).toContain("escritorio")
   })
 
+  // Las tres pruebas siguientes cubren el ENRUTADO del puente para la superficie `browser`. No son
+  // una prueba de extremo a extremo: el esquema HTTP del long-poll todavía descarta `surface` y
+  // rechaza `type: "origin"`, así que hoy ninguna tool las emite (ver PreviewActionSurface).
+  test("an action for the integrated browser does not wait for the preview page", async () => {
+    // El navegador integrado tiene su propia página: hacerle esperar al frame del dev server lo
+    // dejaría inalcanzable justo cuando el usuario pide algo sobre lo que tiene abierto ahí.
+    const pending = requestPreviewAction(DIR, { type: "origin", surface: "browser" }, 5000)
+    const commands = await takePreviewCommands(DIR, 30, BLIND)
+    expect(commands).toHaveLength(1)
+    expect(commands[0]!.action).toEqual({ type: "origin", surface: "browser" })
+
+    settlePreviewCommand(DIR, { id: commands[0]!.id, ok: true, output: "https://correo.example/inbox" })
+    await expect(pending).resolves.toMatchObject({ ok: true, output: "https://correo.example/inbox" })
+  })
+
+  test("a blind client takes the browser action and leaves the preview action queued", async () => {
+    const preview = requestPreviewAction(DIR, { type: "click", target: "e1" }, 5000)
+    const browser = requestPreviewAction(DIR, { type: "inspect", surface: "browser" }, 5000)
+
+    const blind = await takePreviewCommands(DIR, 30, BLIND)
+    expect(blind.map((c) => c.action.surface)).toEqual(["browser"])
+    settlePreviewCommand(DIR, { id: blind[0]!.id, ok: true, output: "página del navegador" })
+    await expect(browser).resolves.toMatchObject({ ok: true })
+
+    const surface = await takePreviewCommands(DIR, 30, SURFACE)
+    expect(surface.map((c) => c.action.type)).toEqual(["click"])
+    settlePreviewCommand(DIR, { id: surface[0]!.id, ok: true, output: "Pulsado" })
+    await expect(preview).resolves.toMatchObject({ ok: true })
+  })
+
+  test("an action without a surface still means the project preview", async () => {
+    // El puente no puede tratar «sin especificar» como «el navegador»: sería regalar la sesión
+    // del usuario a cualquier llamada antigua.
+    const pending = requestPreviewAction(DIR, { type: "inspect" }, 5000)
+    expect(await takePreviewCommands(DIR, 30, BLIND)).toEqual([])
+
+    const commands = await takePreviewCommands(DIR, 30, SURFACE)
+    expect(commands).toHaveLength(1)
+    settlePreviewCommand(DIR, { id: commands[0]!.id, ok: true, output: "ok" })
+    await expect(pending).resolves.toMatchObject({ ok: true })
+  })
+
+  test("a computer action travels like the other desktop ones", async () => {
+    const pending = requestDesktopAction(DIR, { type: "computer", value: "click" }, 5000)
+    const commands = await takePreviewCommands(DIR, 30, BLIND)
+    expect(commands.map((c) => c.action.type)).toEqual(["computer"])
+
+    settlePreviewCommand(DIR, { id: commands[0]!.id, ok: true, output: "hecho" })
+    await expect(pending).resolves.toMatchObject({ ok: true, output: "hecho" })
+  })
+
   test("a requeued command is delivered again and settles once", async () => {
     const pending = requestPreviewAction(DIR, { type: "inspect" }, 5000)
     const first = await takePreviewCommands(DIR, 30, SURFACE)

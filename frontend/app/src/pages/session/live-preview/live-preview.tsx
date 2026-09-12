@@ -60,7 +60,7 @@ type DevServerState = {
 // el escritorio (tools `screenshot` y `clipboard`). Viajan por el mismo puente que las de página
 // porque el servidor es un proceso Bun sin acceso a Electron.
 type DesktopBridgeAction = {
-  type: "capture" | "clipboard_read" | "clipboard_write"
+  type: "capture" | "clipboard_read" | "clipboard_write" | "computer"
   /** `capture`: screen, window o area. */
   target?: string
   /** `clipboard_write`: el texto a poner en el portapapeles. */
@@ -71,8 +71,27 @@ type DesktopBridgeAction = {
 type BridgeAction = PreviewAgentAction | DesktopBridgeAction
 
 function isDesktopBridgeAction(action: BridgeAction): action is DesktopBridgeAction {
-  return action.type === "capture" || action.type === "clipboard_read" || action.type === "clipboard_write"
+  return (
+    action.type === "capture" ||
+    action.type === "clipboard_read" ||
+    action.type === "clipboard_write" ||
+    action.type === "computer"
+  )
 }
+
+/**
+ * Token que le dice al proceso principal que la acción va al navegador integrado en vez de a la
+ * vista previa. Viaja en el parámetro `frameUrl` de `window.api.previewAgent.execute` porque ese
+ * contrato del preload sólo tiene dos argumentos.
+ *
+ * Copia literal de BROWSER_SURFACE_TOKEN en frontend/desktop/src/main/preview-agent.ts: los dos
+ * tienen que coincidir y `app` no puede importar de `desktop`.
+ *
+ * Ninguna acción trae hoy `surface: "browser"`: el long-poll descarta ese campo al codificar
+ * (PreviewAgentActionSchema, backend/tiancode/src/server/routes/.../groups/preview.ts). Esta rama
+ * queda montada para cuando el esquema lo acepte.
+ */
+const BROWSER_SURFACE_TOKEN = "tiancode-surface:browser"
 
 // `window.api` sólo está declarado en parte (el build web no tiene preload), así que el portapapeles
 // se estrecha aquí en vez de ensanchar un tipo global que el navegador nunca cumple.
@@ -82,6 +101,27 @@ function desktopClipboardApi() {
       api?: { readClipboardText?: () => Promise<string>; writeClipboardText?: (text: string) => Promise<boolean> }
     }
   ).api
+}
+
+/** Igual que el portapapeles: lo publica el preload de la app de escritorio y no existe en web. */
+function desktopComputerApi() {
+  return (
+    window as unknown as {
+      api?: { computer?: { perform?: (action: DesktopBridgeAction) => Promise<{ ok: boolean; output: string }> } }
+    }
+  ).api?.computer
+}
+
+/** El origen de una URL de página, o undefined si no es una página web. */
+function originOf(value: string | undefined) {
+  if (!value) return undefined
+  try {
+    const url = new URL(value)
+    if (url.protocol !== "http:" && url.protocol !== "https:") return undefined
+    return url.origin
+  } catch {
+    return undefined
+  }
 }
 
 /** PNG → base64 por trozos: `fromCharCode(...bytes)` desborda la pila con una captura entera. */
@@ -642,6 +682,11 @@ export function LivePreview(props: {
     // hiding it so a previous native preview can never cover this iframe.
     void view.setBounds(HIDDEN_PREVIEW_BOUNDS)
     void view.setVisible(false)
+    // Oculta no es descargada: la vista nativa es un navegador con sesión persistente y se
+    // quedaba aparcada en la última web del usuario, invisible pero viva y al alcance del puente
+    // del agente. Se descarga. Volver a un destino no-loopback pasa siempre por navigateTo, que
+    // vuelve a cargar su URL, y el historial de la vista conserva el "atrás".
+    void view.navigate("about:blank")
   }
 
   const updateIframeState = (target: string, loading: boolean) => {
@@ -1524,6 +1569,34 @@ export function LivePreview(props: {
     mirrorAdopt?.(sourceId)
   }
 
+  /**
+   * La superficie sobre la que el agente puede actuar.
+   *
+   * Dos condiciones, y las dos hacen falta:
+   *
+   * 1. Es lo que el usuario tiene DELANTE. El proceso principal la trata como autoritativa y sólo
+   *    ejecuta en un frame de ese mismo origen, así que devolver aquí algo que no se está viendo
+   *    reabriría el agujero. Por eso la vista nativa sólo cuenta mientras está activa: oculta
+   *    queda descargada (hideNativePreview) y no es objetivo de nadie.
+   * 2. Es la vista previa DEL PROYECTO. Este panel es también un navegador con barra de
+   *    direcciones y sesión persistente; si el usuario lo lleva a una web suya, eso es navegación
+   *    suya, no una superficie del agente. Además el permiso que enseña la tool nombra el origen
+   *    del dev server, así que dejar actuar sobre otro sitio haría que ese permiso mintiera.
+   */
+  const previewFrameHint = () => {
+    // La recarga sin parpadeo mantiene dos iframes vivos y los alterna: el `src` del activo es lo
+    // único que distingue el visible de la copia oculta.
+    const visible = iframeUrl() ? iframe?.src : nativePreviewActive() ? state()?.url || undefined : undefined
+    if (!visible) return undefined
+    const seen = originOf(visible)
+    const project = devServer()?.url
+    if (!seen || !project) return undefined
+    // El dev server puede anunciarse en 0.0.0.0 o [::1] y el iframe se carga en la forma
+    // navegable (iframePreviewUrl): los dos deletreos son el mismo servidor.
+    const allowed = [originOf(project), originOf(iframePreviewUrl(project))]
+    return allowed.includes(seen) ? visible : undefined
+  }
+
   const startPreviewAgentBridge = () => {
     const agent = platform.previewAgent
     // A web renderer still polls, slowly and with surface=0/capable=0, so the backend can answer
@@ -1542,6 +1615,11 @@ export function LivePreview(props: {
         // La imagen viaja como data URL por el mismo canal de texto del puente; la tool la
         // convierte en adjunto para que el modelo la vea.
         return { ok: true, output: `data:image/png;base64,${toBase64(await shot.arrayBuffer())}` }
+      }
+      if (action.type === "computer") {
+        const computer = desktopComputerApi()
+        if (!computer?.perform) return { ok: false, output: "El control del ordenador no está disponible en esta sesión." }
+        return await computer.perform(action)
       }
       const clipboard = desktopClipboardApi()
       if (action.type === "clipboard_read") {
@@ -1563,9 +1641,8 @@ export function LivePreview(props: {
       }
       if (!agent) return { ok: false, output: "Esta sesión no puede ejecutar acciones dentro de la página." }
       try {
-        // El `src` del iframe activo: la recarga sin parpadeo mantiene dos vivos y los alterna,
-        // así que sin esta pista el script podía ejecutarse en la copia oculta.
-        const result = await agent.execute(buildPreviewAgentScript(action), iframe?.src)
+        const hint = action.surface === "browser" ? BROWSER_SURFACE_TOKEN : previewFrameHint()
+        const result = await agent.execute(buildPreviewAgentScript(action), hint)
         if (!result.ok) return { ok: false, output: result.error }
         return { ok: true, output: result.value }
       } catch (error) {
@@ -1585,7 +1662,7 @@ export function LivePreview(props: {
           const headers = devServerHeaders()
           // Ask the main process whether a frame really exists, rather than assuming one does
           // because the component is mounted: `available` runs the same lookup as `execute`.
-          const surface = agent ? await agent.available(iframe?.src).catch(() => false) : false
+          const surface = agent ? await agent.available(previewFrameHint()).catch(() => false) : false
           // The short re-poll is only right while a page is genuinely on its way: an iframe URL is
           // set, or the dev server is still starting. With no preview at all — the Sandbox empty
           // state, or a desktop app that will never have a frame — "waiting for a page" is

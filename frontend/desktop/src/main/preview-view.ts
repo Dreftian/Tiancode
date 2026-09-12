@@ -19,6 +19,49 @@ const PREVIEW_PARTITION = "persist:live-view"
 const MIN_ZOOM = 0.25
 const MAX_ZOOM = 5
 
+// Chromium emite `will-navigate` y abre la ventana nueva después de que
+// `executeJavaScript` haya devuelto, así que la marca sobrevive un momento al
+// script: sin ese margen el clic del agente ya no está "en vuelo" cuando llega
+// la navegación que ese mismo clic provocó.
+const AGENT_ACTION_GRACE_MS = 1_500
+let agentActionDepth = 0
+let agentActionEndedAt = 0
+
+/**
+ * Marca el tramo en el que un script del agente corre dentro de una página del preview.
+ *
+ * Hace falta porque `navigate` está bloqueado a mismo origen dentro del script pero `click` no:
+ * un `el.click()` sobre un `<a href="https://…">` navega igual, y esa navegación llega al proceso
+ * principal indistinguible de un clic del usuario. Con esta marca los guardias de navegación
+ * (aquí y en windows.ts) pueden rechazar justo lo que el modelo inició.
+ *
+ * Devuelve la función que cierra el tramo; hay que llamarla siempre (finally).
+ */
+export function beginAgentAction(): () => void {
+  agentActionDepth += 1
+  return () => {
+    agentActionDepth = Math.max(0, agentActionDepth - 1)
+    agentActionEndedAt = Date.now()
+  }
+}
+
+/** True mientras una acción del agente puede estar causando una navegación. */
+export function isAgentActionInFlight() {
+  return agentActionDepth > 0 || Date.now() - agentActionEndedAt < AGENT_ACTION_GRACE_MS
+}
+
+// Dos URLs del mismo sitio. `about:blank` y `data:` dan origen "null", que nunca
+// cuenta como "el mismo": una vista descargada no autoriza ir a ninguna parte.
+function sameOrigin(current: string, next: string) {
+  try {
+    const from = new URL(current)
+    const to = new URL(next)
+    return from.origin !== "null" && from.origin === to.origin
+  } catch {
+    return false
+  }
+}
+
 // Solo páginas del preview: http(s) (dev servers y webs), la página de
 // bienvenida data: y archivos locales file: (el agente suele generar HTML
 // estático que el panel abre directamente desde el disco, p. ej.
@@ -211,6 +254,16 @@ function getOrCreatePreviewView(hostId: number, win: BrowserWindow) {
   })
 
   const contents = view.webContents
+  // La Vista en vivo es un navegador con sesión persistente: un clic del agente sobre un enlace
+  // externo la sacaría de la app del proyecto y la dejaría en un sitio donde el usuario está
+  // identificado. El script ya limita `navigate` al mismo origen; esto cierra la vía del `click`.
+  contents.on("will-navigate", (event, url) => {
+    if (!isAgentActionInFlight()) return
+    const current = contents.getURL()
+    if (sameOrigin(current, url)) return
+    event.preventDefault()
+    writeLog("preview-view", "blocked agent cross-origin navigation", { from: current, url }, "warn")
+  })
   contents.on("did-start-loading", () => sendState(entry))
   contents.on("did-stop-loading", () => {
     sendState(entry)

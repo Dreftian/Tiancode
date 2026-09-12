@@ -49,12 +49,32 @@ export const PreviewStateSchema = Schema.Struct({
 })
 
 /**
+ * Lo que la tool `computer` quiere hacer sobre el escritorio real: ratón y teclado de verdad, no
+ * el DOM de la página. Viaja anidado y no suelto para no mezclar sus campos con los de las
+ * acciones de página (`target`, `value`, `key`… significan otra cosa ahí).
+ */
+export const PreviewComputerActionSchema = Schema.Struct({
+  action: Schema.Literals(["move", "click", "type", "key", "scroll", "cursor_position", "foreground_window"]),
+  /** Píxeles físicos de la pantalla, origen arriba a la izquierda. */
+  x: Schema.optional(Schema.Number),
+  y: Schema.optional(Schema.Number),
+  button: Schema.optional(Schema.Literals(["left", "right", "middle"])),
+  double: Schema.optional(Schema.Boolean),
+  text: Schema.optional(Schema.String),
+  /** Acorde tipo "ctrl+shift+p". */
+  keys: Schema.optional(Schema.String),
+  direction: Schema.optional(Schema.Literals(["up", "down", "left", "right"])),
+  amount: Schema.optional(Schema.Number),
+})
+
+/**
  * Una acción que el agente quiere ejecutar sobre la página de la Vista en vivo. Los campos son
  * opcionales porque cada `type` usa los suyos; el renderer valida lo que necesita.
  */
 export const PreviewAgentActionSchema = Schema.Struct({
-  // `capture` y las dos de portapapeles no tocan la página: viajan por este mismo puente porque
-  // sólo el proceso principal de Electron puede atenderlas, y ya existe una cola por directorio.
+  // `capture`, las dos de portapapeles y `computer` no tocan la página: viajan por este mismo
+  // puente porque sólo el proceso principal de Electron puede atenderlas, y ya existe una cola por
+  // directorio.
   type: Schema.Literals([
     "inspect",
     "click",
@@ -66,7 +86,17 @@ export const PreviewAgentActionSchema = Schema.Struct({
     "capture",
     "clipboard_read",
     "clipboard_write",
+    "computer",
+    // Pregunta el origin de la superficie sin tocarla, para poder pedir permiso nombrando la página
+    // real antes de actuar sobre ella.
+    "origin",
   ]),
+  /**
+   * Qué superficie recibe la acción: la vista previa del proyecto (por defecto) o el navegador
+   * integrado. Si falta, es la vista previa — así una versión anterior del cliente nunca acaba
+   * actuando sobre el navegador del usuario por omisión.
+   */
+  surface: Schema.optional(Schema.Literals(["preview", "browser"])),
   target: Schema.optional(Schema.String),
   value: Schema.optional(Schema.String),
   key: Schema.optional(Schema.String),
@@ -76,6 +106,8 @@ export const PreviewAgentActionSchema = Schema.Struct({
   bounds: Schema.optional(
     Schema.Struct({ x: Schema.Number, y: Schema.Number, width: Schema.Number, height: Schema.Number }),
   ),
+  /** Lo que se hace con el ratón y el teclado cuando `type` es "computer". */
+  computer: Schema.optional(PreviewComputerActionSchema),
 })
 
 export const PreviewAgentCommandSchema = Schema.Struct({

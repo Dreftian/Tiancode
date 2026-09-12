@@ -44,10 +44,14 @@ export const ScreenshotTool = Tool.define<typeof Parameters, ScreenshotMetadata,
 
         // Una captura muestra todo lo que haya delante, no sólo el proyecto: se pregunta antes de
         // mirar, con el patrón puesto en qué se va a fotografiar.
+        //
+        // `always` se limita a ese mismo objetivo, no a `*`: reply() apunta una regla «allow» por
+        // cada patrón de `always`, así que con `*` aprobar para siempre una captura de la ventana
+        // de Tiancode aprobaba también, en silencio, la pantalla entera del usuario.
         yield* ctx.ask({
           permission: "screenshot",
           patterns: [args.target],
-          always: ["*"],
+          always: [args.target],
           metadata: { target: args.target, bounds: args.bounds },
         })
 

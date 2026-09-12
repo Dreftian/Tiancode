@@ -6,7 +6,12 @@
 // puede pulsar y con qué referencia, y qué ha fallado en la consola.
 
 export type PreviewAgentAction = {
-  type: "inspect" | "click" | "fill" | "press" | "select" | "scroll" | "navigate"
+  type: "origin" | "inspect" | "click" | "fill" | "press" | "select" | "scroll" | "navigate"
+  /**
+   * Superficie destino. `preview` (por defecto) es la vista previa del proyecto y `browser` el
+   * navegador integrado. No cambia el script: decide a qué frame lo manda el renderer.
+   */
+  surface?: "preview" | "browser"
   target?: string
   value?: string
   key?: string
@@ -209,6 +214,11 @@ function literal(value: unknown) {
  * informe que lee el agente.
  */
 export function buildPreviewAgentScript(action: PreviewAgentAction): string {
+  // La sonda de origen está pensada para correr ANTES del permiso, así que va sola: sin el RUNTIME
+  // no engancha la consola de la página ni toca nada suyo, sólo dice qué página es para poder
+  // preguntar por ella. Aún no la emite nadie — ver PreviewActionSurface en agent-bridge.ts.
+  if (action.type === "origin") return `(() => location.href)()`
+
   const target = literal(action.target ?? "")
   const value = literal(action.value ?? "")
   const key = literal(action.key ?? "Enter")

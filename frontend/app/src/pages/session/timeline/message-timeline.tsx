@@ -1203,7 +1203,9 @@ export function MessageTimeline(props: {
         data-timeline-row={input.row()._tag}
         classList={{
           "min-w-0 w-full max-w-full": true,
-          "md:max-w-200 2xl:max-w-[1000px]": props.centered,
+          // Ajustes → Apariencia fija --transcript-max-width; el valor de reserva
+          // (50rem) es el tope que tenía la fila antes de que fuera configurable.
+          "md:max-w-[var(--transcript-max-width,50rem)]": props.centered,
           "md:mx-auto": props.centered,
           "pt-3": previousAssistantPart(),
         }}
@@ -1527,7 +1529,9 @@ export function MessageTimeline(props: {
               "pr-3": true,
               "pl-2.5": settings.general.newLayoutDesigns(),
               "pl-2 md:pl-4": !settings.general.newLayoutDesigns(),
-              "md:max-w-200 md:mx-auto 2xl:max-w-[1000px]": props.centered && !settings.general.newLayoutDesigns(),
+              // La cabecera comparte el tope de las filas para no desalinearse.
+              "md:max-w-[var(--transcript-max-width,50rem)] md:mx-auto":
+                props.centered && !settings.general.newLayoutDesigns(),
             }}
           >
             <div class="h-12 w-full flex items-center justify-between gap-2">

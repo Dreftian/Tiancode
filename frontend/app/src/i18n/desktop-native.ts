@@ -3,6 +3,15 @@ export const DESKTOP_NATIVE_LOCALES = ["en", "en-150", "es", "ja", "zh", "ko", "
 export type DesktopNativeLocale = (typeof DESKTOP_NATIVE_LOCALES)[number]
 
 export const DESKTOP_NATIVE_ENGLISH = {
+"desktop.computerUse.consent.title": "Let Tiancode control your PC?",
+"desktop.computerUse.consent.message": "Tiancode wants to control {{app}}",
+"desktop.computerUse.consent.detail": "The agent will move the mouse and type in {{app}} ({{process}}) as if you were doing it. It only applies to this app, only until you stop it, and you can stop it at any time from the indicator.",
+"desktop.computerUse.consent.allow": "Allow for this app",
+"desktop.computerUse.consent.refuse": "Don't allow",
+"desktop.computerUse.indicator.title": "Tiancode is controlling your PC",
+"desktop.computerUse.indicator.app": "Controlling {{app}}",
+"desktop.computerUse.indicator.stop": "Stop",
+"desktop.computerUse.indicator.stopShortcut": "Stop ({{shortcut}})",
   "desktop.menu.app": "Tiancode",
   "desktop.menu.file": "File",
   "desktop.menu.edit": "Edit",

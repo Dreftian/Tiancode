@@ -4,6 +4,74 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.47] — 2026-09-12
+### Seguridad: el agente ya no puede leer una página que tú no ves. Y sí puede usar tu PC
+
+#### Lo primero: cuatro agujeros en el puente de la vista previa
+Una auditoría de la pregunta «¿puede cualquier modelo usar el Sandbox con seguridad?» encontró que
+la respuesta era **no**, y por qué. Esto venía publicado desde antes; va corregido aquí.
+
+- **El agente podía leer y pulsar una página que tú no estabas viendo.** La única comprobación para
+  decidir sobre qué frame actuar era «¿es http o https?». No se comparaba el origen. Y la Vista en
+  vivo es un navegador completo: tiene barra de direcciones y cookies persistentes. Al arrancar un
+  dev server local, la vista nativa se **ocultaba sin cambiar de página**. Secuencia real: navegas a
+  un sitio donde tienes sesión → arrancas tu proyecto → el modelo llama a `preview_inspect` → y
+  recibe la URL, el título, 4.000 caracteres de texto visible y todos los elementos interactivos de
+  **la página oculta con tu sesión iniciada**. `preview_interact` la pulsaba. Sin pedir permiso.
+  Ahora el origen esperado manda: si no coincide, no hay superficie. Y una vista oculta se manda a
+  `about:blank` en vez de quedarse aparcada en tu sitio.
+- **Ninguna de las dos tools de vista previa pedía permiso.** Leer y pulsar una página viva estaba
+  menos vigilado que `glob`. Ahora piden permiso nombrando el **origen concreto**, así que un «sí»
+  para este proyecto no es un «sí» para la siguiente página que se abra.
+- **Aceptar una captura inofensiva concedía la pantalla completa para siempre.** La tool de captura
+  pasaba `always: ["*"]`, y el sistema de permisos apunta una regla por patrón: aprobar una captura
+  de *ventana* escribía una regla que también valía para *pantalla*.
+- **Un clic del modelo podía abrir tu navegador real en cualquier URL.** `navigate` sí estaba
+  bloqueado al origen, pero un clic sobre un enlace no: un `target="_blank"` terminaba en
+  `shell.openExternal`. Ahora se deniega mientras hay una acción del agente en curso.
+
+#### «Uso del navegador»
+El navegador integrado ya era alcanzable por el agente — **por accidente**, como último candidato
+del árbol de frames, sin permiso. Eso se acabó, y en su lugar hay algo deliberado: las tools aceptan
+`surface: "browser"`, preguntan al navegador **qué página tiene abierta** y piden permiso citando
+ese sitio antes de tocarlo. Sesión tuya, permiso por sitio.
+
+*Sobre el navegador externo, la respuesta honesta es que no se puede como tú esperarías:* comprobé
+Chrome 153 y Edge 153 en esta máquina y **ambos rechazan `--remote-debugging-port` sobre el perfil
+por defecto**. Sólo se puede automatizar un perfil desechable sin tus sesiones, que es justo lo que
+quita el sentido. Por eso el objetivo es el navegador integrado.
+
+#### «Uso del computador» — nuevo, y real
+Una tool `computer` que mueve el ratón y escribe de verdad en Windows: `move`, `click`, `type`,
+`key`, `scroll`, más leer la posición del cursor y la ventana en primer plano. Sin dependencias
+nuevas y sin addon nativo: un proceso PowerShell **persistente** con user32 — 0,05 ms por acción
+frente a 310 ms si se lanzara uno por acción.
+
+Las protecciones son la función, no un extra, y se aplican en el proceso principal:
+- **Rechaza ventanas elevadas.** Windows descarta la entrada sintética hacia un proceso con más
+  privilegios *devolviendo éxito*, así que el agente creería haber hecho clic. Se comprueba antes.
+- **Rechaza su propia ventana**, para que no pueda pulsar los botones de su propio diálogo de
+  permiso.
+- **Lista de apps permitidas**, vacía al empezar. La primera acción abre un diálogo nativo que
+  nombra la app; y como ese diálogo roba el foco, se **vuelve a leer** la ventana activa después: si
+  cambió, no se ejecuta.
+- **Indicador siempre visible y botón de parada**, más un atajo global. Al parar se sueltan los
+  modificadores, se mata el proceso y se olvida la lista. Caduca sola a los 2 minutos de inactividad.
+- El permiso usa `patterns: [acción]`, así que aprobar `scroll` para siempre nunca se convierte en
+  aprobar `type` para siempre.
+
+Es **sólo Windows** en esta v1, y lo dice explícitamente en macOS y Linux en vez de fallar raro.
+
+#### Ajustes de transcripción, al estilo Claude Code
+**Tamaño del texto** (pequeño / medio / grande) y **ancho de la transcripción** (estrecho / medio /
+ancho), en Ajustes → Apariencia. Dos honestidades en la letra pequeña: el ancho sólo aplica en
+ventanas de 768 px o más, y lo dice; y para que «grande» no fuera un ajuste roto se escalaron los
+30 tamaños de fuente fijos de los mensajes. «Medio» reproduce exactamente lo de hoy, así que quien
+no toque nada no ve ningún cambio. De paso se recupera un ajuste `fontSize` que existía sin que
+nadie lo leyera, en vez de dejar dos controles de tamaño.
+
+Typecheck 27/27 · Lint 0 errores · 906 tests de frontend · 144 de escritorio · 54 del puente.
+
 ## [1.0.46] — 2026-09-12
 ### El botón de optimizar usa tu modelo, el micrófono deja de descargar a tus espaldas
 

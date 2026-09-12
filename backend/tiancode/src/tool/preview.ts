@@ -167,10 +167,49 @@ const DESKTOP_NO_DOM = [
   "Usa preview_logs para stdout/stderr y preview_status para el estado, y pide al usuario que mire la ventana reflejada en Vista en vivo.",
 ].join(" ")
 
-type AgentMetadata = { ok: boolean; presence?: PreviewBridgePresence }
+const NO_ORIGIN =
+  "La vista previa aún no tiene URL: espera a que preview_start termine de arrancar el servidor y vuelve a intentarlo."
+
+const BROWSER_NO_PAGE = [
+  "El navegador integrado no tiene ninguna página cargada.",
+  "Ábrelo desde el panel del navegador y navega a un sitio antes de usar `surface: \"browser\"`.",
+].join(" ")
+
+type AgentMetadata = {
+  ok: boolean
+  presence?: PreviewBridgePresence
+  /** Origen de la página sobre la que se pidió permiso, tal cual se le mostró al usuario. */
+  origin?: string
+}
 
 function previewRunning(state: PreviewState) {
   return state.status === "ready" || state.status === "starting"
+}
+
+/**
+ * El origen del dev server, que es lo que acaba en el patrón del permiso.
+ *
+ * Identifica el sitio sin arrastrar la ruta ni la query, que cambian a cada clic y convertirían
+ * cada pantalla en una pregunta nueva.
+ *
+ * La normalización del host replica la de `iframePreviewUrl`
+ * (frontend/app/src/pages/session/live-preview/live-preview-transport.ts): el servidor puede
+ * anunciarse en `0.0.0.0` o `[::1]` y el panel lo carga en la forma navegable, así que sin esto el
+ * patrón nombraría un origen distinto del de la página sobre la que se va a actuar. El renderer
+ * sólo deja actuar sobre uno de esos dos deletreos, así que los dos son el mismo servidor.
+ */
+function previewOrigin(value: string | null): string | null {
+  if (!value) return null
+  let url: URL
+  try {
+    url = new URL(value.trim())
+  } catch {
+    return null
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") return null
+  if (url.hostname === "0.0.0.0") url.hostname = "127.0.0.1"
+  if (url.hostname === "[::1]" || url.hostname === "::1") url.hostname = "localhost"
+  return url.origin
 }
 
 // What the agent should do next, which differs sharply by state: "opening" fixes itself and is
@@ -186,12 +225,50 @@ function bridgeHint(presence: PreviewBridgePresence) {
   return ["", "", note].join("\n")
 }
 
+/**
+ * Ejecuta una acción de página con el usuario delante.
+ *
+ * Leer y pulsar una página viva no preguntaba nada: estaba menos vigilado que `glob`. Ahora se
+ * pide permiso con el ORIGEN del dev server en el patrón, así que el usuario ve el sitio concreto
+ * y un «siempre» para este proyecto no se convierte en un «siempre» para el siguiente.
+ *
+ * El origen sale del estado del dev server, no de la página: el renderer sólo entrega el frame
+ * cuando su origen es el de ese mismo servidor (`previewFrameHint` en live-preview.tsx), así que
+ * lo que se aprueba y lo que se toca son el mismo sitio por construcción.
+ */
 const runAction = (
   action: PreviewAgentAction,
   title: string,
+  ctx: Tool.Context,
 ): Effect.Effect<Tool.ExecuteResult<AgentMetadata>> =>
   Effect.gen(function* () {
     const directory = yield* InstanceState.directory
+    const browser = action.surface === "browser"
+
+    // El navegador integrado no depende del dev server del proyecto: tiene su propia página, su
+    // propia sesión y su propio origen. Se le pregunta cuál es ANTES de tocarlo, para que el
+    // permiso nombre el sitio real — pedir permiso citando el dev server y actuar sobre otra
+    // página sería un aviso que miente.
+    if (browser) {
+      const probe = yield* Effect.promise(() => requestPreviewAction(directory, { type: "origin", surface: "browser" }))
+      const origin = probe.ok ? probe.output.trim() : ""
+      if (!origin) {
+        return { title, output: probe.ok ? BROWSER_NO_PAGE : probe.output, metadata: { ok: false } }
+      }
+      yield* ctx.ask({
+        permission: "browser",
+        patterns: [origin],
+        always: [origin],
+        metadata: { origin, surface: "browser", action: action.type, target: action.target },
+      })
+      const result = yield* Effect.promise(() => requestPreviewAction(directory, action))
+      return {
+        title,
+        output: result.ok ? result.output : result.output,
+        metadata: { ok: result.ok, presence: previewBridgePresence(directory), origin },
+      }
+    }
+
     const state = getPreviewState(directory)
     if (!previewRunning(state)) {
       return { title, output: NOT_RUNNING, metadata: { ok: false } }
@@ -199,16 +276,35 @@ const runAction = (
     if (state.isDesktop && !state.url) {
       return { title, output: DESKTOP_NO_DOM, metadata: { ok: false } }
     }
+    const origin = previewOrigin(state.url)
+    if (!origin) {
+      return { title, output: NO_ORIGIN, metadata: { ok: false } }
+    }
+
+    // El patrón es el origen, y `always` también: reply() apunta una regla «allow» por cada patrón
+    // de `always`, así que con `*` un sí para el dev server de este proyecto sería un sí para
+    // cualquier página que se abra después.
+    yield* ctx.ask({
+      permission: "preview",
+      patterns: [origin],
+      always: [origin],
+      metadata: { origin, url: state.url, action: action.type, target: action.target },
+    })
+
     const result = yield* Effect.promise(() => requestPreviewAction(directory, action))
     const presence = previewBridgePresence(directory)
     return {
       title,
       output: result.ok ? result.output : `${result.output}${bridgeHint(presence)}`,
-      metadata: { ok: result.ok, presence },
+      metadata: { ok: result.ok, presence, origin },
     }
   })
 
 const InspectParameters = Schema.Struct({
+  surface: Schema.optional(Schema.Literals(["preview", "browser"])).annotate({
+    description:
+      "Dónde actuar: `preview` (por defecto) es la vista previa del proyecto; `browser` es el navegador integrado de Tiancode, con la sesión del usuario. `browser` pide permiso aparte nombrando el sitio concreto.",
+  }),
   target: Schema.optional(Schema.String).annotate({
     description:
       "Opcional: selector CSS o texto visible para limitar la lectura a una parte de la pantalla (por ejemplo un diálogo o un panel).",
@@ -235,15 +331,20 @@ const InteractParameters = Schema.Struct({
   direction: Schema.optional(Schema.String).annotate({
     description: "Para `scroll`: up, down, top o bottom (por defecto down).",
   }),
+  surface: Schema.optional(Schema.Literals(["preview", "browser"])).annotate({
+    description:
+      "Dónde actuar: `preview` (por defecto) es la vista previa del proyecto; `browser` es el navegador integrado de Tiancode, con la sesión del usuario. `browser` pide permiso aparte nombrando el sitio concreto.",
+  }),
 })
 
 export const PreviewInspectTool = Tool.define<typeof InspectParameters, AgentMetadata, never>(
   "preview_inspect",
   Effect.succeed({
     description:
-      "Lee la página que se está mostrando en la Vista en vivo (el Sandbox): URL y título reales, el texto visible, los elementos con los que se puede interactuar (botones, enlaces, campos, selectores) cada uno con una referencia estable tipo `e12`, y los errores de JavaScript de la consola. Úsala después de preview_start y después de cada cambio para comprobar con tus propios ojos que la pantalla es la que esperabas, en vez de suponerlo desde el código. Las referencias que devuelve se usan tal cual en preview_interact. Si el resultado dice que no hay ninguna superficie disponible (build web o sin ventana abierta), no repitas la acción: continúa con preview_status y preview_logs y di al usuario qué debería comprobar.",
+      "Lee la página que se está mostrando en la Vista en vivo (el Sandbox): URL y título reales, el texto visible, los elementos con los que se puede interactuar (botones, enlaces, campos, selectores) cada uno con una referencia estable tipo `e12`, y los errores de JavaScript de la consola. Úsala después de preview_start y después de cada cambio para comprobar con tus propios ojos que la pantalla es la que esperabas, en vez de suponerlo desde el código. Las referencias que devuelve se usan tal cual en preview_interact. Sólo llega a la vista previa del propio proyecto, no a cualquier página que el usuario tenga abierta en el panel, y el usuario aprueba el sitio antes de que leas nada: no la llames de forma especulativa. Si el resultado dice que no hay ninguna superficie disponible (build web, sin ventana abierta o el panel llevado a otra web), no repitas la acción: continúa con preview_status y preview_logs y di al usuario qué debería comprobar.",
     parameters: InspectParameters,
-    execute: (args) => runAction({ type: "inspect", target: args.target }, "Vista previa inspeccionada"),
+    execute: (args, ctx) =>
+      runAction({ type: "inspect", target: args.target, surface: args.surface }, "Vista previa inspeccionada", ctx),
   }),
 )
 
@@ -251,9 +352,9 @@ export const PreviewInteractTool = Tool.define<typeof InteractParameters, AgentM
   "preview_interact",
   Effect.succeed({
     description:
-      "Maneja la página de la Vista en vivo como lo haría el usuario y devuelve el estado de la pantalla después de la acción. Acciones: `click` (pulsa un botón, enlace o pestaña), `fill` (escribe en un campo), `select` (elige una opción de un desplegable), `press` (pulsa una tecla, por ejemplo Enter o Escape), `scroll` (desplaza la página o un contenedor) y `navigate` (va a otra ruta de la misma app). `target` acepta una referencia de preview_inspect (`e12`), un selector CSS o el texto visible del elemento. Úsala para recorrer la app y verificar de verdad un flujo antes de darlo por terminado; no sustituye a preguntar al usuario por decisiones de producto. Si el resultado dice que no hay ninguna superficie disponible (build web o sin ventana abierta), no repitas la acción: continúa con preview_status y preview_logs y di al usuario qué debería comprobar.",
+      "Maneja la página de la Vista en vivo como lo haría el usuario y devuelve el estado de la pantalla después de la acción. Acciones: `click` (pulsa un botón, enlace o pestaña), `fill` (escribe en un campo), `select` (elige una opción de un desplegable), `press` (pulsa una tecla, por ejemplo Enter o Escape), `scroll` (desplaza la página o un contenedor) y `navigate` (va a otra ruta de la misma app; sólo dentro del mismo origen). `target` acepta una referencia de preview_inspect (`e12`), un selector CSS o el texto visible del elemento. Úsala para recorrer la app y verificar de verdad un flujo antes de darlo por terminado; no sustituye a preguntar al usuario por decisiones de producto. Sólo llega a la vista previa del propio proyecto, no a cualquier página que el usuario tenga abierta en el panel, y él aprueba el sitio antes de que pulses nada. Si el resultado dice que no hay ninguna superficie disponible (build web, sin ventana abierta o el panel llevado a otra web), no repitas la acción: continúa con preview_status y preview_logs y di al usuario qué debería comprobar.",
     parameters: InteractParameters,
-    execute: (args) =>
+    execute: (args, ctx) =>
       runAction(
         {
           type: args.action,
@@ -262,8 +363,10 @@ export const PreviewInteractTool = Tool.define<typeof InteractParameters, AgentM
           key: args.key,
           url: args.url,
           direction: args.direction,
+          surface: args.surface,
         },
         "Vista previa manejada",
+        ctx,
       ),
   }),
 )

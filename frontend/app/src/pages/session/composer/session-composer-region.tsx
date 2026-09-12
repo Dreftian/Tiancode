@@ -33,7 +33,9 @@ export function SessionComposerRegion(props: {
       <div
         classList={{
           "w-full px-3 pointer-events-auto": true,
-          "md:max-w-200 md:mx-auto 2xl:max-w-[1000px]": controller.centered(),
+          // Mismo tope que la transcripción (Ajustes → Apariencia) para que el
+          // compositor no pueda quedarse con otro ancho.
+          "md:max-w-[var(--transcript-max-width,50rem)] md:mx-auto": controller.centered(),
         }}
       >
         <Show when={controller.state.questionRequest()} keyed>

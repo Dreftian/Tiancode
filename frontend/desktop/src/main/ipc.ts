@@ -1,13 +1,13 @@
 import { execFile } from "node:child_process"
 import { stat, writeFile } from "node:fs/promises"
 import { basename, isAbsolute, join, relative, resolve } from "node:path"
-import { app, BrowserWindow, clipboard, dialog, ipcMain, shell } from "electron"
+import { app, BrowserWindow, clipboard, dialog, globalShortcut, ipcMain, screen, shell } from "electron"
 import type { IpcMainEvent, IpcMainInvokeEvent } from "electron"
 import type { DesktopMenuAction } from "@tiancode-ai/app/desktop-menu"
 import { parseDesktopNativeBundle, type DesktopNativeBundle } from "@tiancode-ai/app/i18n/desktop-native"
 
 import type { FatalRendererError, ServerReadyData, TitlebarTheme } from "../preload/types"
-import { getLogger } from "./logging"
+import { getLogger, write as writeLog } from "./logging"
 import { runDesktopMenuAction } from "./desktop-menu-actions"
 import { setForceFocus } from "./debug"
 import { assertAttachmentBudget, createPickedFileAuthorizations } from "./attachment-picker"
@@ -36,6 +36,7 @@ import { registerPreviewViewIpc } from "./preview-view"
 import { registerPreviewAgentIpc } from "./preview-agent"
 import { registerWindowMirrorIpc } from "./window-mirror"
 import { registerDesktopPetIpc } from "./desktop-pet"
+import { registerComputerUseIpc } from "./computer-use"
 
 // Apps "abrir con" que acepta open-path. En macOS y Linux el renderer envía
 // el nombre tal cual; en Windows envía el path resuelto por resolveAppPath
@@ -147,6 +148,23 @@ export function registerIpcHandlers(deps: Deps) {
 
   // Mascota de escritorio independiente
   registerDesktopPetIpc()
+
+  // Uso del computador: el agente mueve el ratón y teclea en el escritorio real (sólo Windows).
+  // Canales exclusivos computer:*. computer-use.ts no importa electron para poder probarse con
+  // `bun test`, así que lo que necesita entra por aquí.
+  registerComputerUseIpc({
+    ipcMain,
+    dialog,
+    app,
+    globalShortcut,
+    screen,
+    browserWindow: BrowserWindow,
+    log: (message, data, level) => writeLog("computer-use", message, data, level),
+    // Las claves `desktop.computerUse.*` todavía no están en el paquete nativo (vive en
+    // frontend/app/src/i18n); hasta que entren, nativeT devuelve undefined y el módulo usa su
+    // texto de respaldo en inglés.
+    translate: (key, params) => nativeT(key as Parameters<typeof nativeT>[0], params),
+  })
 
   // Resuelve el argumento "app" de open-path contra los nombres conocidos;
   // en Windows el renderer envía el path resuelto y hay que re-resolver para

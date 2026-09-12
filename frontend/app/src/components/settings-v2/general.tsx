@@ -8,7 +8,13 @@ import { useDialog } from "@tiancode-ai/ui/context/dialog"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { useUpdaterAction } from "../updater-action"
-import { useSettings } from "@/context/settings"
+import {
+  transcriptTextSizes,
+  transcriptWidths,
+  useSettings,
+  type TranscriptTextSize,
+  type TranscriptWidth,
+} from "@/context/settings"
 import { ExternalLink } from "../external-link"
 import { showToast } from "@/utils/toast"
 import { SettingsListV2 } from "./parts/list"
@@ -29,6 +35,8 @@ import {
 import "./settings-v2.css"
 
 const schemeOptions: ("system" | "light" | "dark")[] = ["system", "light", "dark"]
+const transcriptTextOptions: TranscriptTextSize[] = [...transcriptTextSizes]
+const transcriptWidthOptions: TranscriptWidth[] = [...transcriptWidths]
 // Electron store shared with the desktop main process via the store IPC.
 const settingsStoreName = "tiancode.settings"
 const minimizeToTrayKey = "minimizeToTray"
@@ -126,6 +134,50 @@ const ShellSetting: Component<{ controller: ShellSettingsController }> = (props)
   )
 }
 
+const TranscriptTextSetting = () => {
+  const language = useLanguage()
+  const settings = useSettings()
+  return (
+    <SettingsRowV2
+      title={language.t("settings.general.row.transcriptText.title")}
+      description={language.t("settings.general.row.transcriptText.description")}
+    >
+      <SelectV2
+        appearance="inline"
+        data-action="settings-transcript-text"
+        options={transcriptTextOptions}
+        current={transcriptTextOptions.find((option) => option === settings.appearance.transcriptText())}
+        placement="bottom-end"
+        gutter={6}
+        label={(option) => language.t(`settings.general.row.transcriptText.option.${option}`)}
+        onSelect={(option) => option && settings.appearance.setTranscriptText(option)}
+      />
+    </SettingsRowV2>
+  )
+}
+
+const TranscriptWidthSetting = () => {
+  const language = useLanguage()
+  const settings = useSettings()
+  return (
+    <SettingsRowV2
+      title={language.t("settings.general.row.transcriptWidth.title")}
+      description={language.t("settings.general.row.transcriptWidth.description")}
+    >
+      <SelectV2
+        appearance="inline"
+        data-action="settings-transcript-width"
+        options={transcriptWidthOptions}
+        current={transcriptWidthOptions.find((option) => option === settings.appearance.transcriptWidth())}
+        placement="bottom-end"
+        gutter={6}
+        label={(option) => language.t(`settings.general.row.transcriptWidth.option.${option}`)}
+        onSelect={(option) => option && settings.appearance.setTranscriptWidth(option)}
+      />
+    </SettingsRowV2>
+  )
+}
+
 const AppearanceSection: Component<{ controller: AppearanceSettingsController }> = (props) => {
   const language = useLanguage()
   return (
@@ -175,6 +227,9 @@ const AppearanceSection: Component<{ controller: AppearanceSettingsController }>
             onSelect={props.controller.theme.select}
           />
         </SettingsRowV2>
+
+        <TranscriptTextSetting />
+        <TranscriptWidthSetting />
 
         <FontSetting kind="ui" fonts={props.controller.fonts} />
         <FontSetting kind="code" fonts={props.controller.fonts} />
