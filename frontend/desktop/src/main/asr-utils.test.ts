@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { concatChunks } from "./asr-utils"
+import { concatChunks, isNonSpeechTranscript } from "./asr-utils"
 import { MAX_CHUNKS, MAX_RECORDING_SECONDS } from "./asr-worker"
 
 describe("asr concatChunks", () => {
@@ -10,15 +10,32 @@ describe("asr concatChunks", () => {
   })
 
   test("clips >= 0.5s (8000 muestras a 16kHz) no se marcan como cortos", () => {
-    const { samples, tooShort } = concatChunks([new Float32Array(8000)])
+    const { samples, tooShort, silent } = concatChunks([new Float32Array(8000)])
     expect(samples.length).toBe(8000)
     expect(tooShort).toBe(false)
+    // Buffer de ceros: largo suficiente, pero sin señal.
+    expect(silent).toBe(true)
+  })
+
+  // Whisper no devuelve cadena vacía ante silencio: alucina "[Música]". Sin esta
+  // guarda ese texto acababa escrito en el chat como si el usuario lo hubiera dicho.
+  test("detecta silencio aunque el clip sea largo", () => {
+    const quiet = new Float32Array(16000).fill(0.0005)
+    expect(concatChunks([quiet]).silent).toBe(true)
+  })
+
+  test("una señal audible no se marca como silencio", () => {
+    const loud = Float32Array.from({ length: 16000 }, (_, i) => Math.sin(i / 8) * 0.3)
+    const { tooShort, silent } = concatChunks([loud])
+    expect(tooShort).toBe(false)
+    expect(silent).toBe(false)
   })
 
   test("lista vacía produce muestras vacías y marca clip corto", () => {
-    const { samples, tooShort } = concatChunks([])
+    const { samples, tooShort, silent } = concatChunks([])
     expect(samples.length).toBe(0)
     expect(tooShort).toBe(true)
+    expect(silent).toBe(true)
   })
 
   test("los chunks de entrada no se mutan", () => {
@@ -36,5 +53,21 @@ describe("asr concatChunks", () => {
     expect(tooShort).toBe(false)
     expect(samples.length).toBe(MAX_RECORDING_SECONDS * 16000)
     expect(MAX_RECORDING_SECONDS).toBe(64)
+  })
+})
+
+describe("asr isNonSpeechTranscript", () => {
+  // Comprobado ejecutando el reconocedor real contra 3 s de silencio: devuelve
+  // "[Música]", no "".
+  test("una anotación de sonido no verbal no es una transcripción", () => {
+    for (const text of ["[Música]", " [Music] ", "(música)", "[BLANK_AUDIO]", "", "   "]) {
+      expect(isNonSpeechTranscript(text)).toBe(true)
+    }
+  })
+
+  test("texto real se conserva, incluso con paréntesis dentro", () => {
+    for (const text of ["hola qué tal", "abre el archivo (el segundo) y corrígelo", "[Música] y luego dime algo"]) {
+      expect(isNonSpeechTranscript(text)).toBe(false)
+    }
   })
 })

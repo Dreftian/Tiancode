@@ -1,4 +1,4 @@
-import { concatChunks } from "./asr-utils"
+import { concatChunks, isNonSpeechTranscript } from "./asr-utils"
 
 // Local speech-to-text (sherpa-onnx Whisper) running in a dedicated
 // utilityProcess. Decoding a clip is a synchronous native call that takes
@@ -158,15 +158,22 @@ if (process.parentPort) {
             break
           }
           recording = false
-          const { samples, tooShort } = concatChunks(chunks)
+          const { samples, tooShort, silent } = concatChunks(chunks)
           chunks = []
-          // Clips under ~0.5 s carry no detectable speech.
-          if (tooShort) {
+          // Clips under ~0.5 s carry no detectable speech, and a silent clip of any
+          // length makes Whisper hallucinate a "[Música]"-style annotation rather
+          // than returning nothing — which then gets typed into the user's chat.
+          if (tooShort || silent) {
             post({ id, type: "stop-complete", payload: { code: "no-speech" } })
             break
           }
           const rec = await getOrCreateRecognizer(activeLanguage)
-          post({ id, type: "stop-complete", payload: { text: transcribe(rec, samples) } })
+          const text = transcribe(rec, samples)
+          post(
+            isNonSpeechTranscript(text)
+              ? { id, type: "stop-complete", payload: { code: "no-speech" } }
+              : { id, type: "stop-complete", payload: { text } },
+          )
           break
         }
 
