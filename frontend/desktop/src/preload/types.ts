@@ -204,8 +204,9 @@ export type PreviewViewAPI = {
 // El agente maneja la página de la Vista en vivo: el script se evalúa en el frame de la propia
 // página desde el proceso principal (frontend/desktop/src/main/preview-agent.ts).
 export type PreviewAgentAPI = {
-  execute: (code: string) => Promise<{ ok: true; value: string } | { ok: false; error: string }>
-  available: () => Promise<boolean>
+  /** `frameUrl` identifies the iframe the renderer is showing; see main/preview-agent.ts. */
+  execute: (code: string, frameUrl?: string) => Promise<{ ok: true; value: string } | { ok: false; error: string }>
+  available: (frameUrl?: string) => Promise<boolean>
 }
 
 export type ElectronAPI = {

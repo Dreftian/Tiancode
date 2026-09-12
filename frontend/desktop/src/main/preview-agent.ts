@@ -32,8 +32,12 @@ function isPreviewFrameUrl(value: string) {
  * Se prefiere el WebContentsView nativo (URLs externas) y si no existe se busca el iframe de la
  * vista previa dentro de la ventana. Se descartan los frames de la propia app: sólo interesan
  * los documentos http(s) que el usuario está viendo.
+ *
+ * `expected` es el `src` del iframe que el renderer tiene delante. Hace falta: la recarga sin
+ * parpadeo mantiene DOS iframes vivos y los alterna, así que "el último" no es "el visible" —
+ * sin esta pista la acción podía caer en la copia oculta.
  */
-function findPreviewFrame(sender: WebContents): WebFrameMain | null {
+function findPreviewFrame(sender: WebContents, expected?: string): WebFrameMain | null {
   const native = getPreviewViewWebContents(sender.id)
   if (native && !native.isDestroyed() && isPreviewFrameUrl(native.getURL())) {
     try {
@@ -52,9 +56,16 @@ function findPreviewFrame(sender: WebContents): WebFrameMain | null {
   } catch {
     return null
   }
-  // El último frame http(s) es el visible: al recargar sin parpadeo se crea uno nuevo detrás
-  // del actual y se intercambian, así que el más reciente es el que el usuario mira.
   const candidates = frames.filter((frame) => frame !== host.mainFrame && isPreviewFrameUrl(frame.url))
+  if (expected) {
+    const exact = candidates.find((frame) => frame.url === expected)
+    if (exact) return exact
+    // La página pudo navegar por su cuenta desde que se cargó: se compara sin la cadena de
+    // consulta, que es donde vive el parámetro anti-caché de la recarga.
+    const base = expected.split("?")[0]
+    const loose = candidates.find((frame) => frame.url.split("?")[0] === base)
+    if (loose) return loose
+  }
   return candidates[candidates.length - 1] ?? null
 }
 
@@ -71,9 +82,9 @@ async function executeInFrame(frame: WebFrameMain, code: string): Promise<string
 }
 
 export function registerPreviewAgentIpc() {
-  ipcMain.handle("preview-agent:execute", async (event, code: unknown): Promise<PreviewAgentExecuteResult> => {
+  ipcMain.handle("preview-agent:execute", async (event, code: unknown, expected: unknown): Promise<PreviewAgentExecuteResult> => {
     if (typeof code !== "string" || code.length === 0) return { ok: false, error: "script vacío" }
-    const frame = findPreviewFrame(event.sender)
+    const frame = findPreviewFrame(event.sender, typeof expected === "string" ? expected : undefined)
     if (!frame) {
       return {
         ok: false,
@@ -90,5 +101,7 @@ export function registerPreviewAgentIpc() {
     }
   })
 
-  ipcMain.handle("preview-agent:available", (event) => findPreviewFrame(event.sender) !== null)
+  ipcMain.handle("preview-agent:available", (event, expected: unknown) =>
+    findPreviewFrame(event.sender, typeof expected === "string" ? expected : undefined) !== null,
+  )
 }

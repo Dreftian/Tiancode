@@ -1253,7 +1253,9 @@ export function LivePreview(props: {
 
     const runCommand = async (action: PreviewAgentAction): Promise<{ ok: boolean; output: string }> => {
       try {
-        const result = await agent.execute(buildPreviewAgentScript(action))
+        // El `src` del iframe activo: la recarga sin parpadeo mantiene dos vivos y los alterna,
+        // así que sin esta pista el script podía ejecutarse en la copia oculta.
+        const result = await agent.execute(buildPreviewAgentScript(action), iframe?.src)
         if (!result.ok) return { ok: false, output: result.error }
         return { ok: true, output: result.value }
       } catch (error) {

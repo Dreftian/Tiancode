@@ -181,8 +181,8 @@ const api: ElectronAPI = {
     },
   },
   previewAgent: {
-    execute: (code) => ipcRenderer.invoke("preview-agent:execute", code),
-    available: () => ipcRenderer.invoke("preview-agent:available"),
+    execute: (code, frameUrl) => ipcRenderer.invoke("preview-agent:execute", code, frameUrl),
+    available: (frameUrl) => ipcRenderer.invoke("preview-agent:available", frameUrl),
   },
   backup: {
     now: () => ipcRenderer.invoke("backup-now"),

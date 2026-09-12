@@ -81,8 +81,9 @@ export type PreviewViewPlatform = {
  * así que desde aquí no se puede tocar su DOM directamente.
  */
 export type PreviewAgentPlatform = {
-  execute(code: string): Promise<{ ok: true; value: string } | { ok: false; error: string }>
-  available(): Promise<boolean>
+  /** `frameUrl` is the `src` of the iframe on screen, so the script cannot land on the spare. */
+  execute(code: string, frameUrl?: string): Promise<{ ok: true; value: string } | { ok: false; error: string }>
+  available(frameUrl?: string): Promise<boolean>
 }
 
 type PlatformBase = {
