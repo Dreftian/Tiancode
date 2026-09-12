@@ -4,18 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Novedades — Tiancode</title>
-  <meta name="description" content="Novedades de Tiancode v1.0.42: zoom real en la vista previa, recarga sin parpadeo mientras el agente construye el frontend y una cabecera del Sandbox que ya no se recorta.">
+  <meta name="description" content="Novedades de Tiancode v1.0.45: las imágenes del chat llegan de verdad al modelo, Ajustes deja de ofrecer controles que no hacían nada y las voces se reducen a seis en español.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Tiancode">
   <meta property="og:title" content="Novedades — Tiancode">
-  <meta property="og:description" content="Novedades de Tiancode v1.0.42: zoom real en la vista previa, recarga sin parpadeo mientras el agente construye el frontend y una cabecera del Sandbox que ya no se recorta.">
+  <meta property="og:description" content="Novedades de Tiancode v1.0.45: las imágenes del chat llegan de verdad al modelo, Ajustes deja de ofrecer controles que no hacían nada y las voces se reducen a seis en español.">
   <meta property="og:url" content="https://tiancode.vercel.app/recursos/novedades.html">
   <meta property="og:image" content="https://tiancode.vercel.app/img/og-image.png">
   <meta property="og:locale" content="es_ES">
   <meta property="og:locale:alternate" content="en_US">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Novedades — Tiancode">
-  <meta name="twitter:description" content="Novedades de Tiancode v1.0.42: zoom real en la vista previa, recarga sin parpadeo mientras el agente construye el frontend y una cabecera del Sandbox que ya no se recorta.">
+  <meta name="twitter:description" content="Novedades de Tiancode v1.0.45: las imágenes del chat llegan de verdad al modelo, Ajustes deja de ofrecer controles que no hacían nada y las voces se reducen a seis en español.">
   <meta name="twitter:image" content="https://tiancode.vercel.app/img/og-image.png">
   <link rel="canonical" href="https://tiancode.vercel.app/recursos/novedades.html">
   <link rel="icon" type="image/png" href="img/favicon.png">
@@ -121,12 +121,80 @@
           <header class="page-head reveal">
             <span class="eyebrow">Recursos</span>
             <h1 class="page-title">Novedades</h1>
-            <p class="page-sub">Todo lo que trae Tiancode 1.0.42, la versión estable, y las anteriores.</p>
+            <p class="page-sub">Todo lo que trae Tiancode 1.0.45, la versión estable, y las anteriores.</p>
           </header>
           <div class="page-body reveal" style="--rd:.08s">
               <div class="news-version">
-                <h2>Versión 1.0.42</h2>
+                <h2>Versión 1.0.45</h2>
                 <span class="news-tag">Última versión</span>
+                <span class="news-date">12 de septiembre de 2026</span>
+              </div>
+              <div class="news-block news-block--new">
+                <h3>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  <span>Imágenes que llegan al modelo, paneles que dejan de prometer lo que no hacen y seis voces en español en v1.0.45</span>
+                </h3>
+                <ul class="news-list news-list--new">
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Las imágenes del chat llegan al modelo:</strong> tres causas distintas, las tres corregidas. El renderer enviaba una URL «blob:» o un data URL vacío en lugar del archivo real; un único adjunto con error tumbaba el prompt entero; y el redimensionador estaba muerto en todas las builds empaquetadas porque el código escribía el nombre de variable equivocado, así que ninguna imagen se redimensionaba nunca y una captura 4K salía al proveedor a tamaño completo. De paso, el filtro de capacidades ya consulta la bandera «attachment» del catálogo: 175 modelos que sí leen imágenes decían que no.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>«UnsupportedContentType» al actualizar con un proyecto abierto:</strong> el aviso era literalmente el nombre interno del error y ahora se traduce a prosa en los siete idiomas; reintentar funciona porque se mira la causa real y no sólo el texto; la parte REST se reconecta sola cuando el servidor vuelve, en vez de rendirse al primer intento; y el instalador ya no deja una ventana viva apuntando a un puerto muerto si la instalación falla.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>«Inteligencia», de 14 controles con 4 en funcionamiento a 9 que funcionan:</strong> se cablean de verdad el destilador de salida de bash, la reparación de tool-calls, el cortacircuitos de bucles infinitos, la extracción web limpia y la creación de skills. Se borran cuatro que no existían detrás del control: el visor de diffs Monaco, la búsqueda de sesiones FTS5, el presupuesto de razonamiento duplicado y el selector de sandbox host/docker/e2b, que prometía aislar los comandos en un contenedor o una micro-VM mientras siempre se ejecutaban en tu máquina.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>«Uso de la PC», fuera 11 controles decorativos y dentro dos capacidades reales:</strong> se retira «Zona Segura», que venía activada y decía bloquear clics en gestores de contraseñas, banca online y ventanas elevadas de Administrador sin bloquear nada, junto con el OCR, el auto-foco de ventanas ajenas y el resto de conmutadores que sólo escribían en el almacenamiento local. A cambio el panel gana una herramienta de captura de pantalla y otra de portapapeles, cada una con su permiso y la del portapapeles preguntando siempre.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>El botón de mejorar el prompt deja de borrar tus imágenes:</strong> reemplazaba el prompt entero por un único fragmento de texto en cada trozo del stream, así que los adjuntos morían en el primero. También desaparece el «optimizador local» de 1.017 líneas —425 de ellas un diccionario que cambiaba tu vocabulario— que se presentaba con un tecleo falso como si hubiera respondido el modelo: ahora, si el modelo no responde, tu texto se queda como lo escribiste y se te dice. Además se puede cancelar mientras trabaja y el deshacer sobrevive a que sigas escribiendo.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Voces: de 27 tarjetas a 6, todas femeninas y en español:</strong> fuera las inglesas de Kokoro y las de Fish, que sin clave de API no podían hablar, y cinco de las de Piper cuya licencia, género o cadena de atribución no se pudo verificar. Son unos 644 MB menos de descarga por usuario, más un barrido que borra los modelos ya descargados que salen del catálogo.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Mascotas rediseñadas:</strong> las 13 en una sola cuadrícula en vez de paginadas de 10 en 10, con la descripción y el rasgo completos en vez de cortados a media frase, especie y rasgo traducidos a los siete idiomas y una tira que muestra el estado real de la mascota del escritorio.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Modelos Locales rediseñados:</strong> adoptan la cabecera estándar en vez de ser una tarjeta dentro de otra tarjeta y cambian los colores fijos por los tokens del tema, así que el panel ya no se ve oscuro sobre un tema claro; su único punto de ruptura pasa a ser el ancho del panel y no el de la ventana. Fuera una insignia de «modelo verificado» que no verificaba nada y una etiqueta de arquitectura que se la inventaba a partir del nombre del modelo.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>El panel de Skills vuelve a cargar:</strong> llamaba a un método del SDK que no existe, el error se tragaba en silencio y caía a un catálogo de relleno escrito a mano. Ahora usa el endpoint real, con un test que lo respalda, y se incorpora la skill opcional «i-have-adhd», que nunca se autoselecciona: sólo se activa cuando tú la invocas.</span></li>
+                </ul>
+              </div>
+
+              <div class="news-version">
+                <h2>Versión 1.0.44</h2>
+                <span class="news-tag">Estable</span>
+                <span class="news-date">12 de septiembre de 2026</span>
+              </div>
+              <div class="news-block news-block--new">
+                <h3>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  <span>Un bloqueo real de la base de datos, un lint que vuelve a servir y un Sandbox que se ve en v1.0.44</span>
+                </h3>
+                <ul class="news-list news-list--new">
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>La base de datos congelaba la app cinco segundos y nadie lo sabía:</strong> bun:sqlite es síncrono, así que dos inicializaciones del mismo archivo competían por el mismo cerrojo y bloqueaban el bucle de eventos entero durante los cinco segundos de espera antes de fallar. Medido en este repositorio: 5,8 s con dos compilaciones concurrentes, 52 ms con el cerrojo por ruta que se añade ahora. De paso, la suite del backend pasa de no terminar en 40 minutos a terminar en 12,6.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Los tests que fallaban desde siempre estaban obsoletos, no rotos:</strong> DESIGN.md es un literal del código, la lista de agentes integrados creció en 18 entradas y el coordinador de sesiones conserva a propósito el «wake» pendiente al interrumpir. Cada test afirma ahora lo que hace producción.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>La vista previa deja de compilar el proyecto entero en cada tecla:</strong> la condición era «¿hay script de build?»; ahora es «¿Tiancode sirve esto desde una carpeta de salida?». Una vista JSX transpila por petición y un dev server recarga solo, así que compilar ahí eran segundos de trabajo que nadie consumía; un proyecto Electron servido desde dist/ sí sigue compilando.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>El vigilante de archivos usa el watcher nativo:</strong> poda node_modules y la salida de compilación en el sistema operativo en vez de filtrar después, y vuelve a fs.watch si su binding no está disponible. Además el catch mudo ahora escribe en el log: un ENOSPC de inotify en Linux mataba la recarga en vivo para el resto de la sesión sin dejar rastro.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Una carpeta sin git ya no dice que su raíz es «/»:</strong> en Windows eso era la raíz del disco, así que la resolución de las @menciones, la carpeta raíz que se le pasa al prompt y el destino .tiancode/agents del CLI apuntaban ahí. Las listas de sesión se acotan además por carpeta para la fila de proyecto «global» compartida.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Skills pierde su segundo catálogo:</strong> unas 340 líneas de resúmenes en español escritos a mano que tapaban el SKILL.md real del servidor, más diez avisos de conflicto que se mostraban en español a todos los idiomas. Un esqueleto cubre la carga y «no hay skills» sólo se dice cuando de verdad se agotaron los reintentos.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>El lint vuelve a servir:</strong> de 5.145 avisos y 0 errores a 882 y 0, con cinco reglas en nivel error que rompen el gate ante cualquier caso nuevo. Las 15 reglas desactivadas llevan justificación y un sitio real de ejemplo.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>El Sandbox por fin enseña la app de escritorio en vez de describirla:</strong> un espejo de su ventana real de Windows, emparejada recorriendo el árbol de procesos hasta su identificador, con un selector cuando la evidencia es débil. Es un espejo, no un embebido —Electron no puede reparentar ni escribir en una ventana ajena— así que las herramientas de inspección lo dicen en vez de fallar de forma opaca, y ya no informan del valor de un campo de contraseña. 47 tests nuevos; frontend 916 tests, 0 fallos.</span></li>
+                </ul>
+              </div>
+
+              <div class="news-version">
+                <h2>Versión 1.0.43</h2>
+                <span class="news-tag">Estable</span>
+                <span class="news-date">11 de septiembre de 2026</span>
+              </div>
+              <div class="news-block news-block--new">
+                <h3>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  <span>El agente puede usar el Sandbox, el modo 2x deja de pensar menos y «.tiancode» deja de aparecer en la raíz del disco en v1.0.43</span>
+                </h3>
+                <ul class="news-list news-list--new">
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>El agente maneja la app del Sandbox, no sólo la compila:</strong> hasta ahora sus únicas herramientas de vista previa eran arrancar el servidor y leer logs. Dos herramientas nuevas, «preview_inspect» (URL y título reales, texto visible, todos los elementos con los que se puede interactuar y los errores de la consola) y «preview_interact» (clic, rellenar, seleccionar, teclas, scroll y navegación), recorren la pantalla como lo haría el usuario y devuelven el estado después de cada acción. Si la Vista en vivo está cerrada, la herramienta lo dice en vez de quedarse colgada.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>«Compilando dist…» que no paraba nunca:</strong> el vigilante de archivos descartaba «dist/», pero Windows anuncia el cambio del directorio como «dist» a secas, sin barra, así que cada compilación se re-armaba con su propia salida. Los descartes se comparan ahora por segmento de ruta a cualquier profundidad, y la etiqueta muestra el nombre del archivo en vez de una ruta cortada a media palabra.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>«.tiancode» aparecía en la raíz del disco:</strong> una carpeta sin repositorio resolvía su proyecto a la raíz del disco, así que MEMORY.md, la instalación de plugins y las skills de proyecto acababan en lo alto de C:. Una carpeta sin git es ahora su propio proyecto, y ninguna ruta de la app puede escribir en una raíz de sistema.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Tras actualizar, los modelos y proveedores ya aparecen sin reiniciar:</strong> si el servidor aún se estaba levantando al arrancar, el catálogo vacío se quedaba cacheado para siempre. Ahora se vuelve a pedir a los 0,8 s, 2 s y 5 s y se para en cuanto llega algo; el panel de Skills hace lo mismo y además se refresca al volver a la pestaña.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Conectar y desconectar un proveedor es inmediato:</strong> conectar esperaba a reescribir la configuración, desechar el runtime y recargar el catálogo antes de cerrar el diálogo. Ahora el diálogo se cierra y la notificación sale en el mismo instante; al desconectar, la fila y todos los modelos de ese proveedor desaparecen en el mismo fotograma.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>El modo ⚡ 2x ya no baja el nivel de razonamiento:</strong> bajaba el modelo a su variante más barata, así que elegir «Max» y activar 2x te daba en silencio un modelo más superficial del que habías pedido. El esfuerzo de razonamiento es del usuario; 2x sólo quita preámbulo y relleno, y la directiva dice explícitamente que mantenga la profundidad de análisis.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Ollama y LM Studio salen de Proveedores:</strong> conectarlos allí sólo apuntaba a un endpoint HTTP local que había que levantar aparte; el camino real para modelos locales es el motor integrado (Tiancode Native / GGUF) en Modelos Locales.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Responsivo de verdad:</strong> los paneles de Ajustes (GitHub, MCP, Modelos Locales, Voces, filas de proveedores y ajustes, Skills) consultaban el ancho de la ventana aunque viven dentro del diálogo, así que una ventana ancha con un panel estrecho mantenía la maqueta de escritorio metida a presión. Todos pasan a consultar el ancho de su propio contenedor.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Menos ruido de fondo:</strong> el sondeo del estado de la vista previa va con lo que ocurre (0,9 s arrancando o compilando, 2 s en marcha, 6 s parado) y los logs sólo se piden cuando la consola del Sandbox está a la vista o hay una compilación en curso, en lugar de traerse 500 líneas cada 2 s para nada. 34 tests nuevos; frontend 899 tests, 0 fallos.</span></li>
+                </ul>
+              </div>
+
+              <div class="news-version">
+                <h2>Versión 1.0.42</h2>
+                <span class="news-tag">Estable</span>
                 <span class="news-date">11 de septiembre de 2026</span>
               </div>
               <div class="news-block news-block--new">
@@ -375,7 +443,7 @@
           </a>
           <p>El asistente de IA para programar, hecho para Windows.</p>
         </div>
-        <span class="footer-version"><i aria-hidden="true"></i>v1.0.42 · MIT</span>
+        <span class="footer-version"><i aria-hidden="true"></i>v1.0.45 · MIT</span>
       </div>
       <div class="footer-grid">
         <nav class="footer-col" aria-label="Producto">
