@@ -153,11 +153,28 @@ Desde la app: **Ayuda → Buscar actualizaciones**.
     { name: "Tiancode.exe.blockmap", path: resolveFilePath("Tiancode.exe.blockmap"), contentType: "application/octet-stream" },
   ]
 
+  // Saltarse un asset sólo por el tamaño no vale para los metadatos: `latest.yml` mide siempre
+  // lo mismo (los campos son base64 de ancho fijo), así que una segunda compilación dejaba en la
+  // release el sha512 del binario anterior y el auto-updater rechazaba la descarga. Para los
+  // archivos pequeños se comparan los bytes; para un instalador de 380 MB el tamaño basta.
+  const SIZE_ONLY_SKIP_BYTES = 2 * 1024 * 1024
+
+  const sameAsPublished = async (asset: { browser_download_url?: string; size: number }, localPath: string) => {
+    const local = readFileSync(localPath)
+    if (asset.size !== local.length) return false
+    if (local.length > SIZE_ONLY_SKIP_BYTES) return true
+    if (!asset.browser_download_url) return false
+    const res = await fetch(asset.browser_download_url).catch(() => undefined)
+    if (!res?.ok) return false
+    const published = Buffer.from(await res.arrayBuffer())
+    return published.equals(local)
+  }
+
   for (const file of filesToUpload) {
     console.log(`[Upload] Preparando ${file.name}...`)
     const existingAsset = releaseData.assets?.find((a: any) => a.name === file.name)
-    if (existingAsset && existingAsset.size === statSync(file.path).size) {
-      console.log(`✓ ${file.name} ya está subido con el mismo tamaño, se omite`)
+    if (existingAsset && (await sameAsPublished(existingAsset, file.path))) {
+      console.log(`✓ ${file.name} ya está subido y es idéntico, se omite`)
       continue
     }
     if (existingAsset) {
