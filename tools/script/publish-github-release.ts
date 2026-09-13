@@ -29,35 +29,33 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.38"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — La vista previa te dice qué pasó, y la bienvenida cabe en la pantalla`
+  const releaseName = `Tiancode v${version} — La bienvenida vuelve tras cada actualización y «Uso de la PC» por fin controla algo`
 
   const body = `## 🚀 Tiancode v${version}
 
-### 🔎 Cuando algo falla, ahora se ve
-Lo que hacía que la vista previa pareciera poco profesional no era el diseño: eran los momentos en que algo iba mal.
-- **Una compilación fallida no mostraba absolutamente nada.** El servidor marcaba el fallo y guardaba hasta 20 errores con archivo y línea — y la interfaz no los leía nunca. Ahora salen en un panel como \`src/App.tsx:12 — mensaje\`, **y la ubicación es pulsable**: te lleva al archivo en la pestaña Código.
-- **Y encima los etiquetaba mal:** un error de compilación se mostraba como «No se pudo cargar {url} — ¿está el servidor arrancado?», con el servidor perfectamente vivo.
-- **«Starting…» era una palabra sola sobre un panel en blanco durante un minuto.** El log del servidor ya se descargaba y se tiraba, porque la consola sólo se dibujaba para proyectos de escritorio. **Con censura de secretos**: ese log lo imprime tu propio proyecto, así que se enmascaran valores \`*_TOKEN\`/\`*_SECRET\`/\`*_PASSWORD\`, cabeceras \`Bearer\`, URLs con contraseña y formatos conocidos (\`sk-…\`, \`ghp_…\`, JWT) — el valor, nunca la línea, y antes de mostrarlo, así que lo que copias ya va limpio.
-- **El punto de estado se ponía verde sin nada corriendo**, etiquetado «Fit» (que es el control de zoom).
-
-### 👁️ Ahora se puede leer
-Los avisos de error estaban a **1,24:1 de contraste** en el tema claro que la app usa por defecto — el botón «Reparar con IA», el inspector, la franja de error. El mínimo accesible es 4,5:1. Se **midió** cada reemplazo en vez de confiar en los tokens: el par «warning» tampoco pasa (2,35:1), así que no se usó. Ahora van de 5,2:1 a 17:1.
-
-### 📄 La pestaña Código
-- **El resaltador estaba hecho a mano y se equivocaba:** un simple \`// don't\` dejaba las cuatro líneas siguientes en verde, ignoraba los comentarios \`#\` de Python y regeneraba 192 KB de HTML por tecla. Sustituido por el visor que este repo **ya traía** — shiki, tema por variables CSS, virtualización y modo diff. Las líneas para conectarlo llevaban tiempo ahí, sin usar.
-- **«Renombrar» no renombraba.** El backend sólo sabe escribir, así que copiaba el contenido a la ruta nueva y dejaba el original. Ahora se llama «Guardar en otra ruta».
-- El botón «Guardar» era decorativo: el autoguardado limpiaba el estado antes de que diera tiempo a pulsarlo.
-
 ### 👋 Asistente de bienvenida
-Más bonito y **la mitad de alto** (de ~500 px a ~250 px). Importa: la app lo abre en una ventana de 600 px y **el primer paso no cabía**. De 3 pasos a 2.
-- **Un fallo que llevaba ahí desde siempre:** para decidir claro u oscuro comparaba el ajuste \`"system"\` con \`"dark"\`, que nunca es cierto. En un equipo con tema oscuro **la primerísima pantalla se pintaba entera en claro sobre fondo negro** — y el fondo que la rodea tenía el mismo error al revés.
-- Otro: escribía el modo de color en \`data-theme\`, que guarda el **identificador** del tema, desactivando los colores de sintaxis hasta el siguiente repintado.
+- **Ahora vuelve a salir cuando actualizas**, no sólo al instalar. Pero no repite el interrogatorio: tras una actualización es **una sola pantalla de confirmación** con tus respuestas anteriores ya marcadas —leídas de los ajustes reales, no de una copia— y un único botón. En instalación nueva sigue el asistente completo.
+- **El portable ya hacía lo que pedías**: guarda su estado en \`<carpeta del .exe>\\data\`, así que viaja con el pendrive y sale una vez por pendrive. No hizo falta tocarlo.
+- **Dos preguntas nuevas y gratis**: mascota de escritorio y leer las respuestas en voz alta. La de voz usa el ajuste que recurre a las voces de Windows cuando no hay modelo, así que **no dispara ninguna descarga** — habría deshecho justo lo que quitamos en 1.0.45 y 1.0.46.
+- **Cuatro ajustes que no guardaban nada**: \`tiancode.sound.enabled\`, \`tiancode.autoupdate.enabled\`, \`tiancode-lang\` y \`tiancode-theme\` aparecen una sola vez en todo el frontend — la escritura. Fuera.
+- **Había DOS asistentes de bienvenida vivos**, con dos puertas distintas. El segundo no se veía nunca… salvo que las dos claves se desincronizaran. Eliminado con cuidado: hacía dos cosas más en *cada* arranque que había que conservar, y una mantenía la pantalla de carga esperando.
+- **Medido a 1025×560**: paso 1 = 311 px de alto contra 528 disponibles, y la pantalla de carga deja 138 px de holgura bajo el emblema.
 
-### 🐙 GitHub
-La tarjeta se salía por arriba. Un contenedor centrado que desborda **recorta por igual arriba y abajo**, así que al crecer con la sección de capacidades el logo y el título quedaban fuera de la zona visible, sin forma de subir hasta ellos. Ahora se centra sólo cuando cabe, con margen garantizado a cualquier tamaño de ventana.
+### 🖥️ «Uso de la PC»: ahora todos los controles hacen algo
+La 1.0.47 añadió la herramienta de ratón y teclado **sin ninguna interfaz**. Ya la tiene.
+- **Permiso del navegador — y aquí había una trampa.** El valor por defecto del sistema de permisos es \`"*": "allow"\`, así que **hoy el agente puede leer y manejar el navegador integrado en cualquier sitio sin preguntar nunca**. Una lista de «sitios permitidos» encima de eso habría mostrado dos entradas mientras en realidad estaban todos permitidos. Elegir «preguntar en cada sitio» escribe la regla base de verdad. **Es un cambio de comportamiento** y está etiquetado como tal.
+- **Sitios permitidos**: listar, añadir y revocar — diciendo en el propio panel que los «Siempre» aceptados dentro de una sesión **no se guardan en disco**, así que no salen ahí y se pierden al cerrar.
+- **Dónde se abren los enlaces** · **Cookies del navegador integrado** (sólo dos valores: Electron no deja cambiar la partición de un webview una vez ha navegado; se limpian **al arrancar**, porque los manejadores de salida son síncronos y el borrado no).
+- **Interruptor maestro del control del ordenador**, guardado **fuera del archivo de proyecto**: \`tiancode.json\` lo puede reescribir el propio agente con la herramienta de edición.
+- **Lista de ejecutables denegados**, persistente. Se compara por nombre de ejecutable — dos programas con el mismo nombre son indistinguibles y renombrarlo lo esquiva. El panel lo dice.
+
+**Lo que me negué a poner:** un interruptor único para «dev servers + navegación + capturas» (las herramientas integradas no pasan por el filtro de permisos); un selector de «navegador preferido» con Chrome (nada aquí controla un navegador externo, y Chrome y Edge rechazan el puerto de depuración sobre el perfil por defecto); y «mostrar aplicaciones al terminar» (Tiancode nunca oculta una aplicación). **Y se borró \`browser.tsx\` entero**: sus tres interruptores estaban fijados en «activado» con un manejador que sólo mostraba un aviso.
+
+### 📑 Vista de transcripción
+**Normal / Pensando / Detallado** en Ajustes → Apariencia, con **anulación por sesión** desde el menú de la conversación. Sustituye a los tres interruptores sueltos: dejarlos al lado habría sido peor, porque escriben lo mismo y el último que tocaras dejaría al otro mostrando un valor falso.
 
 ### ✅ Calidad
-Typecheck **27/27** · Lint **0 errores** · **927** tests de frontend (+21) · **144** de escritorio · **54** del puente.
+Typecheck **27/27** · Lint **0 errores** · **927** tests de frontend · **150** de escritorio · **98** de session-ui.
 
 ### 🔄 Actualización 100% no destructiva
 Todas tus claves de proveedores, configuraciones, sesiones, backups y servidores MCP se preservan intactos.
