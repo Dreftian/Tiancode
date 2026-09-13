@@ -4,18 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Novedades — Tiancode</title>
-  <meta name="description" content="Novedades de Tiancode v1.0.47, una versión de seguridad: el agente ya no puede leer ni pulsar una página que tú no estás viendo, las dos tools de vista previa piden permiso nombrando el origen, y llegan el uso del navegador y el uso del computador con permiso explícito.">
+  <meta name="description" content="Novedades de Tiancode v1.0.48, una versión de calidad y acabado: cuando una compilación falla la vista previa por fin dice qué pasó, con archivo, línea y enlace al código; el log del servidor se ve mientras arranca, con los secretos censurados; los avisos de error pasan de 1,24:1 a entre 5,2:1 y 17:1 de contraste; y el asistente de bienvenida es la mitad de alto.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Tiancode">
   <meta property="og:title" content="Novedades — Tiancode">
-  <meta property="og:description" content="Novedades de Tiancode v1.0.47, una versión de seguridad: el agente ya no puede leer ni pulsar una página que tú no estás viendo, las dos tools de vista previa piden permiso nombrando el origen, y llegan el uso del navegador y el uso del computador con permiso explícito.">
+  <meta property="og:description" content="Novedades de Tiancode v1.0.48, una versión de calidad y acabado: cuando una compilación falla la vista previa por fin dice qué pasó, con archivo, línea y enlace al código; el log del servidor se ve mientras arranca, con los secretos censurados; los avisos de error pasan de 1,24:1 a entre 5,2:1 y 17:1 de contraste; y el asistente de bienvenida es la mitad de alto.">
   <meta property="og:url" content="https://tiancode.vercel.app/recursos/novedades.html">
   <meta property="og:image" content="https://tiancode.vercel.app/img/og-image.png">
   <meta property="og:locale" content="es_ES">
   <meta property="og:locale:alternate" content="en_US">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Novedades — Tiancode">
-  <meta name="twitter:description" content="Novedades de Tiancode v1.0.47, una versión de seguridad: el agente ya no puede leer ni pulsar una página que tú no estás viendo, las dos tools de vista previa piden permiso nombrando el origen, y llegan el uso del navegador y el uso del computador con permiso explícito.">
+  <meta name="twitter:description" content="Novedades de Tiancode v1.0.48, una versión de calidad y acabado: cuando una compilación falla la vista previa por fin dice qué pasó, con archivo, línea y enlace al código; el log del servidor se ve mientras arranca, con los secretos censurados; los avisos de error pasan de 1,24:1 a entre 5,2:1 y 17:1 de contraste; y el asistente de bienvenida es la mitad de alto.">
   <meta name="twitter:image" content="https://tiancode.vercel.app/img/og-image.png">
   <link rel="canonical" href="https://tiancode.vercel.app/recursos/novedades.html">
   <link rel="icon" type="image/png" href="img/favicon.png">
@@ -121,12 +121,35 @@
           <header class="page-head reveal">
             <span class="eyebrow">Recursos</span>
             <h1 class="page-title">Novedades</h1>
-            <p class="page-sub">Todo lo que trae Tiancode 1.0.47, la versión estable, y las anteriores.</p>
+            <p class="page-sub">Todo lo que trae Tiancode 1.0.48, la versión estable, y las anteriores.</p>
           </header>
           <div class="page-body reveal" style="--rd:.08s">
               <div class="news-version">
-                <h2>Versión 1.0.47</h2>
+                <h2>Versión 1.0.48</h2>
                 <span class="news-tag">Última versión</span>
+                <span class="news-date">12 de septiembre de 2026</span>
+              </div>
+              <div class="news-block news-block--new">
+                <h3>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  <span>La vista previa por fin te dice qué pasó, y el asistente de bienvenida cabe en la pantalla en v1.0.48</span>
+                </h3>
+                <ul class="news-list news-list--new">
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Una compilación fallida no mostraba absolutamente nada:</strong> el servidor marcaba el fallo y guardaba hasta 20 errores con archivo y línea — y la interfaz no los leía nunca. Ahora salen en un panel, cada uno como «src/App.tsx:12 — mensaje», y la ubicación es pulsable: te lleva al archivo en la pestaña Código. Con botones para reintentar y para mandárselos al agente.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Y encima los etiquetaba mal:</strong> un error de compilación se mostraba como «No se pudo cargar {url} — ¿está el servidor arrancado?», cuando el servidor estaba perfectamente. Y el punto de estado se ponía verde cuando no había nada corriendo, con la etiqueta «Fit», que es el control de zoom: verde y «Fit» se leen como «tu app está funcionando».</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>«Starting…» era una palabra sola sobre un panel en blanco durante un minuto:</strong> el log del servidor ya se estaba descargando y se tiraba a la basura, porque la consola sólo se dibujaba para proyectos de escritorio. Ahora se ve mientras arranca o compila, y con censura de secretos: ese log es el que imprime tu propio proyecto, así que se enmascaran los valores de variables tipo «*_TOKEN», «*_SECRET» y «*_PASSWORD», las cabeceras «Bearer», las URLs con contraseña y los formatos conocidos («sk-…», «ghp_…», JWT). Se enmascara el valor, nunca la línea, y antes de mostrarlo, así que lo que copias al portapapeles ya va limpio.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Los avisos de error estaban en 1,24:1 de contraste:</strong> sobre el tema claro que la app usa por defecto — el botón «Reparar con IA», el interruptor del inspector, la franja de error de ejecución. El mínimo accesible es 4,5:1. Se midieron uno a uno los reemplazos en vez de confiar en los tokens: de hecho el par de aviso «warning» tampoco pasa (2,35:1), así que no se usó. Ahora van entre 5,2:1 y 17:1. Además, los tres indicadores de estado tienen ya un hueco de ancho fijo, así que el selector de dispositivo y el zoom dejan de deslizarse cada vez que el agente escribe un archivo; y hay guarda de «prefers-reduced-motion», que este archivo era el único sin ella.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>El resaltador de la pestaña Código estaba hecho a mano y se equivocaba:</strong> un simple «// don't» dejaba las cuatro líneas siguientes pintadas de verde —la comilla abría un literal que nunca se cerraba—, ignoraba los comentarios «#» de Python y regeneraba 192 KB de HTML en cada pulsación de tecla; sus 15 colores fijos fallaban todos el contraste sobre fondo claro. Se sustituye por el visor que este repo ya trae, con shiki, tema por variables CSS, virtualización para archivos grandes y modo diff. Las líneas para conectarlo llevaban tiempo ahí, sin usar.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>«Renombrar» no renombraba:</strong> el backend sólo sabe escribir —no hay mover ni borrar—, así que escribía el contenido en la ruta nueva y dejaba el archivo original. Ahora se llama «Guardar en otra ruta», que es lo que hace. La edición tampoco se pierde: pasa a un botón explícito, con un editor sin HTML inyectado, y el autoguardado a los 500 ms sigue igual; el botón «Guardar» era decorativo —el autoguardado limpiaba el estado antes de que a nadie le diera tiempo a pulsarlo— y ahora dice si está guardando. Fuera, además, 125 líneas de insignias de archivo hechas a mano, con 8 emojis teñidos con clases de color que a un emoji no le hacen nada.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>El asistente de bienvenida es la mitad de alto:</strong> de ~500 px a ~250 px. Importa porque la app lo abre en una ventana de 600 px y el primer paso no cabía: salía con barra de desplazamiento. Y pasa de 3 pasos a 2, porque el paso del proveedor preguntaba un sí/no cuyo «no» cuesta una tecla y cuyo «sí» es la única respuesta útil en una instalación nueva, que no tiene ningún proveedor: ahora se abre siempre, y el asistente lo dice en vez de hacerlo por sorpresa. Los controles a mano se sustituyen por los del sistema de diseño, todo con tokens, con progreso legible de un vistazo y adaptable por consulta de contenedor en vez de por ancho de ventana.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Un fallo del asistente que llevaba ahí desde siempre:</strong> para decidir si pintar en claro u oscuro comparaba el ajuste «system» con «dark», y eso nunca es cierto. En un equipo con tema oscuro, la primerísima pantalla que ve alguien se pintaba entera en claro sobre un fondo negro — y el fondo que la rodea tenía exactamente el mismo error al revés. Los dos usan ya el token del tema. Y otro más: escribía el modo de color en «data-theme», que guarda el identificador del tema y no el modo, lo que desactivaba las reglas de color de sintaxis hasta el siguiente repintado.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong>La tarjeta de GitHub se salía por arriba del panel:</strong> al crecer con la sección de capacidades, un contenedor centrado que desborda recorta por igual arriba y abajo, así que el logo y el título quedaban fuera de la zona visible y no había forma de subir hasta ellos. Ahora se centra sólo cuando cabe, y tiene margen garantizado a cualquier tamaño de ventana.</span></li>
+                </ul>
+              </div>
+
+              <div class="news-version">
+                <h2>Versión 1.0.47</h2>
+                <span class="news-tag">Estable</span>
                 <span class="news-date">12 de septiembre de 2026</span>
               </div>
               <div class="news-block news-block--new">
@@ -490,7 +513,7 @@
           </a>
           <p>El asistente de IA para programar, hecho para Windows.</p>
         </div>
-        <span class="footer-version"><i aria-hidden="true"></i>v1.0.47 · MIT</span>
+        <span class="footer-version"><i aria-hidden="true"></i>v1.0.48 · MIT</span>
       </div>
       <div class="footer-grid">
         <nav class="footer-col" aria-label="Producto">
