@@ -32,7 +32,31 @@ export function shouldFetchPreviewLogs(input: PreviewPollInput): boolean {
   if (input.desktop) return true
   if (input.status === "starting") return true
   if (input.building) return true
+  // Un arranque que acaba en error deja sus últimas líneas —justo las que explican el fallo—
+  // después del último sondeo de "starting". Sin esta vuelta extra la consola se queda en la
+  // penúltima línea y el motivo no llega a verse.
+  if (input.status === "error") return true
   return false
+}
+
+export type PreviewLogsVisibility = PreviewPollInput & {
+  /** Líneas ya recibidas: una consola vacía es peor que ninguna consola. */
+  lines: number
+}
+
+/**
+ * Si la cola de logs debe estar en pantalla.
+ *
+ * Se traía ya para proyectos web mientras arrancan (shouldFetchPreviewLogs) y se tiraba, porque
+ * la consola sólo se pintaba en la rama de escritorio: el usuario miraba un panel en blanco con
+ * la palabra "Iniciando…" durante un minuto teniendo la salida real a mano.
+ */
+export function shouldShowPreviewLogs(input: PreviewLogsVisibility): boolean {
+  // La app de escritorio no tiene otra ventana dentro de Tiancode: su consola es el panel.
+  if (input.desktop) return true
+  if (input.lines === 0) return false
+  if (input.building) return true
+  return input.status === "starting" || input.status === "error"
 }
 
 // ── Espejo de la ventana de escritorio ─────────────────────────────────────────

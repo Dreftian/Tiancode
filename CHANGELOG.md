@@ -4,6 +4,80 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.48] — 2026-09-12
+### La vista previa por fin te dice qué pasó, y el asistente de bienvenida cabe en la pantalla
+
+#### Cuando algo falla, ahora se ve
+Lo que hacía que la vista previa pareciera poco profesional no era el diseño: eran los momentos en
+que algo iba mal.
+
+- **Una compilación fallida no mostraba absolutamente nada.** El servidor marcaba el fallo y
+  guardaba hasta 20 errores con archivo y línea — y la interfaz no los leía nunca. Ahora salen en un
+  panel, cada uno como `src/App.tsx:12 — mensaje`, **y la ubicación es pulsable**: te lleva al
+  archivo en la pestaña Código. Con botones para reintentar y para mandárselos al agente.
+- **Y encima los etiquetaba mal**: un error de compilación se mostraba como «No se pudo cargar
+  {url} — ¿está el servidor arrancado?», cuando el servidor estaba perfectamente.
+- **«Starting…» era una palabra sola sobre un panel en blanco durante un minuto.** El log del
+  servidor ya se estaba descargando y se tiraba a la basura, porque la consola sólo se dibujaba para
+  proyectos de escritorio. Ahora se ve mientras arranca o compila.
+  **Con censura de secretos**: ese log es el que imprime tu propio proyecto, así que se enmascaran
+  valores de variables tipo `*_TOKEN` / `*_SECRET` / `*_PASSWORD`, cabeceras `Bearer`, URLs con
+  contraseña y formatos conocidos (`sk-…`, `ghp_…`, JWT). Se enmascara el valor, nunca la línea, y
+  antes de mostrarlo, así que lo que copias al portapapeles ya va limpio.
+- **El punto de estado se ponía verde cuando no había nada corriendo**, con la etiqueta «Fit»
+  (que es el control de zoom). Verde y «Fit» se leen como «tu app está funcionando».
+
+#### Ahora se puede leer
+Los avisos de error estaban en **1,24:1 de contraste** sobre el tema claro que la app usa por
+defecto — el botón «Reparar con IA», el interruptor del inspector, la franja de error de ejecución.
+El mínimo accesible es 4,5:1. Se midieron uno a uno los reemplazos en vez de confiar en los tokens:
+de hecho el par de aviso «warning» **tampoco pasa** (2,35:1), así que no se usó. Ahora van entre
+5,2:1 y 17:1.
+
+También: los tres indicadores de estado tienen ya un hueco de ancho fijo, así que el selector de
+dispositivo y el zoom dejan de deslizarse cada vez que el agente escribe un archivo; y hay guarda de
+`prefers-reduced-motion`, que este archivo era el único sin ella.
+
+#### La pestaña Código
+- **El resaltador estaba hecho a mano y se equivocaba**: un simple `// don't` dejaba las cuatro
+  líneas siguientes pintadas de verde (la comilla abría un literal que nunca se cerraba), ignoraba
+  los comentarios `#` de Python, y regeneraba 192 KB de HTML en cada pulsación de tecla. Sus 15
+  colores fijos fallaban todos el contraste sobre fondo claro.
+  Se sustituye por el visor que este repo ya trae — con shiki, tema por variables CSS, virtualización
+  para archivos grandes y modo diff. **Las líneas para conectarlo llevaban tiempo ahí, sin usar.**
+- La edición no se pierde: pasa a un botón explícito, con un editor sin HTML inyectado, y el
+  autoguardado a los 500 ms sigue igual. El botón «Guardar» era decorativo — el autoguardado limpiaba
+  el estado antes de que a nadie le diera tiempo a pulsarlo — y ahora dice si está guardando.
+- **«Renombrar» no renombraba.** El backend sólo sabe escribir: no hay mover ni borrar, así que
+  escribía el contenido en la ruta nueva y dejaba el archivo original. Ahora se llama «Guardar en
+  otra ruta», que es lo que hace.
+- Fuera 125 líneas de insignias de archivo hechas a mano, con 8 emojis teñidos con clases de color
+  que a un emoji no le hacen nada. Cada fila ya tenía su icono real al lado.
+
+#### Asistente de bienvenida
+Más bonito, y sobre todo **la mitad de alto**: de ~500 px a ~250 px. Importa porque la app lo abre
+en una ventana de 600 px — **el primer paso no cabía y salía con barra de desplazamiento**.
+
+- **De 3 pasos a 2.** El paso del proveedor preguntaba un sí/no cuyo «no» cuesta una tecla y cuyo
+  «sí» es la única respuesta útil en una instalación nueva, que no tiene ningún proveedor. Ahora se
+  abre siempre, y el asistente lo dice en vez de hacerlo por sorpresa.
+- **Un fallo real que llevaba ahí desde siempre**: para decidir si pintar en claro u oscuro
+  comparaba el ajuste `"system"` con `"dark"`, y eso nunca es cierto. En un equipo con tema oscuro,
+  **la primerísima pantalla que ve alguien se pintaba entera en claro sobre un fondo negro.** El
+  fondo que la rodea tenía exactamente el mismo error al revés. Los dos usan ya el token del tema.
+- Otro: escribía el modo de color en `data-theme`, que guarda el **identificador del tema**, no el
+  modo. Eso desactivaba las reglas de color de sintaxis hasta el siguiente repintado.
+- Controles a mano sustituidos por los del sistema de diseño, todo con tokens, progreso legible de
+  un vistazo, y adaptable por consulta de contenedor en vez de por ancho de ventana.
+
+#### GitHub
+La tarjeta se salía por arriba del panel. Al crecer con la sección de capacidades, un contenedor
+centrado que desborda **recorta por igual arriba y abajo**, así que el logo y el título quedaban
+fuera de la zona visible y no había forma de subir hasta ellos. Ahora se centra sólo cuando cabe, y
+tiene margen garantizado a cualquier tamaño de ventana.
+
+Typecheck 27/27 · Lint 0 errores · 927 tests de frontend (+21) · 144 de escritorio · 54 del puente.
+
 ## [1.0.47] — 2026-09-12
 ### Seguridad: el agente ya no puede leer una página que tú no ves. Y sí puede usar tu PC
 

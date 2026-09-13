@@ -1,3 +1,4 @@
+import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
 import { IconButtonV2 } from "@tiancode-ai/ui/v2/icon-button-v2"
 import { Icon as IconV2 } from "@tiancode-ai/ui/v2/icon"
 import { SelectV2 } from "@tiancode-ai/ui/v2/select-v2"
@@ -24,8 +25,23 @@ import { buildPreviewAgentScript, type PreviewAgentAction } from "./preview-agen
 import { PREVIEW_RETRY_MAX_ATTEMPTS, isRetryablePreviewLoadFailure, previewRetryDelay, samePreviewUrl } from "./live-preview-retry"
 import { iframePreviewUrl, usesIframePreview } from "./live-preview-transport"
 import { orientedPreviewDimensions } from "./preview-experience"
-import { reactToBuild, shortenBuildTrigger } from "./live-preview-build"
-import { mirrorFrameInterval, previewPollInterval, shouldArmMirror, shouldFetchPreviewLogs } from "./preview-poll"
+import {
+  buildErrorLocation,
+  failedBuildErrors,
+  previewFailureCopy,
+  previewStatusLabel,
+  previewStatusTone,
+  reactToBuild,
+  redactPreviewLogLine,
+  shortenBuildTrigger,
+} from "./live-preview-build"
+import {
+  mirrorFrameInterval,
+  previewPollInterval,
+  shouldArmMirror,
+  shouldFetchPreviewLogs,
+  shouldShowPreviewLogs,
+} from "./preview-poll"
 import { clampZoom, fittedPreviewViewport, nextZoomStep, type PreviewZoom } from "./preview-viewport"
 import { createReloadScheduler } from "./live-preview-reload"
 import "./live-preview.css"
@@ -213,7 +229,7 @@ function ToolButton(props: {
       onClick={props.onClick}
       title={props.title}
       aria-pressed={props.pressed}
-      class="flex h-6 shrink-0 items-center gap-1 rounded-md px-1.5 text-11-regular text-text-weak transition-colors hover:bg-v2-overlay-simple-overlay-hover hover:text-text-base disabled:opacity-40 data-[pressed]:bg-v2-overlay-simple-overlay-active data-[pressed]:text-text-base"
+      class="flex h-6 shrink-0 items-center gap-1 rounded-md px-1.5 text-11-regular text-v2-text-text-muted transition-colors hover:bg-v2-overlay-simple-overlay-hover hover:text-v2-text-text-base disabled:opacity-40 data-[pressed]:bg-v2-overlay-simple-overlay-pressed data-[pressed]:text-v2-text-text-base"
     >
       {props.children}
     </button>
@@ -785,7 +801,8 @@ export function LivePreview(props: {
 
           win.addEventListener("error", (event: unknown) => {
             const ev = event as ErrorEvent
-            const errorMsg = ev.message || (ev.error && String(ev.error.message)) || "Error de ejecución en la vista previa"
+            const errorMsg =
+              ev.message || (ev.error && String(ev.error.message)) || language.t("livePreview.issue.runtimeDefault")
             setPreviewIssue({
               type: "runtime",
               message: errorMsg,
@@ -797,7 +814,9 @@ export function LivePreview(props: {
             const ev = event as PromiseRejectionEvent
             const reason = ev.reason as unknown
             const reasonRecord = typeof reason === "object" && reason !== null ? (reason as Record<string, unknown>) : undefined
-            const errorMsg = (reasonRecord?.message as string | undefined) || String(reason || "Promesa rechazada no controlada")
+            const errorMsg =
+              (reasonRecord?.message as string | undefined) ||
+              String(reason || language.t("livePreview.issue.unhandledRejection"))
             setPreviewIssue({
               type: "runtime",
               message: errorMsg,
@@ -1139,7 +1158,7 @@ export function LivePreview(props: {
             if (!body) {
               setPreviewIssue({
                 type: "whitescreen",
-                message: "Pantalla en blanco detectada: el documento no contiene cuerpo (<body>) renderizado.",
+                message: language.t("livePreview.issue.whiteScreen.noBody"),
                 url: iframeUrl(),
               })
               return
@@ -1155,7 +1174,7 @@ export function LivePreview(props: {
             if (visible.length === 0 && !hasText) {
               setPreviewIssue({
                 type: "whitescreen",
-                message: "Pantalla en blanco detectada: 0 elementos renderizados en la vista previa tras 4 segundos de carga.",
+                message: language.t("livePreview.issue.whiteScreen.empty"),
                 url: iframeUrl(),
               })
             }
@@ -1193,15 +1212,18 @@ export function LivePreview(props: {
   }
 
   const askAiToFix = (errorDetails?: string) => {
-    const errorText = errorDetails || fail()?.description || devServer()?.errorMessage || "Error en la vista previa"
+    const errorText =
+      errorDetails || fail()?.description || devServer()?.errorMessage || language.t("livePreview.issue.runtimeDefault")
     const currentUrl = iframeUrl() || fail()?.url || devServer()?.url || ""
+    // El texto aparece como mensaje del usuario en el chat, así que va en su idioma y no en el
+    // de quien escribió el panel.
     const prompt = [
-      "Por favor soluciona el siguiente error que ocurre en la vista previa de la aplicación:",
-      currentUrl ? `Destino/Archivo: ${currentUrl}` : "",
+      language.t("livePreview.fixPrompt.intro"),
+      currentUrl ? language.t("livePreview.fixPrompt.target", { url: currentUrl }) : "",
       "```",
       errorText,
       "```",
-      "Analiza el código del proyecto, localiza la causa del fallo y corrige los archivos para que la vista previa funcione correctamente.",
+      language.t("livePreview.fixPrompt.outro"),
     ]
       .filter(Boolean)
       .join("\n\n")
@@ -1283,7 +1305,9 @@ export function LivePreview(props: {
       ? { Authorization: `Basic ${authTokenFromCredentials({ username: http.username ?? "tiancode", password })}` }
       : undefined
   }
-  const [desktopLogs, setDesktopLogs] = createSignal<string[]>([])
+  // Cola de stdout/stderr del proceso gestionado. La ve tanto la consola del Sandbox como la
+  // espera de un proyecto web mientras arranca, así que no es sólo "de escritorio".
+  const [serverLogs, setServerLogs] = createSignal<string[]>([])
   const fetchDevServerLogs = async () => {
     const dir = devServerDirectory()
     const headers = devServerHeaders()
@@ -1291,7 +1315,9 @@ export function LivePreview(props: {
     if (!dir || !url) return
     try {
       const res = await fetch(previewLogsUrl(url, dir), { headers })
-      if (res.ok) setDesktopLogs((await res.json()) as string[])
+      // Se enmascara al entrar, una vez por respuesta: lo que se pinta y lo que se copia al
+      // portapapeles son entonces el mismo texto, sin la clave que el dev server haya impreso.
+      if (res.ok) setServerLogs(((await res.json()) as string[]).map(redactPreviewLogLine))
     } catch {
       // ignore
     }
@@ -2081,21 +2107,26 @@ export function LivePreview(props: {
     }
   }
 
+  /** "Portátil 1366×768": el nombre se traduce, las medidas no. */
+  const devicePreset = (id: keyof typeof DEVICE_PRESETS, name: string) =>
+    `${name} ${DEVICE_PRESETS[id].width}×${DEVICE_PRESETS[id].height}`
+
   const deviceOptions = () => [
-    { id: "fit" as const, label: "Ajustar al entorno (Fluido)" },
-    { id: "desktop" as const, label: "Escritorio FHD 1920×1080" },
-    { id: "desktopCompact" as const, label: "Escritorio 1440×900" },
-    { id: "macbook" as const, label: "MacBook Pro 1512×982" },
-    { id: "laptop" as const, label: "Portátil 1366×768" },
-    { id: "tablet" as const, label: "iPad Air/Pro 820×1180" },
-    { id: "tabletCompact" as const, label: "iPad Mini 768×1024" },
-    { id: "androidTablet" as const, label: "Android Tablet 800×1280" },
-    { id: "mobile" as const, label: "iPhone 16 / 15 Pro 393×852" },
-    { id: "mobileMax" as const, label: "iPhone 16 / 15 Pro Max 430×932" },
-    { id: "androidPhone" as const, label: "Android Galaxy S24 412×915" },
-    { id: "mobileCompact" as const, label: "Móvil Compacto 375×667" },
-    { id: "tv" as const, label: "Monitor 2K/TV 2560×1440" },
-    { id: "custom" as const, label: language.t("livePreview.device.custom") || "Personalizado" },
+    { id: "fit" as const, label: language.t("liveView.device.fluid") },
+    { id: "desktop" as const, label: devicePreset("desktop", language.t("livePreview.device.desktop")) },
+    { id: "desktopCompact" as const, label: devicePreset("desktopCompact", language.t("livePreview.device.desktop")) },
+    // Nombres de producto: no se traducen en ningún idioma.
+    { id: "macbook" as const, label: devicePreset("macbook", "MacBook Pro") },
+    { id: "laptop" as const, label: devicePreset("laptop", language.t("livePreview.device.laptop")) },
+    { id: "tablet" as const, label: devicePreset("tablet", "iPad Air/Pro") },
+    { id: "tabletCompact" as const, label: devicePreset("tabletCompact", "iPad Mini") },
+    { id: "androidTablet" as const, label: devicePreset("androidTablet", language.t("livePreview.device.androidTablet")) },
+    { id: "mobile" as const, label: devicePreset("mobile", "iPhone 16 / 15 Pro") },
+    { id: "mobileMax" as const, label: devicePreset("mobileMax", "iPhone 16 / 15 Pro Max") },
+    { id: "androidPhone" as const, label: devicePreset("androidPhone", language.t("livePreview.device.android")) },
+    { id: "mobileCompact" as const, label: devicePreset("mobileCompact", language.t("livePreview.device.mobile")) },
+    { id: "tv" as const, label: devicePreset("tv", language.t("livePreview.device.tv")) },
+    { id: "custom" as const, label: language.t("livePreview.device.custom") },
   ]
 
   const setCustomDimension = (axis: "width" | "height", value: string) => {
@@ -2103,28 +2134,33 @@ export function LivePreview(props: {
     setCustomSize((size) => ({ ...size, [axis]: Number.isFinite(parsed) ? clamp(parsed, CUSTOM_MIN, CUSTOM_MAX) : size[axis] }))
   }
 
-  const statusTone = () => {
-    const dev = devServer()
-    if (dev) {
-      if (dev.status === "ready") return "bg-[var(--v2-state-fg-success)]"
-      if (dev.status === "starting") return "bg-[var(--v2-state-fg-warning)]"
-      if (dev.status === "error") return "bg-[var(--v2-state-fg-danger)]"
-      return "bg-[var(--v2-state-fg-info)]"
-    }
-    if (fail()) return "bg-[var(--v2-state-fg-danger)]"
-    if (state()?.loading) return "bg-[var(--v2-state-fg-warning)]"
-    return "bg-[var(--v2-state-fg-success)]"
-  }
+  const statusInput = () => ({
+    status: devServer()?.status,
+    failed: !!fail(),
+    loading: state()?.loading === true,
+  })
 
-  const devServerStatusLabel = () => {
-    const dev = devServer()
-    if (!dev) return undefined
-    if (dev.status === "starting") return language.t("livePreview.starting")
-    if (dev.status === "ready") return language.t("livePreview.ready")
-    if (dev.status === "stopped") return language.t("livePreview.stopped")
-    if (dev.status === "error") return language.t("livePreview.serverError")
-    return language.t("livePreview.idle")
-  }
+  const STATUS_TONE_CLASS = {
+    success: "bg-[var(--v2-state-fg-success)]",
+    warning: "bg-[var(--v2-state-fg-warning)]",
+    danger: "bg-[var(--v2-state-fg-danger)]",
+    info: "bg-[var(--v2-state-fg-info)]",
+    // Nada gestionado ha contestado: gris, porque no hay nada que esté yendo bien.
+    neutral: "bg-v2-icon-icon-muted",
+  } as const
+
+  const statusTone = () => STATUS_TONE_CLASS[previewStatusTone(statusInput())]
+
+  const STATUS_LABEL_KEY = {
+    starting: "livePreview.starting",
+    ready: "livePreview.ready",
+    stopped: "livePreview.stopped",
+    serverError: "livePreview.serverError",
+    loadFailed: "livePreview.status.failed",
+    idle: "livePreview.idle",
+  } as const
+
+  const devServerStatusLabel = () => language.t(STATUS_LABEL_KEY[previewStatusLabel(statusInput())])
 
   const devServerRunning = () => devServer()?.status === "ready" || devServer()?.status === "starting"
 
@@ -2148,6 +2184,39 @@ export function LivePreview(props: {
     const full = devServer()?.build?.trigger
     return full ? language.t("livePreview.buildingFile", { file: full }) : buildLabel()
   }
+
+  // Un build fallido deja el servidor "ready" sirviendo la última salida que sí compiló: estos
+  // errores son la única señal de que lo que se ve en pantalla está caducado, y de por qué.
+  const [dismissedBuildSequence, setDismissedBuildSequence] = createSignal(0)
+  const buildErrors = () => {
+    const dev = devServer()
+    if (!dev?.build || dev.build.sequence <= dismissedBuildSequence()) return []
+    return failedBuildErrors({ build: dev.build, errors: dev.errors })
+  }
+  const dismissBuildErrors = () => setDismissedBuildSequence(devServer()?.build?.sequence ?? 0)
+  // "Reintentar" aquí es volver a compilar: arrancar la vista previa ejecuta el build del
+  // proyecto (dev-server-manager). Recargar el iframe sólo volvería a pintar lo mismo de antes.
+  const retryBuild = () => void devServerAction("restart")
+  /** El texto que se le manda al agente: un error por línea, con su archivo y su línea. */
+  const buildErrorReport = () =>
+    buildErrors()
+      .map((error) => {
+        const where = buildErrorLocation(error)
+        return where ? `${where}: ${error.message}` : error.message
+      })
+      .join("\n")
+
+  // Con errores de compilación en pantalla, "no se pudo cargar la URL" sobra: el panel de arriba
+  // ya dice qué pasa y lo dice mejor.
+  const loadFailure = () => (buildErrors().length > 0 ? null : fail())
+
+  const showLogTail = () =>
+    shouldShowPreviewLogs({
+      status: devServer()?.status,
+      building: devServer()?.build?.running === true,
+      desktop: devServer()?.isDesktop === true,
+      lines: serverLogs().length,
+    })
 
   return (
     <div class="flex size-full min-h-0 flex-col" role="region" aria-label={language.t("liveView.tab.app")}>
@@ -2197,54 +2266,55 @@ export function LivePreview(props: {
 
       {/* Fila 2: estado, tamaño de dispositivo y escala. */}
       <div class="flex min-w-0 shrink-0 flex-wrap items-center gap-1 border-b border-v2-border-border-muted px-1.5 py-1">
-        <span
-          class={`size-1.5 shrink-0 rounded-full ${statusTone()}`}
-          title={devServerStatusLabel() ?? (url() || undefined)}
-          aria-hidden="true"
-        />
-        <Show
-          when={isBuilding()}
-          fallback={
-            <span class="max-w-28 shrink truncate text-11-regular text-text-weak">
-              {devServerStatusLabel() ?? language.t("livePreview.fit")}
-            </span>
-          }
-        >
-          {/* shrink-0: in a narrow panel the chip wraps to its own line instead of being cut
-              mid-word ("Compilando dis…"), which read like a file called "dis". */}
+        {/* Ranura de ancho fijo: los tres chips se excluyen entre sí y miden distinto, así que
+            el selector de dispositivo y el zoom se desplazaban en cada archivo que escribía el
+            agente, justo cuando el usuario iba a pulsarlos. */}
+        <div class="live-preview-status-slot">
           <span
-            class="flex min-w-0 shrink-0 items-center gap-1.5 rounded-md bg-[var(--v2-state-fg-warning)]/10 px-1.5 py-0.5 text-11-regular whitespace-nowrap text-[var(--v2-state-fg-warning)]"
-            role="status"
-            aria-live="polite"
-            title={buildLabelTitle()}
+            class={`size-1.5 shrink-0 rounded-full ${statusTone()}`}
+            title={devServerStatusLabel()}
+            aria-hidden="true"
+          />
+          <Show
+            when={isBuilding()}
+            fallback={
+              <span class="min-w-0 truncate text-11-regular text-v2-text-text-muted">{devServerStatusLabel()}</span>
+            }
           >
-            <Spinner class="size-3 shrink-0" />
-            <span>{buildLabel()}</span>
-          </span>
-        </Show>
-        <Show when={!isBuilding() && props.activeEditFile?.()}>
-          {(file) => (
             <span
-              class="flex min-w-0 shrink-0 items-center gap-1.5 rounded-md bg-[var(--v2-state-fg-info)]/10 px-1.5 py-0.5 text-11-regular whitespace-nowrap text-[var(--v2-state-fg-info)]"
+              class="flex min-w-0 items-center gap-1.5 rounded-md bg-v2-state-bg-warning px-1.5 py-0.5 text-11-regular whitespace-nowrap text-v2-text-text-base"
               role="status"
               aria-live="polite"
-              title={language.t("livePreview.writingFile", { file: file() })}
+              title={buildLabelTitle()}
             >
-              <IconV2 name="edit" class="size-3 shrink-0" />
-              <span>{shortenBuildTrigger(file()) ?? file()}</span>
+              <Spinner class="size-3 shrink-0" />
+              <span class="min-w-0 truncate">{buildLabel()}</span>
             </span>
-          )}
-        </Show>
-        <Show when={!isBuilding() && !props.activeEditFile?.() && devServer()?.build?.ok === true && devServer()?.build?.durationMs}>
-          {(duration) => (
-            <span
-              class="shrink-0 text-11-regular text-text-weak/70 tabular-nums"
-              title={language.t("livePreview.builtIn", { ms: String(duration()) })}
-            >
-              {(duration() / 1000).toFixed(1)}s
-            </span>
-          )}
-        </Show>
+          </Show>
+          <Show when={!isBuilding() && props.activeEditFile?.()}>
+            {(file) => (
+              <span
+                class="flex min-w-0 items-center gap-1.5 rounded-md bg-v2-state-bg-info px-1.5 py-0.5 text-11-regular whitespace-nowrap text-v2-state-fg-info"
+                role="status"
+                aria-live="polite"
+                title={language.t("livePreview.writingFile", { file: file() })}
+              >
+                <IconV2 name="edit" class="size-3 shrink-0" />
+                <span class="min-w-0 truncate">{shortenBuildTrigger(file()) ?? file()}</span>
+              </span>
+            )}
+          </Show>
+          <Show when={!isBuilding() && !props.activeEditFile?.() && devServer()?.build?.ok === true && devServer()?.build?.durationMs}>
+            {(duration) => (
+              <span
+                class="shrink-0 text-11-regular text-v2-text-text-faint tabular-nums"
+                title={language.t("livePreview.builtIn", { ms: String(duration()) })}
+              >
+                {(duration() / 1000).toFixed(1)}s
+              </span>
+            )}
+          </Show>
+        </div>
         <SelectV2
           appearance="base"
           class="w-48 max-w-full shrink"
@@ -2274,21 +2344,22 @@ export function LivePreview(props: {
         <button
           type="button"
           data-pressed={inspectActive() || undefined}
+          aria-pressed={inspectActive()}
           title={`${language.t("livePreview.designToCode.title")} (Ctrl+Alt+I)`}
           onClick={() => setInspectActive(!inspectActive())}
-          class={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium border transition-all cursor-pointer ${
+          class={`flex shrink-0 items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium border transition-colors cursor-pointer ${
             inspectActive()
-              ? "bg-cyan-500/20 text-cyan-300 border-cyan-400 shadow-[0_0_8px_rgba(56,189,248,0.3)]"
-              : "bg-v2-background-bg-base text-text-weak border-v2-border-border-muted hover:text-text-base hover:border-v2-border-border-strong"
+              ? "bg-v2-state-bg-info text-v2-state-fg-info border-v2-state-border-info"
+              : "bg-v2-background-bg-base text-v2-text-text-muted border-v2-border-border-muted hover:text-v2-text-text-base hover:border-v2-border-border-strong"
           }`}
         >
           <span>{language.t("livePreview.designToCode.label")}</span>
         </button>
 
         <Show when={inspectActive()}>
-          <span class="inline-flex items-center gap-1 rounded-full bg-cyan-500/20 px-2 py-0.5 font-mono text-[10px] font-semibold text-cyan-300 border border-cyan-400/40 animate-pulse select-none">
-            <span class="size-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_#22d3ee]" />
-            INSPECTOR ON
+          <span class="inline-flex shrink-0 items-center gap-1 rounded-full border border-v2-state-border-info bg-v2-state-bg-info px-2 py-0.5 text-[10px] font-semibold text-v2-state-fg-info select-none">
+            <span class="live-preview-pulse size-1.5 rounded-full bg-v2-state-fg-info" aria-hidden="true" />
+            {language.t("livePreview.inspector.active")}
           </span>
         </Show>
 
@@ -2302,7 +2373,7 @@ export function LivePreview(props: {
             class="h-6 w-14 rounded-md border border-v2-border-border-muted bg-v2-background-bg-base px-1.5 text-11-regular text-text-base outline-none focus:border-v2-border-border-strong"
             aria-label={language.t("livePreview.custom.width")}
           />
-          <span class="text-11-regular text-text-faint" aria-hidden="true">
+          <span class="text-11-regular text-v2-text-text-faint" aria-hidden="true">
             ×
           </span>
           <input
@@ -2321,7 +2392,7 @@ export function LivePreview(props: {
           </ToolButton>
           <button
             type="button"
-            class="min-w-10 rounded-md px-1 text-center text-11-regular text-text-weak tabular-nums transition-colors hover:bg-v2-overlay-simple-overlay-hover hover:text-text-base"
+            class="min-w-10 rounded-md px-1 text-center text-11-regular text-v2-text-text-muted tabular-nums transition-colors hover:bg-v2-overlay-simple-overlay-hover hover:text-v2-text-text-base"
             title={language.t("livePreview.zoomReset")}
             onClick={zoomActualSize}
           >
@@ -2338,115 +2409,163 @@ export function LivePreview(props: {
 
       <Show when={inspectActive() && selectedElement()}>
         {(info) => (
-          <div class="flex shrink-0 items-center justify-between gap-3 border-b border-cyan-500/30 bg-cyan-950/40 px-3 py-1.5 font-mono text-[11px] text-cyan-200">
+          <div class="flex shrink-0 items-center justify-between gap-3 border-b border-v2-state-border-info bg-v2-state-bg-info px-3 py-1.5 font-mono text-[11px] text-v2-text-text-base">
             <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-              <span class="rounded bg-cyan-500/25 px-1.5 py-0.5 font-bold text-cyan-300">
+              <span class="rounded bg-v2-background-bg-base px-1.5 py-0.5 font-bold text-v2-state-fg-info">
                 &lt;{info().tag}&gt;
               </span>
               <Show when={info().id}>
-                <span class="text-amber-300 font-semibold">#{info().id}</span>
+                <span class="font-semibold">#{info().id}</span>
               </Show>
               <Show when={info().classes}>
-                <span class="max-w-[280px] truncate text-cyan-400/90" title={info().classes}>
+                <span class="max-w-[280px] truncate text-v2-state-fg-info" title={info().classes}>
                   .{info().classes.split(/\s+/).join(".")}
                 </span>
               </Show>
-              <span class="text-text-faint">|</span>
-              <span class="text-text-weak" title="Dimensiones">
-                📐 {info().dimensions}
+              <span aria-hidden="true">|</span>
+              {/* `margin` y `padding` se escriben como las propiedades CSS que son: el valor de al
+                  lado es CSS literal, no prosa traducible. */}
+              <span title={info().dimensions}>
+                {language.t("livePreview.selection.size")}: {info().dimensions}
               </span>
-              <span class="text-text-faint">|</span>
-              <span class="text-text-weak" title="Margin">
-                Margin: {info().margin}
-              </span>
-              <span class="text-text-faint">|</span>
-              <span class="text-text-weak" title="Padding">
-                Padding: {info().padding}
-              </span>
+              <span aria-hidden="true">|</span>
+              <span title={info().margin}>margin: {info().margin}</span>
+              <span aria-hidden="true">|</span>
+              <span title={info().padding}>padding: {info().padding}</span>
             </div>
-            <button
+            <IconButtonV2
               type="button"
-              class="shrink-0 text-text-faint hover:text-text-base cursor-pointer"
+              variant="ghost-muted"
+              size="small"
+              class="shrink-0"
               onClick={() => setSelectedElement(null)}
-              aria-label={language.t("common.close")}
-            >
-              <IconV2 name="xmark-small" size="small" />
-            </button>
+              title={language.t("common.close")}
+              icon={<IconV2 name="xmark-small" size="small" />}
+            />
           </div>
         )}
+      </Show>
+
+      {/* Compilación fallida. El manager deja `status` en "ready" y sólo baja `build.ok`, así que
+          sin esta rama un error de sintaxis no se veía por ninguna parte: la página seguía
+          mostrando la última salida que sí compiló, como si no pasara nada. */}
+      <Show when={buildErrors().length > 0}>
+        <div
+          class="flex shrink-0 flex-col gap-1.5 border-b border-v2-state-border-danger bg-v2-state-bg-danger px-3 py-2"
+          role="status"
+          aria-live="polite"
+        >
+          <div class="flex items-center gap-2">
+            <span class="min-w-0 flex-1 truncate text-11-medium text-v2-state-fg-danger">
+              {language.t("livePreview.buildFailed")}
+            </span>
+            <ButtonV2 type="button" size="small" variant="contrast" onClick={() => askAiToFix(buildErrorReport())}>
+              {language.t("livePreview.fixWithAi")}
+            </ButtonV2>
+            <ButtonV2 type="button" size="small" variant="neutral" onClick={retryBuild}>
+              {language.t("livePreview.retry")}
+            </ButtonV2>
+            <IconButtonV2
+              type="button"
+              variant="ghost-muted"
+              size="small"
+              class="shrink-0"
+              onClick={dismissBuildErrors}
+              title={language.t("common.close")}
+              icon={<IconV2 name="xmark-small" size="small" />}
+            />
+          </div>
+          <ul class="m-0 flex max-h-32 list-none flex-col gap-1 overflow-y-auto p-0 font-mono text-[11px] leading-relaxed text-v2-text-text-base">
+            <For each={buildErrors()}>
+              {(error) => (
+                <li class="flex min-w-0 flex-wrap items-baseline gap-x-2">
+                  <Show when={buildErrorLocation(error)}>
+                    {(location) => (
+                      <Show
+                        when={props.onOpenSource && error.file}
+                        fallback={
+                          <span class="shrink-0 text-v2-state-fg-danger" title={error.file ?? undefined}>
+                            {location()}
+                          </span>
+                        }
+                      >
+                        <button
+                          type="button"
+                          class="shrink-0 cursor-pointer text-v2-state-fg-danger underline underline-offset-2"
+                          title={error.file ?? undefined}
+                          onClick={() => props.onOpenSource?.(error.file!)}
+                        >
+                          {location()}
+                        </button>
+                      </Show>
+                    )}
+                  </Show>
+                  <span class="min-w-0 break-all whitespace-pre-wrap">{error.message}</span>
+                </li>
+              )}
+            </For>
+          </ul>
+        </div>
       </Show>
 
       <Show when={previewIssue()}>
         {(issue) => (
-          <div class="flex shrink-0 items-center justify-between gap-2 border-b border-rose-500/30 bg-rose-500/10 px-3 py-1.5 text-11-regular text-rose-300">
+          <div class="flex shrink-0 items-center justify-between gap-2 border-b border-v2-state-border-danger bg-v2-state-bg-danger px-3 py-1.5 text-11-regular text-v2-state-fg-danger">
             <div class="flex min-w-0 flex-1 items-center gap-2">
-              <span class="shrink-0 text-sm">
-                {issue().type === "whitescreen" ? "⚪" : "⚠️"}
-              </span>
               <span class="min-w-0 flex-1 truncate font-medium" title={issue().message}>
                 {issue().type === "whitescreen"
-                  ? "Pantalla en blanco detectada (0 elementos pintados tras 4s)"
-                  : `Error en la vista previa: ${issue().message}`}
+                  ? language.t("livePreview.issue.whiteScreen")
+                  : language.t("livePreview.issue.runtime", { message: issue().message })}
               </span>
             </div>
             <div class="flex shrink-0 items-center gap-2">
-              <button
-                type="button"
-                class="flex shrink-0 items-center gap-1 rounded bg-amber-500/20 px-2.5 py-1 text-11-medium text-amber-300 hover:bg-amber-500/30 border border-amber-500/30 transition-colors cursor-pointer shadow-sm"
-                onClick={() => askAiToFix(issue().message)}
-              >
-                <span>✨</span>
-                <span>Reparar con Tiancode</span>
-              </button>
-              <button
-                type="button"
-                class="shrink-0 text-11-medium text-text-weak hover:text-text-base cursor-pointer px-1 py-0.5"
-                onClick={() => reloadPreview()}
-              >
+              <ButtonV2 type="button" size="small" variant="contrast" onClick={() => askAiToFix(issue().message)}>
+                {language.t("livePreview.fixWithAi")}
+              </ButtonV2>
+              <ButtonV2 type="button" size="small" variant="neutral" onClick={() => reloadPreview()}>
                 {language.t("livePreview.retry")}
-              </button>
-              <button
+              </ButtonV2>
+              <IconButtonV2
                 type="button"
-                class="shrink-0 text-text-faint hover:text-text-base cursor-pointer"
+                variant="ghost-muted"
+                size="small"
+                class="shrink-0"
                 onClick={() => setPreviewIssue(null)}
-                aria-label={language.t("common.close")}
-              >
-                <IconV2 name="xmark-small" size="small" />
-              </button>
+                title={language.t("common.close")}
+                icon={<IconV2 name="xmark-small" size="small" />}
+              />
             </div>
           </div>
         )}
       </Show>
 
-      <Show when={fail()}>
+      <Show when={loadFailure()}>
         {(failed) => (
-          <div class="flex shrink-0 items-center gap-2 border-b border-v2-border-border-muted px-3 py-1.5 text-11-regular text-[var(--v2-state-fg-danger)]">
+          <div class="flex shrink-0 items-center gap-2 border-b border-v2-state-border-danger bg-v2-state-bg-danger px-3 py-1.5 text-11-regular text-v2-state-fg-danger">
             <span class="min-w-0 flex-1 truncate" title={failed().description}>
-              {language.t("livePreview.loadFailed", { url: failed().url, description: failed().description })}
+              {/* "¿Está el dev server en marcha?" sólo se pregunta cuando de verdad puede estarlo:
+                  con un error de compilación el servidor contestó, y esa pregunta escondía el
+                  mensaje del compilador detrás de un diagnóstico falso. */}
+              {previewFailureCopy({ status: devServer()?.status, compileErrors: devServer()?.errors?.length ?? 0 }) ===
+              "compile"
+                ? failed().description
+                : language.t("livePreview.loadFailed", { url: failed().url, description: failed().description })}
             </span>
-            <button
-              type="button"
-              class="flex shrink-0 items-center gap-1 rounded bg-amber-500/15 px-2 py-0.5 text-11-medium text-amber-300 hover:bg-amber-500/25 transition-colors cursor-pointer"
-              onClick={() => askAiToFix(failed().description)}
-            >
-              <span>✨</span>
-              <span>{language.t("livePreview.fixWithAi") || "Reparar con IA"}</span>
-            </button>
-            <button
-              type="button"
-              class="shrink-0 text-11-medium text-[var(--v2-state-fg-info)] hover:text-text-base cursor-pointer"
-              onClick={retryPreview}
-            >
+            <ButtonV2 type="button" size="small" variant="contrast" onClick={() => askAiToFix(failed().description)}>
+              {language.t("livePreview.fixWithAi")}
+            </ButtonV2>
+            <ButtonV2 type="button" size="small" variant="neutral" onClick={retryPreview}>
               {language.t("livePreview.retry")}
-            </button>
-            <button
+            </ButtonV2>
+            <IconButtonV2
               type="button"
-              class="shrink-0 text-text-faint hover:text-text-base cursor-pointer"
+              variant="ghost-muted"
+              size="small"
+              class="shrink-0"
               onClick={() => setFail(null)}
-              aria-label={language.t("common.close")}
-            >
-              <IconV2 name="xmark-small" size="small" />
-            </button>
+              title={language.t("common.close")}
+              icon={<IconV2 name="xmark-small" size="small" />}
+            />
           </div>
         )}
       </Show>
@@ -2528,7 +2647,7 @@ export function LivePreview(props: {
                 </div>
               </Show>
               <Show when={iframeLoading()}>
-                <div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-v2-background-bg-base px-6 text-center text-12-regular text-text-weak">
+                <div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-v2-background-bg-base px-6 text-center text-12-regular text-v2-text-text-muted">
                   {language.t("livePreview.starting")}
                 </div>
               </Show>
@@ -2536,297 +2655,295 @@ export function LivePreview(props: {
           )}
         </Show>
         <Show when={!iframeUrl() && !previewSurfaceVisible()}>
-          <Show
-            when={devServer()?.isDesktop}
-            fallback={
-              <div class="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center text-12-regular text-text-weak">
-                <span>{previewPlaceholder()}</span>
-                <Show when={devServer()?.status === "idle" || devServer()?.status === "stopped" || devServer()?.status === "error"}>
-                  <div class="flex items-center gap-2">
-                    <button
-                      type="button"
-                      class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[12px] font-medium hover:bg-cyan-500/30 transition-all cursor-pointer shadow-sm"
-                      onClick={() => void devServerAction(devServer()?.status === "stopped" ? "start" : devServer()?.status === "error" ? "restart" : "start")}
-                    >
-                      <span>▶</span>
-                      <span>{devServer()?.status === "error" ? (language.t("livePreview.retry") || "Reintentar") : (language.t("livePreview.startServer") || "Iniciar Vista Previa")}</span>
-                    </button>
-                    <Show when={devServer()?.status === "error"}>
-                      <button
+          <div class="absolute inset-0 flex flex-col overflow-hidden bg-v2-background-bg-base p-4">
+            <Show
+              when={devServer()?.isDesktop}
+              fallback={
+                <div
+                  class="flex min-h-0 flex-col items-center justify-center gap-3 px-6 text-center text-12-regular text-v2-text-text-muted"
+                  classList={{ "flex-1": !showLogTail(), "shrink-0 pb-4": showLogTail() }}
+                >
+                  <span>{previewPlaceholder()}</span>
+                  <Show when={devServer()?.status === "idle" || devServer()?.status === "stopped" || devServer()?.status === "error"}>
+                    <div class="flex items-center gap-2">
+                      <ButtonV2
                         type="button"
-                        class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[12px] font-medium hover:bg-amber-500/30 transition-all cursor-pointer shadow-sm"
-                        onClick={() => askAiToFix(devServer()?.errorMessage || devServer()?.errors?.[0]?.message || "Error al compilar o iniciar el dev server")}
+                        variant="contrast"
+                        onClick={() => void devServerAction(devServer()?.status === "stopped" ? "start" : devServer()?.status === "error" ? "restart" : "start")}
                       >
-                        <span>✨</span>
-                        <span>{language.t("livePreview.fixWithAi") || "Reparar con IA"}</span>
-                      </button>
-                    </Show>
-                  </div>
-                </Show>
-                <Show when={devServer()?.status === "starting"}>
-                  <button
-                    type="button"
-                    class="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[11px] font-medium hover:bg-rose-500/30 transition-all cursor-pointer shadow-sm"
-                    onClick={() => void devServerAction("stop")}
-                  >
-                    <span>⏹</span>
-                    <span>{language.t("livePreview.stop") || "Cancelar"}</span>
-                  </button>
-                </Show>
-              </div>
-            }
-          >
-            <div class="absolute inset-0 flex flex-col overflow-hidden bg-v2-background-bg-base p-4">
-              <div class="flex flex-col gap-3 rounded-xl border border-v2-border-border-muted bg-v2-background-bg-surface p-4 shadow-sm">
-                <div class="flex flex-wrap items-center justify-between gap-2">
-                  <div class="flex min-w-0 flex-1 items-center gap-2.5">
-                    <span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-400 text-lg">
-                      🖥️
-                    </span>
-                    <div class="min-w-0">
-                      <div class="flex flex-wrap items-center gap-2">
-                        <span class="text-13-medium text-text-base">Entorno Desktop Sandbox</span>
-                        <span class="rounded bg-cyan-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-cyan-300">
-                          {devServer()?.framework || "Desktop GUI"}
-                        </span>
+                        {devServer()?.status === "error"
+                          ? language.t("livePreview.retry")
+                          : language.t("livePreview.startServer")}
+                      </ButtonV2>
+                      <Show when={devServer()?.status === "error"}>
+                        <ButtonV2
+                          type="button"
+                          variant="neutral"
+                          onClick={() =>
+                            askAiToFix(
+                              devServer()?.errorMessage ||
+                                devServer()?.errors?.[0]?.message ||
+                                language.t("livePreview.serverError"),
+                            )
+                          }
+                        >
+                          {language.t("livePreview.fixWithAi")}
+                        </ButtonV2>
+                      </Show>
+                    </div>
+                  </Show>
+                  <Show when={devServer()?.status === "starting"}>
+                    <ButtonV2 type="button" size="small" variant="danger" onClick={() => void devServerAction("stop")}>
+                      {language.t("livePreview.stop")}
+                    </ButtonV2>
+                  </Show>
+                </div>
+              }
+            >
+              <>
+                <div class="flex shrink-0 flex-col gap-3 rounded-xl border border-v2-border-border-muted bg-v2-background-bg-layer-01 p-4">
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex min-w-0 flex-1 items-center gap-2.5">
+                      <span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-v2-state-bg-info text-v2-state-fg-info">
+                        <IconV2 name="monitor" />
+                      </span>
+                      <div class="min-w-0">
+                        <div class="flex flex-wrap items-center gap-2">
+                          <span class="text-13-medium text-v2-text-text-base">{language.t("livePreview.desktop.title")}</span>
+                          <span class="rounded bg-v2-state-bg-info px-1.5 py-0.5 text-[10px] font-semibold uppercase text-v2-state-fg-info">
+                            {devServer()?.framework || language.t("livePreview.desktop.badge")}
+                          </span>
+                        </div>
+                        <p class="text-11-regular text-v2-text-text-muted">
+                          {language.t("livePreview.desktop.subtitle")}
+                        </p>
                       </div>
-                      <p class="text-11-regular text-text-weak">
-                        La app abre su propia ventana en Windows; Tiancode la refleja aquí en vivo.
-                      </p>
+                    </div>
+                    <div class="flex shrink-0 items-center gap-2">
+                      <span
+                        class={`size-2 rounded-full ${
+                          devServer()?.status === "ready"
+                            ? "live-preview-pulse bg-[var(--v2-state-fg-success)]"
+                            : devServer()?.status === "starting"
+                              ? "live-preview-pulse bg-[var(--v2-state-fg-warning)]"
+                              : devServer()?.status === "error"
+                                ? "bg-[var(--v2-state-fg-danger)]"
+                                : "bg-v2-icon-icon-muted"
+                        }`}
+                        aria-hidden="true"
+                      />
+                      <span class="text-11-medium text-v2-text-text-muted">
+                        {devServer()?.status === "ready"
+                          ? language.t("livePreview.desktop.running")
+                          : devServer()?.status === "starting"
+                            ? language.t("livePreview.desktop.starting")
+                            : devServer()?.status === "error"
+                              ? language.t("livePreview.desktop.failed")
+                              : language.t("livePreview.stopped")}
+                      </span>
                     </div>
                   </div>
-                  <div class="flex shrink-0 items-center gap-2">
-                    <span
-                      class={`size-2 rounded-full ${
-                        devServer()?.status === "ready"
-                          ? "bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]"
-                          : devServer()?.status === "starting"
-                            ? "bg-amber-400 animate-ping"
-                            : devServer()?.status === "error"
-                              ? "bg-rose-500"
-                              : "bg-neutral-500"
-                      }`}
-                    />
-                    <span class="text-11-medium text-text-weak">
-                      {devServer()?.status === "ready"
-                        ? "En ejecución (Sandbox)"
-                        : devServer()?.status === "starting"
-                          ? "Iniciando proceso..."
-                          : devServer()?.status === "error"
-                            ? "Error al ejecutar"
-                            : "Detenida"}
-                    </span>
-                  </div>
-                </div>
 
-                <div class="flex flex-wrap items-center gap-2 pt-1">
-                  <Show
-                    when={devServer()?.status === "ready"}
-                    fallback={
-                      <Show
-                        when={devServer()?.status === "starting"}
-                        fallback={
-                          <button
-                            type="button"
-                            class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[12px] font-medium hover:bg-cyan-500/30 transition-all cursor-pointer shadow-sm"
-                            onClick={() => void devServerAction(devServer()?.status === "error" ? "restart" : "start")}
-                          >
-                            <span>▶</span>
-                            <span>{devServer()?.status === "error" ? "Reintentar Ejecución" : "Ejecutar Aplicación en Windows"}</span>
-                          </button>
-                        }
-                      >
-                        <button
-                          type="button"
-                          class="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[11px] font-medium hover:bg-rose-500/30 transition-all cursor-pointer shadow-sm"
-                          onClick={() => void devServerAction("stop")}
-                        >
-                          <span>⏹</span>
-                          <span>Cancelar inicio</span>
-                        </button>
-                      </Show>
-                    }
-                  >
-                    <button
-                      type="button"
-                      class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[12px] font-medium hover:bg-rose-500/30 transition-all cursor-pointer shadow-sm"
-                      onClick={() => void devServerAction("stop")}
-                    >
-                      <span>■</span>
-                      <span>Detener Aplicación</span>
-                    </button>
-                    <button
-                      type="button"
-                      class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-neutral-800 text-neutral-300 border border-neutral-700 text-[12px] font-medium hover:bg-neutral-700 transition-all cursor-pointer shadow-sm"
-                      onClick={() => void devServerAction("restart")}
-                    >
-                      <span>↻</span>
-                      <span>Reiniciar</span>
-                    </button>
-                  </Show>
-                  <Show when={devServer()?.command}>
-                    <span
-                      class="ml-auto min-w-0 max-w-full truncate text-11-regular font-mono text-text-faint"
-                      title={devServer()?.command ?? undefined}
-                    >
-                      {devServer()?.command}
-                    </span>
-                  </Show>
-                </div>
-                <Show when={devServer()?.errorMessage}>
-                  <div class="rounded-lg bg-rose-500/10 border border-rose-500/20 px-3 py-2 text-[11px] text-rose-300 flex items-center justify-between gap-2">
-                    <span class="min-w-0 flex-1">{devServer()?.errorMessage}</span>
-                    <button
-                      type="button"
-                      class="flex shrink-0 items-center gap-1 rounded bg-amber-500/20 px-2 py-0.5 text-11-medium text-amber-300 hover:bg-amber-500/30 transition-colors cursor-pointer"
-                      onClick={() => askAiToFix(devServer()?.errorMessage || "")}
-                    >
-                      <span>✨</span>
-                      <span>{language.t("livePreview.fixWithAi") || "Reparar con IA"}</span>
-                    </button>
-                  </div>
-                </Show>
-              </div>
-
-              {/* Espejo de la ventana real de la app. Imagen, no embebido: no se puede pulsar. */}
-              <Show when={mirrorSupported() && devServer()?.isDesktop && devServer()?.status === "ready"}>
-                <div class="mt-3 flex min-h-0 flex-[2] flex-col overflow-hidden rounded-xl border border-v2-border-border-muted bg-neutral-950 shadow-inner">
-                  <div class="flex flex-wrap items-center gap-2 border-b border-neutral-800 px-3 py-2 text-[11px] text-neutral-400">
-                    <span
-                      class={`size-2 shrink-0 rounded-full ${
-                        mirrorStatus() === "live" ? "bg-emerald-400" : "bg-neutral-600"
-                      }`}
-                      aria-hidden="true"
-                    />
-                    <span class="min-w-0 flex-1 truncate font-medium" title={mirrorTitle()}>
-                      {mirrorTitle() ?? "Ventana de la aplicación"}
-                    </span>
-                    <span class="shrink-0 text-[10px] text-neutral-500">solo vista</span>
-                    <button
-                      type="button"
-                      class="shrink-0 cursor-pointer text-[10px] text-neutral-400 transition-colors hover:text-white"
-                      onClick={() => void openMirrorPicker()}
-                    >
-                      Elegir ventana
-                    </button>
-                    <Show when={mirrorFrame()}>
-                      <button
-                        type="button"
-                        class="shrink-0 cursor-pointer text-[10px] text-neutral-400 transition-colors hover:text-white"
-                        onClick={() => void captureMirrorFrame()}
-                      >
-                        Capturar
-                      </button>
-                    </Show>
-                  </div>
-
-                  <div class="relative flex min-h-0 flex-1 items-center justify-center bg-black">
+                  <div class="flex flex-wrap items-center gap-2 pt-1">
                     <Show
-                      when={mirrorFrame()}
+                      when={devServer()?.status === "ready"}
                       fallback={
-                        <div class="px-6 text-center text-[11px] text-neutral-500">
-                          {mirrorStatus() === "searching"
-                            ? "Buscando la ventana de la aplicación…"
-                            : mirrorStatus() === "blank"
-                              ? "La ventana está minimizada o no se puede capturar. Restáurala en el escritorio."
-                              : mirrorStatus() === "gone"
-                                ? "La ventana se cerró."
-                                : mirrorStatus() === "nomatch"
-                                  ? "No se pudo identificar la ventana automáticamente. Usa \"Elegir ventana\"."
-                                  : "Sin imagen todavía."}
-                        </div>
+                        <Show
+                          when={devServer()?.status === "starting"}
+                          fallback={
+                            <ButtonV2
+                              type="button"
+                              variant="contrast"
+                              onClick={() => void devServerAction(devServer()?.status === "error" ? "restart" : "start")}
+                            >
+                              {devServer()?.status === "error"
+                                ? language.t("livePreview.retry")
+                                : language.t("livePreview.desktop.run")}
+                            </ButtonV2>
+                          }
+                        >
+                          <ButtonV2 type="button" size="small" variant="danger" onClick={() => void devServerAction("stop")}>
+                            {language.t("common.cancel")}
+                          </ButtonV2>
+                        </Show>
                       }
                     >
-                      {(frame) => (
-                        <img
-                          src={frame()}
-                          alt="Ventana de la aplicación en ejecución"
-                          class="max-h-full max-w-full object-contain"
-                          draggable={false}
-                        />
-                      )}
+                      <ButtonV2 type="button" variant="danger" onClick={() => void devServerAction("stop")}>
+                        {language.t("livePreview.desktop.stopApp")}
+                      </ButtonV2>
+                      <ButtonV2 type="button" variant="neutral" onClick={() => void devServerAction("restart")}>
+                        {language.t("livePreview.desktop.restart")}
+                      </ButtonV2>
                     </Show>
-
-                    <Show when={mirrorPicking()}>
-                      <div class="absolute inset-0 z-10 overflow-y-auto bg-neutral-950/95 p-3">
-                        <div class="mb-2 flex items-center justify-between text-[11px] text-neutral-400">
-                          <span>Elige la ventana de tu aplicación</span>
-                          <button
-                            type="button"
-                            class="cursor-pointer text-neutral-400 transition-colors hover:text-white"
-                            onClick={() => setMirrorPicking(false)}
-                          >
-                            Cancelar
-                          </button>
-                        </div>
-                        <div class="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-2">
-                          <For each={mirrorSources()}>
-                            {(source) => (
-                              <button
-                                type="button"
-                                class="flex cursor-pointer flex-col gap-1 rounded-lg border border-neutral-800 p-1.5 text-left transition-colors hover:border-cyan-500/50"
-                                onClick={() => chooseMirrorSource(source.id)}
-                              >
-                                <Show when={source.thumb}>
-                                  {(thumb) => (
-                                    <img src={thumb()} alt="" class="h-20 w-full rounded object-cover" draggable={false} />
-                                  )}
-                                </Show>
-                                <span class="truncate text-[10px] text-neutral-300" title={source.name}>
-                                  {source.name}
-                                </span>
-                              </button>
-                            )}
-                          </For>
-                        </div>
-                        <Show when={mirrorSources().length === 0}>
-                          <div class="py-6 text-center text-[11px] text-neutral-500">
-                            No hay ventanas que mostrar.
-                          </div>
-                        </Show>
-                      </div>
+                    <Show when={devServer()?.command}>
+                      <span
+                        class="ml-auto min-w-0 max-w-full truncate text-11-regular font-mono text-v2-text-text-faint"
+                        title={devServer()?.command ?? undefined}
+                      >
+                        {devServer()?.command}
+                      </span>
                     </Show>
                   </div>
+                  <Show when={devServer()?.errorMessage}>
+                    <div class="flex items-center justify-between gap-2 rounded-lg border border-v2-state-border-danger bg-v2-state-bg-danger px-3 py-2 text-[11px] text-v2-state-fg-danger">
+                      <span class="min-w-0 flex-1">{devServer()?.errorMessage}</span>
+                      <ButtonV2
+                        type="button"
+                        size="small"
+                        variant="contrast"
+                        onClick={() => askAiToFix(devServer()?.errorMessage || "")}
+                      >
+                        {language.t("livePreview.fixWithAi")}
+                      </ButtonV2>
+                    </div>
+                  </Show>
                 </div>
-              </Show>
 
-              {/* Consola de logs en vivo */}
-              <div class="mt-3 flex min-h-0 flex-1 flex-col rounded-xl border border-v2-border-border-muted bg-neutral-950 p-3 shadow-inner">
-                <div class="flex items-center justify-between pb-2 border-b border-neutral-800 text-[11px] text-neutral-400">
-                  <span class="font-medium">Consola de ejecución (stdout / stderr)</span>
-                  <div class="flex items-center gap-2">
-                    <button
+                {/* Espejo de la ventana real de la app. Imagen, no embebido: no se puede pulsar. */}
+                <Show when={mirrorSupported() && devServer()?.isDesktop && devServer()?.status === "ready"}>
+                  <div class="mt-3 flex min-h-0 flex-[2] flex-col overflow-hidden rounded-xl border border-v2-border-border-muted bg-v2-background-bg-layer-01">
+                    <div class="flex flex-wrap items-center gap-2 border-b border-v2-border-border-muted px-3 py-2 text-[11px] text-v2-text-text-muted">
+                      <span
+                        class={`size-2 shrink-0 rounded-full ${
+                          mirrorStatus() === "live" ? "bg-[var(--v2-state-fg-success)]" : "bg-v2-icon-icon-muted"
+                        }`}
+                        aria-hidden="true"
+                      />
+                      <span class="min-w-0 flex-1 truncate font-medium text-v2-text-text-base" title={mirrorTitle()}>
+                        {mirrorTitle() ?? language.t("livePreview.mirror.window")}
+                      </span>
+                      <span class="shrink-0 text-[10px]">{language.t("livePreview.mirror.viewOnly")}</span>
+                      <ButtonV2 type="button" size="small" variant="ghost-muted" onClick={() => void openMirrorPicker()}>
+                        {language.t("livePreview.mirror.choose")}
+                      </ButtonV2>
+                      <Show when={mirrorFrame()}>
+                        <ButtonV2 type="button" size="small" variant="ghost-muted" onClick={() => void captureMirrorFrame()}>
+                          {language.t("liveView.capture")}
+                        </ButtonV2>
+                      </Show>
+                    </div>
+
+                    {/* Fondo oscuro fijo: es el marco de una fotografía de otra ventana, no una
+                        superficie de la app, y un fondo claro teñiría la imagen. */}
+                    <div class="relative flex min-h-0 flex-1 items-center justify-center bg-[var(--v2-grey-1200)]">
+                      <Show
+                        when={mirrorFrame()}
+                        fallback={
+                          <div class="px-6 text-center text-[11px] text-[var(--v2-grey-500)]">
+                            {mirrorStatus() === "searching"
+                              ? language.t("livePreview.mirror.searching")
+                              : mirrorStatus() === "blank"
+                                ? language.t("livePreview.mirror.blank")
+                                : mirrorStatus() === "gone"
+                                  ? language.t("livePreview.mirror.gone")
+                                  : mirrorStatus() === "nomatch"
+                                    ? language.t("livePreview.mirror.nomatch")
+                                    : language.t("livePreview.mirror.idle")}
+                          </div>
+                        }
+                      >
+                        {(frame) => (
+                          <img
+                            src={frame()}
+                            alt={language.t("livePreview.mirror.alt")}
+                            class="max-h-full max-w-full object-contain"
+                            draggable={false}
+                          />
+                        )}
+                      </Show>
+
+                      <Show when={mirrorPicking()}>
+                        <div class="absolute inset-0 z-10 overflow-y-auto bg-v2-background-bg-base p-3">
+                          <div class="mb-2 flex items-center justify-between text-[11px] text-v2-text-text-muted">
+                            <span>{language.t("livePreview.mirror.pickTitle")}</span>
+                            <ButtonV2
+                              type="button"
+                              size="small"
+                              variant="ghost-muted"
+                              onClick={() => setMirrorPicking(false)}
+                            >
+                              {language.t("common.cancel")}
+                            </ButtonV2>
+                          </div>
+                          <div class="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-2">
+                            <For each={mirrorSources()}>
+                              {(source) => (
+                                <button
+                                  type="button"
+                                  class="flex cursor-pointer flex-col gap-1 rounded-lg border border-v2-border-border-muted p-1.5 text-left transition-colors hover:border-v2-border-border-strong"
+                                  onClick={() => chooseMirrorSource(source.id)}
+                                >
+                                  <Show when={source.thumb}>
+                                    {(thumb) => (
+                                      <img src={thumb()} alt="" class="h-20 w-full rounded object-cover" draggable={false} />
+                                    )}
+                                  </Show>
+                                  <span class="truncate text-[10px] text-v2-text-text-base" title={source.name}>
+                                    {source.name}
+                                  </span>
+                                </button>
+                              )}
+                            </For>
+                          </div>
+                          <Show when={mirrorSources().length === 0}>
+                            <div class="py-6 text-center text-[11px] text-v2-text-text-muted">
+                              {language.t("livePreview.mirror.empty")}
+                            </div>
+                          </Show>
+                        </div>
+                      </Show>
+                    </div>
+                  </div>
+                </Show>
+              </>
+            </Show>
+
+            {/* Cola de stdout/stderr del proceso gestionado. Ya se estaba trayendo para un proyecto
+                web mientras arranca y se tiraba, porque sólo se pintaba en la rama de escritorio:
+                la espera era la palabra "Iniciando…" sobre un panel vacío teniendo esto a mano. */}
+            <Show when={showLogTail()}>
+              <div
+                class="flex min-h-0 flex-1 flex-col rounded-xl border border-v2-border-border-muted bg-v2-background-bg-layer-01 p-3"
+                classList={{ "mt-3": devServer()?.isDesktop === true }}
+              >
+                <div class="flex items-center justify-between gap-2 border-b border-v2-border-border-muted pb-2 text-[11px] text-v2-text-text-muted">
+                  <span class="min-w-0 truncate font-medium">{language.t("livePreview.console")}</span>
+                  <div class="flex shrink-0 items-center gap-1">
+                    <IconButtonV2
                       type="button"
-                      class="text-neutral-400 hover:text-white transition-colors cursor-pointer text-[10px]"
+                      size="small"
+                      variant="ghost-muted"
                       onClick={() => void fetchDevServerLogs()}
-                    >
-                      Actualizar
-                    </button>
-                    <button
+                      title={language.t("livePreview.console.refresh")}
+                      icon={<IconV2 name="reset" size="small" />}
+                    />
+                    <IconButtonV2
                       type="button"
-                      class="text-neutral-400 hover:text-white transition-colors cursor-pointer text-[10px]"
+                      size="small"
+                      variant="ghost-muted"
+                      disabled={serverLogs().length === 0}
                       onClick={() => {
-                        const text = desktopLogs().join("\n")
+                        const text = serverLogs().join("\n")
                         if (text) void navigator.clipboard?.writeText(text)
                       }}
-                    >
-                      Copiar
-                    </button>
+                      title={language.t("livePreview.console.copy")}
+                      icon={<IconV2 name="outline-copy" size="small" />}
+                    />
                   </div>
                 </div>
-                <div class="min-h-0 flex-1 overflow-y-auto pt-2 font-mono text-[11px] leading-relaxed text-neutral-300">
+                <div class="min-h-0 flex-1 overflow-y-auto pt-2 font-mono text-[11px] leading-relaxed text-v2-text-text-base">
                   <Show
-                    when={desktopLogs().length > 0}
-                    fallback={<div class="text-neutral-600 italic">No hay registros de consola aún. Presiona "Ejecutar Aplicación en Windows" para ver la salida.</div>}
+                    when={serverLogs().length > 0}
+                    fallback={<div class="text-v2-text-text-muted italic">{language.t("livePreview.console.empty")}</div>}
                   >
-                    <For each={desktopLogs()}>
+                    <For each={serverLogs()}>
                       {(line) => <div class="whitespace-pre-wrap break-all">{line}</div>}
                     </For>
                   </Show>
                 </div>
               </div>
-            </div>
-          </Show>
+            </Show>
+          </div>
         </Show>
       </div>
 

@@ -24,13 +24,20 @@
   color: var(--v2-text-text-base);
 }
 
-/* Disconnected: one short card in a panel that is ~760px tall. The panel is a
+/* Disconnected: the card sits in a panel that is ~760px tall. The panel is a
    full-height column flex, so the container has to claim the leftover space
-   (flex: 1) before justify-content: center has anything to centre — without it
-   the card hugs the top of a tall empty panel. */
+   (flex: 1) before centring has anything to centre — without it the card hugs
+   the top of a tall empty panel.
+
+   `safe center` matters and plain `center` is a bug: once the card grew past
+   the panel height (the capabilities list made it tall), a centred flex child
+   overflows EQUALLY in both directions, so its top — the GitHub mark and the
+   title — was pushed above the scroll container and clipped, with no way to
+   scroll back up to it. `safe` falls back to flex-start exactly when that would
+   happen, which is also what keeps the padding below visible at every size. */
 .gh-container.is-empty {
   flex: 1 1 auto;
-  justify-content: center;
+  justify-content: safe center;
   padding: 32px;
 }
 
@@ -44,6 +51,10 @@
   /* The content column inside caps at 480px; without a cap the card stretched
      to the full 1040px and left the form marooned in the middle. */
   max-width: 560px;
+  /* Never flush against the panel edge, whatever the window size: the container
+     padding covers the sides, and this keeps a gap at the top and bottom of the
+     scroll range too. */
+  margin: 8px 0;
   padding: 36px 32px;
   background-color: var(--v2-background-bg-layer-01);
   border-radius: 20px;

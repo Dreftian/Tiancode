@@ -1,0 +1,264 @@
+/* Primera pantalla que ve un usuario nuevo. Todo el color sale de --v2-*: el tema por defecto que
+   envía la app es el CLARO (theme.css declara la paleta clara en :root y su bloque @media oscuro
+   está comentado), así que cualquier slate/cyan/sky fijo se veía mal justo en el caso más común. */
+
+.welcome-setup {
+  /* Consulta por contenedor: el diálogo vive dentro de un overlay a pantalla completa, así que su
+     ancho no tiene por qué seguir al de la ventana. */
+  container-type: inline-size;
+  container-name: welcome-setup;
+
+  display: flex;
+  overflow: hidden;
+  width: min(100%, 420px);
+  /* Tope de seguridad: con el contenido real ningún paso llega a 260px, pero un zoom de sistema
+     alto no debe recortar el pie. */
+  max-height: calc(100vh - 32px);
+  flex-direction: column;
+  border-radius: 10px;
+  /* bg-base, no layer-01: el overlay que hay detrás es casi blanco en claro y casi negro en
+     oscuro, y bg-base es el único que separa la tarjeta del fondo en los dos esquemas. */
+  background: var(--v2-background-bg-base);
+  box-shadow: var(--v2-elevation-overlay);
+  color: var(--v2-text-text-base);
+  font-family: var(--v2-font-family-sans);
+  user-select: none;
+}
+
+/* ── Cabecera ── */
+
+.welcome-setup-header {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px 10px;
+  gap: 10px;
+}
+
+.welcome-setup-mark {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 7px;
+  background: var(--v2-background-bg-layer-02);
+  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-base);
+  place-items: center;
+}
+
+.welcome-setup-mark-logo {
+  width: 18px;
+}
+
+.welcome-setup-heading {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.welcome-setup-titlerow {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.welcome-setup-title {
+  overflow: hidden;
+  margin: 0;
+  color: var(--v2-text-text-base);
+  font-size: var(--font-size-small);
+  font-weight: 530;
+  letter-spacing: -0.04px;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.welcome-setup-subtitle {
+  overflow: hidden;
+  margin: 0;
+  color: var(--v2-text-text-muted);
+  font-size: 11px;
+  font-weight: 440;
+  letter-spacing: 0.05px;
+  line-height: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Progreso ── */
+
+.welcome-setup-progress {
+  display: flex;
+  padding: 0 16px 14px;
+  gap: 4px;
+}
+
+.welcome-setup-progress-segment {
+  height: 3px;
+  flex: 1;
+  border-radius: 999px;
+  background: var(--v2-background-bg-layer-03);
+  transition: background-color 200ms ease;
+}
+
+.welcome-setup-progress-segment[data-state="done"] {
+  background: var(--v2-state-border-info);
+}
+
+.welcome-setup-progress-segment[data-state="current"] {
+  background: var(--v2-background-bg-accent);
+}
+
+/* ── Cuerpo ── */
+
+.welcome-setup-body {
+  display: flex;
+  /* Suelo para que el salto de alto entre pasos sea imperceptible; ningún paso necesita scroll. */
+  min-height: 116px;
+  flex-direction: column;
+  padding: 0 16px 4px;
+  gap: 14px;
+  /* Solo entra en juego junto al max-height del contenedor; el desplegable del select va a un
+     portal, así que no lo recorta. */
+  overflow-y: auto;
+}
+
+.welcome-setup-panel {
+  display: flex;
+  flex-direction: column;
+  animation: welcome-setup-panel-in 160ms ease-out;
+  gap: 14px;
+}
+
+@keyframes welcome-setup-panel-in {
+  from {
+    transform: translateY(4px);
+    opacity: 0;
+  }
+
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* Fila etiqueta + control, la unidad de la que se compone cada paso. */
+.welcome-setup-field {
+  display: flex;
+  min-height: 28px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.welcome-setup-field-name {
+  min-width: 0;
+  color: var(--v2-text-text-base);
+  font-size: var(--font-size-small);
+  font-weight: 440;
+  letter-spacing: -0.04px;
+  line-height: 16px;
+}
+
+.welcome-setup-field-control {
+  display: flex;
+  flex: none;
+}
+
+.welcome-setup-field-control [data-component="select-v2"] {
+  width: 190px;
+}
+
+.welcome-setup-field-control [data-slot="segmented-control-v2"] {
+  width: 210px;
+}
+
+/* El componente trae min-width: fit-content; sin anularlo una traducción larga desbordaría la
+   tarjeta en vez de recortar la etiqueta. */
+.welcome-setup-panel [data-slot="segmented-control-v2"] {
+  min-width: 0;
+}
+
+/* Variante en bloque: etiqueta arriba, control a todo el ancho y una línea de ayuda debajo. */
+.welcome-setup-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.welcome-setup-hint {
+  margin: 0;
+  color: var(--v2-text-text-faint);
+  font-size: 11px;
+  font-weight: 440;
+  letter-spacing: 0.05px;
+  line-height: 15px;
+}
+
+.welcome-setup-note {
+  display: flex;
+  align-items: flex-start;
+  padding: 8px 10px;
+  margin: 0;
+  border-radius: 6px;
+  background: var(--v2-state-bg-info);
+  box-shadow: inset 0 0 0 0.5px var(--v2-state-border-info);
+  color: var(--v2-state-fg-info);
+  font-size: 11px;
+  font-weight: 440;
+  letter-spacing: 0.05px;
+  line-height: 15px;
+  gap: 8px;
+}
+
+.welcome-setup-note [data-slot="icon-svg"] {
+  flex: none;
+  margin-top: 1px;
+  color: currentcolor;
+}
+
+/* ── Pie ── */
+
+.welcome-setup-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 14px;
+  margin-top: auto;
+  border-top: 0.5px solid var(--v2-border-border-muted);
+  gap: 8px;
+}
+
+.welcome-setup-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* En una ventana estrecha la fila no cabe en horizontal: la etiqueta pasa arriba del control. */
+@container welcome-setup (max-width: 360px) {
+  .welcome-setup-field {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .welcome-setup-field-control,
+  .welcome-setup-field-control [data-component="select-v2"],
+  .welcome-setup-field-control [data-slot="segmented-control-v2"] {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .welcome-setup-panel {
+    animation: none;
+  }
+
+  .welcome-setup-progress-segment {
+    transition: none;
+  }
+}

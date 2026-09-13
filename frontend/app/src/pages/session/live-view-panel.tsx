@@ -310,6 +310,9 @@ export function preferredPreviewCodePath(paths: readonly string[]) {
   return preferred.flatMap((pattern) => sorted.filter((path) => pattern.test(path)))[0] ?? sorted[0]
 }
 
+// Los filtros del panel de código apuntan aquí con aria-controls.
+const CODE_FILE_LIST_ID = "live-view-code-files"
+
 const WORKSPACE_FILE_LIMIT = 500
 const WORKSPACE_SCAN_IGNORED_DIR = /(?:^|\/)(?:\.git|node_modules|\.next|dist|build|coverage|\.cache)(?:\/|$)/i
 
@@ -322,132 +325,6 @@ export function mergePreviewWorkspaceFiles(snapshotFiles: readonly string[], wor
 
 export function shouldScanPreviewWorkspaceDirectory(path: string) {
   return !WORKSPACE_SCAN_IGNORED_DIR.test(path.replace(/\\/g, "/"))
-}
-
-function getFileBadge(name: string) {
-  const lower = name.toLowerCase()
-  // React / JSX / TSX
-  if (lower.endsWith(".tsx") || lower.endsWith(".jsx")) {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-cyan-500/15 font-mono text-[9px] font-bold text-cyan-400" title="React / JSX">⚛</span>
-  }
-  // TypeScript
-  if (lower.endsWith(".ts") || lower.endsWith(".mts") || lower.endsWith(".cts") || lower.endsWith(".d.ts")) {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-blue-500/15 font-mono text-[9px] font-bold text-blue-400" title="TypeScript">TS</span>
-  }
-  // JavaScript
-  if (lower.endsWith(".js") || lower.endsWith(".mjs") || lower.endsWith(".cjs")) {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-amber-500/15 font-mono text-[9px] font-bold text-amber-300" title="JavaScript">JS</span>
-  }
-  // Vue / Svelte / Astro
-  if (lower.endsWith(".vue")) {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-emerald-500/15 font-mono text-[8px] font-bold text-emerald-400" title="Vue">VUE</span>
-  }
-  if (lower.endsWith(".svelte")) {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-orange-500/15 font-mono text-[8px] font-bold text-orange-400" title="Svelte">SV</span>
-  }
-  if (lower.endsWith(".astro")) {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-purple-500/15 font-mono text-[8px] font-bold text-purple-400" title="Astro">AST</span>
-  }
-  // HTML
-  if (lower.endsWith(".html") || lower.endsWith(".htm") || lower.endsWith(".xhtml")) {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-orange-500/15 font-mono text-[8px] font-bold text-orange-400" title="HTML">&lt;&gt;</span>
-  }
-  // CSS / Styling
-  if (lower.endsWith(".css") || lower.endsWith(".scss") || lower.endsWith(".sass") || lower.endsWith(".less") || lower.endsWith(".styl")) {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-sky-500/15 font-mono text-[9px] font-bold text-sky-400" title="CSS">#</span>
-  }
-  // JSON & Packages
-  if (lower === "package.json" || lower.endsWith("-lock.json") || lower.endsWith(".lock") || lower.endsWith(".lockb")) {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-red-500/15 font-mono text-[8px] font-bold text-red-400" title="Package Manifest">📦</span>
-  }
-  if (lower.endsWith(".json") || lower.endsWith(".jsonc") || lower.endsWith(".json5")) {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-yellow-500/15 font-mono text-[8px] font-bold text-yellow-300" title="JSON">{"{}"}</span>
-  }
-  // YAML
-  if (lower.endsWith(".yml") || lower.endsWith(".yaml")) {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-rose-500/15 font-mono text-[8px] font-bold text-rose-300" title="YAML">YML</span>
-  }
-  // Python & Notebooks
-  if (lower.endsWith(".py") || lower.endsWith(".pyw")) {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-yellow-600/15 font-mono text-[9px] font-bold text-yellow-400" title="Python">PY</span>
-  }
-  if (lower.endsWith(".ipynb")) {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-orange-500/15 font-mono text-[8px] font-bold text-orange-300" title="Jupyter Notebook">🪐</span>
-  }
-  // Rust
-  if (lower.endsWith(".rs") || lower === "cargo.toml" || lower === "cargo.lock") {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-orange-700/15 font-mono text-[9px] font-bold text-orange-400" title="Rust">RS</span>
-  }
-  // Go
-  if (lower.endsWith(".go") || lower === "go.mod" || lower === "go.sum") {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-cyan-600/15 font-mono text-[9px] font-bold text-cyan-300" title="Go">GO</span>
-  }
-  // C / C++ / C#
-  if (lower.endsWith(".cpp") || lower.endsWith(".cc") || lower.endsWith(".cxx") || lower.endsWith(".hpp") || lower.endsWith(".hxx")) {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-indigo-500/15 font-mono text-[8px] font-bold text-indigo-300" title="C++">C++</span>
-  }
-  if (lower.endsWith(".c") || lower.endsWith(".h")) {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-blue-600/15 font-mono text-[9px] font-bold text-blue-300" title="C">C</span>
-  }
-  if (lower.endsWith(".cs") || lower.endsWith(".csx")) {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-violet-500/15 font-mono text-[8px] font-bold text-violet-300" title="C#">C#</span>
-  }
-  // Java / Kotlin / Scala
-  if (lower.endsWith(".java") || lower.endsWith(".jar")) {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-red-600/15 font-mono text-[8px] font-bold text-red-400" title="Java">☕</span>
-  }
-  if (lower.endsWith(".kt") || lower.endsWith(".kts")) {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-purple-600/15 font-mono text-[9px] font-bold text-purple-300" title="Kotlin">KT</span>
-  }
-  // Swift
-  if (lower.endsWith(".swift")) {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-orange-500/15 font-mono text-[8px] font-bold text-orange-400" title="Swift">SW</span>
-  }
-  // PHP
-  if (lower.endsWith(".php") || lower.endsWith(".phtml")) {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-indigo-600/15 font-mono text-[8px] font-bold text-indigo-300" title="PHP">PHP</span>
-  }
-  // Ruby
-  if (lower.endsWith(".rb") || lower === "gemfile") {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-red-500/15 font-mono text-[9px] font-bold text-red-400" title="Ruby">RB</span>
-  }
-  // SQL & Databases
-  if (lower.endsWith(".sql") || lower.endsWith(".sqlite") || lower.endsWith(".db") || lower.endsWith(".prisma")) {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-teal-500/15 font-mono text-[8px] font-bold text-teal-300" title="Database / SQL">SQL</span>
-  }
-  // Shell / Scripts
-  if (lower.endsWith(".sh") || lower.endsWith(".bash") || lower.endsWith(".zsh") || lower.endsWith(".ps1") || lower.endsWith(".bat") || lower.endsWith(".cmd")) {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-lime-500/15 font-mono text-[8px] font-bold text-lime-400" title="Shell Script">$_</span>
-  }
-  // Docker & Containers
-  if (lower.includes("dockerfile") || lower.includes("docker-compose") || lower === ".dockerignore") {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-blue-500/15 font-mono text-[9px] text-blue-400" title="Docker">🐳</span>
-  }
-  // Git
-  if (lower.startsWith(".git")) {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-orange-600/15 font-mono text-[8px] font-bold text-orange-400" title="Git Config">GIT</span>
-  }
-  // Config & Env
-  if (lower.startsWith(".env") || lower.endsWith(".toml") || lower.endsWith(".ini") || lower.endsWith(".conf") || lower.endsWith(".config")) {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-slate-500/15 font-mono text-[8px] text-slate-300" title="Config">⚙</span>
-  }
-  // Markdown & Docs
-  if (lower.endsWith(".md") || lower.endsWith(".mdx") || lower.endsWith(".txt") || lower.endsWith(".doc") || lower.endsWith(".pdf")) {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-emerald-500/15 font-mono text-[8px] font-bold text-emerald-400" title="Markdown / Document">MD</span>
-  }
-  // Images
-  if (lower.endsWith(".svg") || lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".webp") || lower.endsWith(".gif") || lower.endsWith(".ico") || lower.endsWith(".avif")) {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-pink-500/15 font-mono text-[9px] text-pink-400" title="Image">🖼</span>
-  }
-  // Audio & Video
-  if (lower.endsWith(".mp3") || lower.endsWith(".wav") || lower.endsWith(".ogg") || lower.endsWith(".mp4") || lower.endsWith(".webm") || lower.endsWith(".mov")) {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-purple-500/15 font-mono text-[9px] text-purple-400" title="Media">🎬</span>
-  }
-  // Archives
-  if (lower.endsWith(".zip") || lower.endsWith(".tar") || lower.endsWith(".gz") || lower.endsWith(".7z") || lower.endsWith(".rar")) {
-    return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-neutral-600/20 font-mono text-[9px] text-neutral-300" title="Archive">📦</span>
-  }
-  return <span class="inline-flex size-4 shrink-0 items-center justify-center rounded bg-neutral-700/30 font-mono text-[9px] text-neutral-400" title="File">📄</span>
 }
 
 // Panel de código: sigue el archivo que edita el agente, permite elegir desde
@@ -464,7 +341,10 @@ function CodeTreeNode(props: { node: PreviewFileTreeNode; depth: number; selecte
               style={{ "padding-left": `${props.depth * 12 + 6}px` }}
               title={props.node.name}
             >
-              <span class="shrink-0 text-amber-400/90 text-[11px]">📁</span>
+              {/* FileIcon también dibuja carpetas: el emoji anterior ignoraba
+                  `text-amber-400`, porque una clase de color no tiñe un emoji
+                  de color, y quedaba igual en tema claro y oscuro. */}
+              <FileIcon node={{ path: props.node.name, type: "directory" }} class="size-3.5 shrink-0" />
               <span class="truncate min-w-0 font-medium whitespace-nowrap">{props.node.name}</span>
             </div>
             <For each={props.node.children}>
@@ -485,7 +365,6 @@ function CodeTreeNode(props: { node: PreviewFileTreeNode; depth: number; selecte
             <div class="relative shrink-0 flex items-center justify-center size-3.5">
               <FileIcon node={{ path: path(), type: "file" }} class="size-3.5" />
             </div>
-            {getFileBadge(props.node.name)}
             <span class="truncate min-w-0 whitespace-nowrap">{props.node.name}</span>
           </button>
         )}
@@ -494,149 +373,85 @@ function CodeTreeNode(props: { node: PreviewFileTreeNode; depth: number; selecte
   )
 }
 
-function escapeHtml(str: string) {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-}
-
-function highlightSyntaxHtml(code: string, filename: string): string {
-  if (!code) return "&nbsp;"
-  const ext = filename.split(".").pop()?.toLowerCase() ?? ""
-
-  if (["html", "htm", "xml", "svg", "xhtml"].includes(ext)) {
-    let escaped = escapeHtml(code)
-    escaped = escaped.replace(/(&lt;!--[\s\S]*?--&gt;)/g, '<span style="color:#7f848e;font-style:italic">$1</span>')
-    escaped = escaped.replace(/(&lt;!DOCTYPE[\s\S]*?&gt;)/gi, '<span style="color:#c678dd;font-weight:bold">$1</span>')
-    escaped = escaped.replace(
-      /(&lt;\/?)([a-zA-Z0-9_-]+)((?:\s+[^&>=/\s]+(?:=(?:"[\s\S]*?"|'[\s\S]*?'|[^\s&>]+))?)*\s*)(\/?&gt;)/g,
-      (_match, p1, tagName, attrs, p4) => {
-        const highlightedAttrs = attrs.replace(
-          /([a-zA-Z0-9_:-]+)(=(?:"[\s\S]*?"|'[\s\S]*?'|[^\s&>]+))?/g,
-          (_aMatch: string, attrName: string, attrVal: string | undefined) => {
-            const nameSpan = `<span style="color:#d19a66">${attrName}</span>`
-            if (!attrVal) return nameSpan
-            const valMatch = attrVal.match(/^=("[\s\S]*?"|'[\s\S]*?'|.*)$/)
-            if (valMatch && valMatch[1]) {
-              return `${nameSpan}<span style="color:#56b6c2">=</span><span style="color:#98c379">${valMatch[1]}</span>`
-            }
-            return `${nameSpan}<span style="color:#56b6c2">=</span><span style="color:#98c379">${attrVal.slice(1)}</span>`
-          },
-        )
-        return `<span style="color:#e06c75">${p1}${tagName}</span>${highlightedAttrs}<span style="color:#e06c75">${p4}</span>`
-      },
-    )
-    return escaped
-  }
-
-  if (["js", "jsx", "ts", "tsx", "mjs", "cjs", "json", "py", "css", "scss"].includes(ext)) {
-    let escaped = escapeHtml(code)
-    escaped = escaped.replace(/("[\s\S]*?"|'[\s\S]*?'|`[\s\S]*?`)/g, '<span style="color:#98c379">$1</span>')
-    escaped = escaped.replace(/(\/\/[^\n]*)/g, '<span style="color:#7f848e;font-style:italic">$1</span>')
-    escaped = escaped.replace(/(\/\*[\s\S]*?\*\/)/g, '<span style="color:#7f848e;font-style:italic">$1</span>')
-    escaped = escaped.replace(/\b(\d+(?:\.\d+)?)\b/g, '<span style="color:#d19a66">$1</span>')
-    const keywords = [
-      "import", "export", "from", "default", "const", "let", "var", "function", "return", "if", "else",
-      "switch", "case", "for", "while", "do", "try", "catch", "finally", "throw", "new", "typeof",
-      "instanceof", "class", "extends", "super", "this", "async", "await", "yield", "type", "interface",
-      "enum", "as", "in", "of", "def", "elif", "pass", "None", "True", "False"
-    ]
-    const kwRegex = new RegExp(`\\b(${keywords.join("|")})\\b`, "g")
-    escaped = escaped.replace(kwRegex, '<span style="color:#c678dd;font-weight:600">$1</span>')
-    escaped = escaped.replace(/\b(true|false|null|undefined)\b/g, '<span style="color:#e5c07b">$1</span>')
-    return escaped
-  }
-
-  return escapeHtml(code)
-}
-
-function CodeEditorHighlight(props: {
+// Editor de texto plano. La lectura la dibuja el visor de archivos del repo
+// (shiki + tema TiancodeTheme, que sale de las mismas variables CSS que el
+// resto de la app), así que aquí no hace falta ningún resaltado propio: el
+// anterior regeneraba el documento entero por tecla y pintaba mal.
+// La altura de línea va en `style` y no en una clase: iguala
+// --diffs-line-height del visor (24px) para que el texto no salte al entrar y
+// salir del modo edición, y así gana a la que trae la utilidad tipográfica.
+function CodeEditor(props: {
   path: string
   value: string
-  onInput: (val: string) => void
+  onInput: (value: string) => void
   onSave: () => void
+  onExit: () => void
 }) {
-  let preRef: HTMLPreElement | undefined
   let textareaRef: HTMLTextAreaElement | undefined
   let gutterRef: HTMLDivElement | undefined
   const lines = createMemo(() => Math.max(1, props.value.split("\n").length))
 
   const syncScroll = () => {
-    if (textareaRef) {
-      if (preRef) {
-        preRef.scrollTop = textareaRef.scrollTop
-        preRef.scrollLeft = textareaRef.scrollLeft
-      }
-      if (gutterRef) {
-        gutterRef.scrollTop = textareaRef.scrollTop
-      }
-    }
+    if (gutterRef && textareaRef) gutterRef.scrollTop = textareaRef.scrollTop
   }
 
   return (
-    <div class="flex min-h-0 min-w-0 flex-1 overflow-hidden bg-v2-background-bg-base font-mono text-[13px] leading-[20px]">
+    <div class="flex min-h-0 min-w-0 flex-1 overflow-hidden bg-v2-background-bg-base">
       <div
         ref={(el) => (gutterRef = el)}
-        class="select-none overflow-hidden border-r border-v2-border-border-muted bg-v2-background-bg-layer-01 py-2 px-2.5 text-right text-[11px] leading-[20px] text-text-faint min-w-[42px]"
+        aria-hidden="true"
+        class="min-w-[42px] shrink-0 select-none overflow-hidden border-r border-v2-border-border-muted bg-v2-background-bg-layer-01 px-2.5 py-2 text-right text-11-regular text-text-faint"
       >
         <For each={Array.from({ length: lines() }, (_, i) => i + 1)}>
-          {(num) => <div class="h-[20px] leading-[20px]">{num}</div>}
+          {(num) => (
+            <div class="h-[24px]" style={{ "line-height": "24px" }}>
+              {num}
+            </div>
+          )}
         </For>
       </div>
-      <div class="relative min-h-0 min-w-0 flex-1 overflow-hidden">
-        <pre
-          ref={(el) => (preRef = el)}
-          aria-hidden="true"
-          class="pointer-events-none absolute inset-0 m-0 overflow-hidden whitespace-pre p-2 font-mono text-[13px] leading-[20px] tracking-normal text-text-base"
-          style={{
-            "font-family": "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-            "tab-size": "2",
-          }}
-          innerHTML={highlightSyntaxHtml(props.value, props.path)}
-        />
-        <textarea
-          ref={(el) => (textareaRef = el)}
-          class="relative z-10 block h-full w-full resize-none overflow-auto border-0 bg-transparent p-2 font-mono text-[13px] leading-[20px] tracking-normal text-transparent caret-text-base outline-none selection:bg-v2-overlay-simple-overlay-active"
-          style={{
-            "-webkit-text-fill-color": "transparent",
-            "font-family": "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-            "tab-size": "2",
-            "white-space": "pre",
-            "word-wrap": "normal",
-            "overflow-wrap": "normal",
-          }}
-          value={props.value}
-          spellcheck={false}
-          wrap="off"
-          aria-label={props.path}
-          onScroll={syncScroll}
-          onInput={(event) => {
-            props.onInput(event.currentTarget.value)
-            syncScroll()
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "Tab") {
-              event.preventDefault()
-              const target = event.currentTarget
-              const start = target.selectionStart
-              const end = target.selectionEnd
-              const val = target.value
-              const next = val.substring(0, start) + "  " + val.substring(end)
-              props.onInput(next)
-              queueMicrotask(() => {
-                target.selectionStart = target.selectionEnd = start + 2
-                syncScroll()
-              })
-              return
-            }
-            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
-              event.preventDefault()
-              props.onSave()
-            }
-          }}
-        />
-      </div>
+      <textarea
+        ref={(el) => (textareaRef = el)}
+        class="min-h-0 min-w-0 flex-1 resize-none border-0 bg-transparent p-2 text-12-mono text-text-base caret-text-base outline-none selection:bg-v2-overlay-simple-overlay-active"
+        style={{ "line-height": "24px", "tab-size": "2", "white-space": "pre", "overflow-wrap": "normal" }}
+        value={props.value}
+        spellcheck={false}
+        wrap="off"
+        aria-label={props.path}
+        onScroll={syncScroll}
+        onInput={(event) => {
+          props.onInput(event.currentTarget.value)
+          syncScroll()
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Tab") {
+            event.preventDefault()
+            const target = event.currentTarget
+            const start = target.selectionStart
+            const end = target.selectionEnd
+            const val = target.value
+            props.onInput(val.substring(0, start) + "  " + val.substring(end))
+            queueMicrotask(() => {
+              target.selectionStart = target.selectionEnd = start + 2
+              syncScroll()
+            })
+            return
+          }
+          // El autoguardado ya escribe a los 500 ms; Ctrl/Cmd+S sólo adelanta
+          // esa escritura para quien tiene el reflejo de guardar a mano.
+          if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+            event.preventDefault()
+            props.onSave()
+            return
+          }
+          // Tab se queda dentro del textarea, así que Escape es la salida de
+          // teclado del editor: sin ella este campo sería una trampa.
+          if (event.key === "Escape") {
+            event.preventDefault()
+            props.onExit()
+          }
+        }}
+      />
     </div>
   )
 }
@@ -683,9 +498,21 @@ function CodePane(props: {
   const filteredFiles = createMemo(() => filterPreviewFiles(scopedFiles(), fileFilter()))
   const tree = createMemo(() => previewFileTree(filteredFiles()))
 
+  // El visor recibe el texto efectivo (borrador, código en vivo o disco). Nunca
+  // lee del disco por su cuenta, así que sirve igual para una ruta que el live
+  // server publica y que todavía no existe en el workspace.
+  const viewerFile = createMemo(() => ({
+    name: selectedPath() ?? "",
+    contents: draft(),
+    cacheKey: cacheKey(),
+  }))
+
   const selectFile = (path: string) => {
     setSelectedPath(path)
     setSaveFailed(false)
+    // Seguir al agente siempre aterriza en lectura: nadie espera que cambiar de
+    // archivo le deje el cursor dentro de un editor abierto sobre otro archivo.
+    setEditMode(false)
     void file.load(path)
   }
 
@@ -804,12 +631,14 @@ function CodePane(props: {
     }
   }
 
-  // Auto-save draft changes after typing with debounce to ensure live updates
+  // Auto-save draft changes after typing with debounce to ensure live updates.
+  // `draft()` se lee para volver a armar el temporizador en cada tecla; vaciar
+  // un archivo también es una edición, así que un borrador vacío se guarda.
   createEffect(() => {
     const isDirty = dirty()
     const path = selectedPath()
-    const text = draft()
-    if (!isDirty || !path || !text) return
+    void draft()
+    if (!isDirty || !path) return
     const timer = window.setTimeout(() => {
       void save()
     }, 500)
@@ -903,7 +732,11 @@ function CodePane(props: {
     <div class="flex size-full min-h-0 flex-col">
       <div class="flex h-10 shrink-0 items-center gap-2 overflow-hidden border-b border-v2-border-border-muted px-2">
         <span class="shrink-0 text-11-medium text-text-weak">{language.t("liveView.tab.code")}</span>
-        <div role="tablist" aria-label={language.t("liveView.code.workspace")} class="flex shrink-0 rounded-md bg-v2-overlay-simple-overlay-pressed p-0.5">
+        {/* Grupo de botones, no `role="tablist"`: estos filtros no abren
+            paneles distintos y no eran navegables con flechas, así que la
+            semántica de pestañas prometía algo que el teclado no cumplía.
+            Como alternan una vista del mismo listado, van con aria-pressed. */}
+        <div role="group" aria-label={language.t("liveView.code.filter.label")} class="flex shrink-0 rounded-md bg-v2-overlay-simple-overlay-pressed p-0.5">
           <For
             each={[
               { id: "all" as const, label: language.t("liveView.code.filter.all") },
@@ -914,10 +747,10 @@ function CodePane(props: {
             {(scope) => (
               <button
                 type="button"
-                role="tab"
-                aria-selected={fileScope() === scope.id}
+                aria-pressed={fileScope() === scope.id}
+                aria-controls={files().length > 0 ? CODE_FILE_LIST_ID : undefined}
                 data-selected={fileScope() === scope.id || undefined}
-                class="rounded px-1.5 py-0.5 text-11-medium text-text-weak hover:text-text-base data-[selected]:bg-v2-background-bg-base data-[selected]:text-text-base"
+                class="rounded px-1.5 py-0.5 text-11-medium text-text-weak transition-colors hover:text-text-base focus-visible:outline focus-visible:outline-1 focus-visible:outline-v2-border-border-strong data-[selected]:bg-v2-background-bg-base data-[selected]:text-text-base"
                 onClick={() => setFileScope(scope.id)}
               >
                 {scope.label}
@@ -943,7 +776,7 @@ function CodePane(props: {
             <Show when={fileFilter()}>
               <button
                 type="button"
-                class="shrink-0 text-text-faint hover:text-text-base"
+                class="shrink-0 rounded text-text-faint transition-colors hover:text-text-base focus-visible:outline focus-visible:outline-1 focus-visible:outline-v2-border-border-strong"
                 onClick={() => setFileFilter("")}
                 aria-label={language.t("a11y.clearSearch")}
                 title={language.t("a11y.clearSearch")}
@@ -953,22 +786,19 @@ function CodePane(props: {
             </Show>
           </div>
         </Show>
-        <Show when={selectedPath()}>
-          <button
-            type="button"
-            class="shrink-0 rounded-md border border-v2-border-border-muted px-2 py-1 text-11-medium text-text-weak transition-colors hover:bg-v2-overlay-simple-overlay-hover hover:text-text-base disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={!dirty() || saving()}
-            onClick={() => void save()}
-            // Mismo caso que TAB_SHORTCUTS: el handler acepta ctrlKey o metaKey.
-            title={IS_MAC ? "⌘S" : "Ctrl+S"}
-          >
-            {saving() ? language.t("common.saving") : language.t("common.save")}
-          </button>
+        {/* Aquí había un botón Guardar que casi nunca estaba habilitado: el
+            autoguardado escribe a los 500 ms de la última tecla y limpia
+            `dirty`. En su lugar se informa del estado real de esa escritura. */}
+        <Show when={selectedPath() && (saving() || dirty())}>
+          <span role="status" class="shrink-0 text-11-regular text-text-faint">
+            {saving() ? language.t("common.saving") : language.t("liveView.code.unsaved")}
+          </span>
         </Show>
       </div>
       <div class="flex min-h-0 min-w-0 flex-1">
         <Show when={files().length > 0}>
           <aside
+            id={CODE_FILE_LIST_ID}
             class="group/sidebar relative flex shrink-0 flex-col border-r border-v2-border-border-muted bg-v2-background-bg-base"
             style={{ width: `${codeSidebarWidth()}px` }}
           >
@@ -988,15 +818,17 @@ function CodePane(props: {
                 </div>
               </ScrollView>
             </Show>
-            {/* Splitter arrastrable para redimensionar el sidebar de archivos */}
+            {/* Splitter arrastrable para redimensionar el sidebar de archivos.
+                El azul fijo de Tailwind no existe en la paleta: el tema claro
+                es el que se sirve por defecto y ahí desentonaba. */}
             <div
               role="separator"
               aria-orientation="vertical"
               class={`absolute top-0 -right-1 h-full w-2 cursor-col-resize z-30 transition-colors select-none ${
-                isResizingSidebar() ? "bg-sky-500/80" : "hover:bg-sky-500/50"
+                isResizingSidebar() ? "bg-v2-border-border-strong" : "hover:bg-v2-border-border-muted"
               }`}
               onMouseDown={handleSidebarResizeStart}
-              title={language.intl().toLowerCase().startsWith("es") ? "Arrastrar para redimensionar barra lateral" : "Drag to resize sidebar"}
+              title={language.t("liveView.code.resizeSidebar")}
             />
           </aside>
         </Show>
@@ -1038,13 +870,16 @@ function CodePane(props: {
                         </span>
                         <button
                           type="button"
-                          class="shrink-0 rounded p-1 text-text-faint hover:bg-v2-overlay-simple-overlay-hover hover:text-text-base transition-colors"
+                          class="shrink-0 rounded p-1 text-text-faint hover:bg-v2-overlay-simple-overlay-hover hover:text-text-base transition-colors focus-visible:outline focus-visible:outline-1 focus-visible:outline-v2-border-border-strong"
                           onClick={() => {
                             setRenamePath(selectedPath() ?? "")
                             setIsRenaming(true)
                           }}
-                          title={language.intl().toLowerCase().startsWith("es") ? "Renombrar archivo" : "Rename file"}
-                          aria-label={language.intl().toLowerCase().startsWith("es") ? "Renombrar archivo" : "Rename file"}
+                          // No es "renombrar": la API de archivos sólo expone
+                          // /fs/write, así que esto escribe el texto actual en
+                          // la ruta que se teclee y deja la original intacta.
+                          title={language.t("liveView.code.saveAs")}
+                          aria-label={language.t("liveView.code.saveAs")}
                         >
                           <IconV2 name="edit" size="small" />
                         </button>
@@ -1056,6 +891,7 @@ function CodePane(props: {
                         type="text"
                         class="h-6 min-w-0 flex-1 rounded border border-v2-border-border-strong bg-v2-background-bg-base px-2 font-mono text-11-regular text-text-base outline-none"
                         value={renamePath()}
+                        aria-label={language.t("liveView.code.saveAs")}
                         onInput={(e) => setRenamePath(e.currentTarget.value)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") void handleRename()
@@ -1063,47 +899,95 @@ function CodePane(props: {
                         }}
                         autofocus
                       />
-                      <button
+                      {/* Antes eran dos glifos sin nombre accesible, y el de
+                          confirmar iba en blanco sobre --v2-state-bg-success,
+                          que en tema claro es un verde muy claro. */}
+                      <IconButtonV2
                         type="button"
-                        class="shrink-0 rounded px-2 py-0.5 text-11-medium bg-v2-state-bg-success text-white hover:opacity-90"
+                        variant="contrast"
+                        size="small"
+                        class="shrink-0"
                         onClick={() => void handleRename()}
-                      >
-                        ✓
-                      </button>
-                      <button
+                        title={language.t("liveView.code.saveAs")}
+                        icon={<IconV2 name="check" size="small" />}
+                      />
+                      <IconButtonV2
                         type="button"
-                        class="shrink-0 rounded px-2 py-0.5 text-11-medium text-text-faint hover:text-text-base"
+                        variant="ghost-muted"
+                        size="small"
+                        class="shrink-0"
                         onClick={() => setIsRenaming(false)}
-                      >
-                        ✕
-                      </button>
+                        title={language.t("common.cancel")}
+                        icon={<IconV2 name="xmark-small" size="small" />}
+                      />
                     </div>
                   </Show>
-                  <Show when={dirty()}>
-                    <span class="shrink-0 text-11-regular text-amber-500 font-medium">●</span>
-                  </Show>
+                  <div class="flex shrink-0 items-center gap-1">
+                    <Show when={dirty()}>
+                      <span class="text-11-regular font-medium text-v2-state-fg-warning" title={language.t("liveView.code.unsaved")}>
+                        <span class="sr-only">{language.t("liveView.code.unsaved")}</span>
+                        <span aria-hidden="true">●</span>
+                      </span>
+                    </Show>
+                    {/* El visor es de lectura; editar sigue siendo posible y
+                        sigue autoguardando, pero deja de ser el modo por
+                        defecto del panel. */}
+                    <IconButtonV2
+                      type="button"
+                      variant={editMode() ? "contrast" : "ghost-muted"}
+                      size="small"
+                      aria-pressed={editMode()}
+                      onClick={() => setEditMode((value) => !value)}
+                      title={editMode() ? language.t("liveView.code.editStop") : language.t("liveView.code.editStart")}
+                      icon={<IconV2 name="edit" size="small" />}
+                    />
+                  </div>
                 </div>
-                <CodeEditorHighlight
-                  path={selectedPath() ?? ""}
-                  value={draft()}
-                  onInput={(value) => {
-                    const path = selectedPath()
-                    if (!path) return
-                    setDraft(value)
-                    if (value === contents()) {
-                      drafts.delete(path)
-                      setDirty(false)
-                    } else {
-                      drafts.set(path, value)
-                      setDirty(true)
-                    }
-                    setSaveFailed(false)
-                  }}
-                  onSave={() => void save()}
-                />
+                <Show
+                  when={editMode()}
+                  fallback={
+                    <ScrollView class="min-h-0 flex-1">
+                      <Dynamic
+                        component={fileComponent}
+                        mode="text"
+                        file={viewerFile()}
+                        class="select-text"
+                      />
+                    </ScrollView>
+                  }
+                >
+                  <CodeEditor
+                    path={selectedPath() ?? ""}
+                    value={draft()}
+                    onInput={(value) => {
+                      const path = selectedPath()
+                      if (!path) return
+                      setDraft(value)
+                      if (value === contents()) {
+                        drafts.delete(path)
+                        setDirty(false)
+                      } else {
+                        drafts.set(path, value)
+                        setDirty(true)
+                      }
+                      setSaveFailed(false)
+                    }}
+                    onSave={() => void save()}
+                    onExit={() => setEditMode(false)}
+                  />
+                </Show>
+                {/* liveView.code.unavailable describe un panel que no se puede
+                    leer; que falle la escritura es otra cosa. */}
                 <Show when={saveFailed()}>
-                  <div role="status" class="shrink-0 border-t border-v2-border-border-muted px-3 py-1 text-11-regular text-red-500">
-                    {language.t("liveView.code.unavailable")}
+                  <div role="alert" class="flex shrink-0 items-center gap-2 border-t border-v2-border-border-muted px-3 py-1 text-11-regular text-v2-state-fg-danger">
+                    <span class="min-w-0 flex-1 truncate">{language.t("liveView.code.saveFailed")}</span>
+                    {/* `save()` sólo puede reintentar mientras quede borrador:
+                        sin él no habría nada que escribir y el botón mentiría. */}
+                    <Show when={dirty()}>
+                      <ButtonV2 type="button" variant="outline" size="small" class="shrink-0" onClick={() => void save()} disabled={saving()}>
+                        {language.t("livePreview.retry")}
+                      </ButtonV2>
+                    </Show>
                   </div>
                 </Show>
               </div>
@@ -1963,7 +1847,11 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
           style={{ display: content() === "code" ? "none" : "flex" }}
           aria-hidden={content() === "code" || undefined}
         >
-          <div class="size-full transition-all duration-300 flex flex-col">
+          {/* Sin `transition-all`: el ResizeObserver de LivePreview llama a
+              queueBounds en cada fotograma de la transición, así que cambiar el
+              ancho del panel disparaba ~18 remedidas y, en la ruta de
+              WebContentsView, otros tantos setBounds por IPC. */}
+          <div class="size-full flex flex-col">
             <LivePreview
               directory={effectiveProjectDir}
               targetUrl={browserTarget}

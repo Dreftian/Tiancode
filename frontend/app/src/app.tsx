@@ -570,28 +570,19 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
 
       {/* Standalone First Launch Setup Screen (shown FIRST before anything else on fresh install) */}
       <Show when={firstLaunchActive()}>
+        {/*
+          El fondo de la primera pantalla que ve alguien. Antes elegía entre dos literales según
+          `theme.colorScheme() === "light"`, y ese valor por defecto es "system", no "light": en un
+          equipo con tema claro caía en la rama oscura y pintaba #08080a detrás de una tarjeta
+          clara. --v2-background-bg-deep ya conmuta solo (grey-100 / grey-1100), así que la
+          comparación sobra y no puede volver a desincronizarse.
+        */}
         <div
-          class={`fixed inset-0 z-[99998] w-full h-full flex items-center justify-center p-4 select-none transition-colors duration-200 ${
-            theme.colorScheme() === "light" ? "bg-[#f1f5f9]" : "bg-[#08080a]"
-          }`}
-          style={{ "overflow": "hidden !important" }}
+          class="fixed inset-0 z-[99998] w-full h-full flex items-center justify-center p-4 select-none overflow-hidden bg-v2-background-bg-deep transition-colors duration-200"
         >
-          {/* Subtle website orbs */}
-          <div
-            class={`absolute inset-0 pointer-events-none transition-colors duration-200 ${
-              theme.colorScheme() === "light" ? "bg-[#f1f5f9]" : "bg-[#08080a]"
-            }`}
-          />
-          <div
-            class={`absolute -top-[10%] -left-[10%] w-[520px] h-[520px] rounded-full blur-[130px] pointer-events-none ${
-              theme.colorScheme() === "light" ? "bg-blue-400/15" : "bg-blue-600/10"
-            }`}
-          />
-          <div
-            class={`absolute -bottom-[10%] -right-[10%] w-[520px] h-[520px] rounded-full blur-[130px] pointer-events-none ${
-              theme.colorScheme() === "light" ? "bg-cyan-400/15" : "bg-cyan-500/08"
-            }`}
-          />
+          {/* Halos de marca: sobre el fondo del tema, no sobre un color fijo. */}
+          <div class="absolute -top-[10%] -left-[10%] w-[520px] h-[520px] rounded-full blur-[130px] pointer-events-none bg-v2-background-bg-accent opacity-10" />
+          <div class="absolute -bottom-[10%] -right-[10%] w-[520px] h-[520px] rounded-full blur-[130px] pointer-events-none bg-v2-background-bg-accent opacity-[0.07]" />
           <DialogWelcomeSetup onDone={handleDoneSetup} />
         </div>
       </Show>

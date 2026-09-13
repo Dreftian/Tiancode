@@ -11,3 +11,42 @@
 .live-preview-reloading-bar {
   animation: live-preview-reloading 900ms linear infinite;
 }
+
+/* Slow breathing dot for a state that is genuinely live (a running app, the inspector armed).
+   Its own class rather than Tailwind's animate-pulse/animate-ping so the reduced-motion guard
+   below can reach it. */
+@keyframes live-preview-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.live-preview-pulse {
+  animation: live-preview-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* One slot for the three mutually exclusive status chips (building / writing / last build time)
+   and the status word. They are all different widths, so re-laying the row out on every file the
+   agent writes slid the device picker and the zoom controls sideways while the user was aiming
+   at them. */
+.live-preview-status-slot {
+  display: flex;
+  flex: 0 0 auto;
+  width: 11rem;
+  min-width: 0;
+  align-items: center;
+  gap: 0.25rem;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The bar still says "a reload is in flight" — it just stops travelling. */
+  .live-preview-reloading-bar {
+    animation: none;
+    width: 100%;
+  }
+
+  .live-preview-pulse {
+    animation: none;
+  }
+}
