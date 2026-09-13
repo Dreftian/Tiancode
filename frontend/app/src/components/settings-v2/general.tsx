@@ -10,9 +10,11 @@ import { usePlatform } from "@/context/platform"
 import { useUpdaterAction } from "../updater-action"
 import {
   transcriptTextSizes,
+  transcriptViews,
   transcriptWidths,
   useSettings,
   type TranscriptTextSize,
+  type TranscriptView,
   type TranscriptWidth,
 } from "@/context/settings"
 import { ExternalLink } from "../external-link"
@@ -37,6 +39,7 @@ import "./settings-v2.css"
 const schemeOptions: ("system" | "light" | "dark")[] = ["system", "light", "dark"]
 const transcriptTextOptions: TranscriptTextSize[] = [...transcriptTextSizes]
 const transcriptWidthOptions: TranscriptWidth[] = [...transcriptWidths]
+const transcriptViewOptions: TranscriptView[] = [...transcriptViews]
 // Electron store shared with the desktop main process via the store IPC.
 const settingsStoreName = "tiancode.settings"
 const minimizeToTrayKey = "minimizeToTray"
@@ -178,6 +181,28 @@ const TranscriptWidthSetting = () => {
   )
 }
 
+const TranscriptViewSetting = () => {
+  const language = useLanguage()
+  const settings = useSettings()
+  return (
+    <SettingsRowV2
+      title={language.t("settings.general.row.transcriptView.title")}
+      description={language.t("settings.general.row.transcriptView.description")}
+    >
+      <SelectV2
+        appearance="inline"
+        data-action="settings-transcript-view"
+        options={transcriptViewOptions}
+        current={transcriptViewOptions.find((option) => option === settings.general.transcriptView())}
+        placement="bottom-end"
+        gutter={6}
+        label={(option) => language.t(`settings.general.row.transcriptView.option.${option}`)}
+        onSelect={(option) => option && settings.general.setTranscriptView(option)}
+      />
+    </SettingsRowV2>
+  )
+}
+
 const AppearanceSection: Component<{ controller: AppearanceSettingsController }> = (props) => {
   const language = useLanguage()
   return (
@@ -230,6 +255,7 @@ const AppearanceSection: Component<{ controller: AppearanceSettingsController }>
 
         <TranscriptTextSetting />
         <TranscriptWidthSetting />
+        <TranscriptViewSetting />
 
         <FontSetting kind="ui" fonts={props.controller.fonts} />
         <FontSetting kind="code" fonts={props.controller.fonts} />
@@ -522,41 +548,10 @@ export const SettingsGeneralV2: Component<{
 
         <ShellSetting controller={shell} />
 
-        <SettingsRowV2
-          title={language.t("settings.general.row.reasoningSummaries.title")}
-          description={language.t("settings.general.row.reasoningSummaries.description")}
-        >
-          <div data-action="settings-feed-reasoning-summaries">
-            <Switch
-              checked={settings.general.showReasoningSummaries()}
-              onChange={(checked) => settings.general.setShowReasoningSummaries(checked)}
-            />
-          </div>
-        </SettingsRowV2>
-
-        <SettingsRowV2
-          title={language.t("settings.general.row.shellToolPartsExpanded.title")}
-          description={language.t("settings.general.row.shellToolPartsExpanded.description")}
-        >
-          <div data-action="settings-feed-shell-tool-parts-expanded">
-            <Switch
-              checked={settings.general.shellToolPartsExpanded()}
-              onChange={(checked) => settings.general.setShellToolPartsExpanded(checked)}
-            />
-          </div>
-        </SettingsRowV2>
-
-        <SettingsRowV2
-          title={language.t("settings.general.row.editToolPartsExpanded.title")}
-          description={language.t("settings.general.row.editToolPartsExpanded.description")}
-        >
-          <div data-action="settings-feed-edit-tool-parts-expanded">
-            <Switch
-              checked={settings.general.editToolPartsExpanded()}
-              onChange={(checked) => settings.general.setEditToolPartsExpanded(checked)}
-            />
-          </div>
-        </SettingsRowV2>
+        {/* Los tres interruptores de transcripción (razonamiento, shell, edit)
+            vivían aquí; ahora los escribe `TranscriptViewSetting` en Apariencia.
+            Mantener ambos controles sería fatal: escriben los mismos booleanos,
+            así que el último tocado ganaría y el otro mostraría un valor viejo. */}
 
         <Show when={mobile() && import.meta.env.VITE_TIANCODE_CHANNEL !== "prod"}>
           <SettingsRowV2

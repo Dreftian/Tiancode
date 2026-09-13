@@ -36,6 +36,7 @@ import { getStore } from "./store"
 import { AUTO_BACKUP_KEY, CHECK_UPDATES_ON_START_KEY, LAST_BACKUP_KEY } from "./store-keys"
 import { safeWebContentsURL } from "./window-state"
 import {
+  clearWebviewData,
   createMainWindow,
   getLastFocusedWindow,
   getMinimizeToTrayEnabled,
@@ -45,6 +46,8 @@ import {
   setBackgroundColor,
   setDockIcon,
   restoreMainWindows,
+  webviewRetention,
+  WEBVIEW_RETENTION_KEY,
 } from "./windows"
 import { createWslServersController } from "./wsl/servers"
 import { registerWslIpcHandlers } from "./wsl/ipc"
@@ -271,6 +274,23 @@ const main = Effect.gen(function* () {
   )
   const xdgMigration = yield* Effect.promise(() => migrateDesktopXdgPaths(appEnvironment.xdg))
   if (xdgMigration.migrated) logger.log("migrated desktop XDG data", xdgMigration)
+
+  // Cookies del navegador integrado con duración "hasta que cierre Tiancode": el borrado se hace
+  // AL ARRANCAR, no al cerrar. `will-quit` y `before-quit` son síncronos y `clearStorageData()` es
+  // asíncrono: Electron no espera a la promesa y la app se va antes de que el borrado termine, así
+  // que limpiar al salir sería un ajuste que a veces no hace nada. Aquí sí termina, y el efecto
+  // que el usuario ve es el mismo: al abrir Tiancode no queda ninguna sesión de la vez anterior.
+  if (webviewRetention(getStore().get(WEBVIEW_RETENTION_KEY)) === "session") {
+    // El fallo se traga aquí dentro, no con Effect.catch: `Effect.promise` convierte un rechazo en
+    // defecto, y no arrancar la app porque no se pudo borrar una cookie sería peor que el problema.
+    yield* Effect.promise(() =>
+      clearWebviewData().then(
+        () => logger.log("cleared webview data at startup"),
+        (error: unknown) => logger.warn("failed to clear webview data at startup", error),
+      ),
+    )
+  }
+
   app.setAsDefaultProtocolClient("tiancode")
   registerRendererProtocol()
   setDockIcon()

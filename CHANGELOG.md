@@ -4,6 +4,77 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.49] — 2026-09-12
+### La bienvenida vuelve tras cada actualización, y «Uso de la PC» por fin controla algo
+
+#### Asistente de bienvenida
+- **Ahora vuelve a salir cuando actualizas**, no sólo en la primera instalación. Pero no te va a
+  volver a preguntar todo: tras una actualización es **una sola pantalla de confirmación** con tus
+  respuestas anteriores ya marcadas —leídas de los ajustes reales, no de una copia— y un único
+  botón. En una instalación nueva sigue siendo el asistente completo de dos pasos.
+- **El portable ya se comportaba como pedías** y no hizo falta tocarlo: guarda su estado en
+  `<carpeta del .exe>\data`, así que viaja con el pendrive y sale una vez por pendrive.
+- **Dos preguntas nuevas, y las dos gratis**: mascota de escritorio y leer las respuestas en voz
+  alta. La de voz usa el ajuste que recurre a las voces de Windows cuando no hay modelo descargado,
+  así que **no dispara ninguna descarga** — habría deshecho justo lo que quitamos en 1.0.45 y 1.0.46.
+- **Cuatro ajustes que no guardaban nada.** El asistente escribía `tiancode.sound.enabled`,
+  `tiancode.autoupdate.enabled`, `tiancode-lang` y `tiancode-theme`; ninguna de las cuatro claves se
+  lee en ningún sitio del programa. Fuera.
+- **Había DOS asistentes de bienvenida vivos**, con dos puertas distintas: este diálogo (gated por
+  `localStorage`) y otro flujo completo en el proceso de escritorio (gated por otra clave). El
+  segundo no se veía nunca porque el primero corre antes y marca su clave — salvo que las dos se
+  desincronizaran. Se elimina, con cuidado: hacía dos cosas más en **cada** arranque que había que
+  conservar, y una de ellas mantenía la pantalla de carga esperando.
+- **Medido a 1025x560**, que es lo que pediste: paso 1 = 311 px de alto contra 528 disponibles, y la
+  pantalla de carga deja 138 px de holgura bajo el emblema. Nada se corta ni se desplaza.
+
+#### «Uso de la PC»: ahora todos los controles hacen algo
+La versión 1.0.47 añadió la herramienta de ratón y teclado **sin ninguna interfaz**. Ya la tiene, y
+el panel entero se reconstruyó bajo la misma regla de siempre: si no puede hacerlo, no se pone.
+
+- **Permiso del navegador.** Aquí había una trampa que conviene explicar: el valor por defecto del
+  sistema de permisos es `"*": "allow"`, así que **hoy el agente puede leer y manejar el navegador
+  integrado en cualquier sitio sin preguntar nunca**. Una lista de «sitios permitidos» encima de eso
+  habría mostrado dos entradas mientras en realidad estaban todos permitidos. Ahora hay un control
+  de tres valores y elegir «preguntar en cada sitio» escribe la regla base de verdad. **Es un cambio
+  de comportamiento**: a partir de ahí te preguntará donde antes no lo hacía.
+- **Sitios permitidos**: listar, añadir y revocar. Con dos honestidades escritas en el propio panel:
+  los «Siempre» que aceptas dentro de una sesión **no se guardan en disco**, así que no aparecen aquí
+  y se pierden al cerrar; y si la regla general está en «permitir», la lista no cambia nada.
+- **Dónde se abren los enlaces**, navegador integrado o el del sistema.
+- **Cookies del navegador integrado**: siempre, o hasta que cierres Tiancode. **Sólo dos valores**,
+  porque Electron no deja cambiar la partición de un webview una vez ha navegado. Y se limpian **al
+  arrancar**, no al salir: los manejadores de salida son síncronos y el borrado es asíncrono, así que
+  hacerlo al salir a veces no llegaba a ocurrir.
+- **Interruptor maestro del control del ordenador**, y **guardado fuera del archivo de proyecto**:
+  `tiancode.json` es un archivo del repositorio que el propio agente puede reescribir con la
+  herramienta de edición, así que un interruptor que viviera ahí sería editable por aquello que
+  restringe.
+- **Lista de ejecutables denegados**, persistente, aplicada junto al rechazo de gestores de
+  contraseñas que ya existía. Se compara por **nombre de ejecutable**: dos programas con el mismo
+  nombre de archivo son indistinguibles y renombrarlo lo esquiva. El panel lo dice.
+
+**Lo que me negué a poner, y por qué:** un interruptor único que cubriera «servidores de desarrollo +
+navegación + capturas» (las herramientas integradas no pasan por el filtro de permisos, así que nada
+puede impedir que el agente arranque un dev server); un selector de «navegador preferido» con Chrome
+(nada aquí controla un navegador externo, y Chrome y Edge rechazan el puerto de depuración sobre el
+perfil por defecto, así que sólo podría manejar uno sin tus sesiones); y «mostrar aplicaciones al
+terminar» (Tiancode nunca oculta una aplicación — el proceso auxiliar no tiene ninguna función de
+manipulación de ventanas, sólo entrada y lectura).
+
+**Y se borró `browser.tsx` entero**: sus tres interruptores estaban fijados en «activado» con un
+manejador que sólo mostraba un aviso de éxito. Ni leían ni escribían nada. El archivo además ya
+estaba huérfano.
+
+#### Vista de transcripción
+Un ajuste **Normal / Pensando / Detallado** en Ajustes → Apariencia, con **anulación por sesión**
+desde el menú de la conversación. Sustituye a los tres interruptores sueltos que había: mantenerlos
+al lado habría sido peor, porque escriben lo mismo y el último que tocaras dejaría al otro mostrando
+un valor falso. «Detallado» abre además las tarjetas de herramienta que antes no podía abrir ninguna
+combinación de los interruptores viejos.
+
+Typecheck 27/27 · Lint 0 errores · 927 tests de frontend · 150 de escritorio · 98 de session-ui.
+
 ## [1.0.48] — 2026-09-12
 ### La vista previa por fin te dice qué pasó, y el asistente de bienvenida cabe en la pantalla
 

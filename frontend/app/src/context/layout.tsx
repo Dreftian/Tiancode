@@ -15,6 +15,7 @@ import { pathKey } from "@/utils/path-key"
 import { decode64 } from "@/utils/base64"
 import { same } from "@/utils/same"
 import { createScrollPersistence, type SessionScroll } from "./layout-scroll"
+import type { TranscriptView } from "@/context/settings"
 import { createPathHelpers } from "./file/path"
 import type { ProjectAvatarVariant } from "@tiancode-ai/ui/v2/project-avatar-v2"
 import { migrateLegacySessionStateKeys, ServerScope, SessionStateKey } from "@/utils/server-scope"
@@ -78,6 +79,9 @@ type SessionView = {
   scroll: Record<string, SessionScroll>
   reviewOpen?: string[]
   reviewMode?: ReviewChangeMode
+  // Anulación por sesión del ajuste global de vista de transcripción. Ausente
+  // (lo normal) significa "usa el global", no "normal".
+  transcriptView?: TranscriptView
   reviewFile?: string
   pendingMessage?: string
   pendingMessageAt?: number
@@ -844,6 +848,10 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
           const mode = s().reviewMode
           if (mode === "git" || mode === "branch" || mode === "turn") return mode
         })
+        const transcriptView = createMemo(() => {
+          const view = s().transcriptView
+          if (view === "normal" || view === "thinking" || view === "detailed") return view
+        })
         const reviewFile = createMemo(() => {
           const file = s().reviewFile
           if (typeof file === "string") return file
@@ -963,6 +971,21 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
               } else {
                 setStore("sessionView", session, "todoCollapsed", collapsed)
               }
+            },
+          },
+          transcriptView: {
+            mode: transcriptView,
+            setMode(mode: TranscriptView) {
+              const session = key()
+              const current = store.sessionView[session]
+              if (!current) {
+                setStore("sessionView", session, { scroll: {}, transcriptView: mode })
+                prune(session)
+                return
+              }
+              if (current.transcriptView === mode) return
+              setStore("sessionView", session, "transcriptView", mode)
+              prune(session)
             },
           },
           terminal: {

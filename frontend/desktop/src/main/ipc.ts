@@ -22,6 +22,7 @@ import {
   setTitlebar,
   updateTitlebar,
   clearWebviewData,
+  WEBVIEW_RETENTION_KEY,
 } from "./windows"
 import type { UpdaterController } from "./updater-controller"
 import { createUpdaterSubscriptions } from "./updater-subscriptions"
@@ -36,7 +37,7 @@ import { registerPreviewViewIpc } from "./preview-view"
 import { registerPreviewAgentIpc } from "./preview-agent"
 import { registerWindowMirrorIpc } from "./window-mirror"
 import { registerDesktopPetIpc } from "./desktop-pet"
-import { registerComputerUseIpc } from "./computer-use"
+import { COMPUTER_DENIED_KEY, COMPUTER_ENABLED_KEY, registerComputerUseIpc } from "./computer-use"
 
 // Apps "abrir con" que acepta open-path. En macOS y Linux el renderer envía
 // el nombre tal cual; en Windows envía el path resuelto por resolveAppPath
@@ -74,7 +75,20 @@ function authorizeWritePath(path: string) {
 // main (p. ej. respaldos, WSL, updater). Los stores dinámicos del renderer
 // siguen el patrón tiancode.{window,workspace,draft}.<id>.dat.
 const RENDERER_STORES = new Set(["tiancode.settings", "tiancode.global.dat", "default.dat", "tiancode.updater"])
-const RENDERER_SETTINGS_KEYS = new Set(["minimizeToTray", "fileWatcher", "checkUpdatesOnStart", "autoBackup"])
+const RENDERER_SETTINGS_KEYS = new Set([
+  "minimizeToTray",
+  "fileWatcher",
+  "checkUpdatesOnStart",
+  "autoBackup",
+  // Uso del computador: el interruptor general y los ejecutables vetados. Viven en el store del
+  // main y no en tiancode.json a propósito (ver main/computer-use.ts): el agente puede editar
+  // tiancode.json con la tool `edit`, y un freno que el agente edita no frena.
+  COMPUTER_ENABLED_KEY,
+  COMPUTER_DENIED_KEY,
+  // Cookies del navegador integrado: "always" | "session". El borrado real lo hace index.ts al
+  // arrancar (ver ahí por qué no al cerrar).
+  WEBVIEW_RETENTION_KEY,
+])
 const UPDATER_KEYS = new Set(["ready"])
 
 function isRendererStore(name: string) {
@@ -159,6 +173,9 @@ export function registerIpcHandlers(deps: Deps) {
     globalShortcut,
     screen,
     browserWindow: BrowserWindow,
+    // El mismo store que escribe la pantalla de ajustes por store-set, así que apagar el
+    // interruptor surte efecto en la siguiente acción sin reiniciar nada.
+    store: getStore(),
     log: (message, data, level) => writeLog("computer-use", message, data, level),
     // Las claves `desktop.computerUse.*` todavía no están en el paquete nativo (vive en
     // frontend/app/src/i18n); hasta que entren, nativeT devuelve undefined y el módulo usa su

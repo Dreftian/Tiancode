@@ -44,6 +44,15 @@ export type ComputerUseHost = {
   globalShortcut: Electron.GlobalShortcut
   screen: Electron.Screen
   browserWindow: typeof Electron.BrowserWindow
+  /**
+   * El store de electron-store (`tiancode.settings`), inyectado por la misma razón que el resto:
+   * este módulo no puede importar electron.
+   *
+   * El interruptor general y la lista de ejecutables vetados viven AQUÍ y no en `tiancode.json`
+   * porque `tiancode.json` es un archivo del proyecto que el propio agente puede reescribir con la
+   * tool `edit`: un freno editable por lo que frena no es un freno.
+   */
+  store: ComputerUseStore
   /** `write` de logging.ts, ya con el scope puesto. */
   log: (message: string, data?: Record<string, unknown>, level?: "info" | "warn" | "error") => void
   /**
@@ -52,6 +61,17 @@ export type ComputerUseHost = {
    */
   translate: (key: string, params?: Record<string, string | number>) => string | undefined
 }
+
+/** Lo poco que se usa de electron-store; tipado aquí para no importar el paquete en los tests. */
+export type ComputerUseStore = {
+  get: (key: string) => unknown
+  set: (key: string, value: unknown) => void
+}
+
+/** Interruptor general del uso del computador. Ausente = encendido (lo que ya hacía la 1.0.47). */
+export const COMPUTER_ENABLED_KEY = "computerUseEnabled"
+/** Ejecutables vetados SIEMPRE, se autorice lo que se autorice en la sesión. JSON con un array. */
+export const COMPUTER_DENIED_KEY = "computerUseDeniedApps"
 
 // ---------------------------------------------------------------------------------------------
 // Parte pura (la que cubre computer-use.test.ts)
@@ -239,6 +259,44 @@ export function isCredentialProcess(name: string): boolean {
   return CREDENTIAL_PROCESSES.has(name.toLowerCase())
 }
 
+/**
+ * Lee el interruptor general del store.
+ *
+ * Ausente significa encendido: la tool `computer` ya existía sin ajuste ninguno, y apagarla a
+ * quien ya la usa por el simple hecho de actualizar sería cambiarle el producto sin avisar.
+ */
+export function computerUseEnabled(raw: unknown): boolean {
+  if (raw === false) return false
+  if (typeof raw === "string") return raw.trim().toLowerCase() !== "false"
+  return true
+}
+
+/**
+ * Normaliza lo que el usuario escribe en la lista de vetados a un nombre de ejecutable.
+ *
+ * Se compara por el último segmento de la ruta en minúsculas, que es lo único que Windows da
+ * barato: NO identifica a una aplicación. Dos programas distintos que se llamen igual son el
+ * mismo nombre aquí, y renombrar el .exe lo saca de la lista. La UI lo dice con esas palabras.
+ */
+export function normalizeDeniedApp(value: string): string {
+  return processName(value.trim())
+}
+
+/** Parsea el JSON del store; cualquier cosa que no sea una lista de nombres se descarta. */
+export function parseDeniedApps(raw: unknown): string[] {
+  let value: unknown = raw
+  if (typeof raw === "string") {
+    try {
+      value = JSON.parse(raw)
+    } catch {
+      return []
+    }
+  }
+  if (!Array.isArray(value)) return []
+  const names = value.filter((item): item is string => typeof item === "string").map(normalizeDeniedApp)
+  return [...new Set(names.filter(Boolean))]
+}
+
 function asFiniteInt(value: unknown): number | undefined {
   const num = typeof value === "string" ? Number(value) : value
   if (typeof num !== "number" || !Number.isFinite(num)) return undefined
@@ -352,9 +410,16 @@ export type GuardDecision = { allow: true } | { allow: false; reason: string }
 
 /**
  * Lo que se puede decidir sólo con la ventana de delante, sin tocar la lista de permitidas ni el
- * diálogo: apuntar a Tiancode, ventana elevada y gestores de credenciales.
+ * diálogo: apuntar a Tiancode, ventana elevada, gestores de credenciales y la lista de vetados.
+ *
+ * `denied` es la lista PERSISTENTE del usuario y complementa a la de permitidas de la sesión: la
+ * de permitidas se vacía en cada sesión y sólo suma; ésta se guarda y sólo resta.
  */
-export function guardForeground(foreground: ForegroundWindow, ownPid: number): GuardDecision {
+export function guardForeground(
+  foreground: ForegroundWindow,
+  ownPid: number,
+  denied: ReadonlySet<string> = new Set(),
+): GuardDecision {
   if (foreground.pid === 0) {
     return { allow: false, reason: "No hay ninguna ventana en primer plano a la que dirigir la acción." }
   }
@@ -370,6 +435,12 @@ export function guardForeground(foreground: ForegroundWindow, ownPid: number): G
     return {
       allow: false,
       reason: `En primer plano hay ${name || "un gestor de credenciales"}. No mando teclas ni clics a gestores de contraseñas ni al diálogo de UAC de Windows.`,
+    }
+  }
+  if (name && denied.has(name)) {
+    return {
+      allow: false,
+      reason: `El usuario ha vetado ${name} en los ajustes de Tiancode. No hay nada que negociar aquí: no vuelvas a intentarlo sobre esa ventana y dile qué querías hacer para que lo haga él.`,
     }
   }
   if (foreground.elevation !== "no" && !foreground.selfElevated) {
@@ -1019,7 +1090,9 @@ function touchSession() {
  * modificadores por si alguno quedó pulsado, cierra el indicador y olvida la lista de permitidas:
  * volver a controlar exige volver a autorizar.
  */
-export async function stopComputerControl(reason: "user" | "indicator" | "shortcut" | "idle" | "quit"): Promise<void> {
+export async function stopComputerControl(
+  reason: "user" | "indicator" | "shortcut" | "idle" | "quit" | "disabled",
+): Promise<void> {
   const wasActive = !!session
   if (session?.idleTimer) clearTimeout(session.idleTimer)
   session = undefined
@@ -1076,6 +1149,23 @@ export type ComputerResult = { ok: boolean; output: string }
 const UNSUPPORTED_PLATFORM =
   "El uso del computador sólo está implementado en Windows. En macOS haría falta el permiso de Accesibilidad del sistema y otro backend, y en Linux depende de X11 o Wayland. No repitas la acción en esta máquina: dile al usuario lo que tendría que hacer él a mano."
 
+const DISABLED =
+  "El usuario ha apagado el uso del computador en Ajustes > Uso de la PC. No puedo mover el ratón ni teclear en este ordenador. No insistas ni busques otra vía: dile qué querías hacer para que lo haga él, o que vuelva a encenderlo si quiere que lo hagas tú."
+
+/** Estado guardado, leído en cada acción: apagar el interruptor surte efecto sin reiniciar. */
+function settings(): { enabled: boolean; denied: Set<string> } {
+  if (!deps) return { enabled: true, denied: new Set() }
+  try {
+    return {
+      enabled: computerUseEnabled(deps.store.get(COMPUTER_ENABLED_KEY)),
+      denied: new Set(parseDeniedApps(deps.store.get(COMPUTER_DENIED_KEY))),
+    }
+  } catch {
+    // Un store ilegible no puede convertirse en "adelante con todo": se cierra.
+    return { enabled: false, denied: new Set() }
+  }
+}
+
 async function readForeground(): Promise<ForegroundWindow> {
   const reply = await sendToHost({ action: "foreground" })
   if (!reply.ok) throw new Error(reply.error || "No se pudo leer la ventana en primer plano.")
@@ -1105,6 +1195,16 @@ export async function performComputerAction(raw: unknown): Promise<ComputerResul
   if (process.platform !== "win32") return { ok: false, output: UNSUPPORTED_PLATFORM }
   if (!deps) return { ok: false, output: "El uso del computador no está inicializado en esta ventana." }
 
+  // El interruptor se comprueba AQUÍ, en el proceso principal, y no en la configuración del
+  // proyecto: `tiancode.json` es un archivo del workspace que el agente puede editar con la tool
+  // `edit`. Un interruptor que vive donde el agente escribe no apaga nada.
+  const { enabled, denied } = settings()
+  if (!enabled) {
+    // Si estaba controlando cuando se apagó, se corta ya: el ajuste no es una nota para la próxima.
+    if (session) void stopComputerControl("disabled")
+    return { ok: false, output: DISABLED }
+  }
+
   const validated = validateComputerRequest(raw)
   if (!validated.ok) return { ok: false, output: validated.error }
   const request = validated.request
@@ -1129,7 +1229,7 @@ export async function performComputerAction(raw: unknown): Promise<ComputerResul
 
     // A partir de aquí es entrada real: se mira qué hay delante ANTES de mandar nada.
     const foreground = await readForeground()
-    const guard = guardForeground(foreground, process.pid)
+    const guard = guardForeground(foreground, process.pid, denied)
     if (!guard.allow) return { ok: false, output: guard.reason }
 
     const name = processName(foreground.exe)
@@ -1238,15 +1338,20 @@ export type ComputerStatus = {
   allowed: string[]
   actions: number
   stopShortcut: string | null
+  enabled: boolean
+  denied: string[]
 }
 
 export function computerStatus(): ComputerStatus {
+  const stored = settings()
   return {
     supported: process.platform === "win32",
     active: !!session,
     allowed: session ? [...session.allowed] : [],
     actions: session?.actions ?? 0,
     stopShortcut: registeredShortcut ?? null,
+    enabled: stored.enabled,
+    denied: [...stored.denied],
   }
 }
 

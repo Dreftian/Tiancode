@@ -281,6 +281,10 @@ export type ComputerStatus = {
   actions: number
   /** Acelerador de parada que el sistema aceptó, o null si no se pudo registrar ninguno. */
   stopShortcut: string | null
+  /** Interruptor general (Ajustes > Uso de la PC). Apagado, ninguna acción llega al escritorio. */
+  enabled: boolean
+  /** Ejecutables vetados siempre, por nombre en minúsculas. Ver main/computer-use.ts. */
+  denied: string[]
 }
 
 export type ComputerAPI = {

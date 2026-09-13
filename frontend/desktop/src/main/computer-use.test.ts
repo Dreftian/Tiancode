@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import {
+  computerUseEnabled,
   FALLBACK_TEXT,
   encodedHostCommand,
   formatFallback,
@@ -8,7 +9,9 @@ import {
   isExtendedKey,
   isInputAction,
   MAX_TYPE_CHARS,
+  normalizeDeniedApp,
   parseChord,
+  parseDeniedApps,
   processName,
   validateComputerRequest,
   type ForegroundWindow,
@@ -182,6 +185,50 @@ describe("guardForeground", () => {
 
   test("refuses when there is no foreground window at all", () => {
     expect(guardForeground({ ...base, pid: 0 }, 10).allow).toBe(false)
+  })
+
+  // La lista de vetados es persistente y resta; la de permitidas de la sesión no puede saltársela.
+  test("refuses an executable the user blocked", () => {
+    const decision = guardForeground(base, 10, new Set(["notepad.exe"]))
+    expect(decision.allow).toBe(false)
+    if (!decision.allow) expect(decision.reason).toContain("notepad.exe")
+  })
+
+  test("the blocklist only matches the executable name, not the window", () => {
+    expect(guardForeground(base, 10, new Set(["chrome.exe"])).allow).toBe(true)
+    expect(guardForeground({ ...base, exe: "D:\\otro\\NOTEPAD.EXE" }, 10, new Set(["notepad.exe"])).allow).toBe(false)
+  })
+})
+
+describe("computer use master switch", () => {
+  // Ausente = encendido: la tool ya existía sin ajuste y actualizar no puede apagarla sola.
+  test("defaults to on while nothing has been stored", () => {
+    expect(computerUseEnabled(undefined)).toBe(true)
+    expect(computerUseEnabled(null)).toBe(true)
+    expect(computerUseEnabled("")).toBe(true)
+  })
+
+  // El store del renderer guarda cadenas ("false"), no booleanos; se aceptan las dos formas.
+  test("is off for the string and the boolean", () => {
+    expect(computerUseEnabled("false")).toBe(false)
+    expect(computerUseEnabled("False")).toBe(false)
+    expect(computerUseEnabled(false)).toBe(false)
+    expect(computerUseEnabled("true")).toBe(true)
+  })
+})
+
+describe("denied applications", () => {
+  test("stores the executable name, lowercased and without the path", () => {
+    expect(normalizeDeniedApp("  C:\\Program Files\\Slack\\Slack.exe ")).toBe("slack.exe")
+    expect(normalizeDeniedApp("Discord.exe")).toBe("discord.exe")
+  })
+
+  test("reads the JSON the settings screen writes and drops the rest", () => {
+    expect(parseDeniedApps('["Slack.exe","C:\\\\x\\\\Discord.exe"]')).toEqual(["slack.exe", "discord.exe"])
+    expect(parseDeniedApps(["a.exe", "A.exe", "", 7])).toEqual(["a.exe"])
+    expect(parseDeniedApps("no soy json")).toEqual([])
+    expect(parseDeniedApps(undefined)).toEqual([])
+    expect(parseDeniedApps({ slack: true })).toEqual([])
   })
 })
 

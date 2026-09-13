@@ -66,9 +66,10 @@ import { SessionContextUsage } from "@/components/session-context-usage"
 import { useDialog } from "@tiancode-ai/ui/context/dialog"
 import { useLanguage } from "@/context/language"
 import { useSessionKey } from "@/pages/session/session-layout"
+import { useLayout } from "@/context/layout"
 import { useServerSDK } from "@/context/server-sdk"
 import { usePlatform } from "@/context/platform"
-import { useSettings } from "@/context/settings"
+import { transcriptViews, useSettings, type TranscriptView } from "@/context/settings"
 import { enqueueAutoSpeak, isCompletedAutoSpeakMessage, stopAutoSpeak } from "@/utils/auto-speak"
 import { useTabs } from "@/context/tabs"
 import { legacySessionHref, requireServerKey, sessionHref } from "@/utils/session-route"
@@ -273,6 +274,15 @@ export function MessageTimeline(props: {
   const dialog = useDialog()
   const language = useLanguage()
   const { params, sessionKey } = useSessionKey()
+  const layout = useLayout()
+  const sessionViewState = createMemo(() => layout.view(sessionKey))
+  // Una sola fuente para los tres puntos que leían los interruptores sueltos:
+  // la anulación de esta sesión si existe, si no el ajuste global. Derivarla
+  // aquí evita que el selector de ajustes y la transcripción discrepen.
+  const transcriptView = createMemo<TranscriptView>(
+    () => sessionViewState().transcriptView.mode() ?? settings.general.transcriptView(),
+  )
+  const reasoningSummariesVisible = createMemo(() => transcriptView() !== "normal")
   const ownerSessionKey = sessionKey()
   const cached = timelineCache.get(ownerSessionKey)
   const initialMeasurements = cached?.measurements
@@ -340,7 +350,7 @@ export function MessageTimeline(props: {
     sessionMessages: projectedMessages,
     parts: getMsgParts,
     status: sessionStatus,
-    showReasoningSummaries: settings.general.showReasoningSummaries,
+    showReasoningSummaries: reasoningSummariesVisible,
     inlineComments: settings.general.newLayoutDesigns,
   })
   const activeMessageID = projection.activeMessageID
@@ -1154,7 +1164,10 @@ export function MessageTimeline(props: {
     const defaultOpen = createMemo(() => {
       const item = part()
       if (!item) return
-      return partDefaultOpen(item, settings.general.shellToolPartsExpanded(), settings.general.editToolPartsExpanded())
+      // "detailed" es lo único que abre herramientas, y abre las tres familias
+      // a la vez: es exactamente lo que promete la opción del selector.
+      const detailed = transcriptView() === "detailed"
+      return partDefaultOpen(item, detailed, detailed, detailed)
     })
 
     return (
@@ -1333,7 +1346,7 @@ export function MessageTimeline(props: {
             <div data-slot="session-turn-message-container" class="w-full px-4 md:px-5">
               <TimelineThinkingRow
                 reasoningHeading={thinkingRow().reasoningHeading}
-                showReasoningSummaries={settings.general.showReasoningSummaries()}
+                showReasoningSummaries={reasoningSummariesVisible()}
               />
             </div>
           </TimelineRowFrame>
@@ -1710,6 +1723,40 @@ export function MessageTimeline(props: {
                                     </DropdownMenu.SubContent>
                                   </DropdownMenu.Portal>
                                 </DropdownMenu.Sub>
+                                {/* La vista por sesión vive en los DOS menús de
+                                    desbordamiento: el legacy y el MenuV2. En uno
+                                    solo desaparecería para media base instalada. */}
+                                <DropdownMenu.Sub gutter={4} overlap>
+                                  <DropdownMenu.SubTrigger>
+                                    <DropdownMenu.ItemLabel>
+                                      {language.t("session.transcriptView.menu")}
+                                    </DropdownMenu.ItemLabel>
+                                    <Icon name="chevron-right" size="small" />
+                                  </DropdownMenu.SubTrigger>
+                                  <DropdownMenu.Portal>
+                                    <DropdownMenu.SubContent>
+                                      <DropdownMenu.RadioGroup
+                                        value={transcriptView()}
+                                        onChange={(value) =>
+                                          sessionViewState().transcriptView.setMode(value as TranscriptView)
+                                        }
+                                      >
+                                        <For each={transcriptViews}>
+                                          {(option) => (
+                                            <DropdownMenu.RadioItem value={option}>
+                                              <DropdownMenu.ItemLabel>
+                                                {language.t(`settings.general.row.transcriptView.option.${option}`)}
+                                              </DropdownMenu.ItemLabel>
+                                              <DropdownMenu.ItemIndicator>
+                                                <Icon name="check-small" size="small" class="text-icon-weak" />
+                                              </DropdownMenu.ItemIndicator>
+                                            </DropdownMenu.RadioItem>
+                                          )}
+                                        </For>
+                                      </DropdownMenu.RadioGroup>
+                                    </DropdownMenu.SubContent>
+                                  </DropdownMenu.Portal>
+                                </DropdownMenu.Sub>
                                 <DropdownMenu.Item onSelect={() => void archiveSession(id)}>
                                   <DropdownMenu.ItemLabel>{language.t("common.archive")}</DropdownMenu.ItemLabel>
                                 </DropdownMenu.Item>
@@ -1791,6 +1838,27 @@ export function MessageTimeline(props: {
                                     <MenuV2.Item onSelect={() => void exportJson().catch(exportFailed)}>
                                       {language.t("session.export.json")}
                                     </MenuV2.Item>
+                                  </MenuV2.SubContent>
+                                </MenuV2.Portal>
+                              </MenuV2.Sub>
+                              <MenuV2.Sub gutter={0} overlap>
+                                <MenuV2.SubTrigger>{language.t("session.transcriptView.menu")}</MenuV2.SubTrigger>
+                                <MenuV2.Portal>
+                                  <MenuV2.SubContent>
+                                    <MenuV2.RadioGroup
+                                      value={transcriptView()}
+                                      onChange={(value) =>
+                                        sessionViewState().transcriptView.setMode(value as TranscriptView)
+                                      }
+                                    >
+                                      <For each={transcriptViews}>
+                                        {(option) => (
+                                          <MenuV2.RadioItem value={option}>
+                                            {language.t(`settings.general.row.transcriptView.option.${option}`)}
+                                          </MenuV2.RadioItem>
+                                        )}
+                                      </For>
+                                    </MenuV2.RadioGroup>
                                   </MenuV2.SubContent>
                                 </MenuV2.Portal>
                               </MenuV2.Sub>

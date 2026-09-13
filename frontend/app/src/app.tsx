@@ -7,7 +7,13 @@ import { File } from "@tiancode-ai/session-ui/file"
 import { Font } from "@tiancode-ai/ui/font"
 import { Splash } from "@tiancode-ai/ui/logo"
 import { AntigravitySplash } from "@/components/antigravity-splash"
-import { DialogWelcomeSetup, FIRST_LAUNCH_KEY } from "@/components/dialogs/dialog-welcome-setup"
+import {
+  DialogWelcomeSetup,
+  FIRST_LAUNCH_KEY,
+  welcomeSetupMode,
+  welcomeSetupVersion,
+  type WelcomeSetupMode,
+} from "@/components/dialogs/dialog-welcome-setup"
 import { ThemeProvider, useTheme } from "@tiancode-ai/ui/theme/context"
 import { MetaProvider } from "@solidjs/meta"
 import {
@@ -474,6 +480,7 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
   const checkServerHealth = useCheckServerHealth()
   const dialog = useDialog()
   const theme = useTheme()
+  const platform = usePlatform()
 
   const [checkMode, setCheckMode] = createSignal<"blocking" | "background">("blocking")
 
@@ -508,31 +515,42 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
   const startupChecking = createMemo(
     () => startupHealthCheck.latest === true && ["unresolved", "pending"].includes(startup.state),
   )
-  const isFirstLaunchPending = () => {
+  // El asistente se abre en la instalación nueva Y después de actualizar: lo decide la versión
+  // que lo completó, no un booleano. Se resuelve aquí de forma síncrona porque de ello depende
+  // si el splash llega a mostrarse.
+  const pendingWelcomeSetup = () => {
     try {
-      return !localStorage.getItem(FIRST_LAUNCH_KEY)
+      return welcomeSetupMode(localStorage.getItem(FIRST_LAUNCH_KEY), welcomeSetupVersion(platform.version))
     } catch {
-      return false
+      // Sin localStorage no se puede saber si ya se hizo; abrirlo en cada arranque sería peor.
+      return undefined
     }
   }
 
-  const [firstLaunchActive, setFirstLaunchActive] = createSignal(isFirstLaunchPending())
+  const [welcomeMode, setWelcomeMode] = createSignal<WelcomeSetupMode | undefined>(pendingWelcomeSetup())
+  const firstLaunchActive = () => welcomeMode() !== undefined
   const [splashFinished, setSplashFinished] = createSignal(false)
   const loading = createMemo(() => !firstLaunchActive() && (!splashFinished() || checking() || startupChecking()))
 
   onMount(() => {
+    // Tras una actualización la ventana todavía mide 440x380 (windows.ts solo la crea a 780x560
+    // mientras el onboarding sigue pendiente) y la tarjeta pide 420 de ancho: la misma llamada
+    // que usa la reapertura manual deja sitio para ella.
+    if (welcomeMode() === "upgrade" && window.api?.setCompactWindow) {
+      void window.api.setCompactWindow({ width: 800, height: 600 })
+    }
     const handleOpen = () => {
       if (window.api?.setCompactWindow) {
         void window.api.setCompactWindow({ width: 800, height: 600 })
       }
-      setFirstLaunchActive(true)
+      setWelcomeMode("review")
     }
     window.addEventListener("tiancode:open-welcome-setup", handleOpen)
     onCleanup(() => window.removeEventListener("tiancode:open-welcome-setup", handleOpen))
   })
 
   const handleDoneSetup = () => {
-    setFirstLaunchActive(false)
+    setWelcomeMode(undefined)
     setSplashFinished(false)
     if (window.api?.restoreMainWindow) {
       void window.api.restoreMainWindow()
@@ -568,23 +586,26 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
         </Show>
       </Show>
 
-      {/* Standalone First Launch Setup Screen (shown FIRST before anything else on fresh install) */}
-      <Show when={firstLaunchActive()}>
-        {/*
-          El fondo de la primera pantalla que ve alguien. Antes elegía entre dos literales según
-          `theme.colorScheme() === "light"`, y ese valor por defecto es "system", no "light": en un
-          equipo con tema claro caía en la rama oscura y pintaba #08080a detrás de una tarjeta
-          clara. --v2-background-bg-deep ya conmuta solo (grey-100 / grey-1100), así que la
-          comparación sobra y no puede volver a desincronizarse.
-        */}
-        <div
-          class="fixed inset-0 z-[99998] w-full h-full flex items-center justify-center p-4 select-none overflow-hidden bg-v2-background-bg-deep transition-colors duration-200"
-        >
-          {/* Halos de marca: sobre el fondo del tema, no sobre un color fijo. */}
-          <div class="absolute -top-[10%] -left-[10%] w-[520px] h-[520px] rounded-full blur-[130px] pointer-events-none bg-v2-background-bg-accent opacity-10" />
-          <div class="absolute -bottom-[10%] -right-[10%] w-[520px] h-[520px] rounded-full blur-[130px] pointer-events-none bg-v2-background-bg-accent opacity-[0.07]" />
-          <DialogWelcomeSetup onDone={handleDoneSetup} />
-        </div>
+      {/* Standalone First Launch Setup Screen (shown FIRST before anything else on fresh install,
+          and again as a one-click confirmation the first time a newer version runs) */}
+      <Show when={welcomeMode()} keyed>
+        {(mode) => (
+          /*
+            El fondo de la primera pantalla que ve alguien. Antes elegía entre dos literales según
+            `theme.colorScheme() === "light"`, y ese valor por defecto es "system", no "light": en un
+            equipo con tema claro caía en la rama oscura y pintaba #08080a detrás de una tarjeta
+            clara. --v2-background-bg-deep ya conmuta solo (grey-100 / grey-1100), así que la
+            comparación sobra y no puede volver a desincronizarse.
+          */
+          <div
+            class="fixed inset-0 z-[99998] w-full h-full flex items-center justify-center p-4 select-none overflow-hidden bg-v2-background-bg-deep transition-colors duration-200"
+          >
+            {/* Halos de marca: sobre el fondo del tema, no sobre un color fijo. */}
+            <div class="absolute -top-[10%] -left-[10%] w-[520px] h-[520px] rounded-full blur-[130px] pointer-events-none bg-v2-background-bg-accent opacity-10" />
+            <div class="absolute -bottom-[10%] -right-[10%] w-[520px] h-[520px] rounded-full blur-[130px] pointer-events-none bg-v2-background-bg-accent opacity-[0.07]" />
+            <DialogWelcomeSetup mode={mode} onDone={handleDoneSetup} />
+          </div>
+        )}
       </Show>
 
       <Show when={loading()}>

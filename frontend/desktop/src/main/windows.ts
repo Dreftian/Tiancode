@@ -655,6 +655,23 @@ function hardenGuestSessions() {
   }
 }
 
+/**
+ * Cuánto duran las cookies del navegador integrado: "always" (las de siempre) o "session" (se
+ * borran al abrir Tiancode, ver abajo). Vive en el store del main porque quien tiene que leerlo
+ * es el arranque (index.ts), antes de que exista ningún renderer.
+ *
+ * NO hay un tercer valor "no guardar nunca": los <webview> del preview corren en particiones
+ * `persist:*` fijas — Electron 42 no deja cambiar la partición de un webview después de la
+ * primera navegación y `wireWebviewHardening` reescribe cualquier otra a "persist:preview" — así
+ * que una partición en memoria no es una opción que se pueda ofrecer.
+ */
+export const WEBVIEW_RETENTION_KEY = "webviewRetention"
+export type WebviewRetention = "always" | "session"
+
+export function webviewRetention(raw: unknown): WebviewRetention {
+  return raw === "session" ? "session" : "always"
+}
+
 // Limpia el almacenamiento persistente de los webviews (navegador interno y
 // vista en vivo): cookies, caché, localStorage y datos de sesión de las
 // particiones guest, sin tocar la sesión del renderer principal.

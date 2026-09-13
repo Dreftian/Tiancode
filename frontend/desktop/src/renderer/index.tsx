@@ -14,17 +14,17 @@ import {
   useCommand,
   useWslServers,
   useLanguage,
+  useSettings,
 } from "@tiancode-ai/app"
 import type { UpdaterState } from "@tiancode-ai/app/updater"
 import * as Sentry from "@sentry/solid"
 import type { AsyncStorage } from "@solid-primitives/storage"
 import { createMemoryHistory, MemoryRouter, type BaseRouterProps } from "@solidjs/router"
-import { createEffect, createMemo, createResource, createSignal, onCleanup, Show } from "solid-js"
+import { createEffect, createMemo, createResource, createSignal, onCleanup, onMount, Show } from "solid-js"
 import { render } from "solid-js/web"
 import pkg from "../../package.json"
 import { t } from "./i18n"
 import { initializationData } from "./initialization"
-import { DesktopFirstLaunchOnboarding } from "./onboarding"
 import { resetZoom, setPinchZoomEnabled, webviewZoom, zoomIn, zoomOut } from "./webview-zoom"
 import { windowFullscreen } from "./window-fullscreen"
 import { availableStartupServer, readyWslConnections } from "./wsl/connections"
@@ -386,6 +386,43 @@ function LoadingSplash() {
   )
 }
 
+/**
+ * Lo que quedaba del primer arranque del escritorio una vez borrado su asistente.
+ *
+ * Había dos pantallas de bienvenida con dos interruptores distintos —esta, tras una clave del
+ * electron-store, y el diálogo del renderer compartido, tras localStorage—, y en una instalación
+ * nueva el diálogo se pintaba antes y marcaba la clave del electron-store: esta no llegaba a
+ * verse nunca. Lo único suyo que no era la pantalla es esta clasificación, que sigue corriendo en
+ * cada arranque porque de ella dependen la visibilidad de los agentes personalizados y la
+ * elegibilidad del diseño antiguo.
+ */
+function DesktopLaunchBootstrap(props: { onLoaded: () => void }) {
+  const settings = useSettings()
+  let classified = false
+
+  // La puerta de arranque ya no espera a ninguna pantalla: quien decide si se abre el asistente
+  // es el diálogo, y lo hace antes del splash.
+  onMount(() => props.onLoaded())
+
+  createEffect(() => {
+    // Sin los ajustes leídos del disco, initializeAgentVisibility no puede saber si ya se
+    // inicializaron y volvería a escribir sobre el valor del usuario.
+    if (!settings.ready() || classified) return
+    classified = true
+    void window.api
+      .isOldLayoutEligible()
+      .then((existingInstall) => {
+        settings.general.setOldLayoutEligible(existingInstall)
+        settings.general.initializeAgentVisibility(existingInstall)
+      })
+      .catch((error) => {
+        console.error("[desktop-launch] install classification failed", error)
+      })
+  })
+
+  return null
+}
+
 function DesktopRoot(props: { windowState: DesktopWindowState }) {
   const platform = createPlatform(props.windowState)
   const loadLocale = async () => {
@@ -408,7 +445,7 @@ function DesktopRoot(props: { windowState: DesktopWindowState }) {
   const router = (props: BaseRouterProps) => (
     <DesktopMemoryRouter {...props} windowID={platform.windowID ?? "browser"} />
   )
-  const onboarding = Promise.withResolvers<void>()
+  const startupGate = Promise.withResolvers<void>()
 
   function Inner() {
     const cmd = useCommand()
@@ -463,13 +500,8 @@ function DesktopRoot(props: { windowState: DesktopWindowState }) {
               defaultServer={key}
               servers={servers()}
               router={router}
-              startup={onboarding.promise}
-              serverScoped={
-                <DesktopFirstLaunchOnboarding
-                  initialUrl={getLastActiveUrl(platform.windowID ?? "browser")}
-                  onLoaded={onboarding.resolve}
-                />
-              }
+              startup={startupGate.promise}
+              serverScoped={<DesktopLaunchBootstrap onLoaded={startupGate.resolve} />}
             >
               <Inner />
             </AppInterface>

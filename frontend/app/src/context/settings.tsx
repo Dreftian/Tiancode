@@ -80,6 +80,8 @@ export const transcriptTextSizes = ["small", "medium", "large"] as const
 export type TranscriptTextSize = (typeof transcriptTextSizes)[number]
 export const transcriptWidths = ["narrow", "medium", "wide"] as const
 export type TranscriptWidth = (typeof transcriptWidths)[number]
+export const transcriptViews = ["normal", "thinking", "detailed"] as const
+export type TranscriptView = (typeof transcriptViews)[number]
 
 /**
  * Escalón de texto de la transcripción a partir de lo que haya en disco.
@@ -142,9 +144,13 @@ export interface Settings {
     autoSpeak: boolean
     speakReasoning: boolean
     voiceEngine: "auto" | "fish" | "system" | "neural"
+    // Los cuatro booleanos siguen siendo la verdad almacenada: `transcriptView`
+    // se deriva de ellos. Guardar un enum en su lugar convertiría en no-ops los
+    // ~20 e2e que escriben `settings.v3` general.{shell,edit}ToolPartsExpanded.
     showReasoningSummaries: boolean
     shellToolPartsExpanded: boolean
     editToolPartsExpanded: boolean
+    allToolPartsExpanded: boolean
     showCustomAgents: boolean
     mobileTitlebarPosition: "top" | "bottom"
     newLayoutDesigns?: boolean
@@ -320,6 +326,7 @@ const defaultSettings: Settings = {
     showReasoningSummaries: false,
     shellToolPartsExpanded: false,
     editToolPartsExpanded: false,
+    allToolPartsExpanded: false,
     showCustomAgents: false,
     mobileTitlebarPosition: "top",
   },
@@ -376,6 +383,31 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
       () => store.general?.showCustomAgents,
       defaultSettings.general.showCustomAgents,
     )
+    const showReasoningSummaries = withFallback(
+      () => store.general?.showReasoningSummaries,
+      defaultSettings.general.showReasoningSummaries,
+    )
+    const shellToolPartsExpanded = withFallback(
+      () => store.general?.shellToolPartsExpanded,
+      defaultSettings.general.shellToolPartsExpanded,
+    )
+    const editToolPartsExpanded = withFallback(
+      () => store.general?.editToolPartsExpanded,
+      defaultSettings.general.editToolPartsExpanded,
+    )
+    const allToolPartsExpanded = withFallback(
+      () => store.general?.allToolPartsExpanded,
+      defaultSettings.general.allToolPartsExpanded,
+    )
+    // La vista se deriva de los cuatro booleanos en lugar de guardarse aparte:
+    // así un ajuste escrito a mano (o por los ~20 e2e que tocan `settings.v3`
+    // general.{shell,edit}ToolPartsExpanded) sigue moviendo el selector, y no
+    // hay dos verdades que puedan contradecirse según cuál se tocó al final.
+    const transcriptView = createMemo<TranscriptView>(() => {
+      if (shellToolPartsExpanded() || editToolPartsExpanded() || allToolPartsExpanded()) return "detailed"
+      if (showReasoningSummaries()) return "thinking"
+      return "normal"
+    })
     const sunset = oldInterfaceSunset
     const [oldInterfaceRetired, setOldInterfaceRetired] = createSignal(sunset ? Date.now() >= sunset.getTime() : false)
     const layoutTransitionClassified = createMemo(() => typeof store.general?.layoutTransitionEligible === "boolean")
@@ -568,26 +600,31 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         setVoiceEngine(value: "auto" | "fish" | "system" | "neural") {
           setStore("general", "voiceEngine", value)
         },
-        showReasoningSummaries: withFallback(
-          () => store.general?.showReasoningSummaries,
-          defaultSettings.general.showReasoningSummaries,
-        ),
+        showReasoningSummaries,
         setShowReasoningSummaries(value: boolean) {
           setStore("general", "showReasoningSummaries", value)
         },
-        shellToolPartsExpanded: withFallback(
-          () => store.general?.shellToolPartsExpanded,
-          defaultSettings.general.shellToolPartsExpanded,
-        ),
+        shellToolPartsExpanded,
         setShellToolPartsExpanded(value: boolean) {
           setStore("general", "shellToolPartsExpanded", value)
         },
-        editToolPartsExpanded: withFallback(
-          () => store.general?.editToolPartsExpanded,
-          defaultSettings.general.editToolPartsExpanded,
-        ),
+        editToolPartsExpanded,
         setEditToolPartsExpanded(value: boolean) {
           setStore("general", "editToolPartsExpanded", value)
+        },
+        allToolPartsExpanded,
+        setAllToolPartsExpanded(value: boolean) {
+          setStore("general", "allToolPartsExpanded", value)
+        },
+        transcriptView,
+        setTranscriptView(value: TranscriptView) {
+          const tools = value === "detailed"
+          batch(() => {
+            setStore("general", "showReasoningSummaries", value !== "normal")
+            setStore("general", "shellToolPartsExpanded", tools)
+            setStore("general", "editToolPartsExpanded", tools)
+            setStore("general", "allToolPartsExpanded", tools)
+          })
         },
         showCustomAgents,
         setShowCustomAgents(value: boolean) {

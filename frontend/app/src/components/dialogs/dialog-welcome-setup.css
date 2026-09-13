@@ -126,6 +126,12 @@
   overflow-y: auto;
 }
 
+/* Sin barra de progreso (modo confirmación) la cabecera queda pegada al primer control: este
+   relleno devuelve la misma separación que daba la barra. */
+.welcome-setup-body--flush {
+  padding-top: 4px;
+}
+
 .welcome-setup-panel {
   display: flex;
   flex-direction: column;
@@ -161,6 +167,16 @@
   font-weight: 440;
   letter-spacing: -0.04px;
   line-height: 16px;
+}
+
+/* Un interruptor no dice qué enciende ni qué cuesta, y estas dos preguntas son nuevas: la fila
+   lleva la línea de ayuda dentro, junto a la etiqueta. */
+.welcome-setup-field-text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .welcome-setup-field-control {
@@ -250,6 +266,17 @@
   .welcome-setup-field-control [data-component="select-v2"],
   .welcome-setup-field-control [data-slot="segmented-control-v2"] {
     width: 100%;
+  }
+
+  /* El interruptor mide 24px: nunca necesita bajar de línea ni ocupar el ancho completo. */
+  .welcome-setup-field--switch {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .welcome-setup-field--switch .welcome-setup-field-control {
+    width: auto;
   }
 }
 
