@@ -75,11 +75,6 @@ const soundSettings = {
     title: "settings.general.sounds.agent.title",
     description: "settings.general.sounds.agent.description",
   },
-  permissions: {
-    action: "settings-sounds-permissions",
-    title: "settings.general.sounds.permissions.title",
-    description: "settings.general.sounds.permissions.description",
-  },
   errors: {
     action: "settings-sounds-errors",
     title: "settings.general.sounds.errors.title",
@@ -300,7 +295,6 @@ const SoundsSection: Component<{ controller: SoundSettingsController }> = (props
       <h3 class="settings-v2-section-title">{language.t("settings.general.section.sounds")}</h3>
       <SettingsListV2>
         <SoundSetting kind="agent" channel={props.controller.agent} />
-        <SoundSetting kind="permissions" channel={props.controller.permissions} />
         <SoundSetting kind="errors" channel={props.controller.errors} />
       </SettingsListV2>
     </div>
@@ -308,7 +302,7 @@ const SoundsSection: Component<{ controller: SoundSettingsController }> = (props
 }
 
 const SoundSetting: Component<{
-  kind: "agent" | "permissions" | "errors"
+  kind: "agent" | "errors"
   channel: SoundSettingsController["agent"]
 }> = (props) => {
   const language = useLanguage()
@@ -421,7 +415,9 @@ export const SettingsGeneralV2: Component<{
   }
 
   // Respaldo automático de datos (sesiones + configuración): el main copia a
-  // userData/backups una vez al día con rotación de 7 días.
+  // userData/backups una vez al día con rotación de 7 días. El main lee la
+  // clave una sola vez, al arrancar (main/index.ts), así que el cambio se
+  // aplica en el siguiente inicio; la descripción de la fila lo dice.
   const [autoBackup, { mutate: setAutoBackup }] = createResource(
     () => desktop(),
     () =>
@@ -438,27 +434,42 @@ export const SettingsGeneralV2: Component<{
     void update.catch(() => setAutoBackup(!checked))
   }
 
+  // Los respaldos se piden por `platform`, no por `window.api`: el preload
+  // expone `window.api.backup.{now,list,restore}` y el adaptador de escritorio
+  // (desktop/src/renderer/index.tsx) los publica como backupNow/listBackups/
+  // restoreBackup. Llamar a `window.api.backupNow` era llamar a `undefined`, y
+  // el `?.` lo convertía en un silencio que la UI leía como "no hay datos".
   const [backups, { refetch: refetchBackups }] = createResource(
     () => desktop(),
-    () => (window.api?.listBackups ? window.api.listBackups() : Promise.resolve([])),
+    () => platform.listBackups?.() ?? Promise.resolve([]),
     { initialValue: [] as { name: string; createdAt: number }[] },
   )
 
   const backupNow = async () => {
-    const name = await window.api?.backupNow?.()
-    if (name) {
+    const create = platform.backupNow
+    if (!create) return
+    try {
+      const name = await create()
+      // `backupNow` solo devuelve null cuando no había ni un archivo que
+      // copiar; ese, y solo ese, es el caso que `now.failed` describe.
+      if (!name) {
+        showToast({ variant: "default", title: language.t("settings.general.backup.now.failed") })
+        return
+      }
       showToast({ variant: "success", title: language.t("settings.general.backup.now.success") })
       void refetchBackups()
-    } else {
-      showToast({ variant: "error", title: language.t("settings.general.backup.now.failed") })
+    } catch {
+      showToast({ variant: "error", title: language.t("settings.general.backup.now.error") })
     }
   }
 
   const restoreBackup = async (name: string) => {
+    const restore = platform.restoreBackup
+    if (!restore) return
     const confirmed = window.confirm(language.t("settings.general.backup.restore.confirm", { name }))
     if (!confirmed) return
     try {
-      await window.api?.restoreBackup?.(name)
+      await restore(name)
       showToast({ variant: "success", title: language.t("settings.general.backup.restore.success") })
       // Los datos de la instancia se recargan desde disco; reiniciar la app
       // garantiza un estado totalmente limpio.
@@ -623,32 +634,20 @@ export const SettingsGeneralV2: Component<{
           </div>
         </SettingsRowV2>
 
-        <SettingsRowV2
-          title={language.t("settings.general.row.showTerminal.title")}
-          description={language.t("settings.general.row.showTerminal.description")}
-        >
-          <div data-action="settings-show-terminal">
-            <Switch
-              checked={settings.general.showTerminal()}
-              onChange={(checked) => settings.general.setShowTerminal(checked)}
-            />
-          </div>
-        </SettingsRowV2>
+        {/* Aquí vivían "Terminal" y "Navegador interno". Ninguno de los dos
+            podía mover nada en la interfaz v2, que es la única que se monta:
+            la cabecera v2 (session-header.tsx) dibuja el botón del terminal
+            siempre, sin mirar `showTerminal`, y nunca dibuja el del navegador
+            aunque calcule su estado (browserVisible/browserOpened), así que
+            `showBrowser` tampoco tenía efecto. Se quitan los interruptores en
+            lugar de dejarlos mintiendo; las claves siguen en el contexto
+            porque la cabecera y preview-panel todavía las leen. Cuando la
+            cabecera v2 renderice ambos botones, vuelven. */}
 
-        <Show when={desktop()}>
-          <SettingsRowV2
-            title={language.t("settings.general.row.showBrowser.title")}
-            description={language.t("settings.general.row.showBrowser.description")}
-          >
-            <div data-action="settings-show-browser">
-              <Switch
-                checked={settings.general.showBrowser()}
-                onChange={(checked) => settings.general.setShowBrowser(checked)}
-              />
-            </div>
-          </SettingsRowV2>
-        </Show>
-
+        {/* Apagarlo oculta el selector solo si el proyecto no tiene agentes
+            propios: context/local.tsx lo muestra igualmente cuando existe uno
+            (`customAgents() || hasCustomAgent(list())`). La descripción lo
+            dice en lugar de prometer un ocultado que no ocurre. */}
         <SettingsRowV2
           title={language.t("settings.general.row.showCustomAgents.title")}
           description={language.t("settings.general.row.showCustomAgents.description")}
@@ -681,17 +680,11 @@ export const SettingsGeneralV2: Component<{
           </div>
         </SettingsRowV2>
 
-        <SettingsRowV2
-          title={language.t("settings.general.notifications.permissions.title")}
-          description={language.t("settings.general.notifications.permissions.description")}
-        >
-          <div data-action="settings-notifications-permissions">
-            <Switch
-              checked={settings.notifications.permissions()}
-              onChange={(checked) => settings.notifications.setPermissions(checked)}
-            />
-          </div>
-        </SettingsRowV2>
+        {/* "Permisos" se quita de Notificaciones y de Sonidos: el único sitio
+            que avisa de un `permission.asked` es pages/layout.tsx (LegacyLayout),
+            y la v2 navega a /server/:serverKey/session/:id, ruta que no lo monta.
+            Los ajustes siguen en el contexto para cuando ese aviso se mude a
+            context/notification.tsx, que sí está montado siempre. */}
 
         <SettingsRowV2
           title={language.t("settings.general.notifications.errors.title")}

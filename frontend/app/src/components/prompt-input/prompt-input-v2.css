@@ -1,0 +1,158 @@
+/* Barra de controles del compositor V2: responsive al ancho DEL COMPOSITOR.
+ *
+ * POR QUÉ EXISTE ESTE FICHERO
+ * En paneles estrechos los controles se montaban unos encima de otros en vez
+ * de truncar. La causa está medida, no supuesta, y son tres candados en serie:
+ *
+ *   1. button-v2.css declara `flex-shrink: 0` para TODO [data-component=
+ *      "button-v2"]. El botón de modelo ya traía `min-w-0 max-w-[220px]`: eso
+ *      fija el ancho, pero no el flex, así que el botón nunca encogía. Es el
+ *      mismo patrón que las filas de ajustes y que la cabecera de Vista previa
+ *      (1.0.46): se tocó el width y se dejó el flex.
+ *   2. TooltipV2 envuelve cada control en un <div data-component="tooltip-v2-
+ *      trigger"> con `display:flex` y `min-width:auto`, o sea que el envoltorio
+ *      tampoco baja de su min-content aunque el botón sí pudiera.
+ *   3. El grupo izquierdo sí lleva `min-w-0`, de modo que su caja encoge pero
+ *      su contenido no: se desborda y pinta por debajo del grupo derecho, que
+ *      es `shrink-0`. Ese desbordamiento es el solape de las capturas.
+ *
+ * Medida a 13px: izquierda ~319px (+ 28 adjuntar), derecha 176px fijos, 16px
+ * de padding => la fila pedía ~511px. Un panel de 380px solapaba ~130px.
+ *
+ * @container y no @media porque el compositor vive en un panel redimensionable
+ * y el ajuste de anchura del transcript (1.0.47) le cambia el max-width: puede
+ * estar estrecho con la ventana ancha.
+ *
+ * El marcado de la barra lo renderiza @tiancode-ai/session-ui (v2/components/
+ * prompt-input/index.tsx); aquí sólo se corrige el layout desde fuera.
+ *
+ * OJO al tocar el `container-type`: CaptureControl pinta su overlay de
+ * selección de área (.capture-area-overlay, position:fixed) dentro de la barra
+ * en vez de en un Portal. Se comprobó en Chromium 152 que `container-type:
+ * inline-size` NO convierte al formulario en bloque contenedor de los
+ * descendientes `fixed` — el overlay sigue ocupando el viewport entero. Si
+ * alguna vez eso cambia, el overlay quedaría recortado por el `overflow-clip`
+ * del formulario; la solución de verdad es portarlo en capture-control.tsx.
+ */
+
+[data-component="prompt-input-v2"] {
+  container-type: inline-size;
+  container-name: composer;
+
+  /* Fila de controles: último div del formulario. */
+  > div:last-of-type {
+    /* h-11 es altura fija; al envolver en dos filas tiene que poder crecer. */
+    height: auto;
+    min-height: 2.75rem;
+    row-gap: 0.25rem;
+
+    /* --- Grupo izquierdo: agente / modelo / variante. Es el que cede. --- */
+    > div:first-child {
+      flex: 1 1 auto;
+      min-width: 0;
+
+      /* Candado 2: el envoltorio de TooltipV2. */
+      > [data-component="tooltip-v2-trigger"] {
+        flex: 0 1 auto;
+        min-width: 0;
+      }
+
+      /* El "+" abre adjuntos, comandos y shell: no cede nunca. */
+      > [data-component="tooltip-v2-trigger"]:has([data-action="prompt-attach"]) {
+        flex: 0 0 auto;
+      }
+
+      /* Candado 1: button-v2.css pone flex-shrink 0. */
+      [data-component="button-v2"] {
+        flex-shrink: 1;
+        min-width: 0;
+        max-width: 100%;
+      }
+
+      /* Sólo cede la etiqueta; el icono de proveedor y el chevron se quedan.
+         `.truncate` es la clase que ya llevan las dos etiquetas (modelo en
+         prompt-input-v2.tsx, agente y variante en session-ui). El mínimo deja
+         siempre inicial + elipsis: un botón mudo no es un control. */
+      [data-component="button-v2"] > .truncate {
+        flex: 0 1 auto;
+        min-width: 1.5rem;
+      }
+    }
+
+    /* --- Grupo derecho: capturar, micro, optimizar, 2x y enviar. --- */
+    /* Nunca encoge y nunca pierde el envío: es la única acción imprescindible. */
+    > div:last-child {
+      flex: 0 0 auto;
+    }
+  }
+}
+
+/* Peldaño 1: un nombre de modelo largo deja de comerse la fila antes de que
+   empiece el truncado del resto. */
+@container composer (max-width: 620px) {
+  [data-component="prompt-input-v2"] > div:last-of-type > div:first-child [data-component="button-v2"] {
+    max-width: 180px;
+  }
+}
+
+/* Peldaño 2: se aprieta el acolchado y los huecos antes de partir la fila. */
+@container composer (max-width: 520px) {
+  [data-component="prompt-input-v2"] > div:last-of-type > div:first-child {
+    gap: 0.125rem;
+  }
+
+  [data-component="prompt-input-v2"] > div:last-of-type > div:first-child [data-component="button-v2"] {
+    max-width: 128px;
+    padding-inline: 8px;
+  }
+
+  [data-component="prompt-input-v2"] > div:last-of-type > div:last-child > div {
+    gap: 0.125rem;
+  }
+}
+
+/* Peldaño 3: por debajo del suelo del truncado (~410px medidos) la fila se
+   parte en dos. Nada se desmonta, nada pierde su etiqueta y el envío sigue
+   siendo el último control de la barra. */
+@container composer (max-width: 440px) {
+  [data-component="prompt-input-v2"] > div:last-of-type {
+    flex-wrap: wrap;
+  }
+
+  /* Base 100% para que el corte sea determinista y no dependa del max-content. */
+  [data-component="prompt-input-v2"] > div:last-of-type > div:first-child {
+    flex: 1 1 100%;
+  }
+
+  [data-component="prompt-input-v2"] > div:last-of-type > div:first-child [data-component="button-v2"] {
+    max-width: 200px;
+  }
+
+  [data-component="prompt-input-v2"] > div:last-of-type > div:last-child {
+    margin-inline-start: auto;
+  }
+}
+
+/* Peldaño 4, último recurso: por debajo de ~265px ni siquiera una fila entera
+   da para el grupo entero, así que los dos grupos envuelven por dentro. El
+   `flex: 1 1 100%` del grupo derecho es imprescindible: sin él se queda en su
+   max-content, el flex-wrap no tiene nada que partir y lo que se desborda es
+   la barra, llevándose el botón de enviar fuera. */
+@container composer (max-width: 280px) {
+  [data-component="prompt-input-v2"] > div:last-of-type > div:first-child {
+    flex-wrap: wrap;
+  }
+
+  [data-component="prompt-input-v2"] > div:last-of-type > div:last-child {
+    flex: 1 1 100%;
+    max-width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  [data-component="prompt-input-v2"] > div:last-of-type > div:last-child > div {
+    max-width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}

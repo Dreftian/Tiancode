@@ -187,30 +187,14 @@
   padding: 4px 16px 8px;
 }
 
+/* TextRow's field. These are the values the control slot applies anyway; a container query used
+   to widen the field to 320px here and never once did — (0,1,0) loses to settings-v2.css's
+   `[data-slot="settings-v2-row-control"] [data-component="text-input-v2"]`, which is (0,2,0) —
+   so it is gone rather than left looking like a rule that works. SecretRow's field and buttons
+   now share .settings-v2-row-inline with the computer-use rows. */
 .settings-v2-connections-input {
   width: 100%;
   min-width: 0;
-}
-
-@container settings-panel (min-width: 720px) {
-  .settings-v2-connections-input {
-    width: 320px;
-  }
-}
-
-.settings-v2-connections-secret {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-}
-
-@container settings-panel (min-width: 720px) {
-  .settings-v2-connections-secret {
-    width: auto;
-    flex-wrap: nowrap;
-  }
 }
 
 .settings-v2-connections-secret-title {

@@ -54,7 +54,10 @@ import {
 } from "@/utils/asr"
 import "./voices.css"
 
-const PROBE_TEXT_ES = "Hola, soy la voz de Tiancode en español."
+// Una sola frase corta no deja oír lo que distingue a estas voces (fluidez,
+// pausas y timbre): con seis voces que comparar hace falta una muestra con
+// coma, punto y pregunta, que es donde se nota la entonación.
+const PROBE_TEXT_ES = "Hola, soy la voz de Tiancode en español. Leo las respuestas con pausas naturales y un tono suave. ¿Te gusta cómo sueno?"
 const voiceProbeKey = (voiceID: string) => `voice:${voiceID}`
 
 // A voice can be selected when it is supported and enabled.
@@ -324,10 +327,13 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
         )
         if (match) utterance.voice = match
         window.speechSynthesis.speak(utterance)
+        // El aviso decía "Probando voz: <modelo>" mientras sonaba una voz del
+        // sistema: quien comparaba voces para elegir la más suave juzgaba la de
+        // Windows creyendo que era el modelo. Se dice de quién es la voz.
         showToast({
           variant: "default",
-          title: `Probando voz: ${voice.name}`,
-          description: "Reproduciendo muestra de voz previa.",
+          title: `${voice.name} no se pudo sintetizar`,
+          description: `Suena la voz del sistema (${match?.name ?? "predeterminada"}), no el modelo. Descarga la voz para oírla de verdad.`,
         })
         return
       }

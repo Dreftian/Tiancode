@@ -18,6 +18,9 @@ const OPTIMIZE_FAILURE_KEYS: Record<string, string> = {
   auth: "prompt.optimize.failed.auth",
   rateLimit: "prompt.optimize.failed.rateLimit",
   quota: "prompt.optimize.failed.quota",
+  // No es un error: el modelo respondió, pero sólo con razonamiento y ningún texto. El cuerpo sale
+  // vacío igual que en un fallo, así que sin este código se anunciaría como «no dijo nada».
+  reasoningOnly: "prompt.optimize.failed.reasoningOnly",
   unknown: "prompt.optimize.failed.unknown",
 }
 

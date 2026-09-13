@@ -1137,8 +1137,7 @@ export const dict = {
   "settings.general.row.mobileTitlebarBottom.title": "하단 탐색",
   "settings.general.row.mobileTitlebarBottom.description": "모바일에서 제목 표시줄과 세션 탭을 화면 하단에 배치",
   "settings.general.row.showCustomAgents.title": "에이전트 표시",
-  "settings.general.row.showCustomAgents.description":
-    "입력창에서 에이전트를 전환합니다. 숨기면 기본적으로 Build 에이전트를 사용합니다.",
+  "settings.general.row.showCustomAgents.description": "작성기에서 에이전트를 전환합니다. 숨기면 기본적으로 Build 에이전트를 사용하지만, 자체 에이전트가 있는 프로젝트에서는 선택기가 계속 표시됩니다.",
   "settings.general.row.newInterface.title": "새 레이아웃",
   "settings.general.row.newInterface.badge": "신규",
   "settings.general.row.newInterface.description":
@@ -1324,7 +1323,7 @@ export const dict = {
   "session.export.failed": "대화를 내보낼 수 없습니다",
   "settings.general.section.data": "데이터",
   "settings.general.row.autoBackup.title": "자동 백업",
-  "settings.general.row.autoBackup.description": "세션과 설정을 매일 복사합니다(최근 7일 보관)",
+  "settings.general.row.autoBackup.description": "세션과 설정을 매일 복사합니다(최근 7일 보관). 다음 앱 시작 시 적용됩니다. 즉시 복사하려면 '지금 백업'을 사용하세요.",
   "settings.general.row.backupNow.title": "지금 백업",
   "settings.general.row.backupNow.description": "데이터의 복사본을 즉시 만듭니다",
   "settings.general.row.backupNow.button": "백업 만들기",
@@ -2455,4 +2454,9 @@ export const dict = {
   "welcome.confirm.updated": "업데이트됨 — 설정을 확인하세요",
   "welcome.confirm.review": "설정을 확인하세요",
   "welcome.confirm.done": "완료",
+  "prompt.attachment.imageUnsupported": "{{model}}은(는) 이미지를 읽을 수 없습니다. 이 첨부 파일은 모델에 전달되지 않습니다.",
+  "settings.permissions.tool.delete.description": "파일이나 폴더를 삭제하고, Windows가 잠그고 있으면 단계적으로 대응합니다 (전체 경로와 일치)",
+  "settings.permissions.tool.process_terminate.description": "파일을 열어 두고 있는 프로세스를 강제로 종료해 해당 파일을 삭제할 수 있게 합니다",
+  "settings.general.backup.now.error": "백업을 만들지 못했습니다",
+  "prompt.optimize.failed.reasoningOnly": "모델이 추론만 생성하고 답변은 내놓지 않았습니다. 추론 강도를 낮춰 다시 시도해 보세요.",
 }

@@ -4,6 +4,89 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.50] — 2026-09-12
+### El botón de mejorar prompt fallaba el 100 % de las veces, y ya sabemos por qué
+
+#### El optimizador nunca funcionó
+No era tu modelo, ni la variante «Max», ni el modo 2x. **Fallaba siempre, con cualquier
+configuración.** La respuesta se entrega como un flujo perezoso, y el servidor sólo tira de él
+*después* de que el handler haya retornado — momento en el que ya se cerró el ámbito que le inyecta
+el contexto de la instancia. Moría con «InstanceRef not provided» antes de que un solo byte saliera
+hacia el proveedor, y el capturador de errores lo disfrazaba de fallo del modelo.
+
+Lo peor es por qué no lo detectó nadie: ese contexto es una referencia **con valor por defecto**, así
+que su tipo dice `never` y el comprobador de tipos no ve nada que falte. Compilaba perfecto y
+fallaba siempre. Ahora el flujo lleva su propio contexto en vez de pedirlo prestado a la petición,
+sigue llegando palabra a palabra, **y va con un test HTTP contra la ruta real** que reproducía el
+fallo exacto (`\0unknown`, cero texto) antes del arreglo. No había ninguno.
+
+De paso: un modelo que sólo emite razonamiento y ningún texto producía el mismo cuerpo vacío que un
+fallo, y se anunciaba como «no dijo nada». Ahora es un caso propio.
+
+#### Iconos del chat que se pisaban
+Medido: el grupo izquierdo (agente, modelo, variante) ocupa **315 px rígidos a cualquier ancho** y
+ninguna etiqueta se recorta **nunca**, así que a partir de 505 px invade el grupo derecho. Tres
+cerrojos en serie, y el primero es exactamente el mismo bug que las filas de ajustes de esta misma
+versión: **a los botones se les fijó el ancho pero no el `flex`**, y además cada control va envuelto
+en un contenedor de tooltip que lo vuelve a clavar. Ahora hay una escalera por ancho del compositor
+—no de la ventana, que puede ser ancha con el panel estrecho— las etiquetas se recortan con puntos
+suspensivos, y el botón de enviar sobrevive a cualquier tamaño.
+
+#### Ajustes de General que no hacían nada
+Tenías razón, y el peor de todos era **«Crear respaldo»**: llamaba a un método que el preload nunca
+expuso, así que la llamada se tragaba en silencio y te decía **«no hay datos que respaldar»** — una
+mentira sobre tus propios datos. Ahora respalda de verdad, y el mensaje vacío sólo aparece cuando de
+verdad no hay nada.
+
+Se borran dos interruptores muertos (**Terminal** y **Navegador interno**): sus únicos lectores
+viven en una rama de la interfaz vieja que ya es inalcanzable. Y dos descripciones pasan a decir la
+verdad: el respaldo automático **se aplica en el próximo inicio**, y «Mostrar agente» **no oculta
+nada en proyectos que definen sus propios agentes**.
+
+#### Desbordes y la tarjeta de GitHub
+El botón «Vetar» se salía de la ventana por una causa concreta: el campo de texto lleva
+`flex: none` y sólo se le sobrescribe el ancho, así que el hueco se dimensiona al tamaño intrínseco
+del campo y empuja fuera el espacio y el botón entero — que el panel luego recorta. Medido: 63 px
+fuera en «Vetar», 78,6 en «Permitir», y **210,9 en una fila de Conexiones que nadie había
+reportado**. Hay ya una clase compartida para «campo + botón», que era justo lo que faltaba.
+
+La tarjeta de GitHub medía 757 px en un hueco de 608. Recortar márgenes no bastaba, así que se parte
+en dos columnas: el formulario a la izquierda, las capacidades al lado. Sin scroll y con margen a
+cualquier tamaño.
+
+#### Borrado: hacer todo lo posible
+Cuando le das permiso para borrar y Windows se niega, ahora **escala en vez de rendirse**: reintenta,
+quita el atributo de sólo lectura, **identifica qué proceso retiene el archivo** mediante el Restart
+Manager (sin administrador y sin herramientas externas) y te dice su nombre y PID, programa el
+borrado para el próximo arranque, y sólo si se lo pides explícitamente ofrece cerrar el proceso que
+lo bloquea. Un borrado parcial ya no aborta al primer archivo bloqueado: los otros nueve mil se
+borran igual.
+
+**Una corrección a la premisa:** Tiancode no bloqueaba nada. Se comprobó en tu máquina que con
+permisos totales Windows sigue rechazando el borrado, porque es un bloqueo obligatorio del sistema —
+y en tu caso lo sostenía la propia app que lanzaste desde `release\win-unpacked`. Por eso no hay
+interruptor de «sin restricciones»: habría sido un control conectado a nada. Cuando quien bloquea es
+Tiancode mismo, ahora te lo dice en vez de fingir.
+
+#### Voces
+Se buscó de nuevo, más ancho, y **midiendo**: descargué las muestras de cada voz y calculé su
+frecuencia fundamental en vez de fiarme del nombre. Resultado: las seis etiquetas de sexo del
+catálogo eran correctas y los rechazos anteriores también (`ald` 138,7 Hz, `carlfm` 117,9 Hz y
+`davefx` 124,6 Hz son voces masculinas; `sharvard` sólo es femenina en su segundo hablante, que es el
+que ya se usaba).
+
+Piper para español está agotado — existen nueve voces y están todas evaluadas. Pero **fuera de piper
+apareció una mejor**: se sustituye la más floja del catálogo (16 kHz, calidad «low», afinada desde
+una voz inglesa) por **Karen Savage (es-MX)**, de 22 kHz, sexo verificado y con licencia que permite
+uso comercial. Daniela (Argentina) se mantiene, como pediste.
+
+Lo que **no** se puede: DeepSeek nunca ha publicado un modelo de voz. Qwen sí, y es Apache-2.0, pero
+no tiene ninguna voz en español — sus cuatro timbres femeninos son chino, chino, japonés y coreano —
+y además el motor de Tiancode no puede ejecutarlo: haría falta un segundo runtime de inferencia de
+más de 600 MB para sonar peor que los modelos de 63-114 MB actuales.
+
+Typecheck 27/27 · Lint 0 errores · 927 tests de frontend · 153 de escritorio · 83 de backend.
+
 ## [1.0.49] — 2026-09-12
 ### La bienvenida vuelve tras cada actualización, y «Uso de la PC» por fin controla algo
 

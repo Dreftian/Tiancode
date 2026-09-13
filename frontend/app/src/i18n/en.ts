@@ -1037,8 +1037,7 @@ export const dict = {
   "settings.general.row.mobileTitlebarBottom.description":
     "Place the title bar and session tabs at the bottom of the screen on mobile",
   "settings.general.row.showCustomAgents.title": "Show agent",
-  "settings.general.row.showCustomAgents.description":
-    "Switch between agents in the composer. When hidden, defaults to Build agent.",
+  "settings.general.row.showCustomAgents.description": "Switch between agents in the composer. When hidden, defaults to the Build agent — except in projects with their own agents, where the selector stays visible.",
   "settings.general.row.newInterface.title": "New layout",
   "settings.general.row.newInterface.badge": "New",
   "settings.general.row.newInterface.description":
@@ -1063,7 +1062,7 @@ export const dict = {
   "session.export.failed": "Could not export the conversation",
   "settings.general.section.data": "Data",
   "settings.general.row.autoBackup.title": "Automatic backup",
-  "settings.general.row.autoBackup.description": "Daily copy of sessions and configuration (keeps the last 7 days)",
+  "settings.general.row.autoBackup.description": "Daily copy of sessions and configuration (keeps the last 7 days). Takes effect the next time the app starts; use Back up now for an immediate copy.",
   "settings.general.row.backupNow.title": "Back up now",
   "settings.general.row.backupNow.description": "Create an immediate copy of your data",
   "settings.general.row.backupNow.button": "Create backup",
@@ -2454,4 +2453,9 @@ export const dict = {
   "welcome.confirm.updated": "Updated — confirm your preferences",
   "welcome.confirm.review": "Confirm your preferences",
   "welcome.confirm.done": "Done",
+  "prompt.attachment.imageUnsupported": "{{model}} can't read images — this attachment won't reach it.",
+  "settings.permissions.tool.delete.description": "Delete a file or folder, escalating when Windows holds it locked (matches the full path)",
+  "settings.permissions.tool.process_terminate.description": "Force-close a process that is holding a file open so the file can be deleted",
+  "settings.general.backup.now.error": "Could not create the backup",
+  "prompt.optimize.failed.reasoningOnly": "The model only produced reasoning, never an answer. Try a lower reasoning effort.",
 }

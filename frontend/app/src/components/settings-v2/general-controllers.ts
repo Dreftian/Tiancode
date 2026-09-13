@@ -159,12 +159,9 @@ export function createSoundSettingsController() {
       (value) => settings.sounds.setAgentEnabled(value),
       (id) => settings.sounds.setAgent(id),
     ),
-    permissions: channel(
-      settings.sounds.permissionsEnabled,
-      settings.sounds.permissions,
-      (value) => settings.sounds.setPermissionsEnabled(value),
-      (id) => settings.sounds.setPermissions(id),
-    ),
+    // Sin canal de permisos: el sonido de `permission.asked` solo se dispara
+    // en pages/layout.tsx (LegacyLayout), que la interfaz v2 no monta. Vuelve
+    // cuando ese aviso viva en context/notification.tsx.
     errors: channel(
       settings.sounds.errorsEnabled,
       settings.sounds.errors,

@@ -572,39 +572,44 @@ export const SettingsGithubV2: Component<{
         fallback={
           /* Vista desconectada: tarjeta centrada con el formulario y lo que el token habilita */
           <div class="gh-hero-card">
-            <div class="gh-logo-wrapper">
-              <GitHubLogo size={64} />
-            </div>
-            <h2 class="gh-hero-title">{language.t("settings.github.connect.title")}</h2>
-            <p class="gh-hero-desc">{language.t("settings.github.connect.description")}</p>
+            {/* El formulario y la lista de capacidades son dos columnas en cuanto el panel da de
+                sí, y una sola pila por debajo. Sin ese corte la tarjeta mide más que el panel y
+                lo que hay debajo del pliegue sólo se alcanza con scroll. */}
+            <div class="gh-hero-main">
+              <div class="gh-logo-wrapper">
+                <GitHubLogo size={48} />
+              </div>
+              <h2 class="gh-hero-title">{language.t("settings.github.connect.title")}</h2>
+              <p class="gh-hero-desc">{language.t("settings.github.connect.description")}</p>
 
-            <div class="gh-token-box">
-              <span class="gh-token-label">{language.t("settings.github.connect.token.label")}</span>
-              <TextInputV2
-                type="password"
-                appearance="base"
-                class="gh-token-input"
-                value={token()}
-                onInput={(event) => setToken(event.currentTarget.value)}
-                placeholder={language.t("settings.github.connect.token.placeholder")}
-                spellcheck={false}
-                autocomplete="off"
-                disabled={status.loading}
-                aria-label={language.t("settings.github.connect.token.label")}
-              />
-              <span class="gh-token-hint">{language.t("settings.github.connect.hint")}</span>
-            </div>
+              <div class="gh-token-box">
+                <span class="gh-token-label">{language.t("settings.github.connect.token.label")}</span>
+                <TextInputV2
+                  type="password"
+                  appearance="base"
+                  class="gh-token-input"
+                  value={token()}
+                  onInput={(event) => setToken(event.currentTarget.value)}
+                  placeholder={language.t("settings.github.connect.token.placeholder")}
+                  spellcheck={false}
+                  autocomplete="off"
+                  disabled={status.loading}
+                  aria-label={language.t("settings.github.connect.token.label")}
+                />
+                <span class="gh-token-hint">{language.t("settings.github.connect.hint")}</span>
+              </div>
 
-            <ButtonV2
-              type="button"
-              variant="contrast"
-              size="normal"
-              class="gh-btn-connect"
-              disabled={connecting() || !token().trim() || status.loading}
-              onClick={() => void connect()}
-            >
-              {connecting() ? language.t("settings.github.connecting") : language.t("settings.github.connect.button")}
-            </ButtonV2>
+              <ButtonV2
+                type="button"
+                variant="contrast"
+                size="normal"
+                class="gh-btn-connect"
+                disabled={connecting() || !token().trim() || status.loading}
+                onClick={() => void connect()}
+              >
+                {connecting() ? language.t("settings.github.connecting") : language.t("settings.github.connect.button")}
+              </ButtonV2>
+            </div>
 
             <div class="gh-info">
               <h3 class="gh-info-title">{language.t("settings.github.capabilities.title")}</h3>

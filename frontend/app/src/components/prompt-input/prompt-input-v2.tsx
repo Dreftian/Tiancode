@@ -40,6 +40,7 @@ import {
   createPromptInputV2State,
   type PromptInputV2Interaction,
 } from "@tiancode-ai/session-ui/v2/prompt-input/interaction"
+import "./prompt-input-v2.css"
 
 export type PromptInputV2ComposerProps = {
   class?: string
@@ -58,6 +59,24 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
   const language = useLanguage()
   const sdk = useSDK()
   const [isOptimizingPrompt, setIsOptimizingPrompt] = createSignal(false)
+
+  // Cuando el modelo no acepta imágenes, backend/tiancode/src/provider/
+  // transform.ts (unsupportedParts) cambia la imagen por una nota de texto
+  // DIRIGIDA AL MODELO y al usuario no se le dice nada: el adjunto se ve en el
+  // compositor, se envía, y el modelo nunca lo recibe. La condición de aquí es
+  // la misma que la de allí, byte a byte, para no avisar de más ni de menos.
+  const imageBlindModel = createMemo(() => {
+    const model = props.controller.model.selection.current()
+    const capabilities = model?.capabilities
+    // Los modelos locales añadidos a mano pueden llegar sin capacidades: sin
+    // dato no se avisa, antes callar que mentir.
+    if (!model || !capabilities) return undefined
+    if (capabilities.input?.image || capabilities.attachment) return undefined
+    return model.name
+  })
+  const hasImageAttachment = createMemo(() =>
+    props.controller.attachments().some((attachment) => attachment.mime?.startsWith("image/")),
+  )
 
   onMount(() => {
     const handleOptimizing = (e: Event) => {
@@ -92,6 +111,13 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
           transition: box-shadow 0.3s ease;
         }
       `}</style>
+      <Show when={hasImageAttachment() && imageBlindModel()}>
+        {(name) => (
+          <p role="status" class="px-1 text-[11px] leading-4 text-v2-state-fg-warning">
+            {language.t("prompt.attachment.imageUnsupported", { model: name() })}
+          </p>
+        )}
+      </Show>
       <PromptInputV2
         controller={props.controller}
         borderUnderlay={props.borderUnderlay}
@@ -584,6 +610,9 @@ function PromptInputV2ModelControl(props: {
   onUnpaidClick: () => void
 }) {
   const shouldAnimate = createMemo<boolean>((previous) => previous ?? props.loading)
+  // La etiqueta se trunca con elipsis en anchos estrechos; el nombre accesible
+  // tiene que seguir diciendo qué hace el control y qué modelo hay puesto.
+  const label = () => `${props.title}: ${props.modelName}`
   const content = () => (
     <>
       <Show when={props.providerID}>
@@ -624,6 +653,7 @@ function PromptInputV2ModelControl(props: {
               class="min-w-0 max-w-[220px] justify-start ![font-weight:440] group"
               classList={{ "animate-in fade-in": shouldAnimate() }}
               style={{ height: "28px" }}
+              aria-label={label()}
               onClick={props.onUnpaidClick}
             >
               {content()}
@@ -640,6 +670,7 @@ function PromptInputV2ModelControl(props: {
                 style={{ height: "28px" }}
                 class="min-w-0 max-w-[220px] justify-start ![font-weight:440] group"
                 classList={{ "animate-in fade-in": shouldAnimate() }}
+                aria-label={label()}
                 data-action="prompt-model"
                 data-control-type="popover"
               >

@@ -1047,8 +1047,7 @@ export const dict = {
   "settings.general.row.mobileTitlebarBottom.description":
     "Colocar la barra de título y las pestañas de sesión en la parte inferior de la pantalla en dispositivos móviles",
   "settings.general.row.showCustomAgents.title": "Mostrar agente",
-  "settings.general.row.showCustomAgents.description":
-    "Cambiar de agente en el editor. Si se oculta, se usa el agente Build de forma predeterminada.",
+  "settings.general.row.showCustomAgents.description": "Cambiar de agente en el editor. Si se oculta, se usa el agente Build de forma predeterminada, salvo en proyectos con agentes propios, donde el selector sigue visible.",
   "settings.general.row.newInterface.title": "Nuevo diseño",
   "settings.general.row.newInterface.badge": "Nuevo",
   "settings.general.row.newInterface.description":
@@ -1074,7 +1073,7 @@ export const dict = {
   "session.export.failed": "No se pudo exportar la conversación",
   "settings.general.section.data": "Datos",
   "settings.general.row.autoBackup.title": "Respaldo automático",
-  "settings.general.row.autoBackup.description": "Copia diaria de sesiones y configuración (se conservan los últimos 7 días)",
+  "settings.general.row.autoBackup.description": "Copia diaria de sesiones y configuración (se conservan los últimos 7 días). Se aplica en el próximo inicio de la app; usa Respaldar ahora para una copia inmediata.",
   "settings.general.row.backupNow.title": "Respaldar ahora",
   "settings.general.row.backupNow.description": "Crea una copia inmediata de tus datos",
   "settings.general.row.backupNow.button": "Crear respaldo",
@@ -2575,4 +2574,9 @@ export const dict = {
   "welcome.confirm.updated": "Actualizado: confirma tus preferencias",
   "welcome.confirm.review": "Confirma tus preferencias",
   "welcome.confirm.done": "Listo",
+  "prompt.attachment.imageUnsupported": "{{model}} no puede leer imágenes: este adjunto no le llegará.",
+  "settings.permissions.tool.delete.description": "Borrar un archivo o una carpeta, escalando cuando Windows lo tiene bloqueado (coincide con la ruta completa)",
+  "settings.permissions.tool.process_terminate.description": "Cerrar a la fuerza un proceso que mantiene un archivo abierto para poder borrarlo",
+  "settings.general.backup.now.error": "No se pudo crear el respaldo",
+  "prompt.optimize.failed.reasoningOnly": "El modelo solo produjo razonamiento, nunca una respuesta. Prueba con un esfuerzo de razonamiento menor.",
 }

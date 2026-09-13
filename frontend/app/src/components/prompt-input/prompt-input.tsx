@@ -257,6 +257,22 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   const imageAttachments = createMemo(() =>
     prompt.current().filter((part): part is ImageAttachmentPart => part.type === "image"),
   )
+  // When the model cannot take images, backend/tiancode/src/provider/transform.ts
+  // (unsupportedParts) swaps the image for a text note ADDRESSED TO THE MODEL and
+  // says nothing to the user: the attachment shows in the composer, gets sent, and
+  // the model never receives it. Same condition as the backend, exactly.
+  const imageBlindModel = createMemo(() => {
+    const model = props.controls.model.selection.current()
+    const capabilities = model?.capabilities
+    // A hand-added local model can arrive without capabilities: with no data we
+    // stay quiet rather than claim something we cannot know.
+    if (!model || !capabilities) return undefined
+    if (capabilities.input?.image || capabilities.attachment) return undefined
+    return model.name
+  })
+  const hasImageAttachment = createMemo(() =>
+    imageAttachments().some((attachment) => attachment.mime?.startsWith("image/")),
+  )
 
   const [store, setStore] = createPromptInputTransientState(
     () => prompt.capture(),
@@ -1497,6 +1513,13 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
           fileLabel={language.t("ui.common.file")}
           newLayoutDesigns={false}
         />
+        <Show when={hasImageAttachment() && imageBlindModel()}>
+          {(name) => (
+            <p role="status" class="px-2 pt-1 text-[11px] leading-4 text-v2-state-fg-warning">
+              {language.t("prompt.attachment.imageUnsupported", { model: name() })}
+            </p>
+          )}
+        </Show>
         <div
           class="relative"
           onMouseDown={(e) => {
@@ -1669,6 +1692,10 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                 <Show when={!agentsLoading()}>
                   <div
                     data-component="prompt-agent-control"
+                    // Without min-w-0 the wrapper stays at its min-content and the
+                    // Select's max-w-[200px] never gets to truncate: the row
+                    // overflows instead of clipping. Same lock as the V2 bar.
+                    class="min-w-0"
                     classList={{ "animate-in fade-in duration-300": agentsShouldFadeIn() }}
                   >
                     <TooltipKeybind
@@ -1712,6 +1739,9 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                   <Show when={store.mode !== "shell"}>
                     <div
                       data-component="prompt-model-control"
+                      // Same as the agent one: the Button's own min-w-0 is useless
+                      // while the wrapper around it cannot shrink.
+                      class="min-w-0"
                       classList={{ "animate-in fade-in duration-300": providersShouldFadeIn() }}
                     >
                       <Show

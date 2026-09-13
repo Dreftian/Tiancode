@@ -1084,8 +1084,7 @@ export const dict = {
   "settings.general.row.mobileTitlebarBottom.description":
     "На мобильных устройствах размещать строку заголовка и вкладки сессии внизу экрана",
   "settings.general.row.showCustomAgents.title": "Выбор агента",
-  "settings.general.row.showCustomAgents.description":
-    "Показывать переключатель агентов в редакторе запросов. Если он скрыт, по умолчанию используется агент Build.",
+  "settings.general.row.showCustomAgents.description": "Переключение агентов в редакторе. Если скрыть, по умолчанию используется агент Build — кроме проектов с собственными агентами, где переключатель остаётся видимым.",
 
   "settings.general.row.newInterface.title": "Новая компоновка",
   "settings.general.row.newInterface.badge": "Новое",
@@ -1418,7 +1417,7 @@ export const dict = {
   "session.export.failed": "Не удалось экспортировать разговор",
   "settings.general.section.data": "Данные",
   "settings.general.row.autoBackup.title": "Автоматическое резервное копирование",
-  "settings.general.row.autoBackup.description": "Ежедневная копия сессий и конфигурации (хранится последние 7 дней)",
+  "settings.general.row.autoBackup.description": "Ежедневная копия сессий и настроек (хранятся последние 7 дней). Применяется при следующем запуске приложения; для немедленной копии используйте «Создать резервную копию сейчас».",
   "settings.general.row.backupNow.title": "Создать резервную копию сейчас",
   "settings.general.row.backupNow.description": "Создать немедленную копию ваших данных",
   "settings.general.row.backupNow.button": "Создать резервную копию",
@@ -2551,4 +2550,9 @@ export const dict = {
   "welcome.confirm.updated": "Обновлено — подтвердите настройки",
   "welcome.confirm.review": "Подтвердите настройки",
   "welcome.confirm.done": "Готово",
+  "prompt.attachment.imageUnsupported": "{{model}} не читает изображения — это вложение до него не дойдёт.",
+  "settings.permissions.tool.delete.description": "Удаление файла или папки с эскалацией, если файл заблокирован Windows (сопоставляется с полным путём)",
+  "settings.permissions.tool.process_terminate.description": "Принудительное завершение процесса, удерживающего файл, чтобы его можно было удалить",
+  "settings.general.backup.now.error": "Не удалось создать резервную копию",
+  "prompt.optimize.failed.reasoningOnly": "Модель выдала только рассуждения, но не ответ. Попробуйте снизить уровень рассуждений.",
 }

@@ -560,6 +560,10 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         setShowStatus(value: boolean) {
           setStore("general", "showStatus", value)
         },
+        // Sin interruptor en Ajustes desde que la v1 se retiró: la cabecera v2
+        // dibuja el terminal siempre y todavía no dibuja el navegador. Los
+        // valores se conservan (session-header.tsx y preview-panel.tsx los
+        // siguen leyendo) para no perder la preferencia de quien ya la guardó.
         showTerminal: withFallback(() => store.general?.showTerminal, defaultSettings.general.showTerminal),
         setShowTerminal(value: boolean) {
           setStore("general", "showTerminal", value)

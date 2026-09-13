@@ -14,6 +14,7 @@ import { Database } from "@tiancode-ai/core/database/database"
 import { TodoWriteTool } from "./todo"
 import { WebFetchTool } from "./webfetch"
 import { WriteTool } from "./write"
+import { DeleteTool } from "./delete"
 import { InvalidTool } from "./invalid"
 import {
   PreviewInspectTool,
@@ -129,6 +130,7 @@ const layer = Layer.effect(
     const shell = yield* ShellTool
     const globtool = yield* GlobTool
     const writetool = yield* WriteTool
+    const deletetool = yield* DeleteTool
     const edit = yield* EditTool
     const greptool = yield* GrepTool
     const patchtool = yield* ApplyPatchTool
@@ -247,6 +249,7 @@ const layer = Layer.effect(
           grep: Tool.init(greptool),
           edit: Tool.init(edit),
           write: Tool.init(writetool),
+          delete: Tool.init(deletetool),
           task: Tool.init(task),
           fetch: Tool.init(webfetch),
           todo: Tool.init(todo),
@@ -284,6 +287,7 @@ const layer = Layer.effect(
             tool.grep,
             tool.edit,
             tool.write,
+            tool.delete,
             tool.task,
             tool.fetch,
             tool.todo,

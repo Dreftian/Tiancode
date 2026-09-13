@@ -391,11 +391,11 @@ export const SettingsComputerUseV2: Component<{
     </span>
   )
 
-  const inlineControl = (children: JSX.Element) => (
-    <div style={{ display: "flex", gap: "8px", "align-items": "center", "min-width": "0", width: "100%" }}>
-      {children}
-    </div>
-  )
+  // La clase compartida de settings-v2.css, no estilos en línea: el campo tiene que ser un
+  // elemento flexible de verdad para que el hueco de control sume campo + gap + botón. Con
+  // `flex: none` (text-input-v2.css) y `width: 100%` el botón caía fuera de la fila y el
+  // `contain: paint` del panel lo recortaba.
+  const inlineControl = (children: JSX.Element) => <div class="settings-v2-row-inline">{children}</div>
 
   return (
     <>

@@ -614,11 +614,12 @@ const SecretRow: Component<{
         </span>
       }
     >
-      <div class="settings-v2-connections-secret">
+      {/* Shared with the computer-use rows: the field is the only elastic item, so the buttons
+          keep their width and stay inside the row instead of overflowing it. */}
+      <div class="settings-v2-row-inline">
         <TextInputV2
           type={reveal() ? "text" : "password"}
           appearance="base"
-          class="settings-v2-connections-input"
           value={draft()}
           placeholder={props.hasSecret ? "••••••••" : props.placeholder}
           autocomplete="off"

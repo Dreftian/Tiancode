@@ -977,8 +977,7 @@ export const dict = {
   "settings.general.row.mobileTitlebarBottom.description":
     "モバイルではタイトルバーとセッションタブを画面下部に配置します",
   "settings.general.row.showCustomAgents.title": "エージェントを表示",
-  "settings.general.row.showCustomAgents.description":
-    "コンポーザーでエージェントを切り替えます。非表示の場合は、デフォルトでBuildエージェントが使用されます。",
+  "settings.general.row.showCustomAgents.description": "コンポーザーでエージェントを切り替えます。非表示にすると既定で Build エージェントを使いますが、独自のエージェントがあるプロジェクトでは選択メニューは表示されたままです。",
   "settings.general.row.newInterface.title": "新しいレイアウト",
   "settings.general.row.newInterface.badge": "新機能",
   "settings.general.row.newInterface.description":
@@ -1326,7 +1325,7 @@ export const dict = {
   "session.export.failed": "会話をエクスポートできませんでした",
   "settings.general.section.data": "データ",
   "settings.general.row.autoBackup.title": "自動バックアップ",
-  "settings.general.row.autoBackup.description": "セッションと設定を毎日コピーします（直近 7 日間を保持）",
+  "settings.general.row.autoBackup.description": "セッションと設定を毎日コピーします（直近7日分を保持）。次回のアプリ起動時に反映されます。すぐにコピーするには「今すぐバックアップ」を使ってください。",
   "settings.general.row.backupNow.title": "今すぐバックアップ",
   "settings.general.row.backupNow.description": "データのコピーをすぐに作成します",
   "settings.general.row.backupNow.button": "バックアップを作成",
@@ -2457,4 +2456,9 @@ export const dict = {
   "welcome.confirm.updated": "更新しました — 設定をご確認ください",
   "welcome.confirm.review": "設定をご確認ください",
   "welcome.confirm.done": "完了",
+  "prompt.attachment.imageUnsupported": "{{model}} は画像を読み取れません。この添付ファイルはモデルに届きません。",
+  "settings.permissions.tool.delete.description": "ファイルまたはフォルダーを削除します。Windows がロックしている場合は段階的に対処します (フルパスに一致)",
+  "settings.permissions.tool.process_terminate.description": "ファイルを開いたままにしているプロセスを強制終了して、そのファイルを削除できるようにします",
+  "settings.general.backup.now.error": "バックアップを作成できませんでした",
+  "prompt.optimize.failed.reasoningOnly": "モデルは推論のみを出力し、回答を返しませんでした。推論レベルを下げて試してください。",
 }

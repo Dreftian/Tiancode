@@ -193,6 +193,51 @@
   min-width: 0;
 }
 
+/* A field and its action buttons sharing one row's control column.
+   text-input-v2.css gives every field `flex: none`, and the rule above overrides only its
+   width. So the control slot sized itself to the field's intrinsic width plus the gap plus the
+   button, the field's `width: 100%` then resolved against that already-finished width, and
+   flex-shrink: 0 forbade giving any of it back: the gap and the whole button landed outside the
+   row, where the panel's `contain: paint` sliced them off. For the slot to add up, the field has
+   to be a real flex item. */
+.settings-v2-row-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  /* Matches the control slot's own alignment, so wrapped buttons stay on the row's end edge. */
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+/* (0,3,0) on purpose. The width rule above is (0,2,0), so an equal-specificity selector would
+   only win by source order and would break the day either block moves. */
+[data-slot="settings-v2-row-control"] .settings-v2-row-inline [data-component="text-input-v2"] {
+  width: auto;
+  min-width: 0;
+  /* Narrow: a 100% basis gives the field a line of its own and wraps the buttons underneath. */
+  flex: 1 1 100%;
+}
+
+/* Buttons stay as wide as their label; the field absorbs every pixel of the difference. */
+.settings-v2-row-inline [data-component="button-v2"] {
+  flex: none;
+}
+
+/* Same width the row itself uses to stop wrapping, so field and buttons go side by side exactly
+   when the copy and the control stop being stacked. */
+@container settings-panel (min-width: 640px) {
+  .settings-v2-row-inline {
+    width: auto;
+    flex-wrap: nowrap;
+  }
+
+  [data-slot="settings-v2-row-control"] .settings-v2-row-inline [data-component="text-input-v2"] {
+    flex: 1 1 auto;
+  }
+}
+
 [data-component="dialog-v2"][data-variant="settings"] [data-component="select-v2-root"] {
   width: fit-content;
   max-width: 100%;

@@ -27,7 +27,7 @@ const DEFAULT_ES_FEMALE_VOICE = "ef_dora"
 const KOKORO_MODEL_ID = "onnx-community/Kokoro-82M-v1.0-ONNX"
 
 // El catálogo es únicamente de voces femeninas en español: ef_dora (kokoro-es) y
-// los modelos piper de piper-catalog.ts.
+// los modelos de piper-catalog.ts (piper y mimic3, los dos por el motor "piper").
 const PREFIX_META: Record<string, { language: string; gender: "female" }> = {
   ef: { language: "es", gender: "female" },
 }

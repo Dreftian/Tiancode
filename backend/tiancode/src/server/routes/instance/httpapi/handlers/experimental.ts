@@ -2,6 +2,7 @@ import { Account } from "@/account/account"
 import { Agent } from "@/agent/agent"
 import { BackgroundJob } from "@/background/job"
 import { Config } from "@/config/config"
+import { InstanceRef, WorkspaceRef } from "@/effect/instance-ref"
 import { InstanceState } from "@/effect/instance-state"
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import { MCP } from "@/mcp"
@@ -31,11 +32,16 @@ import {
  * Terminator for the optimizer body. The 200 and the text/plain headers are flushed before the
  * model is ever called, so a failure mid-stream can only close the body early — which the client
  * cannot tell apart from a model that produced nothing. Appending a NUL plus a reason code gives
- * it something to read: NUL never occurs in model text, so the split is unambiguous.
+ * it something to read: NUL never occurs in model text, so the split is unambiguous. The same mark
+ * also carries the one non-error outcome the empty body hides — an answer that was all reasoning.
  */
 const OPTIMIZE_ERROR_MARK = "\u0000"
 
-type OptimizeFailure = "auth" | "rateLimit" | "quota" | "unknown"
+/**
+ * Reason codes that may follow the mark. All but `reasoningOnly` come from classifying a thrown
+ * error; `reasoningOnly` is emitted by a body that never failed — see the tail of the stream below.
+ */
+type OptimizeFailure = "auth" | "rateLimit" | "quota" | "unknown" | "reasoningOnly"
 
 function classifyOptimizeFailure(error: unknown): OptimizeFailure {
   const reason = (error as { reason?: unknown })?.reason ?? error
@@ -406,6 +412,27 @@ export const experimentalHandlers = HttpApiBuilder.group(InstanceHttpApi, "exper
         ctx.payload.style ?? "standard",
       )
 
+      // The body below is a lazy Stream: nothing is pulled until after this handler has returned,
+      // and by then the request middleware's `Effect.provideService(InstanceRef, …)` scope (see
+      // middleware/instance-context.ts) has already closed. Everything `llm.stream` reaches for
+      // per directory — config, provider credentials, auth — resolves through InstanceRef, which is
+      // a `Context.Reference` defaulting to `undefined`; the type checker therefore sees no missing
+      // requirement and the loss only surfaces at runtime, as `InstanceState.context` dying with
+      // "InstanceRef not provided". Capture both references here, while the middleware context is
+      // still live, and attach them to the stream so it carries its own context instead of
+      // borrowing the request's. The SSE event route (handlers/event.ts) avoids the same trap by
+      // reading `InstanceState.context` eagerly and closing over plain values.
+      const instance = yield* InstanceRef
+      const workspace = yield* WorkspaceRef
+
+      // Reasoning is not the answer, so it must never reach the composer — it would replace the
+      // user's prompt with the model's chain of thought. But a model that emits reasoning and then
+      // stops produces the same empty body as a model that emits nothing at all, and the client
+      // reports both as "the model returned nothing". Tally the two kinds of delta so the tail of
+      // the stream can tell them apart.
+      let sawText = false
+      let sawReasoning = false
+
       const sessionID = SessionID.descending()
       const stream = llm
         .stream({
@@ -436,9 +463,36 @@ export const experimentalHandlers = HttpApiBuilder.group(InstanceHttpApi, "exper
           ],
         })
         .pipe(
+          Stream.tap((event) =>
+            Effect.sync(() => {
+              if (LLMEvent.is.textDelta(event)) sawText = true
+              else if (LLMEvent.is.reasoningDelta(event)) sawReasoning = true
+            }),
+          ),
           Stream.filter(LLMEvent.is.textDelta),
           Stream.map((event) => event.text),
           Stream.encodeText,
+          // Reached only once the model has finished without failing. A reasoning-only answer is a
+          // real failure to optimize, so it gets its own reason code rather than an empty body: the
+          // user is told the model stopped before answering, not that it said nothing.
+          Stream.concat(
+            Stream.unwrap(
+              Effect.suspend((): Effect.Effect<Stream.Stream<Uint8Array>> => {
+                if (sawText || !sawReasoning) return Effect.succeed(Stream.empty)
+                return Effect.logWarning("prompt optimizer produced reasoning only", {
+                  providerID: targetModel.providerID,
+                  modelID: targetModel.id,
+                  variant: ctx.payload.variant,
+                }).pipe(
+                  Effect.as(
+                    Stream.succeed(OPTIMIZE_ERROR_MARK + ("reasoningOnly" satisfies OptimizeFailure)).pipe(
+                      Stream.encodeText,
+                    ),
+                  ),
+                )
+              }),
+            ),
+          ),
           // The 200 and the text/plain headers are flushed before the model is called, so a failure
           // here can only end the body early — which the client cannot tell apart from a model that
           // produced nothing. Append the sentinel plus a reason code so it can: NUL never occurs in
@@ -459,6 +513,8 @@ export const experimentalHandlers = HttpApiBuilder.group(InstanceHttpApi, "exper
               ),
             ),
           ),
+          Stream.provideService(InstanceRef, instance),
+          Stream.provideService(WorkspaceRef, workspace),
         )
 
       return HttpServerResponse.stream(stream, {
