@@ -504,3 +504,47 @@ describe("session.message-v2.fromError", () => {
     })
   })
 })
+
+describe("session.retry.retryable permanent failures", () => {
+  // A local llama-server rejects a tools+stream request during argument validation and answers
+  // with HTTP 500. Without the permanent-failure check the 5xx branch reads that as a transient
+  // server hiccup and retries it five times, which is the "reintentando en 8s - intento n.º 3"
+  // banner users saw after activating a local GGUF model.
+  function serverError(message: string, responseBody?: string): SessionV1.APIError {
+    return Schema.decodeUnknownSync(SessionV1.APIError.Schema)(
+      new SessionV1.APIError({
+        message,
+        statusCode: 500,
+        isRetryable: false,
+        ...(responseBody ? { responseBody } : {}),
+      }).toObject(),
+    )
+  }
+
+  test.each([
+    "Cannot use tools with stream",
+    "tools param requires --jinja flag",
+    "only commonly used templates are accepted",
+  ])("does not retry %p even when the provider answers 500", (message) => {
+    expect(SessionRetry.retryable(serverError(message), retryProvider)).toBeUndefined()
+  })
+
+  test("does not retry when the reason is only in the response body", () => {
+    const error = serverError(
+      "Internal Server Error",
+      JSON.stringify({ error: { message: "Cannot use tools with stream", type: "server_error" } }),
+    )
+    expect(SessionRetry.retryable(error, retryProvider)).toBeUndefined()
+  })
+
+  test("still retries an ordinary 500 from the same provider", () => {
+    const error = serverError("Internal Server Error")
+    expect(SessionRetry.retryable(error, retryProvider)).toEqual({ message: "Internal Server Error" })
+  })
+
+  test("does not retry a plain-text permanent failure that also looks retryable", () => {
+    // "Cannot use tools with stream" reaches us as bare text from providers that do not surface a
+    // typed error. The word "stream" plus a 500 in the text would otherwise match a retry pattern.
+    expect(SessionRetry.retryable(wrap("500: Cannot use tools with stream"), retryProvider)).toBeUndefined()
+  })
+})

@@ -29,36 +29,36 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.38"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — El botón de mejorar prompt fallaba el 100 % de las veces, y ya sabemos por qué`
+  const releaseName = `Tiancode v${version} — Había dos motores de modelos locales, y el chat usaba el roto`
 
   const body = `## 🚀 Tiancode v${version}
 
-### ✨ El optimizador nunca funcionó
-No era tu modelo, ni la variante «Max», ni el 2x. **Fallaba siempre.** La respuesta se entrega como un flujo perezoso y el servidor sólo tira de él *después* de que el handler haya retornado — cuando ya se cerró el ámbito que le inyecta el contexto. Moría con «InstanceRef not provided» antes de que un solo byte llegara al proveedor, y el capturador de errores lo disfrazaba de fallo del modelo.
+### 🧠 Modelos locales: el chat y el Models Hub arrancaban motores distintos
+Activar un GGUF y escribir «Hola» devolvía **«Cannot use tools with stream»** y tres reintentos. El cargador de proveedores llevaba una **segunda copia completa del arranque del motor** —181 líneas de búsqueda de binario, descarga, lanzamiento y espera de salud— independiente de la que usa el botón del Models Hub. **El botón usaba la copia buena; escribir un mensaje usaba la otra**, y esa otra aceptaba el primer \`llama-server.exe\` que encontrara sin comprobar su versión. Comprobado en máquina real: un binario de **marzo de 2025** seguía en la caché y le ganaba al que viene dentro del instalador — y es justo el que rechaza herramientas y streaming a la vez. La copia duplicada se elimina, queda un solo motor, y un test impide que el proveedor vuelva a lanzar procesos por su cuenta.
 
-Lo interesante es **por qué nadie lo detectó**: ese contexto es una referencia con valor por defecto, así que su tipo dice \`never\` y el comprobador de tipos no ve nada que falte. Compilaba perfecto y fallaba siempre. Ahora el flujo lleva su propio contexto, sigue llegando palabra a palabra, **y va con un test HTTP contra la ruta real** que reproducía el fallo exacto antes del arreglo. No existía ninguno.
+Ese error llega como HTTP 500 y la política de reintentos trataba **todo** 5xx como fallo pasajero: de ahí el «reintentando en 8s · intento n.º 3» para algo que jamás iba a resolverse solo. Ahora falla al primer intento y deja ver el mensaje real. El motor tampoco vuelve a escribir «tengo la build 10679» encima de un binario que no consiguió reemplazar, ni adopta como propio un puerto sano cuyo proceso hijo ya murió, ni concede quince minutos de espera a cualquier cosa que conteste en el 58282.
 
-### 🎛️ Los iconos del chat que se pisaban
-Medido: el grupo izquierdo ocupa **315 px rígidos a cualquier ancho** y ninguna etiqueta se recorta **nunca**, así que a partir de 505 px invade el grupo derecho. Tres cerrojos en serie — y el primero es el mismo bug que las filas de ajustes de esta versión: **ancho sobrescrito, \`flex\` no**. Ahora hay escalera por ancho del compositor (no de la ventana), recorte real con puntos suspensivos, y el botón de enviar sobrevive a cualquier tamaño.
+### ✨ El botón de mejorar prompt: el arreglo anterior era correcto y aun así se cancelaba
+En el registro se ve la petición **saliendo bien** con el modelo correcto, y luego silencio. Lo que la mataba era un plazo fijo de **30 segundos en el cliente**: los modelos que razonan no emiten texto durante ese rato y el servidor filtra el razonamiento fuera del cuerpo, así que el navegador recibía **cero bytes** y abortaba un flujo sano.
 
-### ⚙️ Ajustes de General que no hacían nada
-El peor era **«Crear respaldo»**: llamaba a un método que el preload nunca expuso, así que la llamada se tragaba en silencio y te decía **«no hay datos que respaldar»** — una mentira sobre tus propios datos. Ya respalda de verdad. Se borran dos interruptores muertos (Terminal, Navegador interno) cuyos únicos lectores viven en una rama inalcanzable, y dos descripciones pasan a decir la verdad.
+Se midió algo que nadie había comprobado: este servidor **no** vacía las cabeceras antes de llamar al modelo, así que \`fetch()\` no resuelve hasta el primer byte. El plazo pasa a ser un temporizador de inactividad que se reinicia con cada byte, y el servidor emite una señal de vida cada 5 s mientras el modelo piensa. Esa señal **se pide explícitamente**, así que cualquier otro cliente recibe el mismo cuerpo de siempre.
 
-### 📐 Desbordes y la tarjeta de GitHub
-El botón «Vetar» se salía de la ventana porque el campo lleva \`flex: none\` y sólo se le sobrescribe el ancho. Medido: **63 px fuera en «Vetar», 78,6 en «Permitir» y 210,9 en una fila de Conexiones que nadie había reportado**. La tarjeta de GitHub medía 757 px en un hueco de 608: ahora se parte en dos columnas, sin scroll y con margen a cualquier tamaño.
+### 🗑️ Borrar un modelo local y que se vaya de verdad
+Borrar el \`.gguf\` lo dejaba en Proveedores, en Modelos y como modelo por defecto. Dos causas: el borrado limpiaba la configuración **del proyecto** mientras la activación escribe la **global**, y aun en el archivo correcto era imposible, porque la actualización de configuración es una fusión profunda — puede añadir y sobrescribir, **nunca borrar**. Ahora hay un borrado real en el servidor, que además **limpia el modelo por defecto** si apuntaba al que ya no existe, y se corrige lo que lo mantenía visible en «Modelos» aunque todo lo demás fuera bien.
 
-### 🗑️ Borrado: hacer todo lo posible
-Cuando le das permiso y Windows se niega, ahora **escala**: reintenta, quita el sólo-lectura, **identifica qué proceso retiene el archivo** vía Restart Manager (sin administrador ni herramientas externas) y te da nombre y PID, programa el borrado para el próximo arranque, y sólo si se lo pides ofrece cerrar el proceso. Un borrado parcial ya no aborta al primer archivo bloqueado.
+### 🤖 Sub-Agentes: crear uno, y ver los que ya tienes
+El panel sólo mostraba una lista fija escrita a mano: **los agentes que tienes en disco no aparecían en ninguna parte**. Ahora se listan, se pueden **crear** —a mano, o describiendo lo que quieres y dejando que un modelo redacte el identificador, el cuándo usarlo y el prompt, siempre para revisar antes de guardar— y **borrar**. Los agentes creados desde el panel ya no salen mutilados: el formulario mostraba nueve permisos y el servidor denegaba quince, así que uno nuevo no podía listar un directorio, preguntar ni delegar. Y la columna de herramientas decía la verdad en muy pocos casos: \`plan\`, que hereda todo menos editar, mostraba «1 tools».
 
-**Corrección a la premisa:** Tiancode no bloqueaba nada. Comprobado en máquina real: con permisos totales Windows **sigue** rechazando, porque es un bloqueo obligatorio del sistema — y lo sostenía la propia app lanzada desde \`release\\win-unpacked\`. Por eso no hay interruptor de «sin restricciones»: sería un control conectado a nada.
+### 🌳 El «Árbol de Recursión RLM» era una maqueta
+Se montaba sin datos, así que **siempre** dibujaba los mismos cuatro agentes inventados, con estados inventados y resultados inventados sobre trabajo que nunca ocurrió. Se reconstruye con la jerarquía real —agentes primarios y los sub-agentes a los que de verdad pueden delegar, respetando las denegaciones por destino—, sin estados ni duraciones ni resultados, porque el panel no puede saberlos. Empieza plegado y pagina, en vez de volcar 150 filas.
 
-### 🔊 Voces
-Se buscó de nuevo **midiendo**: descargué las muestras y calculé su frecuencia fundamental en vez de fiarme del nombre. Las seis etiquetas de sexo del catálogo eran correctas y los rechazos anteriores también. Piper para español está agotado (nueve voces, todas evaluadas), pero fuera de piper apareció una mejor: la más floja (16 kHz, «low», afinada desde una voz inglesa) se sustituye por **Karen Savage (es-MX)**, 22 kHz, sexo verificado y licencia comercial. Daniela (Argentina) se mantiene.
+### 🔐 De la carpeta Mejoras (MIT, con atribución)
+**Certificados del sistema en Windows**: ya se mezclaban, pero sin filtrar caducados y deduplicando por texto; ahora filtra por fecha y por huella, y la rama de macOS/Linux ya no puede dejar el almacén de confianza **vacío** si la API no existe.
 
-**Lo que no se puede:** DeepSeek nunca ha publicado un modelo de voz. Qwen sí, Apache-2.0, pero **sin ninguna voz en español** (sus timbres femeninos son chino, chino, japonés y coreano) y su motor no es ejecutable aquí sin añadir un runtime de +600 MB para sonar peor.
+**Reparación de argumentos de herramientas** con comillas tipográficas y entidades HTML (un fallo conocido de xAI/Grok). Hubo que ir más lejos que el original: un fuzz diferencial encontró **1.268 casos en los que la versión portada devolvía un resultado silenciosamente incorrecto** donde antes fallaba de forma ruidosa —incluyendo borrar comas de dentro del contenido de un archivo a punto de escribirse—. Tras el arreglo son **0 por la vía de las comillas**, y en una prueba de emisión realista pasa de 0/6000 a **6000/6000** correctos.
 
 ### ✅ Calidad
-Typecheck **27/27** · Lint **0 errores** · **927** tests de frontend · **153** de escritorio · **83** de backend.
+Typecheck **27/27** · Lint **0 errores** · **168** tests de escritorio · backend **99 fallos sobre 3.653 tests**, frente a **101 sobre 3.503** en la línea base sin estos cambios: dos menos, con 150 tests nuevos.
 
 ### 🔄 Actualización 100% no destructiva
 Todas tus claves de proveedores, configuraciones, sesiones, backups y servidores MCP se preservan intactos.

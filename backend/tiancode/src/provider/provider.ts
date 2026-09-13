@@ -1,12 +1,7 @@
 import { LayerNode } from "@tiancode-ai/core/effect/layer-node"
 import os from "os"
-import { existsSync, readdirSync, mkdirSync, copyFileSync } from "node:fs"
-import { rm } from "node:fs/promises"
-import { execFile, spawn } from "node:child_process"
-import { promisify } from "node:util"
+import { existsSync, readdirSync } from "node:fs"
 import { ConfigV1 } from "@tiancode-ai/core/v1/config/config"
-
-const execFileAsync = promisify(execFile)
 import fuzzysort from "fuzzysort"
 import { Config } from "@/config/config"
 import { mapValues, mergeDeep, omit, pickBy, sortBy } from "remeda"
@@ -37,6 +32,7 @@ import { ModelV2 } from "@tiancode-ai/core/model"
 import { ModelStatus } from "./model-status"
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import { ProviderError } from "./error"
+import { LocalEngine } from "@/local-engine"
 
 const OPENAI_HEADER_TIMEOUT_DEFAULT = 300_000
 
@@ -150,11 +146,23 @@ type CustomLoader = (provider: Info) => Effect.Effect<{
   discoverModels?: CustomDiscoverModels
 }>
 
-type CustomDep = {
+export type CustomDep = {
   auth: (id: string) => Effect.Effect<Auth.Info | undefined>
   config: () => Effect.Effect<ConfigV1.Info>
   env: () => Effect.Effect<Record<string, string | undefined>>
   get: (key: string) => Effect.Effect<string | undefined>
+  /**
+   * Start the bundled llama.cpp server for a local GGUF model.
+   *
+   * Promise-shaped because `getModel` is a plain async callback handed to the AI SDK, while the one
+   * implementation lives in `LocalEngine`. This file used to carry a second, independent copy of the
+   * entire bootstrap — binary discovery, download, spawn, health wait — and that copy was the one a
+   * chat request actually went through, while the Models Hub button drove the other. They drifted:
+   * this one accepted the first `llama-server.exe` found anywhere on disk with no version check, so
+   * an 18-month-old binary that rejects tool calls outright ("Cannot use tools with stream") won
+   * over the runtime shipped inside the installer.
+   */
+  startLocalEngine: (input: { model: string; file: string }) => Promise<LocalEngine.LocalEngineStatus | undefined>
 }
 
 function selectAzureLanguageModel(sdk: any, modelID: string, useChat: boolean) {
@@ -171,7 +179,8 @@ function selectBedrockMantleLanguageModel(sdk: BundledSDK, modelID: string) {
   return sdk.responses?.(modelID) ?? sdk.languageModel(modelID)
 }
 
-function custom(dep: CustomDep): Record<string, CustomLoader> {
+/** Exported for tests: the local loader must delegate to `dep.startLocalEngine`, never spawn. */
+export function custom(dep: CustomDep): Record<string, CustomLoader> {
   return {
     anthropic: () =>
       Effect.succeed({
@@ -219,176 +228,11 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
             }
           }
 
-          const isHealthy = await probe()
-          if (!isHealthy) {
-            const candidateModelsDirs = [
-              path.join(Global.Path.data, "models"),
-              path.join(os.homedir(), ".local", "share", "tiancode", "models"),
-              path.join(
-                process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming"),
-                "ai.tiancode.desktop",
-                "xdg",
-                "data",
-                "tiancode",
-                "models",
-              ),
-              path.join(
-                process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming"),
-                "ai.tiancode.desktop.codex",
-                "xdg",
-                "data",
-                "tiancode",
-                "models",
-              ),
-            ]
-            let foundGguf: string | undefined
-            const target = modelID.replace(/\.gguf$/i, "").toLowerCase()
-            const searchGguf = (dir: string) => {
-              if (!existsSync(dir)) return
-              try {
-                const items = readdirSync(dir, { withFileTypes: true })
-                for (const item of items) {
-                  const full = path.join(dir, item.name)
-                  if (item.isDirectory()) {
-                    searchGguf(full)
-                    if (foundGguf) return
-                  } else if (item.name.endsWith(".gguf") && !item.name.endsWith(".part")) {
-                    const clean = item.name.replace(/\.gguf$/i, "").toLowerCase()
-                    if (clean === target || clean.includes(target) || target.includes(clean)) {
-                      foundGguf = full
-                      return
-                    }
-                  }
-                }
-              } catch {
-                // ignore
-              }
-            }
-            for (const dir of candidateModelsDirs) {
-              searchGguf(dir)
-              if (foundGguf) break
-            }
-
-            if (foundGguf && existsSync(foundGguf)) {
-              const binDir = path.join(Global.Path.bin, "llama-server")
-              const binaryExecutable = process.platform === "win32" ? "llama-server.exe" : "llama-server"
-              let binaryPath = path.join(binDir, binaryExecutable)
-
-              const candidateBinDirs = [
-                binDir,
-                path.join(Global.Path.bin, "llama-server"),
-                path.join(Global.Path.cache, "bin", "llama-server"),
-                path.join(
-                  process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming"),
-                  "ai.tiancode.desktop",
-                  "xdg",
-                  "cache",
-                  "tiancode",
-                  "bin",
-                  "llama-server",
-                ),
-                path.join(
-                  process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming"),
-                  "ai.tiancode.desktop.codex",
-                  "xdg",
-                  "cache",
-                  "tiancode",
-                  "bin",
-                  "llama-server",
-                ),
-              ]
-
-              for (const cand of candidateBinDirs) {
-                const candExe = path.join(cand, binaryExecutable)
-                if (existsSync(candExe)) {
-                  binaryPath = candExe
-                  break
-                }
-              }
-
-              const resourcesPath = (process as any).resourcesPath as string | undefined
-              const bundledCandidates = [
-                resourcesPath ? path.join(resourcesPath, "llama-server") : undefined,
-                path.resolve(process.cwd(), "frontend", "desktop", "resources", "llama-server"),
-                path.resolve(process.cwd(), "resources", "llama-server"),
-                path.resolve(process.cwd(), "backend", "tiancode", "llama-bin"),
-                path.resolve(__dirname, "..", "..", "..", "frontend", "desktop", "resources", "llama-server"),
-                path.resolve(__dirname, "..", "llama-bin"),
-              ].filter(Boolean) as string[]
-
-              for (const cand of bundledCandidates) {
-                const candExe = path.join(cand, binaryExecutable)
-                if (existsSync(candExe)) {
-                  try {
-                    mkdirSync(binDir, { recursive: true })
-                    const files = readdirSync(cand)
-                    for (const f of files) {
-                      const src = path.join(cand, f)
-                      const dst = path.join(binDir, f)
-                      if (!existsSync(dst)) {
-                        copyFileSync(src, dst)
-                      }
-                    }
-                  } catch {
-                    binaryPath = candExe
-                  }
-                  break
-                }
-              }
-
-              if (!existsSync(binaryPath)) {
-                mkdirSync(binDir, { recursive: true })
-                const LLAMA_CPP_WIN_URL =
-                  "https://github.com/ggml-org/llama.cpp/releases/download/b10679/llama-b10679-bin-win-vulkan-x64.zip"
-                const zipPath = path.join(binDir, "llama-server.zip")
-                const res = await fetch(LLAMA_CPP_WIN_URL, { redirect: "follow" })
-                if (res.ok && res.body) {
-                  await Bun.write(zipPath, await res.arrayBuffer())
-                  if (process.platform === "win32") {
-                    await execFileAsync("powershell", [
-                      "-NoProfile",
-                      "-Command",
-                      `Expand-Archive -LiteralPath "${zipPath}" -DestinationPath "${binDir}" -Force`,
-                    ])
-                  }
-                  await rm(zipPath, { force: true }).catch(() => {})
-                }
-              }
-
-              if (existsSync(binaryPath)) {
-                const cpuThreads = Math.max(1, (os.cpus()?.length ?? 4) - 1)
-                const runDir = path.dirname(binaryPath)
-                spawn(
-                  binaryPath,
-                  [
-                    "-m",
-                    foundGguf,
-                    "--host",
-                    "127.0.0.1",
-                    "--port",
-                    "58282",
-                    "-ngl",
-                    "99",
-                    "-c",
-                    "8192",
-                    "-t",
-                    String(cpuThreads),
-                    "--parallel",
-                    "1",
-                  ],
-                  {
-                    cwd: runDir,
-                    stdio: ["ignore", "pipe", "pipe"],
-                    windowsHide: true,
-                    detached: false,
-                  },
-                )
-                for (let i = 0; i < 60; i++) {
-                  await new Promise((r) => setTimeout(r, 500))
-                  if (await probe()) break
-                }
-              }
-            }
+          // Selecting a local model in the composer has to be enough to get it running: most users
+          // never open the Models Hub, so this is the path that matters. It hands the work to the
+          // one engine implementation rather than repeating it (see CustomDep.startLocalEngine).
+          if (!(await probe())) {
+            await dep.startLocalEngine({ model: modelID, file: modelID }).catch(() => undefined)
           }
 
           return sdk.languageModel(modelID)
@@ -1556,6 +1400,7 @@ const layer = Layer.effect(
     const plugin = yield* Plugin.Service
     const modelsDevSvc = yield* ModelsDev.Service
     const runtimeFlags = yield* RuntimeFlags.Service
+    const localEngine = yield* LocalEngine.Service
 
     const state = yield* InstanceState.make<State>(() =>
       Effect.gen(function* () {
@@ -1676,11 +1521,15 @@ const layer = Layer.effect(
         const discoveryLoaders: {
           [providerID: string]: CustomDiscoverModels
         } = {}
-        const dep = {
+        const dep: CustomDep = {
           auth: (id: string) => auth.get(id).pipe(Effect.orDie),
           config: () => config.get(),
           env: () => env.all(),
           get: (key: string) => env.get(key),
+          // `bridge.promise` keeps the instance/workspace context the engine's logging expects;
+          // a raw runPromise here would log the start of the engine outside the current run.
+          startLocalEngine: (input) =>
+            bridge.promise(localEngine.start(input).pipe(Effect.catchCause(() => Effect.succeed(undefined)))),
         }
 
         function mergeProvider(providerID: ProviderV2.ID, provider: Partial<Info>) {
@@ -2354,7 +2203,16 @@ export function parseModel(model: string) {
 export const node = LayerNode.make({
   service: Service,
   layer: layer,
-  deps: [FSUtil.node, Config.node, Auth.node, Env.node, Plugin.node, ModelsDev.node, RuntimeFlags.node],
+  deps: [
+    FSUtil.node,
+    Config.node,
+    Auth.node,
+    Env.node,
+    Plugin.node,
+    ModelsDev.node,
+    RuntimeFlags.node,
+    LocalEngine.node,
+  ],
 })
 
 export * as Provider from "./provider"

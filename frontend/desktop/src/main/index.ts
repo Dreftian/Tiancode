@@ -3,7 +3,6 @@ import { mkdirSync, rmSync } from "node:fs"
 import { createServer } from "node:net"
 import { homedir, tmpdir } from "node:os"
 import { join } from "node:path"
-import { getCACertificates, setDefaultCACertificates } from "node:tls"
 import type { Event } from "electron"
 import { app } from "electron"
 
@@ -60,6 +59,7 @@ import { seedBundledMcpServers } from "./mcp-bundle"
 import { setNativeTranslations } from "./native-translations"
 import { createTray } from "./tray"
 import { ensureLoopbackNoProxy, useEnvProxy } from "./util/proxy"
+import { installSystemCaTrust, installWindowsSystemCaTrust } from "./windows-system-ca"
 import { migrateDesktopXdgPaths } from "./xdg-paths"
 
 const APP_IDS: Record<string, string> = {
@@ -169,10 +169,21 @@ const main = Effect.gen(function* () {
     })
   }
 
-  try {
-    setDefaultCACertificates([...new Set([...getCACertificates("default"), ...getCACertificates("system")])])
-  } catch (error) {
-    logger.warn("failed to load system certificates", error)
+  // Confianza en el almacén de certificados del sistema, antes de cualquier
+  // descarga (voces, binarios del motor local): detrás de un proxy corporativo
+  // que inspecciona TLS la raíz solo está ahí. En Windows se usa el port con
+  // filtrado de caducados y dedupe por huella; en macOS/Linux se mantiene la
+  // mezcla simple de siempre.
+  const systemCa = installWindowsSystemCaTrust({
+    log: (message, extra, level) => writeLog("network", message, extra, level),
+  })
+  if (systemCa.outcome === "not-windows") {
+    // La mezcla macOS/Linux vive junto al port de Windows para poder probarla:
+    // nunca aplica una lista vacía (eso dejaría el proceso con cero raíces de
+    // confianza) y registra su resultado igual que el camino de Windows.
+    installSystemCaTrust({
+      log: (message, extra, level) => writeLog("network", message, extra, level),
+    })
   }
 
   logger.log("app starting", {

@@ -1,5 +1,6 @@
 import { Effect } from "effect"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
+import { Config } from "@/config/config"
 import { ModelHub } from "@/model-hub"
 import { LocalEngine } from "@/local-engine"
 import { InstanceHttpApi } from "../api"
@@ -8,6 +9,7 @@ export const modelHubHandlers = HttpApiBuilder.group(InstanceHttpApi, "model-hub
   Effect.gen(function* () {
     const hub = yield* ModelHub.Service
     const engine = yield* LocalEngine.Service
+    const config = yield* Config.Service
 
     const search = Effect.fn("ModelHubHttpApi.search")(function* (ctx) {
       const models = yield* hub.search(ctx.query.query, ctx.query.limit ?? 20)
@@ -60,6 +62,26 @@ export const modelHubHandlers = HttpApiBuilder.group(InstanceHttpApi, "model-hub
       return yield* hub.cancelDownload(ctx.params.id)
     })
 
+    // The removal counterpart of `download`. It has to live on the server because
+    // the config update endpoints deep-merge: a patch cannot delete a key.
+    const forget = Effect.fn("ModelHubHttpApi.forget")(function* (ctx) {
+      const removed = yield* config.forgetProviderModel({
+        file: ctx.payload.file,
+        model: ctx.payload.model,
+        engineProvider: "local",
+      })
+      // Done after the config surgery so a failure to tidy disk cannot leave the
+      // registry pointing at a model that is no longer there — and only when the
+      // forget actually removed something. pruneEmptyDirs walks every models root
+      // and rmdir's what it finds empty; running it after a forget that matched
+      // nothing (a stale file name, or the httpapi exercise's deliberate miss) is
+      // a delete with no cause behind it.
+      const directories = ModelHub.forgetRemovedSomething(removed)
+        ? yield* hub.pruneEmptyDirs()
+        : ([] as readonly string[])
+      return { ...removed, directories }
+    })
+
     const getEngineStatus = Effect.fn("ModelHubHttpApi.engine")(function* () {
       return yield* engine.status()
     })
@@ -86,6 +108,7 @@ export const modelHubHandlers = HttpApiBuilder.group(InstanceHttpApi, "model-hub
       .handle("downloads", downloads)
       .handle("download", download)
       .handle("cancel", cancel)
+      .handle("forget", forget)
       .handle("engine", getEngineStatus)
       .handle("engineStart", startEngine)
       .handle("engineStop", stopEngine)

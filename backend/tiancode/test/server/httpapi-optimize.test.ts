@@ -11,6 +11,9 @@ import { testProviderConfig } from "../lib/test-provider"
 /** Must match OPTIMIZE_ERROR_MARK in handlers/experimental.ts. */
 const OPTIMIZE_ERROR_MARK = "\u0000"
 
+/** Must match OPTIMIZE_HEARTBEAT_MARK in handlers/experimental.ts. */
+const OPTIMIZE_HEARTBEAT_MARK = "\u0001"
+
 function app() {
   return Server.Default().app
 }
@@ -116,6 +119,69 @@ describe("prompt optimize HttpApi", () => {
       // An empty body alone reads to the client as "the model returned nothing", which is the one
       // thing that did not happen here.
       expect(code).toBe("reasoningOnly")
+    }).pipe(Effect.provide(TestLLMServer.layer)),
+    30_000,
+  )
+
+  // The bug this guards: reasoning deltas are filtered out of the body, so while a reasoning model
+  // thinks the client receives zero bytes on a healthy connection. The composer could not tell that
+  // from a dead stream and aborted it on its own deadline, reporting a generic failure. The
+  // heartbeat makes the silence observable — and must never leak into the optimized text.
+  it.live(
+    "heartbeats for a caller that asked, while the model is still thinking",
+    Effect.gen(function* () {
+      const llm = yield* TestLLMServer
+      const tmp = yield* tmpdirEffect({ config: testProviderConfig(llm.url) })
+      const optimized = "### Objective\nOutlast the thinking phase."
+      // Longer than one heartbeat interval: the model opens its response and then says nothing.
+      yield* llm.hold(optimized, new Promise<void>((resolve) => setTimeout(resolve, 6_500)))
+
+      const response = yield* optimize(tmp.path, {
+        prompt: "add login",
+        providerID: "test",
+        modelID: "test-model",
+        heartbeat: true,
+      })
+      expect(response.status).toBe(200)
+
+      const body = yield* Effect.promise(() => response.text())
+      expect(body).not.toContain(OPTIMIZE_ERROR_MARK)
+      // Heartbeats are transport, not content: stripping them must leave exactly the answer. This
+      // is the whole guarantee — NOT that they all precede the text. The emit-side filter is
+      // evaluated when a tick resolves and `Stream.merge` rendezvouses with the body, so a
+      // heartbeat that passed the filter just before the first text delta may be handed on after
+      // it. Asserting on the position of the last one would be asserting on that race.
+      expect(body.split(OPTIMIZE_HEARTBEAT_MARK).join("")).toBe(optimized)
+      // Two at least: one immediately (it is what flushes the headers out of Node's buffer, so the
+      // client's `await fetch()` resolves now rather than in 6.5 s) and one 5 s into the silence.
+      expect(body.split(OPTIMIZE_HEARTBEAT_MARK).length - 1).toBeGreaterThanOrEqual(2)
+    }).pipe(Effect.provide(TestLLMServer.layer)),
+    30_000,
+  )
+
+  // The heartbeat is an addition to a body documented as text/plain, and the callers that already
+  // exist do not strip it: the generated SDK's `optimize()` hands back the raw body, and so does
+  // any desktop build older than the `heartbeat` field. Silence for them is a display bug, not a
+  // hang — so the bytes have to stay exactly as they were.
+  it.live(
+    "sends no heartbeat to a caller that did not ask, however long the model thinks",
+    Effect.gen(function* () {
+      const llm = yield* TestLLMServer
+      const tmp = yield* tmpdirEffect({ config: testProviderConfig(llm.url) })
+      const optimized = "### Objective\nKeep the old body byte-identical."
+      // Same silence as above: long enough that an ungated heartbeat would have fired twice.
+      yield* llm.hold(optimized, new Promise<void>((resolve) => setTimeout(resolve, 6_500)))
+
+      const response = yield* optimize(tmp.path, {
+        prompt: "add login",
+        providerID: "test",
+        modelID: "test-model",
+      })
+      expect(response.status).toBe(200)
+
+      const body = yield* Effect.promise(() => response.text())
+      expect(body).not.toContain(OPTIMIZE_HEARTBEAT_MARK)
+      expect(body).toBe(optimized)
     }).pipe(Effect.provide(TestLLMServer.layer)),
     30_000,
   )

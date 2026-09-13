@@ -29,13 +29,33 @@ import {
 } from "../groups/experimental"
 
 /**
- * Terminator for the optimizer body. The 200 and the text/plain headers are flushed before the
- * model is ever called, so a failure mid-stream can only close the body early — which the client
- * cannot tell apart from a model that produced nothing. Appending a NUL plus a reason code gives
+ * Terminator for the optimizer body. The status line is chosen before the model is ever called, so
+ * a failure mid-stream can only close the body early — which the client cannot tell apart from a
+ * model that produced nothing. Appending a NUL plus a reason code gives
  * it something to read: NUL never occurs in model text, so the split is unambiguous. The same mark
  * also carries the one non-error outcome the empty body hides — an answer that was all reasoning.
  */
 const OPTIMIZE_ERROR_MARK = "\u0000"
+
+/**
+ * Liveness byte, emitted only when the request asked for it (`heartbeat: true`). Reasoning deltas
+ * are filtered out of the body, so a model that thinks for a minute before answering sends the
+ * client nothing at all — indistinguishable from a dead connection, and the composer used to abort
+ * the request on its own deadline and report a generic failure. Emitted every few seconds until
+ * real text starts flowing: the client resets its idle timer on any chunk and strips every
+ * occurrence before reading the body. Deliberately NOT the NUL mark above — that one already means
+ * "a failure code follows", and the two must stay tellable apart. U+0001 never occurs in model text
+ * either.
+ *
+ * Ordering is NOT "all heartbeats, then all text". The filter below is evaluated when a tick
+ * resolves, not when the merged stream hands the element on, and `Stream.merge` rendezvouses with
+ * the body: a heartbeat that passed the filter just before the first text delta can be delivered
+ * after it. Hence "strip every occurrence", never "strip the prefix" — on both sides.
+ */
+const OPTIMIZE_HEARTBEAT_MARK = "\u0001"
+
+/** Far under any sane client idle window, far over the cost of one byte. */
+const OPTIMIZE_HEARTBEAT_INTERVAL = "5 seconds"
 
 /**
  * Reason codes that may follow the mark. All but `reasoningOnly` come from classifying a thrown
@@ -433,8 +453,25 @@ export const experimentalHandlers = HttpApiBuilder.group(InstanceHttpApi, "exper
       let sawText = false
       let sawReasoning = false
 
+      // Proof of life for the phase where the body is legitimately empty: the model is reasoning and
+      // every one of those deltas is filtered out below. It stops the moment real text appears —
+      // from then on the text itself is the proof — and `haltStrategy: "left"` below ties its
+      // lifetime to the body's, so it can never outlive the request or keep the response open.
+      //
+      // The first tick of `Stream.tick` fires immediately and is kept. That byte is worth its cost
+      // to the one caller that sees it: @effect/platform-node writes the head and then pulls this
+      // stream without calling `flushHeaders`, so Node holds the header block until the first body
+      // write — an immediate heartbeat is what makes the client's `await fetch()` resolve now
+      // instead of whenever the model first speaks. It costs nothing to anyone else, because
+      // nobody else gets heartbeats at all.
+      const heartbeat = Stream.tick(OPTIMIZE_HEARTBEAT_INTERVAL).pipe(
+        Stream.filter(() => !sawText),
+        Stream.map(() => OPTIMIZE_HEARTBEAT_MARK),
+        Stream.encodeText,
+      )
+
       const sessionID = SessionID.descending()
-      const stream = llm
+      const body = llm
         .stream({
           agent: PROMPT_OPTIMIZER_AGENT,
           user: {
@@ -516,6 +553,14 @@ export const experimentalHandlers = HttpApiBuilder.group(InstanceHttpApi, "exper
           Stream.provideService(InstanceRef, instance),
           Stream.provideService(WorkspaceRef, workspace),
         )
+
+      // Only a caller that asked for heartbeats gets them. Everyone else — the generated SDK, an
+      // older desktop build, curl — reads a body that is exactly the optimized prompt, byte for
+      // byte, as the endpoint's text/plain contract has always promised.
+      // Halting on the left means the body decides when the response ends: the heartbeat fiber is
+      // interrupted with it, including after the failure tail above has been appended.
+      const stream =
+        ctx.payload.heartbeat === true ? body.pipe(Stream.merge(heartbeat, { haltStrategy: "left" })) : body
 
       return HttpServerResponse.stream(stream, {
         contentType: "text/plain; charset=utf-8",

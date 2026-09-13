@@ -25,6 +25,27 @@ export const ModelDownloadInput = Schema.Struct({
   file: Schema.String,
 })
 
+// Deleting a local model is not an update: config.update/updateGlobal deep-merge,
+// so a models map with the key omitted is a no-op. This endpoint is the removal
+// path, and it reports what it actually removed so the UI does not have to guess.
+export const ModelForgetInput = Schema.Struct({
+  model: Schema.optional(Schema.String),
+  file: Schema.String,
+})
+
+export const ModelForgetResult = Schema.Struct({
+  /** Removed model references, as `providerID/modelKey`. */
+  models: Schema.Array(Schema.String),
+  /** Provider ids whose entire entry was removed for having no models left. */
+  providers: Schema.Array(Schema.String),
+  /** Config files actually rewritten (project and/or global). */
+  files: Schema.Array(Schema.String),
+  /** Empty model directories removed from disk. */
+  directories: Schema.Array(Schema.String),
+  clearedDefaultModel: Schema.Boolean,
+  clearedSmallModel: Schema.Boolean,
+})
+
 // LM Studio-style fit estimation attached to each quant file: the tier drives
 // the badge color while the label is the human-readable title.
 export const ModelFitInfo = Schema.Struct({
@@ -205,6 +226,18 @@ export const ModelHubApi = HttpApi.make("model-hub")
             summary: "Download a GGUF model",
             description:
               "Start or resume a download of a GGUF file from HuggingFace into the local models directory.",
+          }),
+        ),
+        HttpApiEndpoint.post("forget", "/models/forget", {
+          query: WorkspaceRoutingQuery,
+          payload: ModelForgetInput,
+          success: described(ModelForgetResult, "Removed config entries"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "modelhub.forget",
+            summary: "Forget a local model",
+            description:
+              "Remove a deleted local model from the provider registry in the project and global config, drop the local engine provider when it is left empty, clear the default model when it pointed at the removed entry, and prune empty model directories.",
           }),
         ),
         HttpApiEndpoint.delete("cancel", "/models/downloads/:id", {

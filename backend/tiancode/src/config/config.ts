@@ -127,6 +127,17 @@ export interface Interface {
   readonly getConsoleState: () => Effect.Effect<ConsoleState>
   readonly update: (config: Info) => Effect.Effect<void>
   readonly updateGlobal: (config: Info) => Effect.Effect<{ info: Info; changed: boolean }>
+  /**
+   * Delete a local model from the provider registry in BOTH the project and the
+   * global config file. update()/updateGlobal() cannot express this: they merge.
+   */
+  readonly forgetProviderModel: (input: ForgetModelInput) => Effect.Effect<{
+    models: string[]
+    providers: string[]
+    files: string[]
+    clearedDefaultModel: boolean
+    clearedSmallModel: boolean
+  }>
   readonly invalidate: () => Effect.Effect<void>
   readonly invalidateInstance: () => Effect.Effect<void>
   readonly directories: () => Effect.Effect<string[]>
@@ -172,6 +183,136 @@ function patchJsonc(input: string, patch: unknown, path: string[] = []): string 
   }
 
   return Object.entries(patch).reduce((result, [key, value]) => patchJsonc(result, value, [...path, key]), input)
+}
+
+// --- Removal -----------------------------------------------------------------
+//
+// update()/updateGlobal() are *merges*: mergeDeep(base, patch) can add and it can
+// overwrite, but it can never delete. Sending a `models` object with one key left
+// out is a no-op by construction, which is why "prune the deleted model from the
+// config" looked right and did nothing. Deletion needs its own path, so it lives
+// here: the surgery is done on the file exactly as written (jsonc), so comments,
+// unknown keys and {env:...}/{file:...} placeholders survive.
+
+export type ForgetModelInput = {
+  /** File name as downloaded, e.g. "Llama-3.2-3B-Instruct-Q4_K_M.gguf". */
+  readonly file: string
+  /** HuggingFace repo id, echoed back for reporting. Not used for matching. */
+  readonly model?: string
+  /**
+   * Provider that the local engine writes to. When it is left with zero models
+   * the whole provider entry goes too, otherwise the Hub keeps listing an empty
+   * "Modelos Locales" provider that can never load anything.
+   */
+  readonly engineProvider?: string
+}
+
+export type ForgetModelResult = {
+  readonly text: string
+  readonly changed: boolean
+  /** Removed model references, as `providerID/modelKey`. */
+  readonly models: string[]
+  /** Provider ids whose whole entry was removed. */
+  readonly providers: string[]
+  readonly clearedDefaultModel: boolean
+  readonly clearedSmallModel: boolean
+}
+
+// Both container names are honoured because provider.ts reads `cfg.provider` and
+// the legacy `cfg.providers` alias; a model left behind in the alias is just as
+// selectable as one in the canonical block.
+const PROVIDER_CONTAINERS = ["provider", "providers"] as const
+
+/** The exact two keys activateDownloadedModel() writes: the file, and the file without `.gguf`. */
+export function forgetModelKeys(file: string): string[] {
+  const bare = file.replace(/\.gguf$/i, "")
+  return Array.from(new Set([file, bare, `${bare}.gguf`]))
+}
+
+function removeJsoncPath(input: string, at: (string | number)[]): string {
+  // jsonc-parser's modify() with `undefined` emits a *delete* edit and keeps the
+  // rest of the document byte-for-byte, comments included.
+  return applyEdits(input, modify(input, at, undefined, { formattingOptions: { insertSpaces: true, tabSize: 2 } }))
+}
+
+/**
+ * Remove every model key matching `file` from every provider in a config document,
+ * plus the provider entry and the default model references that the removal orphans.
+ * Pure: takes the file text, returns the new file text.
+ */
+export function forgetModelInText(input: string, options: ForgetModelInput): ForgetModelResult {
+  const unchanged = (): ForgetModelResult => ({
+    text: input,
+    changed: false,
+    models: [],
+    providers: [],
+    clearedDefaultModel: false,
+    clearedSmallModel: false,
+  })
+  if (!input.trim()) return unchanged()
+
+  let parsed: unknown
+  try {
+    parsed = ConfigParse.jsonc(input, "<forget>")
+  } catch {
+    // A config we cannot parse is one we must not rewrite.
+    return unchanged()
+  }
+  if (!isRecord(parsed)) return unchanged()
+
+  const wanted = new Set(forgetModelKeys(options.file).map((key) => key.toLowerCase()))
+  const engineProvider = options.engineProvider ?? "local"
+
+  let text = input
+  const models: string[] = []
+  const providers: string[] = []
+
+  for (const container of PROVIDER_CONTAINERS) {
+    const block = parsed[container]
+    if (!isRecord(block)) continue
+    for (const [providerID, providerValue] of Object.entries(block)) {
+      if (!isRecord(providerValue)) continue
+      const providerModels = providerValue["models"]
+      if (!isRecord(providerModels)) continue
+      const keys = Object.keys(providerModels)
+      const doomed = keys.filter((key) => wanted.has(key.toLowerCase()))
+      if (!doomed.length) continue
+      for (const key of doomed) {
+        text = removeJsoncPath(text, [container, providerID, "models", key])
+        models.push(`${providerID}/${key}`)
+      }
+      // Only the engine provider is disposable. A provider the user configured by
+      // hand keeps its npm/options/apiKey even with an empty model map.
+      if (doomed.length === keys.length && providerID === engineProvider) {
+        text = removeJsoncPath(text, [container, providerID])
+        providers.push(providerID)
+      }
+    }
+  }
+
+  const orphaned = new Set(models)
+  const deadProvider = new Set(providers)
+  const isOrphan = (ref: unknown) => {
+    if (typeof ref !== "string" || !ref.includes("/")) return false
+    if (orphaned.has(ref)) return true
+    return deadProvider.has(ref.slice(0, ref.indexOf("/")))
+  }
+
+  // Leaving `"model": "local/<deleted>"` behind makes every new session default to
+  // something that cannot load. Dropping the key lets the normal fallback pick.
+  const clearedDefaultModel = isOrphan(parsed["model"])
+  if (clearedDefaultModel) text = removeJsoncPath(text, ["model"])
+  const clearedSmallModel = isOrphan(parsed["small_model"])
+  if (clearedSmallModel) text = removeJsoncPath(text, ["small_model"])
+
+  return {
+    text,
+    changed: text !== input,
+    models,
+    providers,
+    clearedDefaultModel,
+    clearedSmallModel,
+  }
 }
 
 function writable(info: Info) {
@@ -764,11 +905,54 @@ const layer = Layer.effect(
       return { info: next, changed }
     })
 
+    // The deletion counterpart of update()/updateGlobal(). It writes both scopes in
+    // one call because the entry the UI wants gone was written to both scopes by
+    // activateDownloadedModel(), and pruning only the project file left the global
+    // one — the one the user actually has it in — untouched.
+    const forgetProviderModel = Effect.fn("Config.forgetProviderModel")(function* (input: ForgetModelInput) {
+      const dir = yield* InstanceState.directory
+      const projectFile = yield* projectConfigFile(dir)
+      const targets = Array.from(new Set([projectFile, globalConfigFile()]))
+
+      const models = new Set<string>()
+      const providers = new Set<string>()
+      const files: string[] = []
+      let clearedDefaultModel = false
+      let clearedSmallModel = false
+
+      for (const file of targets) {
+        const before = yield* readConfigFile(file)
+        if (!before) continue
+        const result = forgetModelInText(before, input)
+        if (!result.changed) continue
+        yield* writeGlobalAtomic(file, result.text).pipe(Effect.orDie)
+        for (const model of result.models) models.add(model)
+        for (const provider of result.providers) providers.add(provider)
+        clearedDefaultModel ||= result.clearedDefaultModel
+        clearedSmallModel ||= result.clearedSmallModel
+        files.push(file)
+      }
+
+      if (files.length) {
+        yield* invalidate()
+        yield* invalidateInstance()
+      }
+
+      return {
+        models: Array.from(models),
+        providers: Array.from(providers),
+        files,
+        clearedDefaultModel,
+        clearedSmallModel,
+      }
+    })
+
     return Service.of({      get,
       getGlobal,
       getConsoleState,
       update,
       updateGlobal,
+      forgetProviderModel,
       invalidate,
       invalidateInstance,
       directories,

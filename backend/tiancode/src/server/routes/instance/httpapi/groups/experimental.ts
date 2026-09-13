@@ -96,6 +96,12 @@ export const OptimizePromptPayload = Schema.Struct({
   variant: Schema.optional(Schema.String),
   language: Schema.optional(Schema.String),
   style: Schema.optional(Schema.Literals(["standard", "rigorous", "minimal"])),
+  // Opt-in liveness bytes (U+0001) while the model is reasoning and the body is therefore empty.
+  // Off by default and deliberately so: this response is documented as text/plain and the callers
+  // that already exist — the generated SDK's `optimize()`, which returns the raw body, and any
+  // desktop build older than this field — hand that body straight to the user without stripping
+  // anything. A caller that does not ask gets a byte-identical body. See handlers/experimental.ts.
+  heartbeat: Schema.optional(Schema.Boolean),
 }).annotate({ identifier: "OptimizePromptPayload" })
 
 // Distinct from the generic 400 ("no model at all"): the caller named a model and it did not
@@ -286,7 +292,10 @@ export const ExperimentalApi = HttpApi.make("experimental")
           OpenApi.annotations({
             identifier: "experimental.prompt.optimize",
             summary: "Stream optimized prompt",
-            description: "Stream an AI-enhanced version of a prompt tailored for AI coding assistants.",
+            description:
+              "Stream an AI-enhanced version of a prompt tailored for AI coding assistants. The body is the " +
+              "optimized prompt as plain text. With `heartbeat: true` it also carries U+0001 liveness bytes while " +
+              "the model has produced no text yet, which the caller must strip; without it, nothing but the answer.",
           }),
         ),
       )

@@ -133,7 +133,7 @@
                 <li><strong>Multi-proveedor:</strong> OpenAI, Anthropic y otros proveedores, o combínalos con modelos locales.</li>
                 <li><strong>Modo portable:</strong> llévate Tiancode en un USB, sin instalación.</li>
               </ul>
-              <h2>Todo lo nuevo en v1.0.50</h2>
+              <h2>Todo lo nuevo en v1.0.51</h2>
               <ul class="page-list">
                 <li><strong>El botón de mejorar prompt no funcionó nunca:</strong> no era tu modelo, ni la variante «Max», ni el modo 2x — fallaba siempre, con cualquier configuración. La respuesta se entrega como un flujo perezoso y el servidor sólo tira de él después de que el handler haya retornado, cuando ya se cerró el ámbito que le inyecta el contexto de la instancia: moría con «InstanceRef not provided» antes de que un solo byte saliera hacia el proveedor, y el capturador de errores lo disfrazaba de fallo del modelo.</li>
                 <li><strong>Por qué compilaba perfecto y fallaba siempre:</strong> ese contexto es una referencia con valor por defecto, así que su tipo dice «never» y el comprobador de tipos no ve nada que falte. Ahora el flujo lleva su propio contexto en vez de pedirlo prestado a la petición, sigue llegando palabra a palabra, y va con un test HTTP contra la ruta real que reproducía el fallo exacto —«\0unknown», cero texto— antes del arreglo; no había ninguno. De paso, un modelo que sólo emite razonamiento y ningún texto producía el mismo cuerpo vacío que un fallo y se anunciaba como «no dijo nada»: ahora es un caso propio.</li>
@@ -187,7 +187,7 @@
           </a>
           <p>El asistente de IA para programar, hecho para Windows.</p>
         </div>
-        <span class="footer-version"><i aria-hidden="true"></i>v1.0.50 · MIT</span>
+        <span class="footer-version"><i aria-hidden="true"></i>v1.0.51 · MIT</span>
       </div>
       <div class="footer-grid">
         <nav class="footer-col" aria-label="Producto">

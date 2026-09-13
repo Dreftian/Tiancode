@@ -1,260 +1,30 @@
-import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
+import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
 import { SegmentedControlItemV2, SegmentedControlV2 } from "@tiancode-ai/ui/v2/segmented-control-v2"
-import type { Agent, PermissionRule } from "@tiancode-ai/sdk/v2/client"
-import { type Component, createEffect, createMemo, createResource, createSignal, For, Show } from "solid-js"
+import { SelectV2 } from "@tiancode-ai/ui/v2/select-v2"
+import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
+import { TextInputV2 } from "@tiancode-ai/ui/v2/text-input-v2"
+import { TextareaV2 } from "@tiancode-ai/ui/v2/textarea-v2"
+import type { Agent } from "@tiancode-ai/sdk/v2/client"
+import { type Component, createEffect, createMemo, createResource, createSignal, For, on, Show } from "solid-js"
 import { useLanguage } from "@/context/language"
+import { useModels } from "@/context/models"
 import { useServerSDK } from "@/context/server-sdk"
+import { authTokenFromCredentials } from "@/utils/server"
 import { showToast } from "@/utils/toast"
 import { SettingsPagerV2 } from "./parts/pager"
 import { RlmHierarchyTree } from "@/components/visualization/rlm-hierarchy-tree"
-import { AgentSwarmGraph } from "@/components/visualization/agent-swarm-graph"
+import {
+  agentDisablePatch,
+  buildDelegationTree,
+  draftFromGenerated,
+  mergePanelAgents,
+  scopeTarget,
+  validateAgentDraft,
+  type AgentDraft,
+  type AgentPresentation,
+  type PanelAgent,
+} from "./sub-agents-logic"
 import "./sub-agents.css"
-
-const SPECIALIZED_PRESETS = [
-  {
-    name: "software-architect",
-    role: "Software & System Architect",
-    description: "Diseño modular de sistemas, patrones de diseño limpios, domain-driven design y arquitectura desacoplada.",
-    prompt: "Eres un arquitecto de software senior de élite. Diseñas sistemas limpios, modulares y altamente escalables. Evalúas trade-offs arquitectónicos, defines límites de módulos y garantizas que el código cumpla con los principios SOLID y clean architecture.",
-    color: "#3B82F6",
-    icon: "🏛️",
-    tools: ["Read", "Grep", "Glob", "Write", "Edit"],
-  },
-  {
-    name: "fullstack-coder",
-    role: "Fullstack Senior Engineer",
-    description: "Implementación ágil de features completas de frontend, backend, APIs y bases de datos.",
-    prompt: "Eres un ingeniero fullstack senior. Implementas requerimientos de inicio a fin con código robusto, tipado estricto en TypeScript/Rust/Go/Python, integración fluida de APIs y componentes limpios.",
-    color: "#8B5CF6",
-    icon: "⚡",
-    tools: ["Read", "Grep", "Glob", "Edit", "Write", "Bash"],
-  },
-  {
-    name: "devsecops-auditor",
-    role: "DevSecOps Auditor",
-    description: "Auditoría estricta de dependencias, CVEs, fugas de secretos y seguridad estática de código.",
-    prompt: "Eres un auditor DevSecOps de élite. Tu función es inspeccionar dependencias, detectar vulnerabilidades de seguridad, evitar fugas de credenciales y validar que los cambios cumplan con los estándares OWASP.",
-    color: "#EF4444",
-    icon: "🛡️",
-    tools: ["Read", "Grep", "Glob", "Bash", "Edit"],
-  },
-  {
-    name: "ui-ux-master",
-    role: "UI/UX & CSS Master",
-    description: "Diseño visual moderno, Tailwind CSS, micro-interacciones fluidas y componentes accesibles.",
-    prompt: "Eres un diseñador y desarrollador frontend experto en UI/UX moderna. Diseñas interfaces atractivas, limpias, con excelente jerarquía visual, espaciados precisos, transiciones suaves y soporte completo para temas oscuro/claro.",
-    color: "#EC4899",
-    icon: "🎨",
-    tools: ["Read", "Grep", "Glob", "Edit", "Write"],
-  },
-  {
-    name: "performance-optimizer",
-    role: "Performance & Bundle Optimizer",
-    description: "Perfilado de rendimiento, reducción de latencia, optimización de bundles y tiempos de carga.",
-    prompt: "Eres un especialista senior en rendimiento y optimización. Identificas cuellos de botella de CPU y memoria, optimizas bundles, eliminas re-renders innecesarios y aceleras tiempos de respuesta.",
-    color: "#F97316",
-    icon: "🚀",
-    tools: ["Read", "Grep", "Glob", "Edit", "Bash"],
-  },
-  {
-    name: "database-architect",
-    role: "Database & SQL Architect",
-    description: "Optimización de esquemas, índices, planes de ejecución y migraciones seguras.",
-    prompt: "Eres un arquitecto de bases de datos senior. Analizas consultas SQL, índices, normalización, migraciones Drizzle/Prisma y concurrencia para garantizar máximo rendimiento sin cuellos de botella.",
-    color: "#EAB308",
-    icon: "🗄️",
-    tools: ["Read", "Grep", "Glob", "Edit", "Write", "Bash"],
-  },
-  {
-    name: "docs-generator",
-    role: "Docs & API Spec Generator",
-    description: "Generación de especificaciones OpenAPI, documentación técnica Markdown y guías.",
-    prompt: "Eres un redactor técnico y arquitecto de APIs. Documentas cada endpoint, tipo de dato, arquitectura de módulos y guías de contribución con claridad profesional en formato Markdown.",
-    color: "#06B6D4",
-    icon: "📝",
-    tools: ["Read", "Grep", "Glob", "Write"],
-  },
-  {
-    name: "qa-e2e-tester",
-    role: "QA & E2E Test Engineer",
-    description: "Creación de suites de pruebas unitarias, de integración y end-to-end con Vitest y Playwright.",
-    prompt: "Eres un ingeniero de QA y testing automatizado. Escribes suites de pruebas completas, validas casos borde y aseguras cobertura integral de código.",
-    color: "#10B981",
-    icon: "🧪",
-    tools: ["Read", "Grep", "Glob", "Edit", "Write", "Bash"],
-  },
-  {
-    name: "python-data-engineer",
-    role: "Python, AI & Data Science Specialist",
-    description: "Python 3.12+, FastAPI, PyTorch, Pandas, NumPy, Scikit-learn, LangChain, pipelines ETL y agentes AI.",
-    prompt: "Eres un ingeniero especialista en Python, Inteligencia Artificial y Ciencia de Datos. Desarrollas aplicaciones robustas con Python 3.12+, FastAPI, PyTorch, Pandas, NumPy, Scikit-learn y LangChain. Creas pipelines de datos eficientes, modelos de machine learning, APIs asíncronas de alto rendimiento y scripts limpios optimizados con Poetry o uv.",
-    color: "#3776AB",
-    icon: "🐍",
-    tools: ["Read", "Grep", "Glob", "Edit", "Write", "Bash"],
-  },
-  {
-    name: "rust-systems-engineer",
-    role: "Rust & High-Performance Systems",
-    description: "Rust 2024, Tokio, Axum, software de sistemas, seguridad de memoria, concurrencia y WebAssembly.",
-    prompt: "Eres un ingeniero de sistemas senior experto en Rust. Desarrollas aplicaciones de alto rendimiento, microservicios asíncronos con Tokio y Axum, herramientas CLI y módulos WebAssembly. Dominas la gestión de memoria sin garbage collector, lifetimes, concurrencia segura y zero-cost abstractions.",
-    color: "#DEA584",
-    icon: "🦀",
-    tools: ["Read", "Grep", "Glob", "Edit", "Write", "Bash"],
-  },
-  {
-    name: "go-backend-dev",
-    role: "Go & Microservices Cloud Engineer",
-    description: "Go 1.22+, Goroutines, Channels, gRPC, Gin/Fiber y microservicios distribuidos cloud-native.",
-    prompt: "Eres un ingeniero de backend y microservicios experto en Go (Golang). Diseñas e implementas servicios distribuidos concurrentes, APIs RESTful con Gin/Fiber, contratos gRPC con Protocol Buffers y workers asíncronos utilizando goroutines y channels con consumo mínimo de recursos.",
-    color: "#00ADD8",
-    icon: "🐹",
-    tools: ["Read", "Grep", "Glob", "Edit", "Write", "Bash"],
-  },
-  {
-    name: "mobile-app-developer",
-    role: "Mobile App Developer (iOS & Android)",
-    description: "Flutter, React Native/Expo, Swift/SwiftUI y Kotlin/Compose con arquitectura offline-first.",
-    prompt: "Eres un ingeniero especializado en desarrollo móvil profesional. Creas aplicaciones nativas y multiplataforma fluidas con Flutter, React Native/Expo, Swift/SwiftUI para iOS y Kotlin/Jetpack Compose para Android. Gestionas estado reactivo, arquitecturas offline-first, animaciones fluidas a 120fps y consumo eficiente de batería.",
-    color: "#10B981",
-    icon: "📱",
-    tools: ["Read", "Grep", "Glob", "Edit", "Write", "Bash"],
-  },
-  {
-    name: "cloud-devops-engineer",
-    role: "Cloud Infrastructure & DevOps",
-    description: "Docker multi-stage, Kubernetes, Helm, Terraform, CI/CD con GitHub Actions y nubes AWS/GCP/Azure.",
-    prompt: "Eres un arquitecto Cloud y DevOps de élite. Diseñas infraestructura como código con Terraform, contenedores Docker multi-stage hiperoptimizados, manifiestos de Kubernetes/Helm y pipelines de integración y despliegue continuo (CI/CD) con GitHub Actions para despliegues confiables en AWS, GCP o Azure.",
-    color: "#0284C7",
-    icon: "☁️",
-    tools: ["Read", "Grep", "Glob", "Edit", "Write", "Bash"],
-  },
-  {
-    name: "cpp-systems-expert",
-    role: "C/C++ & Native Systems Specialist",
-    description: "C++20/C++23 moderno, CMake, software de bajo nivel, depuración nativa y optimización SIMD.",
-    prompt: "Eres un especialista de élite en C y C++ moderno (C++20/C++23). Desarrollas sistemas nativos, motores de procesamiento de datos, bindings nativos con CMake y software de bajo nivel. Dominas punteros inteligentes, RAII, metaprogramación de templates, depuración avanzada con GDB/LLDB y optimizaciones SIMD.",
-    color: "#659AD2",
-    icon: "⚙️",
-    tools: ["Read", "Grep", "Glob", "Edit", "Write", "Bash"],
-  },
-  {
-    name: "java-enterprise-architect",
-    role: "Java & Spring Enterprise Architect",
-    description: "Java 21 LTS, Spring Boot 3, Hibernate/JPA, microservicios empresariales y Maven/Gradle.",
-    prompt: "Eres un arquitecto de software empresarial senior experto en Java 21 LTS y Spring Boot 3. Construyes microservicios robustos, arquitecturas basadas en eventos (Kafka/RabbitMQ), persistencia avanzada con Hibernate/JPA, seguridad Spring Security y pipelines de compilación con Maven o Gradle.",
-    color: "#F89820",
-    icon: "☕",
-    tools: ["Read", "Grep", "Glob", "Edit", "Write", "Bash"],
-  },
-  {
-    name: "dotnet-core-expert",
-    role: ".NET Core & C# Enterprise Engineer",
-    description: "C# 12, .NET 8/9, ASP.NET Core Web APIs, Entity Framework Core y arquitecturas limpias CQRS.",
-    prompt: "Eres un ingeniero especialista en C# 12 y el ecosistema .NET 8/9. Creas APIs web de alto rendimiento con ASP.NET Core, modelos de datos y migraciones con Entity Framework Core, arquitecturas limpias en capas (Clean Architecture / CQRS) y servicios multiplataforma preparados para la nube.",
-    color: "#512BD4",
-    icon: "🔷",
-    tools: ["Read", "Grep", "Glob", "Edit", "Write", "Bash"],
-  },
-  {
-    name: "php-laravel-expert",
-    role: "PHP & Laravel Modern Specialist",
-    description: "PHP 8.3+, Laravel 11, Eloquent ORM, Livewire, Inertia.js y arquitecturas web modernas.",
-    prompt: "Eres un desarrollador senior experto en PHP 8.3+ y el framework Laravel 11. Creas aplicaciones web modernas con Eloquent ORM, colas y jobs asíncronos con Redis, integración con Livewire o Inertia.js/Vue/React, APIs RESTful seguras y arquitecturas modulares comprobadas.",
-    color: "#777BB4",
-    icon: "🐘",
-    tools: ["Read", "Grep", "Glob", "Edit", "Write", "Bash"],
-  },
-  {
-    name: "tdd-specialist",
-    role: "TDD & Test-First Architect",
-    description: "Metodología estricta Red-Green-Refactor: pruebas antes del código, suites a prueba de regresiones y cobertura total.",
-    prompt: "Eres un especialista senior en Test-Driven Development (TDD) y arquitectura de pruebas. Aplicas rigurosamente el ciclo Red-Green-Refactor: diseñas primero los tests que fallan para definir el comportamiento esperado, implementas el código mínimo necesario para ponerlos en verde, y refactorizas manteniendo la suite limpia y robusta.",
-    color: "#10B981",
-    icon: "🧪",
-    tools: ["Read", "Grep", "Glob", "Edit", "Write", "Bash"],
-  },
-  {
-    name: "code-reviewer",
-    role: "Fresh-Context Code Reviewer",
-    description: "Revisión crítica e independiente de código: detección de regresiones, code smells, complejidad ciclomática y seguridad.",
-    prompt: "Eres un revisor de código senior con contexto limpio. Inspeccionas diffs y archivos modificados con criterio implacable: detectas regresiones sutiles, problemas de concurrencia, violaciones de tipado estricto, fugas de memoria, complejidad ciclomática innecesaria y anti-patrones de diseño.",
-    color: "#6366F1",
-    icon: "🔍",
-    tools: ["Read", "Grep", "Glob", "Edit"],
-  },
-  {
-    name: "agentshield-sentinel",
-    role: "AgentShield Security Sentinel",
-    description: "Inspección estática y dinámica de seguridad: prevención de fugas de secretos, mitigación OWASP y validación de permisos.",
-    prompt: "Eres el guardián de seguridad AgentShield para Tiancode. Auditas proactivamente el código, configuraciones MCP y comandos de terminal en busca de comandos destructivos, exposición accidental de secretos (.env, claves privadas), inyecciones de código y dependencias comprometidas.",
-    color: "#DC2626",
-    icon: "🛡️",
-    tools: ["Read", "Grep", "Glob", "Bash", "Edit"],
-  },
-  {
-    name: "build-repair-specialist",
-    role: "Build & CI/CD Repair Doctor",
-    description: "Diagnóstico y resolución quirúrgica de fallos de compilación, empaquetado (Vite, Rollup, TS) y dependencias rotas.",
-    prompt: "Eres un médico especialista en reparación de builds y CI/CD. Diagnosticas con precisión quirúrgica errores de compilación de TypeScript/Rust/Go, fallos de bundlers (Vite, Rollup, Webpack), conflictos de resolución de dependencias en monorepos (Bun, npm, pnpm) y arreglas pipelines rotos sin introducir regresiones.",
-    color: "#F59E0B",
-    icon: "🔧",
-    tools: ["Read", "Grep", "Glob", "Edit", "Write", "Bash"],
-  },
-  {
-    name: "hermes-orchestrator",
-    role: "Hermes Multi-Phase Orchestrator",
-    description: "Orquestación multi-fase autónoma de tareas complejas con retroalimentación continua, desglose modular y auto-corrección.",
-    prompt: "Eres un orquestador autónomo de software de élite al estilo Nous Research Hermes Agent. Analizas objetivos de alta complejidad, los descompones en fases atómicas secuenciales y paralelas, ejecutas herramientas, evaluas los resultados de cada paso y te auto-corriges ante cualquier obstáculo sin requerir supervisión constante.",
-    color: "#8B5CF6",
-    icon: "🧠",
-    tools: ["Read", "Grep", "Glob", "Edit", "Write", "Bash", "WebFetch", "WebSearch"],
-  },
-  {
-    name: "hermes-researcher",
-    role: "Hermes Autonomous Deep Researcher",
-    description: "Investigación técnica profunda autónoma en fuentes primarias, papers, documentación web y síntesis estructurada con citas.",
-    prompt: "Eres un investigador técnico senior autónomo al estilo Hermes Agent. Rastreas documentación oficial, especificaciones técnicas, papers y repositorios. Sintetizas información compleja en reportes claros, exhaustivos y estructurados con citas verificables.",
-    color: "#06B6D4",
-    icon: "🔬",
-    tools: ["Read", "Grep", "Glob", "WebFetch", "WebSearch", "Write"],
-  },
-  {
-    name: "openclaw-resilience",
-    role: "OpenClaw Circuit Breaker & Healer",
-    description: "Tolerancia a fallos de agentes, detección y ruptura de bucles infinitos (circuit breaker) y auto-reparación de JSON de tool-calls malformados.",
-    prompt: "Eres el guardián de resiliencia OpenClaw para Tiancode. Tu misión es supervisar la interacción con herramientas, interceptar llamadas defectuosas, reparar JSON malformado devuelto por modelos de IA y romper bucles infinitos mediante circuit breakers antes de que agoten tokens o recursos.",
-    color: "#10B981",
-    icon: "🛡️",
-    tools: ["Read", "Grep", "Glob", "Edit", "Bash"],
-  },
-  {
-    name: "openclaw-gateway",
-    role: "OpenClaw Swarm & Agent Gateway",
-    description: "Pasarela y proxy resiliente para orquestación de agentes distribuidos, rotación de modelos y balanceo de carga.",
-    prompt: "Eres la pasarela distribuida OpenClaw Gateway. Gestionas la comunicación entre múltiples agentes, enrutas peticiones a los modelos más idóneos, manejas la rotación automática ante cuotas superadas y sincronizas respuestas para flujos multi-agente concurrentes.",
-    color: "#3B82F6",
-    icon: "🌐",
-    tools: ["Read", "Grep", "Glob", "Bash", "WebFetch"],
-  },
-  {
-    name: "opendesign-ui-master",
-    role: "OpenDesign UI/UX & Canvas Master",
-    description: "Diseño y prototipado visual de interfaces de usuario modernas, integración con pen.dev CLI (.pen AST), Tailwind v4 y exportación gráfica.",
-    prompt: "Eres un maestro de diseño visual y desarrollo de interfaces con OpenDesign y pen.dev CLI. Creas mockups de alta fidelidad, manipulas archivos .pen de forma declarativa, compilas componentes en Tailwind CSS v4 y exportas vistas previas visuales impecables.",
-    color: "#EC4899",
-    icon: "✨",
-    tools: ["Read", "Grep", "Glob", "Edit", "Write", "Bash"],
-  },
-  {
-    name: "pentest-redteam",
-    role: "Pentest Red Team & Hardening Auditor",
-    description: "Auditoría adversaria de seguridad, emulación de adversarios, análisis de superficie de ataque y fortificación defensiva del sistema.",
-    prompt: "Eres un especialista de Red Team y auditoría de seguridad adversaria. Evalúas la superficie de ataque del sistema, identificas vectores de inyección, riesgos de escape de entorno, exposición de secretos y propones medidas concretas de mitigación y hardening.",
-    color: "#E11D48",
-    icon: "🕵️",
-    tools: ["Read", "Grep", "Glob", "Edit", "Bash"],
-  },
-]
 
 const AgentColors: { id: string; value: string; label: string }[] = [
   { id: "yellow", value: "#EAB308", label: "settings.subAgents.form.color.yellow" },
@@ -281,11 +51,6 @@ const AgentTools: { id: string; label: string; sensitive: boolean }[] = [
 
 const ToolPermissionNames = AgentTools.map((tool) => tool.id.toLowerCase())
 
-const ModelOptions: { id: "inherit" | "custom"; label: string }[] = [
-  { id: "inherit", label: "settings.subAgents.form.model.inherit" },
-  { id: "custom", label: "settings.subAgents.form.model.custom" },
-]
-
 const StatusOptions: { id: "all" | "enabled" | "disabled"; label: string }[] = [
   { id: "all", label: "settings.subAgents.list.filter.all" },
   { id: "enabled", label: "settings.subAgents.list.filter.enabled" },
@@ -308,36 +73,9 @@ const NativeAgentDescriptionKeys: Record<string, string> = {
   "database-architect": "settings.subAgents.native.databaseArchitect",
   "docs-generator": "settings.subAgents.native.docsGenerator",
   "qa-e2e-tester": "settings.subAgents.native.qaE2eTester",
-  "python-data-engineer": "settings.subAgents.native.pythonDataEngineer",
-  "rust-systems-engineer": "settings.subAgents.native.rustSystemsEngineer",
-  "go-backend-dev": "settings.subAgents.native.goBackendDev",
-  "mobile-app-developer": "settings.subAgents.native.mobileAppDeveloper",
-  "cloud-devops-engineer": "settings.subAgents.native.cloudDevopsEngineer",
-  "cpp-systems-expert": "settings.subAgents.native.cppSystemsExpert",
-  "java-enterprise-architect": "settings.subAgents.native.javaEnterpriseArchitect",
-  "dotnet-core-expert": "settings.subAgents.native.dotnetCoreExpert",
-  "php-laravel-expert": "settings.subAgents.native.phpLaravelExpert",
-  "hermes-orchestrator": "settings.subAgents.native.hermesOrchestrator",
-  "hermes-researcher": "settings.subAgents.native.hermesResearcher",
-  "openclaw-resilience": "settings.subAgents.native.openclawResilience",
-  "openclaw-gateway": "settings.subAgents.native.openclawGateway",
-  "opendesign-ui-master": "settings.subAgents.native.opendesignUiMaster",
-  "pentest-redteam": "settings.subAgents.native.pentestRedteam",
-  compaction: "settings.subAgents.native.compaction",
-  title: "settings.subAgents.native.title",
-  summary: "settings.subAgents.native.summary",
 }
 
-interface AgentDisplayMeta {
-  title: string
-  role: string
-  icon: string
-  color: string
-  category: string
-  description?: string
-}
-
-const AGENT_META: Record<string, AgentDisplayMeta> = {
+const AGENT_META: Record<string, AgentPresentation> = {
   build: {
     title: "Constructor Principal",
     role: "Core Execution & Code Build",
@@ -520,7 +258,7 @@ const AGENT_META: Record<string, AgentDisplayMeta> = {
     icon: "🧠",
     color: "#8B5CF6",
     category: "🧠 Orquestación",
-    description: "Orquestación multi-fase autónoma de tareas complejas con retroalimentación continua, desglose modular y auto-corrección.",
+    description: "Orquestación multi-fase autónoma de tareas complejas con desglose modular y auto-corrección.",
   },
   "hermes-researcher": {
     title: "Investigador Hermes",
@@ -528,7 +266,7 @@ const AGENT_META: Record<string, AgentDisplayMeta> = {
     icon: "🔬",
     color: "#06B6D4",
     category: "🔬 Investigación",
-    description: "Investigación técnica profunda autónoma en fuentes primarias, papers, documentación web y síntesis estructurada con citas.",
+    description: "Investigación técnica profunda en fuentes primarias, papers y documentación web con citas.",
   },
   "openclaw-resilience": {
     title: "Resiliencia OpenClaw",
@@ -536,7 +274,7 @@ const AGENT_META: Record<string, AgentDisplayMeta> = {
     icon: "🛡️",
     color: "#10B981",
     category: "🛡️ Resiliencia",
-    description: "Tolerancia a fallos de agentes, detección y ruptura de bucles infinitos (circuit breaker) y auto-reparación de JSON de tool-calls.",
+    description: "Tolerancia a fallos de agentes, ruptura de bucles infinitos y reparación de JSON de tool-calls.",
   },
   "openclaw-gateway": {
     title: "Gateway OpenClaw",
@@ -544,7 +282,7 @@ const AGENT_META: Record<string, AgentDisplayMeta> = {
     icon: "🌐",
     color: "#3B82F6",
     category: "🌐 Gateway",
-    description: "Pasarela y proxy resiliente para orquestación de agentes distribuidos, rotación de modelos y balanceo de carga.",
+    description: "Pasarela resiliente para orquestación de agentes distribuidos, rotación de modelos y balanceo.",
   },
   "opendesign-ui-master": {
     title: "Maestro OpenDesign UI",
@@ -552,7 +290,7 @@ const AGENT_META: Record<string, AgentDisplayMeta> = {
     icon: "✨",
     color: "#EC4899",
     category: "🎨 Diseño / UI",
-    description: "Diseño y prototipado visual de interfaces de usuario modernas, integración con pen.dev CLI (.pen AST) y Tailwind v4.",
+    description: "Diseño y prototipado visual de interfaces modernas, pen.dev CLI (.pen AST) y Tailwind v4.",
   },
   "pentest-redteam": {
     title: "Red Team & Pentesting",
@@ -560,45 +298,23 @@ const AGENT_META: Record<string, AgentDisplayMeta> = {
     icon: "🕵️",
     color: "#E11D48",
     category: "🕵️ Seguridad",
-    description: "Auditoría adversaria de seguridad, emulación de adversarios, análisis de superficie de ataque y fortificación defensiva.",
+    description: "Auditoría adversaria, análisis de superficie de ataque y fortificación defensiva del sistema.",
   },
 }
 
 type StatusId = "all" | "enabled" | "disabled"
+type CreateMode = "manual" | "ai"
 
-// The backend rewrites tool lists into permission allow/deny rules and merges
-// them on top of the default ruleset (`*: allow` plus read/external_directory
-// defaults). The effective action for a tool is the last `*`-pattern rule
-// matching its permission name, so the UI maps rules back to checkboxes by
-const getAgentRules = (agent?: Agent | null): PermissionRule[] => {
-  if (!agent) return []
-  if (Array.isArray(agent.permission)) return agent.permission
-  if (Array.isArray((agent as any).permissions)) return (agent as any).permissions
-  return []
-}
-
-const effectiveToolRule = (agent: Agent, tool: string): PermissionRule | undefined => {
-  const permission = tool.toLowerCase()
-  return getAgentRules(agent).findLast(
-    (rule) => rule && rule.pattern === "*" && (rule.permission === permission || rule.permission === "*"),
-  )
-}
-
-// A restricted ruleset is one with a deny/ask rule (pattern `*`) for a tool
-// permission or for `*` itself; unrestricted agents inherit everything.
-const hasRestrictedTools = (agent: Agent): boolean =>
-  getAgentRules(agent).some(
-    (rule) =>
-      rule &&
-      rule.pattern === "*" &&
-      (rule.permission === "*" || ToolPermissionNames.includes(rule.permission)) &&
-      rule.action !== "allow",
-  )
-
-const allowedToolCount = (agent: Agent): number =>
-  ToolPermissionNames.filter((permission) =>
-    getAgentRules(agent).some((rule) => rule && rule.pattern === "*" && rule.permission === permission && rule.action === "allow"),
-  ).length
+const emptyDraft = (): AgentDraft => ({
+  name: "",
+  description: "",
+  mode: "subagent",
+  prompt: "",
+  color: "#3B82F6",
+  model: "",
+  tools: ["Read", "Grep", "Glob"],
+  injectAgentsMd: false,
+})
 
 export const SettingsSubAgentsV2: Component<{
   directory?: string
@@ -606,22 +322,29 @@ export const SettingsSubAgentsV2: Component<{
 }> = (props) => {
   const language = useLanguage()
   const serverSdk = useServerSDK()
+  const models = useModels()
 
   const [scope, setScope] = createSignal<"project" | "global">(props.directory ? "project" : "global")
 
   const params = () => (props.directory ? { directory: props.directory } : undefined)
-  const activeParams = () => (scope() === "project" && props.directory ? { directory: props.directory } : undefined)
+  // Which config file this panel reads and writes. Both resources take it as their source: a
+  // createResource with no source argument runs its fetcher once inside untrack, so the scope
+  // selector used to change the toast and nothing else.
+  const target = createMemo(() => scopeTarget(scope(), props.directory))
 
   const [configData, { refetch: refetchConfig }] = createResource(
-    async () => {
+    target,
+    async (where) => {
       try {
-        const loc = activeParams()
-        const res = await serverSdk().client.config.get(loc ?? undefined).catch(() => undefined)
+        const res = await (where.kind === "global"
+          ? serverSdk().client.global.config.get()
+          : serverSdk().client.config.get({ directory: where.directory })
+        ).catch(() => undefined)
         const raw = {
           ...((res?.data as any)?.agents ?? {}),
           ...((res?.data as any)?.agent ?? {}),
         }
-        return raw as Record<string, { disable?: boolean; disabled?: boolean }>
+        return raw as Record<string, { description?: string; mode?: string; disable?: boolean; disabled?: boolean }>
       } catch {
         return {}
       }
@@ -629,7 +352,8 @@ export const SettingsSubAgentsV2: Component<{
     { initialValue: {} },
   )
 
-  const [agents, { refetch }] = createResource<Agent[]>(
+  const [agents, { refetch }] = createResource<Agent[], ReturnType<typeof target>>(
+    target,
     async () => {
       try {
         const p = params()
@@ -642,6 +366,21 @@ export const SettingsSubAgentsV2: Component<{
       }
     },
     { initialValue: [] },
+  )
+
+  // Coming back to the tab is an implicit "show me what is there now": this panel exists to show
+  // the agent/*.md files on disk, and one added from outside the app would otherwise never appear.
+  // Same convention as skills.tsx.
+  createEffect(
+    on(
+      () => props.active,
+      (active, previous) => {
+        if (!active || previous) return
+        void refetchConfig()
+        void refetch()
+      },
+      { defer: true },
+    ),
   )
 
   const [agentStatusOverrides, setAgentStatusOverrides] = createSignal<Record<string, boolean>>({})
@@ -660,6 +399,9 @@ export const SettingsSubAgentsV2: Component<{
     if (match && ((match as any).disabled === true || (match as any).mode === "disabled")) {
       return false
     }
+    // The backend drops a disabled agent from its list entirely, so an agent we only know about
+    // from config or from the built-in catalogue is switched off, not merely unseen.
+    if (!match && !agents.loading) return false
     return true
   }
 
@@ -678,22 +420,17 @@ export const SettingsSubAgentsV2: Component<{
       ),
     })
 
-    // 3. Sincronización asíncrona en segundo plano sin congelar la animación
-    const conf = { ...(configData() ?? {}) }
-    conf[agentName] = {
-      ...(conf[agentName] ?? {}),
-      disable: !enable,
-      disabled: !enable,
-    }
+    // 3. Sincronización asíncrona en segundo plano sin congelar la animación.
+    // Only this agent's {disable} goes over the wire. Copying configData() sent the merged
+    // `cfg.agent` map back — every markdown agent's parsed Info, system prompt included — so one
+    // switch wrote every agent's prompt into the repository's tiancode.json.
+    const where = target()
+    const config = agentDisablePatch(agentName, enable) as any
 
-    void serverSdk()
-      .client.config.update({
-        ...activeParams(),
-        config: {
-          agent: conf,
-          agents: conf,
-        } as any,
-      })
+    void (where.kind === "global"
+      ? serverSdk().client.global.config.update({ config })
+      : serverSdk().client.config.update({ directory: where.directory, config })
+    )
       .then(() => {
         void refetchConfig()
         void refetch()
@@ -712,52 +449,56 @@ export const SettingsSubAgentsV2: Component<{
       })
   }
 
-  const isNative = (agent: Agent) => agent.native === true || agent.name in NativeAgentDescriptionKeys || agent.name in AGENT_META
+  // The panel used to build its list from AGENT_META alone, which is why none of the user's own
+  // agent/*.md files ever showed up. The server list is the source of truth now; the metadata
+  // only decorates the agents that ship with Tiancode.
+  const agentList = createMemo<PanelAgent[]>(() =>
+    mergePanelAgents({
+      server: agents() ?? [],
+      meta: AGENT_META,
+      config: configData() ?? {},
+      isEnabled: isAgentActive,
+      toolPermissions: ToolPermissionNames,
+      fallback: {
+        role: language.t("settings.subAgents.meta.role.default"),
+        category: language.t("settings.subAgents.meta.category.default"),
+      },
+    }),
+  )
 
-  const builtinAgents = createMemo<Agent[]>(() => {
-    const list: Agent[] = []
-    const serverList = agents() ?? []
-
-    for (const [key, meta] of Object.entries(AGENT_META)) {
-      const serverMatch = serverList.find((a) => a?.name === key)
-      const preset = SPECIALIZED_PRESETS.find((p) => p?.name === key)
-
-      list.push({
-        name: key,
-        description: meta.description || serverMatch?.description || preset?.description || meta.role,
-        prompt: serverMatch?.prompt || preset?.prompt || "",
-        mode: ["build", "plan", "webapp"].includes(key) ? "primary" : "subagent",
-        native: true,
-        color: meta.color,
-        icon: meta.icon,
-        model: serverMatch?.model,
-        permission: (serverMatch as any)?.permission || [],
-      } as Agent)
-    }
-
-    return list
-  })
-
-  const agentList = createMemo(() => builtinAgents())
+  const existingNames = createMemo(() => agentList().map((agent) => agent.name))
 
   const [query, setQuery] = createSignal("")
   const [status, setStatus] = createSignal<StatusId>("all")
 
-  const matchesQuery = (agent: Agent) => {
+  // "{{count}} tools" rendered "1 tools"; the dictionary carries a .one/.other family now.
+  const toolsSummary = (count: number) => language.plural("settings.subAgents.list.tools.summary", count)
+
+  const describe = (agent: PanelAgent) => {
+    const key = NativeAgentDescriptionKeys[agent.name]
+    return (key ? language.t(key as Parameters<typeof language.t>[0]) : undefined) || agent.description
+  }
+
+  const matchesQuery = (agent: PanelAgent) => {
     const needle = query().trim().toLowerCase()
     if (!needle) return true
     return (
-      agent.name.toLowerCase().includes(needle) || (agent.description ?? "").toLowerCase().includes(needle)
+      agent.name.toLowerCase().includes(needle) ||
+      agent.title.toLowerCase().includes(needle) ||
+      (agent.description ?? "").toLowerCase().includes(needle)
     )
   }
 
-  const visibleByStatus = (agents: Agent[]) => {
+  const matchesStatus = (agent: PanelAgent) => {
     const s = status()
-    if (s === "enabled") return agents.filter((a) => (a as { disabled?: boolean }).disabled !== true && (a as { mode?: string }).mode !== "disabled")
-    if (s === "disabled") return agents.filter((a) => (a as { disabled?: boolean }).disabled === true || (a as { mode?: string }).mode === "disabled")
-    return agents
+    if (s === "enabled") return agent.enabled
+    if (s === "disabled") return !agent.enabled
+    return true
   }
-  const visibleBuiltinAgents = createMemo(() => visibleByStatus(builtinAgents().filter(matchesQuery)))
+
+  const visibleAgents = createMemo(() => agentList().filter((a) => matchesQuery(a) && matchesStatus(a)))
+  const visibleBuiltinAgents = createMemo(() => visibleAgents().filter((a) => a.builtin))
+  const visibleCustomAgents = createMemo(() => visibleAgents().filter((a) => !a.builtin))
 
   // Paginación 10x10 para Sub-Agentes sin scroll excesivo
   const BUILTIN_PAGE_SIZE = 10
@@ -779,11 +520,298 @@ export const SettingsSubAgentsV2: Component<{
     setBuiltinPage(1)
   })
 
-  const nativeDescription = (agent: Agent) => {
-    const key = NativeAgentDescriptionKeys[agent.name]
-    if (key) return language.t(key)
-    return agent.description ?? ""
+  const delegationTree = createMemo(() => buildDelegationTree(agentList()))
+
+  /* ---------------------------------------------------------------- creation */
+
+  const [creating, setCreating] = createSignal(false)
+  const [createMode, setCreateMode] = createSignal<CreateMode>("manual")
+  const [draft, setDraft] = createSignal<AgentDraft>(emptyDraft())
+  const [saving, setSaving] = createSignal(false)
+  const [nameError, setNameError] = createSignal<string | undefined>()
+  const [descriptionError, setDescriptionError] = createSignal(false)
+  const [generating, setGenerating] = createSignal(false)
+  const [generatePrompt, setGeneratePrompt] = createSignal("")
+  const [reviewing, setReviewing] = createSignal(false)
+
+  const patchDraft = (patch: Partial<AgentDraft>) => setDraft((current) => ({ ...current, ...patch }))
+
+  const modelOptions = createMemo(() => {
+    const options = models
+      .list()
+      .map((model) => ({
+        providerID: model.provider.id as string,
+        modelID: model.id as string,
+        label: model.name as string,
+        group: ((model.provider as { name?: string }).name ?? model.provider.id) as string,
+      }))
+    return [{ providerID: "", modelID: "", label: language.t("settings.subAgents.generate.model.default"), group: "" }, ...options]
+  })
+
+  // Default to whatever the user last talked to, so "generate" uses the model they are working
+  // with rather than silently picking something else.
+  const [selectedModel, setSelectedModel] = createSignal<{ providerID: string; modelID: string } | undefined>()
+  const currentModelOption = createMemo(() => {
+    const explicit = selectedModel()
+    const recent = models.recent.list()[0]
+    const key = explicit ?? (recent ? { providerID: recent.providerID, modelID: recent.modelID } : undefined)
+    if (!key) return modelOptions()[0]
+    return (
+      modelOptions().find((option) => option.providerID === key.providerID && option.modelID === key.modelID) ??
+      modelOptions()[0]
+    )
+  })
+
+  const closeCreate = () => {
+    setCreating(false)
+    setReviewing(false)
+    setNameError(undefined)
+    setDescriptionError(false)
+    setDraft(emptyDraft())
+    setGeneratePrompt("")
   }
+
+  const openCreate = (mode: CreateMode) => {
+    setCreateMode(mode)
+    setCreating(true)
+  }
+
+  const toggleTool = (tool: string, enabled: boolean) =>
+    setDraft((current) => ({
+      ...current,
+      tools: enabled ? [...new Set([...current.tools, tool])] : current.tools.filter((item) => item !== tool),
+    }))
+
+  const generate = async () => {
+    const description = generatePrompt().trim()
+    if (!description) {
+      showToast({ variant: "error", title: language.t("settings.subAgents.generate.needsDescription") })
+      return
+    }
+    const serverHttp = serverSdk()?.server?.http
+    if (!serverHttp?.url) {
+      showToast({ variant: "error", title: language.t("settings.subAgents.generate.failed") })
+      return
+    }
+
+    const headers: Record<string, string> = { "Content-Type": "application/json" }
+    if (serverHttp.password) {
+      headers["Authorization"] = `Basic ${authTokenFromCredentials({
+        username: serverHttp.username,
+        password: serverHttp.password,
+      })}`
+    }
+    // Without a directory the workspace routing resolves to the server's default project, which
+    // would draft against a different model than the one this panel is showing.
+    const search = props.directory ? `?directory=${encodeURIComponent(props.directory)}` : ""
+    const option = currentModelOption()
+
+    setGenerating(true)
+    try {
+      const response = await fetch(`${serverHttp.url.replace(/\/+$/, "")}/agent/generate${search}`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          description,
+          ...(option?.providerID && option.modelID
+            ? { providerID: option.providerID, modelID: option.modelID }
+            : {}),
+        }),
+      })
+
+      if (!response.ok) {
+        // A failure here is never silent: the backend answers 422 with a reason so the panel can
+        // say "pick a model" instead of "something went wrong".
+        const body = (await response.json().catch(() => undefined)) as
+          | { data?: { reason?: string; message?: string } }
+          | undefined
+        const reason = body?.data?.reason
+        showToast({
+          variant: "error",
+          title: language.t("settings.subAgents.generate.failed"),
+          description:
+            reason === "no-model"
+              ? language.t("settings.subAgents.generate.failed.noModel")
+              : (body?.data?.message ?? language.t("settings.subAgents.generate.failed.model")),
+        })
+        return
+      }
+
+      const generated = (await response.json()) as {
+        identifier?: string
+        whenToUse?: string
+        systemPrompt?: string
+      }
+      // Never saved sight unseen: the draft only fills the form, the user reviews and then saves.
+      setDraft((current) =>
+        draftFromGenerated(
+          {
+            identifier: generated.identifier ?? "",
+            whenToUse: generated.whenToUse ?? "",
+            systemPrompt: generated.systemPrompt ?? "",
+          },
+          current,
+        ),
+      )
+      setNameError(undefined)
+      setDescriptionError(false)
+      setReviewing(true)
+      setCreateMode("manual")
+    } catch {
+      showToast({
+        variant: "error",
+        title: language.t("settings.subAgents.generate.failed"),
+        description: language.t("settings.subAgents.generate.failed.network"),
+      })
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  const save = async () => {
+    const current = draft()
+    const problem = validateAgentDraft(current, existingNames())
+    setNameError(undefined)
+    setDescriptionError(false)
+    if (problem?.field === "name") {
+      setNameError(
+        problem.problem === "taken"
+          ? language.t("settings.subAgents.form.name.taken", { name: current.name.trim() })
+          : problem.problem === "empty"
+            ? language.t("settings.subAgents.form.name.required")
+            : language.t("settings.subAgents.form.name.invalid"),
+      )
+      return
+    }
+    if (problem?.field === "description") {
+      setDescriptionError(true)
+      return
+    }
+
+    setSaving(true)
+    try {
+      const result = await serverSdk().client.app.agents2.create({
+        ...(props.directory ? { directory: props.directory } : {}),
+        name: current.name.trim(),
+        description: current.description.trim(),
+        mode: current.mode,
+        color: current.color,
+        tools: current.tools,
+        injectAgentsMd: current.injectAgentsMd,
+        ...(current.model.trim() ? { model: current.model.trim() } : {}),
+        ...(current.prompt.trim() ? { prompt: current.prompt.trim() } : {}),
+      })
+      if ((result as { error?: unknown })?.error) throw new Error("create failed")
+      showToast({ variant: "success", title: language.t("settings.subAgents.form.success") })
+      closeCreate()
+      void refetchConfig()
+      void refetch()
+    } catch {
+      showToast({ variant: "error", title: language.t("settings.subAgents.form.failed") })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const remove = async (agent: PanelAgent) => {
+    if (agent.builtin) return
+    if (!window.confirm(language.t("settings.subAgents.form.delete.confirm", { name: agent.name }))) return
+    try {
+      const result = await serverSdk().client.app.agents2.delete({
+        name: agent.name,
+        ...(props.directory ? { directory: props.directory } : {}),
+      })
+      if ((result as { error?: unknown })?.error) throw new Error("delete failed")
+      showToast({ variant: "success", title: language.t("settings.subAgents.form.deleted") })
+      void refetchConfig()
+      void refetch()
+    } catch {
+      showToast({ variant: "error", title: language.t("settings.subAgents.form.deleteFailed") })
+    }
+  }
+
+  /* ------------------------------------------------------------------ render */
+
+  const agentRow = (agent: PanelAgent, options: { deletable: boolean }) => (
+    <div class="settings-v2-subagents-row">
+      <div
+        class="settings-v2-subagents-cell gap-2.5 pr-2"
+        data-label={language.t("settings.subAgents.list.column.agent")}
+      >
+        <div
+          class="settings-v2-sub-agents-card-avatar shrink-0 size-8 text-base rounded-lg flex items-center justify-center"
+          style={{
+            "background-color": `color-mix(in srgb, ${agent.color} 18%, transparent)`,
+            "border-color": `color-mix(in srgb, ${agent.color} 40%, transparent)`,
+          }}
+        >
+          {agent.icon}
+        </div>
+        <div class="flex flex-col min-w-0">
+          <span class="text-xs font-semibold text-v2-text-text-base truncate">{agent.title}</span>
+          <span class="text-[10px] font-mono text-v2-text-text-muted truncate">@{agent.name}</span>
+        </div>
+      </div>
+
+      <div
+        class="settings-v2-subagents-cell flex-col items-start gap-1 pr-3"
+        data-label={language.t("settings.subAgents.list.column.role")}
+      >
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <span class="settings-v2-sub-agents-card-category text-[9.5px] px-1.5 py-0.5">{agent.category}</span>
+          <span class="text-[11px] font-medium text-v2-text-text-muted truncate max-w-[200px]">{agent.role}</span>
+        </div>
+        <p class="text-[11px] text-v2-text-text-muted line-clamp-1 leading-normal m-0">{describe(agent)}</p>
+      </div>
+
+      <div class="settings-v2-subagents-cell" data-label={language.t("settings.subAgents.list.column.model")}>
+        <span class="settings-v2-sub-agents-badge settings-v2-sub-agents-badge--accent text-[10.5px]">
+          {agent.model ?? language.t("settings.subAgents.list.model.inherit")}
+        </span>
+      </div>
+
+      <div class="settings-v2-subagents-cell" data-label={language.t("settings.subAgents.list.column.tools")}>
+        <span class="settings-v2-sub-agents-badge text-[10.5px]">
+          {agent.tools.restricted ? toolsSummary(agent.tools.allowed) : language.t("settings.subAgents.list.tools.all")}
+        </span>
+      </div>
+
+      <div
+        class="settings-v2-subagents-cell settings-v2-subagents-cell--status"
+        data-label={language.t("settings.subAgents.list.column.status")}
+      >
+        <Switch
+          checked={agent.enabled}
+          disabled={agent.name === "build"}
+          onChange={(checked) => toggleAgent(agent.name, checked)}
+        />
+        <span class="settings-v2-chip text-[10px]" data-tone={agent.enabled ? "accent" : "muted"}>
+          {language.t(agent.enabled ? "settings.subAgents.status.active" : "settings.subAgents.status.inactive")}
+        </span>
+        <Show when={options.deletable}>
+          <ButtonV2
+            type="button"
+            variant="ghost"
+            size="small"
+            aria-label={language.t("settings.subAgents.list.delete")}
+            onClick={() => void remove(agent)}
+          >
+            {language.t("settings.subAgents.form.delete")}
+          </ButtonV2>
+        </Show>
+      </div>
+    </div>
+  )
+
+  const tableHead = () => (
+    <div class="settings-v2-subagents-thead">
+      <div>{language.t("settings.subAgents.list.column.agent")}</div>
+      <div>{language.t("settings.subAgents.list.column.role")}</div>
+      <div>{language.t("settings.subAgents.list.column.model")}</div>
+      <div>{language.t("settings.subAgents.list.column.tools")}</div>
+      <div>{language.t("settings.subAgents.list.column.status")}</div>
+    </div>
+  )
 
   return (
     <>
@@ -797,12 +825,14 @@ export const SettingsSubAgentsV2: Component<{
             <span class="settings-v2-chip" data-tone="accent">
               {language.t("settings.subAgents.native.count", { count: visibleBuiltinAgents().length })}
             </span>
+            <span class="settings-v2-chip" data-tone="muted">
+              {language.t("settings.subAgents.custom.count", { count: visibleCustomAgents().length })}
+            </span>
           </div>
         </div>
       </div>
 
       <div class="settings-v2-tab-body settings-v2-sub-agents">
-
         <div class="settings-v2-sub-agents-scope">
           <div class="settings-v2-sub-agents-scope-control">
             <span class="settings-v2-sub-agents-scope-label">{language.t("settings.subAgents.scope.label")}</span>
@@ -824,117 +854,336 @@ export const SettingsSubAgentsV2: Component<{
             </SegmentedControlV2>
           </div>
           <p class="settings-v2-sub-agents-scope-hint">
-            {language.t(scope() === "project" ? "settings.subAgents.scope.project.hint" : "settings.subAgents.scope.global.hint")}
+            {language.t(
+              scope() === "project" ? "settings.subAgents.scope.project.hint" : "settings.subAgents.scope.global.hint",
+            )}
           </p>
         </div>
 
-        {/* 1. Sub-Agentes Integrados de Élite (Fuente Principal) */}
+        {/* Buscador, filtro y las dos formas de crear un sub-agente. */}
+        <div class="settings-v2-sub-agents-toolbar">
+          <div class="settings-v2-sub-agents-toolbar-row">
+            <TextInputV2
+              type="search"
+              appearance="base"
+              value={query()}
+              onInput={(event) => setQuery(event.currentTarget.value)}
+              placeholder={language.t("settings.subAgents.list.search.placeholder")}
+              aria-label={language.t("settings.subAgents.list.search.placeholder")}
+              spellcheck={false}
+              autocomplete="off"
+            />
+            <SegmentedControlV2
+              value={status()}
+              onChange={(value) => {
+                if (value === "all" || value === "enabled" || value === "disabled") setStatus(value)
+              }}
+            >
+              <For each={StatusOptions}>
+                {(option) => (
+                  <SegmentedControlItemV2 value={option.id}>
+                    <span>{language.t(option.label as Parameters<typeof language.t>[0])}</span>
+                  </SegmentedControlItemV2>
+                )}
+              </For>
+            </SegmentedControlV2>
+          </div>
+          <div class="settings-v2-sub-agents-toolbar-row settings-v2-sub-agents-toolbar-row--actions">
+            <ButtonV2 type="button" variant="contrast" size="small" onClick={() => openCreate("manual")}>
+              {language.t("settings.subAgents.create.manual")}
+            </ButtonV2>
+            <ButtonV2 type="button" variant="outline" size="small" onClick={() => openCreate("ai")}>
+              {language.t("settings.subAgents.create.ai")}
+            </ButtonV2>
+            <span class="settings-v2-sub-agents-scope-hint">{language.t("settings.subAgents.create.storage")}</span>
+          </div>
+        </div>
+
+        <Show when={creating()}>
+          <div class="settings-v2-sub-agents-form">
+            <div class="settings-v2-sub-agents-form-header">
+              <h3 class="settings-v2-section-title">{language.t("settings.subAgents.form.new.title")}</h3>
+              <SegmentedControlV2
+                value={createMode()}
+                onChange={(value) => {
+                  if (value === "manual" || value === "ai") setCreateMode(value)
+                }}
+              >
+                <SegmentedControlItemV2 value="manual">
+                  <span>{language.t("settings.subAgents.create.manual")}</span>
+                </SegmentedControlItemV2>
+                <SegmentedControlItemV2 value="ai">
+                  <span>{language.t("settings.subAgents.create.ai")}</span>
+                </SegmentedControlItemV2>
+              </SegmentedControlV2>
+            </div>
+
+            <Show when={createMode() === "ai"}>
+              <div class="settings-v2-sub-agents-form-field">
+                <label class="settings-v2-sub-agents-form-label" for="sub-agents-generate">
+                  {language.t("settings.subAgents.generate.title")}
+                </label>
+                <TextareaV2
+                  id="sub-agents-generate"
+                  rows={3}
+                  value={generatePrompt()}
+                  disabled={generating()}
+                  onInput={(event) => setGeneratePrompt(event.currentTarget.value)}
+                  placeholder={language.t("settings.subAgents.generate.placeholder")}
+                />
+                <p class="settings-v2-sub-agents-form-hint">{language.t("settings.subAgents.generate.hint")}</p>
+              </div>
+              <div class="settings-v2-sub-agents-form-field">
+                <span class="settings-v2-sub-agents-form-label">{language.t("settings.subAgents.generate.model")}</span>
+                <SelectV2
+                  appearance="base"
+                  options={modelOptions()}
+                  current={currentModelOption()}
+                  value={(option) => `${option.providerID}/${option.modelID}`}
+                  label={(option) => option.label}
+                  groupBy={(option) => option.group}
+                  onSelect={(option) =>
+                    setSelectedModel(
+                      option && option.providerID
+                        ? { providerID: option.providerID, modelID: option.modelID }
+                        : { providerID: "", modelID: "" },
+                    )
+                  }
+                />
+              </div>
+              <div class="settings-v2-sub-agents-form-actions">
+                <ButtonV2
+                  type="button"
+                  variant="contrast"
+                  size="small"
+                  disabled={generating() || !generatePrompt().trim()}
+                  onClick={() => void generate()}
+                >
+                  {generating()
+                    ? language.t("settings.subAgents.generate.running")
+                    : language.t("settings.subAgents.generate.submit")}
+                </ButtonV2>
+                <ButtonV2 type="button" variant="ghost" size="small" onClick={closeCreate}>
+                  {language.t("settings.subAgents.form.cancel")}
+                </ButtonV2>
+              </div>
+            </Show>
+
+            <Show when={createMode() === "manual"}>
+              <Show when={reviewing()}>
+                <p class="settings-v2-sub-agents-form-review">{language.t("settings.subAgents.generate.ready")}</p>
+              </Show>
+
+              <div class="settings-v2-sub-agents-form-grid">
+                <div class="settings-v2-sub-agents-form-field">
+                  <label class="settings-v2-sub-agents-form-label" for="sub-agents-name">
+                    {language.t("settings.subAgents.form.field.name")}
+                  </label>
+                  <TextInputV2
+                    id="sub-agents-name"
+                    appearance="base"
+                    value={draft().name}
+                    invalid={!!nameError()}
+                    spellcheck={false}
+                    autocomplete="off"
+                    onInput={(event) => {
+                      setNameError(undefined)
+                      patchDraft({ name: event.currentTarget.value })
+                    }}
+                    placeholder={language.t("settings.subAgents.form.field.name.placeholder")}
+                  />
+                  <Show when={nameError()}>
+                    <p class="settings-v2-sub-agents-form-error">{nameError()}</p>
+                  </Show>
+                </div>
+
+                <div class="settings-v2-sub-agents-form-field">
+                  <span class="settings-v2-sub-agents-form-label">
+                    {language.t("settings.subAgents.form.field.mode")}
+                  </span>
+                  <SegmentedControlV2
+                    value={draft().mode}
+                    onChange={(value) => {
+                      if (value === "primary" || value === "subagent") patchDraft({ mode: value })
+                    }}
+                  >
+                    <SegmentedControlItemV2 value="subagent">
+                      <span>{language.t("settings.subAgents.form.mode.subagent")}</span>
+                    </SegmentedControlItemV2>
+                    <SegmentedControlItemV2 value="primary">
+                      <span>{language.t("settings.subAgents.form.mode.primary")}</span>
+                    </SegmentedControlItemV2>
+                  </SegmentedControlV2>
+                  <p class="settings-v2-sub-agents-form-hint">{language.t("settings.subAgents.form.mode.hint")}</p>
+                </div>
+              </div>
+
+              <div class="settings-v2-sub-agents-form-field">
+                <label class="settings-v2-sub-agents-form-label" for="sub-agents-description">
+                  {language.t("settings.subAgents.form.field.description")}
+                </label>
+                <TextInputV2
+                  id="sub-agents-description"
+                  appearance="base"
+                  value={draft().description}
+                  invalid={descriptionError()}
+                  onInput={(event) => {
+                    setDescriptionError(false)
+                    patchDraft({ description: event.currentTarget.value })
+                  }}
+                  placeholder={language.t("settings.subAgents.form.field.description.placeholder")}
+                />
+                <Show when={descriptionError()}>
+                  <p class="settings-v2-sub-agents-form-error">
+                    {language.t("settings.subAgents.form.description.required")}
+                  </p>
+                </Show>
+              </div>
+
+              <div class="settings-v2-sub-agents-form-field">
+                <label class="settings-v2-sub-agents-form-label" for="sub-agents-prompt">
+                  {language.t("settings.subAgents.form.field.prompt")}
+                </label>
+                <TextareaV2
+                  id="sub-agents-prompt"
+                  rows={5}
+                  value={draft().prompt}
+                  onInput={(event) => patchDraft({ prompt: event.currentTarget.value })}
+                  placeholder={language.t("settings.subAgents.form.field.prompt.placeholder")}
+                />
+              </div>
+
+              <div class="settings-v2-sub-agents-form-grid">
+                <div class="settings-v2-sub-agents-form-field">
+                  <label class="settings-v2-sub-agents-form-label" for="sub-agents-model">
+                    {language.t("settings.subAgents.form.field.model")}
+                  </label>
+                  <TextInputV2
+                    id="sub-agents-model"
+                    appearance="base"
+                    value={draft().model}
+                    spellcheck={false}
+                    autocomplete="off"
+                    onInput={(event) => patchDraft({ model: event.currentTarget.value })}
+                    placeholder={language.t("settings.subAgents.form.field.model.placeholder")}
+                  />
+                  <p class="settings-v2-sub-agents-form-hint">
+                    {language.t("settings.subAgents.form.model.inherit")}
+                  </p>
+                </div>
+
+                <div class="settings-v2-sub-agents-form-field">
+                  <span class="settings-v2-sub-agents-form-label">
+                    {language.t("settings.subAgents.form.field.color")}
+                  </span>
+                  <div class="settings-v2-sub-agents-swatches">
+                    <For each={AgentColors}>
+                      {(color) => (
+                        <button
+                          type="button"
+                          class="settings-v2-sub-agents-swatch"
+                          style={{ "--swatch": color.value }}
+                          data-selected={draft().color === color.value ? "" : undefined}
+                          aria-label={language.t(color.label as Parameters<typeof language.t>[0])}
+                          aria-pressed={draft().color === color.value}
+                          onClick={() => patchDraft({ color: color.value })}
+                        />
+                      )}
+                    </For>
+                  </div>
+                </div>
+              </div>
+
+              <div class="settings-v2-sub-agents-form-field">
+                <span class="settings-v2-sub-agents-form-label">
+                  {language.t("settings.subAgents.form.field.tools")}
+                </span>
+                <div class="settings-v2-sub-agents-tools-grid">
+                  <For each={AgentTools}>
+                    {(tool) => (
+                      <label class="settings-v2-sub-agents-tool">
+                        <input
+                          type="checkbox"
+                          checked={draft().tools.includes(tool.id)}
+                          onChange={(event) => toggleTool(tool.id, event.currentTarget.checked)}
+                        />
+                        <span>{language.t(tool.label as Parameters<typeof language.t>[0])}</span>
+                        <Show when={tool.sensitive}>
+                          <span class="settings-v2-sub-agents-badge text-[9.5px]">
+                            {language.t("settings.subAgents.form.tools.sensitive")}
+                          </span>
+                        </Show>
+                      </label>
+                    )}
+                  </For>
+                </div>
+              </div>
+
+              <div class="settings-v2-sub-agents-form-switch">
+                <div class="flex flex-col min-w-0">
+                  <span class="settings-v2-sub-agents-form-label">
+                    {language.t("settings.subAgents.form.field.injectAgentsMd")}
+                  </span>
+                  <span class="settings-v2-sub-agents-form-hint">
+                    {language.t("settings.subAgents.form.field.injectAgentsMd.description")}
+                  </span>
+                </div>
+                <Switch
+                  checked={draft().injectAgentsMd}
+                  onChange={(checked) => patchDraft({ injectAgentsMd: checked })}
+                />
+              </div>
+
+              <div class="settings-v2-sub-agents-form-actions">
+                <ButtonV2
+                  type="button"
+                  variant="contrast"
+                  size="small"
+                  disabled={saving()}
+                  onClick={() => void save()}
+                >
+                  {saving() ? language.t("settings.subAgents.form.saving") : language.t("settings.subAgents.form.save")}
+                </ButtonV2>
+                <ButtonV2 type="button" variant="ghost" size="small" disabled={saving()} onClick={closeCreate}>
+                  {language.t("settings.subAgents.form.cancel")}
+                </ButtonV2>
+              </div>
+            </Show>
+          </div>
+        </Show>
+
+        {/* 1. Sub-agentes propios del usuario (agent/*.md) */}
+        <Show when={visibleCustomAgents().length > 0}>
+          <div class="settings-v2-section mb-6">
+            <div class="flex items-center justify-between mb-2.5">
+              <div class="flex items-center gap-2">
+                <h3 class="settings-v2-section-title">{language.t("settings.subAgents.list.group.user")}</h3>
+                <span class="settings-v2-sub-agents-group-count">{visibleCustomAgents().length}</span>
+              </div>
+              <span class="text-xs text-v2-text-text-muted">{language.t("settings.subAgents.list.user.hint")}</span>
+            </div>
+
+            <div class="settings-v2-subagents-table">
+              {tableHead()}
+              <For each={visibleCustomAgents()}>{(agent) => agentRow(agent, { deletable: true })}</For>
+            </div>
+          </div>
+        </Show>
+
+        {/* 2. Sub-Agentes Integrados de Élite */}
         <Show when={visibleBuiltinAgents().length > 0}>
           <div class="settings-v2-section mb-6">
             <div class="flex items-center justify-between mb-2.5">
               <div class="flex items-center gap-2">
-                <h3 class="settings-v2-section-title">
-                  {language.t("settings.subAgents.list.group.builtin")}
-                </h3>
+                <h3 class="settings-v2-section-title">{language.t("settings.subAgents.list.group.builtin")}</h3>
                 <span class="settings-v2-sub-agents-group-count">{visibleBuiltinAgents().length}</span>
               </div>
-              <span class="text-xs text-v2-text-text-muted">
-                {language.t("settings.subAgents.list.builtin.hint")}
-              </span>
+              <span class="text-xs text-v2-text-text-muted">{language.t("settings.subAgents.list.builtin.hint")}</span>
             </div>
 
             <div class="settings-v2-subagents-table">
-              <div class="settings-v2-subagents-thead">
-                <div>{language.t("settings.subAgents.list.column.agent")}</div>
-                <div>{language.t("settings.subAgents.list.column.role")}</div>
-                <div>{language.t("settings.subAgents.list.column.model")}</div>
-                <div>{language.t("settings.subAgents.list.column.tools")}</div>
-                <div>{language.t("settings.subAgents.list.column.status")}</div>
-              </div>
-
-              <For each={pageBuiltinAgents().items}>
-                {(agent) => {
-                  const meta = () => AGENT_META[agent.name] || {
-                    title: agent.name,
-                    role: language.t("settings.subAgents.meta.role.default"),
-                    icon: agent.icon || "🤖",
-                    color: agent.color || "#3B82F6",
-                    category: language.t("settings.subAgents.meta.category.default"),
-                    description: nativeDescription(agent) || agent.description || "",
-                  }
-
-                  return (
-                    <div class="settings-v2-subagents-row">
-                      {/* 1. Sub-Agente */}
-                      <div class="settings-v2-subagents-cell gap-2.5 pr-2" data-label={language.t("settings.subAgents.list.column.agent")}>
-                        <div
-                          class="settings-v2-sub-agents-card-avatar shrink-0 size-8 text-base rounded-lg flex items-center justify-center"
-                          style={{
-                            "background-color": `color-mix(in srgb, ${meta().color} 18%, transparent)`,
-                            "border-color": `color-mix(in srgb, ${meta().color} 40%, transparent)`,
-                          }}
-                        >
-                          {meta().icon}
-                        </div>
-                        <div class="flex flex-col min-w-0">
-                          <span class="text-xs font-semibold text-v2-text-text-base truncate">{meta().title}</span>
-                          <span class="text-[10px] font-mono text-v2-text-text-muted truncate">@{agent.name}</span>
-                        </div>
-                      </div>
-
-                      {/* 2. Rol y Especialidad */}
-                      <div class="settings-v2-subagents-cell flex-col items-start gap-1 pr-3" data-label={language.t("settings.subAgents.list.column.role")}>
-                        <div class="flex items-center gap-1.5 flex-wrap">
-                          <span class="settings-v2-sub-agents-card-category text-[9.5px] px-1.5 py-0.5">
-                            {meta().category}
-                          </span>
-                          <span class="text-[11px] font-medium text-v2-text-text-muted truncate max-w-[200px]">
-                            {meta().role}
-                          </span>
-                        </div>
-                        <p class="text-[11px] text-v2-text-text-muted line-clamp-1 leading-normal m-0">
-                          {meta().description || nativeDescription(agent)}
-                        </p>
-                      </div>
-
-                      {/* 3. Modelo */}
-                      <div class="settings-v2-subagents-cell" data-label={language.t("settings.subAgents.list.column.model")}>
-                        <span class="settings-v2-sub-agents-badge settings-v2-sub-agents-badge--accent text-[10.5px]">
-                          {agent.model?.modelID ?? language.t("settings.subAgents.list.model.inherit")}
-                        </span>
-                      </div>
-
-                      {/* 4. Herramientas */}
-                      <div class="settings-v2-subagents-cell" data-label={language.t("settings.subAgents.list.column.tools")}>
-                        <span class="settings-v2-sub-agents-badge text-[10.5px]">
-                          {hasRestrictedTools(agent)
-                            ? language.t("settings.subAgents.list.tools.summary", {
-                                count: allowedToolCount(agent),
-                              })
-                            : language.t("settings.subAgents.list.tools.all")}
-                        </span>
-                      </div>
-
-                      {/* 5. Estado */}
-                      <div class="settings-v2-subagents-cell settings-v2-subagents-cell--status" data-label={language.t("settings.subAgents.list.column.status")}>
-                        <Switch
-                          checked={isAgentActive(agent.name)}
-                          disabled={agent.name === "build"}
-                          onChange={(checked) => toggleAgent(agent.name, checked)}
-                        />
-                        <span
-                          class="settings-v2-chip text-[10px]"
-                          data-tone={isAgentActive(agent.name) ? "accent" : "muted"}
-                        >
-                          {language.t(
-                            isAgentActive(agent.name) ? "settings.subAgents.status.active" : "settings.subAgents.status.inactive",
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                  )
-                }}
-              </For>
+              {tableHead()}
+              <For each={pageBuiltinAgents().items}>{(agent) => agentRow(agent, { deletable: false })}</For>
             </div>
 
             <Show when={pageBuiltinAgents().total > 1}>
@@ -947,14 +1196,19 @@ export const SettingsSubAgentsV2: Component<{
           </div>
         </Show>
 
+        <Show when={visibleAgents().length === 0}>
+          <p class="settings-v2-sub-agents-scope-hint">{language.t("settings.subAgents.list.empty")}</p>
+        </Show>
+
+        {/* 3. Quién delega en quién, derivado de la misma lista de arriba. */}
         <div class="settings-v2-section mb-6">
-          <RlmHierarchyTree />
+          <RlmHierarchyTree roots={delegationTree()} />
         </div>
 
         <div class="settings-v2-sub-agents-list-footer">
           {language.t("settings.subAgents.list.footer", {
-            count: visibleBuiltinAgents().length,
-            enabled: visibleBuiltinAgents().filter((a) => isAgentActive(a.name)).length,
+            count: visibleAgents().length,
+            enabled: visibleAgents().filter((agent) => agent.enabled).length,
           })}
         </div>
       </div>

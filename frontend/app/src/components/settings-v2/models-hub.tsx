@@ -17,8 +17,10 @@ import {
 import { createStore } from "solid-js/store"
 import { compatibilityFor, type FitTier } from "@tiancode-ai/core/model-fit"
 import { useLanguage } from "@/context/language"
+import { pruneForgottenFromConfig, type ConfigProviders } from "@/context/models-local"
 import { useServerSDK } from "@/context/server-sdk"
 import { useServerSync } from "@/context/server-sync"
+import { authTokenFromCredentials } from "@/utils/server"
 import { showToast } from "@/utils/toast"
 import { Persist, persisted } from "@/utils/persist"
 import { SoundEffects } from "@/utils/sound-effects"
@@ -771,6 +773,43 @@ export const SettingsModelsHubV2: Component<{
     }
   }
 
+  // Lo que devuelve POST /models/forget: qué se quitó de verdad, para que el toast
+  // pueda decirlo en vez de adivinarlo.
+  type ForgetResult = {
+    models: string[]
+    providers: string[]
+    files: string[]
+    directories: string[]
+    clearedDefaultModel: boolean
+    clearedSmallModel: boolean
+  }
+
+  // El SDK generado no tiene binding para esta ruta, así que se llama a mano con la
+  // URL del servidor + Basic auth, igual que en prompt-input/prompt-optimizer-button.tsx.
+  // Único punto de este componente que habla HTTP directo: si hace falta otra ruta
+  // sin binding, va por aquí.
+  const postToServer = async <T,>(route: string, body: unknown): Promise<T | undefined> => {
+    const serverHttp = serverSdk()?.server?.http
+    if (!serverHttp?.url) return undefined
+    const headers: Record<string, string> = { "Content-Type": "application/json" }
+    if (serverHttp.password) {
+      headers["Authorization"] = `Basic ${authTokenFromCredentials({
+        username: serverHttp.username,
+        password: serverHttp.password,
+      })}`
+    }
+    // Sin directory el enrutado de workspace resuelve al proyecto por defecto del
+    // servidor, no al que el usuario tiene abierto.
+    const query = props.directory ? `?directory=${encodeURIComponent(props.directory)}` : ""
+    const response = await fetch(`${serverHttp.url.replace(/\/+$/, "")}${route}${query}`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    })
+    if (!response.ok) return undefined
+    return (await response.json()) as T
+  }
+
   const removeDownload = async (job: DownloadJob) => {
     try {
       // 1. Detener el motor nativo para liberar bloqueos de archivo en Windows
@@ -801,39 +840,18 @@ export const SettingsModelsHubV2: Component<{
         serverSdk().client.modelhub.cancel({ id: job.id, ...params() }).catch(() => undefined),
       ])
 
-      // 4. Limpiar del registro de proveedores en config (proyecto Y global)
-      const cleanName = job.file.replace(/\.gguf$/i, "")
-      const pruneConfig = async (loc?: { directory?: string }) => {
-        try {
-          const configRes = await serverSdk().client.config.get(loc).catch(() => undefined)
-          if (configRes?.data?.provider) {
-            const providers = { ...configRes.data.provider } as Record<string, { models?: Record<string, unknown> }>
-            let changed = false
-            for (const [pKey, pVal] of Object.entries(providers)) {
-              if (pVal?.models) {
-                const newModels = { ...pVal.models }
-                for (const mKey of Object.keys(newModels)) {
-                  if (mKey === cleanName || mKey === job.file || mKey.includes(cleanName) || mKey.includes(job.file)) {
-                    delete newModels[mKey]
-                    changed = true
-                  }
-                }
-                if (changed) {
-                  providers[pKey] = { ...pVal, models: newModels }
-                }
-              }
-            }
-            if (changed) {
-              await serverSdk().client.config.update({ ...loc, config: { provider: providers as never } })
-            }
-          }
-        } catch {}
-      }
-
-      await pruneConfig(params())
-      if (params()) {
-        await pruneConfig(undefined)
-      }
+      // 4. Olvidar el modelo en la config (proyecto Y global) desde el servidor.
+      //    Esto NO se puede hacer con config.update: update/updateGlobal hacen
+      //    mergeDeep(base, patch), y un merge profundo sólo añade y sobrescribe —
+      //    nunca borra. Mandar el mapa de modelos sin la clave era un no-op por
+      //    construcción, y además sólo tocaba la config de proyecto, mientras que
+      //    la entrada vive en la global. /models/forget borra en ambos archivos,
+      //    quita el proveedor local si se queda sin modelos, y limpia `model`
+      //    cuando apuntaba al modelo eliminado.
+      const forgotten = await postToServer<ForgetResult>("/models/forget", {
+        model: job.model,
+        file: job.file,
+      }).catch(() => undefined)
 
       // 5. Confirmación y sincronización final en la UI
       await refreshJobs()
@@ -850,19 +868,52 @@ export const SettingsModelsHubV2: Component<{
       if (stillThere) {
         showToast({
           variant: "error",
-          title: "No se pudo eliminar el modelo",
-          description: `${job.file} sigue en uso o bloqueado en disco. Cierra Tiancode y vuelve a intentarlo.`,
+          title: language.t("settings.modelsHub.remove.locked.title"),
+          description: language.t("settings.modelsHub.remove.locked.description", { file: job.file }),
         })
         return
       }
 
+      // Podar la config cacheada: es la contraparte del
+      // serverSync().set("config", "provider", …) que hace activateDownloadedModel.
+      // /models/forget reescribe los ficheros del servidor, pero nada vuelve a
+      // pedir la query de config — refreshProviders() sólo refresca las queries
+      // con queryKey[2] === "providers", y nadie publica "config.updated" — así que
+      // sin esto el documento cacheado conserva el modelo borrado y
+      // mergeConfigLocalModels() lo vuelve a inyectar en "Modelos" durante el resto
+      // de la sesión, justo lo que el toast dice que ya no pasa.
+      if (forgotten) {
+        const pruned = pruneForgottenFromConfig({
+          providers: serverSync().data.config.provider as ConfigProviders | undefined,
+          forgotten,
+          file: job.file,
+        })
+        serverSync().set("config", "provider", pruned as never)
+        // El servidor borra también estas referencias cuando apuntaban al modelo.
+        if (forgotten.clearedDefaultModel) serverSync().set("config", "model", undefined as never)
+        if (forgotten.clearedSmallModel) serverSync().set("config", "small_model", undefined as never)
+      }
+
+      // Proveedores y Modelos leen la config cacheada del servidor: sin refrescar,
+      // el modelo recién olvidado sigue ofreciéndose hasta reiniciar la app.
+      await serverSdk().client.global.dispose().catch(() => undefined)
+      await serverSync().refreshProviders().catch(() => undefined)
+
+      // El toast dice lo que realmente pasó, no lo que se intentó.
+      const details = [language.t("settings.modelsHub.remove.success.description", { file: job.file })]
+      if (!forgotten) details.push(language.t("settings.modelsHub.remove.configFailed"))
+      else {
+        if (forgotten.models.length) details.push(language.t("settings.modelsHub.remove.success.fromProviders"))
+        if (forgotten.clearedDefaultModel) details.push(language.t("settings.modelsHub.remove.success.defaultCleared"))
+      }
+
       showToast({
-        variant: "success",
-        title: "Modelo eliminado del disco",
-        description: `Se eliminó ${job.file} completamente.`,
+        variant: forgotten ? "success" : "default",
+        title: language.t("settings.modelsHub.remove.success.title"),
+        description: details.join(" "),
       })
     } catch {
-      showToast({ variant: "error", title: "Error al eliminar el modelo del disco" })
+      showToast({ variant: "error", title: language.t("settings.modelsHub.remove.failed.title") })
       await refreshJobs()
     }
   }

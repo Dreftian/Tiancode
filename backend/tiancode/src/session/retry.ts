@@ -42,6 +42,28 @@ const RETRYABLE_MESSAGE_PATTERNS = [
   /\btry again (?:later|in\b)|\b(?:currently|temporarily) at capacity\b/i,
 ]
 
+/**
+ * Failures that a retry can never clear, however patient it is.
+ *
+ * llama.cpp answers a misconfigured tool request with HTTP 500, and the 5xx branch below treats
+ * every 5xx as a transient server hiccup worth retrying. It is not one here: the request is
+ * rejected by argument validation before the model is ever touched, so the second and third
+ * attempt fail identically and all the user sees is "reintentando en 8s - intento n.º 3" three
+ * times over. Fail on the first attempt instead and let the real message through.
+ */
+const PERMANENT_MESSAGE_PATTERNS = [
+  // llama-server built before jinja became the default: tools and streaming are mutually exclusive.
+  /cannot use tools with stream/i,
+  // llama-server with --no-jinja: tool calling needs the jinja template engine.
+  /tools param requires --jinja/i,
+  // The model's own chat template was rejected, so no prompt can be built from it.
+  /only commonly used templates are accepted/i,
+]
+
+function matchesPermanentMessage(value: unknown) {
+  return typeof value === "string" && PERMANENT_MESSAGE_PATTERNS.some((pattern) => pattern.test(value))
+}
+
 function cap(ms: number) {
   return Math.min(ms, RETRY_MAX_DELAY)
 }
@@ -88,6 +110,10 @@ export function retryable(error: Err, provider: string) {
   // context overflow errors should not be retried
   if (SessionV1.ContextOverflowError.isInstance(error)) return undefined
   if (SessionV1.APIError.isInstance(error)) {
+    // Checked before the 5xx branch below, which would otherwise read a permanent argument
+    // rejection as a transient server failure and retry it five times.
+    if (matchesPermanentMessage(error.data.message) || matchesPermanentMessage(error.data.responseBody))
+      return undefined
     const status = error.data.statusCode
     // 5xx errors are transient server failures and should always be retried,
     // even when the provider SDK doesn't explicitly mark them as retryable.
@@ -149,6 +175,7 @@ export function retryable(error: Err, provider: string) {
 
   const message = isRecord(error.data) ? error.data.message : undefined
   if (typeof message !== "string") return undefined
+  if (matchesPermanentMessage(message)) return undefined
   const lower = message.toLowerCase()
   if (lower.includes("too_many_requests")) return { message: "Too Many Requests" }
   if (lower.includes("exhausted") || lower.includes("unavailable")) return { message: "Provider is overloaded" }

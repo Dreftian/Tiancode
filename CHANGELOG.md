@@ -4,6 +4,94 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.51] — 2026-09-13
+### Los modelos locales nunca pudieron usar herramientas, y el optimizador se cancelaba solo
+
+#### Modelos locales: había dos motores, y el chat usaba el roto
+Activar un modelo GGUF y escribir «Hola» devolvía **«Cannot use tools with stream»** y tres
+reintentos con espera creciente. La causa no era el modelo.
+
+`provider.ts` cargaba una **segunda copia completa** del arranque del motor —181 líneas de búsqueda
+de binario, descarga, lanzamiento y espera de salud— independiente de la que usa el botón del
+Models Hub. El botón usaba la copia correcta; **escribir un mensaje usaba la otra**. Y esa otra
+aceptaba el primer `llama-server.exe` que encontrara en disco sin comprobar su versión: comprobado
+en la máquina real, un binario de **marzo de 2025** seguía en la caché y le ganaba al que viene
+dentro del instalador. Ese binario antiguo es justamente el que rechaza herramientas y streaming a
+la vez. La copia duplicada se elimina y queda un solo motor, con un test que impide que el
+provider vuelva a lanzar procesos por su cuenta.
+
+Además, ese error llega como HTTP 500 y la política de reintentos trataba **todo** 5xx como un fallo
+pasajero: por eso el «reintentando en 8s · intento n.º 3» para un error de configuración que jamás
+iba a resolverse solo. Ahora falla al primer intento y deja ver el mensaje real.
+
+El motor también dejó de mentir sobre sí mismo: no vuelve a escribir «tengo la build 10679» encima
+de un binario que no consiguió reemplazar (copiar sobre un `llama-server.exe` en ejecución falla en
+Windows), un puerto sano cuyo proceso hijo ya murió deja de adoptarse como propio, y sólo un 503 que
+de verdad dice «cargando modelo» abre la ventana larga de espera — antes, cualquier cosa escuchando
+en el 58282 podía retener la petición quince minutos.
+
+#### El botón de mejorar prompt: el arreglo anterior era correcto y aun así fallaba
+1.0.50 corrigió el `InstanceRef` de verdad — en el registro de la app se ve la petición **saliendo
+bien**, con el modelo correcto, y luego silencio. Lo que la mataba era un plazo fijo de **30
+segundos en el cliente**. GLM-5.3 razona antes de escribir, el servidor filtra el razonamiento fuera
+del cuerpo, y el navegador recibe **cero bytes** mientras el modelo piensa: a los 30 s se abortaba
+un flujo perfectamente sano.
+
+Se midió algo que nadie había comprobado: este servidor **no** vacía las cabeceras antes de llamar
+al modelo, así que `fetch()` no resuelve hasta el primer byte. Por eso el plazo se sustituye por un
+temporizador de inactividad que se reinicia con cada byte, y el servidor emite una señal de vida
+cada 5 segundos mientras el modelo piensa. Esa señal es **opcional y se pide explícitamente**, de
+modo que cualquier otro cliente recibe exactamente el mismo cuerpo de antes.
+
+#### Borrar un modelo local y que se vaya de verdad
+Borrar el `.gguf` lo dejaba en Proveedores, en Modelos y como modelo por defecto. Dos causas
+independientes: el borrado limpiaba la configuración **del proyecto** mientras la activación escribe
+la **global**, y aun en el archivo correcto no podía funcionar, porque la actualización de
+configuración es una fusión profunda — puede añadir y sobrescribir, **nunca borrar**. Omitir la
+clave era, por construcción, no hacer nada.
+
+Ahora hay un borrado real en el servidor que quita el modelo de ambos archivos, elimina el proveedor
+cuando se queda sin modelos, y **limpia el modelo por defecto** si apuntaba al que ya no existe.
+También se corrige lo que lo mantenía visible en «Modelos» aunque todo lo anterior fuera bien: la
+lista inyectaba los modelos locales de la configuración sin pasar por el filtro del servidor.
+
+#### Sub-Agentes: crear uno, y ver los que ya tienes
+El panel sólo mostraba una lista fija escrita a mano. **Tus nueve agentes en disco —Backend,
+Dreftian, Dreitz, Frontend, Hao, King, Seguridad, Tian y Vision— no aparecían en ninguna parte.**
+Ahora se listan, y se pueden **crear** (a mano, o describiendo lo que quieres y dejando que un
+modelo redacte el identificador, el cuándo usarlo y el prompt, siempre para revisar antes de
+guardar) y **borrar**.
+
+Los agentes creados desde el panel ya no salen mutilados: el formulario muestra nueve permisos y el
+servidor denegaba quince, así que un agente nuevo no podía listar un directorio, preguntar ni
+delegar. Y la columna de herramientas decía la verdad en muy pocos casos — `plan`, que hereda todo
+menos editar, mostraba «1 tools»; ahora calcula el conjunto efectivo y además concuerda en plural.
+
+#### El «Árbol de Recursión RLM» era una maqueta
+Se montaba sin datos, así que **siempre** dibujaba los mismos cuatro agentes inventados con estados
+inventados («Activo», «Completado») y resultados inventados («0 vulnerabilidades detectadas») sobre
+trabajo que nunca ocurrió. Se reconstruye con la jerarquía real: agentes primarios y, debajo, los
+sub-agentes a los que de verdad pueden delegar según sus permisos —incluidas las denegaciones por
+destino, que la primera versión del arreglo todavía se saltaba—. Sin estados, sin duraciones, sin
+resultados: el panel no puede saberlos. Empieza plegado y pagina, en vez de volcar 150 filas. Se
+borra también `agent-swarm-graph`, la otra maqueta del mismo tipo, que ya no se renderizaba.
+
+#### De la carpeta Mejoras
+Dos piezas, ambas MIT y con su atribución. **Certificados del sistema en Windows**: el proceso
+principal ya los mezclaba, pero sin filtrar caducados y deduplicando por texto; ahora filtra por
+fecha y por huella, y —esto importaba— la rama de macOS/Linux ya no puede dejar el almacén de
+confianza **vacío** si la API no existe.
+
+**Reparación de argumentos de herramientas** con comillas tipográficas y entidades HTML (un fallo
+conocido de xAI/Grok). Aquí hubo que ir más lejos que el original: un fuzz diferencial encontró
+**1.268 casos en los que la versión portada devolvía un resultado silenciosamente incorrecto**
+donde antes fallaba de forma ruidosa —incluyendo borrar comas de dentro del contenido de un archivo
+a punto de escribirse—. Tras el arreglo son **0 por la vía de las comillas**, y en una prueba de
+emisión realista pasa de 0/6000 a **6000/6000** correctos.
+
+#### Calidad
+Typecheck 27/27 · Lint 0 errores · 168 tests de escritorio.
+
 ## [1.0.50] — 2026-09-12
 ### El botón de mejorar prompt fallaba el 100 % de las veces, y ya sabemos por qué
 

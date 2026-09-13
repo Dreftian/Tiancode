@@ -56,6 +56,7 @@ export const InstancePaths = {
   skillImport: "/skill/import",
   skillToggle: "/skill/toggle",
   agentCreate: "/agent/create",
+  agentGenerate: "/agent/generate",
   agentUpdate: "/agent/:name",
   agentDelete: "/agent/:name",
 } as const
@@ -92,6 +93,40 @@ export const AgentCreateInput = Schema.Struct({
 export const AgentDeleteResponse = Schema.Struct({
   success: Schema.Literal(true),
 })
+
+/**
+ * Draft-an-agent-from-a-sentence input. `providerID`/`modelID` are optional and
+ * only honoured together: with either missing the server falls back to the
+ * default model, exactly like `tiancode agent create` does from the CLI.
+ */
+export const AgentGenerateInput = Schema.Struct({
+  description: Schema.String,
+  providerID: Schema.optional(Schema.String),
+  modelID: Schema.optional(Schema.String),
+})
+
+export const AgentGenerateResult = Schema.Struct({
+  identifier: Schema.String,
+  whenToUse: Schema.String,
+  systemPrompt: Schema.String,
+}).annotate({ identifier: "AgentGenerateResult" })
+
+/**
+ * Generation talks to a provider, so it fails for reasons the caller can act on
+ * (no model configured, rejected key, rate limit). Those must not collapse into
+ * a bare 500: the UI needs to tell the difference between "pick a model" and
+ * "the model call failed".
+ */
+export class ApiAgentGenerateError extends Schema.ErrorClass<ApiAgentGenerateError>("AgentGenerateError")(
+  {
+    name: Schema.Literal("AgentGenerateError"),
+    data: Schema.Struct({
+      message: Schema.String,
+      reason: Schema.Literals(["no-model", "model-failed"]),
+    }),
+  },
+  { httpApiStatus: 422 },
+) {}
 
 export const InstanceApi = HttpApi.make("instance")
   .add(
@@ -237,6 +272,19 @@ export const InstanceApi = HttpApi.make("instance")
             identifier: "app.agents.create",
             summary: "Create an agent",
             description: "Write a new agent definition file and reload the agent list.",
+          }),
+        ),
+        HttpApiEndpoint.post("agentGenerate", InstancePaths.agentGenerate, {
+          query: WorkspaceRoutingQuery,
+          payload: AgentGenerateInput,
+          success: described(AgentGenerateResult, "Generated agent draft"),
+          error: [HttpApiError.BadRequest, ApiAgentGenerateError],
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "app.agents.generate",
+            summary: "Draft an agent with a model",
+            description:
+              "Ask a model to draft an agent identifier, when-to-use line and system prompt from a plain description. Nothing is written to disk: the caller reviews the draft and then calls create.",
           }),
         ),
         HttpApiEndpoint.put("agentUpdate", InstancePaths.agentUpdate, {

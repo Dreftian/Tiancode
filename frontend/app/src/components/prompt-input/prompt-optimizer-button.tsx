@@ -6,9 +6,14 @@ import { useServerSDK } from "@/context/server-sdk"
 import { authTokenFromCredentials } from "@/utils/server"
 import { showToast } from "@/utils/toast"
 
-export type OptimizerStyle = "standard" | "rigorous" | "minimal"
+import {
+  consumeOptimizerStream,
+  optimizerDelay,
+  optimizerProgressed,
+  optimizerStarted,
+} from "./prompt-optimizer-timeout"
 
-const REQUEST_TIMEOUT = 30000
+export type OptimizerStyle = "standard" | "rigorous" | "minimal"
 
 /** Debe coincidir con OPTIMIZE_ERROR_MARK en el handler: NUL nunca aparece en texto del modelo. */
 const OPTIMIZE_ERROR_MARK = "\u0000"
@@ -168,7 +173,24 @@ export function PromptOptimizerButton(props: {
     const variant = props.variant?.()
 
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
+
+    // Un único plazo total abortaba streams sanos: mientras el modelo razona el backend filtra los
+    // deltas de razonamiento, así que el cliente no recibe ni un byte aunque todo vaya bien. Ahora
+    // el plazo es de inactividad: cuenta desde el inicio, se rearma con cada byte (incluido el
+    // latido U+0001) y sólo el tope absoluto es infranqueable. Números y porqués en
+    // prompt-optimizer-timeout.ts.
+    let progress = optimizerStarted(Date.now())
+    let timedOut = false
+    let timeout: ReturnType<typeof setTimeout> | undefined
+    const arm = (delayMs: number) => {
+      clearTimeout(timeout)
+      timeout = setTimeout(() => {
+        timedOut = true
+        controller.abort()
+      }, delayMs)
+    }
+    arm(optimizerDelay(progress, Date.now()))
+
     stopped = false
     setAbort(controller)
     setOptimizingFlag(true)
@@ -196,9 +218,19 @@ export function PromptOptimizerButton(props: {
           variant,
           language: language.intl(),
           style: style(),
+          // El latido es opcional en el servidor y va apagado por defecto: el cuerpo está
+          // documentado como text/plain y quien no lo pide (el SDK generado, un cliente viejo) no
+          // sabría quitar los U+0001. Aquí sí los quitamos, así que lo pedimos.
+          heartbeat: true,
         }),
         signal: controller.signal,
       })
+
+      // `fetch` no resuelve al elegir el 200: @effect/platform-node escribe las cabeceras y no
+      // llama a flushHeaders, así que Node las retiene hasta el primer byte del cuerpo. Llegar
+      // aquí significa que ya llegó un byte, y por tanto es actividad como cualquier otra.
+      progress = optimizerProgressed(progress, Date.now())
+      arm(optimizerDelay(progress, Date.now()))
 
       if (response.status === 400) {
         fail(language.t("prompt.optimize.noModel"), [
@@ -219,21 +251,20 @@ export function PromptOptimizerButton(props: {
         return
       }
 
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder()
-      let accumulated = ""
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        const chunk = decoder.decode(value, { stream: true })
-        if (!chunk) continue
-        accumulated += chunk
-        props.onOptimized(accumulated)
-      }
+      // El bucle vive en prompt-optimizer-timeout.ts para poder probarlo con un reloj falso: lo
+      // que puede romperse aquí es todo temporal (rearmar el plazo, no filtrar latidos al
+      // compositor, no romper el centinela NUL) y nada de eso necesita DOM.
+      const accumulated = await consumeOptimizerStream({
+        reader: response.body.getReader(),
+        progress,
+        now: () => Date.now(),
+        arm,
+        onChunk: (visible) => props.onOptimized(visible),
+      })
 
-      // Las cabeceras 200 se envían antes de llamar al modelo, así que un fallo a mitad del
-      // stream sólo puede cerrar el cuerpo. El backend añade NUL + un código de motivo al final
-      // para que aquí se pueda distinguir "tu clave fue rechazada" de "el modelo no dijo nada".
+      // El 200 sale con el primer byte del cuerpo, así que un fallo a mitad del stream sólo puede
+      // cerrarlo antes de tiempo. El backend añade NUL + un código de motivo al final para que
+      // aquí se pueda distinguir "tu clave fue rechazada" de "el modelo no dijo nada".
       const [body, failureCode] = accumulated.split(OPTIMIZE_ERROR_MARK)
       const optimized = (body ?? "").trim()
       if (failureCode !== undefined) {
@@ -259,6 +290,9 @@ export function PromptOptimizerButton(props: {
       // Al desmontar el compositor el abort es nuestro: no hay texto que devolver ni a quién avisar.
       if (disposed) return
       if (stopped) props.onOptimized(source)
+      // Un plazo agotado no es un fallo genérico: el modelo puede seguir pensando y el usuario sólo
+      // necesita saber que tardó demasiado, no que «no se pudo» sin más.
+      else if (timedOut) fail(language.t("prompt.optimize.failed.timeout"))
       else fail()
     } finally {
       clearTimeout(timeout)

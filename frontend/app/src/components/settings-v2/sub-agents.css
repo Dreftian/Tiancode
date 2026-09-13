@@ -15,65 +15,10 @@
   width: 100%;
 }
 
-.settings-v2-sub-agents-group-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 8px;
-  padding-top: 4px;
-  font-size: 11px;
-  font-weight: 560;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--v2-text-text-muted);
-}
-
-.settings-v2-sub-agents-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 14px;
-  margin-top: 10px;
-  margin-bottom: 20px;
-  width: 100%;
-}
-
-.settings-v2-sub-agents-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%), var(--v2-background-bg-layer-01);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  min-width: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-.settings-v2-sub-agents-card:hover {
-  border-color: color-mix(in srgb, var(--card-accent, #38bdf8) 40%, rgba(255, 255, 255, 0.15));
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%), var(--v2-background-bg-layer-02);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25), 0 0 16px color-mix(in srgb, var(--card-accent, #38bdf8) 15%, transparent);
-}
-
-.settings-v2-sub-agents-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  min-width: 0;
-}
-
-.settings-v2-sub-agents-card-identity {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  flex: 1;
-}
+/* The card layout this panel used to render is gone: the list is a table now (see
+   .settings-v2-subagents-table below) and the tree is its own block. Only the avatar and the
+   category pill survived, reused by the table rows, so the ~120 lines of card rules — and the
+   rgba(255,255,255,0.0x) dark-only literals they carried — are not kept as dead weight. */
 
 .settings-v2-sub-agents-card-avatar {
   display: flex;
@@ -89,91 +34,18 @@
   box-shadow: 0 0 12px color-mix(in srgb, var(--card-accent, #3b82f6) 20%, transparent);
 }
 
-.settings-v2-sub-agents-card-title-group {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-
-.settings-v2-sub-agents-card-name {
-  font-size: 13.5px;
-  font-weight: 650;
-  color: var(--v2-text-text-base);
-  line-height: 1.25;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.settings-v2-sub-agents-card-role {
-  font-size: 11px;
-  color: var(--v2-text-text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
+/* Mixing the accent toward `white` only reads on a dark ground; the accent token already has a
+   light and a dark value, so the pill follows the theme instead of assuming one. */
 .settings-v2-sub-agents-card-category {
   padding: 2px 7px;
   border-radius: 6px;
   font-size: 10px;
   font-weight: 600;
-  color: color-mix(in srgb, var(--card-accent, #38bdf8) 85%, white);
-  background-color: color-mix(in srgb, var(--card-accent, #38bdf8) 12%, transparent);
-  border: 0.5px solid color-mix(in srgb, var(--card-accent, #38bdf8) 25%, transparent);
+  color: var(--v2-text-text-accent, var(--interactive-accent, #38bdf8));
+  background-color: color-mix(in srgb, var(--interactive-accent, #38bdf8) 12%, transparent);
+  border: 0.5px solid color-mix(in srgb, var(--interactive-accent, #38bdf8) 25%, transparent);
   white-space: nowrap;
   flex-shrink: 0;
-}
-
-.settings-v2-sub-agents-card-description {
-  font-size: 11.5px;
-  line-height: 1.45;
-  color: var(--v2-text-text-muted);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  margin: 2px 0;
-}
-
-.settings-v2-sub-agents-card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.settings-v2-sub-agents-card-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--v2-text-text-base);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.settings-v2-sub-agents-card-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.2);
-  color: #38bdf8;
-}
-
-.settings-v2-sub-agents-badges {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
-  padding-top: 6px;
-  border-top: 0.5px solid var(--v2-border-border-muted);
 }
 
 .settings-v2-sub-agents-badge {
@@ -203,7 +75,7 @@
   width: 22px;
   height: 22px;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--v2-border-border-base);
   border-radius: 50%;
   background-color: var(--swatch);
   cursor: pointer;
@@ -357,4 +229,303 @@
   .settings-v2-subagents-cell--status {
     min-width: 185px;
   }
+}
+
+/* ------------------------------------------------------------------ toolbar */
+
+.settings-v2-sub-agents-toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  width: 100%;
+}
+
+.settings-v2-sub-agents-toolbar-row [data-component="text-input-v2"] {
+  flex: 1 1 200px;
+  min-width: 160px;
+}
+
+.settings-v2-sub-agents-toolbar-row--actions {
+  justify-content: flex-start;
+}
+
+/* --------------------------------------------------- create sub-agent form */
+
+.settings-v2-sub-agents-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 20px;
+  padding: 16px;
+  border: 1px solid var(--v2-border-border-muted);
+  border-radius: 14px;
+  background: var(--v2-background-bg-layer-01);
+}
+
+.settings-v2-sub-agents-form-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--v2-border-border-muted);
+}
+
+.settings-v2-sub-agents-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.settings-v2-sub-agents-form-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-v2-sub-agents-form-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--v2-text-text-base);
+}
+
+.settings-v2-sub-agents-form-hint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-sub-agents-form-error {
+  margin: 0;
+  font-size: 11px;
+  color: var(--v2-red-700, #dc2626);
+}
+
+/* The generated draft is never saved unseen: this banner says so above the filled-in form. */
+.settings-v2-sub-agents-form-review {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 11.5px;
+  color: var(--v2-text-text-base);
+  background: var(--v2-background-bg-layer-02);
+  border: 1px solid var(--v2-border-border-muted);
+}
+
+.settings-v2-sub-agents-form-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--v2-border-border-muted);
+  border-radius: 10px;
+  background: var(--v2-background-bg-layer-02);
+}
+
+.settings-v2-sub-agents-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.settings-v2-sub-agents-tool {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 11.5px;
+  color: var(--v2-text-text-base);
+  cursor: pointer;
+}
+
+.settings-v2-sub-agents-tool input {
+  accent-color: var(--v2-text-text-accent);
+  cursor: pointer;
+}
+
+.settings-v2-sub-agents-tool > span:first-of-type {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------- delegation hierarchy tree */
+
+.settings-v2-sub-agents-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--v2-border-border-muted);
+  border-radius: 14px;
+  background: var(--v2-background-bg-layer-01);
+}
+
+.settings-v2-sub-agents-tree-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--v2-border-border-muted);
+}
+
+.settings-v2-sub-agents-tree-header-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-v2-sub-agents-tree-header-hint {
+  font-size: 11px;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-sub-agents-tree-body,
+.settings-v2-sub-agents-tree-branch {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-v2-sub-agents-tree-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--v2-border-border-muted);
+  border-radius: 12px;
+  background: var(--v2-background-bg-layer-02);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.settings-v2-sub-agents-tree-row:hover {
+  border-color: var(--v2-border-border-strong);
+  background: var(--v2-background-bg-layer-03);
+}
+
+.settings-v2-sub-agents-tree-row[data-selected] {
+  border-color: var(--v2-border-border-focus);
+}
+
+.settings-v2-sub-agents-tree-row[data-disabled] {
+  opacity: 0.6;
+}
+
+.settings-v2-sub-agents-tree-toggle {
+  display: flex;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--v2-icon-icon-muted);
+  cursor: pointer;
+}
+
+.settings-v2-sub-agents-tree-toggle span {
+  display: block;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+
+.settings-v2-sub-agents-tree-toggle span[data-open] {
+  transform: rotate(90deg);
+}
+
+.settings-v2-sub-agents-tree-avatar {
+  display: flex;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.settings-v2-sub-agents-tree-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.settings-v2-sub-agents-tree-headline {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.settings-v2-sub-agents-tree-name {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--v2-text-text-base);
+}
+
+.settings-v2-sub-agents-tree-handle {
+  flex: 0 0 auto;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 10px;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-sub-agents-tree-description {
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-sub-agents-tree-meta {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-v2-sub-agents-tree-note,
+.settings-v2-sub-agents-tree-empty {
+  margin: 0;
+  font-size: 11px;
+  color: var(--v2-text-text-muted);
+}
+
+/* The tree has one root per primary agent and every markdown agent is one, so it pages the way
+   the table above it does rather than dumping every branch at once. */
+.settings-v2-sub-agents-tree-more {
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 4px 10px;
+  border: 1px solid var(--v2-border-border-muted);
+  border-radius: 8px;
+  background: var(--v2-background-bg-layer-02);
+  color: var(--v2-text-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.settings-v2-sub-agents-tree-more:hover {
+  border-color: var(--v2-border-border-strong);
+  color: var(--v2-text-text-base);
 }

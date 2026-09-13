@@ -8,7 +8,7 @@ import { execFile } from "node:child_process"
 import { promisify } from "node:util"
 import { createHash } from "node:crypto"
 import { createReadStream, createWriteStream, existsSync } from "node:fs"
-import { mkdir, readdir, rename, rm, stat, statfs } from "node:fs/promises"
+import { mkdir, readdir, rename, rm, rmdir, stat, statfs } from "node:fs/promises"
 import { Transform, Readable } from "node:stream"
 import { pipeline } from "node:stream/promises"
 import { Context, Effect, Layer, Option, Schema, Scope, Types } from "effect"
@@ -24,6 +24,75 @@ import {
 
 
 const execFileAsync = promisify(execFile)
+
+// Every directory a Tiancode build may have parked GGUF files in: the current
+// data dir plus the XDG/legacy locations older desktop builds wrote to.
+//
+// Everything on this list gets deleted from: `pruneEmptyDirs` rmdir's every
+// empty directory under each root, and `cancelDownload` rm -rf's every entry
+// whose name matches the job. So each candidate has to be anchored to a Global
+// path — the resolved models dir, and `Global.Path.home`, which honours
+// TIANCODE_TEST_HOME the same way Global.Path.data honours XDG_DATA_HOME.
+// Reading `os.homedir()`/`%APPDATA%` directly ignored both redirections, which
+// is how a test run (or any sandboxed run) ended up deleting directories under
+// the developer's real profile.
+export function modelsRootCandidates(primary: string, home: string = Global.Path.home): string[] {
+  // %APPDATA% only describes `home` while `home` still is the real profile;
+  // once Global has been redirected the roaming dir must be rebuilt under the
+  // redirect, or the candidate escapes the sandbox again.
+  const roaming =
+    process.env.APPDATA && path.resolve(home) === path.resolve(os.homedir())
+      ? process.env.APPDATA
+      : path.join(home, "AppData", "Roaming")
+  return Array.from(
+    new Set(
+      [
+        primary,
+        path.join(home, ".local", "share", "tiancode", "models"),
+        path.join(roaming, "ai.tiancode.desktop", "xdg", "data", "tiancode", "models"),
+        path.join(roaming, "ai.tiancode.desktop.codex", "xdg", "data", "tiancode", "models"),
+      ].map((dir) => path.resolve(dir)),
+    ),
+  )
+}
+
+/**
+ * Whether a `Config.forgetProviderModel` result actually removed anything.
+ *
+ * `pruneEmptyDirs` is a delete: it must have a cause. A forget whose file name
+ * matched nothing rewrote no config and orphaned no directory, so pruning after
+ * it would rmdir directories no user action asked about.
+ */
+export function forgetRemovedSomething(removed: {
+  readonly models: readonly string[]
+  readonly providers: readonly string[]
+  readonly files: readonly string[]
+}): boolean {
+  return removed.files.length > 0 || removed.models.length > 0 || removed.providers.length > 0
+}
+
+// Depth-first so a repo dir whose only child was an empty quant dir also goes.
+// `root` itself is never removed: the models directory must keep existing.
+export async function pruneEmptyDirsUnder(root: string, removed: string[] = []): Promise<string[]> {
+  const entries = await readdir(root, { withFileTypes: true }).catch(() => undefined)
+  if (!entries) return removed
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue
+    const full = path.join(root, entry.name)
+    await pruneEmptyDirsUnder(full, removed)
+    // A directory we cannot read is treated as non-empty: never delete blind.
+    const rest = await readdir(full).catch(() => ["<unreadable>"])
+    if (rest.length) continue
+    // rmdir, not rm -rf: if it stopped being empty between the check and the
+    // call, this fails instead of taking the contents with it.
+    const ok = await rmdir(full).then(
+      () => true,
+      () => false,
+    )
+    if (ok) removed.push(full)
+  }
+  return removed
+}
 
 let cachedGpu: string | undefined
 let cachedGpuChecked = false
@@ -476,6 +545,13 @@ export interface Interface {
   readonly downloads: () => Effect.Effect<DownloadState[]>
   readonly download: (model: string, file: string) => Effect.Effect<DownloadState>
   readonly cancelDownload: (id: string) => Effect.Effect<boolean>
+  /**
+   * Remove model sub-directories that are left genuinely empty (e.g. the
+   * `models/bartowski/` that survives a .gguf deletion and makes the Hub look
+   * like something is still installed). Never touches a models root, never
+   * touches a directory that still holds anything.
+   */
+  readonly pruneEmptyDirs: () => Effect.Effect<string[]>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@tiancode/ModelHub") {}
@@ -947,26 +1023,7 @@ const layer = Layer.effect(
           await execFileAsync("taskkill", ["/F", "/IM", "llama.exe", "/T"], { windowsHide: true }).catch(() => {})
         }
 
-        const candidateDirs = [
-          resolvedModelsDir,
-          path.join(os.homedir(), ".local", "share", "tiancode", "models"),
-          path.join(
-            process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming"),
-            "ai.tiancode.desktop",
-            "xdg",
-            "data",
-            "tiancode",
-            "models",
-          ),
-          path.join(
-            process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming"),
-            "ai.tiancode.desktop.codex",
-            "xdg",
-            "data",
-            "tiancode",
-            "models",
-          ),
-        ]
+        const candidateDirs = modelsRootCandidates(resolvedModelsDir)
 
         const cleanDir = async (dir: string) => {
           const entries = await readdir(dir, { withFileTypes: true }).catch(() => [])
@@ -1011,7 +1068,27 @@ const layer = Layer.effect(
       return true
     })
 
-    return Service.of({ search, files, system, runtimes, downloads: listDownloads, download, cancelDownload })
+    const pruneEmptyDirs = Effect.fn("ModelHub.pruneEmptyDirs")(function* () {
+      return yield* Effect.tryPromise(async () => {
+        const removed: string[] = []
+        for (const root of modelsRootCandidates(resolvedModelsDir)) {
+          if (!existsSync(root)) continue
+          await pruneEmptyDirsUnder(root, removed)
+        }
+        return removed
+      }).pipe(Effect.catch(() => Effect.succeed([] as string[])))
+    })
+
+    return Service.of({
+      search,
+      files,
+      system,
+      runtimes,
+      downloads: listDownloads,
+      download,
+      cancelDownload,
+      pruneEmptyDirs,
+    })
   }),
 )
 

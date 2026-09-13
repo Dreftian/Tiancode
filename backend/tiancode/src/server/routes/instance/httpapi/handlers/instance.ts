@@ -3,15 +3,18 @@ import { Command } from "@/command"
 import * as InstanceState from "@/effect/instance-state"
 import { Format } from "@/format"
 import { Config } from "@/config/config"
+import { ConfigPaths } from "@/config/paths"
 import { FSUtil } from "@tiancode-ai/core/fs-util"
 import { Global } from "@tiancode-ai/core/global"
 import { LSP } from "@/lsp/lsp"
 import { Vcs } from "@/project/vcs"
 import { Skill } from "@/skill"
-import { Effect } from "effect"
+import { Cause, Effect } from "effect"
+import { ModelV2 } from "@tiancode-ai/core/model"
+import { ProviderV2 } from "@tiancode-ai/core/provider"
 import { HttpApiBuilder, HttpApiError } from "effect/unstable/httpapi"
 import { InstanceHttpApi } from "../api"
-import { AgentCreateInput, ApiVcsApplyError, SkillImportInput } from "../groups/instance"
+import { AgentCreateInput, ApiAgentGenerateError, ApiVcsApplyError, SkillImportInput } from "../groups/instance"
 import { markInstanceForDisposal } from "../lifecycle"
 import path from "node:path"
 
@@ -140,6 +143,42 @@ export const instanceHandlers = HttpApiBuilder.group(InstanceHttpApi, "instance"
       return yield* agent.get(ctx.payload.name)
     })
 
+    // Drafting an agent with a model was CLI-only until now, so the settings UI had no way to
+    // offer "describe it and let the model write it". Nothing is written to disk here: the draft
+    // goes back to the caller, who reviews it and then POSTs /agent/create.
+    const generateAgent = Effect.fn("InstanceHttpApi.agentGenerate")(function* (ctx) {
+      const description = ctx.payload.description.trim()
+      if (!description) return yield* new HttpApiError.BadRequest({})
+      // Half a model reference is worse than none: resolving one half against the default's other
+      // half would silently draft with a model the caller never chose.
+      const model =
+        ctx.payload.providerID && ctx.payload.modelID
+          ? {
+              providerID: ProviderV2.ID.make(ctx.payload.providerID),
+              modelID: ModelV2.ID.make(ctx.payload.modelID),
+            }
+          : undefined
+      return yield* agent.generate({ description, model }).pipe(
+        // catchCause, not mapError: the provider call itself runs inside Effect.promise, so a
+        // rejected key or a rate limit arrives as a defect and would otherwise surface as a bare 500.
+        Effect.catchCause((cause) => {
+          const error = Cause.squash(cause) as { _tag?: string; message?: string } | undefined
+          const reason =
+            error?._tag === "ProviderNoProvidersError" ||
+            error?._tag === "ProviderNoModelsError" ||
+            error?._tag === "ProviderModelNotFoundError"
+              ? ("no-model" as const)
+              : ("model-failed" as const)
+          return Effect.fail(
+            new ApiAgentGenerateError({
+              name: "AgentGenerateError",
+              data: { message: error?.message ?? "Agent generation failed", reason },
+            }),
+          )
+        }),
+      )
+    })
+
     const updateAgent = Effect.fn("InstanceHttpApi.agentUpdate")(function* (ctx) {
       const file = agentDefinitionPath(global.config, ctx.params.name)
       if (!file) return yield* new HttpApiError.BadRequest({})
@@ -150,7 +189,22 @@ export const instanceHandlers = HttpApiBuilder.group(InstanceHttpApi, "instance"
     })
 
     const deleteAgent = Effect.fn("InstanceHttpApi.agentDelete")(function* (ctx) {
-      const file = agentDefinitionPath(global.config, ctx.params.name)
+      // An agent is a markdown file in *some* config directory, not necessarily the global one:
+      // `ConfigAgent.load` reads `{agent,agents}/**/*.md` from every directory ConfigPaths lists,
+      // so this repository's own `.tiancode/agent/triage.md` is a real, listed, deletable agent.
+      // Resolving only the global path answered 400 for it after the user had already confirmed.
+      const instance = yield* InstanceState.context
+      const dirs = yield* ConfigPaths.directories(instance.directory, instance.worktree).pipe(Effect.orDie)
+      const candidates = agentDefinitionCandidates([global.config, ...dirs], ctx.params.name)
+      let file: string | undefined
+      for (const candidate of candidates) {
+        if (yield* fs.existsSafe(candidate)) {
+          file = candidate
+          break
+        }
+      }
+      // Built-in agents are defined in code, not as markdown, so there is nothing to remove.
+      // Without this guard the remove dies and the caller gets a 500 instead of "not deletable".
       if (!file) return yield* new HttpApiError.BadRequest({})
       yield* fs.remove(file).pipe(Effect.orDie)
       yield* config.invalidateInstance()
@@ -180,6 +234,7 @@ export const instanceHandlers = HttpApiBuilder.group(InstanceHttpApi, "instance"
       .handle("skillImport", importSkill)
       .handle("skillToggle", toggleSkill)
       .handle("agentCreate", createAgent)
+      .handle("agentGenerate", generateAgent)
       .handle("agentUpdate", updateAgent)
       .handle("agentDelete", deleteAgent)
       .handle("lsp", getLsp)
@@ -211,22 +266,49 @@ export function agentDefinitionPath(config: string, name: string) {
   return skillImportDestination(path.join(config, "agent"), `${name}.md`)
 }
 
-const AGENT_TOOL_CATALOG = [
+/**
+ * Every file an agent named `name` could be defined in, in lookup order, across the config
+ * directories `ConfigPaths.directories` reports. `ConfigAgent.load` scans both `agent/` and
+ * `agents/`, so both are candidates; the global config directory stays first, so an agent that
+ * exists in both scopes resolves exactly where it always did.
+ */
+export function agentDefinitionCandidates(dirs: readonly string[], name: string) {
+  if (!name.trim() || name.split(/[\\/]+/).includes("..") || path.isAbsolute(name) || path.win32.isAbsolute(name))
+    return []
+  const seen = new Set<string>()
+  const result: string[] = []
+  for (const dir of dirs) {
+    for (const folder of ["agent", "agents"]) {
+      const file = skillImportDestination(path.join(dir, folder), `${name}.md`)
+      if (!file || seen.has(file)) continue
+      seen.add(file)
+      result.push(file)
+    }
+  }
+  return result
+}
+
+/**
+ * The permissions the create form governs — one per checkbox in
+ * frontend/app/src/components/settings-v2/sub-agents.tsx (`AgentTools`).
+ *
+ * Deliberately NOT the backend's whole permission catalogue. `buildPermission` writes an explicit
+ * allow/deny for every name in here, so a permission the form cannot show has to stay out: with
+ * `task`, `list`, `question`, `skill`, `lsp` and `external_directory` in the list, every agent
+ * created from a nine-checkbox form was silently shipped with all six denied and could neither
+ * list a directory, ask a question, nor delegate. Unticked means denied; unlisted means inherited
+ * from the agent defaults, which is what "the form does not govern this" has to mean.
+ */
+const AGENT_FORM_TOOL_CATALOG = [
   "read",
-  "edit",
-  "glob",
   "grep",
-  "list",
+  "glob",
   "bash",
-  "task",
-  "external_directory",
-  "todowrite",
-  "question",
+  "edit",
+  "write",
   "webfetch",
   "websearch",
-  "lsp",
-  "doom_loop",
-  "skill",
+  "todowrite",
 ]
 
 function buildAgentMarkdown(input: {
@@ -260,13 +342,14 @@ function buildAgentMarkdown(input: {
   ].join("\n")
 }
 
-function buildPermission(tools: string[] | undefined) {
+export function buildPermission(tools: string[] | undefined) {
   if (!tools) return undefined
-  const allowed = tools.map((tool) => tool.toLowerCase())
+  const allowed = new Set(tools.map((tool) => tool.trim().toLowerCase()).filter(Boolean))
   const permission: Record<string, "allow" | "deny"> = {}
-  for (const tool of AGENT_TOOL_CATALOG) {
-    permission[tool] = allowed.includes(tool) ? "allow" : "deny"
+  for (const tool of AGENT_FORM_TOOL_CATALOG) {
+    permission[tool] = allowed.has(tool) ? "allow" : "deny"
   }
+  // A caller naming a permission the form does not govern is asking for it explicitly.
   for (const tool of allowed) {
     if (!(tool in permission)) permission[tool] = "allow"
   }

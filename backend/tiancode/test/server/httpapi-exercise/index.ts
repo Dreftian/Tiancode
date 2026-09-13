@@ -236,6 +236,21 @@ const scenarios: Scenario[] = [
       check(body.done === false, "download should start in background")
     }),
   http.protected
+    .post("/models/forget", "modelhub.forget")
+    .mutating()
+    .at((ctx) => ({
+      path: "/models/forget",
+      headers: ctx.headers(),
+      // A file name nothing can match: the endpoint must report an empty removal
+      // rather than rewriting the config this run depends on.
+      body: { model: "tiancode/httpapi-exercise", file: "httpapi-exercise-not-a-real-model.gguf" },
+    }))
+    .json(200, (body) => {
+      object(body)
+      check(Array.isArray(body.models) && body.models.length === 0, "forget should report nothing removed")
+      check(Array.isArray(body.files) && body.files.length === 0, "forget should not rewrite any config file")
+    }),
+  http.protected
     .get("/models/runtimes", "modelhub.runtimes")
     .at((ctx) => ({ path: "/models/runtimes", headers: ctx.headers() }))
     .json(200, (body) => {

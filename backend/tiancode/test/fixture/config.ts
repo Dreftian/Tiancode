@@ -9,6 +9,14 @@ export function make(overrides: Partial<Config.Interface> = {}) {
     getConsoleState: () => Effect.succeed(emptyConsoleState),
     update: () => Effect.void,
     updateGlobal: (config) => Effect.succeed({ info: config, changed: false }),
+    forgetProviderModel: () =>
+      Effect.succeed({
+        models: [],
+        providers: [],
+        files: [],
+        clearedDefaultModel: false,
+        clearedSmallModel: false,
+      }),
     invalidate: () => Effect.void,
     invalidateInstance: () => Effect.void,
     directories: () => Effect.succeed([]),
