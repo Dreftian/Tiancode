@@ -29,41 +29,35 @@ async function main() {
   const desktopPkg = JSON.parse(readFileSync(path.resolve("frontend/desktop/package.json"), "utf-8"))
   const version = desktopPkg.version || "1.0.38"
   const tag = `v${version}`
-  const releaseName = `Tiancode v${version} — Seguridad en el Sandbox, uso del navegador y uso del computador`
+  const releaseName = `Tiancode v${version} — La vista previa te dice qué pasó, y la bienvenida cabe en la pantalla`
 
   const body = `## 🚀 Tiancode v${version}
 
-> **Actualización recomendada.** Corrige cuatro fallos de seguridad reales en el puente de la vista previa que venían publicados en versiones anteriores.
+### 🔎 Cuando algo falla, ahora se ve
+Lo que hacía que la vista previa pareciera poco profesional no era el diseño: eran los momentos en que algo iba mal.
+- **Una compilación fallida no mostraba absolutamente nada.** El servidor marcaba el fallo y guardaba hasta 20 errores con archivo y línea — y la interfaz no los leía nunca. Ahora salen en un panel como \`src/App.tsx:12 — mensaje\`, **y la ubicación es pulsable**: te lleva al archivo en la pestaña Código.
+- **Y encima los etiquetaba mal:** un error de compilación se mostraba como «No se pudo cargar {url} — ¿está el servidor arrancado?», con el servidor perfectamente vivo.
+- **«Starting…» era una palabra sola sobre un panel en blanco durante un minuto.** El log del servidor ya se descargaba y se tiraba, porque la consola sólo se dibujaba para proyectos de escritorio. **Con censura de secretos**: ese log lo imprime tu propio proyecto, así que se enmascaran valores \`*_TOKEN\`/\`*_SECRET\`/\`*_PASSWORD\`, cabeceras \`Bearer\`, URLs con contraseña y formatos conocidos (\`sk-…\`, \`ghp_…\`, JWT) — el valor, nunca la línea, y antes de mostrarlo, así que lo que copias ya va limpio.
+- **El punto de estado se ponía verde sin nada corriendo**, etiquetado «Fit» (que es el control de zoom).
 
-### 🔒 El agente ya no puede leer una página que tú no ves
-La pregunta era «¿puede cualquier modelo usar el Sandbox con seguridad?». La respuesta era **no**:
-- **La única comprobación para elegir sobre qué página actuar era «¿es http o https?»** — no se comparaba el origen. Y la Vista en vivo es un navegador completo, con barra de direcciones y cookies persistentes. Al arrancar un dev server local la vista nativa se **ocultaba sin cambiar de página**. Resultado: navegas a un sitio donde tienes sesión, arrancas tu proyecto, y el modelo recibe la URL, el título, 4.000 caracteres de texto y todos los elementos interactivos de **la página oculta con tu sesión iniciada** — y podía pulsarla.
-- **Ninguna de las dos tools de vista previa pedía permiso.** Leer y pulsar una página viva estaba menos vigilado que \`glob\`. Ahora piden permiso nombrando el **origen concreto**.
-- **Aceptar una captura de ventana concedía la pantalla entera para siempre** (\`always: ["*"]\` escribía una regla que también valía para \`screen\`).
-- **Un clic del modelo sobre un enlace podía abrir tu navegador real en cualquier URL.**
+### 👁️ Ahora se puede leer
+Los avisos de error estaban a **1,24:1 de contraste** en el tema claro que la app usa por defecto — el botón «Reparar con IA», el inspector, la franja de error. El mínimo accesible es 4,5:1. Se **midió** cada reemplazo en vez de confiar en los tokens: el par «warning» tampoco pasa (2,35:1), así que no se usó. Ahora van de 5,2:1 a 17:1.
 
-### 🌐 Uso del navegador
-El navegador integrado ya era alcanzable por el agente **por accidente**, como último candidato del árbol de frames y sin permiso. Eso se cierra, y se sustituye por algo deliberado: las tools aceptan \`surface: "browser"\`, **preguntan al navegador qué página tiene abierta** y piden permiso citando ese sitio antes de tocarlo.
+### 📄 La pestaña Código
+- **El resaltador estaba hecho a mano y se equivocaba:** un simple \`// don't\` dejaba las cuatro líneas siguientes en verde, ignoraba los comentarios \`#\` de Python y regeneraba 192 KB de HTML por tecla. Sustituido por el visor que este repo **ya traía** — shiki, tema por variables CSS, virtualización y modo diff. Las líneas para conectarlo llevaban tiempo ahí, sin usar.
+- **«Renombrar» no renombraba.** El backend sólo sabe escribir, así que copiaba el contenido a la ruta nueva y dejaba el original. Ahora se llama «Guardar en otra ruta».
+- El botón «Guardar» era decorativo: el autoguardado limpiaba el estado antes de que diera tiempo a pulsarlo.
 
-*Sobre el navegador externo, la respuesta honesta:* comprobé Chrome 153 y Edge 153 en una máquina real y **ambos rechazan \`--remote-debugging-port\` sobre el perfil por defecto**. Sólo se puede automatizar un perfil desechable sin tus sesiones — justo lo que le quita el sentido. Por eso el objetivo es el navegador integrado.
+### 👋 Asistente de bienvenida
+Más bonito y **la mitad de alto** (de ~500 px a ~250 px). Importa: la app lo abre en una ventana de 600 px y **el primer paso no cabía**. De 3 pasos a 2.
+- **Un fallo que llevaba ahí desde siempre:** para decidir claro u oscuro comparaba el ajuste \`"system"\` con \`"dark"\`, que nunca es cierto. En un equipo con tema oscuro **la primerísima pantalla se pintaba entera en claro sobre fondo negro** — y el fondo que la rodea tenía el mismo error al revés.
+- Otro: escribía el modo de color en \`data-theme\`, que guarda el **identificador** del tema, desactivando los colores de sintaxis hasta el siguiente repintado.
 
-### 🖱️ Uso del computador — nuevo, y de verdad
-Una tool \`computer\` que mueve el ratón y escribe realmente en Windows: \`move\`, \`click\`, \`type\`, \`key\`, \`scroll\`, más leer el cursor y la ventana activa. **Sin dependencias nuevas ni addon nativo**: un proceso PowerShell persistente con user32, a 0,05 ms por acción en vez de 310 ms.
-
-Las protecciones **son** la función, y se aplican en el proceso principal:
-- **Rechaza ventanas elevadas.** Windows descarta la entrada sintética hacia un proceso con más privilegios **devolviendo éxito**, así que el agente creería haber hecho clic.
-- **Rechaza su propia ventana**, para que no pueda pulsar los botones de su propio diálogo de permiso.
-- **Lista de apps permitidas**, vacía al empezar. Como el diálogo de consentimiento roba el foco, **se vuelve a leer la ventana activa después**: si cambió, no se ejecuta.
-- **Indicador siempre visible + botón de parada + atajo global.** Al parar se sueltan los modificadores y se olvida la lista. Caduca sola a los 2 minutos.
-- Aprobar \`scroll\` para siempre nunca se convierte en aprobar \`type\` para siempre.
-
-Sólo Windows en esta v1; en macOS y Linux lo dice claramente en vez de fallar raro.
-
-### 📐 Ajustes de transcripción (estilo Claude Code)
-**Tamaño del texto** (pequeño/medio/grande) y **ancho de la transcripción** (estrecho/medio/ancho) en Ajustes → Apariencia. El ancho sólo aplica a partir de 768 px y **la descripción lo dice**; se escalaron los 30 tamaños de fuente fijos de los mensajes para que «grande» no sea un ajuste roto; y «medio» reproduce exactamente el diseño actual, así que quien no toque nada no ve ningún cambio.
+### 🐙 GitHub
+La tarjeta se salía por arriba. Un contenedor centrado que desborda **recorta por igual arriba y abajo**, así que al crecer con la sección de capacidades el logo y el título quedaban fuera de la zona visible, sin forma de subir hasta ellos. Ahora se centra sólo cuando cabe, con margen garantizado a cualquier tamaño de ventana.
 
 ### ✅ Calidad
-Typecheck **27/27** · Lint **0 errores** · **906** tests de frontend · **144** de escritorio · **54** del puente.
+Typecheck **27/27** · Lint **0 errores** · **927** tests de frontend (+21) · **144** de escritorio · **54** del puente.
 
 ### 🔄 Actualización 100% no destructiva
 Todas tus claves de proveedores, configuraciones, sesiones, backups y servidores MCP se preservan intactos.
