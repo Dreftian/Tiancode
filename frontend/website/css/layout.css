@@ -625,6 +625,11 @@ main, #home, .section {
 }
 
 @media (max-width: 640px) {
+  .header-inner { gap: 12px; }
+  .header-actions { gap: 6px; }
+  .header-actions .icon-btn { flex-shrink: 0; }
+  .header-actions .header-cta-pill,
+  .header-actions > a.icon-btn { display: none; }
   .announcement-meta {
     grid-template-columns: 1fr;
     gap: 14px;

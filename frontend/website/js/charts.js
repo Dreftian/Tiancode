@@ -1,4 +1,4 @@
-import { getLang } from './i18n.js?v=1.0.52';
+import { getLang } from './i18n.js?v=1.0.52-r2';
 
 const details = {
   es: {

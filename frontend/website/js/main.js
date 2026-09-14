@@ -5,13 +5,13 @@
    menú desplegable de recursos).
    ============================================================ */
 
-import { initTheme } from './theme.js?v=1.0.52';
-import { applyLang, initI18n } from './i18n.js?v=1.0.52';
-import { initRouter, closeDropdown } from './router.js?v=1.0.52';
-import { initAnimations } from './animations.js?v=1.0.52';
-import { initCharts } from './charts.js?v=1.0.52';
-import { initFaq } from './faq.js?v=1.0.52';
-import { initGalaxy } from './galaxy.js?v=1.0.52';
+import { initTheme } from './theme.js?v=1.0.52-r2';
+import { applyLang, initI18n } from './i18n.js?v=1.0.52-r2';
+import { initRouter, closeDropdown } from './router.js?v=1.0.52-r2';
+import { initAnimations } from './animations.js?v=1.0.52-r2';
+import { initCharts } from './charts.js?v=1.0.52-r2';
+import { initFaq } from './faq.js?v=1.0.52-r2';
+import { initGalaxy } from './galaxy.js?v=1.0.52-r2';
 
 /* ---------- Inicialización de módulos ---------- */
 initTheme();
@@ -70,21 +70,6 @@ if ('IntersectionObserver' in window && spySections.length && spyLinks.length) {
   spySections.forEach(function (section) { spy.observe(section); });
 }
 
-/* ---------- Copiar comando de instalación rápida en Hero ---------- */
-const heroCmd = document.getElementById('hero-cmd-box');
-if (heroCmd) {
-  heroCmd.addEventListener('click', function () {
-    const textToCopy = 'winget install Dreftian.Tiancode';
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(textToCopy);
-    }
-    heroCmd.classList.add('is-copied');
-    setTimeout(function () {
-      heroCmd.classList.remove('is-copied');
-    }, 2200);
-  });
-}
-
 /* ---------- Studio Interactivo / Showcase Tabs Switcher ---------- */
 const showcaseTabBtns = document.querySelectorAll('.showcase-tab-btn');
 const showcasePanels = document.querySelectorAll('.showcase-panel');
@@ -109,7 +94,7 @@ const FEATURES_INFO = {
   agents: {
     category: 'Arquitectura Core',
     title: 'Agentes de IA & Sub-Agentes Autónomos',
-    desc: 'Tiancode ejecuta múltiples agentes en paralelo con orquestación por eventos, memoria de contexto persistente y auto-reparación de tipos y sintaxis en tiempo real.',
+    desc: 'Delega tareas en especialistas con instrucciones, herramientas y permisos definidos. Revisa sus resultados y las pruebas ejecutadas desde la conversación.',
     codeTitle: 'CLI / Invocación de Agente',
     code: '$ tiancode --agent senior-dev --stream "Refactoriza el módulo de autenticación"',
     chips: ['AST Multi-archivo', 'Memoria durable', 'Detección de vulnerabilidades', 'TDD Loop']
@@ -120,7 +105,7 @@ const FEATURES_INFO = {
     desc: 'Descarga y corre modelos open-source como Qwen 2.5 Coder, DeepSeek y Llama 3.3 en tu propia GPU sin conexión a internet ni consumo de saldo en la nube.',
     codeTitle: 'llama-server / Cuantizaciones',
     code: 'llama-server --model qwen2.5-coder-32b.Q4_K_M.gguf --ngl 33 --threads 8',
-    chips: ['Cuantizaciones Q4_K_M y Q8_0', '100% GPU Offload', 'Hasta 68 tok/s', 'Sin telemetría']
+    chips: ['Cuantizaciones Q4_K_M y Q8_0', 'GPU según hardware', 'Rendimiento según modelo', 'Inferencia local']
   },
   github: {
     category: 'Control de Versiones',
@@ -200,20 +185,20 @@ const FEATURES_INFO = {
     desc: 'Síntesis de voz neural ultra-rápida y reconocimiento de voz 100% offline en 8 idiomas: español, inglés, francés, japonés, italiano, portugués, hindi y chino.',
     codeTitle: 'Llamada al Sintetizador',
     code: 'kokoro-tts --voice es_nicole --speed 1.05 "Tests completados exitosamente"',
-    chips: ['100% Offline', 'Whisper ONNX <120ms', '8 idiomas soportados', 'Sin APIs externas']
+    chips: ['Motores locales', 'Whisper ONNX', 'Voces según modelo', 'Selector de micrófono']
   },
   tray: {
     category: 'Sistema Operativo',
-    title: 'Bandeja del Sistema & Consumo Ultraligero',
-    desc: 'Minimiza a la bandeja del sistema de Windows con consumo de memoria inferior a 18 MB y acceso instantáneo mediante atajo global configurable.',
+    title: 'Bandeja del Sistema & Notificaciones',
+    desc: 'Minimiza a la bandeja del sistema de Windows y restaura la ventana desde su icono. El uso de memoria depende de los proyectos, modelos y herramientas activos.',
     codeTitle: 'System Tray IPC',
     code: 'tray.setToolTip("Tiancode — 3 agentes activos");\ntray.on("click", () => win.show());',
-    chips: ['< 18 MB RAM', 'Restauración instantánea', 'Notificaciones nativas', 'Atajo global']
+    chips: ['Bandeja de Windows', 'Restaurar ventana', 'Notificaciones nativas', 'Atajo global']
   },
   onboarding: {
     category: 'Experiencia Inicial',
     title: 'Asistente de Onboarding Guiado',
-    desc: 'Configuración inicial en 30 segundos: disclaimer ético de uso de IA, selector de tema claro/oscuro e idioma nativo antes del primer uso.',
+    desc: 'Configura el tema, el idioma y las preferencias iniciales mediante el asistente de bienvenida.',
     codeTitle: 'Configuración Inicial',
     code: '{\n  "locale": "es",\n  "theme": "dark",\n  "disclaimerAccepted": true\n}',
     chips: ['Selector de tema', 'Selector de idioma', 'Disclaimer responsable', 'Detección GPU']
@@ -224,7 +209,7 @@ const FEATURES_INFO = {
     desc: 'Nueva identidad visual: robot icónico con 3 ojos y boca, optimizado con renderizado vectorial limpio tanto en fondo oscuro como claro.',
     codeTitle: 'Logo Vectorial',
     code: '<svg viewBox="0 0 256 256" class="tiancode-robot">...</svg>',
-    chips: ['Vector SVG', 'Tema Dual', 'Iconografía moderna', 'Contraste WCAG AAA']
+    chips: ['Vector SVG', 'Tema Dual', 'Iconografía consistente', 'Contraste según tema']
   }
 };
 
@@ -528,5 +513,4 @@ if (voicePlayBtn) {
     }
   });
 }
-
 

@@ -26,7 +26,7 @@ export function initGalaxy() {
 
   const replayBtn = document.getElementById('cosmic-replay-btn');
 
-  let width = window.innerWidth;
+  let width = document.documentElement.clientWidth;
   let height = window.innerHeight;
   let dpr = Math.min(window.devicePixelRatio || 1, 2);
   let animId = null;
@@ -123,7 +123,7 @@ export function initGalaxy() {
   const heroSpikes = [];
 
   function resizeAndInit() {
-    width = window.innerWidth;
+    width = document.documentElement.clientWidth;
     height = window.innerHeight;
     dpr = Math.min(window.devicePixelRatio || 1, 2);
 

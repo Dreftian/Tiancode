@@ -28,7 +28,7 @@ Los comandos de pruebas se ejecutan desde cada paquete, nunca desde la raíz.
 - Pruebas específicas de vista previa: **124 aprobadas**. Pruebas de control nativo: **34 aprobadas**.
 - Prueba E2E de vista previa: **aprobada**, actividad y proyecto visibles; transición observada de **406,3 ms** en este equipo.
 - Backend V1: **66 pruebas** de agentes/selección aprobadas durante la auditoría. Backend Core: **14 pruebas** de agentes aprobadas. Selección de prompts: **8 aprobadas**. Transporte de modo rápido: **2 aprobadas**.
-- `bun typecheck` aprobado en los paquetes modificados; chequeo E2E aprobado.
+- `bun typecheck` aprobado en los paquetes modificados; chequeo E2E aprobado. El control previo al push completó **27 de 27 tareas de tipos** (22 desde caché).
 - Lint de la interfaz: **0 errores y 158 advertencias** en el conjunto del paquete. No se presenta como un repositorio sin advertencias.
 - `bun tools/script/verify-website.ts`: **12 documentos, 0 errores** de recursos locales/anclas/IDs duplicados.
 
@@ -62,7 +62,7 @@ El adaptador V2 aplica agente/modelo/esfuerzo antes de admitir el prompt. Esa se
 - La disponibilidad y el rendimiento de proveedores externos dependen del servicio y del acceso de la cuenta. No se han gastado créditos para comparativas de inferencia.
 - Inglés y español incluyen el texto nuevo. Otros idiomas conservan sus traducciones existentes y muestran fallback inglés para las claves nuevas pendientes de traducción revisada.
 - El instalador no cambia las carpetas de datos. No se ejecuta una reinstalación destructiva sobre los datos reales del usuario para verificarlo.
-- La verificación visual de que la aplicación anterior ofrece la nueva versión debe registrarse separadamente de la validación del manifiesto y de los binarios. Una publicación correcta del feed no demuestra por sí sola que se haya mostrado el aviso.
+- El registro de la aplicación 1.0.51 confirma la descarga de 1.0.52 y la transición a `ready` el 14 de septiembre a las 11:07:37 (Lima). Después se observó una instalación solicitada desde la aplicación. Se comprobó el ejecutable instalado en 1.0.52 y se inspeccionó su interfaz con los nuevos controles. No se pulsó instalar desde la automatización de esta auditoría.
 
 ## Archivos de distribución
 
@@ -76,5 +76,7 @@ La versión incluida en `app.asar` y en los recursos de Windows es 1.0.52. Se co
 | --- | ---: | --- |
 | Tiancode.exe | 345265601 | `f1310c47fb9792e466c72f4501da6368514eef5c8f6e1b02d156f59cb5f18a6f` |
 | Tiancode-portable.exe | 345038143 | `c2a85f8ad1b674e897b57e9eab71d55af1b27bba38c57211099cee52046201d5` |
-| Tiancode.exe.blockmap | — | `090b0038425afa8922b9079bbdbde3ab10192a3a62692351d0180b7c9d02faf1` |
-| latest.yml | — | `e3e9e5dded6ce74d135caba0fe41819241d927c87eb4ff7f10cd2d6be417199d` |
+| Tiancode.exe.blockmap | 350470 | `090b0038425afa8922b9079bbdbde3ab10192a3a62692351d0180b7c9d02faf1` |
+| latest.yml | 322 | `e3e9e5dded6ce74d135caba0fe41819241d927c87eb4ff7f10cd2d6be417199d` |
+
+Publicación confirmada en GitHub: `v1.0.52`, cuatro activos con digest idéntico al local, marcada como última versión. Vercel confirmó el despliegue de producción del website. La revisión posterior de la web a 390 píxeles detectó controles de cabecera fuera de la pantalla; se corrigieron el ancho del lienzo y la distribución móvil, conservando el menú, el idioma y el tema accesibles.

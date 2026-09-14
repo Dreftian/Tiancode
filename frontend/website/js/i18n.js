@@ -5,7 +5,7 @@
    que otros módulos (router, charts) se re-rendericen.
    ============================================================ */
 
-import { LS_KEYS, readLS, writeLS } from './utils.js?v=1.0.52';
+import { LS_KEYS, readLS, writeLS } from './utils.js?v=1.0.52-r2';
 
 export const I18N = {
   es: {
