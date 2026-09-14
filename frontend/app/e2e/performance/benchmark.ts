@@ -1,5 +1,6 @@
 import { expect, test as base, type Browser, type Page, type TestInfo } from "@playwright/test"
 import { startChromeTrace } from "./chrome-trace"
+import appPackage from "../../package.json" with { type: "json" }
 
 type BenchmarkFixtures = {
   report: (metrics: Record<string, unknown>, context?: Record<string, unknown>) => void
@@ -76,6 +77,9 @@ function benchmarkName(testInfo: TestInfo) {
 export { expect }
 
 async function observePerformancePage(page: Page, name: string) {
+  // Navigation timings measure an existing workspace, not first-run setup or upgrade confirmation.
+  await page.addInitScript((version) => localStorage.setItem("tiancode.first_launch.completed", version),
+    process.env.VITE_TIANCODE_VERSION ?? appPackage.version)
   const navigations: string[] = []
   const onNavigation = (frame: ReturnType<Page["mainFrame"]>) => {
     if (frame === page.mainFrame()) navigations.push(frame.url())

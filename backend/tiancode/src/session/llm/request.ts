@@ -14,6 +14,7 @@ import { Effect, Record } from "effect"
 import { jsonSchema, tool as aiTool, type ModelMessage, type Tool } from "ai"
 import type { Plugin } from "@/plugin"
 import { mergeDeep } from "remeda"
+import { nativeFastOptions } from "./fast-mode"
 
 const USER_AGENT = `tiancode/${InstallationVersion}`
 
@@ -61,6 +62,7 @@ export const prepare = Effect.fn("LLMRequestPrep.prepare")(function* (input: Pre
       ...input.system,
       ...(input.user.system ? [input.user.system] : []),
     ]
+      .map((value) => value.replaceAll("[TIANCODE_NATIVE_FAST]", "").trim())
       .filter((x) => x)
       .join("\n"),
   ]
@@ -88,7 +90,15 @@ export const prepare = Effect.fn("LLMRequestPrep.prepare")(function* (input: Pre
         sessionID: input.sessionID,
         providerOptions: input.provider.options,
       })
-  const options = mergeOptions(mergeOptions(mergeOptions(base, input.model.options), input.agent.options), variant)
+  const options = mergeOptions(
+    mergeOptions(mergeOptions(mergeOptions(base, input.model.options), input.agent.options), variant),
+    nativeFastOptions({
+      providerID: input.model.providerID,
+      apiID: input.model.api.id,
+      npm: input.model.api.npm,
+      system: input.user.system,
+    }),
+  )
   if (
     input.model.api.npm === "@ai-sdk/azure" &&
     (input.provider.options.useCompletionUrls || input.model.options.useCompletionUrls || options.useCompletionUrls)

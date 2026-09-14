@@ -57,250 +57,27 @@ const StatusOptions: { id: "all" | "enabled" | "disabled"; label: string }[] = [
   { id: "disabled", label: "settings.subAgents.list.filter.disabled" },
 ]
 
-// Native agents ship with English descriptions from the server (frontmatter);
-// translate the known built-in names so the list reads in the UI language.
-const NativeAgentDescriptionKeys: Record<string, string> = {
-  build: "settings.subAgents.native.build",
-  plan: "settings.subAgents.native.plan",
-  webapp: "settings.subAgents.native.webapp",
-  general: "settings.subAgents.native.general",
-  explore: "settings.subAgents.native.explore",
-  "software-architect": "settings.subAgents.native.softwareArchitect",
-  "fullstack-coder": "settings.subAgents.native.fullstackCoder",
-  "devsecops-auditor": "settings.subAgents.native.devsecopsAuditor",
-  "ui-ux-master": "settings.subAgents.native.uiUxMaster",
-  "performance-optimizer": "settings.subAgents.native.performanceOptimizer",
-  "database-architect": "settings.subAgents.native.databaseArchitect",
-  "docs-generator": "settings.subAgents.native.docsGenerator",
-  "qa-e2e-tester": "settings.subAgents.native.qaE2eTester",
-}
-
-const AGENT_META: Record<string, AgentPresentation> = {
-  build: {
-    title: "Constructor Principal",
-    role: "Core Execution & Code Build",
-    icon: "🔨",
-    color: "#3B82F6",
-    category: "🏗️ Core",
-    description: "Modo predeterminado de construcción. Analiza, crea y modifica código con herramientas de sistema.",
-  },
-  plan: {
-    title: "Planificador Estratégico",
-    role: "Architecture & Research",
-    icon: "📋",
-    color: "#8B5CF6",
-    category: "📐 Planificación",
-    description: "Modo de investigación y diseño de arquitectura. No realiza modificaciones destructivas.",
-  },
-  webapp: {
-    title: "Web App (Live Preview)",
-    role: "Full-JSX Interactive Apps",
-    icon: "🌐",
-    color: "#06B6D4",
-    category: "🌐 Frontend",
-    description: "Desarrollo ágil de aplicaciones web con vista previa reactiva en tiempo real.",
-  },
-  general: {
-    title: "Asistente Multitarea",
-    role: "General Purpose Assistant",
-    icon: "🔍",
-    color: "#10B981",
-    category: "🧠 Inteligencia",
-    description: "Investigación profunda, resolución de consultas complejas y flujos de trabajo autónomos.",
-  },
-  explore: {
-    title: "Explorador Rápido",
-    role: "Fast Codebase Discovery",
-    icon: "🧭",
-    color: "#F59E0B",
-    category: "🔍 Exploración",
-    description: "Búsqueda semántica y mapeo estructural de repositorios a alta velocidad.",
-  },
-  "software-architect": {
-    title: "Arquitecto de Software",
-    role: "System Architecture & SOLID",
-    icon: "🏛️",
-    color: "#3B82F6",
-    category: "🏛️ Arquitectura",
-    description: "Diseño modular de sistemas, patrones limpios, domain-driven design y desacoplamiento.",
-  },
-  "fullstack-coder": {
-    title: "Ingeniero Fullstack",
-    role: "Fullstack Senior Implementation",
-    icon: "⚡",
-    color: "#8B5CF6",
-    category: "⚡ Fullstack",
-    description: "Implementación ágil de features completas de frontend, backend, APIs y bases de datos.",
-  },
-  "devsecops-auditor": {
-    title: "Auditor DevSecOps",
-    role: "Security, CVEs & Secret Audits",
-    icon: "🛡️",
-    color: "#EF4444",
-    category: "🛡️ Seguridad",
-    description: "Auditoría estricta de dependencias, detección de CVEs y prevención de fugas de credenciales.",
-  },
-  "ui-ux-master": {
-    title: "Maestro UI/UX & CSS",
-    role: "Design Systems & Tailwind",
-    icon: "🎨",
-    color: "#EC4899",
-    category: "🎨 Diseño",
-    description: "Diseño visual moderno, Tailwind CSS, micro-interacciones fluidas y componentes accesibles.",
-  },
-  "performance-optimizer": {
-    title: "Optimizador Rendimiento",
-    role: "Profiling, Latency & Bundles",
-    icon: "🚀",
-    color: "#F97316",
-    category: "🚀 Rendimiento",
-    description: "Perfilado de CPU y memoria, reducción de latencia, optimización de bundles y tiempos de carga.",
-  },
-  "database-architect": {
-    title: "Arquitecto de Datos",
-    role: "SQL, Drizzle & Query Tuning",
-    icon: "🗄️",
-    color: "#EAB308",
-    category: "🗄️ Backend/DB",
-    description: "Optimización de esquemas, índices, planes de ejecución y migraciones Drizzle/SQL seguras.",
-  },
-  "docs-generator": {
-    title: "Generador de Docs",
-    role: "OpenAPI & Markdown Specs",
-    icon: "📝",
-    color: "#06B6D4",
-    category: "📝 Docs",
-    description: "Generación de especificaciones OpenAPI, documentación técnica Markdown y guías.",
-  },
-  "qa-e2e-tester": {
-    title: "Ingeniero QA / Testing",
-    role: "Vitest & Playwright E2E",
-    icon: "🧪",
-    color: "#10B981",
-    category: "🧪 Calidad",
-    description: "Creación de suites de pruebas unitarias, de integración y end-to-end automatizadas.",
-  },
-  "python-data-engineer": {
-    title: "Especialista Python & IA",
-    role: "Python, AI & Data Science",
-    icon: "🐍",
-    color: "#3776AB",
-    category: "🐍 Python / IA",
-    description: "FastAPI, PyTorch, Pandas, NumPy, Scikit-learn, LangChain, scripts científicos y pipelines ETL.",
-  },
-  "rust-systems-engineer": {
-    title: "Ingeniero Rust & Sistemas",
-    role: "Rust, Tokio & Low-Level",
-    icon: "🦀",
-    color: "#DEA584",
-    category: "🦀 Rust",
-    description: "Sistemas de alto rendimiento, Tokio, Axum, seguridad de memoria sin GC y WebAssembly.",
-  },
-  "go-backend-dev": {
-    title: "Desarrollador Go & Cloud",
-    role: "Golang Microservices & gRPC",
-    icon: "🐹",
-    color: "#00ADD8",
-    category: "🐹 Go",
-    description: "Microservicios concurrentes de baja latencia, gRPC, Gin/Fiber y sistemas distribuidos.",
-  },
-  "mobile-app-developer": {
-    title: "Desarrollador Móvil",
-    role: "Flutter, React Native, Swift & Kotlin",
-    icon: "📱",
-    color: "#10B981",
-    category: "📱 Móvil",
-    description: "Apps nativas y multiplataforma con Flutter, Expo, Swift/SwiftUI y Kotlin/Compose.",
-  },
-  "cloud-devops-engineer": {
-    title: "Ingeniero Cloud & DevOps",
-    role: "Docker, K8s, Terraform & CI/CD",
-    icon: "☁️",
-    color: "#0284C7",
-    category: "☁️ DevOps",
-    description: "Infraestructura como código con Terraform, Docker multi-stage, Kubernetes y GitHub Actions.",
-  },
-  "cpp-systems-expert": {
-    title: "Especialista C/C++ Nativo",
-    role: "Modern C++23 & Embedded",
-    icon: "⚙️",
-    color: "#659AD2",
-    category: "⚙️ C / C++",
-    description: "C++20/23 moderno, CMake, software de bajo nivel, depuración nativa y optimización SIMD.",
-  },
-  "java-enterprise-architect": {
-    title: "Arquitecto Java Enterprise",
-    role: "Java 21 & Spring Boot 3",
-    icon: "☕",
-    color: "#F89820",
-    category: "☕ Java",
-    description: "Microservicios empresariales con Java 21 LTS, Spring Boot 3, Hibernate/JPA y Maven/Gradle.",
-  },
-  "dotnet-core-expert": {
-    title: "Ingeniero .NET Core & C#",
-    role: "C# 12 & .NET 8/9 Enterprise",
-    icon: "🔷",
-    color: "#512BD4",
-    category: "🔷 .NET / C#",
-    description: "APIs de alto rendimiento con ASP.NET Core, Entity Framework Core y Clean Architecture.",
-  },
-  "php-laravel-expert": {
-    title: "Especialista PHP & Laravel",
-    role: "PHP 8.3 & Laravel 11",
-    icon: "🐘",
-    color: "#777BB4",
-    category: "🐘 PHP",
-    description: "Aplicaciones web modernas con PHP 8.3+, Laravel 11, Eloquent ORM, Livewire y APIs RESTful.",
-  },
-  "hermes-orchestrator": {
-    title: "Orquestador Hermes",
-    role: "Hermes Multi-Phase Orchestrator",
-    icon: "🧠",
-    color: "#8B5CF6",
-    category: "🧠 Orquestación",
-    description: "Orquestación multi-fase autónoma de tareas complejas con desglose modular y auto-corrección.",
-  },
-  "hermes-researcher": {
-    title: "Investigador Hermes",
-    role: "Hermes Autonomous Deep Researcher",
-    icon: "🔬",
-    color: "#06B6D4",
-    category: "🔬 Investigación",
-    description: "Investigación técnica profunda en fuentes primarias, papers y documentación web con citas.",
-  },
-  "openclaw-resilience": {
-    title: "Resiliencia OpenClaw",
-    role: "OpenClaw Circuit Breaker & Healer",
-    icon: "🛡️",
-    color: "#10B981",
-    category: "🛡️ Resiliencia",
-    description: "Tolerancia a fallos de agentes, ruptura de bucles infinitos y reparación de JSON de tool-calls.",
-  },
-  "openclaw-gateway": {
-    title: "Gateway OpenClaw",
-    role: "OpenClaw Swarm & Agent Gateway",
-    icon: "🌐",
-    color: "#3B82F6",
-    category: "🌐 Gateway",
-    description: "Pasarela resiliente para orquestación de agentes distribuidos, rotación de modelos y balanceo.",
-  },
-  "opendesign-ui-master": {
-    title: "Maestro OpenDesign UI",
-    role: "OpenDesign UI/UX & Canvas Master",
-    icon: "✨",
-    color: "#EC4899",
-    category: "🎨 Diseño / UI",
-    description: "Diseño y prototipado visual de interfaces modernas, pen.dev CLI (.pen AST) y Tailwind v4.",
-  },
-  "pentest-redteam": {
-    title: "Red Team & Pentesting",
-    role: "Pentest Red Team & Hardening Auditor",
-    icon: "🕵️",
-    color: "#E11D48",
-    category: "🕵️ Seguridad",
-    description: "Auditoría adversaria, análisis de superficie de ataque y fortificación defensiva del sistema.",
-  },
-}
+const AGENT_META = [
+  ["build", "🔨", "#3B82F6"],
+  ["plan", "📋", "#8B5CF6"],
+  ["webapp", "🌐", "#06B6D4"],
+  ["general", "🔍", "#10B981"],
+  ["explore", "🧭", "#F59E0B"],
+  ["software-architect", "🏛️", "#3B82F6"],
+  ["fullstack-coder", "⚡", "#8B5CF6"],
+  ["ui-ux-master", "🎨", "#EC4899"],
+  ["performance-optimizer", "🚀", "#F97316"],
+  ["database-architect", "🗄️", "#EAB308"],
+  ["qa-e2e-tester", "🧪", "#10B981"],
+  ["python-data-engineer", "🐍", "#3776AB"],
+  ["mobile-app-developer", "📱", "#10B981"],
+  ["cloud-devops-engineer", "☁️", "#0284C7"],
+  ["hermes-researcher", "🔬", "#06B6D4"],
+  ["marketing-strategist", "📣", "#F59E0B"],
+  ["reverse-engineer", "🔎", "#A855F7"],
+  ["pentest", "🕵️", "#E11D48"],
+  ["llm-redteam", "🔐", "#C026D3"],
+] as const
 
 type StatusId = "all" | "enabled" | "disabled"
 type CreateMode = "manual" | "ai"
@@ -336,9 +113,10 @@ export const SettingsSubAgentsV2: Component<{
     target,
     async (where) => {
       try {
-        const res = await (where.kind === "global"
-          ? serverSdk().client.global.config.get()
-          : serverSdk().client.config.get({ directory: where.directory })
+        const res = await (
+          where.kind === "global"
+            ? serverSdk().client.global.config.get()
+            : serverSdk().client.config.get({ directory: where.directory })
         ).catch(() => undefined)
         const raw = {
           ...((res?.data as any)?.agents ?? {}),
@@ -427,9 +205,10 @@ export const SettingsSubAgentsV2: Component<{
     const where = target()
     const config = agentDisablePatch(agentName, enable) as any
 
-    void (where.kind === "global"
-      ? serverSdk().client.global.config.update({ config })
-      : serverSdk().client.config.update({ directory: where.directory, config })
+    void (
+      where.kind === "global"
+        ? serverSdk().client.global.config.update({ config })
+        : serverSdk().client.config.update({ directory: where.directory, config })
     )
       .then(() => {
         void refetchConfig()
@@ -455,7 +234,19 @@ export const SettingsSubAgentsV2: Component<{
   const agentList = createMemo<PanelAgent[]>(() =>
     mergePanelAgents({
       server: agents() ?? [],
-      meta: AGENT_META,
+      meta: Object.fromEntries(
+        AGENT_META.map(([name, icon, color]) => [
+          name,
+          {
+            title: language.t(`settings.subAgents.catalog.${name}.title`),
+            role: language.t(`settings.subAgents.catalog.${name}.role`),
+            description: language.t(`settings.subAgents.catalog.${name}.description`),
+            category: language.t("settings.subAgents.meta.category.default"),
+            icon,
+            color,
+          } satisfies AgentPresentation,
+        ]),
+      ),
       config: configData() ?? {},
       isEnabled: isAgentActive,
       toolPermissions: ToolPermissionNames,
@@ -474,10 +265,7 @@ export const SettingsSubAgentsV2: Component<{
   // "{{count}} tools" rendered "1 tools"; the dictionary carries a .one/.other family now.
   const toolsSummary = (count: number) => language.plural("settings.subAgents.list.tools.summary", count)
 
-  const describe = (agent: PanelAgent) => {
-    const key = NativeAgentDescriptionKeys[agent.name]
-    return (key ? language.t(key as Parameters<typeof language.t>[0]) : undefined) || agent.description
-  }
+  const describe = (agent: PanelAgent) => agent.description
 
   const matchesQuery = (agent: PanelAgent) => {
     const needle = query().trim().toLowerCase()
@@ -537,15 +325,16 @@ export const SettingsSubAgentsV2: Component<{
   const patchDraft = (patch: Partial<AgentDraft>) => setDraft((current) => ({ ...current, ...patch }))
 
   const modelOptions = createMemo(() => {
-    const options = models
-      .list()
-      .map((model) => ({
-        providerID: model.provider.id as string,
-        modelID: model.id as string,
-        label: model.name as string,
-        group: ((model.provider as { name?: string }).name ?? model.provider.id) as string,
-      }))
-    return [{ providerID: "", modelID: "", label: language.t("settings.subAgents.generate.model.default"), group: "" }, ...options]
+    const options = models.list().map((model) => ({
+      providerID: model.provider.id as string,
+      modelID: model.id as string,
+      label: model.name as string,
+      group: ((model.provider as { name?: string }).name ?? model.provider.id) as string,
+    }))
+    return [
+      { providerID: "", modelID: "", label: language.t("settings.subAgents.generate.model.default"), group: "" },
+      ...options,
+    ]
   })
 
   // Default to whatever the user last talked to, so "generate" uses the model they are working
@@ -613,9 +402,7 @@ export const SettingsSubAgentsV2: Component<{
         headers,
         body: JSON.stringify({
           description,
-          ...(option?.providerID && option.modelID
-            ? { providerID: option.providerID, modelID: option.modelID }
-            : {}),
+          ...(option?.providerID && option.modelID ? { providerID: option.providerID, modelID: option.modelID } : {}),
         }),
       })
 
@@ -1067,9 +854,7 @@ export const SettingsSubAgentsV2: Component<{
                     onInput={(event) => patchDraft({ model: event.currentTarget.value })}
                     placeholder={language.t("settings.subAgents.form.field.model.placeholder")}
                   />
-                  <p class="settings-v2-sub-agents-form-hint">
-                    {language.t("settings.subAgents.form.model.inherit")}
-                  </p>
+                  <p class="settings-v2-sub-agents-form-hint">{language.t("settings.subAgents.form.model.inherit")}</p>
                 </div>
 
                 <div class="settings-v2-sub-agents-form-field">
@@ -1135,13 +920,7 @@ export const SettingsSubAgentsV2: Component<{
               </div>
 
               <div class="settings-v2-sub-agents-form-actions">
-                <ButtonV2
-                  type="button"
-                  variant="contrast"
-                  size="small"
-                  disabled={saving()}
-                  onClick={() => void save()}
-                >
+                <ButtonV2 type="button" variant="contrast" size="small" disabled={saving()} onClick={() => void save()}>
                   {saving() ? language.t("settings.subAgents.form.saving") : language.t("settings.subAgents.form.save")}
                 </ButtonV2>
                 <ButtonV2 type="button" variant="ghost" size="small" disabled={saving()} onClick={closeCreate}>

@@ -1,27 +1,25 @@
-import { copyFileSync, readFileSync, writeFileSync, statSync } from "node:fs"
+#!/usr/bin/env bun
+import path from "node:path"
 import { createHash } from "node:crypto"
 
-copyFileSync("frontend/desktop/dist/Tiancode.exe", "install/Tiancode.exe")
-copyFileSync("frontend/desktop/dist/Tiancode-portable.exe", "install/Tiancode-portable.exe")
-copyFileSync("frontend/desktop/dist/Tiancode.exe.blockmap", "install/Tiancode.exe.blockmap")
-
-const fileBuffer = readFileSync("install/Tiancode.exe")
-const sha512 = createHash("sha512").update(fileBuffer).digest("base64")
-const size = statSync("install/Tiancode.exe").size
-const date = new Date().toISOString()
-
-const desktopPkg = JSON.parse(readFileSync("frontend/desktop/package.json", "utf-8"))
-const version = desktopPkg.version || "1.0.1"
-
-const yaml = `version: ${version}
-files:
-  - url: Tiancode.exe
-    sha512: ${sha512}
-    size: ${size}
-path: Tiancode.exe
-sha512: ${sha512}
-releaseDate: "${date}"
-`
-
-writeFileSync("install/latest.yml", yaml, "utf-8")
-console.log("Assets copied and latest.yml updated! Size:", size, "SHA512:", sha512)
+const root = path.resolve(import.meta.dir, "../..")
+const desktop = path.join(root, "frontend/desktop")
+const validation = Bun.spawnSync([process.execPath, "./scripts/verify-win-release.ts"], {
+  cwd: desktop,
+  stdout: "inherit",
+  stderr: "inherit",
+})
+if (validation.exitCode !== 0) throw new Error("Build validation failed; install artifacts were preserved")
+for (const name of ["Tiancode.exe", "Tiancode-portable.exe", "Tiancode.exe.blockmap", "latest.yml"]) {
+  const source = Bun.file(path.join(desktop, "dist", name))
+  const destination = path.join(root, "install", name)
+  await Bun.write(destination, source)
+  const sourceHash = createHash("sha256")
+    .update(await source.bytes())
+    .digest("hex")
+  const targetHash = createHash("sha256")
+    .update(await Bun.file(destination).bytes())
+    .digest("hex")
+  if (sourceHash !== targetHash) throw new Error(`Copy verification failed: ${name}`)
+  console.log(`${name}: SHA-256 ${targetHash}`)
+}

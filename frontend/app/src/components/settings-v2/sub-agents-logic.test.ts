@@ -77,6 +77,21 @@ const panelAgent = (overrides: Partial<PanelAgent> & { name: string }): PanelAge
 })
 
 describe("mergePanelAgents", () => {
+  test("does not fabricate agents from presentation metadata or stale enabled config", () => {
+    expect(mergePanelAgents({ server: [], meta, config: { gone: {} }, isEnabled: () => true, fallback })).toEqual([])
+  })
+
+  test("does not resurrect hidden compatibility agents from configuration", () => {
+    expect(
+      mergePanelAgents({
+        server: [{ name: "retired", native: true, hidden: true }],
+        meta: {},
+        config: { retired: { disable: true } },
+        isEnabled: () => false,
+        fallback,
+      }),
+    ).toEqual([])
+  })
   // The bug this whole panel had: agentList() was built only from the hardcoded metadata map,
   // so the user's own agent/*.md files — nine of them — never appeared anywhere in the UI.
   test("lists the agents the server reports even when there is no metadata for them", () => {
@@ -194,10 +209,24 @@ describe("canDelegateTo", () => {
   })
 
   test("a later rule overrides an earlier one, and globs match", () => {
-    expect(canDelegateTo([{ pattern: "general", action: "deny" }, { pattern: "*", action: "allow" }], "general")).toBe(
-      true,
-    )
-    expect(canDelegateTo([{ pattern: "*", action: "allow" }, { pattern: "hermes-*", action: "deny" }], "hermes-researcher")).toBe(false)
+    expect(
+      canDelegateTo(
+        [
+          { pattern: "general", action: "deny" },
+          { pattern: "*", action: "allow" },
+        ],
+        "general",
+      ),
+    ).toBe(true)
+    expect(
+      canDelegateTo(
+        [
+          { pattern: "*", action: "allow" },
+          { pattern: "hermes-*", action: "deny" },
+        ],
+        "hermes-researcher",
+      ),
+    ).toBe(false)
   })
 })
 
@@ -255,12 +284,7 @@ describe("buildDelegationTree", () => {
   ]
 
   test("roots the tree in the real primary agents", () => {
-    expect(buildDelegationTree(agents).map((root) => root.agent.name)).toEqual([
-      "build",
-      "plan",
-      "offline",
-      "Dreitz",
-    ])
+    expect(buildDelegationTree(agents).map((root) => root.agent.name)).toEqual(["build", "plan", "offline", "Dreitz"])
   })
 
   test("hangs only the enabled sub-agents under a root, and never the root itself", () => {
@@ -474,7 +498,7 @@ describe("panel wiring", () => {
     expect(panel).not.toContain("{ ...(configData() ?? {}) }")
   })
 
-  test("the tools column pluralizes instead of rendering \"1 tools\"", () => {
+  test('the tools column pluralizes instead of rendering "1 tools"', () => {
     expect(panel).toContain("language.plural(")
     expect(panel).not.toContain('language.t("settings.subAgents.list.tools.summary"')
   })

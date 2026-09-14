@@ -8,6 +8,7 @@ import PROMPT_DEFAULT from "./prompt/default.txt"
 import PROMPT_BEAST from "./prompt/beast.txt"
 import PROMPT_GEMINI from "./prompt/gemini.txt"
 import PROMPT_GPT from "./prompt/gpt.txt"
+import PROMPT_ASTRA from "./prompt/gpt-astra.txt"
 import PROMPT_KIMI from "./prompt/kimi.txt"
 import PROMPT_META from "./prompt/meta.txt"
 
@@ -28,10 +29,14 @@ import { ConfigIntelligence } from "@tiancode-ai/core/config/intelligence"
 import { PermissionV1 } from "@tiancode-ai/core/v1/permission"
 
 export function provider(model: Provider.Model) {
-  if (model.api.id.includes("muse-spark")) return [PROMPT_META]
+  if (model.api.id.includes("muse")) {
+    const name = model.api.id.includes("muse-glimmer") ? "Muse Glimmer" : "Muse Spark"
+    return [PROMPT_META.replaceAll("{{MODEL_NAME}}", name)]
+  }
   if (model.api.id.includes("gpt-4") || model.api.id.includes("o1") || model.api.id.includes("o3"))
     return [PROMPT_BEAST]
   if (model.api.id.includes("gpt")) {
+    if (model.api.id.includes("gpt-6")) return [PROMPT_ASTRA]
     if (model.api.id.includes("codex")) {
       return [PROMPT_CODEX]
     }
@@ -40,7 +45,10 @@ export function provider(model: Provider.Model) {
   if (model.api.id.includes("gemini-")) return [PROMPT_GEMINI]
   if (model.api.id.includes("claude")) return [PROMPT_ANTHROPIC]
   if (model.api.id.toLowerCase().includes("trinity")) return [PROMPT_TRINITY]
-  if (model.api.id.toLowerCase().includes("kimi") || model.providerID === "moonshotai" || model.providerID === "kimi")
+  if (
+    model.api.id.toLowerCase().includes("kimi") ||
+    ["kimi", "kimi-for-coding", "moonshotai", "moonshotai-cn"].includes(model.providerID)
+  )
     return [PROMPT_KIMI]
   return [PROMPT_DEFAULT]
 }
@@ -110,31 +118,16 @@ const layer = Layer.effect(
         if (agent.mode === "subagent") return
         if (Permission.disabled(["task"], agent.permission).has("task")) return
 
-        const items = available
-          ? available.filter((item) => item.mode !== "primary" && item.hidden !== true)
-          : undefined
-
-        const allowed = items
-          ? items.filter((item) => Permission.evaluate("task", item.name, agent.permission).action !== "deny")
-          : undefined
-
-        const formatted =
-          allowed && allowed.length > 0
-            ? allowed
-                .toSorted((a, b) => a.name.localeCompare(b.name))
-                .map((item) => `- ${item.name}: ${item.description ?? "Specialized autonomous subagent."}`)
-            : [
-                "- explore: Fast agent specialized for exploring codebases, discovering files, grep searching, and answering architecture questions.",
-                "- software-architect: Designing modular systems, domain modeling, clean abstractions, and SOLID architectural patterns.",
-                "- ui-ux-master: Crafting modern visual design, responsive layouts, Tailwind CSS styling, components, and polished UI/UX.",
-                "- fullstack-coder: Implementing fullstack logic, APIs, server routes, database queries, and robust production code.",
-                "- devsecops-auditor: Auditing dependencies, CVEs, secret leak prevention, and OWASP security posture.",
-                "- performance-optimizer: Profiling bottlenecks, query latency, memory leaks, and rendering performance.",
-                "- database-architect: Designing schemas, migrations, indexes, and high-performance SQL/ORM models.",
-                "- qa-e2e-tester: Creating automated test suites, unit tests, integration tests, and edge-case verification.",
-                "- docs-generator: Writing comprehensive Markdown technical documentation, user guides, and API specs.",
-                "- general: Autonomous multi-step research and task execution in parallel.",
-              ]
+        const allowed = (available ?? []).filter(
+          (item) =>
+            item.mode !== "primary" &&
+            item.hidden !== true &&
+            Permission.evaluate("task", item.name, agent.permission).action !== "deny",
+        )
+        if (allowed.length === 0) return
+        const formatted = allowed
+          .toSorted((a, b) => a.name.localeCompare(b.name))
+          .map((item) => `- ${item.name}: ${item.description ?? "Specialized autonomous subagent."}`)
 
         return [
           "<available_subagents>",

@@ -93,6 +93,47 @@ describe("session.system", () => {
     )
   })
 
+  test("names Muse Glimmer accurately without leaking template placeholders", () => {
+    const output = SystemPrompt.provider({ api: { id: "meta/muse-glimmer-preview" } } as Provider.Model)[0]
+    expect(output).toContain("Muse Glimmer")
+    expect(output).not.toContain("Muse Spark")
+    expect(output).not.toContain("{{MODEL_NAME}}")
+    expect(output).toContain("Tiancode")
+  })
+
+  test("routes GPT-6 variants to Astra while retaining existing GPT and Codex dispatch", () => {
+    const astra = SystemPrompt.provider({ api: { id: "gpt-6-astra" } } as Provider.Model)[0]
+    expect(astra).toContain("powered by Tiancode")
+    expect(astra).toContain("# Harness")
+    expect(astra).toContain("## Intermediate Commentary")
+    expect(SystemPrompt.provider({ api: { id: "openai/gpt-6-astra-codex" } } as Provider.Model)[0]).toBe(astra)
+    expect(SystemPrompt.provider({ api: { id: "gpt-5.4" } } as Provider.Model)[0]).not.toBe(astra)
+    expect(SystemPrompt.provider({ api: { id: "gpt-5.3-codex" } } as Provider.Model)[0]).not.toBe(astra)
+  })
+
+  test("retains the local Kimi provider alias and adds upstream regional aliases", () => {
+    const expected = SystemPrompt.provider({ api: { id: "kimi-k2" } } as Provider.Model)[0]
+    for (const providerID of ["kimi", "kimi-for-coding", "moonshotai", "moonshotai-cn"]) {
+      expect(SystemPrompt.provider({ api: { id: "custom" }, providerID } as Provider.Model)[0]).toBe(expected)
+    }
+  })
+
+  it.effect("never invents subagents when all delegates are disabled or hidden", () =>
+    Effect.gen(function* () {
+      const prompt = yield* SystemPrompt.Service
+      expect(yield* prompt.subagents(build, [])).toBeUndefined()
+      expect(yield* prompt.subagents(build)).toBeUndefined()
+      expect(
+        yield* prompt.subagents(build, [{ ...build, name: "retired", mode: "subagent", hidden: true }]),
+      ).toBeUndefined()
+      const output = yield* prompt.subagents(build, [
+        { ...build, name: "marketing-strategist", mode: "subagent", description: "Campaign research." },
+      ])
+      expect(output).toContain("marketing-strategist: Campaign research.")
+      expect(output).not.toContain("- devsecops-auditor:")
+    }),
+  )
+
   it.effect("skills output is sorted by name and stable across calls", () =>
     Effect.gen(function* () {
       const prompt = yield* SystemPrompt.Service

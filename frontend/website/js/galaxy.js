@@ -24,12 +24,15 @@ export function initGalaxy() {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
-  const replayBtn = document.getElementById('cosmic-replay');
+  const replayBtn = document.getElementById('cosmic-replay-btn');
 
   let width = window.innerWidth;
   let height = window.innerHeight;
   let dpr = Math.min(window.devicePixelRatio || 1, 2);
   let animId = null;
+  const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let inView = true;
+  let lastFrame = 0;
 
   // Estado de interactividad e inclinación 3D
   let targetTiltX = 0;
@@ -333,7 +336,7 @@ export function initGalaxy() {
     }
   }
 
-  window.addEventListener('resize', resizeAndInit, { passive: true });
+  window.addEventListener('resize', function () { resizeAndInit(); schedule(); }, { passive: true });
   resizeAndInit();
 
   // Escuchar Scroll: se desforma suavemente cuando el usuario baja
@@ -358,7 +361,8 @@ export function initGalaxy() {
 
       isInitialEntrance = true;
       entranceStartTime = performance.now();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: motion.matches ? 'instant' : 'smooth' });
+      schedule();
     });
   }
 
@@ -378,6 +382,12 @@ export function initGalaxy() {
 
   // Bucle de renderizado continuo a 60 FPS
   function render(time) {
+    animId = null;
+    if (document.hidden || !inView) return;
+    // The decorative background does not need to render at monitor refresh rate.
+    if (!motion.matches && time - lastFrame < 1000 / 30) { schedule(); return; }
+    lastFrame = time;
+    if (motion.matches) isInitialEntrance = false;
     // 1. Animación de convergencia inicial al abrir la web
     if (isInitialEntrance) {
       const elapsed = time - entranceStartTime;
@@ -629,8 +639,24 @@ export function initGalaxy() {
     }
 
     ctx.globalCompositeOperation = 'source-over';
-    animId = requestAnimationFrame(render);
+    if (!motion.matches) schedule();
   }
 
-  animId = requestAnimationFrame(render);
+  function schedule() {
+    if (animId === null && !document.hidden && inView) animId = requestAnimationFrame(render);
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden && animId !== null) { cancelAnimationFrame(animId); animId = null; }
+    schedule();
+  });
+  motion.addEventListener('change', schedule);
+  const stage = document.querySelector('.cosmic-hero-stage');
+  if (stage && 'IntersectionObserver' in window) {
+    new IntersectionObserver(function (entries) {
+      inView = entries[0].isIntersecting;
+      if (!inView && animId !== null) { cancelAnimationFrame(animId); animId = null; }
+      schedule();
+    }).observe(stage);
+  }
+  schedule();
 }

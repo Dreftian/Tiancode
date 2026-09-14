@@ -6,6 +6,9 @@ import {
   setSpeed2xActive,
   SPEED_MODE_2X_DIRECTIVE,
   toggleSpeed2x,
+  supportsNativeFast,
+  ultracodeVariant,
+  ULTRACODE_DIRECTIVE,
 } from "./speed-mode"
 
 describe("speed-mode", () => {
@@ -42,14 +45,20 @@ describe("speed-mode", () => {
     expect(resolveSpeedVariant({ variants: undefined, selected: undefined, active: true })).toBeUndefined()
   })
 
-  test("SPEED_MODE_2X_DIRECTIVE trims the talk, not the thinking", () => {
-    expect(SPEED_MODE_2X_DIRECTIVE).toContain("UNIVERSAL SPEED MODE")
-    expect(SPEED_MODE_2X_DIRECTIVE).toContain("Zero conversational filler")
-    expect(SPEED_MODE_2X_DIRECTIVE).toContain("Immediate tool use")
-    expect(SPEED_MODE_2X_DIRECTIVE).toContain("Surgical edits")
-    expect(SPEED_MODE_2X_DIRECTIVE).toContain("Full reasoning depth")
-    // It must never tell the model to think less: that is the user's setting, not ours.
-    expect(SPEED_MODE_2X_DIRECTIVE).not.toContain("concise chain-of-thought")
-    expect(SPEED_MODE_2X_DIRECTIVE).not.toContain("Ultra-fast reasoning")
+  test("native fast mode is offered only on supported Anthropic models", () => {
+    expect(supportsNativeFast({ id: "claude-opus-5", provider: { id: "anthropic" } })).toBe(true)
+    expect(supportsNativeFast({ id: "claude-opus-4-8", provider: { id: "anthropic" } })).toBe(true)
+    expect(supportsNativeFast({ id: "claude-opus-4-7", provider: { id: "anthropic" } })).toBe(false)
+    expect(supportsNativeFast({ id: "claude-opus-5", provider: { id: "openrouter" } })).toBe(false)
+    expect(supportsNativeFast({ id: "glm-5", provider: { id: "zai" } })).toBe(false)
+    expect(SPEED_MODE_2X_DIRECTIVE).not.toContain("2X")
+  })
+
+  test("Ultracode uses xhigh where available and never invents an API effort", () => {
+    expect(ultracodeVariant(["low", "xhigh", "max"])).toBe("xhigh")
+    expect(ultracodeVariant(["high", "max"])).toBe("max")
+    expect(ultracodeVariant(["custom-a"])).toBeUndefined()
+    expect(ultracodeVariant([])).toBeUndefined()
+    expect(ULTRACODE_DIRECTIVE).toContain("verify")
   })
 })

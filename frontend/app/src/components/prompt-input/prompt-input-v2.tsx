@@ -14,10 +14,18 @@ import { DialogSelectModelUnpaidV2 } from "@/components/dialogs/dialog-select-mo
 import type { PromptInputProps } from "@/components/prompt-input/contracts"
 import { VoiceDictationButton } from "@/components/prompt-input/voice-dictation-button"
 import { CaptureControl } from "@/components/preview/capture-control"
-import { promptWithOptimizedText } from "@/components/prompt-input/optimized-prompt"
+import { promptWithOptimizedText, promptWithDictation } from "@/components/prompt-input/optimized-prompt"
 import { PromptOptimizerButton } from "@/components/prompt-input/prompt-optimizer-button"
 import { SpeedModeButton } from "@/components/prompt-input/speed-mode-button"
-import { toggleSpeed2x } from "@/utils/speed-mode"
+import { ComposerModeButton } from "@/components/prompt-input/composer-mode-button"
+import {
+  toggleSpeed2x,
+  supportsNativeFast,
+  isUltracodeActive,
+  setUltracodeActive,
+  ultracodeVariant,
+} from "@/utils/speed-mode"
+import { useServerSDK } from "@/context/server-sdk"
 import { normalizePromptHistoryEntry, promptLength, type PromptHistoryComment } from "@/components/prompt-input/history"
 import { createPersistedPromptInputHistory } from "@/components/prompt-input/history-store"
 import { promptDesignPlaceholder, promptPlaceholder } from "@/components/prompt-input/placeholder"
@@ -51,6 +59,7 @@ export type PromptInputV2ComposerProps = {
 export type PromptInputV2ControllerProps = Omit<PromptInputProps, "class" | "submission">
 export type PromptInputV2ComposerController = PromptInputV2Interaction & {
   readonly model: PromptInputProps["controls"]["model"]
+  readonly sessionID?: string
 }
 
 export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
@@ -58,6 +67,7 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
   const command = useCommand()
   const language = useLanguage()
   const sdk = useSDK()
+  const server = useServerSDK()
   const [isOptimizingPrompt, setIsOptimizingPrompt] = createSignal(false)
 
   // Cuando el modelo no acepta imágenes, backend/tiancode/src/provider/
@@ -118,11 +128,26 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
           </p>
         )}
       </Show>
+      <Show when={isUltracodeActive() && ultracodeVariant(props.controller.model.selection.variant.list())}>
+        <p class="px-1 text-[11px] leading-4 text-v2-text-text-muted" role="status">
+          {language.t("composer.ultracode.description")}
+        </p>
+      </Show>
       <PromptInputV2
         controller={props.controller}
+        readOnly={isOptimizingPrompt()}
+        disabled={isOptimizingPrompt()}
         borderUnderlay={props.borderUnderlay}
         class={`${props.class ?? ""} ${isOptimizingPrompt() ? "trae-optimizing-composer" : ""}`}
         variantControlVisible={!props.controller.model.loading}
+        modeControl={
+          <ComposerModeButton
+            sessionID={props.controller.sessionID}
+            working={props.controller.view.submit.working?.() ?? false}
+            onPlan={() => props.controller.view.agent?.onSelect("plan")}
+            onBuild={() => props.controller.view.agent?.onSelect("build")}
+          />
+        }
         attachKeybind={command.keybindParts("file.attach")}
         attachShortcut={command.keybind("file.attach")}
         micControl={
@@ -136,17 +161,11 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
               // perdía lo escrito. Se añade al final, con un espacio sólo si hace falta.
               const existing = props.controller.value()
               const merged = existing && !/\s$/.test(existing) ? `${existing} ${text}` : existing + text
-              props.controller.onInput(
-                merged,
-                [{ type: "text", content: merged, start: 0, end: merged.length }],
-                merged.length,
-              )
+              props.controller.onInput(merged, promptWithDictation(props.controller.parts(), text), merged.length)
             }}
           />
         }
-        captureControl={
-          <CaptureControl onCapture={(file) => props.controller.addAttachments([file])} />
-        }
+        captureControl={<CaptureControl onCapture={(file) => props.controller.addAttachments([file])} />}
         optimizeControl={
           <PromptOptimizerButton
             input={() => props.controller.value()}
@@ -154,15 +173,17 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
             variant={() => props.controller.model.selection.variant.current()}
             directory={() => sdk().directory}
             onOptimized={(text) =>
-              props.controller.onInput(
-                text,
-                promptWithOptimizedText(props.controller.parts(), text),
-                text.length,
-              )
+              props.controller.onInput(text, promptWithOptimizedText(props.controller.parts(), text), text.length)
             }
           />
         }
-        speedControl={<SpeedModeButton />}
+        speedControl={
+          <SpeedModeButton
+            supported={
+              server().protocolKind() === "v1" && supportsNativeFast(props.controller.model.selection.current())
+            }
+          />
+        }
         modelControl={
           <PromptInputV2ModelControl
             loading={props.controller.model.loading}
@@ -456,9 +477,7 @@ export function usePromptInputV2Controller(props: PromptInputV2ControllerProps):
       if (docKind) {
         const base64 = base64FromMediaValue(attachment.blob.url)
         if (base64) {
-          dialog.show(() => (
-            <DocumentPreviewDialogV2 kind={docKind} base64={base64} filename={attachment.filename} />
-          ))
+          dialog.show(() => <DocumentPreviewDialogV2 kind={docKind} base64={base64} filename={attachment.filename} />)
           return
         }
       }
@@ -518,9 +537,22 @@ export function usePromptInputV2Controller(props: PromptInputV2ControllerProps):
           : undefined
       },
       variant: {
-        options: () => variants().map((value) => ({ id: value, label: value })),
-        current: () => props.controls.model.selection.variant.current() ?? "default",
-        onSelect: (value) => props.controls.model.selection.variant.set(value === "default" ? undefined : value),
+        options: () => [
+          ...variants().map((value) => ({ id: value, label: value })),
+          ...(ultracodeVariant(variants())
+            ? [{ id: "__tiancode_ultracode", label: language.t("composer.ultracode.label") }]
+            : []),
+        ],
+        current: () =>
+          isUltracodeActive() && ultracodeVariant(variants())
+            ? "__tiancode_ultracode"
+            : (props.controls.model.selection.variant.current() ?? "default"),
+        onSelect: (value) => {
+          setUltracodeActive(value === "__tiancode_ultracode")
+          props.controls.model.selection.variant.set(
+            value === "__tiancode_ultracode" ? ultracodeVariant(variants()) : value === "default" ? undefined : value,
+          )
+        },
         keybind: () => command.keybindParts("model.variant.cycle"),
       },
       submit: {
@@ -532,6 +564,7 @@ export function usePromptInputV2Controller(props: PromptInputV2ControllerProps):
     },
   })
   Object.defineProperty(controller, "model", { get: () => props.controls.model })
+  Object.defineProperty(controller, "sessionID", { get: () => props.controls.session.id })
 
   command.register("prompt-input", () => [
     {
@@ -563,6 +596,7 @@ export function usePromptInputV2Controller(props: PromptInputV2ControllerProps):
       title: language.t("command.prompt.speed.toggle"),
       category: language.t("command.category.session"),
       keybind: "mod+shift+r",
+      disabled: !supportsNativeFast(props.controls.model.selection.current()),
       onSelect: () => toggleSpeed2x(),
     },
   ])

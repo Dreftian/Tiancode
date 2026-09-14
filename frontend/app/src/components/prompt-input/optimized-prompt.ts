@@ -12,3 +12,10 @@ export function promptWithOptimizedText(parts: PromptInputV2Prompt, text: string
   const images = parts.filter((part): part is PromptInputV2Attachment => part.type === "image")
   return [{ type: "text", content: text, start: 0, end: text.length }, ...images]
 }
+
+export function promptWithDictation(parts: PromptInputV2Prompt, transcript: string): PromptInputV2Prompt {
+  const length = parts.reduce((total, part) => total + ("content" in part ? part.content.length : 0), 0)
+  const previous = parts.filter((part) => "content" in part).at(-1)
+  const content = previous && "content" in previous && !/\s$/.test(previous.content) ? ` ${transcript}` : transcript
+  return [...parts, { type: "text", content, start: length, end: length + content.length }]
+}

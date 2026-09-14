@@ -24,7 +24,16 @@ import { normalizeSessionInfo } from "@/utils/session"
 import { Event } from "@tiancode-ai/schema/event"
 import { blobDataUrl, BlobUnavailableError } from "@/utils/draft-store"
 import { usePlatform } from "@/context/platform"
-import { isSpeed2xActive, resolveSpeedVariant, SPEED_MODE_2X_DIRECTIVE } from "@/utils/speed-mode"
+import {
+  isSpeed2xActive,
+  resolveSpeedVariant,
+  SPEED_MODE_2X_DIRECTIVE,
+  supportsNativeFast,
+  isUltracodeActive,
+  ultracodeVariant,
+  ULTRACODE_DIRECTIVE,
+} from "@/utils/speed-mode"
+import { applyComposerMode } from "@/utils/composer-mode"
 
 type PendingPrompt = {
   abort: AbortController
@@ -41,6 +50,7 @@ export type FollowupDraft = {
   agent: string
   model: { providerID: string; modelID: string }
   variant?: string
+  system?: string
 }
 
 type FollowupSendInput = {
@@ -176,7 +186,7 @@ export async function sendFollowupDraft(input: FollowupSendInput) {
       agent: input.draft.agent,
       model: input.draft.model,
       variant: input.draft.variant,
-      system: isSpeed2xActive() ? SPEED_MODE_2X_DIRECTIVE : undefined,
+      system: input.draft.system,
       legacyParts: requestParts,
       text: requestParts.flatMap((part) => (part.type === "text" ? [part.text] : [])).join("\n"),
       files: requestParts.flatMap((part) => {
@@ -412,11 +422,10 @@ export function createPromptSubmit(input: PromptSubmitInput) {
     }
 
     let session = input.info()
-    // El modo 2x no toca el esfuerzo de razonamiento: si el usuario eligió "Max", va en Max.
-    // Lo que 2x recorta es el preámbulo y el relleno, vía SPEED_MODE_2X_DIRECTIVE.
+    // Native fast mode is independent of effort; Ultracode explicitly selects a supported effort.
     const effectiveVariant = resolveSpeedVariant({
       variants: modelSelection.variant.list(),
-      selected: variant,
+      selected: isUltracodeActive() ? (ultracodeVariant(modelSelection.variant.list()) ?? variant) : variant,
       active: isSpeed2xActive(),
     })
     if (!session && isNewSession) {
@@ -461,6 +470,22 @@ export function createPromptSubmit(input: PromptSubmitInput) {
       return
     }
 
+    const legacyProtocol = (await sdk().protocol) === "v1"
+    if (legacyProtocol) {
+      const applied = await applyComposerMode({
+        scope: sdk().scope,
+        directory: sessionDirectory,
+        sessionID: session.id,
+        client,
+      })
+        .then(() => true)
+        .catch((error) => {
+          showToast({ variant: "error", title: language.t("composer.mode.failed"), description: errorMessage(error) })
+          return false
+        })
+      if (!applied) return
+    }
+
     const model = {
       modelID: currentModel.id,
       providerID: currentModel.provider.id,
@@ -474,6 +499,13 @@ export function createPromptSubmit(input: PromptSubmitInput) {
       agent,
       model,
       variant: effectiveVariant,
+      system:
+        [
+        legacyProtocol && isSpeed2xActive() && supportsNativeFast(currentModel) ? SPEED_MODE_2X_DIRECTIVE : undefined,
+        isUltracodeActive() && ultracodeVariant(modelSelection.variant.list()) ? ULTRACODE_DIRECTIVE : undefined,
+        ]
+          .filter(Boolean)
+          .join("\n\n") || undefined,
     }
 
     const clearInput = () => {

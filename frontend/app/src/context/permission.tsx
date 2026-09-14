@@ -14,6 +14,7 @@ import { useSettings } from "./settings"
 import { requireServerKey } from "@/utils/session-route"
 import type { ServerScope } from "@/utils/server-scope"
 import { normalizePermissionRequest } from "./global-sync/utils"
+import { getComposerMode } from "@/utils/composer-mode"
 import {
   acceptKey,
   directoryAcceptKey,
@@ -302,6 +303,8 @@ function createServerPermissionState(input: { sdk: ServerSDK; sync: ServerSync }
   }
 
   function shouldAutoRespond(permission: PermissionRequest, directory?: string) {
+    const mode = directory && getComposerMode(input.sdk.scope, directory, permission.sessionID)?.mode
+    if (mode) return mode === "skip"
     return autoRespondsPermission(store.autoAccept, sessions(directory), permission, directory)
   }
 
@@ -311,6 +314,8 @@ function createServerPermissionState(input: { sdk: ServerSDK; sync: ServerSync }
   }
 
   async function shouldAutoRespondResolved(permission: PermissionRequest, directory?: string) {
+    const mode = directory && getComposerMode(input.sdk.scope, directory, permission.sessionID)?.mode
+    if (mode) return mode === "skip"
     const override = sessionAutoAccept(store.autoAccept, sessions(directory), permission, directory)
     if (override !== undefined) return override
     if (input.sync.session.lineage.peek(permission.sessionID)) return shouldAutoRespond(permission, directory)

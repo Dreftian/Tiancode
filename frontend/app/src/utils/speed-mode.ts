@@ -1,24 +1,33 @@
 import { createSignal } from "solid-js"
 
-const SPEED_MODE_KEY = "tiancode.chat.speed_mode_2x"
+// Native inference has different billing; the old verbosity toggle is not consent to enable it.
+const SPEED_MODE_KEY = "tiancode.chat.native_fast"
 
-/**
- * Universal directive injected into the system prompt when 2x Speed Mode is active.
- * Applies to ALL models and providers to cut the time spent on pleasantries, preambles and
- * full-file rewrites.
- *
- * It deliberately says nothing about how hard to think: the reasoning depth is the user's
- * choice in the model picker (Low / Medium / High / Max), and 2x Mode is about not wasting
- * time around the work, not about doing the work with less care.
- */
-export const SPEED_MODE_2X_DIRECTIVE = `[UNIVERSAL SPEED MODE: 2X FAST EXECUTION ACTIVE]
-You are running in 2x High-Speed Execution Mode.
-Strict execution rules:
-1. Full reasoning depth: think exactly as hard as the selected reasoning effort calls for. Never cut analysis short to be fast — speed comes from what you skip around the work, not from the work itself.
-2. Zero conversational filler: Skip all greetings, pleasantries, preambles (e.g. "Sure, I can help with that", "Let me check...", "I will now edit..."), and closing summaries.
-3. Immediate tool use: Invoke tools directly to inspect, search, or edit files without announcing your intent beforehand.
-4. Surgical edits: Never rewrite whole files when a targeted modification or concise replacement suffices.
-5. High-speed response: Deliver code and answers with maximum brevity and precision.`
+// Retain exported names for compatibility with existing callers.
+// The backend consumes this marker only for supported Anthropic API models.
+export const SPEED_MODE_2X_DIRECTIVE = "[TIANCODE_NATIVE_FAST]"
+
+export const ULTRACODE_DIRECTIVE = `[TIANCODE ULTRACODE WORKFLOW]
+For substantive tasks, inspect the relevant context, make a brief plan, implement in focused steps, and verify the result against the user's requirements. Adapt this workflow to task complexity; simple questions do not need a plan. Use available subagents for independent research or review when useful. Report meaningful progress and concrete validation, and continue until the requested outcome is complete or an actual blocker requires user input. Respect the user's permission mode. Never claim tools, tests, or verification you did not perform.`
+
+export function supportsNativeFast(
+  model: { id: string; provider?: { id: string }; api?: { id?: string; npm?: string } } | undefined,
+) {
+  if (model?.provider?.id !== "anthropic") return false
+  return /^claude-opus-(?:5|4[.-]8)(?:-\d{8})?$/.test(model.api?.id ?? model.id)
+}
+
+const ULTRACODE_KEY = "tiancode.chat.ultracode"
+export const [isUltracodeActive, setUltracodeState] = createSignal(
+  typeof localStorage !== "undefined" && localStorage.getItem(ULTRACODE_KEY) === "true",
+)
+export function setUltracodeActive(value: boolean) {
+  setUltracodeState(value)
+  localStorage.setItem(ULTRACODE_KEY, String(value))
+}
+export function ultracodeVariant(variants: string[]) {
+  return ["xhigh", "max", "high", "thinking", "medium"].find((value) => variants.includes(value))
+}
 
 export const [isSpeed2xActive, setSpeed2xActiveState] = createSignal<boolean>(
   typeof localStorage !== "undefined" ? localStorage.getItem(SPEED_MODE_KEY) === "true" : false,
@@ -40,12 +49,7 @@ export function toggleSpeed2x() {
 }
 
 /**
- * The variant to actually send while 2x Mode is active.
- *
- * It is the user's own selection, always. 2x Mode used to drop the model to its cheapest
- * reasoning tier, so picking "Max" and then turning 2x on silently gave you a shallower model
- * than the one you chose. Reasoning depth belongs to the model picker; 2x Mode only removes
- * preamble and filler through the system directive.
+ * Native acceleration never reduces the effort selected by the user.
  */
 export function resolveSpeedVariant(input: {
   variants: string[] | undefined

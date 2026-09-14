@@ -72,6 +72,10 @@ function statusWithFetch(
 }
 
 export function stream(input: StreamInput): StreamResult {
+  // The native Anthropic protocol does not lower speed yet. Use the SDK path that does,
+  // rather than silently charging/behaving as if a requested fast turn were standard.
+  if (input.model.api.npm === "@ai-sdk/anthropic" && input.providerOptions?.speed === "fast")
+    return { type: "unsupported", reason: "Anthropic fast mode requires the AI SDK transport" }
   const fetch = providerFetch(input)
   const current = statusWithFetch(input, fetch)
   if (current.type === "unsupported") return current

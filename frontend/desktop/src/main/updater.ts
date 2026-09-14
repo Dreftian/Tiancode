@@ -43,10 +43,10 @@ export function setupAutoUpdater(stop: () => Promise<void>) {
     backend: {
       checkForUpdates: () => autoUpdater.checkForUpdates(),
       downloadUpdate: () => autoUpdater.downloadUpdate(),
-      quitAndInstall: () => {
+      quitAndInstall: async () => {
         // Política de actualizaciones no destructivas: respaldo de todo el
         // estado (claves, config, sesiones, MCP OAuth) antes de instalar.
-        void backupNow()
+        await backupNow()
         // quitAndInstall closes all windows before emitting before-quit, so
         // flag the quit first to keep window ids persisted for restore.
         setAppQuitting()

@@ -1,4 +1,7 @@
 import { describe, expect, test } from "bun:test"
+import { spawn } from "node:child_process"
+import { join } from "node:path"
+import { createInterface } from "node:readline"
 import {
   computerUseEnabled,
   FALLBACK_TEXT,
@@ -242,6 +245,28 @@ describe("indicator and dialog text", () => {
 })
 
 describe("host script", () => {
+  test.skipIf(process.platform !== "win32")("native host refuses changed keyboard and pointer targets before input", async () => {
+    const child = spawn(join(process.env.SystemRoot ?? "C:\\Windows", "System32", "WindowsPowerShell", "v1.0", "powershell.exe"),
+      ["-NoProfile", "-NonInteractive", "-EncodedCommand", encodedHostCommand()],
+      { windowsHide: true, stdio: ["pipe", "pipe", "pipe"] })
+    const lines = createInterface({ input: child.stdout })[Symbol.asyncIterator]()
+    try {
+      const ready = await lines.next()
+      expect(JSON.parse(ready.value ?? "{}").type).toBe("ready")
+      for (const action of ["move", "click", "type", "scroll"]) {
+        // Windows cannot have this PID. This exercises the actual P/Invoke guard without sending input.
+        child.stdin.write(JSON.stringify({ id: action, action, expectedPid: 4294967295, x: 0, y: 0, text: "test", direction: "down", amount: 1 }) + "\n")
+        const reply = JSON.parse((await lines.next()).value ?? "{}")
+        expect(reply.id).toBe(action)
+        expect(reply.ok).toBe(false)
+        expect(reply.error).toContain("Input target changed")
+      }
+    } finally {
+      child.stdin.end()
+      child.kill()
+    }
+  }, 30_000)
+
   // El script viaja en -EncodedCommand: si crece más que la línea de comandos de Windows, el host
   // deja de arrancar con un error que no explica nada.
   test("fits in the Windows command line", () => {

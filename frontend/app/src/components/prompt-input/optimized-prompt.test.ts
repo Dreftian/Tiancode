@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import type { PromptInputV2Prompt } from "@tiancode-ai/session-ui/v2/prompt-input/types"
-import { promptWithOptimizedText } from "./optimized-prompt"
+import { promptWithOptimizedText, promptWithDictation } from "./optimized-prompt"
 
 const image = {
   type: "image",
@@ -11,15 +11,22 @@ const image = {
 } as const
 
 describe("promptWithOptimizedText", () => {
+  test("dictation appends speech while preserving structured mentions and attachments", () => {
+    const parts: PromptInputV2Prompt = [
+      { type: "file", path: "src/foo.ts", content: "@src/foo.ts", start: 0, end: 11 },
+      image,
+    ]
+    expect(promptWithDictation(parts, "review this")).toEqual([
+      ...parts,
+      { type: "text", content: " review this", start: 11, end: 23 },
+    ])
+  })
   test("keeps image attachments when the text is replaced", () => {
     const parts: PromptInputV2Prompt = [{ type: "text", content: "arregla esto", start: 0, end: 12 }, image]
 
     const result = promptWithOptimizedText(parts, "### Objetivo\nArreglar el fallo")
 
-    expect(result).toEqual([
-      { type: "text", content: "### Objetivo\nArreglar el fallo", start: 0, end: 30 },
-      image,
-    ])
+    expect(result).toEqual([{ type: "text", content: "### Objetivo\nArreglar el fallo", start: 0, end: 30 }, image])
   })
 
   test("drops file and agent mentions already folded into the rewrite", () => {

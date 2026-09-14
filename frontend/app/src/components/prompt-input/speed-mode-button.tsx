@@ -1,4 +1,3 @@
-import { createMemo, Show } from "solid-js"
 import { TooltipV2 } from "@tiancode-ai/ui/v2/tooltip-v2"
 import { useLanguage } from "@/context/language"
 import { isSpeed2xActive, toggleSpeed2x } from "@/utils/speed-mode"
@@ -22,17 +21,14 @@ export function BoltIcon(props: { class?: string; filled?: boolean }) {
   )
 }
 
-export function SpeedModeButton(props: { class?: string }) {
+export function SpeedModeButton(props: { class?: string; supported: boolean }) {
   const language = useLanguage()
 
   const tooltipTitle = () =>
-    isSpeed2xActive()
-      ? (language.t("ui.promptInput.speedMode.disable") ?? "Desactivar Modo ⚡ 2x")
-      : (language.t("ui.promptInput.speedMode.enable") ?? "Activar Modo ⚡ 2x")
+    isSpeed2xActive() ? language.t("composer.fast.disable") : language.t("composer.fast.enable")
 
   const tooltipDesc = () =>
-    language.t("ui.promptInput.speedMode.tooltip") ??
-    "Modo 2x: sin preámbulos ni relleno, directo a las herramientas. Tu nivel de razonamiento no cambia."
+    props.supported ? language.t("composer.fast.description") : language.t("composer.fast.unavailable")
 
   return (
     <TooltipV2
@@ -48,19 +44,18 @@ export function SpeedModeButton(props: { class?: string }) {
       <button
         type="button"
         onClick={() => toggleSpeed2x()}
+        disabled={!props.supported}
         class={`flex h-7 px-1.5 items-center justify-center gap-1 rounded-md text-xs transition-all select-none ${
-          isSpeed2xActive()
+          isSpeed2xActive() && props.supported
             ? "bg-amber-500/15 text-amber-500 font-semibold border border-amber-500/30 hover:bg-amber-500/25 shadow-sm"
             : "text-v2-icon-icon-muted hover:bg-v2-overlay-simple-overlay-hover hover:text-v2-text-text-base border border-transparent"
         } ${props.class ?? ""}`}
-        aria-label={isSpeed2xActive() ? "Desactivar Modo ⚡ 2x" : "Activar Modo ⚡ 2x"}
-        aria-pressed={isSpeed2xActive()}
+        aria-label={tooltipTitle()}
+        aria-pressed={isSpeed2xActive() && props.supported}
         data-action="toggle-speed-mode-2x"
       >
-        <BoltIcon class="size-3.5" filled={isSpeed2xActive()} />
-        <span class="text-[11px] font-medium leading-none tracking-tight">
-          {isSpeed2xActive() ? "2x" : "1x"}
-        </span>
+        <BoltIcon class="size-3.5" filled={isSpeed2xActive() && props.supported} />
+        <span class="text-[11px] font-medium leading-none tracking-tight">{language.t("composer.fast.label")}</span>
       </button>
     </TooltipV2>
   )

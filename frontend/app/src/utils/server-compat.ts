@@ -86,8 +86,32 @@ function sessionInfo(session: Session): SessionInfo {
 
 export function createCompatibleApi(input: CompatibleInput): CompatibleApi {
   const v1 = createV1Api(input)
+  const v2 = {
+    ...input.current,
+    session: {
+      ...input.current.session,
+      async prompt(value: SessionPromptInput & LegacyPrompt) {
+        if (value.agent) await input.current.session.switchAgent({ sessionID: value.sessionID, agent: value.agent })
+        if (value.model)
+          await input.current.session.switchModel({
+            sessionID: value.sessionID,
+            model: {
+              id: value.model.modelID,
+              providerID: value.model.providerID,
+              variant: value.variant,
+            },
+          })
+        return input.current.session.prompt({
+          ...value,
+          text: value.system
+            ? `<tiancode-workflow>\n${value.system}\n</tiancode-workflow>\n\n${value.text}`
+            : value.text,
+        })
+      },
+    },
+  }
   return lazyApi(
-    input.protocol.then((protocol) => (protocol === "v1" ? v1 : input.current)),
+    input.protocol.then((protocol) => (protocol === "v1" ? v1 : v2)),
     input.current,
   )
 }

@@ -393,3 +393,6 @@ details.faq-item[open] .faq-a { grid-template-rows: 1fr; }
   .faq-a { transition: none; }
   .qstep:hover, .dl-card:hover, .docs-toc a:hover, .dl-card:hover .dl-icon { transform: none; }
 }
+
+.release-facts { margin: 0; padding: 0 0 0 1.3rem; display: grid; gap: 1.5rem; line-height: 1.8; }
+.release-facts li::marker { color: var(--accent, #65bfff); }

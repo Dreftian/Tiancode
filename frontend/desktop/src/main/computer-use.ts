@@ -548,6 +548,7 @@ public static class TcComputer {
   [DllImport("user32.dll", SetLastError = true)] static extern bool SetCursorPos(int x, int y);
   [DllImport("user32.dll", SetLastError = true)] static extern bool GetCursorPos(out POINT p);
   [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+  [DllImport("user32.dll")] static extern IntPtr WindowFromPoint(POINT point);
   [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetWindowTextW(IntPtr h, StringBuilder s, int n);
   [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
   [DllImport("user32.dll")] static extern int GetSystemMetrics(int index);
@@ -561,6 +562,25 @@ public static class TcComputer {
   [DllImport("advapi32.dll", SetLastError = true)] static extern bool GetTokenInformation(IntPtr token, int cls, IntPtr info, uint len, out uint ret);
 
   static readonly char SEP = (char)31;
+  static uint expectedPid;
+  static bool pointerTarget;
+
+  public static void ExpectTarget(uint pid, bool pointer) { expectedPid = pid; pointerTarget = pointer; }
+
+  // Check in the native input host immediately before sending, not only before the consent dialog.
+  // A click lands under the pointer, which may be a different app from the foreground window.
+  static void AssertTarget() {
+    if (expectedPid == 0) return;
+    IntPtr window = GetForegroundWindow();
+    if (pointerTarget) {
+      POINT point;
+      if (!GetCursorPos(out point)) throw new Exception("Cannot verify the pointer target");
+      window = WindowFromPoint(point);
+    }
+    uint pid;
+    GetWindowThreadProcessId(window, out pid);
+    if (pid != expectedPid) throw new Exception("Input target changed. No input was sent to the other application.");
+  }
 
   // Sin conciencia de DPI, Windows miente en las coordenadas: SetCursorPos y GetCursorPos se
   // virtualizan a la escala del monitor principal y el cursor cae donde no es. Las capturas del
@@ -606,6 +626,7 @@ public static class TcComputer {
       int take = Math.Min(400, arr.Length - offset);
       INPUT[] slice = new INPUT[take];
       Array.Copy(arr, offset, slice, 0, take);
+      AssertTarget();
       uint sent = SendInput((uint)take, slice, size);
       if (sent != (uint)take) throw new Exception("SendInput accepted " + sent + " of " + take + " events (win32 " + Marshal.GetLastWin32Error() + ")");
       offset += take;
@@ -613,6 +634,7 @@ public static class TcComputer {
   }
 
   public static void MoveTo(int x, int y) {
+    AssertTarget();
     if (!SetCursorPos(x, y)) throw new Exception("SetCursorPos failed (win32 " + Marshal.GetLastWin32Error() + ")");
   }
 
@@ -659,6 +681,7 @@ public static class TcComputer {
       List<INPUT> up = new List<INPUT>();
       up.Add(Key((ushort)key, true, extended));
       for (int i = modifiers.Length - 1; i >= 0; i--) up.Add(Key((ushort)modifiers[i], true, false));
+      expectedPid = 0; // Releasing modifiers must still work if focus changed during the chord.
       Send(up);
     }
   }
@@ -732,6 +755,7 @@ while ($null -ne ($line = $stdin.ReadLine())) {
     $req = $line | ConvertFrom-Json
     $id = [string]$req.id
     $data = ''
+    [TcComputer]::ExpectTarget([uint32]$req.expectedPid, [bool]($req.action -eq 'click' -or $req.action -eq 'scroll'))
     switch ($req.action) {
       'move' { [TcComputer]::MoveTo([int]$req.x, [int]$req.y) }
       'click' { [TcComputer]::Click([string]$req.button, [bool]$req.double) }
@@ -956,6 +980,8 @@ let session: ControlSession | undefined
 let indicator: Electron.BrowserWindow | undefined
 let registeredShortcut: string | undefined
 let consentInFlight: Promise<boolean> | undefined
+let controlGeneration = 0
+let actionQueue: Promise<ComputerResult | undefined> = Promise.resolve(undefined)
 
 /** Acelerador del interruptor de parada, por orden de preferencia. */
 const STOP_ACCELERATORS = ["Control+Alt+Shift+Escape", "Control+Alt+Shift+F12"]
@@ -1093,6 +1119,7 @@ function touchSession() {
 export async function stopComputerControl(
   reason: "user" | "indicator" | "shortcut" | "idle" | "quit" | "disabled",
 ): Promise<void> {
+  controlGeneration++
   const wasActive = !!session
   if (session?.idleTimer) clearTimeout(session.idleTimer)
   session = undefined
@@ -1191,7 +1218,16 @@ function describeForeground(foreground: ForegroundWindow): string {
  * Nunca lanza: un fallo vuelve como `ok: false` con una frase que el agente puede leer y usar,
  * igual que el resto del puente.
  */
-export async function performComputerAction(raw: unknown): Promise<ComputerResult> {
+export function performComputerAction(raw: unknown): Promise<ComputerResult> {
+  const generation = controlGeneration
+  // Multiple agent calls must not share consent for different targets or interleave pointer moves.
+  const result = actionQueue.then(() => performSerializedComputerAction(raw, generation))
+  actionQueue = result.catch(() => undefined)
+  return result
+}
+
+async function performSerializedComputerAction(raw: unknown, generation: number): Promise<ComputerResult> {
+  if (generation !== controlGeneration) return { ok: false, output: "El control del ordenador se detuvo." }
   if (process.platform !== "win32") return { ok: false, output: UNSUPPORTED_PLATFORM }
   if (!deps) return { ok: false, output: "El uso del computador no está inicializado en esta ventana." }
 
@@ -1235,6 +1271,7 @@ export async function performComputerAction(raw: unknown): Promise<ComputerResul
     const name = processName(foreground.exe)
     if (!session?.allowed.has(name)) {
       const granted = await askConsent(foreground)
+      if (generation !== controlGeneration || !settings().enabled) return { ok: false, output: "El control del ordenador se detuvo." }
       if (!granted) {
         return {
           ok: false,
@@ -1253,6 +1290,11 @@ export async function performComputerAction(raw: unknown): Promise<ComputerResul
               "No he podido abrir el indicador que avisa de que estás controlando el ordenador, así que no arranco el control. Díselo al usuario.",
           }
         }
+        if (generation !== controlGeneration || !settings().enabled) {
+          closeIndicator()
+          unregisterStopShortcut()
+          return { ok: false, output: "El control del ordenador se detuvo." }
+        }
         session = { allowed: new Set(), actions: 0 }
         log("computer-use control started", { process: name })
       }
@@ -1263,7 +1305,7 @@ export async function performComputerAction(raw: unknown): Promise<ComputerResul
       // El diálogo se lleva el foco, así que la ventana de delante ya puede no ser la autorizada.
       // Mandar la entrada ahora la metería en la ventana equivocada.
       const after = await readForeground()
-      if (processName(after.exe) !== name) {
+      if (after.pid !== foreground.pid || !guardForeground(after, process.pid, settings().denied).allow) {
         return {
           ok: false,
           output: `Autorizado: ${name}. Al confirmar, el foco pasó a ${describeForeground(after)}, así que no he ejecutado nada. Pide al usuario que vuelva a poner ${name} delante y repite la acción.`,
@@ -1271,22 +1313,24 @@ export async function performComputerAction(raw: unknown): Promise<ComputerResul
       }
     }
 
+    if (generation !== controlGeneration || !session || !settings().enabled) return { ok: false, output: "El control del ordenador se detuvo." }
     updateIndicator(describeForeground(foreground))
     touchSession()
 
     switch (request.action) {
       case "move": {
-        const reply = await sendToHost({ action: "move", x: request.x, y: request.y })
+        const reply = await sendToHost({ action: "move", x: request.x, y: request.y, expectedPid: foreground.pid })
         if (!reply.ok) return { ok: false, output: reply.error || "No se pudo mover el cursor." }
         if (session) session.actions++
         return { ok: true, output: `Cursor en (${request.x}, ${request.y}).` }
       }
       case "click": {
         if (request.x !== undefined && request.y !== undefined) {
-          const moved = await sendToHost({ action: "move", x: request.x, y: request.y })
+          const moved = await sendToHost({ action: "move", x: request.x, y: request.y, expectedPid: foreground.pid })
           if (!moved.ok) return { ok: false, output: moved.error || "No se pudo mover el cursor antes del clic." }
         }
-        const reply = await sendToHost({ action: "click", button: request.button, double: request.double })
+        if (generation !== controlGeneration) return { ok: false, output: "El control del ordenador se detuvo." }
+        const reply = await sendToHost({ action: "click", button: request.button, double: request.double, expectedPid: foreground.pid })
         if (!reply.ok) return { ok: false, output: reply.error || "No se pudo hacer clic." }
         if (session) session.actions++
         const where = request.x !== undefined ? ` en (${request.x}, ${request.y})` : " donde estaba el cursor"
@@ -1296,7 +1340,7 @@ export async function performComputerAction(raw: unknown): Promise<ComputerResul
         }
       }
       case "type": {
-        const reply = await sendToHost({ action: "type", text: request.text }, TYPE_TIMEOUT_MS)
+        const reply = await sendToHost({ action: "type", text: request.text, expectedPid: foreground.pid }, TYPE_TIMEOUT_MS)
         if (!reply.ok) return { ok: false, output: reply.error || "No se pudo escribir el texto." }
         if (session) session.actions++
         return {
@@ -1312,13 +1356,14 @@ export async function performComputerAction(raw: unknown): Promise<ComputerResul
           modifiers: parsed.chord.modifiers,
           key: parsed.chord.key,
           extended: parsed.chord.extended,
+          expectedPid: foreground.pid,
         })
         if (!reply.ok) return { ok: false, output: reply.error || "No se pudo pulsar la tecla." }
         if (session) session.actions++
         return { ok: true, output: `Pulsado ${request.keys} en ${describeForeground(foreground)}.` }
       }
       case "scroll": {
-        const reply = await sendToHost({ action: "scroll", direction: request.direction, amount: request.amount })
+        const reply = await sendToHost({ action: "scroll", direction: request.direction, amount: request.amount, expectedPid: foreground.pid })
         if (!reply.ok) return { ok: false, output: reply.error || "No se pudo hacer scroll." }
         if (session) session.actions++
         return { ok: true, output: `Scroll ${request.direction} (${request.amount}) en ${describeForeground(foreground)}.` }

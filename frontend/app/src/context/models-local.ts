@@ -1,16 +1,4 @@
-/**
- * The two pure rules the local (GGUF) model slice needs, kept out of the Solid
- * components so they can be tested without a store or a server.
- *
- * Both exist because the app shows local models from *two* sources that can
- * disagree: the provider catalogue the backend computes (authoritative — it only
- * lists a local model whose .gguf is actually on disk, and drops the `local`
- * provider once it has none left) and the cached global config document (the
- * user's declaration, refreshed on its own schedule). `mergeConfigLocalModels`
- * is what lets a just-activated model show up before the catalogue catches up;
- * `pruneForgottenFromConfig` is what stops a just-deleted one from being
- * resurrected by that same merge.
- */
+import { reconcile } from "solid-js/store"
 
 /** A `{ [modelKey]: { name } }` map as it appears under a provider in the config. */
 export type ConfigModelMap = Record<string, unknown>
@@ -44,7 +32,7 @@ export function forgetModelKeyVariants(file: string): string[] {
  * refetches the config query afterwards (`refreshProviders()` only refetches
  * queries keyed `[scope, …, "providers"]`, and no event publishes `config.updated`),
  * so the cached document keeps the deleted model for the rest of the session —
- * and `mergeConfigLocalModels` faithfully puts it back into the model list. This
+ * and provider settings continue to offer the removed entry. This
  * is the removal counterpart of the `serverSync().set("config", "provider", …)`
  * that `activateDownloadedModel` already does on the way in.
  *
@@ -106,51 +94,31 @@ export function pruneForgottenFromConfig(input: {
   return next
 }
 
+/** Solid setters merge object keys, so removals require reconciliation. */
+export function reconcileForgottenFromConfig(input: Parameters<typeof pruneForgottenFromConfig>[0]) {
+  return reconcile(pruneForgottenFromConfig(input))
+}
+
 type ProviderLike = {
   readonly id: string
   readonly models?: Record<string, unknown>
 }
 
-/**
- * The `local` provider entry the model list should render, given the catalogue
- * entry the backend produced (if any) and the local models the cached config
- * declares.
- *
- * The catalogue always wins for a model it already knows: it carries the real
- * metadata and it has checked the file is on disk. The config only contributes
- * models the catalogue has not got, which is the window this merge exists for —
- * activating a freshly downloaded model writes the config and then waits on a
- * provider refetch, and without this the new model would blink out of "Modelos"
- * until that refetch landed.
- *
- * It can only ever *add*, so the cached config has to stay honest about removals;
- * `pruneForgottenFromConfig` is what keeps it that way.
- */
-export function mergeConfigLocalModels<P extends ProviderLike>(
-  existing: P | undefined,
-  configModels: Record<string, unknown> | undefined,
-  fallback: P,
-): P | undefined {
-  const declared = Object.entries(configModels ?? {})
-  if (declared.length === 0) return existing
-
-  const base = existing ?? fallback
-  const models: Record<string, unknown> = { ...(base.models ?? {}) }
-  // Indexed without the extension: the catalogue may key a model `foo.gguf` while
-  // the config keys it `foo`, and adding both would duplicate the same file.
-  const known = new Set(Object.keys(models).map((key) => stripGguf(key).toLowerCase()))
-
-  for (const [key, value] of declared) {
-    const id = stripGguf(key)
-    if (known.has(id.toLowerCase())) continue
-    known.add(id.toLowerCase())
-    const name = (value as { name?: unknown } | undefined)?.name
-    models[id] = {
-      id,
-      name: typeof name === "string" ? stripGguf(name) : id,
-      status: "active",
+/** Only server-validated local files may appear; cached config is not inventory. */
+export function availableModelProviders<P extends ProviderLike, C extends ProviderLike>(
+  all: readonly P[],
+  connected: readonly C[],
+): (P | C)[] {
+  const providers = new Map<string, P | C>(
+    connected.filter((provider) => provider.id !== "tiancode-native").map((provider) => [provider.id, provider]),
+  )
+  for (const provider of all) {
+    if (provider.id !== "local") continue
+    if (Object.keys(provider.models ?? {}).length === 0) {
+      providers.delete(provider.id)
+      continue
     }
+    providers.set(provider.id, provider)
   }
-
-  return { ...base, models } as P
+  return Array.from(providers.values())
 }

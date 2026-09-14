@@ -4,6 +4,7 @@ import { AgentV2 } from "@tiancode-ai/core/agent"
 import { AppNodeBuilder } from "@tiancode-ai/core/effect/app-node-builder"
 import { Location } from "@tiancode-ai/core/location"
 import { AgentPlugin } from "@tiancode-ai/core/plugin/agent"
+import { SPECIALISTS, SPECIALIST_ALIASES } from "@tiancode-ai/core/plugin/agent-specialists"
 import { AbsolutePath } from "@tiancode-ai/core/schema"
 import { location } from "./fixture/location"
 import { testEffect } from "./lib/effect"
@@ -12,6 +13,40 @@ import { agentHost, host } from "./plugin/host"
 const it = testEffect(AppNodeBuilder.build(AgentV2.node))
 
 describe("AgentV2", () => {
+  it.effect("uses the shared specialist catalog and preserves legacy names as hidden aliases", () =>
+    Effect.gen(function* () {
+      const agent = yield* AgentV2.Service
+      yield* AgentPlugin.Plugin.effect(host({ agent: agentHost(agent) })).pipe(
+        Effect.provideService(
+          Location.Service,
+          Location.Service.of(location({ directory: AbsolutePath.make("/project") })),
+        ),
+      )
+      const agents = yield* agent.all()
+      expect(agents.filter((item) => !item.hidden)).toHaveLength(19)
+      for (const specialist of SPECIALISTS) {
+        const item = yield* agent.get(AgentV2.ID.make(specialist.name))
+        expect(item?.system).toBe(specialist.prompt)
+        expect(item?.description).toBe(specialist.description)
+        expect(item?.mode).toBe("subagent")
+        expect(item?.hidden).toBe(false)
+      }
+      for (const [alias, target] of Object.entries(SPECIALIST_ALIASES)) {
+        const legacy = yield* agent.get(AgentV2.ID.make(alias))
+        const current = yield* agent.get(AgentV2.ID.make(target))
+        expect(legacy?.hidden).toBe(true)
+        expect(legacy?.system).toBe(current?.system)
+      }
+      yield* agent.transform((draft) =>
+        draft.update(AgentV2.ID.make("rust-systems-engineer"), (item) => {
+          item.hidden = false
+          item.system = "My custom workflow."
+        }),
+      )
+      expect((yield* agent.get(AgentV2.ID.make("rust-systems-engineer")))?.system).toBe("My custom workflow.")
+      expect((yield* agent.get(AgentV2.ID.make("fullstack-coder")))?.system).not.toBe("My custom workflow.")
+    }),
+  )
   it.effect("starts without agents", () =>
     Effect.gen(function* () {
       const agent = yield* AgentV2.Service

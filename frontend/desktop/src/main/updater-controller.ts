@@ -7,7 +7,7 @@ export type UpdaterReadyRecord = { version: string }
 export type UpdaterBackend = {
   checkForUpdates(): Promise<{ isUpdateAvailable?: boolean; updateInfo?: { version?: string } } | null | undefined>
   downloadUpdate(): Promise<unknown>
-  quitAndInstall(): void
+  quitAndInstall(): void | Promise<void>
 }
 
 type UpdaterPersistence = {
@@ -42,26 +42,9 @@ export function createUpdaterController(input: {
 
     pending = (async () => {
       transition({ status: "checking" })
-      let result: { isUpdateAvailable?: boolean; updateInfo?: { version?: string } } | null | undefined
-      try {
-        result = await input.backend.checkForUpdates()
-      } catch (checkErr) {
-        input.log?.("backend check failed, trying fallback latest.yml", { error: String(checkErr) })
-        try {
-          const res = await fetch("https://github.com/Dreftian/Tiancode/releases/latest/download/latest.yml")
-          if (res.ok) {
-            const text = await res.text()
-            const match = text.match(/version:\s*([^\s]+)/)
-            const remoteVersion = match ? match[1] : undefined
-            if (remoteVersion && remoteVersion !== input.currentVersion) {
-              result = { isUpdateAvailable: true, updateInfo: { version: remoteVersion } }
-            } else if (remoteVersion) {
-              result = { isUpdateAvailable: false, updateInfo: { version: remoteVersion } }
-            }
-          }
-        } catch {}
-        if (!result) throw checkErr
-      }
+      // Only the updater can validate platform, version and download metadata.
+      // A manually fetched version string cannot initialize its download state.
+      const result = await input.backend.checkForUpdates()
 
       const version = result?.updateInfo?.version
       if (!result?.isUpdateAvailable || !version || version === input.currentVersion) {
@@ -70,13 +53,10 @@ export function createUpdaterController(input: {
       }
 
       transition({ status: "downloading", version })
-      try {
-        await input.backend.downloadUpdate()
-        await input.persistence.set({ version })
-        return transition({ status: "ready", version })
-      } catch {
-        return transition({ status: "ready", version })
-      }
+      await input.persistence.clear()
+      await input.backend.downloadUpdate()
+      await input.persistence.set({ version })
+      return transition({ status: "ready", version })
     })()
       .catch((error) =>
         transition({ status: "error", message: error instanceof Error ? error.message : String(error) }),
@@ -114,7 +94,7 @@ export function createUpdaterController(input: {
       // left the renderer pointed at a dead port whenever the install failed and the app kept
       // running, with nothing to respawn the server.
       try {
-        input.backend.quitAndInstall()
+        await input.backend.quitAndInstall()
       } finally {
         transition({ status: "ready", version })
       }

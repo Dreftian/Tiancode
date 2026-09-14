@@ -1,165 +1,39 @@
-/* ============================================================
-   Tiancode — Website Charts & Evaluations (OpenAI Benchmark Style)
-   Selector interactivo de métricas empíricas y barras horizontales
-   de alta precisión estilo OpenAI Preparedness & Model Evaluation.
-   Bilingüe 100%: responde al evento 'tiancode:langchange'.
-   ============================================================ */
+import { getLang } from './i18n.js?v=1.0.52';
 
-import { getLang } from './i18n.js';
-
-export const EVAL_DATA_ES = {
-  swe: {
-    title: 'Resolución de Tareas SWE-bench Verificado',
-    unit: '% resuelto',
-    bars: [
-      { name: 'Tiancode v1.0.51 (Enjambre + OpenClaw & Hermes)', val: '78.6%', pct: 78.6, highlight: true },
-      { name: 'IDE Cloud AI (Cursor / Copilot Agent)', val: '52.6%', pct: 52.6, highlight: false },
-      { name: 'Chat Cloud Tradicional (ChatGPT Web)', val: '38.1%', pct: 38.1, highlight: false }
-    ],
-    statNum: '78.6%',
-    statLabel: 'Tasa de resolución verificada en problemas reales de ingeniería de software con auto-reparación OpenClaw.'
+const details = {
+  es: {
+    swe: { title: 'Modelos y especialistas', label: 'GGUF', summary: 'Un catálogo que refleja los modelos disponibles.', items: ['El borrado elimina las entradas antiguas de la interfaz.', 'Especialistas enfocados en desarrollo, pruebas, diseño, marketing y seguridad autorizada.', 'Los agentes personalizados y sus instrucciones se conservan.'] },
+    latency: { title: 'Sigue el trabajo en el Sandbox', label: 'En vivo', summary: 'Actividad real de la sesión que estás viendo.', items: ['La vista previa sigue el proyecto correcto.', 'Las herramientas muestran su estado y los archivos que modifican.', 'Las recargas se agrupan al completar cambios; los errores se muestran en contexto.'] },
+    tokens: { title: 'Instrucciones y controles más claros', label: 'Control', summary: 'Elige cómo trabajar con tu modelo.', items: ['Selector visible de micrófono y mantener pulsado para grabar.', 'Mejorar input usa el modelo seleccionado y permite deshacer.', 'Los modos Rápido y Ultracode dependen de las capacidades del proveedor.'] },
+    offline: { title: 'Actualiza conservando tu configuración', label: 'SHA-256', summary: 'Cada archivo se verifica antes de publicar.', items: ['Claves, ajustes, sesiones y autenticación MCP se conservan.', 'Una descarga fallida muestra un error y permite reintentar.', 'La versión estable se publica después de comprobar instalador, portable y metadatos.'] }
   },
-  latency: {
-    title: 'Tiempo a la Primera Llamada a Herramienta (Arranque en Frío)',
-    unit: 'segundos (menor es mejor)',
-    bars: [
-      { name: 'Tiancode Desktop Local-First Nativo', val: '0.38s', pct: 12, highlight: true },
-      { name: 'Contenedor Remoto de IDE Cloud AI', val: '3.20s', pct: 68, highlight: false },
-      { name: 'Entorno de Estudio Cloud Web', val: '4.85s', pct: 98, highlight: false }
-    ],
-    statNum: '0.38s',
-    statLabel: 'Latencia de arranque instantánea gracias a la arquitectura local en Bun.'
-  },
-  tokens: {
-    title: 'Eficiencia de Tokens y Costes vs Base de Referencia',
-    unit: '% reducción de tokens cloud',
-    bars: [
-      { name: 'Tiancode (Poda Head/Tail + Optimizador Local)', val: '76%', pct: 76, highlight: true },
-      { name: 'IDE Cloud AI (Contexto Estándar sin Podar)', val: '28%', pct: 28, highlight: false },
-      { name: 'Chat de Contexto Completo sin Optimizar', val: '0%', pct: 5, highlight: false }
-    ],
-    statNum: '76%',
-    statLabel: 'Ahorro promedio de tokens mediante compactación Hermes Head/Tail y compresión de contexto V2.'
-  },
-  offline: {
-    title: 'Autonomía Soberana sin Conexión (Offline)',
-    unit: '% funcionalidad total sin internet',
-    bars: [
-      { name: 'Tiancode (Model Hub GGUF + TTS Kokoro)', val: '100%', pct: 100, highlight: true },
-      { name: 'IDE Cloud AI (Sólo linter local)', val: '8%', pct: 8, highlight: false },
-      { name: 'Plataforma Pura en la Nube', val: '0%', pct: 2, highlight: false }
-    ],
-    statNum: '100%',
-    statLabel: 'Autonomía total con inferencia GGUF en GPU local y síntesis de voz sin red.'
-  }
-};
-
-export const EVAL_DATA_EN = {
-  swe: {
-    title: 'SWE-bench Verified Task Resolution',
-    unit: '% resolved',
-    bars: [
-      { name: 'Tiancode v1.0.51 (Swarm + OpenClaw & Hermes)', val: '78.6%', pct: 78.6, highlight: true },
-      { name: 'Cloud AI IDE (Cursor / Copilot Agent)', val: '52.6%', pct: 52.6, highlight: false },
-      { name: 'Traditional Cloud Chat (ChatGPT Web)', val: '38.1%', pct: 38.1, highlight: false }
-    ],
-    statNum: '78.6%',
-    statLabel: 'Verified task resolution rate on real-world software engineering issues with OpenClaw self-repair.'
-  },
-  latency: {
-    title: 'Time to First Tool Call (Cold Start Latency)',
-    unit: 'seconds (lower is better)',
-    bars: [
-      { name: 'Tiancode Local-First Native Desktop', val: '0.38s', pct: 12, highlight: true },
-      { name: 'Cloud AI IDE Remote Container', val: '3.20s', pct: 68, highlight: false },
-      { name: 'Web Cloud Studio Environment', val: '4.85s', pct: 98, highlight: false }
-    ],
-    statNum: '0.38s',
-    statLabel: 'Instant startup latency powered by local Bun runtime architecture.'
-  },
-  tokens: {
-    title: 'Token & Cost Efficiency vs Baseline',
-    unit: '% cloud token reduction',
-    bars: [
-      { name: 'Tiancode (Head/Tail Pruning + Local Optimizer)', val: '76%', pct: 76, highlight: true },
-      { name: 'Cloud AI IDE (Standard In-Context)', val: '28%', pct: 28, highlight: false },
-      { name: 'Unoptimized Full-Context Chat', val: '0%', pct: 5, highlight: false }
-    ],
-    statNum: '76%',
-    statLabel: 'Average token reduction via Hermes Head/Tail context compaction and V2 prompt compression.'
-  },
-  offline: {
-    title: 'Sovereign Offline Autonomy',
-    unit: '% fully functional without internet',
-    bars: [
-      { name: 'Tiancode (Model Hub GGUF + Kokoro TTS)', val: '100%', pct: 100, highlight: true },
-      { name: 'Cloud AI IDE (Local Linter only)', val: '8%', pct: 8, highlight: false },
-      { name: 'Pure Cloud Platform', val: '0%', pct: 2, highlight: false }
-    ],
-    statNum: '100%',
-    statLabel: 'Complete autonomy with local GPU GGUF inference and offline speech synthesis.'
+  en: {
+    swe: { title: 'Models and specialists', label: 'GGUF', summary: 'A catalog reflecting available models.', items: ['Deleting a model removes stale UI entries.', 'Focused specialists for development, tests, design, marketing and authorized security.', 'Custom agents and their instructions are preserved.'] },
+    latency: { title: 'Follow work in the Sandbox', label: 'Live', summary: 'Real activity from the session you are viewing.', items: ['Preview follows the correct project.', 'Tools show their status and the files they change.', 'Reloads are coalesced after changes finish; errors appear in context.'] },
+    tokens: { title: 'Clearer instructions and controls', label: 'Control', summary: 'Choose how to work with your model.', items: ['Visible microphone selector and hold-to-record.', 'Improve input uses the selected model and supports undo.', 'Fast and Ultracode depend on provider capabilities.'] },
+    offline: { title: 'Update while keeping your settings', label: 'SHA-256', summary: 'Every file is verified before publication.', items: ['Provider keys, settings, sessions and MCP authentication are preserved.', 'A failed download shows an error and allows retrying.', 'The stable release is published after checking installer, portable and metadata.'] }
   }
 };
 
 export function initCharts() {
-  const navBtns = document.querySelectorAll('.benchmark-nav-btn');
-  const titleEl = document.getElementById('eval-title');
-  const unitEl = document.getElementById('eval-unit');
-  const barsContainer = document.getElementById('eval-bars-container');
-  const statNumEl = document.getElementById('eval-stat-num');
-  const statLabelEl = document.getElementById('eval-stat-label');
-
-  if (!navBtns.length || !barsContainer) return;
-
-  let currentMetric = 'swe';
-
-  function renderMetric(key) {
-    currentMetric = key;
-    const lang = getLang();
-    const source = (lang === 'en') ? EVAL_DATA_EN : EVAL_DATA_ES;
-    const data = source[key] || source.swe;
-    if (!data) return;
-
-    if (titleEl) titleEl.textContent = data.title;
-    if (unitEl) unitEl.textContent = data.unit;
-    if (statNumEl) statNumEl.textContent = data.statNum;
-    if (statLabelEl) statLabelEl.textContent = data.statLabel;
-
-    barsContainer.innerHTML = '';
-    data.bars.forEach(function (bar) {
-      const item = document.createElement('div');
-      item.className = 'eval-bar-item';
-      item.innerHTML = `
-        <div class="eval-bar-meta">
-          <span class="eval-bar-label">${bar.name}</span>
-          <span class="eval-bar-val">${bar.val}</span>
-        </div>
-        <div class="eval-track">
-          <div class="eval-fill ${bar.highlight ? 'eval-fill-highlight' : ''}" style="width: 0%"></div>
-        </div>
-      `;
-      barsContainer.appendChild(item);
-
-      setTimeout(function () {
-        const fill = item.querySelector('.eval-fill');
-        if (fill) fill.style.width = bar.pct + '%';
-      }, 50);
-    });
+  const buttons = document.querySelectorAll('.benchmark-nav-btn');
+  const container = document.getElementById('eval-bars-container');
+  if (!container || !buttons.length) return;
+  let selection = 'swe';
+  function render() {
+    const entry = details[getLang()]?.[selection] || details.es.swe;
+    document.getElementById('eval-title').textContent = entry.title;
+    document.getElementById('eval-unit').textContent = '1.0.52';
+    document.getElementById('eval-stat-num').textContent = entry.label;
+    document.getElementById('eval-stat-label').textContent = entry.summary;
+    container.replaceChildren();
+    const list = document.createElement('ul');
+    list.className = 'release-facts';
+    entry.items.forEach(function (text) { const item = document.createElement('li'); item.textContent = text; list.appendChild(item); });
+    container.appendChild(list);
+    buttons.forEach(function (button) { const active = button.dataset.metric === selection; button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', String(active)); });
   }
-
-  navBtns.forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      const metric = btn.getAttribute('data-metric');
-      navBtns.forEach(function (b) { b.classList.remove('is-active'); });
-      btn.classList.add('is-active');
-      renderMetric(metric);
-    });
-  });
-
-  window.addEventListener('tiancode:langchange', function () {
-    renderMetric(currentMetric);
-  });
-
-  // Render initial
-  renderMetric('swe');
+  buttons.forEach(function (button) { button.addEventListener('click', function () { selection = button.dataset.metric; render(); }); });
+  window.addEventListener('tiancode:langchange', render);
+  render();
 }

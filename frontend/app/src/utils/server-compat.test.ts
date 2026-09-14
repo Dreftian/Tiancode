@@ -53,6 +53,26 @@ function setup(
 }
 
 describe("createCompatibleApi", () => {
+  test("V2 applies composer agent and model before admitting the workflow prompt", async () => {
+    const { api, requests } = setup("v2")
+    await api.session.prompt({
+      sessionID: "ses_1",
+      text: "fix the bug",
+      agent: "build",
+      model: { modelID: "opus", providerID: "anthropic" },
+      variant: "xhigh",
+      system: "Inspect, implement and verify.",
+    })
+    expect(requests.map((request) => new URL(request.url).pathname)).toEqual([
+      "/api/session/ses_1/agent",
+      "/api/session/ses_1/model",
+      "/api/session/ses_1/prompt",
+    ])
+    expect(await requests[1]!.json()).toMatchObject({
+      model: { id: "opus", providerID: "anthropic", variant: "xhigh" },
+    })
+    expect(JSON.stringify(await requests[2]!.json())).toContain("Inspect, implement and verify.")
+  })
   /*
   test("routes V1 archive through the legacy session update", async () => {
     const { api, requests } = setup("v1")

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import { createUpdaterController, type UpdaterBackend, type UpdaterReadyRecord } from "./updater-controller"
 
-function setup(input?: { currentVersion?: string; ready?: UpdaterReadyRecord }) {
+function setup(input?: { currentVersion?: string; ready?: UpdaterReadyRecord; backend?: Partial<UpdaterBackend> }) {
   const calls: string[] = []
   const backend: UpdaterBackend = {
     async checkForUpdates() {
@@ -14,6 +14,7 @@ function setup(input?: { currentVersion?: string; ready?: UpdaterReadyRecord }) 
     quitAndInstall() {
       calls.push("install")
     },
+    ...input?.backend,
   }
   let ready = input?.ready
   const controller = createUpdaterController({
@@ -74,6 +75,38 @@ describe("updater controller", () => {
     await Promise.all([app.controller.check(), app.controller.check(), app.controller.check()])
 
     expect(app.calls).toEqual(["check", "download"])
+  })
+
+  test("a failed download is never installable and a later check can retry", async () => {
+    let attempts = 0
+    const app = setup({
+      ready: { version: "2.0.0" },
+      backend: { async downloadUpdate() {
+        if (attempts++ === 0) throw new Error("checksum mismatch")
+      } },
+    })
+    expect(await app.controller.check()).toEqual({ status: "error", message: "checksum mismatch" })
+    expect(app.getReady()).toBeUndefined()
+    await expect(app.controller.install()).rejects.toThrow("not ready")
+    expect(await app.controller.check()).toEqual({ status: "ready", version: "2.0.0" })
+  })
+
+  test("a metadata failure does not fabricate a downloadable update", async () => {
+    const app = setup({ backend: { async checkForUpdates() { throw new Error("invalid manifest") } } })
+    expect(await app.controller.check()).toEqual({ status: "error", message: "invalid manifest" })
+    expect(app.calls).toEqual([])
+    expect(app.getReady()).toBeUndefined()
+  })
+
+  test("installation awaits backup completion and propagates backup failure", async () => {
+    const backup = Promise.withResolvers<void>()
+    const app = setup({ backend: { quitAndInstall: () => backup.promise } })
+    await app.controller.check()
+    const installation = app.controller.install()
+    expect(app.controller.getState().status).toBe("installing")
+    backup.reject(new Error("backup failed"))
+    await expect(installation).rejects.toThrow("backup failed")
+    expect(app.controller.getState().status).toBe("ready")
   })
 
   test("returns to ready when quitAndInstall returns without exiting", async () => {

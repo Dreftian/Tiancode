@@ -5,8 +5,8 @@
    #/novedades, #/portable, #/descarga) + anclas internas.
    ============================================================ */
 
-import { t } from './i18n.js';
-import { reducedMotion } from './utils.js';
+import { t } from './i18n.js?v=1.0.52';
+import { reducedMotion } from './utils.js?v=1.0.52';
 
 const PAGE_IDS = ['licencia', 'terminos', 'privacidad', 'docs', 'guia', 'faq', 'novedades', 'portable', 'descarga'];
 const PAGE_TITLES = {

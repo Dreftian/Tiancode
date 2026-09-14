@@ -17,7 +17,7 @@ import {
 import { createStore } from "solid-js/store"
 import { compatibilityFor, type FitTier } from "@tiancode-ai/core/model-fit"
 import { useLanguage } from "@/context/language"
-import { pruneForgottenFromConfig, type ConfigProviders } from "@/context/models-local"
+import { reconcileForgottenFromConfig, type ConfigProviders } from "@/context/models-local"
 import { useServerSDK } from "@/context/server-sdk"
 import { useServerSync } from "@/context/server-sync"
 import { authTokenFromCredentials } from "@/utils/server"
@@ -818,16 +818,14 @@ export const SettingsModelsHubV2: Component<{
 
       // 2. Invocación de borrado físico directo vía Desktop IPC en Windows (elimina de disco, .jobs.json y procesos)
       const electronApi = (window as unknown as { api?: { modelHub?: { deleteFile: (target: unknown) => Promise<{ success?: boolean }> } } })?.api
-      let ipcDeleted = false
       if (electronApi?.modelHub?.deleteFile) {
-        const res = await electronApi.modelHub
+        await electronApi.modelHub
           .deleteFile({
             file: job.file,
             id: job.id,
             destPath: (job as any).destPath,
           })
           .catch(() => undefined)
-        ipcDeleted = res?.success === true
       }
 
       // 3. Eliminar archivo de disco y cancelar job en backend con múltiples formatos de clave
@@ -861,9 +859,10 @@ export const SettingsModelsHubV2: Component<{
       // El backend puede re-agregar el job si el archivo sigue bloqueado en
       // disco; verificar que realmente desapareció antes de anunciar éxito.
       const after = await serverSdk().client.modelhub.downloads(params()).catch(() => undefined)
-      const stillThere =
-        (after?.data ?? []).some((j) => j.id === job.id || j.file === job.file) ||
-        (electronApi?.modelHub?.deleteFile && !ipcDeleted)
+      // A failed IPC attempt may be followed by a successful backend deletion.
+      // Verify final inventory; an unavailable response must never mean empty.
+      if (!after?.data) throw new Error("Model inventory verification failed")
+      const stillThere = after.data.some((j) => j.id === job.id || j.file === job.file)
 
       if (stillThere) {
         showToast({
@@ -879,15 +878,15 @@ export const SettingsModelsHubV2: Component<{
       // /models/forget reescribe los ficheros del servidor, pero nada vuelve a
       // pedir la query de config — refreshProviders() sólo refresca las queries
       // con queryKey[2] === "providers", y nadie publica "config.updated" — así que
-      // sin esto el documento cacheado conserva el modelo borrado y
-      // mergeConfigLocalModels() lo vuelve a inyectar en "Modelos" durante el resto
-      // de la sesión, justo lo que el toast dice que ya no pasa.
+      // sin esto el documento cacheado conserva el proveedor borrado durante
+      // el resto de la sesión, aunque el archivo ya no exista.
       if (forgotten) {
-        const pruned = pruneForgottenFromConfig({
+        const pruned = reconcileForgottenFromConfig({
           providers: serverSync().data.config.provider as ConfigProviders | undefined,
           forgotten,
           file: job.file,
         })
+        // Solid store setters merge objects; reconciliation removes absent keys.
         serverSync().set("config", "provider", pruned as never)
         // El servidor borra también estas referencias cuando apuntaban al modelo.
         if (forgotten.clearedDefaultModel) serverSync().set("config", "model", undefined as never)

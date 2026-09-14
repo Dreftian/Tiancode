@@ -4,21 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Novedades — Tiancode</title>
-  <meta name="description" content="Novedades de Tiancode v1.0.51: había dos motores de modelos locales y el chat usaba el roto — el cargador de proveedores llevaba una segunda copia completa del arranque que aceptaba el primer llama-server.exe del disco sin comprobar su versión, y un binario de marzo de 2025 le ganaba al del instalador. Además: el botón de mejorar prompt ya no se cancela solo a los 30 segundos, borrar un modelo local por fin lo borra de Proveedores y Modelos, los sub-agentes que tienes en disco se ven y se pueden crear y borrar, y el «Árbol de Recursión RLM» deja de ser una maqueta con agentes inventados.">
+  <meta name="description" content="Tiancode 1.0.52: modelos locales, especialistas, controles del chat, actividad real en Sandbox y actualizaciones verificadas.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Tiancode">
   <meta property="og:title" content="Novedades — Tiancode">
-  <meta property="og:description" content="Novedades de Tiancode v1.0.51: había dos motores de modelos locales y el chat usaba el roto — el cargador de proveedores llevaba una segunda copia completa del arranque que aceptaba el primer llama-server.exe del disco sin comprobar su versión, y un binario de marzo de 2025 le ganaba al del instalador. Además: el botón de mejorar prompt ya no se cancela solo a los 30 segundos, borrar un modelo local por fin lo borra de Proveedores y Modelos, los sub-agentes que tienes en disco se ven y se pueden crear y borrar, y el «Árbol de Recursión RLM» deja de ser una maqueta con agentes inventados.">
+  <meta property="og:description" content="Tiancode 1.0.52: modelos locales, especialistas, controles del chat, actividad real en Sandbox y actualizaciones verificadas.">
   <meta property="og:url" content="https://tiancode.vercel.app/recursos/novedades.html">
   <meta property="og:image" content="https://tiancode.vercel.app/img/og-image.png">
   <meta property="og:locale" content="es_ES">
   <meta property="og:locale:alternate" content="en_US">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Novedades — Tiancode">
-  <meta name="twitter:description" content="Novedades de Tiancode v1.0.51: había dos motores de modelos locales y el chat usaba el roto — el cargador de proveedores llevaba una segunda copia completa del arranque que aceptaba el primer llama-server.exe del disco sin comprobar su versión, y un binario de marzo de 2025 le ganaba al del instalador. Además: el botón de mejorar prompt ya no se cancela solo a los 30 segundos, borrar un modelo local por fin lo borra de Proveedores y Modelos, los sub-agentes que tienes en disco se ven y se pueden crear y borrar, y el «Árbol de Recursión RLM» deja de ser una maqueta con agentes inventados.">
+  <meta name="twitter:description" content="Tiancode 1.0.52: modelos locales, especialistas, controles del chat, actividad real en Sandbox y actualizaciones verificadas.">
   <meta name="twitter:image" content="https://tiancode.vercel.app/img/og-image.png">
   <link rel="canonical" href="https://tiancode.vercel.app/recursos/novedades.html">
-  <link rel="icon" type="image/png" href="img/favicon.png">
+  <link rel="icon" type="image/png" href="../img/favicon.png">
   <script>
     (function () {
       // Confirma JS disponible (revela el contenido .reveal) y aplica el tema
@@ -55,10 +55,10 @@
       </a>
 
       <nav class="main-nav" aria-label="Navegación principal">
-        <a href="../index.html#features">Características</a>
-        <a href="../index.html#how">Cómo funciona</a>
-        <a href="../index.html#preview">Vista previa</a>
-        <a href="../index.html#stats">Estadísticas</a>
+        <a href="../index.html#capabilities">Características</a>
+        <a href="../index.html#architecture">Cómo funciona</a>
+        <a href="../index.html#showcase">Vista previa</a>
+        <a href="../index.html#benchmarks">Estadísticas</a>
         <a href="../index.html#skills">Skills</a>
         <div class="nav-dropdown">
           <button class="nav-dropdown-toggle" type="button" aria-expanded="false" aria-haspopup="true"
@@ -121,12 +121,13 @@
           <header class="page-head reveal">
             <span class="eyebrow">Recursos</span>
             <h1 class="page-title">Novedades</h1>
-            <p class="page-sub">Todo lo que trae Tiancode 1.0.51, la versión estable, y las anteriores.</p>
+            <p class="page-sub">Todo lo que trae Tiancode 1.0.52, la versión estable, y las anteriores.</p>
           </header>
           <div class="page-body reveal" style="--rd:.08s">
-              <div class="news-version">
+              <div class="news-version"><h2>Versión 1.0.52</h2><span class="news-tag">Última versión</span><span class="news-date">14 de septiembre de 2026</span></div><div class="news-block news-block--new"><h3>Más control, actividad visible y actualizaciones verificadas</h3><ul class="news-list news-list--new"><li><span><strong>Modelos locales sin entradas fantasma.</strong> El borrado de un GGUF actualiza el catálogo reactivo y elimina las referencias antiguas. Los modelos personalizados y las claves ajenas al archivo eliminado se conservan.</span></li><li><span><strong>Especialistas enfocados.</strong> Catálogo depurado para ingeniería, frontend, backend, QA, DevOps, diseño, datos, marketing y seguridad autorizada. Los identificadores anteriores mantienen compatibilidad con sesiones y configuración existentes.</span></li><li><span><strong>Controles del compositor.</strong> Selector de micrófono visible y grabación mientras mantienes pulsado; modos Auto, Manual, Aceptar ediciones, Plan y Omitir permisos en el servidor de escritorio. Rápido usa aceleración nativa cuando el proveedor la admite; Ultracode combina instrucciones de planificación y verificación con una variante de esfuerzo compatible.</span></li><li><span><strong>Vista previa con actividad real.</strong> El Sandbox sigue las herramientas de la sesión activa, mantiene la carpeta del proyecto y muestra acciones y estados de ejecución. El control de Windows comprueba la ventana y el proceso antes de cada entrada.</span></li><li><span><strong>Actualizaciones verificadas.</strong> Una descarga fallida produce un error recuperable. La instalación espera al respaldo. Los cuatro archivos se comparan con sus huellas SHA-256 antes de marcar la versión como estable.</span></li><li><span><strong>Una web más ligera y precisa.</strong> El idioma se conserva tras recargar, todos los módulos comparten la misma selección, la animación se pausa fuera de vista y las demos se identifican como ejemplos. Se retiraron comparativas sin mediciones reproducibles.</span></li></ul><p>La última publicación estable de OpenCode consultada es v1.18.30. El núcleo V2 continúa en desarrollo: no se presenta como paridad completa con todos los flujos de escritorio.</p></div>
+<div class="news-version">
                 <h2>Versión 1.0.51</h2>
-                <span class="news-tag">Última versión</span>
+                <span class="news-tag">Anterior</span>
                 <span class="news-date">13 de septiembre de 2026</span>
               </div>
               <div class="news-block news-block--new">
@@ -591,7 +592,7 @@
           </a>
           <p>El asistente de IA para programar, hecho para Windows.</p>
         </div>
-        <span class="footer-version"><i aria-hidden="true"></i>v1.0.51 · MIT</span>
+        <span class="footer-version"><i aria-hidden="true"></i>v1.0.52 · MIT</span>
       </div>
       <div class="footer-grid">
         <nav class="footer-col" aria-label="Producto">

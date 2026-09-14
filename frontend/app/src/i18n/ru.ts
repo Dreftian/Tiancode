@@ -1,4 +1,7 @@
+import { RELEASE_ENGLISH } from "./release-english"
+
 export const dict = {
+  ...RELEASE_ENGLISH,
   "settings.mcpServers.health.title": "Состояние MCP",
   "settings.mcpServers.health.description": "Текущее состояние подключений. Восстановление запускает не более {{concurrency}} одновременно и обрабатывает до {{limit}} серверов за действие.",
   "settings.mcpServers.health.refresh": "Обновить",

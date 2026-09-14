@@ -1,4 +1,7 @@
+import { RELEASE_ENGLISH } from "./release-english"
+
 export const dict = {
+  ...RELEASE_ENGLISH,
   "desktop.menu.app": "Tiancode",
   "desktop.menu.file": "ファイル",
   "desktop.menu.edit": "編集",

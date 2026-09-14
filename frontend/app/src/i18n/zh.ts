@@ -1,8 +1,11 @@
+import { RELEASE_ENGLISH } from "./release-english"
+
 import { dict as en } from "./en"
 
 type Keys = keyof typeof en
 
 export const dict = {
+  ...RELEASE_ENGLISH,
   "settings.mcpServers.health.title": "MCP 健康状态",
   "settings.mcpServers.health.description": "实时连接状态。恢复操作最多同时运行 {{concurrency}} 个，每次最多处理 {{limit}} 个服务器。",
   "settings.mcpServers.health.refresh": "刷新",

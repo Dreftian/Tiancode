@@ -30,6 +30,7 @@ target
 opencode-dev
 UPCOMING_CHANGELOG.md
 logs/
+frontend/playwright-report/
 *.bun-build
 tsconfig.tsbuildinfo
 

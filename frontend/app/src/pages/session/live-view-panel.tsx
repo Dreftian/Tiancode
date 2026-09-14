@@ -15,6 +15,7 @@ import { useSync } from "@/context/sync"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { LivePreview } from "@/pages/session/live-preview/live-preview"
 import { ScrollView } from "@tiancode-ai/ui/scroll-view"
+import { liveViewProjectFolder, liveViewSessionTools, liveViewToolDetail, liveViewToolFiles } from "./live-view-activity"
 
 export const LIVE_VIEW_URL = "http://127.0.0.1:8790/"
 const LIVE_VIEW_CHECK_MS = 3000
@@ -114,8 +115,19 @@ export function mergeLiveSnapshot(current: SnapshotPayload | undefined, next: Sn
   return next
 }
 
+export function liveViewSnapshotForDirectory(snapshot: SnapshotPayload | undefined, directory: string | undefined) {
+  if (!snapshot?.root || !directory) return snapshot
+  const normalize = (path: string) => path.replace(/\\/g, "/").replace(/\/+$/, "")
+  const root = normalize(snapshot.root)
+  const expected = normalize(directory)
+  return /^[a-z]:\//i.test(expected)
+    ? root.toLowerCase() === expected.toLowerCase() ? snapshot : undefined
+    : root === expected ? snapshot : undefined
+}
+
 export function applyLiveSnapshotUpdate(snapshot: SnapshotPayload | undefined, event: LiveUpdatePayload) {
   if (!snapshot?.session_id || snapshot.session_id !== event.session_id || !isRecord(event.data)) return snapshot
+  if (typeof event.ts === "number" && typeof snapshot.updated_at === "number" && event.ts < snapshot.updated_at) return snapshot
   const data = event.data
   if (event.type === "phase") {
     return withLiveEventTimestamp(
@@ -140,14 +152,14 @@ export function applyLiveSnapshotUpdate(snapshot: SnapshotPayload | undefined, e
       {
         ...snapshot,
         current_file: data.rel,
-        ...(typeof data.code === "string" || data.code === null ? { current_code: data.code } : {}),
+        current_code: typeof data.code === "string" ? data.code : null,
       },
       event,
     )
   }
   if (event.type === "log") {
     if (typeof data.line !== "string") return snapshot
-    return withLiveEventTimestamp({ ...snapshot, logs: [...(snapshot.logs ?? []), { line: data.line }] }, event)
+    return withLiveEventTimestamp({ ...snapshot, logs: [...(snapshot.logs ?? []).slice(-1999), { line: data.line }] }, event)
   }
   if (event.type === "file_added" || event.type === "file_modified" || event.type === "file_changed") {
     const file = fileFromLiveUpdate(data)
@@ -157,7 +169,11 @@ export function applyLiveSnapshotUpdate(snapshot: SnapshotPayload | undefined, e
   }
   if (event.type === "file_removed") {
     if (typeof data.rel !== "string") return snapshot
-    return withLiveEventTimestamp({ ...snapshot, files: (snapshot.files ?? []).filter((entry) => entry.rel !== data.rel) }, event)
+    return withLiveEventTimestamp({
+      ...snapshot,
+      files: (snapshot.files ?? []).filter((entry) => entry.rel !== data.rel),
+      ...(snapshot.current_file === data.rel ? { current_file: null, current_code: null } : {}),
+    }, event)
   }
   return snapshot
 }
@@ -1038,149 +1054,18 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
     return parts[parts.length - 1] || dir
   })
 
-  const resolveProjectFolder = (fp: string, baseDir?: string): string | undefined => {
-    if (!fp) return undefined
-    let raw = fp.replace(/\\/g, "/")
-    if (raw.startsWith("file:///")) raw = raw.slice(8)
-    else if (raw.startsWith("file://")) raw = raw.slice(7)
+  const resolveProjectFolder = liveViewProjectFolder
 
-    const normBase = baseDir ? baseDir.replace(/\\/g, "/").replace(/\/+$/, "") : ""
-    const CONTAINER_NAMES = new Set([
-      "desktop",
-      "escritorio",
-      "proyectos",
-      "projects",
-      "apps",
-      "packages",
-      "workspace",
-      "workspaces",
-      "repos",
-      "repositories",
-      "dev",
-      "development",
-      "code",
-      "documents",
-      "documentos",
-      "users",
-      "usuarios",
-    ])
-
-    // Si la ruta está dentro de normBase
-    if (normBase && raw.toLowerCase().startsWith(normBase.toLowerCase())) {
-      const rel = raw.slice(normBase.length).replace(/^\/+/, "")
-      if (!rel) return normBase
-      const parts = rel.split("/").filter(Boolean)
-      if (parts.length === 0) return normBase
-      let idx = 0
-      while (idx < parts.length - 1 && CONTAINER_NAMES.has(parts[idx].toLowerCase())) {
-        idx++
-      }
-      if (idx < parts.length) {
-        return `${normBase}/${parts.slice(0, idx + 1).join("/")}`
-      }
-      return normBase
-    }
-
-    // Si es una ruta absoluta en Windows (C:/...)
-    const winDriveMatch = /^[A-Za-z]:/i.exec(raw)
-    if (winDriveMatch) {
-      const drive = winDriveMatch[0]
-      const rest = raw.slice(2).replace(/^\/+/, "")
-      const parts = rest.split("/").filter(Boolean)
-      if (parts.length === 0) return drive
-      let idx = 0
-      while (idx < parts.length - 1) {
-        const pLower = parts[idx].toLowerCase()
-        if (CONTAINER_NAMES.has(pLower)) {
-          if ((pLower === "users" || pLower === "usuarios") && idx + 1 < parts.length - 1) {
-            idx += 2
-            continue
-          }
-          idx++
-          continue
-        }
-        break
-      }
-      return `${drive}/${parts.slice(0, idx + 1).join("/")}`
-    }
-
-    // Si es una ruta absoluta en Unix (/home/...)
-    if (raw.startsWith("/")) {
-      const parts = raw.split("/").filter(Boolean)
-      let idx = 0
-      while (idx < parts.length - 1) {
-        const pLower = parts[idx].toLowerCase()
-        if (CONTAINER_NAMES.has(pLower)) {
-          if ((pLower === "home" || pLower === "users") && idx + 1 < parts.length - 1) {
-            idx += 2
-            continue
-          }
-          idx++
-          continue
-        }
-        break
-      }
-      return `/${parts.slice(0, idx + 1).join("/")}`
-    }
-
-    // Ruta relativa
-    const parts = raw.split("/").filter(Boolean)
-    if (parts.length === 0) return normBase || undefined
-    let idx = 0
-    while (idx < parts.length - 1 && CONTAINER_NAMES.has(parts[idx].toLowerCase())) {
-      idx++
-    }
-    const projectRel = parts.slice(0, idx + 1).join("/")
-    return normBase ? `${normBase}/${projectRel}` : projectRel
-  }
-
-  // Detección reactiva de proyecto activo desde múltiples fuentes del editor
+  // The session's SDK directory is authoritative. Editor tabs can refer to source folders,
+  // external files or old chats; none of those silently changes the runtime's working folder.
   createEffect(() => {
-    if (manualProjectDir()) return
-    const dir = sdk().directory
-
-    // 1. Pestaña activa del editor
-    const activeTab = sessionTabs().active()
-    if (activeTab && activeTab !== "review") {
-      const folder = resolveProjectFolder(activeTab, dir)
-      if (folder && folder !== activeProjectDir()) {
-        setActiveProjectDir(folder)
-        return
-      }
-    }
-
-    // 2. Otras pestañas abiertas
-    const allTabs = sessionTabs().all()
-    for (const t of allTabs) {
-      if (t && t !== "review") {
-        const folder = resolveProjectFolder(t, dir)
-        if (folder && folder !== activeProjectDir()) {
-          setActiveProjectDir(folder)
-          return
-        }
-      }
-    }
-
-    // 3. Archivo en revisión
-    const reviewFile = view().review.file()
-    if (reviewFile) {
-      const folder = resolveProjectFolder(reviewFile, dir)
-      if (folder && folder !== activeProjectDir()) {
-        setActiveProjectDir(folder)
-        return
-      }
-    }
-
-    // 4. Directorio seleccionado en home
-    const homeDir = layout.home.selection()?.directory
-    if (homeDir) {
-      const folder = resolveProjectFolder(homeDir, dir)
-      if (folder && folder !== activeProjectDir()) {
-        setActiveProjectDir(folder)
-      }
-    }
+    sdk().directory
+    props.sessionID
+    setActiveProjectDir(undefined)
+    setManualProjectDir(undefined)
+    setActiveEditFile(undefined)
+    setRequestedCodePath(undefined)
   })
-
   // Lista de proyectos conocidos para cambio rápido con un clic
   const knownProjectDirs = createMemo(() => {
     const list: string[] = []
@@ -1206,69 +1091,35 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
     return list
   })
 
-  // Seguimiento en tiempo real de archivos modificados por cualquier modelo de IA
+  const sessionTools = createMemo(() => {
+    const id = props.sessionID
+    return liveViewSessionTools(id, id ? sync().data.message[id] ?? [] : [], sync().data.part)
+  })
+  const recentTools = createMemo(() => sessionTools().slice(-12).reverse())
+  const runningEditFile = createMemo(() => {
+    const part = sessionTools().findLast((part) => part.state.status === "running" && liveViewToolFiles(part).length > 0)
+    return part ? liveViewToolFiles(part)[0] : undefined
+  })
+  const observedTools = new Map<string, string>()
   createEffect(() => {
-    const diffs = sessionDiffs()
-    if (diffs.length > 0) {
-      const latest = diffs[diffs.length - 1].file
-      if (latest) {
-        const folder = resolveProjectFolder(latest, sdk().directory)
-        if (folder && !manualProjectDir() && folder !== activeProjectDir()) setActiveProjectDir(folder)
-      }
-      if (latest) {
-        setActiveEditFile(latest)
-        window.dispatchEvent(new CustomEvent("tiancode:preview-reload", { detail: { path: latest } }))
-      }
+    props.sessionID
+    observedTools.clear()
+  })
+  createEffect(() => {
+    const tools = sessionTools()
+    const known = new Set(tools.map((part) => part.id))
+    for (const id of observedTools.keys()) if (!known.has(id)) observedTools.delete(id)
+    for (const part of tools) {
+      const previous = observedTools.get(part.id)
+      const stamp = part.state.status === "completed" ? `${part.state.status}:${part.state.time.end}` : part.state.status
+      observedTools.set(part.id, stamp)
+      const files = liveViewToolFiles(part)
+      if (files.length > 0 && part.state.status !== "error") setActiveEditFile(files.at(-1))
+      // Hydrated history is useful in the activity list, but must not replay old reloads.
+      if (!previous || previous === stamp || part.state.status !== "completed" || files.length === 0) continue
+      window.dispatchEvent(new CustomEvent("tiancode:preview-reload", { detail: { path: files.at(-1) } }))
     }
   })
-
-  // Inspeccionar partes de ejecución de herramientas (write, edit, apply_patch, bash, etc.)
-  createEffect(() => {
-    const parts = sync().data.part
-    const dir = sdk().directory
-    for (const key of Object.keys(parts)) {
-      const list = parts[key]
-      if (!list) continue
-      for (const p of list) {
-        if ((p as any).type === "tool") {
-          const input = (p as any).input
-          const cwd = input?.cwd || input?.directory || input?.workdir
-          if (cwd && typeof cwd === "string") {
-            const folder = resolveProjectFolder(cwd, dir)
-            if (folder && !manualProjectDir() && folder !== activeProjectDir()) setActiveProjectDir(folder)
-          }
-          if (typeof input?.command === "string") {
-            const cdMatch = /(?:^|\s)cd\s+["']?([^"'\n\r&;]+)["']?/i.exec(input.command)
-            if (cdMatch?.[1]) {
-              const folder = resolveProjectFolder(cdMatch[1].trim(), dir)
-              if (folder && !manualProjectDir() && folder !== activeProjectDir()) setActiveProjectDir(folder)
-            }
-            if (/(?:run\s+dev|npm\s+start|bun\s+dev|vite|next\s+dev|cargo\s+run|python\s+.*\.py|flask|uvicorn|fastapi)/i.test(input.command)) {
-              retryReloadDevServer(4, 750)
-            }
-          }
-          const toolName = (p as any).tool
-          const fp = input?.filePath || input?.path || (p as any).metadata?.filepath
-          if (fp && typeof fp === "string") {
-            const folder = resolveProjectFolder(fp, dir)
-            if (folder && !manualProjectDir() && folder !== activeProjectDir()) setActiveProjectDir(folder)
-            if (toolName === "write" || toolName === "edit" || toolName === "apply_patch") {
-              let rel = fp
-              if (dir && rel.startsWith(dir)) {
-                rel = rel.slice(dir.length).replace(/^[/\\]+/, "")
-              }
-              rel = rel.replace(/\\/g, "/")
-              if (rel) {
-                setActiveEditFile(rel)
-                window.dispatchEvent(new CustomEvent("tiancode:preview-reload", { detail: { path: rel } }))
-              }
-            }
-          }
-        }
-      }
-    }
-  })
-
   // La selección se guarda en el layout, así que al volver a abrir el sandbox
   // se conserva el modo completo que eligió la persona.
   const activeTab = createMemo(() => view().liveView.tab())
@@ -1357,7 +1208,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
         if (!mounted || !isRecord(payload) || !("session" in payload)) return { received: false } as const
         const next = payload.session === null ? undefined : asSnapshotPayload(payload.session)
         if (payload.session !== null && !next) return { received: false } as const
-        setSnapshot((current) => mergeLiveSnapshot(current, next))
+        setSnapshot((current) => liveViewSnapshotForDirectory(mergeLiveSnapshot(current, next), worktree()))
         return { received: true, session: next } as const
       })
       .catch(() => ({ received: false } as const))
@@ -1435,13 +1286,16 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
       }
       const next = asSnapshotPayload(payload)
       if (!next) return
-      setSnapshot((current) => mergeLiveSnapshot(current, next))
+      setSnapshot((current) => liveViewSnapshotForDirectory(mergeLiveSnapshot(current, next), worktree()))
       stopFallbackPolling()
     })
     source.addEventListener("update", (event) => {
       if (!mounted || eventSource !== source) return
       const update = asLiveUpdatePayload(parseLiveEventPayload((event as MessageEvent).data))
       if (!update) return
+      const current = snapshot()
+      if (!current || current.session_id !== update.session_id) return
+      if (typeof update.ts === "number" && typeof current.updated_at === "number" && update.ts < current.updated_at) return
       latestEventAt = Date.now()
       setSnapshot((current) => applyLiveSnapshotUpdate(current, update))
       stopFallbackPolling()
@@ -1836,6 +1690,28 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
         />
       </div>
 
+      <Show when={recentTools().length > 0}>
+        <details class="shrink-0 border-b border-v2-border-border-muted text-11-regular" data-component="live-view-activity">
+          <summary class="cursor-pointer px-3 py-2 text-v2-text-text-muted">
+            {language.t("liveView.activity.title")}
+            <span class="ml-2 text-v2-text-text-base" role="status" aria-live="polite">
+              {language.t(`liveView.activity.${recentTools()[0].state.status}`)} · {recentTools()[0].tool}
+            </span>
+          </summary>
+          <ol class="max-h-40 overflow-auto px-3 pb-2" aria-label={language.t("liveView.activity.title")}>
+            <For each={recentTools()}>
+              {(part) => (
+                <li class="flex min-w-0 items-center gap-2 py-1" data-tool-status={part.state.status}>
+                  <span class="w-20 shrink-0 text-v2-text-text-muted">{language.t(`liveView.activity.${part.state.status}`)}</span>
+                  <span class="shrink-0 font-mono text-v2-text-text-base">{part.tool}</span>
+                  <span class="min-w-0 truncate text-v2-text-text-muted" title={liveViewToolDetail(part)}>{liveViewToolDetail(part)}</span>
+                </li>
+              )}
+            </For>
+          </ol>
+        </details>
+      </Show>
+
       <div
         id="live-view-content"
         role="tabpanel"
@@ -1856,7 +1732,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
               directory={effectiveProjectDir}
               targetUrl={browserTarget}
               autoStartKey={autoStartKey}
-              activeEditFile={activeEditFile}
+              activeEditFile={runningEditFile}
               externalDevice={() => ({ mode: viewportMode(), seq: deviceRequestSeq() })}
               onDeviceChange={(mode) => setViewportMode(mode)}
               onDirectoryChange={(dir) => {

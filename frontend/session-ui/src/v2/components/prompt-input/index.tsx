@@ -42,6 +42,7 @@ export type PromptInputV2Props = {
   borderUnderlay?: boolean
   class?: string
   modelControl?: JSX.Element
+  modeControl?: JSX.Element
   variantControlVisible?: boolean
   attachKeybind?: string[]
   attachShortcut?: string
@@ -52,7 +53,7 @@ export type PromptInputV2Props = {
   captureControl?: JSX.Element
   // Trae-style prompt optimization button
   optimizeControl?: JSX.Element
-  // Universal 2x speed / turbo mode button
+  // Provider acceleration control supplied by the host.
   speedControl?: JSX.Element
 }
 
@@ -180,6 +181,7 @@ export function PromptInputV2(props: PromptInputV2Props) {
               props.controller.onInput(prompt.map((part) => part.content).join(""), [...prompt, ...images], cursor)
             }}
             onKeyDown={(event) => {
+              if (props.disabled || props.readOnly) return
               if (props.controller.onKeyDown(event)) return
               if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
                 event.preventDefault()
@@ -235,6 +237,7 @@ export function PromptInputV2(props: PromptInputV2Props) {
                 />
               )}
             </Show>
+            {props.modeControl}
             <Show
               when={props.modelControl}
               fallback={
@@ -276,7 +279,7 @@ export function PromptInputV2(props: PromptInputV2Props) {
             <PromptInputV2SubmitButton
               mode={state.mode}
               stopping={view.submit.stopping()}
-              disabled={!props.controller.canSubmit()}
+              disabled={props.disabled || !props.controller.canSubmit()}
               sendLabel={i18n.t("ui.promptInput.send")}
               stopLabel={i18n.t("ui.promptInput.stop")}
               onSubmit={props.controller.submit}

@@ -1,4 +1,5 @@
 import { createSignal, For, onCleanup, onMount, Show } from "solid-js"
+import { createStore } from "solid-js/store"
 import { useLanguage } from "@/context/language"
 import { showToast } from "@/utils/toast"
 import { getSpeechRecognition, speechRecognitionLang, type SpeechRecognitionLike } from "@/utils/voices"
@@ -15,7 +16,7 @@ import {
   addRecentRecording,
   type AsrErrorCode,
 } from "@/utils/asr"
-import { ContextMenu } from "@tiancode-ai/ui/context-menu"
+import { MenuV2 } from "@tiancode-ai/ui/v2/menu-v2"
 import { AudioWaveform } from "@/components/visualization/audio-waveform"
 
 // Mic icon rendered inline; the icon set has no microphone.
@@ -51,11 +52,18 @@ export function VoiceDictationButton(props: {
   const [downloadPercent, setDownloadPercent] = createSignal(0)
   const [devices, setDevices] = createSignal<MediaDeviceInfo[]>([])
   const [selectedDeviceId, setSelectedDeviceIdState] = createSignal<string | null>(getSelectedAudioDeviceId())
+  const [recording, setRecording] = createStore({
+    hold: localStorage.getItem("tiancode.audio.hold_to_record") === "true",
+    pressed: false,
+    menuOpen: false,
+    initializing: false,
+  })
 
   let recognition: SpeechRecognitionLike | undefined
   let stopLocalRef: (() => void) | undefined
   let starting = false
   let disposed = false
+  let generation = 0
 
   const refreshDevices = async () => {
     try {
@@ -89,15 +97,26 @@ export function VoiceDictationButton(props: {
       setSelectedDeviceIdState(customEvent.detail?.deviceId ?? getSelectedAudioDeviceId())
     }
     window.addEventListener("tiancode:microphone-changed", micListener)
+    const releaseHold = () => {
+      if (recording.pressed) stop()
+    }
+    window.addEventListener("pointerup", releaseHold)
+    window.addEventListener("pointercancel", releaseHold)
+    window.addEventListener("blur", releaseHold)
 
     onCleanup(() => {
       cleanupListener()
       window.removeEventListener("tiancode:voice-dictation-toggle", toggleListener)
       window.removeEventListener("tiancode:microphone-changed", micListener)
+      window.removeEventListener("pointerup", releaseHold)
+      window.removeEventListener("pointercancel", releaseHold)
+      window.removeEventListener("blur", releaseHold)
     })
   })
 
   const stop = () => {
+    generation++
+    setRecording("pressed", false)
     recognition?.stop()
     recognition = undefined
     const stopLocal = stopLocalRef
@@ -143,9 +162,13 @@ export function VoiceDictationButton(props: {
   const start = async () => {
     if (starting || listening()) return
     starting = true
+    setRecording("initializing", true)
+    const request = ++generation
+    const cancelled = () => disposed || request !== generation
     try {
       // 0. Detectar dispositivos de audio en la PC
       await refreshDevices()
+      if (cancelled()) return
       if (devices().length === 0) {
         showToast({
           variant: "error",
@@ -159,6 +182,7 @@ export function VoiceDictationButton(props: {
       const api = asrAPI()
       if (api) {
         const status = await api.status().catch(() => undefined)
+        if (cancelled()) return
         if (!status) {
           reportError("engine-failed")
           return
@@ -186,17 +210,19 @@ export function VoiceDictationButton(props: {
             setPreparing(false)
             setDownloadPercent(0)
           }
-          if (disposed) return
+          if (cancelled()) return
         }
         try {
           stopLocalRef = await startLocalDictation({
             language: asrLanguageForLocale(language.locale()),
             deviceId: selectedDeviceId() || undefined,
             onResult: (text) => {
+              if (disposed) return
               props.onResult(text)
               stop()
             },
             onError: (code) => {
+              if (disposed) return
               reportError(code)
               stop()
             },
@@ -207,7 +233,7 @@ export function VoiceDictationButton(props: {
               })
             },
           })
-          if (disposed) {
+          if (cancelled()) {
             stop()
             return
           }
@@ -227,6 +253,7 @@ export function VoiceDictationButton(props: {
         rec.continuous = false
         rec.interimResults = false
         rec.onresult = (event) => {
+          if (disposed) return
           const transcript = event.results[0]?.[0]?.transcript
           if (transcript) {
             const processed = applyDictationDictionary(transcript.trim())
@@ -237,8 +264,7 @@ export function VoiceDictationButton(props: {
         }
         rec.onerror = (event) => {
           if (event.error !== "aborted" && event.error !== "no-speech") {
-            const desc =
-              event.error === "network" ? language.t("chat.mic.error.unavailable") : event.error
+            const desc = event.error === "network" ? language.t("chat.mic.error.unavailable") : event.error
             showToast({ variant: "error", title: language.t("chat.mic.error"), description: desc })
           }
           stop()
@@ -255,12 +281,14 @@ export function VoiceDictationButton(props: {
       showToast({ variant: "error", title: language.t("chat.mic.error") })
     } finally {
       starting = false
+      setRecording("initializing", false)
     }
   }
 
   const toggle = (e: MouseEvent) => {
     // Si fue clic izquierdo (botón 0)
     if (e.button !== 0) return
+    if (recording.hold) return
     if (listening()) {
       stop()
       return
@@ -274,15 +302,15 @@ export function VoiceDictationButton(props: {
       return downloadPercent() > 0
         ? language.t("chat.mic.downloadingPercent", { percent: downloadPercent() })
         : language.t("chat.mic.downloading")
+    if (recording.initializing) return language.t("chat.mic.preparing")
     const activeMic = selectedDeviceId() ? devices().find((d) => d.deviceId === selectedDeviceId())?.label : null
-    const hint = language.t("chat.mic.hint.rightClick")
+    const hint = recording.hold ? language.t("chat.mic.holdToRecord") : language.t("chat.mic.devices")
     return activeMic ? `${props.ariaLabel} [${activeMic}] ${hint}` : `${props.ariaLabel} ${hint}`
   }
 
   return (
-    <ContextMenu onOpenChange={(open) => open && void refreshDevices()}>
-      <ContextMenu.Trigger
-        as="button"
+    <div class="inline-flex items-center gap-0.5">
+      <button
         type="button"
         aria-label={tooltipTitle()}
         title={tooltipTitle()}
@@ -292,7 +320,36 @@ export function VoiceDictationButton(props: {
           [props.listeningClass ?? ""]: !!props.listeningClass && listening(),
         }}
         data-listening={listening() || undefined}
+        aria-busy={recording.initializing || preparing()}
         onClick={toggle}
+        aria-pressed={listening()}
+        onContextMenu={(event) => {
+          event.preventDefault()
+          setRecording("menuOpen", true)
+        }}
+        onPointerDown={(event) => {
+          if (!recording.hold || event.button !== 0) return
+          event.preventDefault()
+          event.currentTarget.setPointerCapture(event.pointerId)
+          setRecording("pressed", true)
+          void start()
+        }}
+        onPointerUp={() => recording.pressed && stop()}
+        onPointerCancel={() => recording.pressed && stop()}
+        onLostPointerCapture={() => recording.pressed && stop()}
+        onKeyDown={(event) => {
+          if (!recording.hold || ![" ", "Enter"].includes(event.key)) return
+          event.preventDefault()
+          if (event.repeat) return
+          setRecording("pressed", true)
+          void start()
+        }}
+        onKeyUp={(event) => {
+          if (!recording.hold || ![" ", "Enter"].includes(event.key)) return
+          event.preventDefault()
+          stop()
+        }}
+        onBlur={() => recording.pressed && stop()}
       >
         <Show
           when={listening()}
@@ -310,50 +367,79 @@ export function VoiceDictationButton(props: {
             <AudioWaveform active={true} barsCount={8} height={14} class="w-8 h-3.5" />
           </div>
         </Show>
-      </ContextMenu.Trigger>
-      <ContextMenu.Portal>
-        <ContextMenu.Content class="min-w-[220px] max-w-[340px] text-xs">
-          <div class="px-2 py-1 text-[11px] font-semibold text-v2-text-text-muted select-none">
-            {language.t("chat.mic.devices") ?? "Micrófonos de la PC"} ({devices().length})
-          </div>
-          <ContextMenu.Separator />
-          <ContextMenu.Item onSelect={() => handleSelectDevice(null)}>
-            <span class="flex-1 truncate">
-              {language.t("chat.mic.defaultDevice") ?? "Predeterminado del sistema"}
-            </span>
-            <Show when={selectedDeviceId() === null}>
-              <span class="ml-2 font-bold text-v2-text-text-accent">✓</span>
+      </button>
+      <MenuV2
+        open={recording.menuOpen}
+        onOpenChange={(open) => {
+          setRecording("menuOpen", open)
+          if (open) void refreshDevices()
+        }}
+      >
+        <MenuV2.Trigger
+          class="flex h-7 w-3 items-center justify-center rounded text-v2-icon-icon-muted hover:bg-v2-overlay-simple-overlay-hover"
+          aria-label={language.t("chat.mic.devices")}
+        >
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+            <path d="m2 4 3 3 3-3" stroke="currentColor" />
+          </svg>
+        </MenuV2.Trigger>
+        <MenuV2.Portal>
+          <MenuV2.Content class="min-w-[220px] max-w-[340px] text-xs">
+            <div class="px-2 py-1 text-[11px] font-semibold text-v2-text-text-muted select-none">
+              {language.t("chat.mic.devices") ?? "Micrófonos de la PC"} ({devices().length})
+            </div>
+            <MenuV2.Separator />
+            <MenuV2.Item disabled={!asrAPI()} onSelect={() => handleSelectDevice(null)}>
+              <span class="flex-1 truncate">
+                {language.t("chat.mic.defaultDevice") ?? "Predeterminado del sistema"}
+              </span>
+              <Show when={selectedDeviceId() === null}>
+                <span class="ml-2 font-bold text-v2-text-text-accent">✓</span>
+              </Show>
+            </MenuV2.Item>
+            <MenuV2.Separator />
+            <Show
+              when={devices().length > 0}
+              fallback={
+                <div class="px-2 py-1.5 text-[11px] text-v2-text-text-muted italic">
+                  {language.t("chat.mic.noDevices") ?? "No se detectaron micrófonos"}
+                </div>
+              }
+            >
+              <For each={devices()}>
+                {(device, index) => {
+                  const label = () => device.label || language.t("chat.mic.device.fallback", { index: index() + 1 })
+                  const isCurrent = () => selectedDeviceId() === device.deviceId
+                  return (
+                    <MenuV2.Item disabled={!asrAPI()} onSelect={() => handleSelectDevice(device.deviceId)}>
+                      <span class="flex-1 truncate" title={label()}>
+                        {label()}
+                      </span>
+                      <Show when={isCurrent()}>
+                        <span class="ml-2 font-bold text-v2-text-text-accent">✓</span>
+                      </Show>
+                    </MenuV2.Item>
+                  )
+                }}
+              </For>
             </Show>
-          </ContextMenu.Item>
-          <ContextMenu.Separator />
-          <Show
-            when={devices().length > 0}
-            fallback={
-              <div class="px-2 py-1.5 text-[11px] text-v2-text-text-muted italic">
-                {language.t("chat.mic.noDevices") ?? "No se detectaron micrófonos"}
-              </div>
-            }
-          >
-            <For each={devices()}>
-              {(device, index) => {
-                const label = () => device.label || language.t("chat.mic.device.fallback", { index: index() + 1 })
-                const isCurrent = () => selectedDeviceId() === device.deviceId
-                return (
-                  <ContextMenu.Item onSelect={() => handleSelectDevice(device.deviceId)}>
-                    <span class="flex-1 truncate" title={label()}>
-                      {label()}
-                    </span>
-                    <Show when={isCurrent()}>
-                      <span class="ml-2 font-bold text-v2-text-text-accent">✓</span>
-                    </Show>
-                  </ContextMenu.Item>
-                )
+            <Show when={!asrAPI()}>
+              <p class="px-2 py-1 text-v2-text-text-muted">{language.t("chat.mic.browserDevice")}</p>
+            </Show>
+            <MenuV2.Separator />
+            <MenuV2.CheckboxItem
+              checked={recording.hold}
+              onChange={(value) => {
+                stop()
+                setRecording("hold", value)
+                localStorage.setItem("tiancode.audio.hold_to_record", String(value))
               }}
-            </For>
-          </Show>
-        </ContextMenu.Content>
-      </ContextMenu.Portal>
-    </ContextMenu>
+            >
+              {language.t("chat.mic.holdToRecord")}
+            </MenuV2.CheckboxItem>
+          </MenuV2.Content>
+        </MenuV2.Portal>
+      </MenuV2>
+    </div>
   )
 }
-

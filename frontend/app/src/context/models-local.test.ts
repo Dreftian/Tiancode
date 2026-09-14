@@ -1,50 +1,12 @@
 import { describe, expect, test } from "bun:test"
-import { forgetModelKeyVariants, mergeConfigLocalModels, pruneForgottenFromConfig } from "./models-local"
-
-const localProvider = (models: Record<string, unknown>) => ({
-  id: "local",
-  name: "Tiancode Native / GGUF",
-  source: "custom" as const,
-  env: [] as string[],
-  options: { baseURL: "http://127.0.0.1:58282/v1" },
-  models,
-})
-
-const fallback = localProvider({})
-
-describe("mergeConfigLocalModels", () => {
-  test("shows a freshly activated model before the provider catalogue has it", () => {
-    // The window this merge exists for: activate wrote the config, the provider
-    // refetch has not landed, and the catalogue has no local provider at all.
-    const merged = mergeConfigLocalModels(undefined, { "qwen2.5-coder-7b": { name: "qwen2.5-coder-7b" } }, fallback)
-
-    expect(merged?.models).toEqual({
-      "qwen2.5-coder-7b": { id: "qwen2.5-coder-7b", name: "qwen2.5-coder-7b", status: "active" },
-    })
-  })
-
-  test("keeps the catalogue entry for a model both sides know", () => {
-    const catalogue = localProvider({ "qwen2.5-coder-7b": { id: "qwen2.5-coder-7b", name: "Qwen 2.5 Coder 7B" } })
-
-    const merged = mergeConfigLocalModels(catalogue, { "qwen2.5-coder-7b": { name: "qwen2.5-coder-7b" } }, fallback)
-
-    // The catalogue checked the file is on disk and carries the real metadata.
-    expect(merged?.models).toEqual({ "qwen2.5-coder-7b": { id: "qwen2.5-coder-7b", name: "Qwen 2.5 Coder 7B" } })
-  })
-
-  test("does not list the same file twice when the two sides disagree about .gguf", () => {
-    const catalogue = localProvider({ "qwen2.5-coder-7b.gguf": { id: "qwen2.5-coder-7b", name: "Qwen" } })
-
-    const merged = mergeConfigLocalModels(catalogue, { "qwen2.5-coder-7b": { name: "qwen2.5-coder-7b" } }, fallback)
-
-    expect(Object.keys(merged?.models ?? {})).toEqual(["qwen2.5-coder-7b.gguf"])
-  })
-
-  test("invents no local provider when the config declares no local models", () => {
-    expect(mergeConfigLocalModels(undefined, {}, fallback)).toBeUndefined()
-    expect(mergeConfigLocalModels(undefined, undefined, fallback)).toBeUndefined()
-  })
-})
+import { createStore } from "solid-js/store"
+import {
+  availableModelProviders,
+  forgetModelKeyVariants,
+  pruneForgottenFromConfig,
+  reconcileForgottenFromConfig,
+  type ConfigProviders,
+} from "./models-local"
 
 describe("pruneForgottenFromConfig", () => {
   const providers = {
@@ -62,8 +24,7 @@ describe("pruneForgottenFromConfig", () => {
 
   test("drops every key the forget removed and leaves the survivors alone", () => {
     // This is the defect: without it the cached config kept the deleted model and
-    // mergeConfigLocalModels put it straight back into "Modelos" for the rest of
-    // the session, while the toast said it was gone from Providers and Models.
+    // provider settings kept it after the toast said it was gone.
     const next = pruneForgottenFromConfig({
       providers,
       forgotten: {
@@ -134,5 +95,64 @@ describe("forgetModelKeyVariants", () => {
   test("covers both keys activateDownloadedModel writes", () => {
     expect(forgetModelKeyVariants("model-q8_0.gguf").sort()).toEqual(["model-q8_0", "model-q8_0.gguf"].sort())
     expect(forgetModelKeyVariants("model-q8_0").sort()).toEqual(["model-q8_0", "model-q8_0.gguf"].sort())
+  })
+})
+
+describe("validated model inventory", () => {
+  test("does not resurrect a removed local file from an empty fallback provider", () => {
+    expect(availableModelProviders([{ id: "local", models: {} }], [])).toEqual([])
+    expect(availableModelProviders([{ id: "local", models: {} }], [{ id: "local", models: { removed: {} } }])).toEqual(
+      [],
+    )
+  })
+
+  test("shows validated GGUF files before the local engine is started", () => {
+    const local = { id: "local", models: { "qwen.gguf": { name: "Qwen" } } }
+    expect(availableModelProviders([local], [])).toEqual([local])
+  })
+
+  test("uses the refreshed local inventory and excludes disconnected engines", () => {
+    const stale = { id: "local", models: { removed: {} } }
+    const live = { id: "local", models: { survivor: {} } }
+    expect(availableModelProviders([live, { id: "ollama", models: { offline: {} } }], [stale])).toEqual([live])
+  })
+})
+
+describe("Solid store deletion regression", () => {
+  test("removes the last provider instead of shallow-merging it back", () => {
+    const [store, setStore] = createStore<{ provider: ConfigProviders }>({
+      provider: {
+        local: { models: { removed: {} } },
+        anthropic: { options: { apiKey: "keep-existing-key" }, models: { claude: {} } },
+      },
+    })
+    setStore(
+      "provider",
+      reconcileForgottenFromConfig({
+        providers: store.provider,
+        forgotten: { providers: ["local"], models: ["local/removed"] },
+        file: "removed.gguf",
+      }),
+    )
+    expect(Object.keys(store.provider)).toEqual(["anthropic"])
+    expect(store.provider.anthropic?.options).toEqual({ apiKey: "keep-existing-key" })
+  })
+
+  test("removes one model while preserving the provider and unrelated settings", () => {
+    const [store, setStore] = createStore<{ provider: ConfigProviders }>({
+      provider: {
+        local: { options: { baseURL: "http://127.0.0.1:58282/v1" }, models: { removed: {}, survivor: {} } },
+      },
+    })
+    setStore(
+      "provider",
+      reconcileForgottenFromConfig({
+        providers: store.provider,
+        forgotten: { providers: [], models: ["local/removed"] },
+        file: "removed.gguf",
+      }),
+    )
+    expect(Object.keys(store.provider.local?.models ?? {})).toEqual(["survivor"])
+    expect(store.provider.local?.options).toEqual({ baseURL: "http://127.0.0.1:58282/v1" })
   })
 })

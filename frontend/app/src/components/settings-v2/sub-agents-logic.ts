@@ -155,8 +155,7 @@ export function effectivePermission(
   pattern: string,
 ): string | undefined {
   return rules.findLast(
-    (rule) =>
-      !!rule && wildcardMatch(permission, rule.permission ?? "") && wildcardMatch(pattern, rule.pattern ?? ""),
+    (rule) => !!rule && wildcardMatch(permission, rule.permission ?? "") && wildcardMatch(pattern, rule.pattern ?? ""),
   )?.action
 }
 
@@ -240,6 +239,7 @@ export interface MergeOptions {
 export function mergePanelAgents(options: MergeOptions): PanelAgent[] {
   const { server, meta, config = {}, isEnabled, fallback, toolPermissions = [] } = options
   const byName = new Map<string, AgentSource>()
+  const hidden = new Set(server.filter((agent) => agent.hidden).map((agent) => agent.name))
 
   for (const agent of server) {
     if (!agent?.name || agent.hidden === true) continue
@@ -247,12 +247,12 @@ export function mergePanelAgents(options: MergeOptions): PanelAgent[] {
   }
   // Built-ins and user agents that are switched off are absent from the server list; keep them
   // visible (as disabled) so the switch that re-enables them still exists.
-  for (const name of Object.keys(meta)) {
-    if (!byName.has(name)) byName.set(name, { name, native: true, description: meta[name]?.description })
-  }
   for (const [name, entry] of Object.entries(config)) {
-    if (byName.has(name)) continue
-    byName.set(name, { name, native: false, description: entry?.description, mode: entry?.mode })
+    if (byName.has(name) || hidden.has(name)) continue
+    // A presentation entry does not prove an agent exists on the connected server.
+    // Only disabled entries need reconstruction because the server omits them.
+    if (!entry?.disable && !entry?.disabled) continue
+    byName.set(name, { name, native: !!meta[name], description: entry?.description, mode: entry?.mode ?? "subagent" })
   }
   for (const name of INTERNAL_AGENTS) byName.delete(name)
 

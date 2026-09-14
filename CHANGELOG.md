@@ -4,6 +4,23 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.52] — 2026-09-14
+
+Catálogo de modelos sin referencias eliminadas, 14 especialistas compartidos entre motores,
+modos de permisos por sesión, Rápido nativo para modelos compatibles, flujo Ultracode,
+selector de micrófono y grabación mantenida, y protección del borrador al mejorar prompts.
+
+La vista previa sigue herramientas de la sesión activa y conserva la carpeta del proyecto.
+El control nativo comprueba proceso/ventana antes de introducir acciones. El actualizador
+trata los fallos de descarga como errores y espera al respaldo antes de instalar.
+
+La web documenta las capacidades y sus límites, corrige recursos y persistencia del idioma,
+y pausa la animación cuando no es visible. La publicación valida los cuatro activos antes
+de hacer visible la nueva versión. Se mantienen claves, sesiones y configuración existentes.
+
+Detalles: [notas de versión](tools/releases/v1.0.52.md) e
+[informe de auditoría y validación](tools/releases/audit-1.0.52.md).
+
 ## [1.0.51] — 2026-09-13
 ### Los modelos locales nunca pudieron usar herramientas, y el optimizador se cancelaba solo
 

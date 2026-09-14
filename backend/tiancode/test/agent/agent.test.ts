@@ -5,6 +5,7 @@ import path from "path"
 import { disposeAllInstances, TestInstance } from "../fixture/fixture"
 import { testEffect } from "../lib/effect"
 import { Agent } from "../../src/agent/agent"
+import { SPECIALISTS, SPECIALIST_ALIASES } from "@tiancode-ai/core/plugin/agent-specialists"
 import { Auth } from "../../src/auth"
 import { Config } from "../../src/config/config"
 import { RuntimeFlags } from "../../src/effect/runtime-flags"
@@ -57,6 +58,54 @@ it.instance("returns default native agents when no config", () =>
     expect(names).toContain("title")
     expect(names).toContain("summary")
   }),
+)
+
+it.instance("ships focused specialists with executable methods and hidden compatibility aliases", () =>
+  Effect.gen(function* () {
+    const service = yield* Agent.Service
+    const agents = yield* service.list()
+    const visible = agents.filter((agent) => !agent.hidden)
+    expect(visible).toHaveLength(19)
+    for (const specialist of SPECIALISTS) {
+      const agent = yield* service.get(specialist.name)
+      expect(agent?.mode).toBe("subagent")
+      expect(agent?.native).toBe(true)
+      expect(agent?.prompt).toContain(specialist.prompt)
+      expect(evalPerm(agent, "read")).toBe("allow")
+    }
+    expect(visible.map((agent) => agent.name)).toContain("marketing-strategist")
+    expect(visible.map((agent) => agent.name)).toContain("reverse-engineer")
+    for (const [alias, target] of Object.entries(SPECIALIST_ALIASES)) {
+      const legacy = yield* service.get(alias)
+      const current = yield* service.get(target)
+      expect(legacy?.hidden).toBe(true)
+      expect(legacy?.prompt).toBe(current?.prompt)
+      expect(visible.map((agent) => agent.name)).not.toContain(alias)
+    }
+  }),
+)
+
+it.instance(
+  "preserves explicitly customized legacy specialists",
+  () =>
+    Effect.gen(function* () {
+      const service = yield* Agent.Service
+      const agent = yield* service.get("rust-systems-engineer")
+      expect(agent?.prompt).toBe("Keep my personal instructions.")
+      expect(agent?.hidden).toBe(false)
+      expect(String(agent?.model?.modelID)).toBe("custom-model")
+    }),
+  {
+    config: {
+      agent: {
+        "rust-systems-engineer": {
+          prompt: "Keep my personal instructions.",
+          hidden: false,
+          model: "openai/custom-model",
+        },
+      },
+    },
+  },
 )
 
 it.instance("build agent has correct default properties", () =>

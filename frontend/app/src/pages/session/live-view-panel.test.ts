@@ -6,6 +6,7 @@ import {
   filterPreviewFilesByScope,
   findDevServerUrl,
   liveViewContentForTab,
+  liveViewSnapshotForDirectory,
   managedUrlForDirectory,
   mergePreviewWorkspaceFiles,
   mergeLiveSnapshot,
@@ -19,6 +20,12 @@ import {
 } from "./live-view-panel"
 
 describe("liveViewContentForTab", () => {
+  test("rejects a shared live server snapshot from another workspace", () => {
+    const snapshot = { session_id: "live-session", root: "C:\\one", preview_url: "http://localhost:1234" }
+    expect(liveViewSnapshotForDirectory(snapshot, "C:/ONE/")).toBe(snapshot)
+    expect(liveViewSnapshotForDirectory(snapshot, "C:/two")).toBeUndefined()
+    expect(liveViewSnapshotForDirectory({ ...snapshot, root: "/one" }, "/ONE")).toBeUndefined()
+  })
   test("muestra Preview y Código como modos completos mutuamente excluyentes", () => {
     expect(liveViewContentForTab("preview")).toBe("preview")
     expect(liveViewContentForTab("code")).toBe("code")
@@ -217,6 +224,26 @@ describe("workspace Code fallback", () => {
 })
 
 describe("applyLiveSnapshotUpdate", () => {
+  test("does not show the previous file's source while the next file is loading", () => {
+    expect(applyLiveSnapshotUpdate({ session_id: "one", current_file: "old.ts", current_code: "old content" }, {
+      session_id: "one", type: "current_file", data: { rel: "new.ts" },
+    })).toMatchObject({ current_file: "new.ts", current_code: null })
+  })
+
+  test("ignores late events and bounds long-running console history", () => {
+    const snapshot = { session_id: "one", updated_at: 5, logs: Array.from({ length: 2000 }, () => ({ line: "old" })) }
+    expect(applyLiveSnapshotUpdate(snapshot, { session_id: "one", type: "log", ts: 4, data: { line: "late" } })).toBe(snapshot)
+    const next = applyLiveSnapshotUpdate(snapshot, { session_id: "one", type: "log", ts: 6, data: { line: "new" } })
+    expect(next?.logs).toHaveLength(2000)
+    expect(next?.logs?.at(-1)?.line).toBe("new")
+  })
+
+  test("removing the selected file clears its displayed source", () => {
+    expect(applyLiveSnapshotUpdate({ session_id: "one", current_file: "old.ts", current_code: "old content" }, {
+      session_id: "one", type: "file_removed", data: { rel: "old.ts" },
+    })).toMatchObject({ current_file: null, current_code: null })
+  })
+
   const snapshot: SnapshotPayload = {
     session_id: "session-a",
     updated_at: 1,
