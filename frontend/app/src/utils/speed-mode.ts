@@ -7,6 +7,16 @@ const SPEED_MODE_KEY = "tiancode.chat.native_fast"
 // The backend consumes this marker only for supported Anthropic API models.
 export const SPEED_MODE_2X_DIRECTIVE = "[TIANCODE_NATIVE_FAST]"
 
+export function speedModeDirective(active: boolean, native: boolean) {
+  if (!active) return undefined
+  return [
+    "[TIANCODE FAST WORKFLOW] Work directly on the requested task. Keep explanations concise, batch independent searches and tool calls when supported, reuse verified context and avoid redundant work. Preserve the requested scope, reasoning effort, permissions, required tests and correctness. Never skip necessary validation or claim unperformed work.",
+    native ? SPEED_MODE_2X_DIRECTIVE : undefined,
+  ]
+    .filter(Boolean)
+    .join("\n")
+}
+
 export const ULTRACODE_DIRECTIVE = `[TIANCODE ULTRACODE WORKFLOW]
 For substantive tasks, inspect the relevant context, make a brief plan, implement in focused steps, and verify the result against the user's requirements. Adapt this workflow to task complexity; simple questions do not need a plan. Use available subagents for independent research or review when useful. Report meaningful progress and concrete validation, and continue until the requested outcome is complete or an actual blocker requires user input. Respect the user's permission mode. Never claim tools, tests, or verification you did not perform.`
 

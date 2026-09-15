@@ -207,9 +207,13 @@ export function PromptInputV2(props: PromptInputV2Props) {
           </Show>
         </div>
 
-        <div class="flex h-11 items-center justify-between px-2">
+        <div
+          data-slot="prompt-controls"
+          class="flex min-h-11 flex-wrap items-center justify-between gap-x-2 gap-y-1 px-2 py-2"
+        >
           <div
-            class="flex min-w-0 items-center gap-1"
+            data-slot="prompt-selection-controls"
+            class="flex min-w-0 flex-[1_1_480px] flex-wrap items-center gap-1"
             aria-hidden={state.mode === "shell"}
             inert={state.mode === "shell" ? true : undefined}
             style={buttons()}
@@ -228,12 +232,12 @@ export function PromptInputV2(props: PromptInputV2Props) {
               onContext={props.controller.openContext}
               onShell={props.controller.openShell}
             />
-            <Show when={view.agent} keyed>
+            <Show when={view.agent}>
               {(control) => (
                 <PromptInputV2ConfiguredSelect
                   title={i18n.t("ui.promptInput.chooseAgent")}
                   keybind={["Mod", "."]}
-                  control={control}
+                  control={control()}
                 />
               )}
             </Show>
@@ -267,7 +271,7 @@ export function PromptInputV2(props: PromptInputV2Props) {
               )}
             </Show>
           </div>
-          <div class="flex shrink-0 items-center gap-1.5 ml-auto">
+          <div data-slot="prompt-action-controls" class="flex shrink-0 items-center gap-1.5 ml-auto">
             <Show when={state.mode === "normal"}>
               <div class="flex items-center gap-1" style={buttons()}>
                 {props.captureControl}
@@ -596,7 +600,7 @@ export function PromptInputV2Select(props: {
           as={ButtonV2}
           variant="ghost-muted"
           size="normal"
-          class={`max-w-[220px] justify-start ![font-weight:440] ${props.class ?? ""}`}
+          class={`shrink-0 max-w-[220px] justify-start whitespace-nowrap ![font-weight:440] ${props.class ?? ""}`}
           aria-label={props.title}
         >
           {props.currentIcon}

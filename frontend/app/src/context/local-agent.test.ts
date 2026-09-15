@@ -1,5 +1,18 @@
 import { describe, expect, test } from "bun:test"
-import { hasCustomAgent, resolveAgent } from "./local-agent"
+import { hasCustomAgent, primaryAgents, resolveAgent } from "./local-agent"
+
+test("primary selector contains only Build, Plan and Web App without deleting custom agents", () => {
+  const agents = [
+    { name: "dreitz" },
+    { name: "webapp" },
+    { name: "fullstack-coder", mode: "subagent" },
+    { name: "plan" },
+    { name: "build" },
+  ]
+  expect(primaryAgents(agents).map((agent) => agent.name)).toEqual(["build", "plan", "webapp"])
+  expect(agents).toHaveLength(5)
+  expect(primaryAgents([{ name: "plan", hidden: true }])).toEqual([])
+})
 
 describe("hasCustomAgent", () => {
   test("detects explicitly custom agents", () => {

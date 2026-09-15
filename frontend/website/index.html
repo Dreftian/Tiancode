@@ -4,18 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tiancode — Inteligencia Agéntica Autónoma para Desarrolladores</title>
-  <meta name="description" content="Tiancode v1.0.52: Estudio de desarrollo local-first para Windows con enjambres de agentes autónomos, Conexiones Gateway (WhatsApp/Telegram/Discord/Slack), resiliencia OpenClaw, memoria Hermes Agent, motor OpenDesign y Sandbox Keep-Alive.">
+  <meta name="description" content="Tiancode v1.0.53: Estudio de desarrollo local-first para Windows con enjambres de agentes autónomos, Conexiones Gateway (WhatsApp/Telegram/Discord/Slack), resiliencia OpenClaw, memoria Hermes Agent, motor OpenDesign y Sandbox Keep-Alive.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Tiancode">
   <meta property="og:title" content="Tiancode — Inteligencia Agéntica Autónoma para Desarrolladores">
-  <meta property="og:description" content="Tiancode v1.0.52: Estudio de desarrollo local-first para Windows con enjambres de agentes autónomos, Conexiones Gateway (WhatsApp/Telegram/Discord/Slack), resiliencia OpenClaw, memoria Hermes Agent, motor OpenDesign y Sandbox Keep-Alive.">
+  <meta property="og:description" content="Tiancode v1.0.53: Estudio de desarrollo local-first para Windows con enjambres de agentes autónomos, Conexiones Gateway (WhatsApp/Telegram/Discord/Slack), resiliencia OpenClaw, memoria Hermes Agent, motor OpenDesign y Sandbox Keep-Alive.">
   <meta property="og:url" content="https://tiancode.vercel.app/">
   <meta property="og:image" content="https://tiancode.vercel.app/img/og-image.png">
   <meta property="og:locale" content="es_ES">
   <meta property="og:locale:alternate" content="en_US">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Tiancode — Inteligencia Agéntica Autónoma para Desarrolladores">
-  <meta name="twitter:description" content="Tiancode v1.0.52: Estudio de desarrollo local-first para Windows con enjambres de agentes autónomos, Conexiones Gateway (WhatsApp/Telegram/Discord/Slack), resiliencia OpenClaw, memoria Hermes Agent, motor OpenDesign y Sandbox Keep-Alive.">
+  <meta name="twitter:description" content="Tiancode v1.0.53: Estudio de desarrollo local-first para Windows con enjambres de agentes autónomos, Conexiones Gateway (WhatsApp/Telegram/Discord/Slack), resiliencia OpenClaw, memoria Hermes Agent, motor OpenDesign y Sandbox Keep-Alive.">
   <meta name="twitter:image" content="https://tiancode.vercel.app/img/og-image.png">
   <link rel="canonical" href="https://tiancode.vercel.app/">
   <link rel="icon" type="image/png" href="img/favicon.png">
@@ -45,10 +45,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/tokens.css?v=1.0.52-r2">
-  <link rel="stylesheet" href="css/layout.css?v=1.0.52-r2">
-  <link rel="stylesheet" href="css/components.css?v=1.0.52-r2">
-  <link rel="stylesheet" href="css/pages.css?v=1.0.52-r2">
+  <link rel="stylesheet" href="css/tokens.css?v=1.0.53">
+  <link rel="stylesheet" href="css/layout.css?v=1.0.53">
+  <link rel="stylesheet" href="css/components.css?v=1.0.53">
+  <link rel="stylesheet" href="css/pages.css?v=1.0.53">
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -59,7 +59,7 @@
     "operatingSystem": "Windows 10/11 (64-bit)",
     "url": "https://tiancode.vercel.app/",
     "downloadUrl": "https://github.com/Dreftian/Tiancode/releases/latest/download/Tiancode.exe",
-    "softwareVersion": "1.0.52",
+    "softwareVersion": "1.0.53",
     "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
     "sameAs": ["https://github.com/Dreftian/Tiancode"]
   }
@@ -130,7 +130,8 @@
       transform: rotate(360deg);
     }
     @media (max-width: 768px) {
-      .cosmic-hero-stage { min-height: 65vh; }
+      .cosmic-hero-stage { min-height: clamp(240px, 35vh, 360px); }
+      .hero-editorial { padding: 40px 0 48px; }
     }
   </style>
 
@@ -164,7 +165,7 @@
       <span class="loader-pct">0%</span>
     </div>
 
-    <p class="loader-text" data-i18n="loader.text">Cargando Tiancode v1.0.52…</p>
+    <p class="loader-text" data-i18n="loader.text">Cargando Tiancode v1.0.53…</p>
   </div>
 
   <noscript>
@@ -242,7 +243,7 @@
               <a href="recursos/guia.html" data-i18n="nav.m1">Guía de inicio</a>
               <a href="recursos/docs.html" data-i18n="nav.m2">Documentación</a>
               <a href="recursos/faq.html" data-i18n="nav.m3">Preguntas frecuentes</a>
-              <a href="recursos/novedades.html" data-i18n="nav.m4">Novedades v1.0.52</a>
+              <a href="recursos/novedades.html" data-i18n="nav.m4">Novedades v1.0.53</a>
               <a href="recursos/portable.html" data-i18n="nav.m5">Modo portable</a>
               <a href="recursos/descargas.html" data-i18n="nav.m6">Centro de descargas</a>
               <span class="nav-dropdown-sep" aria-hidden="true"></span>
@@ -259,7 +260,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
           </svg>
-          <span data-i18n="nav.downloadPill">Descargar v1.0.52</span>
+          <span data-i18n="nav.downloadPill">Descargar v1.0.53</span>
         </a>
         <a href="https://github.com/Dreftian/Tiancode" class="icon-btn" aria-label="GitHub Repository" target="_blank" rel="noopener noreferrer">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -316,19 +317,19 @@
           <div class="announcement-eyebrow reveal">
             <span class="eyebrow-dot" aria-hidden="true"></span>
             <span class="eyebrow-pill" data-i18n="hero.eyebrowPill">COMUNICADO DE PRODUCTO</span>
-            <span data-i18n="hero.eyebrowMeta">SEPTIEMBRE 2026 · TIANCODE 1.0.52</span>
+            <span data-i18n="hero.eyebrowMeta">SEPTIEMBRE 2026 · TIANCODE 1.0.53</span>
           </div>
 
           <h1 class="announcement-title reveal" data-i18n="hero.title">Tu proyecto, tus herramientas. Un flujo de trabajo más claro.</h1>
 
-          <p class="announcement-lead reveal" data-i18n="hero.lead">Tiancode 1.0.52 reúne modelos locales, especialistas, dictado y vista previa en un escritorio para Windows. Revisa cada acción, mejora tus instrucciones y conserva tus proyectos y configuración al actualizar.</p>
+          <p class="announcement-lead reveal" data-i18n="hero.lead">Tiancode 1.0.53 adapta el chat al espacio disponible, reúne Build, Plan y Web App y ofrece Rápido en todos los modelos. Trabaja con especialistas, dictado y vista previa, y conserva tus proyectos y configuración al actualizar.</p>
 
           <div class="announcement-actions reveal">
             <a href="https://github.com/Dreftian/Tiancode/releases/latest/download/Tiancode.exe" class="btn btn-primary btn-lg">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
               </svg>
-              <span data-i18n="hero.ctaDownload">Descargar Tiancode.exe (v1.0.52)</span>
+              <span data-i18n="hero.ctaDownload">Descargar Tiancode.exe (v1.0.53)</span>
             </a>
             <a href="https://github.com/Dreftian/Tiancode/releases/latest/download/Tiancode-portable.exe" class="btn btn-secondary btn-lg">
               <span data-i18n="hero.ctaPortable">Descargar Portable (.exe)</span>
@@ -343,7 +344,7 @@
           <div class="announcement-meta reveal">
             <div class="meta-item">
               <span class="meta-label" data-i18n="hero.metaReleaseLabel">Lanzamiento</span>
-              <span class="meta-value" data-i18n="hero.metaReleaseVal">Septiembre 2026 · v1.0.52</span>
+              <span class="meta-value" data-i18n="hero.metaReleaseVal">Septiembre 2026 · v1.0.53</span>
               <span class="meta-value-sub" data-i18n="hero.metaReleaseSub">Canal de Producción Estable</span>
             </div>
             <div class="meta-item">
@@ -353,8 +354,8 @@
             </div>
             <div class="meta-item">
               <span class="meta-label" data-i18n="hero.metaArchLabel">Arquitectura del Núcleo</span>
-              <span class="meta-value" data-i18n="hero.metaArchVal">Local-First · Effect V2 · SQLite</span>
-              <span class="meta-value-sub" data-i18n="hero.metaArchSub">Sesiones Durables &amp; Swarm de Agentes</span>
+              <span class="meta-value" data-i18n="hero.metaArchVal">Local-First · TypeScript · SQLite</span>
+              <span class="meta-value-sub" data-i18n="hero.metaArchSub">Sesiones locales y 14 especialistas</span>
             </div>
             <div class="meta-item">
               <span class="meta-label" data-i18n="hero.metaPrivacyLabel">Privacidad &amp; Ejecución</span>
@@ -781,7 +782,7 @@
     <section id="benchmarks" class="section">
       <div class="container">
         <div class="section-head reveal">
-          <span class="eyebrow" data-i18n="benchmarks.eyebrow">Versión 1.0.52</span>
+          <span class="eyebrow" data-i18n="benchmarks.eyebrow">Versión 1.0.53</span>
           <h2 class="section-title" data-i18n="benchmarks.title">Qué cambia en esta versión</h2>
           <p class="section-sub" data-i18n="benchmarks.sub">Funciones conectadas al trabajo real, con correcciones y pruebas disponibles en el repositorio.</p>
         </div>
@@ -799,7 +800,7 @@
             <div class="benchmark-card">
               <div class="benchmark-headline">
                 <h3 class="benchmark-title" id="eval-title">Modelos y especialistas</h3>
-                <span class="benchmark-unit" id="eval-unit">1.0.52</span>
+                <span class="benchmark-unit" id="eval-unit">1.0.53</span>
               </div>
               <div class="eval-bars-list" id="eval-bars-container">
                 <!-- Se rellena dinámicamente con js/charts.js -->
@@ -830,19 +831,15 @@
       <div class="container">
         <div class="section-head reveal">
           <span class="eyebrow" data-i18n="architecture.eyebrow">Ingeniería</span>
-          <h2 class="section-title" data-i18n="architecture.title">Arquitectura Concurrente y Tolerante a Fallos</h2>
+          <h2 class="section-title" data-i18n="architecture.title">Historial local y ejecución coordinada</h2>
           <p class="section-sub" data-i18n="architecture.sub">Un monorepo en TypeScript puro impulsado por Bun, Effect-TS, SolidJS y SQLite.</p>
         </div>
 
         <div class="arch-grid reveal">
           <div class="arch-text">
-            <h3 data-i18n="arch.blockTitle">Diseñado para Resiliencia a Escala</h3>
-            <p data-i18n="arch.blockP1">
-              Los asistentes de programación tradicionales almacenan el estado de ejecución en memoria, volviéndolos propensos a fallos silenciosos, prompts perdidos y estados irrecuperables cuando los procesos finalizan. Tiancode implementa un coordinador <code>SessionExecution</code> global al proceso con límites estrictos.
-            </p>
-            <p data-i18n="arch.blockP2">
-              La admisión durable de prompts persiste cada fila de entrada en SQLite antes de iniciar cualquier turno del modelo. Los prompts guían de forma segura en los límites de turno, mientras que los prompts en cola esperan a que la sesión esté inactiva, garantizando bucles agénticos predecibles y reproducibles.
-            </p>
+            <h3 data-i18n="arch.blockTitle">Persistencia con límites claros</h3>
+            <p data-i18n="arch.blockP1">Tiancode Desktop conserva sus conversaciones y configuración en el equipo y utiliza el servidor V1. El repositorio también incluye un núcleo V2 en desarrollo, con un coordinador de sesiones y admisión durable de entradas.</p>
+            <p data-i18n="arch.blockP2">En V2, las entradas se guardan en SQLite antes de activar el coordinador. Las instrucciones nuevas se incorporan en límites seguros de turno y las entradas en cola esperan a que la sesión esté disponible. Tras un fallo del proceso, el trabajo del proveedor requiere una continuación explícita.</p>
             <div style="display:flex; gap:10px; margin-top:8px;">
               <span class="bento-tag" data-i18n="arch.tag1">Núcleo Effect-TS</span>
               <span class="bento-tag" data-i18n="arch.tag2">Drizzle SQLite</span>
@@ -851,7 +848,7 @@
           </div>
 
           <div class="arch-code-box">
-            <pre><code>// backend/core/session-v2.ts
+            <pre><code>// V2: esquema conceptual / conceptual example
 export const admitPrompt = (sessionID: SessionID, input: UserPrompt) =>
   Effect.gen(function* () {
     const store = yield* SessionStore;
@@ -1003,12 +1000,10 @@ export const admitPrompt = (sessionID: SessionID, input: UserPrompt) =>
 
           <div class="faq-item">
             <button class="faq-trigger faq-q" type="button" aria-expanded="false">
-              <span>¿Cómo funciona la persistencia y recuperación post-crash en la V2?</span>
+              <span data-i18n="faq.sessionRecoveryQuestion">¿Cómo se conservan las sesiones y qué ocurre tras una interrupción?</span>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="faq-content">
-              El motor Session Core V2 registra de manera transaccional cada prompt en una base de datos local SQLite antes de iniciar cualquier llamada al modelo. Si el proceso se detiene o se reinicia el equipo, el coordinador se reanuda en el límite exacto de la última transacción duradera, sin perder mensajes ni duplicar acciones de herramientas.
-            </div>
+            <div class="faq-content" data-i18n="faq.sessionRecoveryAnswer">El historial y la configuración se guardan localmente. El escritorio utiliza V1; el núcleo V2 del repositorio continúa en desarrollo. V2 admite entradas de forma durable, pero no reintenta automáticamente el trabajo del proveedor tras un fallo del proceso: la continuación debe solicitarse explícitamente.</div>
           </div>
 
           <div class="faq-item">
@@ -1204,10 +1199,10 @@ SOFTWARE.</code></pre>
             </nav>
             <div class="page-body reveal" style="--rd:.08s">
               <h2 id="docs-instalacion" data-i18n="docs.s1t">1. Instalación</h2>
-              <p data-i18n="docs.s1p">Tiancode 1.0.52 se distribuye en dos formatos para Windows 10 y 11 (64 bits):</p>
+              <p data-i18n="docs.s1p">Tiancode 1.0.53 se distribuye en dos formatos para Windows 10 y 11 (64 bits):</p>
               <ul class="page-list">
-                <li data-i18n="docs.s1l1">Instalador NSIS (Tiancode.exe, ~379 MB): instalación clásica con asistente, accesos directos y actualizaciones sencillas.</li>
-                <li data-i18n="docs.s1l2">Versión portable (Tiancode-portable.exe, ~379 MB): sin instalación, se ejecuta desde cualquier carpeta o USB.</li>
+                <li data-i18n="docs.s1l1">Instalador NSIS (Tiancode.exe, ~345 MB): instalación clásica con asistente, accesos directos y actualizaciones sencillas.</li>
+                <li data-i18n="docs.s1l2">Versión portable (Tiancode-portable.exe, ~345 MB): sin instalación, se ejecuta desde cualquier carpeta o USB.</li>
               </ul>
               <p data-i18n="docs.s1p2">Requisitos mínimos: Windows 10 u 11 de 64 bits, 4 GB de RAM y 1 GB de espacio libre. Para modelos locales se recomiendan 8 GB de RAM o más.</p>
               <h2 id="docs-agentes" data-i18n="docs.s2t">2. Agentes</h2>
@@ -1340,7 +1335,7 @@ tiancode --version           # Muestra la versión instalada</code></pre>
                 <span class="qstep-num" aria-hidden="true">1</span>
                 <div>
                   <h3 data-i18n="guide.s1t">Descarga Tiancode</h3>
-                  <p data-i18n="guide.s1d">Elige el instalador NSIS (~379 MB) o la versión portable (~379 MB) desde la página de descarga. La versión 1.0.52 soporta Windows 10 y 11.</p>
+                  <p data-i18n="guide.s1d">Elige el instalador NSIS (~345 MB) o la versión portable (~345 MB) desde la página de descarga. La versión 1.0.53 soporta Windows 10 y 11.</p>
                 </div>
               </div>
               <div class="qstep reveal" style="--rd:.05s">
@@ -1539,24 +1534,25 @@ tiancode --version           # Muestra la versión instalada</code></pre>
             </header>
             <div class="page-body reveal" style="--rd:.08s">
               <div class="news-version">
-                <h2 data-i18n="news.v1">Versión 1.0.52</h2>
+                <h2 data-i18n="news.v1">Versión 1.0.53</h2>
                 <span class="news-tag" data-i18n="news.chip">Última versión</span>
-                <span class="news-date" data-i18n="news.date">12 de septiembre de 2026</span>
+                <span class="news-date" data-i18n="news.date">15 de septiembre de 2026</span>
               </div>
               <div class="news-block news-block--new">
                 <h3>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                   </svg>
-                  <span data-i18n="news.newTitle">Mejoras de uso diario en v1.0.52</span>
+                  <span data-i18n="news.newTitle">Chat adaptable y especialistas recuperados</span>
                 </h3>
                 <ul class="news-list news-list--new">
-                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new1">Borrar un GGUF actualiza la configuración y el catálogo de la interfaz sin mantener entradas antiguas.</span></li>
-                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new2">Especialistas para ingeniería, programación, pruebas, diseño, marketing, datos y seguridad autorizada; puedes crear tus propios agentes.</span></li>
-                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new3">Vista previa con acciones de la sesión activa, archivos correctos y estados reales de ejecución.</span></li>
-                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new4">Micrófono con selector visible y opción de mantener pulsado para grabar.</span></li>
-                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new5">Rápido y Ultracode explican qué aplica el modelo seleccionado, sin prometer una velocidad fija.</span></li>
-                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new6">La descarga fallida muestra un error; nunca se anuncia como lista para instalar.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new1">El chat reorganiza sus controles según el ancho del panel. Las descripciones del menú de permisos tienen espacio propio y no se superponen.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new2">El selector principal muestra exactamente Build, Plan y Web App; tus definiciones de agentes personalizados se conservan.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new3">Rápido se puede activar en todos los modelos. Reduce preámbulos y trabajo repetido sin cambiar el esfuerzo elegido ni omitir verificaciones.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new4">El panel de subagentes consulta el catálogo correcto en servidores V1 y V2. Los 14 especialistas vuelven a estar disponibles en el escritorio.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new5">Una consulta fallida muestra Reintentar y conserva el último catálogo cargado; ya no se presenta como si no hubiera agentes.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new6">El tema inicial se aplica correctamente al compilar en Windows; la cabecera móvil de la web mantiene sus controles dentro de la pantalla.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="news.new7">Incluye correcciones de OpenCode 1.18.31: restaura modelo, esfuerzo y modo en sesiones ACP, solicita pensamiento resumido en Copilot y muestra los errores de autenticación remota.</span></li>
                 </ul>
               </div>
               <div class="news-block news-block--imp">
@@ -1567,11 +1563,11 @@ tiancode --version           # Muestra la versión instalada</code></pre>
                   <span data-i18n="news.impTitle">Mejoras</span>
                 </h3>
                 <ul class="news-list news-list--imp">
-                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span data-i18n="news.imp1">Actualizaciones automáticas no destructivas (v1.0.39+): preserva todas tus claves de proveedores, configuraciones y sesiones intactas.</span></li>
-                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span data-i18n="news.imp2">Las voces se buscaron otra vez, más ancho y midiendo: se descargó la muestra de cada voz y se calculó su frecuencia fundamental en vez de fiarse del nombre. Resultado: las seis etiquetas de sexo del catálogo eran correctas y los rechazos anteriores también («ald» 138,7 Hz, «carlfm» 117,9 Hz y «davefx» 124,6 Hz son voces masculinas; «sharvard» sólo es femenina en su segundo hablante, que es el que ya se usaba). Piper para español está agotado: existen nueve voces y están todas evaluadas.</span></li>
-                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span data-i18n="news.imp3">Fuera de piper sí apareció una mejor: se sustituye la más floja del catálogo —16 kHz, calidad «low», afinada desde una voz inglesa— por Karen Savage (es-MX), de 22 kHz, con el sexo verificado y una licencia que permite uso comercial. Daniela (Argentina) se mantiene.</span></li>
-                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span data-i18n="news.imp4">Y lo que no se puede, dicho claro: DeepSeek nunca ha publicado un modelo de voz. Qwen sí, y es Apache-2.0, pero no tiene ninguna voz en español —sus cuatro timbres femeninos son chino, chino, japonés y coreano— y además el motor de Tiancode no puede ejecutarlo: haría falta un segundo runtime de inferencia de más de 600 MB para sonar peor que los modelos de 63-114 MB actuales.</span></li>
-                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span data-i18n="news.imp5">«Uso de la PC» estrenó la interfaz que le faltaba (1.0.49): permiso del navegador de tres valores, sitios permitidos, cookies del navegador integrado, interruptor maestro guardado fuera del archivo de proyecto y lista de ejecutables denegados. Más la vista de transcripción Normal / Pensando / Detallado en Ajustes → Apariencia.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span data-i18n="news.imp1">Las actualizaciones conservan claves, configuración, sesiones, respaldos y autenticación MCP.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span data-i18n="news.imp2">Especialistas en arquitectura, programación, diseño, rendimiento, datos, QA, IA, móvil, DevOps, investigación, marketing, ingeniería inversa y seguridad autorizada.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span data-i18n="news.imp3">El micrófono mantiene el selector de dispositivo y la opción de mantener pulsado para grabar.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span data-i18n="news.imp4">Mejorar input conserva adjuntos y menciones y permite cancelar o deshacer los cambios del prompt.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span data-i18n="news.imp5">La vista previa muestra la actividad real de las herramientas de la sesión activa y conserva la carpeta del proyecto.</span></li>
                 </ul>
               </div>
               <div class="news-block news-block--fix">
@@ -1582,9 +1578,9 @@ tiancode --version           # Muestra la versión instalada</code></pre>
                   <span data-i18n="news.fixTitle">Correcciones</span>
                 </h3>
                 <ul class="news-list news-list--fix">
-                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="news.fix1">Ajustes → General: se borran dos interruptores muertos, «Terminal» y «Navegador interno», cuyos únicos lectores viven en una rama de la interfaz vieja que ya es inalcanzable. Y dos descripciones pasan a decir la verdad: el respaldo automático se aplica en el próximo inicio, y «Mostrar agente» no oculta nada en proyectos que definen sus propios agentes.</span></li>
-                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="news.fix2">Un modelo que sólo emite razonamiento y ningún texto producía el mismo cuerpo vacío que un fallo, y se anunciaba como «no dijo nada». Ahora es un caso propio.</span></li>
-                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="news.fix3">Una corrección a la premisa: Tiancode no bloqueaba nada. Se comprobó en tu máquina que con permisos totales Windows sigue rechazando el borrado, porque es un bloqueo obligatorio del sistema — y en tu caso lo sostenía la propia app que lanzaste desde «release\win-unpacked». Por eso no hay interruptor de «sin restricciones»: habría sido un control conectado a nada. Cuando quien bloquea es Tiancode mismo, ahora te lo dice en vez de fingir.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="news.fix1">Se corrige el catálogo vacío causado por consultar una ruta V2 desde el escritorio V1.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="news.fix2">Se eliminan las alturas fijas que hacían superponerse las descripciones de los modos.</span></li>
+                  <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="news.fix3">El selector principal ya no mezcla agentes de proyecto con Build, Plan y Web App.</span></li>
                 </ul>
               </div>
             </div>
@@ -1610,7 +1606,7 @@ tiancode --version           # Muestra la versión instalada</code></pre>
               <p class="page-sub" data-i18n="port.sub">Tiancode donde lo necesites: sin instalación, con tu configuración a cuestas.</p>
             </header>
             <div class="page-body reveal" style="--rd:.08s">
-              <p data-i18n="port.intro">La versión portable (Tiancode-portable.exe, ~379 MB) ejecuta la aplicación completa sin instalarla. Es la misma Tiancode, pero todo — el ejecutable, la configuración y los modelos — vive en la carpeta que tú elijas.</p>
+              <p data-i18n="port.intro">La versión portable (Tiancode-portable.exe, ~345 MB) ejecuta la aplicación completa sin instalarla. Es la misma Tiancode, pero todo — el ejecutable, la configuración y los modelos — vive en la carpeta que tú elijas.</p>
               <h2 data-i18n="port.prosTitle">Por qué elegir la versión portable</h2>
               <ul class="page-list">
                 <li data-i18n="port.p1">Sin instalación y sin permisos de administrador.</li>
@@ -1676,7 +1672,7 @@ tiancode --version           # Muestra la versión instalada</code></pre>
             <header class="page-head reveal">
               <span class="eyebrow" data-i18n="nav.more">Recursos</span>
               <h1 class="page-title" data-i18n="dl.title">Descarga</h1>
-              <p class="page-sub" data-i18n="dl.sub">Tiancode 1.0.52 para Windows 10 y 11 (64 bits). Gratis, sin registro. El instalador y la versión portable son el mismo software: elige el que mejor se adapte a tu flujo.</p>
+              <p class="page-sub" data-i18n="dl.sub">Tiancode 1.0.53 para Windows 10 y 11 (64 bits). Gratis, sin registro. El instalador y la versión portable son el mismo software: elige el que mejor se adapte a tu flujo.</p>
             </header>
             <div class="dl-grid">
               <article class="dl-card reveal" style="--rd:0s">
@@ -1684,8 +1680,8 @@ tiancode --version           # Muestra la versión instalada</code></pre>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 </span>
                 <div class="dl-meta">
-                  <span class="dl-chip">v1.0.52</span>
-                  <span class="dl-chip" data-i18n="dl.instSize">~379 MB</span>
+                  <span class="dl-chip">v1.0.53</span>
+                  <span class="dl-chip" data-i18n="dl.instSize">~345 MB</span>
                 </div>
                 <h3 data-i18n="dl.instTitle">Instalador de Windows</h3>
                 <p data-i18n="dl.instDesc">Instalación clásica con asistente NSIS. Ideal para uso diario: incluye accesos directos y actualizaciones sencillas.</p>
@@ -1707,8 +1703,8 @@ tiancode --version           # Muestra la versión instalada</code></pre>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                 </span>
                 <div class="dl-meta">
-                  <span class="dl-chip">v1.0.52</span>
-                  <span class="dl-chip" data-i18n="dl.portSize">~379 MB</span>
+                  <span class="dl-chip">v1.0.53</span>
+                  <span class="dl-chip" data-i18n="dl.portSize">~345 MB</span>
                 </div>
                 <h3 data-i18n="dl.portTitle">Versión portable</h3>
                 <p data-i18n="dl.portDesc">Sin instalación. Ejecuta Tiancode desde cualquier carpeta o USB; la configuración se guarda junto al ejecutable.</p>
@@ -1754,7 +1750,7 @@ tiancode --version           # Muestra la versión instalada</code></pre>
               <p>
                 <span data-i18n="dl.checksum">Verifica la integridad de tu descarga con el hash SHA-256 publicado junto a cada versión.</span>
                 <br>
-                <a href="recursos/novedades.html" class="dl-news" data-i18n="dl.news">¿Qué hay de nuevo en 1.0.52? Lee las novedades.</a>
+                <a href="recursos/novedades.html" class="dl-news" data-i18n="dl.news">¿Qué hay de nuevo en 1.0.53? Lee las novedades.</a>
               </p>
             </div>
           </div>
@@ -1782,7 +1778,7 @@ tiancode --version           # Muestra la versión instalada</code></pre>
           </p>
           <div class="footer-status-badge">
             <i></i>
-            <span data-i18n="footer.status">Windows · Desktop v1.0.52</span>
+            <span data-i18n="footer.status">Windows · Desktop v1.0.53</span>
           </div>
         </div>
 
@@ -1821,7 +1817,7 @@ tiancode --version           # Muestra la versión instalada</code></pre>
 
       <div class="footer-bottom-bar">
         <span data-i18n="footer.rights">© 2026 Tiancode. Código abierto bajo licencia MIT.</span>
-        <span data-i18n-html="footer.crafted">Creado con ♥ por <a href="https://github.com/Dreftian" target="_blank" rel="noopener noreferrer">Dreftian</a></span>
+        <span><span data-i18n="footer.crafted">Creado con ♥ por</span> <a href="https://github.com/Dreftian" target="_blank" rel="noopener noreferrer">Dreftian</a></span>
       </div>
     </div>
   </footer>
@@ -1861,6 +1857,6 @@ tiancode --version           # Muestra la versión instalada</code></pre>
     </div>
   </div>
 
-  <script type="module" src="js/main.js?v=1.0.52-r2"></script>
+  <script type="module" src="js/main.js?v=1.0.53"></script>
 </body>
 </html>

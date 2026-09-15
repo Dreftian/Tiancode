@@ -19,13 +19,18 @@ export const RELEASE_ENGLISH = {
   "composer.mode.skip.description": "Approve requests automatically. Explicit denials remain in effect.",
   "composer.mode.failed": "Could not update the session's permission mode",
   "composer.mode.v2Unavailable": "This V2 server does not support session permission modes yet.",
+  "settings.subAgents.list.loadFailed": "Could not load the subagent catalog. Retry the server connection.",
+  "settings.subAgents.list.retry": "Retry",
   "composer.fast.label": "Fast",
   "composer.fast.enable": "Enable fast mode",
   "composer.fast.disable": "Disable fast mode",
-  "composer.fast.description": "Requests Anthropic fast inference at the same reasoning effort. Requires fast-mode API access and costs more. Speed depends on availability.",
-  "composer.fast.unavailable": "Native fast mode requires Anthropic Opus 5 or Opus 4.8 and a compatible desktop server. Other models keep their normal speed.",
+  "composer.fast.description":
+    "Requests Anthropic fast inference at the same reasoning effort. Requires fast-mode API access and costs more. Speed depends on availability.",
+  "composer.fast.unavailable":
+    "Available with every model: reduces preambles and repeated work, batches independent actions and preserves effort and validation. Speed depends on the model and provider.",
   "composer.ultracode.label": "Ultracode",
-  "composer.ultracode.description": "Plans, implements and verifies complex tasks, using xhigh or the strongest supported effort. Tiancode workflow; provider capabilities still apply.",
+  "composer.ultracode.description":
+    "Plans, implements and verifies complex tasks, using xhigh or the strongest supported effort. Tiancode workflow; provider capabilities still apply.",
   "liveView.activity.title": "Live activity",
   "liveView.activity.pending": "Pending",
   "liveView.activity.running": "Running",

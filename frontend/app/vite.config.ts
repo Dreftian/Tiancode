@@ -25,9 +25,14 @@ const sentry =
 // El plugin de desktop (vite.js) inyecta oc-theme-preload.js inline en el HTML
 // final, también en build. Su hash se permite en script-src para que la CSP
 // estricta no lo bloquee; se calcula del mismo archivo en tiempo de build, así
-// que nunca puede desincronizarse con el contenido inyectado.
+// Normalizamos saltos de Windows como hace el parser HTML antes de verificar CSP.
 const themePreloadHash = createHash("sha256")
-  .update(readFileSync(fileURLToPath(new URL("./public/oc-theme-preload.js", import.meta.url))))
+  .update(
+    readFileSync(fileURLToPath(new URL("./public/oc-theme-preload.js", import.meta.url)), "utf8").replace(
+      /\r\n?/g,
+      "\n",
+    ),
+  )
   .digest("base64")
 
 // CSP del web app servido en Vercel (el build de escritorio usa su propio

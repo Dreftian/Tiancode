@@ -9,9 +9,17 @@ import {
   supportsNativeFast,
   ultracodeVariant,
   ULTRACODE_DIRECTIVE,
+  speedModeDirective,
 } from "./speed-mode"
 
 describe("speed-mode", () => {
+  test("fast workflow works on all models and only requests native acceleration where supported", () => {
+    expect(speedModeDirective(false, false)).toBeUndefined()
+    expect(speedModeDirective(true, false)).toContain("batch independent searches")
+    expect(speedModeDirective(true, false)).not.toContain(SPEED_MODE_2X_DIRECTIVE)
+    expect(speedModeDirective(true, true)).toContain(SPEED_MODE_2X_DIRECTIVE)
+    expect(speedModeDirective(true, false)).toContain("Preserve the requested scope, reasoning effort")
+  })
   beforeEach(() => {
     setSpeed2xActive(false)
   })

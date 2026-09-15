@@ -179,9 +179,7 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
         }
         speedControl={
           <SpeedModeButton
-            supported={
-              server().protocolKind() === "v1" && supportsNativeFast(props.controller.model.selection.current())
-            }
+            native={server().protocolKind() === "v1" && supportsNativeFast(props.controller.model.selection.current())}
           />
         }
         modelControl={
@@ -596,7 +594,6 @@ export function usePromptInputV2Controller(props: PromptInputV2ControllerProps):
       title: language.t("command.prompt.speed.toggle"),
       category: language.t("command.category.session"),
       keybind: "mod+shift+r",
-      disabled: !supportsNativeFast(props.controls.model.selection.current()),
       onSelect: () => toggleSpeed2x(),
     },
   ])

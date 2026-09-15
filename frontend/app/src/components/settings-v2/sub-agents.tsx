@@ -9,6 +9,7 @@ import { type Component, createEffect, createMemo, createResource, createSignal,
 import { useLanguage } from "@/context/language"
 import { useModels } from "@/context/models"
 import { useServerSDK } from "@/context/server-sdk"
+import { normalizeAgentList } from "@/context/global-sync/utils"
 import { authTokenFromCredentials } from "@/utils/server"
 import { showToast } from "@/utils/toast"
 import { SettingsPagerV2 } from "./parts/pager"
@@ -130,20 +131,22 @@ export const SettingsSubAgentsV2: Component<{
     { initialValue: {} },
   )
 
-  const [agents, { refetch }] = createResource<Agent[], ReturnType<typeof target>>(
+  const [agents, { refetch }] = createResource<{ items: Agent[]; failed: boolean }, ReturnType<typeof target>>(
     target,
-    async () => {
+    async (_, info) => {
       try {
         const p = params()
-        const res = await serverSdk()
-          .api.agent.list(p ? { location: p } : undefined)
-          .catch(() => ({ data: [] as Agent[] }))
-        return (res?.data ?? []) as Agent[]
+        const res =
+          (await serverSdk().protocol) === "v1"
+            ? await serverSdk().createClient({ directory: p?.directory, throwOnError: true }).app.agents()
+            : await serverSdk().api.agent.list(p ? { location: p } : undefined)
+        if (!Array.isArray(res?.data)) throw new Error("Invalid agent catalog response")
+        return { items: normalizeAgentList(res.data), failed: false }
       } catch {
-        return []
+        return { items: info.value?.items ?? [], failed: true }
       }
     },
-    { initialValue: [] },
+    { initialValue: { items: [] as Agent[], failed: false } },
   )
 
   // Coming back to the tab is an implicit "show me what is there now": this panel exists to show
@@ -172,7 +175,7 @@ export const SettingsSubAgentsV2: Component<{
     if (conf && (conf[agentName]?.disable === true || conf[agentName]?.disabled === true)) {
       return false
     }
-    const serverList = agents() ?? []
+    const serverList = agents().items
     const match = serverList.find((a) => a?.name === agentName)
     if (match && ((match as any).disabled === true || (match as any).mode === "disabled")) {
       return false
@@ -233,7 +236,7 @@ export const SettingsSubAgentsV2: Component<{
   // only decorates the agents that ship with Tiancode.
   const agentList = createMemo<PanelAgent[]>(() =>
     mergePanelAgents({
-      server: agents() ?? [],
+      server: agents().items,
       meta: Object.fromEntries(
         AGENT_META.map(([name, icon, color]) => [
           name,
@@ -975,7 +978,13 @@ export const SettingsSubAgentsV2: Component<{
           </div>
         </Show>
 
-        <Show when={visibleAgents().length === 0}>
+        <Show when={agents().failed}>
+          <div role="alert" class="flex flex-wrap items-center gap-3 py-3 text-sm text-v2-state-fg-warning">
+            <span>{language.t("settings.subAgents.list.loadFailed")}</span>
+            <ButtonV2 onClick={() => void refetch()}>{language.t("settings.subAgents.list.retry")}</ButtonV2>
+          </div>
+        </Show>
+        <Show when={visibleAgents().length === 0 && !agents().failed && !agents.loading}>
           <p class="settings-v2-sub-agents-scope-hint">{language.t("settings.subAgents.list.empty")}</p>
         </Show>
 

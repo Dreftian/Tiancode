@@ -4,6 +4,26 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.53] — 2026-09-15
+
+Chat adaptable al ancho del panel y menús de permisos sin descripciones superpuestas.
+El selector principal contiene Build, Plan y Web App. Rápido funciona en todos los
+modelos mediante instrucciones de trabajo directo, conserva el esfuerzo seleccionado
+y añade aceleración nativa solo cuando el proveedor la admite.
+
+El panel de subagentes consulta el catálogo correcto según el protocolo del servidor:
+los 14 especialistas vuelven a estar disponibles en el escritorio. Las consultas
+fallidas conservan el último catálogo y muestran Reintentar. Se corrige el cierre
+involuntario del selector al refrescar los agentes y el tema inicial en Windows.
+
+Se adaptan las correcciones de OpenCode 1.18.31 para restaurar opciones de sesiones ACP,
+separar bloques de pensamiento, solicitar pensamiento resumido adaptable en Copilot
+y mostrar los errores de autenticación remota. La web incluye las novedades, descargas
+y mejoras móviles. Se conservan los datos y la configuración de instalaciones anteriores.
+
+Detalles: [notas de versión](tools/releases/v1.0.53.md) e
+[informe de auditoría y validación](tools/releases/audit-1.0.53.md).
+
 ## [1.0.52] — 2026-09-14
 
 Catálogo de modelos sin referencias eliminadas, 14 especialistas compartidos entre motores,

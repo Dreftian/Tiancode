@@ -4,7 +4,7 @@
    partículas del hero y contadores animados.
    ============================================================ */
 
-import { reducedMotion, easeOut } from './utils.js?v=1.0.52-r2';
+import { reducedMotion, easeOut } from './utils.js?v=1.0.53';
 
 /* ---------- Loader (monograma + progreso ~0.7s) ---------- */
 const LOADER_MS = 700;

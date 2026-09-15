@@ -28,6 +28,7 @@ export function initGalaxy() {
 
   let width = document.documentElement.clientWidth;
   let height = window.innerHeight;
+  let centerY = height * 0.44;
   let dpr = Math.min(window.devicePixelRatio || 1, 2);
   let animId = null;
   const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -126,6 +127,8 @@ export function initGalaxy() {
     width = document.documentElement.clientWidth;
     height = window.innerHeight;
     dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const stage = document.getElementById('galaxy-hero')?.getBoundingClientRect();
+    centerY = width <= 768 && stage ? stage.top + window.scrollY + stage.height / 2 : height * 0.44;
 
     canvas.width = Math.floor(width * dpr);
     canvas.height = Math.floor(height * dpr);
@@ -410,7 +413,7 @@ export function initGalaxy() {
     ctx.clearRect(0, 0, width, height);
 
     const cx = width / 2;
-    const cy = height * 0.44;
+    const cy = centerY;
     const maxTargetW = Math.min(width * 0.86, 1100);
     const textScale = maxTargetW / totalW;
 

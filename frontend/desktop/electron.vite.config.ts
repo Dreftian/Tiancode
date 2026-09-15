@@ -17,9 +17,11 @@ const channel = (() => {
 
 // La versión real del package del desktop llega al renderer (splash/menus) por
 // define de build; el build web de la app no la define y se oculta.
-const desktopVersion = (JSON.parse(readFileSync(fileURLToPath(new URL("./package.json", import.meta.url)), "utf8")) as {
-  version?: string
-}).version
+const desktopVersion = (
+  JSON.parse(readFileSync(fileURLToPath(new URL("./package.json", import.meta.url)), "utf8")) as {
+    version?: string
+  }
+).version
 
 const nodePtyPkg = `@lydell/node-pty-${process.platform}-${process.arch}`
 
@@ -32,7 +34,10 @@ const nodePtyPkg = `@lydell/node-pty-${process.platform}-${process.arch}`
 // https: (vídeos de las release notes).
 const rendererCsp = (() => {
   const themePreloadPath = fileURLToPath(new URL("../app/public/oc-theme-preload.js", import.meta.url))
-  const themeHash = createHash("sha256").update(readFileSync(themePreloadPath, "utf8")).digest("base64")
+  // HTML parsing normalizes CRLF/CR before CSP hashes the inline script.
+  const themeHash = createHash("sha256")
+    .update(readFileSync(themePreloadPath, "utf8").replace(/\r\n?/g, "\n"))
+    .digest("base64")
   return [
     "default-src 'self'",
     // wasm-unsafe-eval: la terminal (ghostty) compila su wasm en runtime

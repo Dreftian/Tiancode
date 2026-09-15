@@ -176,7 +176,7 @@ const pdf =
         variants[effort] = {
           thinking: {
             type: "adaptive",
-            ...(model.api.id.includes("opus-4.7") ? { display: "summarized" } : {}),
+            display: "summarized",
           },
           effort,
         }

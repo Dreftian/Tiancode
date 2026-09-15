@@ -360,7 +360,7 @@
 }
 
 @media (max-width: 768px) {
-  .cosmic-hero-stage { min-height: 65vh; }
+  .cosmic-hero-stage { min-height: clamp(240px, 35vh, 360px); }
 }
 
 /* Fondo transparente para que el cosmos se vea en TODA la web */

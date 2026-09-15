@@ -27,7 +27,7 @@ import { usePlatform } from "@/context/platform"
 import {
   isSpeed2xActive,
   resolveSpeedVariant,
-  SPEED_MODE_2X_DIRECTIVE,
+  speedModeDirective,
   supportsNativeFast,
   isUltracodeActive,
   ultracodeVariant,
@@ -501,8 +501,8 @@ export function createPromptSubmit(input: PromptSubmitInput) {
       variant: effectiveVariant,
       system:
         [
-        legacyProtocol && isSpeed2xActive() && supportsNativeFast(currentModel) ? SPEED_MODE_2X_DIRECTIVE : undefined,
-        isUltracodeActive() && ultracodeVariant(modelSelection.variant.list()) ? ULTRACODE_DIRECTIVE : undefined,
+          speedModeDirective(isSpeed2xActive(), legacyProtocol && supportsNativeFast(currentModel)),
+          isUltracodeActive() && ultracodeVariant(modelSelection.variant.list()) ? ULTRACODE_DIRECTIVE : undefined,
         ]
           .filter(Boolean)
           .join("\n\n") || undefined,
