@@ -136,7 +136,9 @@ export interface Settings {
     showStatus: boolean
     showTerminal: boolean
     showBrowser: boolean
-    browserLinks: "integrated" | "system"
+    browserLinks: "integrated" | "system" | "chrome"
+    designStyle: import("@/utils/design-style").DesignStyle
+    clearResponses: boolean
     petEnabled: boolean
     petDesktop: boolean
     petKind: PetKind
@@ -316,6 +318,8 @@ const defaultSettings: Settings = {
     showTerminal: true,
     showBrowser: true,
     browserLinks: "integrated",
+    designStyle: "ask",
+    clearResponses: false,
     petEnabled: defaultPetSettings.enabled,
     petDesktop: true,
     petKind: defaultPetSettings.kind,
@@ -367,6 +371,12 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
   init: () => {
     const platform = usePlatform()
     const [store, setStore, settingsInit, ready] = persisted("settings.v3", createStore<Settings>(defaultSettings))
+    createEffect(() => {
+      if (!ready() || platform.platform !== "desktop") return
+      void window.api
+        ?.storeSet?.("tiancode.settings", "browserLinkTarget", store.general.browserLinks ?? "integrated")
+        .catch(() => undefined)
+    })
     const [launch, setLaunch, , launchReady] = persisted(
       "app-version.v1",
       createStore<{ version?: string }>({ version: undefined }),
@@ -572,8 +582,16 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         setShowBrowser(value: boolean) {
           setStore("general", "showBrowser", value)
         },
+        designStyle: withFallback(() => store.general?.designStyle, defaultSettings.general.designStyle),
+        setDesignStyle(value: import("@/utils/design-style").DesignStyle) {
+          setStore("general", "designStyle", value)
+        },
+        clearResponses: withFallback(() => store.general?.clearResponses, defaultSettings.general.clearResponses),
+        setClearResponses(value: boolean) {
+          setStore("general", "clearResponses", value)
+        },
         browserLinks: withFallback(() => store.general?.browserLinks, defaultSettings.general.browserLinks),
-        setBrowserLinks(value: "integrated" | "system") {
+        setBrowserLinks(value: "integrated" | "system" | "chrome") {
           setStore("general", "browserLinks", value)
         },
         petEnabled: withFallback(() => store.general?.petEnabled, defaultSettings.general.petEnabled),
@@ -760,10 +778,7 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         },
       },
       intelligence: {
-        userMemory: withFallback(
-          () => store.intelligence?.userMemory,
-          defaultSettings.intelligence.userMemory,
-        ),
+        userMemory: withFallback(() => store.intelligence?.userMemory, defaultSettings.intelligence.userMemory),
         setUserMemory(value: boolean) {
           setStore("intelligence", "userMemory", value)
         },
@@ -774,17 +789,11 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         setProjectMemory(value: boolean) {
           setStore("intelligence", "projectMemory", value)
         },
-        codeGraph: withFallback(
-          () => store.intelligence?.codeGraph,
-          defaultSettings.intelligence.codeGraph,
-        ),
+        codeGraph: withFallback(() => store.intelligence?.codeGraph, defaultSettings.intelligence.codeGraph),
         setCodeGraph(value: boolean) {
           setStore("intelligence", "codeGraph", value)
         },
-        cleanWeb: withFallback(
-          () => store.intelligence?.cleanWeb,
-          defaultSettings.intelligence.cleanWeb,
-        ),
+        cleanWeb: withFallback(() => store.intelligence?.cleanWeb, defaultSettings.intelligence.cleanWeb),
         setCleanWeb(value: boolean) {
           setStore("intelligence", "cleanWeb", value)
         },
@@ -795,10 +804,7 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         setAutoSkillLearn(value: boolean) {
           setStore("intelligence", "autoSkillLearn", value)
         },
-        guardrails: withFallback(
-          () => store.intelligence?.guardrails,
-          defaultSettings.intelligence.guardrails,
-        ),
+        guardrails: withFallback(() => store.intelligence?.guardrails, defaultSettings.intelligence.guardrails),
         setGuardrails(value: boolean) {
           setStore("intelligence", "guardrails", value)
         },
@@ -816,10 +822,7 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         setToolCallRepair(value: boolean) {
           setStore("intelligence", "toolCallRepair", value)
         },
-        loopBreaker: withFallback(
-          () => store.intelligence?.loopBreaker,
-          defaultSettings.intelligence.loopBreaker,
-        ),
+        loopBreaker: withFallback(() => store.intelligence?.loopBreaker, defaultSettings.intelligence.loopBreaker),
         setLoopBreaker(value: boolean) {
           setStore("intelligence", "loopBreaker", value)
         },

@@ -1,4 +1,4 @@
-import { getLang } from './i18n.js?v=1.0.53';
+import { getLang } from './i18n.js?v=1.0.54';
 
 const details = {
   es: {
@@ -23,7 +23,7 @@ export function initCharts() {
   function render() {
     const entry = details[getLang()]?.[selection] || details.es.swe;
     document.getElementById('eval-title').textContent = entry.title;
-    document.getElementById('eval-unit').textContent = '1.0.53';
+    document.getElementById('eval-unit').textContent = '1.0.54';
     document.getElementById('eval-stat-num').textContent = entry.label;
     document.getElementById('eval-stat-label').textContent = entry.summary;
     container.replaceChildren();

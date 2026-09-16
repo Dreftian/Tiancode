@@ -61,11 +61,7 @@ import {
   type PromptHistoryEntry,
   promptLength,
 } from "./history"
-import {
-  createPersistedPromptInputHistory,
-  createPromptInputHistory,
-  type PromptInputHistory,
-} from "./history-store"
+import { createPersistedPromptInputHistory, createPromptInputHistory, type PromptInputHistory } from "./history-store"
 import {
   type PromptInputControls,
   type PromptInputProps,
@@ -73,6 +69,7 @@ import {
   type PromptInputSubmission,
 } from "./contracts"
 import { createPromptSubmit } from "./submit"
+import { useSettings } from "@/context/settings"
 import { PromptPopover, type AtOption, type SlashCommand } from "./slash-popover"
 import { PromptContextItems } from "./context-items"
 import { PromptImageAttachments } from "./image-attachments"
@@ -126,6 +123,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   const dialog = useDialog()
   const command = useCommand()
   const permission = usePermission()
+  const settings = useSettings()
   const language = useLanguage()
   const platform = usePlatform()
   const tabs = () => props.controls.session.tabs
@@ -1218,6 +1216,8 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   const { abort, handleSubmit } =
     props.submission ??
     createPromptSubmit({
+      designStyle: settings.general.designStyle,
+      clearResponses: settings.general.clearResponses,
       prompt,
       info,
       imageAttachments,

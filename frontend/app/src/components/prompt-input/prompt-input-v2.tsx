@@ -18,6 +18,8 @@ import { promptWithOptimizedText, promptWithDictation } from "@/components/promp
 import { PromptOptimizerButton } from "@/components/prompt-input/prompt-optimizer-button"
 import { SpeedModeButton } from "@/components/prompt-input/speed-mode-button"
 import { ComposerModeButton } from "@/components/prompt-input/composer-mode-button"
+import { DesignStylePicker } from "./design-style-picker"
+import { useSettings } from "@/context/settings"
 import {
   toggleSpeed2x,
   supportsNativeFast,
@@ -133,6 +135,9 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
           {language.t("composer.ultracode.description")}
         </p>
       </Show>
+      <Show when={props.controller.view.agent?.current() === "webapp"}>
+        <DesignStylePicker />
+      </Show>
       <PromptInputV2
         controller={props.controller}
         readOnly={isOptimizingPrompt()}
@@ -203,6 +208,7 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
 }
 
 export function usePromptInputV2Controller(props: PromptInputV2ControllerProps): PromptInputV2ComposerController {
+  const settings = useSettings()
   const sdk = useSDK()
   const sync = useSync()
   const files = useFile()
@@ -320,6 +326,8 @@ export function usePromptInputV2Controller(props: PromptInputV2ControllerProps):
     return permission.isAutoAccepting(id, sdk().directory)
   })
   const submission = createPromptSubmit({
+    designStyle: settings.general.designStyle,
+    clearResponses: settings.general.clearResponses,
     prompt,
     info,
     imageAttachments: attachments,

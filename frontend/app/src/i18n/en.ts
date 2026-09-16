@@ -2,6 +2,26 @@ import { SUBAGENT_CATALOG_ENGLISH } from "./subagent-catalog"
 import { DESKTOP_NATIVE_ENGLISH } from "./desktop-native"
 
 export const dict = {
+  "settings.browser.links.chrome": "Google Chrome",
+  "settings.browser.chromeUnavailable": "Chrome could not be opened. Check that Google Chrome is installed.",
+  "design.style.title": "Design direction",
+  "design.style.description":
+    "Choose a visual direction for Web App. Your selection is sent to the model with your next message; existing project requirements still apply.",
+  "design.style.ask": "Choose with the AI",
+  "design.style.studio": "Editorial studio",
+  "design.style.product": "Clear product",
+  "design.style.midnight": "Midnight workspace",
+  "design.style.geometric": "Playful geometry",
+  "design.style.precision": "Technical precision",
+  "design.style.atelier": "Refined atelier",
+  "settings.responses.clear": "Direct responses",
+  "settings.responses.clear.description":
+    "Lead with the result and concrete steps, while keeping essential evidence and errors visible. Applies to your next messages with any model.",
+  "settings.computerUse.restore.title": "Restore controlled applications when finished",
+  "settings.computerUse.restore.description":
+    "Restore minimized windows of applications you authorized during computer use. Other windows are left as they are.",
+  "settings.subAgents.integrated.description":
+    "Built-in specialists for engineering, development, design, research, marketing and authorized security testing.",
   "chat.mic.holdToRecord": "Hold to record",
   "chat.mic.preparing": "Preparing microphone…",
   "chat.mic.browserDevice": "Web dictation uses the microphone selected in your browser settings.",
@@ -23,10 +43,13 @@ export const dict = {
   "composer.fast.label": "Fast",
   "composer.fast.enable": "Enable fast mode",
   "composer.fast.disable": "Disable fast mode",
-  "composer.fast.description": "Requests Anthropic fast inference at the same reasoning effort. Requires fast-mode API access and costs more. Speed depends on availability.",
-  "composer.fast.unavailable": "Available with every model: reduces preambles and repeated work, batches independent actions and preserves effort and validation. Speed depends on the model and provider.",
+  "composer.fast.description":
+    "Requests Anthropic fast inference at the same reasoning effort. Requires fast-mode API access and costs more. Speed depends on availability.",
+  "composer.fast.unavailable":
+    "Available with every model: reduces preambles and repeated work, batches independent actions and preserves effort and validation. Speed depends on the model and provider.",
   "composer.ultracode.label": "Ultracode",
-  "composer.ultracode.description": "Plans, implements and verifies complex tasks, using xhigh or the strongest supported effort. Tiancode workflow; provider capabilities still apply.",
+  "composer.ultracode.description":
+    "Plans, implements and verifies complex tasks, using xhigh or the strongest supported effort. Tiancode workflow; provider capabilities still apply.",
   ...SUBAGENT_CATALOG_ENGLISH,
   ...DESKTOP_NATIVE_ENGLISH,
   "command.category.suggested": "Suggested",
@@ -119,7 +142,8 @@ export const dict = {
   "command.prompt.speed.toggle": "Toggle ⚡ 2x Speed Mode (Ultra Fast)",
   "ui.promptInput.speedMode.enable": "Enable ⚡ 2x Speed Mode (Ultra Fast)",
   "ui.promptInput.speedMode.disable": "Disable ⚡ 2x Speed Mode",
-  "ui.promptInput.speedMode.tooltip": "2x Mode: no preamble, no filler, straight to the tools. Your reasoning effort stays exactly where you set it.",
+  "ui.promptInput.speedMode.tooltip":
+    "2x Mode: no preamble, no filler, straight to the tools. Your reasoning effort stays exactly where you set it.",
   "command.permissions.autoaccept.enable": "Auto-accept permissions",
   "command.permissions.autoaccept.disable": "Stop auto-accepting permissions",
   "command.workspace.toggle": "Toggle workspaces",
@@ -345,10 +369,10 @@ export const dict = {
   "prompt.menu.shellCommand": "Shell command",
   "prompt.attachment.remove": "Remove attachment",
   "prompt.action.send": "Send",
-    "a11y.closeTab": "Close tab",
+  "a11y.closeTab": "Close tab",
   "a11y.clearSearch": "Clear search",
   "a11y.edit": "Edit",
-"prompt.action.stop": "Stop",
+  "prompt.action.stop": "Stop",
 
   "chat.mic.start": "Dictate with microphone",
   "chat.mic.stop": "Stop dictation",
@@ -360,7 +384,8 @@ export const dict = {
   "chat.mic.selectDevice": "Select PC microphone",
   "settings.mcpServers.discover.activateAll": "Enable all",
   "settings.mcpServers.health.title": "MCP health",
-  "settings.mcpServers.health.description": "Live connection health. Recovery runs at most {{concurrency}} at a time and handles up to {{limit}} servers per action.",
+  "settings.mcpServers.health.description":
+    "Live connection health. Recovery runs at most {{concurrency}} at a time and handles up to {{limit}} servers per action.",
   "settings.mcpServers.health.refresh": "Refresh",
   "settings.mcpServers.health.configured": "{{count}} configured",
   "settings.mcpServers.health.enabled": "{{count}} enabled",
@@ -372,15 +397,19 @@ export const dict = {
   "settings.mcpServers.health.stop": "Stop local and disable",
   "settings.mcpServers.health.partial": "{{succeeded}} recovered; {{failed}} still need attention",
   "settings.mcpServers.health.done": "{{count}} MCP connections recovered",
-  "settings.mcpServers.health.stop.confirm": "Stop and disable {{count}} local MCP connection(s)? Their saved commands, keys and settings will be kept.",
+  "settings.mcpServers.health.stop.confirm":
+    "Stop and disable {{count}} local MCP connection(s)? Their saved commands, keys and settings will be kept.",
   "settings.mcpServers.profiles.title": "Safe MCP profiles",
-  "settings.mcpServers.profiles.description": "Profiles only connect MCP servers you already configured and enabled. They never install, add, enable, disable, or overwrite saved keys and settings.",
+  "settings.mcpServers.profiles.description":
+    "Profiles only connect MCP servers you already configured and enabled. They never install, add, enable, disable, or overwrite saved keys and settings.",
   "settings.mcpServers.profiles.essential.name": "Essentials",
-  "settings.mcpServers.profiles.essential.description": "Files, documentation, fetch and Git when they are already configured.",
+  "settings.mcpServers.profiles.essential.description":
+    "Files, documentation, fetch and Git when they are already configured.",
   "settings.mcpServers.profiles.design.name": "Design",
   "settings.mcpServers.profiles.design.description": "Vision and design integrations you have already configured.",
   "settings.mcpServers.profiles.development.name": "Full development",
-  "settings.mcpServers.profiles.development.description": "Configured development, mobile and engine integrations; browser automation is excluded.",
+  "settings.mcpServers.profiles.development.description":
+    "Configured development, mobile and engine integrations; browser automation is excluded.",
   "settings.mcpServers.profiles.summary": "{{configured}} configured · {{ready}} ready",
   "settings.mcpServers.profiles.connect": "Connect configured",
   "chat.mic.downloadFailed": "Could not download the speech model. Check your internet connection and try again.",
@@ -1069,7 +1098,8 @@ export const dict = {
   "settings.general.row.mobileTitlebarBottom.description":
     "Place the title bar and session tabs at the bottom of the screen on mobile",
   "settings.general.row.showCustomAgents.title": "Show agent",
-  "settings.general.row.showCustomAgents.description": "Switch between agents in the composer. When hidden, defaults to the Build agent — except in projects with their own agents, where the selector stays visible.",
+  "settings.general.row.showCustomAgents.description":
+    "Switch between agents in the composer. When hidden, defaults to the Build agent — except in projects with their own agents, where the selector stays visible.",
   "settings.general.row.newInterface.title": "New layout",
   "settings.general.row.newInterface.badge": "New",
   "settings.general.row.newInterface.description":
@@ -1083,8 +1113,7 @@ export const dict = {
   "settings.general.row.minimizeToTray.description":
     "Closing the window minimizes to the system tray instead of quitting",
   "settings.general.row.fileWatcher.title": "Real-time file updates",
-  "settings.general.row.fileWatcher.description":
-    "Refreshes the file tree and git changes automatically.",
+  "settings.general.row.fileWatcher.description": "Refreshes the file tree and git changes automatically.",
   "settings.general.fileWatcher.restart.confirm": "Restart Tiancode to apply the real-time file updates change?",
 
   "session.export.button": "Export conversation to Markdown",
@@ -1094,7 +1123,8 @@ export const dict = {
   "session.export.failed": "Could not export the conversation",
   "settings.general.section.data": "Data",
   "settings.general.row.autoBackup.title": "Automatic backup",
-  "settings.general.row.autoBackup.description": "Daily copy of sessions and configuration (keeps the last 7 days). Takes effect the next time the app starts; use Back up now for an immediate copy.",
+  "settings.general.row.autoBackup.description":
+    "Daily copy of sessions and configuration (keeps the last 7 days). Takes effect the next time the app starts; use Back up now for an immediate copy.",
   "settings.general.row.backupNow.title": "Back up now",
   "settings.general.row.backupNow.description": "Create an immediate copy of your data",
   "settings.general.row.backupNow.button": "Create backup",
@@ -1103,7 +1133,8 @@ export const dict = {
   "settings.general.row.restore.button": "Restore",
   "settings.general.backup.now.success": "Backup created",
   "settings.general.backup.now.failed": "No data to back up yet",
-  "settings.general.backup.restore.confirm": "Restore backup {{name}}? Current sessions and configuration will be replaced.",
+  "settings.general.backup.restore.confirm":
+    "Restore backup {{name}}? Current sessions and configuration will be replaced.",
   "settings.general.backup.restore.success": "Backup restored",
   "settings.general.backup.restore.failed": "Could not restore the backup",
   "settings.general.row.loginItem.title": "Launch at startup",
@@ -1180,7 +1211,8 @@ export const dict = {
   "livePreview.selection.copied": "Copied",
   "livePreview.retry": "Retry",
   "livePreview.fixWithAi": "Fix with AI",
-  "livePreview.inspector.unavailable": "This runtime does not permit direct DOM inspection. Use Dev tools for its own inspector.",
+  "livePreview.inspector.unavailable":
+    "This runtime does not permit direct DOM inspection. Use Dev tools for its own inspector.",
   "livePreview.timeline": "Changes",
   "livePreview.timeline.empty": "No confirmed preview events yet.",
   "livePreview.change.confirmed": "Change #{{count}} confirmed",
@@ -1377,7 +1409,8 @@ export const dict = {
   "settings.section.integrations": "Integrations",
   "settings.tab.connections": "Connections",
   "settings.connections.title": "Connections & gateways",
-  "settings.connections.description": "Get session results on Telegram, Discord, Slack or your own webhook, and drive Tiancode from a Telegram chat. Secrets stay on this machine and are never shown again.",
+  "settings.connections.description":
+    "Get session results on Telegram, Discord, Slack or your own webhook, and drive Tiancode from a Telegram chat. Secrets stay on this machine and are never shown again.",
   "settings.connections.telegram.title": "Telegram Bot Gateway",
   "settings.connections.telegram.token": "Bot Token",
   "settings.connections.telegram.chatId": "Chat ID / User",
@@ -1423,13 +1456,17 @@ export const dict = {
   "settings.connections.disconnected": "{{provider}} disconnected",
   "settings.connections.saveFailed": "Could not save: {{message}}",
   "settings.connections.invalid.url": "Enter a full http(s) URL.",
-  "settings.connections.invalid.telegramToken": "That does not look like a bot token (123456789:ABC…). Get one from @BotFather.",
+  "settings.connections.invalid.telegramToken":
+    "That does not look like a bot token (123456789:ABC…). Get one from @BotFather.",
   "settings.connections.invalid.snowflake": "Discord channel IDs are numbers (right-click the channel → Copy ID).",
-  "settings.connections.telegram.desc": "A bot you create with @BotFather posts here and can take orders from one chat.",
+  "settings.connections.telegram.desc":
+    "A bot you create with @BotFather posts here and can take orders from one chat.",
   "settings.connections.telegram.token.desc": "From @BotFather. Stored encrypted on this machine.",
-  "settings.connections.telegram.chatId.desc": "The chat the bot posts to and the only one it obeys. Message the bot once and it will tell you the id.",
+  "settings.connections.telegram.chatId.desc":
+    "The chat the bot posts to and the only one it obeys. Message the bot once and it will tell you the id.",
   "settings.connections.telegram.inbound": "Take orders from the chat",
-  "settings.connections.telegram.inbound.desc": "Any message in the chat runs as a prompt; /status, /new and /help are commands. The answer comes back when the session finishes.",
+  "settings.connections.telegram.inbound.desc":
+    "Any message in the chat runs as a prompt; /status, /new and /help are commands. The answer comes back when the session finishes.",
   "settings.connections.telegram.inbound.running": "Listening · {{sessions}} linked chat(s)",
   "settings.connections.telegram.inbound.stopped": "Not listening",
   "settings.connections.telegram.directory": "Project for orders",
@@ -1440,17 +1477,20 @@ export const dict = {
   "settings.connections.discord.webhookUrl": "Webhook URL",
   "settings.connections.discord.webhookUrl.desc": "Server settings → Integrations → Webhooks.",
   "settings.connections.discord.botToken": "Bot token",
-  "settings.connections.discord.botToken.desc": "From the Discord Developer Portal; the bot needs Send Messages in the channel.",
+  "settings.connections.discord.botToken.desc":
+    "From the Discord Developer Portal; the bot needs Send Messages in the channel.",
   "settings.connections.discord.channelId": "Channel ID",
   "settings.connections.discord.channelId.desc": "Bot mode only. A number, not a #name.",
   "settings.connections.slack.desc": "Post through a Slack Incoming Webhook.",
   "settings.connections.slack.webhook.desc": "Slack app → Incoming Webhooks. The URL is the secret.",
-  "settings.connections.webhooks.desc": "POST a JSON payload to your own endpoint, signed with HMAC-SHA256 in X-Tiancode-Signature.",
+  "settings.connections.webhooks.desc":
+    "POST a JSON payload to your own endpoint, signed with HMAC-SHA256 in X-Tiancode-Signature.",
   "settings.connections.webhooks.url.desc": "Receives session.idle and session.error as JSON.",
   "settings.connections.webhooks.secret.desc": "Optional. Verify sha256=HMAC(secret, body) on your side.",
   "settings.connections.webhooks.events.idle": "Send session.idle",
   "settings.connections.webhooks.events.error": "Send session.error",
-  "settings.connections.whatsapp.soon": "WhatsApp is not available yet: it needs a device-linked session that Tiancode does not ship. Telegram covers the same use today.",
+  "settings.connections.whatsapp.soon":
+    "WhatsApp is not available yet: it needs a device-linked session that Tiancode does not ship. Telegram covers the same use today.",
   "settings.tab.browser": "Browser",
   "settings.tab.pets": "Pets",
   "settings.tab.computerUse": "Computer Use",
@@ -1460,7 +1500,8 @@ export const dict = {
   "settings.skills.description": "Import skills from your computer or download published skills from the web.",
   "settings.skills.section.installed": "Installed",
   "settings.skills.autoSelect.title": "Auto-select skills",
-  "settings.skills.autoSelect.description": "Automatically pick the skills matching your project (framework, tooling, etc.) in every conversation",
+  "settings.skills.autoSelect.description":
+    "Automatically pick the skills matching your project (framework, tooling, etc.) in every conversation",
   "settings.skills.section.import": "Import skill",
   "settings.skills.empty": "No skills installed yet",
   "settings.skills.empty.filtered": "No skills in this category",
@@ -1475,7 +1516,8 @@ export const dict = {
   "settings.skills.search.google": "Search published skills on Google",
   "settings.skills.importing": "Importing...",
   "settings.skills.import.github.title": "Clone from GitHub",
-  "settings.skills.import.github.description": "Paste a GitHub repository, folder, or SKILL.md link — every SKILL.md found gets installed",
+  "settings.skills.import.github.description":
+    "Paste a GitHub repository, folder, or SKILL.md link — every SKILL.md found gets installed",
   "settings.skills.import.github.placeholder": "https://github.com/owner/repo",
   "settings.skills.import.github.button": "Clone",
   "settings.skills.github.success.one": "Cloned skill {{name}} from GitHub",
@@ -1498,8 +1540,10 @@ export const dict = {
   "settings.skills.filter.testing": "Testing",
   "settings.skills.badge.safe": "Safe",
   "settings.skills.badge.specialized": "Specialized",
-  "settings.skills.callout.safe": "Safe, universal skill: it can stay active alongside any other skill without interfering with the workflow.",
-  "settings.skills.callout.specialized": "Specialized skill: built for one workflow. Avoid combining it with opposing methodologies or style guides to keep answers consistent.",
+  "settings.skills.callout.safe":
+    "Safe, universal skill: it can stay active alongside any other skill without interfering with the workflow.",
+  "settings.skills.callout.specialized":
+    "Specialized skill: built for one workflow. Avoid combining it with opposing methodologies or style guides to keep answers consistent.",
   "settings.skills.toggle.enabled": "{{name}} enabled",
   "settings.skills.toggle.disabled": "{{name}} disabled",
   "settings.skills.toggle.failed": "Could not update the skill",
@@ -1562,7 +1606,7 @@ export const dict = {
   "settings.subAgents.form.saving": "Saving...",
   "settings.subAgents.form.cancel": "Cancel",
   "settings.subAgents.form.delete": "Delete",
-  "settings.subAgents.form.delete.confirm": "Delete subagent \"{{name}}\"?",
+  "settings.subAgents.form.delete.confirm": 'Delete subagent "{{name}}"?',
   "settings.subAgents.form.success": "Subagent created",
   "settings.subAgents.form.failed": "Failed to create subagent",
   "settings.subAgents.form.updated": "Subagent updated",
@@ -1572,22 +1616,32 @@ export const dict = {
   "settings.subAgents.native.build": "The default agent. Executes tools based on configured permissions.",
   "settings.subAgents.native.plan": "Plan mode. Disallows all edit tools.",
   "settings.subAgents.native.webapp": "Frontend development and full-JSX apps with live real-time preview.",
-  "settings.subAgents.native.general": "General-purpose agent for researching complex questions and executing multi-step tasks.",
+  "settings.subAgents.native.general":
+    "General-purpose agent for researching complex questions and executing multi-step tasks.",
   "settings.subAgents.native.explore": "Fast agent specialized for exploring codebases and finding files.",
-  "settings.subAgents.native.softwareArchitect": "Modular system design, clean architecture, and domain-driven decoupling.",
-  "settings.subAgents.native.fullstackCoder": "End-to-end fullstack implementation across frontend, backend, APIs, and databases.",
-  "settings.subAgents.native.devsecopsAuditor": "Strict audit of dependencies, CVEs, secret leak prevention, and static code security.",
-  "settings.subAgents.native.uiUxMaster": "Modern visual design, Tailwind CSS, fluid micro-interactions, and accessible UI.",
-  "settings.subAgents.native.performanceOptimizer": "Performance profiling, latency reduction, bundle optimization, and load speed.",
-  "settings.subAgents.native.databaseArchitect": "Schema optimization, indexing, query execution plans, and safe migrations.",
-  "settings.subAgents.native.docsGenerator": "OpenAPI specifications generation, technical Markdown documentation, and guides.",
-  "settings.subAgents.native.qaE2eTester": "Comprehensive test suite creation: unit, integration, and E2E testing with Vitest and Playwright.",
+  "settings.subAgents.native.softwareArchitect":
+    "Modular system design, clean architecture, and domain-driven decoupling.",
+  "settings.subAgents.native.fullstackCoder":
+    "End-to-end fullstack implementation across frontend, backend, APIs, and databases.",
+  "settings.subAgents.native.devsecopsAuditor":
+    "Strict audit of dependencies, CVEs, secret leak prevention, and static code security.",
+  "settings.subAgents.native.uiUxMaster":
+    "Modern visual design, Tailwind CSS, fluid micro-interactions, and accessible UI.",
+  "settings.subAgents.native.performanceOptimizer":
+    "Performance profiling, latency reduction, bundle optimization, and load speed.",
+  "settings.subAgents.native.databaseArchitect":
+    "Schema optimization, indexing, query execution plans, and safe migrations.",
+  "settings.subAgents.native.docsGenerator":
+    "OpenAPI specifications generation, technical Markdown documentation, and guides.",
+  "settings.subAgents.native.qaE2eTester":
+    "Comprehensive test suite creation: unit, integration, and E2E testing with Vitest and Playwright.",
   "settings.subAgents.native.compaction": "Internal agent for compacting session history.",
   "settings.subAgents.native.title": "Internal agent for generating conversation titles.",
   "settings.subAgents.native.summary": "Internal agent for summarizing sessions.",
 
   "settings.plugins.title": "Plugins",
-  "settings.plugins.description": "Extend the agent with npm packages or local plugin files that hook into lifecycle events.",
+  "settings.plugins.description":
+    "Extend the agent with npm packages or local plugin files that hook into lifecycle events.",
   "settings.plugins.note.title": "What is a plugin?",
   "settings.plugins.note.description":
     "Plugins run inside the agent process and react to lifecycle events such as session idle, tool execution, and shell environment setup.",
@@ -1664,10 +1718,12 @@ export const dict = {
   "settings.mcpPlugins.tab.discover": "Discover",
   "settings.mcpPlugins.search.placeholder": "Search by name, tool or command…",
   "settings.mcpPlugins.intro.title": "MCP (Model Context Protocol)",
-  "settings.mcpPlugins.intro.body": "MCP is an open standard that lets models connect to external tools, databases and services safely. Each server exposes tools the agent can call.",
+  "settings.mcpPlugins.intro.body":
+    "MCP is an open standard that lets models connect to external tools, databases and services safely. Each server exposes tools the agent can call.",
   "settings.mcpPlugins.intro.local": "runs on your machine via npx, uvx or a script",
   "settings.mcpPlugins.intro.remote": "connects to a server in the cloud or on your network",
-  "settings.mcpPlugins.empty.description": "Connect external tools such as databases, APIs or browsers so the agent can use them.",
+  "settings.mcpPlugins.empty.description":
+    "Connect external tools such as databases, APIs or browsers so the agent can use them.",
   "settings.mcpPlugins.empty.explore": "Browse catalog",
   "settings.mcpPlugins.empty.add": "Add manually",
   "settings.mcpPlugins.column.server": "MCP server",
@@ -1711,19 +1767,20 @@ export const dict = {
   "settings.mcpPlugins.form.name.placeholder": "e.g. filesystem, sqlite, analytics",
   "settings.mcpPlugins.form.command.server": "Command or SSE URL",
   "settings.mcpPlugins.form.command.plugin": "npm package or local path",
-  "settings.mcpPlugins.form.command.server.placeholder": "e.g. npx -y @modelcontextprotocol/server-sqlite . or https://api.example.com/sse",
+  "settings.mcpPlugins.form.command.server.placeholder":
+    "e.g. npx -y @modelcontextprotocol/server-sqlite . or https://api.example.com/sse",
   "settings.mcpPlugins.form.command.plugin.placeholder": "e.g. @org/plugin-name or .tiancode/plugins/my-plugin.ts",
   "settings.mcpPlugins.form.submit": "Save & connect",
-  "settings.mcpPlugins.toast.serverEnabled": "Server \"{{name}}\" enabled",
-  "settings.mcpPlugins.toast.serverDisabled": "Server \"{{name}}\" disabled",
+  "settings.mcpPlugins.toast.serverEnabled": 'Server "{{name}}" enabled',
+  "settings.mcpPlugins.toast.serverDisabled": 'Server "{{name}}" disabled',
   "settings.mcpPlugins.toast.serverUpdateFailed": "Could not update the MCP server",
-  "settings.mcpPlugins.toast.serverRemoved": "Server \"{{name}}\" removed",
+  "settings.mcpPlugins.toast.serverRemoved": 'Server "{{name}}" removed',
   "settings.mcpPlugins.toast.serverRemoveFailed": "Could not remove the MCP server",
   "settings.mcpPlugins.toast.pluginEnabled": "Plugin enabled",
   "settings.mcpPlugins.toast.pluginDisabled": "Plugin disabled",
   "settings.mcpPlugins.toast.pluginUpdateFailed": "Could not update the plugin",
-  "settings.mcpPlugins.toast.serverConnected": "MCP server \"{{name}}\" connected",
-  "settings.mcpPlugins.toast.pluginInstalled": "Plugin \"{{name}}\" installed",
+  "settings.mcpPlugins.toast.serverConnected": 'MCP server "{{name}}" connected',
+  "settings.mcpPlugins.toast.pluginInstalled": 'Plugin "{{name}}" installed',
   "settings.mcpPlugins.toast.installFailed": "Could not install {{name}}",
   "settings.mcpPlugins.toast.formIncomplete": "Fill in the name and the command / URL",
   "settings.mcpPlugins.toast.added": "Added successfully",
@@ -1734,19 +1791,23 @@ export const dict = {
   "settings.browser.description": "Configure the built-in browser: how links open and the data it stores.",
   "settings.browser.section.general": "General",
   "settings.browser.links": "Open links in",
-  "settings.browser.links.description": "Choose where links from pages open: in the built-in browser or in the system browser",
+  "settings.browser.links.description":
+    "Choose where links from pages open: in the built-in browser or in the system browser",
   "settings.browser.links.integrated": "Built-in browser",
   "settings.browser.links.system": "System browser",
   "settings.browser.section.data": "Data",
   "settings.browser.clearData": "Clear browsing data",
-  "settings.browser.clearData.description": "Remove cookies, cache and local storage from the built-in browser and the live view",
+  "settings.browser.clearData.description":
+    "Remove cookies, cache and local storage from the built-in browser and the live view",
   "settings.browser.clearData.button": "Clear data",
   "settings.browser.clearData.clearing": "Clearing...",
-  "settings.browser.clearData.confirm": "Clear all browsing data from the built-in browser and live view? This cannot be undone.",
+  "settings.browser.clearData.confirm":
+    "Clear all browsing data from the built-in browser and live view? This cannot be undone.",
   "settings.browser.clearData.done": "Browsing data cleared",
   "settings.browser.clearData.failed": "Could not clear browsing data",
   "settings.browser.section.screenshots": "Screenshots",
-  "settings.browser.screenshots.note": "The built-in browser can be captured as an image from the live view (capture button in the browser bar) to attach it to the conversation.",
+  "settings.browser.screenshots.note":
+    "The built-in browser can be captured as an image from the live view (capture button in the browser bar) to attach it to the conversation.",
   "settings.pets.title": "Pets",
   "settings.pets.description": "Add a companion that reflects the active session status.",
   "settings.pets.section.companion": "Companion",
@@ -1789,10 +1850,12 @@ export const dict = {
   "settings.pets.position.topLeft": "Top left",
   "settings.pets.selected": "Selected",
   "settings.computerUse.title": "Computer Use",
-  "settings.computerUse.description": "Local applications the agent can integrate, and permissions for computer-use actions.",
+  "settings.computerUse.description":
+    "Local applications the agent can integrate, and permissions for computer-use actions.",
   "settings.computerUse.section.permissions": "Permissions",
   "settings.computerUse.section.apps": "Local applications",
-  "settings.computerUse.apps.description": "Local MCP servers configured on this computer (Android Studio, Photoshop, Opera GX, Unreal…). Status reflects the real connection.",
+  "settings.computerUse.apps.description":
+    "Local MCP servers configured on this computer (Android Studio, Photoshop, Opera GX, Unreal…). Status reflects the real connection.",
   "settings.computerUse.apps.connected": "Connected",
   "settings.computerUse.apps.disconnected": "Disconnected",
   "settings.computerUse.empty": "No local applications configured yet",
@@ -1868,12 +1931,12 @@ export const dict = {
   "settings.mcpServers.group.connected": "Connected",
   "settings.mcpServers.group.errors": "Errors",
   "settings.mcpServers.group.requiresKey": "Require API key",
-"settings.mcpServers.group.disabled": "Disabled",
+  "settings.mcpServers.group.disabled": "Disabled",
   "settings.pagination.label": "Pagination",
   "settings.pagination.previous": "Previous",
   "settings.pagination.next": "Next",
   "settings.pagination.page": "Page {{current}} of {{total}}",
-"settings.mcpServers.group.unknown": "Unknown",
+  "settings.mcpServers.group.unknown": "Unknown",
   "settings.mcpServers.tools.count": "{{count}} tools",
   "settings.mcpServers.save.changes": "Save changes",
   "settings.mcpServers.discover.title": "Discover",
@@ -1881,41 +1944,56 @@ export const dict = {
   "settings.mcpServers.discover.requiresKey": "Requires API key — edit after adding",
   "settings.mcpServers.discover.requiresSetup": "Requires local setup: adjust paths in Edit",
   "settings.mcpServers.discover.presets.android-emulator.name": "Android Emulator",
-  "settings.mcpServers.discover.presets.android-emulator.description": "Control Android emulators, screens and apps from the agent.",
+  "settings.mcpServers.discover.presets.android-emulator.description":
+    "Control Android emulators, screens and apps from the agent.",
   "settings.mcpServers.discover.presets.node-repl.name": "Node REPL",
   "settings.mcpServers.discover.presets.node-repl.description": "Run JavaScript in a Node.js REPL session.",
   "settings.mcpServers.discover.presets.ios-simulator.name": "iOS Simulator",
-  "settings.mcpServers.discover.presets.ios-simulator.description": "Drive the iOS simulator and its apps (Xcode required).",
+  "settings.mcpServers.discover.presets.ios-simulator.description":
+    "Drive the iOS simulator and its apps (Xcode required).",
   "settings.mcpServers.discover.presets.chrome-devtools.name": "Chrome DevTools",
   "settings.mcpServers.discover.presets.chrome-devtools.description": "Inspect, debug and automate Chrome pages.",
   "settings.mcpServers.discover.presets.playwright.name": "Playwright",
   "settings.mcpServers.discover.presets.playwright.description": "Browser automation and end-to-end web testing.",
   "settings.mcpServers.discover.presets.notebooklm.name": "Google NotebookLM",
-  "settings.mcpServers.discover.presets.notebooklm.description": "Grounded, hallucination-free research in your NotebookLM notebooks with citations and audio overviews.",
+  "settings.mcpServers.discover.presets.notebooklm.description":
+    "Grounded, hallucination-free research in your NotebookLM notebooks with citations and audio overviews.",
   "settings.mcpServers.discover.presets.context7.name": "Context7",
-  "settings.mcpServers.discover.presets.context7.description": "Up-to-date documentation for popular libraries and frameworks.",
+  "settings.mcpServers.discover.presets.context7.description":
+    "Up-to-date documentation for popular libraries and frameworks.",
   "settings.mcpServers.discover.presets.agent-vision.name": "Agent Vision",
   "settings.mcpServers.discover.presets.unreal.name": "Unreal Engine",
   "settings.mcpServers.discover.presets.photoshop.name": "Photoshop",
-  "settings.mcpServers.discover.presets.photoshop.description": "Controls Photoshop: open files, run UXP scripts and use the configurable bridge. Requires Photoshop installed.",
+  "settings.mcpServers.discover.presets.photoshop.description":
+    "Controls Photoshop: open files, run UXP scripts and use the configurable bridge. Requires Photoshop installed.",
   "settings.mcpServers.discover.presets.indesign.name": "InDesign",
-  "settings.mcpServers.discover.presets.indesign.description": "Controls InDesign: run UXP scripts (.idjs) and use the configurable bridge. Requires InDesign installed.",
+  "settings.mcpServers.discover.presets.indesign.description":
+    "Controls InDesign: run UXP scripts (.idjs) and use the configurable bridge. Requires InDesign installed.",
   "settings.mcpServers.discover.presets.illustrator.name": "Illustrator",
-  "settings.mcpServers.discover.presets.illustrator.description": "Controls Illustrator: run JSX scripts and use the configurable bridge. Requires Illustrator installed.",
+  "settings.mcpServers.discover.presets.illustrator.description":
+    "Controls Illustrator: run JSX scripts and use the configurable bridge. Requires Illustrator installed.",
   "settings.mcpServers.discover.presets.coreldraw.name": "CorelDRAW",
-  "settings.mcpServers.discover.presets.coreldraw.description": "Controls CorelDRAW via COM/VBA on Windows. Requires CorelDRAW installed.",
+  "settings.mcpServers.discover.presets.coreldraw.description":
+    "Controls CorelDRAW via COM/VBA on Windows. Requires CorelDRAW installed.",
   "settings.mcpServers.discover.presets.opera_gx.name": "Opera GX",
-  "settings.mcpServers.discover.presets.opera_gx.description": "Controls Opera GX via Chromium DevTools Protocol. Requires the browser running with --remote-debugging-port.",
+  "settings.mcpServers.discover.presets.opera_gx.description":
+    "Controls Opera GX via Chromium DevTools Protocol. Requires the browser running with --remote-debugging-port.",
   "settings.mcpServers.discover.presets.unreal_cli.name": "Unreal Engine (CLI)",
-  "settings.mcpServers.discover.presets.unreal_cli.description": "Controls Unreal Engine from the command line: editor, UAT BuildCookRun and automation tests. Requires UE installed.",
+  "settings.mcpServers.discover.presets.unreal_cli.description":
+    "Controls Unreal Engine from the command line: editor, UAT BuildCookRun and automation tests. Requires UE installed.",
   "settings.mcpServers.discover.presets.unity.name": "Unity",
-  "settings.mcpServers.discover.presets.unity.description": "Controls Unity in batch mode: editor, -executeMethod and builds. Requires Unity installed.",
+  "settings.mcpServers.discover.presets.unity.description":
+    "Controls Unity in batch mode: editor, -executeMethod and builds. Requires Unity installed.",
   "settings.mcpServers.discover.presets.godot.name": "Godot",
-  "settings.mcpServers.discover.presets.godot.description": "Controls Godot: editor, headless, scripts and export. Requires Godot installed.",
+  "settings.mcpServers.discover.presets.godot.description":
+    "Controls Godot: editor, headless, scripts and export. Requires Godot installed.",
   "settings.mcpServers.discover.presets.android_studio.name": "Android Studio",
-  "settings.mcpServers.discover.presets.android_studio.description": "Controls Android Studio: Gradle, adb, emulator and project opening. Requires Android Studio/SDK installed.",
-  "settings.mcpServers.discover.presets.unreal.description": "Controls an Unreal Engine project (Web Remote Control): open the editor, run Python and console commands, read logs and level actors. Requires the unreal-tiancode-mcp folder installed.",
-  "settings.mcpServers.discover.presets.agent-vision.description": "Gives non-vision models eyes: analyze images, screenshots and documents (OCR) with any OpenAI-compatible vision API (OpenAI, Gemini, Qwen-VL). After enabling, add VISION_API_KEY under Environment in the server editor.",
+  "settings.mcpServers.discover.presets.android_studio.description":
+    "Controls Android Studio: Gradle, adb, emulator and project opening. Requires Android Studio/SDK installed.",
+  "settings.mcpServers.discover.presets.unreal.description":
+    "Controls an Unreal Engine project (Web Remote Control): open the editor, run Python and console commands, read logs and level actors. Requires the unreal-tiancode-mcp folder installed.",
+  "settings.mcpServers.discover.presets.agent-vision.description":
+    "Gives non-vision models eyes: analyze images, screenshots and documents (OCR) with any OpenAI-compatible vision API (OpenAI, Gemini, Qwen-VL). After enabling, add VISION_API_KEY under Environment in the server editor.",
   "capture.menu.title": "Capture screenshot",
   "capture.screen": "Full screen",
   "capture.window": "App window",
@@ -1977,7 +2055,8 @@ export const dict = {
   "settings.github.create.private": "Private",
   "settings.github.create.button": "Create",
   "settings.github.project.title": "Current project",
-  "settings.github.project.noRemote": "This project has no git remote yet — create a repository on GitHub and add the remote.",
+  "settings.github.project.noRemote":
+    "This project has no git remote yet — create a repository on GitHub and add the remote.",
   "settings.github.commit.placeholder": "Commit message...",
   "settings.github.commit.button": "Commit",
   "settings.github.commit.success": "Committed",
@@ -1990,8 +2069,7 @@ export const dict = {
   "settings.github.pull.failed": "Pull failed",
 
   "settings.voices.title": "Voices",
-  "settings.voices.description":
-    "Microphone input settings, dictation, and neural voices for chat and narration.",
+  "settings.voices.description": "Microphone input settings, dictation, and neural voices for chat and narration.",
   "settings.voices.section.general": "General",
   "settings.voices.section.dictation": "Dictation",
   "settings.voices.section.speech": "Voice Synthesis & Playback",
@@ -2000,7 +2078,8 @@ export const dict = {
   "settings.voices.dictation.dictionary.title": "Dictation dictionary",
   "settings.voices.dictation.dictionary.description": "Words or phrases dictation should prioritize",
   "settings.voices.dictation.recordings.title": "Recent dictations",
-  "settings.voices.dictation.recordings.description": "The text of your last 20 dictations is kept on this device. No audio is saved.",
+  "settings.voices.dictation.recordings.description":
+    "The text of your last 20 dictations is kept on this device. No audio is saved.",
   "settings.voices.desktopOnly": "Voices are available in the desktop app.",
   "settings.voices.loading": "Loading...",
   "settings.voices.ready.title": "Select a voice",
@@ -2010,7 +2089,8 @@ export const dict = {
   "settings.voices.voice.probe.failed": "Failed to play this voice",
   "settings.voices.select.title": "Active voice",
   "settings.voices.autoSpeak.title": "Read responses aloud",
-  "settings.voices.autoSpeak.description": "Reads the first visible assistant text once the response has finished. It never reads reasoning, code, or tool output.",
+  "settings.voices.autoSpeak.description":
+    "Reads the first visible assistant text once the response has finished. It never reads reasoning, code, or tool output.",
   "settings.voices.gender.female": "Female",
   "settings.voices.pagination.prev": "Previous",
   "settings.voices.pagination.next": "Next",
@@ -2034,7 +2114,8 @@ export const dict = {
 
   "settings.tab.modelsHub": "Local Models",
   "settings.modelsHub.title": "Local Models",
-  "settings.modelsHub.description": "Search and download GGUF models from HuggingFace to run AI locally, like LM Studio.",
+  "settings.modelsHub.description":
+    "Search and download GGUF models from HuggingFace to run AI locally, like LM Studio.",
   "settings.modelsHub.search.placeholder": "Search models... e.g. llama 3.2",
   "settings.modelsHub.search.button": "Search",
   "settings.modelsHub.empty": "No models found. Try another search.",
@@ -2058,7 +2139,8 @@ export const dict = {
   "settings.modelsHub.recommended.title": "Recommended model for your GPU",
   "settings.modelsHub.recommended.forYourGpu": "based on your detected VRAM",
   "settings.modelsHub.recommended.download": "Download",
-  "settings.modelsHub.runtime.hint": "Run local models through Ollama or LM Studio and add them as a provider in Providers.",
+  "settings.modelsHub.runtime.hint":
+    "Run local models through Ollama or LM Studio and add them as a provider in Providers.",
   "settings.modelsHub.runtime.install": "Install",
   "settings.modelsHub.runtime.install.downloading": "Downloading",
   "settings.modelsHub.runtime.install.installing": "Installing…",
@@ -2126,14 +2208,18 @@ export const dict = {
   // --- Restored keys: referenced by app code but previously absent from this dictionary ---
   "settings.tab.intelligence": "Intelligence",
   "settings.intelligence.title": "Intelligence & Memory",
-  "settings.intelligence.description": "Configure long-term memory (LTM), smart web extraction, graph analysis and execution safety.",
+  "settings.intelligence.description":
+    "Configure long-term memory (LTM), smart web extraction, graph analysis and execution safety.",
   "settings.intelligence.section.memory": "Long-Term Memory (LTM)",
   "settings.intelligence.userMemory": "User memory (USER.md)",
-  "settings.intelligence.userMemory.desc": "Remembers global coding, style and language preferences across all your projects.",
+  "settings.intelligence.userMemory.desc":
+    "Remembers global coding, style and language preferences across all your projects.",
   "settings.intelligence.projectMemory": "Project memory (MEMORY.md)",
-  "settings.intelligence.projectMemory.desc": "Stores this repository's technical architecture, network ports and build quirks.",
+  "settings.intelligence.projectMemory.desc":
+    "Stores this repository's technical architecture, network ports and build quirks.",
   "settings.intelligence.codeGraph": "Code graph analysis (CodeGraph)",
-  "settings.intelligence.codeGraph.desc": "Indexes functions, classes and dependencies to reason about architectural impact before editing.",
+  "settings.intelligence.codeGraph.desc":
+    "Indexes functions, classes and dependencies to reason about architectural impact before editing.",
   "settings.intelligence.section.safety": "Web & Execution Safety",
   "settings.github.repo.create.failed": "Could not create the repository",
   "settings.github.repo.create.success": "Repository {{name}} created",
@@ -2142,7 +2228,8 @@ export const dict = {
   "settings.mcpServers.health.cleaned": "Cleaned up {{count}} failed servers",
   "settings.mcpServers.health.noneCleanable": "No failed servers to clean up",
   "settings.voices.speakReasoning.title": "Read reasoning and plan aloud",
-  "settings.voices.speakReasoning.description": "Narrates the reasoning and the steps the AI plans to take, before it runs them.",
+  "settings.voices.speakReasoning.description":
+    "Narrates the reasoning and the steps the AI plans to take, before it runs them.",
   "livePreview.startServer": "Start preview",
   "desktop.menu.ariaLabel": "Application menu",
   "welcome.title": "Tiancode Setup",
@@ -2189,30 +2276,41 @@ export const dict = {
   "settings.computerUse.tab.bridges": "Bridges",
   "settings.computerUse.section.tools": "What the agent can do on this computer",
   "settings.computerUse.screenshot.title": "Screen capture (screenshot tool)",
-  "settings.computerUse.screenshot.description": "The agent can photograph the screen, the Tiancode window or a region of the screen and read the image. It asks for permission on every capture unless you approve them below.",
+  "settings.computerUse.screenshot.description":
+    "The agent can photograph the screen, the Tiancode window or a region of the screen and read the image. It asks for permission on every capture unless you approve them below.",
   "settings.computerUse.clipboard.title": "Clipboard (clipboard tool)",
-  "settings.computerUse.clipboard.description": "The agent can read the system clipboard text and replace it. Every read and every write is confirmed one at a time.",
-  "settings.computerUse.clipboard.note": "The clipboard is never approved in advance: it routinely holds passwords, so the agent asks every time.",
+  "settings.computerUse.clipboard.description":
+    "The agent can read the system clipboard text and replace it. Every read and every write is confirmed one at a time.",
+  "settings.computerUse.clipboard.note":
+    "The clipboard is never approved in advance: it routinely holds passwords, so the agent asks every time.",
   "settings.computerUse.autoApproveScreenshot": "Approve screen captures automatically",
-  "settings.computerUse.autoApproveScreenshot.description": "Writes permission.screenshot = allow in your configuration, so the screenshot tool runs without a prompt.",
-  "settings.computerUse.autoApproveScreenshot.note": "A capture shows whatever is on screen at that moment, including other applications. Approve it in advance only on a computer you trust.",
+  "settings.computerUse.autoApproveScreenshot.description":
+    "Writes permission.screenshot = allow in your configuration, so the screenshot tool runs without a prompt.",
+  "settings.computerUse.autoApproveScreenshot.note":
+    "A capture shows whatever is on screen at that moment, including other applications. Approve it in advance only on a computer you trust.",
   "settings.computerUse.save.done": "Permission updated",
   "settings.computerUse.tool.desktopOnly": "Desktop app only",
   "settings.computerUse.tool.ready": "Available",
   "prompt.attachment.unavailable": "Could not read the attachment. Remove it and attach the file again.",
   "settings.intelligence.skillCreate": "Skill authoring (SKILL.md)",
-  "settings.intelligence.skillCreate.desc": "Lets the agent save a workflow as a reusable SKILL.md under .tiancode/skills or your global skills folder. The agent decides when to write one.",
+  "settings.intelligence.skillCreate.desc":
+    "Lets the agent save a workflow as a reusable SKILL.md under .tiancode/skills or your global skills folder. The agent decides when to write one.",
   "settings.intelligence.section.context": "Code Graph & Context",
   "settings.intelligence.outputDistiller": "Terminal output distillation",
-  "settings.intelligence.outputDistiller.desc": "Shortens long terminal output before the model reads it. The complete output is still kept in the tool result.",
+  "settings.intelligence.outputDistiller.desc":
+    "Shortens long terminal output before the model reads it. The complete output is still kept in the tool result.",
   "settings.intelligence.webBoilerplate": "Strip web page boilerplate",
-  "settings.intelligence.webBoilerplate.desc": "Drops scripts, navigation, footers and forms when a fetched page is turned into Markdown. Turn it off for pages whose content lives inside those elements.",
+  "settings.intelligence.webBoilerplate.desc":
+    "Drops scripts, navigation, footers and forms when a fetched page is turned into Markdown. Turn it off for pages whose content lives inside those elements.",
   "settings.intelligence.shellScan": "Shell command screening (AgentShield)",
-  "settings.intelligence.shellScan.desc": "Scans every shell command for destructive deletions, reads of secret files and piped remote execution, and attaches a warning to the tool call. Advisory only: it blocks nothing and masks nothing.",
+  "settings.intelligence.shellScan.desc":
+    "Scans every shell command for destructive deletions, reads of secret files and piped remote execution, and attaches a warning to the tool call. Advisory only: it blocks nothing and masks nothing.",
   "settings.intelligence.toolCallRepair": "Tool-call argument repair",
-  "settings.intelligence.toolCallRepair.desc": "Rebuilds malformed tool arguments — truncated JSON, unclosed braces, markdown fences — that local or streaming models emit. When off, a malformed call simply fails.",
+  "settings.intelligence.toolCallRepair.desc":
+    "Rebuilds malformed tool arguments — truncated JSON, unclosed braces, markdown fences — that local or streaming models emit. When off, a malformed call simply fails.",
   "settings.intelligence.loopBreaker": "Loop breaker",
-  "settings.intelligence.loopBreaker.desc": "Halts the agent when it repeats the same tool call or fires too many tools in one turn, and asks you before it carries on.",
+  "settings.intelligence.loopBreaker.desc":
+    "Halts the agent when it repeats the same tool call or fires too many tools in one turn, and asks you before it carries on.",
   "settings.pets.total": "{{count}} interactive 3D companions",
   "settings.pets.desktop.unavailable": "Only available in the desktop app.",
   "settings.pets.pet.title": "Test reaction",
@@ -2274,19 +2372,26 @@ export const dict = {
   "command.category.prompt": "Prompt",
   "settings.github.connect.token.label": "Personal access token",
   "settings.github.capabilities.title": "What connecting lets you do",
-  "settings.github.capabilities.clone": "Clone any repository you can access — private ones included — and open it as a Tiancode project in one step.",
+  "settings.github.capabilities.clone":
+    "Clone any repository you can access — private ones included — and open it as a Tiancode project in one step.",
   "settings.github.capabilities.browse": "Browse every repository the token can see, public and private.",
-  "settings.github.capabilities.create": "Create a repository under your personal account, public or private. Organisation repositories are not supported.",
-  "settings.github.capabilities.git": "Commit, push and pull the open project with authentication, without leaving Settings.",
-  "settings.github.capabilities.identity": "Commits are attributed to your GitHub identity: your login and login@users.noreply.github.com.",
-  "settings.github.capabilities.reopen": "A repository you already cloned is detected and opened instead of cloned again.",
+  "settings.github.capabilities.create":
+    "Create a repository under your personal account, public or private. Organisation repositories are not supported.",
+  "settings.github.capabilities.git":
+    "Commit, push and pull the open project with authentication, without leaving Settings.",
+  "settings.github.capabilities.identity":
+    "Commits are attributed to your GitHub identity: your login and login@users.noreply.github.com.",
+  "settings.github.capabilities.reopen":
+    "A repository you already cloned is detected and opened instead of cloned again.",
   "settings.github.capabilities.storage": "The token is stored in {{file}}, inside Tiancode's data folder.",
-  "settings.github.capabilities.encrypted": "In the desktop app it is encrypted at rest with AES-256-GCM, under a key the operating system keystore protects (DPAPI on Windows, Keychain on macOS). Without a keystore it is stored as plain text.",
+  "settings.github.capabilities.encrypted":
+    "In the desktop app it is encrypted at rest with AES-256-GCM, under a key the operating system keystore protects (DPAPI on Windows, Keychain on macOS). Without a keystore it is stored as plain text.",
   "settings.github.status.authenticated": "Connected and authenticated",
   "settings.github.badge.linked": "Account linked",
   "settings.github.scopes.title": "Permissions GitHub reports for this token",
   "settings.github.scopes.unknown": "Permissions not reported",
-  "settings.github.scopes.unknown.title": "GitHub only reports permissions for classic tokens; fine-grained tokens do not send them.",
+  "settings.github.scopes.unknown.title":
+    "GitHub only reports permissions for classic tokens; fine-grained tokens do not send them.",
   "settings.github.profile.view": "View profile",
   "settings.github.profile.view.title": "Open your GitHub profile in the browser",
   "settings.github.stats.total": "Total",
@@ -2367,16 +2472,19 @@ export const dict = {
   "liveView.device.label": "Viewport size",
   "liveView.device.current": "Viewport size: {{device}}",
   "settings.permissions.tool.preview.title": "Live view",
-  "settings.permissions.tool.preview.description": "Read and control the page shown in the Live view or the built-in browser (matches the site origin)",
+  "settings.permissions.tool.preview.description":
+    "Read and control the page shown in the Live view or the built-in browser (matches the site origin)",
   "settings.permissions.tool.screenshot.title": "Screenshot",
-  "settings.permissions.tool.screenshot.description": "Capture the screen, the Tiancode window, or an area of the screen (matches the capture target)",
+  "settings.permissions.tool.screenshot.description":
+    "Capture the screen, the Tiancode window, or an area of the screen (matches the capture target)",
   "settings.general.row.transcriptText.title": "Transcript text size",
   "settings.general.row.transcriptText.description": "Size of the conversation text: messages, headings and tool cards",
   "settings.general.row.transcriptText.option.small": "Small",
   "settings.general.row.transcriptText.option.medium": "Medium",
   "settings.general.row.transcriptText.option.large": "Large",
   "settings.general.row.transcriptWidth.title": "Transcript width",
-  "settings.general.row.transcriptWidth.description": "Maximum width of the conversation and the message box, on windows at least 768px wide",
+  "settings.general.row.transcriptWidth.description":
+    "Maximum width of the conversation and the message box, on windows at least 768px wide",
   "settings.general.row.transcriptWidth.option.narrow": "Narrow",
   "settings.general.row.transcriptWidth.option.medium": "Medium",
   "settings.general.row.transcriptWidth.option.wide": "Wide",
@@ -2420,42 +2528,55 @@ export const dict = {
   "livePreview.mirror.alt": "Window of the running application",
   "livePreview.fixPrompt.intro": "Please fix the following error that happens in the app preview:",
   "livePreview.fixPrompt.target": "Target/file: {{url}}",
-  "livePreview.fixPrompt.outro": "Analyse the project code, find the cause of the failure and fix the files so the preview works correctly.",
+  "livePreview.fixPrompt.outro":
+    "Analyse the project code, find the cause of the failure and fix the files so the preview works correctly.",
   "welcome.step.appearance": "Language & appearance",
   "welcome.step.workspace": "Your workspace",
   "welcome.progress": "Setup progress",
   "welcome.language.field": "Language",
-  "welcome.provider.autoOpen": "Provider settings open when you finish, so you can add a model. Close them to do it later.",
+  "welcome.provider.autoOpen":
+    "Provider settings open when you finish, so you can add a model. Close them to do it later.",
   "settings.computerUse.tab.browser": "Browser",
-  "settings.computerUse.tools.intro": "Screen capture, clipboard and — on Windows only — mouse and keyboard. All of it runs through the desktop app: a session opened in a web browser has no desktop to reach.",
+  "settings.computerUse.tools.intro":
+    "Screen capture, clipboard and — on Windows only — mouse and keyboard. All of it runs through the desktop app: a session opened in a web browser has no desktop to reach.",
   "settings.computerUse.section.computer": "Mouse and keyboard",
   "settings.computerUse.computer.title": "Mouse and keyboard (computer tool)",
-  "settings.computerUse.computer.description": "The agent moves the real cursor, clicks and types into whichever application is in front. The first action of each session opens a dialog naming that application, the control expires on its own, and you can stop it at any time from the indicator.",
+  "settings.computerUse.computer.description":
+    "The agent moves the real cursor, clicks and types into whichever application is in front. The first action of each session opens a dialog naming that application, the control expires on its own, and you can stop it at any time from the indicator.",
   "settings.computerUse.computer.enable": "Let the agent use the mouse and the keyboard",
-  "settings.computerUse.computer.enable.description": "Kept by the desktop app itself, not in tiancode.json: the agent can edit tiancode.json with its own tools, and a brake the agent can edit is not a brake. Turned off, the main process refuses every action and any control in progress stops.",
+  "settings.computerUse.computer.enable.description":
+    "Kept by the desktop app itself, not in tiancode.json: the agent can edit tiancode.json with its own tools, and a brake the agent can edit is not a brake. Turned off, the main process refuses every action and any control in progress stops.",
   "settings.computerUse.computer.windowsOnly": "Windows only",
   "settings.computerUse.denied.title": "Blocked executables",
-  "settings.computerUse.denied.description": "Tiancode refuses to send clicks or keystrokes while one of these is the window in front, even if you authorised it earlier in the session. The list is kept between launches; the per-session authorisations are not.",
-  "settings.computerUse.denied.note": "The match is by executable name — the last segment of the path, lowercased. Two different programs with the same file name cannot be told apart, and renaming the file takes it off the list. It is a file name, not an application identity.",
+  "settings.computerUse.denied.description":
+    "Tiancode refuses to send clicks or keystrokes while one of these is the window in front, even if you authorised it earlier in the session. The list is kept between launches; the per-session authorisations are not.",
+  "settings.computerUse.denied.note":
+    "The match is by executable name — the last segment of the path, lowercased. Two different programs with the same file name cannot be told apart, and renaming the file takes it off the list. It is a file name, not an application identity.",
   "settings.computerUse.denied.placeholder": "notepad.exe",
   "settings.computerUse.denied.add": "Block",
   "settings.computerUse.denied.remove": "Remove",
   "settings.computerUse.denied.empty": "No executable blocked",
   "settings.computerUse.denied.invalid": "Write the name of an executable, for example notepad.exe",
   "settings.computerUse.denied.duplicate": "That executable is already on the list",
-  "settings.computerUse.platform.note": "Computer use needs the desktop app and runs on Windows only: macOS would need the system Accessibility permission and a different backend, and Linux depends on X11 or Wayland. Tiancode says so and refuses instead of failing strangely.",
+  "settings.computerUse.platform.note":
+    "Computer use needs the desktop app and runs on Windows only: macOS would need the system Accessibility permission and a different backend, and Linux depends on X11 or Wayland. Tiancode says so and refuses instead of failing strangely.",
   "settings.computerUse.browser.section": "Integrated browser",
   "settings.computerUse.browser.control": "Let the agent read and drive the integrated browser",
-  "settings.computerUse.browser.control.description": "Reading the open page and clicking or typing on it is asked with the site's origin as the pattern, so a yes for one site is not a yes for the next one.",
+  "settings.computerUse.browser.control.description":
+    "Reading the open page and clicking or typing on it is asked with the site's origin as the pattern, so a yes for one site is not a yes for the next one.",
   "settings.computerUse.browser.control.ask": "Ask for each site",
   "settings.computerUse.browser.control.allow": "Allow every site without asking",
   "settings.computerUse.browser.control.deny": "Do not let the agent use the browser",
   "settings.computerUse.browser.control.inherited": "Inherited default",
-  "settings.computerUse.browser.control.note": "Until now there was no rule written and the agent's default allowed every origin: it could read and drive any page in the integrated browser without a prompt. Choosing “Ask for each site” writes permission.browser = {\"*\": \"ask\"} into this project's configuration, and from then on Tiancode asks before any site that is not on the list below. It is a real change for anyone already using it.",
+  "settings.computerUse.browser.control.note":
+    'Until now there was no rule written and the agent\'s default allowed every origin: it could read and drive any page in the integrated browser without a prompt. Choosing “Ask for each site” writes permission.browser = {"*": "ask"} into this project\'s configuration, and from then on Tiancode asks before any site that is not on the list below. It is a real change for anyone already using it.',
   "settings.computerUse.browser.sites": "Allowed sites",
-  "settings.computerUse.browser.sites.description": "Origins with a standing allow rule in this project's configuration.",
-  "settings.computerUse.browser.sites.note": "The “Always” you answer in a permission prompt is NOT here: it is kept in memory by the running instance and goes away with it. Only what you add on this screen is written to the configuration, so this list is not the whole picture of what is approved right now.",
-  "settings.computerUse.browser.sites.inert": "While the general rule is “Allow every site without asking”, this list changes nothing: every site is allowed already.",
+  "settings.computerUse.browser.sites.description":
+    "Origins with a standing allow rule in this project's configuration.",
+  "settings.computerUse.browser.sites.note":
+    "The “Always” you answer in a permission prompt is NOT here: it is kept in memory by the running instance and goes away with it. Only what you add on this screen is written to the configuration, so this list is not the whole picture of what is approved right now.",
+  "settings.computerUse.browser.sites.inert":
+    "While the general rule is “Allow every site without asking”, this list changes nothing: every site is allowed already.",
   "settings.computerUse.browser.sites.placeholder": "https://example.com",
   "settings.computerUse.browser.sites.add": "Allow",
   "settings.computerUse.browser.sites.revoke": "Revoke",
@@ -2463,14 +2584,18 @@ export const dict = {
   "settings.computerUse.browser.sites.empty": "No site allowed in advance",
   "settings.computerUse.browser.sites.invalid": "Write a full address, for example https://example.com",
   "settings.computerUse.browser.sites.duplicate": "That origin is already allowed",
-  "settings.computerUse.browser.sites.orderFailed": "The rule was written, but another rule further down permission.browser still wins for that origin. Open tiancode.json and leave \"*\" as the first key of permission.browser.",
+  "settings.computerUse.browser.sites.orderFailed":
+    'The rule was written, but another rule further down permission.browser still wins for that origin. Open tiancode.json and leave "*" as the first key of permission.browser.',
   "settings.computerUse.browser.cookies": "Cookies and sessions",
-  "settings.computerUse.browser.cookies.description": "How long the logins and cookies of the integrated browser and the live view last.",
+  "settings.computerUse.browser.cookies.description":
+    "How long the logins and cookies of the integrated browser and the live view last.",
   "settings.computerUse.browser.cookies.always": "Always",
   "settings.computerUse.browser.cookies.session": "Until I close Tiancode",
-  "settings.computerUse.browser.cookies.note": "“Until I close Tiancode” clears cookies, cache and local storage the NEXT time the app starts, not while it is closing: Electron does not wait for an asynchronous clear during quit, so doing it there would sometimes do nothing. There is no “never store” option — the integrated browser runs in a fixed persistent partition and Electron does not allow changing it once the page has loaded.",
+  "settings.computerUse.browser.cookies.note":
+    "“Until I close Tiancode” clears cookies, cache and local storage the NEXT time the app starts, not while it is closing: Electron does not wait for an asynchronous clear during quit, so doing it there would sometimes do nothing. There is no “never store” option — the integrated browser runs in a fixed persistent partition and Electron does not allow changing it once the page has loaded.",
   "settings.general.row.transcriptView.title": "Transcript view",
-  "settings.general.row.transcriptView.description": "How much of each turn opens expanded by default; any session can override it from More options",
+  "settings.general.row.transcriptView.description":
+    "How much of each turn opens expanded by default; any session can override it from More options",
   "settings.general.row.transcriptView.option.normal": "Normal",
   "settings.general.row.transcriptView.option.thinking": "Thinking",
   "settings.general.row.transcriptView.option.detailed": "Detailed",
@@ -2485,27 +2610,35 @@ export const dict = {
   "welcome.confirm.review": "Confirm your preferences",
   "welcome.confirm.done": "Done",
   "prompt.attachment.imageUnsupported": "{{model}} can't read images — this attachment won't reach it.",
-  "settings.permissions.tool.delete.description": "Delete a file or folder, escalating when Windows holds it locked (matches the full path)",
-  "settings.permissions.tool.process_terminate.description": "Force-close a process that is holding a file open so the file can be deleted",
+  "settings.permissions.tool.delete.description":
+    "Delete a file or folder, escalating when Windows holds it locked (matches the full path)",
+  "settings.permissions.tool.process_terminate.description":
+    "Force-close a process that is holding a file open so the file can be deleted",
   "settings.general.backup.now.error": "Could not create the backup",
-  "prompt.optimize.failed.reasoningOnly": "The model only produced reasoning, never an answer. Try a lower reasoning effort.",
+  "prompt.optimize.failed.reasoningOnly":
+    "The model only produced reasoning, never an answer. Try a lower reasoning effort.",
   "settings.modelsHub.remove.success.title": "Model deleted",
   "settings.modelsHub.remove.success.description": "{{file}} was removed from disk.",
   "settings.modelsHub.remove.success.fromProviders": "It no longer appears in Providers or Models.",
-  "settings.modelsHub.remove.success.defaultCleared": "It was the default model, so Tiancode will fall back to another one.",
-  "settings.modelsHub.remove.configFailed": "The file is gone, but it could not be removed from the provider list. Restart Tiancode and try again.",
+  "settings.modelsHub.remove.success.defaultCleared":
+    "It was the default model, so Tiancode will fall back to another one.",
+  "settings.modelsHub.remove.configFailed":
+    "The file is gone, but it could not be removed from the provider list. Restart Tiancode and try again.",
   "settings.modelsHub.remove.locked.title": "Could not delete the model",
-  "settings.modelsHub.remove.locked.description": "{{file}} is still in use or locked on disk. Close Tiancode and try again.",
+  "settings.modelsHub.remove.locked.description":
+    "{{file}} is still in use or locked on disk. Close Tiancode and try again.",
   "settings.modelsHub.remove.failed.title": "Error deleting the model from disk",
   "prompt.optimize.failed.timeout": "The model took too long to answer. Your prompt was left exactly as you wrote it.",
   "settings.subAgents.custom.count": "{{count}} custom sub-agents",
   "settings.subAgents.list.user.hint": "from your agent/*.md files",
   "settings.subAgents.create.manual": "Create manually",
   "settings.subAgents.create.ai": "Generate with AI",
-  "settings.subAgents.create.storage": "New sub-agents are saved to your global config and are available in every project.",
+  "settings.subAgents.create.storage":
+    "New sub-agents are saved to your global config and are available in every project.",
   "settings.subAgents.generate.title": "What should this sub-agent do?",
   "settings.subAgents.generate.placeholder": "Review SQL migrations and flag anything that could lock a table",
-  "settings.subAgents.generate.hint": "A model writes the identifier, the description and the system prompt. You review them before anything is saved.",
+  "settings.subAgents.generate.hint":
+    "A model writes the identifier, the description and the system prompt. You review them before anything is saved.",
   "settings.subAgents.generate.model": "Model",
   "settings.subAgents.generate.model.default": "Default model",
   "settings.subAgents.generate.submit": "Generate",
@@ -2519,13 +2652,15 @@ export const dict = {
   "settings.subAgents.form.field.mode": "Mode",
   "settings.subAgents.form.mode.subagent": "Sub-agent",
   "settings.subAgents.form.mode.primary": "Primary",
-  "settings.subAgents.form.mode.hint": "A sub-agent is delegated to; a primary agent can be selected directly in the chat.",
+  "settings.subAgents.form.mode.hint":
+    "A sub-agent is delegated to; a primary agent can be selected directly in the chat.",
   "settings.subAgents.form.name.required": "Enter a name",
   "settings.subAgents.form.name.invalid": "Use lowercase letters, digits and single hyphens",
-  "settings.subAgents.form.name.taken": "\"{{name}}\" already exists",
+  "settings.subAgents.form.name.taken": '"{{name}}" already exists',
   "settings.subAgents.form.description.required": "Add a short description so the main agent knows when to delegate",
   "settings.subAgents.hierarchy.title": "Delegation hierarchy",
-  "settings.subAgents.hierarchy.description": "Which primary agents can hand work to which sub-agents, taken from the list above.",
+  "settings.subAgents.hierarchy.description":
+    "Which primary agents can hand work to which sub-agents, taken from the list above.",
   "settings.subAgents.hierarchy.collapse": "Collapse",
   "settings.subAgents.hierarchy.expand": "Expand",
   "settings.subAgents.hierarchy.empty": "No primary agent is configured",

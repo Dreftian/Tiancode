@@ -2,6 +2,7 @@ import { createEffect, createSignal, onCleanup, Show } from "solid-js"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { useSettings } from "@/context/settings"
+import { showToast } from "@/utils/toast"
 import { welcomePageUrl } from "@/utils/webview-welcome"
 import "./preview-panel.css"
 
@@ -109,8 +110,14 @@ export function PreviewPanel() {
 
   const openGuestNavigation = (event: Event) => {
     const url = (event as Event & { url?: string }).url
-    if (programmatic || !url || settings.general.browserLinks() !== "system") return
+    if (programmatic || !url || settings.general.browserLinks() === "integrated") return
     event.preventDefault()
+    if (settings.general.browserLinks() === "chrome") {
+      void window.api
+        ?.openInChrome?.(url)
+        .catch(() => showToast({ variant: "error", title: language.t("settings.browser.chromeUnavailable") }))
+      return
+    }
     platform.openExternal(url)
   }
 
@@ -307,12 +314,7 @@ export function PreviewPanel() {
         <div class="preview-ports-bar">
           <span class="preview-ports-label">Puertos dev:</span>
           {DEV_PORTS.map((dp) => (
-            <button
-              type="button"
-              class="preview-port-pill"
-              onClick={() => navigatePort(dp.port)}
-              title={dp.title}
-            >
+            <button type="button" class="preview-port-pill" onClick={() => navigatePort(dp.port)} title={dp.title}>
               :{dp.label}
             </button>
           ))}
@@ -346,7 +348,8 @@ export function PreviewPanel() {
                     No se pudo conectar a <code>{url()}</code> ({loadError()?.description || "Conexión rechazada"}).
                   </p>
                   <p class="preview-error-hint">
-                    Asegúrate de iniciar el servidor de desarrollo de tu proyecto (ej: <code>npm run dev</code>, <code>python main.py</code>, <code>cargo run</code>, <code>go run main.go</code>).
+                    Asegúrate de iniciar el servidor de desarrollo de tu proyecto (ej: <code>npm run dev</code>,{" "}
+                    <code>python main.py</code>, <code>cargo run</code>, <code>go run main.go</code>).
                   </p>
                   <div class="preview-error-actions">
                     <button type="button" class="preview-retry-btn" onClick={handleReload}>

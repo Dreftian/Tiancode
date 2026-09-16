@@ -72,6 +72,7 @@ export type ComputerUseStore = {
 export const COMPUTER_ENABLED_KEY = "computerUseEnabled"
 /** Ejecutables vetados SIEMPRE, se autorice lo que se autorice en la sesión. JSON con un array. */
 export const COMPUTER_DENIED_KEY = "computerUseDeniedApps"
+export const COMPUTER_RESTORE_KEY = "computerUseRestoreWindows"
 
 // ---------------------------------------------------------------------------------------------
 // Parte pura (la que cubre computer-use.test.ts)
@@ -364,7 +365,7 @@ export function validateComputerRequest(
 
   if (action === "key") {
     const keys = input["keys"]
-    if (typeof keys !== "string") return { ok: false, error: "`key` necesita `keys` (por ejemplo \"ctrl+s\")." }
+    if (typeof keys !== "string") return { ok: false, error: '`key` necesita `keys` (por ejemplo "ctrl+s").' }
     const parsed = parseChord(keys)
     if (!parsed.ok) return { ok: false, error: parsed.error }
     request.keys = keys
@@ -548,6 +549,24 @@ public static class TcComputer {
   [DllImport("user32.dll", SetLastError = true)] static extern bool SetCursorPos(int x, int y);
   [DllImport("user32.dll", SetLastError = true)] static extern bool GetCursorPos(out POINT p);
   [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+  [DllImport("user32.dll")] static extern bool IsIconic(IntPtr window);
+  [DllImport("user32.dll")] static extern bool ShowWindowAsync(IntPtr window, int command);
+  static System.Collections.Generic.Dictionary<IntPtr, uint> controlledWindows = new System.Collections.Generic.Dictionary<IntPtr, uint>();
+  public static void RememberWindow() {
+    IntPtr window = GetForegroundWindow();
+    uint pid;
+    GetWindowThreadProcessId(window, out pid);
+    if (expectedPid != 0 && pid != expectedPid) throw new Exception("Input target changed. The other window was not recorded.");
+    if (window != IntPtr.Zero && pid > 0) controlledWindows[window] = pid;
+  }
+  public static void RestoreWindows(uint[] allowed) {
+    foreach (var entry in controlledWindows) {
+      uint pid;
+      GetWindowThreadProcessId(entry.Key, out pid);
+      if (pid == entry.Value && Array.IndexOf(allowed, pid) >= 0 && IsIconic(entry.Key)) ShowWindowAsync(entry.Key, 4);
+    }
+    controlledWindows.Clear();
+  }
   [DllImport("user32.dll")] static extern IntPtr WindowFromPoint(POINT point);
   [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetWindowTextW(IntPtr h, StringBuilder s, int n);
   [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
@@ -764,6 +783,8 @@ while ($null -ne ($line = $stdin.ReadLine())) {
       'scroll' { [TcComputer]::Scroll([string]$req.direction, [int]$req.amount) }
       'cursor' { $data = [TcComputer]::Cursor() }
       'foreground' { $data = [TcComputer]::Foreground() }
+      'remember' { [TcComputer]::RememberWindow() }
+      'restore' { [TcComputer]::RestoreWindows([uint32[]]@($req.allowed)) }
       'panic' { [TcComputer]::ReleaseModifiers() }
       'ping' { $data = 'pong' }
       default { throw ('unknown action: ' + [string]$req.action) }
@@ -800,13 +821,28 @@ export function encodedHostCommand(): string {
 }
 
 type HostCommand = {
-  action: "move" | "click" | "type" | "key" | "scroll" | "cursor" | "foreground" | "panic" | "ping"
+  action:
+    | "move"
+    | "click"
+    | "type"
+    | "key"
+    | "scroll"
+    | "cursor"
+    | "foreground"
+    | "panic"
+    | "ping"
+    | "remember"
+    | "restore"
   [key: string]: unknown
 }
 
 type HostReply = { id: string; ok: boolean; data?: string; error?: string }
 
-type Pending = { resolve: (reply: HostReply) => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> }
+type Pending = {
+  resolve: (reply: HostReply) => void
+  reject: (error: Error) => void
+  timer: ReturnType<typeof setTimeout>
+}
 
 let hostProcess: ChildProcess | undefined
 let hostStarting: Promise<ChildProcess> | undefined
@@ -972,6 +1008,7 @@ function killHost() {
 type ControlSession = {
   /** Ejecutables autorizados por el usuario en esta sesión; empieza vacía en cada sesión. */
   allowed: Set<string>
+  targets: Map<number, string>
   actions: number
   idleTimer?: ReturnType<typeof setTimeout>
 }
@@ -1121,11 +1158,19 @@ export async function stopComputerControl(
 ): Promise<void> {
   controlGeneration++
   const wasActive = !!session
+  const targets = session?.targets
   if (session?.idleTimer) clearTimeout(session.idleTimer)
   session = undefined
   unregisterStopShortcut()
   closeIndicator()
   if (hostProcess) {
+    if (targets && reason !== "quit" && deps?.store.get(COMPUTER_RESTORE_KEY) !== "false") {
+      const denied = settings().denied
+      const allowed = [...targets].filter(([, exe]) => !denied.has(exe)).map(([pid]) => pid)
+      await sendToHost({ action: "restore", allowed }, 400).catch((error) =>
+        log("computer-use restore failed", { error: String(error) }, "warn"),
+      )
+    }
     // Un acorde interrumpido a medias deja Ctrl o Alt pulsados para el usuario; se intenta
     // soltarlos antes de matar el host, pero sin dejar que eso retrase la parada.
     await Promise.race([
@@ -1157,9 +1202,9 @@ async function askConsent(foreground: ForegroundWindow): Promise<boolean> {
     cancelId: 1,
     noLink: true,
   }
-  consentInFlight = (
-    parent ? deps.dialog.showMessageBox(parent, options) : deps.dialog.showMessageBox(options)
-  ).then((result) => result.response === 0)
+  consentInFlight = (parent ? deps.dialog.showMessageBox(parent, options) : deps.dialog.showMessageBox(options)).then(
+    (result) => result.response === 0,
+  )
   try {
     return await consentInFlight
   } finally {
@@ -1271,7 +1316,8 @@ async function performSerializedComputerAction(raw: unknown, generation: number)
     const name = processName(foreground.exe)
     if (!session?.allowed.has(name)) {
       const granted = await askConsent(foreground)
-      if (generation !== controlGeneration || !settings().enabled) return { ok: false, output: "El control del ordenador se detuvo." }
+      if (generation !== controlGeneration || !settings().enabled)
+        return { ok: false, output: "El control del ordenador se detuvo." }
       if (!granted) {
         return {
           ok: false,
@@ -1295,7 +1341,7 @@ async function performSerializedComputerAction(raw: unknown, generation: number)
           unregisterStopShortcut()
           return { ok: false, output: "El control del ordenador se detuvo." }
         }
-        session = { allowed: new Set(), actions: 0 }
+        session = { allowed: new Set(), targets: new Map(), actions: 0 }
         log("computer-use control started", { process: name })
       }
       session.allowed.add(name)
@@ -1313,9 +1359,18 @@ async function performSerializedComputerAction(raw: unknown, generation: number)
       }
     }
 
-    if (generation !== controlGeneration || !session || !settings().enabled) return { ok: false, output: "El control del ordenador se detuvo." }
+    if (generation !== controlGeneration || !session || !settings().enabled)
+      return { ok: false, output: "El control del ordenador se detuvo." }
     updateIndicator(describeForeground(foreground))
     touchSession()
+
+    if (session) {
+      const remembered = await sendToHost({ action: "remember", expectedPid: foreground.pid })
+      if (!remembered.ok)
+        return { ok: false, output: remembered.error ?? "No se pudo registrar la ventana autorizada." }
+      session.targets.set(foreground.pid, name)
+    }
+    if (generation !== controlGeneration) return { ok: false, output: "El control del ordenador se detuvo." }
 
     switch (request.action) {
       case "move": {
@@ -1330,7 +1385,12 @@ async function performSerializedComputerAction(raw: unknown, generation: number)
           if (!moved.ok) return { ok: false, output: moved.error || "No se pudo mover el cursor antes del clic." }
         }
         if (generation !== controlGeneration) return { ok: false, output: "El control del ordenador se detuvo." }
-        const reply = await sendToHost({ action: "click", button: request.button, double: request.double, expectedPid: foreground.pid })
+        const reply = await sendToHost({
+          action: "click",
+          button: request.button,
+          double: request.double,
+          expectedPid: foreground.pid,
+        })
         if (!reply.ok) return { ok: false, output: reply.error || "No se pudo hacer clic." }
         if (session) session.actions++
         const where = request.x !== undefined ? ` en (${request.x}, ${request.y})` : " donde estaba el cursor"
@@ -1340,7 +1400,10 @@ async function performSerializedComputerAction(raw: unknown, generation: number)
         }
       }
       case "type": {
-        const reply = await sendToHost({ action: "type", text: request.text, expectedPid: foreground.pid }, TYPE_TIMEOUT_MS)
+        const reply = await sendToHost(
+          { action: "type", text: request.text, expectedPid: foreground.pid },
+          TYPE_TIMEOUT_MS,
+        )
         if (!reply.ok) return { ok: false, output: reply.error || "No se pudo escribir el texto." }
         if (session) session.actions++
         return {
@@ -1363,10 +1426,18 @@ async function performSerializedComputerAction(raw: unknown, generation: number)
         return { ok: true, output: `Pulsado ${request.keys} en ${describeForeground(foreground)}.` }
       }
       case "scroll": {
-        const reply = await sendToHost({ action: "scroll", direction: request.direction, amount: request.amount, expectedPid: foreground.pid })
+        const reply = await sendToHost({
+          action: "scroll",
+          direction: request.direction,
+          amount: request.amount,
+          expectedPid: foreground.pid,
+        })
         if (!reply.ok) return { ok: false, output: reply.error || "No se pudo hacer scroll." }
         if (session) session.actions++
-        return { ok: true, output: `Scroll ${request.direction} (${request.amount}) en ${describeForeground(foreground)}.` }
+        return {
+          ok: true,
+          output: `Scroll ${request.direction} (${request.amount}) en ${describeForeground(foreground)}.`,
+        }
       }
     }
     return { ok: false, output: `Acción no soportada: ${request.action}.` }

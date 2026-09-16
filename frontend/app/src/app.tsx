@@ -39,7 +39,6 @@ import {
   ErrorBoundary,
   For,
   type JSX,
-  lazy,
   onCleanup,
   onMount,
   type ParentProps,
@@ -79,8 +78,9 @@ import { createSessionLineage } from "@/pages/session/session-lineage"
 
 import { SessionPage, SessionRouteErrorBoundary, TargetSessionRouteContent } from "@/pages/session"
 import { NewHome } from "@/pages/home"
-
-const NewSession = lazy(() => import("@/pages/new-session"))
+// This small, frequently opened route shares its heavy dependencies with the composer.
+// Keep it ready so the first New Session click does not wait for another module fetch.
+import NewSession from "@/pages/new-session"
 
 const SessionRoute = () => {
   const settings = useSettings()
@@ -255,6 +255,7 @@ declare global {
       deepLinks?: string[]
     }
     api?: {
+      openInChrome?: (url: string) => Promise<void>
       setTitlebar?: (theme: { mode: "light" | "dark"; scheme?: "system" | "light" | "dark" }) => Promise<void>
       exportDebugLogs?: () => Promise<string>
       storeGet?: (name: string, key: string) => Promise<string | null>
@@ -597,9 +598,7 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
             clara. --v2-background-bg-deep ya conmuta solo (grey-100 / grey-1100), así que la
             comparación sobra y no puede volver a desincronizarse.
           */
-          <div
-            class="fixed inset-0 z-[99998] w-full h-full flex items-center justify-center p-4 select-none overflow-hidden bg-v2-background-bg-deep transition-colors duration-200"
-          >
+          <div class="fixed inset-0 z-[99998] w-full h-full flex items-center justify-center p-4 select-none overflow-hidden bg-v2-background-bg-deep transition-colors duration-200">
             {/* Halos de marca: sobre el fondo del tema, no sobre un color fijo. */}
             <div class="absolute -top-[10%] -left-[10%] w-[520px] h-[520px] rounded-full blur-[130px] pointer-events-none bg-v2-background-bg-accent opacity-10" />
             <div class="absolute -bottom-[10%] -right-[10%] w-[520px] h-[520px] rounded-full blur-[130px] pointer-events-none bg-v2-background-bg-accent opacity-[0.07]" />
@@ -771,4 +770,3 @@ function NewLayoutLegacySessionRedirect() {
     </Show>
   )
 }
-

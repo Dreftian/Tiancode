@@ -34,7 +34,7 @@ benchmark.describe("performance: first navigation paint", () => {
     expect(result.summary.unknownSamples).toBe(0)
   })
 
-  benchmark("opens the new session page before its lazy module is used", async ({ page, report }) => {
+  benchmark("opens the new session page on its first visit", async ({ page, report }) => {
     await setup(page, draftID)
     const href = stressDraftHref(draftID)
     const result = await measureFirstNavigation(page, {

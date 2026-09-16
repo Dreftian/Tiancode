@@ -130,13 +130,8 @@ const main = Effect.gen(function* () {
     app.setAppUserModelId(appId)
   }
   const portableDir = process.env.PORTABLE_EXECUTABLE_DIR
-  const defaultUserData = portableDir
-    ? join(portableDir, "data")
-    : join(app.getPath("appData"), appId)
-  app.setPath(
-    "userData",
-    onboardingTestRoot ? join(onboardingTestRoot, "desktop") : defaultUserData,
-  )
+  const defaultUserData = portableDir ? join(portableDir, "data") : join(app.getPath("appData"), appId)
+  app.setPath("userData", onboardingTestRoot ? join(onboardingTestRoot, "desktop") : defaultUserData)
   if (onboardingTestRoot) app.setPath("sessionData", join(onboardingTestRoot, "session"))
   initializeOldLayoutEligibility(app.getPath("userData"))
   logger = initLogging()
@@ -236,7 +231,21 @@ const main = Effect.gen(function* () {
     if (!getMinimizeToTrayEnabled()) app.quit()
   })
 
-  app.on("before-quit", () => {
+  let clearingBrowserData = false
+  let browserDataCleared = false
+  app.on("before-quit", (event) => {
+    if (!browserDataCleared && webviewRetention(getStore().get(WEBVIEW_RETENTION_KEY)) === "session") {
+      event.preventDefault()
+      if (clearingBrowserData) return
+      clearingBrowserData = true
+      void Promise.race([clearWebviewData(), new Promise<void>((resolve) => setTimeout(resolve, 3000))])
+        .catch((error) => logger.warn("failed to clear webview data at exit", error))
+        .finally(() => {
+          browserDataCleared = true
+          app.quit()
+        })
+      return
+    }
     setAppQuitting()
     void stopSidecars()
   })
@@ -286,11 +295,7 @@ const main = Effect.gen(function* () {
   const xdgMigration = yield* Effect.promise(() => migrateDesktopXdgPaths(appEnvironment.xdg))
   if (xdgMigration.migrated) logger.log("migrated desktop XDG data", xdgMigration)
 
-  // Cookies del navegador integrado con duración "hasta que cierre Tiancode": el borrado se hace
-  // AL ARRANCAR, no al cerrar. `will-quit` y `before-quit` son síncronos y `clearStorageData()` es
-  // asíncrono: Electron no espera a la promesa y la app se va antes de que el borrado termine, así
-  // que limpiar al salir sería un ajuste que a veces no hace nada. Aquí sí termina, y el efecto
-  // que el usuario ve es el mismo: al abrir Tiancode no queda ninguna sesión de la vez anterior.
+  // Exit waits for cookie cleanup above; startup also clears after an interrupted shutdown.
   if (webviewRetention(getStore().get(WEBVIEW_RETENTION_KEY)) === "session") {
     // El fallo se traga aquí dentro, no con Effect.catch: `Effect.promise` convierte un rechazo en
     // defecto, y no arrancar la app porque no se pudo borrar una cookie sería peor que el problema.
@@ -352,9 +357,12 @@ const main = Effect.gen(function* () {
   // reiniciar la app.
   const checkUpdatesOnStart = getStore().get(CHECK_UPDATES_ON_START_KEY) !== "false"
   if (checkUpdatesOnStart) void updater.start()
-  const updateTimer = setInterval(() => {
-    if (getStore().get(CHECK_UPDATES_ON_START_KEY) !== "false") void updater.check()
-  }, 10 * 60 * 1000)
+  const updateTimer = setInterval(
+    () => {
+      if (getStore().get(CHECK_UPDATES_ON_START_KEY) !== "false") void updater.check()
+    },
+    10 * 60 * 1000,
+  )
   updateTimer.unref()
   // Respaldo diario automático (Ajustes → General; ausente = activado). Solo
   // datos (sesiones + configuración); los modelos se excluyen por diseño.

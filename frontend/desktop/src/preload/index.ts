@@ -65,8 +65,7 @@ const api: ElectronAPI = {
       ipcRenderer.on("voices-piper-progress", handler)
       return () => ipcRenderer.removeListener("voices-piper-progress", handler)
     },
-    speakFish: (text, voiceId, apiKey, speed) =>
-      ipcRenderer.invoke("voices-speak-fish", text, voiceId, apiKey, speed),
+    speakFish: (text, voiceId, apiKey, speed) => ipcRenderer.invoke("voices-speak-fish", text, voiceId, apiKey, speed),
   },
   asr: {
     status: () => ipcRenderer.invoke("asr-status"),
@@ -157,6 +156,7 @@ const api: ElectronAPI = {
   saveFilePicker: (opts) => ipcRenderer.invoke("save-file-picker", opts),
   writeTextFile: (path, content) => ipcRenderer.invoke("write-text-file", path, content),
   openExternal: (url) => ipcRenderer.send("open-external", url),
+  openInChrome: (url) => ipcRenderer.invoke("open-in-chrome", url),
   openLocalFile: (url) => ipcRenderer.send("open-local-file", url),
   onLiveViewNavigate: (cb) => {
     const handler = (_: unknown, url: string) => cb(url)

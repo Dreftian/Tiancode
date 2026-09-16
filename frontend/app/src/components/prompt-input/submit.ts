@@ -34,6 +34,7 @@ import {
   ULTRACODE_DIRECTIVE,
 } from "@/utils/speed-mode"
 import { applyComposerMode } from "@/utils/composer-mode"
+import { designStyleDirective, CLEAR_RESPONSE_DIRECTIVE, type DesignStyle } from "@/utils/design-style"
 
 type PendingPrompt = {
   abort: AbortController
@@ -224,6 +225,8 @@ export async function sendFollowupDraft(input: FollowupSendInput) {
 }
 
 type PromptSubmitInput = {
+  designStyle?: Accessor<DesignStyle>
+  clearResponses?: Accessor<boolean>
   prompt: ReturnType<typeof usePrompt>
   info: Accessor<{ id: string } | undefined>
   imageAttachments: Accessor<ImageAttachmentPart[]>
@@ -502,6 +505,8 @@ export function createPromptSubmit(input: PromptSubmitInput) {
       system:
         [
           speedModeDirective(isSpeed2xActive(), legacyProtocol && supportsNativeFast(currentModel)),
+          designStyleDirective(agent, input.designStyle?.() ?? "ask"),
+          input.clearResponses?.() ? CLEAR_RESPONSE_DIRECTIVE : undefined,
           isUltracodeActive() && ultracodeVariant(modelSelection.variant.list()) ? ULTRACODE_DIRECTIVE : undefined,
         ]
           .filter(Boolean)

@@ -1,6 +1,27 @@
 import { RELEASE_ENGLISH } from "./release-english"
 
 export const dict = {
+  "settings.browser.links.chrome": "Google Chrome",
+  "settings.browser.chromeUnavailable": "Chrome을 열 수 없습니다. Google Chrome이 설치되어 있는지 확인하세요.",
+  "desktop.browser.chromeUnavailable": "Chrome을 열 수 없습니다. Google Chrome이 설치되어 있는지 확인하세요.",
+  "settings.subAgents.integrated.description":
+    "엔지니어링, 개발, 디자인, 조사, 마케팅 및 승인된 보안 테스트를 위한 기본 전문 에이전트입니다.",
+  "design.style.title": "디자인 방향",
+  "design.style.description":
+    "Web App의 디자인 방향을 선택하세요. 다음 메시지와 함께 모델에 전달되며 기존 프로젝트 요구 사항은 유지됩니다.",
+  "design.style.ask": "AI와 함께 선택",
+  "design.style.studio": "에디토리얼 스튜디오",
+  "design.style.product": "명확한 제품",
+  "design.style.midnight": "심야 작업 공간",
+  "design.style.geometric": "창의적인 기하학",
+  "design.style.precision": "기술적 정밀함",
+  "design.style.atelier": "세련된 아틀리에",
+  "settings.responses.clear": "간결한 응답",
+  "settings.responses.clear.description":
+    "결과와 구체적인 단계를 먼저 제시하고 중요한 근거와 오류는 유지합니다. 모든 모델의 다음 메시지부터 적용됩니다.",
+  "settings.computerUse.restore.title": "종료 시 제어한 앱 복원",
+  "settings.computerUse.restore.description":
+    "컴퓨터 사용 중 승인한 앱의 최소화된 창을 복원합니다. 다른 창의 상태는 유지됩니다.",
   ...RELEASE_ENGLISH,
   "command.category.suggested": "추천",
   "command.category.view": "보기",
@@ -612,7 +633,8 @@ export const dict = {
   "livePreview.selection.copyData": "데이터 복사",
   "livePreview.selection.copied": "복사됨",
   "livePreview.retry": "다시 시도",
-  "livePreview.inspector.unavailable": "이 런타임은 직접 DOM 검사를 허용하지 않습니다. 자체 검사기는 Dev tools를 사용하세요.",
+  "livePreview.inspector.unavailable":
+    "이 런타임은 직접 DOM 검사를 허용하지 않습니다. 자체 검사기는 Dev tools를 사용하세요.",
   "livePreview.timeline": "변경 사항",
   "livePreview.timeline.empty": "확인된 미리보기 이벤트가 아직 없습니다.",
   "livePreview.change.confirmed": "변경 #{{count}} 확인됨",
@@ -1140,7 +1162,8 @@ export const dict = {
   "settings.general.row.mobileTitlebarBottom.title": "하단 탐색",
   "settings.general.row.mobileTitlebarBottom.description": "모바일에서 제목 표시줄과 세션 탭을 화면 하단에 배치",
   "settings.general.row.showCustomAgents.title": "에이전트 표시",
-  "settings.general.row.showCustomAgents.description": "작성기에서 에이전트를 전환합니다. 숨기면 기본적으로 Build 에이전트를 사용하지만, 자체 에이전트가 있는 프로젝트에서는 선택기가 계속 표시됩니다.",
+  "settings.general.row.showCustomAgents.description":
+    "작성기에서 에이전트를 전환합니다. 숨기면 기본적으로 Build 에이전트를 사용하지만, 자체 에이전트가 있는 프로젝트에서는 선택기가 계속 표시됩니다.",
   "settings.general.row.newInterface.title": "새 레이아웃",
   "settings.general.row.newInterface.badge": "신규",
   "settings.general.row.newInterface.description":
@@ -1277,7 +1300,8 @@ export const dict = {
   "chat.mic.downloading": "음성 인식 모델 다운로드 중(처음 한 번)…",
   "settings.mcpServers.discover.activateAll": "모두 활성화",
   "settings.mcpServers.health.title": "MCP 상태",
-  "settings.mcpServers.health.description": "실시간 연결 상태입니다. 복구는 한 번에 최대 {{concurrency}}개, 작업당 최대 {{limit}}개 서버를 처리합니다.",
+  "settings.mcpServers.health.description":
+    "실시간 연결 상태입니다. 복구는 한 번에 최대 {{concurrency}}개, 작업당 최대 {{limit}}개 서버를 처리합니다.",
   "settings.mcpServers.health.refresh": "새로 고침",
   "settings.mcpServers.health.configured": "{{count}}개 구성됨",
   "settings.mcpServers.health.enabled": "{{count}}개 활성화됨",
@@ -1289,15 +1313,18 @@ export const dict = {
   "settings.mcpServers.health.stop": "로컬 중지 및 비활성화",
   "settings.mcpServers.health.partial": "{{succeeded}}개 복구됨, {{failed}}개는 조치가 필요합니다",
   "settings.mcpServers.health.done": "{{count}}개 MCP 연결이 복구되었습니다",
-  "settings.mcpServers.health.stop.confirm": "로컬 MCP 연결 {{count}}개를 중지하고 비활성화할까요? 저장된 명령, 키 및 설정은 유지됩니다.",
+  "settings.mcpServers.health.stop.confirm":
+    "로컬 MCP 연결 {{count}}개를 중지하고 비활성화할까요? 저장된 명령, 키 및 설정은 유지됩니다.",
   "settings.mcpServers.profiles.title": "안전한 MCP 프로필",
-  "settings.mcpServers.profiles.description": "프로필은 이미 구성되고 활성화된 MCP 서버만 연결합니다. 설치, 추가, 활성화, 비활성화 또는 저장된 키와 설정 덮어쓰기를 하지 않습니다.",
+  "settings.mcpServers.profiles.description":
+    "프로필은 이미 구성되고 활성화된 MCP 서버만 연결합니다. 설치, 추가, 활성화, 비활성화 또는 저장된 키와 설정 덮어쓰기를 하지 않습니다.",
   "settings.mcpServers.profiles.essential.name": "필수",
   "settings.mcpServers.profiles.essential.description": "이미 구성된 파일, 문서, fetch 및 Git입니다.",
   "settings.mcpServers.profiles.design.name": "디자인",
   "settings.mcpServers.profiles.design.description": "이미 구성한 비전 및 디자인 통합입니다.",
   "settings.mcpServers.profiles.development.name": "전체 개발",
-  "settings.mcpServers.profiles.development.description": "구성된 개발, 모바일 및 엔진 통합이며 브라우저 자동화는 제외합니다.",
+  "settings.mcpServers.profiles.development.description":
+    "구성된 개발, 모바일 및 엔진 통합이며 브라우저 자동화는 제외합니다.",
   "settings.mcpServers.profiles.summary": "{{configured}}개 구성됨 · {{ready}}개 준비됨",
   "settings.mcpServers.profiles.connect": "구성된 항목 연결",
   "chat.mic.downloadFailed": "음성 모델을 다운로드하지 못했습니다. 인터넷 연결을 확인하고 다시 시도하세요.",
@@ -1318,7 +1345,8 @@ export const dict = {
   "settings.general.row.minimizeToTray.description": "창을 닫으면 종료하지 않고 시스템 트레이로 최소화합니다",
   "settings.general.row.fileWatcher.title": "실시간 파일 업데이트",
   "settings.general.row.fileWatcher.description": "파일 트리와 Git 변경 사항을 자동으로 새로 고칩니다.",
-  "settings.general.fileWatcher.restart.confirm": "실시간 파일 업데이트 변경 사항을 적용하려면 Tiancode를 다시 시작하시겠습니까?",
+  "settings.general.fileWatcher.restart.confirm":
+    "실시간 파일 업데이트 변경 사항을 적용하려면 Tiancode를 다시 시작하시겠습니까?",
   "session.export.button": "대화를 Markdown으로 내보내기",
   "session.export.jsonButton": "JSON 내보내기",
   "session.export.title": "대화 내보내기",
@@ -1326,7 +1354,8 @@ export const dict = {
   "session.export.failed": "대화를 내보낼 수 없습니다",
   "settings.general.section.data": "데이터",
   "settings.general.row.autoBackup.title": "자동 백업",
-  "settings.general.row.autoBackup.description": "세션과 설정을 매일 복사합니다(최근 7일 보관). 다음 앱 시작 시 적용됩니다. 즉시 복사하려면 '지금 백업'을 사용하세요.",
+  "settings.general.row.autoBackup.description":
+    "세션과 설정을 매일 복사합니다(최근 7일 보관). 다음 앱 시작 시 적용됩니다. 즉시 복사하려면 '지금 백업'을 사용하세요.",
   "settings.general.row.backupNow.title": "지금 백업",
   "settings.general.row.backupNow.description": "데이터의 복사본을 즉시 만듭니다",
   "settings.general.row.backupNow.button": "백업 만들기",
@@ -1348,7 +1377,8 @@ export const dict = {
   "settings.section.integrations": "통합",
   "settings.tab.connections": "연결",
   "settings.connections.title": "연결 및 게이트웨이",
-  "settings.connections.description": "세션 결과를 Telegram, Discord, Slack 또는 자체 webhook으로 받고, Telegram 채팅에서 Tiancode를 조작하세요. 비밀 값은 이 기기에만 저장되며 다시 표시되지 않습니다.",
+  "settings.connections.description":
+    "세션 결과를 Telegram, Discord, Slack 또는 자체 webhook으로 받고, Telegram 채팅에서 Tiancode를 조작하세요. 비밀 값은 이 기기에만 저장되며 다시 표시되지 않습니다.",
   "settings.connections.telegram.title": "Telegram Bot 게이트웨이",
   "settings.connections.telegram.token": "Bot Token",
   "settings.connections.telegram.chatId": "Chat ID / 사용자",
@@ -1398,9 +1428,11 @@ export const dict = {
   "settings.connections.invalid.snowflake": "Discord 채널 ID는 숫자입니다 (채널 우클릭 → ID 복사).",
   "settings.connections.telegram.desc": "@BotFather로 만든 봇이 여기에 게시하고 한 채팅에서 명령을 받을 수 있습니다.",
   "settings.connections.telegram.token.desc": "@BotFather에서 받은 값. 이 기기에 암호화되어 저장됩니다.",
-  "settings.connections.telegram.chatId.desc": "봇이 게시하고 유일하게 따르는 채팅. 봇에게 메시지를 한 번 보내면 id를 알려 줍니다.",
+  "settings.connections.telegram.chatId.desc":
+    "봇이 게시하고 유일하게 따르는 채팅. 봇에게 메시지를 한 번 보내면 id를 알려 줍니다.",
   "settings.connections.telegram.inbound": "채팅에서 명령 받기",
-  "settings.connections.telegram.inbound.desc": "채팅의 모든 메시지는 프롬프트로 실행됩니다. /status, /new, /help는 명령입니다. 세션이 끝나면 답변이 돌아옵니다.",
+  "settings.connections.telegram.inbound.desc":
+    "채팅의 모든 메시지는 프롬프트로 실행됩니다. /status, /new, /help는 명령입니다. 세션이 끝나면 답변이 돌아옵니다.",
   "settings.connections.telegram.inbound.running": "수신 중 · 연결된 채팅 {{sessions}}개",
   "settings.connections.telegram.inbound.stopped": "수신 안 함",
   "settings.connections.telegram.directory": "명령용 프로젝트",
@@ -1411,17 +1443,20 @@ export const dict = {
   "settings.connections.discord.webhookUrl": "Webhook URL",
   "settings.connections.discord.webhookUrl.desc": "서버 설정 → 연동 → 웹후크.",
   "settings.connections.discord.botToken": "봇 토큰",
-  "settings.connections.discord.botToken.desc": "Discord Developer Portal에서 발급. 봇에게 채널의 메시지 보내기 권한이 필요합니다.",
+  "settings.connections.discord.botToken.desc":
+    "Discord Developer Portal에서 발급. 봇에게 채널의 메시지 보내기 권한이 필요합니다.",
   "settings.connections.discord.channelId": "채널 ID",
   "settings.connections.discord.channelId.desc": "봇 모드 전용. #이름이 아닌 숫자입니다.",
   "settings.connections.slack.desc": "Slack Incoming Webhook으로 게시합니다.",
   "settings.connections.slack.webhook.desc": "Slack 앱 → Incoming Webhooks. URL 자체가 비밀 값입니다.",
-  "settings.connections.webhooks.desc": "자체 엔드포인트에 JSON을 POST하고 X-Tiancode-Signature에 HMAC-SHA256으로 서명합니다.",
+  "settings.connections.webhooks.desc":
+    "자체 엔드포인트에 JSON을 POST하고 X-Tiancode-Signature에 HMAC-SHA256으로 서명합니다.",
   "settings.connections.webhooks.url.desc": "session.idle과 session.error를 JSON으로 받습니다.",
   "settings.connections.webhooks.secret.desc": "선택 사항. 수신 측에서 sha256=HMAC(secret, body)를 검증하세요.",
   "settings.connections.webhooks.events.idle": "session.idle 보내기",
   "settings.connections.webhooks.events.error": "session.error 보내기",
-  "settings.connections.whatsapp.soon": "WhatsApp은 아직 지원되지 않습니다. Tiancode에 포함되지 않은 기기 연결 세션이 필요합니다. 지금은 Telegram이 같은 용도를 대신합니다.",
+  "settings.connections.whatsapp.soon":
+    "WhatsApp은 아직 지원되지 않습니다. Tiancode에 포함되지 않은 기기 연결 세션이 필요합니다. 지금은 Telegram이 같은 용도를 대신합니다.",
   "settings.tab.browser": "브라우저",
   "settings.tab.pets": "펫",
   "settings.tab.computerUse": "PC 사용",
@@ -1431,7 +1466,8 @@ export const dict = {
   "settings.skills.description": "컴퓨터에서 스킬을 가져오거나 웹에 공개된 스킬을 다운로드합니다.",
   "settings.skills.section.installed": "설치됨",
   "settings.skills.autoSelect.title": "스킬 자동 선택",
-  "settings.skills.autoSelect.description": "모든 대화에서 프로젝트에 맞는 스킬(프레임워크, 도구 등)을 자동으로 선택합니다",
+  "settings.skills.autoSelect.description":
+    "모든 대화에서 프로젝트에 맞는 스킬(프레임워크, 도구 등)을 자동으로 선택합니다",
   "settings.skills.section.import": "스킬 가져오기",
   "settings.skills.empty": "설치된 스킬이 아직 없습니다",
   "settings.skills.empty.filtered": "이 카테고리에 스킬이 없습니다",
@@ -1446,7 +1482,8 @@ export const dict = {
   "settings.skills.search.google": "Google에서 공개 스킬 검색",
   "settings.skills.importing": "가져오는 중...",
   "settings.skills.import.github.title": "GitHub에서 클론",
-  "settings.skills.import.github.description": "GitHub 저장소, 폴더 또는 SKILL.md 링크를 붙여넣으면 발견된 모든 SKILL.md가 설치됩니다",
+  "settings.skills.import.github.description":
+    "GitHub 저장소, 폴더 또는 SKILL.md 링크를 붙여넣으면 발견된 모든 SKILL.md가 설치됩니다",
   "settings.skills.import.github.placeholder": "https://github.com/owner/repo",
   "settings.skills.import.github.button": "클론",
   "settings.skills.github.success.one": "{{name}} 스킬을 GitHub에서 클론했습니다",
@@ -1470,7 +1507,8 @@ export const dict = {
   "settings.skills.badge.safe": "안전",
   "settings.skills.badge.specialized": "전문",
   "settings.skills.callout.safe": "안전한 범용 스킬: 다른 어떤 스킬과 함께 활성화해도 워크플로를 방해하지 않습니다.",
-  "settings.skills.callout.specialized": "전문 스킬: 특정 워크플로용으로 설계되었습니다. 일관된 답변을 위해 상반되는 방법론이나 스타일 가이드와 함께 사용하지 마세요.",
+  "settings.skills.callout.specialized":
+    "전문 스킬: 특정 워크플로용으로 설계되었습니다. 일관된 답변을 위해 상반되는 방법론이나 스타일 가이드와 함께 사용하지 마세요.",
   "settings.skills.toggle.enabled": "{{name}} 활성화됨",
   "settings.skills.toggle.disabled": "{{name}} 비활성화됨",
   "settings.skills.toggle.failed": "스킬을 업데이트할 수 없습니다",
@@ -1526,7 +1564,8 @@ export const dict = {
   "settings.subAgents.form.field.prompt": "시스템 프롬프트",
   "settings.subAgents.form.field.prompt.placeholder": "이 하위 에이전트의 역할과 규칙을 설명하세요...",
   "settings.subAgents.form.field.injectAgentsMd": "AGENTS.md 주입",
-  "settings.subAgents.form.field.injectAgentsMd.description": "이 하위 에이전트의 컨텍스트에 워크스페이스의 AGENTS.md 파일을 포함합니다",
+  "settings.subAgents.form.field.injectAgentsMd.description":
+    "이 하위 에이전트의 컨텍스트에 워크스페이스의 AGENTS.md 파일을 포함합니다",
   "settings.subAgents.form.workspace.unsupported": "워크스페이스 수준의 생성 또는 편집은 지원되지 않습니다",
   "settings.subAgents.form.save": "저장",
   "settings.subAgents.form.saving": "저장 중...",
@@ -1547,9 +1586,11 @@ export const dict = {
   "settings.subAgents.native.title": "대화 제목 생성용 내부 에이전트입니다.",
   "settings.subAgents.native.summary": "세션 요약용 내부 에이전트입니다.",
   "settings.plugins.title": "플러그인",
-  "settings.plugins.description": "라이프사이클 이벤트에 연결되는 npm 패키지 또는 로컬 플러그인 파일로 에이전트를 확장합니다.",
+  "settings.plugins.description":
+    "라이프사이클 이벤트에 연결되는 npm 패키지 또는 로컬 플러그인 파일로 에이전트를 확장합니다.",
   "settings.plugins.note.title": "플러그인이란 무엇인가요?",
-  "settings.plugins.note.description": "플러그인은 에이전트 프로세스 내에서 실행되며 세션 유휴, 도구 실행, 셸 환경 설정과 같은 라이프사이클 이벤트에 반응합니다.",
+  "settings.plugins.note.description":
+    "플러그인은 에이전트 프로세스 내에서 실행되며 세션 유휴, 도구 실행, 셸 환경 설정과 같은 라이프사이클 이벤트에 반응합니다.",
   "settings.plugins.section.installed": "설치됨",
   "settings.plugins.section.add": "플러그인 추가",
   "settings.plugins.empty": "설치된 플러그인이 아직 없습니다",
@@ -1580,7 +1621,8 @@ export const dict = {
   "settings.plugins.catalog.npm.litellm.name": "LiteLLM",
   "settings.plugins.catalog.npm.litellm.description": "모델 자동 감지를 지원하는 LiteLLM 프록시를 지원합니다.",
   "settings.plugins.catalog.npm.claudeAuth.name": "Claude Auth",
-  "settings.plugins.catalog.npm.claudeAuth.description": "Claude Code 자격 증명을 그대로 사용합니다 (별도 로그인 불필요).",
+  "settings.plugins.catalog.npm.claudeAuth.description":
+    "Claude Code 자격 증명을 그대로 사용합니다 (별도 로그인 불필요).",
   "settings.plugins.catalog.npm.supermemory.name": "Supermemory",
   "settings.plugins.catalog.npm.supermemory.description": "코딩 에이전트에 영구 메모리를 제공합니다.",
   "settings.plugins.catalog.npm.mastra.name": "Mastra",
@@ -1610,7 +1652,8 @@ export const dict = {
   "settings.plugins.catalog.local.shellEnv.description": "셸 도구 프로세스에 환경 변수를 주입합니다.",
   "settings.plugins.catalog.local.permissionGuard.description": "명시적 승인이 필요한 위험한 도구 호출을 차단합니다.",
   "settings.plugins.template.title": "새 플러그인",
-  "settings.plugins.template.description": "가장 일반적인 라이프사이클 훅이 포함된 플러그인 스켈레톤을 생성합니다. 파일에 복사한 뒤 위에서 추가하세요.",
+  "settings.plugins.template.description":
+    "가장 일반적인 라이프사이클 훅이 포함된 플러그인 스켈레톤을 생성합니다. 파일에 복사한 뒤 위에서 추가하세요.",
   "settings.plugins.template.copy": "복사",
   "settings.plugins.template.copied": "템플릿을 클립보드에 복사했습니다",
   "settings.mcpPlugins.title": "플러그인 및 MCP 서버",
@@ -1622,10 +1665,12 @@ export const dict = {
   "settings.mcpPlugins.tab.discover": "탐색",
   "settings.mcpPlugins.search.placeholder": "이름, 도구 또는 명령으로 검색…",
   "settings.mcpPlugins.intro.title": "MCP (Model Context Protocol)",
-  "settings.mcpPlugins.intro.body": "MCP는 모델이 외부 도구, 데이터베이스, 서비스에 안전하게 연결하도록 하는 개방형 표준입니다. 각 서버는 에이전트가 호출할 수 있는 도구를 제공합니다.",
+  "settings.mcpPlugins.intro.body":
+    "MCP는 모델이 외부 도구, 데이터베이스, 서비스에 안전하게 연결하도록 하는 개방형 표준입니다. 각 서버는 에이전트가 호출할 수 있는 도구를 제공합니다.",
   "settings.mcpPlugins.intro.local": "npx, uvx 또는 스크립트로 로컬에서 실행",
   "settings.mcpPlugins.intro.remote": "클라우드 또는 네트워크의 서버에 연결",
-  "settings.mcpPlugins.empty.description": "데이터베이스, API, 브라우저 같은 외부 도구를 연결해 에이전트가 사용하게 하세요.",
+  "settings.mcpPlugins.empty.description":
+    "데이터베이스, API, 브라우저 같은 외부 도구를 연결해 에이전트가 사용하게 하세요.",
   "settings.mcpPlugins.empty.explore": "카탈로그 보기",
   "settings.mcpPlugins.empty.add": "직접 추가",
   "settings.mcpPlugins.column.server": "MCP 서버",
@@ -1669,19 +1714,20 @@ export const dict = {
   "settings.mcpPlugins.form.name.placeholder": "예: filesystem, sqlite, analytics",
   "settings.mcpPlugins.form.command.server": "명령 또는 SSE URL",
   "settings.mcpPlugins.form.command.plugin": "npm 패키지 또는 로컬 경로",
-  "settings.mcpPlugins.form.command.server.placeholder": "예: npx -y @modelcontextprotocol/server-sqlite . 또는 https://api.example.com/sse",
+  "settings.mcpPlugins.form.command.server.placeholder":
+    "예: npx -y @modelcontextprotocol/server-sqlite . 또는 https://api.example.com/sse",
   "settings.mcpPlugins.form.command.plugin.placeholder": "예: @org/plugin-name 또는 .tiancode/plugins/my-plugin.ts",
   "settings.mcpPlugins.form.submit": "저장 및 연결",
-  "settings.mcpPlugins.toast.serverEnabled": "서버 \"{{name}}\" 활성화됨",
-  "settings.mcpPlugins.toast.serverDisabled": "서버 \"{{name}}\" 비활성화됨",
+  "settings.mcpPlugins.toast.serverEnabled": '서버 "{{name}}" 활성화됨',
+  "settings.mcpPlugins.toast.serverDisabled": '서버 "{{name}}" 비활성화됨',
   "settings.mcpPlugins.toast.serverUpdateFailed": "MCP 서버를 업데이트할 수 없습니다",
-  "settings.mcpPlugins.toast.serverRemoved": "서버 \"{{name}}\" 제거됨",
+  "settings.mcpPlugins.toast.serverRemoved": '서버 "{{name}}" 제거됨',
   "settings.mcpPlugins.toast.serverRemoveFailed": "MCP 서버를 제거할 수 없습니다",
   "settings.mcpPlugins.toast.pluginEnabled": "플러그인 활성화됨",
   "settings.mcpPlugins.toast.pluginDisabled": "플러그인 비활성화됨",
   "settings.mcpPlugins.toast.pluginUpdateFailed": "플러그인을 업데이트할 수 없습니다",
-  "settings.mcpPlugins.toast.serverConnected": "MCP 서버 \"{{name}}\" 연결됨",
-  "settings.mcpPlugins.toast.pluginInstalled": "플러그인 \"{{name}}\" 설치됨",
+  "settings.mcpPlugins.toast.serverConnected": 'MCP 서버 "{{name}}" 연결됨',
+  "settings.mcpPlugins.toast.pluginInstalled": '플러그인 "{{name}}" 설치됨',
   "settings.mcpPlugins.toast.installFailed": "{{name}}을(를) 설치할 수 없습니다",
   "settings.mcpPlugins.toast.formIncomplete": "이름과 명령 / URL을 입력하세요",
   "settings.mcpPlugins.toast.added": "추가되었습니다",
@@ -1699,11 +1745,13 @@ export const dict = {
   "settings.browser.clearData.description": "내장 브라우저와 라이브 뷰의 쿠키, 캐시, 로컬 스토리지를 삭제합니다",
   "settings.browser.clearData.button": "데이터 지우기",
   "settings.browser.clearData.clearing": "지우는 중...",
-  "settings.browser.clearData.confirm": "내장 브라우저와 라이브 뷰의 모든 검색 데이터를 지우시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+  "settings.browser.clearData.confirm":
+    "내장 브라우저와 라이브 뷰의 모든 검색 데이터를 지우시겠습니까? 이 작업은 되돌릴 수 없습니다.",
   "settings.browser.clearData.done": "검색 데이터를 지웠습니다",
   "settings.browser.clearData.failed": "검색 데이터를 지울 수 없습니다",
   "settings.browser.section.screenshots": "스크린샷",
-  "settings.browser.screenshots.note": "내장 브라우저는 라이브 뷰(브라우저 막대의 캡처 버튼)에서 이미지로 캡처하여 대화에 첨부할 수 있습니다.",
+  "settings.browser.screenshots.note":
+    "내장 브라우저는 라이브 뷰(브라우저 막대의 캡처 버튼)에서 이미지로 캡처하여 대화에 첨부할 수 있습니다.",
   "settings.pets.title": "펫",
   "settings.pets.description": "활성 세션 상태를 반영하는 컴패니언을 추가합니다.",
   "settings.pets.section.companion": "컴패니언",
@@ -1749,7 +1797,8 @@ export const dict = {
   "settings.computerUse.description": "에이전트가 통합할 수 있는 로컬 앱과 computer use 작업의 권한을 설정합니다.",
   "settings.computerUse.section.permissions": "권한",
   "settings.computerUse.section.apps": "로컬 앱",
-  "settings.computerUse.apps.description": "이 컴퓨터에 구성된 로컬 MCP 서버(Android Studio, Photoshop, Opera GX, Unreal 등)입니다. 상태는 실제 연결을 반영합니다.",
+  "settings.computerUse.apps.description":
+    "이 컴퓨터에 구성된 로컬 MCP 서버(Android Studio, Photoshop, Opera GX, Unreal 등)입니다. 상태는 실제 연결을 반영합니다.",
   "settings.computerUse.apps.connected": "연결됨",
   "settings.computerUse.apps.disconnected": "연결 안 됨",
   "settings.computerUse.empty": "아직 구성된 로컬 앱이 없습니다",
@@ -1824,12 +1873,12 @@ export const dict = {
   "settings.mcpServers.group.connected": "연결됨",
   "settings.mcpServers.group.errors": "오류",
   "settings.mcpServers.group.requiresKey": "API 키 필요",
-"settings.mcpServers.group.disabled": "사용 안 함",
+  "settings.mcpServers.group.disabled": "사용 안 함",
   "settings.pagination.label": "페이지네이션",
   "settings.pagination.previous": "이전",
   "settings.pagination.next": "다음",
   "settings.pagination.page": "{{current}} / {{total}} 페이지",
-"settings.mcpServers.group.unknown": "알 수 없음",
+  "settings.mcpServers.group.unknown": "알 수 없음",
   "settings.mcpServers.tools.count": "도구 {{count}}개",
   "settings.mcpServers.save.changes": "변경 사항 저장",
   "settings.mcpServers.discover.title": "발견",
@@ -1837,7 +1886,8 @@ export const dict = {
   "settings.mcpServers.discover.requiresKey": "API 키 필요 — 추가 후 편집하세요",
   "settings.mcpServers.discover.requiresSetup": "로컬 설정 필요: 편집에서 경로 조정",
   "settings.mcpServers.discover.presets.android-emulator.name": "Android Emulator",
-  "settings.mcpServers.discover.presets.android-emulator.description": "에이전트에서 Android 에뮬레이터, 화면, 앱을 제어합니다.",
+  "settings.mcpServers.discover.presets.android-emulator.description":
+    "에이전트에서 Android 에뮬레이터, 화면, 앱을 제어합니다.",
   "settings.mcpServers.discover.presets.node-repl.name": "Node REPL",
   "settings.mcpServers.discover.presets.node-repl.description": "Node.js REPL 세션에서 JavaScript를 실행합니다.",
   "settings.mcpServers.discover.presets.ios-simulator.name": "iOS Simulator",
@@ -1849,29 +1899,41 @@ export const dict = {
   "settings.mcpServers.discover.presets.context7.name": "Context7",
   "settings.mcpServers.discover.presets.context7.description": "인기 라이브러리와 프레임워크의 최신 문서입니다.",
   "settings.mcpServers.discover.presets.notebooklm.name": "Google NotebookLM",
-  "settings.mcpServers.discover.presets.notebooklm.description": "출처 인용과 오디오 개요를 갖춘 NotebookLM 노트북 기반 리서치를 수행합니다.",
+  "settings.mcpServers.discover.presets.notebooklm.description":
+    "출처 인용과 오디오 개요를 갖춘 NotebookLM 노트북 기반 리서치를 수행합니다.",
   "settings.mcpServers.discover.presets.agent-vision.name": "Agent Vision",
   "settings.mcpServers.discover.presets.unreal.name": "Unreal Engine",
   "settings.mcpServers.discover.presets.photoshop.name": "Photoshop",
-  "settings.mcpServers.discover.presets.photoshop.description": "Photoshop 제어: 파일 열기, UXP 스크립트 실행, 구성 가능한 브리지 사용. Photoshop 설치 필요.",
+  "settings.mcpServers.discover.presets.photoshop.description":
+    "Photoshop 제어: 파일 열기, UXP 스크립트 실행, 구성 가능한 브리지 사용. Photoshop 설치 필요.",
   "settings.mcpServers.discover.presets.indesign.name": "InDesign",
-  "settings.mcpServers.discover.presets.indesign.description": "InDesign 제어: UXP 스크립트(.idjs) 실행, 구성 가능한 브리지 사용. InDesign 설치 필요.",
+  "settings.mcpServers.discover.presets.indesign.description":
+    "InDesign 제어: UXP 스크립트(.idjs) 실행, 구성 가능한 브리지 사용. InDesign 설치 필요.",
   "settings.mcpServers.discover.presets.illustrator.name": "Illustrator",
-  "settings.mcpServers.discover.presets.illustrator.description": "Illustrator 제어: JSX 스크립트 실행, 구성 가능한 브리지 사용. Illustrator 설치 필요.",
+  "settings.mcpServers.discover.presets.illustrator.description":
+    "Illustrator 제어: JSX 스크립트 실행, 구성 가능한 브리지 사용. Illustrator 설치 필요.",
   "settings.mcpServers.discover.presets.coreldraw.name": "CorelDRAW",
-  "settings.mcpServers.discover.presets.coreldraw.description": "Windows에서 COM/VBA로 CorelDRAW 제어. CorelDRAW 설치 필요.",
+  "settings.mcpServers.discover.presets.coreldraw.description":
+    "Windows에서 COM/VBA로 CorelDRAW 제어. CorelDRAW 설치 필요.",
   "settings.mcpServers.discover.presets.opera_gx.name": "Opera GX",
-  "settings.mcpServers.discover.presets.opera_gx.description": "Chromium DevTools 프로토콜로 Opera GX 제어. --remote-debugging-port로 브라우저 실행 필요.",
+  "settings.mcpServers.discover.presets.opera_gx.description":
+    "Chromium DevTools 프로토콜로 Opera GX 제어. --remote-debugging-port로 브라우저 실행 필요.",
   "settings.mcpServers.discover.presets.unreal_cli.name": "Unreal Engine (CLI)",
-  "settings.mcpServers.discover.presets.unreal_cli.description": "명령줄로 Unreal Engine 제어: 편집기, UAT BuildCookRun, 자동화 테스트. UE 설치 필요.",
+  "settings.mcpServers.discover.presets.unreal_cli.description":
+    "명령줄로 Unreal Engine 제어: 편집기, UAT BuildCookRun, 자동화 테스트. UE 설치 필요.",
   "settings.mcpServers.discover.presets.unity.name": "Unity",
-  "settings.mcpServers.discover.presets.unity.description": "배치 모드로 Unity 제어: 편집기, -executeMethod, 빌드. Unity 설치 필요.",
+  "settings.mcpServers.discover.presets.unity.description":
+    "배치 모드로 Unity 제어: 편집기, -executeMethod, 빌드. Unity 설치 필요.",
   "settings.mcpServers.discover.presets.godot.name": "Godot",
-  "settings.mcpServers.discover.presets.godot.description": "Godot 제어: 편집기, 헤드리스, 스크립트, 내보내기. Godot 설치 필요.",
+  "settings.mcpServers.discover.presets.godot.description":
+    "Godot 제어: 편집기, 헤드리스, 스크립트, 내보내기. Godot 설치 필요.",
   "settings.mcpServers.discover.presets.android_studio.name": "Android Studio",
-  "settings.mcpServers.discover.presets.android_studio.description": "Android Studio 제어: Gradle, adb, 에뮬레이터, 프로젝트 열기. Android Studio/SDK 설치 필요.",
-  "settings.mcpServers.discover.presets.unreal.description": "Unreal Engine 프로젝트 제어(Web Remote Control): 편집기를 열고 Python 및 콘솔 명령 실행, 로그 및 레벨 액터 읽기. unreal-tiancode-mcp 폴더 설치 필요.",
-  "settings.mcpServers.discover.presets.agent-vision.description": "비전 모델이 아닌 모델에도 눈을 제공합니다: OpenAI 호환 비전 API(OpenAI, Gemini, Qwen-VL)로 이미지, 스크린샷, 문서(OCR)를 분석할 수 있습니다. 활성화한 후 서버 편집기의 환경 변수에 VISION_API_KEY를 추가하세요.",
+  "settings.mcpServers.discover.presets.android_studio.description":
+    "Android Studio 제어: Gradle, adb, 에뮬레이터, 프로젝트 열기. Android Studio/SDK 설치 필요.",
+  "settings.mcpServers.discover.presets.unreal.description":
+    "Unreal Engine 프로젝트 제어(Web Remote Control): 편집기를 열고 Python 및 콘솔 명령 실행, 로그 및 레벨 액터 읽기. unreal-tiancode-mcp 폴더 설치 필요.",
+  "settings.mcpServers.discover.presets.agent-vision.description":
+    "비전 모델이 아닌 모델에도 눈을 제공합니다: OpenAI 호환 비전 API(OpenAI, Gemini, Qwen-VL)로 이미지, 스크린샷, 문서(OCR)를 분석할 수 있습니다. 활성화한 후 서버 편집기의 환경 변수에 VISION_API_KEY를 추가하세요.",
   "capture.menu.title": "스크린샷 캡처",
   "capture.screen": "전체 화면",
   "capture.window": "앱 창",
@@ -1893,16 +1955,19 @@ export const dict = {
   "settings.mcpServers.discover.presets.apollo.name": "Apollo",
   "settings.mcpServers.discover.presets.apollo.description": "Apollo GraphOS 그래프를 쿼리합니다(OAuth).",
   "settings.mcpServers.discover.presets.graphos-tools.name": "GraphOS Tools",
-  "settings.mcpServers.discover.presets.graphos-tools.description": "Apollo GraphOS 워크스페이스와 스키마를 관리합니다.",
+  "settings.mcpServers.discover.presets.graphos-tools.description":
+    "Apollo GraphOS 워크스페이스와 스키마를 관리합니다.",
   "settings.mcpServers.discover.presets.atlan.name": "Atlan",
   "settings.mcpServers.discover.presets.atlan.description": "데이터 카탈로그와 거버넌스 자산을 검색합니다(OAuth).",
   "settings.mcpServers.discover.presets.awsknowledge.name": "AWS Knowledge",
   "settings.mcpServers.discover.presets.awsknowledge.description": "AWS 서비스 문서와 지식 베이스입니다.",
   "settings.github.title": "Github",
-  "settings.github.description": "GitHub 계정을 연결하여 리포지토리를 클론하고, 새로 만들고, 프로젝트에서 Git 작업을 실행할 수 있습니다.",
+  "settings.github.description":
+    "GitHub 계정을 연결하여 리포지토리를 클론하고, 새로 만들고, 프로젝트에서 Git 작업을 실행할 수 있습니다.",
   "settings.github.loading": "로드 중...",
   "settings.github.connect.title": "GitHub 연결",
-  "settings.github.connect.description": "GitHub로 인증하려면 개인 액세스 토큰을 붙여넣으세요. 토큰은 로컬에 저장되며 클론과 인증된 Git 작업에 사용됩니다.",
+  "settings.github.connect.description":
+    "GitHub로 인증하려면 개인 액세스 토큰을 붙여넣으세요. 토큰은 로컬에 저장되며 클론과 인증된 Git 작업에 사용됩니다.",
   "settings.github.connect.token.placeholder": "github_pat_... 또는 ghp_...",
   "settings.github.connect.hint": "github.com/settings/tokens에서 토큰을 만드세요(repo 범위의 fine-grained 토큰)",
   "settings.github.connect.button": "연결",
@@ -1930,7 +1995,8 @@ export const dict = {
   "settings.github.create.private": "비공개",
   "settings.github.create.button": "만들기",
   "settings.github.project.title": "현재 프로젝트",
-  "settings.github.project.noRemote": "이 프로젝트에는 아직 git 원격이 없습니다 — GitHub에서 리포지토리를 만들고 원격을 추가하세요.",
+  "settings.github.project.noRemote":
+    "이 프로젝트에는 아직 git 원격이 없습니다 — GitHub에서 리포지토리를 만들고 원격을 추가하세요.",
   "settings.github.commit.placeholder": "커밋 메시지...",
   "settings.github.commit.button": "커밋",
   "settings.github.commit.success": "커밋했습니다",
@@ -1942,7 +2008,8 @@ export const dict = {
   "settings.github.pull.success": "풀했습니다",
   "settings.github.pull.failed": "풀하지 못했습니다",
   "settings.voices.title": "음성",
-  "settings.voices.description": "어시스턴트 응답을 소리 내어 읽을 음성을 선택하고 무료 음성 모델을 테스트할 수 있습니다.",
+  "settings.voices.description":
+    "어시스턴트 응답을 소리 내어 읽을 음성을 선택하고 무료 음성 모델을 테스트할 수 있습니다.",
   "settings.voices.desktopOnly": "음성은 데스크톱 앱에서 사용할 수 있습니다.",
   "settings.voices.loading": "로드 중...",
   "settings.voices.ready.title": "음성 선택",
@@ -1952,7 +2019,8 @@ export const dict = {
   "settings.voices.voice.probe.failed": "이 음성을 재생하지 못했습니다",
   "settings.voices.select.title": "활성 음성",
   "settings.voices.autoSpeak.title": "응답 소리 내어 읽기",
-  "settings.voices.autoSpeak.description": "응답이 끝난 후 표시된 첫 번째 어시스턴트 텍스트만 한 번 읽습니다. 추론, 코드, 도구 출력은 읽지 않습니다.",
+  "settings.voices.autoSpeak.description":
+    "응답이 끝난 후 표시된 첫 번째 어시스턴트 텍스트만 한 번 읽습니다. 추론, 코드, 도구 출력은 읽지 않습니다.",
   "settings.voices.gender.female": "여성",
   "settings.voices.pagination.prev": "이전",
   "settings.voices.pagination.next": "다음",
@@ -1975,7 +2043,8 @@ export const dict = {
   "settings.voices.voice.delete.failed": "음성을 삭제하지 못했습니다",
   "settings.tab.modelsHub": "로컬 모델",
   "settings.modelsHub.title": "로컬 모델",
-  "settings.modelsHub.description": "LM Studio처럼 HuggingFace에서 GGUF 모델을 검색하고 다운로드하여 AI를 로컬에서 실행할 수 있습니다.",
+  "settings.modelsHub.description":
+    "LM Studio처럼 HuggingFace에서 GGUF 모델을 검색하고 다운로드하여 AI를 로컬에서 실행할 수 있습니다.",
   "settings.modelsHub.search.placeholder": "모델 검색... 예: llama 3.2",
   "settings.modelsHub.search.button": "검색",
   "settings.modelsHub.empty": "모델을 찾을 수 없습니다. 다른 검색어를 시도해 보세요.",
@@ -1999,7 +2068,8 @@ export const dict = {
   "settings.modelsHub.recommended.title": "GPU에 추천하는 모델",
   "settings.modelsHub.recommended.forYourGpu": "감지된 VRAM 기준",
   "settings.modelsHub.recommended.download": "다운로드",
-  "settings.modelsHub.runtime.hint": "Ollama 또는 LM Studio로 로컬 모델을 실행하고 공급자에서 공급자로 추가할 수 있습니다.",
+  "settings.modelsHub.runtime.hint":
+    "Ollama 또는 LM Studio로 로컬 모델을 실행하고 공급자에서 공급자로 추가할 수 있습니다.",
   "settings.modelsHub.runtime.install": "설치",
   "settings.modelsHub.runtime.install.downloading": "다운로드 중",
   "settings.modelsHub.runtime.install.installing": "설치 중…",
@@ -2044,12 +2114,16 @@ export const dict = {
   "settings.modelsHub.desc.hint.quantized": "양자화",
   "onboarding.title": "Tiancode에 오신 것을 환영합니다",
   "onboarding.step": "단계 {{current}} / {{total}}",
-  "onboarding.disclaimer.p1": "Tiancode는 여러분과 함께 작업하는 AI 에이전트입니다. 사용자가 통제권을 유지하는 동안 명령 실행, 파일 편집, 작업 관리를 컴퓨터에서 수행할 수 있습니다.",
-  "onboarding.disclaimer.p2": "응답을 생성하기 위해 사용자의 프롬프트와 파일 내용이 설정한 AI 모델 공급자에게 전송될 수 있습니다.",
-  "onboarding.disclaimer.p3": "Tiancode 사용 방법에 대한 책임은 사용자에게 있습니다. 변경 사항을 승인하기 전에 신중히 검토하고 이해하지 못하는 명령은 절대 실행하지 마세요.",
+  "onboarding.disclaimer.p1":
+    "Tiancode는 여러분과 함께 작업하는 AI 에이전트입니다. 사용자가 통제권을 유지하는 동안 명령 실행, 파일 편집, 작업 관리를 컴퓨터에서 수행할 수 있습니다.",
+  "onboarding.disclaimer.p2":
+    "응답을 생성하기 위해 사용자의 프롬프트와 파일 내용이 설정한 AI 모델 공급자에게 전송될 수 있습니다.",
+  "onboarding.disclaimer.p3":
+    "Tiancode 사용 방법에 대한 책임은 사용자에게 있습니다. 변경 사항을 승인하기 전에 신중히 검토하고 이해하지 못하는 명령은 절대 실행하지 마세요.",
   "onboarding.accept": "동의하고 계속",
   "onboarding.preferences.title": "나만의 환경으로",
-  "onboarding.preferences.description": "Tiancode의 모양과 응답 방식을 선택하세요. 언제든지 설정에서 변경할 수 있습니다.",
+  "onboarding.preferences.description":
+    "Tiancode의 모양과 응답 방식을 선택하세요. 언제든지 설정에서 변경할 수 있습니다.",
   "onboarding.theme.title": "모양",
   "onboarding.theme.light": "라이트",
   "onboarding.theme.dark": "다크",
@@ -2094,16 +2168,20 @@ export const dict = {
   "settings.voices.dictation.dictionary.title": "받아쓰기 사전",
   "settings.voices.dictation.dictionary.description": "받아쓰기가 우선 인식할 단어 또는 문구",
   "settings.voices.dictation.recordings.title": "최근 받아쓰기",
-  "settings.voices.dictation.recordings.description": "최근 받아쓰기 20건의 텍스트만 이 기기에 저장됩니다. 오디오는 저장되지 않습니다.",
+  "settings.voices.dictation.recordings.description":
+    "최근 받아쓰기 20건의 텍스트만 이 기기에 저장됩니다. 오디오는 저장되지 않습니다.",
   "settings.tab.mcpPlugins": "MCP 및 플러그인",
   "ui.promptInput.speedMode.enable": "⚡ 2x 속도 모드 켜기 (초고속)",
   "ui.promptInput.speedMode.disable": "⚡ 2x 속도 모드 끄기",
-  "ui.promptInput.speedMode.tooltip": "2x 모드: 서론과 군더더기 없이 바로 도구를 사용합니다. 추론 강도는 선택한 그대로 유지됩니다.",
+  "ui.promptInput.speedMode.tooltip":
+    "2x 모드: 서론과 군더더기 없이 바로 도구를 사용합니다. 추론 강도는 선택한 그대로 유지됩니다.",
   "settings.subAgents.native.webapp": "프런트엔드 개발과 전체 JSX 앱. 실시간 미리보기를 지원합니다.",
   "settings.subAgents.native.softwareArchitect": "모듈형 시스템 설계, 클린 아키텍처, 도메인 주도 결합도 분리.",
-  "settings.subAgents.native.fullstackCoder": "프런트엔드, 백엔드, API, 데이터베이스를 아우르는 엔드투엔드 풀스택 구현.",
+  "settings.subAgents.native.fullstackCoder":
+    "프런트엔드, 백엔드, API, 데이터베이스를 아우르는 엔드투엔드 풀스택 구현.",
   "settings.subAgents.native.devsecopsAuditor": "의존성과 CVE에 대한 엄격한 감사, 비밀 유출 방지, 정적 코드 보안.",
-  "settings.subAgents.native.uiUxMaster": "모던 비주얼 디자인, Tailwind CSS, 부드러운 마이크로 인터랙션, 접근성 있는 UI.",
+  "settings.subAgents.native.uiUxMaster":
+    "모던 비주얼 디자인, Tailwind CSS, 부드러운 마이크로 인터랙션, 접근성 있는 UI.",
   "settings.subAgents.native.performanceOptimizer": "성능 프로파일링, 지연 시간 감소, 번들 최적화, 로딩 속도 개선.",
   "settings.subAgents.native.databaseArchitect": "스키마 최적화, 인덱싱, 쿼리 실행 계획, 안전한 마이그레이션.",
   "settings.subAgents.native.docsGenerator": "OpenAPI 사양 생성, 기술 Markdown 문서 및 가이드 작성.",
@@ -2152,30 +2230,41 @@ export const dict = {
   "settings.computerUse.tab.bridges": "브리지",
   "settings.computerUse.section.tools": "에이전트가 이 컴퓨터에서 할 수 있는 작업",
   "settings.computerUse.screenshot.title": "화면 캡처(screenshot 도구)",
-  "settings.computerUse.screenshot.description": "에이전트는 화면, Tiancode 창 또는 화면의 일부를 촬영하고 이미지를 읽을 수 있습니다. 아래에서 승인하지 않으면 캡처할 때마다 권한을 요청합니다.",
+  "settings.computerUse.screenshot.description":
+    "에이전트는 화면, Tiancode 창 또는 화면의 일부를 촬영하고 이미지를 읽을 수 있습니다. 아래에서 승인하지 않으면 캡처할 때마다 권한을 요청합니다.",
   "settings.computerUse.clipboard.title": "클립보드(clipboard 도구)",
-  "settings.computerUse.clipboard.description": "에이전트는 시스템 클립보드의 텍스트를 읽고 바꿀 수 있습니다. 읽기와 쓰기는 매번 하나씩 확인합니다.",
-  "settings.computerUse.clipboard.note": "클립보드는 미리 승인할 수 없습니다. 비밀번호가 들어 있는 경우가 많으므로 에이전트가 매번 묻습니다.",
+  "settings.computerUse.clipboard.description":
+    "에이전트는 시스템 클립보드의 텍스트를 읽고 바꿀 수 있습니다. 읽기와 쓰기는 매번 하나씩 확인합니다.",
+  "settings.computerUse.clipboard.note":
+    "클립보드는 미리 승인할 수 없습니다. 비밀번호가 들어 있는 경우가 많으므로 에이전트가 매번 묻습니다.",
   "settings.computerUse.autoApproveScreenshot": "화면 캡처를 자동으로 승인",
-  "settings.computerUse.autoApproveScreenshot.description": "설정에 permission.screenshot = allow를 기록하여 screenshot 도구가 확인 없이 실행되도록 합니다.",
-  "settings.computerUse.autoApproveScreenshot.note": "캡처에는 그 순간 화면에 보이는 모든 것이 담기며, 다른 애플리케이션도 포함됩니다. 신뢰하는 컴퓨터에서만 미리 승인하세요.",
+  "settings.computerUse.autoApproveScreenshot.description":
+    "설정에 permission.screenshot = allow를 기록하여 screenshot 도구가 확인 없이 실행되도록 합니다.",
+  "settings.computerUse.autoApproveScreenshot.note":
+    "캡처에는 그 순간 화면에 보이는 모든 것이 담기며, 다른 애플리케이션도 포함됩니다. 신뢰하는 컴퓨터에서만 미리 승인하세요.",
   "settings.computerUse.save.done": "권한이 업데이트되었습니다",
   "settings.computerUse.tool.desktopOnly": "데스크톱 앱 전용",
   "settings.computerUse.tool.ready": "사용 가능",
   "prompt.attachment.unavailable": "첨부 파일을 읽을 수 없습니다. 제거한 뒤 파일을 다시 첨부하세요.",
   "settings.intelligence.skillCreate": "스킬 작성 (SKILL.md)",
-  "settings.intelligence.skillCreate.desc": "에이전트가 작업 흐름을 재사용 가능한 SKILL.md로 .tiancode/skills 또는 전역 스킬 폴더에 저장할 수 있게 합니다. 작성 시점은 에이전트가 결정합니다.",
+  "settings.intelligence.skillCreate.desc":
+    "에이전트가 작업 흐름을 재사용 가능한 SKILL.md로 .tiancode/skills 또는 전역 스킬 폴더에 저장할 수 있게 합니다. 작성 시점은 에이전트가 결정합니다.",
   "settings.intelligence.section.context": "코드 그래프 및 컨텍스트",
   "settings.intelligence.outputDistiller": "터미널 출력 요약",
-  "settings.intelligence.outputDistiller.desc": "긴 터미널 출력을 모델이 읽기 전에 줄입니다. 전체 출력은 도구 결과에 그대로 남습니다.",
+  "settings.intelligence.outputDistiller.desc":
+    "긴 터미널 출력을 모델이 읽기 전에 줄입니다. 전체 출력은 도구 결과에 그대로 남습니다.",
   "settings.intelligence.webBoilerplate": "웹 페이지 상용구 제거",
-  "settings.intelligence.webBoilerplate.desc": "가져온 페이지를 Markdown으로 변환할 때 스크립트, 내비게이션, 푸터, 폼을 제거합니다. 본문이 이런 요소 안에 있는 페이지에서는 끄세요.",
+  "settings.intelligence.webBoilerplate.desc":
+    "가져온 페이지를 Markdown으로 변환할 때 스크립트, 내비게이션, 푸터, 폼을 제거합니다. 본문이 이런 요소 안에 있는 페이지에서는 끄세요.",
   "settings.intelligence.shellScan": "셸 명령 검사 (AgentShield)",
-  "settings.intelligence.shellScan.desc": "모든 셸 명령에서 파괴적인 삭제, 비밀 파일 읽기, 파이프를 통한 원격 실행을 찾아 도구 호출에 경고를 붙입니다. 안내일 뿐이며 명령을 차단하거나 값을 가리지 않습니다.",
+  "settings.intelligence.shellScan.desc":
+    "모든 셸 명령에서 파괴적인 삭제, 비밀 파일 읽기, 파이프를 통한 원격 실행을 찾아 도구 호출에 경고를 붙입니다. 안내일 뿐이며 명령을 차단하거나 값을 가리지 않습니다.",
   "settings.intelligence.toolCallRepair": "도구 호출 인자 복구",
-  "settings.intelligence.toolCallRepair.desc": "로컬 모델이나 스트리밍이 만들어내는 잘못된 인자(잘린 JSON, 닫히지 않은 중괄호, 마크다운 코드 펜스)를 복구합니다. 끄면 잘못된 호출은 그대로 실패합니다.",
+  "settings.intelligence.toolCallRepair.desc":
+    "로컬 모델이나 스트리밍이 만들어내는 잘못된 인자(잘린 JSON, 닫히지 않은 중괄호, 마크다운 코드 펜스)를 복구합니다. 끄면 잘못된 호출은 그대로 실패합니다.",
   "settings.intelligence.loopBreaker": "루프 차단기",
-  "settings.intelligence.loopBreaker.desc": "같은 도구 호출을 반복하거나 한 턴에 너무 많은 도구를 실행하면 에이전트를 멈추고 계속할지 묻습니다.",
+  "settings.intelligence.loopBreaker.desc":
+    "같은 도구 호출을 반복하거나 한 턴에 너무 많은 도구를 실행하면 에이전트를 멈추고 계속할지 묻습니다.",
   "settings.pets.total": "인터랙티브 3D 동반자 {{count}}종",
   "settings.pets.desktop.unavailable": "데스크톱 앱에서만 사용할 수 있습니다.",
   "settings.pets.pet.title": "반응 테스트",
@@ -2237,19 +2326,25 @@ export const dict = {
   "command.category.prompt": "프롬프트",
   "settings.github.connect.token.label": "개인용 액세스 토큰",
   "settings.github.capabilities.title": "연결하면 할 수 있는 일",
-  "settings.github.capabilities.clone": "접근할 수 있는 저장소를 비공개 저장소까지 포함해 클론하고, 곧바로 Tiancode 프로젝트로 엽니다.",
+  "settings.github.capabilities.clone":
+    "접근할 수 있는 저장소를 비공개 저장소까지 포함해 클론하고, 곧바로 Tiancode 프로젝트로 엽니다.",
   "settings.github.capabilities.browse": "토큰으로 볼 수 있는 공개·비공개 저장소를 모두 둘러봅니다.",
-  "settings.github.capabilities.create": "개인 계정에 공개 또는 비공개 저장소를 만듭니다. 조직(Organization) 저장소는 지원하지 않습니다.",
-  "settings.github.capabilities.git": "설정 화면을 벗어나지 않고 열려 있는 프로젝트를 인증된 상태로 커밋·푸시·풀합니다.",
-  "settings.github.capabilities.identity": "커밋 작성자는 GitHub 계정, 즉 로그인 이름과 로그인이름@users.noreply.github.com으로 기록됩니다.",
+  "settings.github.capabilities.create":
+    "개인 계정에 공개 또는 비공개 저장소를 만듭니다. 조직(Organization) 저장소는 지원하지 않습니다.",
+  "settings.github.capabilities.git":
+    "설정 화면을 벗어나지 않고 열려 있는 프로젝트를 인증된 상태로 커밋·푸시·풀합니다.",
+  "settings.github.capabilities.identity":
+    "커밋 작성자는 GitHub 계정, 즉 로그인 이름과 로그인이름@users.noreply.github.com으로 기록됩니다.",
   "settings.github.capabilities.reopen": "이미 클론한 저장소는 자동으로 감지되어 다시 클론하지 않고 바로 열립니다.",
   "settings.github.capabilities.storage": "토큰은 Tiancode 데이터 폴더의 {{file}}에 저장됩니다.",
-  "settings.github.capabilities.encrypted": "데스크톱 앱에서는 운영체제 키 저장소(Windows는 DPAPI, macOS는 Keychain)가 보호하는 키로 AES-256-GCM 암호화되어 저장됩니다. 키 저장소를 쓸 수 없으면 평문으로 저장됩니다.",
+  "settings.github.capabilities.encrypted":
+    "데스크톱 앱에서는 운영체제 키 저장소(Windows는 DPAPI, macOS는 Keychain)가 보호하는 키로 AES-256-GCM 암호화되어 저장됩니다. 키 저장소를 쓸 수 없으면 평문으로 저장됩니다.",
   "settings.github.status.authenticated": "연결 및 인증됨",
   "settings.github.badge.linked": "계정 연결됨",
   "settings.github.scopes.title": "GitHub가 이 토큰에 대해 보고한 권한",
   "settings.github.scopes.unknown": "권한 정보 없음",
-  "settings.github.scopes.unknown.title": "GitHub는 클래식 토큰의 권한만 보고하며, fine-grained 토큰은 권한을 전송하지 않습니다.",
+  "settings.github.scopes.unknown.title":
+    "GitHub는 클래식 토큰의 권한만 보고하며, fine-grained 토큰은 권한을 전송하지 않습니다.",
   "settings.github.profile.view": "프로필 보기",
   "settings.github.profile.view.title": "브라우저에서 GitHub 프로필을 엽니다",
   "settings.github.stats.total": "전체",
@@ -2281,7 +2376,8 @@ export const dict = {
   "settings.github.sort.name": "이름(A–Z)",
   "settings.github.vcs.clean": "작업 트리 깨끗함",
   "settings.github.vcs.dirty": "커밋되지 않은 변경: {{count}}",
-  "chat.mic.confirmDownload": "음성 받아쓰기를 사용하려면 음성 모델을 한 번 내려받아야 합니다({{size}} MB). 지금 내려받을까요?",
+  "chat.mic.confirmDownload":
+    "음성 받아쓰기를 사용하려면 음성 모델을 한 번 내려받아야 합니다({{size}} MB). 지금 내려받을까요?",
   "chat.mic.downloadingPercent": "음성 모델 다운로드 중… {{percent}}%",
   "chat.mic.error.noSpeech": "음성이 감지되지 않았습니다.",
   "chat.mic.error.notRecording": "받아쓰기가 녹음 중이 아니었습니다.",
@@ -2306,10 +2402,12 @@ export const dict = {
   "settings.voices.dictation.recordings.clear": "지우기",
   "settings.voices.dictation.recordings.cleared.title": "기록이 삭제되었습니다",
   "settings.voices.dictation.recordings.cleared.description": "최근 받아쓰기 텍스트를 삭제했습니다.",
-  "settings.voices.dictation.recordings.empty": "아직 받아쓰기가 없습니다. 채팅에서 음성으로 입력한 텍스트가 여기에 표시됩니다.",
+  "settings.voices.dictation.recordings.empty":
+    "아직 받아쓰기가 없습니다. 채팅에서 음성으로 입력한 텍스트가 여기에 표시됩니다.",
   "settings.voices.mic.channels.mono": "모노",
   "settings.voices.mic.channels.stereo": "스테레오",
-  "prompt.optimize.modelUnavailable": "{{model}} 은(는) 이 프로젝트에서 사용할 수 없습니다. 다른 모델을 선택한 뒤 다시 시도하세요.",
+  "prompt.optimize.modelUnavailable":
+    "{{model}} 은(는) 이 프로젝트에서 사용할 수 없습니다. 다른 모델을 선택한 뒤 다시 시도하세요.",
   "prompt.optimize.failed.auth": "공급자가 자격 증명을 거부했습니다. 이 모델의 API 키를 확인하세요.",
   "prompt.optimize.failed.rateLimit": "공급자가 요청 속도를 제한하고 있습니다. 잠시 후 다시 시도하세요.",
   "prompt.optimize.failed.quota": "이 계정은 해당 모델의 크레딧을 모두 사용했습니다.",
@@ -2331,7 +2429,8 @@ export const dict = {
   "liveView.device.current": "뷰포트 크기: {{device}}",
   "desktop.computerUse.consent.title": "Tiancode가 이 PC를 제어하도록 허용하시겠습니까?",
   "desktop.computerUse.consent.message": "Tiancode가 {{app}}을(를) 제어하려고 합니다",
-  "desktop.computerUse.consent.detail": "에이전트가 사용자가 직접 하는 것처럼 {{app}}({{process}})에서 마우스를 움직이고 입력합니다. 이 앱에만 적용되고 중지할 때까지만 유효하며, 표시기에서 언제든지 중지할 수 있습니다.",
+  "desktop.computerUse.consent.detail":
+    "에이전트가 사용자가 직접 하는 것처럼 {{app}}({{process}})에서 마우스를 움직이고 입력합니다. 이 앱에만 적용되고 중지할 때까지만 유효하며, 표시기에서 언제든지 중지할 수 있습니다.",
   "desktop.computerUse.consent.allow": "이 앱에서 허용",
   "desktop.computerUse.consent.refuse": "허용 안 함",
   "desktop.computerUse.indicator.title": "Tiancode가 이 PC를 제어하고 있습니다",
@@ -2339,7 +2438,8 @@ export const dict = {
   "desktop.computerUse.indicator.stop": "중지",
   "desktop.computerUse.indicator.stopShortcut": "중지({{shortcut}})",
   "settings.permissions.tool.preview.title": "라이브 뷰",
-  "settings.permissions.tool.preview.description": "라이브 뷰 또는 내장 브라우저에 표시된 페이지를 읽고 조작 (사이트 원본과 일치)",
+  "settings.permissions.tool.preview.description":
+    "라이브 뷰 또는 내장 브라우저에 표시된 페이지를 읽고 조작 (사이트 원본과 일치)",
   "settings.permissions.tool.screenshot.title": "스크린샷",
   "settings.permissions.tool.screenshot.description": "화면 전체, Tiancode 창 또는 화면 영역을 캡처 (캡처 대상과 일치)",
   "settings.general.row.transcriptText.title": "대화 기록 글자 크기",
@@ -2392,42 +2492,53 @@ export const dict = {
   "livePreview.mirror.alt": "실행 중인 애플리케이션의 창",
   "livePreview.fixPrompt.intro": "앱 미리보기에서 발생하는 다음 오류를 수정해 주세요:",
   "livePreview.fixPrompt.target": "대상/파일: {{url}}",
-  "livePreview.fixPrompt.outro": "프로젝트 코드를 분석하여 원인을 찾고 미리보기가 올바르게 동작하도록 파일을 수정하세요.",
+  "livePreview.fixPrompt.outro":
+    "프로젝트 코드를 분석하여 원인을 찾고 미리보기가 올바르게 동작하도록 파일을 수정하세요.",
   "welcome.step.appearance": "언어 및 화면 모드",
   "welcome.step.workspace": "작업 공간",
   "welcome.progress": "설정 진행 상황",
   "welcome.language.field": "언어",
   "welcome.provider.autoOpen": "완료하면 공급자 설정이 열려 모델을 추가할 수 있습니다. 나중에 하려면 닫으세요.",
   "settings.computerUse.tab.browser": "브라우저",
-  "settings.computerUse.tools.intro": "화면 캡처, 클립보드, 그리고 Windows에서만 마우스와 키보드. 모두 데스크톱 앱을 거칩니다. 웹 브라우저에서 연 세션에는 접근할 데스크톱이 없습니다.",
+  "settings.computerUse.tools.intro":
+    "화면 캡처, 클립보드, 그리고 Windows에서만 마우스와 키보드. 모두 데스크톱 앱을 거칩니다. 웹 브라우저에서 연 세션에는 접근할 데스크톱이 없습니다.",
   "settings.computerUse.section.computer": "마우스와 키보드",
   "settings.computerUse.computer.title": "마우스와 키보드(computer 도구)",
-  "settings.computerUse.computer.description": "에이전트가 실제 커서를 움직여 앞에 있는 애플리케이션에서 클릭하고 입력합니다. 세션의 첫 동작에서 해당 앱 이름을 밝히는 대화상자가 열리며, 제어는 스스로 만료되고 표시기에서 언제든 중지할 수 있습니다.",
+  "settings.computerUse.computer.description":
+    "에이전트가 실제 커서를 움직여 앞에 있는 애플리케이션에서 클릭하고 입력합니다. 세션의 첫 동작에서 해당 앱 이름을 밝히는 대화상자가 열리며, 제어는 스스로 만료되고 표시기에서 언제든 중지할 수 있습니다.",
   "settings.computerUse.computer.enable": "에이전트가 마우스와 키보드를 쓰도록 허용",
-  "settings.computerUse.computer.enable.description": "tiancode.json이 아니라 데스크톱 앱 자체에 저장됩니다. tiancode.json은 에이전트가 자신의 도구로 편집할 수 있어, 에이전트가 고칠 수 있는 제동장치는 제동장치가 아닙니다. 끄면 메인 프로세스가 모든 동작을 거부하고 진행 중인 제어도 중단됩니다.",
+  "settings.computerUse.computer.enable.description":
+    "tiancode.json이 아니라 데스크톱 앱 자체에 저장됩니다. tiancode.json은 에이전트가 자신의 도구로 편집할 수 있어, 에이전트가 고칠 수 있는 제동장치는 제동장치가 아닙니다. 끄면 메인 프로세스가 모든 동작을 거부하고 진행 중인 제어도 중단됩니다.",
   "settings.computerUse.computer.windowsOnly": "Windows 전용",
   "settings.computerUse.denied.title": "차단할 실행 파일",
-  "settings.computerUse.denied.description": "이 목록에 있는 창이 앞에 있는 동안에는 세션에서 이미 허용했더라도 Tiancode가 클릭과 키 입력 전송을 거부합니다. 목록은 재실행 후에도 유지되지만, 세션별 허용은 유지되지 않습니다.",
-  "settings.computerUse.denied.note": "비교는 실행 파일 이름, 즉 경로의 마지막 조각을 소문자로 바꾼 값으로 합니다. 이름이 같은 서로 다른 프로그램은 구분할 수 없고, 파일 이름을 바꾸면 목록에서 빠집니다. 이것은 파일 이름이지 애플리케이션의 신원이 아닙니다.",
+  "settings.computerUse.denied.description":
+    "이 목록에 있는 창이 앞에 있는 동안에는 세션에서 이미 허용했더라도 Tiancode가 클릭과 키 입력 전송을 거부합니다. 목록은 재실행 후에도 유지되지만, 세션별 허용은 유지되지 않습니다.",
+  "settings.computerUse.denied.note":
+    "비교는 실행 파일 이름, 즉 경로의 마지막 조각을 소문자로 바꾼 값으로 합니다. 이름이 같은 서로 다른 프로그램은 구분할 수 없고, 파일 이름을 바꾸면 목록에서 빠집니다. 이것은 파일 이름이지 애플리케이션의 신원이 아닙니다.",
   "settings.computerUse.denied.placeholder": "notepad.exe",
   "settings.computerUse.denied.add": "차단",
   "settings.computerUse.denied.remove": "제거",
   "settings.computerUse.denied.empty": "차단된 실행 파일이 없습니다",
   "settings.computerUse.denied.invalid": "실행 파일 이름을 입력하세요. 예: notepad.exe",
   "settings.computerUse.denied.duplicate": "이미 목록에 있는 실행 파일입니다",
-  "settings.computerUse.platform.note": "PC 사용에는 데스크톱 앱이 필요하며 Windows에서만 동작합니다. macOS에서는 시스템 손쉬운 사용 권한과 다른 백엔드가 필요하고, Linux에서는 X11이나 Wayland에 좌우됩니다. Tiancode는 이상하게 실패하는 대신 그렇게 알리고 거부합니다.",
+  "settings.computerUse.platform.note":
+    "PC 사용에는 데스크톱 앱이 필요하며 Windows에서만 동작합니다. macOS에서는 시스템 손쉬운 사용 권한과 다른 백엔드가 필요하고, Linux에서는 X11이나 Wayland에 좌우됩니다. Tiancode는 이상하게 실패하는 대신 그렇게 알리고 거부합니다.",
   "settings.computerUse.browser.section": "통합 브라우저",
   "settings.computerUse.browser.control": "에이전트가 통합 브라우저를 읽고 조작하도록 허용",
-  "settings.computerUse.browser.control.description": "열린 페이지를 읽고 클릭하거나 입력하는 동작은 사이트의 오리진을 패턴으로 삼아 허가를 요청합니다. 한 사이트에 대한 승낙이 다음 사이트의 승낙이 되지 않습니다.",
+  "settings.computerUse.browser.control.description":
+    "열린 페이지를 읽고 클릭하거나 입력하는 동작은 사이트의 오리진을 패턴으로 삼아 허가를 요청합니다. 한 사이트에 대한 승낙이 다음 사이트의 승낙이 되지 않습니다.",
   "settings.computerUse.browser.control.ask": "사이트마다 묻기",
   "settings.computerUse.browser.control.allow": "묻지 않고 모든 사이트 허용",
   "settings.computerUse.browser.control.deny": "에이전트가 브라우저를 쓰지 못하게 하기",
   "settings.computerUse.browser.control.inherited": "상속된 기본값",
-  "settings.computerUse.browser.control.note": "지금까지는 규칙이 쓰여 있지 않았고 에이전트의 기본값이 모든 오리진을 허용했습니다. 즉 통합 브라우저의 어떤 페이지든 묻지 않고 읽고 조작할 수 있었습니다. 「사이트마다 묻기」를 고르면 이 프로젝트 설정에 permission.browser = {\"*\": \"ask\"}가 기록되고, 이후로는 아래 목록에 없는 사이트 앞에서 Tiancode가 묻습니다. 이미 쓰던 사람에게는 실제 동작 변경입니다.",
+  "settings.computerUse.browser.control.note":
+    '지금까지는 규칙이 쓰여 있지 않았고 에이전트의 기본값이 모든 오리진을 허용했습니다. 즉 통합 브라우저의 어떤 페이지든 묻지 않고 읽고 조작할 수 있었습니다. 「사이트마다 묻기」를 고르면 이 프로젝트 설정에 permission.browser = {"*": "ask"}가 기록되고, 이후로는 아래 목록에 없는 사이트 앞에서 Tiancode가 묻습니다. 이미 쓰던 사람에게는 실제 동작 변경입니다.',
   "settings.computerUse.browser.sites": "허용한 사이트",
   "settings.computerUse.browser.sites.description": "이 프로젝트 설정에 허용 규칙이 저장된 오리진입니다.",
-  "settings.computerUse.browser.sites.note": "권한 창에서 답한 「항상 허용」은 여기에 없습니다. 실행 중인 인스턴스가 메모리에 갖고 있다가 함께 사라집니다. 설정에 기록되는 것은 이 화면에서 추가한 항목뿐이므로, 이 목록이 지금 승인된 전부를 보여주지는 않습니다.",
-  "settings.computerUse.browser.sites.inert": "일반 규칙이 「묻지 않고 모든 사이트 허용」인 동안에는 이 목록이 아무것도 바꾸지 않습니다. 모든 사이트가 이미 허용된 상태입니다.",
+  "settings.computerUse.browser.sites.note":
+    "권한 창에서 답한 「항상 허용」은 여기에 없습니다. 실행 중인 인스턴스가 메모리에 갖고 있다가 함께 사라집니다. 설정에 기록되는 것은 이 화면에서 추가한 항목뿐이므로, 이 목록이 지금 승인된 전부를 보여주지는 않습니다.",
+  "settings.computerUse.browser.sites.inert":
+    "일반 규칙이 「묻지 않고 모든 사이트 허용」인 동안에는 이 목록이 아무것도 바꾸지 않습니다. 모든 사이트가 이미 허용된 상태입니다.",
   "settings.computerUse.browser.sites.placeholder": "https://example.com",
   "settings.computerUse.browser.sites.add": "허용",
   "settings.computerUse.browser.sites.revoke": "철회",
@@ -2435,14 +2546,18 @@ export const dict = {
   "settings.computerUse.browser.sites.empty": "미리 허용한 사이트가 없습니다",
   "settings.computerUse.browser.sites.invalid": "전체 주소를 입력하세요. 예: https://example.com",
   "settings.computerUse.browser.sites.duplicate": "이미 허용된 오리진입니다",
-  "settings.computerUse.browser.sites.orderFailed": "규칙은 기록되었지만 permission.browser 안의 뒤쪽 규칙이 그 오리진에 대해 여전히 우선합니다. tiancode.json을 열어 permission.browser의 첫 키를 \"*\"로 두세요.",
+  "settings.computerUse.browser.sites.orderFailed":
+    '규칙은 기록되었지만 permission.browser 안의 뒤쪽 규칙이 그 오리진에 대해 여전히 우선합니다. tiancode.json을 열어 permission.browser의 첫 키를 "*"로 두세요.',
   "settings.computerUse.browser.cookies": "쿠키와 세션",
-  "settings.computerUse.browser.cookies.description": "통합 브라우저와 라이브 뷰의 로그인과 쿠키를 얼마나 오래 유지할지.",
+  "settings.computerUse.browser.cookies.description":
+    "통합 브라우저와 라이브 뷰의 로그인과 쿠키를 얼마나 오래 유지할지.",
   "settings.computerUse.browser.cookies.always": "계속",
   "settings.computerUse.browser.cookies.session": "Tiancode를 닫을 때까지",
-  "settings.computerUse.browser.cookies.note": "「Tiancode를 닫을 때까지」는 닫는 도중이 아니라 다음에 앱을 시작할 때 쿠키, 캐시, 로컬 저장소를 지웁니다. 종료 시 Electron은 비동기 삭제를 기다리지 않아, 그때 하면 아무 일도 일어나지 않을 때가 있기 때문입니다. 「저장하지 않음」 선택지는 없습니다. 통합 브라우저는 고정된 영구 파티션에서 돌아가고, 페이지가 로드된 뒤에는 Electron이 이를 바꾸지 못하게 합니다.",
+  "settings.computerUse.browser.cookies.note":
+    "「Tiancode를 닫을 때까지」는 닫는 도중이 아니라 다음에 앱을 시작할 때 쿠키, 캐시, 로컬 저장소를 지웁니다. 종료 시 Electron은 비동기 삭제를 기다리지 않아, 그때 하면 아무 일도 일어나지 않을 때가 있기 때문입니다. 「저장하지 않음」 선택지는 없습니다. 통합 브라우저는 고정된 영구 파티션에서 돌아가고, 페이지가 로드된 뒤에는 Electron이 이를 바꾸지 못하게 합니다.",
   "settings.general.row.transcriptView.title": "대화 기록 보기",
-  "settings.general.row.transcriptView.description": "각 턴을 기본적으로 얼마나 펼칠지 결정합니다. 세션별로 '더 많은 옵션'에서 변경할 수 있습니다",
+  "settings.general.row.transcriptView.description":
+    "각 턴을 기본적으로 얼마나 펼칠지 결정합니다. 세션별로 '더 많은 옵션'에서 변경할 수 있습니다",
   "settings.general.row.transcriptView.option.normal": "기본",
   "settings.general.row.transcriptView.option.thinking": "사고 과정",
   "settings.general.row.transcriptView.option.detailed": "상세",
@@ -2456,18 +2571,24 @@ export const dict = {
   "welcome.confirm.updated": "업데이트됨 — 설정을 확인하세요",
   "welcome.confirm.review": "설정을 확인하세요",
   "welcome.confirm.done": "완료",
-  "prompt.attachment.imageUnsupported": "{{model}}은(는) 이미지를 읽을 수 없습니다. 이 첨부 파일은 모델에 전달되지 않습니다.",
-  "settings.permissions.tool.delete.description": "파일이나 폴더를 삭제하고, Windows가 잠그고 있으면 단계적으로 대응합니다 (전체 경로와 일치)",
-  "settings.permissions.tool.process_terminate.description": "파일을 열어 두고 있는 프로세스를 강제로 종료해 해당 파일을 삭제할 수 있게 합니다",
+  "prompt.attachment.imageUnsupported":
+    "{{model}}은(는) 이미지를 읽을 수 없습니다. 이 첨부 파일은 모델에 전달되지 않습니다.",
+  "settings.permissions.tool.delete.description":
+    "파일이나 폴더를 삭제하고, Windows가 잠그고 있으면 단계적으로 대응합니다 (전체 경로와 일치)",
+  "settings.permissions.tool.process_terminate.description":
+    "파일을 열어 두고 있는 프로세스를 강제로 종료해 해당 파일을 삭제할 수 있게 합니다",
   "settings.general.backup.now.error": "백업을 만들지 못했습니다",
-  "prompt.optimize.failed.reasoningOnly": "모델이 추론만 생성하고 답변은 내놓지 않았습니다. 추론 강도를 낮춰 다시 시도해 보세요.",
+  "prompt.optimize.failed.reasoningOnly":
+    "모델이 추론만 생성하고 답변은 내놓지 않았습니다. 추론 강도를 낮춰 다시 시도해 보세요.",
   "settings.modelsHub.remove.success.title": "모델을 삭제했습니다",
   "settings.modelsHub.remove.success.description": "{{file}}을(를) 디스크에서 삭제했습니다.",
   "settings.modelsHub.remove.success.fromProviders": "이제 공급자 및 모델 목록에도 표시되지 않습니다.",
   "settings.modelsHub.remove.success.defaultCleared": "기본 모델이었으므로 Tiancode가 다른 모델로 대체합니다.",
-  "settings.modelsHub.remove.configFailed": "파일은 삭제되었지만 공급자 목록에서는 제거하지 못했습니다. Tiancode를 다시 시작한 뒤 다시 시도하세요.",
+  "settings.modelsHub.remove.configFailed":
+    "파일은 삭제되었지만 공급자 목록에서는 제거하지 못했습니다. Tiancode를 다시 시작한 뒤 다시 시도하세요.",
   "settings.modelsHub.remove.locked.title": "모델을 삭제하지 못했습니다",
-  "settings.modelsHub.remove.locked.description": "{{file}}이(가) 아직 사용 중이거나 디스크에서 잠겨 있습니다. Tiancode를 닫고 다시 시도하세요.",
+  "settings.modelsHub.remove.locked.description":
+    "{{file}}이(가) 아직 사용 중이거나 디스크에서 잠겨 있습니다. Tiancode를 닫고 다시 시도하세요.",
   "settings.modelsHub.remove.failed.title": "디스크에서 모델을 삭제하는 중 오류가 발생했습니다",
   "prompt.optimize.failed.timeout": "모델이 답변하는 데 너무 오래 걸렸습니다. 작성한 프롬프트는 그대로 두었습니다.",
   "settings.subAgents.custom.count": "사용자 서브에이전트 {{count}}개",
@@ -2477,7 +2598,8 @@ export const dict = {
   "settings.subAgents.create.storage": "새 서브에이전트는 전역 설정에 저장되어 모든 프로젝트에서 사용할 수 있습니다.",
   "settings.subAgents.generate.title": "이 서브에이전트는 무엇을 해야 하나요?",
   "settings.subAgents.generate.placeholder": "SQL 마이그레이션을 검토하고 테이블을 잠글 수 있는 부분을 표시",
-  "settings.subAgents.generate.hint": "모델이 식별자, 설명, 시스템 프롬프트를 작성합니다. 저장 전에 검토할 수 있습니다.",
+  "settings.subAgents.generate.hint":
+    "모델이 식별자, 설명, 시스템 프롬프트를 작성합니다. 저장 전에 검토할 수 있습니다.",
   "settings.subAgents.generate.model": "모델",
   "settings.subAgents.generate.model.default": "기본 모델",
   "settings.subAgents.generate.submit": "생성",
@@ -2494,10 +2616,11 @@ export const dict = {
   "settings.subAgents.form.mode.hint": "서브에이전트는 위임을 받고, 기본 에이전트는 채팅에서 직접 선택할 수 있습니다.",
   "settings.subAgents.form.name.required": "이름을 입력하세요",
   "settings.subAgents.form.name.invalid": "소문자, 숫자, 단일 하이픈만 사용하세요",
-  "settings.subAgents.form.name.taken": "\"{{name}}\"은(는) 이미 있습니다",
+  "settings.subAgents.form.name.taken": '"{{name}}"은(는) 이미 있습니다',
   "settings.subAgents.form.description.required": "메인 에이전트가 언제 위임할지 알 수 있도록 짧은 설명을 입력하세요",
   "settings.subAgents.hierarchy.title": "위임 계층",
-  "settings.subAgents.hierarchy.description": "위 목록을 기준으로, 어떤 기본 에이전트가 어떤 서브에이전트에 작업을 넘길 수 있는지 보여줍니다.",
+  "settings.subAgents.hierarchy.description":
+    "위 목록을 기준으로, 어떤 기본 에이전트가 어떤 서브에이전트에 작업을 넘길 수 있는지 보여줍니다.",
   "settings.subAgents.hierarchy.collapse": "접기",
   "settings.subAgents.hierarchy.expand": "펼치기",
   "settings.subAgents.hierarchy.empty": "구성된 기본 에이전트가 없습니다",

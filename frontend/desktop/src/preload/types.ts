@@ -349,6 +349,7 @@ export type ElectronAPI = {
   saveFilePicker: (opts?: { title?: string; defaultPath?: string }) => Promise<string | null>
   writeTextFile: (path: string, content: string) => Promise<boolean>
   openExternal: (url: string) => void
+  openInChrome: (url: string) => Promise<void>
   openLocalFile: (url: string) => void
   onLiveViewNavigate: (cb: (url: string) => void) => () => void
   openPath: (path: string, app?: string) => Promise<void>
@@ -359,7 +360,12 @@ export type ElectronAPI = {
   writeClipboardText: (text: string) => Promise<boolean>
   capture: {
     screen: () => Promise<{ buffer: ArrayBuffer; width: number; height: number }>
-    area: (bounds: { x: number; y: number; width: number; height: number }) => Promise<{ buffer: ArrayBuffer; width: number; height: number }>
+    area: (bounds: {
+      x: number
+      y: number
+      width: number
+      height: number
+    }) => Promise<{ buffer: ArrayBuffer; width: number; height: number }>
     window: () => Promise<{ buffer: ArrayBuffer; width: number; height: number }>
     preview: (webContentsId: number) => Promise<{ buffer: ArrayBuffer; width: number; height: number }>
     liveView: () => Promise<{ buffer: ArrayBuffer; width: number; height: number }>

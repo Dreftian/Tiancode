@@ -187,6 +187,12 @@ export function useProviders(directory: Accessor<string | undefined>) {
     })
   }
 
+  const connectedIDs = () =>
+    applyPendingConnections(
+      (providers().connected ?? []).filter((id) => !serverSync().data.config.disabled_providers?.includes(id)),
+      pendingProviders(),
+    )
+
   return {
     all: (): Map<string, Provider> => {
       const current = providers().all
@@ -215,7 +221,7 @@ export function useProviders(directory: Accessor<string | undefined>) {
       const catalog = providers().all ?? new Map()
       const allMap = new Map<string, Provider>(catalog)
       for (const [id, p] of Object.entries(DEFAULT_FALLBACK_PROVIDERS)) if (!allMap.has(id)) allMap.set(id, p)
-      const connected = applyPendingConnections(providers().connected ?? [], pendingProviders())
+      const connected = connectedIDs()
       const list: Provider[] = []
       for (const [id, p] of allMap.entries()) {
         if (connected.has(id)) list.push(p)
@@ -223,7 +229,7 @@ export function useProviders(directory: Accessor<string | undefined>) {
       return list
     },
     paid: () => {
-      const connected = applyPendingConnections(providers().connected ?? [], pendingProviders())
+      const connected = connectedIDs()
       const paid = [
         ...Iterable.filter(
           providers().all,

@@ -1,6 +1,29 @@
 import { RELEASE_ENGLISH } from "./release-english"
 
 export const dict = {
+  "settings.browser.links.chrome": "Google Chrome",
+  "settings.browser.chromeUnavailable":
+    "Chrome を開けませんでした。Google Chrome がインストールされているか確認してください。",
+  "desktop.browser.chromeUnavailable":
+    "Chrome を開けませんでした。Google Chrome がインストールされているか確認してください。",
+  "settings.subAgents.integrated.description":
+    "エンジニアリング、開発、デザイン、調査、マーケティング、許可されたセキュリティテストの組み込み専門エージェント。",
+  "design.style.title": "デザインの方向性",
+  "design.style.description":
+    "Web App のデザインを選択します。次のメッセージとともにモデルに送信されます。既存のプロジェクト要件は維持されます。",
+  "design.style.ask": "AI と選ぶ",
+  "design.style.studio": "編集スタジオ",
+  "design.style.product": "明快なプロダクト",
+  "design.style.midnight": "深夜のワークスペース",
+  "design.style.geometric": "遊び心のある幾何学",
+  "design.style.precision": "技術的な精密さ",
+  "design.style.atelier": "洗練されたアトリエ",
+  "settings.responses.clear": "簡潔な回答",
+  "settings.responses.clear.description":
+    "結果と具体的な手順を先に示し、重要な根拠とエラーを省略しません。次のメッセージからすべてのモデルに適用されます。",
+  "settings.computerUse.restore.title": "終了時に操作したアプリを復元",
+  "settings.computerUse.restore.description":
+    "操作を許可したアプリの最小化されたウィンドウを復元します。他のウィンドウの状態は維持されます。",
   ...RELEASE_ENGLISH,
   "desktop.menu.app": "Tiancode",
   "desktop.menu.file": "ファイル",
@@ -863,7 +886,8 @@ export const dict = {
   "livePreview.selection.copyData": "データをコピー",
   "livePreview.selection.copied": "コピーしました",
   "livePreview.retry": "再試行",
-  "livePreview.inspector.unavailable": "このランタイムでは DOM を直接検査できません。Dev tools のインスペクターを使用してください。",
+  "livePreview.inspector.unavailable":
+    "このランタイムでは DOM を直接検査できません。Dev tools のインスペクターを使用してください。",
   "livePreview.timeline": "変更",
   "livePreview.timeline.empty": "確認済みのプレビューイベントはまだありません。",
   "livePreview.change.confirmed": "変更 #{{count}} を確認しました",
@@ -980,7 +1004,8 @@ export const dict = {
   "settings.general.row.mobileTitlebarBottom.description":
     "モバイルではタイトルバーとセッションタブを画面下部に配置します",
   "settings.general.row.showCustomAgents.title": "エージェントを表示",
-  "settings.general.row.showCustomAgents.description": "コンポーザーでエージェントを切り替えます。非表示にすると既定で Build エージェントを使いますが、独自のエージェントがあるプロジェクトでは選択メニューは表示されたままです。",
+  "settings.general.row.showCustomAgents.description":
+    "コンポーザーでエージェントを切り替えます。非表示にすると既定で Build エージェントを使いますが、独自のエージェントがあるプロジェクトでは選択メニューは表示されたままです。",
   "settings.general.row.newInterface.title": "新しいレイアウト",
   "settings.general.row.newInterface.badge": "新機能",
   "settings.general.row.newInterface.description":
@@ -1279,7 +1304,8 @@ export const dict = {
   "chat.mic.downloading": "音声認識モデルをダウンロード中（初回）…",
   "settings.mcpServers.discover.activateAll": "すべて有効にする",
   "settings.mcpServers.health.title": "MCP の状態",
-  "settings.mcpServers.health.description": "接続状態を表示します。回復は同時に最大 {{concurrency}} 件、1 回の操作で最大 {{limit}} サーバーです。",
+  "settings.mcpServers.health.description":
+    "接続状態を表示します。回復は同時に最大 {{concurrency}} 件、1 回の操作で最大 {{limit}} サーバーです。",
   "settings.mcpServers.health.refresh": "更新",
   "settings.mcpServers.health.configured": "{{count}} 件設定済み",
   "settings.mcpServers.health.enabled": "{{count}} 件有効",
@@ -1291,18 +1317,22 @@ export const dict = {
   "settings.mcpServers.health.stop": "ローカルを停止して無効化",
   "settings.mcpServers.health.partial": "{{succeeded}} 件を回復、{{failed}} 件は対応が必要です",
   "settings.mcpServers.health.done": "{{count}} 件の MCP 接続を回復しました",
-  "settings.mcpServers.health.stop.confirm": "{{count}} 件のローカル MCP 接続を停止して無効化しますか？保存済みのコマンド、キー、設定は保持されます。",
+  "settings.mcpServers.health.stop.confirm":
+    "{{count}} 件のローカル MCP 接続を停止して無効化しますか？保存済みのコマンド、キー、設定は保持されます。",
   "settings.mcpServers.profiles.title": "安全な MCP プロファイル",
-  "settings.mcpServers.profiles.description": "プロファイルは、すでに設定・有効化済みの MCP サーバーだけを接続します。インストール、追加、有効化、無効化、保存済みキーや設定の上書きは行いません。",
+  "settings.mcpServers.profiles.description":
+    "プロファイルは、すでに設定・有効化済みの MCP サーバーだけを接続します。インストール、追加、有効化、無効化、保存済みキーや設定の上書きは行いません。",
   "settings.mcpServers.profiles.essential.name": "基本",
   "settings.mcpServers.profiles.essential.description": "設定済みのファイル、ドキュメント、fetch、Git を使用します。",
   "settings.mcpServers.profiles.design.name": "デザイン",
   "settings.mcpServers.profiles.design.description": "すでに設定済みの視覚・デザイン連携を使用します。",
   "settings.mcpServers.profiles.development.name": "フル開発",
-  "settings.mcpServers.profiles.development.description": "設定済みの開発、モバイル、エンジン連携です。ブラウザー自動化は除外されます。",
+  "settings.mcpServers.profiles.development.description":
+    "設定済みの開発、モバイル、エンジン連携です。ブラウザー自動化は除外されます。",
   "settings.mcpServers.profiles.summary": "{{configured}} 件設定済み · {{ready}} 件準備完了",
   "settings.mcpServers.profiles.connect": "設定済みを接続",
-  "chat.mic.downloadFailed": "音声モデルをダウンロードできませんでした。インターネット接続を確認してもう一度お試しください。",
+  "chat.mic.downloadFailed":
+    "音声モデルをダウンロードできませんでした。インターネット接続を確認してもう一度お試しください。",
   "chat.mic.downloaded": "音声モデルの準備ができました",
   "chat.message.speak": "応答を読み上げる",
   "chat.message.stop": "読み上げを停止",
@@ -1320,7 +1350,8 @@ export const dict = {
   "settings.general.row.minimizeToTray.description": "ウィンドウを閉じると終了せずにシステムトレイに最小化します",
   "settings.general.row.fileWatcher.title": "リアルタイムのファイル更新",
   "settings.general.row.fileWatcher.description": "ファイルツリーと Git の変更を自動的に更新します。",
-  "settings.general.fileWatcher.restart.confirm": "リアルタイムのファイル更新設定を反映するには Tiancode を再起動しますか？",
+  "settings.general.fileWatcher.restart.confirm":
+    "リアルタイムのファイル更新設定を反映するには Tiancode を再起動しますか？",
   "session.export.button": "会話を Markdown にエクスポート",
   "session.export.jsonButton": "JSONで書き出す",
   "session.export.title": "会話をエクスポート",
@@ -1328,7 +1359,8 @@ export const dict = {
   "session.export.failed": "会話をエクスポートできませんでした",
   "settings.general.section.data": "データ",
   "settings.general.row.autoBackup.title": "自動バックアップ",
-  "settings.general.row.autoBackup.description": "セッションと設定を毎日コピーします（直近7日分を保持）。次回のアプリ起動時に反映されます。すぐにコピーするには「今すぐバックアップ」を使ってください。",
+  "settings.general.row.autoBackup.description":
+    "セッションと設定を毎日コピーします（直近7日分を保持）。次回のアプリ起動時に反映されます。すぐにコピーするには「今すぐバックアップ」を使ってください。",
   "settings.general.row.backupNow.title": "今すぐバックアップ",
   "settings.general.row.backupNow.description": "データのコピーをすぐに作成します",
   "settings.general.row.backupNow.button": "バックアップを作成",
@@ -1337,7 +1369,8 @@ export const dict = {
   "settings.general.row.restore.button": "復元",
   "settings.general.backup.now.success": "バックアップを作成しました",
   "settings.general.backup.now.failed": "バックアップするデータがまだありません",
-  "settings.general.backup.restore.confirm": "バックアップ {{name}} を復元しますか？現在のセッションと設定は置き換えられます。",
+  "settings.general.backup.restore.confirm":
+    "バックアップ {{name}} を復元しますか？現在のセッションと設定は置き換えられます。",
   "settings.general.backup.restore.success": "バックアップを復元しました",
   "settings.general.backup.restore.failed": "バックアップを復元できませんでした",
   "settings.general.row.loginItem.title": "起動時に自動起動",
@@ -1350,7 +1383,8 @@ export const dict = {
   "settings.section.integrations": "統合",
   "settings.tab.connections": "接続",
   "settings.connections.title": "接続とゲートウェイ",
-  "settings.connections.description": "セッションの結果を Telegram、Discord、Slack、または自前の webhook で受け取り、Telegram チャットから Tiancode を操作できます。シークレットはこの端末にのみ保存され、再表示されません。",
+  "settings.connections.description":
+    "セッションの結果を Telegram、Discord、Slack、または自前の webhook で受け取り、Telegram チャットから Tiancode を操作できます。シークレットはこの端末にのみ保存され、再表示されません。",
   "settings.connections.telegram.title": "Telegram Bot ゲートウェイ",
   "settings.connections.telegram.token": "Bot Token",
   "settings.connections.telegram.chatId": "Chat ID / ユーザー",
@@ -1396,13 +1430,18 @@ export const dict = {
   "settings.connections.disconnected": "{{provider}} を切断しました",
   "settings.connections.saveFailed": "保存できませんでした: {{message}}",
   "settings.connections.invalid.url": "完全な http(s) URL を入力してください。",
-  "settings.connections.invalid.telegramToken": "ボットトークンの形式ではありません（123456789:ABC…）。@BotFather から取得してください。",
-  "settings.connections.invalid.snowflake": "Discord のチャンネル ID は数字です（チャンネルを右クリック → ID をコピー）。",
-  "settings.connections.telegram.desc": "@BotFather で作成したボットがここに投稿し、1 つのチャットから指示を受け取れます。",
+  "settings.connections.invalid.telegramToken":
+    "ボットトークンの形式ではありません（123456789:ABC…）。@BotFather から取得してください。",
+  "settings.connections.invalid.snowflake":
+    "Discord のチャンネル ID は数字です（チャンネルを右クリック → ID をコピー）。",
+  "settings.connections.telegram.desc":
+    "@BotFather で作成したボットがここに投稿し、1 つのチャットから指示を受け取れます。",
   "settings.connections.telegram.token.desc": "@BotFather から取得。この端末に暗号化して保存されます。",
-  "settings.connections.telegram.chatId.desc": "ボットが投稿し、唯一従うチャット。ボットに一度メッセージを送ると id を教えてくれます。",
+  "settings.connections.telegram.chatId.desc":
+    "ボットが投稿し、唯一従うチャット。ボットに一度メッセージを送ると id を教えてくれます。",
   "settings.connections.telegram.inbound": "チャットから指示を受け取る",
-  "settings.connections.telegram.inbound.desc": "チャットのメッセージはプロンプトとして実行されます。/status、/new、/help はコマンドです。セッション終了後に回答が返ります。",
+  "settings.connections.telegram.inbound.desc":
+    "チャットのメッセージはプロンプトとして実行されます。/status、/new、/help はコマンドです。セッション終了後に回答が返ります。",
   "settings.connections.telegram.inbound.running": "待受中 · 連携チャット {{sessions}} 件",
   "settings.connections.telegram.inbound.stopped": "待受停止中",
   "settings.connections.telegram.directory": "指示を実行するプロジェクト",
@@ -1413,27 +1452,32 @@ export const dict = {
   "settings.connections.discord.webhookUrl": "Webhook URL",
   "settings.connections.discord.webhookUrl.desc": "サーバー設定 → 連携サービス → ウェブフック。",
   "settings.connections.discord.botToken": "ボットトークン",
-  "settings.connections.discord.botToken.desc": "Discord Developer Portal から取得。ボットにはチャンネルでのメッセージ送信権限が必要です。",
+  "settings.connections.discord.botToken.desc":
+    "Discord Developer Portal から取得。ボットにはチャンネルでのメッセージ送信権限が必要です。",
   "settings.connections.discord.channelId": "チャンネル ID",
   "settings.connections.discord.channelId.desc": "ボットモードのみ。#名前ではなく数字です。",
   "settings.connections.slack.desc": "Slack の Incoming Webhook 経由で投稿します。",
   "settings.connections.slack.webhook.desc": "Slack アプリ → Incoming Webhooks。URL がシークレットです。",
-  "settings.connections.webhooks.desc": "自前のエンドポイントに JSON を POST し、X-Tiancode-Signature に HMAC-SHA256 で署名します。",
+  "settings.connections.webhooks.desc":
+    "自前のエンドポイントに JSON を POST し、X-Tiancode-Signature に HMAC-SHA256 で署名します。",
   "settings.connections.webhooks.url.desc": "session.idle と session.error を JSON で受け取ります。",
   "settings.connections.webhooks.secret.desc": "任意。受信側で sha256=HMAC(secret, body) を検証してください。",
   "settings.connections.webhooks.events.idle": "session.idle を送信",
   "settings.connections.webhooks.events.error": "session.error を送信",
-  "settings.connections.whatsapp.soon": "WhatsApp はまだ利用できません。Tiancode に含まれていない端末連携セッションが必要です。現在は Telegram が同じ用途を担います。",
+  "settings.connections.whatsapp.soon":
+    "WhatsApp はまだ利用できません。Tiancode に含まれていない端末連携セッションが必要です。現在は Telegram が同じ用途を担います。",
   "settings.tab.browser": "ブラウザ",
   "settings.tab.pets": "ペット",
   "settings.tab.computerUse": "PC操作",
   "settings.tab.github": "Github",
   "settings.tab.voices": "ボイス",
   "settings.skills.title": "スキル",
-  "settings.skills.description": "コンピューターからスキルをインポートするか、Web で公開されているスキルをダウンロードします。",
+  "settings.skills.description":
+    "コンピューターからスキルをインポートするか、Web で公開されているスキルをダウンロードします。",
   "settings.skills.section.installed": "インストール済み",
   "settings.skills.autoSelect.title": "スキルを自動選択",
-  "settings.skills.autoSelect.description": "毎回の会話でプロジェクトに合ったスキル（フレームワーク、ツールなど）を自動的に選びます",
+  "settings.skills.autoSelect.description":
+    "毎回の会話でプロジェクトに合ったスキル（フレームワーク、ツールなど）を自動的に選びます",
   "settings.skills.section.import": "スキルをインポート",
   "settings.skills.empty": "インストール済みのスキルはまだありません",
   "settings.skills.empty.filtered": "このカテゴリにスキルはありません",
@@ -1448,7 +1492,8 @@ export const dict = {
   "settings.skills.search.google": "Google で公開スキルを検索",
   "settings.skills.importing": "インポート中...",
   "settings.skills.import.github.title": "GitHubからクローン",
-  "settings.skills.import.github.description": "GitHubのリポジトリ、フォルダ、SKILL.mdのリンクを貼り付けると、見つかったSKILL.mdをすべてインストールします",
+  "settings.skills.import.github.description":
+    "GitHubのリポジトリ、フォルダ、SKILL.mdのリンクを貼り付けると、見つかったSKILL.mdをすべてインストールします",
   "settings.skills.import.github.placeholder": "https://github.com/owner/repo",
   "settings.skills.import.github.button": "クローン",
   "settings.skills.github.success.one": "スキル{{name}}をGitHubからクローンしました",
@@ -1472,7 +1517,8 @@ export const dict = {
   "settings.skills.badge.safe": "安全",
   "settings.skills.badge.specialized": "専門",
   "settings.skills.callout.safe": "安全な汎用スキル：他のどのスキルと併用してもワークフローを妨げません。",
-  "settings.skills.callout.specialized": "専門スキル：特定のワークフロー向けです。回答の一貫性を保つため、相反する手法やスタイルガイドとの併用は避けてください。",
+  "settings.skills.callout.specialized":
+    "専門スキル：特定のワークフロー向けです。回答の一貫性を保つため、相反する手法やスタイルガイドとの併用は避けてください。",
   "settings.skills.toggle.enabled": "{{name}} を有効にしました",
   "settings.skills.toggle.disabled": "{{name}} を無効にしました",
   "settings.skills.toggle.failed": "スキルを更新できませんでした",
@@ -1528,7 +1574,8 @@ export const dict = {
   "settings.subAgents.form.field.prompt": "システムプロンプト",
   "settings.subAgents.form.field.prompt.placeholder": "このサブエージェントの役割とルールを説明してください...",
   "settings.subAgents.form.field.injectAgentsMd": "AGENTS.md を注入",
-  "settings.subAgents.form.field.injectAgentsMd.description": "ワークスペースの AGENTS.md ファイルをこのサブエージェントのコンテキストに含めます",
+  "settings.subAgents.form.field.injectAgentsMd.description":
+    "ワークスペースの AGENTS.md ファイルをこのサブエージェントのコンテキストに含めます",
   "settings.subAgents.form.workspace.unsupported": "ワークスペースレベルの作成・編集はサポートされていません",
   "settings.subAgents.form.save": "保存",
   "settings.subAgents.form.saving": "保存中...",
@@ -1549,9 +1596,11 @@ export const dict = {
   "settings.subAgents.native.title": "会話タイトル生成用の内部エージェントです。",
   "settings.subAgents.native.summary": "セッションの要約用の内部エージェントです。",
   "settings.plugins.title": "プラグイン",
-  "settings.plugins.description": "ライフサイクルイベントにフックする npm パッケージやローカルのプラグインファイルでエージェントを拡張します。",
+  "settings.plugins.description":
+    "ライフサイクルイベントにフックする npm パッケージやローカルのプラグインファイルでエージェントを拡張します。",
   "settings.plugins.note.title": "プラグインとは？",
-  "settings.plugins.note.description": "プラグインはエージェントプロセス内で動作し、セッションのアイドル状態、ツール実行、シェル環境のセットアップなどのライフサイクルイベントに反応します。",
+  "settings.plugins.note.description":
+    "プラグインはエージェントプロセス内で動作し、セッションのアイドル状態、ツール実行、シェル環境のセットアップなどのライフサイクルイベントに反応します。",
   "settings.plugins.section.installed": "インストール済み",
   "settings.plugins.section.add": "プラグインを追加",
   "settings.plugins.empty": "インストール済みのプラグインはまだありません",
@@ -1582,7 +1631,8 @@ export const dict = {
   "settings.plugins.catalog.npm.litellm.name": "LiteLLM",
   "settings.plugins.catalog.npm.litellm.description": "モデルを自動検出するLiteLLMプロキシをサポートします。",
   "settings.plugins.catalog.npm.claudeAuth.name": "Claude Auth",
-  "settings.plugins.catalog.npm.claudeAuth.description": "Claude Codeの認証情報をそのまま利用します（別途ログイン不要）。",
+  "settings.plugins.catalog.npm.claudeAuth.description":
+    "Claude Codeの認証情報をそのまま利用します（別途ログイン不要）。",
   "settings.plugins.catalog.npm.supermemory.name": "Supermemory",
   "settings.plugins.catalog.npm.supermemory.description": "コーディングエージェントに永続メモリを提供します。",
   "settings.plugins.catalog.npm.mastra.name": "Mastra",
@@ -1610,9 +1660,11 @@ export const dict = {
   "settings.plugins.catalog.local.commitHelper.description": "conventional なコミットメッセージの作成を支援します。",
   "settings.plugins.catalog.local.notifyIdle.description": "セッションがアイドル状態になったときに通知します。",
   "settings.plugins.catalog.local.shellEnv.description": "シェルツールのプロセスに環境変数を注入します。",
-  "settings.plugins.catalog.local.permissionGuard.description": "明示的な承認が必要な危険なツール呼び出しをブロックします。",
+  "settings.plugins.catalog.local.permissionGuard.description":
+    "明示的な承認が必要な危険なツール呼び出しをブロックします。",
   "settings.plugins.template.title": "新しいプラグイン",
-  "settings.plugins.template.description": "最も一般的なライフサイクルフックを含むプラグインの雛形を生成します。ファイルにコピーして上記で追加してください。",
+  "settings.plugins.template.description":
+    "最も一般的なライフサイクルフックを含むプラグインの雛形を生成します。ファイルにコピーして上記で追加してください。",
   "settings.plugins.template.copy": "コピー",
   "settings.plugins.template.copied": "テンプレートをクリップボードにコピーしました",
   "settings.mcpPlugins.title": "プラグインと MCP サーバー",
@@ -1624,10 +1676,12 @@ export const dict = {
   "settings.mcpPlugins.tab.discover": "探す",
   "settings.mcpPlugins.search.placeholder": "名前・ツール・コマンドで検索…",
   "settings.mcpPlugins.intro.title": "MCP（Model Context Protocol）",
-  "settings.mcpPlugins.intro.body": "MCP は、モデルが外部ツール・データベース・サービスに安全に接続するためのオープン標準です。各サーバーはエージェントが呼び出せるツールを公開します。",
+  "settings.mcpPlugins.intro.body":
+    "MCP は、モデルが外部ツール・データベース・サービスに安全に接続するためのオープン標準です。各サーバーはエージェントが呼び出せるツールを公開します。",
   "settings.mcpPlugins.intro.local": "npx、uvx、またはスクリプトでローカル実行",
   "settings.mcpPlugins.intro.remote": "クラウドやネットワーク上のサーバーに接続",
-  "settings.mcpPlugins.empty.description": "データベース・API・ブラウザなどの外部ツールを接続してエージェントに使わせましょう。",
+  "settings.mcpPlugins.empty.description":
+    "データベース・API・ブラウザなどの外部ツールを接続してエージェントに使わせましょう。",
   "settings.mcpPlugins.empty.explore": "カタログを見る",
   "settings.mcpPlugins.empty.add": "手動で追加",
   "settings.mcpPlugins.column.server": "MCP サーバー",
@@ -1645,7 +1699,8 @@ export const dict = {
   "settings.mcpPlugins.origin.local": "ローカル",
   "settings.mcpPlugins.origin.plugin": "プラグイン",
   "settings.mcpPlugins.origin.builtin": "内蔵",
-  "settings.mcpPlugins.plugin.localDescription": "プロジェクトの .tiancode/plugins フォルダーから読み込まれたローカルプラグインです。",
+  "settings.mcpPlugins.plugin.localDescription":
+    "プロジェクトの .tiancode/plugins フォルダーから読み込まれたローカルプラグインです。",
   "settings.mcpPlugins.section.installed": "インストール済みプラグインと拡張機能",
   "settings.mcpPlugins.section.builtin": "内蔵プラグイン",
   "settings.mcpPlugins.remove.server": "サーバーを削除",
@@ -1671,7 +1726,8 @@ export const dict = {
   "settings.mcpPlugins.form.name.placeholder": "例: filesystem, sqlite, analytics",
   "settings.mcpPlugins.form.command.server": "コマンドまたは SSE URL",
   "settings.mcpPlugins.form.command.plugin": "npm パッケージまたはローカルパス",
-  "settings.mcpPlugins.form.command.server.placeholder": "例: npx -y @modelcontextprotocol/server-sqlite . または https://api.example.com/sse",
+  "settings.mcpPlugins.form.command.server.placeholder":
+    "例: npx -y @modelcontextprotocol/server-sqlite . または https://api.example.com/sse",
   "settings.mcpPlugins.form.command.plugin.placeholder": "例: @org/plugin-name または .tiancode/plugins/my-plugin.ts",
   "settings.mcpPlugins.form.submit": "保存して接続",
   "settings.mcpPlugins.toast.serverEnabled": "サーバー「{{name}}」を有効にしました",
@@ -1693,19 +1749,23 @@ export const dict = {
   "settings.browser.description": "内蔵ブラウザの動作（リンクの開き先、保存するデータ）を設定します。",
   "settings.browser.section.general": "一般",
   "settings.browser.links": "リンクの開き先",
-  "settings.browser.links.description": "ページ内のリンクを内蔵ブラウザで開くか、システムのブラウザで開くかを選択します",
+  "settings.browser.links.description":
+    "ページ内のリンクを内蔵ブラウザで開くか、システムのブラウザで開くかを選択します",
   "settings.browser.links.integrated": "内蔵ブラウザ",
   "settings.browser.links.system": "システムのブラウザ",
   "settings.browser.section.data": "データ",
   "settings.browser.clearData": "閲覧データを削除",
-  "settings.browser.clearData.description": "内蔵ブラウザとライブビューの Cookie・キャッシュ・ローカルストレージを削除します",
+  "settings.browser.clearData.description":
+    "内蔵ブラウザとライブビューの Cookie・キャッシュ・ローカルストレージを削除します",
   "settings.browser.clearData.button": "データを削除",
   "settings.browser.clearData.clearing": "削除中...",
-  "settings.browser.clearData.confirm": "内蔵ブラウザとライブビューの閲覧データをすべて削除しますか？この操作は元に戻せません。",
+  "settings.browser.clearData.confirm":
+    "内蔵ブラウザとライブビューの閲覧データをすべて削除しますか？この操作は元に戻せません。",
   "settings.browser.clearData.done": "閲覧データを削除しました",
   "settings.browser.clearData.failed": "閲覧データを削除できませんでした",
   "settings.browser.section.screenshots": "スクリーンショット",
-  "settings.browser.screenshots.note": "内蔵ブラウザはライブビュー（ブラウザバーのキャプチャボタン）から画像として撮影し、会話に添付できます。",
+  "settings.browser.screenshots.note":
+    "内蔵ブラウザはライブビュー（ブラウザバーのキャプチャボタン）から画像として撮影し、会話に添付できます。",
   "settings.pets.title": "ペット",
   "settings.pets.description": "アクティブなセッションの状態を反映するコンパニオンを追加します。",
   "settings.pets.section.companion": "コンパニオン",
@@ -1751,12 +1811,14 @@ export const dict = {
   "settings.computerUse.description": "エージェントが連携できるローカルアプリと、computer use 操作の権限を設定します。",
   "settings.computerUse.section.permissions": "権限",
   "settings.computerUse.section.apps": "ローカルアプリ",
-  "settings.computerUse.apps.description": "このコンピューターに設定されたローカル MCP サーバー（Android Studio、Photoshop、Opera GX、Unreal など）。状態は実際の接続を反映します。",
+  "settings.computerUse.apps.description":
+    "このコンピューターに設定されたローカル MCP サーバー（Android Studio、Photoshop、Opera GX、Unreal など）。状態は実際の接続を反映します。",
   "settings.computerUse.apps.connected": "接続済み",
   "settings.computerUse.apps.disconnected": "未接続",
   "settings.computerUse.empty": "ローカルアプリはまだ設定されていません",
   "settings.computerUse.save.failed": "権限を更新できませんでした",
-  "settings.mcpServers.description": "Model Context Protocol（MCP）サーバーを介してエージェントを外部ツールに接続します。",
+  "settings.mcpServers.description":
+    "Model Context Protocol（MCP）サーバーを介してエージェントを外部ツールに接続します。",
   "settings.mcpServers.section.servers": "サーバー",
   "settings.mcpServers.section.add": "サーバーを追加",
   "settings.mcpServers.edit.title": "サーバーを編集",
@@ -1826,12 +1888,12 @@ export const dict = {
   "settings.mcpServers.group.connected": "接続済み",
   "settings.mcpServers.group.errors": "エラー",
   "settings.mcpServers.group.requiresKey": "APIキーが必要",
-"settings.mcpServers.group.disabled": "無効",
+  "settings.mcpServers.group.disabled": "無効",
   "settings.pagination.label": "ページネーション",
   "settings.pagination.previous": "前へ",
   "settings.pagination.next": "次へ",
   "settings.pagination.page": "{{current}} / {{total}} ページ",
-"settings.mcpServers.group.unknown": "不明",
+  "settings.mcpServers.group.unknown": "不明",
   "settings.mcpServers.tools.count": "{{count}} 個のツール",
   "settings.mcpServers.save.changes": "変更を保存",
   "settings.mcpServers.discover.title": "発見",
@@ -1839,41 +1901,57 @@ export const dict = {
   "settings.mcpServers.discover.requiresKey": "API キーが必要 — 追加後に編集してください",
   "settings.mcpServers.discover.requiresSetup": "ローカル設定が必要: 編集でパスを調整",
   "settings.mcpServers.discover.presets.android-emulator.name": "Android Emulator",
-  "settings.mcpServers.discover.presets.android-emulator.description": "エージェントから Android エミュレーター、画面、アプリを操作します。",
+  "settings.mcpServers.discover.presets.android-emulator.description":
+    "エージェントから Android エミュレーター、画面、アプリを操作します。",
   "settings.mcpServers.discover.presets.node-repl.name": "Node REPL",
-  "settings.mcpServers.discover.presets.node-repl.description": "Node.js の REPL セッションで JavaScript を実行します。",
+  "settings.mcpServers.discover.presets.node-repl.description":
+    "Node.js の REPL セッションで JavaScript を実行します。",
   "settings.mcpServers.discover.presets.ios-simulator.name": "iOS Simulator",
-  "settings.mcpServers.discover.presets.ios-simulator.description": "iOS シミュレーターとそのアプリを操作します（Xcode が必要）。",
+  "settings.mcpServers.discover.presets.ios-simulator.description":
+    "iOS シミュレーターとそのアプリを操作します（Xcode が必要）。",
   "settings.mcpServers.discover.presets.chrome-devtools.name": "Chrome DevTools",
   "settings.mcpServers.discover.presets.chrome-devtools.description": "Chrome のページを検査、デバッグ、自動化します。",
   "settings.mcpServers.discover.presets.playwright.name": "Playwright",
   "settings.mcpServers.discover.presets.playwright.description": "ブラウザ自動化とエンドツーエンドの Web テストです。",
   "settings.mcpServers.discover.presets.context7.name": "Context7",
-  "settings.mcpServers.discover.presets.context7.description": "人気のライブラリとフレームワークの最新ドキュメントです。",
+  "settings.mcpServers.discover.presets.context7.description":
+    "人気のライブラリとフレームワークの最新ドキュメントです。",
   "settings.mcpServers.discover.presets.notebooklm.name": "Google NotebookLM",
-  "settings.mcpServers.discover.presets.notebooklm.description": "引用と音声オーバービュー付きで、NotebookLM のノートブックに基づいたリサーチができます。",
+  "settings.mcpServers.discover.presets.notebooklm.description":
+    "引用と音声オーバービュー付きで、NotebookLM のノートブックに基づいたリサーチができます。",
   "settings.mcpServers.discover.presets.agent-vision.name": "Agent Vision",
   "settings.mcpServers.discover.presets.unreal.name": "Unreal Engine",
   "settings.mcpServers.discover.presets.photoshop.name": "Photoshop",
-  "settings.mcpServers.discover.presets.photoshop.description": "Photoshopを制御: ファイルを開き、UXPスクリプトを実行し、設定可能なブリッジを使用。Photoshopのインストールが必要。",
+  "settings.mcpServers.discover.presets.photoshop.description":
+    "Photoshopを制御: ファイルを開き、UXPスクリプトを実行し、設定可能なブリッジを使用。Photoshopのインストールが必要。",
   "settings.mcpServers.discover.presets.indesign.name": "InDesign",
-  "settings.mcpServers.discover.presets.indesign.description": "InDesignを制御: UXPスクリプト(.idjs)を実行し、設定可能なブリッジを使用。InDesignのインストールが必要。",
+  "settings.mcpServers.discover.presets.indesign.description":
+    "InDesignを制御: UXPスクリプト(.idjs)を実行し、設定可能なブリッジを使用。InDesignのインストールが必要。",
   "settings.mcpServers.discover.presets.illustrator.name": "Illustrator",
-  "settings.mcpServers.discover.presets.illustrator.description": "Illustratorを制御: JSXスクリプトを実行し、設定可能なブリッジを使用。Illustratorのインストールが必要。",
+  "settings.mcpServers.discover.presets.illustrator.description":
+    "Illustratorを制御: JSXスクリプトを実行し、設定可能なブリッジを使用。Illustratorのインストールが必要。",
   "settings.mcpServers.discover.presets.coreldraw.name": "CorelDRAW",
-  "settings.mcpServers.discover.presets.coreldraw.description": "WindowsでCOM/VBAによりCorelDRAWを制御。CorelDRAWのインストールが必要。",
+  "settings.mcpServers.discover.presets.coreldraw.description":
+    "WindowsでCOM/VBAによりCorelDRAWを制御。CorelDRAWのインストールが必要。",
   "settings.mcpServers.discover.presets.opera_gx.name": "Opera GX",
-  "settings.mcpServers.discover.presets.opera_gx.description": "Chromium DevTools ProtocolでOpera GXを制御。--remote-debugging-port付きでブラウザを起動する必要がある。",
+  "settings.mcpServers.discover.presets.opera_gx.description":
+    "Chromium DevTools ProtocolでOpera GXを制御。--remote-debugging-port付きでブラウザを起動する必要がある。",
   "settings.mcpServers.discover.presets.unreal_cli.name": "Unreal Engine (CLI)",
-  "settings.mcpServers.discover.presets.unreal_cli.description": "コマンドラインでUnreal Engineを制御: エディター、UAT BuildCookRun、自動化テスト。UEのインストールが必要。",
+  "settings.mcpServers.discover.presets.unreal_cli.description":
+    "コマンドラインでUnreal Engineを制御: エディター、UAT BuildCookRun、自動化テスト。UEのインストールが必要。",
   "settings.mcpServers.discover.presets.unity.name": "Unity",
-  "settings.mcpServers.discover.presets.unity.description": "バッチモードでUnityを制御: エディター、-executeMethod、ビルド。Unityのインストールが必要。",
+  "settings.mcpServers.discover.presets.unity.description":
+    "バッチモードでUnityを制御: エディター、-executeMethod、ビルド。Unityのインストールが必要。",
   "settings.mcpServers.discover.presets.godot.name": "Godot",
-  "settings.mcpServers.discover.presets.godot.description": "Godotを制御: エディター、ヘッドレス、スクリプト、エクスポート。Godotのインストールが必要。",
+  "settings.mcpServers.discover.presets.godot.description":
+    "Godotを制御: エディター、ヘッドレス、スクリプト、エクスポート。Godotのインストールが必要。",
   "settings.mcpServers.discover.presets.android_studio.name": "Android Studio",
-  "settings.mcpServers.discover.presets.android_studio.description": "Android Studioを制御: Gradle、adb、エミュレーター、プロジェクトを開く。Android Studio/SDKのインストールが必要。",
-  "settings.mcpServers.discover.presets.unreal.description": "Unreal Engine プロジェクトを制御（Web Remote Control）: エディターを開き、Python とコンソールコマンドを実行し、ログとレベルアクターを読み取ります。unreal-tiancode-mcp フォルダーのインストールが必要です。",
-  "settings.mcpServers.discover.presets.agent-vision.description": "視覚対応モデル以外にも「目」を与えます: OpenAI 互換のビジョン API（OpenAI、Gemini、Qwen-VL）で画像、スクリーンショット、ドキュメント（OCR）を解析できます。有効にしたら、サーバーエディターの「環境変数」に VISION_API_KEY を追加してください。",
+  "settings.mcpServers.discover.presets.android_studio.description":
+    "Android Studioを制御: Gradle、adb、エミュレーター、プロジェクトを開く。Android Studio/SDKのインストールが必要。",
+  "settings.mcpServers.discover.presets.unreal.description":
+    "Unreal Engine プロジェクトを制御（Web Remote Control）: エディターを開き、Python とコンソールコマンドを実行し、ログとレベルアクターを読み取ります。unreal-tiancode-mcp フォルダーのインストールが必要です。",
+  "settings.mcpServers.discover.presets.agent-vision.description":
+    "視覚対応モデル以外にも「目」を与えます: OpenAI 互換のビジョン API（OpenAI、Gemini、Qwen-VL）で画像、スクリーンショット、ドキュメント（OCR）を解析できます。有効にしたら、サーバーエディターの「環境変数」に VISION_API_KEY を追加してください。",
   "capture.menu.title": "スクリーンショットを撮る",
   "capture.screen": "全画面",
   "capture.window": "アプリのウィンドウ",
@@ -1883,7 +1961,8 @@ export const dict = {
   "capture.area.cancel": "キャンセル",
   "capture.area.confirm": "領域をキャプチャ",
   "settings.mcpServers.discover.presets.aikido.name": "Aikido",
-  "settings.mcpServers.discover.presets.aikido.description": "コードと依存関係をセキュリティ上の問題についてスキャンします。",
+  "settings.mcpServers.discover.presets.aikido.description":
+    "コードと依存関係をセキュリティ上の問題についてスキャンします。",
   "settings.mcpServers.discover.presets.airwallex.name": "Airwallex",
   "settings.mcpServers.discover.presets.airwallex.description": "決済、トレジャリー、カード発行の API です。",
   "settings.mcpServers.discover.presets.canva.name": "Canva",
@@ -1891,22 +1970,27 @@ export const dict = {
   "settings.mcpServers.discover.presets.circle.name": "Circle",
   "settings.mcpServers.discover.presets.circle.description": "USDC 決済と開発者管理ウォレットです。",
   "settings.mcpServers.discover.presets.appwrite.name": "Appwrite",
-  "settings.mcpServers.discover.presets.appwrite.description": "アプリ向けの認証、データベース、ストレージです（OAuth）。",
+  "settings.mcpServers.discover.presets.appwrite.description":
+    "アプリ向けの認証、データベース、ストレージです（OAuth）。",
   "settings.mcpServers.discover.presets.apollo.name": "Apollo",
   "settings.mcpServers.discover.presets.apollo.description": "Apollo GraphOS のグラフをクエリします（OAuth）。",
   "settings.mcpServers.discover.presets.graphos-tools.name": "GraphOS Tools",
-  "settings.mcpServers.discover.presets.graphos-tools.description": "Apollo GraphOS のワークスペースとスキーマを管理します。",
+  "settings.mcpServers.discover.presets.graphos-tools.description":
+    "Apollo GraphOS のワークスペースとスキーマを管理します。",
   "settings.mcpServers.discover.presets.atlan.name": "Atlan",
   "settings.mcpServers.discover.presets.atlan.description": "データカタログとガバナンス資産を検索します（OAuth）。",
   "settings.mcpServers.discover.presets.awsknowledge.name": "AWS Knowledge",
   "settings.mcpServers.discover.presets.awsknowledge.description": "AWS サービスのドキュメントとナレッジベースです。",
   "settings.github.title": "Github",
-  "settings.github.description": "GitHub アカウントを接続して、リポジトリのクローン、新規作成、プロジェクトでの Git 操作を実行できます。",
+  "settings.github.description":
+    "GitHub アカウントを接続して、リポジトリのクローン、新規作成、プロジェクトでの Git 操作を実行できます。",
   "settings.github.loading": "読み込み中...",
   "settings.github.connect.title": "GitHub に接続",
-  "settings.github.connect.description": "GitHub で認証するために個人アクセストークンを貼り付けます。トークンはローカルに保存され、クローンや認証付き Git 操作に使用されます。",
+  "settings.github.connect.description":
+    "GitHub で認証するために個人アクセストークンを貼り付けます。トークンはローカルに保存され、クローンや認証付き Git 操作に使用されます。",
   "settings.github.connect.token.placeholder": "github_pat_... または ghp_...",
-  "settings.github.connect.hint": "github.com/settings/tokens でトークンを作成してください（repo スコープ付きの fine-grained トークン）",
+  "settings.github.connect.hint":
+    "github.com/settings/tokens でトークンを作成してください（repo スコープ付きの fine-grained トークン）",
   "settings.github.connect.button": "接続",
   "settings.github.connecting": "接続中...",
   "settings.github.connect.success": "GitHub アカウントを接続しました",
@@ -1932,7 +2016,8 @@ export const dict = {
   "settings.github.create.private": "プライベート",
   "settings.github.create.button": "作成",
   "settings.github.project.title": "現在のプロジェクト",
-  "settings.github.project.noRemote": "このプロジェクトにはまだ git リモートがありません — GitHub でリポジトリを作成してリモートを追加してください。",
+  "settings.github.project.noRemote":
+    "このプロジェクトにはまだ git リモートがありません — GitHub でリポジトリを作成してリモートを追加してください。",
   "settings.github.commit.placeholder": "コミットメッセージ...",
   "settings.github.commit.button": "コミット",
   "settings.github.commit.success": "コミットしました",
@@ -1954,7 +2039,8 @@ export const dict = {
   "settings.voices.voice.probe.failed": "このボイスの再生に失敗しました",
   "settings.voices.select.title": "アクティブなボイス",
   "settings.voices.autoSpeak.title": "応答を読み上げる",
-  "settings.voices.autoSpeak.description": "応答の完了後に、アシスタントの最初の可視テキストを一度だけ読み上げます。推論、コード、ツール出力は読み上げません。",
+  "settings.voices.autoSpeak.description":
+    "応答の完了後に、アシスタントの最初の可視テキストを一度だけ読み上げます。推論、コード、ツール出力は読み上げません。",
   "settings.voices.gender.female": "女性",
   "settings.voices.pagination.prev": "前へ",
   "settings.voices.pagination.next": "次へ",
@@ -1977,7 +2063,8 @@ export const dict = {
   "settings.voices.voice.delete.failed": "ボイスの削除に失敗しました",
   "settings.tab.modelsHub": "ローカルモデル",
   "settings.modelsHub.title": "ローカルモデル",
-  "settings.modelsHub.description": "LM Studio のように、HuggingFace から GGUF モデルを検索・ダウンロードして AI をローカルで実行できます。",
+  "settings.modelsHub.description":
+    "LM Studio のように、HuggingFace から GGUF モデルを検索・ダウンロードして AI をローカルで実行できます。",
   "settings.modelsHub.search.placeholder": "モデルを検索... 例: llama 3.2",
   "settings.modelsHub.search.button": "検索",
   "settings.modelsHub.empty": "モデルが見つかりません。別の検索をお試しください。",
@@ -2001,11 +2088,13 @@ export const dict = {
   "settings.modelsHub.recommended.title": "お使いの GPU におすすめのモデル",
   "settings.modelsHub.recommended.forYourGpu": "検出された VRAM に基づく",
   "settings.modelsHub.recommended.download": "ダウンロード",
-  "settings.modelsHub.runtime.hint": "Ollama または LM Studio でローカルモデルを実行し、「プロバイダー」でプロバイダーとして追加できます。",
+  "settings.modelsHub.runtime.hint":
+    "Ollama または LM Studio でローカルモデルを実行し、「プロバイダー」でプロバイダーとして追加できます。",
   "settings.modelsHub.runtime.install": "インストール",
   "settings.modelsHub.runtime.install.downloading": "ダウンロード中",
   "settings.modelsHub.runtime.install.installing": "インストール中…",
-  "settings.modelsHub.runtime.install.success": "{{name}} をインストールしました。セットアップを完了するにはアプリを一度開いてください。",
+  "settings.modelsHub.runtime.install.success":
+    "{{name}} をインストールしました。セットアップを完了するにはアプリを一度開いてください。",
   "settings.modelsHub.runtime.install.failed": "ランタイムのインストールに失敗しました",
   "settings.modelsHub.system.ram": "RAM",
   "settings.modelsHub.system.vram": "GPU メモリ（VRAM）",
@@ -2046,12 +2135,16 @@ export const dict = {
   "settings.modelsHub.desc.hint.quantized": "量子化",
   "onboarding.title": "Tiancode へようこそ",
   "onboarding.step": "ステップ {{current}} / {{total}}",
-  "onboarding.disclaimer.p1": "Tiancode はあなたと一緒に作業する AI エージェントです。あなたが管理を続けている間、コマンドの実行、ファイルの編集、タスクの管理をコンピューター上で行えます。",
-  "onboarding.disclaimer.p2": "応答を生成するため、あなたのプロンプトとファイルの内容が、設定した AI モデルプロバイダーに送信される場合があります。",
-  "onboarding.disclaimer.p3": "Tiancode の使い方にはあなたに責任があります。変更を承認する前に慎重に確認し、理解できないコマンドは絶対に実行しないでください。",
+  "onboarding.disclaimer.p1":
+    "Tiancode はあなたと一緒に作業する AI エージェントです。あなたが管理を続けている間、コマンドの実行、ファイルの編集、タスクの管理をコンピューター上で行えます。",
+  "onboarding.disclaimer.p2":
+    "応答を生成するため、あなたのプロンプトとファイルの内容が、設定した AI モデルプロバイダーに送信される場合があります。",
+  "onboarding.disclaimer.p3":
+    "Tiancode の使い方にはあなたに責任があります。変更を承認する前に慎重に確認し、理解できないコマンドは絶対に実行しないでください。",
   "onboarding.accept": "同意して続行",
   "onboarding.preferences.title": "お好みに設定",
-  "onboarding.preferences.description": "Tiancode の見た目と話し方を選択できます。これらはいつでも「設定」で変更できます。",
+  "onboarding.preferences.description":
+    "Tiancode の見た目と話し方を選択できます。これらはいつでも「設定」で変更できます。",
   "onboarding.theme.title": "外観",
   "onboarding.theme.light": "ライト",
   "onboarding.theme.dark": "ダーク",
@@ -2067,11 +2160,13 @@ export const dict = {
   "settings.intelligence.description": "長期メモリ (LTM)、スマートWeb抽出、グラフ解析、実行時の安全性を設定します。",
   "settings.intelligence.section.memory": "長期メモリ (LTM)",
   "settings.intelligence.userMemory": "ユーザーメモリ (USER.md)",
-  "settings.intelligence.userMemory.desc": "すべてのプロジェクトに共通するコーディング・スタイル・言語の設定を記憶します。",
+  "settings.intelligence.userMemory.desc":
+    "すべてのプロジェクトに共通するコーディング・スタイル・言語の設定を記憶します。",
   "settings.intelligence.projectMemory": "プロジェクトメモリ (MEMORY.md)",
   "settings.intelligence.projectMemory.desc": "このリポジトリの技術アーキテクチャ、ポート、ビルド上の癖を保存します。",
   "settings.intelligence.codeGraph": "コードグラフ解析 (CodeGraph)",
-  "settings.intelligence.codeGraph.desc": "関数・クラス・依存関係をインデックス化し、編集前にアーキテクチャへの影響を検討します。",
+  "settings.intelligence.codeGraph.desc":
+    "関数・クラス・依存関係をインデックス化し、編集前にアーキテクチャへの影響を検討します。",
   "settings.intelligence.section.safety": "Web と実行の安全性",
   "settings.github.repo.create.failed": "リポジトリを作成できませんでした",
   "settings.github.repo.create.success": "リポジトリ {{name}} を作成しました",
@@ -2096,20 +2191,29 @@ export const dict = {
   "settings.voices.dictation.dictionary.title": "音声入力辞書",
   "settings.voices.dictation.dictionary.description": "音声入力で優先的に認識させる単語やフレーズ",
   "settings.voices.dictation.recordings.title": "最近のディクテーション",
-  "settings.voices.dictation.recordings.description": "直近 20 件のディクテーションのテキストのみがこの端末に保存されます。音声は保存されません。",
+  "settings.voices.dictation.recordings.description":
+    "直近 20 件のディクテーションのテキストのみがこの端末に保存されます。音声は保存されません。",
   "settings.tab.mcpPlugins": "MCP とプラグイン",
   "ui.promptInput.speedMode.enable": "⚡ 2x スピードモードを有効化 (超高速)",
   "ui.promptInput.speedMode.disable": "⚡ 2x スピードモードを無効化",
-  "ui.promptInput.speedMode.tooltip": "2x モード: 前置きも冗長な説明もなく、すぐにツールを使います。推論の深さは選んだままです。",
+  "ui.promptInput.speedMode.tooltip":
+    "2x モード: 前置きも冗長な説明もなく、すぐにツールを使います。推論の深さは選んだままです。",
   "settings.subAgents.native.webapp": "フロントエンド開発とフル JSX アプリ。リアルタイムプレビュー対応。",
-  "settings.subAgents.native.softwareArchitect": "モジュール化されたシステム設計、クリーンアーキテクチャ、ドメイン駆動の疎結合化。",
-  "settings.subAgents.native.fullstackCoder": "フロントエンド・バックエンド・API・データベースを横断するエンドツーエンドのフルスタック実装。",
-  "settings.subAgents.native.devsecopsAuditor": "依存関係と CVE の厳密な監査、機密情報の漏洩防止、静的コードセキュリティ。",
-  "settings.subAgents.native.uiUxMaster": "モダンなビジュアルデザイン、Tailwind CSS、滑らかなマイクロインタラクション、アクセシブルな UI。",
-  "settings.subAgents.native.performanceOptimizer": "パフォーマンス計測、レイテンシ削減、バンドル最適化、読み込み速度の改善。",
-  "settings.subAgents.native.databaseArchitect": "スキーマ最適化、インデックス設計、クエリ実行計画、安全なマイグレーション。",
+  "settings.subAgents.native.softwareArchitect":
+    "モジュール化されたシステム設計、クリーンアーキテクチャ、ドメイン駆動の疎結合化。",
+  "settings.subAgents.native.fullstackCoder":
+    "フロントエンド・バックエンド・API・データベースを横断するエンドツーエンドのフルスタック実装。",
+  "settings.subAgents.native.devsecopsAuditor":
+    "依存関係と CVE の厳密な監査、機密情報の漏洩防止、静的コードセキュリティ。",
+  "settings.subAgents.native.uiUxMaster":
+    "モダンなビジュアルデザイン、Tailwind CSS、滑らかなマイクロインタラクション、アクセシブルな UI。",
+  "settings.subAgents.native.performanceOptimizer":
+    "パフォーマンス計測、レイテンシ削減、バンドル最適化、読み込み速度の改善。",
+  "settings.subAgents.native.databaseArchitect":
+    "スキーマ最適化、インデックス設計、クエリ実行計画、安全なマイグレーション。",
   "settings.subAgents.native.docsGenerator": "OpenAPI 仕様の生成、技術 Markdown ドキュメント、各種ガイドの作成。",
-  "settings.subAgents.native.qaE2eTester": "包括的なテストスイートの構築: Vitest と Playwright による単体・結合・E2E テスト。",
+  "settings.subAgents.native.qaE2eTester":
+    "包括的なテストスイートの構築: Vitest と Playwright による単体・結合・E2E テスト。",
   "welcome.title": "Tiancode セットアップ",
   "welcome.stepLabel": "ステップ {{current}}/{{total}}",
   "welcome.theme.label": "カラーモード",
@@ -2154,30 +2258,41 @@ export const dict = {
   "settings.computerUse.tab.bridges": "ブリッジ",
   "settings.computerUse.section.tools": "エージェントがこのコンピューターでできること",
   "settings.computerUse.screenshot.title": "画面キャプチャ（screenshot ツール）",
-  "settings.computerUse.screenshot.description": "エージェントは画面、Tiancode のウィンドウ、または画面の一部を撮影して画像を読み取れます。下で承認しない限り、キャプチャのたびに許可を求めます。",
+  "settings.computerUse.screenshot.description":
+    "エージェントは画面、Tiancode のウィンドウ、または画面の一部を撮影して画像を読み取れます。下で承認しない限り、キャプチャのたびに許可を求めます。",
   "settings.computerUse.clipboard.title": "クリップボード（clipboard ツール）",
-  "settings.computerUse.clipboard.description": "エージェントはシステムのクリップボードのテキストを読み取り、書き換えられます。読み取りも書き込みも 1 回ずつ確認されます。",
-  "settings.computerUse.clipboard.note": "クリップボードは事前承認できません。パスワードが入っていることが多いため、エージェントは毎回確認します。",
+  "settings.computerUse.clipboard.description":
+    "エージェントはシステムのクリップボードのテキストを読み取り、書き換えられます。読み取りも書き込みも 1 回ずつ確認されます。",
+  "settings.computerUse.clipboard.note":
+    "クリップボードは事前承認できません。パスワードが入っていることが多いため、エージェントは毎回確認します。",
   "settings.computerUse.autoApproveScreenshot": "画面キャプチャを自動的に承認する",
-  "settings.computerUse.autoApproveScreenshot.description": "設定に permission.screenshot = allow を書き込み、screenshot ツールが確認なしで実行されるようにします。",
-  "settings.computerUse.autoApproveScreenshot.note": "キャプチャにはその瞬間に画面に映っているものがすべて含まれ、他のアプリケーションも写ります。信頼できるコンピューターでのみ事前承認してください。",
+  "settings.computerUse.autoApproveScreenshot.description":
+    "設定に permission.screenshot = allow を書き込み、screenshot ツールが確認なしで実行されるようにします。",
+  "settings.computerUse.autoApproveScreenshot.note":
+    "キャプチャにはその瞬間に画面に映っているものがすべて含まれ、他のアプリケーションも写ります。信頼できるコンピューターでのみ事前承認してください。",
   "settings.computerUse.save.done": "権限を更新しました",
   "settings.computerUse.tool.desktopOnly": "デスクトップアプリのみ",
   "settings.computerUse.tool.ready": "利用可能",
   "prompt.attachment.unavailable": "添付ファイルを読み取れませんでした。削除してから、もう一度添付してください。",
   "settings.intelligence.skillCreate": "スキルの作成 (SKILL.md)",
-  "settings.intelligence.skillCreate.desc": "エージェントがワークフローを再利用可能な SKILL.md として .tiancode/skills またはグローバルのスキルフォルダーに保存できるようにします。書き出すタイミングはエージェントが判断します。",
+  "settings.intelligence.skillCreate.desc":
+    "エージェントがワークフローを再利用可能な SKILL.md として .tiancode/skills またはグローバルのスキルフォルダーに保存できるようにします。書き出すタイミングはエージェントが判断します。",
   "settings.intelligence.section.context": "コードグラフとコンテキスト",
   "settings.intelligence.outputDistiller": "ターミナル出力の要約",
-  "settings.intelligence.outputDistiller.desc": "長いターミナル出力をモデルが読む前に短縮します。完全な出力はツールの結果にそのまま残ります。",
+  "settings.intelligence.outputDistiller.desc":
+    "長いターミナル出力をモデルが読む前に短縮します。完全な出力はツールの結果にそのまま残ります。",
   "settings.intelligence.webBoilerplate": "Web ページの定型部分を除去",
-  "settings.intelligence.webBoilerplate.desc": "取得したページを Markdown に変換する際、スクリプト・ナビゲーション・フッター・フォームを取り除きます。本文がこれらの要素の中にあるページではオフにしてください。",
+  "settings.intelligence.webBoilerplate.desc":
+    "取得したページを Markdown に変換する際、スクリプト・ナビゲーション・フッター・フォームを取り除きます。本文がこれらの要素の中にあるページではオフにしてください。",
   "settings.intelligence.shellScan": "シェルコマンドの検査 (AgentShield)",
-  "settings.intelligence.shellScan.desc": "すべてのシェルコマンドを検査し、破壊的な削除・機密ファイルの読み取り・パイプ経由のリモート実行を見つけると、ツール呼び出しに警告を添えます。あくまで助言であり、コマンドを止めることも値を隠すこともありません。",
+  "settings.intelligence.shellScan.desc":
+    "すべてのシェルコマンドを検査し、破壊的な削除・機密ファイルの読み取り・パイプ経由のリモート実行を見つけると、ツール呼び出しに警告を添えます。あくまで助言であり、コマンドを止めることも値を隠すこともありません。",
   "settings.intelligence.toolCallRepair": "ツール呼び出し引数の修復",
-  "settings.intelligence.toolCallRepair.desc": "ローカルモデルやストリーミングが生成する不正な引数 (途中で切れた JSON、閉じていない波かっこ、Markdown のコードフェンス) を修復します。オフにすると、不正な呼び出しはそのまま失敗します。",
+  "settings.intelligence.toolCallRepair.desc":
+    "ローカルモデルやストリーミングが生成する不正な引数 (途中で切れた JSON、閉じていない波かっこ、Markdown のコードフェンス) を修復します。オフにすると、不正な呼び出しはそのまま失敗します。",
   "settings.intelligence.loopBreaker": "ループブレーカー",
-  "settings.intelligence.loopBreaker.desc": "同じツール呼び出しを繰り返したり、1 ターンで過剰にツールを実行したりしたときにエージェントを停止し、続行してよいか確認します。",
+  "settings.intelligence.loopBreaker.desc":
+    "同じツール呼び出しを繰り返したり、1 ターンで過剰にツールを実行したりしたときにエージェントを停止し、続行してよいか確認します。",
   "settings.pets.total": "インタラクティブな 3D コンパニオン {{count}} 体",
   "settings.pets.desktop.unavailable": "デスクトップアプリでのみ利用できます。",
   "settings.pets.pet.title": "リアクションを試す",
@@ -2239,19 +2354,25 @@ export const dict = {
   "command.category.prompt": "プロンプト",
   "settings.github.connect.token.label": "個人用アクセストークン",
   "settings.github.capabilities.title": "接続してできること",
-  "settings.github.capabilities.clone": "アクセスできるリポジトリを、プライベートなものも含めてクローンし、そのまま Tiancode のプロジェクトとして開きます。",
+  "settings.github.capabilities.clone":
+    "アクセスできるリポジトリを、プライベートなものも含めてクローンし、そのまま Tiancode のプロジェクトとして開きます。",
   "settings.github.capabilities.browse": "トークンで参照できるリポジトリを、公開・非公開を問わずすべて一覧できます。",
-  "settings.github.capabilities.create": "個人アカウントに公開／非公開のリポジトリを作成できます。Organization のリポジトリには対応していません。",
-  "settings.github.capabilities.git": "開いているプロジェクトのコミット・プッシュ・プルを、設定画面から認証付きで実行できます。",
-  "settings.github.capabilities.identity": "コミットの作者はあなたの GitHub アカウント（ログイン名と ログイン名@users.noreply.github.com）になります。",
+  "settings.github.capabilities.create":
+    "個人アカウントに公開／非公開のリポジトリを作成できます。Organization のリポジトリには対応していません。",
+  "settings.github.capabilities.git":
+    "開いているプロジェクトのコミット・プッシュ・プルを、設定画面から認証付きで実行できます。",
+  "settings.github.capabilities.identity":
+    "コミットの作者はあなたの GitHub アカウント（ログイン名と ログイン名@users.noreply.github.com）になります。",
   "settings.github.capabilities.reopen": "クローン済みのリポジトリは検出され、再クローンせずにそのまま開きます。",
   "settings.github.capabilities.storage": "トークンは Tiancode のデータフォルダー内の {{file}} に保存されます。",
-  "settings.github.capabilities.encrypted": "デスクトップアプリでは、OS のキーストア（Windows は DPAPI、macOS は Keychain）が保護する鍵を使って AES-256-GCM で暗号化して保存されます。キーストアが利用できない場合は平文で保存されます。",
+  "settings.github.capabilities.encrypted":
+    "デスクトップアプリでは、OS のキーストア（Windows は DPAPI、macOS は Keychain）が保護する鍵を使って AES-256-GCM で暗号化して保存されます。キーストアが利用できない場合は平文で保存されます。",
   "settings.github.status.authenticated": "接続済み・認証済み",
   "settings.github.badge.linked": "アカウント連携済み",
   "settings.github.scopes.title": "GitHub がこのトークンについて報告している権限",
   "settings.github.scopes.unknown": "権限は未報告",
-  "settings.github.scopes.unknown.title": "GitHub が権限を報告するのはクラシックトークンだけで、fine-grained トークンは送信しません。",
+  "settings.github.scopes.unknown.title":
+    "GitHub が権限を報告するのはクラシックトークンだけで、fine-grained トークンは送信しません。",
   "settings.github.profile.view": "プロフィールを表示",
   "settings.github.profile.view.title": "GitHub のプロフィールをブラウザーで開きます",
   "settings.github.stats.total": "合計",
@@ -2271,7 +2392,8 @@ export const dict = {
   "settings.github.create.owner": "リポジトリは個人アカウント @{{login}} に作成されます。",
   "settings.github.create.description.label": "説明（任意）",
   "settings.github.create.description.placeholder": "リポジトリの概要",
-  "settings.github.create.private.description": "このリポジトリを閲覧できるのは、あなたとアクセスを許可した人だけです。",
+  "settings.github.create.private.description":
+    "このリポジトリを閲覧できるのは、あなたとアクセスを許可した人だけです。",
   "settings.github.create.public.description": "インターネット上の誰でもこのリポジトリを閲覧できます。",
   "settings.github.create.creating": "作成しています...",
   "settings.github.committing": "コミットしています...",
@@ -2283,7 +2405,8 @@ export const dict = {
   "settings.github.sort.name": "名前（A–Z）",
   "settings.github.vcs.clean": "作業ツリーはクリーン",
   "settings.github.vcs.dirty": "未コミットの変更: {{count}}",
-  "chat.mic.confirmDownload": "音声ディクテーションには音声モデルの初回ダウンロード（{{size}} MB）が必要です。今すぐダウンロードしますか？",
+  "chat.mic.confirmDownload":
+    "音声ディクテーションには音声モデルの初回ダウンロード（{{size}} MB）が必要です。今すぐダウンロードしますか？",
   "chat.mic.downloadingPercent": "音声モデルをダウンロード中… {{percent}}%",
   "chat.mic.error.noSpeech": "音声が検出されませんでした。",
   "chat.mic.error.notRecording": "ディクテーションは録音していませんでした。",
@@ -2308,10 +2431,12 @@ export const dict = {
   "settings.voices.dictation.recordings.clear": "消去",
   "settings.voices.dictation.recordings.cleared.title": "履歴を消去しました",
   "settings.voices.dictation.recordings.cleared.description": "最近のディクテーションの文字起こしを削除しました。",
-  "settings.voices.dictation.recordings.empty": "まだディクテーションはありません。チャットで音声入力したテキストがここに表示されます。",
+  "settings.voices.dictation.recordings.empty":
+    "まだディクテーションはありません。チャットで音声入力したテキストがここに表示されます。",
   "settings.voices.mic.channels.mono": "モノラル",
   "settings.voices.mic.channels.stereo": "ステレオ",
-  "prompt.optimize.modelUnavailable": "{{model}} はこのプロジェクトで利用できません。別のモデルを選んで再試行してください。",
+  "prompt.optimize.modelUnavailable":
+    "{{model}} はこのプロジェクトで利用できません。別のモデルを選んで再試行してください。",
   "prompt.optimize.failed.auth": "プロバイダーが認証情報を拒否しました。このモデルの API キーを確認してください。",
   "prompt.optimize.failed.rateLimit": "プロバイダーによりレート制限されています。少し待ってから再試行してください。",
   "prompt.optimize.failed.quota": "このアカウントはそのモデルのクレジットを使い切っています。",
@@ -2333,7 +2458,8 @@ export const dict = {
   "liveView.device.current": "ビューポートのサイズ: {{device}}",
   "desktop.computerUse.consent.title": "Tiancode にこの PC の操作を許可しますか?",
   "desktop.computerUse.consent.message": "Tiancode が {{app}} の操作を求めています",
-  "desktop.computerUse.consent.detail": "エージェントがあなた自身の操作と同じように、{{app}}（{{process}}）でマウスを動かし文字を入力します。対象はこのアプリだけで、停止するまでの間だけ有効です。インジケーターからいつでも停止できます。",
+  "desktop.computerUse.consent.detail":
+    "エージェントがあなた自身の操作と同じように、{{app}}（{{process}}）でマウスを動かし文字を入力します。対象はこのアプリだけで、停止するまでの間だけ有効です。インジケーターからいつでも停止できます。",
   "desktop.computerUse.consent.allow": "このアプリで許可",
   "desktop.computerUse.consent.refuse": "許可しない",
   "desktop.computerUse.indicator.title": "Tiancode がこの PC を操作しています",
@@ -2341,9 +2467,11 @@ export const dict = {
   "desktop.computerUse.indicator.stop": "停止",
   "desktop.computerUse.indicator.stopShortcut": "停止（{{shortcut}}）",
   "settings.permissions.tool.preview.title": "ライブビュー",
-  "settings.permissions.tool.preview.description": "ライブビューまたは内蔵ブラウザーに表示中のページを読み取り、操作する (サイトのオリジンに一致)",
+  "settings.permissions.tool.preview.description":
+    "ライブビューまたは内蔵ブラウザーに表示中のページを読み取り、操作する (サイトのオリジンに一致)",
   "settings.permissions.tool.screenshot.title": "スクリーンショット",
-  "settings.permissions.tool.screenshot.description": "画面全体、Tiancode のウィンドウ、または画面の一部を撮影する (撮影対象に一致)",
+  "settings.permissions.tool.screenshot.description":
+    "画面全体、Tiancode のウィンドウ、または画面の一部を撮影する (撮影対象に一致)",
   "settings.general.row.transcriptText.title": "トランスクリプトの文字サイズ",
   "settings.general.row.transcriptText.description": "会話のテキストのサイズ：メッセージ、見出し、ツールカード",
   "settings.general.row.transcriptText.option.small": "小",
@@ -2374,7 +2502,8 @@ export const dict = {
   "livePreview.console.copy": "出力をコピー",
   "livePreview.desktop.title": "デスクトップ Sandbox 環境",
   "livePreview.desktop.badge": "デスクトップ GUI",
-  "livePreview.desktop.subtitle": "アプリはデスクトップに自分のウィンドウを開きます。Windows では Tiancode がここにミラー表示します。",
+  "livePreview.desktop.subtitle":
+    "アプリはデスクトップに自分のウィンドウを開きます。Windows では Tiancode がここにミラー表示します。",
   "livePreview.desktop.running": "実行中（Sandbox）",
   "livePreview.desktop.starting": "プロセスを起動中…",
   "livePreview.desktop.failed": "実行に失敗しました",
@@ -2385,7 +2514,8 @@ export const dict = {
   "livePreview.mirror.viewOnly": "表示のみ",
   "livePreview.mirror.choose": "ウィンドウを選択",
   "livePreview.mirror.searching": "アプリケーションのウィンドウを探しています…",
-  "livePreview.mirror.blank": "ウィンドウが最小化されているか、キャプチャできません。デスクトップで元に戻してください。",
+  "livePreview.mirror.blank":
+    "ウィンドウが最小化されているか、キャプチャできません。デスクトップで元に戻してください。",
   "livePreview.mirror.gone": "ウィンドウは閉じられました。",
   "livePreview.mirror.nomatch": "ウィンドウを自動で特定できませんでした。「ウィンドウを選択」を使ってください。",
   "livePreview.mirror.idle": "まだ画像がありません。",
@@ -2394,42 +2524,54 @@ export const dict = {
   "livePreview.mirror.alt": "実行中のアプリケーションのウィンドウ",
   "livePreview.fixPrompt.intro": "アプリのプレビューで発生している次のエラーを修正してください:",
   "livePreview.fixPrompt.target": "対象/ファイル: {{url}}",
-  "livePreview.fixPrompt.outro": "プロジェクトのコードを分析し、原因を特定して、プレビューが正しく動作するようにファイルを修正してください。",
+  "livePreview.fixPrompt.outro":
+    "プロジェクトのコードを分析し、原因を特定して、プレビューが正しく動作するようにファイルを修正してください。",
   "welcome.step.appearance": "言語と外観",
   "welcome.step.workspace": "ワークスペース",
   "welcome.progress": "セットアップの進行状況",
   "welcome.language.field": "言語",
-  "welcome.provider.autoOpen": "完了するとプロバイダー設定が開き、モデルを追加できます。後で設定する場合は閉じてください。",
+  "welcome.provider.autoOpen":
+    "完了するとプロバイダー設定が開き、モデルを追加できます。後で設定する場合は閉じてください。",
   "settings.computerUse.tab.browser": "ブラウザ",
-  "settings.computerUse.tools.intro": "画面キャプチャ、クリップボード、そして Windows のみマウスとキーボード。いずれもデスクトップアプリ経由で動作します。ブラウザで開いたセッションには操作できるデスクトップがありません。",
+  "settings.computerUse.tools.intro":
+    "画面キャプチャ、クリップボード、そして Windows のみマウスとキーボード。いずれもデスクトップアプリ経由で動作します。ブラウザで開いたセッションには操作できるデスクトップがありません。",
   "settings.computerUse.section.computer": "マウスとキーボード",
   "settings.computerUse.computer.title": "マウスとキーボード（computer ツール）",
-  "settings.computerUse.computer.description": "エージェントが実際のカーソルを動かし、最前面のアプリケーションでクリックや入力を行います。各セッションの最初の操作でそのアプリ名を示すダイアログが開き、制御は自動的に期限切れになり、インジケーターからいつでも停止できます。",
+  "settings.computerUse.computer.description":
+    "エージェントが実際のカーソルを動かし、最前面のアプリケーションでクリックや入力を行います。各セッションの最初の操作でそのアプリ名を示すダイアログが開き、制御は自動的に期限切れになり、インジケーターからいつでも停止できます。",
   "settings.computerUse.computer.enable": "エージェントにマウスとキーボードの使用を許可する",
-  "settings.computerUse.computer.enable.description": "tiancode.json ではなくデスクトップアプリ自身に保存されます。tiancode.json はエージェント自身がツールで編集できるため、そこに置いたブレーキはブレーキになりません。オフにするとメインプロセスがすべての操作を拒否し、進行中の制御も停止します。",
+  "settings.computerUse.computer.enable.description":
+    "tiancode.json ではなくデスクトップアプリ自身に保存されます。tiancode.json はエージェント自身がツールで編集できるため、そこに置いたブレーキはブレーキになりません。オフにするとメインプロセスがすべての操作を拒否し、進行中の制御も停止します。",
   "settings.computerUse.computer.windowsOnly": "Windows のみ",
   "settings.computerUse.denied.title": "ブロックする実行ファイル",
-  "settings.computerUse.denied.description": "これらのいずれかが最前面にある間、Tiancode はクリックやキー入力の送信を拒否します。セッション中に許可済みでも同じです。このリストは起動をまたいで保存されますが、セッションごとの許可は保存されません。",
-  "settings.computerUse.denied.note": "照合は実行ファイル名（パスの最後の部分を小文字にしたもの）で行います。同じファイル名の別プログラムは区別できず、ファイル名を変えればリストから外れます。これはファイル名であり、アプリケーションの同一性ではありません。",
+  "settings.computerUse.denied.description":
+    "これらのいずれかが最前面にある間、Tiancode はクリックやキー入力の送信を拒否します。セッション中に許可済みでも同じです。このリストは起動をまたいで保存されますが、セッションごとの許可は保存されません。",
+  "settings.computerUse.denied.note":
+    "照合は実行ファイル名（パスの最後の部分を小文字にしたもの）で行います。同じファイル名の別プログラムは区別できず、ファイル名を変えればリストから外れます。これはファイル名であり、アプリケーションの同一性ではありません。",
   "settings.computerUse.denied.placeholder": "notepad.exe",
   "settings.computerUse.denied.add": "ブロック",
   "settings.computerUse.denied.remove": "削除",
   "settings.computerUse.denied.empty": "ブロック中の実行ファイルはありません",
   "settings.computerUse.denied.invalid": "実行ファイル名を入力してください（例: notepad.exe）",
   "settings.computerUse.denied.duplicate": "その実行ファイルはすでにリストにあります",
-  "settings.computerUse.platform.note": "PC の操作にはデスクトップアプリが必要で、動作するのは Windows のみです。macOS ではシステムのアクセシビリティ権限と別のバックエンドが必要で、Linux では X11 か Wayland に依存します。Tiancode は奇妙に失敗する代わりに、そう伝えて拒否します。",
+  "settings.computerUse.platform.note":
+    "PC の操作にはデスクトップアプリが必要で、動作するのは Windows のみです。macOS ではシステムのアクセシビリティ権限と別のバックエンドが必要で、Linux では X11 か Wayland に依存します。Tiancode は奇妙に失敗する代わりに、そう伝えて拒否します。",
   "settings.computerUse.browser.section": "統合ブラウザ",
   "settings.computerUse.browser.control": "エージェントに統合ブラウザの読み取りと操作を許可する",
-  "settings.computerUse.browser.control.description": "開いているページの読み取りと、そこでのクリックや入力は、サイトのオリジンをパターンとして許可を求めます。あるサイトへの「はい」が次のサイトへの「はい」にはなりません。",
+  "settings.computerUse.browser.control.description":
+    "開いているページの読み取りと、そこでのクリックや入力は、サイトのオリジンをパターンとして許可を求めます。あるサイトへの「はい」が次のサイトへの「はい」にはなりません。",
   "settings.computerUse.browser.control.ask": "サイトごとに確認する",
   "settings.computerUse.browser.control.allow": "確認せずにすべてのサイトを許可",
   "settings.computerUse.browser.control.deny": "エージェントにブラウザを使わせない",
   "settings.computerUse.browser.control.inherited": "既定値を継承",
-  "settings.computerUse.browser.control.note": "これまでルールは書かれておらず、エージェントの既定値がすべてのオリジンを許可していました。つまり統合ブラウザのどのページでも確認なしに読み取り・操作できていたということです。「サイトごとに確認する」を選ぶと、このプロジェクトの設定に permission.browser = {\"*\": \"ask\"} が書き込まれ、以後は下のリストにないサイトの前に Tiancode が確認します。すでに使っている人にとっては実際の挙動変更です。",
+  "settings.computerUse.browser.control.note":
+    'これまでルールは書かれておらず、エージェントの既定値がすべてのオリジンを許可していました。つまり統合ブラウザのどのページでも確認なしに読み取り・操作できていたということです。「サイトごとに確認する」を選ぶと、このプロジェクトの設定に permission.browser = {"*": "ask"} が書き込まれ、以後は下のリストにないサイトの前に Tiancode が確認します。すでに使っている人にとっては実際の挙動変更です。',
   "settings.computerUse.browser.sites": "許可したサイト",
   "settings.computerUse.browser.sites.description": "このプロジェクトの設定に許可ルールが保存されているオリジンです。",
-  "settings.computerUse.browser.sites.note": "許可ダイアログで答えた「常に許可」はここには現れません。実行中のインスタンスがメモリに保持し、そのインスタンスとともに消えます。設定に書き込まれるのはこの画面で追加したものだけなので、このリストは現時点で承認されているすべてを表してはいません。",
-  "settings.computerUse.browser.sites.inert": "全体のルールが「確認せずにすべてのサイトを許可」である間、このリストは何も変えません。すべてのサイトがすでに許可されています。",
+  "settings.computerUse.browser.sites.note":
+    "許可ダイアログで答えた「常に許可」はここには現れません。実行中のインスタンスがメモリに保持し、そのインスタンスとともに消えます。設定に書き込まれるのはこの画面で追加したものだけなので、このリストは現時点で承認されているすべてを表してはいません。",
+  "settings.computerUse.browser.sites.inert":
+    "全体のルールが「確認せずにすべてのサイトを許可」である間、このリストは何も変えません。すべてのサイトがすでに許可されています。",
   "settings.computerUse.browser.sites.placeholder": "https://example.com",
   "settings.computerUse.browser.sites.add": "許可",
   "settings.computerUse.browser.sites.revoke": "取り消す",
@@ -2437,14 +2579,18 @@ export const dict = {
   "settings.computerUse.browser.sites.empty": "事前に許可したサイトはありません",
   "settings.computerUse.browser.sites.invalid": "完全なアドレスを入力してください（例: https://example.com）",
   "settings.computerUse.browser.sites.duplicate": "そのオリジンはすでに許可されています",
-  "settings.computerUse.browser.sites.orderFailed": "ルールは書き込まれましたが、permission.browser 内の後続のルールがそのオリジンに対して優先されたままです。tiancode.json を開き、permission.browser の最初のキーを \"*\" にしてください。",
+  "settings.computerUse.browser.sites.orderFailed":
+    'ルールは書き込まれましたが、permission.browser 内の後続のルールがそのオリジンに対して優先されたままです。tiancode.json を開き、permission.browser の最初のキーを "*" にしてください。',
   "settings.computerUse.browser.cookies": "Cookie とセッション",
-  "settings.computerUse.browser.cookies.description": "統合ブラウザとライブビューのログインと Cookie をどれだけ保持するか。",
+  "settings.computerUse.browser.cookies.description":
+    "統合ブラウザとライブビューのログインと Cookie をどれだけ保持するか。",
   "settings.computerUse.browser.cookies.always": "ずっと",
   "settings.computerUse.browser.cookies.session": "Tiancode を閉じるまで",
-  "settings.computerUse.browser.cookies.note": "「Tiancode を閉じるまで」は、閉じている最中ではなく次回アプリを起動したときに Cookie・キャッシュ・ローカルストレージを消去します。終了時に Electron は非同期の消去を待たないため、そこで行うと消えないことがあるからです。「保存しない」という選択肢はありません。統合ブラウザは固定の永続パーティションで動作し、ページの読み込み後に Electron はそれを変更させません。",
+  "settings.computerUse.browser.cookies.note":
+    "「Tiancode を閉じるまで」は、閉じている最中ではなく次回アプリを起動したときに Cookie・キャッシュ・ローカルストレージを消去します。終了時に Electron は非同期の消去を待たないため、そこで行うと消えないことがあるからです。「保存しない」という選択肢はありません。統合ブラウザは固定の永続パーティションで動作し、ページの読み込み後に Electron はそれを変更させません。",
   "settings.general.row.transcriptView.title": "トランスクリプトの表示",
-  "settings.general.row.transcriptView.description": "各ターンを既定でどこまで展開するか。セッションごとに「その他のオプション」から変更できます",
+  "settings.general.row.transcriptView.description":
+    "各ターンを既定でどこまで展開するか。セッションごとに「その他のオプション」から変更できます",
   "settings.general.row.transcriptView.option.normal": "標準",
   "settings.general.row.transcriptView.option.thinking": "思考",
   "settings.general.row.transcriptView.option.detailed": "詳細",
@@ -2459,27 +2605,35 @@ export const dict = {
   "welcome.confirm.review": "設定をご確認ください",
   "welcome.confirm.done": "完了",
   "prompt.attachment.imageUnsupported": "{{model}} は画像を読み取れません。この添付ファイルはモデルに届きません。",
-  "settings.permissions.tool.delete.description": "ファイルまたはフォルダーを削除します。Windows がロックしている場合は段階的に対処します (フルパスに一致)",
-  "settings.permissions.tool.process_terminate.description": "ファイルを開いたままにしているプロセスを強制終了して、そのファイルを削除できるようにします",
+  "settings.permissions.tool.delete.description":
+    "ファイルまたはフォルダーを削除します。Windows がロックしている場合は段階的に対処します (フルパスに一致)",
+  "settings.permissions.tool.process_terminate.description":
+    "ファイルを開いたままにしているプロセスを強制終了して、そのファイルを削除できるようにします",
   "settings.general.backup.now.error": "バックアップを作成できませんでした",
-  "prompt.optimize.failed.reasoningOnly": "モデルは推論のみを出力し、回答を返しませんでした。推論レベルを下げて試してください。",
+  "prompt.optimize.failed.reasoningOnly":
+    "モデルは推論のみを出力し、回答を返しませんでした。推論レベルを下げて試してください。",
   "settings.modelsHub.remove.success.title": "モデルを削除しました",
   "settings.modelsHub.remove.success.description": "{{file}} をディスクから削除しました。",
   "settings.modelsHub.remove.success.fromProviders": "「プロバイダー」と「モデル」にも表示されなくなりました。",
-  "settings.modelsHub.remove.success.defaultCleared": "既定のモデルだったため、Tiancode は別のモデルにフォールバックします。",
-  "settings.modelsHub.remove.configFailed": "ファイルは削除されましたが、プロバイダー一覧からは削除できませんでした。Tiancode を再起動してもう一度お試しください。",
+  "settings.modelsHub.remove.success.defaultCleared":
+    "既定のモデルだったため、Tiancode は別のモデルにフォールバックします。",
+  "settings.modelsHub.remove.configFailed":
+    "ファイルは削除されましたが、プロバイダー一覧からは削除できませんでした。Tiancode を再起動してもう一度お試しください。",
   "settings.modelsHub.remove.locked.title": "モデルを削除できませんでした",
-  "settings.modelsHub.remove.locked.description": "{{file}} はまだ使用中か、ディスク上でロックされています。Tiancode を終了してからもう一度お試しください。",
+  "settings.modelsHub.remove.locked.description":
+    "{{file}} はまだ使用中か、ディスク上でロックされています。Tiancode を終了してからもう一度お試しください。",
   "settings.modelsHub.remove.failed.title": "モデルをディスクから削除できませんでした",
   "prompt.optimize.failed.timeout": "モデルの応答に時間がかかりすぎました。入力したプロンプトはそのまま残しています。",
   "settings.subAgents.custom.count": "カスタム サブエージェント {{count}} 件",
   "settings.subAgents.list.user.hint": "agent/*.md ファイルから",
   "settings.subAgents.create.manual": "手動で作成",
   "settings.subAgents.create.ai": "AI で生成",
-  "settings.subAgents.create.storage": "新しいサブエージェントはグローバル設定に保存され、すべてのプロジェクトで利用できます。",
+  "settings.subAgents.create.storage":
+    "新しいサブエージェントはグローバル設定に保存され、すべてのプロジェクトで利用できます。",
   "settings.subAgents.generate.title": "このサブエージェントに何をさせますか？",
   "settings.subAgents.generate.placeholder": "SQL マイグレーションをレビューし、テーブルをロックしうる箇所を指摘する",
-  "settings.subAgents.generate.hint": "モデルが識別子・説明・システムプロンプトを書きます。保存する前に内容を確認できます。",
+  "settings.subAgents.generate.hint":
+    "モデルが識別子・説明・システムプロンプトを書きます。保存する前に内容を確認できます。",
   "settings.subAgents.generate.model": "モデル",
   "settings.subAgents.generate.model.default": "既定のモデル",
   "settings.subAgents.generate.submit": "生成",
@@ -2487,19 +2641,23 @@ export const dict = {
   "settings.subAgents.generate.needsDescription": "まずサブエージェントの役割を入力してください",
   "settings.subAgents.generate.failed": "サブエージェントを生成できませんでした",
   "settings.subAgents.generate.failed.noModel": "利用できるモデルがありません。先にモデルを選択してください。",
-  "settings.subAgents.generate.failed.model": "モデルの呼び出しに失敗しました。再試行するか別のモデルを選んでください。",
+  "settings.subAgents.generate.failed.model":
+    "モデルの呼び出しに失敗しました。再試行するか別のモデルを選んでください。",
   "settings.subAgents.generate.failed.network": "サーバーに接続できませんでした。",
   "settings.subAgents.generate.ready": "下書きができました。保存する前に確認・編集してください。",
   "settings.subAgents.form.field.mode": "モード",
   "settings.subAgents.form.mode.subagent": "サブエージェント",
   "settings.subAgents.form.mode.primary": "プライマリ",
-  "settings.subAgents.form.mode.hint": "サブエージェントは作業を委譲される側で、プライマリ エージェントはチャットで直接選択できます。",
+  "settings.subAgents.form.mode.hint":
+    "サブエージェントは作業を委譲される側で、プライマリ エージェントはチャットで直接選択できます。",
   "settings.subAgents.form.name.required": "名前を入力してください",
   "settings.subAgents.form.name.invalid": "小文字・数字・単一のハイフンのみ使用できます",
   "settings.subAgents.form.name.taken": "「{{name}}」は既に存在します",
-  "settings.subAgents.form.description.required": "メインのエージェントが委譲を判断できるよう、短い説明を入力してください",
+  "settings.subAgents.form.description.required":
+    "メインのエージェントが委譲を判断できるよう、短い説明を入力してください",
   "settings.subAgents.hierarchy.title": "委譲の階層",
-  "settings.subAgents.hierarchy.description": "上のリストに基づき、どのプライマリ エージェントがどのサブエージェントに作業を渡せるかを示します。",
+  "settings.subAgents.hierarchy.description":
+    "上のリストに基づき、どのプライマリ エージェントがどのサブエージェントに作業を渡せるかを示します。",
   "settings.subAgents.hierarchy.collapse": "折りたたむ",
   "settings.subAgents.hierarchy.expand": "展開",
   "settings.subAgents.hierarchy.empty": "プライマリ エージェントが設定されていません",

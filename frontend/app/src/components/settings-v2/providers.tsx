@@ -11,6 +11,8 @@ import { useServerSync } from "@/context/server-sync"
 import { DialogConnectProvider, useProviderConnectController } from "../dialogs/dialog-connect-provider"
 import { DialogCustomProvider } from "../dialogs/dialog-custom-provider"
 import { SettingsListV2 } from "./parts/list"
+import { disconnectProvider } from "@/utils/provider-disconnect"
+import { createStore } from "solid-js/store"
 import "./settings-v2.css"
 
 type ProviderSource = "env" | "api" | "config" | "custom"
@@ -40,18 +42,15 @@ export const SettingsProvidersV2: Component<{
   const serverSync = useServerSync()
   const providers = useProviders(props.directory)
   const providerConnect = useProviderConnectController({ onBack: props.onBack })
+  const [pending, setPending] = createStore<Record<string, boolean>>({})
 
   const connect = async (provider?: string) => {
+    if (provider && pending[provider]) return
     if (provider === "local") {
-      showToast({
-        variant: "success",
-        icon: "circle-check",
-        title: language.t("provider.connect.toast.connected.title", { provider: "Tiancode Native / GGUF" }),
-        description: "Motor nativo local conectado. Puedes descargar o activar modelos GGUF en 'Modelos Locales'.",
-      })
+      setPending("local", true)
       markProviderPending("local", "connected")
-      void (async () => {
-        const currentConfig = serverSync().data.config
+      try {
+        const currentConfig = (await serverSdk().client.global.config.get()).data ?? {}
         const disabled = currentConfig.disabled_providers ?? []
         const nextDisabled = disabled.filter((id) => id !== "local")
         const currentProviders = { ...(currentConfig.provider ?? {}) }
@@ -62,18 +61,26 @@ export const SettingsProvidersV2: Component<{
             models: {},
           }
         }
-        serverSync().set("config", "disabled_providers", nextDisabled)
-        serverSync().set("config", "provider", currentProviders)
-        await serverSync()
-          .updateConfig({
-            disabled_providers: nextDisabled,
-            provider: currentProviders,
-          })
-          .catch(() => undefined)
-        await serverSdk().client.global.dispose().catch(() => undefined)
-        await serverSync().refreshProviders().catch(() => undefined)
+        await serverSync().updateConfig({
+          disabled_providers: nextDisabled,
+          provider: currentProviders,
+        })
+        await serverSync().refreshProviders()
+        showToast({
+          variant: "success",
+          icon: "circle-check",
+          title: language.t("provider.connect.toast.connected.title", { provider: "Tiancode Native / GGUF" }),
+        })
+      } catch (error) {
+        showToast({
+          variant: "error",
+          title: language.t("common.requestFailed"),
+          description: error instanceof Error ? error.message : String(error),
+        })
+      } finally {
         clearProviderPending("local")
-      })()
+        setPending("local", false)
+      }
       return
     }
     providerConnect.select(provider)
@@ -130,56 +137,34 @@ export const SettingsProvidersV2: Component<{
     return true
   }
 
-  const disconnect = (providerID: string, name: string) => {
-    // 1. The row and every model of this provider go away in this frame.
+  const disconnect = async (providerID: string, name: string) => {
+    if (pending[providerID]) return
+    setPending(providerID, true)
     markProviderPending(providerID, "disconnected")
-
-    // 2. The notification lands with the change, not after the round trip.
-    showToast({
-      variant: "success",
-      icon: "circle-check",
-      title: language.t("provider.disconnect.toast.disconnected.title", { provider: name }),
-      description: language.t("provider.disconnect.toast.disconnected.description", { provider: name }),
-    })
-
-    // 3. Asynchronous non-blocking background cleanup
-    void (async () => {
-      try {
-        const currentConfig = serverSync().data.config
-        const currentProviders = { ...(currentConfig.provider ?? {}) }
-        let configChanged = false
-        if (currentProviders[providerID]) {
-          delete currentProviders[providerID]
-          configChanged = true
-        }
-        const beforeDisabled = currentConfig.disabled_providers ?? []
-        const nextDisabled = beforeDisabled.includes(providerID) ? beforeDisabled : [...beforeDisabled, providerID]
-        if (!beforeDisabled.includes(providerID)) {
-          configChanged = true
-        }
-
-        if (configChanged) {
-          serverSync().set("config", "provider", currentProviders)
-          serverSync().set("config", "disabled_providers", nextDisabled)
-        }
-
-        await Promise.allSettled([
-          serverSdk().client.auth.remove({ providerID }).catch(() => undefined),
-          configChanged
-            ? serverSync().updateConfig({ provider: currentProviders, disabled_providers: nextDisabled }).catch(() => undefined)
-            : Promise.resolve(),
-        ])
-
-        await serverSdk().client.global.dispose().catch(() => undefined)
-        await serverSync().refreshProviders().catch(() => undefined)
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err)
-        showToast({ title: language.t("common.requestFailed"), description: message })
-      } finally {
-        // The catalogue now agrees (or the request failed and the truth should win again).
-        clearProviderPending(providerID)
-      }
-    })()
+    try {
+      await disconnectProvider({
+        providerID,
+        readConfig: async () => (await serverSdk().client.global.config.get()).data ?? {},
+        updateConfig: (config) => serverSync().updateConfig(config),
+        removeAuth: () => serverSdk().client.auth.remove({ providerID }),
+        refresh: () => serverSync().refreshProviders(),
+      })
+      showToast({
+        variant: "success",
+        icon: "circle-check",
+        title: language.t("provider.disconnect.toast.disconnected.title", { provider: name }),
+        description: language.t("provider.disconnect.toast.disconnected.description", { provider: name }),
+      })
+    } catch (error) {
+      showToast({
+        variant: "error",
+        title: language.t("common.requestFailed"),
+        description: error instanceof Error ? error.message : String(error),
+      })
+    } finally {
+      clearProviderPending(providerID)
+      setPending(providerID, false)
+    }
   }
 
   return (
@@ -221,7 +206,12 @@ export const SettingsProvidersV2: Component<{
                         </span>
                       }
                     >
-                      <ButtonV2 size="normal" variant="ghost-muted" onClick={() => void disconnect(item.id, item.name)}>
+                      <ButtonV2
+                        size="normal"
+                        variant="ghost-muted"
+                        disabled={pending[item.id]}
+                        onClick={() => void disconnect(item.id, item.name)}
+                      >
                         {language.t("common.disconnect")}
                       </ButtonV2>
                     </Show>
@@ -257,7 +247,13 @@ export const SettingsProvidersV2: Component<{
                       </Show>
                     </div>
                   </div>
-                  <ButtonV2 size="normal" variant="neutral" icon="plus" onClick={() => connect(item.id)}>
+                  <ButtonV2
+                    size="normal"
+                    variant="neutral"
+                    icon="plus"
+                    disabled={pending[item.id]}
+                    onClick={() => connect(item.id)}
+                  >
                     {language.t("common.connect")}
                   </ButtonV2>
                 </div>

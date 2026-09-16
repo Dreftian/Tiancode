@@ -1450,8 +1450,22 @@ const layer = Layer.effect(
         const candidateModelsDirs = [
           path.join(Global.Path.data, "models"),
           path.join(os.homedir(), ".local", "share", "tiancode", "models"),
-          path.join(process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming"), "ai.tiancode.desktop", "xdg", "data", "tiancode", "models"),
-          path.join(process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming"), "ai.tiancode.desktop.codex", "xdg", "data", "tiancode", "models"),
+          path.join(
+            process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming"),
+            "ai.tiancode.desktop",
+            "xdg",
+            "data",
+            "tiancode",
+            "models",
+          ),
+          path.join(
+            process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming"),
+            "ai.tiancode.desktop.codex",
+            "xdg",
+            "data",
+            "tiancode",
+            "models",
+          ),
         ]
 
         const readGgufs = (dir: string): string[] => {
@@ -1554,17 +1568,10 @@ const layer = Layer.effect(
           ...((cfg as any).providers ?? {}),
         }
         const configProviders = Object.entries(rawProviders)
-        const disabled = new Set(cfg.disabled_providers ?? [])
+        // A project can configure providers, but cannot silently undo a global disconnect.
+        const globalConfig = yield* config.getGlobal()
+        const disabled = new Set([...(globalConfig.disabled_providers ?? []), ...(cfg.disabled_providers ?? [])])
         const enabled = cfg.enabled_providers ? new Set(cfg.enabled_providers) : null
-
-        // Ensure local engine is never blocked by stale disabled_providers if it has models or is in config
-        if (disabled.has(localProviderID)) {
-          const hasLocalInConfig = Boolean(cfg.provider?.[localProviderID]) || cfg.model?.startsWith("local/")
-          const hasDiscoveredModels = Object.keys(database[localProviderID]?.models ?? {}).length > 0
-          if (hasLocalInConfig || hasDiscoveredModels) {
-            disabled.delete(localProviderID)
-          }
-        }
 
         function isProviderAllowed(providerID: ProviderV2.ID): boolean {
           if (enabled && !enabled.has(providerID)) return false

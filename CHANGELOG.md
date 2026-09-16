@@ -4,6 +4,21 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.54] — 2026-09-15
+
+Barra del chat en una sola fila con acciones secundarias accesibles en paneles estrechos.
+Desconexión persistente de proveedores aunque exista configuración de proyecto, y avisos
+de éxito posteriores al guardado. Sub-Agentes se centra en los 14 especialistas integrados.
+
+Web App ofrece seis direcciones visuales enviadas al backend y General añade Respuestas
+directas. Se incorpora Chrome como destino de enlaces, restauración opcional de ventanas
+controladas y limpieza de cookies al salir. Se mejoran las instrucciones de diseño e
+investigación, y se actualizan la web, el instalador y el portable conservando los datos.
+
+Detalles: [notas de versión](tools/releases/v1.0.54.md),
+[integraciones evaluadas](tools/releases/integrations-1.0.54.md) e
+[informe de auditoría](tools/releases/audit-1.0.54.md).
+
 ## [1.0.53] — 2026-09-15
 
 Chat adaptable al ancho del panel y menús de permisos sin descripciones superpuestas.

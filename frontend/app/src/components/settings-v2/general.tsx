@@ -198,6 +198,19 @@ const TranscriptViewSetting = () => {
   )
 }
 
+const ClearResponseSetting = () => {
+  const language = useLanguage()
+  const settings = useSettings()
+  return (
+    <SettingsRowV2
+      title={language.t("settings.responses.clear")}
+      description={language.t("settings.responses.clear.description")}
+    >
+      <Switch checked={settings.general.clearResponses()} onChange={settings.general.setClearResponses} />
+    </SettingsRowV2>
+  )
+}
+
 const AppearanceSection: Component<{ controller: AppearanceSettingsController }> = (props) => {
   const language = useLanguage()
   return (
@@ -251,6 +264,7 @@ const AppearanceSection: Component<{ controller: AppearanceSettingsController }>
         <TranscriptTextSetting />
         <TranscriptWidthSetting />
         <TranscriptViewSetting />
+        <ClearResponseSetting />
 
         <FontSetting kind="ui" fonts={props.controller.fonts} />
         <FontSetting kind="code" fonts={props.controller.fonts} />
@@ -539,8 +553,16 @@ export const SettingsGeneralV2: Component<{
         <LanguageSetting />
 
         <SettingsRowV2
-          title={language.intl().toLowerCase().startsWith("es") ? "Asistente de Bienvenida e Inicialización" : "Welcome & Setup Wizard"}
-          description={language.intl().toLowerCase().startsWith("es") ? "Vuelve a abrir la pantalla de bienvenida, selección de idioma, temas y descargo de responsabilidad." : "Re-open the initial setup wizard to change language, themes, and disclaimer preferences."}
+          title={
+            language.intl().toLowerCase().startsWith("es")
+              ? "Asistente de Bienvenida e Inicialización"
+              : "Welcome & Setup Wizard"
+          }
+          description={
+            language.intl().toLowerCase().startsWith("es")
+              ? "Vuelve a abrir la pantalla de bienvenida, selección de idioma, temas y descargo de responsabilidad."
+              : "Re-open the initial setup wizard to change language, themes, and disclaimer preferences."
+          }
         >
           <ButtonV2
             type="button"

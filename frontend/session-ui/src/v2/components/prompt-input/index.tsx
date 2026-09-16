@@ -1,4 +1,6 @@
-import { createEffect, createMemo, For, Show, type Accessor, type JSX } from "solid-js"
+import { createEffect, createMemo, For, Show, onCleanup, type Accessor, type JSX } from "solid-js"
+import { createStore } from "solid-js/store"
+import { Popover } from "@tiancode-ai/ui/popover"
 import { FileIcon } from "@tiancode-ai/ui/file-icon"
 import { Icon } from "@tiancode-ai/ui/icon"
 import { IconButton } from "@tiancode-ai/ui/icon-button"
@@ -61,6 +63,14 @@ export function PromptInputV2(props: PromptInputV2Props) {
   const i18n = useI18n()
   const state = props.controller.state
   const view = props.controller.view
+  const [layout, setLayout] = createStore({ compact: false })
+  const secondaryActions = () => (
+    <div class="flex items-center gap-1">
+      {props.captureControl}
+      {props.micControl}
+      {props.optimizeControl}
+    </div>
+  )
   let editor: HTMLDivElement | undefined
   let localInput = false
   const updateCursor = () => {
@@ -119,6 +129,11 @@ export function PromptInputV2(props: PromptInputV2Props) {
         />
       </Show>
       <form
+        ref={(element) => {
+          const observer = new ResizeObserver(([entry]) => setLayout("compact", entry.contentRect.width < 680))
+          observer.observe(element)
+          onCleanup(() => observer.disconnect())
+        }}
         data-component="prompt-input-v2"
         data-dock-border-underlay={props.borderUnderlay ? "v2" : undefined}
         class="group/prompt-input relative min-h-[96px] w-full overflow-clip rounded-xl bg-v2-background-bg-base"
@@ -207,13 +222,10 @@ export function PromptInputV2(props: PromptInputV2Props) {
           </Show>
         </div>
 
-        <div
-          data-slot="prompt-controls"
-          class="flex min-h-11 flex-wrap items-center justify-between gap-x-2 gap-y-1 px-2 py-2"
-        >
+        <div data-slot="prompt-controls" class="flex min-h-11 flex-nowrap items-center justify-between gap-1 px-2 py-2">
           <div
             data-slot="prompt-selection-controls"
-            class="flex min-w-0 flex-[1_1_480px] flex-wrap items-center gap-1"
+            class="flex min-w-0 flex-1 flex-nowrap items-center gap-1"
             aria-hidden={state.mode === "shell"}
             inert={state.mode === "shell" ? true : undefined}
             style={buttons()}
@@ -274,9 +286,21 @@ export function PromptInputV2(props: PromptInputV2Props) {
           <div data-slot="prompt-action-controls" class="flex shrink-0 items-center gap-1.5 ml-auto">
             <Show when={state.mode === "normal"}>
               <div class="flex items-center gap-1" style={buttons()}>
-                {props.captureControl}
-                {props.micControl}
-                {props.optimizeControl}
+                <Show when={layout.compact} fallback={secondaryActions()}>
+                  <Popover
+                    placement="top-end"
+                    title={i18n.t("ui.common.showMore")}
+                    triggerAs="button"
+                    triggerProps={{
+                      type: "button",
+                      "aria-label": i18n.t("ui.common.showMore"),
+                      class: "flex size-7 items-center justify-center rounded-md text-v2-text-text-muted",
+                    }}
+                    trigger={<span aria-hidden="true">•••</span>}
+                  >
+                    {secondaryActions()}
+                  </Popover>
+                </Show>
                 {props.speedControl}
               </div>
             </Show>

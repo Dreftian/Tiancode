@@ -28,14 +28,12 @@ type PermissionAction = "ask" | "allow" | "deny"
 type PermissionRule = PermissionAction | Record<string, PermissionAction>
 type PermissionMap = Record<string, PermissionRule>
 type ComputerUseTab = "tools" | "browser" | "bridges"
-type BrowserLinks = "integrated" | "system"
+type BrowserLinks = "integrated" | "system" | "chrome"
 type CookieRetention = "always" | "session"
 
-const isLocalServer = (config: McpConfigValue): config is McpLocalConfig =>
-  "type" in config && config.type === "local"
+const isLocalServer = (config: McpConfigValue): config is McpLocalConfig => "type" in config && config.type === "local"
 
-const isAction = (value: unknown): value is PermissionAction =>
-  value === "ask" || value === "allow" || value === "deny"
+const isAction = (value: unknown): value is PermissionAction => value === "ask" || value === "allow" || value === "deny"
 
 // Ajustes que guarda el proceso principal de la app de escritorio, no `tiancode.json`. El
 // interruptor del uso del computador vive aquí a propósito: `tiancode.json` es un archivo del
@@ -43,6 +41,7 @@ const isAction = (value: unknown): value is PermissionAction =>
 const SETTINGS_STORE = "tiancode.settings"
 const COMPUTER_ENABLED_KEY = "computerUseEnabled"
 const COMPUTER_DENIED_KEY = "computerUseDeniedApps"
+const COMPUTER_RESTORE_KEY = "computerUseRestoreWindows"
 const WEBVIEW_RETENTION_KEY = "webviewRetention"
 
 const BROWSER_ACTIONS: PermissionAction[] = ["ask", "allow", "deny"]
@@ -95,7 +94,9 @@ export const SettingsComputerUseV2: Component<{
   const [configData, { refetch: refetchConfig }] = createResource(
     async () => {
       try {
-        const result = await serverSdk().client.config.get(params()).catch(() => ({ data: {} }))
+        const result = await serverSdk()
+          .client.config.get(params())
+          .catch(() => ({ data: {} }))
         return (result.data ?? {}) as Record<string, any>
       } catch {
         return {} as Record<string, any>
@@ -107,7 +108,9 @@ export const SettingsComputerUseV2: Component<{
   const [statusData, { refetch: refetchStatus }] = createResource(
     async () => {
       try {
-        const result = await serverSdk().client.mcp.status(params()).catch(() => ({ data: {} }))
+        const result = await serverSdk()
+          .client.mcp.status(params())
+          .catch(() => ({ data: {} }))
         return (result.data ?? {}) as Record<string, any>
       } catch {
         return {} as Record<string, any>
@@ -125,11 +128,10 @@ export const SettingsComputerUseV2: Component<{
     onCleanup(() => clearInterval(interval))
   })
 
-  const localApps = createMemo(
-    () =>
-      Object.entries((configData().mcp ?? {}) as Record<string, McpConfigValue>).filter(([, config]) =>
-        isLocalServer(config),
-      ),
+  const localApps = createMemo(() =>
+    Object.entries((configData().mcp ?? {}) as Record<string, McpConfigValue>).filter(([, config]) =>
+      isLocalServer(config),
+    ),
   )
 
   const currentPermission = () => {
@@ -312,6 +314,22 @@ export const SettingsComputerUseV2: Component<{
     { initialValue: [] as string[] },
   )
 
+  const [restoreWindows, { mutate: setRestoreWindows }] = createResource(
+    () => desktop(),
+    async () => (await window.api?.storeGet?.(SETTINGS_STORE, COMPUTER_RESTORE_KEY)) !== "false",
+    { initialValue: true },
+  )
+  const onRestoreWindowsChange = async (checked: boolean) => {
+    const previous = restoreWindows()
+    setRestoreWindows(checked)
+    try {
+      await window.api?.storeSet?.(SETTINGS_STORE, COMPUTER_RESTORE_KEY, String(checked))
+    } catch {
+      setRestoreWindows(previous)
+      showToast({ variant: "error", title: language.t("settings.computerUse.save.failed") })
+    }
+  }
+
   const writeDeniedApps = (next: string[]) => {
     const previous = deniedApps()
     setDeniedApps(next)
@@ -375,9 +393,7 @@ export const SettingsComputerUseV2: Component<{
 
   const availability = () => (
     <span class="settings-v2-chip" data-tone={desktop() ? "green" : "muted"}>
-      {desktop()
-        ? language.t("settings.computerUse.tool.ready")
-        : language.t("settings.computerUse.tool.desktopOnly")}
+      {desktop() ? language.t("settings.computerUse.tool.ready") : language.t("settings.computerUse.tool.desktopOnly")}
     </span>
   )
 
@@ -406,7 +422,9 @@ export const SettingsComputerUseV2: Component<{
         <p class="settings-v2-tab-description">{language.t("settings.computerUse.description")}</p>
         <div style={{ "margin-top": "6px" }}>
           <SegmentedControlV2 value={activeTab()} onChange={(val) => val && setActiveTab(val as ComputerUseTab)}>
-            <SegmentedControlItemV2 value="tools">{language.t("settings.computerUse.tab.tools")}</SegmentedControlItemV2>
+            <SegmentedControlItemV2 value="tools">
+              {language.t("settings.computerUse.tab.tools")}
+            </SegmentedControlItemV2>
             <SegmentedControlItemV2 value="browser">
               {language.t("settings.computerUse.tab.browser")}
             </SegmentedControlItemV2>
@@ -483,6 +501,13 @@ export const SettingsComputerUseV2: Component<{
                 </SettingsRowV2>
 
                 <SettingsRowV2
+                  title={language.t("settings.computerUse.restore.title")}
+                  description={language.t("settings.computerUse.restore.description")}
+                >
+                  <Switch checked={restoreWindows()} onChange={(checked) => void onRestoreWindowsChange(checked)} />
+                </SettingsRowV2>
+
+                <SettingsRowV2
                   title={language.t("settings.computerUse.denied.title")}
                   description={language.t("settings.computerUse.denied.description")}
                 >
@@ -500,7 +525,13 @@ export const SettingsComputerUseV2: Component<{
                         autocomplete="off"
                         aria-label={language.t("settings.computerUse.denied.title")}
                       />
-                      <ButtonV2 type="button" variant="outline" size="small" disabled={!appDraft().trim()} onClick={addDeniedApp}>
+                      <ButtonV2
+                        type="button"
+                        variant="outline"
+                        size="small"
+                        disabled={!appDraft().trim()}
+                        onClick={addDeniedApp}
+                      >
                         {language.t("settings.computerUse.denied.add")}
                       </ButtonV2>
                     </>,
@@ -573,12 +604,18 @@ export const SettingsComputerUseV2: Component<{
                 <SelectV2
                   appearance="inline"
                   data-action="settings-browser-links"
-                  options={LINK_OPTIONS}
+                  options={windows() ? [...LINK_OPTIONS, "chrome" as const] : LINK_OPTIONS}
                   current={settings.general.browserLinks()}
                   placement="bottom-end"
                   gutter={6}
                   label={(option) => language.t(`settings.browser.links.${option}`)}
-                  onSelect={(option) => option && settings.general.setBrowserLinks(option)}
+                  onSelect={(option) => {
+                    if (!option) return
+                    settings.general.setBrowserLinks(option)
+                    void window.api?.storeSet?.(SETTINGS_STORE, "browserLinkTarget", option).catch(() => {
+                      showToast({ variant: "error", title: language.t("settings.computerUse.save.failed") })
+                    })
+                  }}
                 />
               </SettingsRowV2>
             </SettingsListV2>
@@ -628,9 +665,7 @@ export const SettingsComputerUseV2: Component<{
             <Show
               when={allowedSites().length > 0}
               fallback={
-                <div class="settings-v2-skills-status">
-                  {language.t("settings.computerUse.browser.sites.empty")}
-                </div>
+                <div class="settings-v2-skills-status">{language.t("settings.computerUse.browser.sites.empty")}</div>
               }
             >
               <SettingsListV2>
@@ -710,7 +745,10 @@ export const SettingsComputerUseV2: Component<{
                     const status = statusData()[serverName]
                     const connected = status?.status === "connected"
                     return (
-                      <SettingsRowV2 title={serverName} description={isLocalServer(config) ? config.command.join(" ") : ""}>
+                      <SettingsRowV2
+                        title={serverName}
+                        description={isLocalServer(config) ? config.command.join(" ") : ""}
+                      >
                         <span class="settings-v2-chip" data-tone={connected ? "green" : "muted"}>
                           {connected
                             ? language.t("settings.computerUse.apps.connected")

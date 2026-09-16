@@ -4,7 +4,18 @@ import type { DesktopTheme } from "@tiancode-ai/ui/theme/types"
 import oc2ThemeJson from "../../../ui/src/theme/themes/oc-2.json"
 import { randomUUID } from "node:crypto"
 import { existsSync, rmSync } from "node:fs"
-import { app, BrowserWindow, dialog, net, nativeImage, type NativeImage, nativeTheme, protocol, session, shell } from "electron"
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  net,
+  nativeImage,
+  type NativeImage,
+  nativeTheme,
+  protocol,
+  session,
+  shell,
+} from "electron"
 import { dirname, isAbsolute, join, relative, resolve } from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
 import type { TitlebarTheme } from "../preload/types"
@@ -19,6 +30,7 @@ import { safeWindowURL } from "./window-state"
 import { resolveExternalURL, resolveLocalFilePath } from "./external-url"
 import { isAgentActionInFlight } from "./preview-view"
 import { isFirstLaunchOnboardingPending } from "./onboarding"
+import { openInChrome, chromeLink } from "./chrome"
 
 const root = dirname(fileURLToPath(import.meta.url))
 const rendererRoot = join(root, "../renderer")
@@ -121,7 +133,9 @@ function resolveWindowIcon(): NativeImage | undefined {
     join(iconsDir(), `icon.${ext}`),
     join(iconsDir(), "icon.ico"),
     join(iconsDir(), "icon.png"),
-    app.isPackaged ? join(process.resourcesPath, "icons", `icon.${ext}`) : join(root, `../../resources/icons/icon.${ext}`),
+    app.isPackaged
+      ? join(process.resourcesPath, "icons", `icon.${ext}`)
+      : join(root, `../../resources/icons/icon.${ext}`),
     app.isPackaged ? join(process.resourcesPath, "icons", "icon.ico") : join(root, "../../resources/icons/icon.ico"),
     app.isPackaged ? join(process.resourcesPath, "icons", "icon.png") : join(root, "../../resources/icons/icon.png"),
     join(app.getAppPath(), `resources/icons/icon.${ext}`),
@@ -349,6 +363,20 @@ export function openLocalFileURL(value: string) {
 }
 
 function wireNavigationPolicy(win: BrowserWindow) {
+  const openLink = (url: string) => {
+    const target = getStore().get("browserLinkTarget")
+    if (target === "integrated" && chromeLink(url)) {
+      sendLiveViewNavigate(win, url)
+      return
+    }
+    if (target === "chrome" && chromeLink(url)) {
+      void openInChrome(url).catch(() =>
+        dialog.showMessageBox(win, { type: "error", message: nativeT("desktop.browser.chromeUnavailable") }),
+      )
+      return
+    }
+    openExternalURL(url)
+  }
   win.webContents.setWindowOpenHandler(({ url }) => {
     // Los destinos de vista previa local (dev servers, HTML del proyecto) se
     // muestran dentro del panel "Vista en vivo", nunca en el navegador del
@@ -364,7 +392,7 @@ function wireNavigationPolicy(win: BrowserWindow) {
       writeLog("window", "blocked agent-initiated external open", { url }, "warn")
       return { action: "deny" }
     }
-    if (!isRendererUrl(url)) openExternalURL(url)
+    if (!isRendererUrl(url)) openLink(url)
     return { action: "deny" }
   })
   // Renderer reloads (window.location.reload) navigate to the app's own URL
@@ -380,7 +408,7 @@ function wireNavigationPolicy(win: BrowserWindow) {
       writeLog("window", "blocked agent-initiated external navigation", { url }, "warn")
       return
     }
-    openExternalURL(url)
+    openLink(url)
   })
 }
 
@@ -657,8 +685,8 @@ function hardenGuestSessions() {
 
 /**
  * Cuánto duran las cookies del navegador integrado: "always" (las de siempre) o "session" (se
- * borran al abrir Tiancode, ver abajo). Vive en el store del main porque quien tiene que leerlo
- * es el arranque (index.ts), antes de que exista ningún renderer.
+ * borran al salir normalmente y al abrir tras un cierre inesperado). Vive en el store del main
+ * para que index.ts pueda aplicar la preferencia sin depender de ningún renderer.
  *
  * NO hay un tercer valor "no guardar nunca": los <webview> del preview corren en particiones
  * `persist:*` fijas — Electron 42 no deja cambiar la partición de un webview después de la

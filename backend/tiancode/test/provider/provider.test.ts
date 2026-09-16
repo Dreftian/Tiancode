@@ -140,6 +140,21 @@ it.instance(
   { config: { disabled_providers: ["anthropic"] } },
 )
 
+testEffect(providerLayer()).instance(
+  "a project disabled list cannot reactivate a globally disconnected provider",
+  Effect.gen(function* () {
+    const config = yield* Config.Service
+    const before = yield* config.getGlobal()
+    yield* setProcessEnv("ANTHROPIC_API_KEY", "test-api-key")
+    yield* config.updateGlobal({ disabled_providers: [...(before.disabled_providers ?? []), "anthropic"] })
+    yield* Effect.gen(function* () {
+      const providers = yield* list
+      expect(providers[ProviderV2.ID.anthropic]).toBeUndefined()
+    }).pipe(Effect.ensuring(config.updateGlobal({ disabled_providers: before.disabled_providers ?? [] })))
+  }),
+  { config: { disabled_providers: [], provider: { anthropic: { options: { apiKey: "project-key" } } } } },
+)
+
 it.instance(
   "enabled_providers restricts to only listed providers",
   Effect.gen(function* () {

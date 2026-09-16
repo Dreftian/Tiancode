@@ -1,9 +1,31 @@
 import { RELEASE_ENGLISH } from "./release-english"
 
 export const dict = {
+  "settings.browser.links.chrome": "Google Chrome",
+  "settings.browser.chromeUnavailable": "Не удалось открыть Chrome. Убедитесь, что Google Chrome установлен.",
+  "desktop.browser.chromeUnavailable": "Не удалось открыть Chrome. Убедитесь, что Google Chrome установлен.",
+  "settings.subAgents.integrated.description":
+    "Встроенные специалисты по разработке, дизайну, исследованиям, маркетингу и разрешённому тестированию безопасности.",
+  "design.style.title": "Направление дизайна",
+  "design.style.description":
+    "Выберите оформление Web App. Оно будет передано модели со следующим сообщением с учётом требований проекта.",
+  "design.style.ask": "Выбрать с ИИ",
+  "design.style.studio": "Редакционная студия",
+  "design.style.product": "Ясный продукт",
+  "design.style.midnight": "Ночное пространство",
+  "design.style.geometric": "Творческая геометрия",
+  "design.style.precision": "Техническая точность",
+  "design.style.atelier": "Изысканное ателье",
+  "settings.responses.clear": "Прямые ответы",
+  "settings.responses.clear.description":
+    "Сначала результат и конкретные шаги, с сохранением важных доказательств и ошибок. Применяется к следующим сообщениям с любой моделью.",
+  "settings.computerUse.restore.title": "Восстанавливать приложения после управления",
+  "settings.computerUse.restore.description":
+    "Восстанавливает свёрнутые окна приложений, которыми вы разрешили управлять. Состояние остальных окон сохраняется.",
   ...RELEASE_ENGLISH,
   "settings.mcpServers.health.title": "Состояние MCP",
-  "settings.mcpServers.health.description": "Текущее состояние подключений. Восстановление запускает не более {{concurrency}} одновременно и обрабатывает до {{limit}} серверов за действие.",
+  "settings.mcpServers.health.description":
+    "Текущее состояние подключений. Восстановление запускает не более {{concurrency}} одновременно и обрабатывает до {{limit}} серверов за действие.",
   "settings.mcpServers.health.refresh": "Обновить",
   "settings.mcpServers.health.configured": "Настроено: {{count}}",
   "settings.mcpServers.health.enabled": "Включено: {{count}}",
@@ -15,15 +37,18 @@ export const dict = {
   "settings.mcpServers.health.stop": "Остановить локальные и выключить",
   "settings.mcpServers.health.partial": "Восстановлено: {{succeeded}}; требуют внимания: {{failed}}",
   "settings.mcpServers.health.done": "Восстановлено MCP-подключений: {{count}}",
-  "settings.mcpServers.health.stop.confirm": "Остановить и выключить {{count}} локальных MCP-подключений? Сохранённые команды, ключи и настройки останутся без изменений.",
+  "settings.mcpServers.health.stop.confirm":
+    "Остановить и выключить {{count}} локальных MCP-подключений? Сохранённые команды, ключи и настройки останутся без изменений.",
   "settings.mcpServers.profiles.title": "Безопасные профили MCP",
-  "settings.mcpServers.profiles.description": "Профили подключают только уже настроенные и включённые MCP-серверы. Они не устанавливают, не добавляют, не включают, не выключают и не перезаписывают сохранённые ключи и настройки.",
+  "settings.mcpServers.profiles.description":
+    "Профили подключают только уже настроенные и включённые MCP-серверы. Они не устанавливают, не добавляют, не включают, не выключают и не перезаписывают сохранённые ключи и настройки.",
   "settings.mcpServers.profiles.essential.name": "Основное",
   "settings.mcpServers.profiles.essential.description": "Файлы, документация, fetch и Git, если они уже настроены.",
   "settings.mcpServers.profiles.design.name": "Дизайн",
   "settings.mcpServers.profiles.design.description": "Настроенные интеграции для визуальных материалов и дизайна.",
   "settings.mcpServers.profiles.development.name": "Полная разработка",
-  "settings.mcpServers.profiles.development.description": "Настроенные интеграции разработки, мобильных платформ и движков; автоматизация браузера исключена.",
+  "settings.mcpServers.profiles.development.description":
+    "Настроенные интеграции разработки, мобильных платформ и движков; автоматизация браузера исключена.",
   "settings.mcpServers.profiles.summary": "Настроено: {{configured}} · готово: {{ready}}",
   "settings.mcpServers.profiles.connect": "Подключить настроенные",
   "desktop.menu.app": "Tiancode",
@@ -957,7 +982,8 @@ export const dict = {
   "livePreview.selection.copyData": "Копировать данные",
   "livePreview.selection.copied": "Скопировано",
   "livePreview.retry": "Повторить",
-  "livePreview.inspector.unavailable": "Этот runtime не позволяет напрямую исследовать DOM. Используйте инспектор в Dev tools.",
+  "livePreview.inspector.unavailable":
+    "Этот runtime не позволяет напрямую исследовать DOM. Используйте инспектор в Dev tools.",
   "livePreview.timeline": "Изменения",
   "livePreview.timeline.empty": "Подтвержденных событий предпросмотра пока нет.",
   "livePreview.change.confirmed": "Изменение #{{count}} подтверждено",
@@ -1063,7 +1089,8 @@ export const dict = {
   "settings.general.row.showBrowser.title": "Встроенный браузер",
   "settings.general.row.showBrowser.description": "Показывать встроенный браузер в приложении",
   "settings.general.row.petEnabled.title": "Компаньон-питомец",
-  "settings.general.row.petEnabled.description": "Показывать необязательного компаньона, отражающего состояние активной сессии",
+  "settings.general.row.petEnabled.description":
+    "Показывать необязательного компаньона, отражающего состояние активной сессии",
   "settings.general.row.petKind.title": "Питомец",
   "settings.general.row.petKind.description": "Выберите компаньона для отображения в приложении",
   "settings.general.row.petPosition.title": "Расположение",
@@ -1087,7 +1114,8 @@ export const dict = {
   "settings.general.row.mobileTitlebarBottom.description":
     "На мобильных устройствах размещать строку заголовка и вкладки сессии внизу экрана",
   "settings.general.row.showCustomAgents.title": "Выбор агента",
-  "settings.general.row.showCustomAgents.description": "Переключение агентов в редакторе. Если скрыть, по умолчанию используется агент Build — кроме проектов с собственными агентами, где переключатель остаётся видимым.",
+  "settings.general.row.showCustomAgents.description":
+    "Переключение агентов в редакторе. Если скрыть, по умолчанию используется агент Build — кроме проектов с собственными агентами, где переключатель остаётся видимым.",
 
   "settings.general.row.newInterface.title": "Новая компоновка",
   "settings.general.row.newInterface.badge": "Новое",
@@ -1394,7 +1422,8 @@ export const dict = {
   "chat.mic.error": "Голосовая диктовка не смогла запуститься",
   "chat.mic.downloading": "Загрузка модели распознавания речи (в первый раз)…",
   "settings.mcpServers.discover.activateAll": "Активировать все",
-  "chat.mic.downloadFailed": "Не удалось загрузить речевую модель. Проверьте подключение к интернету и попробуйте снова.",
+  "chat.mic.downloadFailed":
+    "Не удалось загрузить речевую модель. Проверьте подключение к интернету и попробуйте снова.",
   "chat.mic.downloaded": "Речевая модель готова",
   "chat.message.speak": "Прочитать ответ вслух",
   "chat.message.stop": "Остановить чтение",
@@ -1409,10 +1438,12 @@ export const dict = {
   "preview.url": "Веб-адрес",
   "preview.empty": "Браузер появится здесь…",
   "settings.general.row.minimizeToTray.title": "Сворачивать в системный трей",
-  "settings.general.row.minimizeToTray.description": "Закрытие окна сворачивает приложение в системный трей вместо выхода",
+  "settings.general.row.minimizeToTray.description":
+    "Закрытие окна сворачивает приложение в системный трей вместо выхода",
   "settings.general.row.fileWatcher.title": "Обновление файлов в реальном времени",
   "settings.general.row.fileWatcher.description": "Автоматически обновляет дерево файлов и изменения git.",
-  "settings.general.fileWatcher.restart.confirm": "Перезапустить Tiancode, чтобы применить изменение обновления файлов в реальном времени?",
+  "settings.general.fileWatcher.restart.confirm":
+    "Перезапустить Tiancode, чтобы применить изменение обновления файлов в реальном времени?",
   "session.export.button": "Экспортировать разговор в Markdown",
   "session.export.jsonButton": "Экспорт JSON",
   "session.export.title": "Экспорт разговора",
@@ -1420,7 +1451,8 @@ export const dict = {
   "session.export.failed": "Не удалось экспортировать разговор",
   "settings.general.section.data": "Данные",
   "settings.general.row.autoBackup.title": "Автоматическое резервное копирование",
-  "settings.general.row.autoBackup.description": "Ежедневная копия сессий и настроек (хранятся последние 7 дней). Применяется при следующем запуске приложения; для немедленной копии используйте «Создать резервную копию сейчас».",
+  "settings.general.row.autoBackup.description":
+    "Ежедневная копия сессий и настроек (хранятся последние 7 дней). Применяется при следующем запуске приложения; для немедленной копии используйте «Создать резервную копию сейчас».",
   "settings.general.row.backupNow.title": "Создать резервную копию сейчас",
   "settings.general.row.backupNow.description": "Создать немедленную копию ваших данных",
   "settings.general.row.backupNow.button": "Создать резервную копию",
@@ -1429,7 +1461,8 @@ export const dict = {
   "settings.general.row.restore.button": "Восстановить",
   "settings.general.backup.now.success": "Резервная копия создана",
   "settings.general.backup.now.failed": "Пока нет данных для резервного копирования",
-  "settings.general.backup.restore.confirm": "Восстановить резервную копию {{name}}? Текущие сессии и конфигурация будут заменены.",
+  "settings.general.backup.restore.confirm":
+    "Восстановить резервную копию {{name}}? Текущие сессии и конфигурация будут заменены.",
   "settings.general.backup.restore.success": "Резервная копия восстановлена",
   "settings.general.backup.restore.failed": "Не удалось восстановить резервную копию",
   "settings.general.row.loginItem.title": "Запускать при входе",
@@ -1442,7 +1475,8 @@ export const dict = {
   "settings.section.integrations": "Интеграции",
   "settings.tab.connections": "Подключения",
   "settings.connections.title": "Подключения и шлюзы",
-  "settings.connections.description": "Получайте результаты сессий в Telegram, Discord, Slack или на свой webhook и управляйте Tiancode из чата Telegram. Секреты хранятся только на этом компьютере и больше не показываются.",
+  "settings.connections.description":
+    "Получайте результаты сессий в Telegram, Discord, Slack или на свой webhook и управляйте Tiancode из чата Telegram. Секреты хранятся только на этом компьютере и больше не показываются.",
   "settings.connections.telegram.title": "Шлюз Telegram Bot",
   "settings.connections.telegram.token": "Bot Token",
   "settings.connections.telegram.chatId": "Chat ID / Пользователь",
@@ -1488,13 +1522,17 @@ export const dict = {
   "settings.connections.disconnected": "{{provider}} отключён",
   "settings.connections.saveFailed": "Не удалось сохранить: {{message}}",
   "settings.connections.invalid.url": "Введите полный http(s) URL.",
-  "settings.connections.invalid.telegramToken": "Это не похоже на токен бота (123456789:ABC…). Получите его у @BotFather.",
+  "settings.connections.invalid.telegramToken":
+    "Это не похоже на токен бота (123456789:ABC…). Получите его у @BotFather.",
   "settings.connections.invalid.snowflake": "ID каналов Discord — числа (правый клик по каналу → Копировать ID).",
-  "settings.connections.telegram.desc": "Бот, созданный через @BotFather, пишет сюда и может принимать команды из одного чата.",
+  "settings.connections.telegram.desc":
+    "Бот, созданный через @BotFather, пишет сюда и может принимать команды из одного чата.",
   "settings.connections.telegram.token.desc": "От @BotFather. Хранится в зашифрованном виде на этом компьютере.",
-  "settings.connections.telegram.chatId.desc": "Чат, в который пишет бот и единственный, которому он подчиняется. Напишите боту один раз — он сообщит id.",
+  "settings.connections.telegram.chatId.desc":
+    "Чат, в который пишет бот и единственный, которому он подчиняется. Напишите боту один раз — он сообщит id.",
   "settings.connections.telegram.inbound": "Принимать команды из чата",
-  "settings.connections.telegram.inbound.desc": "Любое сообщение в чате запускается как запрос; /status, /new и /help — команды. Ответ приходит по завершении сессии.",
+  "settings.connections.telegram.inbound.desc":
+    "Любое сообщение в чате запускается как запрос; /status, /new и /help — команды. Ответ приходит по завершении сессии.",
   "settings.connections.telegram.inbound.running": "Слушает · связанных чатов: {{sessions}}",
   "settings.connections.telegram.inbound.stopped": "Не слушает",
   "settings.connections.telegram.directory": "Проект для команд",
@@ -1505,17 +1543,20 @@ export const dict = {
   "settings.connections.discord.webhookUrl": "URL вебхука",
   "settings.connections.discord.webhookUrl.desc": "Настройки сервера → Интеграции → Вебхуки.",
   "settings.connections.discord.botToken": "Токен бота",
-  "settings.connections.discord.botToken.desc": "Из Discord Developer Portal; боту нужно право отправлять сообщения в канале.",
+  "settings.connections.discord.botToken.desc":
+    "Из Discord Developer Portal; боту нужно право отправлять сообщения в канале.",
   "settings.connections.discord.channelId": "ID канала",
   "settings.connections.discord.channelId.desc": "Только в режиме бота. Число, а не #имя.",
   "settings.connections.slack.desc": "Публикация через Slack Incoming Webhook.",
   "settings.connections.slack.webhook.desc": "Приложение Slack → Incoming Webhooks. URL и есть секрет.",
-  "settings.connections.webhooks.desc": "POST JSON на ваш собственный endpoint, подписанный HMAC-SHA256 в X-Tiancode-Signature.",
+  "settings.connections.webhooks.desc":
+    "POST JSON на ваш собственный endpoint, подписанный HMAC-SHA256 в X-Tiancode-Signature.",
   "settings.connections.webhooks.url.desc": "Получает session.idle и session.error в формате JSON.",
   "settings.connections.webhooks.secret.desc": "Необязательно. Проверяйте sha256=HMAC(secret, body) на своей стороне.",
   "settings.connections.webhooks.events.idle": "Отправлять session.idle",
   "settings.connections.webhooks.events.error": "Отправлять session.error",
-  "settings.connections.whatsapp.soon": "WhatsApp пока недоступен: нужна сессия, привязанная к устройству, которой в Tiancode нет. Сегодня то же покрывает Telegram.",
+  "settings.connections.whatsapp.soon":
+    "WhatsApp пока недоступен: нужна сессия, привязанная к устройству, которой в Tiancode нет. Сегодня то же покрывает Telegram.",
   "settings.tab.browser": "Браузер",
   "settings.tab.pets": "Питомцы",
   "settings.tab.computerUse": "Управление ПК",
@@ -1525,7 +1566,8 @@ export const dict = {
   "settings.skills.description": "Импортируйте навыки с компьютера или скачивайте опубликованные навыки из интернета.",
   "settings.skills.section.installed": "Установленные",
   "settings.skills.autoSelect.title": "Автовыбор навыков",
-  "settings.skills.autoSelect.description": "Автоматически подбирать навыки, соответствующие вашему проекту (фреймворк, инструменты и т. д.), в каждом разговоре",
+  "settings.skills.autoSelect.description":
+    "Автоматически подбирать навыки, соответствующие вашему проекту (фреймворк, инструменты и т. д.), в каждом разговоре",
   "settings.skills.section.import": "Импортировать навык",
   "settings.skills.empty": "Навыки ещё не установлены",
   "settings.skills.empty.filtered": "В этой категории нет навыков",
@@ -1540,7 +1582,8 @@ export const dict = {
   "settings.skills.search.google": "Искать опубликованные навыки в Google",
   "settings.skills.importing": "Импорт...",
   "settings.skills.import.github.title": "Клонировать с GitHub",
-  "settings.skills.import.github.description": "Вставьте ссылку на репозиторий, папку или SKILL.md на GitHub — будут установлены все найденные SKILL.md",
+  "settings.skills.import.github.description":
+    "Вставьте ссылку на репозиторий, папку или SKILL.md на GitHub — будут установлены все найденные SKILL.md",
   "settings.skills.import.github.placeholder": "https://github.com/owner/repo",
   "settings.skills.import.github.button": "Клонировать",
   "settings.skills.github.success.one": "Навык {{name}} клонирован с GitHub",
@@ -1563,13 +1606,16 @@ export const dict = {
   "settings.skills.filter.testing": "Тестирование",
   "settings.skills.badge.safe": "Безопасная",
   "settings.skills.badge.specialized": "Специализированная",
-  "settings.skills.callout.safe": "Безопасный универсальный навык: может быть активен вместе с любым другим навыком, не мешая рабочему процессу.",
-  "settings.skills.callout.specialized": "Специализированный навык: создан для одного сценария. Не сочетайте его с противоположными методологиями или стайлгайдами, чтобы ответы оставались согласованными.",
+  "settings.skills.callout.safe":
+    "Безопасный универсальный навык: может быть активен вместе с любым другим навыком, не мешая рабочему процессу.",
+  "settings.skills.callout.specialized":
+    "Специализированный навык: создан для одного сценария. Не сочетайте его с противоположными методологиями или стайлгайдами, чтобы ответы оставались согласованными.",
   "settings.skills.toggle.enabled": "{{name}} включён",
   "settings.skills.toggle.disabled": "{{name}} отключён",
   "settings.skills.toggle.failed": "Не удалось обновить навык",
   "settings.subAgents.title": "Субагенты",
-  "settings.subAgents.description": "Создавайте собственных субагентов, которым главный агент может делегировать задачи.",
+  "settings.subAgents.description":
+    "Создавайте собственных субагентов, которым главный агент может делегировать задачи.",
   "settings.subAgents.list.new": "Новый субагент",
   "settings.subAgents.list.search.placeholder": "Поиск субагентов",
   "settings.subAgents.list.search.clear": "Очистить поиск",
@@ -1620,13 +1666,15 @@ export const dict = {
   "settings.subAgents.form.field.prompt": "Системный промпт",
   "settings.subAgents.form.field.prompt.placeholder": "Опишите роль и правила этого субагента...",
   "settings.subAgents.form.field.injectAgentsMd": "Внедрить AGENTS.md",
-  "settings.subAgents.form.field.injectAgentsMd.description": "Включить файл AGENTS.md рабочей области в контекст этого субагента",
-  "settings.subAgents.form.workspace.unsupported": "Создание или редактирование на уровне рабочей области не поддерживается",
+  "settings.subAgents.form.field.injectAgentsMd.description":
+    "Включить файл AGENTS.md рабочей области в контекст этого субагента",
+  "settings.subAgents.form.workspace.unsupported":
+    "Создание или редактирование на уровне рабочей области не поддерживается",
   "settings.subAgents.form.save": "Сохранить",
   "settings.subAgents.form.saving": "Сохранение...",
   "settings.subAgents.form.cancel": "Отмена",
   "settings.subAgents.form.delete": "Удалить",
-  "settings.subAgents.form.delete.confirm": "Удалить субагента \"{{name}}\"?",
+  "settings.subAgents.form.delete.confirm": 'Удалить субагента "{{name}}"?',
   "settings.subAgents.form.success": "Субагент создан",
   "settings.subAgents.form.failed": "Не удалось создать субагента",
   "settings.subAgents.form.updated": "Субагент обновлён",
@@ -1635,15 +1683,18 @@ export const dict = {
   "settings.subAgents.form.deleteFailed": "Не удалось удалить субагента",
   "settings.subAgents.native.build": "Агент по умолчанию. Выполняет инструменты на основе настроенных разрешений.",
   "settings.subAgents.native.plan": "Режим планирования. Запрещает все инструменты редактирования.",
-  "settings.subAgents.native.general": "Агент общего назначения для исследования сложных вопросов и выполнения многошаговых задач.",
+  "settings.subAgents.native.general":
+    "Агент общего назначения для исследования сложных вопросов и выполнения многошаговых задач.",
   "settings.subAgents.native.explore": "Быстрый агент, специализирующийся на изучении кодовых баз и поиске файлов.",
   "settings.subAgents.native.compaction": "Внутренний агент для сжатия истории сессии.",
   "settings.subAgents.native.title": "Внутренний агент для создания заголовков разговоров.",
   "settings.subAgents.native.summary": "Внутренний агент для подведения итогов сессий.",
   "settings.plugins.title": "Плагины",
-  "settings.plugins.description": "Расширяйте агента с помощью npm-пакетов или локальных файлов плагинов, подключающихся к событиям жизненного цикла.",
+  "settings.plugins.description":
+    "Расширяйте агента с помощью npm-пакетов или локальных файлов плагинов, подключающихся к событиям жизненного цикла.",
   "settings.plugins.note.title": "Что такое плагин?",
-  "settings.plugins.note.description": "Плагины работают внутри процесса агента и реагируют на события жизненного цикла, такие как бездействие сессии, выполнение инструментов и настройка окружения оболочки.",
+  "settings.plugins.note.description":
+    "Плагины работают внутри процесса агента и реагируют на события жизненного цикла, такие как бездействие сессии, выполнение инструментов и настройка окружения оболочки.",
   "settings.plugins.section.installed": "Установленные",
   "settings.plugins.section.add": "Добавить плагин",
   "settings.plugins.empty": "Плагины ещё не установлены",
@@ -1653,7 +1704,7 @@ export const dict = {
   "settings.plugins.add.success": "Плагин добавлен",
   "settings.plugins.add.failed": "Не удалось добавить плагин",
   "settings.plugins.remove": "Удалить",
-  "settings.plugins.remove.confirm": "Удалить плагин \"{{name}}\"?",
+  "settings.plugins.remove.confirm": 'Удалить плагин "{{name}}"?',
   "settings.plugins.remove.success": "Плагин удалён",
   "settings.plugins.remove.failed": "Не удалось удалить плагин",
   "settings.plugins.origin.npm": "npm · требуется конвенция Tian",
@@ -1701,10 +1752,13 @@ export const dict = {
   "settings.plugins.catalog.local.envGuard.description": "Защищает файлы .env от случайных изменений.",
   "settings.plugins.catalog.local.commitHelper.description": "Помогает составлять конвенциональные сообщения коммитов.",
   "settings.plugins.catalog.local.notifyIdle.description": "Уведомляет вас, когда сессия становится бездействующей.",
-  "settings.plugins.catalog.local.shellEnv.description": "Внедряет переменные окружения в процессы инструментов оболочки.",
-  "settings.plugins.catalog.local.permissionGuard.description": "Блокирует рискованные вызовы инструментов, требующие явного одобрения.",
+  "settings.plugins.catalog.local.shellEnv.description":
+    "Внедряет переменные окружения в процессы инструментов оболочки.",
+  "settings.plugins.catalog.local.permissionGuard.description":
+    "Блокирует рискованные вызовы инструментов, требующие явного одобрения.",
   "settings.plugins.template.title": "Новый плагин",
-  "settings.plugins.template.description": "Создаёт каркас плагина с наиболее распространёнными хуками жизненного цикла. Скопируйте его в файл и добавьте выше.",
+  "settings.plugins.template.description":
+    "Создаёт каркас плагина с наиболее распространёнными хуками жизненного цикла. Скопируйте его в файл и добавьте выше.",
   "settings.plugins.template.copy": "Копировать",
   "settings.plugins.template.copied": "Шаблон скопирован в буфер обмена",
   "settings.mcpPlugins.title": "Плагины и серверы MCP",
@@ -1716,10 +1770,12 @@ export const dict = {
   "settings.mcpPlugins.tab.discover": "Каталог",
   "settings.mcpPlugins.search.placeholder": "Поиск по имени, инструменту или команде…",
   "settings.mcpPlugins.intro.title": "MCP (Model Context Protocol)",
-  "settings.mcpPlugins.intro.body": "MCP — открытый стандарт, позволяющий моделям безопасно подключаться к внешним инструментам, базам данных и сервисам. Каждый сервер предоставляет инструменты, которые агент может вызывать.",
+  "settings.mcpPlugins.intro.body":
+    "MCP — открытый стандарт, позволяющий моделям безопасно подключаться к внешним инструментам, базам данных и сервисам. Каждый сервер предоставляет инструменты, которые агент может вызывать.",
   "settings.mcpPlugins.intro.local": "запускается на вашей машине через npx, uvx или скрипт",
   "settings.mcpPlugins.intro.remote": "подключается к серверу в облаке или в вашей сети",
-  "settings.mcpPlugins.empty.description": "Подключите внешние инструменты — базы данных, API или браузеры, — чтобы агент мог ими пользоваться.",
+  "settings.mcpPlugins.empty.description":
+    "Подключите внешние инструменты — базы данных, API или браузеры, — чтобы агент мог ими пользоваться.",
   "settings.mcpPlugins.empty.explore": "Открыть каталог",
   "settings.mcpPlugins.empty.add": "Добавить вручную",
   "settings.mcpPlugins.column.server": "Сервер MCP",
@@ -1763,7 +1819,8 @@ export const dict = {
   "settings.mcpPlugins.form.name.placeholder": "напр. filesystem, sqlite, analytics",
   "settings.mcpPlugins.form.command.server": "Команда или SSE URL",
   "settings.mcpPlugins.form.command.plugin": "Пакет npm или локальный путь",
-  "settings.mcpPlugins.form.command.server.placeholder": "напр. npx -y @modelcontextprotocol/server-sqlite . или https://api.example.com/sse",
+  "settings.mcpPlugins.form.command.server.placeholder":
+    "напр. npx -y @modelcontextprotocol/server-sqlite . или https://api.example.com/sse",
   "settings.mcpPlugins.form.command.plugin.placeholder": "напр. @org/plugin-name или .tiancode/plugins/my-plugin.ts",
   "settings.mcpPlugins.form.submit": "Сохранить и подключить",
   "settings.mcpPlugins.toast.serverEnabled": "Сервер «{{name}}» включён",
@@ -1785,19 +1842,23 @@ export const dict = {
   "settings.browser.description": "Настройка встроенного браузера: как открываются ссылки и какие данные он хранит.",
   "settings.browser.section.general": "Общие",
   "settings.browser.links": "Куда открывать ссылки",
-  "settings.browser.links.description": "Выберите, где открывать ссылки со страниц: во встроенном браузере или в системном",
+  "settings.browser.links.description":
+    "Выберите, где открывать ссылки со страниц: во встроенном браузере или в системном",
   "settings.browser.links.integrated": "Встроенный браузер",
   "settings.browser.links.system": "Системный браузер",
   "settings.browser.section.data": "Данные",
   "settings.browser.clearData": "Очистить данные браузера",
-  "settings.browser.clearData.description": "Удалить cookies, кэш и локальное хранилище встроенного браузера и режима реального времени",
+  "settings.browser.clearData.description":
+    "Удалить cookies, кэш и локальное хранилище встроенного браузера и режима реального времени",
   "settings.browser.clearData.button": "Очистить",
   "settings.browser.clearData.clearing": "Очистка...",
-  "settings.browser.clearData.confirm": "Очистить все данные браузера встроенного браузера и режима реального времени? Это действие нельзя отменить.",
+  "settings.browser.clearData.confirm":
+    "Очистить все данные браузера встроенного браузера и режима реального времени? Это действие нельзя отменить.",
   "settings.browser.clearData.done": "Данные браузера очищены",
   "settings.browser.clearData.failed": "Не удалось очистить данные браузера",
   "settings.browser.section.screenshots": "Снимки экрана",
-  "settings.browser.screenshots.note": "Встроенный браузер можно захватить как изображение из режима реального времени (кнопка захвата в панели браузера) и прикрепить к разговору.",
+  "settings.browser.screenshots.note":
+    "Встроенный браузер можно захватить как изображение из режима реального времени (кнопка захвата в панели браузера) и прикрепить к разговору.",
   "settings.pets.title": "Питомцы",
   "settings.pets.description": "Добавьте компаньона, отражающего состояние активной сессии.",
   "settings.pets.section.companion": "Компаньон",
@@ -1840,15 +1901,18 @@ export const dict = {
   "settings.pets.position.topLeft": "Слева вверху",
   "settings.pets.selected": "Выбрано",
   "settings.computerUse.title": "Управление ПК",
-  "settings.computerUse.description": "Локальные приложения, которые агент может интегрировать, и разрешения для действий computer use.",
+  "settings.computerUse.description":
+    "Локальные приложения, которые агент может интегрировать, и разрешения для действий computer use.",
   "settings.computerUse.section.permissions": "Разрешения",
   "settings.computerUse.section.apps": "Локальные приложения",
-  "settings.computerUse.apps.description": "Локальные MCP-серверы, настроенные на этом компьютере (Android Studio, Photoshop, Opera GX, Unreal и др.). Статус отражает реальное подключение.",
+  "settings.computerUse.apps.description":
+    "Локальные MCP-серверы, настроенные на этом компьютере (Android Studio, Photoshop, Opera GX, Unreal и др.). Статус отражает реальное подключение.",
   "settings.computerUse.apps.connected": "Подключено",
   "settings.computerUse.apps.disconnected": "Не подключено",
   "settings.computerUse.empty": "Локальные приложения ещё не настроены",
   "settings.computerUse.save.failed": "Не удалось обновить разрешение",
-  "settings.mcpServers.description": "Подключите агента к внешним инструментам через серверы Model Context Protocol (MCP).",
+  "settings.mcpServers.description":
+    "Подключите агента к внешним инструментам через серверы Model Context Protocol (MCP).",
   "settings.mcpServers.section.servers": "Серверы",
   "settings.mcpServers.section.add": "Добавить сервер",
   "settings.mcpServers.edit.title": "Изменить сервер",
@@ -1908,7 +1972,7 @@ export const dict = {
   "settings.mcpServers.action.edit": "Изменить",
   "settings.mcpServers.action.export": "Экспорт",
   "settings.mcpServers.action.remove": "Удалить",
-  "settings.mcpServers.remove.confirm": "Удалить сервер \"{{name}}\"?",
+  "settings.mcpServers.remove.confirm": 'Удалить сервер "{{name}}"?',
   "settings.mcpServers.add.success": "Сервер сохранён",
   "settings.mcpServers.add.failed": "Не удалось сохранить сервер",
   "settings.mcpServers.export.success": "Конфигурация скопирована в буфер обмена",
@@ -1918,12 +1982,12 @@ export const dict = {
   "settings.mcpServers.group.connected": "Подключённые",
   "settings.mcpServers.group.errors": "Ошибки",
   "settings.mcpServers.group.requiresKey": "Требуется API-ключ",
-"settings.mcpServers.group.disabled": "Отключённые",
+  "settings.mcpServers.group.disabled": "Отключённые",
   "settings.pagination.label": "Пагинация",
   "settings.pagination.previous": "Назад",
   "settings.pagination.next": "Вперёд",
   "settings.pagination.page": "Страница {{current}} из {{total}}",
-"settings.mcpServers.group.unknown": "Неизвестные",
+  "settings.mcpServers.group.unknown": "Неизвестные",
   "settings.mcpServers.tools.count": "{{count}} инструментов",
   "settings.mcpServers.save.changes": "Сохранить изменения",
   "settings.mcpServers.discover.title": "Обзор",
@@ -1931,41 +1995,58 @@ export const dict = {
   "settings.mcpServers.discover.requiresKey": "Требуется API-ключ — измените после добавления",
   "settings.mcpServers.discover.requiresSetup": "Требуется локальная настройка: измените пути в «Изменить»",
   "settings.mcpServers.discover.presets.android-emulator.name": "Android Emulator",
-  "settings.mcpServers.discover.presets.android-emulator.description": "Управляйте эмуляторами Android, экранами и приложениями из агента.",
+  "settings.mcpServers.discover.presets.android-emulator.description":
+    "Управляйте эмуляторами Android, экранами и приложениями из агента.",
   "settings.mcpServers.discover.presets.node-repl.name": "Node REPL",
   "settings.mcpServers.discover.presets.node-repl.description": "Запускайте JavaScript в сессии Node.js REPL.",
   "settings.mcpServers.discover.presets.ios-simulator.name": "iOS Simulator",
-  "settings.mcpServers.discover.presets.ios-simulator.description": "Управляйте симулятором iOS и его приложениями (требуется Xcode).",
+  "settings.mcpServers.discover.presets.ios-simulator.description":
+    "Управляйте симулятором iOS и его приложениями (требуется Xcode).",
   "settings.mcpServers.discover.presets.chrome-devtools.name": "Chrome DevTools",
-  "settings.mcpServers.discover.presets.chrome-devtools.description": "Просматривайте, отлаживайте и автоматизируйте страницы Chrome.",
+  "settings.mcpServers.discover.presets.chrome-devtools.description":
+    "Просматривайте, отлаживайте и автоматизируйте страницы Chrome.",
   "settings.mcpServers.discover.presets.playwright.name": "Playwright",
-  "settings.mcpServers.discover.presets.playwright.description": "Автоматизация браузера и сквозное тестирование веб-приложений.",
+  "settings.mcpServers.discover.presets.playwright.description":
+    "Автоматизация браузера и сквозное тестирование веб-приложений.",
   "settings.mcpServers.discover.presets.context7.name": "Context7",
-  "settings.mcpServers.discover.presets.context7.description": "Актуальная документация для популярных библиотек и фреймворков.",
+  "settings.mcpServers.discover.presets.context7.description":
+    "Актуальная документация для популярных библиотек и фреймворков.",
   "settings.mcpServers.discover.presets.notebooklm.name": "Google NotebookLM",
-  "settings.mcpServers.discover.presets.notebooklm.description": "Исследование на основе ваших записных книжек NotebookLM с цитатами и аудиообзорами.",
+  "settings.mcpServers.discover.presets.notebooklm.description":
+    "Исследование на основе ваших записных книжек NotebookLM с цитатами и аудиообзорами.",
   "settings.mcpServers.discover.presets.agent-vision.name": "Agent Vision",
   "settings.mcpServers.discover.presets.unreal.name": "Unreal Engine",
   "settings.mcpServers.discover.presets.photoshop.name": "Photoshop",
-  "settings.mcpServers.discover.presets.photoshop.description": "Управление Photoshop: открытие файлов, выполнение скриптов UXP и настраиваемый мост. Требуется установленный Photoshop.",
+  "settings.mcpServers.discover.presets.photoshop.description":
+    "Управление Photoshop: открытие файлов, выполнение скриптов UXP и настраиваемый мост. Требуется установленный Photoshop.",
   "settings.mcpServers.discover.presets.indesign.name": "InDesign",
-  "settings.mcpServers.discover.presets.indesign.description": "Управление InDesign: выполнение скриптов UXP (.idjs) и настраиваемый мост. Требуется установленный InDesign.",
+  "settings.mcpServers.discover.presets.indesign.description":
+    "Управление InDesign: выполнение скриптов UXP (.idjs) и настраиваемый мост. Требуется установленный InDesign.",
   "settings.mcpServers.discover.presets.illustrator.name": "Illustrator",
-  "settings.mcpServers.discover.presets.illustrator.description": "Управление Illustrator: выполнение скриптов JSX и настраиваемый мост. Требуется установленный Illustrator.",
+  "settings.mcpServers.discover.presets.illustrator.description":
+    "Управление Illustrator: выполнение скриптов JSX и настраиваемый мост. Требуется установленный Illustrator.",
   "settings.mcpServers.discover.presets.coreldraw.name": "CorelDRAW",
-  "settings.mcpServers.discover.presets.coreldraw.description": "Управление CorelDRAW через COM/VBA в Windows. Требуется установленный CorelDRAW.",
+  "settings.mcpServers.discover.presets.coreldraw.description":
+    "Управление CorelDRAW через COM/VBA в Windows. Требуется установленный CorelDRAW.",
   "settings.mcpServers.discover.presets.opera_gx.name": "Opera GX",
-  "settings.mcpServers.discover.presets.opera_gx.description": "Управление Opera GX через Chromium DevTools Protocol. Требуется браузер с --remote-debugging-port.",
+  "settings.mcpServers.discover.presets.opera_gx.description":
+    "Управление Opera GX через Chromium DevTools Protocol. Требуется браузер с --remote-debugging-port.",
   "settings.mcpServers.discover.presets.unreal_cli.name": "Unreal Engine (CLI)",
-  "settings.mcpServers.discover.presets.unreal_cli.description": "Управление Unreal Engine из командной строки: редактор, UAT BuildCookRun и тесты автоматизации. Требуется установленный UE.",
+  "settings.mcpServers.discover.presets.unreal_cli.description":
+    "Управление Unreal Engine из командной строки: редактор, UAT BuildCookRun и тесты автоматизации. Требуется установленный UE.",
   "settings.mcpServers.discover.presets.unity.name": "Unity",
-  "settings.mcpServers.discover.presets.unity.description": "Управление Unity в пакетном режиме: редактор, -executeMethod и сборки. Требуется установленный Unity.",
+  "settings.mcpServers.discover.presets.unity.description":
+    "Управление Unity в пакетном режиме: редактор, -executeMethod и сборки. Требуется установленный Unity.",
   "settings.mcpServers.discover.presets.godot.name": "Godot",
-  "settings.mcpServers.discover.presets.godot.description": "Управление Godot: редактор, headless, скрипты и экспорт. Требуется установленный Godot.",
+  "settings.mcpServers.discover.presets.godot.description":
+    "Управление Godot: редактор, headless, скрипты и экспорт. Требуется установленный Godot.",
   "settings.mcpServers.discover.presets.android_studio.name": "Android Studio",
-  "settings.mcpServers.discover.presets.android_studio.description": "Управление Android Studio: Gradle, adb, эмулятор и открытие проектов. Требуется установленный Android Studio/SDK.",
-  "settings.mcpServers.discover.presets.unreal.description": "Управление проектом Unreal Engine (Web Remote Control): открытие редактора, выполнение Python и консольных команд, чтение логов и актёров уровня. Требуется установленная папка unreal-tiancode-mcp.",
-  "settings.mcpServers.discover.presets.agent-vision.description": "Даёт глаза моделям без зрения: анализируйте изображения, скриншоты и документы (OCR) с помощью любого совместимого с OpenAI vision API (OpenAI, Gemini, Qwen-VL). После включения добавьте VISION_API_KEY в раздел Окружение в редакторе сервера.",
+  "settings.mcpServers.discover.presets.android_studio.description":
+    "Управление Android Studio: Gradle, adb, эмулятор и открытие проектов. Требуется установленный Android Studio/SDK.",
+  "settings.mcpServers.discover.presets.unreal.description":
+    "Управление проектом Unreal Engine (Web Remote Control): открытие редактора, выполнение Python и консольных команд, чтение логов и актёров уровня. Требуется установленная папка unreal-tiancode-mcp.",
+  "settings.mcpServers.discover.presets.agent-vision.description":
+    "Даёт глаза моделям без зрения: анализируйте изображения, скриншоты и документы (OCR) с помощью любого совместимого с OpenAI vision API (OpenAI, Gemini, Qwen-VL). После включения добавьте VISION_API_KEY в раздел Окружение в редакторе сервера.",
   "capture.menu.title": "Сделать скриншот",
   "capture.screen": "Весь экран",
   "capture.window": "Окно приложения",
@@ -1975,7 +2056,8 @@ export const dict = {
   "capture.area.cancel": "Отмена",
   "capture.area.confirm": "Захватить область",
   "settings.mcpServers.discover.presets.aikido.name": "Aikido",
-  "settings.mcpServers.discover.presets.aikido.description": "Сканируйте код и зависимости на предмет проблем безопасности.",
+  "settings.mcpServers.discover.presets.aikido.description":
+    "Сканируйте код и зависимости на предмет проблем безопасности.",
   "settings.mcpServers.discover.presets.airwallex.name": "Airwallex",
   "settings.mcpServers.discover.presets.airwallex.description": "API платежей, казначейства и выпуска карт.",
   "settings.mcpServers.discover.presets.canva.name": "Canva",
@@ -1983,20 +2065,25 @@ export const dict = {
   "settings.mcpServers.discover.presets.circle.name": "Circle",
   "settings.mcpServers.discover.presets.circle.description": "Платежи USDC и кошельки под управлением разработчика.",
   "settings.mcpServers.discover.presets.appwrite.name": "Appwrite",
-  "settings.mcpServers.discover.presets.appwrite.description": "Авторизация, базы данных и хранилище для ваших приложений (OAuth).",
+  "settings.mcpServers.discover.presets.appwrite.description":
+    "Авторизация, базы данных и хранилище для ваших приложений (OAuth).",
   "settings.mcpServers.discover.presets.apollo.name": "Apollo",
   "settings.mcpServers.discover.presets.apollo.description": "Запрашивайте свой граф Apollo GraphOS (OAuth).",
   "settings.mcpServers.discover.presets.graphos-tools.name": "GraphOS Tools",
-  "settings.mcpServers.discover.presets.graphos-tools.description": "Управляйте рабочими областями и схемами Apollo GraphOS.",
+  "settings.mcpServers.discover.presets.graphos-tools.description":
+    "Управляйте рабочими областями и схемами Apollo GraphOS.",
   "settings.mcpServers.discover.presets.atlan.name": "Atlan",
-  "settings.mcpServers.discover.presets.atlan.description": "Ищите в своём каталоге данных и активах управления (OAuth).",
+  "settings.mcpServers.discover.presets.atlan.description":
+    "Ищите в своём каталоге данных и активах управления (OAuth).",
   "settings.mcpServers.discover.presets.awsknowledge.name": "AWS Knowledge",
   "settings.mcpServers.discover.presets.awsknowledge.description": "Документация по сервисам AWS и база знаний.",
   "settings.github.title": "Github",
-  "settings.github.description": "Подключите свою учётную запись GitHub, чтобы клонировать репозитории, создавать новые и выполнять операции git в своих проектах.",
+  "settings.github.description":
+    "Подключите свою учётную запись GitHub, чтобы клонировать репозитории, создавать новые и выполнять операции git в своих проектах.",
   "settings.github.loading": "Загрузка...",
   "settings.github.connect.title": "Подключить GitHub",
-  "settings.github.connect.description": "Вставьте personal access token для аутентификации в GitHub. Токен хранится локально и используется для клонирования и аутентифицированных операций git.",
+  "settings.github.connect.description":
+    "Вставьте personal access token для аутентификации в GitHub. Токен хранится локально и используется для клонирования и аутентифицированных операций git.",
   "settings.github.connect.token.placeholder": "github_pat_... или ghp_...",
   "settings.github.connect.hint": "Создайте токен на github.com/settings/tokens (fine-grained с доступом к repo)",
   "settings.github.connect.button": "Подключить",
@@ -2024,7 +2111,8 @@ export const dict = {
   "settings.github.create.private": "Приватный",
   "settings.github.create.button": "Создать",
   "settings.github.project.title": "Текущий проект",
-  "settings.github.project.noRemote": "У этого проекта ещё нет git remote — создайте репозиторий на GitHub и добавьте remote.",
+  "settings.github.project.noRemote":
+    "У этого проекта ещё нет git remote — создайте репозиторий на GitHub и добавьте remote.",
   "settings.github.commit.placeholder": "Сообщение коммита...",
   "settings.github.commit.button": "Commit",
   "settings.github.commit.success": "Закоммичено",
@@ -2036,7 +2124,8 @@ export const dict = {
   "settings.github.pull.success": "Выполнен pull",
   "settings.github.pull.failed": "Не удалось выполнить pull",
   "settings.voices.title": "Голоса",
-  "settings.voices.description": "Выберите голос для чтения ответов ассистента вслух и протестируйте бесплатную голосовую модель.",
+  "settings.voices.description":
+    "Выберите голос для чтения ответов ассистента вслух и протестируйте бесплатную голосовую модель.",
   "settings.voices.desktopOnly": "Голоса доступны в десктопном приложении.",
   "settings.voices.loading": "Загрузка...",
   "settings.voices.ready.title": "Выберите голос",
@@ -2046,7 +2135,8 @@ export const dict = {
   "settings.voices.voice.probe.failed": "Не удалось воспроизвести этот голос",
   "settings.voices.select.title": "Активный голос",
   "settings.voices.autoSpeak.title": "Читать ответы вслух",
-  "settings.voices.autoSpeak.description": "После завершения ответа один раз читает первый видимый текст ассистента. Рассуждения, код и вывод инструментов не озвучиваются.",
+  "settings.voices.autoSpeak.description":
+    "После завершения ответа один раз читает первый видимый текст ассистента. Рассуждения, код и вывод инструментов не озвучиваются.",
   "settings.voices.gender.female": "Женский",
   "settings.voices.pagination.prev": "Назад",
   "settings.voices.pagination.next": "Вперёд",
@@ -2069,7 +2159,8 @@ export const dict = {
   "settings.voices.voice.delete.failed": "Не удалось удалить голос",
   "settings.tab.modelsHub": "Локальные модели",
   "settings.modelsHub.title": "Локальные модели",
-  "settings.modelsHub.description": "Ищите и скачивайте модели GGUF с HuggingFace, чтобы запускать ИИ локально, как LM Studio.",
+  "settings.modelsHub.description":
+    "Ищите и скачивайте модели GGUF с HuggingFace, чтобы запускать ИИ локально, как LM Studio.",
   "settings.modelsHub.search.placeholder": "Поиск моделей... например llama 3.2",
   "settings.modelsHub.search.button": "Найти",
   "settings.modelsHub.empty": "Модели не найдены. Попробуйте другой запрос.",
@@ -2093,11 +2184,13 @@ export const dict = {
   "settings.modelsHub.recommended.title": "Рекомендуемая модель для вашего GPU",
   "settings.modelsHub.recommended.forYourGpu": "на основе обнаруженной VRAM",
   "settings.modelsHub.recommended.download": "Скачать",
-  "settings.modelsHub.runtime.hint": "Запускайте локальные модели через Ollama или LM Studio и добавляйте их как провайдера в разделе Провайдеры.",
+  "settings.modelsHub.runtime.hint":
+    "Запускайте локальные модели через Ollama или LM Studio и добавляйте их как провайдера в разделе Провайдеры.",
   "settings.modelsHub.runtime.install": "Установить",
   "settings.modelsHub.runtime.install.downloading": "Загрузка",
   "settings.modelsHub.runtime.install.installing": "Установка…",
-  "settings.modelsHub.runtime.install.success": "{{name}} установлен. Откройте приложение один раз, чтобы завершить настройку.",
+  "settings.modelsHub.runtime.install.success":
+    "{{name}} установлен. Откройте приложение один раз, чтобы завершить настройку.",
   "settings.modelsHub.runtime.install.failed": "Не удалось установить среду выполнения",
   "settings.modelsHub.system.ram": "RAM",
   "settings.modelsHub.system.vram": "Память GPU (VRAM)",
@@ -2138,12 +2231,16 @@ export const dict = {
   "settings.modelsHub.desc.hint.quantized": "Quantized",
   "onboarding.title": "Добро пожаловать в Tiancode",
   "onboarding.step": "Шаг {{current}} из {{total}}",
-  "onboarding.disclaimer.p1": "Tiancode — это ИИ-агент, который работает вместе с вами: он может выполнять команды, редактировать файлы и управлять задачами на вашем компьютере, пока вы сохраняете контроль.",
-  "onboarding.disclaimer.p2": "Ваши промпты и содержимое файлов могут отправляться настроенным поставщикам ИИ-моделей для генерации ответов.",
-  "onboarding.disclaimer.p3": "Вы отвечаете за то, как используете Tiancode. Внимательно проверяйте изменения перед принятием и никогда не запускайте команды, которые не понимаете.",
+  "onboarding.disclaimer.p1":
+    "Tiancode — это ИИ-агент, который работает вместе с вами: он может выполнять команды, редактировать файлы и управлять задачами на вашем компьютере, пока вы сохраняете контроль.",
+  "onboarding.disclaimer.p2":
+    "Ваши промпты и содержимое файлов могут отправляться настроенным поставщикам ИИ-моделей для генерации ответов.",
+  "onboarding.disclaimer.p3":
+    "Вы отвечаете за то, как используете Tiancode. Внимательно проверяйте изменения перед принятием и никогда не запускайте команды, которые не понимаете.",
   "onboarding.accept": "Принять и продолжить",
   "onboarding.preferences.title": "Сделайте его своим",
-  "onboarding.preferences.description": "Выберите, как Tiancode выглядит и как с вами говорит. Это можно изменить в любой момент в Настройках.",
+  "onboarding.preferences.description":
+    "Выберите, как Tiancode выглядит и как с вами говорит. Это можно изменить в любой момент в Настройках.",
   "onboarding.theme.title": "Внешний вид",
   "onboarding.theme.light": "Светлая",
   "onboarding.theme.dark": "Тёмная",
@@ -2156,14 +2253,18 @@ export const dict = {
   // --- Restored keys: referenced by app code but previously absent from this dictionary ---
   "settings.tab.intelligence": "Интеллект",
   "settings.intelligence.title": "Интеллект и память",
-  "settings.intelligence.description": "Настройте долговременную память (LTM), умное извлечение веб-страниц, анализ графов и безопасность выполнения.",
+  "settings.intelligence.description":
+    "Настройте долговременную память (LTM), умное извлечение веб-страниц, анализ графов и безопасность выполнения.",
   "settings.intelligence.section.memory": "Долговременная память (LTM)",
   "settings.intelligence.userMemory": "Память пользователя (USER.md)",
-  "settings.intelligence.userMemory.desc": "Запоминает глобальные предпочтения по коду, стилю и языку во всех ваших проектах.",
+  "settings.intelligence.userMemory.desc":
+    "Запоминает глобальные предпочтения по коду, стилю и языку во всех ваших проектах.",
   "settings.intelligence.projectMemory": "Память проекта (MEMORY.md)",
-  "settings.intelligence.projectMemory.desc": "Хранит техническую архитектуру репозитория, сетевые порты и особенности сборки.",
+  "settings.intelligence.projectMemory.desc":
+    "Хранит техническую архитектуру репозитория, сетевые порты и особенности сборки.",
   "settings.intelligence.codeGraph": "Анализ графа кода (CodeGraph)",
-  "settings.intelligence.codeGraph.desc": "Индексирует функции, классы и зависимости, чтобы оценить влияние на архитектуру до правок.",
+  "settings.intelligence.codeGraph.desc":
+    "Индексирует функции, классы и зависимости, чтобы оценить влияние на архитектуру до правок.",
   "settings.intelligence.section.safety": "Безопасность веба и выполнения",
   "settings.github.repo.create.failed": "Не удалось создать репозиторий",
   "settings.github.repo.create.success": "Репозиторий {{name}} создан",
@@ -2172,7 +2273,8 @@ export const dict = {
   "settings.mcpServers.health.cleaned": "Очищено серверов с ошибками: {{count}}",
   "settings.mcpServers.health.noneCleanable": "Нет серверов с ошибками для очистки",
   "settings.voices.speakReasoning.title": "Озвучивать рассуждения и план",
-  "settings.voices.speakReasoning.description": "Проговаривает рассуждения и шаги, которые ИИ планирует выполнить, до их запуска.",
+  "settings.voices.speakReasoning.description":
+    "Проговаривает рассуждения и шаги, которые ИИ планирует выполнить, до их запуска.",
   "livePreview.startServer": "Запустить предпросмотр",
   "chat.mic.defaultDevice": "Системное по умолчанию",
   "chat.mic.devices": "Микрофоны ПК",
@@ -2188,20 +2290,30 @@ export const dict = {
   "settings.voices.dictation.dictionary.title": "Словарь диктовки",
   "settings.voices.dictation.dictionary.description": "Слова или фразы, которым диктовка отдаёт приоритет",
   "settings.voices.dictation.recordings.title": "Недавние диктовки",
-  "settings.voices.dictation.recordings.description": "Текст последних 20 диктовок хранится на этом устройстве. Аудио не сохраняется.",
+  "settings.voices.dictation.recordings.description":
+    "Текст последних 20 диктовок хранится на этом устройстве. Аудио не сохраняется.",
   "settings.tab.mcpPlugins": "MCP и плагины",
   "ui.promptInput.speedMode.enable": "Включить режим ⚡ 2x (сверхбыстро)",
   "ui.promptInput.speedMode.disable": "Выключить режим ⚡ 2x",
-  "ui.promptInput.speedMode.tooltip": "Режим 2x: без вводных фраз и воды, сразу к инструментам. Уровень рассуждений остаётся тем, который вы выбрали.",
-  "settings.subAgents.native.webapp": "Разработка фронтенда и полноценных JSX-приложений с предпросмотром в реальном времени.",
-  "settings.subAgents.native.softwareArchitect": "Модульное проектирование систем, чистая архитектура и предметно-ориентированное разделение.",
+  "ui.promptInput.speedMode.tooltip":
+    "Режим 2x: без вводных фраз и воды, сразу к инструментам. Уровень рассуждений остаётся тем, который вы выбрали.",
+  "settings.subAgents.native.webapp":
+    "Разработка фронтенда и полноценных JSX-приложений с предпросмотром в реальном времени.",
+  "settings.subAgents.native.softwareArchitect":
+    "Модульное проектирование систем, чистая архитектура и предметно-ориентированное разделение.",
   "settings.subAgents.native.fullstackCoder": "Сквозная full-stack разработка: фронтенд, бэкенд, API и базы данных.",
-  "settings.subAgents.native.devsecopsAuditor": "Строгий аудит зависимостей и CVE, защита от утечки секретов, статическая безопасность кода.",
-  "settings.subAgents.native.uiUxMaster": "Современный визуальный дизайн, Tailwind CSS, плавные микровзаимодействия и доступный интерфейс.",
-  "settings.subAgents.native.performanceOptimizer": "Профилирование производительности, снижение задержек, оптимизация бандла и скорости загрузки.",
-  "settings.subAgents.native.databaseArchitect": "Оптимизация схемы, индексирование, планы выполнения запросов и безопасные миграции.",
-  "settings.subAgents.native.docsGenerator": "Генерация спецификаций OpenAPI, технической документации в Markdown и руководств.",
-  "settings.subAgents.native.qaE2eTester": "Создание полного набора тестов: модульные, интеграционные и E2E на Vitest и Playwright.",
+  "settings.subAgents.native.devsecopsAuditor":
+    "Строгий аудит зависимостей и CVE, защита от утечки секретов, статическая безопасность кода.",
+  "settings.subAgents.native.uiUxMaster":
+    "Современный визуальный дизайн, Tailwind CSS, плавные микровзаимодействия и доступный интерфейс.",
+  "settings.subAgents.native.performanceOptimizer":
+    "Профилирование производительности, снижение задержек, оптимизация бандла и скорости загрузки.",
+  "settings.subAgents.native.databaseArchitect":
+    "Оптимизация схемы, индексирование, планы выполнения запросов и безопасные миграции.",
+  "settings.subAgents.native.docsGenerator":
+    "Генерация спецификаций OpenAPI, технической документации в Markdown и руководств.",
+  "settings.subAgents.native.qaE2eTester":
+    "Создание полного набора тестов: модульные, интеграционные и E2E на Vitest и Playwright.",
   "welcome.title": "Настройка Tiancode",
   "welcome.stepLabel": "Шаг {{current}} из {{total}}",
   "welcome.theme.label": "Цветовой режим",
@@ -2246,34 +2358,46 @@ export const dict = {
   "settings.computerUse.tab.bridges": "Мосты",
   "settings.computerUse.section.tools": "Что агент может делать на этом компьютере",
   "settings.computerUse.screenshot.title": "Снимок экрана (инструмент screenshot)",
-  "settings.computerUse.screenshot.description": "Агент может сфотографировать экран, окно Tiancode или область экрана и прочитать изображение. Он запрашивает разрешение при каждом снимке, пока вы не одобрите их ниже.",
+  "settings.computerUse.screenshot.description":
+    "Агент может сфотографировать экран, окно Tiancode или область экрана и прочитать изображение. Он запрашивает разрешение при каждом снимке, пока вы не одобрите их ниже.",
   "settings.computerUse.clipboard.title": "Буфер обмена (инструмент clipboard)",
-  "settings.computerUse.clipboard.description": "Агент может прочитать текст системного буфера обмена и заменить его. Каждое чтение и каждая запись подтверждаются по отдельности.",
-  "settings.computerUse.clipboard.note": "Буфер обмена никогда не одобряется заранее: в нём часто лежат пароли, поэтому агент спрашивает каждый раз.",
+  "settings.computerUse.clipboard.description":
+    "Агент может прочитать текст системного буфера обмена и заменить его. Каждое чтение и каждая запись подтверждаются по отдельности.",
+  "settings.computerUse.clipboard.note":
+    "Буфер обмена никогда не одобряется заранее: в нём часто лежат пароли, поэтому агент спрашивает каждый раз.",
   "settings.computerUse.autoApproveScreenshot": "Автоматически одобрять снимки экрана",
-  "settings.computerUse.autoApproveScreenshot.description": "Записывает permission.screenshot = allow в вашу конфигурацию, чтобы инструмент screenshot работал без запроса.",
-  "settings.computerUse.autoApproveScreenshot.note": "Снимок показывает всё, что в этот момент на экране, включая другие приложения. Одобряйте заранее только на компьютере, которому доверяете.",
+  "settings.computerUse.autoApproveScreenshot.description":
+    "Записывает permission.screenshot = allow в вашу конфигурацию, чтобы инструмент screenshot работал без запроса.",
+  "settings.computerUse.autoApproveScreenshot.note":
+    "Снимок показывает всё, что в этот момент на экране, включая другие приложения. Одобряйте заранее только на компьютере, которому доверяете.",
   "settings.computerUse.save.done": "Разрешение обновлено",
   "settings.computerUse.tool.desktopOnly": "Только в настольном приложении",
   "settings.computerUse.tool.ready": "Доступно",
   "prompt.attachment.unavailable": "Не удалось прочитать вложение. Удалите его и прикрепите файл заново.",
   "settings.intelligence.skillCreate": "Создание навыков (SKILL.md)",
-  "settings.intelligence.skillCreate.desc": "Позволяет агенту сохранять рабочий процесс как переиспользуемый SKILL.md в .tiancode/skills или в глобальной папке навыков. Момент записи выбирает сам агент.",
+  "settings.intelligence.skillCreate.desc":
+    "Позволяет агенту сохранять рабочий процесс как переиспользуемый SKILL.md в .tiancode/skills или в глобальной папке навыков. Момент записи выбирает сам агент.",
   "settings.intelligence.section.context": "Граф кода и контекст",
   "settings.intelligence.outputDistiller": "Сжатие вывода терминала",
-  "settings.intelligence.outputDistiller.desc": "Сокращает длинный вывод терминала до того, как его прочитает модель. Полный вывод остаётся в результате инструмента.",
+  "settings.intelligence.outputDistiller.desc":
+    "Сокращает длинный вывод терминала до того, как его прочитает модель. Полный вывод остаётся в результате инструмента.",
   "settings.intelligence.webBoilerplate": "Удалять обвязку веб-страниц",
-  "settings.intelligence.webBoilerplate.desc": "Убирает скрипты, навигацию, подвалы и формы при преобразовании загруженной страницы в Markdown. Отключите для страниц, содержимое которых лежит внутри этих элементов.",
+  "settings.intelligence.webBoilerplate.desc":
+    "Убирает скрипты, навигацию, подвалы и формы при преобразовании загруженной страницы в Markdown. Отключите для страниц, содержимое которых лежит внутри этих элементов.",
   "settings.intelligence.shellScan": "Проверка команд оболочки (AgentShield)",
-  "settings.intelligence.shellScan.desc": "Проверяет каждую команду оболочки на разрушительные удаления, чтение файлов с секретами и удалённое выполнение через конвейер и добавляет предупреждение к вызову инструмента. Только предупреждает: ничего не блокирует и не маскирует.",
+  "settings.intelligence.shellScan.desc":
+    "Проверяет каждую команду оболочки на разрушительные удаления, чтение файлов с секретами и удалённое выполнение через конвейер и добавляет предупреждение к вызову инструмента. Только предупреждает: ничего не блокирует и не маскирует.",
   "settings.intelligence.toolCallRepair": "Починка аргументов вызова инструментов",
-  "settings.intelligence.toolCallRepair.desc": "Восстанавливает некорректные аргументы — обрезанный JSON, незакрытые скобки, ограждения Markdown, — которые выдают локальные и потоковые модели. Если выключить, некорректный вызов просто завершится ошибкой.",
+  "settings.intelligence.toolCallRepair.desc":
+    "Восстанавливает некорректные аргументы — обрезанный JSON, незакрытые скобки, ограждения Markdown, — которые выдают локальные и потоковые модели. Если выключить, некорректный вызов просто завершится ошибкой.",
   "settings.intelligence.loopBreaker": "Прерыватель циклов",
-  "settings.intelligence.loopBreaker.desc": "Останавливает агента, когда он повторяет один и тот же вызов инструмента или запускает слишком много инструментов за ход, и спрашивает, продолжать ли.",
+  "settings.intelligence.loopBreaker.desc":
+    "Останавливает агента, когда он повторяет один и тот же вызов инструмента или запускает слишком много инструментов за ход, и спрашивает, продолжать ли.",
   "settings.pets.total": "Интерактивных 3D-компаньонов: {{count}}",
   "settings.pets.desktop.unavailable": "Доступно только в десктопном приложении.",
   "settings.pets.pet.title": "Проверить реакцию",
-  "settings.pets.pet.description": "Отправьте активному компаньону импульс внимания и посмотрите на реакцию в реальном времени.",
+  "settings.pets.pet.description":
+    "Отправьте активному компаньону импульс внимания и посмотрите на реакцию в реальном времени.",
   "settings.pets.pet.action": "Погладить",
   "settings.pets.pet.greeting": "Привет! Я готов помочь тебе с кодом.",
   "settings.pets.state.ready": "Готова",
@@ -2331,19 +2455,26 @@ export const dict = {
   "command.category.prompt": "Промпт",
   "settings.github.connect.token.label": "Персональный токен доступа",
   "settings.github.capabilities.title": "Что даёт подключение",
-  "settings.github.capabilities.clone": "Клонируйте любой доступный вам репозиторий, включая приватные, и сразу открывайте его как проект Tiancode.",
+  "settings.github.capabilities.clone":
+    "Клонируйте любой доступный вам репозиторий, включая приватные, и сразу открывайте его как проект Tiancode.",
   "settings.github.capabilities.browse": "Просматривайте все репозитории, доступные токену, публичные и приватные.",
-  "settings.github.capabilities.create": "Создавайте публичный или приватный репозиторий в своей личной учётной записи. Репозитории организаций не поддерживаются.",
-  "settings.github.capabilities.git": "Выполняйте commit, push и pull для открытого проекта с аутентификацией, не покидая настройки.",
-  "settings.github.capabilities.identity": "Автором коммитов становится ваша учётная запись GitHub: логин и логин@users.noreply.github.com.",
-  "settings.github.capabilities.reopen": "Уже клонированный репозиторий определяется и открывается, а не клонируется заново.",
+  "settings.github.capabilities.create":
+    "Создавайте публичный или приватный репозиторий в своей личной учётной записи. Репозитории организаций не поддерживаются.",
+  "settings.github.capabilities.git":
+    "Выполняйте commit, push и pull для открытого проекта с аутентификацией, не покидая настройки.",
+  "settings.github.capabilities.identity":
+    "Автором коммитов становится ваша учётная запись GitHub: логин и логин@users.noreply.github.com.",
+  "settings.github.capabilities.reopen":
+    "Уже клонированный репозиторий определяется и открывается, а не клонируется заново.",
   "settings.github.capabilities.storage": "Токен хранится в файле {{file}} в папке данных Tiancode.",
-  "settings.github.capabilities.encrypted": "В настольном приложении он шифруется при хранении алгоритмом AES-256-GCM ключом, который защищает хранилище ключей операционной системы (DPAPI в Windows, Keychain в macOS). Без такого хранилища токен сохраняется в открытом виде.",
+  "settings.github.capabilities.encrypted":
+    "В настольном приложении он шифруется при хранении алгоритмом AES-256-GCM ключом, который защищает хранилище ключей операционной системы (DPAPI в Windows, Keychain в macOS). Без такого хранилища токен сохраняется в открытом виде.",
   "settings.github.status.authenticated": "Подключено и аутентифицировано",
   "settings.github.badge.linked": "Аккаунт связан",
   "settings.github.scopes.title": "Права, которые GitHub сообщает для этого токена",
   "settings.github.scopes.unknown": "Права не сообщены",
-  "settings.github.scopes.unknown.title": "GitHub сообщает права только для классических токенов; токены fine-grained их не передают.",
+  "settings.github.scopes.unknown.title":
+    "GitHub сообщает права только для классических токенов; токены fine-grained их не передают.",
   "settings.github.profile.view": "Открыть профиль",
   "settings.github.profile.view.title": "Открыть профиль GitHub в браузере",
   "settings.github.stats.total": "Всего",
@@ -2375,7 +2506,8 @@ export const dict = {
   "settings.github.sort.name": "Название (A–Z)",
   "settings.github.vcs.clean": "Рабочее дерево чисто",
   "settings.github.vcs.dirty": "Незафиксированных изменений: {{count}}",
-  "chat.mic.confirmDownload": "Для голосового ввода нужно один раз загрузить речевую модель ({{size}} МБ). Загрузить сейчас?",
+  "chat.mic.confirmDownload":
+    "Для голосового ввода нужно один раз загрузить речевую модель ({{size}} МБ). Загрузить сейчас?",
   "chat.mic.downloadingPercent": "Загрузка речевой модели… {{percent}} %",
   "chat.mic.error.noSpeech": "Речь не обнаружена.",
   "chat.mic.error.notRecording": "Диктовка не вела запись.",
@@ -2405,7 +2537,8 @@ export const dict = {
   "settings.voices.dictation.recordings.empty": "Пока нет диктовок. Текст, надиктованный в чате, появится здесь.",
   "settings.voices.mic.channels.mono": "Моно",
   "settings.voices.mic.channels.stereo": "Стерео",
-  "prompt.optimize.modelUnavailable": "{{model}} недоступна в этом проекте. Выберите другую модель и повторите попытку.",
+  "prompt.optimize.modelUnavailable":
+    "{{model}} недоступна в этом проекте. Выберите другую модель и повторите попытку.",
   "prompt.optimize.failed.auth": "Провайдер отклонил учётные данные. Проверьте API-ключ для этой модели.",
   "prompt.optimize.failed.rateLimit": "Провайдер ограничивает частоту запросов. Подождите немного и повторите.",
   "prompt.optimize.failed.quota": "На этом аккаунте закончились средства для этой модели.",
@@ -2427,7 +2560,8 @@ export const dict = {
   "liveView.device.current": "Размер области просмотра: {{device}}",
   "desktop.computerUse.consent.title": "Разрешить Tiancode управлять компьютером?",
   "desktop.computerUse.consent.message": "Tiancode хочет управлять приложением {{app}}",
-  "desktop.computerUse.consent.detail": "Агент будет двигать мышь и вводить текст в {{app}} ({{process}}), как если бы это делали вы. Это касается только этого приложения и действует, пока вы не остановите управление, — остановить его можно в любой момент из индикатора.",
+  "desktop.computerUse.consent.detail":
+    "Агент будет двигать мышь и вводить текст в {{app}} ({{process}}), как если бы это делали вы. Это касается только этого приложения и действует, пока вы не остановите управление, — остановить его можно в любой момент из индикатора.",
   "desktop.computerUse.consent.allow": "Разрешить для этого приложения",
   "desktop.computerUse.consent.refuse": "Не разрешать",
   "desktop.computerUse.indicator.title": "Tiancode управляет компьютером",
@@ -2435,16 +2569,20 @@ export const dict = {
   "desktop.computerUse.indicator.stop": "Остановить",
   "desktop.computerUse.indicator.stopShortcut": "Остановить ({{shortcut}})",
   "settings.permissions.tool.preview.title": "Живой просмотр",
-  "settings.permissions.tool.preview.description": "Чтение и управление страницей в живом просмотре или встроенном браузере (по совпадению источника сайта)",
+  "settings.permissions.tool.preview.description":
+    "Чтение и управление страницей в живом просмотре или встроенном браузере (по совпадению источника сайта)",
   "settings.permissions.tool.screenshot.title": "Снимок экрана",
-  "settings.permissions.tool.screenshot.description": "Снимок экрана, окна Tiancode или области экрана (по совпадению объекта съёмки)",
+  "settings.permissions.tool.screenshot.description":
+    "Снимок экрана, окна Tiancode или области экрана (по совпадению объекта съёмки)",
   "settings.general.row.transcriptText.title": "Размер текста переписки",
-  "settings.general.row.transcriptText.description": "Размер текста беседы: сообщения, заголовки и карточки инструментов",
+  "settings.general.row.transcriptText.description":
+    "Размер текста беседы: сообщения, заголовки и карточки инструментов",
   "settings.general.row.transcriptText.option.small": "Мелкий",
   "settings.general.row.transcriptText.option.medium": "Средний",
   "settings.general.row.transcriptText.option.large": "Крупный",
   "settings.general.row.transcriptWidth.title": "Ширина переписки",
-  "settings.general.row.transcriptWidth.description": "Максимальная ширина беседы и поля ввода, в окнах шириной не менее 768px",
+  "settings.general.row.transcriptWidth.description":
+    "Максимальная ширина беседы и поля ввода, в окнах шириной не менее 768px",
   "settings.general.row.transcriptWidth.option.narrow": "Узкая",
   "settings.general.row.transcriptWidth.option.medium": "Средняя",
   "settings.general.row.transcriptWidth.option.wide": "Широкая",
@@ -2463,12 +2601,14 @@ export const dict = {
   "livePreview.issue.runtimeDefault": "Ошибка выполнения в предпросмотре",
   "livePreview.issue.unhandledRejection": "Необработанное отклонение промиса",
   "livePreview.issue.whiteScreen.noBody": "Пустой экран: документ не отрисовал <body>.",
-  "livePreview.issue.whiteScreen.empty": "Пустой экран: через 4 секунды после загрузки в предпросмотре отрисовано 0 элементов.",
+  "livePreview.issue.whiteScreen.empty":
+    "Пустой экран: через 4 секунды после загрузки в предпросмотре отрисовано 0 элементов.",
   "livePreview.console.refresh": "Обновить вывод",
   "livePreview.console.copy": "Скопировать вывод",
   "livePreview.desktop.title": "Среда Desktop Sandbox",
   "livePreview.desktop.badge": "Настольный GUI",
-  "livePreview.desktop.subtitle": "Приложение открывает собственное окно на рабочем столе. В Windows Tiancode отражает его здесь.",
+  "livePreview.desktop.subtitle":
+    "Приложение открывает собственное окно на рабочем столе. В Windows Tiancode отражает его здесь.",
   "livePreview.desktop.running": "Выполняется (Sandbox)",
   "livePreview.desktop.starting": "Запуск процесса…",
   "livePreview.desktop.failed": "Не удалось запустить",
@@ -2488,42 +2628,55 @@ export const dict = {
   "livePreview.mirror.alt": "Окно запущенного приложения",
   "livePreview.fixPrompt.intro": "Пожалуйста, исправьте следующую ошибку, возникающую в предпросмотре приложения:",
   "livePreview.fixPrompt.target": "Цель/файл: {{url}}",
-  "livePreview.fixPrompt.outro": "Проанализируйте код проекта, найдите причину сбоя и исправьте файлы, чтобы предпросмотр работал правильно.",
+  "livePreview.fixPrompt.outro":
+    "Проанализируйте код проекта, найдите причину сбоя и исправьте файлы, чтобы предпросмотр работал правильно.",
   "welcome.step.appearance": "Язык и оформление",
   "welcome.step.workspace": "Рабочая папка",
   "welcome.progress": "Ход настройки",
   "welcome.language.field": "Язык",
-  "welcome.provider.autoOpen": "После завершения откроются настройки провайдера, чтобы вы добавили модель. Закройте их, если хотите сделать это позже.",
+  "welcome.provider.autoOpen":
+    "После завершения откроются настройки провайдера, чтобы вы добавили модель. Закройте их, если хотите сделать это позже.",
   "settings.computerUse.tab.browser": "Браузер",
-  "settings.computerUse.tools.intro": "Снимок экрана, буфер обмена и — только в Windows — мышь и клавиатура. Всё это работает через десктопное приложение: в сессии, открытой в браузере, нет рабочего стола.",
+  "settings.computerUse.tools.intro":
+    "Снимок экрана, буфер обмена и — только в Windows — мышь и клавиатура. Всё это работает через десктопное приложение: в сессии, открытой в браузере, нет рабочего стола.",
   "settings.computerUse.section.computer": "Мышь и клавиатура",
   "settings.computerUse.computer.title": "Мышь и клавиатура (инструмент computer)",
-  "settings.computerUse.computer.description": "Агент двигает настоящий курсор, щёлкает и печатает в том приложении, которое сейчас на переднем плане. Первое действие каждой сессии открывает диалог с названием этого приложения, управление истекает само, и его можно остановить из индикатора в любой момент.",
+  "settings.computerUse.computer.description":
+    "Агент двигает настоящий курсор, щёлкает и печатает в том приложении, которое сейчас на переднем плане. Первое действие каждой сессии открывает диалог с названием этого приложения, управление истекает само, и его можно остановить из индикатора в любой момент.",
   "settings.computerUse.computer.enable": "Разрешить агенту пользоваться мышью и клавиатурой",
-  "settings.computerUse.computer.enable.description": "Хранится в самом десктопном приложении, а не в tiancode.json: агент может править tiancode.json своими инструментами, а тормоз, который правит сам агент, — не тормоз. При выключении главный процесс отклоняет любое действие и прерывает начатое управление.",
+  "settings.computerUse.computer.enable.description":
+    "Хранится в самом десктопном приложении, а не в tiancode.json: агент может править tiancode.json своими инструментами, а тормоз, который правит сам агент, — не тормоз. При выключении главный процесс отклоняет любое действие и прерывает начатое управление.",
   "settings.computerUse.computer.windowsOnly": "Только Windows",
   "settings.computerUse.denied.title": "Запрещённые исполняемые файлы",
-  "settings.computerUse.denied.description": "Пока одно из этих окон находится на переднем плане, Tiancode отказывается отправлять клики и нажатия клавиш, даже если вы разрешили его раньше в этой сессии. Список сохраняется между запусками, а разрешения сессии — нет.",
-  "settings.computerUse.denied.note": "Сравнение идёт по имени исполняемого файла — последней части пути в нижнем регистре. Две разные программы с одинаковым именем файла неразличимы, а переименование файла выводит его из списка. Это имя файла, а не личность приложения.",
+  "settings.computerUse.denied.description":
+    "Пока одно из этих окон находится на переднем плане, Tiancode отказывается отправлять клики и нажатия клавиш, даже если вы разрешили его раньше в этой сессии. Список сохраняется между запусками, а разрешения сессии — нет.",
+  "settings.computerUse.denied.note":
+    "Сравнение идёт по имени исполняемого файла — последней части пути в нижнем регистре. Две разные программы с одинаковым именем файла неразличимы, а переименование файла выводит его из списка. Это имя файла, а не личность приложения.",
   "settings.computerUse.denied.placeholder": "notepad.exe",
   "settings.computerUse.denied.add": "Запретить",
   "settings.computerUse.denied.remove": "Убрать",
   "settings.computerUse.denied.empty": "Ни один файл не запрещён",
   "settings.computerUse.denied.invalid": "Введите имя исполняемого файла, например notepad.exe",
   "settings.computerUse.denied.duplicate": "Этот файл уже в списке",
-  "settings.computerUse.platform.note": "Управление компьютером требует десктопного приложения и работает только в Windows: в macOS нужны системное разрешение «Универсальный доступ» и другой бэкенд, а в Linux всё зависит от X11 или Wayland. Tiancode прямо сообщает об этом и отказывается, вместо того чтобы странно падать.",
+  "settings.computerUse.platform.note":
+    "Управление компьютером требует десктопного приложения и работает только в Windows: в macOS нужны системное разрешение «Универсальный доступ» и другой бэкенд, а в Linux всё зависит от X11 или Wayland. Tiancode прямо сообщает об этом и отказывается, вместо того чтобы странно падать.",
   "settings.computerUse.browser.section": "Встроенный браузер",
   "settings.computerUse.browser.control": "Разрешить агенту читать и вести встроенный браузер",
-  "settings.computerUse.browser.control.description": "Чтение открытой страницы и клики или ввод на ней запрашиваются с origin сайта в качестве шаблона, поэтому «да» для одного сайта не становится «да» для следующего.",
+  "settings.computerUse.browser.control.description":
+    "Чтение открытой страницы и клики или ввод на ней запрашиваются с origin сайта в качестве шаблона, поэтому «да» для одного сайта не становится «да» для следующего.",
   "settings.computerUse.browser.control.ask": "Спрашивать для каждого сайта",
   "settings.computerUse.browser.control.allow": "Разрешать любой сайт без вопросов",
   "settings.computerUse.browser.control.deny": "Не давать агенту пользоваться браузером",
   "settings.computerUse.browser.control.inherited": "Унаследованное значение",
-  "settings.computerUse.browser.control.note": "До сих пор правила не было, а значение агента по умолчанию разрешало любой origin: он мог читать и вести любую страницу встроенного браузера без запроса. Выбор «Спрашивать для каждого сайта» записывает permission.browser = {\"*\": \"ask\"} в конфигурацию этого проекта, и дальше Tiancode спрашивает перед любым сайтом, которого нет в списке ниже. Для тех, кто уже этим пользуется, это настоящее изменение поведения.",
+  "settings.computerUse.browser.control.note":
+    'До сих пор правила не было, а значение агента по умолчанию разрешало любой origin: он мог читать и вести любую страницу встроенного браузера без запроса. Выбор «Спрашивать для каждого сайта» записывает permission.browser = {"*": "ask"} в конфигурацию этого проекта, и дальше Tiancode спрашивает перед любым сайтом, которого нет в списке ниже. Для тех, кто уже этим пользуется, это настоящее изменение поведения.',
   "settings.computerUse.browser.sites": "Разрешённые сайты",
-  "settings.computerUse.browser.sites.description": "Origin-ы с постоянным правилом allow в конфигурации этого проекта.",
-  "settings.computerUse.browser.sites.note": "Ответ «Всегда» в запросе разрешения сюда НЕ попадает: его держит в памяти работающий экземпляр, и вместе с ним оно исчезает. В конфигурацию пишется только то, что вы добавите на этом экране, поэтому список не показывает всё, что одобрено прямо сейчас.",
-  "settings.computerUse.browser.sites.inert": "Пока общее правило — «Разрешать любой сайт без вопросов», этот список ничего не меняет: все сайты и так разрешены.",
+  "settings.computerUse.browser.sites.description":
+    "Origin-ы с постоянным правилом allow в конфигурации этого проекта.",
+  "settings.computerUse.browser.sites.note":
+    "Ответ «Всегда» в запросе разрешения сюда НЕ попадает: его держит в памяти работающий экземпляр, и вместе с ним оно исчезает. В конфигурацию пишется только то, что вы добавите на этом экране, поэтому список не показывает всё, что одобрено прямо сейчас.",
+  "settings.computerUse.browser.sites.inert":
+    "Пока общее правило — «Разрешать любой сайт без вопросов», этот список ничего не меняет: все сайты и так разрешены.",
   "settings.computerUse.browser.sites.placeholder": "https://example.com",
   "settings.computerUse.browser.sites.add": "Разрешить",
   "settings.computerUse.browser.sites.revoke": "Отозвать",
@@ -2531,14 +2684,18 @@ export const dict = {
   "settings.computerUse.browser.sites.empty": "Нет заранее разрешённых сайтов",
   "settings.computerUse.browser.sites.invalid": "Введите полный адрес, например https://example.com",
   "settings.computerUse.browser.sites.duplicate": "Этот origin уже разрешён",
-  "settings.computerUse.browser.sites.orderFailed": "Правило записано, но другое правило ниже в permission.browser всё ещё побеждает для этого origin. Откройте tiancode.json и оставьте \"*\" первым ключом permission.browser.",
+  "settings.computerUse.browser.sites.orderFailed":
+    'Правило записано, но другое правило ниже в permission.browser всё ещё побеждает для этого origin. Откройте tiancode.json и оставьте "*" первым ключом permission.browser.',
   "settings.computerUse.browser.cookies": "Cookie и сессии",
-  "settings.computerUse.browser.cookies.description": "Сколько живут входы и cookie встроенного браузера и живого просмотра.",
+  "settings.computerUse.browser.cookies.description":
+    "Сколько живут входы и cookie встроенного браузера и живого просмотра.",
   "settings.computerUse.browser.cookies.always": "Всегда",
   "settings.computerUse.browser.cookies.session": "Пока не закрою Tiancode",
-  "settings.computerUse.browser.cookies.note": "«Пока не закрою Tiancode» очищает cookie, кэш и локальное хранилище при СЛЕДУЮЩЕМ запуске приложения, а не во время закрытия: при выходе Electron не дожидается асинхронной очистки, поэтому там она иногда не срабатывала бы вовсе. Варианта «никогда не хранить» нет: встроенный браузер работает в фиксированном постоянном разделе, и Electron не позволяет менять его после загрузки страницы.",
+  "settings.computerUse.browser.cookies.note":
+    "«Пока не закрою Tiancode» очищает cookie, кэш и локальное хранилище при СЛЕДУЮЩЕМ запуске приложения, а не во время закрытия: при выходе Electron не дожидается асинхронной очистки, поэтому там она иногда не срабатывала бы вовсе. Варианта «никогда не хранить» нет: встроенный браузер работает в фиксированном постоянном разделе, и Electron не позволяет менять его после загрузки страницы.",
   "settings.general.row.transcriptView.title": "Вид переписки",
-  "settings.general.row.transcriptView.description": "Насколько раскрыт каждый ход по умолчанию; для любой сессии это можно изменить в «Дополнительные опции»",
+  "settings.general.row.transcriptView.description":
+    "Насколько раскрыт каждый ход по умолчанию; для любой сессии это можно изменить в «Дополнительные опции»",
   "settings.general.row.transcriptView.option.normal": "Обычный",
   "settings.general.row.transcriptView.option.thinking": "С размышлениями",
   "settings.general.row.transcriptView.option.detailed": "Подробный",
@@ -2553,27 +2710,35 @@ export const dict = {
   "welcome.confirm.review": "Подтвердите настройки",
   "welcome.confirm.done": "Готово",
   "prompt.attachment.imageUnsupported": "{{model}} не читает изображения — это вложение до него не дойдёт.",
-  "settings.permissions.tool.delete.description": "Удаление файла или папки с эскалацией, если файл заблокирован Windows (сопоставляется с полным путём)",
-  "settings.permissions.tool.process_terminate.description": "Принудительное завершение процесса, удерживающего файл, чтобы его можно было удалить",
+  "settings.permissions.tool.delete.description":
+    "Удаление файла или папки с эскалацией, если файл заблокирован Windows (сопоставляется с полным путём)",
+  "settings.permissions.tool.process_terminate.description":
+    "Принудительное завершение процесса, удерживающего файл, чтобы его можно было удалить",
   "settings.general.backup.now.error": "Не удалось создать резервную копию",
-  "prompt.optimize.failed.reasoningOnly": "Модель выдала только рассуждения, но не ответ. Попробуйте снизить уровень рассуждений.",
+  "prompt.optimize.failed.reasoningOnly":
+    "Модель выдала только рассуждения, но не ответ. Попробуйте снизить уровень рассуждений.",
   "settings.modelsHub.remove.success.title": "Модель удалена",
   "settings.modelsHub.remove.success.description": "Файл {{file}} удалён с диска.",
   "settings.modelsHub.remove.success.fromProviders": "Она больше не отображается в разделах «Провайдеры» и «Модели».",
-  "settings.modelsHub.remove.success.defaultCleared": "Она была моделью по умолчанию, поэтому Tiancode переключится на другую.",
-  "settings.modelsHub.remove.configFailed": "Файл удалён, но убрать модель из списка провайдеров не удалось. Перезапустите Tiancode и попробуйте снова.",
+  "settings.modelsHub.remove.success.defaultCleared":
+    "Она была моделью по умолчанию, поэтому Tiancode переключится на другую.",
+  "settings.modelsHub.remove.configFailed":
+    "Файл удалён, но убрать модель из списка провайдеров не удалось. Перезапустите Tiancode и попробуйте снова.",
   "settings.modelsHub.remove.locked.title": "Не удалось удалить модель",
-  "settings.modelsHub.remove.locked.description": "Файл {{file}} всё ещё используется или заблокирован на диске. Закройте Tiancode и попробуйте снова.",
+  "settings.modelsHub.remove.locked.description":
+    "Файл {{file}} всё ещё используется или заблокирован на диске. Закройте Tiancode и попробуйте снова.",
   "settings.modelsHub.remove.failed.title": "Ошибка при удалении модели с диска",
   "prompt.optimize.failed.timeout": "Модель отвечала слишком долго. Ваш промпт остался таким, каким вы его написали.",
   "settings.subAgents.custom.count": "Свои суб-агенты: {{count}}",
   "settings.subAgents.list.user.hint": "из ваших файлов agent/*.md",
   "settings.subAgents.create.manual": "Создать вручную",
   "settings.subAgents.create.ai": "Создать с помощью ИИ",
-  "settings.subAgents.create.storage": "Новые суб-агенты сохраняются в глобальной конфигурации и доступны во всех проектах.",
+  "settings.subAgents.create.storage":
+    "Новые суб-агенты сохраняются в глобальной конфигурации и доступны во всех проектах.",
   "settings.subAgents.generate.title": "Что должен делать этот суб-агент?",
   "settings.subAgents.generate.placeholder": "Проверять SQL-миграции и отмечать всё, что может заблокировать таблицу",
-  "settings.subAgents.generate.hint": "Модель напишет идентификатор, описание и системный промпт. Вы просмотрите их до сохранения.",
+  "settings.subAgents.generate.hint":
+    "Модель напишет идентификатор, описание и системный промпт. Вы просмотрите их до сохранения.",
   "settings.subAgents.generate.model": "Модель",
   "settings.subAgents.generate.model.default": "Модель по умолчанию",
   "settings.subAgents.generate.submit": "Сгенерировать",
@@ -2581,7 +2746,8 @@ export const dict = {
   "settings.subAgents.generate.needsDescription": "Сначала опишите, что должен делать суб-агент",
   "settings.subAgents.generate.failed": "Не удалось создать суб-агента",
   "settings.subAgents.generate.failed.noModel": "Нет доступной модели. Сначала выберите модель.",
-  "settings.subAgents.generate.failed.model": "Запрос к модели не удался. Повторите попытку или выберите другую модель.",
+  "settings.subAgents.generate.failed.model":
+    "Запрос к модели не удался. Повторите попытку или выберите другую модель.",
   "settings.subAgents.generate.failed.network": "Не удалось связаться с сервером.",
   "settings.subAgents.generate.ready": "Черновик готов. Проверьте и отредактируйте его перед сохранением.",
   "settings.subAgents.form.field.mode": "Режим",
@@ -2591,9 +2757,11 @@ export const dict = {
   "settings.subAgents.form.name.required": "Введите имя",
   "settings.subAgents.form.name.invalid": "Используйте строчные буквы, цифры и одиночные дефисы",
   "settings.subAgents.form.name.taken": "«{{name}}» уже существует",
-  "settings.subAgents.form.description.required": "Добавьте краткое описание, чтобы основной агент знал, когда делегировать",
+  "settings.subAgents.form.description.required":
+    "Добавьте краткое описание, чтобы основной агент знал, когда делегировать",
   "settings.subAgents.hierarchy.title": "Иерархия делегирования",
-  "settings.subAgents.hierarchy.description": "Какие основные агенты могут передавать работу каким суб-агентам — по списку выше.",
+  "settings.subAgents.hierarchy.description":
+    "Какие основные агенты могут передавать работу каким суб-агентам — по списку выше.",
   "settings.subAgents.hierarchy.collapse": "Свернуть",
   "settings.subAgents.hierarchy.expand": "Развернуть",
   "settings.subAgents.hierarchy.empty": "Основные агенты не настроены",

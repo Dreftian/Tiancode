@@ -36,6 +36,7 @@ interface Window {
     deepLinks?: string[]
   }
   api?: {
+    openInChrome?: (url: string) => Promise<void>
     setTitlebar?: (theme: { mode: "light" | "dark"; scheme?: "system" | "light" | "dark" }) => Promise<void>
     exportDebugLogs?: () => Promise<string>
     storeGet?: (name: string, key: string) => Promise<string | null>

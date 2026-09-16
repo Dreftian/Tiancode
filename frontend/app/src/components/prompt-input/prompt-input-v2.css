@@ -1,36 +1,77 @@
-/* The composer can be narrow inside a wide window with preview open. */
+/* Keep one toolbar row even in a narrow chat beside the live preview. */
 [data-component="prompt-input-v2"] {
   container-type: inline-size;
   container-name: composer;
 
+  [data-slot="prompt-controls"] {
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--v2-border-border-muted) transparent;
+  }
+
   [data-slot="prompt-selection-controls"] {
-    flex: 1 1 460px;
+    flex: 1 1 410px;
     min-width: 0;
 
     > [data-component="tooltip-v2-trigger"] {
       flex: 0 0 auto;
       min-width: 0;
-      max-width: 100%;
+    }
+
+    > [data-component="tooltip-v2-trigger"]:has([data-action="prompt-model"]) {
+      flex: 1 1 220px;
+      min-width: 72px;
+      max-width: 260px;
     }
 
     [data-component="button-v2"] {
       white-space: nowrap;
-      max-width: min(220px, 100%);
+      max-width: 100%;
+      padding-inline: 6px;
     }
   }
-}
-
-@container composer (max-width: 560px) {
-  [data-slot="prompt-selection-controls"] [data-component="button-v2"] {
-    max-width: min(180px, 100%);
+  [data-action="prompt-model"] {
+    width: 100%;
+  }
+  [data-slot="mode-compact"] {
+    display: none;
   }
 }
 
-@container composer (max-width: 300px) {
-  [data-slot="prompt-action-controls"],
-  [data-slot="prompt-action-controls"] > div {
-    max-width: 100%;
-    flex-wrap: wrap;
-    justify-content: flex-end;
+@container composer (max-width: 680px) {
+  [data-slot="prompt-selection-controls"] {
+    flex-basis: 0;
+    gap: 2px;
+  }
+  [data-action="toggle-speed-mode-2x"] > span {
+    display: none;
+  }
+}
+
+@container composer (max-width: 480px) {
+  [data-slot="mode-label"] {
+    display: none;
+  }
+  [data-component="prompt-input-v2"] [data-slot="mode-compact"] {
+    display: inline;
+  }
+  [data-action="composer-mode"] {
+    padding-inline: 2px;
+    gap: 0;
+  }
+  [data-component="prompt-input-v2"]
+    [data-slot="prompt-selection-controls"]
+    > [data-component="tooltip-v2-trigger"]:has([data-action="prompt-model"]) {
+    min-width: 32px;
+  }
+  [data-action="prompt-model"] [data-component="provider-icon"],
+  [data-action="prompt-model"] svg {
+    display: none;
+  }
+  [data-slot="prompt-selection-controls"] [data-component="button-v2"] {
+    padding-inline: 3px;
+  }
+  [data-slot="prompt-action-controls"] {
+    gap: 2px;
   }
 }

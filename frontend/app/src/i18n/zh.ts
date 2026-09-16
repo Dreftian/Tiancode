@@ -5,9 +5,27 @@ import { dict as en } from "./en"
 type Keys = keyof typeof en
 
 export const dict = {
+  "settings.browser.links.chrome": "Google Chrome",
+  "settings.browser.chromeUnavailable": "无法打开 Chrome。请确认已安装 Google Chrome。",
+  "desktop.browser.chromeUnavailable": "无法打开 Chrome。请确认已安装 Google Chrome。",
+  "settings.subAgents.integrated.description": "内置工程、开发、设计、研究、营销和授权安全测试专家。",
+  "design.style.title": "设计方向",
+  "design.style.description": "为 Web App 选择视觉方向。所选方向将随下一条消息发送给模型，并保留现有项目要求。",
+  "design.style.ask": "与 AI 一起选择",
+  "design.style.studio": "编辑工作室",
+  "design.style.product": "清晰产品",
+  "design.style.midnight": "午夜工作区",
+  "design.style.geometric": "趣味几何",
+  "design.style.precision": "技术精度",
+  "design.style.atelier": "精致工坊",
+  "settings.responses.clear": "直接回答",
+  "settings.responses.clear.description": "先给出结果和具体步骤，同时保留重要证据与错误。适用于后续消息和所有模型。",
+  "settings.computerUse.restore.title": "结束后恢复受控应用",
+  "settings.computerUse.restore.description": "恢复电脑使用期间获得授权的应用的最小化窗口。其他窗口保持原状。",
   ...RELEASE_ENGLISH,
   "settings.mcpServers.health.title": "MCP 健康状态",
-  "settings.mcpServers.health.description": "实时连接状态。恢复操作最多同时运行 {{concurrency}} 个，每次最多处理 {{limit}} 个服务器。",
+  "settings.mcpServers.health.description":
+    "实时连接状态。恢复操作最多同时运行 {{concurrency}} 个，每次最多处理 {{limit}} 个服务器。",
   "settings.mcpServers.health.refresh": "刷新",
   "settings.mcpServers.health.configured": "已配置 {{count}} 个",
   "settings.mcpServers.health.enabled": "已启用 {{count}} 个",
@@ -19,9 +37,11 @@ export const dict = {
   "settings.mcpServers.health.stop": "停止本地项并禁用",
   "settings.mcpServers.health.partial": "已恢复 {{succeeded}} 个；{{failed}} 个仍需处理",
   "settings.mcpServers.health.done": "已恢复 {{count}} 个 MCP 连接",
-  "settings.mcpServers.health.stop.confirm": "停止并禁用 {{count}} 个本地 MCP 连接吗？其已保存的命令、密钥和设置将被保留。",
+  "settings.mcpServers.health.stop.confirm":
+    "停止并禁用 {{count}} 个本地 MCP 连接吗？其已保存的命令、密钥和设置将被保留。",
   "settings.mcpServers.profiles.title": "安全 MCP 配置档",
-  "settings.mcpServers.profiles.description": "配置档只连接你已配置并启用的 MCP 服务器。它们不会安装、添加、启用、禁用或覆盖已保存的密钥和设置。",
+  "settings.mcpServers.profiles.description":
+    "配置档只连接你已配置并启用的 MCP 服务器。它们不会安装、添加、启用、禁用或覆盖已保存的密钥和设置。",
   "settings.mcpServers.profiles.essential.name": "基础",
   "settings.mcpServers.profiles.essential.description": "已配置的文件、文档、fetch 和 Git。",
   "settings.mcpServers.profiles.design.name": "设计",
@@ -1067,7 +1087,8 @@ export const dict = {
   "settings.general.row.mobileTitlebarBottom.title": "底部导航",
   "settings.general.row.mobileTitlebarBottom.description": "在移动设备上将标题栏和会话标签页置于屏幕底部",
   "settings.general.row.showCustomAgents.title": "显示智能体",
-  "settings.general.row.showCustomAgents.description": "在编辑器中切换智能体。隐藏后默认使用 Build 智能体；但在拥有自定义智能体的项目中，选择器始终可见。",
+  "settings.general.row.showCustomAgents.description":
+    "在编辑器中切换智能体。隐藏后默认使用 Build 智能体；但在拥有自定义智能体的项目中，选择器始终可见。",
   "settings.general.row.newInterface.title": "新布局",
   "settings.general.row.newInterface.badge": "新",
   "settings.general.row.newInterface.description": "使用新的标签页和主页布局。在有限时间内可在不同布局之间切换。",
@@ -1391,7 +1412,8 @@ export const dict = {
   "session.export.failed": "无法导出对话",
   "settings.general.section.data": "数据",
   "settings.general.row.autoBackup.title": "自动备份",
-  "settings.general.row.autoBackup.description": "每天复制会话和配置（保留最近 7 天）。下次启动应用时生效；如需立即复制，请使用“立即备份”。",
+  "settings.general.row.autoBackup.description":
+    "每天复制会话和配置（保留最近 7 天）。下次启动应用时生效；如需立即复制，请使用“立即备份”。",
   "settings.general.row.backupNow.title": "立即备份",
   "settings.general.row.backupNow.description": "立即创建数据的副本",
   "settings.general.row.backupNow.button": "创建备份",
@@ -1413,7 +1435,8 @@ export const dict = {
   "settings.section.integrations": "集成",
   "settings.tab.connections": "连接",
   "settings.connections.title": "连接与网关",
-  "settings.connections.description": "在 Telegram、Discord、Slack 或你自己的 webhook 上接收会话结果，并通过 Telegram 聊天驱动 Tiancode。密钥只保存在本机，不会再次显示。",
+  "settings.connections.description":
+    "在 Telegram、Discord、Slack 或你自己的 webhook 上接收会话结果，并通过 Telegram 聊天驱动 Tiancode。密钥只保存在本机，不会再次显示。",
   "settings.connections.telegram.title": "Telegram Bot 网关",
   "settings.connections.telegram.token": "Bot Token",
   "settings.connections.telegram.chatId": "Chat ID / 用户",
@@ -1465,7 +1488,8 @@ export const dict = {
   "settings.connections.telegram.token.desc": "来自 @BotFather。加密保存在本机。",
   "settings.connections.telegram.chatId.desc": "机器人发布消息且唯一听从的聊天。给机器人发一条消息，它会告诉你 id。",
   "settings.connections.telegram.inbound": "从聊天接收指令",
-  "settings.connections.telegram.inbound.desc": "聊天中的任何消息都会作为提示运行；/status、/new 和 /help 是命令。会话结束后返回回答。",
+  "settings.connections.telegram.inbound.desc":
+    "聊天中的任何消息都会作为提示运行；/status、/new 和 /help 是命令。会话结束后返回回答。",
   "settings.connections.telegram.inbound.running": "监听中 · {{sessions}} 个已关联聊天",
   "settings.connections.telegram.inbound.stopped": "未监听",
   "settings.connections.telegram.directory": "指令使用的项目",
@@ -1486,7 +1510,8 @@ export const dict = {
   "settings.connections.webhooks.secret.desc": "可选。在你这边验证 sha256=HMAC(密钥, 正文)。",
   "settings.connections.webhooks.events.idle": "发送 session.idle",
   "settings.connections.webhooks.events.error": "发送 session.error",
-  "settings.connections.whatsapp.soon": "WhatsApp 暂不可用：它需要 Tiancode 未附带的设备关联会话。目前 Telegram 可覆盖同样的用途。",
+  "settings.connections.whatsapp.soon":
+    "WhatsApp 暂不可用：它需要 Tiancode 未附带的设备关联会话。目前 Telegram 可覆盖同样的用途。",
   "settings.tab.browser": "浏览器",
   "settings.tab.pets": "宠物",
   "settings.tab.computerUse": "电脑控制",
@@ -1535,7 +1560,8 @@ export const dict = {
   "settings.skills.badge.safe": "安全",
   "settings.skills.badge.specialized": "专业",
   "settings.skills.callout.safe": "安全的通用技能：可与任何其他技能同时启用，不会干扰工作流程。",
-  "settings.skills.callout.specialized": "专业技能：为特定工作流程设计。避免与相反的方法论或风格指南组合使用，以保持回答一致。",
+  "settings.skills.callout.specialized":
+    "专业技能：为特定工作流程设计。避免与相反的方法论或风格指南组合使用，以保持回答一致。",
   "settings.skills.toggle.enabled": "已启用 {{name}}",
   "settings.skills.toggle.disabled": "已禁用 {{name}}",
   "settings.skills.toggle.failed": "无法更新技能",
@@ -1614,7 +1640,8 @@ export const dict = {
   "settings.plugins.title": "插件",
   "settings.plugins.description": "使用挂接生命周期事件的 npm 包或本地插件文件扩展代理。",
   "settings.plugins.note.title": "什么是插件？",
-  "settings.plugins.note.description": "插件在代理进程中运行，并对会话空闲、工具执行、shell 环境设置等生命周期事件做出响应。",
+  "settings.plugins.note.description":
+    "插件在代理进程中运行，并对会话空闲、工具执行、shell 环境设置等生命周期事件做出响应。",
   "settings.plugins.section.installed": "已安装",
   "settings.plugins.section.add": "添加插件",
   "settings.plugins.empty": "尚未安装插件",
@@ -1687,7 +1714,8 @@ export const dict = {
   "settings.mcpPlugins.tab.discover": "发现",
   "settings.mcpPlugins.search.placeholder": "按名称、工具或命令搜索…",
   "settings.mcpPlugins.intro.title": "MCP（Model Context Protocol）",
-  "settings.mcpPlugins.intro.body": "MCP 是一个开放标准，让模型能够安全地连接外部工具、数据库和服务。每个服务器都会公开代理可调用的工具。",
+  "settings.mcpPlugins.intro.body":
+    "MCP 是一个开放标准，让模型能够安全地连接外部工具、数据库和服务。每个服务器都会公开代理可调用的工具。",
   "settings.mcpPlugins.intro.local": "通过 npx、uvx 或脚本在本机运行",
   "settings.mcpPlugins.intro.remote": "连接到云端或局域网中的服务器",
   "settings.mcpPlugins.empty.description": "连接数据库、API 或浏览器等外部工具，供代理使用。",
@@ -1734,7 +1762,8 @@ export const dict = {
   "settings.mcpPlugins.form.name.placeholder": "例如 filesystem、sqlite、analytics",
   "settings.mcpPlugins.form.command.server": "命令或 SSE URL",
   "settings.mcpPlugins.form.command.plugin": "npm 包或本地路径",
-  "settings.mcpPlugins.form.command.server.placeholder": "例如 npx -y @modelcontextprotocol/server-sqlite . 或 https://api.example.com/sse",
+  "settings.mcpPlugins.form.command.server.placeholder":
+    "例如 npx -y @modelcontextprotocol/server-sqlite . 或 https://api.example.com/sse",
   "settings.mcpPlugins.form.command.plugin.placeholder": "例如 @org/plugin-name 或 .tiancode/plugins/my-plugin.ts",
   "settings.mcpPlugins.form.submit": "保存并连接",
   "settings.mcpPlugins.toast.serverEnabled": "已启用服务器“{{name}}”",
@@ -1814,7 +1843,8 @@ export const dict = {
   "settings.computerUse.description": "代理可以集成的本地应用，以及电脑操作（computer use）的权限。",
   "settings.computerUse.section.permissions": "权限",
   "settings.computerUse.section.apps": "本地应用",
-  "settings.computerUse.apps.description": "在此计算机上配置的本地 MCP 服务器（Android Studio、Photoshop、Opera GX、Unreal 等）。状态反映真实连接。",
+  "settings.computerUse.apps.description":
+    "在此计算机上配置的本地 MCP 服务器（Android Studio、Photoshop、Opera GX、Unreal 等）。状态反映真实连接。",
   "settings.computerUse.apps.connected": "已连接",
   "settings.computerUse.apps.disconnected": "未连接",
   "settings.computerUse.empty": "尚未配置本地应用",
@@ -1889,12 +1919,12 @@ export const dict = {
   "settings.mcpServers.group.connected": "已连接",
   "settings.mcpServers.group.errors": "错误",
   "settings.mcpServers.group.requiresKey": "需要 API 密钥",
-"settings.mcpServers.group.disabled": "已禁用",
+  "settings.mcpServers.group.disabled": "已禁用",
   "settings.pagination.label": "分页",
   "settings.pagination.previous": "上一页",
   "settings.pagination.next": "下一页",
   "settings.pagination.page": "第 {{current}} / {{total}} 页",
-"settings.mcpServers.group.unknown": "未知",
+  "settings.mcpServers.group.unknown": "未知",
   "settings.mcpServers.tools.count": "{{count}} 个工具",
   "settings.mcpServers.save.changes": "保存更改",
   "settings.mcpServers.discover.title": "发现",
@@ -1914,29 +1944,41 @@ export const dict = {
   "settings.mcpServers.discover.presets.context7.name": "Context7",
   "settings.mcpServers.discover.presets.context7.description": "热门库和框架的最新文档。",
   "settings.mcpServers.discover.presets.notebooklm.name": "Google NotebookLM",
-  "settings.mcpServers.discover.presets.notebooklm.description": "在你的 NotebookLM 笔记本中进行有依据的研究，支持引用和音频概览。",
+  "settings.mcpServers.discover.presets.notebooklm.description":
+    "在你的 NotebookLM 笔记本中进行有依据的研究，支持引用和音频概览。",
   "settings.mcpServers.discover.presets.agent-vision.name": "Agent Vision",
   "settings.mcpServers.discover.presets.unreal.name": "Unreal Engine",
   "settings.mcpServers.discover.presets.photoshop.name": "Photoshop",
-  "settings.mcpServers.discover.presets.photoshop.description": "控制 Photoshop：打开文件、运行 UXP 脚本并使用可配置的桥接。需要安装 Photoshop。",
+  "settings.mcpServers.discover.presets.photoshop.description":
+    "控制 Photoshop：打开文件、运行 UXP 脚本并使用可配置的桥接。需要安装 Photoshop。",
   "settings.mcpServers.discover.presets.indesign.name": "InDesign",
-  "settings.mcpServers.discover.presets.indesign.description": "控制 InDesign：运行 UXP 脚本（.idjs）并使用可配置的桥接。需要安装 InDesign。",
+  "settings.mcpServers.discover.presets.indesign.description":
+    "控制 InDesign：运行 UXP 脚本（.idjs）并使用可配置的桥接。需要安装 InDesign。",
   "settings.mcpServers.discover.presets.illustrator.name": "Illustrator",
-  "settings.mcpServers.discover.presets.illustrator.description": "控制 Illustrator：运行 JSX 脚本并使用可配置的桥接。需要安装 Illustrator。",
+  "settings.mcpServers.discover.presets.illustrator.description":
+    "控制 Illustrator：运行 JSX 脚本并使用可配置的桥接。需要安装 Illustrator。",
   "settings.mcpServers.discover.presets.coreldraw.name": "CorelDRAW",
-  "settings.mcpServers.discover.presets.coreldraw.description": "通过 Windows 上的 COM/VBA 控制 CorelDRAW。需要安装 CorelDRAW。",
+  "settings.mcpServers.discover.presets.coreldraw.description":
+    "通过 Windows 上的 COM/VBA 控制 CorelDRAW。需要安装 CorelDRAW。",
   "settings.mcpServers.discover.presets.opera_gx.name": "Opera GX",
-  "settings.mcpServers.discover.presets.opera_gx.description": "通过 Chromium DevTools 协议控制 Opera GX。需要浏览器以 --remote-debugging-port 启动。",
+  "settings.mcpServers.discover.presets.opera_gx.description":
+    "通过 Chromium DevTools 协议控制 Opera GX。需要浏览器以 --remote-debugging-port 启动。",
   "settings.mcpServers.discover.presets.unreal_cli.name": "Unreal Engine (CLI)",
-  "settings.mcpServers.discover.presets.unreal_cli.description": "通过命令行控制 Unreal Engine：编辑器、UAT BuildCookRun 和自动化测试。需要安装 UE。",
+  "settings.mcpServers.discover.presets.unreal_cli.description":
+    "通过命令行控制 Unreal Engine：编辑器、UAT BuildCookRun 和自动化测试。需要安装 UE。",
   "settings.mcpServers.discover.presets.unity.name": "Unity",
-  "settings.mcpServers.discover.presets.unity.description": "以批处理模式控制 Unity：编辑器、-executeMethod 和构建。需要安装 Unity。",
+  "settings.mcpServers.discover.presets.unity.description":
+    "以批处理模式控制 Unity：编辑器、-executeMethod 和构建。需要安装 Unity。",
   "settings.mcpServers.discover.presets.godot.name": "Godot",
-  "settings.mcpServers.discover.presets.godot.description": "控制 Godot：编辑器、无头模式、脚本和导出。需要安装 Godot。",
+  "settings.mcpServers.discover.presets.godot.description":
+    "控制 Godot：编辑器、无头模式、脚本和导出。需要安装 Godot。",
   "settings.mcpServers.discover.presets.android_studio.name": "Android Studio",
-  "settings.mcpServers.discover.presets.android_studio.description": "控制 Android Studio：Gradle、adb、模拟器和项目打开。需要安装 Android Studio/SDK。",
-  "settings.mcpServers.discover.presets.unreal.description": "控制 Unreal Engine 项目（Web Remote Control）：打开编辑器、运行 Python 和控制台命令、读取日志和关卡 Actor。需要安装 unreal-tiancode-mcp 文件夹。",
-  "settings.mcpServers.discover.presets.agent-vision.description": "为无视觉模型提供「眼睛」：可使用任何兼容 OpenAI 的视觉 API（OpenAI、Gemini、Qwen-VL）分析图像、截图和文档（OCR）。启用后，在服务器编辑器的环境变量中添加 VISION_API_KEY。",
+  "settings.mcpServers.discover.presets.android_studio.description":
+    "控制 Android Studio：Gradle、adb、模拟器和项目打开。需要安装 Android Studio/SDK。",
+  "settings.mcpServers.discover.presets.unreal.description":
+    "控制 Unreal Engine 项目（Web Remote Control）：打开编辑器、运行 Python 和控制台命令、读取日志和关卡 Actor。需要安装 unreal-tiancode-mcp 文件夹。",
+  "settings.mcpServers.discover.presets.agent-vision.description":
+    "为无视觉模型提供「眼睛」：可使用任何兼容 OpenAI 的视觉 API（OpenAI、Gemini、Qwen-VL）分析图像、截图和文档（OCR）。启用后，在服务器编辑器的环境变量中添加 VISION_API_KEY。",
   "capture.menu.title": "捕获截图",
   "capture.screen": "全屏",
   "capture.window": "应用窗口",
@@ -1967,7 +2009,8 @@ export const dict = {
   "settings.github.description": "连接你的 GitHub 帐户以克隆仓库、创建新仓库并在项目上执行 Git 操作。",
   "settings.github.loading": "正在加载...",
   "settings.github.connect.title": "连接 GitHub",
-  "settings.github.connect.description": "粘贴个人访问令牌以通过 GitHub 认证。令牌存储在本地，用于克隆和经过认证的 Git 操作。",
+  "settings.github.connect.description":
+    "粘贴个人访问令牌以通过 GitHub 认证。令牌存储在本地，用于克隆和经过认证的 Git 操作。",
   "settings.github.connect.token.placeholder": "github_pat_... 或 ghp_...",
   "settings.github.connect.hint": "在 github.com/settings/tokens 创建令牌（带 repo 范围的细粒度令牌）",
   "settings.github.connect.button": "连接",
@@ -2109,9 +2152,11 @@ export const dict = {
   "settings.modelsHub.desc.hint.quantized": "量化",
   "onboarding.title": "欢迎使用 Tiancode",
   "onboarding.step": "步骤 {{current}}，共 {{total}} 步",
-  "onboarding.disclaimer.p1": "Tiancode 是一个与你并肩工作的 AI 代理：它可以在你的电脑上运行命令、编辑文件和管理任务，而你始终掌握控制权。",
+  "onboarding.disclaimer.p1":
+    "Tiancode 是一个与你并肩工作的 AI 代理：它可以在你的电脑上运行命令、编辑文件和管理任务，而你始终掌握控制权。",
   "onboarding.disclaimer.p2": "你的提示词和文件内容可能会被发送到你配置的 AI 模型提供商，以生成回复。",
-  "onboarding.disclaimer.p3": "你需对自己使用 Tiancode 的方式负责。在接受更改前仔细审查，并且永远不要运行你不理解的命令。",
+  "onboarding.disclaimer.p3":
+    "你需对自己使用 Tiancode 的方式负责。在接受更改前仔细审查，并且永远不要运行你不理解的命令。",
   "onboarding.accept": "同意并继续",
   "onboarding.preferences.title": "随心定制",
   "onboarding.preferences.description": "选择 Tiancode 的外观和语言。你可以随时在设置中更改。",
@@ -2217,30 +2262,39 @@ export const dict = {
   "settings.computerUse.tab.bridges": "桥接",
   "settings.computerUse.section.tools": "代理在这台电脑上能做什么",
   "settings.computerUse.screenshot.title": "屏幕捕获（screenshot 工具）",
-  "settings.computerUse.screenshot.description": "代理可以拍摄屏幕、Tiancode 窗口或屏幕的某个区域并读取图像。除非你在下面批准，否则每次捕获都会请求权限。",
+  "settings.computerUse.screenshot.description":
+    "代理可以拍摄屏幕、Tiancode 窗口或屏幕的某个区域并读取图像。除非你在下面批准，否则每次捕获都会请求权限。",
   "settings.computerUse.clipboard.title": "剪贴板（clipboard 工具）",
-  "settings.computerUse.clipboard.description": "代理可以读取系统剪贴板中的文本并替换它。每一次读取和写入都会逐次确认。",
+  "settings.computerUse.clipboard.description":
+    "代理可以读取系统剪贴板中的文本并替换它。每一次读取和写入都会逐次确认。",
   "settings.computerUse.clipboard.note": "剪贴板永远不会被预先批准：它经常存放密码，因此代理每次都会询问。",
   "settings.computerUse.autoApproveScreenshot": "自动批准屏幕捕获",
-  "settings.computerUse.autoApproveScreenshot.description": "在你的配置中写入 permission.screenshot = allow，使 screenshot 工具无需确认即可运行。",
-  "settings.computerUse.autoApproveScreenshot.note": "捕获会包含当时屏幕上的一切，包括其他应用程序。请仅在你信任的电脑上预先批准。",
+  "settings.computerUse.autoApproveScreenshot.description":
+    "在你的配置中写入 permission.screenshot = allow，使 screenshot 工具无需确认即可运行。",
+  "settings.computerUse.autoApproveScreenshot.note":
+    "捕获会包含当时屏幕上的一切，包括其他应用程序。请仅在你信任的电脑上预先批准。",
   "settings.computerUse.save.done": "权限已更新",
   "settings.computerUse.tool.desktopOnly": "仅限桌面应用",
   "settings.computerUse.tool.ready": "可用",
   "prompt.attachment.unavailable": "无法读取附件。请移除后重新添加该文件。",
   "settings.intelligence.skillCreate": "技能编写 (SKILL.md)",
-  "settings.intelligence.skillCreate.desc": "允许智能体把工作流保存为可复用的 SKILL.md，写入 .tiancode/skills 或全局技能目录。何时写入由智能体自行决定。",
+  "settings.intelligence.skillCreate.desc":
+    "允许智能体把工作流保存为可复用的 SKILL.md，写入 .tiancode/skills 或全局技能目录。何时写入由智能体自行决定。",
   "settings.intelligence.section.context": "代码图谱与上下文",
   "settings.intelligence.outputDistiller": "终端输出精简",
   "settings.intelligence.outputDistiller.desc": "在模型读取前压缩冗长的终端输出。完整输出仍保留在工具结果中。",
   "settings.intelligence.webBoilerplate": "剔除网页样板内容",
-  "settings.intelligence.webBoilerplate.desc": "把抓取到的页面转换为 Markdown 时，剔除脚本、导航、页脚和表单。若正文就在这些元素内，请关闭此项。",
+  "settings.intelligence.webBoilerplate.desc":
+    "把抓取到的页面转换为 Markdown 时，剔除脚本、导航、页脚和表单。若正文就在这些元素内，请关闭此项。",
   "settings.intelligence.shellScan": "Shell 命令检查 (AgentShield)",
-  "settings.intelligence.shellScan.desc": "检查每条 shell 命令是否存在破坏性删除、读取密钥文件或通过管道执行远程脚本，并在工具调用上附加警告。仅作提示：不会拦截命令，也不会遮蔽任何内容。",
+  "settings.intelligence.shellScan.desc":
+    "检查每条 shell 命令是否存在破坏性删除、读取密钥文件或通过管道执行远程脚本，并在工具调用上附加警告。仅作提示：不会拦截命令，也不会遮蔽任何内容。",
   "settings.intelligence.toolCallRepair": "工具调用参数修复",
-  "settings.intelligence.toolCallRepair.desc": "修复本地模型或流式输出产生的畸形参数——被截断的 JSON、未闭合的花括号、Markdown 代码围栏。关闭后，畸形调用会直接失败。",
+  "settings.intelligence.toolCallRepair.desc":
+    "修复本地模型或流式输出产生的畸形参数——被截断的 JSON、未闭合的花括号、Markdown 代码围栏。关闭后，畸形调用会直接失败。",
   "settings.intelligence.loopBreaker": "循环中断器",
-  "settings.intelligence.loopBreaker.desc": "当智能体重复同一次工具调用，或在一轮中触发过多工具时将其中止，并询问你是否继续。",
+  "settings.intelligence.loopBreaker.desc":
+    "当智能体重复同一次工具调用，或在一轮中触发过多工具时将其中止，并询问你是否继续。",
   "settings.pets.total": "{{count}} 个可互动的 3D 伙伴",
   "settings.pets.desktop.unavailable": "仅在桌面应用中可用。",
   "settings.pets.pet.title": "测试互动反应",
@@ -2306,10 +2360,12 @@ export const dict = {
   "settings.github.capabilities.browse": "浏览该令牌可见的全部仓库，公开与私有均可。",
   "settings.github.capabilities.create": "在你的个人账户下创建公开或私有仓库。不支持创建组织仓库。",
   "settings.github.capabilities.git": "在设置页内即可对已打开的项目进行带身份验证的提交、推送和拉取。",
-  "settings.github.capabilities.identity": "提交的作者会记录为你的 GitHub 身份：登录名与 登录名@users.noreply.github.com。",
+  "settings.github.capabilities.identity":
+    "提交的作者会记录为你的 GitHub 身份：登录名与 登录名@users.noreply.github.com。",
   "settings.github.capabilities.reopen": "已克隆过的仓库会被识别并直接打开，而不会重复克隆。",
   "settings.github.capabilities.storage": "令牌保存在 Tiancode 数据文件夹中的 {{file}} 内。",
-  "settings.github.capabilities.encrypted": "在桌面应用中，令牌以 AES-256-GCM 加密存储，密钥由操作系统密钥库保护（Windows 使用 DPAPI，macOS 使用 Keychain）。若没有可用的密钥库，令牌将以明文保存。",
+  "settings.github.capabilities.encrypted":
+    "在桌面应用中，令牌以 AES-256-GCM 加密存储，密钥由操作系统密钥库保护（Windows 使用 DPAPI，macOS 使用 Keychain）。若没有可用的密钥库，令牌将以明文保存。",
   "settings.github.status.authenticated": "已连接并完成认证",
   "settings.github.badge.linked": "账户已关联",
   "settings.github.scopes.title": "GitHub 为该令牌报告的权限",
@@ -2396,7 +2452,8 @@ export const dict = {
   "liveView.device.current": "视口尺寸：{{device}}",
   "desktop.computerUse.consent.title": "允许 Tiancode 控制这台电脑吗？",
   "desktop.computerUse.consent.message": "Tiancode 想要控制 {{app}}",
-  "desktop.computerUse.consent.detail": "代理会像你本人操作一样，在 {{app}}（{{process}}）中移动鼠标并输入内容。仅对该应用生效，且只在你停止之前有效，你可以随时从指示器停止。",
+  "desktop.computerUse.consent.detail":
+    "代理会像你本人操作一样，在 {{app}}（{{process}}）中移动鼠标并输入内容。仅对该应用生效，且只在你停止之前有效，你可以随时从指示器停止。",
   "desktop.computerUse.consent.allow": "允许用于此应用",
   "desktop.computerUse.consent.refuse": "不允许",
   "desktop.computerUse.indicator.title": "Tiancode 正在控制这台电脑",
@@ -2464,35 +2521,45 @@ export const dict = {
   "welcome.language.field": "语言",
   "welcome.provider.autoOpen": "完成后会打开提供商设置，方便你添加模型。想稍后再设置，关闭即可。",
   "settings.computerUse.tab.browser": "浏览器",
-  "settings.computerUse.tools.intro": "屏幕截图、剪贴板，以及仅限 Windows 的鼠标和键盘。这些都经由桌面应用运行：在网页浏览器中打开的会话没有可操作的桌面。",
+  "settings.computerUse.tools.intro":
+    "屏幕截图、剪贴板，以及仅限 Windows 的鼠标和键盘。这些都经由桌面应用运行：在网页浏览器中打开的会话没有可操作的桌面。",
   "settings.computerUse.section.computer": "鼠标和键盘",
   "settings.computerUse.computer.title": "鼠标和键盘（computer 工具）",
-  "settings.computerUse.computer.description": "代理会移动真实光标，在当前位于前台的应用中点击和输入。每个会话的第一个动作都会弹出写明该应用名称的对话框，控制会自动过期，你也可以随时从指示器停止。",
+  "settings.computerUse.computer.description":
+    "代理会移动真实光标，在当前位于前台的应用中点击和输入。每个会话的第一个动作都会弹出写明该应用名称的对话框，控制会自动过期，你也可以随时从指示器停止。",
   "settings.computerUse.computer.enable": "允许代理使用鼠标和键盘",
-  "settings.computerUse.computer.enable.description": "保存在桌面应用本身，而不是 tiancode.json：代理可以用自己的工具编辑 tiancode.json，能被代理改写的刹车不是刹车。关闭后，主进程会拒绝所有动作，并中断正在进行的控制。",
+  "settings.computerUse.computer.enable.description":
+    "保存在桌面应用本身，而不是 tiancode.json：代理可以用自己的工具编辑 tiancode.json，能被代理改写的刹车不是刹车。关闭后，主进程会拒绝所有动作，并中断正在进行的控制。",
   "settings.computerUse.computer.windowsOnly": "仅限 Windows",
   "settings.computerUse.denied.title": "已封锁的可执行文件",
-  "settings.computerUse.denied.description": "只要其中之一是前台窗口，Tiancode 就拒绝发送点击或按键，即便你在本次会话中已经授权过。该列表在重启后保留；会话内的授权不会保留。",
-  "settings.computerUse.denied.note": "匹配依据是可执行文件名，即路径最后一段的小写形式。同名的两个不同程序无法区分，重命名文件即可脱离此列表。这是文件名，不是应用身份。",
+  "settings.computerUse.denied.description":
+    "只要其中之一是前台窗口，Tiancode 就拒绝发送点击或按键，即便你在本次会话中已经授权过。该列表在重启后保留；会话内的授权不会保留。",
+  "settings.computerUse.denied.note":
+    "匹配依据是可执行文件名，即路径最后一段的小写形式。同名的两个不同程序无法区分，重命名文件即可脱离此列表。这是文件名，不是应用身份。",
   "settings.computerUse.denied.placeholder": "notepad.exe",
   "settings.computerUse.denied.add": "封锁",
   "settings.computerUse.denied.remove": "移除",
   "settings.computerUse.denied.empty": "尚未封锁任何可执行文件",
   "settings.computerUse.denied.invalid": "请输入可执行文件名，例如 notepad.exe",
   "settings.computerUse.denied.duplicate": "该可执行文件已在列表中",
-  "settings.computerUse.platform.note": "操作电脑需要桌面应用，且仅在 Windows 上可用：macOS 需要系统辅助功能权限和另一套后端，Linux 则取决于 X11 或 Wayland。Tiancode 会直说并拒绝，而不是莫名其妙地失败。",
+  "settings.computerUse.platform.note":
+    "操作电脑需要桌面应用，且仅在 Windows 上可用：macOS 需要系统辅助功能权限和另一套后端，Linux 则取决于 X11 或 Wayland。Tiancode 会直说并拒绝，而不是莫名其妙地失败。",
   "settings.computerUse.browser.section": "集成浏览器",
   "settings.computerUse.browser.control": "允许代理读取并操作集成浏览器",
-  "settings.computerUse.browser.control.description": "读取当前页面以及在其上点击或输入，都会以站点 origin 作为模式来请求许可，因此对某个站点说「是」不等于对下一个站点也说「是」。",
+  "settings.computerUse.browser.control.description":
+    "读取当前页面以及在其上点击或输入，都会以站点 origin 作为模式来请求许可，因此对某个站点说「是」不等于对下一个站点也说「是」。",
   "settings.computerUse.browser.control.ask": "每个站点都询问",
   "settings.computerUse.browser.control.allow": "不询问，允许所有站点",
   "settings.computerUse.browser.control.deny": "不允许代理使用浏览器",
   "settings.computerUse.browser.control.inherited": "继承的默认值",
-  "settings.computerUse.browser.control.note": "此前并没有写入任何规则，代理的默认值允许所有 origin：它可以不经询问就读取并操作集成浏览器中的任意页面。选择「每个站点都询问」会把 permission.browser = {\"*\": \"ask\"} 写入本项目的配置，此后 Tiancode 会在访问下方列表之外的任何站点前询问。对已经在用的人来说，这是真实的行为变化。",
+  "settings.computerUse.browser.control.note":
+    '此前并没有写入任何规则，代理的默认值允许所有 origin：它可以不经询问就读取并操作集成浏览器中的任意页面。选择「每个站点都询问」会把 permission.browser = {"*": "ask"} 写入本项目的配置，此后 Tiancode 会在访问下方列表之外的任何站点前询问。对已经在用的人来说，这是真实的行为变化。',
   "settings.computerUse.browser.sites": "已允许的站点",
   "settings.computerUse.browser.sites.description": "在本项目配置中拥有常驻 allow 规则的 origin。",
-  "settings.computerUse.browser.sites.note": "你在权限提示中选择的「始终允许」不在这里：它由运行中的实例保存在内存中，并随之消失。只有在本页面添加的内容才会写入配置，因此该列表并不等于此刻已获批准的全部内容。",
-  "settings.computerUse.browser.sites.inert": "当总规则为「不询问，允许所有站点」时，此列表不起作用：所有站点本就已被允许。",
+  "settings.computerUse.browser.sites.note":
+    "你在权限提示中选择的「始终允许」不在这里：它由运行中的实例保存在内存中，并随之消失。只有在本页面添加的内容才会写入配置，因此该列表并不等于此刻已获批准的全部内容。",
+  "settings.computerUse.browser.sites.inert":
+    "当总规则为「不询问，允许所有站点」时，此列表不起作用：所有站点本就已被允许。",
   "settings.computerUse.browser.sites.placeholder": "https://example.com",
   "settings.computerUse.browser.sites.add": "允许",
   "settings.computerUse.browser.sites.revoke": "撤销",
@@ -2500,12 +2567,14 @@ export const dict = {
   "settings.computerUse.browser.sites.empty": "没有预先允许的站点",
   "settings.computerUse.browser.sites.invalid": "请输入完整地址，例如 https://example.com",
   "settings.computerUse.browser.sites.duplicate": "该 origin 已被允许",
-  "settings.computerUse.browser.sites.orderFailed": "规则已写入，但 permission.browser 中靠后的另一条规则对该 origin 仍然优先。请打开 tiancode.json，把 \"*\" 放在 permission.browser 的第一个键。",
+  "settings.computerUse.browser.sites.orderFailed":
+    '规则已写入，但 permission.browser 中靠后的另一条规则对该 origin 仍然优先。请打开 tiancode.json，把 "*" 放在 permission.browser 的第一个键。',
   "settings.computerUse.browser.cookies": "Cookie 与会话",
   "settings.computerUse.browser.cookies.description": "集成浏览器与实时视图的登录状态和 Cookie 保留多久。",
   "settings.computerUse.browser.cookies.always": "一直保留",
   "settings.computerUse.browser.cookies.session": "直到我关闭 Tiancode",
-  "settings.computerUse.browser.cookies.note": "「直到我关闭 Tiancode」会在应用下一次启动时清除 Cookie、缓存和本地存储，而不是在关闭过程中清除：退出时 Electron 不会等待异步清除完成，放在那里有时会什么都不做。没有「从不保存」选项——集成浏览器运行在固定的持久分区中，页面加载后 Electron 不允许更改分区。",
+  "settings.computerUse.browser.cookies.note":
+    "「直到我关闭 Tiancode」会在应用下一次启动时清除 Cookie、缓存和本地存储，而不是在关闭过程中清除：退出时 Electron 不会等待异步清除完成，放在那里有时会什么都不做。没有「从不保存」选项——集成浏览器运行在固定的持久分区中，页面加载后 Electron 不允许更改分区。",
   "settings.general.row.transcriptView.title": "对话视图",
   "settings.general.row.transcriptView.description": "每轮对话默认展开的程度；任何会话都可在“更多选项”中单独设置",
   "settings.general.row.transcriptView.option.normal": "标准",

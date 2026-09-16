@@ -59,6 +59,7 @@ export function ComposerModeButton(props: {
   return (
     <MenuV2 gutter={6} placement="top-start" modal={false}>
       <MenuV2.Trigger
+        data-action="composer-mode"
         disabled={disabled()}
         title={
           server().protocolKind() === "v2"
@@ -68,7 +69,10 @@ export function ComposerModeButton(props: {
         class="flex h-7 shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-1.5 text-xs text-v2-text-text-muted hover:bg-v2-overlay-simple-overlay-hover disabled:opacity-50"
         aria-label={language.t("composer.mode.title")}
       >
-        {language.t(`composer.mode.${mode()}`)}
+        <span data-slot="mode-label">{language.t(`composer.mode.${mode()}`)}</span>
+        <span data-slot="mode-compact" aria-hidden="true">
+          ☷
+        </span>
         <span aria-hidden="true">⌄</span>
       </MenuV2.Trigger>
       <MenuV2.Portal>

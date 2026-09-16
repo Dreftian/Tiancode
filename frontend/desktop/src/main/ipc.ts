@@ -28,7 +28,17 @@ import type { UpdaterController } from "./updater-controller"
 import { createUpdaterSubscriptions } from "./updater-subscriptions"
 import { createDesktopDraftStore } from "./draft-store"
 import { nativeT } from "./native-translations"
-import { downloadVoices, deleteVoice, downloadVoice, getVoicesStatus, listVoices, selectVoice, setVoiceEnabled, speakVoice, speakFishVoice } from "./voices"
+import {
+  downloadVoices,
+  deleteVoice,
+  downloadVoice,
+  getVoicesStatus,
+  listVoices,
+  selectVoice,
+  setVoiceEnabled,
+  speakVoice,
+  speakFishVoice,
+} from "./voices"
 import { asrChunk, asrStart, asrStop, ensureAsrModel, getAsrStatus, resolveAsrLanguage } from "./asr"
 import { getRuntimeInstallState, installRuntime } from "./runtime-install"
 import { captureArea, captureLiveView, capturePreview, captureScreen, captureWindow } from "./capture"
@@ -37,7 +47,8 @@ import { registerPreviewViewIpc } from "./preview-view"
 import { registerPreviewAgentIpc } from "./preview-agent"
 import { registerWindowMirrorIpc } from "./window-mirror"
 import { registerDesktopPetIpc } from "./desktop-pet"
-import { COMPUTER_DENIED_KEY, COMPUTER_ENABLED_KEY, registerComputerUseIpc } from "./computer-use"
+import { COMPUTER_DENIED_KEY, COMPUTER_ENABLED_KEY, COMPUTER_RESTORE_KEY, registerComputerUseIpc } from "./computer-use"
+import { openInChrome } from "./chrome"
 
 // Apps "abrir con" que acepta open-path. En macOS y Linux el renderer envía
 // el nombre tal cual; en Windows envía el path resuelto por resolveAppPath
@@ -85,9 +96,10 @@ const RENDERER_SETTINGS_KEYS = new Set([
   // tiancode.json con la tool `edit`, y un freno que el agente edita no frena.
   COMPUTER_ENABLED_KEY,
   COMPUTER_DENIED_KEY,
-  // Cookies del navegador integrado: "always" | "session". El borrado real lo hace index.ts al
-  // arrancar (ver ahí por qué no al cerrar).
+  COMPUTER_RESTORE_KEY,
+  // Cookies del navegador integrado: "always" | "session". index.ts limpia al salir y al arrancar.
   WEBVIEW_RETENTION_KEY,
+  "browserLinkTarget",
 ])
 const UPDATER_KEYS = new Set(["ready"])
 
@@ -254,16 +266,16 @@ export function registerIpcHandlers(deps: Deps) {
   ipcMain.handle("voices-status", () => getVoicesStatus())
   ipcMain.handle("voices-download", () => downloadVoices())
   ipcMain.handle("voices-list", () => listVoices())
-  ipcMain.handle("voices-speak", (_event: IpcMainInvokeEvent, text: string, voiceId?: string, options?: { automatic?: boolean }) =>
-    speakVoice(text, voiceId, options),
+  ipcMain.handle(
+    "voices-speak",
+    (_event: IpcMainInvokeEvent, text: string, voiceId?: string, options?: { automatic?: boolean }) =>
+      speakVoice(text, voiceId, options),
   )
-  ipcMain.handle("voices-speak-fish", (
-    _event: IpcMainInvokeEvent,
-    text: string,
-    voiceId?: string,
-    apiKey?: string,
-    speed?: number,
-  ) => speakFishVoice(text, voiceId, apiKey, speed))
+  ipcMain.handle(
+    "voices-speak-fish",
+    (_event: IpcMainInvokeEvent, text: string, voiceId?: string, apiKey?: string, speed?: number) =>
+      speakFishVoice(text, voiceId, apiKey, speed),
+  )
   ipcMain.handle("voices-select", (_event: IpcMainInvokeEvent, voiceId: string) => selectVoice(voiceId))
   ipcMain.handle("voices-download-voice", (_event: IpcMainInvokeEvent, voiceId: string) => downloadVoice(voiceId))
   ipcMain.handle("voices-delete-voice", (_event: IpcMainInvokeEvent, voiceId: string) => deleteVoice(voiceId))
@@ -274,9 +286,7 @@ export function registerIpcHandlers(deps: Deps) {
   ipcMain.handle("asr-ensure-model", (_event: IpcMainInvokeEvent, language: unknown) =>
     ensureAsrModel(resolveAsrLanguage(language)),
   )
-  ipcMain.handle("asr-start", (_event: IpcMainInvokeEvent, language: unknown) =>
-    asrStart(resolveAsrLanguage(language)),
-  )
+  ipcMain.handle("asr-start", (_event: IpcMainInvokeEvent, language: unknown) => asrStart(resolveAsrLanguage(language)))
   ipcMain.on("asr-chunk", (event: IpcMainEvent, samples: Float32Array) => {
     if (event.senderFrame !== event.sender.mainFrame) return
     asrChunk(samples)
@@ -408,6 +418,7 @@ export function registerIpcHandlers(deps: Deps) {
     }
     openExternalURL(url)
   })
+  ipcMain.handle("open-in-chrome", (_event: IpcMainInvokeEvent, url: string) => openInChrome(url))
 
   ipcMain.on("open-local-file", (event: IpcMainEvent, url: string) => {
     if (isLiveViewPreviewUrl(url)) {
@@ -458,8 +469,10 @@ export function registerIpcHandlers(deps: Deps) {
 
   // Capturas para el chat (el modelo puede analizarlas vía un MCP de visión).
   ipcMain.handle("capture-screen", () => captureScreen())
-  ipcMain.handle("capture-area", (_event: IpcMainInvokeEvent, bounds: { x: number; y: number; width: number; height: number }) =>
-    captureArea(bounds),
+  ipcMain.handle(
+    "capture-area",
+    (_event: IpcMainInvokeEvent, bounds: { x: number; y: number; width: number; height: number }) =>
+      captureArea(bounds),
   )
   ipcMain.handle("capture-window", (event: IpcMainInvokeEvent) => captureWindow(event.sender))
   ipcMain.handle("capture-preview", (event: IpcMainInvokeEvent) => capturePreview(event.sender.id))

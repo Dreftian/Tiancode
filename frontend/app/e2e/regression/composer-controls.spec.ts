@@ -32,6 +32,26 @@ for (const width of [1000, 720, 520, 390]) {
     await expect(mode).toHaveCSS("white-space", "nowrap")
     await expect(composer.getByRole("button", { name: "Elegir agente", exact: true })).toHaveText("Build")
     await expect(composer.getByRole("button", { name: "Activar el modo rápido" })).toBeEnabled()
+    await composer.getByRole("button", { name: "Elegir variante del modelo" }).click()
+    await page.getByRole("menuitemradio", { name: "Ultracode", exact: true }).click()
+    const rowCenters = await composer.locator('[data-slot="prompt-controls"] button').evaluateAll((elements) =>
+      elements
+        .filter((element) => element.getBoundingClientRect().width > 0)
+        .map((element) => {
+          const box = element.getBoundingClientRect()
+          return box.top + box.height / 2
+        }),
+    )
+    expect(Math.max(...rowCenters) - Math.min(...rowCenters)).toBeLessThan(2)
+    const bounds = await composer.locator('[data-slot="prompt-controls"] button').evaluateAll((elements) =>
+      elements
+        .map((element) => element.getBoundingClientRect())
+        .filter((box) => box.width > 0)
+        .map((box) => ({ left: box.left, right: box.right })),
+    )
+    bounds.forEach((box, index) => {
+      if (index) expect(box.left, JSON.stringify(bounds)).toBeGreaterThanOrEqual(bounds[index - 1]!.right - 1)
+    })
     const overflow = await composer.evaluate((element) => {
       const parent = element.getBoundingClientRect()
       return [...element.querySelectorAll<HTMLElement>("button")]
@@ -69,7 +89,7 @@ for (const width of [1000, 720, 520, 390]) {
   })
 }
 
-test("offers exactly three primary agents and enables Fast on a non-native model", async ({ page }) => {
+test("offers exactly three primary agents and enables Fast on a non-native model", async ({ page }, testInfo) => {
   await setup(page)
   const composer = page.locator('[data-component="prompt-input-v2"]')
   const agents = composer.getByRole("button", { name: "Elegir agente", exact: true })
@@ -78,6 +98,9 @@ test("offers exactly three primary agents and enables Fast on a non-native model
   await expect(page.getByRole("menuitemradio")).toHaveText(["Build", "Plan", "Web App"])
   await page.getByRole("menuitemradio", { name: "Web App", exact: true }).click()
   await expect(agents).toHaveText("Web App")
+  await page.locator('[data-action="design-style-picker"]').click()
+  await page.screenshot({ path: testInfo.outputPath("design-directions.png") })
+  await page.getByRole("button", { name: "Espacio nocturno", exact: true }).click()
   const speed = composer.locator('[data-action="toggle-speed-mode-2x"]')
   await expect(speed).toBeEnabled()
   await speed.click()
@@ -97,6 +120,7 @@ test("offers exactly three primary agents and enables Fast on a non-native model
   expect(submitted[0]?.system).toContain("[TIANCODE FAST WORKFLOW]")
   expect(submitted[0]?.system).not.toContain("[TIANCODE_NATIVE_FAST]")
   expect(submitted[0]?.variant).toBe("max")
+  expect(submitted[0]?.system).toContain("Midnight workspace")
   await speed.click()
   await expect(speed).toHaveAttribute("aria-pressed", "false")
 })
@@ -106,8 +130,9 @@ test("loads the V1 specialist catalog and preserves it when a refresh fails", as
   await page.keyboard.press("Control+,")
   const dialog = page.locator(".settings-v2-dialog")
   await dialog.getByRole("tab", { name: "Sub-Agentes", exact: true }).click()
-  await expect(dialog.getByText("8 sub-agentes nativos", { exact: true })).toBeVisible()
-  await expect(dialog.getByText("1 sub-agentes propios", { exact: true })).toBeVisible()
+  await expect(dialog.getByText("5 sub-agentes nativos", { exact: true })).toBeVisible()
+  await expect(dialog.getByText("Sub-agentes de usuario", { exact: true })).toHaveCount(0)
+  await expect(dialog.getByRole("button", { name: "Crear manualmente", exact: true })).toHaveCount(0)
   const search = dialog.getByPlaceholder("Buscar sub-agentes", { exact: true })
   await search.fill("marketing-strategist")
   await expect(dialog.locator(".settings-v2-subagents-row")).toContainText("Marketing")
@@ -118,8 +143,68 @@ test("loads the V1 specialist catalog and preserves it when a refresh fails", as
   )
   await dialog.getByRole("button", { name: "Global", exact: true }).click()
   await expect(dialog.getByRole("alert")).toContainText("No se pudo cargar")
-  await expect(dialog.getByText("8 sub-agentes nativos", { exact: true })).toBeVisible()
+  await expect(dialog.getByText("5 sub-agentes nativos", { exact: true })).toBeVisible()
   await page.screenshot({ path: testInfo.outputPath("subagents-retained.png") })
+})
+
+test("only confirms disconnect after saving and keeps a stale provider catalog disconnected after reload", async ({
+  page,
+}) => {
+  await setup(page)
+  let rejectSave = true
+  let disabled: string[] = []
+  let removedAuth = 0
+  await page.route(
+    (url) => url.pathname === "/global/config",
+    async (route) => {
+      if (route.request().method() === "PATCH") {
+        if (rejectSave) return route.fulfill({ status: 500, json: { message: "Storage unavailable" } })
+        disabled = route.request().postDataJSON().disabled_providers
+      }
+      await route.fulfill({ json: { disabled_providers: disabled } })
+    },
+  )
+  await page.route(
+    (url) => url.pathname === "/provider",
+    (route) =>
+      route.fulfill({
+        json: {
+          all: [{ id: "xkiro", name: "xKiro", source: "config", models: {} }],
+          connected: ["xkiro"],
+          default: {},
+        },
+      }),
+  )
+  await page.route(
+    (url) => url.pathname === "/auth/xkiro",
+    async (route) => {
+      removedAuth++
+      await route.fulfill({ json: true })
+    },
+  )
+  await page.reload()
+  await expect(page.getByRole("heading", { name: "Composer controls", exact: true })).toBeVisible()
+  await page.keyboard.press("Control+,")
+  const dialog = page.locator(".settings-v2-dialog")
+  await dialog.getByRole("tab", { name: "Proveedores", exact: true }).click()
+  const provider = dialog
+    .locator('[data-component="connected-providers-section"] .settings-v2-provider-row')
+    .filter({ hasText: "xKiro" })
+  await provider.getByRole("button", { name: "Desconectar", exact: true }).click()
+  await expect(provider).toBeVisible()
+  expect(disabled).toEqual([])
+  expect(removedAuth).toBe(0)
+  await expect(page.getByText("xKiro desconectado", { exact: true })).toHaveCount(0)
+  rejectSave = false
+  await provider.getByRole("button", { name: "Desconectar", exact: true }).click()
+  await expect.poll(() => removedAuth).toBe(1)
+  await expect(provider).toHaveCount(0)
+  expect(disabled).toContain("xkiro")
+  await page.reload()
+  await expect(page.getByRole("heading", { name: "Composer controls", exact: true })).toBeVisible()
+  await page.keyboard.press("Control+,")
+  await dialog.getByRole("tab", { name: "Proveedores", exact: true }).click()
+  await expect(provider).toHaveCount(0)
 })
 
 async function setup(page: Page) {
@@ -179,8 +264,8 @@ async function setup(page: Page) {
     localStorage.setItem("tiancode.first_launch.completed", version)
     localStorage.setItem("tiancode.global.dat:language", JSON.stringify({ locale: "es" }))
     localStorage.setItem("tiancode-color-scheme", "dark")
-      if (!localStorage.getItem("settings.v3"))
-        localStorage.setItem("settings.v3", JSON.stringify({ general: { newLayoutDesigns: true } }))
+    if (!localStorage.getItem("settings.v3"))
+      localStorage.setItem("settings.v3", JSON.stringify({ general: { newLayoutDesigns: true } }))
   }, process.env.VITE_TIANCODE_VERSION ?? appPackage.version)
   const server = `http://${process.env.PLAYWRIGHT_SERVER_HOST ?? "127.0.0.1"}:${process.env.PLAYWRIGHT_SERVER_PORT ?? "4096"}`
   await page.goto(`/server/${base64Encode(server)}/session/${sessionID}`)

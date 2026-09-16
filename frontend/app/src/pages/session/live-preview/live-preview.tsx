@@ -22,7 +22,12 @@ import {
   type PreviewAction,
 } from "./live-preview-url"
 import { buildPreviewAgentScript, type PreviewAgentAction } from "./preview-agent-script"
-import { PREVIEW_RETRY_MAX_ATTEMPTS, isRetryablePreviewLoadFailure, previewRetryDelay, samePreviewUrl } from "./live-preview-retry"
+import {
+  PREVIEW_RETRY_MAX_ATTEMPTS,
+  isRetryablePreviewLoadFailure,
+  previewRetryDelay,
+  samePreviewUrl,
+} from "./live-preview-retry"
 import { iframePreviewUrl, usesIframePreview } from "./live-preview-transport"
 import { orientedPreviewDimensions } from "./preview-experience"
 import {
@@ -123,7 +128,12 @@ function desktopClipboardApi() {
 function desktopComputerApi() {
   return (
     window as unknown as {
-      api?: { computer?: { perform?: (action: DesktopBridgeAction) => Promise<{ ok: boolean; output: string }> } }
+      api?: {
+        computer?: {
+          perform?: (action: DesktopBridgeAction) => Promise<{ ok: boolean; output: string }>
+          stop?: () => Promise<unknown>
+        }
+      }
     }
   ).api?.computer
 }
@@ -172,8 +182,10 @@ type PreviewIssue = {
 const CUSTOM_MIN = 80
 const CUSTOM_MAX = 4096
 const HIDDEN_PREVIEW_BOUNDS = { x: 0, y: 0, width: 0, height: 0 }
-const IFRAME_SANDBOX = "allow-scripts allow-same-origin allow-forms allow-modals allow-downloads allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-top-navigation-by-user-activation allow-storage-access-by-user-activation"
-const IFRAME_ALLOW = "accelerometer; autoplay; camera; clipboard-read; clipboard-write; display-capture; encrypted-media; fullscreen; gamepad; geolocation; gyroscope; hid; microphone; midi; payment; picture-in-picture; screen-wake-lock; usb; web-share"
+const IFRAME_SANDBOX =
+  "allow-scripts allow-same-origin allow-forms allow-modals allow-downloads allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-top-navigation-by-user-activation allow-storage-access-by-user-activation"
+const IFRAME_ALLOW =
+  "accelerometer; autoplay; camera; clipboard-read; clipboard-write; display-capture; encrypted-media; fullscreen; gamepad; geolocation; gyroscope; hid; microphone; midi; payment; picture-in-picture; screen-wake-lock; usb; web-share"
 
 export function isBlankPreviewUrl(url: string | undefined) {
   return !url || url.startsWith("about:blank")
@@ -464,7 +476,13 @@ export function LivePreview(props: {
 
       const handleMouseOver = (e: MouseEvent) => {
         const target = e.target as HTMLElement | null
-        if (!target || target === overlay || overlay.contains(target) || target === doc.body || target === doc.documentElement) {
+        if (
+          !target ||
+          target === overlay ||
+          overlay.contains(target) ||
+          target === doc.body ||
+          target === doc.documentElement
+        ) {
           return
         }
         const rect = target.getBoundingClientRect()
@@ -618,13 +636,14 @@ export function LivePreview(props: {
     return 8
   }
 
-  const previewViewport = () => fittedPreviewViewport(availableViewport(), deviceSize() ?? undefined, previewZoom(), deviceFrame())
+  const previewViewport = () =>
+    fittedPreviewViewport(availableViewport(), deviceSize() ?? undefined, previewZoom(), deviceFrame())
 
   const measureViewport = () => {
     if (!container) return
     const rect = container.getBoundingClientRect()
     const next = { width: Math.round(rect.width), height: Math.round(rect.height) }
-    setAvailableViewport((current) => current.width === next.width && current.height === next.height ? current : next)
+    setAvailableViewport((current) => (current.width === next.width && current.height === next.height ? current : next))
   }
 
   // Bounds del WebContentsView: rect del contenedor real del panel, o el
@@ -666,13 +685,16 @@ export function LivePreview(props: {
       return
     }
     lastBounds = key
-    void view.setBounds(bounds).then(() => {
-      if (!previewMounted) return
-      boundsReady = true
-      revealPreview()
-    }).catch(() => {
-      lastBounds = undefined
-    })
+    void view
+      .setBounds(bounds)
+      .then(() => {
+        if (!previewMounted) return
+        boundsReady = true
+        revealPreview()
+      })
+      .catch(() => {
+        lastBounds = undefined
+      })
   }
 
   const queueBounds = () => {
@@ -813,7 +835,8 @@ export function LivePreview(props: {
           win.addEventListener("unhandledrejection", (event: unknown) => {
             const ev = event as PromiseRejectionEvent
             const reason = ev.reason as unknown
-            const reasonRecord = typeof reason === "object" && reason !== null ? (reason as Record<string, unknown>) : undefined
+            const reasonRecord =
+              typeof reason === "object" && reason !== null ? (reason as Record<string, unknown>) : undefined
             const errorMsg =
               (reasonRecord?.message as string | undefined) ||
               String(reason || language.t("livePreview.issue.unhandledRejection"))
@@ -828,7 +851,13 @@ export function LivePreview(props: {
           win.console.error = (...args: unknown[]) => {
             origConsoleError.apply(win.console, args)
             const text = args
-              .map((arg) => (typeof arg === "string" ? arg : arg instanceof Error ? `${arg.name}: ${arg.message}\n${arg.stack || ""}` : JSON.stringify(arg)))
+              .map((arg) =>
+                typeof arg === "string"
+                  ? arg
+                  : arg instanceof Error
+                    ? `${arg.name}: ${arg.message}\n${arg.stack || ""}`
+                    : JSON.stringify(arg),
+              )
               .join(" ")
             if (
               text.includes("Uncaught") ||
@@ -854,7 +883,9 @@ export function LivePreview(props: {
                 const listeners = ipcListeners.get(channel)
                 if (listeners) {
                   listeners.forEach((fn) => {
-                    try { fn({}, ...args) } catch {}
+                    try {
+                      fn({}, ...args)
+                    } catch {}
                   })
                 }
               },
@@ -874,7 +905,8 @@ export function LivePreview(props: {
               invoke: async (channel: string, ...args: any[]) => {
                 if (channel === "get-version" || channel === "app:get-version") return "1.0.0"
                 if (channel === "get-platform" || channel === "app:get-platform") return "win32"
-                if (channel === "dialog:openFile" || channel === "dialog:showOpenDialog") return { canceled: false, filePaths: [] }
+                if (channel === "dialog:openFile" || channel === "dialog:showOpenDialog")
+                  return { canceled: false, filePaths: [] }
                 if (channel === "dialog:showSaveDialog") return { canceled: false, filePath: "output.txt" }
                 if (channel === "clipboard:readText") return navigator.clipboard?.readText?.() ?? ""
                 if (channel === "clipboard:writeText") {
@@ -974,13 +1006,13 @@ export function LivePreview(props: {
             { id: 1, title: "Google", url: "https://www.google.com", createdAt: Date.now() - 3600000 },
             { id: 2, title: "GitHub", url: "https://github.com", createdAt: Date.now() - 7200000 },
           ]
-          const historyList = [
-            { id: 1, title: "Google", url: "https://www.google.com", visitedAt: Date.now() - 1000 },
-          ]
+          const historyList = [{ id: 1, title: "Google", url: "https://www.google.com", visitedAt: Date.now() - 1000 }]
           const stateListeners = new Set<(s: typeof mockState) => void>()
           const notifyListeners = () => {
             stateListeners.forEach((fn) => {
-              try { fn({ ...mockState, tabs: [...mockState.tabs] }) } catch {}
+              try {
+                fn({ ...mockState, tabs: [...mockState.tabs] })
+              } catch {}
             })
           }
 
@@ -990,7 +1022,9 @@ export function LivePreview(props: {
             onState: (cb: (s: typeof mockState) => void) => {
               stateListeners.add(cb)
               setTimeout(() => {
-                try { cb({ ...mockState, tabs: [...mockState.tabs] }) } catch {}
+                try {
+                  cb({ ...mockState, tabs: [...mockState.tabs] })
+                } catch {}
               }, 10)
               return () => stateListeners.delete(cb)
             },
@@ -1055,7 +1089,11 @@ export function LivePreview(props: {
               const tab = mockState.tabs.find((t) => t.id === id)
               if (!tab) return
               let targetUrl = input.trim()
-              if (!targetUrl.startsWith("http://") && !targetUrl.startsWith("https://") && !targetUrl.startsWith("about:")) {
+              if (
+                !targetUrl.startsWith("http://") &&
+                !targetUrl.startsWith("https://") &&
+                !targetUrl.startsWith("about:")
+              ) {
                 if (targetUrl.includes(".") && !targetUrl.includes(" ")) {
                   targetUrl = "https://" + targetUrl
                 } else {
@@ -1141,7 +1179,10 @@ export function LivePreview(props: {
               }
             },
             runCleaner: async () => ({ freedMb: 142 }),
-            smartHomeStatus: async () => ({ connected: true, devices: [{ id: "dev-1", name: "Estudio Inteligente", state: "on" }] }),
+            smartHomeStatus: async () => ({
+              connected: true,
+              devices: [{ id: "dev-1", name: "Estudio Inteligente", state: "on" }],
+            }),
             smartHomeTest: async () => true,
             setChromeHeight: () => {},
           }
@@ -1630,6 +1671,21 @@ export function LivePreview(props: {
     // it is on the wrong build rather than telling it to open a panel that does not exist here.
     const capable = !!agent
     let stopped = false
+    let usedComputer = false
+    const stopIdleControl = sdk().event.on("session.status", (event) => {
+      if (!usedComputer || event.properties.status.type !== "idle") return
+      // A desktop control session is shared by the process. Do not interrupt another
+      // provider turn that is still working when one conversation becomes idle.
+      void sdk()
+        .client.session.status()
+        .then(async (result) => {
+          if (!usedComputer || !result.data || Object.values(result.data).some((status) => status.type !== "idle"))
+            return
+          usedComputer = false
+          await desktopComputerApi()?.stop?.()
+        })
+        .catch(() => undefined)
+    })
 
     const runDesktopCommand = async (action: DesktopBridgeAction): Promise<{ ok: boolean; output: string }> => {
       if (action.type === "capture") {
@@ -1644,8 +1700,11 @@ export function LivePreview(props: {
       }
       if (action.type === "computer") {
         const computer = desktopComputerApi()
-        if (!computer?.perform) return { ok: false, output: "El control del ordenador no está disponible en esta sesión." }
-        return await computer.perform(action)
+        if (!computer?.perform)
+          return { ok: false, output: "El control del ordenador no está disponible en esta sesión." }
+        const result = await computer.perform(action)
+        usedComputer ||= result.ok
+        return result
       }
       const clipboard = desktopClipboardApi()
       if (action.type === "clipboard_read") {
@@ -1727,6 +1786,7 @@ export function LivePreview(props: {
     void loop()
     return () => {
       stopped = true
+      stopIdleControl()
     }
   }
 
@@ -2120,7 +2180,10 @@ export function LivePreview(props: {
     { id: "laptop" as const, label: devicePreset("laptop", language.t("livePreview.device.laptop")) },
     { id: "tablet" as const, label: devicePreset("tablet", "iPad Air/Pro") },
     { id: "tabletCompact" as const, label: devicePreset("tabletCompact", "iPad Mini") },
-    { id: "androidTablet" as const, label: devicePreset("androidTablet", language.t("livePreview.device.androidTablet")) },
+    {
+      id: "androidTablet" as const,
+      label: devicePreset("androidTablet", language.t("livePreview.device.androidTablet")),
+    },
     { id: "mobile" as const, label: devicePreset("mobile", "iPhone 16 / 15 Pro") },
     { id: "mobileMax" as const, label: devicePreset("mobileMax", "iPhone 16 / 15 Pro Max") },
     { id: "androidPhone" as const, label: devicePreset("androidPhone", language.t("livePreview.device.android")) },
@@ -2131,7 +2194,10 @@ export function LivePreview(props: {
 
   const setCustomDimension = (axis: "width" | "height", value: string) => {
     const parsed = Number.parseInt(value, 10)
-    setCustomSize((size) => ({ ...size, [axis]: Number.isFinite(parsed) ? clamp(parsed, CUSTOM_MIN, CUSTOM_MAX) : size[axis] }))
+    setCustomSize((size) => ({
+      ...size,
+      [axis]: Number.isFinite(parsed) ? clamp(parsed, CUSTOM_MIN, CUSTOM_MAX) : size[axis],
+    }))
   }
 
   const statusInput = () => ({
@@ -2174,9 +2240,7 @@ export function LivePreview(props: {
   const buildLabel = () => {
     if (devServer()?.status === "starting") return language.t("livePreview.starting")
     const trigger = buildTrigger()
-    return trigger
-      ? language.t("livePreview.buildingFile", { file: trigger })
-      : language.t("livePreview.building")
+    return trigger ? language.t("livePreview.buildingFile", { file: trigger }) : language.t("livePreview.building")
   }
 
   /** The whole path, for the tooltip: the chip itself only has room for the file name. */
@@ -2304,7 +2368,14 @@ export function LivePreview(props: {
               </span>
             )}
           </Show>
-          <Show when={!isBuilding() && !props.activeEditFile?.() && devServer()?.build?.ok === true && devServer()?.build?.durationMs}>
+          <Show
+            when={
+              !isBuilding() &&
+              !props.activeEditFile?.() &&
+              devServer()?.build?.ok === true &&
+              devServer()?.build?.durationMs
+            }
+          >
             {(duration) => (
               <span
                 class="shrink-0 text-11-regular text-v2-text-text-faint tabular-nums"
@@ -2401,7 +2472,11 @@ export function LivePreview(props: {
           <ToolButton title={language.t("livePreview.zoomIn")} onClick={() => zoomStep(1)}>
             +
           </ToolButton>
-          <ToolButton pressed={previewViewport().mode === "auto"} title={language.t("livePreview.zoomAuto")} onClick={setAutoZoom}>
+          <ToolButton
+            pressed={previewViewport().mode === "auto"}
+            title={language.t("livePreview.zoomAuto")}
+            onClick={setAutoZoom}
+          >
             {language.t("livePreview.fit")}
           </ToolButton>
         </div>
@@ -2587,11 +2662,12 @@ export function LivePreview(props: {
             >
               <div
                 class={`relative shrink-0 overflow-hidden bg-white ${
-                  deviceSize()
-                    ? "border border-black/70 shadow-[0_12px_40px_rgba(0,0,0,0.35)]"
-                    : "size-full"
+                  deviceSize() ? "border border-black/70 shadow-[0_12px_40px_rgba(0,0,0,0.35)]" : "size-full"
                 } ${
-                  deviceId() === "mobile" || deviceId() === "mobileMax" || deviceId() === "mobileCompact" || deviceId() === "androidPhone"
+                  deviceId() === "mobile" ||
+                  deviceId() === "mobileMax" ||
+                  deviceId() === "mobileCompact" ||
+                  deviceId() === "androidPhone"
                     ? "rounded-[1.8rem] ring-4 ring-neutral-800"
                     : deviceId() === "tablet" || deviceId() === "tabletCompact" || deviceId() === "androidTablet"
                       ? "rounded-2xl ring-4 ring-neutral-800"
@@ -2604,16 +2680,28 @@ export function LivePreview(props: {
                 style={previewFrameStyle()}
               >
                 <Show when={deviceId() === "mobile" || deviceId() === "mobileMax"}>
-                  <div class="pointer-events-none absolute left-1/2 top-1.5 z-10 h-2 w-16 -translate-x-1/2 rounded-full bg-black/90 shadow-sm" aria-hidden="true" />
+                  <div
+                    class="pointer-events-none absolute left-1/2 top-1.5 z-10 h-2 w-16 -translate-x-1/2 rounded-full bg-black/90 shadow-sm"
+                    aria-hidden="true"
+                  />
                 </Show>
                 <Show when={deviceId() === "mobileCompact"}>
-                  <div class="pointer-events-none absolute left-1/2 top-1 z-10 h-1.5 w-12 -translate-x-1/2 rounded-full bg-black/80" aria-hidden="true" />
+                  <div
+                    class="pointer-events-none absolute left-1/2 top-1 z-10 h-1.5 w-12 -translate-x-1/2 rounded-full bg-black/80"
+                    aria-hidden="true"
+                  />
                 </Show>
                 <Show when={deviceId() === "androidPhone"}>
-                  <div class="pointer-events-none absolute left-1/2 top-1.5 z-10 h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-black ring-1 ring-neutral-700" aria-hidden="true" />
+                  <div
+                    class="pointer-events-none absolute left-1/2 top-1.5 z-10 h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-black ring-1 ring-neutral-700"
+                    aria-hidden="true"
+                  />
                 </Show>
                 <Show when={deviceId() === "tv"}>
-                  <div class="pointer-events-none absolute bottom-0.5 left-1/2 z-10 h-1 w-6 -translate-x-1/2 rounded-full bg-neutral-600/60" aria-hidden="true" />
+                  <div
+                    class="pointer-events-none absolute bottom-0.5 left-1/2 z-10 h-1 w-6 -translate-x-1/2 rounded-full bg-neutral-600/60"
+                    aria-hidden="true"
+                  />
                 </Show>
                 <For each={frames().filter((frame) => frame.url === target)}>
                   {(frame) => (
@@ -2664,12 +2752,26 @@ export function LivePreview(props: {
                   classList={{ "flex-1": !showLogTail(), "shrink-0 pb-4": showLogTail() }}
                 >
                   <span>{previewPlaceholder()}</span>
-                  <Show when={devServer()?.status === "idle" || devServer()?.status === "stopped" || devServer()?.status === "error"}>
+                  <Show
+                    when={
+                      devServer()?.status === "idle" ||
+                      devServer()?.status === "stopped" ||
+                      devServer()?.status === "error"
+                    }
+                  >
                     <div class="flex items-center gap-2">
                       <ButtonV2
                         type="button"
                         variant="contrast"
-                        onClick={() => void devServerAction(devServer()?.status === "stopped" ? "start" : devServer()?.status === "error" ? "restart" : "start")}
+                        onClick={() =>
+                          void devServerAction(
+                            devServer()?.status === "stopped"
+                              ? "start"
+                              : devServer()?.status === "error"
+                                ? "restart"
+                                : "start",
+                          )
+                        }
                       >
                         {devServer()?.status === "error"
                           ? language.t("livePreview.retry")
@@ -2709,7 +2811,9 @@ export function LivePreview(props: {
                       </span>
                       <div class="min-w-0">
                         <div class="flex flex-wrap items-center gap-2">
-                          <span class="text-13-medium text-v2-text-text-base">{language.t("livePreview.desktop.title")}</span>
+                          <span class="text-13-medium text-v2-text-text-base">
+                            {language.t("livePreview.desktop.title")}
+                          </span>
                           <span class="rounded bg-v2-state-bg-info px-1.5 py-0.5 text-[10px] font-semibold uppercase text-v2-state-fg-info">
                             {devServer()?.framework || language.t("livePreview.desktop.badge")}
                           </span>
@@ -2754,7 +2858,9 @@ export function LivePreview(props: {
                             <ButtonV2
                               type="button"
                               variant="contrast"
-                              onClick={() => void devServerAction(devServer()?.status === "error" ? "restart" : "start")}
+                              onClick={() =>
+                                void devServerAction(devServer()?.status === "error" ? "restart" : "start")
+                              }
                             >
                               {devServer()?.status === "error"
                                 ? language.t("livePreview.retry")
@@ -2762,7 +2868,12 @@ export function LivePreview(props: {
                             </ButtonV2>
                           }
                         >
-                          <ButtonV2 type="button" size="small" variant="danger" onClick={() => void devServerAction("stop")}>
+                          <ButtonV2
+                            type="button"
+                            size="small"
+                            variant="danger"
+                            onClick={() => void devServerAction("stop")}
+                          >
                             {language.t("common.cancel")}
                           </ButtonV2>
                         </Show>
@@ -2813,11 +2924,21 @@ export function LivePreview(props: {
                         {mirrorTitle() ?? language.t("livePreview.mirror.window")}
                       </span>
                       <span class="shrink-0 text-[10px]">{language.t("livePreview.mirror.viewOnly")}</span>
-                      <ButtonV2 type="button" size="small" variant="ghost-muted" onClick={() => void openMirrorPicker()}>
+                      <ButtonV2
+                        type="button"
+                        size="small"
+                        variant="ghost-muted"
+                        onClick={() => void openMirrorPicker()}
+                      >
                         {language.t("livePreview.mirror.choose")}
                       </ButtonV2>
                       <Show when={mirrorFrame()}>
-                        <ButtonV2 type="button" size="small" variant="ghost-muted" onClick={() => void captureMirrorFrame()}>
+                        <ButtonV2
+                          type="button"
+                          size="small"
+                          variant="ghost-muted"
+                          onClick={() => void captureMirrorFrame()}
+                        >
                           {language.t("liveView.capture")}
                         </ButtonV2>
                       </Show>
@@ -2875,7 +2996,12 @@ export function LivePreview(props: {
                                 >
                                   <Show when={source.thumb}>
                                     {(thumb) => (
-                                      <img src={thumb()} alt="" class="h-20 w-full rounded object-cover" draggable={false} />
+                                      <img
+                                        src={thumb()}
+                                        alt=""
+                                        class="h-20 w-full rounded object-cover"
+                                        draggable={false}
+                                      />
                                     )}
                                   </Show>
                                   <span class="truncate text-[10px] text-v2-text-text-base" title={source.name}>
@@ -2934,11 +3060,11 @@ export function LivePreview(props: {
                 <div class="min-h-0 flex-1 overflow-y-auto pt-2 font-mono text-[11px] leading-relaxed text-v2-text-text-base">
                   <Show
                     when={serverLogs().length > 0}
-                    fallback={<div class="text-v2-text-text-muted italic">{language.t("livePreview.console.empty")}</div>}
+                    fallback={
+                      <div class="text-v2-text-text-muted italic">{language.t("livePreview.console.empty")}</div>
+                    }
                   >
-                    <For each={serverLogs()}>
-                      {(line) => <div class="whitespace-pre-wrap break-all">{line}</div>}
-                    </For>
+                    <For each={serverLogs()}>{(line) => <div class="whitespace-pre-wrap break-all">{line}</div>}</For>
                   </Show>
                 </div>
               </div>
@@ -2946,7 +3072,6 @@ export function LivePreview(props: {
           </div>
         </Show>
       </div>
-
     </div>
   )
 }
