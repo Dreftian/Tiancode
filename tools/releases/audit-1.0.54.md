@@ -23,7 +23,7 @@ La dirección visual seleccionada se persiste y acompaña el envío real al back
 | Escritorio, suite completa | 173 pasan, 0 fallan |
 | Backend, módulo de proveedores | 100 pasan, 0 fallan; timeout de 30 s por caso en Windows |
 | Compositor, especialistas y desconexión en Chromium | 7 pasan, 0 fallan; compilación de producción, servidor HTTP aislado y respuestas API controladas |
-| Tipos de aplicación, escritorio y E2E | Sin errores |
+| Tipos de aplicación, escritorio y E2E | Sin errores; verificación de publicación: 27 paquetes correctos de 27 |
 | Análisis estático de aplicación | 0 errores, 157 advertencias |
 | Análisis estático de escritorio | 0 errores, 25 advertencias |
 | Website | 12 documentos HTML; sin destinos locales ni anclas rotas, revisión visual móvil y navegación a novedades |
@@ -65,3 +65,7 @@ La compilación de producción terminó correctamente. Se comprobaron la versió
 | Tiancode-portable.exe | 345061102 | `52c35d9f93552806b0184119a3b87bb143394f2a1657f777154cd276c3df7864` |
 | Tiancode.exe.blockmap | 350040 | `5cd1c10b2295440489ac8b8c39a10c22c301728af9dc9580e9fb47000195078e` |
 | latest.yml | 322 | `32d7726e89fb4961db278f3794504dd14033a58a2f8210b6780ba218fd1623be` |
+
+La [release v1.0.54](https://github.com/Dreftian/Tiancode/releases/tag/v1.0.54) quedó publicada como versión predeterminada, con los cuatro tamaños y huellas SHA-256 confirmados por GitHub. Su código corresponde al commit `0d576285`. La web se publicó desde `Dreftian/Tiancode-web`, commit `d0a157827f28f860125d812f56fcadd859a04175`; Vercel confirmó el despliegue de producción y la página pública devolvió HTTP 200 con la versión 1.0.54 y el contenido nuevo.
+
+La instalación existente 1.0.53 detectó 1.0.54, terminó de descargarla y pasó al estado `ready`. La interfaz mostró **Instalar y reiniciar**. El archivo descargado coincide con el SHA-256 del instalador publicado. No se ejecutó la instalación ni se reinició una aplicación en uso. La descarga diferencial recibió HTTP 501 y el actualizador completó automáticamente la descarga íntegra verificada; ese intento fallido no dejó la actualización pendiente de descarga.
