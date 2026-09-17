@@ -43,7 +43,7 @@ import {
 import { asrChunk, asrStart, asrStop, ensureAsrModel, getAsrStatus, resolveAsrLanguage } from "./asr"
 import { getRuntimeInstallState, installRuntime } from "./runtime-install"
 import { captureArea, captureLiveView, capturePreview, captureScreen, captureWindow } from "./capture"
-import { backupNow, listBackups, restoreBackup } from "./backup"
+import { backupNow, deleteBackup, listBackups, restoreBackup } from "./backup"
 import { registerPreviewViewIpc } from "./preview-view"
 import { registerPreviewAgentIpc } from "./preview-agent"
 import { registerWindowMirrorIpc } from "./window-mirror"
@@ -516,6 +516,7 @@ export function registerIpcHandlers(deps: Deps) {
   ipcMain.handle("backup-now", () => backupNow())
   ipcMain.handle("backup-list", () => listBackups())
   ipcMain.handle("backup-restore", (_event: IpcMainInvokeEvent, name: string) => restoreBackup(name))
+  ipcMain.handle("backup-delete", (_event: IpcMainInvokeEvent, name: string) => deleteBackup(name))
 
   ipcMain.handle("get-window-id", (event: IpcMainInvokeEvent) => {
     const win = BrowserWindow.fromWebContents(event.sender)

@@ -119,6 +119,18 @@ export const ModelEngineStartInput = Schema.Struct({
   gpuLayers: Schema.optional(Schema.Number),
   contextSize: Schema.optional(Schema.Number),
   port: Schema.optional(Schema.Number),
+  // Advanced load parameters (same vocabulary as LM Studio's per-model load settings).
+  batchSize: Schema.optional(Schema.Number),
+  flashAttention: Schema.optional(Schema.Boolean),
+  kvCacheType: Schema.optional(Schema.Literals(["f16", "q8_0", "q4_0"])),
+  keepInMemory: Schema.optional(Schema.Boolean),
+  useMmap: Schema.optional(Schema.Boolean),
+  seed: Schema.optional(Schema.Number),
+  threads: Schema.optional(Schema.Number),
+  ropeFrequencyBase: Schema.optional(Schema.Number),
+  ropeFrequencyScale: Schema.optional(Schema.Number),
+  kvOffload: Schema.optional(Schema.Boolean),
+  parallel: Schema.optional(Schema.Number),
 })
 
 export const ModelHubApi = HttpApi.make("model-hub")

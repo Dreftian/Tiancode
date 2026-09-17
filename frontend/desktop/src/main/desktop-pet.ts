@@ -1,5 +1,6 @@
 import { app, BrowserWindow, screen, Notification, ipcMain } from "electron"
 import { readFileSync } from "node:fs"
+import { write } from "./logging"
 import { join } from "node:path"
 
 function safeScriptJson(value: unknown): string {
@@ -47,8 +48,12 @@ function mascotFor(kind: string) {
   return MASCOT_KINDS.includes(kind) ? kind : undefined
 }
 
-function mascotsDir() {
-  return app.isPackaged ? join(process.resourcesPath, "mascots") : join(__dirname, "../../../ui/src/components/mascots")
+// Candidate folders for the sprite sheets: extraResources next to the app, the copy inside
+// app.asar (scripts/copy-mascots.ts) and, in development, the source folder in frontend/ui.
+function mascotsDirs() {
+  const packaged = [join(process.resourcesPath, "mascots"), join(__dirname, "mascots")]
+  const source = join(__dirname, "../../../ui/src/components/mascots")
+  return app.isPackaged ? [...packaged, source] : [source, ...packaged]
 }
 
 export function sheetsFor(kind: string): MascotSheets | null {
@@ -56,16 +61,20 @@ export function sheetsFor(kind: string): MascotSheets | null {
   if (!name) return null
   const cached = sheetCache.get(name)
   if (cached !== undefined) return cached
-  try {
-    const dir = mascotsDir()
-    const read = (file: string) => `data:image/webp;base64,${readFileSync(join(dir, file)).toString("base64")}`
-    const sheets = { directions: read(`${name}-directions.webp`), reactions: read(`${name}-reactions.webp`) }
-    sheetCache.set(name, sheets)
-    return sheets
-  } catch {
-    sheetCache.set(name, null)
-    return null
+  const dirs = mascotsDirs()
+  for (const dir of dirs) {
+    try {
+      const read = (file: string) => `data:image/webp;base64,${readFileSync(join(dir, file)).toString("base64")}`
+      const sheets = { directions: read(`${name}-directions.webp`), reactions: read(`${name}-reactions.webp`) }
+      sheetCache.set(name, sheets)
+      return sheets
+    } catch {
+      // try the next folder
+    }
   }
+  write("pet", "mascot sheets not found", { kind: name, dirs }, "warn")
+  sheetCache.set(name, null)
+  return null
 }
 
 // Clockwise from the right, matching atan2 with y pointing down; values are cells of the
@@ -188,7 +197,7 @@ function getPetSvg(kind: DesktopPetKind): string {
   }
 }
 
-function getPetHtml(state: DesktopPetState): string {
+export function getPetHtml(state: DesktopPetState): string {
   // Todas las caras SVG se embeben como JSON para que la ventana reciba solo mensajes de estado y
   // nunca vuelva a recargar el HTML (cada loadURL provocaba un parpadeo visible en cada cambio).
   // Los personajes de page-mascot llegan como dos hojas WebP en data URIs dentro del propio estado.
@@ -389,7 +398,8 @@ function getPetHtml(state: DesktopPetState): string {
     </div>
   </div>
   <script>
-    const petApi = window.petApi
+    (function () {
+    const bridge = window.petApi
     const svgs = ${safeScriptJson(svgRecord)}
     const container = document.getElementById("container")
     const bubbleText = document.getElementById("bubbleText")
@@ -530,23 +540,23 @@ function getPetHtml(state: DesktopPetState): string {
       e.stopPropagation()
       boop()
       burstHearts()
-      petApi?.sendAction("pet")
+      bridge?.sendAction("pet")
     })
     document.getElementById("avatar").addEventListener("dblclick", (e) => {
       e.stopPropagation()
-      petApi?.sendAction("focus-main")
+      bridge?.sendAction("focus-main")
     })
-    document.getElementById("bubble").addEventListener("click", () => petApi?.sendAction("focus-main"))
+    document.getElementById("bubble").addEventListener("click", () => bridge?.sendAction("focus-main"))
     document.getElementById("closeBtn").addEventListener("click", (e) => {
       e.stopPropagation()
-      petApi?.sendAction("hide")
+      bridge?.sendAction("hide")
     })
 
-    petApi?.onSync((state) => applyState(state))
+    bridge?.onSync((state) => applyState(state))
     // "pet-burst" trae solo la ráfaga de corazones (una caricia desde la app).
-    petApi?.onBurst(() => { burstHearts(); if (mood === "idle") boop() })
+    bridge?.onBurst(() => { burstHearts(); if (mood === "idle") boop() })
     // El proceso principal sigue el cursor por toda la pantalla y manda hacia dónde mirar.
-    petApi?.onLook?.((index) => {
+    bridge?.onLook?.((index) => {
       if (mood !== "idle" || reaction !== null) return
       if (direction === index) return
       direction = index
@@ -554,6 +564,7 @@ function getPetHtml(state: DesktopPetState): string {
     })
 
     applyState(${safeScriptJson(initial)})
+    })()
   </script>
 </body>
 </html>`
@@ -616,6 +627,9 @@ export function createDesktopPetWindow(): BrowserWindow {
   // La ventana se carga UNA VEZ; los cambios de estado se envían por
   // "pet-sync" y nunca se recarga el documento (el loadURL anterior en cada
   // actualización hacía parpadear la mascota).
+  petWindow.webContents.on("console-message", (event) => {
+    if (event.level === "error" || event.level === "warning") write("pet", "console", { level: event.level, message: event.message }, "warn")
+  })
   petWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(getPetHtml(petState))}`)
   petWindow.webContents.on("did-finish-load", () => {
     if (!petSyncedOnce && petWindow && !petWindow.isDestroyed()) {

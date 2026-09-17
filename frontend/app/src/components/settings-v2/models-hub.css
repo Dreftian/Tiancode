@@ -815,3 +815,39 @@
 .lm-hub-telemetry[data-compact] {
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
+
+/* --------------------------------------------------------------------------
+   Load parameters (Settings tab)
+   -------------------------------------------------------------------------- */
+
+.lm-load-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.lm-load-note {
+  margin: 2px 0 0;
+}
+
+.lm-load-input {
+  width: 112px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid var(--v2-border-border-base);
+  background: var(--v2-background-bg-layer-02);
+  color: var(--v2-text-text-base);
+  font: inherit;
+  font-size: 12px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.lm-load-input:focus {
+  outline: none;
+  border-color: var(--v2-border-border-focus);
+}

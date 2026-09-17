@@ -12,11 +12,13 @@ import { initAnimations } from './animations.js?v=1.0.0';
 import { initCharts } from './charts.js?v=1.0.0';
 import { initFaq } from './faq.js?v=1.0.0';
 import { initGalaxy } from './galaxy.js?v=1.0.0';
+import { initUniverse } from './universe.js?v=1.0.0';
 
 /* ---------- Inicialización de módulos ---------- */
 initTheme();
 initRouter();
 initGalaxy();
+initUniverse();
 applyLang(); // aplica el idioma guardado y sincroniza título/gráficas
 initI18n();
 initAnimations();

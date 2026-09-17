@@ -166,10 +166,14 @@
 
 .settings-v2-subagents-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 6px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "agent status"
+    "role role"
+    "model tools";
+  gap: 8px 12px;
   align-items: start;
-  padding: 9px 16px;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--v2-border-border-muted);
   transition: background-color 0.15s ease;
 }
@@ -214,6 +218,23 @@
   padding: 0 8px;
 }
 
+/* Stacked card: identity top-left, switch top-right, role and description across, model and
+   tools side by side with their small labels. */
+.settings-v2-subagents-row > :nth-child(1) { grid-area: agent; }
+.settings-v2-subagents-row > :nth-child(2) { grid-area: role; }
+.settings-v2-subagents-row > :nth-child(3) { grid-area: model; }
+.settings-v2-subagents-row > :nth-child(4) { grid-area: tools; }
+.settings-v2-subagents-row > :nth-child(5) { grid-area: status; justify-self: end; }
+.settings-v2-subagents-row > :nth-child(1)::before,
+.settings-v2-subagents-row > :nth-child(2)::before,
+.settings-v2-subagents-cell--status::before { content: none; }
+.settings-v2-subagents-row > :nth-child(3)::before,
+.settings-v2-subagents-row > :nth-child(4)::before { flex: 0 0 auto; margin-right: 6px; }
+.settings-v2-subagents-row > :nth-child(3),
+.settings-v2-subagents-row > :nth-child(4) { flex-wrap: wrap; gap: 4px; }
+.settings-v2-subagents-row .settings-v2-subagents-cell--status { gap: 10px; padding: 0; }
+.settings-v2-subagents-row > :nth-child(2) { align-items: flex-start; }
+
 @container settings-panel (min-width: 900px) {
   .settings-v2-subagents-thead,
   .settings-v2-subagents-row {
@@ -226,6 +247,17 @@
 
   .settings-v2-subagents-row {
     align-items: center;
+    grid-template-areas: none;
+  }
+  /* Same specificity as the stacked :nth-child rules above, later in source: the named areas
+     no longer exist here, so every cell must fall back to auto placement. */
+  .settings-v2-subagents-row > :nth-child(n) {
+    grid-area: auto;
+    justify-self: stretch;
+  }
+  .settings-v2-subagents-row .settings-v2-subagents-cell--status {
+    gap: 22px;
+    padding: 0 8px;
   }
 
   /* The real header is back, so the per-cell labels would be duplicates. */
@@ -263,6 +295,14 @@
   flex: 1 1 0;
   min-width: 0;
   padding: 0 8px;
+  overflow: hidden;
+}
+.settings-v2-sub-agents-toolbar-row [data-slot="segmented-control-v2-item"] span {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .settings-v2-sub-agents-toolbar-row--actions {

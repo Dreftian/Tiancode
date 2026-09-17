@@ -30,11 +30,30 @@ export interface LocalEngineStatus {
   readonly contextSize?: number
 }
 
-export interface StartEngineOptions {
-  readonly model: string
-  readonly file: string
+/**
+ * Load parameters the user can tune per launch, named after the same knobs LM Studio exposes
+ * in its per-model load settings (context length, GPU offload, eval batch size, flash
+ * attention, K/V cache quantization, keep in memory, mmap, seed, thread pool, RoPE, KV offload).
+ */
+export interface EngineLoadOptions {
   readonly gpuLayers?: number
   readonly contextSize?: number
+  readonly batchSize?: number
+  readonly flashAttention?: boolean
+  readonly kvCacheType?: "f16" | "q8_0" | "q4_0"
+  readonly keepInMemory?: boolean
+  readonly useMmap?: boolean
+  readonly seed?: number
+  readonly threads?: number
+  readonly ropeFrequencyBase?: number
+  readonly ropeFrequencyScale?: number
+  readonly kvOffload?: boolean
+  readonly parallel?: number
+}
+
+export interface StartEngineOptions extends EngineLoadOptions {
+  readonly model: string
+  readonly file: string
   readonly port?: number
 }
 
@@ -74,7 +93,7 @@ export function llamaReleaseUrl(release: string = PINNED_LLAMA_RELEASE) {
 // Argument construction (pure)
 // ---------------------------------------------------------------------------
 
-export interface ServerArgsInput {
+export interface ServerArgsInput extends Omit<EngineLoadOptions, "gpuLayers" | "contextSize" | "threads"> {
   readonly modelPath: string
   readonly host?: string
   readonly port: number
@@ -98,7 +117,7 @@ export interface ServerArgsInput {
  * slips through -- an explicit `TIANCODE_LLAMA_SERVER` override, or a PATH fallback.
  */
 export function buildServerArgs(input: ServerArgsInput): string[] {
-  return [
+  const args = [
     "-m",
     input.modelPath,
     "--host",
@@ -115,6 +134,18 @@ export function buildServerArgs(input: ServerArgsInput): string[] {
     String(input.parallel ?? 1),
     "--jinja",
   ]
+  // Optional load parameters (LM Studio names → llama-server flags). Absent means llama-server's
+  // own default, so a user who never opened the advanced settings gets exactly what shipped before.
+  if (input.batchSize !== undefined && input.batchSize > 0) args.push("-b", String(Math.floor(input.batchSize)))
+  if (input.flashAttention !== undefined) args.push("-fa", input.flashAttention ? "on" : "off")
+  if (input.kvCacheType && input.kvCacheType !== "f16") args.push("-ctk", input.kvCacheType, "-ctv", input.kvCacheType)
+  if (input.keepInMemory) args.push("--mlock")
+  if (input.useMmap === false) args.push("--no-mmap")
+  if (input.seed !== undefined && Number.isFinite(input.seed)) args.push("-s", String(Math.floor(input.seed)))
+  if (input.ropeFrequencyBase !== undefined && input.ropeFrequencyBase > 0) args.push("--rope-freq-base", String(input.ropeFrequencyBase))
+  if (input.ropeFrequencyScale !== undefined && input.ropeFrequencyScale > 0) args.push("--rope-freq-scale", String(input.ropeFrequencyScale))
+  if (input.kvOffload === false) args.push("-nkvo")
+  return args
 }
 
 // ---------------------------------------------------------------------------
@@ -1002,14 +1033,25 @@ const layer = Layer.effect(
         return getStatus()
       }
 
-      // 3. Argumentos optimizados para llama-server con auto-tuning según CPU/GPU
+      // 3. Argumentos optimizados para llama-server con auto-tuning según CPU/GPU; el usuario puede
+      //    fijar hilos, batch, flash attention, caché KV, mlock, mmap, semilla y RoPE desde Ajustes.
       const cpuThreads = Math.max(1, os.cpus().length - 1)
       const args = buildServerArgs({
         modelPath: resolvedModelFile,
         port: currentPort,
         gpuLayers: currentGpuLayers,
         contextSize: currentContextSize,
-        threads: cpuThreads,
+        threads: options.threads && options.threads > 0 ? Math.floor(options.threads) : cpuThreads,
+        batchSize: options.batchSize,
+        flashAttention: options.flashAttention,
+        kvCacheType: options.kvCacheType,
+        keepInMemory: options.keepInMemory,
+        useMmap: options.useMmap,
+        seed: options.seed,
+        ropeFrequencyBase: options.ropeFrequencyBase,
+        ropeFrequencyScale: options.ropeFrequencyScale,
+        kvOffload: options.kvOffload,
+        parallel: options.parallel,
       })
 
       yield* Effect.logInfo("Iniciando Tiancode Local Engine (llama-server)", {

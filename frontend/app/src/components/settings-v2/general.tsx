@@ -496,6 +496,20 @@ export const SettingsGeneralV2: Component<{
     }
   }
 
+  const deleteBackup = async (name: string) => {
+    const remove = platform.deleteBackup
+    if (!remove) return
+    const confirmed = window.confirm(language.t("settings.general.backup.delete.confirm", { name }))
+    if (!confirmed) return
+    try {
+      await remove(name)
+      showToast({ variant: "success", title: language.t("settings.general.backup.delete.success") })
+      void refetchBackups()
+    } catch {
+      showToast({ variant: "error", title: language.t("settings.general.backup.delete.failed") })
+    }
+  }
+
   const [fileWatcher, { mutate: setFileWatcher }] = createResource(
     () => desktop(),
     () =>
@@ -636,6 +650,17 @@ export const SettingsGeneralV2: Component<{
           </div>
         </SettingsRowV2>
         <SettingsRowV2
+          title={language.t("settings.general.row.showComposerMic.title")}
+          description={language.t("settings.general.row.showComposerMic.description")}
+        >
+          <div data-action="settings-show-composer-mic">
+            <Switch
+              checked={settings.general.showComposerMic()}
+              onChange={(checked) => settings.general.setShowComposerMic(checked)}
+            />
+          </div>
+        </SettingsRowV2>
+        <SettingsRowV2
           title={language.t("settings.general.row.showTerminal.title")}
           description={language.t("settings.general.row.showTerminal.description")}
         >
@@ -649,6 +674,17 @@ export const SettingsGeneralV2: Component<{
         >
           <div data-action="settings-show-browser">
             <Switch checked={settings.general.showBrowser()} onChange={(checked) => settings.general.setShowBrowser(checked)} />
+          </div>
+        </SettingsRowV2>
+        <SettingsRowV2
+          title={language.t("settings.general.row.previewAutoOpen.title")}
+          description={language.t("settings.general.row.previewAutoOpen.description")}
+        >
+          <div data-action="settings-preview-auto-open">
+            <Switch
+              checked={settings.general.previewAutoOpen()}
+              onChange={(checked) => settings.general.setPreviewAutoOpen(checked)}
+            />
           </div>
         </SettingsRowV2>
         <SettingsRowV2
@@ -879,6 +915,17 @@ export const SettingsGeneralV2: Component<{
                         onClick={() => void restoreBackup(backup.name)}
                       >
                         {language.t("settings.general.row.restore.button")}
+                      </ButtonV2>
+                      <ButtonV2
+                        type="button"
+                        variant="ghost"
+                        size="small"
+                        class="text-v2-state-fg-danger"
+                        disabled={!platform.deleteBackup}
+                        title={language.t("settings.general.row.restore.delete")}
+                        onClick={() => void deleteBackup(backup.name)}
+                      >
+                        {language.t("settings.general.row.restore.delete")}
                       </ButtonV2>
                     </div>
                   )}

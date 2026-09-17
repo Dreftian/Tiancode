@@ -93,6 +93,17 @@ export const modelHubHandlers = HttpApiBuilder.group(InstanceHttpApi, "model-hub
         gpuLayers: ctx.payload.gpuLayers,
         contextSize: ctx.payload.contextSize,
         port: ctx.payload.port,
+        batchSize: ctx.payload.batchSize,
+        flashAttention: ctx.payload.flashAttention,
+        kvCacheType: ctx.payload.kvCacheType,
+        keepInMemory: ctx.payload.keepInMemory,
+        useMmap: ctx.payload.useMmap,
+        seed: ctx.payload.seed,
+        threads: ctx.payload.threads,
+        ropeFrequencyBase: ctx.payload.ropeFrequencyBase,
+        ropeFrequencyScale: ctx.payload.ropeFrequencyScale,
+        kvOffload: ctx.payload.kvOffload,
+        parallel: ctx.payload.parallel,
       })
     })
 

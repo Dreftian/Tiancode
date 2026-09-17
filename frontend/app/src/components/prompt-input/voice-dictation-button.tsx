@@ -30,7 +30,7 @@ export function DictationOverlay() {
       <AudioWaveform
         active={dictationState.listening}
         level={dictationState.listening ? dictationState.level : undefined}
-        barsCount={36}
+        barsCount={18}
         height={22}
         class="dictation-overlay-wave"
       />

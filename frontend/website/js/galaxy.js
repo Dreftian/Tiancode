@@ -17,6 +17,20 @@ const PALETTE = [
 // Polígonos vectoriales del emblemático gato Tiancode (ojos, sonrisa y colmillos)
 const CAT_POLYGONS = [{"eye": true, "pts": [[-70.2, -60.1], [-70.2, -56.4], [-65.2, -40.1], [-56.4, -23.9], [-48.3, -13.3], [-46.5, -12.1], [-45.8, -30.2], [-39.6, -51.4], [-30.2, -28.9], [-19.6, -13.3], [-15.3, -9.6], [-0.3, -49.5], [14.0, -18.9], [19.6, -11.5], [28.4, -24.6], [35.2, -38.9], [39.6, -51.4], [45.8, -32.0], [47.7, -11.5], [54.6, -19.6], [59.6, -27.7], [66.4, -42.6], [70.2, -56.4], [70.2, -60.1], [57.7, -55.7], [40.2, -52.0], [21.5, -50.1], [-8.4, -49.5], [-30.9, -50.7], [-43.3, -52.6], [-59.6, -56.4]]}, {"eye": true, "pts": [[106.3, -161.1], [100.7, -151.2], [93.2, -141.2], [82.6, -131.2], [60.8, -114.4], [42.1, -95.6], [28.4, -77.6], [25.9, -73.2], [26.5, -70.1], [30.2, -68.8], [47.7, -68.8], [60.2, -71.3], [77.6, -78.8], [83.9, -83.2], [92.6, -91.9], [100.1, -104.4], [105.7, -123.7], [108.2, -146.8]]}, {"eye": true, "pts": [[-106.3, -161.1], [-107.6, -156.8], [-107.6, -136.8], [-105.7, -123.7], [-100.7, -106.3], [-96.3, -97.5], [-90.7, -90.0], [-77.0, -78.8], [-57.7, -70.7], [-48.3, -68.8], [-30.9, -68.8], [-25.9, -70.7], [-25.3, -72.0], [-29.0, -78.8], [-44.0, -98.1], [-57.7, -111.9], [-83.9, -132.4], [-95.7, -144.3]]}, {"eye": false, "pts": [[40.2, -42.6], [39.0, -42.0], [29.0, -21.4], [20.9, -9.6], [21.5, -7.1], [27.1, 0.4], [43.3, -5.2], [45.2, -8.3], [45.2, -25.2]]}, {"eye": false, "pts": [[0.3, -42.6], [-6.5, -27.1], [-11.5, -12.1], [-12.2, -5.2], [-10.9, -2.7], [-4.1, 4.1], [8.4, 4.1], [24.6, 1.0], [12.8, -17.1]]}, {"eye": false, "pts": [[-39.0, -43.3], [-42.1, -37.0], [-44.0, -27.7], [-44.0, -13.3], [-41.5, -5.2], [-27.1, 0.4], [-9.0, 3.5], [-31.5, -27.1]]}, {"eye": false, "pts": [[73.3, -59.5], [70.8, -48.9], [63.9, -31.4], [57.1, -19.6], [48.3, -7.7], [52.7, -9.0], [70.2, -18.3], [85.1, -28.9], [94.5, -37.7], [88.9, -45.8], [79.5, -55.1]]}, {"eye": false, "pts": [[-86.4, -48.3], [-93.9, -37.0], [-83.3, -27.7], [-69.5, -18.3], [-50.8, -8.3], [-46.5, -7.1], [-56.4, -20.2], [-64.5, -33.9], [-73.3, -59.5]]}, {"eye": false, "pts": [[-17.8, -64.5], [-17.8, -63.2], [-13.4, -59.5], [-2.8, -55.1], [7.8, -56.4], [14.7, -60.1], [18.4, -63.8], [15.3, -66.3], [7.8, -68.2], [-7.8, -68.2]]}, {"eye": false, "pts": [[93.2, -71.3], [74.5, -62.0], [82.6, -55.7], [92.0, -45.8], [95.7, -39.5], [97.0, -39.5], [100.1, -43.3], [100.7, -52.0], [97.6, -65.7], [95.7, -70.1]]}, {"eye": false, "pts": [[97.6, -72.0], [102.0, -60.7], [102.6, -45.8], [110.7, -54.5], [116.9, -65.1], [107.6, -70.1]]}, {"eye": false, "pts": [[-94.5, -72.0], [-98.2, -63.8], [-100.1, -55.1], [-100.1, -43.3], [-97.0, -39.5], [-95.7, -39.5], [-89.5, -48.3], [-74.5, -62.0]]}, {"eye": false, "pts": [[-97.6, -72.0], [-108.8, -69.5], [-116.9, -64.5], [-108.8, -52.6], [-102.6, -45.8], [-102.6, -56.4]]}, {"eye": false, "pts": [[97.0, -74.4], [103.8, -73.2], [118.2, -67.6], [117.6, -79.4], [114.4, -88.2]]}, {"eye": false, "pts": [[-118.2, -67.6], [-105.7, -72.6], [-97.0, -74.4], [-113.8, -88.8], [-116.9, -81.3]]}, {"eye": false, "pts": [[125.0, -98.8], [123.2, -98.8], [116.3, -90.7], [120.0, -80.1], [120.7, -70.1], [126.9, -80.1], [131.3, -90.0]]}, {"eye": false, "pts": [[-124.4, -98.8], [-128.8, -94.4], [-130.6, -91.3], [-130.6, -88.8], [-120.7, -69.5], [-120.0, -78.8], [-116.3, -91.3], [-123.2, -98.8]]}, {"eye": false, "pts": [[-140.0, -116.2], [-135.6, -100.6], [-131.9, -93.2], [-130.6, -96.3], [-125.0, -100.6], [-125.0, -102.5], [-138.8, -116.2]]}, {"eye": false, "pts": [[140.0, -116.2], [134.4, -111.9], [125.7, -100.6], [132.5, -93.2]]}];
 
+// El universo controla la dispersión del emblema (salto astral) y mantiene el
+// fondo animado aunque la portada esté oculta.
+let externalDispersal = null;
+let forceActive = false;
+let onDispersal = null;
+export function setGalaxyDispersal(frac) {
+  externalDispersal = frac === null || frac === undefined ? null : Math.min(1, Math.max(0, frac));
+  if (onDispersal) onDispersal();
+}
+export function setGalaxyForceActive(active) {
+  forceActive = !!active;
+  if (onDispersal) onDispersal();
+}
+
 export function initGalaxy() {
   const canvas = document.getElementById('cosmic-galaxy-canvas');
   if (!canvas) return;
@@ -386,7 +400,7 @@ export function initGalaxy() {
   // Bucle de renderizado continuo a 60 FPS
   function render(time) {
     animId = null;
-    if (document.hidden || !inView) return;
+    if (document.hidden || !(inView || forceActive)) return;
     // The decorative background does not need to render at monitor refresh rate.
     if (!motion.matches && time - lastFrame < 1000 / 30) { schedule(); return; }
     lastFrame = time;
@@ -402,7 +416,8 @@ export function initGalaxy() {
     }
 
     // 2. Amortiguación de deformación por scroll
-    currentScrollFrac += (scrollFrac - currentScrollFrac) * 0.08;
+    const wantedFrac = externalDispersal === null ? scrollFrac : externalDispersal;
+    currentScrollFrac += (wantedFrac - currentScrollFrac) * 0.08;
     const formationFactor = Math.max(0, assembleT * (1 - currentScrollFrac));
 
     // 3. Suavizado de inclinación 3D
@@ -646,7 +661,7 @@ export function initGalaxy() {
   }
 
   function schedule() {
-    if (animId === null && !document.hidden && inView) animId = requestAnimationFrame(render);
+    if (animId === null && !document.hidden && (inView || forceActive)) animId = requestAnimationFrame(render);
   }
   document.addEventListener('visibilitychange', function () {
     if (document.hidden && animId !== null) { cancelAnimationFrame(animId); animId = null; }
@@ -657,9 +672,10 @@ export function initGalaxy() {
   if (stage && 'IntersectionObserver' in window) {
     new IntersectionObserver(function (entries) {
       inView = entries[0].isIntersecting;
-      if (!inView && animId !== null) { cancelAnimationFrame(animId); animId = null; }
+      if (!inView && !forceActive && animId !== null) { cancelAnimationFrame(animId); animId = null; }
       schedule();
     }).observe(stage);
   }
+  onDispersal = schedule;
   schedule();
 }

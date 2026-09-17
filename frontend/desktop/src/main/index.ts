@@ -11,7 +11,7 @@ import contextMenu from "electron-context-menu"
 
 import type { ServerReadyData } from "../preload/types"
 import { checkAppExists, resolveAppPath } from "./apps"
-import { APP_NAMES, CHANNEL } from "./constants"
+import { APP_NAMES, CHANNEL, DISTRIBUTION } from "./constants"
 import { registerIpcHandlers, sendDeepLinks, sendMenuCommand } from "./ipc"
 import { forwardInitializationFailure } from "./initialization"
 import { exportDebugLogs, initCrashReporter, initLogging, startNetLog, write as writeLog } from "./logging"
@@ -68,6 +68,9 @@ const APP_IDS: Record<string, string> = {
   beta: "ai.tiancode.desktop.beta",
   prod: "ai.tiancode.desktop",
 }
+// The public GitHub build lives in its own profile and never migrates data from the local ids
+// above, so installing it always starts clean: welcome dialog, no sessions, no provider keys.
+const PUBLIC_APP_ID = "ai.tiancode.desktop.release"
 const TEST_ONBOARDING = process.env.TIANCODE_TEST_ONBOARDING === "1"
 const TEST_ONBOARDING_ROOT = process.env.TIANCODE_TEST_ONBOARDING_ROOT
 const SIDECAR_VERSION = process.env.TIANCODE_SIDECAR_V2 === "1" ? "v2" : "v1"
@@ -108,7 +111,7 @@ const main = Effect.gen(function* () {
 
   process.env.TIANCODE_DISABLE_EMBEDDED_WEB_UI = "true"
 
-  const appId = app.isPackaged ? APP_IDS[CHANNEL] : "ai.tiancode.desktop.codex"
+  const appId = app.isPackaged ? (DISTRIBUTION === "github" ? PUBLIC_APP_ID : APP_IDS[CHANNEL]) : "ai.tiancode.desktop.codex"
   const onboardingTestRoot = ((): string | undefined => {
     if (!TEST_ONBOARDING) return
 
@@ -185,6 +188,7 @@ const main = Effect.gen(function* () {
   logger.log("app starting", {
     version: app.getVersion(),
     packaged: app.isPackaged,
+    distribution: DISTRIBUTION,
     onboardingTest: Boolean(onboardingTestRoot),
   })
 
@@ -279,7 +283,7 @@ const main = Effect.gen(function* () {
 
   yield* Effect.promise(() => app.whenReady())
 
-  if (!TEST_ONBOARDING) migrate()
+  if (!TEST_ONBOARDING && DISTRIBUTION !== "github") migrate()
   yield* Effect.promise(() => cleanupStoreFiles(app.getPath("userData"))).pipe(
     Effect.tap((result) =>
       Effect.sync(() => {
@@ -293,7 +297,10 @@ const main = Effect.gen(function* () {
       }),
     ),
   )
-  const xdgMigration = yield* Effect.promise(() => migrateDesktopXdgPaths(appEnvironment.xdg))
+  const xdgMigration =
+    DISTRIBUTION === "github"
+      ? { migrated: false, copied: 0 }
+      : yield* Effect.promise(() => migrateDesktopXdgPaths(appEnvironment.xdg))
   if (xdgMigration.migrated) logger.log("migrated desktop XDG data", xdgMigration)
 
   // Exit waits for cookie cleanup above; startup also clears after an interrupted shutdown.

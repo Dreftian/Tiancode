@@ -1,5 +1,6 @@
 interface ImportMetaEnv {
   readonly TIANCODE_CHANNEL: string
+  readonly TIANCODE_DISTRIBUTION: string
 }
 
 interface ImportMeta {

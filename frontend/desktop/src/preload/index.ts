@@ -226,6 +226,7 @@ const api: ElectronAPI = {
     now: () => ipcRenderer.invoke("backup-now"),
     list: () => ipcRenderer.invoke("backup-list"),
     restore: (name) => ipcRenderer.invoke("backup-restore", name),
+    remove: (name) => ipcRenderer.invoke("backup-delete", name),
   },
   getWindowFocused: () => ipcRenderer.invoke("get-window-focused"),
   getWindowFullscreen: () => ipcRenderer.invoke("get-window-fullscreen"),

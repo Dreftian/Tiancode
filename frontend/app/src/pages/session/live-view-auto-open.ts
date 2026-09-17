@@ -51,14 +51,28 @@ export function liveViewDemandKey(value: unknown) {
   return `agent:${id}`
 }
 
-export function managedPreviewTargetOf(value: unknown) {
+export function managedPreviewTargetOf(value: unknown, since?: number) {
   if (!isRecord(value)) return
   const state = value as ManagedPreviewState
   if (state.status !== "ready") return
   const url = embeddedUrl(state.url)
   if (!url) return
+  // A server that was already running before this session view opened (another project, an
+  // earlier session) is not a reason to open the panel: only servers started since then count.
+  if (since !== undefined && (typeof state.startedAt !== "number" || state.startedAt < since)) return
   const stamp = typeof state.startedAt === "number" ? state.startedAt : url
   return { url, key: `managed:${url}:${stamp}` }
+}
+
+// The live dashboard snapshot is global to the machine: a dev server another project started
+// earlier must not open this session's panel. Only snapshots refreshed after the session view
+// opened qualify (timestamps may arrive in seconds or milliseconds).
+export function liveSnapshotIsFresh(session: unknown, since: number) {
+  if (!isRecord(session)) return false
+  const updated = session.updated_at
+  if (typeof updated !== "number") return false
+  const stamp = updated < 1e12 ? updated * 1000 : updated
+  return stamp >= since
 }
 
 // La app construida por el agente aparece siempre en el panel de código +
@@ -82,6 +96,8 @@ export function useLiveViewAutoOpen(input: { enabled: () => boolean }) {
   const platform = usePlatform()
   const capable = !!platform.previewAgent
   let lastAutoOpenedKey: string | undefined
+  // Anything older than this view (servers, snapshots) stays closed until the agent acts again.
+  const openedAt = Date.now()
 
   createEffect(() => {
     if (!input.enabled() || view().liveView.opened()) return
@@ -121,7 +137,7 @@ export function useLiveViewAutoOpen(input: { enabled: () => boolean }) {
             .then((res) => (res.ok ? res.json() : undefined))
             .catch(() => undefined)
           window.clearTimeout(managedTimer)
-          const target = managedPreviewTargetOf(payload)
+          const target = managedPreviewTargetOf(payload, openedAt)
 
           // Checked even when a managed target already exists: the `return` below plus the
           // lastAutoOpenedKey dedupe is exactly why a panel the user closed never reopened, and
@@ -156,7 +172,7 @@ export function useLiveViewAutoOpen(input: { enabled: () => boolean }) {
           .then((res) => (res.ok ? res.json() : undefined))
           .catch(() => undefined)
         window.clearTimeout(dashboardTimer)
-        const target = serverTargetOf(payload?.session)
+        const target = liveSnapshotIsFresh(payload?.session, openedAt) ? serverTargetOf(payload?.session) : undefined
         if (target) open(`live:${target}`)
       } finally {
         polling = false

@@ -49,6 +49,7 @@
   <link rel="stylesheet" href="css/layout.css?v=1.0.0">
   <link rel="stylesheet" href="css/components.css?v=1.0.0">
   <link rel="stylesheet" href="css/pages.css?v=1.0.0">
+  <link rel="stylesheet" href="css/universe.css?v=1.0.0">
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -168,6 +169,8 @@
     <p class="loader-text" data-i18n="loader.text">Cargando Tiancode v1.0.0…</p>
   </div>
 
+  <div class="warp-veil" aria-hidden="true"></div>
+
   <noscript>
     <style>#loader { display: none !important; }</style>
     <div style="position: fixed; inset: auto 0 0; padding: 12px 16px; text-align: center; background: #1e1b4b; color: #c7d2fe; font: 14px/1.5 system-ui, sans-serif; z-index: 9999;">
@@ -216,7 +219,7 @@
   <header class="site-header">
     <div class="container header-inner">
       <div class="header-left">
-        <a href="#hero" class="logo" aria-label="Tiancode">
+        <a href="#top" class="logo" aria-label="Tiancode">
           <span class="logo-mark" aria-hidden="true">
             <img class="logo-theme-light" src="img/tian-white.png" alt="" draggable="false" />
             <img class="logo-theme-dark" src="img/tian-black.png" alt="" draggable="false" />
@@ -225,8 +228,9 @@
         </a>
 
         <nav class="main-nav" aria-label="Navegación principal">
-          <a href="#hero" data-i18n="nav.overview">Visión General</a>
+          <a href="#overview" data-i18n="nav.overview">Visión General</a>
           <a href="#capabilities" data-i18n="nav.capabilities">Capacidades</a>
+          <a href="#app" data-i18n="nav.app">La app</a>
           <a href="#benchmarks" data-i18n="nav.benchmarks">Novedades</a>
           <a href="#architecture" data-i18n="nav.architecture">Arquitectura</a>
           <a href="#skills" data-i18n="nav.skills">Skills</a>
@@ -297,8 +301,25 @@
     <!-- ===== Contenido de la home (Estilo OpenAI Index / GPT-6 Astra) ===== -->
     <div id="home" class="home-content">
 
-    <!-- ================= 00. Cosmic Motion Hero Stage (Constelación Cósmica Natural TIANCODE) ================= -->
-    <section id="galaxy-hero" class="cosmic-hero-stage" aria-label="Visualizador de Inteligencia Cósmica Tiancode">
+    <!-- ================= 00. Portada astral: logo de partículas + entrada al universo ================= -->
+    <section id="galaxy-hero" class="cosmic-hero-stage" aria-label="Portada de Tiancode">
+      <div class="hero-orbit">
+        <p class="hero-orbit-tag" data-i18n="universe.tag">Inteligencia agéntica local-first para Windows</p>
+        <div class="hero-orbit-actions">
+          <button id="universe-enter" class="btn btn-primary btn-lg hero-orbit-enter" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 17l.8 2.2L22 20l-2.2.8L19 23l-.8-2.2L16 20l2.2-.8z"/></svg>
+            <span data-i18n="universe.explore">Explorar el universo</span>
+          </button>
+          <a href="https://github.com/Dreftian/Tiancode/releases/latest/download/Tiancode.exe" class="btn btn-secondary btn-lg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span data-i18n="nav.downloadPill">Descargar v1.0.0</span>
+          </a>
+        </div>
+        <button class="hero-orbit-hint" id="universe-hint" type="button">
+          <span data-i18n="universe.hint">Desliza o pulsa para explorar</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+      </div>
       <div class="cosmic-controls">
         <button id="cosmic-replay-btn" class="cosmic-replay-btn" type="button"
                 data-i18n-aria="hero.cosmicReplayAria" aria-label="Reiniciar animación cósmica de TIANCODE"
@@ -310,8 +331,38 @@
       </div>
     </section>
 
-    <!-- ================= 01. Hero Editorial & Launch Announcement ================= -->
-    <section id="hero" class="hero-editorial">
+    <!-- ================= Universo: una sección por pantalla con navegación lateral ================= -->
+    <div id="universe" class="universe" aria-hidden="true">
+      <aside class="universe-nav" data-i18n-aria="universe.menuAria" aria-label="Secciones del universo Tiancode">
+        <button class="universe-back" id="universe-back" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          <span data-i18n="universe.back">Volver a la portada</span>
+        </button>
+        <nav class="universe-menu" id="universe-menu">
+          <a href="#overview" data-panel="overview"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg></i><span data-i18n="nav.overview">Visión General</span><b class="idx">01</b></a>
+          <a href="#capabilities" data-panel="capabilities"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></i><span data-i18n="nav.capabilities">Capacidades</span><b class="idx">02</b></a>
+          <a href="#app" data-panel="app"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></i><span data-i18n="nav.app">La app</span><b class="idx">03</b></a>
+          <a href="#benchmarks" data-panel="benchmarks"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 17l.8 2.2L22 20l-2.2.8L19 23l-.8-2.2L16 20l2.2-.8z"/></svg></i><span data-i18n="nav.benchmarks">Novedades</span><b class="idx">04</b></a>
+          <a href="#architecture" data-panel="architecture"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></i><span data-i18n="nav.architecture">Arquitectura</span><b class="idx">05</b></a>
+          <a href="#skills" data-panel="skills"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></i><span data-i18n="nav.skills">Skills</span><b class="idx">06</b></a>
+          <a href="#downloads" data-panel="downloads"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></i><span data-i18n="nav.download">Descargar</span><b class="idx">07</b></a>
+          <a href="#faq" data-panel="faq"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></i><span data-i18n="nav.m3">Preguntas frecuentes</span><b class="idx">08</b></a>
+        </nav>
+        <div class="universe-nav-foot">
+          <a href="#/docs" data-i18n="nav.m2">Documentación</a>
+          <a href="#/guia" data-i18n="nav.m1">Guía de inicio</a>
+          <a href="#/portable" data-i18n="nav.m5">Modo portable</a>
+          <span class="universe-nav-sep" aria-hidden="true"></span>
+          <a href="#/licencia" data-i18n="nav.m7">Licencia MIT</a>
+          <a href="#/terminos" data-i18n="nav.m8">Términos</a>
+          <a href="#/privacidad" data-i18n="nav.m9">Privacidad</a>
+        </div>
+      </aside>
+      <div class="universe-stage" id="universe-stage">
+        <div class="universe-panels" id="universe-panels">
+
+    <!-- ================= 01. Visión general (anuncio de lanzamiento + filosofía) ================= -->
+    <section id="overview" class="section universe-panel" data-panel="overview" aria-label="Visión general">
       <div class="container">
         <div class="hero-editorial-head">
           <div class="announcement-eyebrow reveal">
@@ -364,318 +415,17 @@
             </div>
           </div>
         </div>
-
-        <!-- ================= Showcase Stage: Desktop App In Action ================= -->
-        <div id="showcase" class="showcase-stage reveal">
-          <div class="showcase-window">
-            <div class="window-chrome">
-              <div class="window-dots" aria-hidden="true">
-                <span></span><span></span><span></span>
-              </div>
-              <div class="window-title">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-                <span data-i18n="showcase.windowTitle">Tiancode Studio · demostración ilustrativa</span>
-              </div>
-              <div class="window-status-pill">
-                <i></i>
-                <span data-i18n="showcase.statusPill">Ejemplo interactivo · sin ejecución de IA</span>
-              </div>
-            </div>
-
-            <!-- Barra de navegación de pestañas interactivas -->
-            <div class="showcase-tabs-bar">
-              <button class="showcase-tab-btn is-active" type="button" data-target-panel="panel-agent">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                <span data-i18n="showcase.tab1">01 / Enjambre de Agentes &amp; AST</span>
-              </button>
-              <button class="showcase-tab-btn" type="button" data-target-panel="panel-models">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                <span data-i18n="showcase.tab2">02 / Model Hub GGUF Local</span>
-              </button>
-              <button class="showcase-tab-btn" type="button" data-target-panel="panel-preview">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-                <span data-i18n="showcase.tab3">03 / Vista Previa Universal</span>
-              </button>
-              <button class="showcase-tab-btn" type="button" data-target-panel="panel-mcp">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                <span>04 / MCP Protocol Suite</span>
-              </button>
-              <button class="showcase-tab-btn" type="button" data-target-panel="panel-voice">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-                <span>05 / Kokoro Neural Voice</span>
-              </button>
-            </div>
-
-            <!-- Panel 1: Agent Swarm & AST -->
-            <div id="panel-agent" class="showcase-panel is-active">
-              <div class="agent-swarm-layout">
-                <aside class="swarm-sidebar">
-                  <span class="sidebar-heading">Worktree / Swarm</span>
-                  <ul class="swarm-tree">
-                    <li class="swarm-node is-active">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
-                      <span>senior-dev</span>
-                      <span class="node-badge">Leader</span>
-                    </li>
-                    <li class="swarm-node">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                      <span>test-runner</span>
-                      <span class="node-badge">Subagent</span>
-                    </li>
-                    <li class="swarm-node">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                      <span>security-audit</span>
-                      <span class="node-badge">Subagent</span>
-                    </li>
-                  </ul>
-                  <span class="sidebar-heading" style="margin-top: 14px;">Modified Files</span>
-                  <ul class="swarm-tree">
-                    <li class="swarm-node">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
-                      <span>backend/session.ts</span>
-                    </li>
-                    <li class="swarm-node is-active">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
-                      <span>src/crypto/jwt.ts</span>
-                    </li>
-                  </ul>
-                </aside>
-
-                <div class="swarm-chat-area">
-                  <div class="chat-messages">
-                    <div class="chat-bubble-user">
-                      Refactoriza el validador JWT en src/crypto/jwt.ts para usar validación criptográfica de sesión atómica con SQLite V2 y agrega tests.
-                    </div>
-                    <div class="chat-bubble-agent">
-                      <div class="agent-header-row">
-                        <span class="agent-tag">Tiancode Agent</span>
-                        <span>senior-dev delegado con subagente test-runner</span>
-                      </div>
-                      <div class="agent-text">
-                        He aislado los cambios en una branch temporal de Git Worktree, actualizado la firma del esquema con Drizzle ORM y ejecutado 36 pruebas unitarias:
-                      </div>
-                      <div class="code-diff-box">
-                        <div><span class="code-diff-del">- export function verifySessionToken(token: string) {</span></div>
-                        <div><span class="code-diff-add">+ export function verifySessionToken(token: string, db: SessionStoreV2) {</span></div>
-                        <div><span class="code-diff-add">+   const payload = decodeSessionProof(token);</span></div>
-                        <div><span class="code-diff-add">+   return db.verifyDurableNonce(payload.sessionId, payload.nonce);</span></div>
-                        <div><span class="code-diff-add">+ }</span></div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="chat-input-fake">
-                    <span>Escribe un comando o dicta por voz con Whisper offline...</span>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                  </div>
-                </div>
-
-                <div class="swarm-terminal-pane">
-                  <span class="sidebar-heading">Live Terminal / Effect Core</span>
-                  <p class="term-line term-accent">&gt; bun test src/crypto/jwt.test.ts</p>
-                  <p class="term-line term-muted">Running 36 unit tests across 2 suites...</p>
-                  <p class="term-line term-success">✓ verifySessionToken passes with durable SQLite nonce</p>
-                  <p class="term-line term-success">✓ crash recovery resumes session without prompt loss</p>
-                  <p class="term-line term-success">✓ 36 passed · 0 failed · duration: 184ms</p>
-                  <p class="term-line term-muted">&gt; git status --porcelain</p>
-                  <p class="term-line">M  src/crypto/jwt.ts</p>
-                  <p class="term-line">A  src/crypto/jwt.test.ts</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Panel 2: Model Hub GGUF -->
-            <div id="panel-models" class="showcase-panel">
-              <div class="model-hub-layout">
-                <div class="model-card-box">
-                  <div class="model-header">
-                    <div>
-                      <h4 class="model-name">Qwen 2.5 Coder 32B</h4>
-                      <span style="font-size:12px; color:var(--text-3);">Qwen/Qwen2.5-Coder-32B-Instruct-GGUF</span>
-                    </div>
-                    <span class="model-tag">Q4_K_M</span>
-                  </div>
-                  <div class="model-meta-grid">
-                    <div>Size: <strong>19.8 GB</strong></div>
-                    <div>Speed: <strong>54.2 tok/s</strong></div>
-                    <div>VRAM Used: <strong>18.2 / 24 GB</strong></div>
-                    <div>Context: <strong>32,768 tok</strong></div>
-                  </div>
-                  <div class="vram-bar"><div class="vram-bar-fill" style="width: 78%;"></div></div>
-                  <button class="btn btn-secondary" style="margin-top:4px; font-size:12px; padding:6px 12px;" type="button">Loaded in GPU</button>
-                </div>
-
-                <div class="model-card-box">
-                  <div class="model-header">
-                    <div>
-                      <h4 class="model-name">DeepSeek R1 Distill 14B</h4>
-                      <span style="font-size:12px; color:var(--text-3);">deepseek-ai/DeepSeek-R1-Distill-Qwen-14B</span>
-                    </div>
-                    <span class="model-tag">Q8_0</span>
-                  </div>
-                  <div class="model-meta-grid">
-                    <div>Size: <strong>14.6 GB</strong></div>
-                    <div>Speed: <strong>68.1 tok/s</strong></div>
-                    <div>VRAM Used: <strong>13.8 / 16 GB</strong></div>
-                    <div>Reasoning: <strong>Chain of Thought</strong></div>
-                  </div>
-                  <div class="vram-bar"><div class="vram-bar-fill" style="width: 86%;"></div></div>
-                  <button class="btn btn-secondary" style="margin-top:4px; font-size:12px; padding:6px 12px;" type="button">Ready to Load</button>
-                </div>
-
-                <div class="model-card-box">
-                  <div class="model-header">
-                    <div>
-                      <h4 class="model-name">Llama 3.3 70B Instruct</h4>
-                      <span style="font-size:12px; color:var(--text-3);">meta-llama/Llama-3.3-70B-Instruct-GGUF</span>
-                    </div>
-                    <span class="model-tag">IQ3_M</span>
-                  </div>
-                  <div class="model-meta-grid">
-                    <div>Size: <strong>29.4 GB</strong></div>
-                    <div>Speed: <strong>32.8 tok/s</strong></div>
-                    <div>Offload: <strong>GPU + RAM Split</strong></div>
-                    <div>Context: <strong>128k Window</strong></div>
-                  </div>
-                  <div class="vram-bar"><div class="vram-bar-fill" style="width: 95%;"></div></div>
-                  <button class="btn btn-secondary" style="margin-top:4px; font-size:12px; padding:6px 12px;" type="button">Download HuggingFace</button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Panel 3: Universal Live Preview -->
-            <div id="panel-preview" class="showcase-panel">
-              <div class="preview-split-layout">
-                <div class="preview-code-pane">
-                  <span class="sidebar-heading" style="color:var(--text-muted);">Source: frontend/app/dashboard.tsx</span>
-                  <pre style="margin:12px 0 0; color:#93c5fd;"><code>export function DashboardView() {
-  const [metrics] = createSignal(loadSystemTelemetry());
-
-  return (
-    &lt;main class="grid grid-cols-3 gap-4 p-6"&gt;
-      &lt;Card title="Active Agents" value={metrics().agents} /&gt;
-      &lt;Card title="VRAM Offloaded" value="18.2 GB" /&gt;
-      &lt;Card title="Status" value="Healthy" /&gt;
-    &lt;/main&gt;
-  );
-}</code></pre>
-                  <p style="margin-top:18px; font-size:11px; color:#4ade80;">● SSE Hot Reload active · 12ms latency</p>
-                </div>
-                <div class="preview-render-pane">
-                  <div class="preview-browser-header">
-                    <span>http://localhost:5173/preview</span>
-                    <span style="margin-left:auto; font-size:11px; color:var(--text-3);">100% Desktop (1920x1080)</span>
-                  </div>
-                  <div class="preview-rendered-box">
-                    <div style="font-weight:600; font-size:16px;">Live DOM Preview Window</div>
-                    <div style="display:flex; gap:12px;">
-                      <div style="padding:10px 16px; border-radius:8px; border:1px solid var(--border); background:var(--surface);">
-                        <div style="font-size:11px; color:var(--text-3);">Active Agents</div>
-                        <div style="font-size:18px; font-weight:700;">3 Swarm</div>
-                      </div>
-                      <div style="padding:10px 16px; border-radius:8px; border:1px solid var(--border); background:var(--surface);">
-                        <div style="font-size:11px; color:var(--text-3);">VRAM Offloaded</div>
-                        <div style="font-size:18px; font-weight:700;">18.2 GB</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Panel 4: MCP Protocol Suite -->
-            <div id="panel-mcp" class="showcase-panel">
-              <div class="mcp-grid-layout">
-                <div class="mcp-box">
-                  <div class="mcp-box-top">
-                    <h4 class="mcp-title">Playwright Browser</h4>
-                    <span class="mcp-status-pill"><i></i> Connected</span>
-                  </div>
-                  <p style="margin:0; font-size:13px; color:var(--text-2);">Automatización end-to-end de navegadores headless, capturas DOM y validación de UI.</p>
-                </div>
-                <div class="mcp-box">
-                  <div class="mcp-box-top">
-                    <h4 class="mcp-title">Chrome DevTools CDP</h4>
-                    <span class="mcp-status-pill"><i></i> Connected</span>
-                  </div>
-                  <p style="margin:0; font-size:13px; color:var(--text-2);">Inspección de red, logs de consola, performance profiling e interacción directa con Chromium.</p>
-                </div>
-                <div class="mcp-box">
-                  <div class="mcp-box-top">
-                    <h4 class="mcp-title">Local Filesystem</h4>
-                    <span class="mcp-status-pill"><i></i> Connected</span>
-                  </div>
-                  <p style="margin:0; font-size:13px; color:var(--text-2);">Edición transaccional de archivos, diffs inteligentes y sincronización con control de permisos.</p>
-                </div>
-                <div class="mcp-box">
-                  <div class="mcp-box-top">
-                    <h4 class="mcp-title">GitHub Tooling</h4>
-                    <span class="mcp-status-pill"><i></i> Connected</span>
-                  </div>
-                  <p style="margin:0; font-size:13px; color:var(--text-2);">Clonación, gestión de branches, PRs y sincronización remota mediante token seguro sin salir del editor.</p>
-                </div>
-                <div class="mcp-box">
-                  <div class="mcp-box-top">
-                    <h4 class="mcp-title">SQLite Database</h4>
-                    <span class="mcp-status-pill"><i></i> Connected</span>
-                  </div>
-                  <p style="margin:0; font-size:13px; color:var(--text-2);">Inspección de esquemas, consultas SQL y migraciones en tiempo real con Drizzle ORM.</p>
-                </div>
-                <div class="mcp-box">
-                  <div class="mcp-box-top">
-                    <h4 class="mcp-title">AWS &amp; Cloud Infra</h4>
-                    <span class="mcp-status-pill"><i></i> Connected</span>
-                  </div>
-                  <p style="margin:0; font-size:13px; color:var(--text-2);">Despliegue serverless, gestión de buckets S3 y funciones Lambda con credenciales cifradas.</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Panel 5: Kokoro Neural Voice -->
-            <div id="panel-voice" class="showcase-panel">
-              <div class="voice-stage-layout">
-                <div class="wave-bars-row">
-                  <span class="wave-bar"></span>
-                  <span class="wave-bar"></span>
-                  <span class="wave-bar"></span>
-                  <span class="wave-bar"></span>
-                  <span class="wave-bar"></span>
-                  <span class="wave-bar"></span>
-                  <span class="wave-bar"></span>
-                  <span class="wave-bar"></span>
-                </div>
-                <div>
-                  <h3 style="margin:0 0 8px; font-size:20px; font-weight:600;">Kokoro TTS &amp; Whisper ONNX</h3>
-                  <p style="margin:0; font-size:14.5px; color:var(--text-2); max-width:540px;">
-                    Síntesis neural en tiempo real con latencia menor a 150ms. Dicta comandos por voz o escucha resúmenes técnicos en español neutro o inglés sin consumir internet.
-                  </p>
-                </div>
-                <div style="display:flex; gap:12px;">
-                  <button class="btn btn-primary" type="button">Probar voz de ejemplo</button>
-                  <button class="btn btn-secondary" type="button">Voz: es_nicole (1.0x)</button>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ================= 02. Overview Editorial & Philosophy ================= -->
-    <section id="overview" class="section">
-      <div class="container container-narrow">
-        <div class="section-head section-head-left reveal">
+        <div class="overview-philosophy reveal">
           <span class="eyebrow" data-i18n="overview.eyebrow">Filosofía</span>
-          <h2 class="section-title" data-i18n="overview.title">Los Fundamentos del Desarrollo Soberano de IA</h2>
-          <p class="section-sub" data-i18n="overview.sub">
-            La mayoría de herramientas de programación con IA tratan a tu ordenador como un cliente ligero para servidores remotos, exponiendo propiedad intelectual, introduciendo latencia de red y atándote a costes de suscripción en la nube. Tiancode invierte este paradigma: tu máquina es el motor de ejecución.
-          </p>
+          <h3 class="overview-philosophy-title" data-i18n="overview.title">Los Fundamentos del Desarrollo Soberano de IA</h3>
+          <p class="section-sub" data-i18n="overview.sub">La mayoría de herramientas de programación con IA tratan a tu ordenador como un cliente ligero para servidores remotos, exponiendo propiedad intelectual, introduciendo latencia de red y atándote a costes de suscripción en la nube. Tiancode invierte este paradigma: tu máquina es el motor de ejecución.</p>
         </div>
       </div>
     </section>
+
 
     <!-- ================= 03. Capabilities Bento Grid (01..06) ================= -->
-    <section id="capabilities" class="section section-alt">
+    <section id="capabilities" class="section section-alt universe-panel" data-panel="capabilities">
       <div class="container">
         <div class="section-head reveal">
           <span class="eyebrow" data-i18n="capabilities.eyebrow">Capacidades</span>
@@ -779,7 +529,38 @@
     </section>
 
     <!-- ================= 04. Empirical Evaluations & Benchmarks (OpenAI Style) ================= -->
-    <section id="benchmarks" class="section">
+    <!-- ================= La app: capturas reales e interactivas ================= -->
+    <section id="app" class="section universe-panel" data-panel="app" aria-label="La app">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow" data-i18n="app.eyebrow">La app</span>
+          <h2 class="section-title" data-i18n="app.title">Así se ve Tiancode 1.0.0</h2>
+          <p class="section-sub" data-i18n="app.sub">Capturas reales de la aplicación de escritorio. Cambia de pantalla, pasa el cursor por los puntos y descubre cada zona antes de instalar.</p>
+        </div>
+        <div class="app-gallery reveal">
+          <div class="app-gallery-tabs" id="app-gallery-tabs" role="tablist" aria-label="Pantallas de la app"></div>
+          <div class="app-gallery-main">
+            <div class="app-frame-wrap" id="app-frame-wrap">
+              <div class="app-frame" id="app-frame">
+                <div class="app-frame-bar" aria-hidden="true">
+                  <span class="app-frame-dots"><i></i><i></i><i></i></span>
+                  <span class="app-frame-title" id="app-frame-title">Tiancode · Inicio</span>
+                  <span class="app-frame-pill" data-i18n="app.real">Captura real · v1.0.0</span>
+                </div>
+                <div class="app-frame-body">
+                  <img id="app-shot" class="app-shot" src="img/app/home.webp" alt="Pantalla de inicio de Tiancode" width="1440" height="900" decoding="async" />
+                  <div class="app-hotspots" id="app-hotspots"></div>
+                  <div class="app-frame-glare" aria-hidden="true"></div>
+                </div>
+              </div>
+            </div>
+            <p class="app-gallery-caption" id="app-caption"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="benchmarks" class="section universe-panel" data-panel="benchmarks">
       <div class="container">
         <div class="section-head reveal">
           <span class="eyebrow" data-i18n="benchmarks.eyebrow">Versión 1.0.0</span>
@@ -827,7 +608,7 @@
     </section>
 
     <!-- ================= 05. Technical Architecture Deep Dive ================= -->
-    <section id="architecture" class="section section-alt">
+    <section id="architecture" class="section section-alt universe-panel" data-panel="architecture">
       <div class="container">
         <div class="section-head reveal">
           <span class="eyebrow" data-i18n="architecture.eyebrow">Ingeniería</span>
@@ -868,7 +649,7 @@ export const admitPrompt = (sessionID: SessionID, input: UserPrompt) =>
     </section>
 
     <!-- ================= 06. 120+ Specialized Engineering Skills ================= -->
-    <section id="skills" class="section">
+    <section id="skills" class="section universe-panel" data-panel="skills">
       <div class="container">
         <div class="section-head reveal">
           <span class="eyebrow" data-i18n="skills.eyebrow">Ecosistema</span>
@@ -900,7 +681,7 @@ export const admitPrompt = (sessionID: SessionID, input: UserPrompt) =>
     </section>
 
     <!-- ================= 07. Distribution & Downloads Matrix ================= -->
-    <section id="downloads" class="section section-alt">
+    <section id="downloads" class="section section-alt universe-panel" data-panel="downloads">
       <div class="container">
         <div class="section-head reveal">
           <span class="eyebrow" data-i18n="downloads.eyebrow">Distribución</span>
@@ -959,7 +740,7 @@ export const admitPrompt = (sessionID: SessionID, input: UserPrompt) =>
     </section>
 
     <!-- ================= 08. Frequently Asked Questions ================= -->
-    <section id="faq" class="section">
+    <section id="faq" class="section universe-panel" data-panel="faq">
       <div class="container">
         <div class="section-head reveal">
           <span class="eyebrow" data-i18n="faq.eyebrow">Preguntas Frecuentes</span>
@@ -1019,6 +800,10 @@ export const admitPrompt = (sessionID: SessionID, input: UserPrompt) =>
       </div>
     </section>
 
+        </div><!-- /.universe-panels -->
+      </div><!-- /.universe-stage -->
+    </div><!-- /#universe -->
+
     </div><!-- /#home -->
 
     <div class="pages">
@@ -1028,7 +813,7 @@ export const admitPrompt = (sessionID: SessionID, input: UserPrompt) =>
         <div class="container">
           <div class="page-inner">
             <div class="page-toolbar reveal">
-              <a href="#hero" class="page-back">
+              <a href="#top" class="page-back">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
                 </svg>
@@ -1088,7 +873,7 @@ SOFTWARE.</code></pre>
         <div class="container">
           <div class="page-inner">
             <div class="page-toolbar reveal">
-              <a href="#hero" class="page-back">
+              <a href="#top" class="page-back">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
                 </svg>
@@ -1131,7 +916,7 @@ SOFTWARE.</code></pre>
         <div class="container">
           <div class="page-inner">
             <div class="page-toolbar reveal">
-              <a href="#hero" class="page-back">
+              <a href="#top" class="page-back">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
                 </svg>
@@ -1174,7 +959,7 @@ SOFTWARE.</code></pre>
         <div class="container">
           <div class="page-inner page-inner--wide">
             <div class="page-toolbar reveal">
-              <a href="#hero" class="page-back">
+              <a href="#top" class="page-back">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
                 </svg>
@@ -1318,7 +1103,7 @@ tiancode --version           # Muestra la versión instalada</code></pre>
         <div class="container">
           <div class="page-inner page-inner--wide">
             <div class="page-toolbar reveal">
-              <a href="#hero" class="page-back">
+              <a href="#top" class="page-back">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
                 </svg>
@@ -1389,7 +1174,7 @@ tiancode --version           # Muestra la versión instalada</code></pre>
         <div class="container">
           <div class="page-inner page-inner--wide">
             <div class="page-toolbar reveal">
-              <a href="#hero" class="page-back">
+              <a href="#top" class="page-back">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
                 </svg>
@@ -1520,7 +1305,7 @@ tiancode --version           # Muestra la versión instalada</code></pre>
         <div class="container">
           <div class="page-inner">
             <div class="page-toolbar reveal">
-              <a href="#hero" class="page-back">
+              <a href="#top" class="page-back">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
                 </svg>
@@ -1593,7 +1378,7 @@ tiancode --version           # Muestra la versión instalada</code></pre>
         <div class="container">
           <div class="page-inner page-inner--wide">
             <div class="page-toolbar reveal">
-              <a href="#hero" class="page-back">
+              <a href="#top" class="page-back">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
                 </svg>
@@ -1662,7 +1447,7 @@ tiancode --version           # Muestra la versión instalada</code></pre>
         <div class="container">
           <div class="page-inner page-inner--wide">
             <div class="page-toolbar reveal">
-              <a href="#hero" class="page-back">
+              <a href="#top" class="page-back">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
                 </svg>
@@ -1766,7 +1551,7 @@ tiancode --version           # Muestra la versión instalada</code></pre>
     <div class="container footer-inner">
       <div class="footer-top-row">
         <div class="footer-brand-info">
-          <a href="#hero" class="logo" aria-label="Tiancode">
+          <a href="#top" class="logo" aria-label="Tiancode">
             <span class="logo-mark" aria-hidden="true">
               <img class="logo-theme-light" src="img/tian-white.png" alt="" draggable="false" />
               <img class="logo-theme-dark" src="img/tian-black.png" alt="" draggable="false" />
@@ -1851,7 +1636,7 @@ tiancode --version           # Muestra la versión instalada</code></pre>
         <div class="feature-modal-chips-grid" id="modal-chips"></div>
       </div>
       <div class="feature-modal-footer">
-        <a href="#hero" class="btn btn-secondary btn-sm" id="modal-studio-btn">Ver en Studio</a>
+        <a href="#app" class="btn btn-secondary btn-sm" id="modal-studio-btn" data-i18n="app.seeReal">Ver la app real</a>
         <a href="https://github.com/Dreftian/Tiancode/releases/latest/download/Tiancode.exe" class="btn btn-primary btn-sm">Descargar Tiancode</a>
       </div>
     </div>

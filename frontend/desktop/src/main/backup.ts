@@ -152,7 +152,17 @@ export function createBackupService(userData: string, writeLog: BackupLog = () =
     return source
   }
 
-  return { backupNow, listBackups, restoreBackup }
+  // Removes one snapshot for good. Only our own timestamp folders qualify, so a bad name can
+  // never point outside the backups directory.
+  async function deleteBackup(name: string) {
+    if (!/^[0-9A-Za-z_-]+$/.test(name)) throw new Error("invalid backup name")
+    const target = join(backupsDir(), name)
+    if (!existsSync(target)) return
+    await rm(target, { recursive: true, force: true })
+    writeLog("backup", "deleted", { target })
+  }
+
+  return { backupNow, listBackups, restoreBackup, deleteBackup }
 }
 
 async function copyBackupEntry(entry: BackupEntry, destination: string, mode: CopyMode) {
@@ -242,4 +252,8 @@ export async function listBackups() {
 
 export async function restoreBackup(name: string) {
   return (await appBackups()).restoreBackup(name)
+}
+
+export async function deleteBackup(name: string) {
+  return (await appBackups()).deleteBackup(name)
 }

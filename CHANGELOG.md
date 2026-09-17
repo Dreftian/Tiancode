@@ -26,6 +26,13 @@ Conexiones muestra el estado de cada proveedor en su barra; Voces se reduce a tr
 la vista previa reconoce Remix, SvelteKit, SolidStart, Qwik, Expo, Eleventy, Parcel y webpack.
 Se corrigen el plugin que desactivaba a los demás y la doble ventana en instalaciones limpias.
 
+La mascota de escritorio funciona de verdad (el script de su ventana no llegaba a ejecutarse),
+la descarga de GitHub usa un perfil limpio con bienvenida garantizada, los respaldos se pueden
+eliminar, Modelos locales suma los parámetros de carga de LM Studio, la vista previa solo se
+abre sola cuando la IA arranca una app web en la sesión, el dictado es una píldora compacta con
+interruptor propio, cada nivel de esfuerzo tiene su color animado y Omitir permisos va en
+naranja. La web se reorganiza en portada astral y universo de paneles con capturas reales.
+
 La versión es inferior a 1.0.54: se instala manualmente y conserva claves, sesiones,
 configuración y respaldos. Detalles: [notas de versión](tools/releases/v1.0.0.md).
 

@@ -148,6 +148,8 @@ export interface Settings {
     showTerminal: boolean
     showBrowser: boolean
     showVoice: boolean
+    showComposerMic: boolean
+    previewAutoOpen: boolean
     showCapture: boolean
     showReview: boolean
     browserLinks: "integrated" | "system" | "chrome"
@@ -333,6 +335,8 @@ const defaultSettings: Settings = {
     showTerminal: true,
     showBrowser: true,
     showVoice: true,
+    showComposerMic: true,
+    previewAutoOpen: true,
     showCapture: true,
     showReview: true,
     browserLinks: "integrated",
@@ -592,6 +596,18 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         showVoice: withFallback(() => store.general?.showVoice, defaultSettings.general.showVoice),
         setShowVoice(value: boolean) {
           setStore("general", "showVoice", value)
+        },
+        // The microphone inside the composer is its own switch: hiding the title-bar voice
+        // controls no longer takes the dictation button away, and vice versa.
+        showComposerMic: withFallback(() => store.general?.showComposerMic, defaultSettings.general.showComposerMic),
+        setShowComposerMic(value: boolean) {
+          setStore("general", "showComposerMic", value)
+        },
+        // Whether the live preview may open by itself when the agent starts a web app in the
+        // session. Off means only the manual button opens it.
+        previewAutoOpen: withFallback(() => store.general?.previewAutoOpen, defaultSettings.general.previewAutoOpen),
+        setPreviewAutoOpen(value: boolean) {
+          setStore("general", "previewAutoOpen", value)
         },
         showCapture: withFallback(() => store.general?.showCapture, defaultSettings.general.showCapture),
         setShowCapture(value: boolean) {

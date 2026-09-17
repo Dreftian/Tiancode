@@ -226,6 +226,7 @@ type PlatformBase = {
   backupNow?(): Promise<string | null>
   listBackups?(): Promise<{ name: string; createdAt: number }[]>
   restoreBackup?(name: string): Promise<void>
+  deleteBackup?(name: string): Promise<void>
 
   /** Export collected diagnostic logs (desktop only) */
   exportDebugLogs?(): Promise<string>

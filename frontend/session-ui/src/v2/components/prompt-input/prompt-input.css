@@ -19,6 +19,35 @@
 }
 .effort-trigger:hover { background: var(--v2-overlay-simple-overlay-hover); }
 .effort-trigger[data-ultra], [data-ultra] .effort-value { color: #b4a0fa; }
+/* One tint per reasoning level. The model's top notch and Ultracode shimmer like Claude Code's
+   premium modes; the rest keep a steady colour so each level is recognisable at a glance. */
+.effort-trigger, .effort-popover { --effort-tint: var(--v2-text-text-muted); }
+[data-level="none"], [data-level="minimal"], [data-level="low"] { --effort-tint: #9ca3af; }
+[data-level="medium"] { --effort-tint: #38bdf8; }
+[data-level="high"] { --effort-tint: #34d399; }
+[data-level="xhigh"] { --effort-tint: #fbbf24; }
+[data-level="max"] { --effort-tint: #fb923c; }
+[data-tier="top"] { --effort-tint: #fb923c; }
+[data-ultra] { --effort-tint: #b4a0fa; }
+.effort-trigger[data-level]:not([data-level="default"]) .effort-label,
+[data-level]:not([data-level="default"]) .effort-value { color: var(--effort-tint); }
+.effort-trigger[data-tier="top"] .effort-label,
+.effort-trigger[data-ultra] .effort-label,
+[data-tier="top"] .effort-value,
+[data-ultra] .effort-value {
+  background-image: linear-gradient(90deg, var(--effort-tint) 0%, #fff4e6 30%, var(--effort-tint) 55%, #f472b6 80%, var(--effort-tint) 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: effort-shimmer 2.6s linear infinite;
+}
+.effort-trigger[data-ultra] .effort-label, [data-ultra] .effort-value {
+  background-image: linear-gradient(90deg, #b4a0fa 0%, #ede9fe 30%, #818cf8 55%, #f0abfc 80%, #b4a0fa 100%);
+}
+.effort-trigger[data-tier="top"] { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--effort-tint) 45%, transparent); }
+.effort-trigger[data-ultra] { box-shadow: inset 0 0 0 1px color-mix(in srgb, #b4a0fa 50%, transparent); }
+@keyframes effort-shimmer { from { background-position: 0% 50%; } to { background-position: 250% 50%; } }
 .effort-popover {
   position: relative;
   z-index: 100;
@@ -77,8 +106,13 @@
   position: absolute;
   inset: 0 auto 0 0;
   width: var(--effort-progress);
-  background: color-mix(in srgb, var(--v2-text-text-muted) 22%, transparent);
+  background: color-mix(in srgb, var(--effort-tint) 28%, transparent);
   transition: width 180ms ease, background 180ms ease;
+}
+[data-tier="top"] .effort-fill {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--effort-tint) 18%, transparent), color-mix(in srgb, var(--effort-tint) 55%, transparent), color-mix(in srgb, var(--effort-tint) 18%, transparent));
+  background-size: 200% 100%;
+  animation: effort-shimmer 2.6s linear infinite;
 }
 [data-ultra] .effort-fill {
   background:
@@ -128,4 +162,5 @@
 @media (prefers-reduced-motion: reduce) {
   .effort-popover, .effort-help-bubble, .prompt-send-menu { animation: none; }
   .effort-fill, .effort-value, .effort-trigger { transition: none; }
+  .effort-label, .effort-value, .effort-fill { animation: none; }
 }

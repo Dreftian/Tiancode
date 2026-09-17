@@ -180,7 +180,7 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
           </Show>
         }
         micControl={
-          <Show when={settings.general.showVoice()}>
+          <Show when={settings.general.showComposerMic()}>
           <VoiceDictationButton
             class="flex size-7 items-center justify-center rounded-md text-v2-icon-icon-muted transition-colors hover:bg-v2-overlay-simple-overlay-hover hover:text-v2-text-text-base"
             listeningClass="!text-v2-state-fg-danger hover:!text-v2-state-fg-danger"

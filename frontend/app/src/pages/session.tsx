@@ -1116,7 +1116,7 @@ export default function Page() {
   // logs): abre el sandbox si está cerrado para que la app aparezca en el
   // panel "Vista en vivo", no en el navegador flotante (que solo se abre por
   // clic del usuario).
-  useLiveViewAutoOpen({ enabled: () => newSessionDesign() && !!params.id })
+  useLiveViewAutoOpen({ enabled: () => newSessionDesign() && !!params.id && settings.general.previewAutoOpen() })
 
   // Redirección interna de destinos de vista previa local: el desktop shell
   // reenvía aquí los clics del renderer a un dev server local (o a un HTML del

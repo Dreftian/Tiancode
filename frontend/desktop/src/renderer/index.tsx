@@ -369,6 +369,10 @@ const createPlatform = (windowState: DesktopWindowState): Platform => {
     restoreBackup(name) {
       return window.api.backup.restore(name)
     },
+
+    deleteBackup(name) {
+      return window.api.backup.remove(name)
+    },
   }
 }
 

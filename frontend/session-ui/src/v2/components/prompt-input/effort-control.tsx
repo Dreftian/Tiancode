@@ -23,6 +23,14 @@ export function EffortControl(props: { control: PromptInputV2SelectControl; foot
     return option ? label(option.id, option.label) : i18n.t("ui.promptInput.effort.default")
   }
   const ultra = () => props.control.current() === ULTRACODE
+  // The last notch a model offers gets the premium shimmer (like Claude Code's top effort) and
+  // Ultracode keeps its violet one; every other level carries its own tint through data-level.
+  const topIndex = () => {
+    const last = options().length - 1
+    return options()[last]?.id === ULTRACODE ? last - 1 : last
+  }
+  const level = () => options()[index()]?.id ?? "default"
+  const tier = () => (ultra() ? "ultra" : options().length > 1 && index() === topIndex() ? "top" : "base")
   const ultraAvailable = () => options().some((option) => option.id === ULTRACODE)
   const progress = () => `${(index() / Math.max(1, options().length - 1)) * 100}%`
 
@@ -35,14 +43,18 @@ export function EffortControl(props: { control: PromptInputV2SelectControl; foot
           data-action="prompt-effort"
           aria-label={i18n.t("ui.promptInput.chooseVariant")}
           data-ultra={ultra() || undefined}
+          data-level={level()}
+          data-tier={tier()}
         >
-          {currentLabel()}
+          <span class="effort-label">{currentLabel()}</span>
         </Popover.Trigger>
       </TooltipV2>
       <Popover.Portal>
         <Popover.Content
           class="effort-popover"
           data-ultra={ultra() || undefined}
+          data-level={level()}
+          data-tier={tier()}
           aria-label={i18n.t("ui.promptInput.effort.title")}
         >
           <Show when={help()}>

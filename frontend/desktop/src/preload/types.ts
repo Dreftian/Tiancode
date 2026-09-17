@@ -381,6 +381,7 @@ export type ElectronAPI = {
     now: () => Promise<string | null>
     list: () => Promise<{ name: string; createdAt: number }[]>
     restore: (name: string) => Promise<void>
+    remove: (name: string) => Promise<void>
   }
   getWindowFocused: () => Promise<boolean>
   getWindowFullscreen: () => Promise<boolean>

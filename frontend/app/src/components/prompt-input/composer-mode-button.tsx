@@ -60,6 +60,7 @@ export function ComposerModeButton(props: {
     <MenuV2 gutter={6} placement="top-start" modal={false}>
       <MenuV2.Trigger
         data-action="composer-mode"
+        data-mode={mode()}
         disabled={disabled()}
         title={
           server().protocolKind() === "v2"

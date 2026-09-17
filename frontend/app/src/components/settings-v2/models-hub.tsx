@@ -470,6 +470,77 @@ export const SettingsModelsHubV2: Component<{
 
   const params = () => (props.directory ? { directory: props.directory } : undefined)
 
+  // Load parameters for the native engine, named after LM Studio's per-model load settings
+  // (context length, GPU offload, thread pool, eval batch, flash attention, K/V cache quant,
+  // keep in memory, mmap, KV offload, seed, RoPE, parallel slots). 0 or -1 means "automatic".
+  type EngineLoad = {
+    contextSize: number
+    gpuLayers: number
+    threads: number
+    batchSize: number
+    flashAttention: "auto" | "on" | "off"
+    kvCacheType: "f16" | "q8_0" | "q4_0"
+    keepInMemory: boolean
+    useMmap: boolean
+    kvOffload: boolean
+    seed: number
+    ropeFrequencyBase: number
+    ropeFrequencyScale: number
+    parallel: number
+  }
+  const defaultLoad: EngineLoad = {
+    contextSize: 8192,
+    gpuLayers: 99,
+    threads: 0,
+    batchSize: 0,
+    flashAttention: "auto",
+    kvCacheType: "f16",
+    keepInMemory: false,
+    useMmap: true,
+    kvOffload: true,
+    seed: -1,
+    ropeFrequencyBase: 0,
+    ropeFrequencyScale: 0,
+    parallel: 1,
+  }
+  const [load, setLoad] = persisted("settings-v2.models-hub.load", createStore<EngineLoad>({ ...defaultLoad }))
+  const resetLoad = () => setLoad({ ...defaultLoad })
+  const numberOf = (raw: string, fallback: number) => {
+    const value = Number(raw)
+    return Number.isFinite(value) ? value : fallback
+  }
+  const enginePayload = () => ({
+    contextSize: load.contextSize > 0 ? Math.floor(load.contextSize) : undefined,
+    gpuLayers: load.gpuLayers >= 0 ? Math.floor(load.gpuLayers) : undefined,
+    threads: load.threads > 0 ? Math.floor(load.threads) : undefined,
+    batchSize: load.batchSize > 0 ? Math.floor(load.batchSize) : undefined,
+    flashAttention: load.flashAttention === "auto" ? undefined : load.flashAttention === "on",
+    kvCacheType: load.kvCacheType,
+    keepInMemory: load.keepInMemory || undefined,
+    useMmap: load.useMmap ? undefined : false,
+    kvOffload: load.kvOffload ? undefined : false,
+    seed: load.seed >= 0 ? Math.floor(load.seed) : undefined,
+    ropeFrequencyBase: load.ropeFrequencyBase > 0 ? load.ropeFrequencyBase : undefined,
+    ropeFrequencyScale: load.ropeFrequencyScale > 0 ? load.ropeFrequencyScale : undefined,
+    parallel: load.parallel > 1 ? Math.floor(load.parallel) : undefined,
+  })
+  const flashOptions = ["auto", "on", "off"] as const
+  const kvOptions = ["f16", "q8_0", "q4_0"] as const
+  const loadNumber = (
+    key: "contextSize" | "gpuLayers" | "threads" | "batchSize" | "seed" | "ropeFrequencyBase" | "ropeFrequencyScale" | "parallel",
+    attrs: { min?: number; max?: number; step?: number } = {},
+  ) => (
+    <input
+      type="number"
+      class="lm-load-input"
+      value={load[key]}
+      min={attrs.min}
+      max={attrs.max}
+      step={attrs.step ?? 1}
+      onChange={(event) => setLoad(key, numberOf(event.currentTarget.value, defaultLoad[key]))}
+    />
+  )
+
   const [system, { refetch: refetchSystem }] = createResource(
     async () => {
       try {
@@ -1030,6 +1101,7 @@ export const SettingsModelsHubV2: Component<{
       const engRes = await serverSdk()
         .client.modelhub.engineStart({
           ...params(),
+          ...enginePayload(),
           model: job.model,
           file: job.file,
         })
@@ -1170,11 +1242,120 @@ export const SettingsModelsHubV2: Component<{
             </SettingsListV2>
             <p class="settings-v2-note">{language.t("settings.modelsHub.dir.restart")}</p>
           </div>
+
+          <div class="settings-v2-section">
+            <div class="lm-load-head">
+              <div>
+                <h3 class="settings-v2-section-title">{language.t("settings.modelsHub.load.title")}</h3>
+                <p class="settings-v2-note lm-load-note">{language.t("settings.modelsHub.load.description")}</p>
+              </div>
+              <ButtonV2 type="button" variant="ghost" size="small" onClick={resetLoad}>
+                {language.t("settings.modelsHub.load.reset")}
+              </ButtonV2>
+            </div>
+            <SettingsListV2>
+              <SettingsRowV2
+                title={language.t("settings.modelsHub.load.contextSize.title")}
+                description={language.t("settings.modelsHub.load.contextSize.description")}
+              >
+                {loadNumber("contextSize", { min: 512, max: 262144, step: 512 })}
+              </SettingsRowV2>
+              <SettingsRowV2
+                title={language.t("settings.modelsHub.load.gpuLayers.title")}
+                description={language.t("settings.modelsHub.load.gpuLayers.description")}
+              >
+                {loadNumber("gpuLayers", { min: 0, max: 999 })}
+              </SettingsRowV2>
+              <SettingsRowV2
+                title={language.t("settings.modelsHub.load.threads.title")}
+                description={language.t("settings.modelsHub.load.threads.description")}
+              >
+                {loadNumber("threads", { min: 0, max: 256 })}
+              </SettingsRowV2>
+              <SettingsRowV2
+                title={language.t("settings.modelsHub.load.batchSize.title")}
+                description={language.t("settings.modelsHub.load.batchSize.description")}
+              >
+                {loadNumber("batchSize", { min: 0, max: 8192, step: 64 })}
+              </SettingsRowV2>
+              <SettingsRowV2
+                title={language.t("settings.modelsHub.load.flashAttention.title")}
+                description={language.t("settings.modelsHub.load.flashAttention.description")}
+              >
+                <SelectV2
+                  appearance="inline"
+                  options={[...flashOptions]}
+                  current={load.flashAttention}
+                  placement="bottom-end"
+                  gutter={6}
+                  label={(option) => language.t(`settings.modelsHub.load.choice.${option}` as Parameters<typeof language.t>[0])}
+                  onSelect={(option) => option && setLoad("flashAttention", option)}
+                />
+              </SettingsRowV2>
+              <SettingsRowV2
+                title={language.t("settings.modelsHub.load.kvCacheType.title")}
+                description={language.t("settings.modelsHub.load.kvCacheType.description")}
+              >
+                <SelectV2
+                  appearance="inline"
+                  options={[...kvOptions]}
+                  current={load.kvCacheType}
+                  placement="bottom-end"
+                  gutter={6}
+                  label={(option) => option}
+                  onSelect={(option) => option && setLoad("kvCacheType", option)}
+                />
+              </SettingsRowV2>
+              <SettingsRowV2
+                title={language.t("settings.modelsHub.load.keepInMemory.title")}
+                description={language.t("settings.modelsHub.load.keepInMemory.description")}
+              >
+                <Switch checked={load.keepInMemory} onChange={(checked) => setLoad("keepInMemory", checked)} />
+              </SettingsRowV2>
+              <SettingsRowV2
+                title={language.t("settings.modelsHub.load.useMmap.title")}
+                description={language.t("settings.modelsHub.load.useMmap.description")}
+              >
+                <Switch checked={load.useMmap} onChange={(checked) => setLoad("useMmap", checked)} />
+              </SettingsRowV2>
+              <SettingsRowV2
+                title={language.t("settings.modelsHub.load.kvOffload.title")}
+                description={language.t("settings.modelsHub.load.kvOffload.description")}
+              >
+                <Switch checked={load.kvOffload} onChange={(checked) => setLoad("kvOffload", checked)} />
+              </SettingsRowV2>
+              <SettingsRowV2
+                title={language.t("settings.modelsHub.load.seed.title")}
+                description={language.t("settings.modelsHub.load.seed.description")}
+              >
+                {loadNumber("seed", { min: -1 })}
+              </SettingsRowV2>
+              <SettingsRowV2
+                title={language.t("settings.modelsHub.load.ropeFrequencyBase.title")}
+                description={language.t("settings.modelsHub.load.ropeFrequencyBase.description")}
+              >
+                {loadNumber("ropeFrequencyBase", { min: 0, step: 1000 })}
+              </SettingsRowV2>
+              <SettingsRowV2
+                title={language.t("settings.modelsHub.load.ropeFrequencyScale.title")}
+                description={language.t("settings.modelsHub.load.ropeFrequencyScale.description")}
+              >
+                {loadNumber("ropeFrequencyScale", { min: 0, max: 8, step: 0.05 })}
+              </SettingsRowV2>
+              <SettingsRowV2
+                title={language.t("settings.modelsHub.load.parallel.title")}
+                description={language.t("settings.modelsHub.load.parallel.description")}
+              >
+                {loadNumber("parallel", { min: 1, max: 16 })}
+              </SettingsRowV2>
+            </SettingsListV2>
+            <p class="settings-v2-note">{language.t("settings.modelsHub.load.hint")}</p>
+          </div>
         </Show>
 
         {/* 1. Telemetría de Hardware & Runtimes */}
-        <Show when={hubTab() === "engines" || hubTab() === "explore"}>
-        <div class="lm-hub-telemetry" data-compact={hubTab() === "explore" || undefined}>
+        <Show when={hubTab() === "engines"}>
+        <div class="lm-hub-telemetry">
           <div class="lm-hub-stat" data-state="info" title="GPU detectada">
             <span class="lm-hub-dot" />
             <span class="lm-hub-stat-k">{system()?.gpu ? system()!.gpu!.split(" ")[0] : "GPU"}</span>

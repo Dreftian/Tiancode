@@ -83,6 +83,7 @@ export default defineConfig({
   main: {
     define: {
       "import.meta.env.TIANCODE_CHANNEL": JSON.stringify(channel),
+      "import.meta.env.TIANCODE_DISTRIBUTION": JSON.stringify(process.env.TIANCODE_DISTRIBUTION === "github" ? "github" : "local"),
     },
     build: {
       rollupOptions: {
