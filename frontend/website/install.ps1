@@ -18,8 +18,9 @@ New-Item -ItemType Directory -Force $installDir | Out-Null
 
 Write-Host "Downloading $url"
 Invoke-WebRequest -Uri $url -OutFile (Join-Path $tmp $asset) -UseBasicParsing
-Expand-Archive -Path (Join-Path $tmp $asset) -DestinationPath $tmp -Force
-$bin = Get-ChildItem -Path $tmp -Recurse -Filter "tiancode.exe" | Select-Object -First 1
+$extract = Join-Path $tmp "extract"
+Expand-Archive -Path (Join-Path $tmp $asset) -DestinationPath $extract -Force
+$bin = Get-ChildItem -Path $extract -Recurse -Filter "tiancode.exe" | Select-Object -First 1
 if (-not $bin) { throw "The archive did not contain tiancode.exe" }
 Copy-Item $bin.FullName (Join-Path $installDir "tiancode.exe") -Force
 Get-ChildItem -Path $bin.DirectoryName -File | Where-Object { $_.Name -ne "tiancode.exe" } | ForEach-Object { Copy-Item $_.FullName (Join-Path $installDir $_.Name) -Force }
