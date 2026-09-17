@@ -97,7 +97,18 @@ export type LoadRecommendation = {
   kvBytesPerToken: number
   estimatedBytes: number
   budgetBytes: number
+  vramBytes?: number
+  ramBytes?: number
   reasons: string[]
+}
+
+export type FileEstimate = {
+  model: string
+  file: string
+  sizeBytes?: number
+  metadata?: LocalModelFile["metadata"]
+  recommended?: LoadRecommendation
+  error?: string
 }
 
 export type LocalModelFile = {
@@ -839,6 +850,32 @@ export const SettingsModelsHubV2: Component<{
           : language.t("settings.modelsHub.fit.partialGpu")
   const placementLabel = (placement: LoadRecommendation["placement"]) =>
     language.t(`settings.modelsHub.placement.${placement}`)
+  // What lands where: "VRAM ≈ 5.1 GB · RAM ≈ 0 B" or the hybrid split.
+  const splitLine = (rec: { vramBytes?: number; ramBytes?: number; placement?: string }) => {
+    if (rec.vramBytes === undefined && rec.ramBytes === undefined) return ""
+    const parts: string[] = []
+    if (rec.placement !== "cpu") parts.push(`VRAM ≈ ${formatBytes(rec.vramBytes ?? 0)}`)
+    if ((rec.ramBytes ?? 0) > 0 || rec.placement === "cpu") parts.push(`RAM ≈ ${formatBytes(rec.ramBytes ?? 0)}`)
+    return parts.join(" · ")
+  }
+
+  // Per-quantisation estimates from the remote GGUF header (cached per model/file).
+  const [estimates, setEstimates] = createSignal<Record<string, FileEstimate | "loading">>({})
+  const ensureEstimate = async (model: string, file: string) => {
+    const key = `${model}/${file}`
+    if (estimates()[key]) return
+    setEstimates((prev) => ({ ...prev, [key]: "loading" }))
+    const result = await getFromServer<FileEstimate>(
+      `/models/estimate?model=${encodeURIComponent(model)}&file=${encodeURIComponent(file)}`,
+      true,
+    )
+    setEstimates((prev) => ({ ...prev, [key]: result ?? { model, file, error: "unavailable" } }))
+  }
+  const estimateFor = (model: string, file: string) => {
+    const entry = estimates()[`${model}/${file}`]
+    return entry && entry !== "loading" ? entry : undefined
+  }
+
   const recommendationLine = (rec: {
     contextSize: number
     gpuLayers: number
@@ -1126,7 +1163,7 @@ export const SettingsModelsHubV2: Component<{
     return (await response.json()) as T
   }
 
-  const getFromServer = async <T,>(route: string): Promise<T | undefined> => {
+  const getFromServer = async <T,>(route: string, hasQuery = false): Promise<T | undefined> => {
     const serverHttp = serverSdk()?.server?.http
     if (!serverHttp?.url) return undefined
     const headers: Record<string, string> = {}
@@ -1136,7 +1173,7 @@ export const SettingsModelsHubV2: Component<{
         password: serverHttp.password,
       })}`
     }
-    const query = props.directory ? `?directory=${encodeURIComponent(props.directory)}` : ""
+    const query = props.directory ? `${hasQuery ? "&" : "?"}directory=${encodeURIComponent(props.directory)}` : ""
     const response = await fetch(`${serverHttp.url.replace(/\/+$/, "")}${route}${query}`, { headers }).catch(() => undefined)
     if (!response?.ok) return undefined
     return (await response.json()) as T
@@ -1920,6 +1957,12 @@ export const SettingsModelsHubV2: Component<{
                       // cualquier modelo que aparezca sin búsqueda activa (p.ej. los del disco).
                       const isStaffPick = () => STAFF_PICKS.some((pick) => pick.id === model.id)
                       if (model.quantFiles.some((qf) => asNumber(qf.size) === undefined)) void ensureFiles(model.id)
+                      // The selected quantisation is sized against this machine from its remote header.
+                      createEffect(() => {
+                        const selected = file()
+                        if (selected?.file && selected.file !== "model.gguf") void ensureEstimate(model.id, selected.file)
+                      })
+                      const estimate = () => estimateFor(model.id, file()?.file ?? "")
 
                       return (
                         <div class="lm-result-card">
@@ -1984,6 +2027,15 @@ export const SettingsModelsHubV2: Component<{
                                   placement="bottom-start"
                                   gutter={4}
                                 />
+                              </Show>
+
+                              <Show when={estimate()?.recommended}>
+                                {(rec) => (
+                                  <span class="lm-quant-estimate" title={recommendationLine(rec())}>
+                                    {splitLine(rec())} · ctx {formatTokens(rec().contextSize)} ·{" "}
+                                    {rec().gpuLayers >= 99 ? "GPU 100%" : `GPU ${rec().gpuLayers}/${rec().layers}`}
+                                  </span>
+                                )}
                               </Show>
 
                               {/* Hardware Fit badge */}
@@ -2208,6 +2260,7 @@ export const SettingsModelsHubV2: Component<{
                                 {language.t("settings.modelsHub.disk.recommended")} · {placementLabel(rec().placement)}
                               </span>
                               <span class="lm-disk-card-rec-values">{recommendationLine(rec())}</span>
+                              <span class="lm-disk-card-rec-split">{splitLine(rec())}</span>
                               <span class="lm-disk-card-rec-why">
                                 {rec()
                                   .reasons.map((code) => language.t(`settings.modelsHub.reason.${code}`))

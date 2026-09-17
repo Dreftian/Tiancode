@@ -311,7 +311,7 @@ html.welcome-standalone body > div {
   background: transparent !important;
 }
 html.welcome-standalone .welcome-setup {
-  width: min(100%, 480px);
+  width: min(100%, 500px);
   box-shadow: 0 28px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 html.welcome-standalone .welcome-setup-header {

@@ -110,8 +110,9 @@ export function setAppQuitting(quitting = true) {
 export function setBackgroundColor(color: string) {
   backgroundColor = color
   BrowserWindow.getAllWindows().forEach((win) => {
-    // The desktop pet is a transparent window: an opaque theme colour would box the character.
-    if (win.isDestroyed() || isDesktopPetWindow(win)) return
+    // The desktop pet and the welcome card are transparent windows: an opaque theme colour would
+    // box the character / frame the card.
+    if (win.isDestroyed() || isDesktopPetWindow(win) || win === getWelcomeWindow()) return
     win.setBackgroundColor(color)
     if (process.platform === "darwin") win.invalidateShadow()
   })
@@ -292,8 +293,8 @@ export function createWelcomeWindow(mode: WelcomeWindowMode = "first") {
     return existing
   }
   const win = new BrowserWindow({
-    width: 620,
-    height: 660,
+    width: 660,
+    height: 680,
     resizable: false,
     maximizable: false,
     minimizable: false,

@@ -66,6 +66,9 @@ Modo ligero para modelos locales (prompt compacto y herramientas básicas: el pa
 agente superaba los 36k tokens y provocaba compactaciones en bucle), descarga del motor por
 inactividad y límites de VRAM/RAM/CPU con reparto GPU/RAM para la configuración automática.
 
+VRAM y RAM reales por cuantización en Explorar (cabecera GGUF remota), reparto en En disco, el
+asistente sin marco oscuro y más ancho, y el modo «Al abrir Tiancode» aplicado en cada arranque.
+
 La versión es inferior a 1.0.54: se instala manualmente y conserva claves, sesiones,
 configuración y respaldos. Detalles: [notas de versión](tools/releases/v1.0.0.md).
 

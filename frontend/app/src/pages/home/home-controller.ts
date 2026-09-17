@@ -1,6 +1,4 @@
 import { useGlobal } from "@/context/global"
-import { readStartMode, START_PENDING_KEY } from "@/components/dialogs/dialog-welcome-setup"
-import { useDirectoryPicker } from "@/components/file-tree/directory-picker"
 import { type HomeProjectSelection, useLayout } from "@/context/layout"
 import { ServerConnection, useServer } from "@/context/server"
 import { useServerSync } from "@/context/server-sync"
@@ -58,37 +56,6 @@ export function createHomeController() {
   function setSelection(next: HomeProjectSelection) {
     layout.home.setSelection(next)
   }
-
-  // How Tiancode opens (welcome wizard, also editable from Settings › Abrir asistente): Chat opens a
-  // plain conversation, Code asks for a folder and opens a session in it, Home stays here. Applied
-  // once per app start (sessionStorage survives a reload but not a new window).
-  const pickDirectory = useDirectoryPicker()
-  const STARTED_KEY = "tiancode.start.applied"
-  createEffect(() => {
-    const conn = focusedServer()
-    const dir = chatdir()
-    if (!conn || !dir) return
-    try {
-      if (sessionStorage.getItem(STARTED_KEY)) return
-      sessionStorage.setItem(STARTED_KEY, "1")
-      localStorage.removeItem(START_PENDING_KEY)
-    } catch {
-      return
-    }
-    const mode = readStartMode()
-    if (mode === "home") return
-    if (mode === "chat") {
-      openProjectNewSession(conn, dir)
-      return
-    }
-    pickDirectory({
-      server: conn,
-      onSelect: (result) => {
-        const picked = Array.isArray(result) ? result[0] : result
-        openProjectNewSession(conn, picked || dir)
-      },
-    })
-  })
 
   function openProjectNewSession(conn: ServerConnection.Any, directory: string, prompt?: string) {
     const ctx = global.ensureServerCtx(conn)

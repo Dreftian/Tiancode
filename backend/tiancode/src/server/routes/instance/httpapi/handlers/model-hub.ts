@@ -126,6 +126,10 @@ export const modelHubHandlers = HttpApiBuilder.group(InstanceHttpApi, "model-hub
       return yield* hub.listLocal()
     })
 
+    const estimate = Effect.fn("ModelHubHttpApi.estimate")(function* (ctx) {
+      return yield* hub.estimate(ctx.query.model, ctx.query.file)
+    })
+
     const setDir = Effect.fn("ModelHubHttpApi.setDir")(function* (ctx) {
       return yield* hub.setDir(ctx.payload.dir)
     })
@@ -140,6 +144,7 @@ export const modelHubHandlers = HttpApiBuilder.group(InstanceHttpApi, "model-hub
       .handle("system", system)
       .handle("local", local)
       .handle("setDir", setDir)
+      .handle("estimate", estimate)
       .handle("runtimes", runtimes)
       .handle("downloads", downloads)
       .handle("download", download)

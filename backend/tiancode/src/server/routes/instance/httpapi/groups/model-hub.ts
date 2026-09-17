@@ -92,6 +92,12 @@ export const ModelDownloadJob = Schema.Struct({
   etaSeconds: Schema.optional(Schema.Number),
 })
 
+export const ModelEstimateQuery = Schema.Struct({
+  ...WorkspaceRoutingQuery.fields,
+  model: Schema.String,
+  file: Schema.String,
+})
+
 export const ModelLoadRecommendation = Schema.Struct({
   contextSize: Schema.Number,
   gpuLayers: Schema.Number,
@@ -109,6 +115,8 @@ export const ModelLoadRecommendation = Schema.Struct({
   kvBytesPerToken: Schema.Number,
   estimatedBytes: Schema.Number,
   budgetBytes: Schema.Number,
+  vramBytes: Schema.optional(Schema.Number),
+  ramBytes: Schema.optional(Schema.Number),
   reasons: Schema.Array(Schema.String),
 })
 
@@ -166,6 +174,15 @@ export const ModelEngineDefaults = Schema.Struct({
   cpuBudget: Schema.optional(Schema.Number),
   placement: Schema.optional(Schema.Literals(["auto", "gpu", "hybrid", "cpu"])),
   idleUnloadMinutes: Schema.optional(Schema.Number),
+})
+
+export const ModelFileEstimate = Schema.Struct({
+  model: Schema.String,
+  file: Schema.String,
+  sizeBytes: Schema.optional(Schema.Number),
+  metadata: Schema.optional(ModelGgufMetadata),
+  recommended: Schema.optional(ModelLoadRecommendation),
+  error: Schema.optional(Schema.String),
 })
 
 export const ModelDirInput = Schema.Struct({
@@ -313,6 +330,17 @@ export const ModelHubApi = HttpApi.make("model-hub")
             summary: "List local GGUF files",
             description:
               "Scan the models folder (and the legacy roots) for .gguf files and return each one with its GGUF header facts and the recommended load configuration for this machine.",
+          }),
+        ),
+        HttpApiEndpoint.get("estimate", "/models/estimate", {
+          query: ModelEstimateQuery,
+          success: described(ModelFileEstimate, "Memory estimate for a quantisation"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "modelhub.estimate",
+            summary: "Estimate a quantisation before downloading",
+            description:
+              "Read the remote GGUF header of a Hugging Face file and return the VRAM / RAM split, context and GPU layers this machine would use for it.",
           }),
         ),
         HttpApiEndpoint.post("setDir", "/models/dir", {

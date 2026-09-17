@@ -39,6 +39,10 @@ export interface LoadRecommendation {
   readonly kvBytesPerToken: number
   readonly estimatedBytes: number
   readonly budgetBytes: number
+  /** What lands on the GPU (weights on GPU layers + KV cache when offloaded + working buffer). */
+  readonly vramBytes: number
+  /** What stays in system memory (weights of CPU layers, KV cache when not offloaded). */
+  readonly ramBytes: number
   readonly reasons: readonly string[]
 }
 
@@ -117,8 +121,17 @@ export function recommendLoadOptions(input: {
     placement: Placement
     batchSize: number
     budgetBytes: number
-  }): LoadRecommendation => ({
+  }): LoadRecommendation => {
+    const kvBytes = kvBytesPerToken(metadata, partial.kvCacheType) * partial.contextSize
+    const gpuShare = partial.gpuLayers >= 99 ? 1 : Math.min(1, Math.max(0, partial.gpuLayers / layers))
+    const weightsOnGpu = sizeBytes * gpuShare
+    const kvOnGpu = partial.gpuLayers > 0 ? kvBytes : 0
+    const vramBytes = partial.gpuLayers > 0 ? Math.round(weightsOnGpu + kvOnGpu + overhead) : 0
+    const ramBytes = Math.round(sizeBytes - weightsOnGpu + (partial.gpuLayers > 0 ? 0 : kvBytes + overhead))
+    return {
     ...partial,
+    vramBytes,
+    ramBytes,
     threads,
     // "auto": llama-server enables flash attention when the backend supports it.
     flashAttention: undefined,
@@ -129,9 +142,10 @@ export function recommendLoadOptions(input: {
     layers,
     trainContext,
     kvBytesPerToken: kvBytesPerToken(metadata, partial.kvCacheType),
-    estimatedBytes: Math.round(sizeBytes + kvBytesPerToken(metadata, partial.kvCacheType) * partial.contextSize + overhead),
+    estimatedBytes: Math.round(sizeBytes + kvBytes + overhead),
     reasons,
-  })
+    }
+  }
 
   // 1. Everything on the GPU (unless the user asked for a GPU + RAM split).
   if (wanted !== "hybrid" && vram && sizeBytes + overhead + kvBytesPerToken(metadata, "f16") * candidates[0] <= gpuBudget) {

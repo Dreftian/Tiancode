@@ -16,7 +16,8 @@ import { FetchHttpClient, HttpClient, HttpClientRequest, HttpClientResponse } fr
 import { FSUtil } from "@tiancode-ai/core/fs-util"
 import { Global } from "@tiancode-ai/core/global"
 import * as ModelsDir from "./models-dir"
-import { readGgufMetadataCached, type GgufMetadata } from "@/local-engine/gguf"
+import { readGgufMetadataCached, readRemoteGgufMetadata, type GgufMetadata } from "@/local-engine/gguf"
+import { getLoadDefaults } from "@/local-engine/load-defaults"
 import { recommendLoadOptions, type LoadRecommendation } from "@/local-engine/recommend"
 import {
   compatibilityFor as coreCompatibilityFor,
@@ -436,6 +437,16 @@ export interface SystemInfo {
   readonly cpuCores: number
 }
 
+/** A Hugging Face file sized against this machine before downloading it. */
+export interface FileEstimate {
+  readonly model: string
+  readonly file: string
+  readonly sizeBytes: number | undefined
+  readonly metadata: GgufMetadata | undefined
+  readonly recommended: LoadRecommendation | undefined
+  readonly error: string | undefined
+}
+
 /** A GGUF file found on disk, with what the header says and how this machine should load it. */
 export interface LocalModelFile {
   readonly path: string
@@ -471,6 +482,8 @@ export interface Interface {
   readonly listLocal: () => Effect.Effect<LocalModelFile[]>
   /** Recommended llama-server options for one file on this machine. */
   readonly recommendFor: (file: string) => Effect.Effect<LoadRecommendation>
+  /** What a Hugging Face quantisation would need here, from its remote GGUF header. */
+  readonly estimate: (model: string, file: string) => Effect.Effect<FileEstimate>
   /** Change the models folder at runtime (null = default) and reload the download registry. */
   readonly setDir: (dir: string | null) => Effect.Effect<SystemInfo>
 }
@@ -1043,6 +1056,16 @@ const layer = Layer.effect(
       return { ram, vramTotal: vram?.total, vramFree: vram?.free, cpuCores: os.cpus().length, gpu }
     })
 
+    // The budgets and placement chosen in Settings apply to every estimate, so a card in the
+    // explorer predicts the same split the engine will use after the download.
+    const tuning = () => {
+      const defaults = getLoadDefaults()
+      return {
+        budgets: { vram: defaults.vramBudget, ram: defaults.ramBudget, cpu: defaults.cpuBudget },
+        placement: defaults.placement,
+      }
+    }
+
     const recommendFor = Effect.fn("ModelHub.recommendFor")(function* (file: string) {
       const resolved = path.resolve(file)
       const info = yield* Effect.tryPromise(() => stat(resolved)).pipe(Effect.orDie)
@@ -1050,7 +1073,26 @@ const layer = Layer.effect(
         try: () => readGgufMetadataCached(resolved) as GgufMetadata | undefined,
         catch: (cause) => cause,
       }).pipe(Effect.catch(() => Effect.succeed(undefined as GgufMetadata | undefined)))
-      return recommendLoadOptions({ sizeBytes: info.size, metadata, hardware: yield* hardware() })
+      return recommendLoadOptions({ sizeBytes: info.size, metadata, hardware: yield* hardware(), ...tuning() })
+    })
+
+    const estimate = Effect.fn("ModelHub.estimate")(function* (model: string, file: string): Generator<
+      Effect.Effect<unknown, never, never>,
+      FileEstimate
+    > {
+      const validationError = validateModelDownload(model, file)
+      if (validationError) return { model, file, sizeBytes: undefined, metadata: undefined, recommended: undefined, error: validationError }
+      const entries = yield* treeEntries(model)
+      const entry = Array.from(entries).find((item) => item.path === file)
+      const sizeBytes = entry?.lfs?.size ?? entry?.size
+      const url = `${HUGGINGFACE_RESOLVE}/${model}/resolve/main/${file}`
+      const metadata = yield* Effect.tryPromise(() => readRemoteGgufMetadata(url)).pipe(
+        Effect.map((value): GgufMetadata | undefined => value),
+        Effect.catch(() => Effect.succeed(undefined as GgufMetadata | undefined)),
+      )
+      if (!sizeBytes) return { model, file, sizeBytes, metadata, recommended: undefined, error: "size unknown" }
+      const recommended = recommendLoadOptions({ sizeBytes, metadata, hardware: yield* hardware(), ...tuning() })
+      return { model, file, sizeBytes, metadata, recommended, error: metadata ? undefined : "header unavailable" }
     })
 
     const walkGguf = async (root: string, depth: number, out: Array<{ path: string; root: string }>) => {
@@ -1103,7 +1145,7 @@ const layer = Layer.effect(
           quant,
           fit: fitFor(info.size, ram, vram),
           metadata,
-          recommended: recommendLoadOptions({ sizeBytes: info.size, metadata, hardware: hw }),
+          recommended: recommendLoadOptions({ sizeBytes: info.size, metadata, hardware: hw, ...tuning() }),
           error,
         })
       }
@@ -1127,6 +1169,7 @@ const layer = Layer.effect(
       pruneEmptyDirs,
       listLocal,
       recommendFor,
+      estimate,
       setDir,
     })
   }),

@@ -324,3 +324,40 @@ export function readGgufMetadataCached(file: string): GgufMetadata {
   cache.set(file, { key, metadata })
   return metadata
 }
+
+const REMOTE_STEPS = [4 * 1024 * 1024, 16 * 1024 * 1024, 64 * 1024 * 1024]
+const remoteCache = new Map<string, GgufMetadata>()
+
+/**
+ * Metadata of a GGUF that is not on disk yet: the header is fetched with range requests (4, 16 and
+ * finally 64 MB, since large vocabularies push the tensor section further down). Used to tell how
+ * much VRAM a quantisation really needs before the user downloads it.
+ */
+export async function readRemoteGgufMetadata(
+  url: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<GgufMetadata> {
+  const hit = remoteCache.get(url)
+  if (hit) return hit
+  let lastError: unknown
+  for (const size of REMOTE_STEPS) {
+    const response = await fetchImpl(url, {
+      headers: { Range: `bytes=0-${size - 1}` },
+      redirect: "follow",
+      signal: AbortSignal.timeout(30_000),
+    })
+    if (!response.ok && response.status !== 206) throw new Error(`HTTP ${response.status} reading ${url}`)
+    const bytes = Buffer.from(await response.arrayBuffer())
+    try {
+      // The buffer is presented as the whole file: reads past its end must fail like a short file.
+      const metadata = parseGguf(bufferSource(bytes))
+      remoteCache.set(url, metadata)
+      return metadata
+    } catch (error) {
+      lastError = error
+      if (!(error instanceof Error) || !/ends before/.test(error.message)) throw error
+      if (bytes.length < size) throw error
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("GGUF header too large to read remotely")
+}
