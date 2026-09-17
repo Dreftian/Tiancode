@@ -4,6 +4,22 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.0] — 2026-09-16
+
+La numeración se reinicia en 1.0.0. El chat adopta el diseño de Claude Code Desktop: esfuerzo
+con control deslizante (Ultracode como último nivel y Rápido dentro del panel, solo icono),
+botón Enviar dentro del cuadro con Enviar y permanecer aquí, gatito mientras la IA trabaja y
+modos de permiso Auto, Manual, Aceptar ediciones, Plan y Omitir permisos que se cambian en
+plena tarea. Web App se retira.
+
+General, Inteligencia, Voces, Skills, Sub-Agentes, MCP y Plugins y Mascotas usan pestañas
+superiores sin desplazamiento; MCP, plugins y especialistas muestran logotipos oficiales; la
+memoria y las habilidades aprendidas viven en los datos de la app. Se corrigen el micrófono,
+los interruptores de General y Ultracode con proveedores no compatibles. CODEX pasa a Coding.
+
+La versión es inferior a 1.0.54: se instala manualmente y conserva claves, sesiones,
+configuración y respaldos. Detalles: [notas de versión](tools/releases/v1.0.0.md).
+
 ## [1.0.54] — 2026-09-15
 
 Barra del chat en una sola fila con acciones secundarias accesibles en paneles estrechos.

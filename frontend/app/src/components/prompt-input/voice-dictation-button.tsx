@@ -57,6 +57,8 @@ export function VoiceDictationButton(props: {
     pressed: false,
     menuOpen: false,
     initializing: false,
+    transcribing: false,
+    level: 0,
   })
 
   let recognition: SpeechRecognitionLike | undefined
@@ -160,7 +162,7 @@ export function VoiceDictationButton(props: {
   }
 
   const start = async () => {
-    if (starting || listening()) return
+    if (starting || listening() || recording.transcribing) return
     starting = true
     setRecording("initializing", true)
     const request = ++generation
@@ -218,13 +220,21 @@ export function VoiceDictationButton(props: {
             deviceId: selectedDeviceId() || undefined,
             onResult: (text) => {
               if (disposed) return
+              setRecording("transcribing", false)
               props.onResult(text)
               stop()
             },
             onError: (code) => {
               if (disposed) return
+              setRecording("transcribing", false)
               reportError(code)
               stop()
+            },
+            onLevel: (level) => !disposed && setRecording("level", level),
+            onTranscribing: () => {
+              if (disposed) return
+              setListening(false)
+              setRecording("transcribing", true)
             },
             onLimit: (seconds) => {
               showToast({
@@ -297,6 +307,7 @@ export function VoiceDictationButton(props: {
   }
 
   const tooltipTitle = () => {
+    if (recording.transcribing) return language.t("chat.mic.transcribing")
     if (listening()) return props.listeningLabel
     if (preparing())
       return downloadPercent() > 0
@@ -314,7 +325,7 @@ export function VoiceDictationButton(props: {
         type="button"
         aria-label={tooltipTitle()}
         title={tooltipTitle()}
-        disabled={preparing()}
+        disabled={preparing() || recording.transcribing}
         classList={{
           [props.class ?? ""]: !!props.class,
           [props.listeningClass ?? ""]: !!props.listeningClass && listening(),
@@ -354,7 +365,7 @@ export function VoiceDictationButton(props: {
         <Show
           when={listening()}
           fallback={
-            <Show when={preparing()} fallback={<MicIcon class="size-4" />}>
+            <Show when={preparing()} fallback={<MicIcon class={`size-4 ${recording.transcribing ? "animate-pulse" : ""}`} />}>
               <span class="text-[10px] font-mono tabular-nums">{downloadPercent()}%</span>
             </Show>
           }
@@ -364,7 +375,7 @@ export function VoiceDictationButton(props: {
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
               <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
             </span>
-            <AudioWaveform active={true} barsCount={8} height={14} class="w-8 h-3.5" />
+            <AudioWaveform active={true} level={asrAPI() ? recording.level : undefined} barsCount={8} height={14} class="w-8 h-3.5" />
           </div>
         </Show>
       </button>

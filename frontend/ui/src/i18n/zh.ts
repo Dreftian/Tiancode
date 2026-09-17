@@ -3,6 +3,22 @@ import { dict as en } from "./en"
 type Keys = keyof typeof en
 
 export const dict = {
+  "ui.promptInput.sendStay": "发送并留在此处",
+  "ui.promptInput.working": "AI 正在工作",
+  "ui.promptInput.effort.title": "投入程度",
+  "ui.promptInput.effort.description": "投入程度越高，回答越完整，但耗时更长，也会更快用完额度。",
+  "ui.promptInput.effort.help": "关于投入程度",
+  "ui.promptInput.effort.ultracodeUnavailable": "Ultracode 适用于 Claude 和 OpenAI 的推理模型。其他提供商保留各自的投入级别。",
+  "ui.promptInput.effort.faster": "更快",
+  "ui.promptInput.effort.deeper": "更聪明",
+  "ui.promptInput.effort.default": "自动",
+  "ui.promptInput.effort.none": "无",
+  "ui.promptInput.effort.minimal": "极低",
+  "ui.promptInput.effort.low": "低",
+  "ui.promptInput.effort.medium": "中",
+  "ui.promptInput.effort.high": "高",
+  "ui.promptInput.effort.xhigh": "极高",
+  "ui.promptInput.effort.max": "最高",
   "ui.sessionReview.title": "会话变更",
   "ui.sessionReview.title.git": "Git 变更",
   "ui.sessionReview.title.branch": "分支变更",

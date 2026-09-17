@@ -198,6 +198,8 @@ const layer = Layer.effect(
             prompt: PROMPT_WEBAPP,
             mode: "primary",
             native: true,
+            // Retired from the composer: Build covers it, and Plan lives in the permission modes.
+            hidden: true,
             color: "#22d3ee",
           },
           general: {

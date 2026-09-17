@@ -1,6 +1,24 @@
 @import "@tiancode-ai/ui/v2/text-input-v2.css";
 @import "@tiancode-ai/ui/v2/button-v2.css";
 
+.settings-section-tabs {
+  width: 100%;
+  margin-top: 12px;
+}
+/* Wrap onto a second row in narrow panes instead of clipping the labels. */
+.settings-section-tabs [data-slot="segmented-control-v2"] {
+  width: 100%;
+  min-width: 0;
+  height: auto;
+  min-height: 28px;
+  flex-wrap: wrap;
+}
+.settings-section-tabs [data-slot="segmented-control-v2-item"] {
+  flex: 1 1 auto;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
 [data-component="tabs-v2"][data-variant="settings"] {
   height: 100%;
 }
@@ -59,7 +77,7 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  padding: 28px 32px 22px;
+  padding: 20px 24px 16px;
   background: linear-gradient(to bottom, var(--v2-background-bg-base) calc(100% - 24px), transparent);
 }
 
@@ -73,9 +91,9 @@
 .settings-v2-tab-body {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 16px;
   width: 100%;
-  padding: 0 32px 32px;
+  padding: 0 24px 20px;
 }
 
 [data-slot="settings-v2-row-description"] a.settings-v2-link {
@@ -124,7 +142,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 16px;
-  padding-block: 20px;
+  padding-block: 12px;
   border-bottom: 0.5px solid var(--v2-border-border-base);
 }
 
@@ -882,6 +900,10 @@
     min-height: 0;
     grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr);
+  }
+
+  .settings-v2-skills-layout:not([data-section="installed"]) {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .settings-v2-skills-list {

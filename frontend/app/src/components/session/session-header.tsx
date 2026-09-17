@@ -18,6 +18,8 @@ import { useLayout } from "@/context/layout"
 import { usePlatform } from "@/context/platform"
 import { useServer } from "@/context/server"
 import { useSettings } from "@/context/settings"
+import { useSDK } from "@/context/sdk"
+import { useParams } from "@solidjs/router"
 import { useSync } from "@/context/sync"
 import { useTerminal } from "@/context/terminal"
 import { focusTerminalById } from "@/pages/session/helpers"
@@ -34,6 +36,7 @@ import { TooltipV2 } from "@tiancode-ai/ui/v2/tooltip-v2"
 import { fileTreeTooltipKeybind, reviewTooltipKeybind, terminalTooltipKeybind } from "../command-tooltip-keybind"
 import { useTitlebarRightMount } from "../titlebar/titlebar"
 import { previewPanelOpen, setPreviewPanelOpen, supportsPreviewPanel } from "../preview/preview-panel"
+import { CaptureControl } from "../preview/capture-control"
 import { stopSpeaking } from "@/utils/voices"
 import { stopAutoSpeak } from "@/utils/auto-speak"
 
@@ -580,8 +583,16 @@ type SessionHeaderV2ActionsState = {
 }
 
 function SessionHeaderV2Actions(props: { state: SessionHeaderV2ActionsState }) {
+  const settings = useSettings()
+  const sdk = useSDK()
+  const params = useParams()
   return (
     <div class="flex items-center gap-2">
+      <Show when={settings.general.showCapture()}>
+        <CaptureControl onCapture={(file) => window.dispatchEvent(new CustomEvent("tiancode:capture", {
+          detail: { file, directory: sdk().directory, sessionID: params.id },
+        }))} />
+      </Show>
       <Show when={props.state.statusVisible}>
         <Tooltip placement="bottom" value={props.state.statusLabel}>
           <StatusPopoverV2 />
@@ -589,6 +600,7 @@ function SessionHeaderV2Actions(props: { state: SessionHeaderV2ActionsState }) {
       </Show>
 
       {/* Botón de control rápido de voz (1 clic para activar o silenciar) */}
+      <Show when={settings.general.showVoice()}>
       <TooltipV2 class="shrink-0" placement="bottom" value={props.state.voiceLabel}>
         <IconButtonV2
           type="button"
@@ -619,7 +631,9 @@ function SessionHeaderV2Actions(props: { state: SessionHeaderV2ActionsState }) {
           }
         />
       </TooltipV2>
+      </Show>
 
+      <Show when={settings.general.showTerminal()}>
       <TooltipV2
         class="shrink-0"
         placement="bottom"
@@ -645,6 +659,8 @@ function SessionHeaderV2Actions(props: { state: SessionHeaderV2ActionsState }) {
           icon={<Icon name={props.state.terminalOpened ? "terminal-active" : "terminal"} size="small" />}
         />
       </TooltipV2>
+      </Show>
+      <Show when={settings.general.showBrowser()}>
       <TooltipV2 class="shrink-0" placement="bottom" value={props.state.liveViewLabel}>
         <IconButtonV2
           type="button"
@@ -659,6 +675,7 @@ function SessionHeaderV2Actions(props: { state: SessionHeaderV2ActionsState }) {
           icon={<IconV2 name="monitor" />}
         />
       </TooltipV2>
+      </Show>
 
       <Show when={props.state.reviewVisible}>
         <TooltipV2
@@ -687,7 +704,7 @@ function SessionHeaderV2Actions(props: { state: SessionHeaderV2ActionsState }) {
           />
         </TooltipV2>
       </Show>
-      <TooltipV2
+      <Show when={settings.general.showFileTree()}><TooltipV2
         class="shrink-0"
         placement="bottom"
         value={
@@ -711,7 +728,7 @@ function SessionHeaderV2Actions(props: { state: SessionHeaderV2ActionsState }) {
           aria-controls="file-tree-panel"
           icon={<Icon name={props.state.panelOpened ? "file-tree-active" : "file-tree"} size="small" />}
         />
-      </TooltipV2>
+      </TooltipV2></Show>
     </div>
   )
 }

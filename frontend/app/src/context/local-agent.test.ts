@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import { hasCustomAgent, primaryAgents, resolveAgent } from "./local-agent"
 
-test("primary selector contains only Build, Plan and Web App without deleting custom agents", () => {
+test("primary selector contains only Build and Plan without deleting custom agents", () => {
   const agents = [
     { name: "dreitz" },
     { name: "webapp" },
@@ -9,7 +9,7 @@ test("primary selector contains only Build, Plan and Web App without deleting cu
     { name: "plan" },
     { name: "build" },
   ]
-  expect(primaryAgents(agents).map((agent) => agent.name)).toEqual(["build", "plan", "webapp"])
+  expect(primaryAgents(agents).map((agent) => agent.name)).toEqual(["build", "plan"])
   expect(agents).toHaveLength(5)
   expect(primaryAgents([{ name: "plan", hidden: true }])).toEqual([])
 })

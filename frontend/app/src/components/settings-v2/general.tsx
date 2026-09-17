@@ -1,4 +1,6 @@
 import { Component, For, Show, createMemo, createResource } from "solid-js"
+import { createStore } from "solid-js/store"
+import { SettingsSectionTabs } from "./parts/section-tabs"
 import { createMediaQuery } from "@solid-primitives/media"
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
 import { SelectV2 } from "@tiancode-ai/ui/v2/select-v2"
@@ -370,6 +372,7 @@ const LanguageSetting = () => {
 export const SettingsGeneralV2: Component<{
   sessionID?: string
 }> = (props) => {
+  const [page, setPage] = createStore({ section: "general" })
   const language = useLanguage()
   const platform = usePlatform()
   const dialog = useDialog()
@@ -604,7 +607,7 @@ export const SettingsGeneralV2: Component<{
   )
 
   const AdvancedSection = () => (
-    <div class="settings-v2-section">
+    <div class="settings-v2-section settings-v2-compact-options">
       <h3 class="settings-v2-section-title">{language.t("settings.general.section.advanced")}</h3>
 
       <SettingsListV2>
@@ -656,20 +659,34 @@ export const SettingsGeneralV2: Component<{
           </div>
         </SettingsRowV2>
 
-        {/* Aquí vivían "Terminal" y "Navegador interno". Ninguno de los dos
-            podía mover nada en la interfaz v2, que es la única que se monta:
-            la cabecera v2 (session-header.tsx) dibuja el botón del terminal
-            siempre, sin mirar `showTerminal`, y nunca dibuja el del navegador
-            aunque calcule su estado (browserVisible/browserOpened), así que
-            `showBrowser` tampoco tenía efecto. Se quitan los interruptores en
-            lugar de dejarlos mintiendo; las claves siguen en el contexto
-            porque la cabecera y preview-panel todavía las leen. Cuando la
-            cabecera v2 renderice ambos botones, vuelven. */}
+        <SettingsRowV2
+          title={language.t("settings.general.row.showTerminal.title")}
+          description={language.t("settings.general.row.showTerminal.description")}
+        >
+          <div data-action="settings-show-terminal">
+            <Switch checked={settings.general.showTerminal()} onChange={(checked) => settings.general.setShowTerminal(checked)} />
+          </div>
+        </SettingsRowV2>
+
+        <SettingsRowV2
+          title={language.t("settings.general.row.showBrowser.title")}
+          description={language.t("settings.general.row.showBrowser.description")}
+        >
+          <div data-action="settings-show-browser">
+            <Switch checked={settings.general.showBrowser()} onChange={(checked) => settings.general.setShowBrowser(checked)} />
+          </div>
+        </SettingsRowV2>
 
         {/* Apagarlo oculta el selector solo si el proyecto no tiene agentes
             propios: context/local.tsx lo muestra igualmente cuando existe uno
             (`customAgents() || hasCustomAgent(list())`). La descripción lo
             dice en lugar de prometer un ocultado que no ocurre. */}
+        <SettingsRowV2 title={language.t("settings.general.row.showVoice.title")} description={language.t("settings.general.row.showVoice.description")}>
+          <Switch checked={settings.general.showVoice()} onChange={settings.general.setShowVoice} />
+        </SettingsRowV2>
+        <SettingsRowV2 title={language.t("settings.general.row.showCapture.title")} description={language.t("settings.general.row.showCapture.description")}>
+          <Switch checked={settings.general.showCapture()} onChange={settings.general.setShowCapture} />
+        </SettingsRowV2>
         <SettingsRowV2
           title={language.t("settings.general.row.showCustomAgents.title")}
           description={language.t("settings.general.row.showCustomAgents.description")}
@@ -869,30 +886,34 @@ export const SettingsGeneralV2: Component<{
     <>
       <div class="settings-v2-tab-header">
         <h2 class="settings-v2-tab-title">{language.t("settings.tab.general")}</h2>
+        <SettingsSectionTabs value={page.section} onChange={(section) => setPage("section", section)} options={[
+          { id: "general", label: language.t("settings.tab.general") },
+          ...["appearance", "notifications", "sounds", "updates", "display", "data", "advanced"].filter((id) => desktop() || !["updates", "data"].includes(id)).map((id) => ({ id, label: language.t(`settings.general.section.${id}` as Parameters<typeof language.t>[0]) })),
+        ]} />
       </div>
 
       <div class="settings-v2-tab-body">
-        <Show when={settings.general.newInterfaceNoticeVisible()}>
+        <Show when={page.section === "general" && settings.general.newInterfaceNoticeVisible()}>
           <InterfaceNoticeSection />
         </Show>
 
-        <GeneralSection />
+        <Show when={page.section === "general"}><GeneralSection /></Show>
 
-        <AppearanceSection controller={appearance} />
+        <Show when={page.section === "appearance"}><AppearanceSection controller={appearance} /></Show>
 
-        <NotificationsSection />
+        <Show when={page.section === "notifications"}><NotificationsSection /></Show>
 
-        <SoundsSection controller={sounds} />
+        <Show when={page.section === "sounds"}><SoundsSection controller={sounds} /></Show>
 
-        <Show when={desktop()}>
+        <Show when={desktop() && page.section === "updates"}>
           <UpdatesSection />
         </Show>
 
-        <DisplaySection />
+        <Show when={page.section === "display"}><DisplaySection /></Show>
 
-        <DataSection />
+        <Show when={page.section === "data"}><DataSection /></Show>
 
-        <AdvancedSection />
+        <Show when={page.section === "advanced"}><AdvancedSection /></Show>
       </div>
     </>
   )

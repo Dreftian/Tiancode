@@ -1,6 +1,14 @@
 import { RELEASE_ENGLISH } from "./release-english"
 
 export const dict = {
+  "settings.sections.label": "Разделы настроек",
+  "titlebar.debugTools": "Показать или скрыть инструменты отладки",
+  "chat.mic.transcribing": "Расшифровка…",
+  "settings.general.row.showVoice.title": "Голосовые элементы управления",
+  "settings.general.row.showVoice.description": "Показывать в чате микрофон и элементы управления воспроизведением голоса.",
+  "settings.general.row.showCapture.title": "Снимок экрана",
+  "settings.general.row.showCapture.description": "Показывать создание снимка экрана рядом со статусом.",
+  "settings.intelligence.storage": "Tiancode хранит память и изученные навыки в данных приложения отдельно для каждого проекта. Существующие файлы в проектах по-прежнему читаются для совместимости.",
   "settings.browser.links.chrome": "Google Chrome",
   "settings.browser.chromeUnavailable": "Не удалось открыть Chrome. Убедитесь, что Google Chrome установлен.",
   "desktop.browser.chromeUnavailable": "Не удалось открыть Chrome. Убедитесь, что Google Chrome установлен.",

@@ -1,6 +1,14 @@
 import { RELEASE_ENGLISH } from "./release-english"
 
 export const dict = {
+  "settings.sections.label": "설정 섹션",
+  "titlebar.debugTools": "디버그 도구 전환",
+  "chat.mic.transcribing": "받아쓰는 중…",
+  "settings.general.row.showVoice.title": "음성 컨트롤",
+  "settings.general.row.showVoice.description": "채팅에 마이크와 음성 재생 컨트롤을 표시합니다.",
+  "settings.general.row.showCapture.title": "스크린샷",
+  "settings.general.row.showCapture.description": "상태 옆에 스크린샷 캡처를 표시합니다.",
+  "settings.intelligence.storage": "Tiancode는 메모리와 학습한 스킬을 프로젝트별로 분리하여 애플리케이션 데이터에 저장합니다. 기존 프로젝트 파일은 호환성을 위해 계속 읽을 수 있습니다.",
   "settings.browser.links.chrome": "Google Chrome",
   "settings.browser.chromeUnavailable": "Chrome을 열 수 없습니다. Google Chrome이 설치되어 있는지 확인하세요.",
   "desktop.browser.chromeUnavailable": "Chrome을 열 수 없습니다. Google Chrome이 설치되어 있는지 확인하세요.",

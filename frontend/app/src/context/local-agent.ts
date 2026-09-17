@@ -6,7 +6,7 @@ export function resolveAgent<T extends { name: string }>(items: T[], name?: stri
   return items.find((item) => item.name === name) ?? items.find((item) => item.name === "build") ?? items[0]
 }
 export function primaryAgents<T extends { name: string; mode?: string; hidden?: boolean }>(agents: T[]) {
-  return ["build", "plan", "webapp"].flatMap((name) =>
+  return ["build", "plan"].flatMap((name) =>
     agents.filter((agent) => agent.name === name && !agent.hidden && agent.mode !== "subagent"),
   )
 }

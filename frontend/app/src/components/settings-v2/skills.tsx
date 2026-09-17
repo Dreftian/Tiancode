@@ -1,6 +1,7 @@
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
 import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
 import { TextInputV2 } from "@tiancode-ai/ui/v2/text-input-v2"
+import { TooltipV2 } from "@tiancode-ai/ui/v2/tooltip-v2"
 import { Markdown } from "@tiancode-ai/session-ui/markdown"
 import {
   type Component,
@@ -27,10 +28,11 @@ import {
 } from "./skills-catalogue"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
+import { SettingsSectionTabs } from "./parts/section-tabs"
 import { fallbackGlyph, hashColor, SettingsItemIconV2 } from "./parts/item-icon"
 import "./settings-v2.css"
 
-const PAGE_SIZE = 8
+const PAGE_SIZE = 4
 
 // Ghost rows while the server answers: fewer than PAGE_SIZE so the column does not become a wall
 // of shimmer, enough that it reads as a list rather than as emptiness.
@@ -161,6 +163,7 @@ export const SettingsSkillsV2: Component<{
   const [message, setMessage] = createSignal<"success" | "error" | undefined>(undefined)
   const [selected, setSelected] = createSignal<string | undefined>(undefined)
   const [page, setPage] = createSignal(0)
+  const [section, setSection] = createSignal<"installed" | "import" | "general">("installed")
   const [filterCategory, setFilterCategory] = createSignal<SkillFilter>("all")
 
   const params = () => (props.directory ? { directory: props.directory } : undefined)
@@ -279,16 +282,16 @@ export const SettingsSkillsV2: Component<{
   const selectedSkill = createMemo(() => skills().find((skill) => skill.name === selected()) ?? filteredSkills()[0] ?? skills()[0])
 
   const enabledCount = createMemo(() => skills().filter((s) => !disabled().has(s.name)).length)
-  const filterOptions = createMemo<{ id: SkillFilter; label: string; count: number }[]>(() => {
+  const filterOptions = createMemo<{ id: SkillFilter; label: string; count: number; icon: string }[]>(() => {
     const list = skills()
     const count = (pred: (name: string) => boolean) => list.filter((s) => pred(s.name)).length
     return [
-      { id: "all", label: language.t("settings.skills.filter.all"), count: list.length },
-      { id: "safe", label: language.t("settings.skills.filter.safe"), count: count((n) => SAFE_SKILLS.has(n)) },
-      { id: "specialized", label: language.t("settings.skills.filter.specialized"), count: count((n) => !SAFE_SKILLS.has(n)) },
-      { id: "frontend", label: language.t("settings.skills.filter.frontend"), count: count((n) => CATEGORY_FRONTEND.has(n)) },
-      { id: "backend", label: language.t("settings.skills.filter.backend"), count: count((n) => CATEGORY_BACKEND.has(n)) },
-      { id: "testing", label: language.t("settings.skills.filter.testing"), count: count((n) => CATEGORY_TESTING.has(n)) },
+      { id: "all", label: language.t("settings.skills.filter.all"), count: list.length, icon: "code-lines" },
+      { id: "safe", label: language.t("settings.skills.filter.safe"), count: count((n) => SAFE_SKILLS.has(n)), icon: "shield" },
+      { id: "specialized", label: language.t("settings.skills.filter.specialized"), count: count((n) => !SAFE_SKILLS.has(n)), icon: "brain" },
+      { id: "frontend", label: language.t("settings.skills.filter.frontend"), count: count((n) => CATEGORY_FRONTEND.has(n)), icon: "folder" },
+      { id: "backend", label: language.t("settings.skills.filter.backend"), count: count((n) => CATEGORY_BACKEND.has(n)), icon: "server" },
+      { id: "testing", label: language.t("settings.skills.filter.testing"), count: count((n) => CATEGORY_TESTING.has(n)), icon: "checklist" },
     ]
   })
   const safeEnabledCount = createMemo(() => skills().filter((s) => SAFE_SKILLS.has(s.name) && !disabled().has(s.name)).length)
@@ -478,6 +481,15 @@ export const SettingsSkillsV2: Component<{
           </div>
         </div>
         <p class="settings-v2-tab-description">{language.t("settings.skills.description")}</p>
+        <SettingsSectionTabs
+          value={section()}
+          onChange={setSection}
+          options={[
+            { id: "installed", label: language.t("settings.skills.section.installed") },
+            { id: "import", label: language.t("settings.skills.section.import") },
+            { id: "general", label: language.t("settings.tab.general") },
+          ]}
+        />
       </div>
 
       <div class="settings-v2-tab-body settings-v2-skills">
@@ -489,10 +501,11 @@ export const SettingsSkillsV2: Component<{
           </div>
         </Show>
 
-        <div class="settings-v2-skills-layout">
+        <div class="settings-v2-skills-layout" data-section={section()}>
           <div class="settings-v2-skills-list">
+            <Show when={section() !== "import"}>
             <div class="settings-v2-section">
-              <h3 class="settings-v2-section-title">{language.t("settings.skills.section.installed")}</h3>
+              <Show when={section() === "general"}>
               <SettingsListV2>
                 <SettingsRowV2
                   title={language.t("settings.skills.autoSelect.title")}
@@ -503,10 +516,11 @@ export const SettingsSkillsV2: Component<{
                   </Switch>
                 </SettingsRowV2>
               </SettingsListV2>
+              </Show>
 
               <Show when={!catalogueLoading()}>
               <div class="settings-v2-skills-toolbar">
-                <div class="settings-v2-skills-toolbar-row">
+                <Show when={section() === "general"}><div class="settings-v2-skills-toolbar-row">
                   <span class="settings-v2-skills-stats-pill">
                     {language.t("settings.skills.stats.active", { enabled: enabledCount(), total: skills().length })}
                   </span>
@@ -528,30 +542,33 @@ export const SettingsSkillsV2: Component<{
                       {language.t("settings.skills.actions.disableAll")}
                     </ButtonV2>
                   </div>
-                </div>
+                </div></Show>
 
-                <div class="settings-v2-skills-filters-row">
+                <Show when={section() === "installed"}><div class="settings-v2-skills-filters-row">
                   <For each={filterOptions()}>
                     {(option) => (
-                      <button
-                        type="button"
-                        class="settings-v2-skills-filter-btn"
-                        data-active={filterCategory() === option.id ? "" : undefined}
-                        onClick={() => {
-                          setFilterCategory(option.id)
-                          setPage(0)
-                        }}
-                      >
-                        {option.label}
-                        <span class="settings-v2-skills-filter-count">{option.count}</span>
-                      </button>
+                      <TooltipV2 placement="top" value={option.label}>
+                        <button
+                          type="button"
+                          class="settings-v2-skills-filter-btn"
+                          aria-label={option.label}
+                          data-active={filterCategory() === option.id ? "" : undefined}
+                          onClick={() => {
+                            setFilterCategory(option.id)
+                            setPage(0)
+                          }}
+                        >
+                          <SettingsItemIconV2 icon={option.icon} fallback="checklist" />
+                          <span class="settings-v2-skills-filter-count">{option.count}</span>
+                        </button>
+                      </TooltipV2>
                     )}
                   </For>
-                </div>
+                </div></Show>
               </div>
               </Show>
 
-              <Show
+              <Show when={section() === "installed"}><Show
                 when={filteredSkills().length > 0}
                 fallback={
                   <Show
@@ -644,9 +661,11 @@ export const SettingsSkillsV2: Component<{
                     </ButtonV2>
                   </div>
                 </Show>
-              </Show>
+              </Show></Show>
             </div>
+            </Show>
 
+            <Show when={section() === "import"}>
             <div class="settings-v2-section">
               <h3 class="settings-v2-section-title">{language.t("settings.skills.section.import")}</h3>
               <SettingsListV2>
@@ -739,9 +758,10 @@ export const SettingsSkillsV2: Component<{
                 </div>
               </SettingsListV2>
             </div>
+            </Show>
           </div>
 
-          <Show when={selectedSkill()} fallback={<div class="settings-v2-skills-detail-empty" />}>
+          <Show when={section() === "installed"}><Show when={selectedSkill()} fallback={<div class="settings-v2-skills-detail-empty" />}>
             {(skill) => (
               <div class="settings-v2-skills-detail">
                 <div class="settings-v2-skills-detail-header">
@@ -794,7 +814,7 @@ export const SettingsSkillsV2: Component<{
                 </div>
               </div>
             )}
-          </Show>
+          </Show></Show>
         </div>
       </div>
     </>

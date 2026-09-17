@@ -10,6 +10,9 @@ import { useServerSDK } from "@/context/server-sdk"
 import { normalizeAgentList } from "@/context/global-sync/utils"
 import { showToast } from "@/utils/toast"
 import { SettingsPagerV2 } from "./parts/pager"
+import { SettingsSectionTabs } from "./parts/section-tabs"
+import { Icon, type IconName } from "@tiancode-ai/ui/icon"
+import { BrandIcon, type BrandIconName } from "./parts/brand-icon"
 import { RlmHierarchyTree } from "@/components/visualization/rlm-hierarchy-tree"
 import {
   agentDisablePatch,
@@ -32,7 +35,6 @@ const StatusOptions: { id: "all" | "enabled" | "disabled"; label: string }[] = [
 const AGENT_META = [
   ["build", "🔨", "#3B82F6"],
   ["plan", "📋", "#8B5CF6"],
-  ["webapp", "🌐", "#06B6D4"],
   ["general", "🔍", "#10B981"],
   ["explore", "🧭", "#F59E0B"],
   ["software-architect", "🏛️", "#3B82F6"],
@@ -51,6 +53,48 @@ const AGENT_META = [
   ["llm-redteam", "🔐", "#C026D3"],
 ] as const
 
+// Real marks for each specialist: the technology it stands for when one is unambiguous, otherwise a
+// line glyph from the icon set. The emoji in AGENT_META stays as the last fallback.
+const AGENT_BRANDS: Partial<Record<string, BrandIconName>> = {
+  "fullstack-coder": "react",
+  "ui-ux-master": "figma",
+  "performance-optimizer": "vite",
+  "database-architect": "postgresql",
+  "qa-e2e-tester": "cypress",
+  "python-data-engineer": "python",
+  "mobile-app-developer": "android",
+  "cloud-devops-engineer": "docker",
+  "marketing-strategist": "hubspot",
+  "reverse-engineer": "wireshark",
+  pentest: "kalilinux",
+  "llm-redteam": "owasp",
+}
+const AGENT_GLYPHS: Partial<Record<string, IconName>> = {
+  build: "code",
+  plan: "checklist",
+  general: "magnifying-glass",
+  explore: "folder",
+  "software-architect": "code-lines",
+  "hermes-researcher": "magnifying-glass",
+}
+
+function AgentMark(props: { name: string; emoji: string }) {
+  const brand = () => AGENT_BRANDS[props.name]
+  const glyph = () => AGENT_GLYPHS[props.name]
+  return (
+    <Show
+      when={brand()}
+      fallback={
+        <Show when={glyph()} fallback={props.emoji}>
+          {(name) => <Icon name={name()} size="small" />}
+        </Show>
+      }
+    >
+      {(name) => <BrandIcon name={name()} size={18} />}
+    </Show>
+  )
+}
+
 type StatusId = "all" | "enabled" | "disabled"
 
 export const SettingsSubAgentsV2: Component<{
@@ -61,6 +105,7 @@ export const SettingsSubAgentsV2: Component<{
   const serverSdk = useServerSDK()
 
   const [scope, setScope] = createSignal<"project" | "global">(props.directory ? "project" : "global")
+  const [section, setSection] = createSignal<"agents" | "hierarchy" | "general">("agents")
 
   const params = () => (props.directory ? { directory: props.directory } : undefined)
   // Which config file this panel reads and writes. Both resources take it as their source: a
@@ -243,7 +288,8 @@ export const SettingsSubAgentsV2: Component<{
   const visibleBuiltinAgents = createMemo(() => visibleAgents().filter((a) => a.builtin))
 
   // Paginación 10x10 para Sub-Agentes sin scroll excesivo
-  const BUILTIN_PAGE_SIZE = 10
+  // Three tall specialist cards fit a desktop window without scrolling; the pager covers the rest.
+  const BUILTIN_PAGE_SIZE = 3
   const [builtinPage, setBuiltinPage] = createSignal(1)
   const builtinTotal = () => Math.max(1, Math.ceil(visibleBuiltinAgents().length / BUILTIN_PAGE_SIZE))
   const pageBuiltinAgents = createMemo(() => {
@@ -277,7 +323,7 @@ export const SettingsSubAgentsV2: Component<{
             "border-color": `color-mix(in srgb, ${agent.color} 40%, transparent)`,
           }}
         >
-          {agent.icon}
+          <AgentMark name={agent.name} emoji={agent.icon} />
         </div>
         <div class="flex flex-col min-w-0">
           <span class="text-xs font-semibold text-v2-text-text-base truncate">{agent.title}</span>
@@ -348,9 +394,19 @@ export const SettingsSubAgentsV2: Component<{
             </span>
           </div>
         </div>
+        <SettingsSectionTabs
+          value={section()}
+          onChange={setSection}
+          options={[
+            { id: "agents", label: language.t("settings.subAgents.list.group.builtin") },
+            { id: "hierarchy", label: language.t("settings.subAgents.hierarchy.title") },
+            { id: "general", label: language.t("settings.tab.general") },
+          ]}
+        />
       </div>
 
       <div class="settings-v2-tab-body settings-v2-sub-agents">
+        <Show when={section() === "general"}>
         <div class="settings-v2-sub-agents-scope">
           <div class="settings-v2-sub-agents-scope-control">
             <span class="settings-v2-sub-agents-scope-label">{language.t("settings.subAgents.scope.label")}</span>
@@ -378,7 +434,9 @@ export const SettingsSubAgentsV2: Component<{
           </p>
         </div>
 
-        {/* Buscador, filtro y las dos formas de crear un sub-agente. */}
+        </Show>
+        <Show when={section() === "agents"}>
+        {/* Buscador y filtro del catálogo. */}
         <div class="settings-v2-sub-agents-toolbar">
           <div class="settings-v2-sub-agents-toolbar-row">
             <TextInputV2
@@ -444,17 +502,19 @@ export const SettingsSubAgentsV2: Component<{
           <p class="settings-v2-sub-agents-scope-hint">{language.t("settings.subAgents.list.empty")}</p>
         </Show>
 
-        {/* 3. Quién delega en quién, derivado de la misma lista de arriba. */}
-        <div class="settings-v2-section mb-6">
-          <RlmHierarchyTree roots={delegationTree()} />
-        </div>
-
         <div class="settings-v2-sub-agents-list-footer">
           {language.t("settings.subAgents.list.footer", {
             count: visibleAgents().length,
             enabled: visibleAgents().filter((agent) => agent.enabled).length,
           })}
         </div>
+        </Show>
+
+        <Show when={section() === "hierarchy"}>
+          <div class="settings-v2-section">
+            <RlmHierarchyTree roots={delegationTree()} />
+          </div>
+        </Show>
       </div>
     </>
   )

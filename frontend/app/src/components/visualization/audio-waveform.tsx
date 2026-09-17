@@ -6,6 +6,7 @@ export const AudioWaveform: Component<{
   class?: string
   color?: string
   height?: number
+  level?: number
 }> = (props) => {
   let canvasRef: HTMLCanvasElement | undefined
   let animId: number | undefined
@@ -29,6 +30,7 @@ export const AudioWaveform: Component<{
         const primary = Math.abs(Math.sin(phase * 1.8 + i * 0.45))
         const secondary = Math.abs(Math.cos(phase * 2.4 - i * 0.35))
         val = Math.min(1.0, 0.15 + 0.85 * (0.6 * primary + 0.4 * secondary))
+        if (props.level !== undefined) val *= Math.max(0, Math.min(1, props.level))
       } else {
         val = 0.08 + 0.04 * Math.sin(i * 0.3)
       }

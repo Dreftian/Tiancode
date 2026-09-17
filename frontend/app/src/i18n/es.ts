@@ -1,5 +1,13 @@
 import { SUBAGENT_CATALOG_SPANISH } from "./subagent-catalog"
 export const dict = {
+  "settings.sections.label": "Secciones de configuración",
+  "titlebar.debugTools": "Mostrar herramientas de depuración",
+  "chat.mic.transcribing": "Transcribiendo…",
+  "settings.general.row.showVoice.title": "Controles de voz",
+  "settings.general.row.showVoice.description": "Muestra el micrófono y los controles de reproducción de voz del chat.",
+  "settings.general.row.showCapture.title": "Captura de pantalla",
+  "settings.general.row.showCapture.description": "Muestra la captura de pantalla junto a Estado.",
+  "settings.intelligence.storage": "Tiancode guarda la memoria y las habilidades aprendidas en sus datos de aplicación, separados por proyecto. Los archivos anteriores siguen disponibles por compatibilidad.",
   "settings.browser.links.chrome": "Google Chrome",
   "settings.browser.chromeUnavailable": "No se pudo abrir Chrome. Comprueba que Google Chrome esté instalado.",
   "desktop.browser.chromeUnavailable": "No se pudo abrir Chrome. Comprueba que Google Chrome esté instalado.",

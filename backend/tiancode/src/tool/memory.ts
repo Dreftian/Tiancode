@@ -62,7 +62,7 @@ export const MemoryTool = Tool.define<typeof Parameters, Metadata, LocationServi
               yield* memoryService.saveUser(entryText, category)
               return {
                 title: "Saved user preference",
-                output: `Successfully saved to user profile memory (~/.tiancode/USER.md):\n- [${category.toUpperCase()}] ${entryText}`,
+                output: `Successfully saved to user profile memory (${memoryService.userPath()}):\n- [${category.toUpperCase()}] ${entryText}`,
                 metadata: { target: "user", category, success: true },
               }
             }
@@ -70,7 +70,7 @@ export const MemoryTool = Tool.define<typeof Parameters, Metadata, LocationServi
             yield* memoryService.saveProject(entryText, category)
             return {
               title: "Saved project memory",
-              output: `Successfully saved to project memory (.tiancode/MEMORY.md):\n- [${category.toUpperCase()}] ${entryText}`,
+              output: `Successfully saved to app-owned project memory (${memoryService.projectPath()}):\n- [${category.toUpperCase()}] ${entryText}`,
               metadata: { target: "project", category, success: true },
             }
           }
@@ -88,10 +88,10 @@ export const MemoryTool = Tool.define<typeof Parameters, Metadata, LocationServi
             lines.push("")
           }
 
-          lines.push("## User Memory (~/.tiancode/USER.md)")
+          lines.push(`## User Memory (${memoryService.userPath()})`)
           lines.push(result.user ? result.user.trim() : "(Empty)")
           lines.push("")
-          lines.push("## Project Memory (.tiancode/MEMORY.md)")
+          lines.push(`## Project Memory (${memoryService.projectPath()})`)
           lines.push(result.project ? result.project.trim() : "(Empty)")
 
           return {

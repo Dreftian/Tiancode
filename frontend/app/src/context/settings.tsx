@@ -136,6 +136,8 @@ export interface Settings {
     showStatus: boolean
     showTerminal: boolean
     showBrowser: boolean
+    showVoice: boolean
+    showCapture: boolean
     browserLinks: "integrated" | "system" | "chrome"
     designStyle: import("@/utils/design-style").DesignStyle
     clearResponses: boolean
@@ -317,6 +319,8 @@ const defaultSettings: Settings = {
     showStatus: false,
     showTerminal: true,
     showBrowser: true,
+    showVoice: true,
+    showCapture: true,
     browserLinks: "integrated",
     designStyle: "ask",
     clearResponses: false,
@@ -570,10 +574,14 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         setShowStatus(value: boolean) {
           setStore("general", "showStatus", value)
         },
-        // Sin interruptor en Ajustes desde que la v1 se retiró: la cabecera v2
-        // dibuja el terminal siempre y todavía no dibuja el navegador. Los
-        // valores se conservan (session-header.tsx y preview-panel.tsx los
-        // siguen leyendo) para no perder la preferencia de quien ya la guardó.
+        showVoice: withFallback(() => store.general?.showVoice, defaultSettings.general.showVoice),
+        setShowVoice(value: boolean) {
+          setStore("general", "showVoice", value)
+        },
+        showCapture: withFallback(() => store.general?.showCapture, defaultSettings.general.showCapture),
+        setShowCapture(value: boolean) {
+          setStore("general", "showCapture", value)
+        },
         showTerminal: withFallback(() => store.general?.showTerminal, defaultSettings.general.showTerminal),
         setShowTerminal(value: boolean) {
           setStore("general", "showTerminal", value)

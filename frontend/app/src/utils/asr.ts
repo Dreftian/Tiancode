@@ -207,6 +207,8 @@ export async function startLocalDictation(options: {
   onResult: (text: string) => void
   onError: (code: AsrErrorCode) => void
   onLimit?: (seconds: number) => void
+  onLevel?: (level: number) => void
+  onTranscribing?: () => void
 }): Promise<() => void> {
   const { language, onResult, onError, onLimit } = options
   const api = asrAPI()
@@ -250,7 +252,13 @@ export async function startLocalDictation(options: {
   const source = context.createMediaStreamSource(stream)
   const node = context.createScriptProcessor(4096, 1, 1)
   let stopped = false
+  let receivedSamples = false
+  let heardSpeech = false
+  let lastSpeech = 0
+  let watchdog: ReturnType<typeof setInterval> | undefined
   const releaseAudio = () => {
+    clearInterval(watchdog)
+    options.onLevel?.(0)
     node.onaudioprocess = null
     node.disconnect()
     source.disconnect()
@@ -258,6 +266,10 @@ export async function startLocalDictation(options: {
     stream.getTracks().forEach((track) => track.stop())
   }
   try {
+    // Model/device setup can outlive the click's user activation. Electron may
+    // leave the audio context suspended even though the microphone is open.
+    await context.resume()
+    if (context.state !== "running") throw new DictationError("engine-failed")
     await api.start(language)
   } catch (error) {
     // El reconocedor no arrancó: liberar lo ya adquirido. Si no, el indicador
@@ -267,7 +279,15 @@ export async function startLocalDictation(options: {
   }
   node.onaudioprocess = (event) => {
     if (stopped) return
-    api.chunk(new Float32Array(event.inputBuffer.getChannelData(0)))
+    const samples = new Float32Array(event.inputBuffer.getChannelData(0))
+    receivedSamples = true
+    const rms = Math.sqrt(samples.reduce((sum, value) => sum + value * value, 0) / samples.length)
+    options.onLevel?.(Math.min(1, rms * 12))
+    if (rms > 0.008) {
+      heardSpeech = true
+      lastSpeech = Date.now()
+    }
+    api.chunk(samples)
   }
   source.connect(node)
   node.connect(context.destination)
@@ -279,6 +299,7 @@ export async function startLocalDictation(options: {
     unsubscribe()
     releaseAudio()
     if (!transcribe) return
+    options.onTranscribing?.()
     let result: AsrResult
     try {
       result = await api.stop()
@@ -294,6 +315,8 @@ export async function startLocalDictation(options: {
       const durationSeconds = Math.max(1, Math.round((Date.now() - startTime) / 1000))
       addRecentRecording({ text: processed, durationSeconds })
       onResult(processed)
+    } else {
+      onError("no-speech")
     }
   }
 
@@ -305,9 +328,23 @@ export async function startLocalDictation(options: {
       void finish(true)
       return
     }
-    onError("engine-failed")
     void finish(false)
+    onError("engine-failed")
   })
+
+  // Finish after a spoken phrase, instead of looking as though nothing happened
+  // until the user discovers they must click Stop. Also bound a silent capture.
+  watchdog = setInterval(() => {
+    if (stopped) return
+    const elapsed = Date.now() - startTime
+    if (!receivedSamples && elapsed > 5000) {
+      void finish(false)
+      void api.stop().catch(() => {})
+      onError("engine-failed")
+      return
+    }
+    if ((heardSpeech && Date.now() - lastSpeech > 2200) || (elapsed > 15000 && !heardSpeech)) void finish(true)
+  }, 250)
 
   return () => finish(true)
 }

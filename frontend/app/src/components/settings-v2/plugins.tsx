@@ -13,6 +13,7 @@ import { showToast } from "@/utils/toast"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
 import { hashColor, SettingsItemIconV2 } from "./parts/item-icon"
+import { BrandIcon, brandFor } from "./parts/brand-icon"
 import {
   displayName,
   pluginEnabled,
@@ -410,10 +411,16 @@ export const SettingsPluginsV2: Component<{
                   const hooks = hooksBySpec()?.[name]
                   return (
                     <div class="settings-v2-plugins-item" data-disabled={enabled ? undefined : ""}>
-                      <SettingsItemIconV2
-                        fallback="plugin"
-                        color={hashColor(name)}
-                      />
+                      <Show
+                        when={brandFor(displayName(entry), name)}
+                        fallback={<SettingsItemIconV2 fallback="plugin" color={hashColor(name)} />}
+                      >
+                        {(brand) => (
+                          <span class="settings-v2-item-icon">
+                            <BrandIcon name={brand()} size={16} />
+                          </span>
+                        )}
+                      </Show>
                       <div class="settings-v2-plugins-item-copy">
                         <div class="settings-v2-plugins-item-name-row">
                           <span class="settings-v2-plugins-item-name">{displayName(entry)}</span>
@@ -500,7 +507,16 @@ export const SettingsPluginsV2: Component<{
                 const installed = isInstalled(entry.spec)
                 return (
                   <div class="settings-v2-plugins-item">
-                    <SettingsItemIconV2 fallback="download" color={hashColor(entry.spec)} />
+                    <Show
+                      when={brandFor(entry.id, entry.spec)}
+                      fallback={<SettingsItemIconV2 fallback="download" color={hashColor(entry.spec)} />}
+                    >
+                      {(brand) => (
+                        <span class="settings-v2-item-icon">
+                          <BrandIcon name={brand()} size={16} />
+                        </span>
+                      )}
+                    </Show>
                     <div class="settings-v2-plugins-item-copy">
                       <div class="settings-v2-plugins-item-name-row">
                         <span class="settings-v2-plugins-item-name">
@@ -545,7 +561,16 @@ export const SettingsPluginsV2: Component<{
                 const installed = isInstalled(entry.spec)
                 return (
                   <div class="settings-v2-plugins-item">
-                    <SettingsItemIconV2 fallback="code-lines" color={hashColor(entry.spec)} />
+                    <Show
+                      when={brandFor(entry.id, entry.spec)}
+                      fallback={<SettingsItemIconV2 fallback="code-lines" color={hashColor(entry.spec)} />}
+                    >
+                      {(brand) => (
+                        <span class="settings-v2-item-icon">
+                          <BrandIcon name={brand()} size={16} />
+                        </span>
+                      )}
+                    </Show>
                     <div class="settings-v2-plugins-item-copy">
                       <div class="settings-v2-plugins-item-name-row">
                         <span class="settings-v2-plugins-item-name">

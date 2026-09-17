@@ -5,6 +5,14 @@ import { dict as en } from "./en"
 type Keys = keyof typeof en
 
 export const dict = {
+  "settings.sections.label": "设置分区",
+  "titlebar.debugTools": "切换调试工具",
+  "chat.mic.transcribing": "正在转写…",
+  "settings.general.row.showVoice.title": "语音控件",
+  "settings.general.row.showVoice.description": "在聊天中显示麦克风和语音播放控件。",
+  "settings.general.row.showCapture.title": "屏幕截图",
+  "settings.general.row.showCapture.description": "在“状态”旁显示屏幕截图。",
+  "settings.intelligence.storage": "Tiancode 将记忆和已学习的技能按项目分别保存在应用数据中。项目中已有的文件仍可读取以保持兼容。",
   "settings.browser.links.chrome": "Google Chrome",
   "settings.browser.chromeUnavailable": "无法打开 Chrome。请确认已安装 Google Chrome。",
   "desktop.browser.chromeUnavailable": "无法打开 Chrome。请确认已安装 Google Chrome。",

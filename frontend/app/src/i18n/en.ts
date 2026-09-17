@@ -2,6 +2,14 @@ import { SUBAGENT_CATALOG_ENGLISH } from "./subagent-catalog"
 import { DESKTOP_NATIVE_ENGLISH } from "./desktop-native"
 
 export const dict = {
+  "settings.sections.label": "Settings sections",
+  "titlebar.debugTools": "Toggle debug tools",
+  "chat.mic.transcribing": "Transcribing…",
+  "settings.general.row.showVoice.title": "Voice controls",
+  "settings.general.row.showVoice.description": "Show the microphone and voice playback controls in chat.",
+  "settings.general.row.showCapture.title": "Screenshot",
+  "settings.general.row.showCapture.description": "Show screenshot capture beside Status.",
+  "settings.intelligence.storage": "Tiancode stores memory and learned skills in its application data, separately for each project. Existing project files remain readable for compatibility.",
   "settings.browser.links.chrome": "Google Chrome",
   "settings.browser.chromeUnavailable": "Chrome could not be opened. Check that Google Chrome is installed.",
   "design.style.title": "Design direction",

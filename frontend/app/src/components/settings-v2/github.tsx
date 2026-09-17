@@ -129,7 +129,7 @@ const CAPABILITIES = [
 const REPO_LIMIT = 1000
 
 /** Rows per page in the local pager; the full list is already in memory. */
-const PAGE_SIZE = 10
+const PAGE_SIZE = 5
 
 // GitHub's own linguist colours. These stay hardcoded on purpose: they are brand
 // identifiers for the language, not theme colours, and mapping them to --v2-*

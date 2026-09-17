@@ -65,7 +65,8 @@ it.instance("ships focused specialists with executable methods and hidden compat
     const service = yield* Agent.Service
     const agents = yield* service.list()
     const visible = agents.filter((agent) => !agent.hidden)
-    expect(visible).toHaveLength(19)
+    // build, plan, general, explore and the 14 specialists; webapp is retired and hidden.
+    expect(visible).toHaveLength(18)
     for (const specialist of SPECIALISTS) {
       const agent = yield* service.get(specialist.name)
       expect(agent?.mode).toBe("subagent")

@@ -1,3 +1,5 @@
+import { createStore } from "solid-js/store"
+import { SettingsSectionTabs } from "./parts/section-tabs"
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
 import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
 import { Icon as IconV2 } from "@tiancode-ai/ui/v2/icon"
@@ -64,6 +66,7 @@ const voiceProbeKey = (voiceID: string) => `voice:${voiceID}`
 const canSelect = (voice: VoiceInfo) => voice.engine === ("fish" as any) || (voice.supported && voice.enabled !== false)
 
 export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
+  const [sections, setSections] = createStore({ active: "microphone" })
   const language = useLanguage()
   const settings = useSettings()
   const api = voicesAPI()
@@ -352,6 +355,16 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
       <div class="settings-v2-tab-header">
         <h2 class="settings-v2-tab-title">{language.t("settings.voices.title")}</h2>
         <p class="settings-v2-tab-description">{language.t("settings.voices.description")}</p>
+        <SettingsSectionTabs
+          value={sections.active}
+          onChange={(active) => setSections("active", active)}
+          options={[
+            { id: "microphone", label: language.t("settings.voices.section.general") },
+            { id: "dictation", label: language.t("settings.voices.section.dictation") },
+            { id: "speech", label: language.t("settings.voices.section.speech") },
+            { id: "voices", label: language.t("settings.voices.ready.title") },
+          ]}
+        />
       </div>
 
       <div class="settings-v2-tab-body settings-v2-voices">
@@ -373,7 +386,7 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
           {/* ================================================================= */}
           {/* 1. SECCIÓN GENERAL (Micrófono y Prueba de audio)                  */}
           {/* ================================================================= */}
-          <div class="settings-v2-section">
+          <Show when={sections.active === "microphone"}><div class="settings-v2-section">
             <h3 class="settings-v2-section-title">{language.t("settings.voices.section.general") ?? "General"}</h3>
             <SettingsListV2>
               <SettingsRowV2
@@ -409,12 +422,12 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
 
             {/* Comprobación de funcionamiento del micrófono en tiempo real */}
             <MicTester selectedDeviceId={selectedMicId()} active={props.active} />
-          </div>
+          </div></Show>
 
           {/* ================================================================= */}
           {/* 2. SECCIÓN DICTADO (Diccionario, Dictados recientes)              */}
           {/* ================================================================= */}
-          <div class="settings-v2-section">
+          <Show when={sections.active === "dictation"}><div class="settings-v2-section">
             <h3 class="settings-v2-section-title">{language.t("settings.voices.section.dictation") ?? "Dictado"}</h3>
             <SettingsListV2>
 
@@ -559,11 +572,13 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
                 </div>
               </Show>
             </SettingsListV2>
-          </div>
+          </div></Show>
 
-          <div class="settings-v2-section">
+          {/* ================================================================= */}
+          {/* 3. SECCIÓN SÍNTESIS (Voz automática, motor, velocidad, volumen)   */}
+          {/* ================================================================= */}
+          <Show when={sections.active === "speech"}><div class="settings-v2-section">
             <h3 class="settings-v2-section-title">{language.t("settings.voices.section.speech") ?? "Síntesis y Reproducción de Voz"}</h3>
-          </div>
 
           {/* Tarjeta de Control Maestro de Voz */}
           <div class="settings-v2-voices-master-card" data-active={settings.general.autoSpeak()}>
@@ -782,8 +797,9 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
               </div>
             </SettingsRowV2>
           </SettingsListV2>
+          </div></Show>
 
-          <div class="settings-v2-section">
+          <Show when={sections.active === "voices"}><div class="settings-v2-section">
             <h3 class="settings-v2-section-title">{language.t("settings.voices.ready.title")}</h3>
 
               <Show
@@ -1008,7 +1024,7 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
                   </Show>
                 </div>
               </Show>
-            </div>
+            </div></Show>
           </Show>
         </div>
       </>

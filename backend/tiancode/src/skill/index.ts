@@ -6,6 +6,7 @@ import type { Agent } from "@/agent/agent"
 import { EventV2Bridge } from "@/event-v2-bridge"
 import { InstanceState } from "@/effect/instance-state"
 import { Global } from "@tiancode-ai/core/global"
+import { projectStoragePath } from "@tiancode-ai/core/project-storage"
 import { SkillPlugin } from "@tiancode-ai/core/plugin/skill"
 import { Permission } from "@/permission"
 import { FSUtil } from "@tiancode-ai/core/fs-util"
@@ -256,6 +257,7 @@ const discoverSkills = Effect.fnUntraced(function* (
   const candidateDirs = new Set([
     ...configDirs,
     global.config,
+    projectStoragePath(global.config, worktree),
     path.join(worktree, ".tiancode"),
     path.join(directory, ".tiancode"),
   ])

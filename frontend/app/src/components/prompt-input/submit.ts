@@ -341,7 +341,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
     })
   }
 
-  const handleSubmit = async (event: Event) => {
+  const handleSubmit = async (event: Event, options?: { stay?: boolean }) => {
     event.preventDefault()
 
     const target = prompt.capture()
@@ -428,7 +428,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
     // Native fast mode is independent of effort; Ultracode explicitly selects a supported effort.
     const effectiveVariant = resolveSpeedVariant({
       variants: modelSelection.variant.list(),
-      selected: isUltracodeActive() ? (ultracodeVariant(modelSelection.variant.list()) ?? variant) : variant,
+      selected: isUltracodeActive() ? (ultracodeVariant(modelSelection.variant.list(), currentModel) ?? variant) : variant,
       active: isSpeed2xActive(),
     })
     if (!session && isNewSession) {
@@ -457,6 +457,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
             model: { providerID: currentModel.provider.id, modelID: currentModel.id },
             variant: effectiveVariant ?? null,
           })
+          if (options?.stay) return
           layout.handoff.setTabs(base64Encode(sessionDirectory), session.id)
           const draftID = search.draftId
           if (draftID) tabs.promoteDraft(draftID, { server: tabs.draft(draftID).server, sessionId: session.id })
@@ -507,7 +508,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
           speedModeDirective(isSpeed2xActive(), legacyProtocol && supportsNativeFast(currentModel)),
           designStyleDirective(agent, input.designStyle?.() ?? "ask"),
           input.clearResponses?.() ? CLEAR_RESPONSE_DIRECTIVE : undefined,
-          isUltracodeActive() && ultracodeVariant(modelSelection.variant.list()) ? ULTRACODE_DIRECTIVE : undefined,
+          isUltracodeActive() && ultracodeVariant(modelSelection.variant.list(), currentModel) ? ULTRACODE_DIRECTIVE : undefined,
         ]
           .filter(Boolean)
           .join("\n\n") || undefined,

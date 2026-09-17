@@ -654,16 +654,23 @@ function TitlebarUpdateIconButton(props: { state: TitlebarUpdatePillState }) {
 function ChannelIndicator(props: { debugTools?: { visible: boolean; toggle: () => void } }) {
   const channel = import.meta.env.VITE_TIANCODE_CHANNEL
   if (!channel) return null
-  // El canal de desarrollo se llama "Codex" (renombrado por el usuario); beta
-  // conserva su etiqueta. El badge se muestra en todos los canales.
-  const label = channel === "beta" ? "BETA" : "CODEX"
+  const language = useLanguage()
+  // "Coding" replaces the old blue CODEX badge: a quiet pill with the code glyph, on every channel.
+  const badge =
+    "flex h-[22px] items-center gap-1.5 rounded-md border border-v2-border-border-base bg-v2-background-bg-layer-01 px-2 text-[12px] font-semibold text-v2-text-text-base"
+  const label = (
+    <>
+      <Icon name="code" size="small" />
+      <span>Coding</span>
+    </>
+  )
   if (channel === "dev" && props.debugTools) {
     return (
       <button
         type="button"
-        class="bg-icon-interactive-base text-[#FFF] font-medium px-2 rounded-sm uppercase font-mono cursor-pointer"
+        class={`${badge} cursor-pointer`}
         onClick={props.debugTools.toggle}
-        aria-label="Toggle debug tools"
+        aria-label={language.t("titlebar.debugTools")}
         aria-pressed={props.debugTools.visible}
       >
         {label}
@@ -671,9 +678,5 @@ function ChannelIndicator(props: { debugTools?: { visible: boolean; toggle: () =
     )
   }
 
-  return (
-    <div class="bg-icon-interactive-base text-[#FFF] font-medium px-2 rounded-sm uppercase font-mono">
-      {label}
-    </div>
-  )
+  return <div class={badge}>{label}</div>
 }

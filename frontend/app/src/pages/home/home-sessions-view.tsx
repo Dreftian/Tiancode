@@ -3,7 +3,6 @@ import { type Accessor, createMemo, createSignal, For, Show, Suspense } from "so
 import { Spinner } from "@tiancode-ai/ui/spinner"
 import { ScrollView } from "@tiancode-ai/ui/scroll-view"
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
-import { HomeWebAppCard } from "@/pages/home/home-webapp-card"
 import { Icon as IconV2 } from "@tiancode-ai/ui/v2/icon"
 import { IconButtonV2 } from "@tiancode-ai/ui/v2/icon-button-v2"
 import { TooltipV2 } from "@tiancode-ai/ui/v2/tooltip-v2"
@@ -126,7 +125,6 @@ export function HomeSessionsView(props: HomeSessionsViewProps) {
             }
           >
             <div ref={props.onSetContent} class="flex flex-col gap-3 pt-3 pr-3 pb-16">
-              <HomeWebAppCard />
               <For each={props.groups()}>
                 {(group, index) => (
                   <>

@@ -6,6 +6,7 @@ import { Location } from "./location"
 import { Global } from "./global"
 import { FSUtil } from "./fs-util"
 import { isFilesystemRoot } from "./util/path"
+import { projectStoragePath } from "./project-storage"
 import path from "path"
 
 export const USER_MAX_CHARS = 4_000
@@ -93,9 +94,10 @@ const layer = Layer.effect(
     // Never write project memory to a filesystem root: that drops `.tiancode/MEMORY.md` at the
     // top of the user's drive. Such a "project" has no folder of its own, so it keeps its
     // memory beside the global config instead.
-    const projectMemoryPath = isFilesystemRoot(location.project.directory)
+    const legacyProjectMemoryPath = isFilesystemRoot(location.project.directory)
       ? path.join(global.config, "MEMORY.md")
       : path.join(location.project.directory, ".tiancode", "MEMORY.md")
+    const projectMemoryPath = path.join(projectStoragePath(global.config, location.project.directory), "MEMORY.md")
 
     const userPath = () => userMemoryPath
     const projectPath = () => projectMemoryPath
@@ -109,7 +111,13 @@ const layer = Layer.effect(
 
     const readProject = Effect.fn("Memory.readProject")(function* () {
       const exists = yield* fsys.existsSafe(projectMemoryPath)
-      if (!exists) return ""
+      if (!exists) {
+        const legacy = yield* fsys.readFileStringSafe(legacyProjectMemoryPath).pipe(Effect.orDie)
+        if (!legacy) return ""
+        // Copy once; preserve the original for older installations and recovery.
+        yield* fsys.writeWithDirs(projectMemoryPath, legacy).pipe(Effect.orDie)
+        return legacy
+      }
       const content = yield* fsys.readFileStringSafe(projectMemoryPath).pipe(Effect.orDie)
       return content ?? ""
     })

@@ -13,12 +13,10 @@ import { ModelSelectorPopoverV2 } from "@/components/dialogs/dialog-select-model
 import { DialogSelectModelUnpaidV2 } from "@/components/dialogs/dialog-select-model-unpaid-v2"
 import type { PromptInputProps } from "@/components/prompt-input/contracts"
 import { VoiceDictationButton } from "@/components/prompt-input/voice-dictation-button"
-import { CaptureControl } from "@/components/preview/capture-control"
 import { promptWithOptimizedText, promptWithDictation } from "@/components/prompt-input/optimized-prompt"
 import { PromptOptimizerButton } from "@/components/prompt-input/prompt-optimizer-button"
 import { SpeedModeButton } from "@/components/prompt-input/speed-mode-button"
 import { ComposerModeButton } from "@/components/prompt-input/composer-mode-button"
-import { DesignStylePicker } from "./design-style-picker"
 import { useSettings } from "@/context/settings"
 import {
   toggleSpeed2x,
@@ -70,6 +68,7 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
   const language = useLanguage()
   const sdk = useSDK()
   const server = useServerSDK()
+  const settings = useSettings()
   const [isOptimizingPrompt, setIsOptimizingPrompt] = createSignal(false)
 
   // Cuando el modelo no acepta imágenes, backend/tiancode/src/provider/
@@ -107,9 +106,16 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
         props.controller.submit()
       }
     }
+    const handleCapture = (event: Event) => {
+      const detail = (event as CustomEvent<{ file: File; sessionID?: string; directory: string }>).detail
+      if (detail?.directory !== sdk().directory || detail.sessionID !== props.controller.sessionID) return
+      props.controller.addAttachments([detail.file])
+    }
+    window.addEventListener("tiancode:capture", handleCapture)
     window.addEventListener("tiancode:prompt-optimizing", handleOptimizing)
     window.addEventListener("tiancode:insert-prompt", handleInsertPrompt)
     onCleanup(() => {
+      window.removeEventListener("tiancode:capture", handleCapture)
       window.removeEventListener("tiancode:prompt-optimizing", handleOptimizing)
       window.removeEventListener("tiancode:insert-prompt", handleInsertPrompt)
     })
@@ -130,13 +136,10 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
           </p>
         )}
       </Show>
-      <Show when={isUltracodeActive() && ultracodeVariant(props.controller.model.selection.variant.list())}>
+      <Show when={isUltracodeActive() && ultracodeVariant(props.controller.model.selection.variant.list(), props.controller.model.selection.current())}>
         <p class="px-1 text-[11px] leading-4 text-v2-text-text-muted" role="status">
           {language.t("composer.ultracode.description")}
         </p>
-      </Show>
-      <Show when={props.controller.view.agent?.current() === "webapp"}>
-        <DesignStylePicker />
       </Show>
       <PromptInputV2
         controller={props.controller}
@@ -156,6 +159,7 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
         attachKeybind={command.keybindParts("file.attach")}
         attachShortcut={command.keybind("file.attach")}
         micControl={
+          <Show when={settings.general.showVoice()}>
           <VoiceDictationButton
             class="flex size-7 items-center justify-center rounded-md text-v2-icon-icon-muted transition-colors hover:bg-v2-overlay-simple-overlay-hover hover:text-v2-text-text-base"
             listeningClass="!text-v2-state-fg-danger hover:!text-v2-state-fg-danger"
@@ -169,8 +173,8 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
               props.controller.onInput(merged, promptWithDictation(props.controller.parts(), text), merged.length)
             }}
           />
+          </Show>
         }
-        captureControl={<CaptureControl onCapture={(file) => props.controller.addAttachments([file])} />}
         optimizeControl={
           <PromptOptimizerButton
             input={() => props.controller.value()}
@@ -208,6 +212,17 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
 }
 
 export function usePromptInputV2Controller(props: PromptInputV2ControllerProps): PromptInputV2ComposerController {
+  createEffect(() => {
+    if (isUltracodeActive() && !ultracodeVariant(props.controls.model.selection.variant.list(), props.controls.model.selection.current())) {
+      if (!props.controls.model.selection.current()) return
+      setUltracodeActive(false)
+      if (props.controls.model.selection.variant.current() === "max") {
+        props.controls.model.selection.variant.set(props.controls.model.selection.variant.list().includes("high") ? "high" : undefined)
+      }
+    }
+    // Web App was retired as a primary mode: sessions that still carry it continue as Build.
+    if (props.controls.agents.current === "webapp") props.controls.agents.select("build")
+  })
   const settings = useSettings()
   const sdk = useSDK()
   const sync = useSync()
@@ -531,10 +546,7 @@ export function usePromptInputV2Controller(props: PromptInputV2ControllerProps):
               options: () =>
                 props.controls.agents.options.map((name) => ({
                   id: name,
-                  label:
-                    name === "webapp"
-                      ? (language.t("agent.webapp.label") ?? "Web & App")
-                      : name.charAt(0).toUpperCase() + name.slice(1),
+                  label: name.charAt(0).toUpperCase() + name.slice(1),
                 })),
               current: () => props.controls.agents.current,
               onSelect: (value: string) => props.controls.agents.select(value),
@@ -545,18 +557,18 @@ export function usePromptInputV2Controller(props: PromptInputV2ControllerProps):
       variant: {
         options: () => [
           ...variants().map((value) => ({ id: value, label: value })),
-          ...(ultracodeVariant(variants())
+          ...(ultracodeVariant(variants(), props.controls.model.selection.current())
             ? [{ id: "__tiancode_ultracode", label: language.t("composer.ultracode.label") }]
             : []),
         ],
         current: () =>
-          isUltracodeActive() && ultracodeVariant(variants())
+          isUltracodeActive() && ultracodeVariant(variants(), props.controls.model.selection.current())
             ? "__tiancode_ultracode"
             : (props.controls.model.selection.variant.current() ?? "default"),
         onSelect: (value) => {
           setUltracodeActive(value === "__tiancode_ultracode")
           props.controls.model.selection.variant.set(
-            value === "__tiancode_ultracode" ? ultracodeVariant(variants()) : value === "default" ? undefined : value,
+            value === "__tiancode_ultracode" ? ultracodeVariant(variants(), props.controls.model.selection.current()) : value === "default" ? undefined : value,
           )
         },
         keybind: () => command.keybindParts("model.variant.cycle"),
@@ -564,7 +576,7 @@ export function usePromptInputV2Controller(props: PromptInputV2ControllerProps):
       submit: {
         stopping,
         working,
-        onSubmit: () => void submission.handleSubmit(new Event("submit")),
+        onSubmit: (options) => void submission.handleSubmit(new Event("submit"), options),
         onStop: () => void submission.abort(),
       },
     },

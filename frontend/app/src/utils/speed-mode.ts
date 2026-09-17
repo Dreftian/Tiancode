@@ -35,8 +35,12 @@ export function setUltracodeActive(value: boolean) {
   setUltracodeState(value)
   localStorage.setItem(ULTRACODE_KEY, String(value))
 }
-export function ultracodeVariant(variants: string[]) {
-  return ["xhigh", "max", "high", "thinking", "medium"].find((value) => variants.includes(value))
+export function ultracodeVariant(variants: string[], model?: { id: string; api?: { id?: string } }) {
+  // This preset is validated for Claude and OpenAI reasoning families. Other
+  // providers keep their native levels instead of silently forcing maximum.
+  const id = (model?.api?.id ?? model?.id ?? "").toLowerCase().split("/").at(-1) ?? ""
+  if (!/^(claude-(?:opus|sonnet)-|gpt-(?:5|6)(?:[.-]|$)|o[134](?:[.-]|$))/.test(id)) return
+  return ["xhigh", "max", "high"].find((value) => variants.includes(value))
 }
 
 export const [isSpeed2xActive, setSpeed2xActiveState] = createSignal<boolean>(

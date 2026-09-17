@@ -37,7 +37,7 @@ export type PromptInputV2ViewConfig = {
   submit: {
     stopping: Accessor<boolean>
     working?: Accessor<boolean>
-    onSubmit: () => void
+    onSubmit: (options?: { stay?: boolean }) => void
     onStop: () => void
   }
   shell?: {
@@ -357,8 +357,8 @@ export function createPromptInputV2Controller(input: {
     closeShell() {
       dispatch({ type: "mode.normal" })
     },
-    submit() {
-      input.view.submit.onSubmit()
+    submit(options?: { stay?: boolean }) {
+      input.view.submit.onSubmit(options)
       dispatch({ type: "popover.close" })
     },
     stop() {

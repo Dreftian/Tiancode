@@ -1,6 +1,14 @@
 import { RELEASE_ENGLISH } from "./release-english"
 
 export const dict = {
+  "settings.sections.label": "設定セクション",
+  "titlebar.debugTools": "デバッグツールを切り替え",
+  "chat.mic.transcribing": "文字起こし中…",
+  "settings.general.row.showVoice.title": "音声コントロール",
+  "settings.general.row.showVoice.description": "チャットにマイクと音声再生のコントロールを表示します。",
+  "settings.general.row.showCapture.title": "スクリーンショット",
+  "settings.general.row.showCapture.description": "ステータスの横にスクリーンショットの取得を表示します。",
+  "settings.intelligence.storage": "Tiancode はメモリと学習したスキルをプロジェクトごとに分けてアプリケーションデータに保存します。既存のプロジェクト内ファイルは互換性のために引き続き読み取られます。",
   "settings.browser.links.chrome": "Google Chrome",
   "settings.browser.chromeUnavailable":
     "Chrome を開けませんでした。Google Chrome がインストールされているか確認してください。",

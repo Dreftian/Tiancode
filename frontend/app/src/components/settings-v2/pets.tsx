@@ -1,4 +1,6 @@
 import { For, Show, createSignal, onMount, type Component } from "solid-js"
+import { createStore } from "solid-js/store"
+import { SettingsSectionTabs } from "./parts/section-tabs"
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
 import { Tag } from "@tiancode-ai/ui/v2/badge-v2"
 import { SelectV2 } from "@tiancode-ai/ui/v2/select-v2"
@@ -44,6 +46,7 @@ const petApi = (): PetApi | undefined =>
   (window as unknown as { api?: { pet?: PetApi } }).api?.pet
 
 export const SettingsPetsV2: Component<{ active?: boolean }> = (_props) => {
+  const [sections, setSections] = createStore({ active: "settings" })
   const language = useLanguage()
   const settings = useSettings()
 
@@ -76,10 +79,18 @@ export const SettingsPetsV2: Component<{ active?: boolean }> = (_props) => {
           <h2 class="settings-v2-tab-title">{language.t("settings.pets.title")}</h2>
         </div>
         <p class="settings-v2-tab-description">{language.t("settings.pets.description")}</p>
+        <SettingsSectionTabs
+          value={sections.active}
+          onChange={(active) => setSections("active", active)}
+          options={[
+            { id: "settings", label: language.t("settings.pets.section.companion") },
+            { id: "catalogue", label: language.t("settings.pets.kind") },
+          ]}
+        />
       </div>
 
       <div class="settings-v2-tab-body">
-        <div class="settings-v2-section">
+        <Show when={sections.active === "settings"}><div class="settings-v2-section">
           <h3 class="settings-v2-section-title">{language.t("settings.pets.section.companion")}</h3>
 
           <Show when={petState()}>
@@ -170,9 +181,9 @@ export const SettingsPetsV2: Component<{ active?: boolean }> = (_props) => {
               </ButtonV2>
             </SettingsRowV2>
           </SettingsListV2>
-        </div>
+        </div></Show>
 
-        <div class="settings-v2-section mt-6">
+        <Show when={sections.active === "catalogue"}><div class="settings-v2-section">
           <div class="settings-v2-pets-head">
             <h3 class="settings-v2-section-title">{language.t("settings.pets.kind")}</h3>
             <span class="settings-v2-pets-count">
@@ -224,7 +235,7 @@ export const SettingsPetsV2: Component<{ active?: boolean }> = (_props) => {
               }}
             </For>
           </div>
-        </div>
+        </div></Show>
       </div>
     </>
   )

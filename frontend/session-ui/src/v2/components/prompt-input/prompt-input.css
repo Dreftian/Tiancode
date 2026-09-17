@@ -4,3 +4,111 @@
 [data-component="prompt-input"]:empty::before {
   content: "\200B";
 }
+
+/* Effort popover (Claude Code Desktop style): trigger pill, faster/smarter scale, notched slider. */
+.effort-trigger {
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--v2-text-text-base);
+  background: var(--v2-background-bg-layer-02);
+  transition: background-color 120ms ease, color 160ms ease;
+}
+.effort-trigger:hover { background: var(--v2-overlay-simple-overlay-hover); }
+.effort-trigger[data-ultra], [data-ultra] .effort-value { color: #b4a0fa; }
+.effort-popover {
+  position: relative;
+  z-index: 100;
+  width: 248px;
+  padding: 14px 14px 12px;
+  border: 1px solid var(--v2-border-border-base);
+  border-radius: 12px;
+  background: var(--v2-background-bg-layer-01);
+  color: var(--v2-text-text-muted);
+  box-shadow: 0 12px 32px #0004;
+  transform-origin: bottom right;
+  animation: effort-enter 140ms ease-out;
+}
+.effort-heading { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.effort-title { margin: 0; font-weight: 400; color: var(--v2-text-text-muted); }
+.effort-value { color: var(--v2-text-text-base); font-weight: 600; transition: color 160ms ease; }
+.effort-help {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--v2-text-text-muted);
+  opacity: 0.75;
+}
+.effort-help:hover, .effort-help[aria-expanded="true"] { opacity: 1; color: var(--v2-text-text-base); }
+.effort-help-bubble {
+  position: absolute;
+  inset-inline: 0;
+  bottom: calc(100% + 8px);
+  padding: 12px 14px;
+  border: 1px solid var(--v2-border-border-base);
+  border-radius: 12px;
+  background: var(--v2-background-bg-layer-01);
+  box-shadow: 0 12px 32px #0004;
+  font-size: 12px;
+  line-height: 1.45;
+  animation: effort-enter 140ms ease-out;
+}
+.effort-help-bubble strong { display: block; margin-bottom: 4px; font-size: 13px; color: var(--v2-text-text-base); }
+.effort-help-bubble p { margin: 0; }
+.effort-help-bubble p + p { margin-top: 6px; }
+.effort-scale { display: flex; justify-content: space-between; margin: 18px 0 8px; font-size: 12px; }
+.effort-track {
+  position: relative;
+  height: 24px;
+  border-radius: 7px;
+  background: var(--v2-background-bg-layer-03);
+  overflow: hidden;
+}
+.effort-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--effort-progress);
+  background: color-mix(in srgb, var(--v2-text-text-muted) 22%, transparent);
+  transition: width 180ms ease, background 180ms ease;
+}
+[data-ultra] .effort-fill {
+  background:
+    radial-gradient(circle, #b4a0fa 1px, transparent 1.6px) 0 0 / 4px 4px,
+    linear-gradient(90deg, transparent, #8c76c2a0);
+}
+.effort-dots { position: absolute; inset: 0 10px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
+.effort-dots > span { width: 3px; height: 3px; border-radius: 50%; background: color-mix(in srgb, var(--v2-text-text-muted) 55%, transparent); }
+.effort-track input { appearance: none; position: relative; margin: 0; width: 100%; height: 24px; background: transparent; cursor: pointer; }
+.effort-track input::-webkit-slider-thumb { appearance: none; width: 18px; height: 24px; border-radius: 7px; background: #fafafa; box-shadow: 0 1px 4px #0004; transition: transform 120ms ease; }
+.effort-track input:active::-webkit-slider-thumb { transform: scaleX(1.08); }
+.effort-track input::-moz-range-thumb { width: 18px; height: 24px; border: 0; border-radius: 7px; background: #fafafa; }
+.effort-track:focus-within { outline: 2px solid var(--v2-border-border-focus); outline-offset: 2px; }
+.effort-footer { display: flex; justify-content: flex-end; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--v2-border-border-muted); }
+
+/* Working indicator: the cat sits at the top-right of the composer while the assistant works. */
+.prompt-working-cat {
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  color: var(--v2-text-text-muted);
+  animation: cat-breathe 1.8s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes cat-breathe { 50% { opacity: 0.5; transform: translateY(-2px); } }
+@keyframes effort-enter { from { opacity: 0; transform: translateY(5px) scale(0.98); } }
+@media (prefers-reduced-motion: reduce) {
+  .effort-popover, .effort-help-bubble, .prompt-working-cat { animation: none; }
+  .effort-fill, .effort-value, .effort-trigger { transition: none; }
+}

@@ -6,7 +6,7 @@ import appPackage from "../../package.json" with { type: "json" }
 const directory = "C:/Tiancode/ComposerControls"
 const sessionID = "ses_composer_controls"
 const catalog = [
-  ...["build", "plan", "webapp"].map((name) => ({ name, mode: "primary", native: true })),
+  ...["build", "plan"].map((name) => ({ name, mode: "primary", native: true })),
   ...["software-architect", "qa-e2e-tester", "marketing-strategist", "pentest", "reverse-engineer"].map((name) => ({
     name,
     mode: "subagent",
@@ -30,10 +30,11 @@ for (const width of [1000, 720, 520, 390]) {
     const mode = composer.getByRole("button", { name: "Modo", exact: true })
     await expect(mode).toBeEnabled()
     await expect(mode).toHaveCSS("white-space", "nowrap")
-    await expect(composer.getByRole("button", { name: "Elegir agente", exact: true })).toHaveText("Build")
-    await expect(composer.getByRole("button", { name: "Activar el modo rápido" })).toBeEnabled()
+    await expect(composer.getByRole("button", { name: "Elegir agente", exact: true })).toHaveCount(0)
     await composer.getByRole("button", { name: "Elegir variante del modelo" }).click()
-    await page.getByRole("menuitemradio", { name: "Ultracode", exact: true }).click()
+    await expect(page.getByRole("button", { name: "Activar el modo rápido" })).toBeEnabled()
+    await page.getByRole("slider", { name: "Esfuerzo", exact: true }).press("End")
+    await page.keyboard.press("Escape")
     const rowCenters = await composer.locator('[data-slot="prompt-controls"] button').evaluateAll((elements) =>
       elements
         .filter((element) => element.getBoundingClientRect().width > 0)
@@ -89,38 +90,38 @@ for (const width of [1000, 720, 520, 390]) {
   })
 }
 
-test("offers exactly three primary agents and enables Fast on a non-native model", async ({ page }, testInfo) => {
+test("keeps Fast inside the effort popover and enables it on a non-native model", async ({ page }) => {
   await setup(page)
   const composer = page.locator('[data-component="prompt-input-v2"]')
-  const agents = composer.getByRole("button", { name: "Elegir agente", exact: true })
-  await expect(agents).toHaveText("Build")
-  await agents.click()
-  await expect(page.getByRole("menuitemradio")).toHaveText(["Build", "Plan", "Web App"])
-  await page.getByRole("menuitemradio", { name: "Web App", exact: true }).click()
-  await expect(agents).toHaveText("Web App")
-  await page.locator('[data-action="design-style-picker"]').click()
-  await page.screenshot({ path: testInfo.outputPath("design-directions.png") })
-  await page.getByRole("button", { name: "Espacio nocturno", exact: true }).click()
-  const speed = composer.locator('[data-action="toggle-speed-mode-2x"]')
+  await expect(composer.getByRole("button", { name: "Elegir agente", exact: true })).toHaveCount(0)
+  const effort = composer.getByRole("button", { name: "Elegir variante del modelo" })
+  await effort.click()
+  const speed = page.locator('[data-action="toggle-speed-mode-2x"]')
   await expect(speed).toBeEnabled()
   await speed.click()
   await expect(speed).toHaveAttribute("aria-pressed", "true")
+  await page.keyboard.press("Escape")
   await page.reload()
+  await effort.click()
   await expect(speed).toHaveAttribute("aria-pressed", "true")
+  await page.keyboard.press("Escape")
   const submitted: { system?: string; variant?: string }[] = []
   await page.route(`**/session/${sessionID}/prompt_async`, async (route) => {
     submitted.push(route.request().postDataJSON())
     await route.fulfill({ status: 204 })
   })
-  await composer.getByRole("button", { name: "Elegir variante del modelo" }).click()
-  await page.getByRole("menuitemradio", { name: "max", exact: true }).click()
+  await effort.click()
+  await page.getByRole("slider", { name: "Esfuerzo", exact: true }).press("End")
+  await page.keyboard.press("Escape")
+  await expect(composer.getByRole("button", { name: "Enviar", exact: true })).toHaveCount(0)
   await composer.getByRole("textbox", { name: "Prompt", exact: true }).fill("Comprueba la función solicitada")
   await composer.getByRole("button", { name: "Enviar", exact: true }).click()
+  await page.getByRole("menuitem", { name: "Enviar", exact: true }).click()
   await expect.poll(() => submitted.length).toBe(1)
   expect(submitted[0]?.system).toContain("[TIANCODE FAST WORKFLOW]")
   expect(submitted[0]?.system).not.toContain("[TIANCODE_NATIVE_FAST]")
   expect(submitted[0]?.variant).toBe("max")
-  expect(submitted[0]?.system).toContain("Midnight workspace")
+  await effort.click()
   await speed.click()
   await expect(speed).toHaveAttribute("aria-pressed", "false")
 })

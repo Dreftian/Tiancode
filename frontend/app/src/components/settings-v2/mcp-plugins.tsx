@@ -28,10 +28,11 @@ import {
   type PluginEntry,
 } from "./plugins-origin"
 import { SettingsPagerV2 } from "./parts/pager"
+import { BrandOrFallback } from "./parts/brand-icon"
 import "./mcp-plugins.css"
 
 type McpConfigValue = McpLocalConfig | McpRemoteConfig | { enabled: boolean }
-type TabMode = "mcp" | "plugins" | "discover"
+type TabMode = "mcp" | "plugins" | "builtin" | "discover"
 
 // 7 Built-in Plugins
 const BUILTIN_PLUGINS = [
@@ -630,7 +631,7 @@ export const SettingsMcpPluginsV2: Component<{
   })
 
   // Pagination 10x10 for Discover Catalog
-  const DISCOVER_PAGE_SIZE = 10
+  const DISCOVER_PAGE_SIZE = 4
   const [discoverPage, setDiscoverPage] = createSignal(1)
   const discoverTotal = () => Math.max(1, Math.ceil(catalogList().length / DISCOVER_PAGE_SIZE))
   const pageDiscoverItems = createMemo(() => {
@@ -640,7 +641,7 @@ export const SettingsMcpPluginsV2: Component<{
   })
 
   // Pagination 10x10 for MCP Servers
-  const MCP_PAGE_SIZE = 10
+  const MCP_PAGE_SIZE = 5
   const [mcpPage, setMcpPage] = createSignal(1)
   const mcpTotal = () => Math.max(1, Math.ceil(mcpServers().length / MCP_PAGE_SIZE))
   const pageMcpServers = createMemo(() => {
@@ -650,7 +651,7 @@ export const SettingsMcpPluginsV2: Component<{
   })
 
   // Pagination 10x10 for Installed Plugins
-  const PLUGINS_PAGE_SIZE = 10
+  const PLUGINS_PAGE_SIZE = 5
   const [pluginsPage, setPluginsPage] = createSignal(1)
   const pluginsTotal = () => Math.max(1, Math.ceil(pluginsList().length / PLUGINS_PAGE_SIZE))
   const pagePluginsList = createMemo(() => {
@@ -660,7 +661,7 @@ export const SettingsMcpPluginsV2: Component<{
   })
 
   // Pagination 10x10 for Built-in Plugins
-  const BUILTIN_PAGE_SIZE = 10
+  const BUILTIN_PAGE_SIZE = 5
   const [builtinPage, setBuiltinPage] = createSignal(1)
   const builtinTotal = () => Math.max(1, Math.ceil(builtinPlugins().length / BUILTIN_PAGE_SIZE))
   const pageBuiltinPlugins = createMemo(() => {
@@ -944,7 +945,7 @@ export const SettingsMcpPluginsV2: Component<{
               icon="plus"
               class="rounded-lg px-3 h-8 shadow-sm font-medium"
               onClick={() => {
-                setAddMode(activeTab() === "plugins" ? "plugin" : "mcp")
+                setAddMode(activeTab() === "plugins" || activeTab() === "builtin" ? "plugin" : "mcp")
                 setShowAddModal(true)
               }}
             >
@@ -952,9 +953,6 @@ export const SettingsMcpPluginsV2: Component<{
             </ButtonV2>
           </div>
         </div>
-      </div>
-
-      <div class="settings-v2-tab-body">
         {/* Navigation & Controls */}
         <div class="mcp-plugins-segmented-wrapper">
           <SegmentedControlV2 value={activeTab()} onChange={(v) => setActiveTab(v as TabMode)}>
@@ -963,6 +961,10 @@ export const SettingsMcpPluginsV2: Component<{
                 <span>{language.t("settings.mcpPlugins.tab.plugins")}</span>
                 <span class="mcp-plugins-tab-count">{pluginsList().length + builtinPlugins().length}</span>
               </span>
+            </SegmentedControlItemV2>
+            <SegmentedControlItemV2 value="builtin">
+              <span>{language.t("settings.mcpPlugins.section.builtin")}</span>
+              <span class="mcp-plugins-tab-count">{builtinPlugins().length}</span>
             </SegmentedControlItemV2>
             <SegmentedControlItemV2 value="mcp">
               <span class="flex items-center gap-1.5 whitespace-nowrap">
@@ -989,7 +991,9 @@ export const SettingsMcpPluginsV2: Component<{
             />
           </div>
         </div>
+      </div>
 
+      <div class="settings-v2-tab-body">
         {/* TAB 1: MCP SERVERS */}
         <Show when={activeTab() === "mcp"}>
           <div class="flex flex-col gap-4">
@@ -1061,7 +1065,7 @@ export const SettingsMcpPluginsV2: Component<{
                         {/* 1. Servidor MCP */}
                         <div class="mcp-plugins-cell gap-3 pr-2">
                           <div class="size-9 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center shrink-0 text-lg shadow-sm">
-                            🔌
+                            <BrandOrFallback names={[server.name, server.command]} size={20} fallback={<Icon name="mcp" size="small" />} />
                           </div>
                           <div class="flex flex-col min-w-0">
                             <div class="flex items-center gap-1.5">
@@ -1150,8 +1154,9 @@ export const SettingsMcpPluginsV2: Component<{
         </Show>
 
         {/* TAB 2: PLUGINS */}
-        <Show when={activeTab() === "plugins"}>
+        <Show when={activeTab() === "plugins" || activeTab() === "builtin"}>
           <div class="flex flex-col gap-6">
+            <Show when={activeTab() === "plugins"}>
             {/* Installed & Extension Plugins */}
             <div class="flex flex-col gap-3">
               <div class="flex items-center justify-between">
@@ -1176,7 +1181,7 @@ export const SettingsMcpPluginsV2: Component<{
                         {/* 1. Plugin */}
                         <div class="mcp-plugins-cell gap-3 pr-2">
                           <div class="size-9 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center shrink-0 text-lg shadow-sm">
-                            {plugin.icon}
+                            <BrandOrFallback names={[plugin.display, plugin.name]} size={20} fallback={plugin.icon} />
                           </div>
                           <div class="flex flex-col min-w-0">
                             <span class="text-xs font-semibold text-v2-text-text-base truncate" title={plugin.display}>
@@ -1233,8 +1238,10 @@ export const SettingsMcpPluginsV2: Component<{
               </Show>
             </div>
 
+            </Show>
             {/* Built-in Plugins */}
-            <div class="flex flex-col gap-3 pt-4 border-t border-v2-border-border-muted">
+            <Show when={activeTab() === "builtin"}>
+            <div class="flex flex-col gap-3">
               <div class="flex items-center justify-between">
                 <h3 class="text-[13px] font-semibold text-v2-text-text-base flex items-center gap-2">
                   <span>{language.t("settings.mcpPlugins.section.builtin")}</span>
@@ -1257,7 +1264,7 @@ export const SettingsMcpPluginsV2: Component<{
                         {/* 1. Plugin */}
                         <div class="mcp-plugins-cell gap-3 pr-2">
                           <div class="size-9 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center shrink-0 text-lg shadow-sm">
-                            {plugin.icon}
+                            <BrandOrFallback names={[plugin.id, plugin.name]} size={20} fallback={plugin.icon} />
                           </div>
                           <div class="flex flex-col min-w-0">
                             <span class="text-xs font-semibold text-v2-text-text-base truncate" title={plugin.name}>
@@ -1313,6 +1320,7 @@ export const SettingsMcpPluginsV2: Component<{
                 />
               </Show>
             </div>
+            </Show>
           </div>
         </Show>
 
@@ -1389,7 +1397,7 @@ export const SettingsMcpPluginsV2: Component<{
                         {/* 1. Extensión / Herramienta */}
                         <div class="mcp-plugins-cell gap-3 pr-2">
                           <div class="size-9 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center shrink-0 text-lg shadow-sm">
-                            {item.icon}
+                            <BrandOrFallback names={[item.id, item.name, item.command]} size={20} fallback={item.icon} />
                           </div>
                           <div class="flex flex-col min-w-0">
                             <div class="flex items-center gap-1.5 flex-wrap">

@@ -1,4 +1,6 @@
-import { createEffect, createSignal, onCleanup, onMount, type Component } from "solid-js"
+import { createEffect, createSignal, onCleanup, onMount, Show, type Component } from "solid-js"
+import { createStore } from "solid-js/store"
+import { SettingsSectionTabs } from "./parts/section-tabs"
 import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
 import { useLanguage } from "@/context/language"
 import { useSettings } from "@/context/settings"
@@ -8,6 +10,7 @@ import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
 
 export const SettingsIntelligenceV2: Component = () => {
+  const [sections, setSections] = createStore({ active: "memory" })
   const language = useLanguage()
   const settings = useSettings()
   const serverSdk = useServerSDK()
@@ -58,11 +61,23 @@ export const SettingsIntelligenceV2: Component = () => {
           {language.t("settings.intelligence.description") ||
             "Configure long-term memory (LTM), smart web extraction, graph analysis and execution safety."}
         </p>
+        <SettingsSectionTabs
+          value={sections.active}
+          onChange={(active) => setSections("active", active)}
+          options={[
+            { id: "memory", label: language.t("settings.intelligence.section.memory") },
+            { id: "context", label: language.t("settings.intelligence.section.context") },
+            { id: "safety", label: language.t("settings.intelligence.section.safety") },
+          ]}
+        />
       </div>
 
       <div class="settings-v2-tab-body">
+        <Show when={sections.active === "memory"}>
+          <p class="settings-v2-tab-description">{language.t("settings.intelligence.storage")}</p>
+        </Show>
         {/* Section 1: Long-Term Memory */}
-        <div class="settings-v2-section">
+        <Show when={sections.active === "memory"}><div class="settings-v2-section">
           <h3 class="settings-v2-section-title">
             🧠 {language.t("settings.intelligence.section.memory") || "Long-Term Memory (LTM)"}
           </h3>
@@ -106,10 +121,10 @@ export const SettingsIntelligenceV2: Component = () => {
               />
             </SettingsRowV2>
           </SettingsListV2>
-        </div>
+        </div></Show>
 
         {/* Section 2: Code Graph & Context */}
-        <div class="settings-v2-section">
+        <Show when={sections.active === "context"}><div class="settings-v2-section">
           <h3 class="settings-v2-section-title">
             🔍 {language.t("settings.intelligence.section.context") || "Code Graph & Context"}
           </h3>
@@ -140,10 +155,10 @@ export const SettingsIntelligenceV2: Component = () => {
               />
             </SettingsRowV2>
           </SettingsListV2>
-        </div>
+        </div></Show>
 
         {/* Section 3: Web & Execution Safety */}
-        <div class="settings-v2-section">
+        <Show when={sections.active === "safety"}><div class="settings-v2-section">
           <h3 class="settings-v2-section-title">
             🛡️ {language.t("settings.intelligence.section.safety") || "Web & Execution Safety"}
           </h3>
@@ -200,7 +215,7 @@ export const SettingsIntelligenceV2: Component = () => {
               />
             </SettingsRowV2>
           </SettingsListV2>
-        </div>
+        </div></Show>
       </div>
     </>
   )

@@ -55,7 +55,7 @@ export function ComposerModeButton(props: {
       setState("saving", false)
     }
   }
-  const disabled = () => state.saving || props.working || server().protocolKind() !== "v1"
+  const disabled = () => state.saving || server().protocolKind() !== "v1"
   return (
     <MenuV2 gutter={6} placement="top-start" modal={false}>
       <MenuV2.Trigger

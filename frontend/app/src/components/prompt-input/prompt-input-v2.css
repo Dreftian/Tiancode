@@ -1,4 +1,5 @@
-/* Keep one toolbar row even in a narrow chat beside the live preview. */
+/* One toolbar row even in a narrow chat beside the live preview: the left group keeps
+   its size and the right group (model, effort, optimise, send) shares what is left. */
 [data-component="prompt-input-v2"] {
   container-type: inline-size;
   container-name: composer;
@@ -10,7 +11,11 @@
   }
 
   [data-slot="prompt-selection-controls"] {
-    flex: 1 1 410px;
+    flex: 0 0 auto;
+  }
+
+  [data-slot="prompt-action-controls"] {
+    flex: 1 1 0;
     min-width: 0;
 
     > [data-component="tooltip-v2-trigger"] {
@@ -19,9 +24,8 @@
     }
 
     > [data-component="tooltip-v2-trigger"]:has([data-action="prompt-model"]) {
-      flex: 1 1 220px;
-      min-width: 72px;
-      max-width: 260px;
+      flex: 0 1 240px;
+      min-width: 64px;
     }
 
     [data-component="button-v2"] {
@@ -38,17 +42,10 @@
   }
 }
 
-@container composer (max-width: 680px) {
+@container composer (max-width: 560px) {
   [data-slot="prompt-selection-controls"] {
-    flex-basis: 0;
     gap: 2px;
   }
-  [data-action="toggle-speed-mode-2x"] > span {
-    display: none;
-  }
-}
-
-@container composer (max-width: 480px) {
   [data-slot="mode-label"] {
     display: none;
   }
@@ -59,17 +56,8 @@
     padding-inline: 2px;
     gap: 0;
   }
-  [data-component="prompt-input-v2"]
-    [data-slot="prompt-selection-controls"]
-    > [data-component="tooltip-v2-trigger"]:has([data-action="prompt-model"]) {
-    min-width: 32px;
-  }
-  [data-action="prompt-model"] [data-component="provider-icon"],
-  [data-action="prompt-model"] svg {
+  [data-action="prompt-model"] [data-component="provider-icon"] {
     display: none;
-  }
-  [data-slot="prompt-selection-controls"] [data-component="button-v2"] {
-    padding-inline: 3px;
   }
   [data-slot="prompt-action-controls"] {
     gap: 2px;

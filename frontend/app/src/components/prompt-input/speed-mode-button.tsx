@@ -54,7 +54,6 @@ export function SpeedModeButton(props: { class?: string; native: boolean }) {
         data-action="toggle-speed-mode-2x"
       >
         <BoltIcon class="size-3.5" filled={isSpeed2xActive()} />
-        <span class="text-[11px] font-medium leading-none tracking-tight">{language.t("composer.fast.label")}</span>
       </button>
     </TooltipV2>
   )

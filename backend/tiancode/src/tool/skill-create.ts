@@ -1,6 +1,7 @@
 import path from "path"
 import { Effect, Schema } from "effect"
 import { Global } from "@tiancode-ai/core/global"
+import { projectStoragePath } from "@tiancode-ai/core/project-storage"
 import { FSUtil } from "@tiancode-ai/core/fs-util"
 import { ConfigIntelligence } from "@tiancode-ai/core/config/intelligence"
 import { Config } from "@tiancode-ai/core/config"
@@ -34,7 +35,7 @@ export const Parameters = Schema.Struct({
     description: "Markdown body of the skill. If provided without separate sections, should follow the Hermes standard structure (Trigger Criteria, Procedure, Verification, Pits).",
   }),
   scope: Schema.optional(Schema.Literals(["project", "global"])).annotate({
-    description: "Whether this skill is specific to the current 'project' (.tiancode/skills/) or 'global' across all projects (~/.config/tiancode/skills/) (default: project)",
+    description: "Whether this skill is specific to the current 'project' or 'global' across projects (default: project). Both are stored in Tiancode's application configuration, never in the working repository.",
   }),
 })
 
@@ -68,7 +69,7 @@ export const SkillCreateTool = Tool.define<
             return {
               title: "Skill creation disabled",
               output:
-                "Writing SKILL.md files is turned off in Settings → Intelligence. Enable it there, or write the file yourself with the write tool.",
+                "Automatic skill creation is turned off in Settings → Intelligence. Do not create a skill through another tool unless the user explicitly requests it.",
               metadata: { enabled: false },
             }
           }
@@ -125,14 +126,14 @@ export const SkillCreateTool = Tool.define<
           const targetDir =
             scope === "global"
               ? path.join(global.config, "skills", sanitizedName)
-              : path.join(instCtx.worktree, ".tiancode", "skills", sanitizedName)
+              : path.join(projectStoragePath(global.config, instCtx.worktree), "skills", sanitizedName)
 
           const filePath = path.join(targetDir, "SKILL.md")
 
           const fileContent = [
             "---",
             `name: ${sanitizedName}`,
-            `description: ${frontmatterDescription}`,
+            `description: ${JSON.stringify(frontmatterDescription)}`,
             "---",
             "",
             body,

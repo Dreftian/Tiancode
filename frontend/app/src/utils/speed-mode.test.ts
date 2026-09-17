@@ -63,10 +63,14 @@ describe("speed-mode", () => {
   })
 
   test("Ultracode uses xhigh where available and never invents an API effort", () => {
-    expect(ultracodeVariant(["low", "xhigh", "max"])).toBe("xhigh")
-    expect(ultracodeVariant(["high", "max"])).toBe("max")
-    expect(ultracodeVariant(["custom-a"])).toBeUndefined()
-    expect(ultracodeVariant([])).toBeUndefined()
+    const claude = { id: "claude-opus-5" }
+    expect(ultracodeVariant(["low", "xhigh", "max"], claude)).toBe("xhigh")
+    expect(ultracodeVariant(["high", "max"], { id: "gpt-5" })).toBe("max")
+    expect(ultracodeVariant(["custom-a"], claude)).toBeUndefined()
+    expect(ultracodeVariant([], claude)).toBeUndefined()
+    // Only Claude and OpenAI reasoning families are validated; others keep their native levels.
+    expect(ultracodeVariant(["high", "max"], { id: "deepseek-v4-flash" })).toBeUndefined()
+    expect(ultracodeVariant(["high", "max"])).toBeUndefined()
     expect(ULTRACODE_DIRECTIVE).toContain("verify")
   })
 })
