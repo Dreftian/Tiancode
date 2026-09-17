@@ -359,8 +359,7 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
           value={sections.active}
           onChange={(active) => setSections("active", active)}
           options={[
-            { id: "microphone", label: language.t("settings.voices.section.general") },
-            { id: "dictation", label: language.t("settings.voices.section.dictation") },
+            { id: "microphone", label: language.t("settings.voices.section.microphone") },
             { id: "speech", label: language.t("settings.voices.section.speech") },
             { id: "voices", label: language.t("settings.voices.ready.title") },
           ]}
@@ -427,7 +426,7 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
           {/* ================================================================= */}
           {/* 2. SECCIÓN DICTADO (Diccionario, Dictados recientes)              */}
           {/* ================================================================= */}
-          <Show when={sections.active === "dictation"}><div class="settings-v2-section">
+          <Show when={sections.active === "microphone"}><div class="settings-v2-section">
             <h3 class="settings-v2-section-title">{language.t("settings.voices.section.dictation") ?? "Dictado"}</h3>
             <SettingsListV2>
 

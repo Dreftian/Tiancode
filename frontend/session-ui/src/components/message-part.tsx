@@ -36,6 +36,7 @@ import { useFileComponent } from "@tiancode-ai/ui/context/file"
 import { useDialog } from "@tiancode-ai/ui/context/dialog"
 import { type UiI18n, useI18n } from "@tiancode-ai/ui/context/i18n"
 import { BasicTool, GenericTool } from "./basic-tool"
+import { Mascot } from "@tiancode-ai/ui/mascot"
 import { Accordion } from "@tiancode-ai/ui/accordion"
 import { StickyAccordionHeader } from "@tiancode-ai/ui/sticky-accordion-header"
 import { Collapsible } from "@tiancode-ai/ui/collapsible"
@@ -1515,16 +1516,15 @@ export function SubagentRow(props: {
             </Show>
           </div>
 
-          {/* Avatar Icon */}
-          <span class="subagent-avatar">
-            {agent().icon ?? "🤖"}
+          {/* The working mascot while the sub-agent runs; its own mark once it is done */}
+          <span class="subagent-avatar" data-running={isRunning() || undefined}>
+            <Show when={isRunning()} fallback={agent().icon ?? "🤖"}>
+              <Mascot name="cat" size={22} mood="writing" track={false} />
+            </Show>
           </span>
 
-          {/* Subagent Name */}
-          <span class="subagent-name">{title()}</span>
-
-          {/* Role Pill */}
-          <span class="subagent-role">{specialistRole()}</span>
+          {/* The pill carries the sub-agent name; the role stays as its tooltip */}
+          <span class="subagent-role" title={specialistRole()}>{title()}</span>
 
           {/* Description Preview (Cleanly truncated, no line break or squashing) */}
           <Show when={subtitle()}>

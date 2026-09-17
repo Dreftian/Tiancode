@@ -1,6 +1,22 @@
 import { RELEASE_ENGLISH } from "./release-english"
 
 export const dict = {
+  "settings.pets.display.title": "表示場所",
+  "settings.pets.display.description": "アプリ内、Windows デスクトップ上、またはその両方。",
+  "settings.pets.display.app": "アプリ内",
+  "settings.pets.display.desktop": "デスクトップ",
+  "settings.pets.display.both": "両方",
+  "settings.modelsHub.tab.explore": "探す",
+  "settings.modelsHub.tab.disk": "ディスク上",
+  "settings.modelsHub.tab.engines": "エンジン",
+  "settings.modelsHub.tab.settings": "設定",
+  "settings.modelsHub.dir.title": "モデルのフォルダー",
+  "settings.modelsHub.dir.default": "Tiancode の既定フォルダー（アプリケーションデータ）。",
+  "settings.modelsHub.dir.change": "変更…",
+  "settings.modelsHub.dir.reset": "リセット",
+  "settings.modelsHub.dir.picker": "モデルのフォルダーを選択",
+  "settings.modelsHub.dir.restart": "次回の Tiancode 起動後、新しいモデルはこのフォルダーにダウンロードされます。ダウンロード済みのモデルは現在の場所のまま使えます。",
+  "settings.voices.section.microphone": "マイクと音声入力",
   "settings.general.section.titlebar": "上部バー",
   "settings.general.row.showReview.title": "レビュー",
   "settings.general.row.showReview.description": "チャットのヘッダーに変更レビューのボタンを表示します。",

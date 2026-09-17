@@ -247,11 +247,18 @@ export function restoreMainWindows() {
   // fantasma idénticas en cada arranque.
   const alive = ids.filter((id) => existsSync(join(app.getPath("userData"), windowDataFile(id))))
   if (alive.length !== ids.length) registry.prune(alive)
-  // A first launch shows the setup in a single compact window: restoring several windows left
-  // behind by a previous installation would open two copies of the app at once.
-  const restore = isFirstLaunchOnboardingPending() ? alive.slice(0, 1) : alive
+  // One window at startup. Several ids survive whenever the app was killed with more than one
+  // window open (the installer's taskkill, a crash), and reopening all of them looks like two
+  // copies of the app; the newest window carries the state the user saw last.
+  const restore = alive.slice(-1)
   if (restore.length !== alive.length) registry.prune(restore)
   return (restore.length ? restore : [randomUUID()]).map((id) => createMainWindow(id))
+}
+
+// Any live main window, focused or not: the tray must reveal a hidden window rather than open
+// a second one beside it.
+export function getAnyMainWindow() {
+  return registry.any()
 }
 
 export function setDockIcon() {

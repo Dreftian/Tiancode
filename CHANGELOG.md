@@ -19,6 +19,13 @@ los interruptores de General y Ultracode con proveedores no compatibles. CODEX p
 Enviar vive dentro del cuadro con menú al pasar el cursor, el menú + agrega carpetas, las
 mascotas usan personajes ilustrados de page-mascot y el gatito acompaña Pensando y Escribir.
 
+La mascota elige dónde mostrarse (app, escritorio o ambas) y la flotante de Windows usa los
+mismos personajes; el gatito ocupa el avatar de cada sub-agente y la píldora lleva su nombre.
+Modelos locales gana pestañas, logotipos de Hugging Face y carpeta de descarga configurable;
+Conexiones muestra el estado de cada proveedor en su barra; Voces se reduce a tres pestañas;
+la vista previa reconoce Remix, SvelteKit, SolidStart, Qwik, Expo, Eleventy, Parcel y webpack.
+Se corrigen el plugin que desactivaba a los demás y la doble ventana en instalaciones limpias.
+
 La versión es inferior a 1.0.54: se instala manualmente y conserva claves, sesiones,
 configuración y respaldos. Detalles: [notas de versión](tools/releases/v1.0.0.md).
 

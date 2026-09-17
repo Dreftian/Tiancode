@@ -562,7 +562,8 @@ const layer = Layer.effect(
     const http = HttpClient.filterStatusOk(withTransientReadRetry(yield* HttpClient.HttpClient))
     const fs = yield* FSUtil.Service
     const scope = yield* Scope.Scope
-    const modelsDir = path.join(Global.Path.data, "models")
+    // A folder picked in Settings › Local models wins over the application data folder.
+    const modelsDir = process.env.TIANCODE_MODELS_DIR?.trim() || path.join(Global.Path.data, "models")
     // Resolved once so containment checks compare like-for-like on Windows
     // (drive letters and case) and on case-sensitive platforms.
     const resolvedModelsDir = path.resolve(modelsDir)

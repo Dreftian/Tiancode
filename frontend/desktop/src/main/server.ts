@@ -5,7 +5,7 @@ import type { Details } from "electron"
 import { getLogger } from "./logging"
 import { getUserShell, loadShellEnv } from "./shell-env"
 import { getStore } from "./store"
-import { DEFAULT_SERVER_URL_KEY, FILE_WATCHER_KEY } from "./store-keys"
+import { DEFAULT_SERVER_URL_KEY, FILE_WATCHER_KEY, LOCAL_MODELS_DIR_KEY } from "./store-keys"
 import { serializeError } from "./util/error"
 import { applyDesktopXdgPaths } from "./xdg-paths"
 
@@ -228,6 +228,9 @@ function createSidecarEnv(): Record<string, string> {
   )
   delete env.DEBUG
   if (process.platform === "linux") delete env.LD_PRELOAD
+  // A folder chosen in Settings › Local models; the backend downloads and looks for GGUF files there.
+  const modelsDir = getStore().get(LOCAL_MODELS_DIR_KEY)
+  if (typeof modelsDir === "string" && modelsDir.trim()) env.TIANCODE_MODELS_DIR = modelsDir.trim()
   return env
 }
 

@@ -6,11 +6,17 @@ import { Tag } from "@tiancode-ai/ui/v2/badge-v2"
 import { SelectV2 } from "@tiancode-ai/ui/v2/select-v2"
 import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
 import { useLanguage } from "@/context/language"
-import { petKinds, petPositions, useSettings, type PetKind } from "@/context/settings"
+import { petDisplays, petKinds, petPositions, useSettings, type PetDisplay, type PetKind } from "@/context/settings"
 import { PetGlyph } from "@/components/pet/pet-glyph"
 import { PET_GLYPHS } from "./pets-catalogue"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
+
+const petDisplayLabels = {
+  both: "settings.pets.display.both",
+  app: "settings.pets.display.app",
+  desktop: "settings.pets.display.desktop",
+} as const
 
 const petPositionLabels = {
   "bottom-right": "settings.pets.position.bottomRight",
@@ -118,45 +124,46 @@ export const SettingsPetsV2: Component<{ active?: boolean }> = (_props) => {
             </SettingsRowV2>
 
             <SettingsRowV2
-              title={language.t("settings.pets.position")}
-              description={language.t("settings.pets.position.description")}
+              title={language.t("settings.pets.display.title")}
+              description={
+                desktopAvailable ? language.t("settings.pets.display.description") : language.t("settings.pets.desktop.unavailable")
+              }
             >
               <SelectV2
                 appearance="inline"
-                data-action="settings-pet-position"
-                options={[...petPositions]}
-                current={settings.general.petPosition()}
+                data-action="settings-pet-display"
+                options={desktopAvailable ? [...petDisplays] : (["app"] as PetDisplay[])}
+                current={desktopAvailable ? settings.general.petDisplay() : "app"}
                 placement="bottom-end"
                 gutter={6}
-                label={(option) => language.t(petPositionLabels[option])}
-                onSelect={(option) => option && settings.general.setPetPosition(option)}
+                label={(option) => language.t(petDisplayLabels[option])}
+                onSelect={(option) => {
+                  if (!option) return
+                  settings.general.setPetDisplay(option)
+                  settings.general.setPetDesktop(option !== "app")
+                  const api = petApi()
+                  if (api) void api.getState().then(() => refreshPetState())
+                }}
               />
             </SettingsRowV2>
 
-            <SettingsRowV2
-              title={language.t("settings.pets.desktop.float.title")}
-              description={language.t("settings.pets.desktop.float.desc")}
-            >
-              <Show
-                when={desktopAvailable}
-                fallback={
-                  <p class="settings-v2-note settings-v2-pets-unavailable">
-                    {language.t("settings.pets.desktop.unavailable")}
-                  </p>
-                }
+            <Show when={settings.general.petDisplay() !== "desktop"}>
+              <SettingsRowV2
+                title={language.t("settings.pets.position")}
+                description={language.t("settings.pets.position.description")}
               >
-                <div class="flex items-center gap-2" data-action="settings-pet-desktop">
-                  <Switch
-                    checked={settings.general.petDesktop()}
-                    onChange={(checked) => {
-                      settings.general.setPetDesktop(checked)
-                      const api = petApi()
-                      if (api) void api.toggle().then(refreshPetState)
-                    }}
-                  />
-                </div>
-              </Show>
-            </SettingsRowV2>
+                <SelectV2
+                  appearance="inline"
+                  data-action="settings-pet-position"
+                  options={[...petPositions]}
+                  current={settings.general.petPosition()}
+                  placement="bottom-end"
+                  gutter={6}
+                  label={(option) => language.t(petPositionLabels[option])}
+                  onSelect={(option) => option && settings.general.setPetPosition(option)}
+                />
+              </SettingsRowV2>
+            </Show>
 
             <SettingsRowV2
               title={language.t("settings.pets.pet.title")}

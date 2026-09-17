@@ -61,6 +61,13 @@ const FRAMEWORK_PORTS: Record<string, number> = {
   react: 3000,
   gatsby: 8000,
   docusaurus: 3000,
+  remix: 5173,
+  solid: 3000,
+  qwik: 5173,
+  eleventy: 8080,
+  parcel: 1234,
+  webpack: 8080,
+  expo: 8081,
   html: 4173,
 }
 
@@ -587,13 +594,20 @@ async function detectSingleDirectory(dir: string, rootDir: string): Promise<Dete
   if (deps.vite) framework = "vite"
   else if (deps.next) framework = "next"
   else if (deps.astro) framework = "astro"
+  else if (deps["@remix-run/react"] || deps["@remix-run/dev"]) framework = "remix"
   else if (deps.angular || deps["@angular/core"]) framework = "angular"
   else if (deps.nuxt) framework = "nuxt"
-  else if (deps.svelte) framework = "svelte"
+  else if (deps["@sveltejs/kit"] || deps.svelte) framework = "svelte"
+  else if (deps["@builder.io/qwik"]) framework = "qwik"
+  else if (deps["solid-js"] || deps["solid-start"]) framework = "solid"
   else if (deps.vue) framework = "vue"
+  else if (deps.expo) framework = "expo"
   else if (deps.react) framework = "react"
   else if (deps.gatsby) framework = "gatsby"
   else if (deps["@docusaurus/core"]) framework = "docusaurus"
+  else if (deps["@11ty/eleventy"]) framework = "eleventy"
+  else if (deps.parcel || deps["parcel-bundler"]) framework = "parcel"
+  else if (deps["webpack-dev-server"]) framework = "webpack"
   else if (existsSync(join(dir, "index.html"))) framework = "html"
 
   const scripts = (typeof pkg.scripts === "object" && pkg.scripts !== null ? pkg.scripts : {}) as Record<string, unknown>

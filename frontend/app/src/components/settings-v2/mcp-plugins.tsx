@@ -793,8 +793,16 @@ export const SettingsMcpPluginsV2: Component<{
       title: language.t(nextEnabled ? "settings.mcpPlugins.toast.pluginEnabled" : "settings.mcpPlugins.toast.pluginDisabled"),
     })
 
-    // 2. Sincronización en segundo plano
-    const currentPlugins = [...((configData().plugin ?? []) as PluginEntry[])]
+    // 2. Sincronización en segundo plano. Only the entries this scope's own file declares are
+    // written back: the merged list also carries plugins from the other scope and the ones found
+    // in .tiancode/plugins, and writing that whole list (or an empty one) into the file replaced
+    // it, so toggling one plugin made the others disappear from the panel.
+    const origins = (configData() as { plugin_origins?: { spec: PluginEntry; scope: string }[] }).plugin_origins ?? []
+    const scope = props.directory ? "local" : "global"
+    const currentPlugins: PluginEntry[] =
+      origins.length > 0
+        ? origins.filter((origin) => origin.scope === scope).map((origin) => origin.spec)
+        : [...((configData().plugin ?? []) as PluginEntry[])]
     let found = false
     const updated = currentPlugins.map((p) => {
       if (pluginName(p) === targetName) {

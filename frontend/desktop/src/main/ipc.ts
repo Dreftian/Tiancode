@@ -12,6 +12,7 @@ import { runDesktopMenuAction } from "./desktop-menu-actions"
 import { setForceFocus } from "./debug"
 import { assertAttachmentBudget, createPickedFileAuthorizations } from "./attachment-picker"
 import { getStore, removeStoreFileIfEmpty } from "./store"
+import { LOCAL_MODELS_DIR_KEY } from "./store-keys"
 import {
   getPinchZoomEnabled,
   getWindowID,
@@ -350,6 +351,28 @@ export function registerIpcHandlers(deps: Deps) {
       return opts?.multiple ? result.filePaths : result.filePaths[0]
     },
   )
+
+  // Settings › Local models › folder: stored in the desktop store and handed to the sidecar as
+  // TIANCODE_MODELS_DIR on its next start.
+  ipcMain.handle("local-models-dir-get", () => {
+    const value = getStore().get(LOCAL_MODELS_DIR_KEY)
+    return typeof value === "string" && value.trim() ? value : null
+  })
+  ipcMain.handle("local-models-dir-set", (_event: IpcMainInvokeEvent, dir: string | null) => {
+    if (typeof dir === "string" && dir.trim()) getStore().set(LOCAL_MODELS_DIR_KEY, dir.trim())
+    else getStore().delete(LOCAL_MODELS_DIR_KEY)
+  })
+  ipcMain.handle("local-models-dir-pick", async (_event: IpcMainInvokeEvent, title?: string) => {
+    const current = getStore().get(LOCAL_MODELS_DIR_KEY)
+    const result = await dialog.showOpenDialog({
+      properties: ["openDirectory", "createDirectory"],
+      title: title ?? nativeT("desktop.dialog.chooseFolder"),
+      defaultPath: typeof current === "string" ? current : undefined,
+    })
+    if (result.canceled || !result.filePaths[0]) return null
+    getStore().set(LOCAL_MODELS_DIR_KEY, result.filePaths[0])
+    return result.filePaths[0]
+  })
 
   ipcMain.handle(
     "open-file-picker",

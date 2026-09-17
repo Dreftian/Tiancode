@@ -1,6 +1,22 @@
 import { RELEASE_ENGLISH } from "./release-english"
 
 export const dict = {
+  "settings.pets.display.title": "표시 위치",
+  "settings.pets.display.description": "앱 안, Windows 바탕화면 위, 또는 둘 다.",
+  "settings.pets.display.app": "앱 안",
+  "settings.pets.display.desktop": "바탕화면",
+  "settings.pets.display.both": "둘 다",
+  "settings.modelsHub.tab.explore": "탐색",
+  "settings.modelsHub.tab.disk": "디스크",
+  "settings.modelsHub.tab.engines": "엔진",
+  "settings.modelsHub.tab.settings": "설정",
+  "settings.modelsHub.dir.title": "모델 폴더",
+  "settings.modelsHub.dir.default": "Tiancode 기본 폴더(애플리케이션 데이터).",
+  "settings.modelsHub.dir.change": "변경…",
+  "settings.modelsHub.dir.reset": "재설정",
+  "settings.modelsHub.dir.picker": "모델 폴더 선택",
+  "settings.modelsHub.dir.restart": "다음 Tiancode 시작부터 새 모델은 이 폴더에 다운로드됩니다. 이미 받은 모델은 현재 위치에서 계속 사용할 수 있습니다.",
+  "settings.voices.section.microphone": "마이크와 받아쓰기",
   "settings.general.section.titlebar": "상단 바",
   "settings.general.row.showReview.title": "검토",
   "settings.general.row.showReview.description": "채팅 헤더에 변경 검토 버튼을 표시합니다.",

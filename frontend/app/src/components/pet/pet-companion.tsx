@@ -112,7 +112,7 @@ export function PetCompanion() {
         status: status(),
         text: bubbleText(),
         petted: petted(),
-        visible: settings.general.petEnabled() && (settings.general.petDesktop() !== false),
+        visible: settings.general.petEnabled() && settings.general.petDisplay() !== "app",
       })
     }
   })
@@ -142,7 +142,7 @@ export function PetCompanion() {
   }
 
   return (
-    <Show when={settings.general.petEnabled()}>
+    <Show when={settings.general.petEnabled() && settings.general.petDisplay() !== "desktop"}>
       <div
         class={`pet-companion pet-companion--${settings.general.petPosition()}`}
         data-pet-companion

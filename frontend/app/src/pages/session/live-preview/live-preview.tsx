@@ -801,9 +801,12 @@ export function LivePreview(props: {
     setFrames((current) => [...current, { id: frameSequence, src: bustCache(target), url: target }])
   }
 
+  // The last error the page threw while booting, so a white screen says why instead of only that.
+  let lastRuntimeError: string | undefined
   const completeIframeLoad = (element?: HTMLIFrameElement) => {
     const target = iframeUrl()
     if (!target) return
+    lastRuntimeError = undefined
     const loaded = element ?? iframe
     const loadedId = loaded ? frameIdOf(loaded) : undefined
     if (loadedId !== undefined && loadedId !== activeFrameId()) swapFrames(loadedId)
@@ -825,6 +828,7 @@ export function LivePreview(props: {
             const ev = event as ErrorEvent
             const errorMsg =
               ev.message || (ev.error && String(ev.error.message)) || language.t("livePreview.issue.runtimeDefault")
+            lastRuntimeError = errorMsg
             setPreviewIssue({
               type: "runtime",
               message: errorMsg,
@@ -840,6 +844,7 @@ export function LivePreview(props: {
             const errorMsg =
               (reasonRecord?.message as string | undefined) ||
               String(reason || language.t("livePreview.issue.unhandledRejection"))
+            lastRuntimeError = errorMsg
             setPreviewIssue({
               type: "runtime",
               message: errorMsg,
@@ -867,6 +872,7 @@ export function LivePreview(props: {
               text.includes("ReferenceError") ||
               text.includes("TypeError")
             ) {
+              lastRuntimeError = text.slice(0, 500)
               setPreviewIssue({
                 type: "runtime",
                 message: text.slice(0, 500),
@@ -1215,7 +1221,9 @@ export function LivePreview(props: {
             if (visible.length === 0 && !hasText) {
               setPreviewIssue({
                 type: "whitescreen",
-                message: language.t("livePreview.issue.whiteScreen.empty"),
+                message: lastRuntimeError
+                  ? `${language.t("livePreview.issue.whiteScreen.empty")} ${lastRuntimeError}`
+                  : language.t("livePreview.issue.whiteScreen.empty"),
                 url: iframeUrl(),
               })
             }

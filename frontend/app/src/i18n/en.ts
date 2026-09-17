@@ -2,6 +2,22 @@ import { SUBAGENT_CATALOG_ENGLISH } from "./subagent-catalog"
 import { DESKTOP_NATIVE_ENGLISH } from "./desktop-native"
 
 export const dict = {
+  "settings.pets.display.title": "Where it appears",
+  "settings.pets.display.description": "Inside the app, floating on the Windows desktop, or both.",
+  "settings.pets.display.app": "Inside the app",
+  "settings.pets.display.desktop": "On the desktop",
+  "settings.pets.display.both": "Both",
+  "settings.modelsHub.tab.explore": "Explore",
+  "settings.modelsHub.tab.disk": "On disk",
+  "settings.modelsHub.tab.engines": "Engines",
+  "settings.modelsHub.tab.settings": "Settings",
+  "settings.modelsHub.dir.title": "Models folder",
+  "settings.modelsHub.dir.default": "Tiancode's default folder (application data).",
+  "settings.modelsHub.dir.change": "Change…",
+  "settings.modelsHub.dir.reset": "Reset",
+  "settings.modelsHub.dir.picker": "Choose a folder for models",
+  "settings.modelsHub.dir.restart": "New models download to this folder after the next Tiancode start. Models already downloaded stay available where they are.",
+  "settings.voices.section.microphone": "Microphone and dictation",
   "settings.general.section.titlebar": "Top bar",
   "settings.general.row.showReview.title": "Review",
   "settings.general.row.showReview.description": "Show the change review button in the chat header.",

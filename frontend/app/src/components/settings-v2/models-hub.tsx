@@ -11,6 +11,7 @@ import {
   createSignal,
   createMemo,
   createEffect,
+  on,
   onCleanup,
   onMount,
 } from "solid-js"
@@ -25,6 +26,9 @@ import { showToast } from "@/utils/toast"
 import { Persist, persisted } from "@/utils/persist"
 import { SoundEffects } from "@/utils/sound-effects"
 import { SettingsPagerV2 } from "./parts/pager"
+import { SettingsSectionTabs } from "./parts/section-tabs"
+import { SettingsListV2 } from "./parts/list"
+import { SettingsRowV2 } from "./parts/row"
 import "./models-hub.css"
 
 export type { FitTier } from "@tiancode-ai/core/model-fit"
@@ -111,6 +115,47 @@ const formatEta = (seconds: Numish | undefined) => {
   if (minutes < 60) return `${minutes}m ${remaining}s`
   const hours = Math.floor(minutes / 60)
   return `${hours}h ${minutes % 60}m`
+}
+
+// The author's real avatar from Hugging Face (organisation first, then user); the drawn marks
+// below only appear when the network has nothing for that name.
+function HubAvatar(props: { id: string; author?: string; class?: string }) {
+  const [attempt, setAttempt] = createSignal(0)
+  const author = () => props.author || (props.id.includes("/") ? props.id.split("/")[0] : "")
+  const sources = () => [
+    `https://huggingface.co/api/organizations/${encodeURIComponent(author())}/avatar?redirect=true`,
+    `https://huggingface.co/api/users/${encodeURIComponent(author())}/avatar?redirect=true`,
+  ]
+  return (
+    <Show when={author() && attempt() < 2} fallback={<BrandLogo id={props.id} author={props.author} class={props.class} />}>
+      <div class={`lm-brand-badge lm-brand-hf-avatar ${props.class ?? ""}`} title={`${author()} en Hugging Face`}>
+        <img
+          src={sources()[attempt()]}
+          alt={author()}
+          class="w-full h-full object-cover rounded-xl"
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={() => setAttempt((value) => value + 1)}
+        />
+      </div>
+    </Show>
+  )
+}
+
+function HubOrgAvatar(props: { org: string; fallback: string }) {
+  const [failed, setFailed] = createSignal(false)
+  return (
+    <Show when={!failed()} fallback={<span>{props.fallback}</span>}>
+      <img
+        class="lm-quick-tag-avatar"
+        src={`https://huggingface.co/api/organizations/${encodeURIComponent(props.org)}/avatar?redirect=true`}
+        alt=""
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        onError={() => setFailed(true)}
+      />
+    </Show>
+  )
 }
 
 // Iconos de marca oficiales de Hugging Face, Labs y avatares reales
@@ -582,6 +627,33 @@ export const SettingsModelsHubV2: Component<{
   })
 
   const [hubCategory, setHubCategory] = createSignal<"all" | "coding" | "reasoning" | "lightweight" | "downloaded">("all")
+  // Top bar: explore Hugging Face, what is on disk, the local engines, and where models are kept.
+  const [hubTab, setHubTab] = createSignal<"explore" | "disk" | "engines" | "settings">("explore")
+  createEffect(
+    on(hubTab, (tab) => {
+      if (tab === "disk") setHubCategory("downloaded")
+      if (tab === "explore" && hubCategory() === "downloaded") setHubCategory("all")
+    }),
+  )
+  const localModelsApi = () => window.api?.localModels
+  const [modelsDir, setModelsDir] = createSignal<string | null>(null)
+  onMount(() => {
+    void localModelsApi()?.getDir().then((dir) => setModelsDir(dir)).catch(() => {})
+  })
+  const pickModelsDir = async () => {
+    const api = localModelsApi()
+    if (!api) return
+    const dir = await api.pickDir(language.t("settings.modelsHub.dir.picker")).catch(() => null)
+    if (!dir) return
+    setModelsDir(dir)
+    showToast({ variant: "success", title: language.t("settings.modelsHub.dir.title"), description: dir })
+  }
+  const resetModelsDir = async () => {
+    const api = localModelsApi()
+    if (!api) return
+    await api.setDir(null).catch(() => {})
+    setModelsDir(null)
+  }
 
   const activeModelList = createMemo<Model[]>(() => {
     let list: Model[] = []
@@ -1063,11 +1135,46 @@ export const SettingsModelsHubV2: Component<{
           <h2 class="settings-v2-tab-title">{language.t("settings.modelsHub.title")}</h2>
         </div>
         <p class="settings-v2-tab-description">{language.t("settings.modelsHub.description")}</p>
+        <SettingsSectionTabs
+          value={hubTab()}
+          onChange={setHubTab}
+          options={[
+            { id: "explore", label: language.t("settings.modelsHub.tab.explore") },
+            { id: "disk", label: language.t("settings.modelsHub.tab.disk") },
+            { id: "engines", label: language.t("settings.modelsHub.tab.engines") },
+            { id: "settings", label: language.t("settings.modelsHub.tab.settings") },
+          ]}
+        />
       </div>
 
       <div class="lm-hub-container">
+        <Show when={hubTab() === "settings"}>
+          <div class="settings-v2-section">
+            <h3 class="settings-v2-section-title">{language.t("settings.modelsHub.tab.settings")}</h3>
+            <SettingsListV2>
+              <SettingsRowV2
+                title={language.t("settings.modelsHub.dir.title")}
+                description={modelsDir() ?? language.t("settings.modelsHub.dir.default")}
+              >
+                <div class="flex flex-wrap items-center justify-end gap-2">
+                  <ButtonV2 type="button" variant="outline" size="small" disabled={!localModelsApi()} onClick={() => void pickModelsDir()}>
+                    {language.t("settings.modelsHub.dir.change")}
+                  </ButtonV2>
+                  <Show when={modelsDir()}>
+                    <ButtonV2 type="button" variant="ghost" size="small" onClick={() => void resetModelsDir()}>
+                      {language.t("settings.modelsHub.dir.reset")}
+                    </ButtonV2>
+                  </Show>
+                </div>
+              </SettingsRowV2>
+            </SettingsListV2>
+            <p class="settings-v2-note">{language.t("settings.modelsHub.dir.restart")}</p>
+          </div>
+        </Show>
+
         {/* 1. Telemetría de Hardware & Runtimes */}
-        <div class="lm-hub-telemetry">
+        <Show when={hubTab() === "engines" || hubTab() === "explore"}>
+        <div class="lm-hub-telemetry" data-compact={hubTab() === "explore" || undefined}>
           <div class="lm-hub-stat" data-state="info" title="GPU detectada">
             <span class="lm-hub-dot" />
             <span class="lm-hub-stat-k">{system()?.gpu ? system()!.gpu!.split(" ")[0] : "GPU"}</span>
@@ -1131,8 +1238,10 @@ export const SettingsModelsHubV2: Component<{
             )}
           </For>
         </div>
+        </Show>
 
         {/* 2. Buscador Central y Filtros */}
+        <Show when={hubTab() === "explore"}>
         <div class="flex flex-col gap-2.5">
           <form
             class="lm-search-box w-full"
@@ -1166,13 +1275,13 @@ export const SettingsModelsHubV2: Component<{
               <span class="lm-hub-filter-label">Sugeridos:</span>
               <For
                 each={[
-                  { label: "DeepSeek-R1", tag: "DeepSeek-R1-Distill", icon: "🐋" },
-                  { label: "Qwen 2.5 Coder", tag: "Qwen2.5-Coder", icon: "💻" },
-                  { label: "Hermes 3", tag: "Hermes-3", icon: "🏛️" },
-                  { label: "Llama 3.2", tag: "Llama-3.2", icon: "🦙" },
-                  { label: "Gemma 2", tag: "gemma-2", icon: "💎" },
-                  { label: "Phi-4", tag: "Phi-4", icon: "🔬" },
-                  { label: "Nemotron", tag: "Nemotron", icon: "⚡" },
+                  { label: "DeepSeek-R1", tag: "DeepSeek-R1-Distill", icon: "🐋", org: "deepseek-ai" },
+                  { label: "Qwen 2.5 Coder", tag: "Qwen2.5-Coder", icon: "💻", org: "Qwen" },
+                  { label: "Hermes 3", tag: "Hermes-3", icon: "🏛️", org: "NousResearch" },
+                  { label: "Llama 3.2", tag: "Llama-3.2", icon: "🦙", org: "meta-llama" },
+                  { label: "Gemma 2", tag: "gemma-2", icon: "💎", org: "google" },
+                  { label: "Phi-4", tag: "Phi-4", icon: "🔬", org: "microsoft" },
+                  { label: "Nemotron", tag: "Nemotron", icon: "⚡", org: "nvidia" },
                 ]}
               >
                 {(item) => (
@@ -1185,7 +1294,7 @@ export const SettingsModelsHubV2: Component<{
                       setHubCategory("all")
                     }}
                   >
-                    <span>{item.icon}</span>
+                    <HubOrgAvatar org={item.org} fallback={item.icon} />
                     <span>{item.label}</span>
                   </button>
                 )}
@@ -1209,7 +1318,10 @@ export const SettingsModelsHubV2: Component<{
           </div>
         </div>
 
+        </Show>
+
         {/* 3. Área de Contenido Principal: Hero o Resultados Detallados */}
+        <Show when={hubTab() === "explore" || hubTab() === "disk"}>
         <div class="lm-hub-results">
           <Show
             when={submitted() || hubCategory() !== "all" || pageModelList().length > 0}
@@ -1263,18 +1375,37 @@ export const SettingsModelsHubV2: Component<{
                 <Show
                   when={pageModelList().length > 0}
                   fallback={
-                    <div class="lm-hub-empty">
-                      <span class="lm-hub-empty-icon">🔍</span>
-                      <span class="lm-hub-empty-title">No se encontraron modelos</span>
-                      <p class="lm-hub-empty-body">Prueba con otro término de búsqueda o selecciona una de las etiquetas sugeridas.</p>
-                    </div>
+                    <Show
+                      when={hubTab() === "disk"}
+                      fallback={
+                        <div class="lm-hub-empty">
+                          <span class="lm-hub-empty-icon">🔍</span>
+                          <span class="lm-hub-empty-title">No se encontraron modelos</span>
+                          <p class="lm-hub-empty-body">Prueba con otro término de búsqueda o selecciona una de las etiquetas sugeridas.</p>
+                        </div>
+                      }
+                    >
+                      {/* The disk tab has nothing to search: it only lists what has been downloaded */}
+                      <div class="lm-hub-empty">
+                        <span class="lm-hub-empty-icon">💾</span>
+                        <span class="lm-hub-empty-title">Todavía no hay modelos en disco</span>
+                        <p class="lm-hub-empty-body">
+                          Descarga uno desde Explorar y aparecerá aquí con su tamaño, cuantización y el botón para cargarlo o borrarlo.
+                        </p>
+                        <button type="button" class="lm-results-clear" onClick={() => setHubTab("explore")}>
+                          Ir a Explorar
+                        </button>
+                      </div>
+                    </Show>
                   }
                 >
                   <div class="lm-results-bar">
                     <span>
                       {hubCategory() === "downloaded"
                         ? `Modelos descargados en disco (${activeModelList().length})`
-                        : `Resultados para "${submitted()}" (${activeModelList().length} modelos encontrados)`}
+                        : submitted()
+                          ? `Resultados para "${submitted()}" (${activeModelList().length} modelos encontrados)`
+                          : `Modelos destacados (${activeModelList().length})`}
                     </span>
                     <button
                       type="button"
@@ -1308,7 +1439,7 @@ export const SettingsModelsHubV2: Component<{
                           {/* Top: BrandLogo + Info + Hugging Face link */}
                           <div class="lm-result-card-head">
                             <div class="lm-result-card-identity">
-                              <BrandLogo id={model.id} author={authorName()} />
+                              <HubAvatar id={model.id} author={authorName()} />
                               <div class="lm-result-card-titles">
                                 <div class="lm-result-card-name-row">
                                   <span class="lm-result-card-name">{shortName()}</span>
@@ -1451,7 +1582,9 @@ export const SettingsModelsHubV2: Component<{
         </div>
 
         {/* Cajón Inferior de Descargas Activas y Gestión de Disco */}
-        <Show when={jobs().length > 0}>
+        </Show>
+
+        <Show when={hubTab() === "disk" && jobs().length > 0}>
           <div class="lm-downloads-drawer">
             <div class="lm-downloads-drawer-header">
               <span class="lm-downloads-drawer-title">Descargas y Modelos en Disco ({jobs().length})</span>

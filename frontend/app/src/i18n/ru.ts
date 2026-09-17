@@ -1,6 +1,22 @@
 import { RELEASE_ENGLISH } from "./release-english"
 
 export const dict = {
+  "settings.pets.display.title": "Где показывать",
+  "settings.pets.display.description": "В приложении, поверх рабочего стола Windows или в обоих местах.",
+  "settings.pets.display.app": "В приложении",
+  "settings.pets.display.desktop": "На рабочем столе",
+  "settings.pets.display.both": "В обоих",
+  "settings.modelsHub.tab.explore": "Обзор",
+  "settings.modelsHub.tab.disk": "На диске",
+  "settings.modelsHub.tab.engines": "Движки",
+  "settings.modelsHub.tab.settings": "Настройки",
+  "settings.modelsHub.dir.title": "Папка моделей",
+  "settings.modelsHub.dir.default": "Папка Tiancode по умолчанию (данные приложения).",
+  "settings.modelsHub.dir.change": "Изменить…",
+  "settings.modelsHub.dir.reset": "Сбросить",
+  "settings.modelsHub.dir.picker": "Выберите папку для моделей",
+  "settings.modelsHub.dir.restart": "Новые модели будут загружаться в эту папку после следующего запуска Tiancode. Уже загруженные остаются доступны там, где лежат.",
+  "settings.voices.section.microphone": "Микрофон и диктовка",
   "settings.general.section.titlebar": "Верхняя панель",
   "settings.general.row.showReview.title": "Проверка изменений",
   "settings.general.row.showReview.description": "Показывать кнопку проверки изменений в заголовке чата.",

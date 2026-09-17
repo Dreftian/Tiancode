@@ -408,6 +408,11 @@ export type ElectronAPI = {
     toggle: () => Promise<boolean>
     getState: () => Promise<DesktopPetState>
   }
+  localModels: {
+    getDir: () => Promise<string | null>
+    setDir: (dir: string | null) => Promise<void>
+    pickDir: (title?: string) => Promise<string | null>
+  }
   modelHub: {
     deleteFile: (target: { file?: string; id?: string; destPath?: string }) => Promise<{ success: boolean }>
   }

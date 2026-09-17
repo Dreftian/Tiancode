@@ -642,7 +642,7 @@ const layer = Layer.effect(
     const fs = yield* FSUtil.Service
 
     const binDir = path.join(Global.Path.bin, "llama-server")
-    const modelsDir = path.join(Global.Path.data, "models")
+    const modelsDir = process.env.TIANCODE_MODELS_DIR?.trim() || path.join(Global.Path.data, "models")
     const binaryExecutable = process.platform === "win32" ? "llama-server.exe" : "llama-server"
     const binaryPath = path.join(binDir, binaryExecutable)
     const markerPath = path.join(binDir, LLAMA_BUILD_MARKER_FILE)

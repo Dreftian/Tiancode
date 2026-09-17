@@ -268,6 +268,11 @@ const api: ElectronAPI = {
   modelHub: {
     deleteFile: (target) => ipcRenderer.invoke("model-hub-delete-file", target),
   },
+  localModels: {
+    getDir: () => ipcRenderer.invoke("local-models-dir-get"),
+    setDir: (dir: string | null) => ipcRenderer.invoke("local-models-dir-set", dir),
+    pickDir: (title?: string) => ipcRenderer.invoke("local-models-dir-pick", title),
+  },
 }
 
 contextBridge.exposeInMainWorld("api", api)

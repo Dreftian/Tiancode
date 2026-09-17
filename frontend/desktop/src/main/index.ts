@@ -37,6 +37,7 @@ import { safeWebContentsURL } from "./window-state"
 import {
   clearWebviewData,
   createMainWindow,
+  getAnyMainWindow,
   getLastFocusedWindow,
   getMinimizeToTrayEnabled,
   registerRendererProtocol,
@@ -490,8 +491,9 @@ const main = Effect.gen(function* () {
   if (windows.length) createMenu(menuDeps)
 
   const showWindow = () => {
-    const win = getLastFocusedWindow()
-    if (win) {
+    const win = getLastFocusedWindow() ?? getAnyMainWindow()
+    if (win && !win.isDestroyed()) {
+      if (win.isMinimized()) win.restore()
       win.show()
       win.focus()
       return

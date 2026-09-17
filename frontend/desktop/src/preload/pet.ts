@@ -20,4 +20,13 @@ contextBridge.exposeInMainWorld("petApi", {
       ipcRenderer.removeListener("pet-burst", handler)
     }
   },
+  onLook: (callback: (cell: number) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, cell: unknown) => {
+      if (typeof cell === "number") callback(cell)
+    }
+    ipcRenderer.on("pet-look", handler)
+    return () => {
+      ipcRenderer.removeListener("pet-look", handler)
+    }
+  },
 })

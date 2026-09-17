@@ -1,24 +1,14 @@
-import { BrowserWindow, screen, Notification, ipcMain } from "electron"
+import { app, BrowserWindow, screen, Notification, ipcMain } from "electron"
+import { readFileSync } from "node:fs"
 import { join } from "node:path"
 
 function safeScriptJson(value: unknown): string {
   return JSON.stringify(value).replace(/</g, "\\u003c").replace(/>/g, "\\u003e")
 }
 
-export type DesktopPetKind =
-  | "dewey"
-  | "fireball"
-  | "hoots"
-  | "rocky"
-  | "seedy"
-  | "stacky"
-  | "bsod"
-  | "nullsignal"
-  | "cat"
-  | "dog"
-  | "rabbit"
-  | "panda"
-  | "fox"
+// Any pet kind the app knows; the SVG table below covers the drawn ones and page-mascot sheets
+// cover the illustrated characters.
+export type DesktopPetKind = string
 
 export type DesktopPetState = {
   kind: DesktopPetKind
@@ -45,6 +35,70 @@ const petGlyphs: Record<string, string> = {
 }
 
 const petGlyphKinds = Object.keys(petGlyphs)
+
+// page-mascot characters (MIT): two 3×3 WebP sheets each, packaged under resources/mascots and
+// read straight from frontend/ui in development. Sent to the pet window as data URIs.
+const MASCOT_KINDS = ["cat", "fox", "panda", "bunny", "otter", "owl", "dino", "penguin", "redpanda", "robot", "koala", "hamster"]
+export type MascotSheets = { directions: string; reactions: string }
+const sheetCache = new Map<string, MascotSheets | null>()
+
+function mascotFor(kind: string) {
+  if (kind === "rabbit") return "bunny"
+  return MASCOT_KINDS.includes(kind) ? kind : undefined
+}
+
+function mascotsDir() {
+  return app.isPackaged ? join(process.resourcesPath, "mascots") : join(__dirname, "../../../ui/src/components/mascots")
+}
+
+export function sheetsFor(kind: string): MascotSheets | null {
+  const name = mascotFor(kind)
+  if (!name) return null
+  const cached = sheetCache.get(name)
+  if (cached !== undefined) return cached
+  try {
+    const dir = mascotsDir()
+    const read = (file: string) => `data:image/webp;base64,${readFileSync(join(dir, file)).toString("base64")}`
+    const sheets = { directions: read(`${name}-directions.webp`), reactions: read(`${name}-reactions.webp`) }
+    sheetCache.set(name, sheets)
+    return sheets
+  } catch {
+    sheetCache.set(name, null)
+    return null
+  }
+}
+
+// Clockwise from the right, matching atan2 with y pointing down; values are cells of the
+// directions sheet (0 up-left … 8 down-right).
+const CLOCKWISE_CELLS = [5, 8, 7, 6, 3, 0, 1, 2]
+let lookTimer: ReturnType<typeof setInterval> | undefined
+let lastLook = 4
+
+// The pet window cannot see the pointer once it leaves its 232×140 px; the main process can, so
+// it samples the cursor and tells the page where to look while the character is idle.
+function startLooking() {
+  if (lookTimer) return
+  lookTimer = setInterval(() => {
+    if (!petWindow || petWindow.isDestroyed() || !petWindow.isVisible()) return
+    const bounds = petWindow.getBounds()
+    const cursor = screen.getCursorScreenPoint()
+    const dx = cursor.x - (bounds.x + bounds.width - 54)
+    const dy = cursor.y - (bounds.y + bounds.height - 52)
+    const distance = Math.hypot(dx, dy)
+    const angle = Math.atan2(dy, dx)
+    const sector = (Math.round(angle / (Math.PI / 4)) + 8) % 8
+    const cell = distance < 70 ? 4 : CLOCKWISE_CELLS[sector]!
+    if (cell === lastLook) return
+    lastLook = cell
+    petWindow.webContents.send("pet-look", cell)
+  }, 160)
+}
+
+function stopLooking() {
+  if (!lookTimer) return
+  clearInterval(lookTimer)
+  lookTimer = undefined
+}
 
 let petWindow: BrowserWindow | null = null
 let petState: DesktopPetState = {
@@ -135,18 +189,17 @@ function getPetSvg(kind: DesktopPetKind): string {
 }
 
 function getPetHtml(state: DesktopPetState): string {
-  // Todas las caras de la mascota se embeben como JSON para que la ventana
-  // reciba solo mensajes de estado y nunca vuelva a recargar el HTML (cada
-  // loadURL anterior provocaba un parpadeo visible en cada cambio).
-  const svgRecord = Object.fromEntries(
-    petGlyphKinds.map((kind) => [kind, getPetSvg(kind as DesktopPetKind)]),
-  )
+  // Todas las caras SVG se embeben como JSON para que la ventana reciba solo mensajes de estado y
+  // nunca vuelva a recargar el HTML (cada loadURL provocaba un parpadeo visible en cada cambio).
+  // Los personajes de page-mascot llegan como dos hojas WebP en data URIs dentro del propio estado.
+  const svgRecord = Object.fromEntries(petGlyphKinds.map((kind) => [kind, getPetSvg(kind)]))
 
   const initial = {
     kind: state.kind,
     status: state.status,
     text: state.text,
     petted: state.petted ?? false,
+    sheets: sheetsFor(state.kind),
   }
 
   return `<!DOCTYPE html>
@@ -170,66 +223,50 @@ function getPetHtml(state: DesktopPetState): string {
       flex-direction: column;
       align-items: flex-end;
       justify-content: flex-end;
-      padding: 10px 14px;
+      gap: 6px;
+      padding: 8px 12px 10px;
       -webkit-app-region: drag;
     }
+    .pet-enter { animation: pet-enter 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    @keyframes pet-enter { from { opacity: 0; transform: translateY(14px) scale(0.9); } to { opacity: 1; transform: none; } }
+
     .pet-bubble {
       -webkit-app-region: no-drag;
       position: relative;
-      background: rgba(15, 23, 42, 0.88);
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-      border: 1px solid rgba(56, 189, 248, 0.35);
-      border-radius: 16px;
-      padding: 9px 14px;
+      max-width: 208px;
+      padding: 7px 11px;
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.94);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      color: #e2e8f0;
       font-size: 11.5px;
-      line-height: 1.45;
-      color: #f8fafc;
-      font-weight: 500;
-      max-width: 220px;
-      overflow: hidden;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
-      margin-bottom: 8px;
-      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+      line-height: 1.35;
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
       cursor: pointer;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.25s ease, transform 0.25s ease;
     }
-    .pet-bubble:hover {
-      transform: translateY(-2px) scale(1.02);
-      border-color: rgba(56, 189, 248, 0.65);
-      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.6), 0 0 16px rgba(56, 189, 248, 0.25);
-    }
+    .pet-container.has-text .pet-bubble { opacity: 1; transform: none; }
     .pet-bubble::after {
       content: "";
       position: absolute;
-      inset: 0;
-      border-radius: 16px;
-      pointer-events: none;
-      background: linear-gradient(120deg, rgba(34, 211, 238, 0.16), transparent 50%);
+      right: 22px;
+      bottom: -6px;
+      width: 10px;
+      height: 10px;
+      background: rgba(15, 23, 42, 0.94);
+      border-right: 1px solid rgba(148, 163, 184, 0.25);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+      transform: rotate(45deg);
     }
-    .pet-bubble .typing-dots {
-      display: none;
-      gap: 4px;
-      align-items: center;
-      padding: 2px 0;
-    }
-    .pet-bubble .typing-dots span {
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
-      background: #67e8f9;
-      animation: typing-dot 1s ease-in-out infinite;
-    }
-    .pet-bubble .typing-dots span:nth-child(2) { animation-delay: 0.15s; }
-    .pet-bubble .typing-dots span:nth-child(3) { animation-delay: 0.3s; }
-    .pet-container.running .pet-bubble .typing-dots { display: flex; }
-    .pet-container.running .pet-bubble .bubble-text { display: none; }
-    @keyframes typing-dot {
-      0%, 100% { transform: translateY(0); opacity: 0.5; }
-      50% { transform: translateY(-3px); opacity: 1; }
-    }
+    .bubble-text { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .typing-dots { display: none; margin-left: 4px; }
+    .pet-container.running .typing-dots { display: inline-flex; gap: 2px; vertical-align: middle; }
+    .typing-dots span { width: 4px; height: 4px; border-radius: 50%; background: #38bdf8; animation: dots 1s ease-in-out infinite; }
+    .typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes dots { 0%, 100% { opacity: 0.25; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-2px); } }
 
     .pet-avatar-wrapper {
       -webkit-app-region: no-drag;
@@ -237,165 +274,102 @@ function getPetHtml(state: DesktopPetState): string {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 58px;
-      height: 58px;
+      width: 84px;
+      height: 84px;
       cursor: pointer;
       transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.22s ease;
     }
-    .pet-avatar-wrapper:hover {
-      transform: scale(1.1) translateY(-2px);
-      filter: drop-shadow(0 8px 16px rgba(56, 189, 248, 0.35));
-    }
-    .pet-avatar-wrapper:active { transform: scale(0.92); }
+    .pet-avatar-wrapper:hover { transform: translateY(-3px); filter: drop-shadow(0 10px 18px rgba(56, 189, 248, 0.28)); }
+    .pet-avatar-wrapper:active { transform: scale(0.94); }
 
-    /* Anillo de estado: gradiente cónico girando mientras trabaja */
+    /* Halo de estado detrás del personaje: gira mientras trabaja, pulsa cuando espera. */
     .pet-ring {
       position: absolute;
-      inset: 0;
+      inset: 6px;
       border-radius: 50%;
-      padding: 2px;
-      background: rgba(15, 23, 42, 0.95);
-      border: 1px solid rgba(56, 189, 248, 0.25);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.16), rgba(15, 23, 42, 0) 70%);
       transition: background 0.4s ease, box-shadow 0.4s ease;
     }
-    .pet-ring::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      border-radius: 50%;
-      background: conic-gradient(from 180deg, transparent 10%, rgba(34, 211, 238, 0.9) 60%, rgba(99, 102, 241, 0.9) 90%, transparent);
-      opacity: 0;
-      transition: opacity 0.4s ease;
-    }
-    .pet-ring::after {
-      content: "";
-      position: absolute;
-      inset: 2px;
-      border-radius: 50%;
-      background: linear-gradient(145deg, rgba(30, 41, 59, 0.95), rgba(10, 14, 26, 0.98));
-    }
-    .pet-container.running .pet-ring::before {
-      opacity: 1;
-      animation: ring-spin 1.6s linear infinite;
-    }
     .pet-container.running .pet-ring {
-      box-shadow: 0 0 22px rgba(34, 211, 238, 0.45), 0 10px 26px rgba(0, 0, 0, 0.5);
+      background: conic-gradient(from 0deg, rgba(56, 189, 248, 0.5), rgba(56, 189, 248, 0) 60%, rgba(56, 189, 248, 0.5));
+      animation: ring-spin 1.8s linear infinite;
+      filter: blur(6px);
     }
-    .pet-container.needs-input .pet-ring { animation: ring-pulse-amber 1.1s ease-in-out infinite; }
-    .pet-container.blocked .pet-ring { animation: ring-pulse-red 0.9s ease-in-out infinite; }
+    .pet-container.needs-input .pet-ring { background: radial-gradient(circle, rgba(234, 179, 8, 0.35), rgba(15, 23, 42, 0) 70%); animation: ring-pulse 1.1s ease-in-out infinite; }
+    .pet-container.blocked .pet-ring { background: radial-gradient(circle, rgba(239, 68, 68, 0.35), rgba(15, 23, 42, 0) 70%); animation: ring-pulse 0.9s ease-in-out infinite; }
     @keyframes ring-spin { to { transform: rotate(360deg); } }
-    @keyframes ring-pulse-amber {
-      0%, 100% { box-shadow: 0 0 6px rgba(234, 179, 8, 0.35), 0 10px 26px rgba(0, 0, 0, 0.5); }
-      50% { box-shadow: 0 0 22px rgba(234, 179, 8, 0.75), 0 10px 26px rgba(0, 0, 0, 0.5); }
-    }
-    @keyframes ring-pulse-red {
-      0%, 100% { box-shadow: 0 0 6px rgba(239, 68, 68, 0.35), 0 10px 26px rgba(0, 0, 0, 0.5); transform: rotate(0deg); }
-      25% { transform: rotate(3deg); }
-      75% { transform: rotate(-3deg); }
-    }
+    @keyframes ring-pulse { 50% { transform: scale(1.12); opacity: 0.6; } }
 
-    .pet-glyph {
+    .pet-glyph { position: relative; z-index: 1; display: none; line-height: 1; }
+    .pet-glyph svg { width: 44px; height: 44px; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45)); }
+    .pet-container:not(.has-sprite) .pet-glyph { display: inline-flex; animation: pet-breathe 2.6s ease-in-out infinite; }
+
+    .pet-sprite {
       position: relative;
       z-index: 1;
-      font-size: 28px;
-      line-height: 1;
-      display: inline-flex;
-      animation: pet-breathe 2.6s ease-in-out infinite;
-    }
-    .pet-container.running .pet-glyph { animation: pet-bounce 0.7s ease-in-out infinite alternate; }
-    .pet-container.running .pet-glyph svg { animation: pet-wiggle 0.7s ease-in-out infinite alternate; }
-    .pet-box { display: inline-flex; }
-    .pet-box svg { width: 30px; height: 30px; }
-    @keyframes pet-breathe {
-      0%, 100% { transform: scale(1) translateY(0); }
-      50% { transform: scale(1.035) translateY(-1px); }
-    }
-    @keyframes pet-bounce {
-      0% { transform: translateY(0) rotate(-2deg); }
-      100% { transform: translateY(-5px) rotate(3deg); }
-    }
-    @keyframes pet-wiggle {
-      0% { transform: rotate(-2deg); }
-      100% { transform: rotate(3deg); }
-    }
-
-    .pet-activity {
-      position: absolute;
-      z-index: 2;
-      bottom: -2px;
-      left: -2px;
-      font-size: 15px;
       display: none;
-      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
-      animation: typing-float 1s ease-in-out infinite alternate;
+      width: 72px;
+      height: 72px;
+      transform-origin: 50% 78%;
+      filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.45));
     }
-    .pet-container.running .pet-activity { display: block; }
-    .pet-container.needs-input .pet-activity { display: block; animation: typing-float 0.5s ease-in-out infinite alternate; }
-    @keyframes typing-float {
-      0% { transform: scale(1) translateY(0); }
-      100% { transform: scale(1.15) translateY(-3px); }
+    .pet-container.has-sprite .pet-sprite { display: block; }
+    .pet-layer { position: absolute; inset: 0; background-size: 300% 300%; background-repeat: no-repeat; transition: opacity 80ms linear; }
+    .pet-container.running .pet-sprite { animation: pet-nod 0.9s ease-in-out infinite; }
+    .pet-container.ready .pet-sprite { animation: pet-breathe 3s ease-in-out infinite; }
+    .pet-container.needs-input .pet-sprite { animation: pet-bob 1.2s ease-in-out infinite; }
+    @keyframes pet-breathe { 50% { transform: translateY(-1.5px) scale(1.02); } }
+    @keyframes pet-nod { 50% { transform: translateY(1.5px) rotate(-2deg); } }
+    @keyframes pet-bob { 50% { transform: translateY(-3px); } }
+
+    .pet-close-btn {
+      position: absolute;
+      top: 4px;
+      right: 2px;
+      z-index: 3;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      color: #cbd5e1;
+      font-size: 11px;
+      line-height: 14px;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.15s ease;
     }
+    .pet-avatar-wrapper:hover .pet-close-btn { opacity: 1; }
+    .pet-close-btn:hover { background: rgba(239, 68, 68, 0.85); color: #fff; }
+
     .pet-status-dot {
       position: absolute;
+      right: 12px;
+      bottom: 10px;
       z-index: 2;
-      bottom: 3px;
-      right: 3px;
       width: 12px;
       height: 12px;
       border-radius: 50%;
-      background: #64748b;
-      border: 2px solid #0f172a;
-      transition: background 0.3s ease, box-shadow 0.3s ease;
+      border: 2px solid rgba(15, 23, 42, 0.95);
+      background: #22c55e;
     }
-    .pet-container.running .pet-status-dot { background: #22c55e; box-shadow: 0 0 10px #22c55e; }
-    .pet-container.needs-input .pet-status-dot { background: #eab308; box-shadow: 0 0 10px #eab308; }
-    .pet-container.blocked .pet-status-dot { background: #ef4444; box-shadow: 0 0 10px #ef4444; }
+    .pet-container.running .pet-status-dot { background: #38bdf8; box-shadow: 0 0 8px #38bdf8; }
+    .pet-container.needs-input .pet-status-dot { background: #eab308; }
+    .pet-container.blocked .pet-status-dot { background: #ef4444; }
 
-    .pet-hearts {
-      position: absolute;
-      z-index: 3;
-      inset: 0;
-      pointer-events: none;
-      overflow: visible;
-    }
+    .pet-hearts { position: absolute; inset: 0; pointer-events: none; }
     .heart {
       position: absolute;
       left: 50%;
-      bottom: 40%;
-      font-size: 13px;
-      animation: heart-rise 1s cubic-bezier(0.2, 0.8, 0.4, 1) forwards;
-      filter: drop-shadow(0 2px 6px rgba(244, 63, 94, 0.6));
+      top: 30%;
+      font-size: 15px;
+      opacity: 0;
+      animation: heart-float 1.4s ease-out forwards;
     }
-    @keyframes heart-rise {
-      0% { transform: translate(0, 0) scale(0.5); opacity: 0; }
-      18% { opacity: 1; }
-      100% { transform: translate(var(--hx, 0px), -56px) scale(1.25) rotate(var(--hr, 0deg)); opacity: 0; }
-    }
-    .pet-close-btn {
-      position: absolute;
-      z-index: 4;
-      top: -5px;
-      left: -5px;
-      width: 19px;
-      height: 19px;
-      border-radius: 50%;
-      background: rgba(30, 41, 59, 0.95);
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      color: #cbd5e1;
-      font-size: 11.5px;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-    }
-    .pet-avatar-wrapper:hover .pet-close-btn { display: flex; }
-    .pet-close-btn:hover { background: #ef4444; color: white; }
-
-    .pet-enter { animation: pet-enter 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
-    @keyframes pet-enter {
-      from { opacity: 0; transform: translateY(18px) scale(0.9); }
-      to { opacity: 1; transform: translateY(0) scale(1); }
+    @keyframes heart-float {
+      0% { opacity: 0; transform: translate(-50%, 0) scale(0.6) rotate(var(--hr)); }
+      20% { opacity: 1; }
+      100% { opacity: 0; transform: translate(calc(-50% + var(--hx)), -60px) scale(1.15) rotate(var(--hr)); }
     }
   </style>
 </head>
@@ -406,10 +380,10 @@ function getPetHtml(state: DesktopPetState): string {
       <span class="typing-dots"><span></span><span></span><span></span></span>
     </div>
     <div class="pet-avatar-wrapper" id="avatar">
-      <div class="pet-close-btn" id="closeBtn" title="Ocultar de escritorio">×</div>
+      <div class="pet-close-btn" id="closeBtn" title="Ocultar del escritorio">×</div>
       <div class="pet-ring"></div>
       <span class="pet-glyph"><span class="pet-box" id="glyph"></span></span>
-      <span class="pet-activity" title="Programando / Investigando">💻</span>
+      <span class="pet-sprite" id="sprite"><span class="pet-layer" id="dirLayer"></span><span class="pet-layer" id="reactLayer"></span></span>
       <span class="pet-status-dot" id="statusDot"></span>
       <div class="pet-hearts" id="hearts"></div>
     </div>
@@ -420,10 +394,80 @@ function getPetHtml(state: DesktopPetState): string {
     const container = document.getElementById("container")
     const bubbleText = document.getElementById("bubbleText")
     const glyph = document.getElementById("glyph")
+    const sprite = document.getElementById("sprite")
+    const dirLayer = document.getElementById("dirLayer")
+    const reactLayer = document.getElementById("reactLayer")
     const hearts = document.getElementById("hearts")
 
-    const pettedHearts = ["💖", "💕", "❤️", "💗", "💞"]
+    // Mismas hojas 3×3 que la mascota de la app: nueve direcciones y nueve expresiones.
+    const CENTER = 4
+    const REACTION = { blink: 0, heart: 1, sparkle: 2, surprised: 3, wink: 4, bashful: 5, sleepy: 6, dizzy: 7, delighted: 8 }
+    const LOOKS = [0, 1, 2, 3, 5, 4]
+    const WORKS = [6, 7, 8, 7]
+    const PAYOFFS = [REACTION.heart, REACTION.sparkle, REACTION.delighted]
+    let currentSheets = null
+    let direction = CENTER
+    let reaction = null
+    let mood = ""
+    let epoch = 0
+    let timers = []
+    let boops = { count: 0, at: 0 }
 
+    const cell = (index) => ((index % 3) * 50) + "% " + (Math.floor(index / 3) * 50) + "%"
+    const pick = (items) => items[Math.floor(Math.random() * items.length)]
+    function paint() {
+      dirLayer.style.backgroundPosition = cell(direction)
+      dirLayer.style.opacity = reaction === null ? "1" : "0"
+      reactLayer.style.backgroundPosition = cell(reaction === null ? 0 : reaction)
+      reactLayer.style.opacity = reaction === null ? "0" : "1"
+    }
+    function later(ms, run) {
+      const mine = epoch
+      timers.push(setTimeout(() => { if (mine === epoch) run() }, ms))
+    }
+    function reset() {
+      epoch++
+      timers.forEach(clearTimeout)
+      timers = []
+    }
+    function blink(after) {
+      reaction = REACTION.blink
+      paint()
+      later(150, () => { reaction = null; paint(); after() })
+    }
+    // Un bucle por estado, igual que el componente de la app.
+    function play(next) {
+      mood = next
+      reset()
+      reaction = null
+      if (next === "idle") {
+        direction = CENTER
+        paint()
+        const rest = () => later(3500 + Math.random() * 3500, () => blink(rest))
+        rest()
+        return
+      }
+      if (next === "blocked") { reaction = REACTION.dizzy; paint(); return }
+      if (next === "waiting") {
+        const wonder = () => { reaction = REACTION.surprised; paint(); later(2400, () => blink(wonder)) }
+        wonder()
+        return
+      }
+      let ticks = 0
+      const work = () => {
+        direction = pick(WORKS)
+        paint()
+        later(450 + Math.random() * 350, () => {
+          if (++ticks % 7 !== 0) return work()
+          reaction = REACTION.sparkle
+          paint()
+          later(500, () => { reaction = null; paint(); work() })
+        })
+      }
+      work()
+    }
+
+    const pettedHearts = ["💖", "💕", "❤️", "💗", "💞"]
     function burstHearts() {
       for (let i = 0; i < 6; i++) {
         const heart = document.createElement("span")
@@ -436,38 +480,78 @@ function getPetHtml(state: DesktopPetState): string {
         setTimeout(() => heart.remove(), 1500)
       }
     }
+    function boop() {
+      reset()
+      const now = Date.now()
+      boops = { count: now - boops.at < 1600 ? boops.count + 1 : 1, at: now }
+      const settle = () => play(mood || "idle")
+      if (boops.count >= 4) {
+        boops.count = 0
+        reaction = REACTION.dizzy
+        paint()
+        later(1100, settle)
+      } else {
+        reaction = REACTION.blink
+        paint()
+        later(120, () => { reaction = PAYOFFS[(boops.count - 1) % PAYOFFS.length]; paint() })
+        later(560, settle)
+      }
+      sprite.animate([
+        { transform: "scale(1, 1)", easing: "ease-in" },
+        { transform: "scale(1.10, 0.86)", offset: 0.18, easing: "ease-out" },
+        { transform: "scale(0.95, 1.08)", offset: 0.45, easing: "ease-in-out" },
+        { transform: "scale(1.03, 0.97)", offset: 0.72, easing: "ease-in-out" },
+        { transform: "scale(1, 1)" },
+      ], { duration: 420, easing: "linear" })
+    }
 
     function applyState(state) {
       if (!state) return
-      container.className = "pet-container pet-enter " + (state.status || "ready")
+      const status = state.status || "ready"
+      container.className = "pet-container pet-enter " + status + (state.text ? " has-text" : "")
       bubbleText.textContent = state.text || ""
-      const svg = svgs[state.kind] || svgs.cat
-      if (glyph.innerHTML !== svg) glyph.innerHTML = svg
+      if (state.sheets) {
+        if (currentSheets !== state.sheets.directions) {
+          currentSheets = state.sheets.directions
+          dirLayer.style.backgroundImage = "url(" + state.sheets.directions + ")"
+          reactLayer.style.backgroundImage = "url(" + state.sheets.reactions + ")"
+        }
+        container.classList.add("has-sprite")
+      } else {
+        container.classList.remove("has-sprite")
+        const svg = svgs[state.kind] || svgs.cat
+        if (glyph.innerHTML !== svg) glyph.innerHTML = svg
+      }
+      const next = status === "running" ? "writing" : status === "needs-input" ? "waiting" : status === "blocked" ? "blocked" : "idle"
+      if (next !== mood) play(next)
     }
 
     document.getElementById("avatar").addEventListener("click", (e) => {
       e.stopPropagation()
+      boop()
+      burstHearts()
       petApi?.sendAction("pet")
     })
     document.getElementById("avatar").addEventListener("dblclick", (e) => {
       e.stopPropagation()
       petApi?.sendAction("focus-main")
     })
-    document.getElementById("bubble").addEventListener("click", () => {
-      petApi?.sendAction("focus-main")
-    })
+    document.getElementById("bubble").addEventListener("click", () => petApi?.sendAction("focus-main"))
     document.getElementById("closeBtn").addEventListener("click", (e) => {
       e.stopPropagation()
       petApi?.sendAction("hide")
     })
 
-    petApi?.onSync((state) => {
-      // La ráfaga de corazones viaja solo por "pet-burst"; "pet-sync" solo
-      // pinta el estado para no duplicar la animación.
-      applyState(state)
+    petApi?.onSync((state) => applyState(state))
+    // "pet-burst" trae solo la ráfaga de corazones (una caricia desde la app).
+    petApi?.onBurst(() => { burstHearts(); if (mood === "idle") boop() })
+    // El proceso principal sigue el cursor por toda la pantalla y manda hacia dónde mirar.
+    petApi?.onLook?.((index) => {
+      if (mood !== "idle" || reaction !== null) return
+      if (direction === index) return
+      direction = index
+      paint()
     })
-
-    petApi?.onBurst(() => burstHearts())
 
     applyState(${safeScriptJson(initial)})
   </script>
@@ -486,7 +570,7 @@ export function createDesktopPetWindow(): BrowserWindow {
   const { workArea } = primaryDisplay
 
   const width = 232
-  const height = 128
+  const height = 150
   const x = workArea.x + workArea.width - width - 20
   const y = workArea.y + workArea.height - height - 20
 
@@ -523,6 +607,7 @@ export function createDesktopPetWindow(): BrowserWindow {
   petWindow.once("ready-to-show", () => {
     if (petState.visible && petWindow && !petWindow.isDestroyed()) {
       petWindow.showInactive()
+      startLooking()
     }
   })
 
@@ -535,11 +620,12 @@ export function createDesktopPetWindow(): BrowserWindow {
   petWindow.webContents.on("did-finish-load", () => {
     if (!petSyncedOnce && petWindow && !petWindow.isDestroyed()) {
       petSyncedOnce = true
-      petWindow.webContents.send("pet-sync", petState)
+      petWindow.webContents.send("pet-sync", { ...petState, sheets: sheetsFor(petState.kind) })
     }
   })
 
   petWindow.on("closed", () => {
+    stopLooking()
     petWindow = null
     petSyncedOnce = false
   })
@@ -559,9 +645,11 @@ export function updateDesktopPet(partial: Partial<DesktopPetState>) {
   if (petWindow && !petWindow.isDestroyed()) {
     if (petState.visible) {
       if (!petWindow.isVisible()) petWindow.showInactive()
+      startLooking()
       if (petState.petted && !previousPetted) petWindow.webContents.send("pet-burst")
-      petWindow.webContents.send("pet-sync", petState)
+      petWindow.webContents.send("pet-sync", { ...petState, sheets: sheetsFor(petState.kind) })
     } else {
+      stopLooking()
       petWindow.hide()
     }
   }
@@ -617,6 +705,7 @@ export function registerDesktopPetIpc() {
       }
     } else if (action === "hide") {
       petState.visible = false
+      stopLooking()
       if (petWindow && !petWindow.isDestroyed()) {
         petWindow.hide()
       }

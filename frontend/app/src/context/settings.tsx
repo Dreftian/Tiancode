@@ -45,6 +45,9 @@ export const petKinds = [
 ] as const
 export type PetKind = (typeof petKinds)[number]
 export const petPositions = ["bottom-right", "bottom-left", "top-right", "top-left"] as const
+// Where the companion lives: inside the app, floating on the desktop, or both.
+export const petDisplays = ["both", "app", "desktop"] as const
+export type PetDisplay = (typeof petDisplays)[number]
 export type PetPosition = (typeof petPositions)[number]
 export const defaultPetSettings = {
   enabled: false,
@@ -152,6 +155,7 @@ export interface Settings {
     clearResponses: boolean
     petEnabled: boolean
     petDesktop: boolean
+    petDisplay: PetDisplay
     petKind: PetKind
     petPosition: PetPosition
     autoSpeak: boolean
@@ -336,6 +340,7 @@ const defaultSettings: Settings = {
     clearResponses: false,
     petEnabled: defaultPetSettings.enabled,
     petDesktop: true,
+    petDisplay: "both",
     petKind: defaultPetSettings.kind,
     petPosition: defaultPetSettings.position,
     autoSpeak: false,
@@ -619,6 +624,10 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         petEnabled: withFallback(() => store.general?.petEnabled, defaultSettings.general.petEnabled),
         setPetEnabled(value: boolean) {
           setStore("general", "petEnabled", value)
+        },
+        petDisplay: withFallback(() => store.general?.petDisplay, defaultSettings.general.petDisplay),
+        setPetDisplay(value: PetDisplay) {
+          setStore("general", "petDisplay", value)
         },
         petDesktop: withFallback(() => store.general?.petDesktop, defaultSettings.general.petDesktop),
         setPetDesktop(value: boolean) {

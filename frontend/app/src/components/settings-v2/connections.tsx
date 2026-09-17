@@ -192,30 +192,34 @@ export const SettingsConnectionsV2: Component<{ active?: boolean }> = (props) =>
         </div>
         <p class="settings-v2-tab-description">{t("settings.connections.description")}</p>
 
-        <div class="settings-v2-connections-overview" role="list">
-          <For each={CONNECTION_PROVIDERS}>
-            {(provider) => (
-              <button
-                type="button"
-                role="listitem"
-                class="settings-v2-connections-chip"
-                data-state={status(provider) ? gatewayState(status(provider)!) : "off"}
-                aria-pressed={filter() === provider}
-                onClick={() => setFilter(filter() === provider ? "all" : provider)}
-              >
-                <span class="settings-v2-connections-dot" aria-hidden="true" />
-                <span class="settings-v2-connections-chip-name">{PROVIDER_LABEL[provider]}</span>
-                <span class="settings-v2-connections-chip-state">{stateLabel(status(provider))}</span>
-              </button>
-            )}
-          </For>
-        </div>
-
-        <div class="mt-3">
-          <SegmentedControlV2 value={filter()} onChange={(value) => value && setFilter(value as Filter)}>
-            <SegmentedControlItemV2 value="all">{t("settings.connections.filter.all")}</SegmentedControlItemV2>
+        {/* One bar does both jobs: it filters and it shows each gateway's state at a glance. */}
+        <div class="settings-v2-connections-tabs">
+          <SegmentedControlV2
+            class="segmented-control-v2--full-width"
+            value={filter()}
+            onChange={(value) => value && setFilter(value as Filter)}
+          >
+            <SegmentedControlItemV2 value="all">
+              <span class="settings-v2-connections-tab">
+                <span>{t("settings.connections.filter.all")}</span>
+                <span class="settings-v2-connections-tab-state">
+                  {(statuses() ?? []).filter((item) => gatewayState(item) === "active").length}/{CONNECTION_PROVIDERS.length}
+                </span>
+              </span>
+            </SegmentedControlItemV2>
             <For each={CONNECTION_PROVIDERS}>
-              {(provider) => <SegmentedControlItemV2 value={provider}>{PROVIDER_LABEL[provider]}</SegmentedControlItemV2>}
+              {(provider) => (
+                <SegmentedControlItemV2 value={provider}>
+                  <span
+                    class="settings-v2-connections-tab"
+                    data-state={status(provider) ? gatewayState(status(provider)!) : "off"}
+                  >
+                    <span class="settings-v2-connections-dot" aria-hidden="true" />
+                    <span>{PROVIDER_LABEL[provider]}</span>
+                    <span class="settings-v2-connections-tab-state">{stateLabel(status(provider))}</span>
+                  </span>
+                </SegmentedControlItemV2>
+              )}
             </For>
           </SegmentedControlV2>
         </div>

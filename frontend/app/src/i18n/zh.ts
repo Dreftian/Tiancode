@@ -5,6 +5,22 @@ import { dict as en } from "./en"
 type Keys = keyof typeof en
 
 export const dict = {
+  "settings.pets.display.title": "显示位置",
+  "settings.pets.display.description": "应用内、Windows 桌面悬浮，或两者同时。",
+  "settings.pets.display.app": "应用内",
+  "settings.pets.display.desktop": "桌面",
+  "settings.pets.display.both": "两者",
+  "settings.modelsHub.tab.explore": "探索",
+  "settings.modelsHub.tab.disk": "已下载",
+  "settings.modelsHub.tab.engines": "引擎",
+  "settings.modelsHub.tab.settings": "设置",
+  "settings.modelsHub.dir.title": "模型文件夹",
+  "settings.modelsHub.dir.default": "Tiancode 默认文件夹（应用数据）。",
+  "settings.modelsHub.dir.change": "更改…",
+  "settings.modelsHub.dir.reset": "重置",
+  "settings.modelsHub.dir.picker": "选择模型文件夹",
+  "settings.modelsHub.dir.restart": "下次启动 Tiancode 后，新模型将下载到此文件夹。已下载的模型仍可在原位置使用。",
+  "settings.voices.section.microphone": "麦克风与听写",
   "settings.general.section.titlebar": "顶部栏",
   "settings.general.row.showReview.title": "审阅",
   "settings.general.row.showReview.description": "在聊天标题栏显示更改审阅按钮。",

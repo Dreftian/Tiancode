@@ -272,6 +272,11 @@ declare global {
       finishFirstLaunchOnboarding?: (createDefaultProject?: boolean) => Promise<string | null>
       setCompactWindow?: (options?: { width?: number; height?: number }) => Promise<void>
       restoreMainWindow?: () => Promise<void>
+      localModels?: {
+        getDir: () => Promise<string | null>
+        setDir: (dir: string | null) => Promise<void>
+        pickDir: (title?: string) => Promise<string | null>
+      }
       voices?: VoicesAPI
       asr?: AsrAPI
       runtime?: {

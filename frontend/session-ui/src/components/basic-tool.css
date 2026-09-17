@@ -415,6 +415,13 @@
     flex-shrink: 0;
   }
 
+  .subagent-avatar[data-running] {
+    width: 24px;
+    height: 24px;
+    background: transparent;
+    border-color: transparent;
+  }
+
   .subagent-name,
   [data-component="task-tool-title"] {
     font-size: 12.5px;

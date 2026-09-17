@@ -82,6 +82,12 @@ const getBase = (appId: string): Configuration => ({
       from: "resources/icons",
       to: "icons",
     },
+    // page-mascot characters for the floating desktop pet (the app bundles its own copy).
+    {
+      from: "../ui/src/components/mascots",
+      to: "mascots",
+      filter: ["*.webp"],
+    },
     // Motor local embebido llama-server (GGUF / Vulkan / CPU)
     {
       from: "resources/llama-server",

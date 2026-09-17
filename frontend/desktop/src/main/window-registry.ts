@@ -20,6 +20,10 @@ export function createWindowRegistry<W>(persistence: {
 
   return {
     persisted,
+    any() {
+      for (const window of windows.values()) return window
+      return undefined
+    },
     setQuitting(value = true) {
       quitting = value
     },
