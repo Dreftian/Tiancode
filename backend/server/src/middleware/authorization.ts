@@ -3,11 +3,19 @@ import { UnauthorizedError } from "@tiancode-ai/protocol/errors"
 import { Authorization } from "@tiancode-ai/protocol/middleware/authorization"
 export { Authorization } from "@tiancode-ai/protocol/middleware/authorization"
 import { hasPtyConnectTicketURL } from "@tiancode-ai/protocol/groups/pty"
-import { Effect, Encoding, Layer, Redacted } from "effect"
+import { Effect, Encoding, Layer, Option, Redacted } from "effect"
 import { HttpEffect, HttpServerRequest, HttpServerResponse } from "effect/unstable/http"
+import { AuthThrottle } from "../security"
 
 const AUTH_TOKEN_QUERY = "auth_token"
 const WWW_AUTHENTICATE = 'Basic realm="Secure Area"'
+// Ten wrong passwords in ten minutes lock the address for fifteen: enough to stop guessing, harmless
+// for a user who mistyped once.
+const throttle = new AuthThrottle()
+
+function clientKey(request: HttpServerRequest.HttpServerRequest) {
+  return Option.getOrElse(request.remoteAddress ?? Option.none<string>(), () => "unknown")
+}
 
 function emptyCredential() {
   return { username: "", password: Redacted.make("") }
@@ -46,8 +54,20 @@ export const authorizationLayer = Layer.effect(
         // Browsers cannot set headers on WebSocket upgrades, so a ticketed PTY connect skips
         // credential checks here; the connect handler consumes and validates the ticket.
         if (hasPtyConnectTicketURL(new URL(request.url, "http://localhost"))) return yield* effect
+        const key = clientKey(request)
+        const locked = throttle.lockedFor(key)
+        if (locked > 0) {
+          yield* HttpEffect.appendPreResponseHandler((_request, response) =>
+            Effect.succeed(HttpServerResponse.setHeader(response, "retry-after", String(locked))),
+          )
+          return yield* new UnauthorizedError({ message: "Too many failed authentication attempts; try again later" })
+        }
         const credential = yield* credentialFromRequest(request)
-        if (ServerAuth.authorized(credential, config)) return yield* effect
+        if (ServerAuth.authorized(credential, config)) {
+          throttle.succeed(key)
+          return yield* effect
+        }
+        if (Redacted.value(credential.password) !== "" || credential.username !== "") throttle.fail(key)
         yield* HttpEffect.appendPreResponseHandler((_request, response) =>
           Effect.succeed(HttpServerResponse.setHeader(response, "www-authenticate", WWW_AUTHENTICATE)),
         )

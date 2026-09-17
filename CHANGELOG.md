@@ -50,6 +50,13 @@ y un menú de instalación con los comandos curl, PowerShell, npm, bun y Homebre
 solo el logo. El repositorio incorpora README en español e inglés, CONTRIBUTING, SECURITY y
 plantillas de issues y pull requests.
 
+Modelos locales: tamaños reales de cada cuantización en el explorador, pestaña «En disco» con los
+GGUF reales (cabecera y configuración de carga automática por modelo según VRAM/RAM) y carpeta
+personalizada aplicada al instante. El chat muestra «Gestionar proveedor» cuando no queda ningún
+modelo activo. El asistente añade el paso «Cómo empezar» (Chat o Inicio). Atajos para deshacer,
+rehacer, compactar, bifurcar, compartir, proveedor, servidor e idioma. Servidor con protección
+contra DNS rebinding, cabeceras de seguridad y bloqueo por intentos de autenticación fallidos.
+
 La versión es inferior a 1.0.54: se instala manualmente y conserva claves, sesiones,
 configuración y respaldos. Detalles: [notas de versión](tools/releases/v1.0.0.md).
 

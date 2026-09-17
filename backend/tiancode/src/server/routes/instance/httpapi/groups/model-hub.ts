@@ -92,6 +92,81 @@ export const ModelDownloadJob = Schema.Struct({
   etaSeconds: Schema.optional(Schema.Number),
 })
 
+export const ModelLoadRecommendation = Schema.Struct({
+  contextSize: Schema.Number,
+  gpuLayers: Schema.Number,
+  threads: Schema.Number,
+  batchSize: Schema.Number,
+  flashAttention: Schema.optional(Schema.Boolean),
+  kvCacheType: Schema.Literals(["f16", "q8_0", "q4_0"]),
+  useMmap: Schema.Boolean,
+  keepInMemory: Schema.Boolean,
+  kvOffload: Schema.Boolean,
+  parallel: Schema.Number,
+  placement: Schema.Literals(["gpu", "hybrid", "cpu"]),
+  layers: Schema.Number,
+  trainContext: Schema.optional(Schema.Number),
+  kvBytesPerToken: Schema.Number,
+  estimatedBytes: Schema.Number,
+  budgetBytes: Schema.Number,
+  reasons: Schema.Array(Schema.String),
+})
+
+export const ModelGgufMetadata = Schema.Struct({
+  version: Schema.Number,
+  tensorCount: Schema.Number,
+  architecture: Schema.optional(Schema.String),
+  name: Schema.optional(Schema.String),
+  sizeLabel: Schema.optional(Schema.String),
+  contextLength: Schema.optional(Schema.Number),
+  blockCount: Schema.optional(Schema.Number),
+  embeddingLength: Schema.optional(Schema.Number),
+  headCount: Schema.optional(Schema.Number),
+  headCountKv: Schema.optional(Schema.Number),
+  expertCount: Schema.optional(Schema.Number),
+  fileType: Schema.optional(Schema.Number),
+  quantization: Schema.optional(Schema.String),
+  parameterCount: Schema.optional(Schema.Number),
+  vocabSize: Schema.optional(Schema.Number),
+  hasChatTemplate: Schema.Boolean,
+})
+
+export const ModelLocalFile = Schema.Struct({
+  path: Schema.String,
+  file: Schema.String,
+  name: Schema.String,
+  repo: Schema.optional(Schema.String),
+  root: Schema.String,
+  sizeBytes: Schema.Number,
+  modifiedAt: Schema.Number,
+  quant: Schema.optional(Schema.String),
+  fit: Schema.optional(ModelFitInfo),
+  metadata: Schema.optional(ModelGgufMetadata),
+  recommended: Schema.optional(ModelLoadRecommendation),
+  error: Schema.optional(Schema.String),
+})
+
+export const ModelDirInput = Schema.Struct({
+  dir: Schema.NullOr(Schema.String),
+})
+
+export const ModelSystemInfo = Schema.Struct({
+  ram: Schema.Number,
+  diskFree: Schema.Number,
+  cpu: Schema.optional(Schema.String),
+  gpu: Schema.optional(Schema.String),
+  vram: Schema.optional(
+    Schema.Struct({
+      total: Schema.Number,
+      free: Schema.Number,
+    }),
+  ),
+  modelsDir: Schema.String,
+  modelsDirCustom: Schema.optional(Schema.Boolean),
+  defaultModelsDir: Schema.optional(Schema.String),
+  cpuCores: Schema.optional(Schema.Number),
+})
+
 export const ModelRuntimeInfo = Schema.Struct({
   id: Schema.String,
   name: Schema.String,
@@ -111,6 +186,21 @@ export const ModelEngineStatus = Schema.Struct({
   error: Schema.optional(Schema.String),
   gpuLayers: Schema.optional(Schema.Number),
   contextSize: Schema.optional(Schema.Number),
+  auto: Schema.optional(Schema.Boolean),
+  applied: Schema.optional(
+    Schema.Struct({
+      contextSize: Schema.Number,
+      gpuLayers: Schema.Number,
+      threads: Schema.Number,
+      batchSize: Schema.optional(Schema.Number),
+      flashAttention: Schema.optional(Schema.Boolean),
+      kvCacheType: Schema.optional(Schema.Literals(["f16", "q8_0", "q4_0"])),
+      keepInMemory: Schema.optional(Schema.Boolean),
+      useMmap: Schema.optional(Schema.Boolean),
+      kvOffload: Schema.optional(Schema.Boolean),
+      parallel: Schema.optional(Schema.Number),
+    }),
+  ),
 })
 
 export const ModelEngineStartInput = Schema.Struct({
@@ -131,6 +221,8 @@ export const ModelEngineStartInput = Schema.Struct({
   ropeFrequencyScale: Schema.optional(Schema.Number),
   kvOffload: Schema.optional(Schema.Boolean),
   parallel: Schema.optional(Schema.Number),
+  /** Let the server derive context, GPU layers, threads and KV cache from the GGUF header + hardware. */
+  auto: Schema.optional(Schema.Boolean),
 })
 
 export const ModelHubApi = HttpApi.make("model-hub")
@@ -174,28 +266,36 @@ export const ModelHubApi = HttpApi.make("model-hub")
         ),
         HttpApiEndpoint.get("system", "/models/system", {
           query: WorkspaceRoutingQuery,
-          success: described(
-            Schema.Struct({
-              ram: Schema.Number,
-              diskFree: Schema.Number,
-              cpu: Schema.optional(Schema.String),
-              gpu: Schema.optional(Schema.String),
-              vram: Schema.optional(
-                Schema.Struct({
-                  total: Schema.Number,
-                  free: Schema.Number,
-                }),
-              ),
-              modelsDir: Schema.String,
-            }),
-            "System capabilities",
-          ),
+          success: described(ModelSystemInfo, "System capabilities"),
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "modelhub.system",
             summary: "Get system capabilities",
             description:
               "Report the machine RAM, GPU VRAM, free disk space, CPU, GPU and the local models directory for compatibility checks.",
+          }),
+        ),
+        HttpApiEndpoint.get("local", "/models/local", {
+          query: WorkspaceRoutingQuery,
+          success: described(Schema.Array(ModelLocalFile), "GGUF files on disk"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "modelhub.local",
+            summary: "List local GGUF files",
+            description:
+              "Scan the models folder (and the legacy roots) for .gguf files and return each one with its GGUF header facts and the recommended load configuration for this machine.",
+          }),
+        ),
+        HttpApiEndpoint.post("setDir", "/models/dir", {
+          query: WorkspaceRoutingQuery,
+          payload: ModelDirInput,
+          success: described(ModelSystemInfo, "System capabilities after the change"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "modelhub.setDir",
+            summary: "Change the models folder",
+            description:
+              "Switch the folder where models are stored and scanned, effective immediately (null restores the default).",
           }),
         ),
         HttpApiEndpoint.get("runtimes", "/models/runtimes", {

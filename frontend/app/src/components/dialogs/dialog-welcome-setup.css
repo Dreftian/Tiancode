@@ -316,3 +316,130 @@ html.welcome-standalone .welcome-setup-header [role="button"],
 html.welcome-standalone .welcome-setup-header a {
   -webkit-app-region: no-drag;
 }
+
+/* ---- Paso 3: cómo empezar (Chat o Inicio) ---- */
+.welcome-setup-start {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.welcome-setup-start-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--border-weak-base, rgba(127, 127, 127, 0.25));
+  border-radius: 12px;
+  background: var(--surface-raised-base, transparent);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+.welcome-setup-start-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-strong-base, rgba(127, 127, 127, 0.5));
+}
+.welcome-setup-start-card[data-selected="true"] {
+  border-color: var(--interactive-base, #3b82f6);
+  box-shadow: 0 0 0 1px var(--interactive-base, #3b82f6);
+}
+.welcome-setup-start-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+.welcome-setup-start-desc {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--text-weak-base, #8b8b93);
+}
+.welcome-setup-start-art {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 84px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(30, 32, 40, 0.9), rgba(12, 12, 16, 0.95));
+  overflow: hidden;
+}
+.welcome-setup-start-art-word {
+  font: 800 15px/1 var(--font-mono, monospace);
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.16);
+}
+.welcome-setup-start-art-box {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 78%;
+  padding: 6px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.05);
+}
+.welcome-setup-start-art-box i {
+  display: block;
+  width: 62%;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.28);
+}
+.welcome-setup-start-art-box b {
+  display: block;
+  width: 26%;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(96, 165, 250, 0.8);
+  align-self: flex-end;
+}
+.welcome-setup-start-art--home {
+  flex-direction: row;
+  align-items: stretch;
+  gap: 6px;
+  padding: 8px;
+}
+.welcome-setup-start-art-side {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 30%;
+  padding: 6px 5px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+}
+.welcome-setup-start-art-side i {
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.22);
+}
+.welcome-setup-start-art-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+}
+.welcome-setup-start-art-main i {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.14);
+}
+.welcome-setup-start-art-main b {
+  display: block;
+  width: 44px;
+  height: 7px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.5);
+}
+@media (max-width: 460px) {
+  .welcome-setup-start { grid-template-columns: 1fr; }
+}

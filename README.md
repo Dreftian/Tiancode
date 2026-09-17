@@ -84,7 +84,7 @@ Todo vive en tu equipo: las sesiones, la memoria del agente y las skills aprendi
 |---|---|
 | **Chat al estilo Claude Code** | Envío dentro del cuadro, modos de permiso (Auto, Manual, Aceptar ediciones, Plan, Omitir permisos) que cambian en plena tarea y un control deslizante de esfuerzo con un color por nivel. |
 | **Catorce especialistas** | Sub-agentes de nube, datos, fullstack, investigación, seguridad de IA, marketing y más, con jerarquía de delegación, herramientas acotadas y sus instrucciones visibles en Ajustes. |
-| **Modelos locales** | Explorador de Hugging Face con logotipos originales, cuantizaciones comparadas contra tu VRAM y los mismos parámetros de carga que LM Studio (contexto, capas en GPU, flash attention, caché KV, hilos, RoPE). |
+| **Modelos locales** | Explorador de Hugging Face con tamaños reales por cuantización, pestaña «En disco» con los GGUF que tienes de verdad y **configuración de carga automática** por modelo (contexto, capas en GPU, hilos, lote y caché KV calculados con tu VRAM y RAM), además de los mismos parámetros manuales que LM Studio. |
 | **Vista previa en vivo** | Detecta Vite, Next, Astro, Remix, SvelteKit, SolidStart, Qwik, Expo, Eleventy, Parcel, webpack y más; se abre sola solo cuando el agente arranca una app web. |
 | **Voz** | Dictado con Whisper ONNX y lectura de respuestas con Kokoro o Piper en español, sin conexión. |
 | **MCP y plugins** | Servidores MCP locales (stdio) o remotos (HTTP/SSE), plugins npm o locales y un catálogo para descubrir más, con detalle real de transporte, variables y herramientas. |
@@ -245,7 +245,7 @@ Las contribuciones son bienvenidas: errores, mejoras de rendimiento, nuevos prov
 
 ## Seguridad y privacidad
 
-Tiancode no aísla al agente: el sistema de permisos te avisa antes de ejecutar comandos o escribir archivos, pero no es un sandbox. Si necesitas aislamiento real, ejecútalo dentro de un contenedor o una máquina virtual. Consulta [SECURITY.md](SECURITY.md) para el modelo de amenazas y cómo reportar una vulnerabilidad.
+Tiancode no aísla al agente: el sistema de permisos te avisa antes de ejecutar comandos o escribir archivos, pero no es un sandbox. El servidor local escucha en `127.0.0.1`, rechaza peticiones con una cabecera `Host` ajena (protección contra DNS rebinding), añade cabeceras de seguridad y bloquea temporalmente una dirección tras diez contraseñas fallidas; la app de escritorio protege su servidor con una contraseña aleatoria por sesión. Si necesitas aislamiento real, ejecútalo dentro de un contenedor o una máquina virtual. Consulta [SECURITY.md](SECURITY.md) para el modelo de amenazas y cómo reportar una vulnerabilidad.
 
 ## Preguntas frecuentes
 

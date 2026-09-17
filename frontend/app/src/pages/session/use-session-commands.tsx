@@ -393,6 +393,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
     return [
       sessionCommand({
         id: "session.share",
+        keybind: "mod+alt+s",
         title: info()?.share?.url ? language.t("session.share.copy.copyLink") : language.t("command.session.share"),
         description: info()?.share?.url
           ? language.t("toast.session.share.success.description")
@@ -428,6 +429,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
     }),
     sessionCommand({
       id: "session.undo",
+      keybind: "mod+alt+z",
       title: language.t("command.session.undo"),
       description: language.t("command.session.undo.description"),
       slash: "undo",
@@ -436,6 +438,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
     }),
     sessionCommand({
       id: "session.redo",
+      keybind: "mod+alt+y",
       title: language.t("command.session.redo"),
       description: language.t("command.session.redo.description"),
       slash: "redo",
@@ -444,6 +447,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
     }),
     sessionCommand({
       id: "session.compact",
+      keybind: "mod+alt+c",
       title: language.t("command.session.compact"),
       description: language.t("command.session.compact.description"),
       slash: "compact",
@@ -452,6 +456,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
     }),
     sessionCommand({
       id: "session.fork",
+      keybind: "mod+alt+f",
       title: language.t("command.session.fork"),
       description: language.t("command.session.fork.description"),
       slash: "fork",

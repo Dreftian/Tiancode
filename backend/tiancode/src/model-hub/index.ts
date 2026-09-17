@@ -15,6 +15,9 @@ import { Context, Effect, Layer, Option, Schema, Scope, Types } from "effect"
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
 import { FSUtil } from "@tiancode-ai/core/fs-util"
 import { Global } from "@tiancode-ai/core/global"
+import * as ModelsDir from "./models-dir"
+import { readGgufMetadataCached, type GgufMetadata } from "@/local-engine/gguf"
+import { recommendLoadOptions, type LoadRecommendation } from "@/local-engine/recommend"
 import {
   compatibilityFor as coreCompatibilityFor,
   FIT_LABELS as CORE_FIT_LABELS,
@@ -535,6 +538,25 @@ export interface SystemInfo {
   readonly gpu: string | undefined
   readonly vram: CoreVramInfo | undefined
   readonly modelsDir: string
+  readonly modelsDirCustom: boolean
+  readonly defaultModelsDir: string
+  readonly cpuCores: number
+}
+
+/** A GGUF file found on disk, with what the header says and how this machine should load it. */
+export interface LocalModelFile {
+  readonly path: string
+  readonly file: string
+  readonly name: string
+  readonly repo: string | undefined
+  readonly root: string
+  readonly sizeBytes: number
+  readonly modifiedAt: number
+  readonly quant: string | undefined
+  readonly fit: FitInfo | undefined
+  readonly metadata: GgufMetadata | undefined
+  readonly recommended: LoadRecommendation | undefined
+  readonly error: string | undefined
 }
 
 export interface Interface {
@@ -552,6 +574,12 @@ export interface Interface {
    * touches a directory that still holds anything.
    */
   readonly pruneEmptyDirs: () => Effect.Effect<string[]>
+  /** Every .gguf under the models folder and the legacy roots, newest first. */
+  readonly listLocal: () => Effect.Effect<LocalModelFile[]>
+  /** Recommended llama-server options for one file on this machine. */
+  readonly recommendFor: (file: string) => Effect.Effect<LoadRecommendation>
+  /** Change the models folder at runtime (null = default) and reload the download registry. */
+  readonly setDir: (dir: string | null) => Effect.Effect<SystemInfo>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@tiancode/ModelHub") {}
@@ -562,12 +590,13 @@ const layer = Layer.effect(
     const http = HttpClient.filterStatusOk(withTransientReadRetry(yield* HttpClient.HttpClient))
     const fs = yield* FSUtil.Service
     const scope = yield* Scope.Scope
-    // A folder picked in Settings › Local models wins over the application data folder.
-    const modelsDir = process.env.TIANCODE_MODELS_DIR?.trim() || path.join(Global.Path.data, "models")
-    // Resolved once so containment checks compare like-for-like on Windows
-    // (drive letters and case) and on case-sensitive platforms.
-    const resolvedModelsDir = path.resolve(modelsDir)
-    const jobsFile = path.join(modelsDir, ".jobs.json")
+    // A folder picked in Settings › Local models wins over the application data folder. It can
+    // change while the server runs (ModelsDir.setModelsDir), so every use asks for it again.
+    const modelsDir = () => ModelsDir.modelsDir()
+    // Resolved so containment checks compare like-for-like on Windows (drive letters and case)
+    // and on case-sensitive platforms.
+    const resolvedModelsDir = () => path.resolve(modelsDir())
+    const jobsFile = () => path.join(modelsDir(), ".jobs.json")
 
     const jobs = new Map<string, MutableDownloadJob>()
     const controllers = new Map<string, AbortController>()
@@ -581,14 +610,17 @@ const layer = Layer.effect(
       if (!force && now - lastPersist < 2000) return
       lastPersist = now
       yield* fs
-        .writeJson(jobsFile, Array.from(jobs.values()))
+        .writeJson(jobsFile(), Array.from(jobs.values()))
         .pipe(Effect.catch((error) => Effect.logError("failed to persist model hub jobs", { error })))
     })
 
     // Rehydrate jobs from disk. In-flight downloads become paused — a crash
     // or restart leaves a `.part` file behind that `download()` resumes.
-    yield* fs.ensureDir(modelsDir).pipe(Effect.orDie)
-    const stored = yield* fs.readJson(jobsFile).pipe(
+    // Runs again whenever the models folder changes, against the new folder's registry.
+    const loadJobs = Effect.fn("ModelHub.loadJobs")(function* () {
+    jobs.clear()
+    yield* fs.ensureDir(modelsDir()).pipe(Effect.orDie)
+    const stored = yield* fs.readJson(jobsFile()).pipe(
       Effect.catchReason("PlatformError", "NotFound", () => Effect.succeed(undefined)),
       Effect.catch(() => Effect.succeed(undefined)),
     )
@@ -600,8 +632,8 @@ const layer = Layer.effect(
         // outside the models directory or fetch an arbitrary URL.
         const model = `${job.owner}/${job.repo}`
         const validationError = validateModelDownload(model, job.file)
-        const destPath = path.resolve(resolvedModelsDir, model, job.file)
-        if (validationError || !destPath.startsWith(resolvedModelsDir + path.sep)) {
+        const destPath = path.resolve(resolvedModelsDir(), model, job.file)
+        if (validationError || !destPath.startsWith(resolvedModelsDir() + path.sep)) {
           yield* Effect.logWarning("skipping persisted model download job with invalid model or file", {
             id: job.id,
             model,
@@ -625,6 +657,8 @@ const layer = Layer.effect(
         jobs.set(mutable.id, mutable)
       }
     }
+    })
+    yield* loadJobs()
 
     // Combined RAM + VRAM probe shared by the files list and system info.
     let memoryCache: { ram: number; vram: CoreVramInfo | undefined } | undefined
@@ -699,10 +733,20 @@ const layer = Layer.effect(
         }
       }
 
-      return combined
+      const FIRST_PAGE = 12
+      const enriched = yield* Effect.forEach(combined.slice(0, FIRST_PAGE), (model) => withSizes(model), {
+        concurrency: 4,
+      })
+      return [...enriched, ...combined.slice(FIRST_PAGE)]
     })
 
-    const files = Effect.fn("ModelHub.files")(function* (model: string) {
+    // Repo trees carry the exact LFS sizes the search endpoint does not; cache them so paging
+    // through results and starting downloads never re-ask Hugging Face for the same repo.
+    const TREE_TTL_MS = 60 * 60 * 1000
+    const treeCache = new Map<string, { at: number; entries: readonly HfTreeEntry[] }>()
+    const treeEntries = Effect.fn("ModelHub.tree")(function* (model: string) {
+      const hit = treeCache.get(model)
+      if (hit && Date.now() - hit.at < TREE_TTL_MS) return hit.entries
       const url = `${HUGGINGFACE_API}/models/${model}/tree/main`
       const data = yield* HttpClientRequest.get(url).pipe(
         HttpClientRequest.acceptJson,
@@ -712,6 +756,30 @@ const layer = Layer.effect(
           Effect.logError("failed to list model files", { model, error }).pipe(Effect.as([] as HfTreeEntry[])),
         ),
       )
+      if (data.length > 0) treeCache.set(model, { at: Date.now(), entries: data })
+      return data
+    })
+
+    // Search results only name their files; attach the sizes from the tree for the first page so
+    // the UI never shows "0 B". The rest are filled lazily by the client through `files`.
+    const withSizes = Effect.fn("ModelHub.withSizes")(function* (model: HfModel) {
+      const siblings = model.siblings ?? []
+      if (siblings.length === 0 || siblings.every((sibling) => sibling.lfs?.size ?? sibling.size)) return model
+      const entries = yield* treeEntries(model.id)
+      if (entries.length === 0) return model
+      const byPath = new Map(entries.map((entry) => [entry.path, entry] as const))
+      return new HfModel({
+        ...model,
+        siblings: siblings.map((sibling) => {
+          const entry = byPath.get(sibling.rfilename)
+          if (!entry) return sibling
+          return new HfSibling({ rfilename: sibling.rfilename, size: entry.size, lfs: entry.lfs })
+        }),
+      })
+    })
+
+    const files = Effect.fn("ModelHub.files")(function* (model: string) {
+      const data = yield* treeEntries(model)
       const { ram, vram } = yield* memory()
       return parseQuantFiles(
         Array.from(data).map((entry) => ({
@@ -728,14 +796,14 @@ const layer = Layer.effect(
     })
 
     const system = Effect.fn("ModelHub.system")(function* () {
-      const diskFree = yield* Effect.tryPromise(() => statfs(modelsDir)).pipe(
+      const diskFree = yield* Effect.tryPromise(() => statfs(modelsDir())).pipe(
         Effect.map((stats) => Number(stats.bavail) * Number(stats.bsize)),
         Effect.catch(() => Effect.succeed(undefined)),
       )
       const cpu = os.cpus()[0]?.model.trim()
       const gpu = yield* cachedGpu()
       const { ram, vram } = yield* memory()
-      return { ram, diskFree: diskFree ?? 0, cpu, gpu, vram, modelsDir }
+      return { ram, diskFree: diskFree ?? 0, cpu, gpu, vram, modelsDir: modelsDir(), modelsDirCustom: ModelsDir.isCustomModelsDir(), defaultModelsDir: ModelsDir.defaultModelsDir(), cpuCores: os.cpus().length }
     })
 
     // GPU name detection spawns WMI/PowerShell (~1s); cache it permanently
@@ -796,12 +864,7 @@ const layer = Layer.effect(
           // Resolve the exact size + sha256 from the repo tree when the job
           // does not carry them yet.
           if (job.sizeBytes === undefined || job.sha256 === undefined) {
-            const tree = yield* HttpClientRequest.get(`${HUGGINGFACE_API}/models/${model}/tree/main`).pipe(
-              HttpClientRequest.acceptJson,
-              http.execute,
-              Effect.flatMap(HttpClientResponse.schemaBodyJson(Schema.Array(HfTreeEntry))),
-              Effect.catch(() => Effect.succeed([] as HfTreeEntry[])),
-            )
+            const tree = yield* treeEntries(model)
             const info = Array.from(tree).find((entry) => entry.path === job.file)
             if (info?.size) job.sizeBytes = info.size
             if (info?.lfs?.oid) job.sha256 = info.lfs.oid
@@ -930,8 +993,8 @@ const layer = Layer.effect(
       // depth against future loosening of the patterns above.
       const validationError = validateModelDownload(model, file)
       if (validationError) return invalidDownloadState(model, file, validationError)
-      const destPath = path.resolve(resolvedModelsDir, model, file)
-      if (!destPath.startsWith(resolvedModelsDir + path.sep))
+      const destPath = path.resolve(resolvedModelsDir(), model, file)
+      if (!destPath.startsWith(resolvedModelsDir() + path.sep))
         return invalidDownloadState(model, file, "path escapes the models directory")
       const id = jobId(model, file)
       const existing = jobs.get(id)
@@ -1008,7 +1071,7 @@ const layer = Layer.effect(
             await rm(job.destPath, { force: true, recursive: true }).catch(() => {})
           }
           const parentDir = path.dirname(job.destPath)
-          if (parentDir && parentDir !== resolvedModelsDir && parentDir.startsWith(resolvedModelsDir)) {
+          if (parentDir && parentDir !== resolvedModelsDir() && parentDir.startsWith(resolvedModelsDir())) {
             const remaining = await readdir(parentDir).catch(() => [])
             if (remaining.length === 0) {
               await rm(parentDir, { recursive: true, force: true }).catch(() => {})
@@ -1024,7 +1087,7 @@ const layer = Layer.effect(
           await execFileAsync("taskkill", ["/F", "/IM", "llama.exe", "/T"], { windowsHide: true }).catch(() => {})
         }
 
-        const candidateDirs = modelsRootCandidates(resolvedModelsDir)
+        const candidateDirs = modelsRootCandidates(resolvedModelsDir())
 
         const cleanDir = async (dir: string) => {
           const entries = await readdir(dir, { withFileTypes: true }).catch(() => [])
@@ -1065,19 +1128,99 @@ const layer = Layer.effect(
         }
       }).pipe(Effect.catch(() => Effect.void))
 
-      yield* fs.writeJson(jobsFile, Array.from(jobs.values())).pipe(Effect.catch(() => Effect.void))
+      yield* fs.writeJson(jobsFile(), Array.from(jobs.values())).pipe(Effect.catch(() => Effect.void))
       return true
     })
 
     const pruneEmptyDirs = Effect.fn("ModelHub.pruneEmptyDirs")(function* () {
       return yield* Effect.tryPromise(async () => {
         const removed: string[] = []
-        for (const root of modelsRootCandidates(resolvedModelsDir)) {
+        for (const root of modelsRootCandidates(resolvedModelsDir())) {
           if (!existsSync(root)) continue
           await pruneEmptyDirsUnder(root, removed)
         }
         return removed
       }).pipe(Effect.catch(() => Effect.succeed([] as string[])))
+    })
+
+    // --- what is really on disk ---------------------------------------------------------------
+    const hardware = Effect.fn("ModelHub.hardware")(function* () {
+      const { ram, vram } = yield* memory()
+      const gpu = yield* cachedGpu()
+      return { ram, vramTotal: vram?.total, vramFree: vram?.free, cpuCores: os.cpus().length, gpu }
+    })
+
+    const recommendFor = Effect.fn("ModelHub.recommendFor")(function* (file: string) {
+      const resolved = path.resolve(file)
+      const info = yield* Effect.tryPromise(() => stat(resolved)).pipe(Effect.orDie)
+      const metadata = yield* Effect.try({
+        try: () => readGgufMetadataCached(resolved) as GgufMetadata | undefined,
+        catch: (cause) => cause,
+      }).pipe(Effect.catch(() => Effect.succeed(undefined as GgufMetadata | undefined)))
+      return recommendLoadOptions({ sizeBytes: info.size, metadata, hardware: yield* hardware() })
+    })
+
+    const walkGguf = async (root: string, depth: number, out: Array<{ path: string; root: string }>) => {
+      if (depth > 5) return
+      const entries = await readdir(root, { withFileTypes: true }).catch(() => [])
+      for (const entry of entries) {
+        const full = path.join(root, entry.name)
+        if (entry.isDirectory()) {
+          if (entry.name.startsWith(".")) continue
+          await walkGguf(full, depth + 1, out)
+        } else if (entry.isFile() && /\.gguf$/i.test(entry.name)) {
+          out.push({ path: full, root })
+        }
+      }
+    }
+
+    const listLocal = Effect.fn("ModelHub.listLocal")(function* () {
+      const hw = yield* hardware()
+      const { ram, vram } = yield* memory()
+      const roots = modelsRootCandidates(resolvedModelsDir()).filter((root) => existsSync(root))
+      const found: Array<{ path: string; root: string }> = []
+      for (const root of roots) yield* Effect.promise(() => walkGguf(root, 0, found))
+      const seen = new Set<string>()
+      const result: LocalModelFile[] = []
+      for (const entry of found) {
+        const key = entry.path.toLowerCase()
+        if (seen.has(key)) continue
+        seen.add(key)
+        const info = yield* Effect.tryPromise(() => stat(entry.path)).pipe(Effect.catch(() => Effect.succeed(undefined)))
+        if (!info) continue
+        const relative = path.relative(entry.root, path.dirname(entry.path)).split(path.sep).filter(Boolean)
+        const repo = relative.length >= 2 ? `${relative[0]}/${relative.slice(1).join("/")}` : undefined
+        const file = path.basename(entry.path)
+        let metadata: GgufMetadata | undefined
+        let error: string | undefined
+        try {
+          metadata = readGgufMetadataCached(entry.path)
+        } catch (cause) {
+          error = cause instanceof Error ? cause.message : String(cause)
+        }
+        const quant = metadata?.quantization ?? file.match(QUANT_PATTERN)?.[1]?.toUpperCase()
+        result.push({
+          path: entry.path,
+          file,
+          name: file.replace(/\.gguf$/i, ""),
+          repo,
+          root: entry.root,
+          sizeBytes: info.size,
+          modifiedAt: info.mtimeMs,
+          quant,
+          fit: fitFor(info.size, ram, vram),
+          metadata,
+          recommended: recommendLoadOptions({ sizeBytes: info.size, metadata, hardware: hw }),
+          error,
+        })
+      }
+      return result.sort((a, b) => b.modifiedAt - a.modifiedAt)
+    })
+
+    const setDir = Effect.fn("ModelHub.setDir")(function* (dir: string | null) {
+      ModelsDir.setModelsDir(dir)
+      yield* loadJobs()
+      return yield* system()
     })
 
     return Service.of({
@@ -1089,6 +1232,9 @@ const layer = Layer.effect(
       download,
       cancelDownload,
       pruneEmptyDirs,
+      listLocal,
+      recommendFor,
+      setDir,
     })
   }),
 )

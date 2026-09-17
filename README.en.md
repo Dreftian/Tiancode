@@ -84,7 +84,7 @@ Everything lives on your machine: sessions, the agent's memory and learned skill
 |---|---|
 | **Claude Code style chat** | Send from inside the box, permission modes (Auto, Manual, Accept edits, Plan, Skip permissions) that switch mid-task and an effort slider with a colour per level. |
 | **Fourteen specialists** | Cloud, data, fullstack, research, AI security, marketing sub-agents and more, with a delegation hierarchy, scoped tools and their instructions visible in Settings. |
-| **Local models** | Hugging Face explorer with original logos, quantisations compared against your VRAM and the same load parameters as LM Studio (context, GPU layers, flash attention, KV cache, threads, RoPE). |
+| **Local models** | Hugging Face explorer with real sizes per quantisation, an “On disk” tab with the GGUF files you actually have and **automatic load configuration** per model (context, GPU layers, threads, batch and KV cache computed from your VRAM and RAM), plus the same manual parameters as LM Studio. |
 | **Live preview** | Detects Vite, Next, Astro, Remix, SvelteKit, SolidStart, Qwik, Expo, Eleventy, Parcel, webpack and more; opens on its own only when the agent starts a web app. |
 | **Voice** | Dictation with Whisper ONNX and spoken replies with Kokoro or Piper, offline. |
 | **MCP and plugins** | Local (stdio) or remote (HTTP/SSE) MCP servers, npm or local plugins and a catalogue to discover more, with real detail on transport, variables and tools. |
@@ -245,7 +245,7 @@ Contributions are welcome: bugs, performance, new providers, documentation and t
 
 ## Security and privacy
 
-Tiancode does not sandbox the agent: the permission system warns you before running commands or writing files, but it is not an isolation boundary. If you need real isolation, run it inside a container or a virtual machine. See [SECURITY.md](SECURITY.md) for the threat model and how to report a vulnerability.
+Tiancode does not sandbox the agent: the permission system warns you before running commands or writing files, but it is not an isolation boundary. The local server listens on `127.0.0.1`, refuses requests with a foreign `Host` header (DNS rebinding protection), adds security headers and temporarily locks an address after ten failed passwords; the desktop app protects its server with a random per-session password. If you need real isolation, run it inside a container or a virtual machine. See [SECURITY.md](SECURITY.md) for the threat model and how to report a vulnerability.
 
 ## FAQ
 

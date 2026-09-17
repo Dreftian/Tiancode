@@ -1,5 +1,6 @@
 import { LayerNode } from "@tiancode-ai/core/effect/layer-node"
 import { makeGlobalNode } from "@tiancode-ai/core/effect/app-node"
+import * as ModelsDir from "@/model-hub/models-dir"
 import { FSUtil } from "@tiancode-ai/core/fs-util"
 import { Global } from "@tiancode-ai/core/global"
 import { httpClient } from "@tiancode-ai/core/effect/app-node-platform"
@@ -28,6 +29,8 @@ export interface LocalEngineStatus {
   readonly error?: string
   readonly gpuLayers?: number
   readonly contextSize?: number
+  readonly auto?: boolean
+  readonly applied?: AppliedLoadOptions
 }
 
 /**
@@ -55,6 +58,22 @@ export interface StartEngineOptions extends EngineLoadOptions {
   readonly model: string
   readonly file: string
   readonly port?: number
+  /** True when the options came from the automatic per-model recommendation. */
+  readonly auto?: boolean
+}
+
+/** The load options a running engine was actually launched with. */
+export interface AppliedLoadOptions {
+  readonly contextSize: number
+  readonly gpuLayers: number
+  readonly threads: number
+  readonly batchSize?: number
+  readonly flashAttention?: boolean
+  readonly kvCacheType?: "f16" | "q8_0" | "q4_0"
+  readonly keepInMemory?: boolean
+  readonly useMmap?: boolean
+  readonly kvOffload?: boolean
+  readonly parallel?: number
 }
 
 export interface Interface {
@@ -62,6 +81,8 @@ export interface Interface {
   readonly ensureBinary: () => Effect.Effect<string>
   readonly start: (options: StartEngineOptions) => Effect.Effect<LocalEngineStatus>
   readonly stop: () => Effect.Effect<LocalEngineStatus>
+  /** Absolute path of the .gguf a `model`/`file` pair refers to, searching every models root. */
+  readonly resolveModelFile: (model: string, file: string) => Effect.Effect<string | undefined>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@tiancode/LocalEngine") {}
@@ -138,7 +159,12 @@ export function buildServerArgs(input: ServerArgsInput): string[] {
   // own default, so a user who never opened the advanced settings gets exactly what shipped before.
   if (input.batchSize !== undefined && input.batchSize > 0) args.push("-b", String(Math.floor(input.batchSize)))
   if (input.flashAttention !== undefined) args.push("-fa", input.flashAttention ? "on" : "off")
-  if (input.kvCacheType && input.kvCacheType !== "f16") args.push("-ctk", input.kvCacheType, "-ctv", input.kvCacheType)
+  if (input.kvCacheType && input.kvCacheType !== "f16") {
+    // llama.cpp only quantises the V cache with flash attention on; without it the server refuses
+    // to start, so the K cache alone is quantised (still ~25 % less KV memory).
+    args.push("-ctk", input.kvCacheType)
+    if (input.flashAttention === true) args.push("-ctv", input.kvCacheType)
+  }
   if (input.keepInMemory) args.push("--mlock")
   if (input.useMmap === false) args.push("--no-mmap")
   if (input.seed !== undefined && Number.isFinite(input.seed)) args.push("-s", String(Math.floor(input.seed)))
@@ -673,7 +699,7 @@ const layer = Layer.effect(
     const fs = yield* FSUtil.Service
 
     const binDir = path.join(Global.Path.bin, "llama-server")
-    const modelsDir = process.env.TIANCODE_MODELS_DIR?.trim() || path.join(Global.Path.data, "models")
+    const modelsDir = () => ModelsDir.modelsDir()
     const binaryExecutable = process.platform === "win32" ? "llama-server.exe" : "llama-server"
     const binaryPath = path.join(binDir, binaryExecutable)
     const markerPath = path.join(binDir, LLAMA_BUILD_MARKER_FILE)
@@ -686,6 +712,8 @@ const layer = Layer.effect(
     let currentGpuLayers = DEFAULT_GPU_LAYERS
     let currentContextSize = DEFAULT_CTX_SIZE
     let lastError: string | undefined
+    let currentAuto = false
+    let currentApplied: AppliedLoadOptions | undefined
     let binaryDownloading = false
     let downloadProgress = 0
     let stderrRing: string[] = []
@@ -703,6 +731,8 @@ const layer = Layer.effect(
       error: lastError,
       gpuLayers: currentGpuLayers,
       contextSize: currentContextSize,
+      auto: currentAuto,
+      applied: currentApplied,
     })
 
     const readMarker = (dir: string): LlamaBuildMarker | undefined => {
@@ -843,7 +873,7 @@ const layer = Layer.effect(
     ]
 
     const getCandidateModelsDirs = (): string[] => [
-      modelsDir,
+      modelsDir(),
       path.join(Global.Path.data, "models"),
       path.join(os.homedir(), ".local", "share", "tiancode", "models"),
       path.join(
@@ -959,20 +989,11 @@ const layer = Layer.effect(
       }
     }
 
-    const startEngine = Effect.fn("LocalEngine.start")(function* (options: StartEngineOptions) {
-      // 1. Detener instancia previa si existe
-      yield* stopEngine()
-
-      currentStatus = "starting"
-      currentPort = options.port ?? DEFAULT_PORT
-      currentGpuLayers = options.gpuLayers ?? DEFAULT_GPU_LAYERS
-      currentContextSize = options.contextSize ?? DEFAULT_CTX_SIZE
-      lastError = undefined
-      stderrRing = []
-
-      let resolvedModelFile: string | undefined
-      const targetName = (options.file || options.model || "").replace(/\.gguf$/i, "").toLowerCase()
-
+    // Where a `model`/`file` pair lives on disk: exact `<root>/<model>/<file>` first, then the bare
+    // file under a root, then any .gguf whose name matches, across every models root (the folder
+    // picked in Settings, the data folder and the legacy desktop profiles).
+    const resolveModelFile = (model: string, file: string): string | undefined => {
+      const targetName = (file || model || "").replace(/\.gguf$/i, "").toLowerCase()
       const findGgufInDir = (dir: string): string | undefined => {
         if (!existsSync(dir)) return undefined
         try {
@@ -984,35 +1005,40 @@ const layer = Layer.effect(
               if (found) return found
             } else if (entry.name.endsWith(".gguf") && !entry.name.endsWith(".part")) {
               const clean = entry.name.replace(/\.gguf$/i, "").toLowerCase()
-              if (clean === targetName || clean.includes(targetName) || targetName.includes(clean)) {
-                return full
-              }
+              if (clean === targetName || clean.includes(targetName) || targetName.includes(clean)) return full
             }
           }
         } catch {
-          // ignore
+          // unreadable directory: keep looking elsewhere
         }
         return undefined
       }
-
-      // Buscar en todos los directorios candidatos de modelos
+      if (file && path.isAbsolute(file) && existsSync(file)) return file
       for (const candDir of getCandidateModelsDirs()) {
-        const byModelSubdir = path.resolve(candDir, options.model ?? "", options.file ?? "")
-        if (existsSync(byModelSubdir)) {
-          resolvedModelFile = byModelSubdir
-          break
-        }
-        const byDirectFile = path.resolve(candDir, options.file ?? options.model ?? "")
-        if (existsSync(byDirectFile)) {
-          resolvedModelFile = byDirectFile
-          break
-        }
+        const byModelSubdir = path.resolve(candDir, model ?? "", file ?? "")
+        if (existsSync(byModelSubdir) && statSync(byModelSubdir).isFile()) return byModelSubdir
+        const byDirectFile = path.resolve(candDir, file ?? model ?? "")
+        if (existsSync(byDirectFile) && statSync(byDirectFile).isFile()) return byDirectFile
         const found = findGgufInDir(candDir)
-        if (found) {
-          resolvedModelFile = found
-          break
-        }
+        if (found) return found
       }
+      return undefined
+    }
+
+    const startEngine = Effect.fn("LocalEngine.start")(function* (options: StartEngineOptions) {
+      // 1. Detener instancia previa si existe
+      yield* stopEngine()
+
+      currentStatus = "starting"
+      currentPort = options.port ?? DEFAULT_PORT
+      currentGpuLayers = options.gpuLayers ?? DEFAULT_GPU_LAYERS
+      currentContextSize = options.contextSize ?? DEFAULT_CTX_SIZE
+      lastError = undefined
+      stderrRing = []
+      currentAuto = options.auto === true
+      currentApplied = undefined
+
+      const resolvedModelFile = resolveModelFile(options.model, options.file)
 
       if (!resolvedModelFile || !existsSync(resolvedModelFile)) {
         currentStatus = "error"
@@ -1036,6 +1062,18 @@ const layer = Layer.effect(
       // 3. Argumentos optimizados para llama-server con auto-tuning según CPU/GPU; el usuario puede
       //    fijar hilos, batch, flash attention, caché KV, mlock, mmap, semilla y RoPE desde Ajustes.
       const cpuThreads = Math.max(1, os.cpus().length - 1)
+      currentApplied = {
+        contextSize: currentContextSize,
+        gpuLayers: currentGpuLayers,
+        threads: options.threads && options.threads > 0 ? Math.floor(options.threads) : cpuThreads,
+        batchSize: options.batchSize,
+        flashAttention: options.flashAttention,
+        kvCacheType: options.kvCacheType,
+        keepInMemory: options.keepInMemory,
+        useMmap: options.useMmap,
+        kvOffload: options.kvOffload,
+        parallel: options.parallel,
+      }
       const args = buildServerArgs({
         modelPath: resolvedModelFile,
         port: currentPort,
@@ -1153,6 +1191,7 @@ const layer = Layer.effect(
       ensureBinary,
       start: startEngine,
       stop: stopEngine,
+      resolveModelFile: (model: string, file: string) => Effect.sync(() => resolveModelFile(model, file)),
     })
   }),
 )

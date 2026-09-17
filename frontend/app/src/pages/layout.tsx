@@ -830,12 +830,14 @@ export default function LegacyLayout(props: ParentProps) {
       },
       {
         id: "provider.connect",
+        keybind: "mod+alt+p",
         title: language.t("command.provider.connect"),
         category: language.t("command.category.provider"),
         onSelect: () => connectProvider(),
       },
       {
         id: "server.switch",
+        keybind: "mod+alt+shift+s",
         title: language.t("command.server.switch"),
         category: language.t("command.category.server"),
         onSelect: () => openServer(),
@@ -1038,6 +1040,7 @@ export default function LegacyLayout(props: ParentProps) {
 
     commands.push({
       id: "language.cycle",
+      keybind: "mod+alt+l",
       title: language.t("command.language.cycle"),
       category: language.t("command.category.language"),
       onSelect: () => cycleLanguage(1),

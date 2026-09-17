@@ -1,4 +1,5 @@
 import { createSignal, For, Show, type Component } from "solid-js"
+import { setSpeed2xActive } from "@/utils/speed-mode"
 import { useDialog } from "@tiancode-ai/ui/context/dialog"
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
 import { Tag } from "@tiancode-ai/ui/v2/badge-v2"
@@ -26,6 +27,11 @@ export const FIRST_LAUNCH_KEY = "tiancode.first_launch.completed"
 
 /** Set when onboarding finishes; the shell opens Settings › Providers once on the next boot. */
 export const PENDING_PROVIDER_SETUP_KEY = "tiancode.first_launch.open_providers"
+/** Where the first main window opens: a ready-to-type chat or the home screen. */
+export const START_MODE_KEY = "tiancode.first_launch.start"
+/** One-shot flag the home page consumes to open the chat draft the first time. */
+export const START_PENDING_KEY = "tiancode.first_launch.start_pending"
+export type StartMode = "chat" | "home"
 
 /**
  * Por qué se abre el asistente:
@@ -61,7 +67,7 @@ export function welcomeSetupMode(completed: string | null, current: string): Wel
   return isAppUpgrade(completed, current) ? "upgrade" : undefined
 }
 
-const STEPS = ["welcome.step.preferences", "welcome.step.workspace"] as const
+const STEPS = ["welcome.step.preferences", "welcome.step.workspace", "welcome.step.start"] as const
 
 /** Los nombres de idioma van en su propia lengua a propósito: no se traducen. */
 const LOCALE_OPTIONS: { locale: Locale; name: string }[] = [
@@ -90,6 +96,15 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void; mode?: Welcome
   const [step, setStep] = createSignal(1)
   const [finishing, setFinishing] = createSignal(false)
   const [createDefaultProject, setCreateDefaultProject] = createSignal(true)
+  const [startMode, setStartMode] = createSignal<StartMode>(
+    (() => {
+      try {
+        return localStorage.getItem(START_MODE_KEY) === "home" ? "home" : "chat"
+      } catch {
+        return "chat"
+      }
+    })(),
+  )
   const [selectedLocale, setSelectedLocale] = createSignal<Locale>(language.locale())
   const [selectedTheme, setSelectedTheme] = createSignal<ColorScheme>(theme.colorScheme())
 
@@ -120,6 +135,13 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void; mode?: Welcome
     setFinishing(true)
     try {
       localStorage.setItem(FIRST_LAUNCH_KEY, version() || "true")
+      localStorage.setItem(START_MODE_KEY, startMode())
+      if (!confirming()) {
+        // The chat opens with reasoning on Auto, fast mode off and permissions on Auto: the app's
+        // defaults, so only the persisted fast-mode switch needs resetting.
+        setSpeed2xActive(false)
+        localStorage.setItem(START_PENDING_KEY, startMode())
+      }
       // Una instalación nueva no tiene ningún proveedor, así que siempre dejamos abiertos los
       // ajustes: es lo único que hace utilizable la app y se cierra con Esc si no toca ahora.
       // Al confirmar tras una actualización no: esa instalación ya eligió proveedor.
@@ -296,6 +318,60 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void; mode?: Welcome
                   ? t("welcome.workspace.createDefault.desc")
                   : t("welcome.workspace.chooseLater.desc")}
               </p>
+            </div>
+
+          </div>
+        </Show>
+
+        <Show when={step() === 3}>
+          <div class="welcome-setup-panel">
+            <div class="welcome-setup-stack" role="radiogroup" aria-labelledby="welcome-setup-start-label">
+              <span class="welcome-setup-field-name" id="welcome-setup-start-label">
+                {t("welcome.start.title")}
+              </span>
+              <div class="welcome-setup-start">
+                <button
+                  type="button"
+                  class="welcome-setup-start-card"
+                  role="radio"
+                  aria-checked={startMode() === "chat"}
+                  data-selected={startMode() === "chat"}
+                  onClick={() => setStartMode("chat")}
+                >
+                  <span class="welcome-setup-start-art" aria-hidden="true">
+                    <span class="welcome-setup-start-art-word">TIANCODE</span>
+                    <span class="welcome-setup-start-art-box">
+                      <i />
+                      <b />
+                    </span>
+                  </span>
+                  <span class="welcome-setup-start-name">{t("welcome.start.chat")}</span>
+                  <span class="welcome-setup-start-desc">{t("welcome.start.chat.desc")}</span>
+                </button>
+                <button
+                  type="button"
+                  class="welcome-setup-start-card"
+                  role="radio"
+                  aria-checked={startMode() === "home"}
+                  data-selected={startMode() === "home"}
+                  onClick={() => setStartMode("home")}
+                >
+                  <span class="welcome-setup-start-art welcome-setup-start-art--home" aria-hidden="true">
+                    <span class="welcome-setup-start-art-side">
+                      <i />
+                      <i />
+                      <i />
+                    </span>
+                    <span class="welcome-setup-start-art-main">
+                      <i />
+                      <b />
+                    </span>
+                  </span>
+                  <span class="welcome-setup-start-name">{t("welcome.start.home")}</span>
+                  <span class="welcome-setup-start-desc">{t("welcome.start.home.desc")}</span>
+                </button>
+              </div>
+              <p class="welcome-setup-hint">{t("welcome.start.defaults")}</p>
             </div>
 
             {/* El asistente ya no pregunta por el proveedor: siempre abre sus ajustes al terminar,

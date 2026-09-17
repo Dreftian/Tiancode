@@ -15,9 +15,12 @@ export function createPromptModelSelection(input: { agent: () => { model?: Model
   const providers = useProviders(() => sdk().directory)
   const connected = createMemo(() => new Set(providers.connected().map((item) => item.id)))
 
+  // A model counts only when its provider is connected, not disabled in Settings › Providers, and
+  // the model itself is visible in "Manage models". A hidden or disabled model must never keep
+  // appearing in the composer.
   const valid = (model: ModelKey) => {
     const provider = providers.all().get(model.providerID)
-    return !!provider?.models[model.modelID] && connected().has(model.providerID)
+    return !!provider?.models[model.modelID] && connected().has(model.providerID) && models.visible(model)
   }
 
   const configured = () => {
@@ -31,10 +34,16 @@ export function createPromptModelSelection(input: { agent: () => { model?: Model
   const recent = () => models.recent.list().find(valid)
   const fallback = () => {
     const defaults = providers.default()
-    return providers.connected().flatMap((provider) => {
-      const modelID = defaults[provider.id] ?? Object.values(provider.models)[0]?.id
-      return modelID ? [{ providerID: provider.id, modelID }] : []
-    })[0]
+    return providers
+      .connected()
+      .flatMap((provider) => {
+        const preferred = defaults[provider.id]
+        const candidates = [preferred, ...Object.values(provider.models).map((item) => item.id)].filter(
+          (id): id is string => !!id,
+        )
+        const modelID = candidates.find((id) => models.visible({ providerID: provider.id, modelID: id }))
+        return modelID ? [{ providerID: provider.id, modelID }] : []
+      })[0]
   }
 
   const current = () => {

@@ -1,4 +1,5 @@
 import { useGlobal } from "@/context/global"
+import { START_PENDING_KEY } from "@/components/dialogs/dialog-welcome-setup"
 import { type HomeProjectSelection, useLayout } from "@/context/layout"
 import { ServerConnection, useServer } from "@/context/server"
 import { useServerSync } from "@/context/server-sync"
@@ -56,6 +57,23 @@ export function createHomeController() {
   function setSelection(next: HomeProjectSelection) {
     layout.home.setSelection(next)
   }
+
+  // First launch with "Chat" chosen in the welcome wizard: open a plain chat draft once, so the
+  // composer (reasoning Auto, fast mode off, permissions Auto) is the first thing on screen.
+  createEffect(() => {
+    const conn = focusedServer()
+    const dir = chatdir()
+    if (!conn || !dir) return
+    let pending: string | null = null
+    try {
+      pending = localStorage.getItem(START_PENDING_KEY)
+      if (pending) localStorage.removeItem(START_PENDING_KEY)
+    } catch {
+      return
+    }
+    if (pending !== "chat") return
+    openProjectNewSession(conn, dir)
+  })
 
   function openProjectNewSession(conn: ServerConnection.Any, directory: string, prompt?: string) {
     const ctx = global.ensureServerCtx(conn)
