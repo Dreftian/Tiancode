@@ -12,8 +12,8 @@ import { createEffect, createMemo, createSignal, on, onCleanup, onMount, Show } 
 import { ModelSelectorPopoverV2 } from "@/components/dialogs/dialog-select-model"
 import { DialogSelectModelUnpaidV2 } from "@/components/dialogs/dialog-select-model-unpaid-v2"
 import type { PromptInputProps } from "@/components/prompt-input/contracts"
-import { VoiceDictationButton } from "@/components/prompt-input/voice-dictation-button"
-import { promptWithOptimizedText, promptWithDictation } from "@/components/prompt-input/optimized-prompt"
+import { DictationOverlay, dictationState, VoiceDictationButton } from "@/components/prompt-input/voice-dictation-button"
+import { promptWithFolder, promptWithOptimizedText, promptWithDictation } from "@/components/prompt-input/optimized-prompt"
 import { PromptOptimizerButton } from "@/components/prompt-input/prompt-optimizer-button"
 import { SpeedModeButton } from "@/components/prompt-input/speed-mode-button"
 import { ComposerModeButton } from "@/components/prompt-input/composer-mode-button"
@@ -69,7 +69,22 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
   const sdk = useSDK()
   const server = useServerSDK()
   const settings = useSettings()
+  const platform = usePlatform()
   const [isOptimizingPrompt, setIsOptimizingPrompt] = createSignal(false)
+
+  // "Add folder": the desktop picker returns one or many directories; each becomes an @mention.
+  const addFolders = async () => {
+    if (platform.platform !== "desktop") return
+    const picked = await platform
+      .openDirectoryPickerDialog({ title: language.t("prompt.folder.title"), multiple: true })
+      .catch(() => null)
+    const paths = (Array.isArray(picked) ? picked : picked ? [picked] : []).filter(Boolean)
+    if (!paths.length) return
+    const next = paths.reduce((parts, path) => promptWithFolder(parts, path), props.controller.parts())
+    const value = next.map((part) => ("content" in part ? part.content : "")).join("")
+    props.controller.onInput(value, next, value.length)
+    props.controller.restoreFocus()
+  }
 
   // Cuando el modelo no acepta imágenes, backend/tiancode/src/provider/
   // transform.ts (unsupportedParts) cambia la imagen por una nota de texto
@@ -158,6 +173,12 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
         }
         attachKeybind={command.keybindParts("file.attach")}
         attachShortcut={command.keybind("file.attach")}
+        onFolder={platform.platform === "desktop" ? () => void addFolders() : undefined}
+        overlay={
+          <Show when={dictationState.listening || dictationState.transcribing}>
+            <DictationOverlay />
+          </Show>
+        }
         micControl={
           <Show when={settings.general.showVoice()}>
           <VoiceDictationButton

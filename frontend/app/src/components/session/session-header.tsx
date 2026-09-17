@@ -245,7 +245,7 @@ export function SessionHeader() {
     statusLabel: language.t("status.popover.trigger"),
     reviewLabel: language.t("command.review.toggle"),
     reviewKeybind: reviewTooltipKeybind(command),
-    reviewVisible: isDesktop(),
+    reviewVisible: isDesktop() && settings.general.showReview(),
     reviewOpened: view().reviewPanel.opened(),
     onReviewToggle: () => view().reviewPanel.toggle(),
     terminalLabel: language.t("command.terminal.toggle"),

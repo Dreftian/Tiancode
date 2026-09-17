@@ -7,7 +7,7 @@ import { SelectV2 } from "@tiancode-ai/ui/v2/select-v2"
 import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
 import { useLanguage } from "@/context/language"
 import { petKinds, petPositions, useSettings, type PetKind } from "@/context/settings"
-import { Pet3DIcon } from "@/components/pet/pet-3d-icons"
+import { PetGlyph } from "@/components/pet/pet-glyph"
 import { PET_GLYPHS } from "./pets-catalogue"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
@@ -206,7 +206,7 @@ export const SettingsPetsV2: Component<{ active?: boolean }> = (_props) => {
                     onClick={() => selectPet(kind)}
                   >
                     <span class="settings-v2-pets-card-glyph" aria-hidden="true">
-                      <Pet3DIcon kind={kind} size={40} />
+                      <PetGlyph kind={kind} size={44} track={false} />
                     </span>
                     <span class="settings-v2-pets-card-copy">
                       <span class="settings-v2-pets-card-name">

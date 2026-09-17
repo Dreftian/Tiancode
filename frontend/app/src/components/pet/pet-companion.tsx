@@ -4,7 +4,8 @@ import type { Part as MessagePart, TextPart } from "@tiancode-ai/sdk/v2"
 import { useLanguage } from "@/context/language"
 import { useServerSync } from "@/context/server-sync"
 import { petKinds, useSettings } from "@/context/settings"
-import { Pet3DIcon } from "@/components/pet/pet-3d-icons"
+import { PetGlyph } from "@/components/pet/pet-glyph"
+import type { MascotMood } from "@tiancode-ai/ui/mascot"
 import { resolvePetCompanionStatus, type PetCompanionStatus } from "./pet-companion-state"
 import { speakAutomaticallyWithVoices } from "@/utils/voices"
 import "./pet-companion.css"
@@ -79,6 +80,12 @@ export function PetCompanion() {
     const text = bubbleText() ?? ""
     return text.length > 240 ? text.slice(0, 240) : text
   })
+  const mood = createMemo<MascotMood>(() => {
+    if (status() === "running") return "writing"
+    if (status() === "needs-input") return "waiting"
+    if (status() === "blocked") return "blocked"
+    return "idle"
+  })
   const [petted, setPetted] = createSignal(false)
   // Tracked so a rapid second pet restarts the animation rather than being cut short by the
   // first timer, and so nothing fires into an unmounted component.
@@ -149,7 +156,7 @@ export function PetCompanion() {
         title="Clic para acariciar / Doble clic para cambiar mascota"
       >
         <span class="pet-companion-glyph" aria-hidden="true">
-          <Pet3DIcon kind={settings.general.petKind()} size={36} />
+          <PetGlyph kind={settings.general.petKind()} size={40} mood={mood()} />
         </span>
         <span class="pet-companion-status" aria-hidden="true">
           {statusGlyph[status()]}

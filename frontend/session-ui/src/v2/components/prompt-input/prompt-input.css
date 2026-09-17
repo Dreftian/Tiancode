@@ -92,23 +92,40 @@
 .effort-track input:active::-webkit-slider-thumb { transform: scaleX(1.08); }
 .effort-track input::-moz-range-thumb { width: 18px; height: 24px; border: 0; border-radius: 7px; background: #fafafa; }
 .effort-track:focus-within { outline: 2px solid var(--v2-border-border-focus); outline-offset: 2px; }
-.effort-footer { display: flex; justify-content: flex-end; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--v2-border-border-muted); }
+.effort-accessory { display: inline-flex; align-items: center; margin-left: 2px; }
 
-/* Working indicator: the cat sits at the top-right of the composer while the assistant works. */
-.prompt-working-cat {
-  position: absolute;
-  right: 12px;
-  top: 10px;
-  z-index: 20;
-  display: grid;
-  place-items: center;
-  color: var(--v2-text-text-muted);
-  animation: cat-breathe 1.8s ease-in-out infinite;
-  pointer-events: none;
-}
-@keyframes cat-breathe { 50% { opacity: 0.5; transform: translateY(-2px); } }
 @keyframes effort-enter { from { opacity: 0; transform: translateY(5px) scale(0.98); } }
+
+/* Send menu: opens on hover over the send button, like Claude Code Desktop. */
+.prompt-send-menu {
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 232px;
+  padding: 4px;
+  border: 1px solid var(--v2-border-border-base);
+  border-radius: 10px;
+  background: var(--v2-background-bg-layer-01);
+  box-shadow: 0 12px 32px #0004;
+  transform-origin: bottom right;
+  animation: effort-enter 120ms ease-out;
+}
+.prompt-send-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  text-align: left;
+  color: var(--v2-text-text-base);
+}
+.prompt-send-menu-item:hover, .prompt-send-menu-item:focus-visible { background: var(--v2-overlay-simple-overlay-hover); outline: none; }
+
 @media (prefers-reduced-motion: reduce) {
-  .effort-popover, .effort-help-bubble, .prompt-working-cat { animation: none; }
+  .effort-popover, .effort-help-bubble, .prompt-send-menu { animation: none; }
   .effort-fill, .effort-value, .effort-trigger { transition: none; }
 }

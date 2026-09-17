@@ -199,6 +199,13 @@
   color: var(--v2-text-text-muted);
 }
 
+/* Column cells (role and speciality) stack their label above the value: a fixed flex-basis
+   would otherwise turn into 96px of empty height. */
+.settings-v2-subagents-cell.flex-col::before {
+  flex: 0 0 auto;
+  margin-bottom: 2px;
+}
+
 .settings-v2-subagents-cell--status {
   display: flex;
   align-items: center;
@@ -244,6 +251,18 @@
 .settings-v2-sub-agents-toolbar-row [data-component="text-input-v2"] {
   flex: 1 1 200px;
   min-width: 160px;
+}
+
+/* The status filter shrinks with the pane instead of being clipped at its right edge. */
+.settings-v2-sub-agents-toolbar-row [data-slot="segmented-control-v2"] {
+  flex: 1 1 240px;
+  min-width: 0;
+  max-width: 100%;
+}
+.settings-v2-sub-agents-toolbar-row [data-slot="segmented-control-v2-item"] {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0 8px;
 }
 
 .settings-v2-sub-agents-toolbar-row--actions {

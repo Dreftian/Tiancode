@@ -19,6 +19,28 @@ import {
 import { MenuV2 } from "@tiancode-ai/ui/v2/menu-v2"
 import { AudioWaveform } from "@/components/visualization/audio-waveform"
 
+// Shared with the composer, which draws the Claude-style listening strip over the editor.
+export const [dictationState, setDictationState] = createStore({ listening: false, transcribing: false, level: 0 })
+
+export function DictationOverlay() {
+  const language = useLanguage()
+  return (
+    <div class="dictation-overlay" data-transcribing={dictationState.transcribing || undefined} role="status" aria-live="polite">
+      <span class="dictation-overlay-dot" aria-hidden="true" />
+      <AudioWaveform
+        active={dictationState.listening}
+        level={dictationState.listening ? dictationState.level : undefined}
+        barsCount={36}
+        height={22}
+        class="dictation-overlay-wave"
+      />
+      <span class="dictation-overlay-text">
+        {dictationState.transcribing ? language.t("chat.mic.transcribing") : language.t("chat.mic.listening")}
+      </span>
+    </div>
+  )
+}
+
 // Mic icon rendered inline; the icon set has no microphone.
 export function MicIcon(props: { class?: string }) {
   return (
@@ -125,6 +147,7 @@ export function VoiceDictationButton(props: {
     stopLocalRef = undefined
     if (stopLocal) void stopLocal()
     setListening(false)
+    setDictationState({ listening: false, level: 0 })
   }
 
   onCleanup(() => {
@@ -157,8 +180,13 @@ export function VoiceDictationButton(props: {
     }
   }
 
-  const reportError = (code: AsrErrorCode) => {
-    showToast({ variant: "error", title: language.t("chat.mic.error"), description: errorText(code) })
+  const reportError = (code: AsrErrorCode, detail?: string) => {
+    if (detail) console.warn("[dictation]", code, detail)
+    showToast({
+      variant: "error",
+      title: language.t("chat.mic.error"),
+      description: detail ? `${errorText(code)} (${detail})` : errorText(code),
+    })
   }
 
   const start = async () => {
@@ -221,20 +249,27 @@ export function VoiceDictationButton(props: {
             onResult: (text) => {
               if (disposed) return
               setRecording("transcribing", false)
+              setDictationState("transcribing", false)
               props.onResult(text)
               stop()
             },
-            onError: (code) => {
+            onError: (code, detail) => {
               if (disposed) return
               setRecording("transcribing", false)
-              reportError(code)
+              setDictationState("transcribing", false)
+              reportError(code, detail)
               stop()
             },
-            onLevel: (level) => !disposed && setRecording("level", level),
+            onLevel: (level) => {
+              if (disposed) return
+              setRecording("level", level)
+              setDictationState("level", level)
+            },
             onTranscribing: () => {
               if (disposed) return
               setListening(false)
               setRecording("transcribing", true)
+              setDictationState({ listening: false, transcribing: true })
             },
             onLimit: (seconds) => {
               showToast({
@@ -248,8 +283,12 @@ export function VoiceDictationButton(props: {
             return
           }
           setListening(true)
+          setDictationState({ listening: true, transcribing: false, level: 0 })
         } catch (error) {
-          reportError(error instanceof DictationError ? error.code : "engine-failed")
+          reportError(
+            error instanceof DictationError ? error.code : "engine-failed",
+            error instanceof DictationError ? undefined : error instanceof Error ? error.message : String(error),
+          )
         }
         return
       }
@@ -284,6 +323,7 @@ export function VoiceDictationButton(props: {
           setListening(false)
         }
         setListening(true)
+        setDictationState({ listening: true, transcribing: false, level: 0 })
         rec.start()
         return
       }

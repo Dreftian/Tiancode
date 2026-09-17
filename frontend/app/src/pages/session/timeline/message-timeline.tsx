@@ -46,6 +46,7 @@ import { StickyAccordionHeader } from "@tiancode-ai/ui/sticky-accordion-header"
 import { TextField } from "@tiancode-ai/ui/text-field"
 import { TextReveal } from "@tiancode-ai/ui/text-reveal"
 import { TextShimmer } from "@tiancode-ai/ui/text-shimmer"
+import { Mascot } from "@tiancode-ai/ui/mascot"
 import type {
   AssistantMessage,
   Message as MessageType,
@@ -139,7 +140,14 @@ function TimelineThinkingRow(props: { reasoningHeading?: string; showReasoningSu
 
   return (
     <div data-slot="session-turn-thinking" class="flex items-center gap-2 py-1.5 px-1 text-sm text-text-weak">
-      <span class="inline-block size-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_rgba(56,189,248,0.8)]" />
+      <Mascot
+        name="cat"
+        size={24}
+        mood="thinking"
+        track={false}
+        class="session-turn-mascot"
+        label={language.t("ui.sessionTurn.status.thinking")}
+      />
       <TextShimmer text={language.t("ui.sessionTurn.status.thinking")} />
       <Show when={!props.showReasoningSummaries && props.reasoningHeading}>
         <span class="text-text-weaker font-normal">—</span>

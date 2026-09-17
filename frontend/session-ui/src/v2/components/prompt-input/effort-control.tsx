@@ -59,6 +59,9 @@ export function EffortControl(props: { control: PromptInputV2SelectControl; foot
             <span class="effort-value" aria-live="polite">
               {currentLabel()}
             </span>
+            <Show when={props.footer}>
+              <span class="effort-accessory">{props.footer}</span>
+            </Show>
             <button
               type="button"
               class="effort-help"
@@ -93,9 +96,6 @@ export function EffortControl(props: { control: PromptInputV2SelectControl; foot
               }}
             />
           </div>
-          <Show when={props.footer}>
-            <div class="effort-footer">{props.footer}</div>
-          </Show>
         </Popover.Content>
       </Popover.Portal>
     </Popover>

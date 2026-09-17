@@ -10,7 +10,7 @@ import { Mark } from "@tiancode-ai/ui/logo"
 import { useLanguage, type Locale } from "@/context/language"
 import { useTheme, type ColorScheme } from "@tiancode-ai/ui/theme/context"
 import { usePlatform } from "@/context/platform"
-import { isAppUpgrade, useSettings } from "@/context/settings"
+import { compareVersions, isAppUpgrade, useSettings } from "@/context/settings"
 import "./dialog-welcome-setup.css"
 
 /**
@@ -54,6 +54,10 @@ export function welcomeSetupMode(completed: string | null, current: string): Wel
   if (!completed) return "first-run"
   if (!current) return undefined
   if (!VERSION_PATTERN.test(completed.trim())) return "upgrade"
+  // A lower version installed on purpose (a fresh numbering such as 1.0.0 over 1.0.54) is a new
+  // beginning for the user, so it gets the full setup again.
+  const comparison = compareVersions(current, completed)
+  if (comparison !== undefined && comparison < 0) return "first-run"
   return isAppUpgrade(completed, current) ? "upgrade" : undefined
 }
 

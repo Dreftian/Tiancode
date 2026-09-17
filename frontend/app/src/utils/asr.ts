@@ -197,15 +197,135 @@ export function onAudioDeviceChange(cb: () => void): () => void {
   }
 }
 
-// Graba el micrófono y transcribe el clip completo al detenerse. Devuelve una
-// función de parada; el transcript llega por onResult (o el código de error
-// por onError). onLimit avisa de que se alcanzó el tope de grabación: el audio
-// posterior se descartaba en silencio y la grabación parece seguir viva.
+// Minimal WebCodecs shapes: the DOM lib in this toolchain does not ship them yet.
+type AudioDataLike = {
+  format: string | null
+  sampleRate: number
+  numberOfFrames: number
+  numberOfChannels: number
+  copyTo(destination: ArrayBufferView, options: { planeIndex: number; format?: string }): void
+  close(): void
+}
+type TrackProcessorCtor = new (init: { track: MediaStreamTrack }) => { readable: ReadableStream<AudioDataLike> }
+type Capture = { release: () => void }
+
+const TARGET_RATE = 16000
+// The renderer streams 4096-sample chunks; the worker caps the recording by counting them.
+const CHUNK = 4096
+
+// Linear-interpolation resampler from the device rate (usually 48 kHz) down to Whisper's 16 kHz,
+// emitting fixed-size chunks so the worker's time limit stays accurate.
+function createResampler(onChunk: (samples: Float32Array) => void) {
+  let tail = new Float32Array(0)
+  let position = 0
+  let pending = new Float32Array(CHUNK)
+  let filled = 0
+  return (input: Float32Array, rate: number) => {
+    const ratio = rate / TARGET_RATE
+    const source = new Float32Array(tail.length + input.length)
+    source.set(tail)
+    source.set(input, tail.length)
+    while (position + 1 < source.length) {
+      const index = Math.floor(position)
+      const fraction = position - index
+      pending[filled++] = source[index]! + (source[index + 1]! - source[index]!) * fraction
+      if (filled === CHUNK) {
+        onChunk(pending)
+        pending = new Float32Array(CHUNK)
+        filled = 0
+      }
+      position += ratio
+    }
+    const consumed = Math.floor(position)
+    tail = source.slice(consumed)
+    position -= consumed
+  }
+}
+
+function monoFrame(frame: AudioDataLike) {
+  const out = new Float32Array(frame.numberOfFrames)
+  const format = frame.format ?? "f32-planar"
+  if (format === "f32-planar") {
+    frame.copyTo(out, { planeIndex: 0 })
+    return out
+  }
+  if (format === "f32") {
+    const interleaved = new Float32Array(frame.numberOfFrames * frame.numberOfChannels)
+    frame.copyTo(interleaved, { planeIndex: 0 })
+    for (let index = 0; index < out.length; index++) out[index] = interleaved[index * frame.numberOfChannels]!
+    return out
+  }
+  if (format === "s16" || format === "s16-planar") {
+    const channels = format === "s16" ? frame.numberOfChannels : 1
+    const raw = new Int16Array(frame.numberOfFrames * channels)
+    frame.copyTo(raw, { planeIndex: 0 })
+    for (let index = 0; index < out.length; index++) out[index] = raw[index * channels]! / 32768
+    return out
+  }
+  frame.copyTo(out, { planeIndex: 0, format: "f32-planar" })
+  return out
+}
+
+// Insertable streams read frames straight from the track. No AudioContext is involved, so a
+// suspended or output-less audio graph (the reason the mic "listened" but heard nothing) cannot
+// starve the recognizer.
+function captureWithTrackProcessor(stream: MediaStream, onSamples: (samples: Float32Array) => void): Capture | undefined {
+  const Processor = (window as unknown as { MediaStreamTrackProcessor?: TrackProcessorCtor }).MediaStreamTrackProcessor
+  const track = stream.getAudioTracks()[0]
+  if (!Processor || !track) return
+  const reader = new Processor({ track }).readable.getReader()
+  const resample = createResampler(onSamples)
+  let running = true
+  void (async () => {
+    try {
+      while (running) {
+        const { value, done } = await reader.read()
+        if (done || !value) break
+        try {
+          resample(monoFrame(value), value.sampleRate)
+        } finally {
+          value.close()
+        }
+      }
+    } catch (error) {
+      if (running) console.warn("[dictation] track processor stopped", error)
+    }
+  })()
+  return {
+    release: () => {
+      running = false
+      void reader.cancel().catch(() => {})
+    },
+  }
+}
+
+async function captureWithAudioContext(stream: MediaStream, onSamples: (samples: Float32Array) => void): Promise<Capture> {
+  const context = new AudioContext({ sampleRate: TARGET_RATE })
+  const source = context.createMediaStreamSource(stream)
+  const node = context.createScriptProcessor(CHUNK, 1, 1)
+  node.onaudioprocess = (event) => onSamples(new Float32Array(event.inputBuffer.getChannelData(0)))
+  source.connect(node)
+  node.connect(context.destination)
+  await context.resume().catch(() => {})
+  if (context.state !== "running") console.warn("[dictation] audio context is", context.state)
+  return {
+    release: () => {
+      node.onaudioprocess = null
+      node.disconnect()
+      source.disconnect()
+      void context.close().catch(() => {})
+    },
+  }
+}
+
+// Records the microphone and transcribes the whole clip when it stops. Returns a stop function;
+// the transcript arrives through onResult (or an error code through onError). A spoken phrase
+// followed by a pause finishes on its own, so the user never has to find the stop button.
 export async function startLocalDictation(options: {
   language: AsrLanguage
   deviceId?: string
   onResult: (text: string) => void
-  onError: (code: AsrErrorCode) => void
+  onError: (code: AsrErrorCode, detail?: string) => void
   onLimit?: (seconds: number) => void
   onLevel?: (level: number) => void
   onTranscribing?: () => void
@@ -214,72 +334,36 @@ export async function startLocalDictation(options: {
   const api = asrAPI()
   if (!api) throw new DictationError("engine-failed")
 
-  // Validar si la PC tiene micrófonos conectados
   const availableMics = await getAudioInputDevices()
   if (availableMics.length === 0) throw new DictationError("no-devices")
 
   const preferredDeviceId = options.deviceId || getSelectedAudioDeviceId() || undefined
-  const constraints: MediaTrackConstraints = {
+  const base: MediaTrackConstraints = {
     echoCancellation: true,
     noiseSuppression: true,
     autoGainControl: true,
     channelCount: 1,
-    sampleRate: 16000,
-    ...(preferredDeviceId ? { deviceId: { exact: preferredDeviceId } } : {}),
   }
-
   let stream: MediaStream
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ audio: constraints })
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: preferredDeviceId ? { ...base, deviceId: { exact: preferredDeviceId } } : base,
+    })
   } catch (error) {
-    // Si el dispositivo guardado ya no está disponible, fallback al micrófono predeterminado
-    if (preferredDeviceId) {
-      stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          channelCount: 1,
-          sampleRate: 16000,
-        },
-      })
-    } else {
-      throw error
-    }
+    // The saved device is gone: fall back to the system default instead of failing.
+    if (!preferredDeviceId) throw error
+    stream = await navigator.mediaDevices.getUserMedia({ audio: base })
   }
 
-  const context = new AudioContext({ sampleRate: 16000 })
-  const source = context.createMediaStreamSource(stream)
-  const node = context.createScriptProcessor(4096, 1, 1)
   let stopped = false
   let receivedSamples = false
   let heardSpeech = false
   let lastSpeech = 0
+  let capture: Capture | undefined
   let watchdog: ReturnType<typeof setInterval> | undefined
-  const releaseAudio = () => {
-    clearInterval(watchdog)
-    options.onLevel?.(0)
-    node.onaudioprocess = null
-    node.disconnect()
-    source.disconnect()
-    void context.close().catch(() => {})
-    stream.getTracks().forEach((track) => track.stop())
-  }
-  try {
-    // Model/device setup can outlive the click's user activation. Electron may
-    // leave the audio context suspended even though the microphone is open.
-    await context.resume()
-    if (context.state !== "running") throw new DictationError("engine-failed")
-    await api.start(language)
-  } catch (error) {
-    // El reconocedor no arrancó: liberar lo ya adquirido. Si no, el indicador
-    // del micrófono del SO y el nodo de captura quedarían activos para siempre.
-    releaseAudio()
-    throw error
-  }
-  node.onaudioprocess = (event) => {
+  const startTime = Date.now()
+  const push = (samples: Float32Array) => {
     if (stopped) return
-    const samples = new Float32Array(event.inputBuffer.getChannelData(0))
     receivedSamples = true
     const rms = Math.sqrt(samples.reduce((sum, value) => sum + value * value, 0) / samples.length)
     options.onLevel?.(Math.min(1, rms * 12))
@@ -289,9 +373,23 @@ export async function startLocalDictation(options: {
     }
     api.chunk(samples)
   }
-  source.connect(node)
-  node.connect(context.destination)
-  const startTime = Date.now()
+  const releaseAudio = () => {
+    clearInterval(watchdog)
+    options.onLevel?.(0)
+    capture?.release()
+    capture = undefined
+    stream.getTracks().forEach((track) => track.stop())
+  }
+  try {
+    await api.start(language)
+    capture = captureWithTrackProcessor(stream, push) ?? (await captureWithAudioContext(stream, push))
+  } catch (error) {
+    // The recognizer or the capture did not start: release the microphone so the OS indicator
+    // and the worker do not stay busy forever.
+    releaseAudio()
+    void api.stop().catch(() => {})
+    throw error
+  }
 
   const finish = async (transcribe: boolean) => {
     if (stopped) return
@@ -303,9 +401,8 @@ export async function startLocalDictation(options: {
     let result: AsrResult
     try {
       result = await api.stop()
-    } catch {
-      // El proceso del reconocedor cayó con la petición en vuelo.
-      onError("engine-failed")
+    } catch (error) {
+      onError("engine-failed", error instanceof Error ? error.message : String(error))
       return
     }
     if (result.code) {
@@ -322,25 +419,21 @@ export async function startLocalDictation(options: {
 
   const unsubscribe = api.onNotice((notice) => {
     if (notice.reason === "limit") {
-      // Se llegó al tope: se transcribe lo grabado y se avisa, en vez de
-      // seguir "escuchando" mientras el audio se tira.
       onLimit?.(notice.seconds ?? 0)
       void finish(true)
       return
     }
     void finish(false)
-    onError("engine-failed")
+    onError("engine-failed", "recognizer process exited")
   })
 
-  // Finish after a spoken phrase, instead of looking as though nothing happened
-  // until the user discovers they must click Stop. Also bound a silent capture.
   watchdog = setInterval(() => {
     if (stopped) return
     const elapsed = Date.now() - startTime
-    if (!receivedSamples && elapsed > 5000) {
+    if (!receivedSamples && elapsed > 6000) {
       void finish(false)
       void api.stop().catch(() => {})
-      onError("engine-failed")
+      onError("engine-failed", "no audio samples arrived from the microphone")
       return
     }
     if ((heardSpeech && Date.now() - lastSpeech > 2200) || (elapsed > 15000 && !heardSpeech)) void finish(true)

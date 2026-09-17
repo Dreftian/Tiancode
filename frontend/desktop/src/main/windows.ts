@@ -247,7 +247,11 @@ export function restoreMainWindows() {
   // fantasma idénticas en cada arranque.
   const alive = ids.filter((id) => existsSync(join(app.getPath("userData"), windowDataFile(id))))
   if (alive.length !== ids.length) registry.prune(alive)
-  return (alive.length ? alive : [randomUUID()]).map((id) => createMainWindow(id))
+  // A first launch shows the setup in a single compact window: restoring several windows left
+  // behind by a previous installation would open two copies of the app at once.
+  const restore = isFirstLaunchOnboardingPending() ? alive.slice(0, 1) : alive
+  if (restore.length !== alive.length) registry.prune(restore)
+  return (restore.length ? restore : [randomUUID()]).map((id) => createMainWindow(id))
 }
 
 export function setDockIcon() {

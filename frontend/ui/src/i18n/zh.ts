@@ -3,6 +3,7 @@ import { dict as en } from "./en"
 type Keys = keyof typeof en
 
 export const dict = {
+  "ui.promptInput.addFolder": "添加文件夹",
   "ui.promptInput.sendStay": "发送并留在此处",
   "ui.promptInput.working": "AI 正在工作",
   "ui.promptInput.effort.title": "投入程度",

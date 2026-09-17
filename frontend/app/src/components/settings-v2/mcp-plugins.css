@@ -16,7 +16,16 @@
   padding-bottom: 4px;
 }
 
-/* Segmented tabs size to their labels; equal thirds clipped the longest one. */
+/* Segmented tabs size to their labels; equal thirds clipped the longest one. In a narrow pane
+   the bar wraps onto a second row and the search takes the full width instead of clipping. */
+.mcp-plugins-segmented-wrapper [data-slot="segmented-control-v2"] {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  height: auto;
+  min-height: 28px;
+  flex-wrap: wrap;
+}
 .mcp-plugins-segmented-wrapper [data-slot="segmented-control-v2-item"] {
   flex: 0 0 auto;
 }
@@ -124,9 +133,9 @@
 
 .mcp-plugins-search-box {
   position: relative;
-  min-width: 200px;
+  min-width: 0;
   max-width: 280px;
-  flex: 1;
+  flex: 1 1 200px;
 }
 
 .mcp-plugins-grid {

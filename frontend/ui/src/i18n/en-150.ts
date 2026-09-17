@@ -1,4 +1,5 @@
 export const dict: Record<string, string> = {
+  "ui.promptInput.addFolder": "Add folder",
   "ui.promptInput.sendStay": "Send and stay here",
   "ui.promptInput.working": "AI is working",
   "ui.promptInput.effort.title": "Effort",

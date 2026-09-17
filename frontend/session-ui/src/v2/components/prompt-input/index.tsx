@@ -1,4 +1,6 @@
-import { createEffect, createMemo, For, Show, type JSX } from "solid-js"
+import { createEffect, createMemo, For, onCleanup, Show, type JSX } from "solid-js"
+import { createStore } from "solid-js/store"
+import { Popover } from "@kobalte/core/popover"
 import { FileIcon } from "@tiancode-ai/ui/file-icon"
 import { Icon } from "@tiancode-ai/ui/icon"
 import { IconButton } from "@tiancode-ai/ui/icon-button"
@@ -56,6 +58,10 @@ export type PromptInputV2Props = {
   optimizeControl?: JSX.Element
   // Provider acceleration control supplied by the host.
   speedControl?: JSX.Element
+  // Drawn over the editor while the host records dictation (waveform, "listening…").
+  overlay?: JSX.Element
+  // "Add folder" entry of the + menu; hidden when the host cannot pick directories.
+  onFolder?: () => void
 }
 
 export function PromptInputV2(props: PromptInputV2Props) {
@@ -206,11 +212,23 @@ export function PromptInputV2(props: PromptInputV2Props) {
                   : i18n.t("ui.promptInput.placeholder.normal", { slash: "/", at: "@" }))}
             </div>
           </Show>
+          {props.overlay}
+          {/* Send lives inside the box, at the end of the text, and only once there is something to send. */}
+          <Show when={view.submit.stopping() || props.controller.canSubmit()}>
+            <div data-slot="prompt-submit-dock" class="absolute right-3 bottom-2 z-20">
+              <PromptInputV2SubmitButton
+                mode={state.mode}
+                stopping={view.submit.stopping()}
+                disabled={!!props.disabled || !props.controller.canSubmit()}
+                sendLabel={i18n.t("ui.promptInput.send")}
+                stayLabel={i18n.t("ui.promptInput.sendStay")}
+                stopLabel={i18n.t("ui.promptInput.stop")}
+                onSubmit={props.controller.submit}
+                onStop={props.controller.stop}
+              />
+            </div>
+          </Show>
         </div>
-
-        <Show when={view.submit.working?.()}>
-          <PromptInputV2WorkingCat label={i18n.t("ui.promptInput.working")} />
-        </Show>
         <div data-slot="prompt-controls" class="flex min-h-11 flex-nowrap items-center justify-between gap-2 px-2 py-2">
           <div data-slot="prompt-selection-controls" class="flex shrink-0 items-center gap-1"
             aria-hidden={state.mode === "shell"} inert={state.mode === "shell" ? true : undefined} style={buttons()}>
@@ -218,6 +236,7 @@ export function PromptInputV2(props: PromptInputV2Props) {
               keybind={props.attachKeybind ?? ["Mod", "U"]} attachLabel={i18n.t("ui.promptInput.attachments")}
               attachShortcut={props.attachShortcut ?? "Mod+U"} commandsLabel={i18n.t("ui.promptInput.commands")}
               contextLabel={i18n.t("ui.promptInput.context")} shellLabel={i18n.t("ui.promptInput.shell")}
+              folderLabel={i18n.t("ui.promptInput.addFolder")} onFolder={props.onFolder}
               onAttach={props.controller.attach} onCommands={props.controller.openCommands}
               onContext={props.controller.openContext} onShell={props.controller.openShell} />
             {props.micControl}
@@ -233,18 +252,6 @@ export function PromptInputV2(props: PromptInputV2Props) {
             )}</Show>
             <Show when={!view.variant}>{props.speedControl}</Show>
             {props.optimizeControl}
-            <Show when={view.submit.stopping() || props.controller.canSubmit()}>
-              <PromptInputV2SubmitButton
-                mode={state.mode}
-                stopping={view.submit.stopping()}
-                disabled={!!props.disabled || !props.controller.canSubmit()}
-                sendLabel={i18n.t("ui.promptInput.send")}
-                stayLabel={i18n.t("ui.promptInput.sendStay")}
-                stopLabel={i18n.t("ui.promptInput.stop")}
-                onSubmit={props.controller.submit}
-                onStop={props.controller.stop}
-              />
-            </Show>
           </div>
         </div>
       </form>
@@ -459,10 +466,12 @@ export function PromptInputV2AddMenu(props: {
   commandsLabel: string
   contextLabel: string
   shellLabel: string
+  folderLabel?: string
   onAttach: () => void
   onCommands: () => void
   onContext: () => void
   onShell: () => void
+  onFolder?: () => void
 }) {
   return (
     <TooltipV2
@@ -490,6 +499,9 @@ export function PromptInputV2AddMenu(props: {
             <MenuV2.Item onSelect={props.onAttach} shortcut={props.attachShortcut}>
               {props.attachLabel}
             </MenuV2.Item>
+            <Show when={props.onFolder}>
+              <MenuV2.Item onSelect={() => props.onFolder?.()}>{props.folderLabel}</MenuV2.Item>
+            </Show>
             <MenuV2.Separator />
             <MenuV2.Item onSelect={props.onCommands} shortcut="/">
               {props.commandsLabel}
@@ -668,6 +680,22 @@ export function PromptInputV2SubmitButton(props: {
 }) {
   // Same modifier glyph the app's own keybind labels use: ⌘ on macOS, Ctrl elsewhere.
   const modifier = typeof navigator !== "undefined" && /mac/i.test(navigator.platform) ? "⌘" : "Ctrl"
+  const [menu, setMenu] = createStore({ open: false })
+  let anchor: HTMLButtonElement | undefined
+  let closing: number | undefined
+  const show = () => {
+    window.clearTimeout(closing)
+    setMenu("open", true)
+  }
+  const hide = () => {
+    window.clearTimeout(closing)
+    closing = window.setTimeout(() => setMenu("open", false), 160)
+  }
+  onCleanup(() => window.clearTimeout(closing))
+  const send = (options?: { stay?: boolean }) => {
+    setMenu("open", false)
+    props.onSubmit(options)
+  }
   return (
     <Show
       when={!props.stopping}
@@ -689,53 +717,56 @@ export function PromptInputV2SubmitButton(props: {
         </TooltipV2>
       }
     >
-      <MenuV2 placement="top-end" gutter={8} modal={false}>
-        <TooltipV2 placement="top" value={props.sendLabel}>
-          <MenuV2.Trigger
-            as={IconButton}
-            data-action="prompt-submit"
-            type="button"
-            disabled={props.disabled}
-            tabIndex={props.mode === "normal" ? undefined : -1}
-            icon="arrow-undo-down"
-            variant="primary"
+      <Popover
+        open={menu.open && !props.disabled}
+        onOpenChange={(open) => !open && setMenu("open", false)}
+        anchorRef={() => anchor}
+        placement="top-end"
+        gutter={8}
+        modal={false}
+      >
+        <IconButton
+          ref={anchor}
+          type="button"
+          data-action="prompt-submit"
+          disabled={props.disabled}
+          tabIndex={props.mode === "normal" ? undefined : -1}
+          icon="arrow-undo-down"
+          variant="primary"
+          aria-label={props.sendLabel}
+          aria-haspopup="menu"
+          aria-expanded={menu.open}
+          class="prompt-submit size-7 rounded-md"
+          onPointerEnter={show}
+          onPointerLeave={hide}
+          onFocus={show}
+          onBlur={hide}
+          onClick={(event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            send()
+          }}
+        />
+        <Popover.Portal>
+          <Popover.Content
+            class="prompt-send-menu"
+            role="menu"
             aria-label={props.sendLabel}
-            class="prompt-submit size-7 rounded-md"
-          />
-        </TooltipV2>
-        <MenuV2.Portal>
-          <MenuV2.Content data-testid="prompt-submit-menu" style={{ "min-width": "220px" }}>
-            <MenuV2.Item shortcut={<KeybindV2 keys={["Enter"]} variant="neutral" />} onSelect={() => props.onSubmit()}>
-              {props.sendLabel}
-            </MenuV2.Item>
-            <MenuV2.Item
-              shortcut={<KeybindV2 keys={[modifier, "Enter"]} variant="neutral" />}
-              onSelect={() => props.onSubmit({ stay: true })}
-            >
-              {props.stayLabel ?? props.sendLabel}
-            </MenuV2.Item>
-          </MenuV2.Content>
-        </MenuV2.Portal>
-      </MenuV2>
+            onPointerEnter={show}
+            onPointerLeave={hide}
+          >
+            <button type="button" role="menuitem" class="prompt-send-menu-item" onClick={() => send()}>
+              <span>{props.sendLabel}</span>
+              <KeybindV2 keys={["Enter"]} variant="neutral" />
+            </button>
+            <button type="button" role="menuitem" class="prompt-send-menu-item" onClick={() => send({ stay: true })}>
+              <span>{props.stayLabel ?? props.sendLabel}</span>
+              <KeybindV2 keys={[modifier, "Enter"]} variant="neutral" />
+            </button>
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover>
     </Show>
-  )
-}
-
-// The user's own cat mark (22x24 px), traced pixel by pixel; it breathes at the top-right of
-// the composer while the assistant is thinking or writing.
-const CAT_PIXELS =
-  "M8 6h3v1h-3zM11 7h1v1h-1zM16 7h1v1h-1zM7 8h1v1h-1zM11 8h4v1h-4zM17 8h1v1h-1zM17 9h1v1h-1zM6 10h1v1h-1zM17 10h1v1h-1zM5 11h2v1h-2zM12 11h1v1h-1zM17 11h1v1h-1zM6 12h1v1h-1zM12 12h1v1h-1zM17 12h1v1h-1zM6 13h1v1h-1zM17 13h1v1h-1zM7 14h1v1h-1zM16 14h1v1h-1zM8 15h8v1h-8zM10 17h4v1h-4zM8 18h1v1h-1zM15 18h2v1h-2zM7 19h1v1h-1zM16 19h2v1h-2z"
-const CAT_PIXELS_SOFT =
-  "M15 6h1v1h-1zM7 7h1v1h-1zM10 7h1v1h-1zM14 7h2v1h-2zM6 9h1v1h-1zM5 10h1v1h-1zM15 11h1v1h-1zM18 11h1v1h-1zM5 12h1v1h-1zM15 12h1v1h-1zM18 12h1v1h-1zM7 13h1v1h-1zM9 17h1v1h-1zM14 17h1v1h-1zM7 18h1v1h-1zM6 19h1v1h-1z"
-
-export function PromptInputV2WorkingCat(props: { label: string }) {
-  return (
-    <span class="prompt-working-cat" role="status" aria-label={props.label} title={props.label}>
-      <svg width="22" height="22" viewBox="4 5 16 16" fill="currentColor" shape-rendering="crispEdges" aria-hidden="true">
-        <path d={CAT_PIXELS} />
-        <path d={CAT_PIXELS_SOFT} opacity="0.55" />
-      </svg>
-    </span>
   )
 }
 

@@ -20,4 +20,12 @@ export const PET_GLYPHS: Record<PetKind, string> = {
   rabbit: "🐰",
   panda: "🐼",
   fox: "🦊",
+  otter: "🦦",
+  owl: "🦉",
+  dino: "🦖",
+  penguin: "🐧",
+  redpanda: "🦝",
+  robot: "🤖",
+  koala: "🐨",
+  hamster: "🐹",
 }

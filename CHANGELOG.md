@@ -16,6 +16,8 @@ General, Inteligencia, Voces, Skills, Sub-Agentes, MCP y Plugins y Mascotas usan
 superiores sin desplazamiento; MCP, plugins y especialistas muestran logotipos oficiales; la
 memoria y las habilidades aprendidas viven en los datos de la app. Se corrigen el micrófono,
 los interruptores de General y Ultracode con proveedores no compatibles. CODEX pasa a Coding.
+Enviar vive dentro del cuadro con menú al pasar el cursor, el menú + agrega carpetas, las
+mascotas usan personajes ilustrados de page-mascot y el gatito acompaña Pensando y Escribir.
 
 La versión es inferior a 1.0.54: se instala manualmente y conserva claves, sesiones,
 configuración y respaldos. Detalles: [notas de versión](tools/releases/v1.0.0.md).

@@ -116,7 +116,6 @@ test("keeps Fast inside the effort popover and enables it on a non-native model"
   await expect(composer.getByRole("button", { name: "Enviar", exact: true })).toHaveCount(0)
   await composer.getByRole("textbox", { name: "Prompt", exact: true }).fill("Comprueba la función solicitada")
   await composer.getByRole("button", { name: "Enviar", exact: true }).click()
-  await page.getByRole("menuitem", { name: "Enviar", exact: true }).click()
   await expect.poll(() => submitted.length).toBe(1)
   expect(submitted[0]?.system).toContain("[TIANCODE FAST WORKFLOW]")
   expect(submitted[0]?.system).not.toContain("[TIANCODE_NATIVE_FAST]")

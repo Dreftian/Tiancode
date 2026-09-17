@@ -63,3 +63,56 @@
     gap: 2px;
   }
 }
+
+/* Claude-style dictation: a listening strip over the editor while the mic records. */
+[data-component="prompt-input-v2"] .dictation-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 56px 0 16px;
+  border-radius: 12px;
+  background: var(--v2-background-bg-base);
+  pointer-events: none;
+  animation: dictation-enter 140ms ease-out;
+}
+.dictation-overlay-dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+  animation: dictation-pulse 1.4s ease-out infinite;
+}
+.dictation-overlay[data-transcribing] .dictation-overlay-dot {
+  background: #38bdf8;
+  animation: none;
+}
+.dictation-overlay-wave {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  height: 22px;
+}
+.dictation-overlay-text {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--v2-text-text-muted);
+  white-space: nowrap;
+}
+@keyframes dictation-pulse {
+  70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+@keyframes dictation-enter {
+  from { opacity: 0; }
+}
+@container composer (max-width: 480px) {
+  .dictation-overlay-text { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dictation-overlay, .dictation-overlay-dot { animation: none; }
+}

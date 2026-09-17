@@ -1,4 +1,5 @@
 export const dict = {
+  "ui.promptInput.addFolder": "フォルダーを追加",
   "ui.promptInput.sendStay": "送信してここに留まる",
   "ui.promptInput.working": "AI が作業中",
   "ui.promptInput.effort.title": "エフォート",

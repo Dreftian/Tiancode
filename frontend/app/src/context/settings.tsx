@@ -34,6 +34,14 @@ export const petKinds = [
   "rabbit",
   "panda",
   "fox",
+  "otter",
+  "owl",
+  "dino",
+  "penguin",
+  "redpanda",
+  "robot",
+  "koala",
+  "hamster",
 ] as const
 export type PetKind = (typeof petKinds)[number]
 export const petPositions = ["bottom-right", "bottom-left", "top-right", "top-left"] as const
@@ -138,6 +146,7 @@ export interface Settings {
     showBrowser: boolean
     showVoice: boolean
     showCapture: boolean
+    showReview: boolean
     browserLinks: "integrated" | "system" | "chrome"
     designStyle: import("@/utils/design-style").DesignStyle
     clearResponses: boolean
@@ -191,7 +200,7 @@ export const newLayoutDesignsDefault = true
 export const oldInterfaceSunset = new Date(2026, 8, 14)
 const newLayoutDesignsUpgradeCutoff = "1.17.19"
 
-function compareVersions(a: string, b: string) {
+export function compareVersions(a: string, b: string) {
   const parse = (version: string) => {
     const match = /^v?(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$/i.exec(version.trim())
     if (!match) return
@@ -321,6 +330,7 @@ const defaultSettings: Settings = {
     showBrowser: true,
     showVoice: true,
     showCapture: true,
+    showReview: true,
     browserLinks: "integrated",
     designStyle: "ask",
     clearResponses: false,
@@ -581,6 +591,10 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         showCapture: withFallback(() => store.general?.showCapture, defaultSettings.general.showCapture),
         setShowCapture(value: boolean) {
           setStore("general", "showCapture", value)
+        },
+        showReview: withFallback(() => store.general?.showReview, defaultSettings.general.showReview),
+        setShowReview(value: boolean) {
+          setStore("general", "showReview", value)
         },
         showTerminal: withFallback(() => store.general?.showTerminal, defaultSettings.general.showTerminal),
         setShowTerminal(value: boolean) {

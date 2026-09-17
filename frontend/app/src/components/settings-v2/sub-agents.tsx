@@ -105,7 +105,7 @@ export const SettingsSubAgentsV2: Component<{
   const serverSdk = useServerSDK()
 
   const [scope, setScope] = createSignal<"project" | "global">(props.directory ? "project" : "global")
-  const [section, setSection] = createSignal<"agents" | "hierarchy" | "general">("agents")
+  const [section, setSection] = createSignal<"agents" | "hierarchy">("agents")
 
   const params = () => (props.directory ? { directory: props.directory } : undefined)
   // Which config file this panel reads and writes. Both resources take it as their source: a
@@ -288,8 +288,8 @@ export const SettingsSubAgentsV2: Component<{
   const visibleBuiltinAgents = createMemo(() => visibleAgents().filter((a) => a.builtin))
 
   // Paginación 10x10 para Sub-Agentes sin scroll excesivo
-  // Three tall specialist cards fit a desktop window without scrolling; the pager covers the rest.
-  const BUILTIN_PAGE_SIZE = 3
+  // Six specialist rows fit a desktop window without scrolling; the pager covers the rest.
+  const BUILTIN_PAGE_SIZE = 6
   const [builtinPage, setBuiltinPage] = createSignal(1)
   const builtinTotal = () => Math.max(1, Math.ceil(visibleBuiltinAgents().length / BUILTIN_PAGE_SIZE))
   const pageBuiltinAgents = createMemo(() => {
@@ -400,13 +400,12 @@ export const SettingsSubAgentsV2: Component<{
           options={[
             { id: "agents", label: language.t("settings.subAgents.list.group.builtin") },
             { id: "hierarchy", label: language.t("settings.subAgents.hierarchy.title") },
-            { id: "general", label: language.t("settings.tab.general") },
           ]}
         />
       </div>
 
       <div class="settings-v2-tab-body settings-v2-sub-agents">
-        <Show when={section() === "general"}>
+        <Show when={section() === "hierarchy"}>
         <div class="settings-v2-sub-agents-scope">
           <div class="settings-v2-sub-agents-scope-control">
             <span class="settings-v2-sub-agents-scope-label">{language.t("settings.subAgents.scope.label")}</span>

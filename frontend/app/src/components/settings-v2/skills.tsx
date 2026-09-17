@@ -163,7 +163,7 @@ export const SettingsSkillsV2: Component<{
   const [message, setMessage] = createSignal<"success" | "error" | undefined>(undefined)
   const [selected, setSelected] = createSignal<string | undefined>(undefined)
   const [page, setPage] = createSignal(0)
-  const [section, setSection] = createSignal<"installed" | "import" | "general">("installed")
+  const [section, setSection] = createSignal<"installed" | "import">("installed")
   const [filterCategory, setFilterCategory] = createSignal<SkillFilter>("all")
 
   const params = () => (props.directory ? { directory: props.directory } : undefined)
@@ -487,7 +487,6 @@ export const SettingsSkillsV2: Component<{
           options={[
             { id: "installed", label: language.t("settings.skills.section.installed") },
             { id: "import", label: language.t("settings.skills.section.import") },
-            { id: "general", label: language.t("settings.tab.general") },
           ]}
         />
       </div>
@@ -503,46 +502,11 @@ export const SettingsSkillsV2: Component<{
 
         <div class="settings-v2-skills-layout" data-section={section()}>
           <div class="settings-v2-skills-list">
-            <Show when={section() !== "import"}>
+            <Show when={section() === "installed"}>
             <div class="settings-v2-section">
-              <Show when={section() === "general"}>
-              <SettingsListV2>
-                <SettingsRowV2
-                  title={language.t("settings.skills.autoSelect.title")}
-                  description={language.t("settings.skills.autoSelect.description")}
-                >
-                  <Switch checked={autoSelect()} onChange={(checked) => void toggleAutoSelect(checked)} hideLabel>
-                    {language.t("settings.skills.autoSelect.title")}
-                  </Switch>
-                </SettingsRowV2>
-              </SettingsListV2>
-              </Show>
 
               <Show when={!catalogueLoading()}>
               <div class="settings-v2-skills-toolbar">
-                <Show when={section() === "general"}><div class="settings-v2-skills-toolbar-row">
-                  <span class="settings-v2-skills-stats-pill">
-                    {language.t("settings.skills.stats.active", { enabled: enabledCount(), total: skills().length })}
-                  </span>
-                  <div class="settings-v2-skills-quick-buttons">
-                    <ButtonV2 type="button" variant="outline" size="small" onClick={() => void enableAll()}>
-                      {language.t("settings.skills.actions.enableAll")}
-                    </ButtonV2>
-                    <ButtonV2 type="button" variant="outline" size="small" onClick={() => void enableSafeOnly()}>
-                      {language.t("settings.skills.actions.safeOnly")}
-                    </ButtonV2>
-                    <ButtonV2 type="button" variant="outline" size="small" onClick={() => void toggleSpecialized()}>
-                      {language.t(
-                        specializedEnabledCount() > 0
-                          ? "settings.skills.actions.specialized.disable"
-                          : "settings.skills.actions.specialized.enable",
-                      )}
-                    </ButtonV2>
-                    <ButtonV2 type="button" variant="ghost" size="small" onClick={() => void disableAll()}>
-                      {language.t("settings.skills.actions.disableAll")}
-                    </ButtonV2>
-                  </div>
-                </div></Show>
 
                 <Show when={section() === "installed"}><div class="settings-v2-skills-filters-row">
                   <For each={filterOptions()}>
@@ -668,6 +632,41 @@ export const SettingsSkillsV2: Component<{
             <Show when={section() === "import"}>
             <div class="settings-v2-section">
               <h3 class="settings-v2-section-title">{language.t("settings.skills.section.import")}</h3>
+              <SettingsListV2>
+                <SettingsRowV2
+                  title={language.t("settings.skills.autoSelect.title")}
+                  description={language.t("settings.skills.autoSelect.description")}
+                >
+                  <Switch checked={autoSelect()} onChange={(checked) => void toggleAutoSelect(checked)} hideLabel>
+                    {language.t("settings.skills.autoSelect.title")}
+                  </Switch>
+                </SettingsRowV2>
+              </SettingsListV2>
+              <div class="settings-v2-skills-toolbar">
+                <div class="settings-v2-skills-toolbar-row">
+                  <span class="settings-v2-skills-stats-pill">
+                    {language.t("settings.skills.stats.active", { enabled: enabledCount(), total: skills().length })}
+                  </span>
+                  <div class="settings-v2-skills-quick-buttons">
+                    <ButtonV2 type="button" variant="outline" size="small" onClick={() => void enableAll()}>
+                      {language.t("settings.skills.actions.enableAll")}
+                    </ButtonV2>
+                    <ButtonV2 type="button" variant="outline" size="small" onClick={() => void enableSafeOnly()}>
+                      {language.t("settings.skills.actions.safeOnly")}
+                    </ButtonV2>
+                    <ButtonV2 type="button" variant="outline" size="small" onClick={() => void toggleSpecialized()}>
+                      {language.t(
+                        specializedEnabledCount() > 0
+                          ? "settings.skills.actions.specialized.disable"
+                          : "settings.skills.actions.specialized.enable",
+                      )}
+                    </ButtonV2>
+                    <ButtonV2 type="button" variant="ghost" size="small" onClick={() => void disableAll()}>
+                      {language.t("settings.skills.actions.disableAll")}
+                    </ButtonV2>
+                  </div>
+                </div>
+              </div>
               <SettingsListV2>
                 <div class="settings-v2-skills-import-row">
                   <div class="settings-v2-skills-import-copy">

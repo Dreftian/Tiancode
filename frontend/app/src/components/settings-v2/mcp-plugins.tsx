@@ -17,6 +17,7 @@ import {
   onMount,
   onCleanup,
 } from "solid-js"
+import { createMediaQuery } from "@solid-primitives/media"
 import { useLanguage } from "@/context/language"
 import { useServerSDK } from "@/context/server-sdk"
 import { showToast } from "@/utils/toast"
@@ -631,7 +632,7 @@ export const SettingsMcpPluginsV2: Component<{
   })
 
   // Pagination 10x10 for Discover Catalog
-  const DISCOVER_PAGE_SIZE = 4
+  const DISCOVER_PAGE_SIZE = 6
   const [discoverPage, setDiscoverPage] = createSignal(1)
   const discoverTotal = () => Math.max(1, Math.ceil(catalogList().length / DISCOVER_PAGE_SIZE))
   const pageDiscoverItems = createMemo(() => {
@@ -641,7 +642,7 @@ export const SettingsMcpPluginsV2: Component<{
   })
 
   // Pagination 10x10 for MCP Servers
-  const MCP_PAGE_SIZE = 5
+  const MCP_PAGE_SIZE = 6
   const [mcpPage, setMcpPage] = createSignal(1)
   const mcpTotal = () => Math.max(1, Math.ceil(mcpServers().length / MCP_PAGE_SIZE))
   const pageMcpServers = createMemo(() => {
@@ -651,7 +652,7 @@ export const SettingsMcpPluginsV2: Component<{
   })
 
   // Pagination 10x10 for Installed Plugins
-  const PLUGINS_PAGE_SIZE = 5
+  const PLUGINS_PAGE_SIZE = 6
   const [pluginsPage, setPluginsPage] = createSignal(1)
   const pluginsTotal = () => Math.max(1, Math.ceil(pluginsList().length / PLUGINS_PAGE_SIZE))
   const pagePluginsList = createMemo(() => {
@@ -661,13 +662,15 @@ export const SettingsMcpPluginsV2: Component<{
   })
 
   // Pagination 10x10 for Built-in Plugins
-  const BUILTIN_PAGE_SIZE = 5
+  // Every built-in plugin fits a normal window; only a short one pages them six at a time.
+  const compactHeight = createMediaQuery("(max-height: 719px)")
+  const builtinPageSize = () => (compactHeight() ? 6 : Math.max(6, builtinPlugins().length))
   const [builtinPage, setBuiltinPage] = createSignal(1)
-  const builtinTotal = () => Math.max(1, Math.ceil(builtinPlugins().length / BUILTIN_PAGE_SIZE))
+  const builtinTotal = () => Math.max(1, Math.ceil(builtinPlugins().length / builtinPageSize()))
   const pageBuiltinPlugins = createMemo(() => {
     const page = Math.min(builtinPage(), builtinTotal())
-    const start = (page - 1) * BUILTIN_PAGE_SIZE
-    return builtinPlugins().slice(start, start + BUILTIN_PAGE_SIZE)
+    const start = (page - 1) * builtinPageSize()
+    return builtinPlugins().slice(start, start + builtinPageSize())
   })
 
   createEffect(() => {

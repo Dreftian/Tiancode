@@ -606,59 +606,35 @@ export const SettingsGeneralV2: Component<{
     </div>
   )
 
-  const AdvancedSection = () => (
+  // Every icon of the chat's top bar, in the order they appear from left to right.
+  const TitlebarSection = () => (
     <div class="settings-v2-section settings-v2-compact-options">
-      <h3 class="settings-v2-section-title">{language.t("settings.general.section.advanced")}</h3>
-
+      <h3 class="settings-v2-section-title">{language.t("settings.general.section.titlebar")}</h3>
       <SettingsListV2>
         <SettingsRowV2
-          title={language.t("settings.general.row.showFileTree.title")}
-          description={language.t("settings.general.row.showFileTree.description")}
+          title={language.t("settings.general.row.showCapture.title")}
+          description={language.t("settings.general.row.showCapture.description")}
         >
-          <div data-action="settings-show-file-tree">
-            <Switch
-              checked={settings.general.showFileTree()}
-              onChange={(checked) => settings.general.setShowFileTree(checked)}
-            />
+          <div data-action="settings-show-capture">
+            <Switch checked={settings.general.showCapture()} onChange={(checked) => settings.general.setShowCapture(checked)} />
           </div>
         </SettingsRowV2>
-
-        <SettingsRowV2
-          title={language.t("settings.general.row.showSearch.title")}
-          description={language.t("settings.general.row.showSearch.description")}
-        >
-          <div data-action="settings-show-search">
-            <Switch
-              checked={settings.general.showSearch()}
-              onChange={(checked) => settings.general.setShowSearch(checked)}
-            />
-          </div>
-        </SettingsRowV2>
-
         <SettingsRowV2
           title={language.t("settings.general.row.showStatus.title")}
           description={language.t("settings.general.row.showStatus.description")}
         >
           <div data-action="settings-show-status">
-            <Switch
-              checked={settings.general.showStatus()}
-              onChange={(checked) => settings.general.setShowStatus(checked)}
-            />
+            <Switch checked={settings.general.showStatus()} onChange={(checked) => settings.general.setShowStatus(checked)} />
           </div>
         </SettingsRowV2>
-
         <SettingsRowV2
-          title={language.t("settings.general.row.showNavigation.title")}
-          description={language.t("settings.general.row.showNavigation.description")}
+          title={language.t("settings.general.row.showVoice.title")}
+          description={language.t("settings.general.row.showVoice.description")}
         >
-          <div data-action="settings-show-navigation">
-            <Switch
-              checked={settings.general.showNavigation()}
-              onChange={(checked) => settings.general.setShowNavigation(checked)}
-            />
+          <div data-action="settings-show-voice">
+            <Switch checked={settings.general.showVoice()} onChange={(checked) => settings.general.setShowVoice(checked)} />
           </div>
         </SettingsRowV2>
-
         <SettingsRowV2
           title={language.t("settings.general.row.showTerminal.title")}
           description={language.t("settings.general.row.showTerminal.description")}
@@ -667,7 +643,6 @@ export const SettingsGeneralV2: Component<{
             <Switch checked={settings.general.showTerminal()} onChange={(checked) => settings.general.setShowTerminal(checked)} />
           </div>
         </SettingsRowV2>
-
         <SettingsRowV2
           title={language.t("settings.general.row.showBrowser.title")}
           description={language.t("settings.general.row.showBrowser.description")}
@@ -676,17 +651,51 @@ export const SettingsGeneralV2: Component<{
             <Switch checked={settings.general.showBrowser()} onChange={(checked) => settings.general.setShowBrowser(checked)} />
           </div>
         </SettingsRowV2>
+        <SettingsRowV2
+          title={language.t("settings.general.row.showReview.title")}
+          description={language.t("settings.general.row.showReview.description")}
+        >
+          <div data-action="settings-show-review">
+            <Switch checked={settings.general.showReview()} onChange={(checked) => settings.general.setShowReview(checked)} />
+          </div>
+        </SettingsRowV2>
+        <SettingsRowV2
+          title={language.t("settings.general.row.showFileTree.title")}
+          description={language.t("settings.general.row.showFileTree.description")}
+        >
+          <div data-action="settings-show-file-tree">
+            <Switch checked={settings.general.showFileTree()} onChange={(checked) => settings.general.setShowFileTree(checked)} />
+          </div>
+        </SettingsRowV2>
+        <SettingsRowV2
+          title={language.t("settings.general.row.showSearch.title")}
+          description={language.t("settings.general.row.showSearch.description")}
+        >
+          <div data-action="settings-show-search">
+            <Switch checked={settings.general.showSearch()} onChange={(checked) => settings.general.setShowSearch(checked)} />
+          </div>
+        </SettingsRowV2>
+        <SettingsRowV2
+          title={language.t("settings.general.row.showNavigation.title")}
+          description={language.t("settings.general.row.showNavigation.description")}
+        >
+          <div data-action="settings-show-navigation">
+            <Switch checked={settings.general.showNavigation()} onChange={(checked) => settings.general.setShowNavigation(checked)} />
+          </div>
+        </SettingsRowV2>
+      </SettingsListV2>
+    </div>
+  )
 
+  const AdvancedSection = () => (
+    <div class="settings-v2-section settings-v2-compact-options">
+      <h3 class="settings-v2-section-title">{language.t("settings.general.section.advanced")}</h3>
+
+      <SettingsListV2>
         {/* Apagarlo oculta el selector solo si el proyecto no tiene agentes
             propios: context/local.tsx lo muestra igualmente cuando existe uno
             (`customAgents() || hasCustomAgent(list())`). La descripción lo
             dice en lugar de prometer un ocultado que no ocurre. */}
-        <SettingsRowV2 title={language.t("settings.general.row.showVoice.title")} description={language.t("settings.general.row.showVoice.description")}>
-          <Switch checked={settings.general.showVoice()} onChange={settings.general.setShowVoice} />
-        </SettingsRowV2>
-        <SettingsRowV2 title={language.t("settings.general.row.showCapture.title")} description={language.t("settings.general.row.showCapture.description")}>
-          <Switch checked={settings.general.showCapture()} onChange={settings.general.setShowCapture} />
-        </SettingsRowV2>
         <SettingsRowV2
           title={language.t("settings.general.row.showCustomAgents.title")}
           description={language.t("settings.general.row.showCustomAgents.description")}
@@ -888,7 +897,7 @@ export const SettingsGeneralV2: Component<{
         <h2 class="settings-v2-tab-title">{language.t("settings.tab.general")}</h2>
         <SettingsSectionTabs value={page.section} onChange={(section) => setPage("section", section)} options={[
           { id: "general", label: language.t("settings.tab.general") },
-          ...["appearance", "notifications", "sounds", "updates", "display", "data", "advanced"].filter((id) => desktop() || !["updates", "data"].includes(id)).map((id) => ({ id, label: language.t(`settings.general.section.${id}` as Parameters<typeof language.t>[0]) })),
+          ...["titlebar", "appearance", "notifications", "sounds", "updates", "display", "data", "advanced"].filter((id) => desktop() || !["updates", "data"].includes(id)).map((id) => ({ id, label: language.t(`settings.general.section.${id}` as Parameters<typeof language.t>[0]) })),
         ]} />
       </div>
 
@@ -898,6 +907,8 @@ export const SettingsGeneralV2: Component<{
         </Show>
 
         <Show when={page.section === "general"}><GeneralSection /></Show>
+
+        <Show when={page.section === "titlebar"}><TitlebarSection /></Show>
 
         <Show when={page.section === "appearance"}><AppearanceSection controller={appearance} /></Show>
 

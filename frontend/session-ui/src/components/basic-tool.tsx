@@ -5,6 +5,7 @@ import { createStore } from "solid-js/store"
 import { Collapsible } from "@tiancode-ai/ui/collapsible"
 import type { IconProps } from "@tiancode-ai/ui/icon"
 import { TextShimmer } from "@tiancode-ai/ui/text-shimmer"
+import { Mascot } from "@tiancode-ai/ui/mascot"
 
 export type TriggerTitle = {
   title: string
@@ -189,6 +190,11 @@ export function BasicTool(props: BasicToolProps) {
       data-hide-details={props.hideDetails ? "true" : undefined}
     >
       <div data-slot="basic-tool-tool-trigger-content">
+        <Show when={pending()}>
+          <span data-slot="basic-tool-working-mascot" aria-hidden="true">
+            <Mascot name="cat" size={22} mood="writing" track={false} />
+          </span>
+        </Show>
         <div data-slot="basic-tool-tool-info">
           <Switch>
             <Match when={dynamicTrigger !== undefined}>{dynamicTrigger}</Match>
