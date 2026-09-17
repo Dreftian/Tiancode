@@ -5,14 +5,14 @@
    menú desplegable de recursos).
    ============================================================ */
 
-import { initTheme } from './theme.js?v=1.0.0';
-import { applyLang, initI18n } from './i18n.js?v=1.0.0';
-import { initRouter, closeDropdown } from './router.js?v=1.0.0';
-import { initAnimations } from './animations.js?v=1.0.0';
-import { initCharts } from './charts.js?v=1.0.0';
-import { initFaq } from './faq.js?v=1.0.0';
-import { initGalaxy } from './galaxy.js?v=1.0.0';
-import { initUniverse } from './universe.js?v=1.0.0';
+import { initTheme } from './theme.js?v=1.0.0-r7';
+import { applyLang, initI18n } from './i18n.js?v=1.0.0-r7';
+import { initRouter, closeDropdown } from './router.js?v=1.0.0-r7';
+import { initAnimations } from './animations.js?v=1.0.0-r7';
+import { initCharts } from './charts.js?v=1.0.0-r7';
+import { initFaq } from './faq.js?v=1.0.0-r7';
+import { initGalaxy } from './galaxy.js?v=1.0.0-r7';
+import { initUniverse } from './universe.js?v=1.0.0-r7';
 
 /* ---------- Inicialización de módulos ---------- */
 initTheme();
@@ -57,20 +57,7 @@ document.addEventListener('click', function (e) {
   if (navDropdown && !navDropdown.contains(e.target)) closeDropdown();
 });
 
-/* ---------- Scrollspy: resalta la sección activa en el nav ---------- */
-const spySections = document.querySelectorAll('main section[id]');
-const spyLinks = document.querySelectorAll('.main-nav a[href^="#"]');
-if ('IntersectionObserver' in window && spySections.length && spyLinks.length) {
-  const spy = new IntersectionObserver(function (entries) {
-    entries.forEach(function (entry) {
-      if (!entry.isIntersecting) return;
-      spyLinks.forEach(function (link) {
-        link.classList.toggle('is-active', link.getAttribute('href') === '#' + entry.target.id);
-      });
-    });
-  }, { rootMargin: '-40% 0px -55% 0px' });
-  spySections.forEach(function (section) { spy.observe(section); });
-}
+/* La sección activa la marca el universo (universe.js): la home no se desplaza. */
 
 /* ---------- Studio Interactivo / Showcase Tabs Switcher ---------- */
 const showcaseTabBtns = document.querySelectorAll('.showcase-tab-btn');

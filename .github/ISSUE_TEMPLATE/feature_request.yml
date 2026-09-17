@@ -1,0 +1,44 @@
+name: Propuesta de mejora · Feature request
+description: Una idea para la app, el CLI, los agentes o el sitio web.
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Las funciones nuevas de interfaz o de producto se conversan aquí antes de implementarse. *(English is welcome.)*
+  - type: textarea
+    id: problem
+    attributes:
+      label: Qué problema resuelve
+      description: Describe la situación actual y por qué resulta insuficiente.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Propuesta
+      description: Cómo te gustaría que funcionara. Bocetos o capturas ayudan.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área
+      multiple: true
+      options:
+        - Chat y permisos
+        - Sub-agentes y skills
+        - Modelos locales
+        - Vista previa
+        - Voz
+        - MCP y plugins
+        - Conexiones (Telegram, Discord, Slack, webhook)
+        - Mascotas
+        - CLI
+        - Sitio web y documentación
+        - Otro
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas que consideraste

@@ -8,8 +8,8 @@
 
 /* ================= Portada ================= */
 .cosmic-hero-stage {
-  min-height: 100vh;
-  min-height: 100dvh;
+  min-height: calc(100vh - var(--header-h));
+  min-height: calc(100dvh - var(--header-h));
   border-bottom: 0 !important;
   transition: opacity 0.6s ease, transform 0.9s cubic-bezier(0.16, 1, 0.3, 1), filter 0.6s ease;
 }
@@ -121,7 +121,7 @@ body.universe-open { overflow: hidden; }
   z-index: 40;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   opacity: 0;
   visibility: hidden;
   transform: scale(0.985);
@@ -136,110 +136,6 @@ body.universe-open .universe {
 body.page-open .universe { display: none; }
 /* Nothing of the cover page (footer, modal anchors) may show through the translucent stage. */
 body.universe-open .site-footer { opacity: 0; visibility: hidden; pointer-events: none; }
-
-/* --- navegación lateral --- */
-.universe-nav {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 12px clamp(12px, 2vw, 28px) 10px;
-  background: transparent;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
-  opacity: 0;
-  transform: translateY(-10px);
-  transition: opacity 0.5s ease 0.45s, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.45s;
-}
-.universe-nav::-webkit-scrollbar { display: none; }
-body.universe-open .universe-nav { opacity: 1; transform: none; }
-
-.universe-back {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--bg) 78%, transparent);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-  color: var(--text-2);
-  font: 600 12.5px/1 var(--font-sans);
-  cursor: pointer;
-  box-shadow: var(--shadow-sm);
-  transition: color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
-}
-.universe-back span { display: none; }
-.universe-back svg { width: 15px; height: 15px; }
-.universe-back:hover { color: var(--text); border-color: var(--border-strong); transform: translateX(-2px); }
-
-.universe-menu {
-  display: flex;
-  flex-direction: row;
-  gap: 2px;
-  padding: 4px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--bg) 78%, transparent);
-  -webkit-backdrop-filter: blur(18px) saturate(160%);
-  backdrop-filter: blur(18px) saturate(160%);
-  box-shadow: var(--shadow-md);
-}
-.universe-menu a {
-  position: relative;
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px 6px 8px;
-  border-radius: 999px;
-  color: var(--text-2);
-  white-space: nowrap;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
-}
-.universe-menu a i {
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 7px;
-  background: var(--surface-3);
-  color: var(--text-3);
-  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
-}
-.universe-menu a i svg { width: 13px; height: 13px; }
-.universe-menu a .idx { display: none; }
-.universe-menu a:hover { background: var(--surface-2); color: var(--text); transform: translateY(-1px); }
-.universe-menu a:hover i { color: var(--accent); }
-.universe-menu a.is-active {
-  background: var(--accent-soft);
-  color: var(--text);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
-}
-.universe-menu a.is-active { background: var(--btn-primary-bg); color: var(--btn-primary-text); box-shadow: none; }
-.universe-menu a.is-active i { background: rgba(255, 255, 255, 0.16); color: inherit; transform: none; }
-
-.universe-nav-foot {
-  display: none;
-}
-.universe-nav-foot a {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-3);
-  transition: color 0.15s ease;
-}
-.universe-nav-foot a:hover { color: var(--text); }
-.universe-nav-sep { width: 1px; height: 14px; background: var(--border); }
 
 /* --- escenario de paneles --- */
 .universe-stage {
@@ -468,9 +364,6 @@ body.universe-open .universe-nav { opacity: 1; transform: none; }
 
 /* ================= Responsive ================= */
 @media (max-width: 960px) {
-  .universe-nav { justify-content: flex-start; gap: 6px; padding: 8px 12px; }
-  .universe-back { width: 36px; height: 36px; }
-  .universe-menu a { padding: 6px 10px 6px 7px; }
   .app-gallery { grid-template-columns: 1fr; gap: 14px; }
   .app-gallery-tabs { position: static; flex-direction: row; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
   .app-gallery-tabs::-webkit-scrollbar { display: none; }
@@ -480,7 +373,7 @@ body.universe-open .universe-nav { opacity: 1; transform: none; }
 }
 @media (max-width: 768px) {
   /* The inline critical CSS shortens the stage on phones; the cover must fill the screen. */
-  .cosmic-hero-stage { min-height: 100vh !important; min-height: 100dvh !important; }
+  .cosmic-hero-stage { min-height: calc(100vh - var(--header-h)) !important; min-height: calc(100dvh - var(--header-h)) !important; }
   .universe-stage { background: color-mix(in srgb, var(--bg) 80%, transparent); }
 }
 @media (max-width: 640px) {
@@ -492,13 +385,8 @@ body.universe-open .universe-nav { opacity: 1; transform: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .hero-orbit, .hero-orbit-hint, .app-hot, .universe-panel.is-active, .warp-veil { animation: none !important; }
-  .cosmic-hero-stage, .universe, .universe-nav, .app-frame, .app-shot { transition: none !important; }
+  .cosmic-hero-stage, .universe, .app-frame, .app-shot { transition: none !important; }
 }
-
-/* La cabecera gana un enlace ("La app"): los elementos nunca se parten en dos líneas. */
-.main-nav { gap: 20px; }
-.main-nav > a, .nav-dropdown-toggle { white-space: nowrap; }
-.header-cta-pill { white-space: nowrap; }
 
 /* ================= Instalación multiplataforma ================= */
 .install-hub {

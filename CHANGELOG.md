@@ -45,6 +45,11 @@ tarjeta, la ventana vuelve a 1280×800, el detalle de Sub-agentes muestra las in
 y el de MCP/Plugins sus herramientas y origen, y los iconos se regeneran sin pixelado. La web
 estrena barra de navegación centrada y una sección de instalación por sistema.
 
+La web pasa a una única cabecera compacta con la marca ZenithAI, la píldora de secciones centrada
+y un menú de instalación con los comandos curl, PowerShell, npm, bun y Homebrew; la portada muestra
+solo el logo. El repositorio incorpora README en español e inglés, CONTRIBUTING, SECURITY y
+plantillas de issues y pull requests.
+
 La versión es inferior a 1.0.54: se instala manualmente y conserva claves, sesiones,
 configuración y respaldos. Detalles: [notas de versión](tools/releases/v1.0.0.md).
 

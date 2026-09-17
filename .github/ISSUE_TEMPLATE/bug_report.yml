@@ -1,0 +1,61 @@
+name: Reporte de error · Bug report
+description: Algo no funciona como debería en la app, el CLI o el sitio web.
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por avisar. Cuanto más concreto sea el reporte, antes se arregla. *(Feel free to write in English.)*
+  - type: dropdown
+    id: component
+    attributes:
+      label: Componente
+      options:
+        - App de escritorio (Windows)
+        - Tiancode CLI (Windows)
+        - Tiancode CLI (macOS)
+        - Tiancode CLI (Linux)
+        - Sitio web
+        - Otro
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Versión
+      description: "`tiancode --version` o Ajustes › General en la app."
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Pasos para reproducirlo
+      placeholder: |
+        1. Abro …
+        2. Hago clic en …
+        3. Ocurre …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Qué esperabas que pasara
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Registros o capturas
+      description: "App: `%APPDATA%\\ai.tiancode.desktop.release\\logs`. CLI: vuelve a ejecutar con `--print-logs --log-level DEBUG`."
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Comprobaciones
+      options:
+        - label: Busqué issues existentes y no encontré uno igual.
+          required: true
+        - label: No incluí claves de API ni datos personales en el reporte.
+          required: true

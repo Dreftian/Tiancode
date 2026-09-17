@@ -6,9 +6,9 @@
    capturas reales de la app y sus puntos de interés.
    ============================================================ */
 
-import { getLang } from './i18n.js?v=1.0.0';
-import { setGalaxyDispersal, setGalaxyForceActive } from './galaxy.js?v=1.0.0';
-import { reducedMotion } from './utils.js?v=1.0.0';
+import { getLang, t } from './i18n.js?v=1.0.0-r7';
+import { setGalaxyDispersal, setGalaxyForceActive } from './galaxy.js?v=1.0.0-r7';
+import { reducedMotion } from './utils.js?v=1.0.0-r7';
 
 const PANELS = ['overview', 'capabilities', 'app', 'benchmarks', 'architecture', 'skills', 'downloads', 'faq'];
 
@@ -301,8 +301,25 @@ function initInstallHub() {
       panels.forEach(function (p) { p.classList.toggle('is-active', p.dataset.installPanel === id); });
     });
   });
-  hub.querySelectorAll('[data-copy]').forEach(function (button) {
-    button.addEventListener('click', function () {
+  bindCopy(hub);
+  const initial = tabs.find(function (t) { return t.dataset.install === visitorPlatform(); });
+  if (initial) initial.click();
+}
+
+/* Sistema del visitante: decide la pestaña inicial del hub y el destino del botón principal. */
+function visitorPlatform() {
+  const ua = navigator.userAgent || '';
+  if (/Windows/.test(ua)) return 'windows';
+  if (/Mac|iPhone|iPad/.test(ua)) return 'macos';
+  if (/Linux|Android|X11/.test(ua)) return 'linux';
+  return 'windows';
+}
+
+/* Botones "copiar" junto a cada comando (hub de instalación y menú de la cabecera). */
+function bindCopy(root) {
+  root.querySelectorAll('[data-copy]').forEach(function (button) {
+    button.addEventListener('click', function (e) {
+      e.stopPropagation();
       const code = button.parentElement ? button.parentElement.querySelector('code') : null;
       if (!code || !navigator.clipboard) return;
       navigator.clipboard.writeText(code.textContent || '').then(function () {
@@ -312,22 +329,50 @@ function initInstallHub() {
       });
     });
   });
-  // Preselect the visitor's platform.
-  const ua = navigator.userAgent || '';
-  const pick = /Mac|iPhone|iPad/.test(ua) ? 'macos' : /Linux|Android|X11/.test(ua) ? 'linux' : 'windows';
-  const initial = tabs.find(function (t) { return t.dataset.install === pick; });
-  if (initial) initial.click();
+}
+
+/* Menú de instalación de la cabecera: descarga directa para Windows y los comandos
+   curl / PowerShell / npm / bun / Homebrew con copia en un clic. */
+function initInstallMenu() {
+  const menu = document.getElementById('install-menu');
+  if (!menu) return;
+  const toggle = menu.querySelector('.install-menu-toggle');
+  const main = menu.querySelector('.install-menu-main');
+  function setOpen(on) {
+    menu.classList.toggle('is-open', on);
+    if (toggle) toggle.setAttribute('aria-expanded', on ? 'true' : 'false');
+  }
+  if (toggle) {
+    toggle.addEventListener('click', function (e) {
+      e.stopPropagation();
+      setOpen(!menu.classList.contains('is-open'));
+    });
+  }
+  document.addEventListener('click', function (e) { if (!menu.contains(e.target)) setOpen(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setOpen(false); });
+  menu.querySelectorAll('a').forEach(function (link) { link.addEventListener('click', function () { setOpen(false); }); });
+  bindCopy(menu);
+  // On macOS and Linux the .exe is useless: the main button opens the install panel for that system.
+  if (main && visitorPlatform() !== 'windows') {
+    main.setAttribute('href', '#downloads');
+    const label = main.querySelector('[data-i18n]');
+    if (label) {
+      label.setAttribute('data-i18n', 'nav.installPill');
+      label.textContent = t('nav.installPill') || label.textContent;
+    }
+  }
 }
 
 /* ---------- Universo ---------- */
 export function initUniverse() {
   initInstallHub();
+  initInstallMenu();
   const body = document.body;
   const universe = document.getElementById('universe');
   if (!universe) return;
   const stage = document.getElementById('universe-stage');
   const hero = document.getElementById('galaxy-hero');
-  const menuLinks = Array.prototype.slice.call(universe.querySelectorAll('.universe-menu a[data-panel]'));
+  const menuLinks = Array.prototype.slice.call(document.querySelectorAll('.main-nav a[data-panel]'));
   const gallery = buildGallery();
 
   let open = false;

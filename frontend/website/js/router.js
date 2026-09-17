@@ -5,8 +5,8 @@
    #/novedades, #/portable, #/descarga) + anclas internas.
    ============================================================ */
 
-import { t } from './i18n.js?v=1.0.0';
-import { reducedMotion } from './utils.js?v=1.0.0';
+import { t } from './i18n.js?v=1.0.0-r7';
+import { reducedMotion } from './utils.js?v=1.0.0-r7';
 
 const PAGE_IDS = ['licencia', 'terminos', 'privacidad', 'docs', 'guia', 'faq', 'novedades', 'portable', 'descarga'];
 const PAGE_TITLES = {
@@ -33,7 +33,7 @@ function pageName() {
 export function syncTitle() {
   const name = pageName();
   const key = name ? PAGE_TITLES[name] : null;
-  document.title = key ? t(key) + ' — Tiancode' : t('page.title');
+  document.title = key ? t(key) + ' — ZenithAI' : t('page.title');
 }
 
 export function closeDropdown() {

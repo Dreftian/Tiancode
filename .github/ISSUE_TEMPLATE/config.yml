@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentación y guía de inicio
+    url: https://tiancode.vercel.app/#/docs
+    about: Instalación, configuración y uso de la app y del CLI.
+  - name: Reportar una vulnerabilidad
+    url: https://github.com/Dreftian/Tiancode/security/advisories/new
+    about: Los problemas de seguridad se reportan en privado, nunca en un issue público.
