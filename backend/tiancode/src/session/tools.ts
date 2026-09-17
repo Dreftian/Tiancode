@@ -1,4 +1,5 @@
 import { Agent } from "@/agent/agent"
+import { LIGHTWEIGHT_TOOLS } from "./lightweight"
 import { SessionV1 } from "@tiancode-ai/core/v1/session"
 import { Provider } from "@/provider/provider"
 import { ProviderTransform } from "@/provider/transform"
@@ -75,6 +76,8 @@ export const resolve = Effect.fn("SessionTools.resolve")(function* (input: {
   bypassAgentCheck: boolean
   messages: SessionV1.WithParts[]
   promptOps: TaskPromptOps
+  /** Local / small-context model: only the core tools, no MCP tools or resources. */
+  lightweight?: boolean
 }) {
   const tools: Record<string, AITool> = {}
   const run = yield* EffectBridge.make()
@@ -124,6 +127,7 @@ export const resolve = Effect.fn("SessionTools.resolve")(function* (input: {
     agent: input.agent,
     permission: input.session.permission,
   })) {
+    if (input.lightweight && !LIGHTWEIGHT_TOOLS.has(item.id)) continue
     const schema = ProviderTransform.schema(input.model, ToolJsonSchema.fromTool(item))
     tools[item.id] = tool({
       description: item.description,
@@ -162,7 +166,7 @@ export const resolve = Effect.fn("SessionTools.resolve")(function* (input: {
     })
   }
 
-  const hasMcpResourceServer = Object.values(yield* mcp.clients()).some(
+  const hasMcpResourceServer = !input.lightweight && Object.values(yield* mcp.clients()).some(
     (client) => !!client.getServerCapabilities()?.resources,
   )
   if (hasMcpResourceServer) {
@@ -416,7 +420,9 @@ export const resolve = Effect.fn("SessionTools.resolve")(function* (input: {
 
   if (flags.experimentalCodeMode) return tools
 
-  for (const [key, entry] of Object.entries(yield* mcp.tools())) {
+  // Lightweight (local) models get no MCP tools: their schemas alone can exceed a small context.
+  const mcpTools = input.lightweight ? {} : yield* mcp.tools()
+  for (const [key, entry] of Object.entries(mcpTools)) {
     const item = McpCatalog.convertTool(entry.def, entry.client, entry.timeout, key)
     const execute = item.execute
     if (!execute) continue

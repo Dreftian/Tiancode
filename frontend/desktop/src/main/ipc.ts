@@ -16,6 +16,7 @@ import { LOCAL_MODELS_DIR_KEY } from "./store-keys"
 import {
   getPinchZoomEnabled,
   getWindowID,
+  getWelcomeWindow,
   isLiveViewPreviewUrl,
   openExternalURL,
   openLocalFileURL,
@@ -538,6 +539,9 @@ export function registerIpcHandlers(deps: Deps) {
     const win = BrowserWindow.fromWebContents(event.sender)
     if (!win) throw new Error("Window not found")
     const id = getWindowID(win)
+    // The welcome card lives in its own window outside the main-window registry. Rejecting here
+    // left that window on the loading splash forever (the renderer gates everything on this id).
+    if (!id && win === getWelcomeWindow()) return "welcome"
     if (!id) throw new Error("Window ID not found")
     return id
   })

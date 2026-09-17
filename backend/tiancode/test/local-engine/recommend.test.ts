@@ -89,7 +89,7 @@ describe("recommendLoadOptions", () => {
     expect(rec.gpuLayers).toBe(99)
     expect(rec.contextSize).toBeGreaterThanOrEqual(8192)
     expect(rec.contextSize).toBeLessThanOrEqual(32768)
-    expect(rec.threads).toBe(11)
+    expect(rec.threads).toBe(9)
     expect(rec.reasons).toContain("fits_gpu")
   })
 

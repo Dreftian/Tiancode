@@ -533,9 +533,21 @@ export const SettingsModelsHubV2: Component<{
     parallel: number
     /** Derive context, GPU layers, threads, batch and KV cache from the GGUF header + hardware. */
     auto: boolean
+    /** Automatic configuration limits (percent of VRAM / RAM / CPU cores) and layer placement. */
+    vramBudget: number
+    ramBudget: number
+    cpuBudget: number
+    placement: "auto" | "gpu" | "hybrid" | "cpu"
+    /** Unload the model after this many idle minutes (0 = keep loaded). */
+    idleUnloadMinutes: number
   }
   const defaultLoad: EngineLoad = {
     auto: true,
+    vramBudget: 90,
+    ramBudget: 60,
+    cpuBudget: 75,
+    placement: "auto",
+    idleUnloadMinutes: 10,
     contextSize: 8192,
     gpuLayers: 99,
     threads: 0,
@@ -558,8 +570,15 @@ export const SettingsModelsHubV2: Component<{
     const value = Number(raw)
     return Number.isFinite(value) ? value : fallback
   }
+  const budget = (value: number | undefined, fallback: number) =>
+    typeof value === "number" && Number.isFinite(value) ? value : fallback
   const enginePayload = () => ({
     auto: autoLoad(),
+    vramBudget: budget(load.vramBudget, defaultLoad.vramBudget),
+    ramBudget: budget(load.ramBudget, defaultLoad.ramBudget),
+    cpuBudget: budget(load.cpuBudget, defaultLoad.cpuBudget),
+    placement: load.placement ?? "auto",
+    idleUnloadMinutes: budget(load.idleUnloadMinutes, defaultLoad.idleUnloadMinutes),
     contextSize: load.contextSize > 0 ? Math.floor(load.contextSize) : undefined,
     gpuLayers: load.gpuLayers >= 0 ? Math.floor(load.gpuLayers) : undefined,
     threads: load.threads > 0 ? Math.floor(load.threads) : undefined,
@@ -1440,6 +1459,87 @@ export const SettingsModelsHubV2: Component<{
                 <Switch checked={autoLoad()} onChange={(checked) => setLoad("auto", checked)} />
               </SettingsRowV2>
             </SettingsListV2>
+            <div class="settings-v2-section lm-auto-limits">
+              <h3 class="settings-v2-section-title">{language.t("settings.modelsHub.auto.limits.title")}</h3>
+              <p class="settings-v2-note lm-load-note">{language.t("settings.modelsHub.auto.limits.description")}</p>
+              <SettingsListV2>
+                <SettingsRowV2
+                  title={language.t("settings.modelsHub.auto.vram.title")}
+                  description={language.t("settings.modelsHub.auto.vram.description")}
+                >
+                  <SelectV2
+                    appearance="inline"
+                    options={[50, 60, 70, 80, 90, 100]}
+                    current={budget(load.vramBudget, defaultLoad.vramBudget)}
+                    placement="bottom-end"
+                    gutter={6}
+                    label={(option) => `${option} %`}
+                    onSelect={(option) => option && setLoad("vramBudget", option)}
+                  />
+                </SettingsRowV2>
+                <SettingsRowV2
+                  title={language.t("settings.modelsHub.auto.ram.title")}
+                  description={language.t("settings.modelsHub.auto.ram.description")}
+                >
+                  <SelectV2
+                    appearance="inline"
+                    options={[30, 40, 50, 60, 70, 80]}
+                    current={budget(load.ramBudget, defaultLoad.ramBudget)}
+                    placement="bottom-end"
+                    gutter={6}
+                    label={(option) => `${option} %`}
+                    onSelect={(option) => option && setLoad("ramBudget", option)}
+                  />
+                </SettingsRowV2>
+                <SettingsRowV2
+                  title={language.t("settings.modelsHub.auto.cpu.title")}
+                  description={language.t("settings.modelsHub.auto.cpu.description")}
+                >
+                  <SelectV2
+                    appearance="inline"
+                    options={[25, 50, 75, 100]}
+                    current={budget(load.cpuBudget, defaultLoad.cpuBudget)}
+                    placement="bottom-end"
+                    gutter={6}
+                    label={(option) => `${option} %`}
+                    onSelect={(option) => option && setLoad("cpuBudget", option)}
+                  />
+                </SettingsRowV2>
+                <SettingsRowV2
+                  title={language.t("settings.modelsHub.auto.placement.title")}
+                  description={language.t("settings.modelsHub.auto.placement.description")}
+                >
+                  <SelectV2
+                    appearance="inline"
+                    options={["auto", "gpu", "hybrid", "cpu"] as const}
+                    current={load.placement ?? "auto"}
+                    placement="bottom-end"
+                    gutter={6}
+                    label={(option) => language.t(`settings.modelsHub.placement.${option}` as Parameters<typeof language.t>[0])}
+                    onSelect={(option) => option && setLoad("placement", option)}
+                  />
+                </SettingsRowV2>
+                <SettingsRowV2
+                  title={language.t("settings.modelsHub.auto.idle.title")}
+                  description={language.t("settings.modelsHub.auto.idle.description")}
+                >
+                  <SelectV2
+                    appearance="inline"
+                    options={[0, 5, 10, 30, 60]}
+                    current={budget(load.idleUnloadMinutes, defaultLoad.idleUnloadMinutes)}
+                    placement="bottom-end"
+                    gutter={6}
+                    label={(option) =>
+                      option === 0
+                        ? language.t("settings.modelsHub.auto.idle.never")
+                        : language.t("settings.modelsHub.auto.idle.minutes", { n: option })
+                    }
+                    onSelect={(option) => option !== undefined && option !== null && setLoad("idleUnloadMinutes", option)}
+                  />
+                </SettingsRowV2>
+              </SettingsListV2>
+              <p class="settings-v2-note lm-load-note">{language.t("settings.modelsHub.auto.lightweight")}</p>
+            </div>
             <Show when={autoLoad()}>
               <div class="lm-auto-summary">
                 <Show

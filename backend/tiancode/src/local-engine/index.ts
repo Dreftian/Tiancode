@@ -35,6 +35,8 @@ export interface LocalEngineStatus {
   readonly contextSize?: number
   readonly auto?: boolean
   readonly applied?: AppliedLoadOptions
+  readonly lastActivityAt?: number
+  readonly idleUnloadMinutes?: number
 }
 
 /**
@@ -56,6 +58,14 @@ export interface EngineLoadOptions {
   readonly ropeFrequencyScale?: number
   readonly kvOffload?: boolean
   readonly parallel?: number
+  /** Automatic configuration: share of the VRAM / RAM / CPU cores the model may take (percent). */
+  readonly vramBudget?: number
+  readonly ramBudget?: number
+  readonly cpuBudget?: number
+  /** Automatic configuration: where the layers go ("auto" lets the recommendation decide). */
+  readonly placement?: "auto" | "gpu" | "hybrid" | "cpu"
+  /** Unload the model after this many minutes without requests (0 = keep loaded). */
+  readonly idleUnloadMinutes?: number
 }
 
 export interface StartEngineOptions extends EngineLoadOptions {
@@ -99,6 +109,9 @@ export class Service extends Context.Service<Service, Interface>()("@tiancode/Lo
 const DEFAULT_PORT = 58282
 const DEFAULT_CTX_SIZE = 8192
 const DEFAULT_GPU_LAYERS = 99
+/** Like LM Studio's JIT auto-unload and Ollama's keep_alive: free the VRAM after idle minutes. */
+const DEFAULT_IDLE_UNLOAD_MINUTES = 10
+const IDLE_POLL_MS = 30_000
 
 // ---------------------------------------------------------------------------
 // Pinned llama.cpp release
@@ -163,6 +176,9 @@ export function buildServerArgs(input: ServerArgsInput): string[] {
     "--parallel",
     String(input.parallel ?? 1),
     "--jinja",
+    // Prometheus counters: how the idle-unload timer notices requests that go straight to the
+    // OpenAI-compatible port without passing through Tiancode.
+    "--metrics",
   ]
   // Optional load parameters (LM Studio names → llama-server flags). Absent means llama-server's
   // own default, so a user who never opened the advanced settings gets exactly what shipped before.
@@ -723,6 +739,8 @@ const layer = Layer.effect(
     let lastError: string | undefined
     let currentAuto = false
     let currentApplied: AppliedLoadOptions | undefined
+    let lastActivityAt = Date.now()
+    let lastPromptCounter = -1
     let binaryDownloading = false
     let downloadProgress = 0
     let stderrRing: string[] = []
@@ -742,6 +760,8 @@ const layer = Layer.effect(
       contextSize: currentContextSize,
       auto: currentAuto,
       applied: currentApplied,
+      lastActivityAt,
+      idleUnloadMinutes: getLoadDefaults().idleUnloadMinutes ?? DEFAULT_IDLE_UNLOAD_MINUTES,
     })
 
     const readMarker = (dir: string): LlamaBuildMarker | undefined => {
@@ -985,6 +1005,51 @@ const layer = Layer.effect(
       return getStatus()
     })
 
+    // Idle unload: llama-server's /metrics counters move whenever a request is served (the chat
+    // talks to the OpenAI-compatible port directly, so this is the only reliable activity signal).
+    // After `idleUnloadMinutes` without traffic the model is unloaded and the VRAM freed; the
+    // provider's health probe reloads it on the next chat request.
+    const pollIdle = async () => {
+      if (currentStatus !== "running" || !currentProcess) return
+      const minutes = getLoadDefaults().idleUnloadMinutes ?? DEFAULT_IDLE_UNLOAD_MINUTES
+      if (!(minutes > 0)) return
+      try {
+        const text = await fetch(`http://127.0.0.1:${currentPort}/metrics`, { signal: AbortSignal.timeout(1500) }).then(
+          (res) => (res.ok ? res.text() : ""),
+        )
+        const processing = /llamacpp:requests_processing\s+([0-9.]+)/.exec(text)
+        const prompt = /llamacpp:prompt_tokens_total\s+([0-9.]+)/.exec(text)
+        const counter = prompt ? Number(prompt[1]) : -1
+        if ((processing && Number(processing[1]) > 0) || counter !== lastPromptCounter) {
+          lastPromptCounter = counter
+          lastActivityAt = Date.now()
+          return
+        }
+      } catch {
+        return
+      }
+      if (Date.now() - lastActivityAt < minutes * 60_000) return
+      const child = currentProcess
+      currentProcess = undefined
+      currentStatus = "stopped"
+      currentModelPath = undefined
+      currentModelName = undefined
+      currentApplied = undefined
+      try {
+        if (process.platform === "win32" && child.pid) {
+          await execFileAsync("taskkill", ["/PID", String(child.pid), "/T", "/F"]).catch(() => undefined)
+        } else {
+          child.kill("SIGTERM")
+        }
+      } catch {
+        // already gone
+      }
+    }
+    const idleTimer = setInterval(() => {
+      void pollIdle()
+    }, IDLE_POLL_MS)
+    idleTimer.unref()
+
     const probeHealth = async (port: number): Promise<HealthProbe> => {
       try {
         const res = await fetch(`http://127.0.0.1:${port}/health`, { signal: AbortSignal.timeout(2000) })
@@ -1065,7 +1130,13 @@ const layer = Layer.effect(
       }
       if (!auto) return manual
       const size = statSync(file).size
-      const rec = recommendLoadOptions({ sizeBytes: size, metadata: safeMetadata(file), hardware: yield* hardwareInfo() })
+      const rec = recommendLoadOptions({
+        sizeBytes: size,
+        metadata: safeMetadata(file),
+        hardware: yield* hardwareInfo(),
+        budgets: { vram: manual.vramBudget, ram: manual.ramBudget, cpu: manual.cpuBudget },
+        placement: manual.placement,
+      })
       return {
         ...manual,
         contextSize: rec.contextSize,
@@ -1114,6 +1185,8 @@ const layer = Layer.effect(
       currentGpuLayers = options.gpuLayers ?? DEFAULT_GPU_LAYERS
       currentContextSize = options.contextSize ?? DEFAULT_CTX_SIZE
       currentAuto = options.auto === true
+      lastActivityAt = Date.now()
+      lastPromptCounter = -1
 
       currentModelPath = resolvedModelFile
       currentModelName = path.basename(resolvedModelFile).replace(/\.gguf$/i, "")

@@ -62,6 +62,10 @@ contexto real, sin compactaciones espurias), carpeta personalizada visible en el
 hub con desplazamiento, asistente de bienvenida siempre en ventana propia con Chat/Code/Inicio y
 barras de desplazamiento finas en toda la app.
 
+Modo ligero para modelos locales (prompt compacto y herramientas básicas: el paquete completo del
+agente superaba los 36k tokens y provocaba compactaciones en bucle), descarga del motor por
+inactividad y límites de VRAM/RAM/CPU con reparto GPU/RAM para la configuración automática.
+
 La versión es inferior a 1.0.54: se instala manualmente y conserva claves, sesiones,
 configuración y respaldos. Detalles: [notas de versión](tools/releases/v1.0.0.md).
 

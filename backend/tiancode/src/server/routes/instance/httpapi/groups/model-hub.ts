@@ -161,6 +161,11 @@ export const ModelEngineDefaults = Schema.Struct({
   ropeFrequencyScale: Schema.optional(Schema.Number),
   kvOffload: Schema.optional(Schema.Boolean),
   parallel: Schema.optional(Schema.Number),
+  vramBudget: Schema.optional(Schema.Number),
+  ramBudget: Schema.optional(Schema.Number),
+  cpuBudget: Schema.optional(Schema.Number),
+  placement: Schema.optional(Schema.Literals(["auto", "gpu", "hybrid", "cpu"])),
+  idleUnloadMinutes: Schema.optional(Schema.Number),
 })
 
 export const ModelDirInput = Schema.Struct({
@@ -218,6 +223,8 @@ export const ModelEngineStatus = Schema.Struct({
       parallel: Schema.optional(Schema.Number),
     }),
   ),
+  lastActivityAt: Schema.optional(Schema.Number),
+  idleUnloadMinutes: Schema.optional(Schema.Number),
 })
 
 export const ModelEngineStartInput = Schema.Struct({
@@ -238,6 +245,11 @@ export const ModelEngineStartInput = Schema.Struct({
   ropeFrequencyScale: Schema.optional(Schema.Number),
   kvOffload: Schema.optional(Schema.Boolean),
   parallel: Schema.optional(Schema.Number),
+  vramBudget: Schema.optional(Schema.Number),
+  ramBudget: Schema.optional(Schema.Number),
+  cpuBudget: Schema.optional(Schema.Number),
+  placement: Schema.optional(Schema.Literals(["auto", "gpu", "hybrid", "cpu"])),
+  idleUnloadMinutes: Schema.optional(Schema.Number),
   /** Let the server derive context, GPU layers, threads and KV cache from the GGUF header + hardware. */
   auto: Schema.optional(Schema.Boolean),
 })

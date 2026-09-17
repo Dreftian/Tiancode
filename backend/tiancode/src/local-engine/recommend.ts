@@ -66,22 +66,41 @@ function estimateLayers(sizeBytes: number, metadata: GgufMetadata | undefined) {
   return Math.max(16, Math.min(96, Math.round(sizeBytes / (110 * MIB))))
 }
 
+export interface Budgets {
+  /** Percent of the VRAM / RAM / CPU cores the model may use. */
+  readonly vram?: number
+  readonly ram?: number
+  readonly cpu?: number
+}
+
+const DEFAULT_BUDGETS = { vram: 90, ram: 60, cpu: 75 } as const
+
+function percent(value: number | undefined, fallback: number) {
+  return typeof value === "number" && Number.isFinite(value) ? Math.min(100, Math.max(10, value)) / 100 : fallback / 100
+}
+
 export function recommendLoadOptions(input: {
   readonly sizeBytes: number
   readonly metadata?: GgufMetadata
   readonly hardware: HardwareInfo
+  readonly budgets?: Budgets
+  readonly placement?: Placement | "auto"
 }): LoadRecommendation {
   const { sizeBytes, metadata, hardware } = input
+  const wanted = input.placement && input.placement !== "auto" ? input.placement : undefined
   const layers = estimateLayers(sizeBytes, metadata)
   const trainContext = metadata?.contextLength && metadata.contextLength > 0 ? metadata.contextLength : undefined
   const maxContext = Math.min(trainContext ?? 8192, 131072)
   const candidates = CONTEXT_STEPS.filter((step) => step <= maxContext)
   if (candidates.length === 0) candidates.push(maxContext as (typeof CONTEXT_STEPS)[number])
   const overhead = 400 * MIB + sizeBytes * 0.12
-  const vram = hardware.vramTotal && hardware.vramTotal > 0 ? hardware.vramTotal : undefined
-  const gpuBudget = vram ? vram * 0.92 : 0
-  const ramBudget = hardware.ram * 0.6
-  const threads = Math.max(1, Math.min(hardware.cpuCores - 1, 16))
+  const vram = wanted === "cpu" ? undefined : hardware.vramTotal && hardware.vramTotal > 0 ? hardware.vramTotal : undefined
+  const gpuBudget = vram ? vram * percent(input.budgets?.vram, DEFAULT_BUDGETS.vram) : 0
+  const ramBudget = hardware.ram * percent(input.budgets?.ram, DEFAULT_BUDGETS.ram)
+  const threads = Math.max(
+    1,
+    Math.min(hardware.cpuCores, Math.round(hardware.cpuCores * percent(input.budgets?.cpu, DEFAULT_BUDGETS.cpu))),
+  )
   const reasons: string[] = []
 
   const pickContext = (budget: number, cache: KvCacheType, fixedBytes: number) => {
@@ -114,8 +133,8 @@ export function recommendLoadOptions(input: {
     reasons,
   })
 
-  // 1. Everything on the GPU.
-  if (vram && sizeBytes + overhead + kvBytesPerToken(metadata, "f16") * candidates[0] <= gpuBudget) {
+  // 1. Everything on the GPU (unless the user asked for a GPU + RAM split).
+  if (wanted !== "hybrid" && vram && sizeBytes + overhead + kvBytesPerToken(metadata, "f16") * candidates[0] <= gpuBudget) {
     let kvCacheType: KvCacheType = "f16"
     let contextSize = pickContext(gpuBudget, "f16", sizeBytes)
     if (contextSize < AGENT_MIN_CONTEXT && candidates.includes(AGENT_MIN_CONTEXT)) {

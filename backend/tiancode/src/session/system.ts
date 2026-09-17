@@ -13,6 +13,7 @@ import PROMPT_KIMI from "./prompt/kimi.txt"
 import PROMPT_META from "./prompt/meta.txt"
 
 import PROMPT_CODEX from "./prompt/codex.txt"
+import PROMPT_LOCAL from "./prompt/local.txt"
 import PROMPT_TRINITY from "./prompt/trinity.txt"
 import type { Provider } from "@/provider/provider"
 import type { Agent } from "@/agent/agent"
@@ -27,6 +28,11 @@ import { MCP } from "@/mcp"
 import { Memory } from "@tiancode-ai/core/memory"
 import { ConfigIntelligence } from "@tiancode-ai/core/config/intelligence"
 import { PermissionV1 } from "@tiancode-ai/core/v1/permission"
+
+/** Compact prompt for small-context / local models (see session/lightweight.ts). */
+export function local(model: Provider.Model) {
+  return [PROMPT_LOCAL.replaceAll("{{MODEL_NAME}}", model.name)]
+}
 
 export function provider(model: Provider.Model) {
   if (model.api.id.includes("muse")) {

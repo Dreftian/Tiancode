@@ -104,6 +104,11 @@ export const modelHubHandlers = HttpApiBuilder.group(InstanceHttpApi, "model-hub
         ropeFrequencyScale: ctx.payload.ropeFrequencyScale,
         kvOffload: ctx.payload.kvOffload,
         parallel: ctx.payload.parallel,
+        vramBudget: ctx.payload.vramBudget,
+        ramBudget: ctx.payload.ramBudget,
+        cpuBudget: ctx.payload.cpuBudget,
+        placement: ctx.payload.placement,
+        idleUnloadMinutes: ctx.payload.idleUnloadMinutes,
       }
       // The engine merges the saved defaults and, with `auto`, the per-model recommendation.
       return yield* engine.start({ ...manual, auto: ctx.payload.auto })

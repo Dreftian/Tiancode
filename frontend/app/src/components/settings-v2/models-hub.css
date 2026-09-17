@@ -909,3 +909,6 @@
   .lm-disk-card-head { flex-wrap: wrap; }
   .lm-disk-card { padding: 12px; }
 }
+
+.lm-auto-limits { margin-top: 6px; }
+.lm-auto-limits .settings-v2-section-title { font-size: 14px; }

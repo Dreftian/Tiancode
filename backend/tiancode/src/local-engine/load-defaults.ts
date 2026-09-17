@@ -30,6 +30,11 @@ const KEYS: ReadonlyArray<keyof EngineLoadOptions> = [
   "ropeFrequencyScale",
   "kvOffload",
   "parallel",
+  "vramBudget",
+  "ramBudget",
+  "cpuBudget",
+  "placement",
+  "idleUnloadMinutes",
 ]
 
 let cache: LoadDefaults | undefined
@@ -46,6 +51,8 @@ function sanitize(input: unknown): LoadDefaults {
     if (value === undefined || value === null) continue
     if (key === "kvCacheType") {
       if (value === "f16" || value === "q8_0" || value === "q4_0") out[key] = value
+    } else if (key === "placement") {
+      if (value === "auto" || value === "gpu" || value === "hybrid" || value === "cpu") out[key] = value
     } else if (typeof value === "number" && Number.isFinite(value)) out[key] = value
     else if (typeof value === "boolean") out[key] = value
   }

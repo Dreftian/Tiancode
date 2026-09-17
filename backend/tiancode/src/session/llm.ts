@@ -43,6 +43,8 @@ export type StreamInput = {
   system: string[]
   messages: ModelMessage[]
   small?: boolean
+  /** Small-context / local model: compact prompt instead of the agent's full prompt. */
+  lightweight?: boolean
   tools: Record<string, Tool>
   retries?: number
   toolChoice?: "auto" | "required" | "none"

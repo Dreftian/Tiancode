@@ -1,4 +1,5 @@
 import { LayerNode } from "@tiancode-ai/core/effect/layer-node"
+import { isLightweightModel, lightweightEnvironment, trimInstructions } from "./lightweight"
 import { PermissionV1 } from "@tiancode-ai/core/v1/permission"
 import path from "path"
 import { SessionV1 } from "@tiancode-ai/core/v1/session"
@@ -1238,6 +1239,7 @@ const layer = Layer.effect(
             const bypassAgentCheck = lastUserMsg?.parts.some((p) => p.type === "agent") ?? false
             const promptOps = yield* ops()
 
+            const lightweight = isLightweightModel(model)
             const tools = yield* SessionTools.resolve({
               agent,
               session,
@@ -1246,6 +1248,7 @@ const layer = Layer.effect(
               bypassAgentCheck,
               messages: msgs,
               promptOps,
+              lightweight,
             }).pipe(
               Effect.provideService(Plugin.Service, plugin),
               Effect.provideService(Permission.Service, permission),
@@ -1270,26 +1273,34 @@ const layer = Layer.effect(
             yield* plugin.trigger("experimental.chat.messages.transform", {}, { messages: msgs })
 
             const allAgents = yield* agents.list()
+            const none = Effect.succeed(undefined)
+            // Lightweight (local / small-context) models skip the specialists, skills catalogue,
+            // MCP instructions and memory: together they exceed a 16k–32k context on their own.
             const [skills, autoSkills, subagentsPrompt, env, instructions, mcpInstructions, memoryPrompt, modelMsgs] =
               yield* Effect.all([
-                sys.skills(agent),
-                sys.autoSkills(agent),
-                sys.subagents(agent, allAgents),
-                sys.environment(model),
+                lightweight ? none : sys.skills(agent),
+                lightweight ? none : sys.autoSkills(agent),
+                lightweight ? none : sys.subagents(agent, allAgents),
+                lightweight ? Effect.succeed([] as string[]) : sys.environment(model),
                 instruction.system().pipe(Effect.orDie),
-                sys.mcp(agent, session.permission),
-                sys.memory(),
+                lightweight ? none : sys.mcp(agent, session.permission),
+                lightweight ? none : sys.memory(),
                 MessageV2.toModelMessagesEffect(msgs, model),
               ])
-            const system = [
-              ...env,
-              ...instructions,
-              ...(subagentsPrompt ? [subagentsPrompt] : []),
-              ...(memoryPrompt ? [memoryPrompt] : []),
-              ...(mcpInstructions ? [mcpInstructions] : []),
-              ...(skills ? [skills] : []),
-              ...(autoSkills ? [autoSkills] : []),
-            ]
+            const system = lightweight
+              ? [
+                  ...lightweightEnvironment({ model, directory: ctx.directory, worktree: ctx.worktree }),
+                  ...trimInstructions(instructions),
+                ]
+              : [
+                  ...env,
+                  ...instructions,
+                  ...(subagentsPrompt ? [subagentsPrompt] : []),
+                  ...(memoryPrompt ? [memoryPrompt] : []),
+                  ...(mcpInstructions ? [mcpInstructions] : []),
+                  ...(skills ? [skills] : []),
+                  ...(autoSkills ? [autoSkills] : []),
+                ]
             const format = lastUser.format ?? { type: "text" as const }
             if (format.type === "json_schema") system.push(STRUCTURED_OUTPUT_SYSTEM_PROMPT)
             if (lastUser.system) system.push(lastUser.system)
@@ -1306,6 +1317,7 @@ const layer = Layer.effect(
               ],
               tools,
               model,
+              lightweight,
               toolChoice: format.type === "json_schema" ? "required" : undefined,
             })
 
@@ -1343,6 +1355,25 @@ const layer = Layer.effect(
 
             if (result === "stop") return "break" as const
             if (result === "compact") {
+              // Nothing to compact yet: the very first exchange already exceeds the model's context,
+              // so summarising an empty conversation only produces a summary instead of an answer.
+              const priorFinished = msgs.some(
+                (m) =>
+                  m.info.role === "assistant" &&
+                  m.info.id !== handle.message.id &&
+                  m.info.time.completed !== undefined &&
+                  !m.info.error,
+              )
+              if (!priorFinished && !handle.message.finish) {
+                handle.message.error = new SessionV1.ContextOverflowError({
+                  message: `The request does not fit the model's context window (${model.limit.context || "unknown"} tokens). Use a model with a larger context, raise "Context length" in Settings › Local models, or shorten the message and attached files.`,
+                }).toObject()
+                handle.message.finish = "error"
+                handle.message.time.completed = Date.now()
+                yield* sessions.updateMessage(handle.message)
+                yield* events.publish(Session.Event.Error, { sessionID, error: handle.message.error })
+                return "break" as const
+              }
               yield* compaction.create({
                 sessionID,
                 agent: lastUser.agent,
