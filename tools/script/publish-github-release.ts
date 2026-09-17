@@ -82,17 +82,36 @@ for (const file of files) {
   const previous = release.assets.find((asset) => asset.name === file.name)
   if (previous?.digest === file.digest && previous.size === file.file.size) continue
   if (previous) throw new Error(`Draft contains a different ${file.name}; inspect the draft before continuing`)
-  console.log(`Uploading ${file.name} (${(file.file.size / 1048576).toFixed(1)} MiB)`)
-  const response = await fetch(`${release.upload_url.split("{")[0]}?name=${encodeURIComponent(file.name)}`, {
-    method: "POST",
-    headers: {
-      ...headers,
-      "Content-Type": file.name.endsWith(".yml") ? "text/yaml" : "application/octet-stream",
-      "Content-Length": String(file.file.size),
-    },
-    body: file.file,
-  })
-  if (!response.ok) throw new Error(`Upload ${file.name} failed: ${response.status} ${await response.text()}`)
+  // uploads.github.com stalls or answers 500 now and then; a stalled socket would otherwise hang the
+  // release forever, so each asset gets a hard timeout and a few attempts of its own.
+  const upload = async (attempt: number): Promise<Response> => {
+    console.log(`Uploading ${file.name} (${(file.file.size / 1048576).toFixed(1)} MiB)${attempt > 1 ? ` · attempt ${attempt}` : ""}`)
+    const response = await fetch(`${release.upload_url.split("{")[0]}?name=${encodeURIComponent(file.name)}`, {
+      method: "POST",
+      headers: {
+        ...headers,
+        "Content-Type": file.name.endsWith(".yml") ? "text/yaml" : "application/octet-stream",
+        "Content-Length": String(file.file.size),
+      },
+      body: file.file,
+      signal: AbortSignal.timeout(20 * 60_000),
+    }).catch((error: unknown) => {
+      throw new Error(`Upload ${file.name} failed: ${error instanceof Error ? error.message : String(error)}`)
+    })
+    if (response.ok) return response
+    const text = await response.text()
+    if (attempt < 3 && response.status >= 500) {
+      console.log(`Upload ${file.name} answered ${response.status}; retrying in 45 s`)
+      // A failed attempt can leave a zero-byte asset behind that blocks the next upload.
+      const current = await api<Release>(`/releases/${release.id}`)
+      const stale = current.assets.find((asset) => asset.name === file.name)
+      if (stale) await api(`/releases/assets/${stale.id}`, "DELETE").catch(() => undefined)
+      await new Promise((resolve) => setTimeout(resolve, 45_000))
+      return upload(attempt + 1)
+    }
+    throw new Error(`Upload ${file.name} failed: ${response.status} ${text}`)
+  }
+  const response = await upload(1)
   const asset = (await response.json()) as Asset
   if (asset.digest !== file.digest || asset.size !== file.file.size)
     throw new Error(`GitHub digest/size mismatch: ${file.name}`)
