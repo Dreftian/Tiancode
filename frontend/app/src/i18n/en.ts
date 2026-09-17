@@ -2,6 +2,19 @@ import { SUBAGENT_CATALOG_ENGLISH } from "./subagent-catalog"
 import { DESKTOP_NATIVE_ENGLISH } from "./desktop-native"
 
 export const dict = {
+  "settings.subAgents.list.detail.prompt": "System instructions",
+  "settings.subAgents.list.detail.noPrompt": "This agent uses the default instructions of its mode.",
+  "settings.mcpPlugins.detail.full": "Show transport, tools and origin of every entry",
+  "settings.mcpPlugins.detail.compact": "Back to the compact view",
+  "settings.mcpPlugins.detail.fullShort": "Detail",
+  "settings.mcpPlugins.detail.compactShort": "Compact",
+  "settings.mcpPlugins.detail.transport": "Transport",
+  "settings.mcpPlugins.detail.env": "Environment variables",
+  "settings.mcpPlugins.detail.tools": "Tools it provides",
+  "settings.mcpPlugins.detail.noTools": "no tools reported yet (connecting or none)",
+  "settings.mcpPlugins.detail.disabledTools": "disabled, enable it to load its tools",
+  "settings.mcpPlugins.detail.spec": "Package",
+  "settings.mcpPlugins.detail.origin": "Origin",
   "settings.subAgents.list.detail.full": "Show each specialist's full description and tool list",
   "settings.subAgents.list.detail.compact": "Back to the compact view",
   "settings.subAgents.list.detail.fullShort": "Detail",

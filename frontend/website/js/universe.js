@@ -288,8 +288,40 @@ function buildGallery() {
   return { preload: preload, select: select };
 }
 
+/* ---------- Instalación: pestañas por sistema y botones de copiar ---------- */
+function initInstallHub() {
+  const hub = document.getElementById('install-hub');
+  if (!hub) return;
+  const tabs = Array.prototype.slice.call(hub.querySelectorAll('.install-tab'));
+  const panels = Array.prototype.slice.call(hub.querySelectorAll('.install-panel'));
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      const id = tab.dataset.install;
+      tabs.forEach(function (t) { const on = t === tab; t.classList.toggle('is-active', on); t.setAttribute('aria-selected', on ? 'true' : 'false'); });
+      panels.forEach(function (p) { p.classList.toggle('is-active', p.dataset.installPanel === id); });
+    });
+  });
+  hub.querySelectorAll('[data-copy]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      const code = button.parentElement ? button.parentElement.querySelector('code') : null;
+      if (!code || !navigator.clipboard) return;
+      navigator.clipboard.writeText(code.textContent || '').then(function () {
+        button.classList.add('is-copied');
+        button.textContent = '✓';
+        window.setTimeout(function () { button.classList.remove('is-copied'); button.textContent = '⧉'; }, 1400);
+      });
+    });
+  });
+  // Preselect the visitor's platform.
+  const ua = navigator.userAgent || '';
+  const pick = /Mac|iPhone|iPad/.test(ua) ? 'macos' : /Linux|Android|X11/.test(ua) ? 'linux' : 'windows';
+  const initial = tabs.find(function (t) { return t.dataset.install === pick; });
+  if (initial) initial.click();
+}
+
 /* ---------- Universo ---------- */
 export function initUniverse() {
+  initInstallHub();
   const body = document.body;
   const universe = document.getElementById('universe');
   if (!universe) return;

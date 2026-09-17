@@ -788,3 +788,24 @@
   min-width: 160px;
   padding: 0 4px;
 }
+
+/* Detail view (MCP servers and plugins): compact facts under the command / description. */
+.mcp-plugins-detail { margin-left: 4px; align-self: center; }
+.mcp-plugins-detail-block {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--v2-border-border-muted);
+  border-radius: 8px;
+  background: var(--v2-background-bg-layer-02);
+  color: var(--v2-text-text-muted);
+  font-size: 10.5px;
+  line-height: 1.5;
+  white-space: normal;
+  word-break: break-word;
+}
+.mcp-plugins-detail-block b { color: var(--v2-text-text-base); font-weight: 600; }
+.mcp-plugins-detail-block code { font-family: var(--font-mono, ui-monospace, monospace); }
+.mcp-plugins-detail-error { color: var(--v2-state-fg-danger); }

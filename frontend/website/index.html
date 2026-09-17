@@ -731,6 +731,57 @@ export const admitPrompt = (sessionID: SessionID, input: UserPrompt) =>
           </article>
         </div>
 
+
+        <!-- Plataformas e instalación del CLI -->
+        <div class="install-hub reveal" id="install-hub">
+          <div class="install-hub-head">
+            <span class="eyebrow" data-i18n="install.eyebrow">Todas las plataformas</span>
+            <h3 class="install-hub-title" data-i18n="install.title">Tiancode en Windows, macOS y Linux</h3>
+            <p class="install-hub-sub" data-i18n="install.sub">La app de escritorio es para Windows. El CLI (interfaz de terminal, servidor y web) funciona en los tres sistemas con un solo comando.</p>
+          </div>
+          <div class="install-tabs" role="tablist" aria-label="Sistemas">
+            <button class="install-tab is-active" type="button" data-install="windows" role="tab" aria-selected="true">Windows</button>
+            <button class="install-tab" type="button" data-install="macos" role="tab" aria-selected="false">macOS</button>
+            <button class="install-tab" type="button" data-install="linux" role="tab" aria-selected="false">Linux</button>
+            <button class="install-tab" type="button" data-install="managers" role="tab" aria-selected="false" data-i18n="install.tab.managers">Gestores de paquetes</button>
+          </div>
+          <div class="install-panel is-active" data-install-panel="windows">
+            <div class="install-row">
+              <div class="install-row-text"><strong data-i18n="install.win.app">App de escritorio</strong><span data-i18n="install.win.appDesc">Instalador o portable. Bandeja del sistema, mascota, vista previa y actualizador.</span></div>
+              <div class="install-row-actions"><a class="btn btn-primary btn-sm" href="https://github.com/Dreftian/Tiancode/releases/latest/download/Tiancode.exe">Tiancode.exe</a><a class="btn btn-secondary btn-sm" href="https://github.com/Dreftian/Tiancode/releases/latest/download/Tiancode-portable.exe">Portable</a></div>
+            </div>
+            <div class="install-row">
+              <div class="install-row-text"><strong data-i18n="install.win.cli">CLI (PowerShell)</strong><span data-i18n="install.win.cliDesc">Descarga el binario y lo añade al PATH del usuario.</span></div>
+              <pre class="install-cmd"><code>irm https://tiancode.vercel.app/install.ps1 | iex</code><button class="install-copy" type="button" data-copy aria-label="Copiar">⧉</button></pre>
+            </div>
+          </div>
+          <div class="install-panel" data-install-panel="macos">
+            <div class="install-row">
+              <div class="install-row-text"><strong data-i18n="install.mac.cli">CLI (Apple Silicon e Intel)</strong><span data-i18n="install.mac.cliDesc">Interfaz de terminal, servidor y web. Sin Node ni Bun.</span></div>
+              <pre class="install-cmd"><code>curl -fsSL https://tiancode.vercel.app/install | bash</code><button class="install-copy" type="button" data-copy aria-label="Copiar">⧉</button></pre>
+            </div>
+            <div class="install-row">
+              <div class="install-row-text"><strong data-i18n="install.mac.app">App de escritorio</strong><span data-i18n="install.mac.appDesc">En preparación. Mientras tanto, <code>tiancode web</code> abre la misma interfaz en el navegador.</span></div>
+            </div>
+          </div>
+          <div class="install-panel" data-install-panel="linux">
+            <div class="install-row">
+              <div class="install-row-text"><strong data-i18n="install.linux.cli">CLI (x64 y arm64)</strong><span data-i18n="install.linux.cliDesc">Interfaz de terminal, servidor y web. Sin Node ni Bun.</span></div>
+              <pre class="install-cmd"><code>curl -fsSL https://tiancode.vercel.app/install | bash</code><button class="install-copy" type="button" data-copy aria-label="Copiar">⧉</button></pre>
+            </div>
+            <div class="install-row">
+              <div class="install-row-text"><strong data-i18n="install.linux.app">App de escritorio</strong><span data-i18n="install.linux.appDesc">En preparación. <code>tiancode web</code> abre la misma interfaz en el navegador.</span></div>
+            </div>
+          </div>
+          <div class="install-panel" data-install-panel="managers">
+            <div class="install-row"><div class="install-row-text"><strong>npm</strong></div><pre class="install-cmd"><code>npm install -g tiancode-ai</code><button class="install-copy" type="button" data-copy aria-label="Copiar">⧉</button></pre></div>
+            <div class="install-row"><div class="install-row-text"><strong>bun</strong></div><pre class="install-cmd"><code>bun install -g tiancode-ai</code><button class="install-copy" type="button" data-copy aria-label="Copiar">⧉</button></pre></div>
+            <div class="install-row"><div class="install-row-text"><strong>Homebrew</strong><span data-i18n="install.brew.note">macOS y Linux.</span></div><pre class="install-cmd"><code>brew install Dreftian/tap/tiancode</code><button class="install-copy" type="button" data-copy aria-label="Copiar">⧉</button></pre></div>
+            <div class="install-row"><div class="install-row-text"><strong>Arch Linux (AUR)</strong><span data-i18n="install.aur.note">Paquete en preparación; usa el comando curl mientras tanto.</span></div><pre class="install-cmd"><code>paru -S tiancode-bin</code><button class="install-copy" type="button" data-copy aria-label="Copiar">⧉</button></pre></div>
+          </div>
+          <p class="install-hub-foot" data-i18n="install.foot">Después de instalar: <code>tiancode</code> abre la interfaz de terminal en la carpeta actual, <code>tiancode web</code> el servidor con interfaz web y <code>tiancode run "…"</code> una petición directa.</p>
+        </div>
+
         <div style="text-align:center; margin-top:32px;">
           <p style="font-size:13.5px; color:var(--text-3);">
             <span data-i18n="downloads.checksum">Sumas de verificación de integridad SHA-256 disponibles en los</span> <a href="https://github.com/Dreftian/Tiancode/releases" style="text-decoration:underline;" target="_blank" rel="noopener noreferrer" data-i18n="downloads.releasesLink">Releases de GitHub</a>.

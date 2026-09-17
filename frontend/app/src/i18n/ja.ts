@@ -1,6 +1,19 @@
 import { RELEASE_ENGLISH } from "./release-english"
 
 export const dict = {
+  "settings.subAgents.list.detail.prompt": "システム指示",
+  "settings.subAgents.list.detail.noPrompt": "このエージェントはモードの既定の指示を使います。",
+  "settings.mcpPlugins.detail.full": "各項目のトランスポート、ツール、出所を表示",
+  "settings.mcpPlugins.detail.compact": "コンパクト表示に戻る",
+  "settings.mcpPlugins.detail.fullShort": "詳細",
+  "settings.mcpPlugins.detail.compactShort": "簡潔",
+  "settings.mcpPlugins.detail.transport": "トランスポート",
+  "settings.mcpPlugins.detail.env": "環境変数",
+  "settings.mcpPlugins.detail.tools": "提供するツール",
+  "settings.mcpPlugins.detail.noTools": "まだツールが報告されていません（接続中またはなし）",
+  "settings.mcpPlugins.detail.disabledTools": "無効です。有効にするとツールを読み込みます",
+  "settings.mcpPlugins.detail.spec": "パッケージ",
+  "settings.mcpPlugins.detail.origin": "出所",
   "settings.subAgents.list.detail.full": "各スペシャリストの説明とツール一覧をすべて表示",
   "settings.subAgents.list.detail.compact": "コンパクト表示に戻る",
   "settings.subAgents.list.detail.fullShort": "詳細",

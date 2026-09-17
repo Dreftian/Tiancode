@@ -143,6 +143,7 @@ type Deps = {
   getDefaultServerUrl: () => Promise<string | null> | string | null
   setDefaultServerUrl: (url: string | null) => Promise<void> | void
   isFirstLaunchOnboardingPending: () => Promise<boolean> | boolean
+  openMainWindowAfterWelcome: () => void
   finishFirstLaunchOnboarding: (createDefaultProject: boolean) => Promise<string | null> | string | null
   isOldLayoutEligible: () => Promise<boolean> | boolean
   getDisplayBackend: () => Promise<string | null>
@@ -227,6 +228,12 @@ export function registerIpcHandlers(deps: Deps) {
   ipcMain.handle("finish-first-launch-onboarding", (_event: IpcMainInvokeEvent, createDefaultProject: boolean) =>
     deps.finishFirstLaunchOnboarding(createDefaultProject),
   )
+  // The standalone welcome card is done: open the real main window and close the card.
+  ipcMain.handle("welcome-done", (event: IpcMainInvokeEvent) => {
+    const sender = BrowserWindow.fromWebContents(event.sender)
+    deps.openMainWindowAfterWelcome()
+    if (sender && !sender.isDestroyed()) sender.close()
+  })
   ipcMain.handle("is-old-layout-eligible", () => deps.isOldLayoutEligible())
   ipcMain.handle("get-display-backend", () => deps.getDisplayBackend())
   ipcMain.handle("set-display-backend", (_event: IpcMainInvokeEvent, backend: string | null) =>

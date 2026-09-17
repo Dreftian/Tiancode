@@ -37,6 +37,7 @@ import { safeWebContentsURL } from "./window-state"
 import {
   clearWebviewData,
   createMainWindow,
+  createWelcomeWindow,
   getAnyMainWindow,
   getLastFocusedWindow,
   getMinimizeToTrayEnabled,
@@ -353,6 +354,10 @@ const main = Effect.gen(function* () {
     getDefaultServerUrl: () => getDefaultServerUrl(),
     setDefaultServerUrl: (url) => setDefaultServerUrl(url),
     isFirstLaunchOnboardingPending,
+    openMainWindowAfterWelcome: () => {
+      if (!restoreMainWindows().length) createMainWindow()
+      createMenu(menuDeps)
+    },
     finishFirstLaunchOnboarding,
     isOldLayoutEligible,
     getDisplayBackend: async () => null,
@@ -504,7 +509,11 @@ const main = Effect.gen(function* () {
 
   yield* Fiber.await(loadingTask)
 
-  const windows = restoreMainWindows()
+  // A fresh profile shows the welcome card alone (transparent window); the main window is
+  // created when the card finishes (welcome-done).
+  const pendingWelcome = isFirstLaunchOnboardingPending()
+  const windows = pendingWelcome ? [] : restoreMainWindows()
+  if (pendingWelcome) createWelcomeWindow()
   if (windows.length) createMenu(menuDeps)
 
   const showWindow = () => {

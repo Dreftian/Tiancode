@@ -1,5 +1,18 @@
 import { SUBAGENT_CATALOG_SPANISH } from "./subagent-catalog"
 export const dict = {
+  "settings.subAgents.list.detail.prompt": "Instrucciones del sistema",
+  "settings.subAgents.list.detail.noPrompt": "Este agente usa las instrucciones predeterminadas de su modo.",
+  "settings.mcpPlugins.detail.full": "Ver transporte, herramientas y origen de cada entrada",
+  "settings.mcpPlugins.detail.compact": "Volver a la vista compacta",
+  "settings.mcpPlugins.detail.fullShort": "Detalle",
+  "settings.mcpPlugins.detail.compactShort": "Compacto",
+  "settings.mcpPlugins.detail.transport": "Transporte",
+  "settings.mcpPlugins.detail.env": "Variables de entorno",
+  "settings.mcpPlugins.detail.tools": "Herramientas que ofrece",
+  "settings.mcpPlugins.detail.noTools": "sin herramientas reportadas todavía (conectando o ninguna)",
+  "settings.mcpPlugins.detail.disabledTools": "desactivado; actívalo para cargar sus herramientas",
+  "settings.mcpPlugins.detail.spec": "Paquete",
+  "settings.mcpPlugins.detail.origin": "Origen",
   "settings.subAgents.list.detail.full": "Ver la descripción completa y las herramientas de cada especialista",
   "settings.subAgents.list.detail.compact": "Volver a la vista compacta",
   "settings.subAgents.list.detail.fullShort": "Detalle",

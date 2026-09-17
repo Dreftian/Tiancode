@@ -1,5 +1,4 @@
 import windowState from "electron-window-state"
-import { screen } from "electron"
 import { isDesktopPetWindow } from "./desktop-pet"
 import { resolveThemeVariant } from "@tiancode-ai/ui/theme/resolve"
 import type { DesktopTheme } from "@tiancode-ai/ui/theme/types"
@@ -271,14 +270,42 @@ export function setDockIcon() {
   if (!icon.isEmpty()) app.dock?.setIcon(icon)
 }
 
-// Default main window: most of the work area (never below 1100×700), so the app opens large on
-// any screen instead of a fixed 1280×800 that looked small on wide monitors.
+// The main window opens at the classic 1280×800 (the user asked for this size back).
 export function preferredWindowSize() {
-  const area = screen.getPrimaryDisplay().workAreaSize
-  return {
-    width: Math.max(1100, Math.min(area.width, Math.round(area.width * 0.92))),
-    height: Math.max(700, Math.min(area.height, Math.round(area.height * 0.92))),
-  }
+  return { width: 1280, height: 800 }
+}
+
+// First launch: a frameless, transparent window that is exactly the welcome card and nothing
+// else. It is not a main window (never registered nor restored); when the card finishes, the
+// renderer calls welcome-done and the real main window takes over.
+export function createWelcomeWindow() {
+  const win = new BrowserWindow({
+    width: 560,
+    height: 540,
+    resizable: false,
+    maximizable: false,
+    minimizable: false,
+    fullscreenable: false,
+    center: true,
+    show: false,
+    frame: false,
+    transparent: true,
+    backgroundColor: "#00000000",
+    hasShadow: false,
+    autoHideMenuBar: true,
+    title: APP_NAMES[CHANNEL],
+    icon: windowIcon(),
+    webPreferences: {
+      preload: join(root, "../preload/index.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  })
+  allowRendererPermissions(win)
+  loadWindow(win, "index.html?welcome=first")
+  win.once("ready-to-show", () => win.show())
+  return win
 }
 
 export function createMainWindow(id: string = randomUUID()) {
@@ -294,9 +321,8 @@ export function createMainWindow(id: string = randomUUID()) {
   const win = new BrowserWindow({
     x: undefined,
     y: undefined,
-    // First launch: the window is the welcome card itself, not a dark stage around it.
-    width: isOnboarding ? 520 : 440,
-    height: isOnboarding ? 470 : 380,
+    width: isOnboarding ? 780 : 440,
+    height: isOnboarding ? 560 : 380,
     resizable: false,
     maximizable: false,
     center: true,

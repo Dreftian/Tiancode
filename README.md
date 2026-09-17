@@ -10,7 +10,7 @@
 
 <p align="center">
   <strong>Inteligencia agéntica local-first para Windows.</strong><br>
-  Un escritorio donde el agente programa contigo: modelos locales GGUF o el proveedor que elijas, catorce especialistas, vista previa en vivo, voz, MCP y una mascota que te cuenta qué está haciendo.
+  Un escritorio para Windows y un CLI para Windows, macOS y Linux donde el agente programa contigo: modelos locales GGUF o el proveedor que elijas, catorce especialistas, vista previa en vivo, voz, MCP y una mascota que te cuenta qué está haciendo.
 </p>
 
 <p align="center">
@@ -22,6 +22,8 @@
 
 <p align="center">
   <img alt="Windows 10 y 11" src="https://img.shields.io/badge/Windows-10%20%7C%2011%20x64-0078d4?style=flat-square&logo=windows&logoColor=white">
+  <img alt="macOS" src="https://img.shields.io/badge/macOS-CLI-000000?style=flat-square&logo=apple&logoColor=white">
+  <img alt="Linux" src="https://img.shields.io/badge/Linux-CLI-fcc624?style=flat-square&logo=linux&logoColor=black">
   <img alt="Electron" src="https://img.shields.io/badge/Electron-42-47848f?style=flat-square&logo=electron&logoColor=white">
   <img alt="SolidJS" src="https://img.shields.io/badge/SolidJS-UI-2c4f7c?style=flat-square&logo=solid&logoColor=white">
   <img alt="Bun" src="https://img.shields.io/badge/Bun-runtime-f9f1e1?style=flat-square&logo=bun&logoColor=black">
@@ -72,7 +74,16 @@ Tiancode es un fork de escritorio de OpenCode pensado para Windows. Tu máquina 
 | **Conexiones** | **Skills** |
 | ![Conexiones](frontend/website/img/app/connections.webp) | ![Skills](frontend/website/img/app/skills.webp) |
 
-## Instalación
+## Plataformas
+
+| | Windows 10 / 11 | macOS (Apple Silicon e Intel) | Linux (x64 y arm64) |
+|---|:---:|:---:|:---:|
+| **App de escritorio** (Electron: bandeja, mascota, vista previa, actualizador) | ✅ instalador y portable | 🔜 en preparación | 🔜 en preparación |
+| **Tiancode CLI** (interfaz de terminal, servidor headless y web) | ✅ | ✅ | ✅ |
+
+`tiancode web` abre en el navegador la misma interfaz de la app de escritorio, en cualquier sistema.
+
+## Instalar la app de escritorio (Windows)
 
 1. Descarga [`Tiancode.exe`](https://github.com/Dreftian/Tiancode/releases/latest/download/Tiancode.exe) (instalador) o [`Tiancode-portable.exe`](https://github.com/Dreftian/Tiancode/releases/latest/download/Tiancode-portable.exe) (sin instalación).
 2. Ábrelo: el asistente de bienvenida pide idioma, tema, mascota y voz.
@@ -81,6 +92,37 @@ Tiancode es un fork de escritorio de OpenCode pensado para Windows. Tu máquina 
 Requisitos: Windows 10 u 11 de 64 bits. Para modelos locales, una GPU con Vulkan o CPU; el motor nativo se descarga la primera vez.
 
 Cada release incluye `Tiancode.exe`, `Tiancode-portable.exe`, `Tiancode.exe.blockmap` y `latest.yml` con sus SHA-512. El actualizador integrado usa `latest.yml` y conserva claves, sesiones y configuración.
+
+## Instalar el CLI (Windows, macOS y Linux)
+
+Un solo binario, sin Node ni Bun. Los archivos `tiancode-<sistema>-<arquitectura>` de cada release traen su `SHA256SUMS.txt`.
+
+```bash
+# macOS y Linux
+curl -fsSL https://tiancode.vercel.app/install | bash
+```
+
+```powershell
+# Windows (PowerShell)
+irm https://tiancode.vercel.app/install.ps1 | iex
+```
+
+| Gestor | Comando | Estado |
+|---|---|---|
+| npm | `npm install -g tiancode-ai` | disponible en cuanto se publica cada versión |
+| bun | `bun install -g tiancode-ai` | disponible en cuanto se publica cada versión |
+| Homebrew | `brew install Dreftian/tap/tiancode` | macOS y Linux |
+| Arch Linux (AUR) | `paru -S tiancode-bin` | en preparación; usa el comando `curl` mientras tanto |
+
+Después de instalar:
+
+```bash
+tiancode              # interfaz de terminal (TUI) en la carpeta actual
+tiancode web          # servidor + interfaz web en el navegador
+tiancode run "..."    # una petición directa desde la terminal
+tiancode serve        # servidor headless para otros clientes
+tiancode --help       # todos los comandos: providers, models, mcp, agent, session, github, upgrade…
+```
 
 ## Desarrollo
 

@@ -51,6 +51,7 @@ interface Window {
     restoreBackup?: (name: string) => Promise<void>
     isFirstLaunchOnboardingPending?: () => Promise<boolean>
     finishFirstLaunchOnboarding?: (createDefaultProject?: boolean) => Promise<string | null>
+    welcomeDone?: () => Promise<void>
     setCompactWindow?: (options?: { width?: number; height?: number }) => Promise<void>
     restoreMainWindow?: () => Promise<void>
     localModels?: {

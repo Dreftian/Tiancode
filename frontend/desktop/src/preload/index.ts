@@ -117,6 +117,7 @@ const api: ElectronAPI = {
   getDefaultServerUrl: () => ipcRenderer.invoke("get-default-server-url"),
   setDefaultServerUrl: (url) => ipcRenderer.invoke("set-default-server-url", url),
   isFirstLaunchOnboardingPending: () => ipcRenderer.invoke("is-first-launch-onboarding-pending"),
+  welcomeDone: () => ipcRenderer.invoke("welcome-done"),
   finishFirstLaunchOnboarding: (createDefaultProject) =>
     ipcRenderer.invoke("finish-first-launch-onboarding", createDefaultProject),
   isOldLayoutEligible: () => ipcRenderer.invoke("is-old-layout-eligible"),

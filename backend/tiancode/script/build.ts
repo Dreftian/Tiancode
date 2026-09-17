@@ -142,7 +142,11 @@ if (!skipInstall) {
   await $`bun install --os="*" --cpu="*" @parcel/watcher@${pkg.dependencies["@parcel/watcher"]}`
   await $`bun install --os="*" --cpu="*" @ff-labs/fff-bun@${pkg.dependencies["@ff-labs/fff-bun"]}`
 }
-for (const item of targets) {
+// TIANCODE_TARGETS=linux-x64,darwin-arm64 limits the build to those targets (tools/script/build-cli.ts).
+const requestedTargets = (process.env.TIANCODE_TARGETS ?? "").split(",").map((x) => x.trim()).filter(Boolean)
+const targetKey = (item: any) => [item.os, item.arch, item.avx2 === false ? "baseline" : undefined, item.abi].filter(Boolean).join("-")
+const selectedTargets = requestedTargets.length ? allTargets.filter((item) => requestedTargets.includes(targetKey(item))) : targets
+for (const item of selectedTargets) {
   const name = [
     pkg.name,
     // changing to win32 flags npm for some reason

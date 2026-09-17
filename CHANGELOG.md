@@ -39,6 +39,12 @@ asistente cabe en su tarjeta, los temas ya no pintan de opaco la mascota flotant
 usa un control rojo de parar, el menú de permisos y todos los niveles de esfuerzo llevan color, y
 Sub-agentes suma el interruptor Detalle. La web mueve su navegación a una barra superior.
 
+Llega el Tiancode CLI para Windows, macOS y Linux (binarios en la release, instaladores curl y
+PowerShell, npm/bun y Homebrew), el asistente de bienvenida es una ventana que muestra solo su
+tarjeta, la ventana vuelve a 1280×800, el detalle de Sub-agentes muestra las instrucciones reales
+y el de MCP/Plugins sus herramientas y origen, y los iconos se regeneran sin pixelado. La web
+estrena barra de navegación centrada y una sección de instalación por sistema.
+
 La versión es inferior a 1.0.54: se instala manualmente y conserva claves, sesiones,
 configuración y respaldos. Detalles: [notas de versión](tools/releases/v1.0.0.md).
 

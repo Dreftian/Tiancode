@@ -18,6 +18,8 @@ export interface AgentSource {
   icon?: string
   model?: { providerID?: string; modelID?: string }
   permission?: unknown
+  /** System prompt as the server reports it (`system` in the API, `prompt` once normalized). */
+  prompt?: string
 }
 
 export interface AgentPresentation {
@@ -56,6 +58,8 @@ export interface PanelAgent {
   delegation: readonly DelegationRule[]
   model?: string
   tools: ToolSummary
+  /** The system prompt the agent runs with (the instructions that shape how it thinks). */
+  prompt?: string
 }
 
 /** One `task` permission rule: the target it names and the verdict for it. */
@@ -278,6 +282,7 @@ export function mergePanelAgents(options: MergeOptions): PanelAgent[] {
       delegation: delegationRules(agent),
       model: agent.model?.modelID,
       tools: summarizeAgentTools(agent, toolPermissions),
+      prompt: typeof agent.prompt === "string" && agent.prompt.trim() ? agent.prompt.trim() : undefined,
     })
   }
 

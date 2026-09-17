@@ -358,6 +358,16 @@ export const SettingsSubAgentsV2: Component<{
         <p class="text-[11px] text-v2-text-text-muted leading-normal m-0" classList={{ "line-clamp-1": !detailed() }}>
           {describe(agent)}
         </p>
+        <Show when={detailed()}>
+          <div class="settings-v2-subagents-prompt-wrap">
+            <span class="settings-v2-subagents-prompt-label">
+              {language.t(agent.prompt ? "settings.subAgents.list.detail.prompt" : "settings.subAgents.list.detail.noPrompt")}
+            </span>
+            <Show when={agent.prompt}>
+              <pre class="settings-v2-subagents-prompt">{agent.prompt}</pre>
+            </Show>
+          </div>
+        </Show>
       </div>
 
       <div class="settings-v2-subagents-cell" data-label={language.t("settings.subAgents.list.column.model")}>

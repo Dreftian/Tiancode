@@ -1,6 +1,19 @@
 import { RELEASE_ENGLISH } from "./release-english"
 
 export const dict = {
+  "settings.subAgents.list.detail.prompt": "시스템 지침",
+  "settings.subAgents.list.detail.noPrompt": "이 에이전트는 모드의 기본 지침을 사용합니다.",
+  "settings.mcpPlugins.detail.full": "각 항목의 전송 방식, 도구, 출처 보기",
+  "settings.mcpPlugins.detail.compact": "간단히 보기로 돌아가기",
+  "settings.mcpPlugins.detail.fullShort": "상세",
+  "settings.mcpPlugins.detail.compactShort": "간단",
+  "settings.mcpPlugins.detail.transport": "전송 방식",
+  "settings.mcpPlugins.detail.env": "환경 변수",
+  "settings.mcpPlugins.detail.tools": "제공하는 도구",
+  "settings.mcpPlugins.detail.noTools": "아직 보고된 도구가 없습니다 (연결 중이거나 없음)",
+  "settings.mcpPlugins.detail.disabledTools": "비활성화됨. 켜면 도구를 불러옵니다",
+  "settings.mcpPlugins.detail.spec": "패키지",
+  "settings.mcpPlugins.detail.origin": "출처",
   "settings.subAgents.list.detail.full": "각 전문가의 전체 설명과 도구 목록 보기",
   "settings.subAgents.list.detail.compact": "간단히 보기로 돌아가기",
   "settings.subAgents.list.detail.fullShort": "상세",

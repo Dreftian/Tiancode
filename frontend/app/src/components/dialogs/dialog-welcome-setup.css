@@ -296,3 +296,23 @@
 body:has(.welcome-setup) [data-popper-positioner] {
   z-index: 99999 !important;
 }
+
+/* Standalone welcome window (desktop first launch): the window is transparent and frameless, so
+   only the card exists on screen. It gets a real shadow and its header drags the window. */
+html.welcome-standalone,
+html.welcome-standalone body,
+html.welcome-standalone body > div {
+  background: transparent !important;
+}
+html.welcome-standalone .welcome-setup {
+  width: min(100%, 480px);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+html.welcome-standalone .welcome-setup-header {
+  -webkit-app-region: drag;
+}
+html.welcome-standalone .welcome-setup-header button,
+html.welcome-standalone .welcome-setup-header [role="button"],
+html.welcome-standalone .welcome-setup-header a {
+  -webkit-app-region: no-drag;
+}

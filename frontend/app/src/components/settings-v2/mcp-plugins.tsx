@@ -507,6 +507,21 @@ export const SettingsMcpPluginsV2: Component<{
     onCleanup(() => clearInterval(timer))
   })
 
+  // Detail view: transport, endpoint, tool names (MCP) and origin/spec/path (plugins) for every
+  // row at once, without opening anything.
+  const [detailed, setDetailed] = createSignal(false)
+  const detailToggle = () => (
+    <button
+      type="button"
+      class="settings-v2-subagents-detail mcp-plugins-detail"
+      aria-pressed={detailed()}
+      title={language.t(detailed() ? "settings.mcpPlugins.detail.compact" : "settings.mcpPlugins.detail.full")}
+      onClick={() => setDetailed((value) => !value)}
+    >
+      {language.t(detailed() ? "settings.mcpPlugins.detail.compactShort" : "settings.mcpPlugins.detail.fullShort")}
+    </button>
+  )
+
   // Overrides reactivos inmediatos (0 ms) para evitar retrasos en switches y notificaciones
   const [mcpOverrides, setMcpOverrides] = createSignal<Record<string, boolean>>({})
   const [builtinOverrides, setBuiltinOverrides] = createSignal<Record<string, boolean>>({})
@@ -530,6 +545,9 @@ export const SettingsMcpPluginsV2: Component<{
         const status = statusObj?.status ?? (enabled ? "connected" : "disabled")
         const command = isLocal ? (conf as McpLocalConfig).command.join(" ") : isRemote ? (conf as McpRemoteConfig).url : "Builtin MCP"
         const toolsCount = statusObj && "tools" in statusObj && statusObj.tools ? Object.keys((statusObj as any).tools ?? {}).length : 0
+        const toolNames = statusObj && "tools" in statusObj && statusObj.tools ? Object.keys((statusObj as any).tools ?? {}) : []
+        const statusError = statusObj && "error" in statusObj && typeof (statusObj as any).error === "string" ? ((statusObj as any).error as string) : undefined
+        const environment = isLocal && (conf as McpLocalConfig).environment ? Object.keys((conf as McpLocalConfig).environment ?? {}) : []
 
         return {
           name,
@@ -537,6 +555,9 @@ export const SettingsMcpPluginsV2: Component<{
           status,
           command,
           toolsCount,
+          toolNames,
+          statusError,
+          environment,
           isLocal,
           isRemote,
           config: conf,
@@ -991,6 +1012,7 @@ export const SettingsMcpPluginsV2: Component<{
             </SegmentedControlItemV2>
           </SegmentedControlV2>
 
+          {detailToggle()}
           <div class="mcp-plugins-search-box">
             <TextInputV2
               type="search"
@@ -1116,10 +1138,32 @@ export const SettingsMcpPluginsV2: Component<{
                         </div>
 
                         {/* 3. Comando / Endpoint SSE */}
-                        <div class="mcp-plugins-cell pr-3">
+                        <div class="mcp-plugins-cell pr-3 flex-col items-start gap-1.5">
                           <div class="win11-spec-badge max-w-full text-[10.5px] py-0.5 px-2" title={server.command}>
-                            <span class="truncate font-mono">{server.command}</span>
+                            <span class="font-mono" classList={{ truncate: !detailed() }}>{server.command}</span>
                           </div>
+                          <Show when={detailed()}>
+                            <div class="mcp-plugins-detail-block">
+                              <span>
+                                <b>{language.t("settings.mcpPlugins.detail.transport")}:</b>{" "}
+                                {server.isLocal ? "stdio (proceso local)" : server.isRemote ? "HTTP / SSE" : "integrado"}
+                              </span>
+                              <Show when={server.environment.length > 0}>
+                                <span>
+                                  <b>{language.t("settings.mcpPlugins.detail.env")}:</b> {server.environment.join(", ")}
+                                </span>
+                              </Show>
+                              <span>
+                                <b>{language.t("settings.mcpPlugins.detail.tools")}:</b>{" "}
+                                {server.toolNames.length > 0
+                                  ? server.toolNames.join(", ")
+                                  : language.t(server.enabled ? "settings.mcpPlugins.detail.noTools" : "settings.mcpPlugins.detail.disabledTools")}
+                              </span>
+                              <Show when={server.statusError}>
+                                <span class="mcp-plugins-detail-error">{server.statusError}</span>
+                              </Show>
+                            </div>
+                          </Show>
                         </div>
 
                         {/* 4. Estado */}
@@ -1215,10 +1259,25 @@ export const SettingsMcpPluginsV2: Component<{
                         </div>
 
                         {/* 3. Descripción */}
-                        <div class="mcp-plugins-cell pr-3">
-                          <p class="text-[11.5px] text-v2-text-text-muted line-clamp-1 leading-normal m-0" title={pluginDescription(plugin)}>
+                        <div class="mcp-plugins-cell pr-3 flex-col items-start gap-1.5">
+                          <p
+                            class="text-[11.5px] text-v2-text-text-muted leading-normal m-0"
+                            classList={{ "line-clamp-1": !detailed() }}
+                            title={pluginDescription(plugin)}
+                          >
                             {pluginDescription(plugin)}
                           </p>
+                          <Show when={detailed()}>
+                            <div class="mcp-plugins-detail-block">
+                              <span>
+                                <b>{language.t("settings.mcpPlugins.detail.spec")}:</b> <code>{plugin.name}</code>
+                              </span>
+                              <span>
+                                <b>{language.t("settings.mcpPlugins.detail.origin")}:</b>{" "}
+                                {language.t(plugin.isLocal ? "settings.mcpPlugins.origin.local" : "settings.mcpPlugins.origin.plugin")}
+                              </span>
+                            </div>
+                          </Show>
                         </div>
 
                         {/* 4. Estado */}

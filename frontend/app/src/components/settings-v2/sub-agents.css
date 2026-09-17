@@ -297,6 +297,35 @@
 }
 .settings-v2-subagents-detail--toolbar { flex: 0 0 auto; }
 
+/* Detail view: the agent's real system prompt, compact and scrollable inside the row. */
+.settings-v2-subagents-prompt-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  margin-top: 6px;
+}
+.settings-v2-subagents-prompt-label {
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--v2-text-text-muted);
+}
+.settings-v2-subagents-prompt {
+  margin: 0;
+  max-height: 200px;
+  overflow: auto;
+  padding: 8px 10px;
+  border: 1px solid var(--v2-border-border-muted);
+  border-radius: 8px;
+  background: var(--v2-background-bg-layer-02);
+  color: var(--v2-text-text-base);
+  font: 10.5px/1.5 var(--font-mono, ui-monospace, monospace);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 /* ------------------------------------------------------------------ toolbar */
 
 .settings-v2-sub-agents-toolbar-row {

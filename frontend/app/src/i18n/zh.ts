@@ -5,6 +5,19 @@ import { dict as en } from "./en"
 type Keys = keyof typeof en
 
 export const dict = {
+  "settings.subAgents.list.detail.prompt": "系统指令",
+  "settings.subAgents.list.detail.noPrompt": "此代理使用其模式的默认指令。",
+  "settings.mcpPlugins.detail.full": "显示每个条目的传输方式、工具和来源",
+  "settings.mcpPlugins.detail.compact": "返回紧凑视图",
+  "settings.mcpPlugins.detail.fullShort": "详情",
+  "settings.mcpPlugins.detail.compactShort": "紧凑",
+  "settings.mcpPlugins.detail.transport": "传输方式",
+  "settings.mcpPlugins.detail.env": "环境变量",
+  "settings.mcpPlugins.detail.tools": "提供的工具",
+  "settings.mcpPlugins.detail.noTools": "尚未报告工具（连接中或没有）",
+  "settings.mcpPlugins.detail.disabledTools": "已禁用；启用后加载其工具",
+  "settings.mcpPlugins.detail.spec": "包",
+  "settings.mcpPlugins.detail.origin": "来源",
   "settings.subAgents.list.detail.full": "显示每个专家的完整描述和工具列表",
   "settings.subAgents.list.detail.compact": "返回紧凑视图",
   "settings.subAgents.list.detail.fullShort": "详情",

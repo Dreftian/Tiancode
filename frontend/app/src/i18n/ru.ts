@@ -1,6 +1,19 @@
 import { RELEASE_ENGLISH } from "./release-english"
 
 export const dict = {
+  "settings.subAgents.list.detail.prompt": "Системные инструкции",
+  "settings.subAgents.list.detail.noPrompt": "Этот агент использует инструкции своего режима по умолчанию.",
+  "settings.mcpPlugins.detail.full": "Показать транспорт, инструменты и источник каждой записи",
+  "settings.mcpPlugins.detail.compact": "Вернуться к компактному виду",
+  "settings.mcpPlugins.detail.fullShort": "Детали",
+  "settings.mcpPlugins.detail.compactShort": "Кратко",
+  "settings.mcpPlugins.detail.transport": "Транспорт",
+  "settings.mcpPlugins.detail.env": "Переменные окружения",
+  "settings.mcpPlugins.detail.tools": "Предоставляемые инструменты",
+  "settings.mcpPlugins.detail.noTools": "инструменты ещё не получены (подключение или их нет)",
+  "settings.mcpPlugins.detail.disabledTools": "выключен; включите, чтобы загрузить инструменты",
+  "settings.mcpPlugins.detail.spec": "Пакет",
+  "settings.mcpPlugins.detail.origin": "Источник",
   "settings.subAgents.list.detail.full": "Показать полное описание и список инструментов каждого специалиста",
   "settings.subAgents.list.detail.compact": "Вернуться к компактному виду",
   "settings.subAgents.list.detail.fullShort": "Детали",

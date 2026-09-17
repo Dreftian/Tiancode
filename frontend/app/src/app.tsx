@@ -270,6 +270,7 @@ declare global {
       restoreBackup?: (name: string) => Promise<void>
       isFirstLaunchOnboardingPending?: () => Promise<boolean>
       finishFirstLaunchOnboarding?: (createDefaultProject?: boolean) => Promise<string | null>
+      welcomeDone?: () => Promise<void>
       setCompactWindow?: (options?: { width?: number; height?: number }) => Promise<void>
       restoreMainWindow?: () => Promise<void>
       localModels?: {
@@ -533,33 +534,39 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
     }
   }
 
-  const [welcomeMode, setWelcomeMode] = createSignal<WelcomeSetupMode | undefined>(pendingWelcomeSetup())
-  const firstLaunchActive = () => welcomeMode() !== undefined
+  // The desktop opens a transparent window that shows only the welcome card on first launch
+  // (index.html?welcome=first). In that window nothing else of the app may render.
+  const standaloneWelcome =
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("welcome") === "first"
+  if (standaloneWelcome && typeof document !== "undefined") document.documentElement.classList.add("welcome-standalone")
+  const [welcomeMode, setWelcomeMode] = createSignal<WelcomeSetupMode | undefined>(
+    standaloneWelcome ? "first-run" : pendingWelcomeSetup(),
+  )
+  // Only the very first setup blocks the app; a review or an upgrade confirmation is a modal
+  // over the loaded app, without shrinking or restyling the window.
+  const firstLaunchActive = () => welcomeMode() === "first-run"
   const [splashFinished, setSplashFinished] = createSignal(false)
-  const loading = createMemo(() => !firstLaunchActive() && (!splashFinished() || checking() || startupChecking()))
+  const loading = createMemo(
+    () => !standaloneWelcome && !firstLaunchActive() && (!splashFinished() || checking() || startupChecking()),
+  )
 
   onMount(() => {
-    // Tras una actualización la ventana todavía mide 440x380 (windows.ts solo la crea a 780x560
-    // mientras el onboarding sigue pendiente) y la tarjeta pide 420 de ancho: la misma llamada
-    // que usa la reapertura manual deja sitio para ella.
-    if (welcomeMode() === "upgrade" && window.api?.setCompactWindow) {
-      void window.api.setCompactWindow({ width: 520, height: 470 })
-    }
-    const handleOpen = () => {
-      if (window.api?.setCompactWindow) {
-        void window.api.setCompactWindow({ width: 520, height: 470 })
-      }
-      setWelcomeMode("review")
-    }
+    const handleOpen = () => setWelcomeMode("review")
     window.addEventListener("tiancode:open-welcome-setup", handleOpen)
     onCleanup(() => window.removeEventListener("tiancode:open-welcome-setup", handleOpen))
   })
 
   const handleDoneSetup = () => {
+    const mode = welcomeMode()
     setWelcomeMode(undefined)
-    setSplashFinished(false)
-    if (window.api?.restoreMainWindow) {
-      void window.api.restoreMainWindow()
+    if (standaloneWelcome) {
+      // The main process opens the real window and closes this card.
+      void window.api?.welcomeDone?.()
+      return
+    }
+    if (mode === "first-run") {
+      setSplashFinished(false)
+      if (window.api?.restoreMainWindow) void window.api.restoreMainWindow()
     }
   }
 
@@ -572,7 +579,7 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
 
   return (
     <>
-      <Show when={!checking() && splashFinished() && !firstLaunchActive()}>
+      <Show when={!standaloneWelcome && !checking() && splashFinished() && !firstLaunchActive()}>
         <Show
           when={startupHealthCheck.latest}
           fallback={
@@ -603,10 +610,22 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
             clara. --v2-background-bg-deep ya conmuta solo (grey-100 / grey-1100), así que la
             comparación sobra y no puede volver a desincronizarse.
           */
-          <div class="fixed inset-0 z-[99998] w-full h-full flex items-center justify-center p-4 select-none overflow-hidden bg-v2-background-bg-deep transition-colors duration-200">
-            {/* Halos de marca: sobre el fondo del tema, no sobre un color fijo. */}
-            <div class="absolute -top-[10%] -left-[10%] w-[520px] h-[520px] rounded-full blur-[130px] pointer-events-none bg-v2-background-bg-accent opacity-10" />
-            <div class="absolute -bottom-[10%] -right-[10%] w-[520px] h-[520px] rounded-full blur-[130px] pointer-events-none bg-v2-background-bg-accent opacity-[0.07]" />
+          <div
+            class="fixed inset-0 z-[99998] w-full h-full flex items-center justify-center p-4 select-none overflow-hidden transition-colors duration-200"
+            classList={{
+              // Standalone card: the window itself is transparent, nothing behind the card.
+              "bg-transparent": standaloneWelcome,
+              // First setup inside the web build: the theme's deep background.
+              "bg-v2-background-bg-deep": !standaloneWelcome && mode === "first-run",
+              // Review or upgrade: a dimmed, blurred app behind a modal card.
+              "bg-black/55 backdrop-blur-sm": !standaloneWelcome && mode !== "first-run",
+            }}
+          >
+            <Show when={!standaloneWelcome && mode === "first-run"}>
+              {/* Halos de marca: sobre el fondo del tema, no sobre un color fijo. */}
+              <div class="absolute -top-[10%] -left-[10%] w-[520px] h-[520px] rounded-full blur-[130px] pointer-events-none bg-v2-background-bg-accent opacity-10" />
+              <div class="absolute -bottom-[10%] -right-[10%] w-[520px] h-[520px] rounded-full blur-[130px] pointer-events-none bg-v2-background-bg-accent opacity-[0.07]" />
+            </Show>
             <DialogWelcomeSetup mode={mode} onDone={handleDoneSetup} />
           </div>
         )}
