@@ -69,6 +69,8 @@ export interface ToolSummary {
   restricted: boolean
   /** How many of the listed tool permissions are effectively allowed. */
   allowed: number
+  /** The allowed permissions by name, for the detail view. */
+  names?: string[]
 }
 
 /**
@@ -205,9 +207,9 @@ export function summarizeAgentTools(
   const rules = rulesOf(agent)
   // No ruleset at all is an agent we only know from config or from the built-in catalogue: it
   // inherits the defaults, so claiming "0 tools" would be an invention.
-  if (rules.length === 0) return { restricted: false, allowed: toolPermissions.length }
+  if (rules.length === 0) return { restricted: false, allowed: toolPermissions.length, names: [...toolPermissions] }
   const allowed = toolPermissions.filter((permission) => effectivePermission(rules, permission, "*") === "allow")
-  return { restricted: allowed.length < toolPermissions.length, allowed: allowed.length }
+  return { restricted: allowed.length < toolPermissions.length, allowed: allowed.length, names: allowed }
 }
 
 export function normalizeMode(mode: string | undefined): AgentMode {

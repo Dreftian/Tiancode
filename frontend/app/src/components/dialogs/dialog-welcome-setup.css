@@ -10,7 +10,7 @@
 
   display: flex;
   overflow: hidden;
-  width: min(100%, 420px);
+  width: min(100%, 460px);
   /* Tope de seguridad: con el contenido real ningún paso llega a 260px, pero un zoom de sistema
      alto no debe recortar el pie. */
   max-height: calc(100vh - 32px);
@@ -288,4 +288,11 @@
   .welcome-setup-progress-segment {
     transition: none;
   }
+}
+
+/* The first-launch overlay sits at z-index 99998 (above the whole app). Menus and selects render
+   in a popper portal with a much lower z-index, so the language list opened behind the wizard and
+   looked empty. While the wizard is on screen, popovers go above it. */
+body:has(.welcome-setup) [data-popper-positioner] {
+  z-index: 99999 !important;
 }

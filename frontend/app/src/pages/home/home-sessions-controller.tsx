@@ -1,7 +1,7 @@
 import type { Session } from "@tiancode-ai/sdk/v2/client"
 import { preloadMarkdown } from "@tiancode-ai/session-ui/markdown-cache"
 import { useDialog } from "@tiancode-ai/ui/context/dialog"
-import { useQuery } from "@tanstack/solid-query"
+import { useQuery, useQueryClient } from "@tanstack/solid-query"
 import { DateTime } from "luxon"
 import { type Accessor, createEffect, createMemo, createRoot, type JSX, startTransition } from "solid-js"
 import { produce } from "solid-js/store"
@@ -58,6 +58,7 @@ export function createHomeSessionsController(home: HomeController) {
     initialData: { sequence: 0, entries: [] } satisfies HomeSessionEvents,
     enabled: false,
   }))
+  const queryClient = useQueryClient()
   const sessionLoad = useQuery(() => ({
     queryKey: homeSessions().indexKey,
     enabled: !!home.server.focusedContext(),
@@ -217,6 +218,9 @@ export function createHomeSessionsController(home: HomeController) {
               if (match.found) draft.session.splice(match.index, 1)
             }),
           )
+          // The home list is a separate index query: refetch it so the row disappears right away
+          // (and stays gone after a restart, since the server no longer returns it).
+          void queryClient.invalidateQueries({ queryKey: homeSessions().indexKey, exact: true })
           showToast({
             variant: "success",
             title: language.t("session.delete.title") ?? "Sesión eliminada",

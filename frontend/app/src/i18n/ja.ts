@@ -1,6 +1,10 @@
 import { RELEASE_ENGLISH } from "./release-english"
 
 export const dict = {
+  "settings.subAgents.list.detail.full": "各スペシャリストの説明とツール一覧をすべて表示",
+  "settings.subAgents.list.detail.compact": "コンパクト表示に戻る",
+  "settings.subAgents.list.detail.fullShort": "詳細",
+  "settings.subAgents.list.detail.compactShort": "簡潔",
   "settings.general.row.showComposerMic.title": "入力欄のマイク",
   "settings.general.row.showComposerMic.description": "メッセージ欄の + の横に音声入力ボタンを表示します。",
   "settings.general.row.previewAutoOpen.title": "プレビューを自動で開く",

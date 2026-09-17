@@ -1,6 +1,10 @@
 import { RELEASE_ENGLISH } from "./release-english"
 
 export const dict = {
+  "settings.subAgents.list.detail.full": "각 전문가의 전체 설명과 도구 목록 보기",
+  "settings.subAgents.list.detail.compact": "간단히 보기로 돌아가기",
+  "settings.subAgents.list.detail.fullShort": "상세",
+  "settings.subAgents.list.detail.compactShort": "간단",
   "settings.general.row.showComposerMic.title": "입력창의 마이크",
   "settings.general.row.showComposerMic.description": "메시지 입력창의 + 옆에 받아쓰기 버튼을 표시합니다.",
   "settings.general.row.previewAutoOpen.title": "미리보기 자동 열기",

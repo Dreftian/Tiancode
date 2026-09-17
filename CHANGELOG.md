@@ -33,6 +33,12 @@ abre sola cuando la IA arranca una app web en la sesión, el dictado es una píl
 interruptor propio, cada nivel de esfuerzo tiene su color animado y Omitir permisos va en
 naranja. La web se reorganiza en portada astral y universo de paneles con capturas reales.
 
+Los chats sin carpeta viven en un espacio "Chat" del perfil (la carpeta personal deja de ser
+proyecto), eliminar una sesión la quita de la lista al instante, la ventana abre grande y el
+asistente cabe en su tarjeta, los temas ya no pintan de opaco la mascota flotante, el micrófono
+usa un control rojo de parar, el menú de permisos y todos los niveles de esfuerzo llevan color, y
+Sub-agentes suma el interruptor Detalle. La web mueve su navegación a una barra superior.
+
 La versión es inferior a 1.0.54: se instala manualmente y conserva claves, sesiones,
 configuración y respaldos. Detalles: [notas de versión](tools/releases/v1.0.0.md).
 

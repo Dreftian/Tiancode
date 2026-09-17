@@ -5,6 +5,10 @@ import { dict as en } from "./en"
 type Keys = keyof typeof en
 
 export const dict = {
+  "settings.subAgents.list.detail.full": "显示每个专家的完整描述和工具列表",
+  "settings.subAgents.list.detail.compact": "返回紧凑视图",
+  "settings.subAgents.list.detail.fullShort": "详情",
+  "settings.subAgents.list.detail.compactShort": "紧凑",
   "settings.general.row.showComposerMic.title": "输入框中的麦克风",
   "settings.general.row.showComposerMic.description": "在消息框的 + 旁显示听写按钮。",
   "settings.general.row.previewAutoOpen.title": "自动打开预览",

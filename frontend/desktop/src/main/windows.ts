@@ -1,4 +1,6 @@
 import windowState from "electron-window-state"
+import { screen } from "electron"
+import { isDesktopPetWindow } from "./desktop-pet"
 import { resolveThemeVariant } from "@tiancode-ai/ui/theme/resolve"
 import type { DesktopTheme } from "@tiancode-ai/ui/theme/types"
 import oc2ThemeJson from "../../../ui/src/theme/themes/oc-2.json"
@@ -109,6 +111,8 @@ export function setAppQuitting(quitting = true) {
 export function setBackgroundColor(color: string) {
   backgroundColor = color
   BrowserWindow.getAllWindows().forEach((win) => {
+    // The desktop pet is a transparent window: an opaque theme colour would box the character.
+    if (win.isDestroyed() || isDesktopPetWindow(win)) return
     win.setBackgroundColor(color)
     if (process.platform === "darwin") win.invalidateShadow()
   })
@@ -267,12 +271,22 @@ export function setDockIcon() {
   if (!icon.isEmpty()) app.dock?.setIcon(icon)
 }
 
+// Default main window: most of the work area (never below 1100×700), so the app opens large on
+// any screen instead of a fixed 1280×800 that looked small on wide monitors.
+export function preferredWindowSize() {
+  const area = screen.getPrimaryDisplay().workAreaSize
+  return {
+    width: Math.max(1100, Math.min(area.width, Math.round(area.width * 0.92))),
+    height: Math.max(700, Math.min(area.height, Math.round(area.height * 0.92))),
+  }
+}
+
 export function createMainWindow(id: string = randomUUID()) {
   const isOnboarding = isFirstLaunchOnboardingPending()
   const state = windowState({
     file: windowStateFile(id),
-    defaultWidth: 1280,
-    defaultHeight: 800,
+    defaultWidth: preferredWindowSize().width,
+    defaultHeight: preferredWindowSize().height,
   })
 
   const mode = tone()
@@ -280,8 +294,9 @@ export function createMainWindow(id: string = randomUUID()) {
   const win = new BrowserWindow({
     x: undefined,
     y: undefined,
-    width: isOnboarding ? 780 : 440,
-    height: isOnboarding ? 560 : 380,
+    // First launch: the window is the welcome card itself, not a dark stage around it.
+    width: isOnboarding ? 520 : 440,
+    height: isOnboarding ? 470 : 380,
     resizable: false,
     maximizable: false,
     center: true,

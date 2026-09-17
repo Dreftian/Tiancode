@@ -257,6 +257,20 @@ export const SettingsSubAgentsV2: Component<{
   const toolsSummary = (count: number) => language.plural("settings.subAgents.list.tools.summary", count)
 
   const describe = (agent: PanelAgent) => agent.description
+  // Compact rows show one line per specialist; the detail view keeps the whole description, the
+  // full role and the exact tool list on screen without opening anything.
+  const [detailed, setDetailed] = createSignal(false)
+  const detailToggle = (extra = "") => (
+    <button
+      type="button"
+      class={`settings-v2-subagents-detail ${extra}`.trim()}
+      aria-pressed={detailed()}
+      title={language.t(detailed() ? "settings.subAgents.list.detail.compact" : "settings.subAgents.list.detail.full")}
+      onClick={() => setDetailed((value) => !value)}
+    >
+      {language.t(detailed() ? "settings.subAgents.list.detail.compactShort" : "settings.subAgents.list.detail.fullShort")}
+    </button>
+  )
 
   const matchesQuery = (agent: PanelAgent) => {
     const needle = query().trim().toLowerCase()
@@ -337,9 +351,13 @@ export const SettingsSubAgentsV2: Component<{
       >
         <div class="flex items-center gap-1.5 flex-wrap">
           <span class="settings-v2-sub-agents-card-category text-[9.5px] px-1.5 py-0.5">{agent.category}</span>
-          <span class="text-[11px] font-medium text-v2-text-text-muted truncate max-w-[200px]">{agent.role}</span>
+          <span class="text-[11px] font-medium text-v2-text-text-muted" classList={{ "truncate max-w-[200px]": !detailed() }}>
+            {agent.role}
+          </span>
         </div>
-        <p class="text-[11px] text-v2-text-text-muted line-clamp-1 leading-normal m-0">{describe(agent)}</p>
+        <p class="text-[11px] text-v2-text-text-muted leading-normal m-0" classList={{ "line-clamp-1": !detailed() }}>
+          {describe(agent)}
+        </p>
       </div>
 
       <div class="settings-v2-subagents-cell" data-label={language.t("settings.subAgents.list.column.model")}>
@@ -350,7 +368,11 @@ export const SettingsSubAgentsV2: Component<{
 
       <div class="settings-v2-subagents-cell" data-label={language.t("settings.subAgents.list.column.tools")}>
         <span class="settings-v2-sub-agents-badge text-[10.5px]">
-          {agent.tools.restricted ? toolsSummary(agent.tools.allowed) : language.t("settings.subAgents.list.tools.all")}
+          {agent.tools.restricted
+            ? detailed()
+              ? (agent.tools.names ?? []).join(", ")
+              : toolsSummary(agent.tools.allowed)
+            : language.t("settings.subAgents.list.tools.all")}
         </span>
       </div>
 
@@ -373,7 +395,10 @@ export const SettingsSubAgentsV2: Component<{
   const tableHead = () => (
     <div class="settings-v2-subagents-thead">
       <div>{language.t("settings.subAgents.list.column.agent")}</div>
-      <div>{language.t("settings.subAgents.list.column.role")}</div>
+      <div class="flex items-center gap-2">
+        <span>{language.t("settings.subAgents.list.column.role")}</span>
+        {detailToggle()}
+      </div>
       <div>{language.t("settings.subAgents.list.column.model")}</div>
       <div>{language.t("settings.subAgents.list.column.tools")}</div>
       <div>{language.t("settings.subAgents.list.column.status")}</div>
@@ -462,6 +487,7 @@ export const SettingsSubAgentsV2: Component<{
                 )}
               </For>
             </SegmentedControlV2>
+            {detailToggle("settings-v2-subagents-detail--toolbar")}
           </div>
         </div>
 

@@ -2,6 +2,10 @@ import { SUBAGENT_CATALOG_ENGLISH } from "./subagent-catalog"
 import { DESKTOP_NATIVE_ENGLISH } from "./desktop-native"
 
 export const dict = {
+  "settings.subAgents.list.detail.full": "Show each specialist's full description and tool list",
+  "settings.subAgents.list.detail.compact": "Back to the compact view",
+  "settings.subAgents.list.detail.fullShort": "Detail",
+  "settings.subAgents.list.detail.compactShort": "Compact",
   "settings.general.row.showComposerMic.title": "Microphone in the composer",
   "settings.general.row.showComposerMic.description": "Show the dictation button next to + in the message box.",
   "settings.general.row.previewAutoOpen.title": "Open the preview automatically",

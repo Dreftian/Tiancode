@@ -211,7 +211,7 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void; mode?: Welcome
                   current={currentLocale()}
                   value={(option) => option.locale}
                   label={(option) => option.name}
-                  placement="bottom-end"
+                  placement="bottom-start"
                   gutter={6}
                   onSelect={(option) => option && handleSelectLanguage(option.locale)}
                 />

@@ -1,39 +1,33 @@
-# Tiancode Website
+# Tiancode Web
 
-Sitio oficial de Tiancode, un escritorio para Windows con modelos locales y proveedores de IA, agentes especializados, herramientas, dictado y vista previa.
+<p>
+  <a href="https://github.com/Dreftian/Tiancode-web/releases/latest"><img alt="Versión" src="https://img.shields.io/github/v/release/Dreftian/Tiancode-web?style=flat-square&label=web&color=0ea5e9"></a>
+  <a href="https://github.com/Dreftian/Tiancode/releases/latest"><img alt="App" src="https://img.shields.io/github/v/release/Dreftian/Tiancode?style=flat-square&label=app&color=8b5cf6"></a>
+  <img alt="Estático" src="https://img.shields.io/badge/HTML%20%2B%20CSS%20%2B%20JS-sin%20build-10b981?style=flat-square">
+</p>
 
-[Sitio publicado](https://tiancode.vercel.app/) · [Código de la app](https://github.com/Dreftian/Tiancode) · [Versión 1.0.52](https://github.com/Dreftian/Tiancode/releases/tag/v1.0.52)
+Sitio oficial de Tiancode, el escritorio de inteligencia agéntica local-first para Windows.
 
-## Descargas
+[Sitio publicado](https://tiancode.vercel.app/) · [Código de la app](https://github.com/Dreftian/Tiancode) · [Tiancode 1.0.0](https://github.com/Dreftian/Tiancode/releases/tag/v1.0.0)
+
+## Cómo está hecho
+
+- **Portada astral:** `js/galaxy.js` dibuja el logo de partículas TIANCODE en un canvas a pantalla completa.
+- **Universo:** `js/universe.js` gestiona el salto astral y los paneles (Visión general, Capacidades, La app, Novedades, Arquitectura, Skills, Descargar, FAQ) con una barra de navegación superior; `css/universe.css` los estiliza.
+- **La app:** galería 3D con capturas reales en `img/app/*.webp` y puntos de interés definidos en `js/universe.js`.
+- **Páginas internas:** `#/docs`, `#/guia`, `#/faq`, `#/novedades`, `#/portable`, `#/descarga`, `#/licencia`, `#/terminos` y `#/privacidad` (router en `js/router.js`), además de las páginas estáticas en `recursos/` y `legal/`.
+- **Idiomas:** español e inglés (`js/i18n.js`); tema claro y oscuro (`js/theme.js`).
+
+No hay paso de build: cualquier servidor estático sirve la carpeta tal cual. Para probar en local:
+
+```bash
+python -m http.server 4182 --directory .
+```
+
+## Descargas de la app
 
 - [Instalador para Windows x64](https://github.com/Dreftian/Tiancode/releases/latest/download/Tiancode.exe)
 - [Portable para Windows x64](https://github.com/Dreftian/Tiancode/releases/latest/download/Tiancode-portable.exe)
 - [Notas y archivos de cada versión](https://github.com/Dreftian/Tiancode/releases)
 
-Los archivos de la publicación incluyen huellas SHA-256. El actualizador usa `latest.yml`, que contiene el tamaño y SHA-512 del instalador. No se requiere reinstalar ni volver a introducir claves al actualizar.
-
-## Novedades de 1.0.52
-
-- El borrado de modelos locales elimina también las entradas antiguas del catálogo de la interfaz.
-- Catálogo de especialistas enfocados en ingeniería, programación, pruebas, diseño, marketing, datos y seguridad autorizada; compatibilidad con identificadores anteriores.
-- Micrófono con selector visible y opción de mantener pulsado para grabar.
-- Modos de permisos por sesión en el servidor clásico de escritorio. El servidor V2 expone sólo los controles que admite.
-- Rápido utiliza la aceleración nativa de los modelos Anthropic compatibles. Puede tener un precio diferente según el proveedor. Ultracode añade un flujo de planificación, implementación y verificación con esfuerzo compatible.
-- Actividad del Sandbox tomada de las herramientas de la sesión activa y control de Windows con comprobación de ventana y proceso.
-- Descargas y subidas de versiones verificadas; los errores no se presentan como éxito.
-
-Las demos de la web son ilustrativas. No ejecutan una IA ni representan un benchmark. La velocidad y los resultados dependen del modelo, del proveedor y del hardware. Los modelos y voces locales requieren una descarga inicial; los proveedores cloud y las herramientas de red requieren conexión.
-
-## Desarrollo
-
-Este repositorio contiene HTML, CSS y JavaScript, sin proceso de compilación. Sirve la carpeta con un servidor HTTP estático y abre `index.html`.
-
-En el monorepo de Tiancode, la fuente está en `frontend/website`. La verificación de recursos y anclas se ejecuta con `bun tools/script/verify-website.ts`. Los módulos usan la misma versión de importación para compartir el estado del idioma.
-
-La portada incluye novedades interactivas, una demo identificada como ejemplo y enlaces de descarga. Las páginas de documentación, inicio, preguntas frecuentes, portable, novedades y legal están bajo `recursos`, `productos` y `legal`.
-
-## Publicación
-
-El sitio se distribuye en [Dreftian/Tiancode-web](https://github.com/Dreftian/Tiancode-web) y se despliega en Vercel. Conserva el historial de versiones al actualizar `recursos/novedades.html`.
-
-Código distribuido bajo licencia MIT; consulta [la licencia](legal/licencia.html).
+Los archivos de la publicación incluyen huellas SHA-256. El actualizador usa `latest.yml`, que contiene el tamaño y SHA-512 del instalador.

@@ -1,5 +1,9 @@
 import { SUBAGENT_CATALOG_SPANISH } from "./subagent-catalog"
 export const dict = {
+  "settings.subAgents.list.detail.full": "Ver la descripción completa y las herramientas de cada especialista",
+  "settings.subAgents.list.detail.compact": "Volver a la vista compacta",
+  "settings.subAgents.list.detail.fullShort": "Detalle",
+  "settings.subAgents.list.detail.compactShort": "Compacto",
   "settings.general.row.showComposerMic.title": "Micrófono en el cuadro de texto",
   "settings.general.row.showComposerMic.description": "Muestra el botón de dictado junto a + en el cuadro del mensaje.",
   "settings.general.row.previewAutoOpen.title": "Abrir la vista previa automáticamente",

@@ -238,7 +238,7 @@ describe("summarizeAgentTools", () => {
   test("the wildcard catch-all counts: an agent that inherits everything has every tool", () => {
     const build = [...DEFAULTS, rule("question", "*", "allow"), rule("plan_enter", "*", "allow")]
 
-    expect(summarizeAgentTools({ permission: build }, CATALOG)).toEqual({ restricted: false, allowed: 9 })
+    expect(summarizeAgentTools({ permission: build }, CATALOG)).toMatchObject({ restricted: false, allowed: 9 })
   })
 
   test("plan denies edit and keeps the other eight", () => {
@@ -249,7 +249,7 @@ describe("summarizeAgentTools", () => {
       rule("edit", ".tiancode/plans/*.md", "allow"),
     ]
 
-    expect(summarizeAgentTools({ permission: plan }, CATALOG)).toEqual({ restricted: true, allowed: 8 })
+    expect(summarizeAgentTools({ permission: plan }, CATALOG)).toMatchObject({ restricted: true, allowed: 8 })
   })
 
   test("explore's deny-all plus allow-list counts only what it allows", () => {
@@ -259,17 +259,17 @@ describe("summarizeAgentTools", () => {
       ...["grep", "glob", "list", "bash", "webfetch", "websearch", "read"].map((tool) => rule(tool, "*", "allow")),
     ]
 
-    expect(summarizeAgentTools({ permission: explore }, CATALOG)).toEqual({ restricted: true, allowed: 6 })
+    expect(summarizeAgentTools({ permission: explore }, CATALOG)).toMatchObject({ restricted: true, allowed: 6 })
   })
 
   test("a rule scoped to one path does not take the whole permission away", () => {
     // `read: { "*.env": "ask" }` gates two files; it does not make the agent unable to read.
-    expect(summarizeAgentTools({ permission: DEFAULTS }, ["read"])).toEqual({ restricted: false, allowed: 1 })
+    expect(summarizeAgentTools({ permission: DEFAULTS }, ["read"])).toMatchObject({ restricted: false, allowed: 1 })
   })
 
   test("an agent we only know from config inherits everything rather than reporting zero tools", () => {
-    expect(summarizeAgentTools({ permission: undefined }, CATALOG)).toEqual({ restricted: false, allowed: 9 })
-    expect(summarizeAgentTools({ permission: [] }, CATALOG)).toEqual({ restricted: false, allowed: 9 })
+    expect(summarizeAgentTools({ permission: undefined }, CATALOG)).toMatchObject({ restricted: false, allowed: 9 })
+    expect(summarizeAgentTools({ permission: [] }, CATALOG)).toMatchObject({ restricted: false, allowed: 9 })
   })
 })
 

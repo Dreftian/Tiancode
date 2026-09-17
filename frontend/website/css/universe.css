@@ -120,7 +120,8 @@ body.universe-open { overflow: hidden; }
   inset: var(--header-h) 0 0 0;
   z-index: 40;
   display: grid;
-  grid-template-columns: 264px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
   opacity: 0;
   visibility: hidden;
   transform: scale(0.985);
@@ -139,25 +140,31 @@ body.universe-open .site-footer { opacity: 0; visibility: hidden; pointer-events
 /* --- navegación lateral --- */
 .universe-nav {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 20px 14px 18px;
-  border-right: 1px solid var(--border);
-  background: color-mix(in srgb, var(--bg) 66%, transparent);
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 8px clamp(12px, 2vw, 28px);
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   backdrop-filter: blur(20px) saturate(160%);
-  overflow-y: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
   opacity: 0;
-  transform: translateX(-18px);
+  transform: translateY(-10px);
   transition: opacity 0.5s ease 0.45s, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.45s;
 }
+.universe-nav::-webkit-scrollbar { display: none; }
 body.universe-open .universe-nav { opacity: 1; transform: none; }
 
 .universe-back {
   display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 8px;
-  padding: 9px 12px;
+  padding: 8px 12px;
+  margin-right: 6px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--card-bg);
@@ -171,19 +178,20 @@ body.universe-open .universe-nav { opacity: 1; transform: none; }
 
 .universe-menu {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
-  margin-top: 6px;
+  flex-direction: row;
+  gap: 2px;
 }
 .universe-menu a {
   position: relative;
   display: flex;
+  flex-shrink: 0;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 12px;
+  gap: 8px;
+  padding: 7px 11px;
+  border-radius: 10px;
   color: var(--text-2);
-  font-size: 14px;
+  white-space: nowrap;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: -0.01em;
   transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
@@ -191,21 +199,16 @@ body.universe-open .universe-nav { opacity: 1; transform: none; }
 .universe-menu a i {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
   background: var(--surface-3);
   color: var(--text-3);
   transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
-.universe-menu a i svg { width: 15px; height: 15px; }
-.universe-menu a .idx {
-  margin-left: auto;
-  font: 600 10.5px var(--font-mono);
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-}
-.universe-menu a:hover { background: var(--surface-2); color: var(--text); transform: translateX(3px); }
+.universe-menu a i svg { width: 13px; height: 13px; }
+.universe-menu a .idx { display: none; }
+.universe-menu a:hover { background: var(--surface-2); color: var(--text); transform: translateY(-1px); }
 .universe-menu a:hover i { color: var(--accent); }
 .universe-menu a.is-active {
   background: var(--accent-soft);
@@ -216,11 +219,12 @@ body.universe-open .universe-nav { opacity: 1; transform: none; }
 
 .universe-nav-foot {
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px 12px;
-  margin-top: auto;
-  padding: 12px 6px 0;
-  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  align-items: center;
+  gap: 14px;
+  margin-left: auto;
+  padding-left: 16px;
+  border-left: 1px solid var(--border);
 }
 .universe-nav-foot a {
   font-size: 12px;
@@ -229,7 +233,7 @@ body.universe-open .universe-nav { opacity: 1; transform: none; }
   transition: color 0.15s ease;
 }
 .universe-nav-foot a:hover { color: var(--text); }
-.universe-nav-sep { flex-basis: 100%; height: 0; }
+.universe-nav-sep { width: 1px; height: 14px; background: var(--border); }
 
 /* --- escenario de paneles --- */
 .universe-stage {
@@ -457,26 +461,16 @@ body.universe-open .universe-nav { opacity: 1; transform: none; }
 .app-gallery-caption b { color: var(--text); }
 
 /* ================= Responsive ================= */
+/* The resource links only fit next to the eight sections on wide screens; the header's
+   "Recursos" menu keeps them everywhere else. */
+@media (max-width: 1560px) {
+  .universe-nav-foot { display: none; }
+}
 @media (max-width: 960px) {
-  .universe { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
-  .universe-nav {
-    flex-direction: row;
-    align-items: center;
-    gap: 6px;
-    padding: 10px 12px;
-    border-right: 0;
-    border-bottom: 1px solid var(--border);
-    overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-width: none;
-  }
-  .universe-nav::-webkit-scrollbar { display: none; }
-  .universe-back { flex-shrink: 0; padding: 8px 10px; }
+  .universe-nav { gap: 4px; padding: 8px 12px; }
+  .universe-back { padding: 8px 10px; margin-right: 2px; }
   .universe-back span { display: none; }
-  .universe-menu { flex-direction: row; gap: 4px; margin: 0; }
-  .universe-menu a { padding: 8px 10px; white-space: nowrap; font-size: 13px; }
-  .universe-menu a i { width: 24px; height: 24px; }
-  .universe-menu a .idx, .universe-nav-foot { display: none; }
+  .universe-menu a { padding: 7px 9px; }
   .app-gallery { grid-template-columns: 1fr; gap: 14px; }
   .app-gallery-tabs { position: static; flex-direction: row; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
   .app-gallery-tabs::-webkit-scrollbar { display: none; }

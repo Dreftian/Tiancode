@@ -22,6 +22,7 @@ import {
   setPinchZoomEnabled,
   setTitlebar,
   updateTitlebar,
+  preferredWindowSize,
   clearWebviewData,
   WEBVIEW_RETENTION_KEY,
 } from "./windows"
@@ -559,7 +560,8 @@ export function registerIpcHandlers(deps: Deps) {
     win.setResizable(true)
     win.setMaximizable(true)
     win.setMinimumSize(800, 600)
-    win.setSize(1280, 800, true)
+    const size = preferredWindowSize()
+    win.setSize(size.width, size.height, true)
     win.center()
   })
 

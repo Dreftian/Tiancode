@@ -243,7 +243,7 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
         }
         void load(next).then((theme) => {
           if (!theme || store.themeId !== next) return
-          cacheThemeVariants(theme, next)
+          window.setTimeout(() => cacheThemeVariants(theme, next), 0)
         })
       }
       if (e.key === STORAGE_KEYS.COLOR_SCHEME && e.newValue) {
@@ -302,14 +302,14 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
       }
       if (store.themes[next]) {
         applyTheme(store.themes[next], next, store.mode, store.colorScheme)
-        cacheThemeVariants(store.themes[next], next)
+        window.setTimeout(() => cacheThemeVariants(store.themes[next], next), 0)
         write(STORAGE_KEYS.THEME_ID, next)
         return
       }
       void load(next).then((theme) => {
         if (!theme || store.themeId !== next) return
         applyTheme(theme, next, store.mode, store.colorScheme)
-        cacheThemeVariants(theme, next)
+        window.setTimeout(() => cacheThemeVariants(theme, next), 0)
         write(STORAGE_KEYS.THEME_ID, next)
       })
     }

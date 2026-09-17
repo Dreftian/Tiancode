@@ -77,6 +77,40 @@
 [data-action="composer-mode"][data-mode="accept-edits"] { color: #6ee7b7; }
 [data-action="composer-mode"][data-mode="auto"] { color: var(--v2-text-text-base); }
 
+/* The permission menu items carry the same tints as the trigger. */
+[data-testid="composer-mode-menu"] [data-mode="skip"] > span > span:first-child { color: #fb923c; }
+[data-testid="composer-mode-menu"] [data-mode="plan"] > span > span:first-child { color: #7dd3fc; }
+[data-testid="composer-mode-menu"] [data-mode="accept-edits"] > span > span:first-child { color: #6ee7b7; }
+[data-testid="composer-mode-menu"] [data-mode="manual"] > span > span:first-child { color: #d4d4d8; }
+[data-testid="composer-mode-menu"] [data-mode="skip"] { background: color-mix(in srgb, #f97316 8%, transparent); }
+
+/* While recording, the mic button is a red stop control that breathes (Claude Code style). */
+.dictation-stop {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+  animation: dictation-pulse 1.4s ease-out infinite;
+}
+.dictation-stop-square {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: #fff;
+}
+.dictation-stop[data-transcribing] {
+  background: #38bdf8;
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dictation-stop { animation: none; }
+}
+
 /* Claude-style dictation: a compact listening pill at the left of the editor while the mic
    records. It never covers the whole row, so the text already typed stays visible. */
 [data-component="prompt-input-v2"] .dictation-overlay {

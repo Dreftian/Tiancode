@@ -138,6 +138,16 @@ const main = Effect.gen(function* () {
   app.setPath("userData", onboardingTestRoot ? join(onboardingTestRoot, "desktop") : defaultUserData)
   if (onboardingTestRoot) app.setPath("sessionData", join(onboardingTestRoot, "session"))
   initializeOldLayoutEligibility(app.getPath("userData"))
+  // Chats that are not tied to a chosen folder live in a scratch workspace inside the profile.
+  // The sidecar inherits this working directory, so the user's home never becomes a project.
+  const chatDir = join(app.getPath("userData"), "Chat")
+  try {
+    mkdirSync(chatDir, { recursive: true })
+    process.chdir(chatDir)
+    process.env.TIANCODE_CHAT_DIR = chatDir
+  } catch {
+    // keep the home directory as working directory
+  }
   logger = initLogging()
   initCrashReporter()
 

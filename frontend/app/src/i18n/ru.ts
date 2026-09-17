@@ -1,6 +1,10 @@
 import { RELEASE_ENGLISH } from "./release-english"
 
 export const dict = {
+  "settings.subAgents.list.detail.full": "Показать полное описание и список инструментов каждого специалиста",
+  "settings.subAgents.list.detail.compact": "Вернуться к компактному виду",
+  "settings.subAgents.list.detail.fullShort": "Детали",
+  "settings.subAgents.list.detail.compactShort": "Кратко",
   "settings.general.row.showComposerMic.title": "Микрофон в поле ввода",
   "settings.general.row.showComposerMic.description": "Показывать кнопку диктовки рядом с + в поле сообщения.",
   "settings.general.row.previewAutoOpen.title": "Открывать предпросмотр автоматически",

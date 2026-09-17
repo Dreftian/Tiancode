@@ -22,18 +22,28 @@ export function createHomeController() {
     return global.ensureServerCtx(conn)
   })
   const focusedSync = () => focusedServerCtx()?.sync ?? sync()
-  const projects = createMemo(() => focusedServerCtx()?.projects.list() ?? layout.projects.list())
+  const homedir = createMemo(() => focusedSync().data.path.home ?? "")
+  // Desktop: a chat that is not tied to a chosen folder lives in the profile's scratch workspace
+  // (the sidecar's working directory), never in the user's home, so the home folder no longer
+  // shows up as a project by accident. The web build keeps the home directory.
+  const desktop = typeof window !== "undefined" && !!(window as { api?: unknown }).api
+  const chatdir = createMemo(() => {
+    const path = focusedSync().data.path as { directory?: string } | undefined
+    return (desktop ? path?.directory : undefined) || homedir()
+  })
+  const projects = createMemo(() =>
+    (focusedServerCtx()?.projects.list() ?? layout.projects.list()).filter(
+      (project) => project.worktree !== chatdir(),
+    ),
+  )
   const recentlyClosed = createMemo(
     () => focusedServerCtx()?.projects.recentlyClosed() ?? layout.projects.recentlyClosed(),
   )
-  const homedir = createMemo(() => focusedSync().data.path.home ?? "")
   const selectedProject = createMemo(() => projects().find((project) => project.worktree === selection().directory))
   const newSessionProject = createMemo(
     () =>
-      selectedProject() ??
-      projects().find((project) => project.worktree === focusedServerCtx()?.projects.last()) ??
-      projects()[0] ??
-      (homedir() ? { worktree: homedir(), expanded: false } : undefined),
+      // Only a project the user picked in the sidebar wins; otherwise the chat is a plain chat.
+      selectedProject() ?? (chatdir() ? { worktree: chatdir(), expanded: false } : undefined),
   )
 
   createEffect(() => {
@@ -49,11 +59,13 @@ export function createHomeController() {
 
   function openProjectNewSession(conn: ServerConnection.Any, directory: string, prompt?: string) {
     const ctx = global.ensureServerCtx(conn)
-    if (directory) {
+    const target = directory || chatdir()
+    // The scratch workspace is never listed as a project.
+    if (directory && directory !== chatdir()) {
       ctx.projects.open(directory)
       ctx.projects.touch(directory)
     }
-    void tabs.newDraft({ server: ServerConnection.key(conn), directory: directory || homedir() }, prompt)
+    void tabs.newDraft({ server: ServerConnection.key(conn), directory: target }, prompt)
   }
 
   return {
@@ -74,6 +86,7 @@ export function createHomeController() {
       list: projects,
       recentlyClosed,
       homedir,
+      chatdir,
       selected: selectedProject,
       newSession: newSessionProject,
       forServer: (conn: ServerConnection.Any) => global.ensureServerCtx(conn).projects.list(),
@@ -121,7 +134,7 @@ export function createHomeController() {
       openNewSession: (prompt?: string) => {
         const conn = focusedServer()
         if (!conn) return
-        const target = newSessionProject()?.worktree ?? homedir()
+        const target = newSessionProject()?.worktree ?? chatdir()
         if (!target) return
         openProjectNewSession(conn, target, prompt)
       },

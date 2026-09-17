@@ -410,13 +410,11 @@ export function VoiceDictationButton(props: {
             </Show>
           }
         >
-          <div class="inline-flex items-center gap-1.5 px-1 py-0.5 rounded-md bg-red-500/10 border border-red-500/25">
-            <span class="relative flex h-2 w-2">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-              <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
-            </span>
-            <AudioWaveform active={true} level={asrAPI() ? recording.level : undefined} barsCount={8} height={14} class="w-8 h-3.5" />
-          </div>
+          {/* Claude Code style: the button becomes a pulsing red stop control; the waveform lives in
+              the listening pill next to the text, not inside the button. */}
+          <span class="dictation-stop" data-transcribing={recording.transcribing || undefined} aria-hidden="true">
+            <span class="dictation-stop-square" />
+          </span>
         </Show>
       </button>
       <MenuV2

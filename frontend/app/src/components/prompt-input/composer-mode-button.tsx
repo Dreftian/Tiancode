@@ -84,6 +84,7 @@ export function ComposerModeButton(props: {
           <For each={COMPOSER_MODES}>
             {(value) => (
               <MenuV2.Item
+                data-mode={value}
                 onSelect={() => void select(value)}
                 style={{ height: "auto", "min-height": "52px", padding: "8px 10px", "flex-shrink": "0" }}
               >

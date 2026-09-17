@@ -543,11 +543,11 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
     // mientras el onboarding sigue pendiente) y la tarjeta pide 420 de ancho: la misma llamada
     // que usa la reapertura manual deja sitio para ella.
     if (welcomeMode() === "upgrade" && window.api?.setCompactWindow) {
-      void window.api.setCompactWindow({ width: 800, height: 600 })
+      void window.api.setCompactWindow({ width: 520, height: 470 })
     }
     const handleOpen = () => {
       if (window.api?.setCompactWindow) {
-        void window.api.setCompactWindow({ width: 800, height: 600 })
+        void window.api.setCompactWindow({ width: 520, height: 470 })
       }
       setWelcomeMode("review")
     }

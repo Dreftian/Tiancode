@@ -570,6 +570,12 @@ export function getPetHtml(state: DesktopPetState): string {
 </html>`
 }
 
+// Other modules must leave the transparent pet window alone (background colours, overlays):
+// painting it opaque is what turned the character into a dark square.
+export function isDesktopPetWindow(win: BrowserWindow) {
+  return petWindow !== null && !petWindow.isDestroyed() && win === petWindow
+}
+
 let petSyncedOnce = false
 
 export function createDesktopPetWindow(): BrowserWindow {
