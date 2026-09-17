@@ -2755,7 +2755,7 @@ export const dict = {
   "welcome.step.start": "시작 방법",
   "welcome.start.title": "Tiancode를 열 때",
   "welcome.start.chat": "채팅",
-  "welcome.start.chat.desc": "바로 입력할 수 있는 대화를 엽니다. 코드를 다룰 때는 ‘새 프로젝트’로 폴더를 선택하세요.",
+  "welcome.start.chat.desc": "폴더 없이 바로 입력할 수 있는 대화를 엽니다. 나중에 ‘새 프로젝트’로 선택할 수 있습니다.",
   "welcome.start.home": "홈",
   "welcome.start.home.desc": "프로젝트와 최근 세션이 있는 홈 화면.",
   "welcome.start.defaults": "추론은 자동, 빠른 모드는 꺼짐, 권한은 자동입니다. 채팅에서 언제든 바꿀 수 있습니다.",
@@ -2789,4 +2789,7 @@ export const dict = {
   "settings.modelsHub.reason.exceeds_memory": "이 PC의 메모리를 초과합니다. 매우 느리거나 실패할 수 있습니다.",
   "settings.modelsHub.size.unknown": "계산 중…",
   "settings.modelsHub.dir.applied": "폴더가 적용되었습니다. 포함된 모델이 ‘디스크’에 표시됩니다.",
+  "welcome.start.code": "코드",
+  "welcome.start.code.desc": "열 때 폴더를 선택하고 그 안에서 코딩 세션을 시작합니다.",
+  "welcome.start.every": "Tiancode를 열 때마다 적용됩니다. 언제든 여기서 바꿀 수 있습니다.",
 }

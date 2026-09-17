@@ -2795,7 +2795,7 @@ export const dict = {
   "welcome.step.start": "How to start",
   "welcome.start.title": "When Tiancode opens",
   "welcome.start.chat": "Chat",
-  "welcome.start.chat.desc": "Opens a conversation ready to type. Pick a folder with “New project” when you want to work with code.",
+  "welcome.start.chat.desc": "Opens a conversation ready to type, without a folder. Pick one later with “New project”.",
   "welcome.start.home": "Home",
   "welcome.start.home.desc": "The home screen with your projects and recent sessions.",
   "welcome.start.defaults": "Reasoning on Auto, fast mode off and permissions on Auto. Change it any time from the chat.",
@@ -2829,4 +2829,7 @@ export const dict = {
   "settings.modelsHub.reason.exceeds_memory": "Exceeds this machine's memory: it may be very slow or fail.",
   "settings.modelsHub.size.unknown": "working it out…",
   "settings.modelsHub.dir.applied": "Folder applied. The models it contains already show under “On disk”.",
+  "welcome.start.code": "Code",
+  "welcome.start.code.desc": "Pick a folder on open and start a coding session inside it.",
+  "welcome.start.every": "Applied every time Tiancode opens. Change it here whenever you like.",
 }

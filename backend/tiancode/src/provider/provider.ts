@@ -33,6 +33,7 @@ import { ModelStatus } from "./model-status"
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import { ProviderError } from "./error"
 import { LocalEngine } from "@/local-engine"
+import * as ModelsDir from "@/model-hub/models-dir"
 
 const OPENAI_HEADER_TIMEOUT_DEFAULT = 300_000
 
@@ -1448,6 +1449,7 @@ const layer = Layer.effect(
 
         // Auto-discover downloaded .gguf models from all models storage directories
         const candidateModelsDirs = [
+          ModelsDir.modelsDir(),
           path.join(Global.Path.data, "models"),
           path.join(os.homedir(), ".local", "share", "tiancode", "models"),
           path.join(
@@ -1477,7 +1479,7 @@ const layer = Layer.effect(
               if (item.isDirectory()) {
                 results = results.concat(readGgufs(full))
               } else if (item.name.endsWith(".gguf") && !item.name.endsWith(".part")) {
-                results.push(item.name)
+                results.push(full)
               }
             }
           } catch {}
@@ -1488,10 +1490,17 @@ const layer = Layer.effect(
         for (const modelsDataDir of candidateModelsDirs) {
           if (!existsSync(modelsDataDir)) continue
           const ggufs = readGgufs(modelsDataDir)
-          for (const file of ggufs) {
+          for (const fullPath of ggufs) {
+            const file = path.basename(fullPath)
             const modelID = file.replace(/\.gguf$/i, "")
             if (seenGgufs.has(modelID)) continue
             seenGgufs.add(modelID)
+            // The context the server will really run with (automatic or manual): the compaction
+            // threshold must match llama-server's -c, otherwise a fixed 32k here overflows a 16k
+            // engine and every reply turns into a compaction summary.
+            const contextSize = yield* localEngine
+              .expectedContext(fullPath)
+              .pipe(Effect.catch(() => Effect.succeed(8192)))
             const modelObj: Model = {
               id: ModelV2.ID.make(modelID),
               providerID: localProviderID,
@@ -1513,7 +1522,7 @@ const layer = Layer.effect(
               },
               cost: { input: 0, output: 0, cache: { read: 0, write: 0 } },
               options: {},
-              limit: { context: 32768, output: 8192 },
+              limit: { context: contextSize, output: Math.min(8192, Math.max(1024, Math.floor(contextSize / 4))) },
               headers: {},
               family: "local",
               release_date: new Date().toISOString(),

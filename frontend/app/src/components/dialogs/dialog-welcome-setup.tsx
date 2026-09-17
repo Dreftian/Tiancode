@@ -31,7 +31,16 @@ export const PENDING_PROVIDER_SETUP_KEY = "tiancode.first_launch.open_providers"
 export const START_MODE_KEY = "tiancode.first_launch.start"
 /** One-shot flag the home page consumes to open the chat draft the first time. */
 export const START_PENDING_KEY = "tiancode.first_launch.start_pending"
-export type StartMode = "chat" | "home"
+export type StartMode = "chat" | "code" | "home"
+const START_MODES: readonly StartMode[] = ["chat", "code", "home"]
+export function readStartMode(): StartMode {
+  try {
+    const value = localStorage.getItem(START_MODE_KEY)
+    return START_MODES.includes(value as StartMode) ? (value as StartMode) : "chat"
+  } catch {
+    return "chat"
+  }
+}
 
 /**
  * Por qué se abre el asistente:
@@ -96,15 +105,7 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void; mode?: Welcome
   const [step, setStep] = createSignal(1)
   const [finishing, setFinishing] = createSignal(false)
   const [createDefaultProject, setCreateDefaultProject] = createSignal(true)
-  const [startMode, setStartMode] = createSignal<StartMode>(
-    (() => {
-      try {
-        return localStorage.getItem(START_MODE_KEY) === "home" ? "home" : "chat"
-      } catch {
-        return "chat"
-      }
-    })(),
-  )
+  const [startMode, setStartMode] = createSignal<StartMode>(readStartMode())
   const [selectedLocale, setSelectedLocale] = createSignal<Locale>(language.locale())
   const [selectedTheme, setSelectedTheme] = createSignal<ColorScheme>(theme.colorScheme())
 
@@ -115,6 +116,72 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void; mode?: Welcome
   // trabajo (ya existe uno) y terminar es un clic.
   const confirming = () => props.mode !== undefined && props.mode !== "first-run"
   const totalSteps = () => (confirming() ? 1 : STEPS.length)
+
+  const startChooser = () => (
+    <div class="welcome-setup-start">
+      <button
+        type="button"
+        class="welcome-setup-start-card"
+        role="radio"
+        aria-checked={startMode() === "chat"}
+        data-selected={startMode() === "chat"}
+        onClick={() => setStartMode("chat")}
+      >
+        <span class="welcome-setup-start-art" aria-hidden="true">
+          <span class="welcome-setup-start-art-word">TIANCODE</span>
+          <span class="welcome-setup-start-art-box">
+            <i />
+            <b />
+          </span>
+        </span>
+        <span class="welcome-setup-start-name">{t("welcome.start.chat")}</span>
+        <span class="welcome-setup-start-desc">{t("welcome.start.chat.desc")}</span>
+      </button>
+      <button
+        type="button"
+        class="welcome-setup-start-card"
+        role="radio"
+        aria-checked={startMode() === "code"}
+        data-selected={startMode() === "code"}
+        onClick={() => setStartMode("code")}
+      >
+        <span class="welcome-setup-start-art welcome-setup-start-art--code" aria-hidden="true">
+          <span class="welcome-setup-start-art-folder">
+            <i />
+            <b />
+          </span>
+          <span class="welcome-setup-start-art-box">
+            <i />
+            <b />
+          </span>
+        </span>
+        <span class="welcome-setup-start-name">{t("welcome.start.code")}</span>
+        <span class="welcome-setup-start-desc">{t("welcome.start.code.desc")}</span>
+      </button>
+      <button
+        type="button"
+        class="welcome-setup-start-card"
+        role="radio"
+        aria-checked={startMode() === "home"}
+        data-selected={startMode() === "home"}
+        onClick={() => setStartMode("home")}
+      >
+        <span class="welcome-setup-start-art welcome-setup-start-art--home" aria-hidden="true">
+          <span class="welcome-setup-start-art-side">
+            <i />
+            <i />
+            <i />
+          </span>
+          <span class="welcome-setup-start-art-main">
+            <i />
+            <b />
+          </span>
+        </span>
+        <span class="welcome-setup-start-name">{t("welcome.start.home")}</span>
+        <span class="welcome-setup-start-desc">{t("welcome.start.home.desc")}</span>
+      </button>
+    </div>
+  )
 
   const handleSelectLanguage = (loc: Locale) => {
     setSelectedLocale(loc)
@@ -296,6 +363,16 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void; mode?: Welcome
                 </Switch>
               </div>
             </div>
+
+            <Show when={confirming()}>
+              <div class="welcome-setup-stack welcome-setup-stack--start" role="radiogroup" aria-labelledby="welcome-setup-start-review-label">
+                <span class="welcome-setup-field-name" id="welcome-setup-start-review-label">
+                  {t("welcome.start.title")}
+                </span>
+                {startChooser()}
+                <p class="welcome-setup-hint">{t("welcome.start.every")}</p>
+              </div>
+            </Show>
           </div>
         </Show>
 
@@ -329,48 +406,7 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void; mode?: Welcome
               <span class="welcome-setup-field-name" id="welcome-setup-start-label">
                 {t("welcome.start.title")}
               </span>
-              <div class="welcome-setup-start">
-                <button
-                  type="button"
-                  class="welcome-setup-start-card"
-                  role="radio"
-                  aria-checked={startMode() === "chat"}
-                  data-selected={startMode() === "chat"}
-                  onClick={() => setStartMode("chat")}
-                >
-                  <span class="welcome-setup-start-art" aria-hidden="true">
-                    <span class="welcome-setup-start-art-word">TIANCODE</span>
-                    <span class="welcome-setup-start-art-box">
-                      <i />
-                      <b />
-                    </span>
-                  </span>
-                  <span class="welcome-setup-start-name">{t("welcome.start.chat")}</span>
-                  <span class="welcome-setup-start-desc">{t("welcome.start.chat.desc")}</span>
-                </button>
-                <button
-                  type="button"
-                  class="welcome-setup-start-card"
-                  role="radio"
-                  aria-checked={startMode() === "home"}
-                  data-selected={startMode() === "home"}
-                  onClick={() => setStartMode("home")}
-                >
-                  <span class="welcome-setup-start-art welcome-setup-start-art--home" aria-hidden="true">
-                    <span class="welcome-setup-start-art-side">
-                      <i />
-                      <i />
-                      <i />
-                    </span>
-                    <span class="welcome-setup-start-art-main">
-                      <i />
-                      <b />
-                    </span>
-                  </span>
-                  <span class="welcome-setup-start-name">{t("welcome.start.home")}</span>
-                  <span class="welcome-setup-start-desc">{t("welcome.start.home.desc")}</span>
-                </button>
-              </div>
+              {startChooser()}
               <p class="welcome-setup-hint">{t("welcome.start.defaults")}</p>
             </div>
 

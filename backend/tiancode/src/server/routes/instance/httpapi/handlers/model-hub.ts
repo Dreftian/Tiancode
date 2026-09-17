@@ -105,28 +105,16 @@ export const modelHubHandlers = HttpApiBuilder.group(InstanceHttpApi, "model-hub
         kvOffload: ctx.payload.kvOffload,
         parallel: ctx.payload.parallel,
       }
-      if (!ctx.payload.auto) return yield* engine.start(manual)
-      // Automatic configuration: the GGUF header (training context, layers, heads) and this
-      // machine's VRAM/RAM decide context, GPU layers, threads, batch and KV cache. Manual values
-      // for the knobs the recommendation does not cover (seed, RoPE) still apply.
-      const resolved = yield* engine.resolveModelFile(ctx.payload.model, ctx.payload.file)
-      if (!resolved) return yield* engine.start(manual)
-      const rec = yield* hub.recommendFor(resolved)
-      return yield* engine.start({
-        ...manual,
-        file: resolved,
-        contextSize: rec.contextSize,
-        gpuLayers: rec.gpuLayers,
-        threads: rec.threads,
-        batchSize: rec.batchSize,
-        flashAttention: rec.flashAttention,
-        kvCacheType: rec.kvCacheType,
-        keepInMemory: rec.keepInMemory,
-        useMmap: rec.useMmap,
-        kvOffload: rec.kvOffload,
-        parallel: rec.parallel,
-        auto: true,
-      })
+      // The engine merges the saved defaults and, with `auto`, the per-model recommendation.
+      return yield* engine.start({ ...manual, auto: ctx.payload.auto })
+    })
+
+    const engineDefaults = Effect.fn("ModelHubHttpApi.engineDefaults")(function* () {
+      return yield* engine.loadDefaults()
+    })
+
+    const engineDefaultsSet = Effect.fn("ModelHubHttpApi.engineDefaultsSet")(function* (ctx) {
+      return yield* engine.setLoadDefaults(ctx.payload)
     })
 
     const local = Effect.fn("ModelHubHttpApi.local")(function* () {
@@ -154,6 +142,8 @@ export const modelHubHandlers = HttpApiBuilder.group(InstanceHttpApi, "model-hub
       .handle("forget", forget)
       .handle("engine", getEngineStatus)
       .handle("engineStart", startEngine)
+      .handle("engineDefaults", engineDefaults)
+      .handle("engineDefaultsSet", engineDefaultsSet)
       .handle("engineStop", stopEngine)
   }),
 )

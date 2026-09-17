@@ -44,7 +44,7 @@
   flex-direction: column;
   height: 100%;
   overflow-y: auto;
-  scrollbar-width: none;
+  scrollbar-width: thin;
   user-select: none;
   container-type: inline-size;
   container-name: settings-panel;

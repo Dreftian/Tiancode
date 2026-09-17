@@ -312,6 +312,7 @@ export type ElectronAPI = {
   isFirstLaunchOnboardingPending: () => Promise<boolean>
   finishFirstLaunchOnboarding: (createDefaultProject: boolean) => Promise<string | null>
   welcomeDone: () => Promise<void>
+  welcomeOpen: (mode: "review" | "upgrade") => Promise<void>
   isOldLayoutEligible: () => Promise<boolean>
   getDisplayBackend: () => Promise<LinuxDisplayBackend | null>
   setDisplayBackend: (backend: LinuxDisplayBackend | null) => Promise<void>

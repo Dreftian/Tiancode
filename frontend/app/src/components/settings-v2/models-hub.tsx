@@ -550,7 +550,7 @@ export const SettingsModelsHubV2: Component<{
     ropeFrequencyScale: 0,
     parallel: 1,
   }
-  const [load, setLoad] = persisted("settings-v2.models-hub.load", createStore<EngineLoad>({ ...defaultLoad }))
+  const [load, setLoad, , loadReady] = persisted("settings-v2.models-hub.load", createStore<EngineLoad>({ ...defaultLoad }))
   const resetLoad = () => setLoad({ ...defaultLoad })
   // Stores written before the switch existed have no `auto`: automatic is the default.
   const autoLoad = () => load.auto !== false
@@ -838,6 +838,19 @@ export const SettingsModelsHubV2: Component<{
     if (rec.estimatedBytes) parts.push(`~${formatBytes(rec.estimatedBytes)}`)
     return parts.join(" · ")
   }
+
+  // ---- the server keeps the same defaults ----------------------------------------------------
+  // The engine also starts on demand from the chat, without this panel: it reads the defaults saved
+  // here (automatic on/off + manual knobs) so both paths load a model the same way.
+  let defaultsTimer: ReturnType<typeof setTimeout> | undefined
+  createEffect(() => {
+    if (!loadReady()) return
+    const body = enginePayload()
+    if (defaultsTimer) clearTimeout(defaultsTimer)
+    defaultsTimer = setTimeout(() => {
+      void postToServer("/models/engine/defaults", body).catch(() => undefined)
+    }, 400)
+  })
 
   // ---- what is really on disk ----------------------------------------------------------------
   const [localFiles, setLocalFiles] = createSignal<LocalModelFile[]>([])
@@ -1234,6 +1247,9 @@ export const SettingsModelsHubV2: Component<{
 
   const activateDownloadedModel = async (job: { model: string; file: string; path?: string }) => {
     const modelName = job.file.replace(/\.gguf$/i, "")
+    // The context Tiancode assumes for compaction must match llama-server's -c; the engine reports
+    // what it applied and the provider entry below carries it.
+    let engineContext: number | undefined
     const availableRuntime = (runtimes() ?? []).find(
       (r) => r.available && r.id !== "tiancode-native" && r.id !== "local",
     )?.id
@@ -1273,6 +1289,8 @@ export const SettingsModelsHubV2: Component<{
         })
         return
       }
+      const applied = (engRes?.data as { applied?: { contextSize?: number } } | undefined)?.applied
+      if (applied?.contextSize) engineContext = applied.contextSize
       refetchEngine()
       refetchRuntimes()
     }
@@ -1285,10 +1303,13 @@ export const SettingsModelsHubV2: Component<{
       >
 
       const existingRuntimeModels = (existingProviders[runtimeId]?.models ?? {}) as Record<string, { name: string }>
-      const updatedModels: Record<string, { name: string }> = {
+      const limit = engineContext
+        ? { limit: { context: engineContext, output: Math.min(8192, Math.max(1024, Math.floor(engineContext / 4))) } }
+        : {}
+      const updatedModels: Record<string, { name: string; limit?: { context: number; output: number } }> = {
         ...existingRuntimeModels,
-        [modelName]: { name: modelName },
-        [job.file]: { name: job.file },
+        [modelName]: { name: modelName, ...limit },
+        [job.file]: { name: job.file, ...limit },
       }
 
       const updatedProviders = {
@@ -1303,8 +1324,8 @@ export const SettingsModelsHubV2: Component<{
           options: { baseURL: "http://127.0.0.1:58282/v1" },
           models: {
             ...(existingProviders.local?.models ?? {}),
-            [modelName]: { name: modelName },
-            [job.file]: { name: job.file },
+            [modelName]: { name: modelName, ...limit },
+            [job.file]: { name: job.file, ...limit },
           },
         },
       }
@@ -1377,7 +1398,7 @@ export const SettingsModelsHubV2: Component<{
         />
       </div>
 
-      <div class="lm-hub-container">
+      <div class="lm-hub-container" data-tab={hubTab()}>
         <Show when={hubTab() === "settings"}>
           <div class="settings-v2-section">
             <h3 class="settings-v2-section-title">{language.t("settings.modelsHub.tab.settings")}</h3>

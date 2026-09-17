@@ -358,6 +358,17 @@ const main = Effect.gen(function* () {
       if (!restoreMainWindows().length) createMainWindow()
       createMenu(menuDeps)
     },
+    focusMainWindow: () => {
+      const win = getAnyMainWindow()
+      if (!win) return false
+      if (win.isMinimized()) win.restore()
+      win.show()
+      win.focus()
+      return true
+    },
+    openWelcomeWindow: (mode) => {
+      createWelcomeWindow(mode)
+    },
     finishFirstLaunchOnboarding,
     isOldLayoutEligible,
     getDisplayBackend: async () => null,

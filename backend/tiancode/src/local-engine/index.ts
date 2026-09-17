@@ -1,6 +1,10 @@
 import { LayerNode } from "@tiancode-ai/core/effect/layer-node"
 import { makeGlobalNode } from "@tiancode-ai/core/effect/app-node"
 import * as ModelsDir from "@/model-hub/models-dir"
+import { readGgufMetadataCached, type GgufMetadata } from "./gguf"
+import { recommendLoadOptions } from "./recommend"
+import { hardwareInfo } from "./hardware"
+import { getLoadDefaults, setLoadDefaults, type LoadDefaults } from "./load-defaults"
 import { FSUtil } from "@tiancode-ai/core/fs-util"
 import { Global } from "@tiancode-ai/core/global"
 import { httpClient } from "@tiancode-ai/core/effect/app-node-platform"
@@ -83,6 +87,11 @@ export interface Interface {
   readonly stop: () => Effect.Effect<LocalEngineStatus>
   /** Absolute path of the .gguf a `model`/`file` pair refers to, searching every models root. */
   readonly resolveModelFile: (model: string, file: string) => Effect.Effect<string | undefined>
+  /** Load options used when a start does not spell them out (Settings › Local models). */
+  readonly loadDefaults: () => Effect.Effect<LoadDefaults>
+  readonly setLoadDefaults: (next: unknown) => Effect.Effect<LoadDefaults>
+  /** The context size the engine would run `file` with right now (automatic or manual). */
+  readonly expectedContext: (file: string) => Effect.Effect<number>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@tiancode/LocalEngine") {}
@@ -1025,26 +1034,86 @@ const layer = Layer.effect(
       return undefined
     }
 
-    const startEngine = Effect.fn("LocalEngine.start")(function* (options: StartEngineOptions) {
+    const safeMetadata = (file: string): GgufMetadata | undefined => {
+      try {
+        return readGgufMetadataCached(file)
+      } catch {
+        return undefined
+      }
+    }
+
+    const defined = <T extends object>(input: T): Partial<T> =>
+      Object.fromEntries(Object.entries(input).filter(([, value]) => value !== undefined)) as Partial<T>
+
+    // What the engine really runs with: the saved defaults (Settings › Local models), then the
+    // caller's explicit values, then — when automatic configuration is on — the recommendation
+    // computed from the GGUF header and this machine's VRAM/RAM for context, GPU layers, threads,
+    // batch and KV cache. Seed and RoPE stay manual.
+    const effectiveOptions = Effect.fn("LocalEngine.effectiveOptions")(function* (
+      requested: StartEngineOptions,
+      file: string,
+    ) {
+      const defaults = getLoadDefaults()
+      const { auto: defaultAuto, ...defaultOptions } = defaults
+      const auto = requested.auto ?? defaultAuto
+      const manual: StartEngineOptions = {
+        ...defined(defaultOptions),
+        ...defined(requested),
+        model: requested.model,
+        file: requested.file,
+        auto,
+      }
+      if (!auto) return manual
+      const size = statSync(file).size
+      const rec = recommendLoadOptions({ sizeBytes: size, metadata: safeMetadata(file), hardware: yield* hardwareInfo() })
+      return {
+        ...manual,
+        contextSize: rec.contextSize,
+        gpuLayers: rec.gpuLayers,
+        threads: rec.threads,
+        batchSize: rec.batchSize,
+        flashAttention: rec.flashAttention,
+        kvCacheType: rec.kvCacheType,
+        keepInMemory: rec.keepInMemory,
+        useMmap: rec.useMmap,
+        kvOffload: rec.kvOffload,
+        parallel: rec.parallel,
+        auto: true,
+      } satisfies StartEngineOptions
+    })
+
+    const expectedContext = Effect.fn("LocalEngine.expectedContext")(function* (file: string) {
+      const resolved = path.isAbsolute(file) && existsSync(file) ? file : resolveModelFile(file, file)
+      if (!resolved) return getLoadDefaults().contextSize ?? DEFAULT_CTX_SIZE
+      if (currentStatus === "running" && currentApplied && currentModelPath?.toLowerCase() === resolved.toLowerCase()) {
+        return currentApplied.contextSize
+      }
+      const effective = yield* effectiveOptions({ model: file, file: resolved }, resolved)
+      return effective.contextSize ?? DEFAULT_CTX_SIZE
+    })
+
+    const startEngine = Effect.fn("LocalEngine.start")(function* (requested: StartEngineOptions) {
       // 1. Detener instancia previa si existe
       yield* stopEngine()
 
       currentStatus = "starting"
-      currentPort = options.port ?? DEFAULT_PORT
-      currentGpuLayers = options.gpuLayers ?? DEFAULT_GPU_LAYERS
-      currentContextSize = options.contextSize ?? DEFAULT_CTX_SIZE
+      currentPort = requested.port ?? DEFAULT_PORT
       lastError = undefined
       stderrRing = []
-      currentAuto = options.auto === true
       currentApplied = undefined
 
-      const resolvedModelFile = resolveModelFile(options.model, options.file)
+      const resolvedModelFile = resolveModelFile(requested.model, requested.file)
 
       if (!resolvedModelFile || !existsSync(resolvedModelFile)) {
         currentStatus = "error"
-        lastError = `El archivo del modelo no existe en disco: ${options.file || options.model}. Descárgalo primero desde el Models Hub.`
+        lastError = `El archivo del modelo no existe en disco: ${requested.file || requested.model}. Descárgalo primero desde el Models Hub.`
         return getStatus()
       }
+
+      const options = yield* effectiveOptions(requested, resolvedModelFile)
+      currentGpuLayers = options.gpuLayers ?? DEFAULT_GPU_LAYERS
+      currentContextSize = options.contextSize ?? DEFAULT_CTX_SIZE
+      currentAuto = options.auto === true
 
       currentModelPath = resolvedModelFile
       currentModelName = path.basename(resolvedModelFile).replace(/\.gguf$/i, "")
@@ -1192,6 +1261,9 @@ const layer = Layer.effect(
       start: startEngine,
       stop: stopEngine,
       resolveModelFile: (model: string, file: string) => Effect.sync(() => resolveModelFile(model, file)),
+      loadDefaults: () => Effect.sync(() => getLoadDefaults()),
+      setLoadDefaults: (next: unknown) => Effect.sync(() => setLoadDefaults(next)),
+      expectedContext,
     })
   }),
 )

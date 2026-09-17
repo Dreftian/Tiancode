@@ -278,10 +278,22 @@ export function preferredWindowSize() {
 // First launch: a frameless, transparent window that is exactly the welcome card and nothing
 // else. It is not a main window (never registered nor restored); when the card finishes, the
 // renderer calls welcome-done and the real main window takes over.
-export function createWelcomeWindow() {
+export type WelcomeWindowMode = "first" | "review" | "upgrade"
+let welcomeWindow: BrowserWindow | undefined
+
+export function getWelcomeWindow() {
+  return welcomeWindow && !welcomeWindow.isDestroyed() ? welcomeWindow : undefined
+}
+
+export function createWelcomeWindow(mode: WelcomeWindowMode = "first") {
+  const existing = getWelcomeWindow()
+  if (existing) {
+    existing.focus()
+    return existing
+  }
   const win = new BrowserWindow({
-    width: 560,
-    height: 540,
+    width: 620,
+    height: 660,
     resizable: false,
     maximizable: false,
     minimizable: false,
@@ -303,8 +315,12 @@ export function createWelcomeWindow() {
     },
   })
   allowRendererPermissions(win)
-  loadWindow(win, "index.html?welcome=first")
+  loadWindow(win, `index.html?welcome=${mode}`)
   win.once("ready-to-show", () => win.show())
+  welcomeWindow = win
+  win.on("closed", () => {
+    if (welcomeWindow === win) welcomeWindow = undefined
+  })
   return win
 }
 

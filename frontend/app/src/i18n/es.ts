@@ -2952,7 +2952,7 @@ export const dict = {
   "welcome.step.start": "Cómo empezar",
   "welcome.start.title": "Al abrir Tiancode",
   "welcome.start.chat": "Chat",
-  "welcome.start.chat.desc": "Abre una conversación lista para escribir. Elige una carpeta con «Nuevo proyecto» cuando quieras trabajar con código.",
+  "welcome.start.chat.desc": "Abre una conversación lista para escribir, sin carpeta. Puedes elegir una después con «Nuevo proyecto».",
   "welcome.start.home": "Inicio",
   "welcome.start.home.desc": "La pantalla de inicio con tus proyectos y sesiones recientes.",
   "welcome.start.defaults": "Razonamiento en Auto, modo rápido desactivado y permisos en Auto. Puedes cambiarlo en cualquier momento desde el chat.",
@@ -2986,4 +2986,7 @@ export const dict = {
   "settings.modelsHub.reason.exceeds_memory": "Supera la memoria de este equipo: puede ir muy lento o fallar.",
   "settings.modelsHub.size.unknown": "calculando…",
   "settings.modelsHub.dir.applied": "Carpeta aplicada. Los modelos que contiene ya aparecen en «En disco».",
+  "welcome.start.code": "Code",
+  "welcome.start.code.desc": "Elige una carpeta al abrir y empieza una sesión de programación en ella.",
+  "welcome.start.every": "Se aplica cada vez que abres Tiancode. Puedes cambiarlo aquí cuando quieras.",
 }

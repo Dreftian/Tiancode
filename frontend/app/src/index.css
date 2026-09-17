@@ -3,6 +3,17 @@
 @import "@tiancode-ai/ui/v2/styles/tailwind.css";
 @import "tw-animate-css";
 
+/* One scrollbar for the whole app: thin, without arrow buttons, translucent thumb on a
+   transparent track. `scrollbar-width`/`scrollbar-color` are inherited, so every scroll container
+   picks them up; components that hide their bar on purpose keep `scrollbar-width: none`. */
+:root {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--v2-text-text-weak, #8b8b93) 42%, transparent) transparent;
+}
+:root:hover {
+  scrollbar-color: color-mix(in srgb, var(--v2-text-text-weak, #8b8b93) 55%, transparent) transparent;
+}
+
 @font-face {
   font-family: "JetBrainsMono Nerd Font Mono";
   src: url("/assets/JetBrainsMonoNerdFontMono-Regular.woff2") format("woff2");

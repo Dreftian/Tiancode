@@ -2792,7 +2792,7 @@ export const dict = {
   "welcome.step.start": "開始方法",
   "welcome.start.title": "Tiancode を開いたとき",
   "welcome.start.chat": "チャット",
-  "welcome.start.chat.desc": "すぐに入力できる会話を開きます。コードを扱うときは「新しいプロジェクト」でフォルダーを選びます。",
+  "welcome.start.chat.desc": "フォルダーなしで、すぐに入力できる会話を開きます。後で「新しいプロジェクト」から選べます。",
   "welcome.start.home": "ホーム",
   "welcome.start.home.desc": "プロジェクトと最近のセッションが並ぶホーム画面。",
   "welcome.start.defaults": "推論は自動、高速モードはオフ、権限は自動。チャットからいつでも変更できます。",
@@ -2826,4 +2826,7 @@ export const dict = {
   "settings.modelsHub.reason.exceeds_memory": "このマシンのメモリを超えています。非常に遅くなるか失敗する可能性があります。",
   "settings.modelsHub.size.unknown": "計算中…",
   "settings.modelsHub.dir.applied": "フォルダーを適用しました。含まれるモデルは「ディスク上」に表示されます。",
+  "welcome.start.code": "コード",
+  "welcome.start.code.desc": "起動時にフォルダーを選び、その中でコーディングセッションを始めます。",
+  "welcome.start.every": "Tiancode を開くたびに適用されます。ここでいつでも変更できます。",
 }

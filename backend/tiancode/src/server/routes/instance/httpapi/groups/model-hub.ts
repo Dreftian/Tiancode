@@ -146,6 +146,23 @@ export const ModelLocalFile = Schema.Struct({
   error: Schema.optional(Schema.String),
 })
 
+export const ModelEngineDefaults = Schema.Struct({
+  auto: Schema.Boolean,
+  gpuLayers: Schema.optional(Schema.Number),
+  contextSize: Schema.optional(Schema.Number),
+  batchSize: Schema.optional(Schema.Number),
+  flashAttention: Schema.optional(Schema.Boolean),
+  kvCacheType: Schema.optional(Schema.Literals(["f16", "q8_0", "q4_0"])),
+  keepInMemory: Schema.optional(Schema.Boolean),
+  useMmap: Schema.optional(Schema.Boolean),
+  seed: Schema.optional(Schema.Number),
+  threads: Schema.optional(Schema.Number),
+  ropeFrequencyBase: Schema.optional(Schema.Number),
+  ropeFrequencyScale: Schema.optional(Schema.Number),
+  kvOffload: Schema.optional(Schema.Boolean),
+  parallel: Schema.optional(Schema.Number),
+})
+
 export const ModelDirInput = Schema.Struct({
   dir: Schema.NullOr(Schema.String),
 })
@@ -382,6 +399,27 @@ export const ModelHubApi = HttpApi.make("model-hub")
             identifier: "modelhub.engineStart",
             summary: "Start native engine",
             description: "Start or switch the embedded llama-server with a local GGUF model.",
+          }),
+        ),
+        HttpApiEndpoint.get("engineDefaults", "/models/engine/defaults", {
+          query: WorkspaceRoutingQuery,
+          success: described(ModelEngineDefaults, "Default load options"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "modelhub.engineDefaults",
+            summary: "Get default load options",
+            description: "The load options (automatic configuration flag and manual knobs) used whenever the engine starts without explicit values, e.g. on demand from the chat.",
+          }),
+        ),
+        HttpApiEndpoint.post("engineDefaultsSet", "/models/engine/defaults", {
+          query: WorkspaceRoutingQuery,
+          payload: ModelEngineDefaults,
+          success: described(ModelEngineDefaults, "Saved default load options"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "modelhub.engineDefaultsSet",
+            summary: "Save default load options",
+            description: "Persist the load options chosen in Settings so every engine start, including the automatic one from the chat, uses them.",
           }),
         ),
         HttpApiEndpoint.post("engineStop", "/models/engine/stop", {

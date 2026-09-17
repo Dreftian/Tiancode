@@ -144,6 +144,9 @@ type Deps = {
   setDefaultServerUrl: (url: string | null) => Promise<void> | void
   isFirstLaunchOnboardingPending: () => Promise<boolean> | boolean
   openMainWindowAfterWelcome: () => void
+  /** Bring an existing main window to the front; false when there is none. */
+  focusMainWindow: () => boolean
+  openWelcomeWindow: (mode: "review" | "upgrade") => void
   finishFirstLaunchOnboarding: (createDefaultProject: boolean) => Promise<string | null> | string | null
   isOldLayoutEligible: () => Promise<boolean> | boolean
   getDisplayBackend: () => Promise<string | null>
@@ -228,11 +231,16 @@ export function registerIpcHandlers(deps: Deps) {
   ipcMain.handle("finish-first-launch-onboarding", (_event: IpcMainInvokeEvent, createDefaultProject: boolean) =>
     deps.finishFirstLaunchOnboarding(createDefaultProject),
   )
-  // The standalone welcome card is done: open the real main window and close the card.
+  // The standalone welcome card is done: reveal the main window (create it on first launch) and
+  // close the card.
   ipcMain.handle("welcome-done", (event: IpcMainInvokeEvent) => {
     const sender = BrowserWindow.fromWebContents(event.sender)
-    deps.openMainWindowAfterWelcome()
+    if (!deps.focusMainWindow()) deps.openMainWindowAfterWelcome()
     if (sender && !sender.isDestroyed()) sender.close()
+  })
+  // Settings › Abrir asistente, or the confirmation after an update: the card in its own window.
+  ipcMain.handle("welcome-open", (_event: IpcMainInvokeEvent, mode: unknown) => {
+    deps.openWelcomeWindow(mode === "upgrade" ? "upgrade" : "review")
   })
   ipcMain.handle("is-old-layout-eligible", () => deps.isOldLayoutEligible())
   ipcMain.handle("get-display-backend", () => deps.getDisplayBackend())

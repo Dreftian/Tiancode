@@ -271,6 +271,7 @@ declare global {
       isFirstLaunchOnboardingPending?: () => Promise<boolean>
       finishFirstLaunchOnboarding?: (createDefaultProject?: boolean) => Promise<string | null>
       welcomeDone?: () => Promise<void>
+      welcomeOpen?: (mode: "review" | "upgrade") => Promise<void>
       setCompactWindow?: (options?: { width?: number; height?: number }) => Promise<void>
       restoreMainWindow?: () => Promise<void>
       localModels?: {
@@ -534,14 +535,25 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
     }
   }
 
-  // The desktop opens a transparent window that shows only the welcome card on first launch
-  // (index.html?welcome=first). In that window nothing else of the app may render.
-  const standaloneWelcome =
-    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("welcome") === "first"
+  // The desktop opens a transparent window that shows only the welcome card: on first launch
+  // (index.html?welcome=first), from Settings (welcome=review) and after an update
+  // (welcome=upgrade). In that window nothing else of the app may render.
+  const welcomeParam = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("welcome") : null
+  const standaloneWelcome = welcomeParam === "first" || welcomeParam === "review" || welcomeParam === "upgrade"
+  const standaloneMode = (): WelcomeSetupMode =>
+    welcomeParam === "review" ? "review" : welcomeParam === "upgrade" ? "upgrade" : "first-run"
   if (standaloneWelcome && typeof document !== "undefined") document.documentElement.classList.add("welcome-standalone")
-  const [welcomeMode, setWelcomeMode] = createSignal<WelcomeSetupMode | undefined>(
-    standaloneWelcome ? "first-run" : pendingWelcomeSetup(),
-  )
+  // With a desktop shell the upgrade confirmation gets its own window too instead of a modal.
+  const initialWelcome = (): WelcomeSetupMode | undefined => {
+    if (standaloneWelcome) return standaloneMode()
+    const pending = pendingWelcomeSetup()
+    if (pending === "upgrade" && window.api?.welcomeOpen) {
+      void window.api.welcomeOpen("upgrade")
+      return undefined
+    }
+    return pending
+  }
+  const [welcomeMode, setWelcomeMode] = createSignal<WelcomeSetupMode | undefined>(initialWelcome())
   // Only the very first setup blocks the app; a review or an upgrade confirmation is a modal
   // over the loaded app, without shrinking or restyling the window.
   const firstLaunchActive = () => welcomeMode() === "first-run"
@@ -551,7 +563,13 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
   )
 
   onMount(() => {
-    const handleOpen = () => setWelcomeMode("review")
+    const handleOpen = () => {
+      if (window.api?.welcomeOpen) {
+        void window.api.welcomeOpen("review")
+        return
+      }
+      setWelcomeMode("review")
+    }
     window.addEventListener("tiancode:open-welcome-setup", handleOpen)
     onCleanup(() => window.removeEventListener("tiancode:open-welcome-setup", handleOpen))
   })

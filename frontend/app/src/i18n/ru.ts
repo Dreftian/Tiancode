@@ -2898,7 +2898,7 @@ export const dict = {
   "welcome.step.start": "Как начать",
   "welcome.start.title": "При открытии Tiancode",
   "welcome.start.chat": "Чат",
-  "welcome.start.chat.desc": "Открывает беседу, готовую к вводу. Выберите папку через «Новый проект», когда нужно работать с кодом.",
+  "welcome.start.chat.desc": "Открывает беседу, готовую к вводу, без папки. Позже её можно выбрать через «Новый проект».",
   "welcome.start.home": "Главная",
   "welcome.start.home.desc": "Главный экран с проектами и недавними сеансами.",
   "welcome.start.defaults": "Рассуждение — Авто, быстрый режим выключен, разрешения — Авто. Изменить можно в любой момент из чата.",
@@ -2932,4 +2932,7 @@ export const dict = {
   "settings.modelsHub.reason.exceeds_memory": "Превышает память этого компьютера: может работать очень медленно или не запуститься.",
   "settings.modelsHub.size.unknown": "вычисляется…",
   "settings.modelsHub.dir.applied": "Папка применена. Модели из неё уже видны в разделе «На диске».",
+  "welcome.start.code": "Код",
+  "welcome.start.code.desc": "Выберите папку при открытии и начните сеанс программирования в ней.",
+  "welcome.start.every": "Применяется при каждом открытии Tiancode. Изменить можно здесь в любое время.",
 }

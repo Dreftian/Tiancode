@@ -57,6 +57,11 @@ modelo activo. El asistente añade el paso «Cómo empezar» (Chat o Inicio). At
 rehacer, compactar, bifurcar, compartir, proveedor, servidor e idioma. Servidor con protección
 contra DNS rebinding, cabeceras de seguridad y bloqueo por intentos de autenticación fallidos.
 
+Motor local coherente entre el chat y Modelos locales (misma configuración automática y límite de
+contexto real, sin compactaciones espurias), carpeta personalizada visible en el chat, pestañas del
+hub con desplazamiento, asistente de bienvenida siempre en ventana propia con Chat/Code/Inicio y
+barras de desplazamiento finas en toda la app.
+
 La versión es inferior a 1.0.54: se instala manualmente y conserva claves, sesiones,
 configuración y respaldos. Detalles: [notas de versión](tools/releases/v1.0.0.md).
 

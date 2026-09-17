@@ -52,6 +52,7 @@ interface Window {
     isFirstLaunchOnboardingPending?: () => Promise<boolean>
     finishFirstLaunchOnboarding?: (createDefaultProject?: boolean) => Promise<string | null>
     welcomeDone?: () => Promise<void>
+    welcomeOpen?: (mode: "review" | "upgrade") => Promise<void>
     setCompactWindow?: (options?: { width?: number; height?: number }) => Promise<void>
     restoreMainWindow?: () => Promise<void>
     localModels?: {

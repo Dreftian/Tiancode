@@ -16,6 +16,14 @@
   color: var(--v2-text-text-base);
   overflow: hidden;
 }
+/* Only Explore keeps an inner scrolling list; the other tabs are plain content the settings panel
+   scrolls like every other section (a fixed height + overflow hidden made them unscrollable). */
+.lm-hub-container:not([data-tab="explore"]) {
+  height: auto;
+  min-height: 0;
+  flex: none;
+  overflow: visible;
+}
 
 /* --------------------------------------------------------------------------
    1. Telemetry chips (hardware + runtimes)

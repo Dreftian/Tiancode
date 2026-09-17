@@ -2766,7 +2766,7 @@ export const dict = {
   "welcome.step.start": "如何开始",
   "welcome.start.title": "打开 Tiancode 时",
   "welcome.start.chat": "聊天",
-  "welcome.start.chat.desc": "打开可直接输入的对话。需要处理代码时，用“新建项目”选择文件夹。",
+  "welcome.start.chat.desc": "打开可直接输入的对话，不带文件夹。之后可通过“新建项目”选择。",
   "welcome.start.home": "主页",
   "welcome.start.home.desc": "显示项目和最近会话的主页。",
   "welcome.start.defaults": "推理为自动，快速模式关闭，权限为自动。可随时在聊天中更改。",
@@ -2800,4 +2800,7 @@ export const dict = {
   "settings.modelsHub.reason.exceeds_memory": "超出本机内存：可能非常慢或失败。",
   "settings.modelsHub.size.unknown": "计算中…",
   "settings.modelsHub.dir.applied": "文件夹已应用。其中的模型已显示在“磁盘上”。",
+  "welcome.start.code": "代码",
+  "welcome.start.code.desc": "打开时选择文件夹，并在其中开始编程会话。",
+  "welcome.start.every": "每次打开 Tiancode 时都会应用。可随时在此更改。",
 } satisfies Partial<Record<Keys, string>>
