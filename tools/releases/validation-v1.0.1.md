@@ -9,7 +9,7 @@ Fecha: 23 de septiembre de 2026. Windows x64; compilación `TIANCODE_CHANNEL=pro
 | Backend: configuración JSON/JSONC, ciclo de vida MCP, motor local, transformaciones de proveedores, reintentos, contexto de sistema y mensajes | 634 correctas, 0 fallidas; 1.147 aserciones |
 | App: estado y anuncios de la mascota, catálogo, comandos y configuración MCP, origen de plugins | 9 correctas, 0 fallidas; 29 aserciones |
 | Desktop: registro de ventanas y autorización de permisos | 2 correctas, 0 fallidas; 10 aserciones |
-| Tipos | `bun typecheck` correcto en `backend/tiancode`, `frontend/app` y `frontend/desktop` |
+| Tipos | `bun typecheck` correcto en `backend/tiancode`, `frontend/app` y `frontend/desktop`; el control previo al push también completó las 27 tareas de tipos del monorepo |
 | Windows | Instalador y portátil 1.0.1, blockmap, `latest.yml`, iconos y recursos comprobados por `verify:win-release` |
 
 Los tests de configuración comprueban que una definición MCP completa sustituye el transporte anterior, que una modificación de `enabled` conserva comando y variables, y que eliminar un MCP conserva el modelo y los demás servidores. Los tests de permisos cubren varias ventanas simultáneas y rechazan renderers y orígenes no registrados.
@@ -35,6 +35,13 @@ Esta prueba comprueba la generación y el parseo de la llamada. No afirma que es
 - Catálogo de 206 entradas, búsqueda y filtros. Skill I Have ADHD visible como instalada en el perfil de prueba.
 - Descarga real con el importador: Diagram Design (236 archivos), Security Audit (20), I Have ADHD (3) y Frontend Design del catálogo Cline (1). Se conserva `SKILL.md`; los recursos de texto admitidos viajan con la skill. El importador actual no transporta recursos binarios.
 - A 390 px se reprodujo el recorte del contenido y se corrigieron navegación, buscador y filtros. Después, el panel midió 348 px de ancho y 348 px de contenido, sin desbordamiento horizontal. Las secciones recorridas a 800 px tampoco desbordaron el panel.
+
+## Publicación y actualización desde 1.0.0
+
+- Publicación estable [v1.0.1](https://github.com/Dreftian/Tiancode/releases/tag/v1.0.1), marcada como la versión más reciente, desde el commit `2a7864faf09a25b45ba7a75480f47eda5be7ff30`.
+- Los cuatro archivos publicados coinciden con los tamaños y SHA-256 locales: `Tiancode.exe`, `Tiancode-portable.exe`, `Tiancode.exe.blockmap` y `latest.yml`. El manifiesto público declara `version: 1.0.1`.
+- Se abrió Tiancode 1.0.0 instalado y se usó **Ajustes → General → Actualizaciones → Buscar ahora**. La interfaz pasó por «Buscando...», «Descargando...» y finalmente mostró **«Instalar y reiniciar»**.
+- La comprobación terminó con la actualización descargada y lista. No se ejecutó el instalador ni se reinició la aplicación durante esta validación.
 
 ## Límites de la validación
 
