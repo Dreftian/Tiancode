@@ -19,6 +19,20 @@ export type DesktopPetState = {
   visible: boolean
 }
 
+// The desktop pet is a status indicator, so never let a streamed answer or
+// reasoning trace grow the transparent window. The complete text stays in the
+// app transcript.
+function compactDesktopPetText(input: string, limit = 96) {
+  const normalized = input.replace(/\s+/g, " ").trim()
+  if (!normalized || limit < 2) return normalized
+  const firstSentence = normalized.match(/^.*?[.!?。！？](?:\s|$)/)?.[0]?.trim() ?? normalized
+  const candidate = firstSentence.length < normalized.length ? firstSentence : normalized
+  if (candidate.length <= limit) return candidate
+  const clipped = candidate.slice(0, limit - 1).trimEnd()
+  const boundary = clipped.lastIndexOf(" ")
+  return `${(boundary > limit * 0.55 ? clipped.slice(0, boundary) : clipped).trimEnd()}…`
+}
+
 const petGlyphs: Record<string, string> = {
   dewey: "💧",
   fireball: "🔥",
@@ -232,8 +246,8 @@ export function getPetHtml(state: DesktopPetState): string {
       flex-direction: column;
       align-items: flex-end;
       justify-content: flex-end;
-      gap: 6px;
-      padding: 8px 12px 10px;
+      gap: 4px;
+      padding: 6px 8px 8px;
       -webkit-app-region: drag;
     }
     .pet-enter { animation: pet-enter 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
@@ -242,14 +256,15 @@ export function getPetHtml(state: DesktopPetState): string {
     .pet-bubble {
       -webkit-app-region: no-drag;
       position: relative;
-      max-width: 208px;
-      padding: 7px 11px;
+      width: min(208px, 100%);
+      max-height: 36px;
+      padding: 5px 8px;
       border-radius: 12px;
       background: rgba(15, 23, 42, 0.94);
       border: 1px solid rgba(148, 163, 184, 0.25);
       color: #e2e8f0;
       font-size: 11.5px;
-      line-height: 1.35;
+      line-height: 1.25;
       box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
       cursor: pointer;
       opacity: 0;
@@ -269,7 +284,7 @@ export function getPetHtml(state: DesktopPetState): string {
       border-bottom: 1px solid rgba(148, 163, 184, 0.25);
       transform: rotate(45deg);
     }
-    .bubble-text { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .bubble-text { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
     .typing-dots { display: none; margin-left: 4px; }
     .pet-container.running .typing-dots { display: inline-flex; gap: 2px; vertical-align: middle; }
     .typing-dots span { width: 4px; height: 4px; border-radius: 50%; background: #38bdf8; animation: dots 1s ease-in-out infinite; }
@@ -283,8 +298,8 @@ export function getPetHtml(state: DesktopPetState): string {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 84px;
-      height: 84px;
+      width: 76px;
+      height: 76px;
       cursor: pointer;
       transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.22s ease;
     }
@@ -656,7 +671,11 @@ export function createDesktopPetWindow(): BrowserWindow {
 export function updateDesktopPet(partial: Partial<DesktopPetState>) {
   const previousStatus = petState.status
   const previousPetted = petState.petted
-  petState = { ...petState, ...partial }
+  petState = {
+    ...petState,
+    ...partial,
+    text: typeof partial.text === "string" ? compactDesktopPetText(partial.text) : petState.text,
+  }
 
   if (petState.visible && (!petWindow || petWindow.isDestroyed())) {
     createDesktopPetWindow()

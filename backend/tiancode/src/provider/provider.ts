@@ -147,6 +147,49 @@ type CustomLoader = (provider: Info) => Effect.Effect<{
   discoverModels?: CustomDiscoverModels
 }>
 
+const LOCAL_ENGINE_URL = "http://127.0.0.1:58282"
+
+function localModelName(value: string) {
+  return value
+    .replaceAll("\\", "/")
+    .split("/")
+    .at(-1)
+    ?.replace(/\.(?:gguf|bin|safetensors)$/i, "")
+    .toLowerCase()
+}
+
+/**
+ * Returns undefined when llama-server cannot identify its current model. An unknown response is
+ * treated as compatible so an older but healthy server is not restarted just because it lacks
+ * `/props`; a definite mismatch must reload before the request is sent.
+ */
+export function localEngineModelMatches(requested: string, props: unknown): boolean | undefined {
+  if (!isRecord(props)) return undefined
+  const candidates = [props.model_path, props.model_alias, props.model]
+    .filter((value): value is string => typeof value === "string")
+    .map(localModelName)
+    .filter((value): value is string => Boolean(value))
+  const wanted = localModelName(requested)
+  if (!wanted || candidates.length === 0) return undefined
+  return candidates.some((candidate) => candidate === wanted || (candidate.length > 8 && (candidate.includes(wanted) || wanted.includes(candidate))))
+}
+
+async function localEngineHasModel(modelID: string) {
+  try {
+    const health = await fetch(`${LOCAL_ENGINE_URL}/health`, { signal: AbortSignal.timeout(1000) })
+    if (!health.ok) return false
+    try {
+      const propsResponse = await fetch(`${LOCAL_ENGINE_URL}/props`, { signal: AbortSignal.timeout(1000) })
+      if (!propsResponse.ok) return true
+      return localEngineModelMatches(modelID, await propsResponse.json()) !== false
+    } catch {
+      return true
+    }
+  } catch {
+    return false
+  }
+}
+
 export type CustomDep = {
   auth: (id: string) => Effect.Effect<Auth.Info | undefined>
   config: () => Effect.Effect<ConfigV1.Info>
@@ -218,21 +261,12 @@ export function custom(dep: CustomDep): Record<string, CustomLoader> {
     local: () =>
       Effect.succeed({
         autoload: true,
-        options: { baseURL: "http://127.0.0.1:58282/v1" },
+        options: { baseURL: `${LOCAL_ENGINE_URL}/v1` },
         async getModel(sdk: any, modelID: string, _options?: Record<string, any>, _model?: Model) {
-          const probe = async () => {
-            try {
-              const res = await fetch("http://127.0.0.1:58282/health", { signal: AbortSignal.timeout(1000) })
-              return res.ok
-            } catch {
-              return false
-            }
-          }
-
           // Selecting a local model in the composer has to be enough to get it running: most users
           // never open the Models Hub, so this is the path that matters. It hands the work to the
           // one engine implementation rather than repeating it (see CustomDep.startLocalEngine).
-          if (!(await probe())) {
+          if (!(await localEngineHasModel(modelID))) {
             await dep.startLocalEngine({ model: modelID, file: modelID }).catch(() => undefined)
           }
 
@@ -2050,7 +2084,9 @@ const layer = Layer.effect(
       const s = yield* InstanceState.get(state)
       const envs = yield* env.all()
       const key = `${model.providerID}/${model.id}`
-      if (s.models.has(key)) return s.models.get(key)!
+      // The single local engine may have switched models since this SDK model
+      // was cached. Run the local loader's health/model check on every turn.
+      if (s.models.has(key) && model.providerID !== "local") return s.models.get(key)!
 
       const provider = s.providers[model.providerID]
       return yield* EffectPromise.refineRejection(

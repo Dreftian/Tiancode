@@ -6,7 +6,7 @@ import { useServerSync } from "@/context/server-sync"
 import { petKinds, useSettings } from "@/context/settings"
 import { PetGlyph } from "@/components/pet/pet-glyph"
 import type { MascotMood } from "@tiancode-ai/ui/mascot"
-import { resolvePetCompanionStatus, type PetCompanionStatus } from "./pet-companion-state"
+import { compactPetText, resolvePetCompanionStatus, type PetCompanionStatus } from "./pet-companion-state"
 import { speakAutomaticallyWithVoices } from "@/utils/voices"
 import "./pet-companion.css"
 
@@ -38,7 +38,7 @@ function announcementText(session: { part: Record<string, MessagePart[] | undefi
   const announcement = parts.find((part): part is TextPart => part.type === "text")
   const text = announcement?.text.trim()
   if (!text) return ""
-  return text.replace(/\s+/g, " ").trim()
+  return compactPetText(text)
 }
 
 export function PetCompanion() {
@@ -77,8 +77,7 @@ export function PetCompanion() {
     return language.t(key) ?? key
   })
   const label = createMemo(() => {
-    const text = bubbleText() ?? ""
-    return text.length > 240 ? text.slice(0, 240) : text
+    return compactPetText(bubbleText() ?? "", 96)
   })
   const mood = createMemo<MascotMood>(() => {
     if (status() === "running") return "writing"
@@ -117,21 +116,26 @@ export function PetCompanion() {
     }
   })
 
-  // Cuando la IA planifica o da contexto de lo que va a hacer, la mascota lo narra con voz femenina
+  // The text part is streamed one delta at a time. Debounce the announcement so a long
+  // response does not produce one voice request per delta, and keep only the final compact
+  // sentence that the mascot shows.
   let lastSpoken = ""
+  let speakTimer: ReturnType<typeof setTimeout> | undefined
   createEffect(() => {
     const isPetActive = settings.general.petEnabled()
     const currentAction = actionText().trim()
-    if (
-      isPetActive &&
-      currentAction &&
-      currentAction !== lastSpoken &&
-      currentAction.length > 5 &&
-      status() === "running"
-    ) {
+    if (speakTimer !== undefined) clearTimeout(speakTimer)
+    speakTimer = undefined
+    if (!isPetActive || !currentAction || currentAction === lastSpoken || currentAction.length <= 5 || status() !== "running") return
+    speakTimer = setTimeout(() => {
+      speakTimer = undefined
+      if (status() !== "running" || actionText().trim() !== currentAction || currentAction === lastSpoken) return
       lastSpoken = currentAction
       void speakAutomaticallyWithVoices(`pet:${params.id}:${currentAction.slice(0, 30)}`, currentAction)
-    }
+    }, 450)
+  })
+  onCleanup(() => {
+    if (speakTimer !== undefined) clearTimeout(speakTimer)
   })
 
   const cycleNextPet = (e: MouseEvent) => {

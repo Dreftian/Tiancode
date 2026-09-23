@@ -733,8 +733,7 @@ const layer = Layer.effect(
       s.config[name] = mcp
       // Persist in the global config so the server survives restarts, even if
       // connecting below fails (e.g. the runtime is missing on this machine).
-      const cfg = yield* cfgSvc.getGlobal()
-      yield* cfgSvc.updateGlobal({ ...cfg, mcp: { ...cfg.mcp, [name]: mcp } })
+      yield* cfgSvc.updateGlobal({ mcp: { [name]: mcp } })
       // The instance config cache still holds the pre-add state; invalidate it
       // so GET /config and the settings list reflect the new server now, not
       // only after the next instance reload.
@@ -785,10 +784,7 @@ const layer = Layer.effect(
       delete s.config[name]
       delete s.status[name]
       // Persist the removal in the global config so it survives restarts.
-      const cfg = yield* cfgSvc.getGlobal()
-      const next = { ...cfg.mcp }
-      delete next[name]
-      yield* cfgSvc.updateGlobal({ ...cfg, mcp: next })
+      yield* cfgSvc.removeMcp(name)
       // Invalidate the instance config cache so the settings list drops the
       // server immediately instead of showing it as disabled until reload.
       yield* cfgSvc.invalidateInstance()

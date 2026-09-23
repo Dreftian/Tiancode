@@ -127,8 +127,26 @@
 
 .mcp-plugins-discover-stats {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   flex: none;
+}
+
+.win11-discover-wrapper > [data-slot="segmented-control-v2"] {
+  min-width: 0;
+  max-width: 100%;
+  height: auto;
+  flex-wrap: wrap;
+}
+
+.win11-discover-wrapper > [data-slot="segmented-control-v2"] [data-slot="segmented-control-v2-item"] {
+  flex: 1 0 auto;
+}
+
+@container settings-panel (max-width: 560px) {
+  .mcp-plugins-discover-copy {
+    flex-basis: 100%;
+  }
 }
 
 .mcp-plugins-search-box {
@@ -136,6 +154,11 @@
   min-width: 0;
   max-width: 280px;
   flex: 1 1 200px;
+}
+
+.mcp-plugins-search-box [data-component="text-input-v2"] {
+  width: 100%;
+  min-width: 0;
 }
 
 .mcp-plugins-grid {
@@ -347,6 +370,8 @@
 .mcp-plugins-modal {
   width: 100%;
   max-width: 520px;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
   background-color: var(--v2-background-bg-base);
   border: 0.5px solid var(--v2-border-border-base);
   border-radius: 12px;
@@ -355,6 +380,19 @@
   flex-direction: column;
   gap: 16px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+}
+
+.mcp-config-editor {
+  min-width: 0;
+  width: 100%;
+  resize: vertical;
+  padding: 10px;
+  border: 1px solid var(--v2-border-border-base);
+  border-radius: 6px;
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  color: var(--v2-text-text-base);
+  background: var(--v2-background-bg-layer-01);
 }
 
 /* ==========================================================================

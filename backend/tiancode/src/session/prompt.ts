@@ -1274,13 +1274,13 @@ const layer = Layer.effect(
 
             const allAgents = yield* agents.list()
             const none = Effect.succeed(undefined)
-            // Lightweight (local / small-context) models skip the specialists, skills catalogue,
-            // MCP instructions and memory: together they exceed a 16k–32k context on their own.
+            // Local models receive bounded capability indexes and load skills on demand.
+            // Full catalogs, MCP instructions and memory can exceed their context.
             const [skills, autoSkills, subagentsPrompt, env, instructions, mcpInstructions, memoryPrompt, modelMsgs] =
               yield* Effect.all([
-                lightweight ? none : sys.skills(agent),
+                lightweight ? sys.skillIndex(agent) : sys.skills(agent),
                 lightweight ? none : sys.autoSkills(agent),
-                lightweight ? none : sys.subagents(agent, allAgents),
+                sys.subagents(agent, allAgents, lightweight),
                 lightweight ? Effect.succeed([] as string[]) : sys.environment(model),
                 instruction.system().pipe(Effect.orDie),
                 lightweight ? none : sys.mcp(agent, session.permission),
@@ -1291,6 +1291,8 @@ const layer = Layer.effect(
               ? [
                   ...lightweightEnvironment({ model, directory: ctx.directory, worktree: ctx.worktree }),
                   ...trimInstructions(instructions),
+                  ...(skills ? [skills] : []),
+                  ...(subagentsPrompt ? [subagentsPrompt] : []),
                 ]
               : [
                   ...env,

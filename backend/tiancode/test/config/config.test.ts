@@ -1351,7 +1351,7 @@ test("config parser preserves permission order while ignoring unknown top-level 
 
 // MCP config merging tests
 
-it.instance("project config can override MCP server enabled status", () =>
+it.instance("project MCP definitions require explicit activation", () =>
   Effect.gen(function* () {
     const test = yield* TestInstance
     // Simulates a base config (like from remote .well-known) with disabled MCP.
@@ -1390,7 +1390,7 @@ it.instance("project config can override MCP server enabled status", () =>
     expect(config.mcp?.jira).toEqual({
       type: "remote",
       url: "https://jira.example.com/mcp",
-      enabled: true,
+      enabled: false,
     })
     expect(config.mcp?.wiki).toEqual({
       type: "remote",
@@ -1400,7 +1400,7 @@ it.instance("project config can override MCP server enabled status", () =>
   }),
 )
 
-it.instance("MCP config deep merges preserving base config properties", () =>
+it.instance("unapproved MCP config preserves its merged properties", () =>
   Effect.gen(function* () {
     const test = yield* TestInstance
     yield* writeConfigEffect(test.directory, {
@@ -1435,7 +1435,7 @@ it.instance("MCP config deep merges preserving base config properties", () =>
     expect(config.mcp?.myserver).toEqual({
       type: "remote",
       url: "https://myserver.example.com/mcp",
-      enabled: true,
+      enabled: false,
       headers: {
         "X-Custom-Header": "value",
       },
@@ -1443,7 +1443,7 @@ it.instance("MCP config deep merges preserving base config properties", () =>
   }),
 )
 
-it.instance("local .tiancode config can override MCP from project config", () =>
+it.instance("local .tiancode MCP stays disabled pending activation", () =>
   Effect.gen(function* () {
     const test = yield* TestInstance
     yield* writeConfigEffect(test.directory, {
@@ -1473,7 +1473,7 @@ it.instance("local .tiancode config can override MCP from project config", () =>
     )
 
     const config = yield* Config.use.get()
-    expect(config.mcp?.docs?.enabled).toBe(true)
+    expect(config.mcp?.docs?.enabled).toBe(false)
   }),
 )
 
@@ -1484,12 +1484,12 @@ const remoteProjectOverride = wellKnown({
 })
 
 remoteProjectOverride.it.instance(
-  "project config overrides remote well-known config",
+  "project config cannot enable a disabled trusted remote MCP",
   () =>
     Effect.gen(function* () {
       const config = yield* Config.use.get()
       expect(remoteProjectOverride.seen.wellKnown).toBe("https://example.com/.well-known/tiancode")
-      expect(config.mcp?.jira?.enabled).toBe(true)
+      expect(config.mcp?.jira?.enabled).toBe(false)
     }),
   {
     git: true,
@@ -2045,3 +2045,38 @@ test("parseManagedPlist handles empty config", async () => {
   )
   expect(config.$schema).toBe("https://tiancode.ai/config.json")
 })
+
+for (const name of ["tiancode.json", "tiancode.jsonc"]) {
+  it.effect(`replaces a full MCP definition and preserves toggle patches in ${name}`, () =>
+    withGlobalConfig({ name, config: {
+      mcp: {
+        editable: { type: "remote", url: "https://example.com/mcp", headers: { Authorization: "secret" }, enabled: false },
+        untouched: { type: "local", command: ["test"], enabled: false },
+      },
+    } }, ({ dir }) => Effect.gen(function* () {
+      yield* Config.use.updateGlobal({ mcp: { editable: { enabled: true } } })
+      expect((yield* Config.use.getGlobal()).mcp?.editable).toMatchObject({ url: "https://example.com/mcp", enabled: true })
+      yield* Config.use.updateGlobal({ mcp: { editable: { type: "local", command: ["new", "argument with spaces"], enabled: false } } })
+      const content = yield* FSUtil.use.readFileString(path.join(dir, name))
+      const parsed = ConfigParse.jsonc(content, name)
+      expect(parsed).toHaveProperty("mcp.editable", { type: "local", command: ["new", "argument with spaces"], enabled: false })
+      expect(parsed).toHaveProperty("mcp.untouched", { type: "local", command: ["test"], enabled: false })
+    })),
+  )
+}
+
+it.effect("removes an MCP from both active scopes without removing other settings", () =>
+  withConfigTree({
+    global: { model: "test/keep", mcp: { removed: { type: "local", command: ["test"], enabled: false } } },
+    project: { mcp: { removed: { type: "remote", url: "https://example.com/mcp", enabled: false }, keep: { type: "local", command: ["test"], enabled: false } } },
+  }, Effect.gen(function* () {
+    yield* Config.use.removeMcp("removed")
+    const global = yield* Config.use.getGlobal()
+    expect(global.mcp).not.toHaveProperty("removed")
+    expect(global.model).toBe("test/keep")
+    const test = yield* TestInstance
+    const project = yield* FSUtil.use.readJson(path.join(test.directory, "tiancode.json"))
+    expect(project).toMatchObject({ mcp: { keep: { command: ["test"] } } })
+    expect(project).not.toHaveProperty("mcp.removed")
+  })),
+)

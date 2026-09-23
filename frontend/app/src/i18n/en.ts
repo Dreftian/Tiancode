@@ -2,6 +2,14 @@ import { SUBAGENT_CATALOG_ENGLISH } from "./subagent-catalog"
 import { DESKTOP_NATIVE_ENGLISH } from "./desktop-native"
 
 export const dict = {
+  "settings.marketplace.description": "MCP servers, skills and plugins from the Cline catalog. Installations are optional. Cline runtime plugins open their source because they require a compatible adapter.",
+  "settings.marketplace.source": "View source",
+  "settings.marketplace.diagramDescription": "Architecture and process diagrams as self-contained HTML and SVG.",
+  "settings.marketplace.securityDescription": "Security audits with evidence, independent validation and structured findings.",
+  "settings.marketplace.focusDescription": "Concise, action-first responses with clear next steps and reduced reading load.",
+  "settings.marketplace.removeConfirm": "Disconnect and remove MCP server \"{{name}}\" from configuration?",
+  "settings.marketplace.config": "MCP configuration (JSON)",
+  "settings.marketplace.configHint": "Review the command, URL, environment variables and headers. New entries are saved disabled; enable them when configuration is complete.",
   "settings.subAgents.list.detail.prompt": "System instructions",
   "settings.subAgents.list.detail.noPrompt": "This agent uses the default instructions of its mode.",
   "settings.mcpPlugins.detail.full": "Show transport, tools and origin of every entry",

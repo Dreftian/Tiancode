@@ -127,6 +127,7 @@ export interface Interface {
   readonly getConsoleState: () => Effect.Effect<ConsoleState>
   readonly update: (config: Info) => Effect.Effect<void>
   readonly updateGlobal: (config: Info) => Effect.Effect<{ info: Info; changed: boolean }>
+  readonly removeMcp: (name: string) => Effect.Effect<void>
   /**
    * Delete a local model from the provider registry in BOTH the project and the
    * global config file. update()/updateGlobal() cannot express this: they merge.
@@ -172,7 +173,7 @@ function writeGlobalAtomic(file: string, content: string) {
 }
 
 function patchJsonc(input: string, patch: unknown, path: string[] = []): string {
-  if (!isRecord(patch)) {
+  if (!isRecord(patch) || (path.length === 2 && path[0] === "mcp" && "type" in patch)) {
     const edits = modify(input, path, patch, {
       formattingOptions: {
         insertSpaces: true,
@@ -183,6 +184,18 @@ function patchJsonc(input: string, patch: unknown, path: string[] = []): string 
   }
 
   return Object.entries(patch).reduce((result, [key, value]) => patchJsonc(result, value, [...path, key]), input)
+}
+
+// A full MCP definition replaces that server. Deep merging remote into local
+// retains invalid URL/command fields and prevents removing old headers/secrets.
+export function mergeConfigPatch(base: Record<string, unknown>, patch: Record<string, unknown>) {
+  const merged = mergeDeep(base, patch)
+  if (isRecord(patch.mcp) && isRecord(merged.mcp)) {
+    for (const [name, entry] of Object.entries(patch.mcp)) {
+      if (isRecord(entry) && "type" in entry) merged.mcp[name] = entry
+    }
+  }
+  return merged
 }
 
 // --- Removal -----------------------------------------------------------------
@@ -858,7 +871,7 @@ const layer = Layer.effect(
       const text = yield* readConfigFile(file)
       const original = text ? ConfigParse.jsonc(text, file) : undefined
       const base = isRecord(original) ? original : writable(existing)
-      const merged = mergeDeep(base, writable(config)) as Record<string, unknown>
+      const merged = mergeConfigPatch(base, writable(config))
       if (config.plugin !== undefined) {
         merged.plugin = config.plugin
       }
@@ -886,7 +899,7 @@ const layer = Layer.effect(
       let changed: boolean
       if (!file.endsWith(".jsonc")) {
         const existing = ConfigParse.schema(ConfigV1.Info, ConfigParse.jsonc(before, file), file)
-        const merged = mergeDeep(writable(existing), patch) as Record<string, unknown>
+        const merged = mergeConfigPatch(writable(existing), patch)
         if (config.plugin !== undefined) {
           merged.plugin = config.plugin
         }
@@ -947,11 +960,25 @@ const layer = Layer.effect(
       }
     })
 
+    const removeMcp = Effect.fn("Config.removeMcp")(function* (name: string) {
+      const dir = yield* InstanceState.directory
+      const projectFile = yield* projectConfigFile(dir)
+      for (const file of new Set([projectFile, globalConfigFile()])) {
+        const before = yield* readConfigFile(file)
+        if (!before) continue
+        const after = removeJsoncPath(before, ["mcp", name])
+        if (after !== before) yield* writeGlobalAtomic(file, after).pipe(Effect.orDie)
+      }
+      yield* invalidate()
+      yield* invalidateInstance()
+    })
+
     return Service.of({      get,
       getGlobal,
       getConsoleState,
       update,
       updateGlobal,
+      removeMcp,
       forgetProviderModel,
       invalidate,
       invalidateInstance,

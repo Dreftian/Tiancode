@@ -1,4 +1,5 @@
 import { Component, createMemo, createSignal, Show } from "solid-js"
+import { createMediaQuery } from "@solid-primitives/media"
 import { Dialog } from "@tiancode-ai/ui/v2/dialog-v2"
 import { TabsV2 } from "@tiancode-ai/ui/v2/tabs-v2"
 import { Icon } from "@tiancode-ai/ui/icon"
@@ -75,6 +76,7 @@ export const DialogSettings: Component<{
   defaultValue?: string
 }> = (props) => {
   const language = useLanguage()
+  const narrow = createMediaQuery("(max-width: 639px)")
   const platform = usePlatform()
   const dialog = useDialog()
   const layout = useLayout()
@@ -119,7 +121,7 @@ export const DialogSettings: Component<{
   return (
     <Dialog size="x-large" variant="settings" class="settings-v2-dialog">
       <TabsV2
-        orientation="vertical"
+        orientation={narrow() ? "horizontal" : "vertical"}
         variant="settings"
         value={tab()}
         onChange={(value) => markVisited(value)}

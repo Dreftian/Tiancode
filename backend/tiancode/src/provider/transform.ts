@@ -1165,6 +1165,14 @@ export function options(input: {
 }): Record<string, any> {
   const result: Record<string, any> = {}
 
+  // Llama 3 instruct templates default to appending a tool-only directive to
+  // the user's first message. Even greetings can then become invalid tool
+  // names ("Llama-3.2...") and fail llama.cpp's PEG parser. Keeping tools in
+  // the system template preserves both prose replies and actual tool calls.
+  if (input.model.providerID === "local" && /llama[-_ ]?3(?:[.\-_ ]|$)/i.test(input.model.api.id)) {
+    result.chat_template_kwargs = { tools_in_user_message: false }
+  }
+
   if (
     input.model.api.npm === "@ai-sdk/google-vertex/anthropic" ||
     (!input.model.api.id.includes("claude") && input.model.api.npm === "@ai-sdk/anthropic")

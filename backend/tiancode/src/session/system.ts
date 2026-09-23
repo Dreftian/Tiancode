@@ -16,6 +16,7 @@ import PROMPT_CODEX from "./prompt/codex.txt"
 import PROMPT_LOCAL from "./prompt/local.txt"
 import PROMPT_TRINITY from "./prompt/trinity.txt"
 import type { Provider } from "@/provider/provider"
+import { compactCapabilities } from "./lightweight"
 import type { Agent } from "@/agent/agent"
 import { Permission } from "@/permission"
 import { Skill } from "@/skill"
@@ -61,8 +62,9 @@ export function provider(model: Provider.Model) {
 
 export interface Interface {
   readonly environment: (model: Provider.Model) => Effect.Effect<string[]>
-  readonly subagents: (agent: Agent.Info, available?: Agent.Info[]) => Effect.Effect<string | undefined>
+  readonly subagents: (agent: Agent.Info, available?: Agent.Info[], compact?: boolean) => Effect.Effect<string | undefined>
   readonly skills: (agent: Agent.Info) => Effect.Effect<string | undefined>
+  readonly skillIndex: (agent: Agent.Info) => Effect.Effect<string | undefined>
   readonly autoSkills: (agent: Agent.Info) => Effect.Effect<string | undefined>
   readonly mcp: (agent: Agent.Info, permission?: PermissionV1.Ruleset) => Effect.Effect<string | undefined>
   readonly memory: () => Effect.Effect<string | undefined>
@@ -120,7 +122,7 @@ const layer = Layer.effect(
         ].filter((part): part is string => part !== undefined)
       }),
 
-      subagents: Effect.fn("SystemPrompt.subagents")(function* (agent: Agent.Info, available?: Agent.Info[]) {
+      subagents: Effect.fn("SystemPrompt.subagents")(function* (agent: Agent.Info, available?: Agent.Info[], compact = false) {
         if (agent.mode === "subagent") return
         if (Permission.disabled(["task"], agent.permission).has("task")) return
 
@@ -131,26 +133,13 @@ const layer = Layer.effect(
             Permission.evaluate("task", item.name, agent.permission).action !== "deny",
         )
         if (allowed.length === 0) return
-        const formatted = allowed
-          .toSorted((a, b) => a.name.localeCompare(b.name))
-          .map((item) => `- ${item.name}: ${item.description ?? "Specialized autonomous subagent."}`)
-
         return [
           "<available_subagents>",
-          "You are the Lead Swarm Orchestrator commanding a team of specialized subagents. You MUST AUTOMATICALLY AND PROACTIVELY USE THEM via the `task` tool:",
-          ...formatted,
-          "",
-          "AUTOMATIC SUBAGENT ACTIVATION MANDATE:",
-          "- DO NOT WAIT FOR THE USER TO SAY 'Usa los sub-agentes' OR 'use subagents'.",
-          "- Whenever the user's request involves implementing a feature, designing UI/UX, refactoring code, building an application, auditing security, running tests, or doing multi-file exploration, you MUST IMMEDIATELY DISPATCH the appropriate specialized subagent(s) via the `task` tool.",
-          "- Operating without subagents on non-trivial tasks is strictly prohibited. You are an orchestrator, not a solo worker.",
-          "",
-          "SWARM LEAD ORCHESTRATOR PROTOCOL (CODEX-STYLE COLLABORATION):",
-          "1. VISIBLE BLUEPRINT & BREAKDOWN: Always start your response by presenting your multi-agent architecture and plan directly in the chat, declaring the specialist subagents (e.g. 🎨 ui-ux-master, ⚡ fullstack-coder, 🏛️ software-architect, 🧪 qa-e2e-tester) and active engineering skills assigned to each component.",
-          "2. PROACTIVE TASK DELEGATION: Immediately invoke the specialized subagents using the `task` tool (`subagent_type: '<agent_name>'` with detailed, self-contained prompts). Delegate UI tasks to `ui-ux-master`, core logic/APIs to `fullstack-coder`, architecture to `software-architect`, exploration to `explore`, etc.",
-          "3. PARALLEL EXECUTION: Launch independent subagents concurrently in a single response whenever possible to maximize throughput and responsiveness.",
-          "4. SYNTHESIS & VERIFICATION: Once subagents complete their tasks, synthesize the results for the user and confirm all files were written to disk and verified.",
-          "5. DIRECT FALLBACK: Only for minor 1-line typo fixes or small single-file tweaks may you use file tools directly without subagent overhead.",
+          "Use the task tool when a listed specialist matches a bounded, independent part of the user's request. Select by expertise; do simple tasks directly. Respect the user's delegation preferences and permissions.",
+          compact ? compactCapabilities(allowed, 1800) : allowed
+            .toSorted((a, b) => a.name.localeCompare(b.name))
+            .map((item) => `- ${item.name}: ${item.description ?? "Specialized subagent."}`).join("\n"),
+          "Give each agent a concrete scope, review its result, and verify changes before reporting completion. Do not create overlapping edits or delegate recursively without need.",
           "</available_subagents>",
         ].join("\n")
       }),
@@ -166,6 +155,15 @@ const layer = Layer.effect(
           // the agents seem to ingest the information about skills a bit better if we present a more verbose
           // version of them here and a less verbose version in tool description, rather than vice versa.
           Skill.fmt(list, { verbose: true }),
+        ].join("\n")
+      }),
+
+      skillIndex: Effect.fn("SystemPrompt.skillIndex")(function* (agent: Agent.Info) {
+        if (Permission.disabled(["skill"], agent.permission).has("skill")) return
+        const list = yield* skill.available(agent)
+        return [
+          "When a task matches one of these workflows, call the skill tool with the exact name before editing files.",
+          compactCapabilities(list, 3200),
         ].join("\n")
       }),
 

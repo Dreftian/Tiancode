@@ -51,6 +51,13 @@ describe("ProviderTransform.options - setCacheKey", () => {
     expect(result.promptCacheKey).toBe(sessionID)
   })
 
+  test("keeps Llama 3 local tool definitions out of the user message", () => {
+    const model = { ...mockModel, providerID: "local", api: { ...mockModel.api, id: "Llama-3.2-3B-Instruct-Q4_K_M", npm: "@ai-sdk/openai-compatible" } }
+    const options = ProviderTransform.options({ model, sessionID })
+    expect(ProviderTransform.providerOptions(model, options)).toHaveProperty("local.chat_template_kwargs.tools_in_user_message", false)
+    expect(ProviderTransform.options({ model: { ...model, providerID: "openrouter" }, sessionID })).not.toHaveProperty("chat_template_kwargs")
+  })
+
   test("should not set promptCacheKey when providerOptions.setCacheKey is false", () => {
     const result = ProviderTransform.options({
       model: mockModel,

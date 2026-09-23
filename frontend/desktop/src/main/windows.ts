@@ -27,6 +27,7 @@ import { PINCH_ZOOM_ENABLED_KEY, MINIMIZE_TO_TRAY_KEY, WINDOW_IDS_KEY } from "./
 import { createUnresponsiveSampler } from "./unresponsive"
 import { nativeT } from "./native-translations"
 import { createWindowRegistry } from "./window-registry"
+import { createRendererPermissionPolicy } from "./renderer-permissions"
 import { safeWindowURL } from "./window-state"
 import { resolveExternalURL, resolveLocalFilePath } from "./external-url"
 import { isAgentActionInFlight } from "./preview-view"
@@ -37,20 +38,8 @@ const root = dirname(fileURLToPath(import.meta.url))
 const rendererRoot = join(root, "../renderer")
 const rendererProtocol = "oc"
 const rendererHost = "renderer"
-const clipboardWritePermission = "clipboard-sanitized-write"
-const clipboardReadPermission = "clipboard-read"
-const notificationPermission = "notifications"
-const mediaPermission = "media"
-const fullscreenPermission = "fullscreen"
-const pointerLockPermission = "pointerLock"
-const rendererPermissions = new Set([
-  clipboardWritePermission,
-  clipboardReadPermission,
-  notificationPermission,
-  mediaPermission,
-  fullscreenPermission,
-  pointerLockPermission,
-])
+const rendererPermissions = createRendererPermissionPolicy(isTrustedRendererUrl)
+const overlayWindows = new WeakSet<BrowserWindow>()
 const oc2Theme = oc2ThemeJson as DesktopTheme
 const oc2Background = {
   light: resolveThemeVariant(oc2Theme.light, false)["background-base"],
@@ -204,7 +193,7 @@ export function setTitlebar(win: BrowserWindow, theme: Partial<TitlebarTheme> = 
 }
 
 export function updateTitlebar(win: BrowserWindow) {
-  if (process.platform !== "win32") return
+  if (process.platform !== "win32" || win.isDestroyed() || !overlayWindows.has(win)) return
   win.setTitleBarOverlay(overlay(titlebarThemes.get(win), win.webContents.getZoomFactor()))
 }
 
@@ -377,6 +366,7 @@ export function createMainWindow(id: string = randomUUID()) {
   // This is important on Windows after an in-place update: it prevents a
   // stale string-path association from leaving the taskbar with the previous
   // app icon until Explorer refreshes its cache.
+  if (process.platform === "win32") overlayWindows.add(win)
   if (icon) win.setIcon(icon)
 
   allowRendererPermissions(win)
@@ -718,18 +708,24 @@ function addDocumentPolicy(response: Response, file: string) {
 
 function allowRendererPermissions(win: BrowserWindow) {
   const webContentsId = win.webContents.id
+  rendererPermissions.register(webContentsId)
+  win.webContents.once("destroyed", () => rendererPermissions.unregister(webContentsId))
 
   win.webContents.session.setPermissionRequestHandler((webContents, permission, callback, details) => {
-    callback(
-      rendererPermissions.has(permission) &&
-        isTrustedRendererUrl(details.requestingUrl) &&
-        webContents.id === webContentsId,
-    )
+    callback(rendererPermissions.allows({
+      id: webContents.id,
+      permission,
+      topURL: webContents.getURL(),
+      requestingURL: details.requestingUrl,
+    }))
   })
   win.webContents.session.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
-    if (!rendererPermissions.has(permission)) return false
-    if (webContents && webContents.id !== webContentsId) return false
-    return isTrustedRendererUrl(details.requestingUrl) || isTrustedRendererUrl(requestingOrigin)
+    return rendererPermissions.allows({
+      id: webContents?.id,
+      permission,
+      topURL: webContents?.getURL(),
+      requestingURL: details.requestingUrl || requestingOrigin,
+    })
   })
 }
 

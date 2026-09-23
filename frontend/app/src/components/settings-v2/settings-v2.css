@@ -288,11 +288,62 @@
 }
 
 @media (max-width: 639px) {
-  .settings-v2[data-component="tabs-v2"][data-variant="settings"][data-orientation="vertical"]
-    [data-slot="tabs-v2-list"] {
-    width: 144px;
-    min-width: 144px;
-    padding-inline: 8px;
+  .settings-v2[data-component="tabs-v2"][data-variant="settings"] [data-slot="tabs-v2-list"] {
+    flex: none;
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    padding: 8px;
+    gap: 6px;
+    background: var(--v2-background-bg-layer-01);
+    border-bottom: 1px solid var(--v2-border-border-muted);
+  }
+
+  /* Flatten the desktop navigation groups into a scrollable tab strip. */
+  .settings-v2 [data-slot="tabs-v2-list"] div:not([data-slot]):not([data-component]) {
+    display: contents;
+  }
+
+  .settings-v2 [data-slot="tabs-v2-section-title"],
+  .settings-v2 [data-slot="tabs-v2-list"] .settings-v2-nav-footer {
+    display: none !important;
+  }
+
+  .settings-v2 [data-slot="tabs-v2-trigger"] {
+    flex: none;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+    color: var(--v2-text-text-muted);
+  }
+
+  .settings-v2 [data-slot="tabs-v2-trigger"][data-selected] {
+    background: var(--v2-background-bg-layer-03);
+    color: var(--v2-text-text-base);
+  }
+
+  .settings-v2 [data-slot="tabs-v2-trigger-content"] > svg,
+  .settings-v2 [data-slot="tabs-v2-trigger-content"] [data-component="icon"] {
+    width: 18px;
+    height: 18px;
+    flex: none;
+  }
+
+  .settings-v2 .settings-v2-panel {
+    min-height: 0;
+    min-width: 0;
+    width: 100%;
+    height: auto;
+  }
+
+  .settings-v2-tab-header {
+    position: static;
+    padding: 16px;
+  }
+
+  .settings-v2-tab-body {
+    padding-inline: 16px;
   }
 }
 

@@ -1,5 +1,13 @@
 import { SUBAGENT_CATALOG_SPANISH } from "./subagent-catalog"
 export const dict = {
+  "settings.marketplace.description": "Servidores MCP, skills y plugins del catálogo de Cline. La instalación es opcional. Los plugins del motor de Cline abren su código fuente porque requieren un adaptador compatible.",
+  "settings.marketplace.source": "Ver código fuente",
+  "settings.marketplace.diagramDescription": "Diagramas de arquitectura y procesos en archivos HTML y SVG independientes.",
+  "settings.marketplace.securityDescription": "Auditorías de seguridad con pruebas, validación independiente y resultados estructurados.",
+  "settings.marketplace.focusDescription": "Respuestas breves centradas en acciones, con pasos siguientes claros y menos texto que leer.",
+  "settings.marketplace.removeConfirm": "¿Desconectar y eliminar el servidor MCP «{{name}}» de la configuración?",
+  "settings.marketplace.config": "Configuración MCP (JSON)",
+  "settings.marketplace.configHint": "Revisa el comando, la URL, las variables de entorno y las cabeceras. Las entradas nuevas se guardan desactivadas; actívalas cuando completes la configuración.",
   "settings.subAgents.list.detail.prompt": "Instrucciones del sistema",
   "settings.subAgents.list.detail.noPrompt": "Este agente usa las instrucciones predeterminadas de su modo.",
   "settings.mcpPlugins.detail.full": "Ver transporte, herramientas y origen de cada entrada",

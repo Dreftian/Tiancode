@@ -1,3 +1,4 @@
+import { decodeGitHubUrl, fetchGitHubSkills } from "./skills-github"
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
 import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
 import { TextInputV2 } from "@tiancode-ai/ui/v2/text-input-v2"
@@ -37,106 +38,6 @@ const PAGE_SIZE = 4
 // Ghost rows while the server answers: fewer than PAGE_SIZE so the column does not become a wall
 // of shimmer, enough that it reads as a list rather than as emptiness.
 const SKELETON_ROWS = [0, 1, 2, 3, 4]
-
-const GITHUB_URL_RE =
-  /^https?:\/\/github\.com\/([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+?)(?:\.git)?(?:\/(tree|blob)\/([^/\s#]+)((?:\/[^\s#]*)?))?(?:[?#].*)?$/i
-
-const MAX_GITHUB_SKILLS = 20
-const MAX_FILES_PER_SKILL = 30
-
-type GitHubSource = {
-  owner: string
-  repo: string
-  kind?: "tree" | "blob"
-  ref: string
-  subpath: string
-}
-
-function decodeGitHubUrl(value: string): GitHubSource | undefined {
-  const match = GITHUB_URL_RE.exec(value.trim())
-  if (!match) return undefined
-  const kind = match[3] === "tree" || match[3] === "blob" ? match[3] : undefined
-  const subpath = (match[5] ?? "").replace(/^\//, "").replace(/\/$/, "")
-  return {
-    owner: match[1],
-    repo: match[2],
-    kind,
-    ref: match[4] ?? "HEAD",
-    subpath,
-  }
-}
-
-const githubApiJson = async (url: string) => {
-  const response = await fetch(url, { headers: { Accept: "application/vnd.github+json" } })
-  if (!response.ok) throw new Error(`GitHub request failed with ${response.status}`)
-  return response.json()
-}
-
-const fetchGitHubFile = async (source: GitHubSource, path: string) => {
-  const response = await fetch(`https://raw.githubusercontent.com/${source.owner}/${source.repo}/${source.ref}/${path}`)
-  if (!response.ok) throw new Error(`Failed to download ${path} (${response.status})`)
-  return response.text()
-}
-
-type GitHubSkillFiles = { name: string; files: { path: string; content: string }[] }
-
-// Resolves a GitHub URL (repo root, tree folder, or a single SKILL.md blob)
-// into one entry per discovered SKILL.md. Sibling files inside each skill's
-// own directory ride along so references keep working.
-type GitHubTreeEntry = { type: string; path: string }
-
-// Validates the git-trees API response shape without type assertions.
-function parseGitHubBlobPaths(value: unknown): string[] {
-  if (!value || typeof value !== "object" || !("tree" in value) || !Array.isArray(value.tree)) return []
-  const paths: string[] = []
-  for (const entry of value.tree) {
-    if (!entry || typeof entry !== "object") continue
-    if (!("type" in entry) || !("path" in entry)) continue
-    if (typeof entry.type === "string" && typeof entry.path === "string") {
-      paths.push(entry.path)
-    }
-  }
-  return paths
-}
-
-async function fetchGitHubSkills(source: GitHubSource): Promise<GitHubSkillFiles[]> {
-  if (source.kind === "blob") {
-    if (!source.subpath.endsWith("SKILL.md")) return []
-    const content = await fetchGitHubFile(source, source.subpath)
-    const segments = source.subpath.split("/")
-    segments.pop()
-    const name = segments.pop() ?? source.repo
-    return [{ name, files: [{ path: "SKILL.md", content }] }]
-  }
-
-  const data = await githubApiJson(
-    `https://api.github.com/repos/${source.owner}/${source.repo}/git/trees/${source.ref}?recursive=1`,
-  )
-  const blobPaths: GitHubTreeEntry["path"][] = parseGitHubBlobPaths(data)
-
-  const prefix = source.kind === "tree" && source.subpath ? `${source.subpath}/` : ""
-  const skillPaths = blobPaths
-    .filter((filePath) => filePath === "SKILL.md" || filePath.endsWith("/SKILL.md"))
-    .filter((filePath) => !prefix || filePath.startsWith(prefix))
-    .sort()
-    .slice(0, MAX_GITHUB_SKILLS)
-
-  return Promise.all(
-    skillPaths.map(async (skillPath) => {
-      const dir = skillPath.includes("/") ? skillPath.slice(0, skillPath.lastIndexOf("/")) : ""
-      const siblings = dir
-        ? blobPaths.filter((filePath) => filePath.startsWith(`${dir}/`)).slice(0, MAX_FILES_PER_SKILL)
-        : [skillPath]
-      const files = await Promise.all(
-        siblings.map(async (filePath) => ({
-          path: dir ? filePath.slice(dir.length + 1) : filePath,
-          content: await fetchGitHubFile(source, filePath),
-        })),
-      )
-      return { name: dir || source.repo, files }
-    }),
-  )
-}
 
 type SkillFilter = "all" | "safe" | "specialized" | "frontend" | "backend" | "testing"
 

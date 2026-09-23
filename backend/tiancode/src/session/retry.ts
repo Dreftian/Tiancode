@@ -58,6 +58,8 @@ const PERMANENT_MESSAGE_PATTERNS = [
   /tools param requires --jinja/i,
   // The model's own chat template was rejected, so no prompt can be built from it.
   /only commonly used templates are accepted/i,
+  // Identical retries do not repair a model/template tool-output mismatch.
+  /output does not match|output that does not match|failed to parse.*tool|peg-native/i,
 ]
 
 function matchesPermanentMessage(value: unknown) {

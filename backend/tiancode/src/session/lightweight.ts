@@ -5,7 +5,8 @@
  * instructions, memory and ~30 tool schemas) weighs 30k+ tokens: fine for a 200k cloud model,
  * impossible for a local GGUF running at 8k–32k. llama-server rejects the request, Tiancode treats
  * that as an overflow and compacts an empty conversation, and the user sees a summary instead of
- * an answer. Local and small-context models therefore get a compact prompt and the core tools only.
+ * an answer. Local and small-context models therefore get a compact prompt, the core tools, and a
+ * small skill index so they can still load the right workflow on demand.
  */
 import type { Provider } from "@/provider/provider"
 
@@ -29,9 +30,23 @@ export const LIGHTWEIGHT_TOOLS: ReadonlySet<string> = new Set([
   "todoread",
   "question",
   "webfetch",
+  "skill",
+  "task",
 ])
 
 export type LightweightMode = "auto" | "always" | "never"
+
+/** Keep exact capability names while bounding descriptions for small contexts. */
+export function compactCapabilities(items: readonly { name: string; description?: string }[], budget: number) {
+  const lines: string[] = []
+  for (const item of items.toSorted((a, b) => a.name.localeCompare(b.name))) {
+    const line = `- ${item.name}: ${(item.description ?? "").replace(/\s+/g, " ").slice(0, 100)}`
+    if (line.length + 1 > budget) break
+    lines.push(line)
+    budget -= line.length + 1
+  }
+  return lines.join("\n")
+}
 
 export function lightweightMode(): LightweightMode {
   const value = process.env.TIANCODE_LIGHTWEIGHT?.trim().toLowerCase()

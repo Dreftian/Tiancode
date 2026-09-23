@@ -525,6 +525,7 @@ describe("session.retry.retryable permanent failures", () => {
     "Cannot use tools with stream",
     "tools param requires --jinja flag",
     "only commonly used templates are accepted",
+    "The model produced output that does not match the expected peg-native format",
   ])("does not retry %p even when the provider answers 500", (message) => {
     expect(SessionRetry.retryable(serverError(message), retryProvider)).toBeUndefined()
   })

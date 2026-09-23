@@ -4,10 +4,10 @@ import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { app } from "electron"
 
-// Servidores MCP que viajan empaquetados con la app (resources/mcp). En cada
-// arranque se registran en la config global apuntando a la ruta real del
-// binario (instalado o portable), reemplazando entradas cuyo script ya no
-// existe (p. ej. rutas viejas del escritorio).
+// Servidores MCP que viajan empaquetados con la app (resources/mcp). Son
+// integraciones opcionales: sólo se sincroniza un servidor que ya existe en la
+// configuración del usuario. Una instalación nueva no recibe entradas MCP
+// ocultas ni procesos habilitados por sorpresa.
 const moduleRoot = dirname(fileURLToPath(import.meta.url))
 const BUNDLED_ROOT = app.isPackaged
   ? join(process.resourcesPath, "mcp")
@@ -21,10 +21,8 @@ type BundledMcp = {
   env: string
 }
 
-// Servidores MCP empaquetados con la app. live_frontend se registra como Core
-// para la vista previa en vivo, y los servidores especializados de la suite
-// (Photoshop, InDesign, Illustrator, CorelDRAW, OperaGX, Unreal, Unity, Godot, Android Studio)
-// se registran para que el usuario pueda activarlos y usarlos con 1 clic.
+// Compatibility assets for integrations explicitly configured in older versions.
+// Fresh profiles do not register any of these servers.
 const BUNDLED_MCPS: BundledMcp[] = [
   { name: "live_frontend", dir: "AI-LIVE-FRONTEND-MCP", script: "live_server.py", configFile: "config.json", env: "LIVE_FRONTEND_CONFIG" },
   { name: "photoshop", dir: "AI-MCP-SUITE/Photoshop", script: "server.py", configFile: "config.json", env: "PHOTOSHOP_CONFIG" },
@@ -74,9 +72,7 @@ function resolvePythonCommand(): string[] {
   return pythonCommand
 }
 
-// Los bundles son integraciones opcionales: una entrada existente conserva la
-// decisión del usuario, mientras que una instalación nueva los registra
-// desactivados. Así no se levantan diez procesos Python sólo por abrir la app.
+// Only an existing user's enabled entry may be repaired. Discovery is opt-in.
 async function bundledEnabled(auth: SidecarAuth, name: string): Promise<boolean | undefined> {
   const basic = Buffer.from(`${auth.username}:${auth.password}`).toString("base64")
   try {
@@ -94,6 +90,9 @@ async function bundledEnabled(auth: SidecarAuth, name: string): Promise<boolean 
 
 async function registerServer(auth: SidecarAuth, entry: BundledMcp) {
   const enabled = await bundledEnabled(auth, entry.name)
+  // Do not seed bundled integrations into a fresh profile. The marketplace is
+  // the explicit opt-in path; existing entries are still repaired in place.
+  if (enabled === undefined) return false
   if (enabled === false) {
     console.log(`[mcp-bundle] ${entry.name} already disabled, skipping`)
     return true
@@ -125,7 +124,7 @@ async function registerServer(auth: SidecarAuth, entry: BundledMcp) {
         [entry.env]: configFile,
         ...(entry.name === "live_frontend" ? { LIVE_FRONTEND_ALLOWED_ORIGIN: liveOrigins } : {}),
       },
-      enabled: enabled ?? false,
+      enabled,
       timeout: 60000,
     },
   })
@@ -153,45 +152,11 @@ async function registerServer(auth: SidecarAuth, entry: BundledMcp) {
   return false
 }
 
-// Purga servidores MCP residuales que apunten a scripts temporales que ya no existen
-async function pruneStaleTempServers(auth: SidecarAuth) {
-  const basic = Buffer.from(`${auth.username}:${auth.password}`).toString("base64")
-  try {
-    const res = await fetch(`${auth.url}/config`, {
-      headers: { authorization: `Basic ${basic}` },
-    })
-    if (!res.ok) return
-    const info = (await res.json()) as { mcp?: Record<string, { type?: string; command?: string | string[] }> }
-    if (!info.mcp) return
-
-    for (const [name, cfg] of Object.entries(info.mcp)) {
-      if (cfg?.type === "local" && cfg.command) {
-        const cmdParts = Array.isArray(cfg.command) ? cfg.command : [cfg.command]
-        const scriptArg = cmdParts.find((part) => /\\AppData\\Local\\Temp\\|\\Temp\\/i.test(part) && /\.py$/i.test(part))
-        if (scriptArg && !existsSync(scriptArg)) {
-          console.log(`[mcp-bundle] Pruning stale temp MCP server: ${name} (${scriptArg})`)
-          try {
-            await fetch(`${auth.url}/mcp/${encodeURIComponent(name)}`, {
-              method: "DELETE",
-              headers: { authorization: `Basic ${basic}` },
-            })
-          } catch {
-            // best-effort
-          }
-        }
-      }
-    }
-  } catch {
-    // best-effort
-  }
-}
-
 // Registra los MCP empaquetados. Se llama justo después de que el sidecar esté
 // listo; los fallos no bloquean el arranque. SECUENCIAL: cada POST /mcp hace
 // un read-modify-write de la config global del sidecar, y lanzarlos en
 // paralelo puede corromper el archivo.
 export async function seedBundledMcpServers(auth: SidecarAuth) {
-  await pruneStaleTempServers(auth).catch(() => {})
   if (!existsSync(BUNDLED_ROOT)) return
   for (const entry of BUNDLED_MCPS) {
     await registerServer(auth, entry).catch(() => false)

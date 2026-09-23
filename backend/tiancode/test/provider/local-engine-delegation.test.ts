@@ -63,11 +63,31 @@ describe("provider.local model loader", () => {
 
   test("does not restart an engine that is already healthy", async () => {
     const realFetch = globalThis.fetch
-    globalThis.fetch = (async () => new Response("ok", { status: 200 })) as unknown as typeof fetch
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      if (String(input).endsWith("/props"))
+        return new Response(JSON.stringify({ model_path: "C:/models/Llama-3.2-3B-Instruct-Q4_K_M.gguf" }), { status: 200 })
+      return new Response("ok", { status: 200 })
+    }) as unknown as typeof fetch
     try {
       const { dep, started } = stubDep()
       await resolveLocalModel(dep, "Llama-3.2-3B-Instruct-Q4_K_M")
       expect(started).toEqual([])
+    } finally {
+      globalThis.fetch = realFetch
+    }
+  })
+
+  test("reloads a healthy engine when it serves a different model", async () => {
+    const realFetch = globalThis.fetch
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      if (String(input).endsWith("/props"))
+        return new Response(JSON.stringify({ model_path: "C:/models/other-model.gguf" }), { status: 200 })
+      return new Response("ok", { status: 200 })
+    }) as unknown as typeof fetch
+    try {
+      const { dep, started } = stubDep()
+      await resolveLocalModel(dep, "Llama-3.2-3B-Instruct-Q4_K_M")
+      expect(started).toEqual([{ model: "Llama-3.2-3B-Instruct-Q4_K_M", file: "Llama-3.2-3B-Instruct-Q4_K_M" }])
     } finally {
       globalThis.fetch = realFetch
     }
