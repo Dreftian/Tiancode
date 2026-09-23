@@ -86,6 +86,23 @@ export type PreviewAgentPlatform = {
   available(frameUrl?: string): Promise<boolean>
 }
 
+/** What another device on the LAN needs to reach this machine's server. */
+export type PairingInfo = {
+  /** The user opted in to listening on the local network. */
+  enabled: boolean
+  /** Non-loopback URLs the server answers on; empty while disabled or before a restart applies. */
+  urls: string[]
+  username: string
+  password: string | null
+  /** The saved choice differs from how the running server was started. */
+  restartRequired: boolean
+}
+
+export type PairingPlatform = {
+  info(): Promise<PairingInfo>
+  setEnabled(enabled: boolean): Promise<PairingInfo>
+}
+
 export type WindowMirrorSource = { id: string; name: string; icon: string | null; thumb: string }
 
 export type WindowMirrorEvent =
@@ -118,6 +135,12 @@ type PlatformBase = {
 
   /** Open a web or mail URL in the default system application */
   openExternal(url: string): void
+
+  /**
+   * Open a URL in the PC's own browser, even a local preview that openExternal would route into the
+   * Sandbox. Only for explicit user choices (desktop only; the web build opens a new tab).
+   */
+  openSystemBrowser?(url: string): Promise<void>
 
   /** Open a local path in a local app (desktop only) */
   openPath?(path: string, app?: string): Promise<void>
@@ -184,6 +207,15 @@ type PlatformBase = {
 
   /** Whether the native desktop window is fullscreen */
   windowFullscreen?: Accessor<boolean>
+
+  /** Whether the display is kept awake while Tiancode runs (desktop only) */
+  getKeepScreenActive?(): Promise<boolean>
+
+  /** Keep the display awake; resolves with the resulting state (desktop only) */
+  setKeepScreenActive?(enabled: boolean): Promise<boolean>
+
+  /** Share this machine's server with other devices on the local network (desktop only) */
+  pairing?: PairingPlatform
 
   /** Get whether native pinch/Ctrl-scroll zoom gestures are enabled (desktop only) */
   getPinchZoomEnabled?(): Promise<boolean> | boolean

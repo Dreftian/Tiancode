@@ -13,6 +13,7 @@ import type { ServerReadyData } from "../preload/types"
 import { checkAppExists, resolveAppPath } from "./apps"
 import { APP_NAMES, CHANNEL, DISTRIBUTION } from "./constants"
 import { registerIpcHandlers, sendDeepLinks, sendMenuCommand } from "./ipc"
+import { restoreKeepScreenActive } from "./screen-activity"
 import { forwardInitializationFailure } from "./initialization"
 import { exportDebugLogs, initCrashReporter, initLogging, startNetLog, write as writeLog } from "./logging"
 import { createMenu } from "./menu"
@@ -338,6 +339,7 @@ const main = Effect.gen(function* () {
     checkForUpdates: () => void showUpdaterDialog(updater, true),
     relaunch,
   }
+  restoreKeepScreenActive()
   registerIpcHandlers({
     killSidecar: () => killSidecar(),
     relaunch,

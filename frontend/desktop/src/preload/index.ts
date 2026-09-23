@@ -159,6 +159,7 @@ const api: ElectronAPI = {
   writeTextFile: (path, content) => ipcRenderer.invoke("write-text-file", path, content),
   openExternal: (url) => ipcRenderer.send("open-external", url),
   openInChrome: (url) => ipcRenderer.invoke("open-in-chrome", url),
+  openInSystemBrowser: (url) => ipcRenderer.invoke("open-in-system-browser", url),
   openLocalFile: (url) => ipcRenderer.send("open-local-file", url),
   onLiveViewNavigate: (cb) => {
     const handler = (_: unknown, url: string) => cb(url)
@@ -246,6 +247,8 @@ const api: ElectronAPI = {
   setZoomFactor: (factor) => ipcRenderer.invoke("set-zoom-factor", factor),
   getPinchZoomEnabled: () => ipcRenderer.invoke("get-pinch-zoom-enabled"),
   setPinchZoomEnabled: (enabled) => ipcRenderer.invoke("set-pinch-zoom-enabled", enabled),
+  getKeepScreenActive: () => ipcRenderer.invoke("get-keep-screen-active"),
+  setKeepScreenActive: (enabled) => ipcRenderer.invoke("set-keep-screen-active", enabled),
   onPinchZoomEnabledChanged: (cb) => {
     const handler = (_: unknown, enabled: boolean) => cb(enabled)
     ipcRenderer.on("pinch-zoom-enabled-changed", handler)

@@ -52,6 +52,7 @@ import { registerWindowMirrorIpc } from "./window-mirror"
 import { registerDesktopPetIpc } from "./desktop-pet"
 import { COMPUTER_DENIED_KEY, COMPUTER_ENABLED_KEY, COMPUTER_RESTORE_KEY, registerComputerUseIpc } from "./computer-use"
 import { openInChrome } from "./chrome"
+import { getKeepScreenActive, setKeepScreenActive } from "./screen-activity"
 
 // Apps "abrir con" que acepta open-path. En macOS y Linux el renderer envía
 // el nombre tal cual; en Windows envía el path resuelto por resolveAppPath
@@ -459,6 +460,23 @@ export function registerIpcHandlers(deps: Deps) {
     openExternalURL(url)
   })
   ipcMain.handle("open-in-chrome", (_event: IpcMainInvokeEvent, url: string) => openInChrome(url))
+  // An explicit "open on the desktop" request from the UI (preview offer card, Sandbox header).
+  // Unlike "open-external" it never reroutes loopback previews into the Sandbox: the user asked for
+  // the PC browser. It still honours "Open links in" when that names Chrome.
+  ipcMain.handle("open-in-system-browser", async (_event: IpcMainInvokeEvent, url: string) => {
+    if (getStore().get("browserLinkTarget") === "chrome" && process.platform === "win32") {
+      const opened = await openInChrome(url).then(
+        () => true,
+        () => false,
+      )
+      if (opened) return
+    }
+    openExternalURL(url)
+  })
+  ipcMain.handle("get-keep-screen-active", () => getKeepScreenActive())
+  ipcMain.handle("set-keep-screen-active", (_event: IpcMainInvokeEvent, enabled: boolean) =>
+    setKeepScreenActive(enabled === true),
+  )
 
   ipcMain.on("open-local-file", (event: IpcMainEvent, url: string) => {
     if (isLiveViewPreviewUrl(url)) {

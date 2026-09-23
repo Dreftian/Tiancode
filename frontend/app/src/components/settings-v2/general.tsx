@@ -23,6 +23,7 @@ import { ExternalLink } from "../external-link"
 import { showToast } from "@/utils/toast"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
+import { useConfirmSkipPermissions } from "@/components/dialogs/dialog-skip-permissions"
 import { LayoutRetirementNotice } from "./interface-transition"
 import {
   createAppearanceSettingsController,
@@ -86,6 +87,12 @@ const soundSettings = {
 
 const PermissionScopeSetting: Component<{ controller: PermissionScopeController }> = (props) => {
   const language = useLanguage()
+  const confirmSkip = useConfirmSkipPermissions()
+  // The global switch approves every request in every workspace, so it asks like "skip permissions".
+  const set = async (checked: boolean) => {
+    if (checked && !props.controller.accepting() && !(await confirmSkip(undefined))) return
+    props.controller.set(checked)
+  }
   return (
     <SettingsRowV2
       title={language.t("command.permissions.autoaccept.enable")}
@@ -95,7 +102,7 @@ const PermissionScopeSetting: Component<{ controller: PermissionScopeController 
         <Switch
           checked={props.controller.accepting()}
           disabled={!props.controller.enabled()}
-          onChange={props.controller.set}
+          onChange={(checked) => void set(checked)}
         />
       </div>
     </SettingsRowV2>

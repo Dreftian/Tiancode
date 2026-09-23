@@ -144,6 +144,7 @@
                 <a href="#d-configuracion"><span class="toc-num">13</span><span>Configuración</span></a>
                 <a href="#d-comandos"><span class="toc-num">14</span><span>Comandos</span></a>
                 <a href="#d-problemas"><span class="toc-num">15</span><span>Solución de problemas</span></a>
+                <a href="#d-permisos"><span class="toc-num">16</span><span>Permisos y seguridad</span></a>
               </nav>
               <h2 id="d-instalacion">1. Instalación</h2>
               <p>Tiancode 1.0.0 se distribuye en dos formatos para Windows 10 y 11 (64 bits):</p>
@@ -236,6 +237,22 @@ tiancode --version           # Muestra la versión instalada</code></pre>
                 <li>Las voces no se escuchan: comprueba que el modelo de voz está descargado en Configuración → Voces.</li>
                 <li>La app no arranca en modo portable: asegúrate de tener permisos de escritura en la carpeta.</li>
                 <li>¿Sigue el problema? Abre una incidencia adjuntando los logs de la carpeta de datos.</li>
+              </ul>
+              <h2 id="d-permisos">16. Permisos y seguridad</h2>
+              <p>El selector <strong>Modo</strong> del campo de mensaje decide qué puede hacer la IA sin preguntarte en esa sesión:</p>
+              <ul class="page-list">
+                <li><strong>Auto:</strong> usa los permisos configurados y pregunta cuando una regla exige aprobación.</li>
+                <li><strong>Manual:</strong> pregunta antes de cada herramienta, incluidas ediciones y comandos.</li>
+                <li><strong>Aceptar ediciones:</strong> lee y edita archivos sin preguntar; pide permiso para comandos y otras acciones.</li>
+                <li><strong>Plan:</strong> solo herramientas de lectura; bloquea cambios y comandos.</li>
+                <li><strong>Omitir permisos:</strong> aprueba todas las solicitudes. La IA puede leer, editar y ejecutar archivos sin preguntar, incluidos comandos potencialmente destructivos. Las denegaciones explícitas de tu configuración siguen vigentes.</li>
+              </ul>
+              <p>La primera vez que eliges Omitir permisos en un espacio de trabajo (o activas «Aceptar permisos automáticamente» para todos), Tiancode muestra un aviso con la carpeta afectada. Úsalo solo en entornos aislados o desechables: una máquina virtual, un contenedor o una copia del repositorio con los cambios confirmados en git.</p>
+              <ul class="page-list">
+                <li>Antes de activarlo, confirma tus cambios (<code>git commit</code>) para poder deshacer cualquier edición.</li>
+                <li>No lo uses en carpetas con credenciales, claves privadas o datos que no tengan copia de seguridad.</li>
+                <li>Añade denegaciones explícitas en <code>tiancode.json</code> (por ejemplo <code>"permission": { "bash": { "rm -rf*": "deny" } }</code>) para comandos que nunca deben ejecutarse.</li>
+                <li>Vuelve a <strong>Auto</strong> desde el mismo selector cuando termines.</li>
               </ul>
           </div>
 

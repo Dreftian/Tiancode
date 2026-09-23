@@ -120,6 +120,8 @@ const platform: Platform = {
   draftStore: createBrowserDraftStore(),
   version: pkg.version,
   openExternal,
+  // The web build never reroutes links into the Sandbox, so a new tab already is "the desktop".
+  openSystemBrowser: async (url) => openExternal(url),
   restart,
   notify,
   getDefaultServer: async () => {

@@ -352,6 +352,8 @@ export type ElectronAPI = {
   writeTextFile: (path: string, content: string) => Promise<boolean>
   openExternal: (url: string) => void
   openInChrome: (url: string) => Promise<void>
+  /** Opens a URL in the PC browser even when it is a local preview (never rerouted to the Sandbox). */
+  openInSystemBrowser: (url: string) => Promise<void>
   openLocalFile: (url: string) => void
   onLiveViewNavigate: (cb: (url: string) => void) => () => void
   openPath: (path: string, app?: string) => Promise<void>
@@ -397,6 +399,9 @@ export type ElectronAPI = {
   setZoomFactor: (factor: number) => Promise<void>
   getPinchZoomEnabled: () => Promise<boolean>
   setPinchZoomEnabled: (enabled: boolean) => Promise<void>
+  getKeepScreenActive: () => Promise<boolean>
+  /** Resolves with the resulting state, which stays off when the OS refuses the blocker. */
+  setKeepScreenActive: (enabled: boolean) => Promise<boolean>
   onPinchZoomEnabledChanged: (cb: (enabled: boolean) => void) => () => void
   onZoomFactorChanged: (cb: (factor: number) => void) => () => void
   setTitlebar: (theme: TitlebarTheme) => Promise<void>

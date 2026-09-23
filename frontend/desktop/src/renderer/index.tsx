@@ -214,6 +214,7 @@ const createPlatform = (windowState: DesktopWindowState): Platform => {
     openExternal(url: string) {
       window.api.openExternal(url)
     },
+    openSystemBrowser: (url: string) => window.api.openInSystemBrowser(url),
     openLocalFile(url: string) {
       window.api.openLocalFile(url)
     },
@@ -311,6 +312,8 @@ const createPlatform = (windowState: DesktopWindowState): Platform => {
     windowFullscreen,
 
     getPinchZoomEnabled: () => window.api.getPinchZoomEnabled(),
+    getKeepScreenActive: () => window.api.getKeepScreenActive(),
+    setKeepScreenActive: (enabled: boolean) => window.api.setKeepScreenActive(enabled),
 
     setPinchZoomEnabled,
 

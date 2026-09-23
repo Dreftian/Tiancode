@@ -21,6 +21,12 @@ import { SettingsIntelligenceV2 } from "./intelligence"
 import { SettingsVoicesV2 } from "./voices"
 import "./settings-v2.css"
 import { SettingsServersV2 } from "./servers"
+import { SettingsNotificationsV2 } from "./notifications"
+import { SettingsPairingV2 } from "./pairing"
+import { SettingsProjectsV2 } from "./projects"
+import { SettingsWorktreesV2 } from "./worktrees"
+import { SettingsExperimentalV2 } from "./experimental"
+import { SettingsAboutV2 } from "./about"
 import { useDialog } from "@tiancode-ai/ui/context/dialog"
 import { useLayout } from "@/context/layout"
 import { useTabs } from "@/context/tabs"
@@ -68,6 +74,32 @@ const IconPets = () => (
     <circle cx="12" cy="4.5" r="1.8" />
     <circle cx="15.5" cy="7" r="1.8" />
     <path d="M10.2 9c-2.4 0-4.7 1.4-4.7 3.8 0 2.2 2 3.7 4.7 3.7s4.8-1.5 4.8-3.7c0-2.4-2.4-3.8-4.8-3.8z" />
+  </svg>
+)
+
+const IconBell = () => (
+  <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 8a5 5 0 0110 0v3.5l1.5 2.5h-13L5 11.5V8zM8 16.5a2 2 0 004 0" />
+  </svg>
+)
+
+const IconPairing = () => (
+  <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="6" y="2.5" width="8" height="15" rx="2" />
+    <path d="M9 14.5h2" />
+  </svg>
+)
+
+const IconExperimental = () => (
+  <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 2.5h4M8.5 2.5v5L4 15.5a1.3 1.3 0 001.1 2h9.8a1.3 1.3 0 001.1-2L11.5 7.5v-5M6 12.5h8" />
+  </svg>
+)
+
+const IconAbout = () => (
+  <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="10" cy="10" r="7.5" />
+    <path d="M10 9v5M10 6.5v.01" />
   </svg>
 )
 
@@ -139,6 +171,10 @@ export const DialogSettings: Component<{
                       <Icon name="sliders" />
                       {language.t("settings.tab.general")}
                     </TabsV2.Trigger>
+                    <TabsV2.Trigger value="notifications">
+                      <IconBell />
+                      {language.t("settings.tab.notifications")}
+                    </TabsV2.Trigger>
                     <TabsV2.Trigger value="intelligence">
                       <Icon name="brain" />
                       {language.t("settings.tab.intelligence") || "Intelligence"}
@@ -151,6 +187,12 @@ export const DialogSettings: Component<{
                       <Icon name="keyboard" />
                       {language.t("settings.tab.shortcuts")}
                     </TabsV2.Trigger>
+                    <Show when={platform.pairing || platform.setKeepScreenActive}>
+                      <TabsV2.Trigger value="pairing">
+                        <IconPairing />
+                        {language.t("settings.tab.pairing")}
+                      </TabsV2.Trigger>
+                    </Show>
                   </div>
                 </div>
 
@@ -161,6 +203,14 @@ export const DialogSettings: Component<{
                     <TabsV2.Trigger value="servers">
                       <Icon name="server" />
                       {language.t("status.popover.tab.servers")}
+                    </TabsV2.Trigger>
+                    <TabsV2.Trigger value="projects">
+                      <Icon name="folder" />
+                      {language.t("settings.tab.projects")}
+                    </TabsV2.Trigger>
+                    <TabsV2.Trigger value="worktrees">
+                      <Icon name="branch" />
+                      {language.t("settings.tab.worktrees")}
                     </TabsV2.Trigger>
                     <TabsV2.Trigger value="providers">
                       <Icon name="providers" />
@@ -220,9 +270,19 @@ export const DialogSettings: Component<{
                 </div>
               </div>
             </div>
-            <div class="settings-v2-nav-footer">
-              <span>{language.t("app.name.desktop")}</span>
-              <span>v{platform.version}</span>
+            <div class="flex flex-col gap-1 w-full pt-3">
+              <TabsV2.Trigger value="experimental">
+                <IconExperimental />
+                {language.t("settings.tab.experimental")}
+              </TabsV2.Trigger>
+              <TabsV2.Trigger value="about">
+                <IconAbout />
+                {language.t("settings.tab.about")}
+              </TabsV2.Trigger>
+              <div class="settings-v2-nav-footer">
+                <span>{language.t("app.name.desktop")}</span>
+                <span>v{platform.version}</span>
+              </div>
             </div>
           </div>
         </TabsV2.List>
@@ -231,6 +291,12 @@ export const DialogSettings: Component<{
         <TabsV2.Content forceMount value="general" class="settings-v2-panel" classList={{ "!hidden": tab() !== "general" }}>
           <Show when={visited().has("general")}>
             <SettingsGeneralV2 sessionID={props.sessionID} />
+          </Show>
+        </TabsV2.Content>
+
+        <TabsV2.Content forceMount value="notifications" class="settings-v2-panel" classList={{ "!hidden": tab() !== "notifications" }}>
+          <Show when={visited().has("notifications")}>
+            <SettingsNotificationsV2 active={tab() === "notifications"} />
           </Show>
         </TabsV2.Content>
 
@@ -252,9 +318,27 @@ export const DialogSettings: Component<{
           </Show>
         </TabsV2.Content>
 
+        <TabsV2.Content forceMount value="pairing" class="settings-v2-panel" classList={{ "!hidden": tab() !== "pairing" }}>
+          <Show when={visited().has("pairing")}>
+            <SettingsPairingV2 active={tab() === "pairing"} />
+          </Show>
+        </TabsV2.Content>
+
         <TabsV2.Content forceMount value="servers" class="settings-v2-panel" classList={{ "!hidden": tab() !== "servers" }}>
           <Show when={visited().has("servers")}>
             <SettingsServersV2 />
+          </Show>
+        </TabsV2.Content>
+
+        <TabsV2.Content forceMount value="projects" class="settings-v2-panel" classList={{ "!hidden": tab() !== "projects" }}>
+          <Show when={visited().has("projects")}>
+            <SettingsProjectsV2 active={tab() === "projects"} />
+          </Show>
+        </TabsV2.Content>
+
+        <TabsV2.Content forceMount value="worktrees" class="settings-v2-panel" classList={{ "!hidden": tab() !== "worktrees" }}>
+          <Show when={visited().has("worktrees")}>
+            <SettingsWorktreesV2 active={tab() === "worktrees"} />
           </Show>
         </TabsV2.Content>
 
@@ -315,6 +399,18 @@ export const DialogSettings: Component<{
         <TabsV2.Content forceMount value="pets" class="settings-v2-panel" classList={{ "!hidden": tab() !== "pets" }}>
           <Show when={visited().has("pets")}>
             <SettingsPetsV2 active={tab() === "pets"} />
+          </Show>
+        </TabsV2.Content>
+
+        <TabsV2.Content forceMount value="experimental" class="settings-v2-panel" classList={{ "!hidden": tab() !== "experimental" }}>
+          <Show when={visited().has("experimental")}>
+            <SettingsExperimentalV2 active={tab() === "experimental"} />
+          </Show>
+        </TabsV2.Content>
+
+        <TabsV2.Content forceMount value="about" class="settings-v2-panel" classList={{ "!hidden": tab() !== "about" }}>
+          <Show when={visited().has("about")}>
+            <SettingsAboutV2 active={tab() === "about"} />
           </Show>
         </TabsV2.Content>
       </TabsV2>
