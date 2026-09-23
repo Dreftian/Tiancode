@@ -55,4 +55,12 @@ export const RELEASE_ENGLISH = {
   "settings.pairing.screenActive.title": "Keep screen active",
   "settings.pairing.screenActive.description": "Prevent this computer's display from sleeping while Tiancode is running.",
   "settings.pairing.screenActive.error": "The system did not allow keeping the screen awake.",
+  "settings.marketplace.description": "MCP servers, skills and plugins from the Cline catalog. Installations are optional. Cline runtime plugins open their source because they require a compatible adapter.",
+  "settings.marketplace.source": "View source",
+  "settings.marketplace.diagramDescription": "Architecture and process diagrams as self-contained HTML and SVG.",
+  "settings.marketplace.securityDescription": "Security audits with evidence, independent validation and structured findings.",
+  "settings.marketplace.focusDescription": "Concise, action-first responses with clear next steps and reduced reading load.",
+  "settings.marketplace.removeConfirm": "Disconnect and remove MCP server \"{{name}}\" from configuration?",
+  "settings.marketplace.config": "MCP configuration (JSON)",
+  "settings.marketplace.configHint": "Review the command, URL, environment variables and headers. New entries are saved disabled; enable them when configuration is complete.",
 }
