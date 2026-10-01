@@ -2393,3 +2393,141 @@
   font-size: 12px;
   color: var(--v2-text-text-muted);
 }
+
+/* ============================================ Grouped pages (Servidor, Conexiones) */
+
+.settings-v2-hub-header {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 18px;
+}
+
+.settings-v2-hub-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.settings-v2-hub-icon {
+  display: grid;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--v2-text-text-accent) 30%, transparent);
+  border-radius: 13px;
+  background:
+    radial-gradient(120% 120% at 0% 0%, color-mix(in srgb, var(--v2-text-text-accent) 26%, transparent), transparent 70%),
+    var(--v2-background-bg-layer-02);
+  color: var(--v2-text-text-accent);
+  box-shadow: 0 6px 18px -10px color-mix(in srgb, var(--v2-text-text-accent) 60%, transparent);
+}
+
+.settings-v2-hub-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-v2-hub-tabs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.settings-v2-hub-tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--v2-border-border-muted);
+  border-radius: 12px;
+  background: var(--v2-background-bg-layer-01);
+  color: var(--v2-text-text-base);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.settings-v2-hub-tab:hover {
+  border-color: var(--v2-border-border-base);
+  background: var(--v2-background-bg-layer-02);
+}
+
+.settings-v2-hub-tab[aria-selected="true"] {
+  border-color: var(--v2-border-border-focus);
+  background: var(--v2-background-bg-layer-02);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--v2-border-border-focus) 40%, transparent);
+}
+
+.settings-v2-hub-tab:focus-visible {
+  outline: 2px solid var(--v2-border-border-focus);
+  outline-offset: 2px;
+}
+
+.settings-v2-hub-tab-icon {
+  display: grid;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--v2-background-bg-layer-03);
+  color: var(--v2-text-text-muted);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.settings-v2-hub-tab[aria-selected="true"] .settings-v2-hub-tab-icon {
+  background: color-mix(in srgb, var(--v2-text-text-accent) 16%, transparent);
+  color: var(--v2-text-text-accent);
+}
+
+.settings-v2-hub-tab-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.settings-v2-hub-tab-label {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.settings-v2-hub-tab-hint {
+  overflow: hidden;
+  font-size: 11px;
+  color: var(--v2-text-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A page shown inside a group: the group's tile already names it, so its header keeps only the
+   description and actions, scrolls with the page and no longer sticks over the group header. */
+.settings-v2-tab-header.settings-v2-tab-header--embedded {
+  position: static;
+  z-index: auto;
+  padding-top: 2px;
+  padding-bottom: 14px;
+  background: none;
+}
+
+.settings-v2-tab-header--embedded .settings-v2-tab-title {
+  display: none;
+}
+
+.settings-v2-tab-header--embedded .settings-v2-tab-header-row:has(> .settings-v2-tab-title:only-child) {
+  display: none;
+}
+
+/* Inside Conexiones the GitHub card starts under the tiles instead of centring in the panel. */
+.settings-v2-hub-header ~ .gh-container,
+.settings-v2-hub-header ~ .gh-container.is-empty {
+  flex: none;
+  justify-content: flex-start;
+  min-height: 0;
+  padding-top: 8px;
+}

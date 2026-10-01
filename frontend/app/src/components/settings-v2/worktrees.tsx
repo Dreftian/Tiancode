@@ -15,7 +15,8 @@ import "./settings-v2.css"
 type WorktreeEntry = { root: string; directory: string; project: string }
 
 /** Settings → Worktrees: review the worktrees Tiancode created and free their disk space. */
-export const SettingsWorktreesV2: Component<{ active?: boolean }> = () => {
+/** `embedded`: shown inside Settings › Servidor, which already titles it. */
+export const SettingsWorktreesV2: Component<{ active?: boolean; embedded?: boolean }> = (props) => {
   const language = useLanguage()
   const platform = usePlatform()
   const serverSDK = useServerSDK()
@@ -75,7 +76,10 @@ export const SettingsWorktreesV2: Component<{ active?: boolean }> = () => {
 
   return (
     <>
-      <div class="settings-v2-tab-header settings-v2-tab-header--stacked">
+      <div
+        class="settings-v2-tab-header settings-v2-tab-header--stacked"
+        classList={{ "settings-v2-tab-header--embedded": props.embedded }}
+      >
         <div class="settings-v2-tab-header-row">
           <h2 class="settings-v2-tab-title">{language.t("settings.tab.worktrees")}</h2>
         </div>

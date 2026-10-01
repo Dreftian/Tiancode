@@ -13,7 +13,8 @@ import { showToast } from "@/utils/toast"
 import "./settings-v2.css"
 
 /** Settings → Projects: every project this server knows, like opencode's page. */
-export const SettingsProjectsV2: Component<{ active?: boolean }> = () => {
+/** `embedded`: shown inside Settings › Servidor, which already titles it. */
+export const SettingsProjectsV2: Component<{ active?: boolean; embedded?: boolean }> = (props) => {
   const language = useLanguage()
   const platform = usePlatform()
   const server = useServer()
@@ -49,7 +50,10 @@ export const SettingsProjectsV2: Component<{ active?: boolean }> = () => {
 
   return (
     <>
-      <div class="settings-v2-tab-header settings-v2-tab-header--stacked">
+      <div
+        class="settings-v2-tab-header settings-v2-tab-header--stacked"
+        classList={{ "settings-v2-tab-header--embedded": props.embedded }}
+      >
         <div class="settings-v2-tab-header-row">
           <h2 class="settings-v2-tab-title">{language.t("settings.tab.projects")}</h2>
         </div>

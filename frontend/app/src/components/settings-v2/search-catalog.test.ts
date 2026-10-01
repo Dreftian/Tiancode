@@ -19,6 +19,13 @@ describe("settings search catalog", () => {
     expect(entries.filter((entry) => !panels.has(entry.tab)).map((entry) => entry.label)).toEqual([])
   })
 
+  test("Servidores, Proyectos and Worktrees live in Servidor, and GitHub in Conexiones", () => {
+    for (const old of ["servers", "projects", "worktrees", "github"]) expect(panels.has(old)).toBe(false)
+    const server = entries.filter((entry) => entry.tab === "server").map((entry) => entry.section)
+    expect(server).toEqual(expect.arrayContaining(["servers", "projects", "worktrees"]))
+    expect(entries.some((entry) => entry.tab === "connections" && entry.section === "github")).toBe(true)
+  })
+
   test("Emparejar and Experimental are sections of Uso de la PC", () => {
     expect(panels.has("pairing")).toBe(false)
     expect(panels.has("experimental")).toBe(false)

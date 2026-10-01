@@ -16,7 +16,8 @@ import { SettingsListV2 } from "./parts/list"
 import { AddServerMenu, isWslServer, useFilteredWslServers, WslServerSettings } from "@/wsl/settings"
 import "./settings-v2.css"
 
-export const SettingsServersV2: Component = () => {
+/** `embedded`: shown inside Settings › Servidor, which already titles it. */
+export const SettingsServersV2: Component<{ embedded?: boolean }> = (props) => {
   const dialog = useDialog()
   const language = useLanguage()
   const controller = useServerManagementController()
@@ -50,7 +51,7 @@ export const SettingsServersV2: Component = () => {
     <>
       <div
         class="settings-v2-tab-header settings-v2-servers-header"
-        classList={{ "settings-v2-tab-header--stacked": showSearch() }}
+        classList={{ "settings-v2-tab-header--stacked": showSearch(), "settings-v2-tab-header--embedded": props.embedded }}
       >
         <div class="settings-v2-tab-header-row">
           <h2 class="settings-v2-tab-title">{language.t("status.popover.tab.servers")}</h2>

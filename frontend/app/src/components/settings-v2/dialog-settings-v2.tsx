@@ -15,16 +15,13 @@ import { SettingsSkillsV2 } from "./skills"
 import { SettingsSubAgentsV2 } from "./sub-agents"
 import { SettingsMcpPluginsV2 } from "./mcp-plugins"
 import { SettingsPetsV2 } from "./pets"
-import { SettingsConnectionsV2 } from "./connections"
+import { SettingsConnectionsHubV2, type ConnectionsSection } from "./connections-hub"
 import { COMPUTER_USE_SECTIONS, SettingsComputerUseV2, type ComputerUseSection } from "./computer-use"
-import { SettingsGithubV2 } from "./github"
 import { SettingsIntelligenceV2 } from "./intelligence"
 import { SettingsVoicesV2 } from "./voices"
 import "./settings-v2.css"
-import { SettingsServersV2 } from "./servers"
+import { SERVER_SECTIONS, SettingsServerHubV2, type ServerSection } from "./server-hub"
 import { SettingsNotificationsV2 } from "./notifications"
-import { SettingsProjectsV2 } from "./projects"
-import { SettingsWorktreesV2 } from "./worktrees"
 import { SettingsAboutV2 } from "./about"
 import { SettingsSearchV2, revealSettingsRow } from "./search"
 import type { SettingsSearchEntry } from "./search-catalog"
@@ -94,14 +91,25 @@ const IconAbout = () => (
 /**
  * Where Settings opens. Besides a tab, callers may name a section: "data" (General › Datos),
  * "browser", "pairing" or "experimental" (Uso de la PC). Anything that is not a string, such as
- * the click event a button forwards, opens General.
+ * the click event a button forwards, opens General. "servers", "projects" and "worktrees" open
+ * Servidor on that section; "github" opens Conexiones on GitHub.
  */
-function settingsTarget(value: unknown) {
+type SettingsTarget = {
+  tab: string
+  general?: string
+  computerUse?: ComputerUseSection
+  server?: ServerSection
+  connections?: ConnectionsSection
+}
+
+function settingsTarget(value: unknown): SettingsTarget {
   const requested = typeof value === "string" ? value : "general"
   if (requested === "mcp-servers" || requested === "plugins") return { tab: "mcp-plugins" }
   if (requested === "data") return { tab: "general", general: "data" }
   if ((COMPUTER_USE_SECTIONS as readonly string[]).includes(requested))
     return { tab: "computer-use", computerUse: requested as ComputerUseSection }
+  if ((SERVER_SECTIONS as readonly string[]).includes(requested)) return { tab: "server", server: requested as ServerSection }
+  if (requested === "github") return { tab: "connections", connections: "github" }
   return { tab: requested }
 }
 
@@ -123,6 +131,8 @@ export const DialogSettings: Component<{
   const [sections, setSections] = createStore({
     general: target.general ?? "general",
     computerUse: target.computerUse ?? ("tools" as ComputerUseSection),
+    server: target.server ?? ("servers" as ServerSection),
+    connections: target.connections ?? ("gateways" as ConnectionsSection),
   })
 
   // Lazy cache (matching OpenCode Desktop): only mount the active tab initially,
@@ -157,6 +167,9 @@ export const DialogSettings: Component<{
     setSearch("")
     if (entry.tab === "general") setSections("general", entry.section ?? "general")
     if (entry.tab === "computer-use") setSections("computerUse", (entry.section as ComputerUseSection | undefined) ?? "tools")
+    if (entry.tab === "server") setSections("server", (entry.section as ServerSection | undefined) ?? "servers")
+    if (entry.tab === "connections")
+      setSections("connections", (entry.section as ConnectionsSection | undefined) ?? "gateways")
     markVisited(entry.tab)
     if (entry.target) revealSettingsRow(entry.target)
   }
@@ -210,17 +223,9 @@ export const DialogSettings: Component<{
                 <div class="flex flex-col gap-1.5">
                   <TabsV2.SectionTitle>{language.t("settings.section.server")}</TabsV2.SectionTitle>
                   <div class="flex flex-col gap-1 w-full">
-                    <TabsV2.Trigger value="servers">
+                    <TabsV2.Trigger value="server">
                       <Icon name="server" />
-                      {language.t("status.popover.tab.servers")}
-                    </TabsV2.Trigger>
-                    <TabsV2.Trigger value="projects">
-                      <Icon name="folder" />
-                      {language.t("settings.tab.projects")}
-                    </TabsV2.Trigger>
-                    <TabsV2.Trigger value="worktrees">
-                      <Icon name="branch" />
-                      {language.t("settings.tab.worktrees")}
+                      {language.t("settings.tab.server")}
                     </TabsV2.Trigger>
                     <TabsV2.Trigger value="providers">
                       <Icon name="providers" />
@@ -241,10 +246,6 @@ export const DialogSettings: Component<{
                 <div class="flex flex-col gap-1.5">
                   <TabsV2.SectionTitle>{language.t("settings.section.extensions")}</TabsV2.SectionTitle>
                   <div class="flex flex-col gap-1 w-full">
-                    <TabsV2.Trigger value="github">
-                      <Icon name="github" />
-                      {language.t("settings.tab.github")}
-                    </TabsV2.Trigger>
                     <TabsV2.Trigger value="voices">
                       <IconVoices />
                       {language.t("settings.tab.voices")}
@@ -333,21 +334,13 @@ export const DialogSettings: Component<{
           </Show>
         </TabsV2.Content>
 
-        <TabsV2.Content forceMount value="servers" class="settings-v2-panel" classList={{ "!hidden": tab() !== "servers" }}>
-          <Show when={visited().has("servers")}>
-            <SettingsServersV2 />
-          </Show>
-        </TabsV2.Content>
-
-        <TabsV2.Content forceMount value="projects" class="settings-v2-panel" classList={{ "!hidden": tab() !== "projects" }}>
-          <Show when={visited().has("projects")}>
-            <SettingsProjectsV2 active={tab() === "projects"} />
-          </Show>
-        </TabsV2.Content>
-
-        <TabsV2.Content forceMount value="worktrees" class="settings-v2-panel" classList={{ "!hidden": tab() !== "worktrees" }}>
-          <Show when={visited().has("worktrees")}>
-            <SettingsWorktreesV2 active={tab() === "worktrees"} />
+        <TabsV2.Content forceMount value="server" class="settings-v2-panel" classList={{ "!hidden": tab() !== "server" }}>
+          <Show when={visited().has("server")}>
+            <SettingsServerHubV2
+              active={tab() === "server"}
+              section={sections.server}
+              onSectionChange={(section) => setSections("server", section)}
+            />
           </Show>
         </TabsV2.Content>
 
@@ -366,12 +359,6 @@ export const DialogSettings: Component<{
         <TabsV2.Content forceMount value="models-hub" class="settings-v2-panel" classList={{ "!hidden": tab() !== "models-hub" }}>
           <Show when={visited().has("models-hub")}>
             <SettingsModelsHubV2 directory={directory()} active={tab() === "models-hub"} />
-          </Show>
-        </TabsV2.Content>
-
-        <TabsV2.Content forceMount value="github" class="settings-v2-panel" classList={{ "!hidden": tab() !== "github" }}>
-          <Show when={visited().has("github")}>
-            <SettingsGithubV2 directory={directory()} active={tab() === "github"} />
           </Show>
         </TabsV2.Content>
 
@@ -401,7 +388,12 @@ export const DialogSettings: Component<{
 
         <TabsV2.Content forceMount value="connections" class="settings-v2-panel" classList={{ "!hidden": tab() !== "connections" }}>
           <Show when={visited().has("connections")}>
-            <SettingsConnectionsV2 active={tab() === "connections"} />
+            <SettingsConnectionsHubV2
+              directory={directory()}
+              active={tab() === "connections"}
+              section={sections.connections}
+              onSectionChange={(section) => setSections("connections", section)}
+            />
           </Show>
         </TabsV2.Content>
 
