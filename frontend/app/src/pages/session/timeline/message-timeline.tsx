@@ -1167,6 +1167,15 @@ export function MessageTimeline(props: {
       // Esperar a que la IA termine completamente de responder:
       if (!rowMessage.time?.completed && !rowMessage.finish) return
       if (rowMessage.error || item.synthetic || item.ignored) return
+      // Opening an old session must not read its history aloud.
+      if (
+        !isCompletedAutoSpeakMessage({
+          completed: rowMessage.time.completed ?? Date.now(),
+          created: rowMessage.time.created,
+          summary: rowMessage.summary,
+        })
+      )
+        return
 
       const firstText = getMsgParts(rowMessage.id).find((candidate) => candidate.type === "text")
       if (firstText?.id !== item.id) return

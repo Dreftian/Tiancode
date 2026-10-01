@@ -122,7 +122,8 @@ export function PetCompanion() {
   let lastSpoken = ""
   let speakTimer: ReturnType<typeof setTimeout> | undefined
   createEffect(() => {
-    const isPetActive = settings.general.petEnabled()
+    // The pet only talks when automatic speech is on, like every other narration.
+    const isPetActive = settings.general.petEnabled() && settings.general.autoSpeak()
     const currentAction = actionText().trim()
     if (speakTimer !== undefined) clearTimeout(speakTimer)
     speakTimer = undefined
@@ -131,7 +132,9 @@ export function PetCompanion() {
       speakTimer = undefined
       if (status() !== "running" || actionText().trim() !== currentAction || currentAction === lastSpoken) return
       lastSpoken = currentAction
-      void speakAutomaticallyWithVoices(`pet:${params.id}:${currentAction.slice(0, 30)}`, currentAction)
+      // An "auto:" key: the finished reply replaces this clip instead of being dropped as manual
+      // speech, and muting automatic speech stops it.
+      void speakAutomaticallyWithVoices(`auto:pet:${params.id}:${currentAction.slice(0, 30)}`, currentAction)
     }, 450)
   })
   onCleanup(() => {

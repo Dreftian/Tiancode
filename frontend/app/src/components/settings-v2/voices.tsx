@@ -1,540 +1,476 @@
-import { createStore } from "solid-js/store"
-import { SettingsSectionTabs } from "./parts/section-tabs"
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
+import { SegmentedControlItemV2, SegmentedControlV2 } from "@tiancode-ai/ui/v2/segmented-control-v2"
+import { SelectV2 } from "@tiancode-ai/ui/v2/select-v2"
 import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
-import { Icon as IconV2 } from "@tiancode-ai/ui/v2/icon"
-import { IconButtonV2 } from "@tiancode-ai/ui/v2/icon-button-v2"
-import { Icon } from "@tiancode-ai/ui/icon"
-import { type Component, createMemo, createResource, createSignal, For, onCleanup, onMount, Show } from "solid-js"
+import { TextInputV2 } from "@tiancode-ai/ui/v2/text-input-v2"
+import { useDialog } from "@tiancode-ai/ui/context/dialog"
+import { type Component, createMemo, createResource, For, onCleanup, onMount, Show } from "solid-js"
+import { createStore, produce } from "solid-js/store"
+import { useCommand } from "@/context/command"
 import { useLanguage } from "@/context/language"
 import { useSettings } from "@/context/settings"
-import { showToast } from "@/utils/toast"
-import {
-  isVoiceSpeaking,
-  speakWithVoices,
-  voicesAPI,
-  type VoiceInfo,
-  getVoiceSpeed,
-  setVoiceSpeed,
-  getVoicePitch,
-  setVoicePitch,
-  getVoiceVolume,
-  setVoiceVolume,
-  getBargeInEnabled,
-  setBargeInEnabled,
-  enableBargeInListener,
-  currentSpeakingKey,
-  getVoiceEngineMode,
-  setVoiceEngineMode,
-  stopSpeaking,
-  type VoiceEngineMode,
-  getFishAudioKey,
-  setFishAudioKey,
-  DEFAULT_FISH_KEY,
-  getFishAudioVoice,
-  setFishAudioVoice,
-  CURATED_FISH_VOICES,
-  speakWithFishAudio,
-} from "@/utils/voices"
 import { stopAutoSpeak } from "@/utils/auto-speak"
-import { AudioWaveform } from "@/components/visualization/audio-waveform"
-import { SettingsListV2 } from "./parts/list"
-import { SettingsRowV2 } from "./parts/row"
-import { SelectV2 } from "@tiancode-ai/ui/v2/select-v2"
-import { MicTester } from "./mic-tester"
 import {
-  getAudioInputDevices,
-  getSelectedAudioDeviceId,
-  setSelectedAudioDeviceId,
-  onAudioDeviceChange,
-  getDictationDictionary,
   addDictationDictionaryEntry,
-  removeDictationDictionaryEntry,
-  getRecentRecordings,
   clearRecentRecordings,
   type DictationRecording,
+  getAudioInputDevices,
+  getDictationDictionary,
+  getHoldToRecord,
+  getRecentRecordings,
+  getSelectedAudioDeviceId,
+  onAudioDeviceChange,
+  removeDictationDictionaryEntry,
+  setHoldToRecord,
+  setSelectedAudioDeviceId,
 } from "@/utils/asr"
+import { showToast } from "@/utils/toast"
+import {
+  CURATED_FISH_VOICES,
+  getBargeInEnabled,
+  getFishAudioKey,
+  getFishAudioVoice,
+  getVoiceEngineMode,
+  getVoicePitch,
+  getVoiceSpeed,
+  getVoiceVolume,
+  isVoiceSpeaking,
+  setBargeInEnabled,
+  setFishAudioKey,
+  setFishAudioVoice,
+  setVoiceEngineMode,
+  setVoicePitch,
+  setVoiceSpeed,
+  setVoiceVolume,
+  speakWithFishAudio,
+  speakWithVoices,
+  stopSpeaking,
+  type VoiceEngineMode,
+  type VoiceInfo,
+  voicesAPI,
+} from "@/utils/voices"
+import { MicTester } from "./mic-tester"
+import { SettingsConfirmDialog } from "./parts/confirm-dialog"
+import { SettingsHubHeader } from "./parts/hub-header"
+import { SettingsListV2 } from "./parts/list"
+import { SettingsRowV2 } from "./parts/row"
 import "./voices.css"
 
-// Una sola frase corta no deja oír lo que distingue a estas voces (fluidez,
-// pausas y timbre): con seis voces que comparar hace falta una muestra con
-// coma, punto y pregunta, que es donde se nota la entonación.
-const PROBE_TEXT_ES = "Hola, soy la voz de Tiancode en español. Leo las respuestas con pausas naturales y un tono suave. ¿Te gusta cómo sueno?"
-const voiceProbeKey = (voiceID: string) => `voice:${voiceID}`
+type VoicesSection = "microphone" | "speech" | "voices"
 
-// A voice can be selected when it is supported and enabled.
-const canSelect = (voice: VoiceInfo) => voice.engine === ("fish" as any) || (voice.supported && voice.enabled !== false)
+const SPEEDS = [0.75, 1, 1.25, 1.5, 2]
+const VOLUMES = [0.5, 0.75, 1]
+const PITCHES = [
+  { value: 0.85, label: "settings.voices.pitch.low" },
+  { value: 1, label: "settings.voices.pitch.natural" },
+  { value: 1.15, label: "settings.voices.pitch.high" },
+] as const
+const ENGINES: VoiceEngineMode[] = ["auto", "system", "fish"]
+
+const SAMPLE_KEY = "voice:sample"
+const voiceKey = (id: string) => `voice:${id}`
+
+const MicGlyph = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+    <rect x="5.5" y="1.75" width="5" height="8" rx="2.5" />
+    <path d="M3 7.5a5 5 0 0 0 10 0M8 12.5v2" stroke-linecap="round" />
+  </svg>
+)
+
+const SpeakerGlyph = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+    <path d="M7.33 3.33 4 6H1.75v4H4l3.33 2.67V3.33Z" stroke-linejoin="round" />
+    <path d="M10 5.5c1.2 1.3 1.2 3.7 0 5M12.25 3.5c2.3 2.4 2.3 6.6 0 9" stroke-linecap="round" />
+  </svg>
+)
+
+const WaveGlyph = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+    <path d="M2 8h1M4.5 5v6M7 2.5v11M9.5 5.5v5M12 4v8M14 7v2" stroke-linecap="round" />
+  </svg>
+)
 
 export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
-  const [sections, setSections] = createStore({ active: "microphone" })
   const language = useLanguage()
   const settings = useSettings()
+  const command = useCommand()
+  const dialog = useDialog()
   const api = voicesAPI()
 
-  const [status, { refetch }] = createResource(async () => api?.status())
-  const [infoVoice, setInfoVoice] = createSignal<string | undefined>(undefined)
-  // Per-voice piper download progress; entries vanish when the file lands.
-  const [piperProgress, setPiperProgress] = createSignal<Record<string, number>>({})
-  const [deleting, setDeleting] = createSignal<Record<string, boolean>>({})
-
-  const [audioDevices, setAudioDevices] = createSignal<MediaDeviceInfo[]>([])
-  const [selectedMicId, setSelectedMicId] = createSignal<string | null>(getSelectedAudioDeviceId())
-  const [dictWords, setDictWords] = createSignal<string[]>(getDictationDictionary())
-  const [newDictWord, setNewDictWord] = createSignal("")
-  const [isAddingWord, setIsAddingWord] = createSignal(false)
-  const [recentRecordings, setRecentRecordings] = createSignal<DictationRecording[]>(getRecentRecordings())
-  const [showRecentRecordings, setShowRecentRecordings] = createSignal(false)
-
-  const refreshAudioDevices = async () => {
-    try {
-      const list = await getAudioInputDevices()
-      setAudioDevices(list)
-    } catch {
-      setAudioDevices([])
-    }
-  }
-
-  const micOptions = createMemo<{ id: string; label: string }[]>(() => {
-    const defaultLabel = language.t("chat.mic.defaultDevice") ?? "Predeterminado del sistema"
-    const list = [{ id: "default", label: defaultLabel }]
-    audioDevices().forEach((dev, index) => {
-      list.push({
-        id: dev.deviceId,
-        label: dev.label || language.t("chat.mic.device.fallback", { index: index + 1 }),
-      })
-    })
-    return list
+  const [ui, setUi] = createStore({
+    section: "microphone" as VoicesSection,
+    devices: [] as MediaDeviceInfo[],
+    mic: getSelectedAudioDeviceId(),
+    hold: getHoldToRecord(),
+    words: getDictationDictionary(),
+    word: "",
+    adding: false,
+    recordings: getRecentRecordings(),
+    showRecordings: false,
+    // Per-voice download progress; an entry vanishes when the file lands.
+    progress: {} as Record<string, number>,
+    deleting: "",
+    revealKey: false,
   })
 
-  const currentMic = createMemo(() => {
-    const id = selectedMicId() ?? "default"
-    return micOptions().find((opt) => opt.id === id) ?? micOptions()[0]
-  })
+  const clearProgress = (id: string) =>
+    setUi(
+      "progress",
+      produce((progress) => {
+        delete progress[id]
+      }),
+    )
 
-  const handleSelectMic = (id: string) => {
-    const finalId = id === "default" ? null : id
-    setSelectedAudioDeviceId(finalId)
-    setSelectedMicId(finalId)
-    showToast({
-      title: language.t("chat.mic.selectDevice") ?? "Micrófono seleccionado",
-      description: finalId
-        ? audioDevices().find((d) => d.deviceId === finalId)?.label || "Micrófono"
-        : (language.t("chat.mic.defaultDevice") ?? "Predeterminado del sistema"),
-    })
-  }
+  const [status, { refetch }] = createResource(async () => (api ? await api.status().catch(() => undefined) : undefined))
 
-  const handleAddWord = () => {
-    const val = newDictWord().trim()
-    if (!val) return
-    addDictationDictionaryEntry(val)
-    setDictWords(getDictationDictionary())
-    setNewDictWord("")
-    setIsAddingWord(false)
-    showToast({
-      title: language.t("settings.voices.dictation.dictionary.added.title"),
-      description: language.t("settings.voices.dictation.dictionary.added.description", { word: val }),
-    })
-  }
-
-  const handleRemoveWord = (word: string) => {
-    removeDictationDictionaryEntry(word)
-    setDictWords(getDictationDictionary())
-  }
-
-  // El plural se elige aquí porque la lista de claves plurales del contexto de
-  // idioma es cerrada y no se puede ampliar desde este componente.
-  const savedCountLabel = (count: number) =>
-    count === 1
-      ? language.t("settings.voices.dictation.recordings.count.one", { count })
-      : language.t("settings.voices.dictation.recordings.count.other", { count })
-
-  let piperUnsubscribe: (() => void) | undefined
-  let devCleanup: (() => void) | undefined
-  let onMicChange: ((event: Event) => void) | undefined
-  let onRecsChange: ((event: Event) => void) | undefined
+  const refreshDevices = async () => setUi("devices", await getAudioInputDevices().catch(() => []))
 
   onMount(() => {
-    void refreshAudioDevices()
-    devCleanup = onAudioDeviceChange(() => {
-      void refreshAudioDevices()
-    })
-    onMicChange = (event: Event) => {
-      const custom = event as CustomEvent<{ deviceId: string | null }>
-      setSelectedMicId(custom.detail?.deviceId ?? getSelectedAudioDeviceId())
-    }
-    window.addEventListener("tiancode:microphone-changed", onMicChange)
-    onRecsChange = (event: Event) => {
-      const custom = event as CustomEvent<{ recordings: DictationRecording[] }>
-      setRecentRecordings(custom.detail?.recordings ?? getRecentRecordings())
-    }
-    window.addEventListener("tiancode:recent-recordings-changed", onRecsChange)
-
-    const current = api
-    if (!current) return
-    piperUnsubscribe = current.onPiperProgress((event) => {
+    void refreshDevices()
+    const stopDevices = onAudioDeviceChange(() => void refreshDevices())
+    const onMic = (event: Event) =>
+      setUi("mic", (event as CustomEvent<{ deviceId: string | null }>).detail?.deviceId ?? getSelectedAudioDeviceId())
+    const onRecordings = (event: Event) =>
+      setUi(
+        "recordings",
+        (event as CustomEvent<{ recordings: DictationRecording[] }>).detail?.recordings ?? getRecentRecordings(),
+      )
+    const onHold = () => setUi("hold", getHoldToRecord())
+    window.addEventListener("tiancode:microphone-changed", onMic)
+    window.addEventListener("tiancode:recent-recordings-changed", onRecordings)
+    window.addEventListener("tiancode:hold-to-record-changed", onHold)
+    const stopProgress = api?.onPiperProgress((event) => {
       if (event.done) {
-        setPiperProgress((prev) => {
-          const next = { ...prev }
-          delete next[event.voiceId]
-          return next
-        })
+        clearProgress(event.voiceId)
         void refetch()
         return
       }
-      setPiperProgress((prev) => ({ ...prev, [event.voiceId]: event.progress }))
+      setUi("progress", event.voiceId, event.progress)
+    })
+    onCleanup(() => {
+      stopDevices()
+      stopProgress?.()
+      window.removeEventListener("tiancode:microphone-changed", onMic)
+      window.removeEventListener("tiancode:recent-recordings-changed", onRecordings)
+      window.removeEventListener("tiancode:hold-to-record-changed", onHold)
     })
   })
-  onCleanup(() => {
-    piperUnsubscribe?.()
-    piperUnsubscribe = undefined
-    devCleanup?.()
-    devCleanup = undefined
-    if (onMicChange) {
-      window.removeEventListener("tiancode:microphone-changed", onMicChange)
-      onMicChange = undefined
-    }
-    if (onRecsChange) {
-      window.removeEventListener("tiancode:recent-recordings-changed", onRecsChange)
-      onRecsChange = undefined
-    }
-  })
 
-  // The whole local catalogue, downloaded voices first. The Fish Audio voices used to be
-  // injected here too, but they cannot speak without an API key and the grid is the place
-  // to pick a voice that works; they stay reachable through the Fish engine mode.
-  const sortedVoices = createMemo<VoiceInfo[]>(() => {
-    const rawVoices = [...(status()?.voices ?? [])]
-    rawVoices.sort((a, b) => Number(b.downloaded === true) - Number(a.downloaded === true))
-    return rawVoices
-  })
+  // ------------------------------------------------------------------ microphone
 
-  const selected = () => {
-    if (getVoiceEngineMode() === "fish") {
-      return getFishAudioVoice()
-    }
-    return status()?.selected
+  const micOptions = createMemo(() => [
+    { id: "default", label: language.t("chat.mic.defaultDevice") },
+    ...ui.devices.map((device, index) => ({
+      id: device.deviceId,
+      label: device.label || language.t("chat.mic.device.fallback", { index: index + 1 }),
+    })),
+  ])
+  const currentMic = () => micOptions().find((option) => option.id === (ui.mic ?? "default")) ?? micOptions()[0]
+
+  const selectMic = (id: string) => {
+    const next = id === "default" ? null : id
+    setSelectedAudioDeviceId(next)
+    setUi("mic", next)
   }
-  const selectedVoice = createMemo(() => sortedVoices().find((voice) => voice.id === selected()))
 
-  const selectVoice = async (voice: VoiceInfo) => {
-    if (voice.engine === ("fish" as any)) {
-      setFishAudioVoice(voice.id)
-      setVoiceEngineMode("fish")
-      settings.general.setVoiceEngine("fish")
-      showToast({ variant: "success", title: "Voz seleccionada", description: `${voice.name} (Fish Audio S2.1 Pro)` })
+  const addWord = () => {
+    const word = ui.word.trim()
+    if (!word) return
+    addDictationDictionaryEntry(word)
+    setUi({ words: getDictationDictionary(), word: "", adding: false })
+  }
+
+  const removeWord = (word: string) => {
+    removeDictationDictionaryEntry(word)
+    setUi("words", getDictationDictionary())
+  }
+
+  const copyRecording = (text: string) =>
+    void navigator.clipboard
+      .writeText(text)
+      .then(() => showToast({ variant: "success", title: language.t("settings.voices.dictation.recordings.copied") }))
+      .catch(() => undefined)
+
+  // ------------------------------------------------------------------ speech
+
+  const engineHint = (mode: VoiceEngineMode) => {
+    if (mode === "system") return language.t("settings.voices.engine.system.description")
+    if (mode === "fish") return language.t("settings.voices.engine.fish.description")
+    return language.t("settings.voices.engine.auto.description")
+  }
+
+  const toggleAutoSpeak = (value: boolean) => {
+    settings.general.setAutoSpeak(value)
+    if (value) return
+    stopSpeaking()
+    stopAutoSpeak()
+  }
+
+  const playSample = async () => {
+    if (isVoiceSpeaking(SAMPLE_KEY)) {
+      stopSpeaking()
       return
     }
-
-    const current = api
-    if (!current || !canSelect(voice) || selected() === voice.id) return
-    try {
-      // Todas las voces del catálogo son locales, así que el modo automático es
-      // el único que las reproduce (y saca al usuario de un modo sin catálogo).
-      setVoiceEngineMode("auto")
-      settings.general.setVoiceEngine("auto")
-      // Main starts the download itself for voices not on disk; asking again here raced it.
-      await current.select(voice.id)
-      void refetch()
-    } catch {
-      // Selection is advisory; the status refetch shows the persisted value.
-    }
+    const error = await speakWithVoices(SAMPLE_KEY, language.t("settings.voices.sample.text"))
+    if (error) showToast({ variant: "error", title: language.t("settings.voices.voice.probe.failed"), description: error })
   }
 
-  const toggleEnabled = async (voice: VoiceInfo, enabled: boolean) => {
-    const current = api
-    if (!current) return
-    try {
-      await current.setEnabled(voice.id, enabled)
-      void refetch()
-    } catch {
-      // The status refetch shows the persisted value.
+  const probeFish = async () => {
+    const key = "voice:fish-sample"
+    if (isVoiceSpeaking(key)) {
+      stopSpeaking()
+      return
     }
+    const error = await speakWithFishAudio(key, language.t("settings.voices.sample.text"))
+    if (error) showToast({ variant: "error", title: language.t("settings.voices.fish.failed"), description: error })
+  }
+
+  // ------------------------------------------------------------------ local voices
+
+  const voices = createMemo<VoiceInfo[]>(() =>
+    [...(status()?.voices ?? [])].sort((a, b) => Number(b.downloaded === true) - Number(a.downloaded === true)),
+  )
+  const downloadedCount = () => voices().filter((voice) => voice.downloaded).length
+  const chosen = () => status()?.selected
+  const downloading = (voice: VoiceInfo) => ui.progress[voice.id] !== undefined
+
+  const selectVoice = async (voice: VoiceInfo) => {
+    if (!api || !voice.supported || chosen() === voice.id) return
+    // Local voices speak in the automatic mode; picking one is choosing that mode.
+    setVoiceEngineMode("auto")
+    // Main starts the download of a voice that is not on disk and keeps the choice meanwhile.
+    await api.select(voice.id).catch(() => false)
+    void refetch()
   }
 
   const downloadVoice = async (voice: VoiceInfo) => {
-    const current = api
-    if (!current) return
-    try {
-      await current.downloadVoice(voice.id)
-      void refetch()
-      showToast({ variant: "success", title: language.t("settings.voices.voice.download.success") })
-    } catch (error) {
-      showToast({
-        variant: "error",
-        title: language.t("settings.voices.voice.download.failed"),
-        description: error instanceof Error ? error.message : undefined,
-      })
-    }
+    if (!api) return
+    setUi("progress", voice.id, 0)
+    await api
+      .downloadVoice(voice.id)
+      .then(() => showToast({ variant: "success", title: language.t("settings.voices.voice.download.success") }))
+      .catch((error: unknown) =>
+        showToast({
+          variant: "error",
+          title: language.t("settings.voices.voice.download.failed"),
+          description: error instanceof Error ? error.message : undefined,
+        }),
+      )
+    clearProgress(voice.id)
+    void refetch()
   }
 
-  const deleteVoice = async (voice: VoiceInfo) => {
-    if (!window.confirm(language.t("settings.voices.voice.delete.confirm", { name: voice.name }))) return
-    const current = api
-    if (!current) return
-    setDeleting((prev) => ({ ...prev, [voice.id]: true }))
-    try {
-      await current.deleteVoice(voice.id)
-      void refetch()
-      showToast({ variant: "success", title: language.t("settings.voices.voice.delete.success") })
-    } catch (error) {
-      showToast({
-        variant: "error",
-        title: language.t("settings.voices.voice.delete.failed"),
-        description: error instanceof Error ? error.message : undefined,
-      })
-    } finally {
-      setDeleting((prev) => {
-        const next = { ...prev }
-        delete next[voice.id]
-        return next
-      })
-    }
-  }
+  const deleteVoice = (voice: VoiceInfo) =>
+    void dialog.push(() => (
+      <SettingsConfirmDialog
+        title={language.t("settings.voices.voice.delete.confirm", { name: voice.name })}
+        description={language.t("settings.voices.voice.delete.description")}
+        confirm={language.t("settings.voices.voice.delete")}
+        onClose={() => dialog.close()}
+        onConfirm={async () => {
+          if (!api) return
+          setUi("deleting", voice.id)
+          await api
+            .deleteVoice(voice.id)
+            .then(() => showToast({ variant: "success", title: language.t("settings.voices.voice.delete.success") }))
+            .catch(() => showToast({ variant: "error", title: language.t("settings.voices.voice.delete.failed") }))
+          setUi("deleting", "")
+          void refetch()
+        }}
+      />
+    ))
 
   const probe = async (voice: VoiceInfo) => {
-    if (voice.engine === ("fish" as any) || CURATED_FISH_VOICES.some((v) => v.id === voice.id)) {
-      const probeKey = voiceProbeKey(voice.id)
-      if (isVoiceSpeaking(probeKey)) {
-        stopSpeaking()
-        return
-      }
-      showToast({
-        title: `Probando ${voice.name}`,
-        description: "Generando voz fluida con Fish Audio S2.1 Pro...",
-      })
-      const err = await speakWithFishAudio(
-        probeKey,
-        "¡Hola! Soy la voz hiper-realista femenina de Tiancode impulsada por Fish Audio S 2.1 Pro. ¿Qué programamos hoy?",
-        voice.id,
-      )
-      if (err) {
-        showToast({ variant: "error", title: "Error en Fish Audio", description: err })
-      }
+    if (isVoiceSpeaking(voiceKey(voice.id))) {
+      stopSpeaking()
       return
     }
-
-    // 1. Try local engine synthesis
-    // Preview the card's own engine whatever the global mode is set to.
-    const error = await speakWithVoices(voiceProbeKey(voice.id), PROBE_TEXT_ES, voice.id, { engine: "local" })
-    if (error) {
-      // 2. Immediate audio preview sample or Web Speech API fallback for testing before install
-      if (typeof window !== "undefined" && "speechSynthesis" in window) {
-        window.speechSynthesis.cancel()
-        const utterance = new SpeechSynthesisUtterance(PROBE_TEXT_ES)
-        utterance.lang = voice.language
-        const availableVoices = window.speechSynthesis.getVoices()
-        const match = availableVoices.find(
-          (v) =>
-            v.lang.toLowerCase().startsWith(voice.language.slice(0, 2).toLowerCase()) &&
-            (voice.gender === "female" ? /female|mujer|monica|helena|sabina|lucia|zira/i.test(v.name) : true),
-        )
-        if (match) utterance.voice = match
-        window.speechSynthesis.speak(utterance)
-        // El aviso decía "Probando voz: <modelo>" mientras sonaba una voz del
-        // sistema: quien comparaba voces para elegir la más suave juzgaba la de
-        // Windows creyendo que era el modelo. Se dice de quién es la voz.
-        showToast({
-          variant: "default",
-          title: `${voice.name} no se pudo sintetizar`,
-          description: `Suena la voz del sistema (${match?.name ?? "predeterminada"}), no el modelo. Descarga la voz para oírla de verdad.`,
-        })
-        return
-      }
-      showToast({ variant: "error", title: language.t("settings.voices.voice.probe.failed"), description: error })
-    }
+    // This voice and no other: a failure is reported instead of silently playing the system voice.
+    const error = await speakWithVoices(voiceKey(voice.id), language.t("settings.voices.sample.text"), voice.id, {
+      engine: "local",
+    })
+    if (error) showToast({ variant: "error", title: language.t("settings.voices.voice.probe.failed"), description: error })
   }
 
-  const probeLabel = (voice: VoiceInfo) => {
-    if (piperProgress()[voice.id] !== undefined) return language.t("settings.voices.voice.downloading")
-    if (isVoiceSpeaking(voiceProbeKey(voice.id))) return language.t("settings.voices.voice.speaking")
-    return language.t("settings.voices.voice.probe")
-  }
+  const engineLabel = (voice: VoiceInfo) =>
+    voice.engine === "kokoro-es"
+      ? language.t("settings.voices.voice.engine.kokoroEs")
+      : voice.engine === "piper"
+        ? language.t("settings.voices.voice.engine.piper")
+        : voice.engine
+
+  const speechHint = () =>
+    settings.general.autoSpeak()
+      ? language.t("settings.voices.hint.speech.on", { engine: language.t(`settings.voices.engine.${getVoiceEngineMode()}`) })
+      : language.t("settings.voices.hint.speech.off")
 
   return (
     <>
-      <div class="settings-v2-tab-header">
-        <h2 class="settings-v2-tab-title">{language.t("settings.voices.title")}</h2>
-        <p class="settings-v2-tab-description">{language.t("settings.voices.description")}</p>
-        <SettingsSectionTabs
-          value={sections.active}
-          onChange={(active) => setSections("active", active)}
-          options={[
-            { id: "microphone", label: language.t("settings.voices.section.microphone") },
-            { id: "speech", label: language.t("settings.voices.section.speech") },
-            { id: "voices", label: language.t("settings.voices.ready.title") },
-          ]}
-        />
-      </div>
+      <SettingsHubHeader
+        icon="speech-bubble"
+        glyph={<SpeakerGlyph />}
+        title={language.t("settings.voices.title")}
+        description={language.t("settings.voices.description")}
+        value={ui.section}
+        onChange={(section) => setUi("section", section)}
+        sections={[
+          {
+            id: "microphone",
+            label: language.t("settings.voices.section.microphone"),
+            hint: currentMic()?.label ?? "",
+            icon: "speech-bubble",
+            glyph: <MicGlyph />,
+          },
+          {
+            id: "speech",
+            label: language.t("settings.voices.section.speech"),
+            hint: speechHint(),
+            icon: "speech-bubble",
+            glyph: <SpeakerGlyph />,
+          },
+          {
+            id: "voices",
+            label: language.t("settings.voices.section.voices"),
+            hint: api
+              ? language.t("settings.voices.hint.voices", { count: downloadedCount(), total: voices().length })
+              : language.t("settings.voices.hint.desktop"),
+            icon: "speech-bubble",
+            glyph: <WaveGlyph />,
+          },
+        ]}
+      />
 
       <div class="settings-v2-tab-body settings-v2-voices">
-        <Show when={!api}>
-          <div class="settings-v2-skills-message">{language.t("settings.voices.desktopOnly")}</div>
-        </Show>
-
-        <Show when={api}>
-          <Show when={status()?.error}>
-            <div class="settings-v2-skills-message" data-variant="error">
-              {status()!.error}
-            </div>
-          </Show>
-
-          <Show when={status.loading} fallback={null}>
-            <div class="settings-v2-skills-status">{language.t("settings.voices.loading")}</div>
-          </Show>
-
-          {/* ================================================================= */}
-          {/* 1. SECCIÓN GENERAL (Micrófono y Prueba de audio)                  */}
-          {/* ================================================================= */}
-          <Show when={sections.active === "microphone"}><div class="settings-v2-section">
-            <h3 class="settings-v2-section-title">{language.t("settings.voices.section.general") ?? "General"}</h3>
+        <Show when={ui.section === "microphone"}>
+          <div class="settings-v2-section">
+            <h3 class="settings-v2-section-title">{language.t("settings.voices.mic.title")}</h3>
             <SettingsListV2>
-              <SettingsRowV2
-                title={language.t("settings.voices.mic.title") ?? "Micrófono"}
-                description={language.t("settings.voices.mic.description") ?? "Se usa para chat de voz y dictado"}
-              >
-                <div class="flex items-center gap-2">
+              <SettingsRowV2 title={language.t("settings.voices.mic.device")} description={language.t("settings.voices.mic.description")}>
+                <div class="settings-v2-voices-inline">
                   <SelectV2
                     appearance="inline"
                     options={micOptions()}
                     current={currentMic()}
-                    value={(item) => item.id}
-                    label={(item) => item.label}
+                    value={(option) => option.id}
+                    label={(option) => option.label}
                     placement="bottom-end"
                     gutter={6}
-                    onSelect={(option) => option && handleSelectMic(option.id)}
+                    onSelect={(option) => option && selectMic(option.id)}
                   />
-                  <IconButtonV2
-                    size="small"
-                    variant="ghost-muted"
-                    aria-label="Actualizar micrófonos"
-                    title="Buscar nuevos dispositivos de audio"
-                    icon={
-                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <path d="M13.5 8A5.5 5.5 0 1 1 11.6 4.1L13.5 6M13.5 2v4h-4" />
-                      </svg>
-                    }
-                    onClick={() => void refreshAudioDevices()}
-                  />
+                  <ButtonV2 variant="ghost" size="small" onClick={() => void refreshDevices()}>
+                    {language.t("settings.voices.mic.refresh")}
+                  </ButtonV2>
                 </div>
               </SettingsRowV2>
             </SettingsListV2>
+            <MicTester selectedDeviceId={ui.mic} active={props.active} />
+          </div>
 
-            {/* Comprobación de funcionamiento del micrófono en tiempo real */}
-            <MicTester selectedDeviceId={selectedMicId()} active={props.active} />
-          </div></Show>
-
-          {/* ================================================================= */}
-          {/* 2. SECCIÓN DICTADO (Diccionario, Dictados recientes)              */}
-          {/* ================================================================= */}
-          <Show when={sections.active === "microphone"}><div class="settings-v2-section">
-            <h3 class="settings-v2-section-title">{language.t("settings.voices.section.dictation") ?? "Dictado"}</h3>
+          <div class="settings-v2-section">
+            <h3 class="settings-v2-section-title">{language.t("settings.voices.section.dictation")}</h3>
             <SettingsListV2>
-
-              {/* Aquí había una fila con el atajo de dictado: enseñaba un
-                  valor de localStorage que la app nunca consultaba. El atajo
-                  real lo define el comando voice.dictation, que sí aparece en
-                  la paleta y en los ajustes de teclado. */}
               <SettingsRowV2
-                title={language.t("settings.voices.dictation.dictionary.title") ?? "Diccionario de dictado"}
-                description={
-                  language.t("settings.voices.dictation.dictionary.description") ??
-                  "Palabras o frases que el dictado debe reconocer"
-                }
+                title={language.t("chat.mic.holdToRecord")}
+                description={language.t("settings.voices.dictation.hold.description")}
               >
-                <ButtonV2
-                  type="button"
-                  variant="outline"
-                  size="small"
-                  onClick={() => setIsAddingWord(true)}
+                <Switch
+                  checked={ui.hold}
+                  onChange={(value) => {
+                    setHoldToRecord(value)
+                    setUi("hold", value)
+                  }}
+                  hideLabel
                 >
-                  <span class="flex items-center gap-1.5">
-                    <span>+</span>
-                    <span>{language.t("settings.voices.dictation.dictionary.add")}</span>
-                  </span>
+                  {language.t("chat.mic.holdToRecord")}
+                </Switch>
+              </SettingsRowV2>
+              <SettingsRowV2
+                title={language.t("settings.voices.dictation.shortcut.title")}
+                description={language.t("settings.voices.dictation.shortcut.description")}
+              >
+                <kbd class="settings-v2-voices-kbd">{command.keybind("voice.dictation") || "—"}</kbd>
+              </SettingsRowV2>
+              <SettingsRowV2
+                title={language.t("settings.voices.dictation.dictionary.title")}
+                description={language.t("settings.voices.dictation.dictionary.hint")}
+              >
+                <ButtonV2 variant="outline" size="small" icon="plus" onClick={() => setUi("adding", true)}>
+                  {language.t("settings.voices.dictation.dictionary.add")}
                 </ButtonV2>
               </SettingsRowV2>
-
-              {/* Formulario para añadir nueva palabra */}
-              <Show when={isAddingWord()}>
-                <div class="settings-v2-dictation-add-row p-2.5 rounded-lg bg-v2-background-bg-layer-01 border border-v2-border-border-muted flex items-center gap-2">
-                  <input
-                    type="text"
-                    placeholder={language.t("settings.voices.dictation.dictionary.placeholder")}
-                    value={newDictWord()}
-                    onInput={(e) => setNewDictWord(e.currentTarget.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleAddWord()
-                      if (e.key === "Escape") setIsAddingWord(false)
-                    }}
-                    class="flex-1 h-8 rounded-md border border-v2-border-border-base bg-v2-background-bg-base px-3 text-12-regular text-v2-text-text-base placeholder:text-v2-text-text-muted outline-none focus:border-v2-border-border-focus"
-                    autofocus
-                  />
-                  <ButtonV2 type="button" variant="contrast" size="small" onClick={handleAddWord}>
-                    {language.t("settings.voices.dictation.dictionary.save")}
-                  </ButtonV2>
-                  <ButtonV2 type="button" variant="ghost" size="small" onClick={() => setIsAddingWord(false)}>
-                    {language.t("settings.voices.dictation.dictionary.cancel")}
-                  </ButtonV2>
-                </div>
-              </Show>
-
-              {/* Lista de palabras en el diccionario */}
-              <Show when={dictWords().length > 0}>
-                <div class="settings-v2-dictation-dict-list">
-                  <For each={dictWords()}>
+              <Show when={ui.adding || ui.words.length > 0}>
+                <div class="settings-v2-voices-words">
+                  <For each={ui.words}>
                     {(word) => (
-                      <div class="settings-v2-dictation-dict-item">
-                        <span class="font-medium text-text-base">{word}</span>
-                        <IconButtonV2
-                          size="small"
-                          variant="ghost-muted"
-                          aria-label={language.t("settings.voices.dictation.dictionary.remove")}
-                          icon={
-                            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
-                              <path d="M3 4h10M6 4V2.5h4V4M4.5 4l.8 9.5a1.5 1.5 0 0 0 1.5 1.4h2.4a1.5 1.5 0 0 0 1.5-1.4l.8-9.5" />
-                            </svg>
-                          }
-                          onClick={() => handleRemoveWord(word)}
-                        />
-                      </div>
+                      <span class="settings-v2-voices-word">
+                        {word}
+                        <button
+                          type="button"
+                          class="settings-v2-voices-word-remove"
+                          aria-label={`${language.t("settings.voices.dictation.dictionary.remove")}: ${word}`}
+                          onClick={() => removeWord(word)}
+                        >
+                          ×
+                        </button>
+                      </span>
                     )}
                   </For>
+                  <Show when={ui.adding}>
+                    <form
+                      class="settings-v2-voices-word-form"
+                      onSubmit={(event) => {
+                        event.preventDefault()
+                        addWord()
+                      }}
+                    >
+                      <TextInputV2
+                        autofocus
+                        appearance="base"
+                        value={ui.word}
+                        placeholder={language.t("settings.voices.dictation.dictionary.placeholder")}
+                        onInput={(event) => setUi("word", event.currentTarget.value)}
+                        onKeyDown={(event) => {
+                          if (event.key !== "Escape") return
+                          event.stopPropagation()
+                          setUi({ adding: false, word: "" })
+                        }}
+                      />
+                      <ButtonV2 type="submit" variant="contrast" size="small">
+                        {language.t("settings.voices.dictation.dictionary.save")}
+                      </ButtonV2>
+                      <ButtonV2 type="button" variant="ghost" size="small" onClick={() => setUi({ adding: false, word: "" })}>
+                        {language.t("settings.voices.dictation.dictionary.cancel")}
+                      </ButtonV2>
+                    </form>
+                  </Show>
                 </div>
               </Show>
-
               <SettingsRowV2
-                title={language.t("settings.voices.dictation.recordings.title") ?? "Dictados recientes"}
-                description={
-                  language.t("settings.voices.dictation.recordings.description") ??
-                  "El texto de tus últimos 20 dictados se guarda en este dispositivo. No se guarda ningún audio."
-                }
+                title={language.t("settings.voices.dictation.recordings.title")}
+                description={language.t("settings.voices.dictation.recordings.description")}
               >
-                <div class="flex items-center gap-2">
-                  <span class="text-[12px] text-text-weaker font-mono">
-                    {savedCountLabel(recentRecordings().length)}
+                <div class="settings-v2-voices-inline">
+                  <span class="settings-v2-voices-count">
+                    {language.t(
+                      ui.recordings.length === 1
+                        ? "settings.voices.dictation.recordings.count.one"
+                        : "settings.voices.dictation.recordings.count.other",
+                      { count: ui.recordings.length },
+                    )}
                   </span>
-                  <ButtonV2
-                    type="button"
-                    variant="ghost"
-                    size="small"
-                    onClick={() => setShowRecentRecordings(!showRecentRecordings())}
-                  >
-                    {showRecentRecordings()
-                      ? language.t("settings.voices.dictation.recordings.hide")
-                      : language.t("settings.voices.dictation.recordings.show")}
+                  <ButtonV2 variant="ghost" size="small" onClick={() => setUi("showRecordings", (value) => !value)}>
+                    {language.t(
+                      ui.showRecordings ? "settings.voices.dictation.recordings.hide" : "settings.voices.dictation.recordings.show",
+                    )}
                   </ButtonV2>
-                  <Show when={recentRecordings().length > 0}>
+                  <Show when={ui.recordings.length > 0}>
                     <ButtonV2
-                      type="button"
                       variant="ghost"
                       size="small"
                       onClick={() => {
                         clearRecentRecordings()
-                        setRecentRecordings([])
-                        showToast({
-                          title: language.t("settings.voices.dictation.recordings.cleared.title"),
-                          description: language.t("settings.voices.dictation.recordings.cleared.description"),
-                        })
+                        setUi("recordings", [])
+                        showToast({ title: language.t("settings.voices.dictation.recordings.cleared.title") })
                       }}
                     >
                       {language.t("settings.voices.dictation.recordings.clear")}
@@ -542,490 +478,267 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
                   </Show>
                 </div>
               </SettingsRowV2>
-
-              {/* Historial desplegable de grabaciones recientes */}
-              <Show when={showRecentRecordings()}>
-                <div class="settings-v2-dictation-recordings-list">
-                  <Show
-                    when={recentRecordings().length > 0}
-                    fallback={
-                      <div class="p-3 text-[12px] text-text-weaker italic text-center">
-                        {language.t("settings.voices.dictation.recordings.empty")}
-                      </div>
-                    }
+              <Show when={ui.showRecordings}>
+                <ul class="settings-v2-voices-recordings">
+                  <For
+                    each={ui.recordings}
+                    fallback={<li class="settings-v2-voices-empty">{language.t("settings.voices.dictation.recordings.empty")}</li>}
                   >
-                    <For each={recentRecordings()}>
-                      {(rec) => (
-                        <div class="settings-v2-dictation-recording-item">
-                          <span class="settings-v2-dictation-recording-text" title={rec.text}>
-                            "{rec.text}"
-                          </span>
-                          <span class="settings-v2-dictation-recording-meta">
-                            {rec.durationSeconds ? `${rec.durationSeconds}s • ` : ""}
-                            {new Date(rec.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                          </span>
-                        </div>
-                      )}
-                    </For>
-                  </Show>
-                </div>
+                    {(recording) => (
+                      <li class="settings-v2-voices-recording">
+                        <span class="settings-v2-voices-recording-text" title={recording.text}>
+                          {recording.text}
+                        </span>
+                        <span class="settings-v2-voices-recording-meta">
+                          {recording.durationSeconds ? `${recording.durationSeconds} s · ` : ""}
+                          {new Date(recording.timestamp).toLocaleTimeString(language.intl(), { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                        <ButtonV2 variant="ghost" size="small" onClick={() => copyRecording(recording.text)}>
+                          {language.t("settings.voices.dictation.recordings.copy")}
+                        </ButtonV2>
+                      </li>
+                    )}
+                  </For>
+                </ul>
               </Show>
             </SettingsListV2>
-          </div></Show>
+          </div>
+        </Show>
 
-          {/* ================================================================= */}
-          {/* 3. SECCIÓN SÍNTESIS (Voz automática, motor, velocidad, volumen)   */}
-          {/* ================================================================= */}
-          <Show when={sections.active === "speech"}><div class="settings-v2-section">
-            <h3 class="settings-v2-section-title">{language.t("settings.voices.section.speech") ?? "Síntesis y Reproducción de Voz"}</h3>
-
-          {/* Tarjeta de Control Maestro de Voz */}
-          <div class="settings-v2-voices-master-card" data-active={settings.general.autoSpeak()}>
-            <div class="settings-v2-voices-master-info">
-              <div class="settings-v2-voices-master-icon">
-                <Show
-                  when={settings.general.autoSpeak()}
-                  fallback={
-                    <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
-                      <path d="M7.33 3.33L4 6H1.33v4H4l3.33 2.67V3.33z" stroke-linecap="square" />
-                      <path d="M10.5 6l3.5 4M14 6l-3.5 4" stroke-linecap="square" />
-                    </svg>
-                  }
-                >
-                  <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
-                    <path d="M7.33 3.33L4 6H1.33v4H4l3.33 2.67V3.33z" stroke-linecap="square" />
-                    <path d="M10 5.33c1.33 1.34 1.33 4 0 5.34M12.5 3.33c2 2 2 7.34 0 9.34" stroke-linecap="round" />
-                  </svg>
-                </Show>
-              </div>
-              <div class="settings-v2-voices-master-text">
-                <div class="settings-v2-voices-master-title">
-                  {settings.general.autoSpeak() ? "Voz Automática Activada" : "Voz Automática Desactivada (Silenciada)"}
-                </div>
-                <div class="settings-v2-voices-master-desc">
-                  {settings.general.autoSpeak()
-                    ? "La IA hablará en voz alta cuando termine de responder. Si notas lentitud en tu equipo, puedes desactivarla aquí o en la barra superior."
-                    : "Modo silencioso ultra rápido (0% de uso de CPU). La IA responderá de inmediato sin procesar audio."}
-                </div>
-              </div>
+        <Show when={ui.section === "speech"}>
+          <div class="settings-v2-voices-hero" data-active={settings.general.autoSpeak() ? "" : undefined}>
+            <span class="settings-v2-voices-hero-icon" aria-hidden="true">
+              <SpeakerGlyph />
+            </span>
+            <div class="settings-v2-voices-hero-copy">
+              <span class="settings-v2-voices-hero-title">{language.t("settings.voices.autoSpeak.title")}</span>
+              <span class="settings-v2-voices-hero-description">{language.t("settings.voices.autoSpeak.description")}</span>
             </div>
-            <Switch
-              checked={settings.general.autoSpeak()}
-              onChange={(value) => {
-                settings.general.setAutoSpeak(value)
-                if (!value) {
-                  stopSpeaking()
-                  stopAutoSpeak()
-                }
-              }}
-            />
+            <Switch checked={settings.general.autoSpeak()} onChange={toggleAutoSpeak} hideLabel>
+              {language.t("settings.voices.autoSpeak.title")}
+            </Switch>
           </div>
 
-          <Show when={settings.general.autoSpeak()}>
-            <div class="settings-v2-voices-waveform-card">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2 text-[12px] font-medium text-text-weak">
-                  <span class={`size-2 rounded-full ${isVoiceSpeaking() ? "bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" : "bg-text-weaker"}`} />
-                  <span>{isVoiceSpeaking() ? "Reproduciendo audio en tiempo real" : "Canal de voz listo (ondas reactivas)"}</span>
-                </div>
-                <Show when={selectedVoice()}>
-                  <span class="text-[11px] text-emerald-400 font-semibold">{selectedVoice()!.name}</span>
-                </Show>
-              </div>
-              <AudioWaveform active={(props.active ?? true) && isVoiceSpeaking()} height={26} barsCount={36} />
-            </div>
-          </Show>
-
-          <Show when={selectedVoice()}>
-            <div class="settings-v2-voices-selected">
-              <Icon name="circle-check" size="small" />
-              <span class="settings-v2-voices-selected-label">{language.t("settings.voices.select.title")}</span>
-              <span class="settings-v2-voices-selected-name">{selectedVoice()!.name}</span>
-            </div>
-          </Show>
-
-          <SettingsListV2>
-            <SettingsRowV2
-              title="Motor de Síntesis de Voz"
-              description="Elige entre Fish Audio S2.1 Pro para voces humanas ultra-fluidas (0% CPU local), la voz nativa de Windows (Microsoft Sabina) o el modo automático, que usa las voces en español instaladas más abajo."
-            >
-              <div class="flex items-center flex-wrap gap-1.5">
-                <ButtonV2
-                  type="button"
-                  variant={getVoiceEngineMode() === "fish" ? "contrast" : "ghost"}
-                  size="small"
-                  onClick={() => {
-                    setVoiceEngineMode("fish")
-                    settings.general.setVoiceEngine("fish")
+          <div class="settings-v2-section">
+            <h3 class="settings-v2-section-title">{language.t("settings.voices.engine.title")}</h3>
+            <SettingsListV2>
+              <div class="settings-v2-voices-engine">
+                <SegmentedControlV2
+                  class="settings-v2-voices-segmented"
+                  value={getVoiceEngineMode()}
+                  onChange={(value) => {
+                    const mode = ENGINES.find((engine) => engine === value)
+                    if (mode) setVoiceEngineMode(mode)
                   }}
+                  aria-label={language.t("settings.voices.engine.title")}
                 >
-                  🐟 Fish Audio S2.1 Pro (Ultra-Fluida / Free)
-                </ButtonV2>
-                <ButtonV2
-                  type="button"
-                  variant={getVoiceEngineMode() === "system" ? "contrast" : "ghost"}
-                  size="small"
-                  onClick={() => {
-                    setVoiceEngineMode("system")
-                    settings.general.setVoiceEngine("system")
-                  }}
+                  <For each={ENGINES}>
+                    {(engine) => (
+                      <SegmentedControlItemV2 value={engine}>{language.t(`settings.voices.engine.${engine}`)}</SegmentedControlItemV2>
+                    )}
+                  </For>
+                </SegmentedControlV2>
+                <p class="settings-v2-voices-engine-hint">{engineHint(getVoiceEngineMode())}</p>
+              </div>
+              <SettingsRowV2 title={language.t("settings.voices.speed.title")} description={language.t("settings.voices.speed.description")}>
+                <SegmentedControlV2
+                  class="settings-v2-voices-segmented"
+                  value={String(getVoiceSpeed())}
+                  onChange={(value) => value && setVoiceSpeed(Number(value))}
+                  aria-label={language.t("settings.voices.speed.title")}
                 >
-                  ⚡ Voz Nativa Windows (0% CPU)
-                </ButtonV2>
-                <ButtonV2
-                  type="button"
-                  variant={getVoiceEngineMode() === "auto" ? "contrast" : "ghost"}
-                  size="small"
-                  onClick={() => {
-                    setVoiceEngineMode("auto")
-                    settings.general.setVoiceEngine("auto")
-                  }}
+                  <For each={SPEEDS}>{(speed) => <SegmentedControlItemV2 value={String(speed)}>{speed}×</SegmentedControlItemV2>}</For>
+                </SegmentedControlV2>
+              </SettingsRowV2>
+              <SettingsRowV2 title={language.t("settings.voices.volume.title")} description={language.t("settings.voices.volume.description")}>
+                <SegmentedControlV2
+                  class="settings-v2-voices-segmented"
+                  value={String(getVoiceVolume())}
+                  onChange={(value) => value && setVoiceVolume(Number(value))}
+                  aria-label={language.t("settings.voices.volume.title")}
                 >
-                  🔄 Automático
-                </ButtonV2>
-              </div>
-            </SettingsRowV2>
-
-            <SettingsRowV2
-              title="Velocidad de Reproducción (Rate)"
-              description="Ajusta la velocidad de narración para una reproducción más rápida o pausada."
-            >
-              <div class="flex items-center gap-1">
-                <For each={[0.75, 1.0, 1.25, 1.5, 2.0]}>
-                  {(rate) => (
-                    <ButtonV2
-                      type="button"
-                      variant={getVoiceSpeed() === rate ? "contrast" : "ghost"}
-                      size="small"
-                      onClick={() => setVoiceSpeed(rate)}
-                    >
-                      {rate}x
-                    </ButtonV2>
-                  )}
-                </For>
-              </div>
-            </SettingsRowV2>
-
-            <Show when={getVoiceEngineMode() === "system"}>
-            <SettingsRowV2
-              title="Tono de Voz (Pitch Studio)"
-              description="Solo la voz del sistema (Web Speech) admite tono; los motores locales y Fish lo ignoran."
-            >
-              <div class="flex items-center gap-1">
-                <For each={[
-                  { val: 0.85, label: "Grave (0.85x)" },
-                  { val: 1.0, label: "Natural (1.0x)" },
-                  { val: 1.15, label: "Agudo (1.15x)" },
-                ]}>
-                  {(item) => (
-                    <ButtonV2
-                      type="button"
-                      variant={getVoicePitch() === item.val ? "contrast" : "ghost"}
-                      size="small"
-                      onClick={() => setVoicePitch(item.val)}
-                    >
-                      {item.label}
-                    </ButtonV2>
-                  )}
-                </For>
-              </div>
-            </SettingsRowV2>
-            </Show>
-
-            <SettingsRowV2
-              title="Volumen de Síntesis (Gain)"
-              description="Nivel de ganancia sonora y amplificación de las respuestas narradas."
-            >
-              <div class="flex items-center gap-1">
-                <For each={[
-                  { val: 0.5, label: "50%" },
-                  { val: 0.75, label: "75%" },
-                  { val: 1.0, label: "100%" },
-                ]}>
-                  {(item) => (
-                    <ButtonV2
-                      type="button"
-                      variant={getVoiceVolume() === item.val ? "contrast" : "ghost"}
-                      size="small"
-                      onClick={() => setVoiceVolume(item.val)}
-                    >
-                      {item.label}
-                    </ButtonV2>
-                  )}
-                </For>
-              </div>
-            </SettingsRowV2>
-
-            <SettingsRowV2
-              title="Interrupción por Voz (Barge-In / Dúplex)"
-              description="Corta automáticamente la voz de la IA cuando comienzas a hablar por el micrófono."
-            >
-              <Switch
-                checked={getBargeInEnabled()}
-                onChange={(val) => {
-                  setBargeInEnabled(val)
-                  if (val) void enableBargeInListener()
-                }}
-              />
-            </SettingsRowV2>
-
-            <SettingsRowV2
-              title="Clave de API Fish Audio (S2.1 Pro)"
-              description="Clave para voces ultra-fluidas en la nube (0% CPU local). Incluye clave gratuita predeterminada lista para usar."
-            >
-              <div class="flex items-center gap-2 w-full max-w-[340px] min-w-0">
-                <input
-                  type="password"
-                  value={getFishAudioKey()}
-                  onInput={(e) => setFishAudioKey(e.currentTarget.value)}
-                  placeholder="sk-fish-..."
-                  class="flex-1 min-w-0 h-8 rounded-md border border-v2-border-border-base bg-v2-background-bg-base px-2.5 text-12-regular font-mono text-v2-text-text-base placeholder:text-v2-text-text-muted outline-none focus:border-v2-border-border-focus"
-                />
-                <ButtonV2
-                  type="button"
-                  variant="ghost"
-                  size="small"
-                  class="shrink-0"
-                  onClick={() => {
-                    setFishAudioKey(DEFAULT_FISH_KEY)
-                    showToast({ title: "Clave restablecida", description: "Se ha cargado la clave gratuita de Fish Audio." })
-                  }}
-                >
-                  Restablecer
-                </ButtonV2>
-              </div>
-            </SettingsRowV2>
-          </SettingsListV2>
-          </div></Show>
-
-          <Show when={sections.active === "voices"}><div class="settings-v2-section">
-            <h3 class="settings-v2-section-title">{language.t("settings.voices.ready.title")}</h3>
-
-              <Show
-                when={sortedVoices().length > 0 || status.loading}
-                fallback={<div class="settings-v2-skills-status">{language.t("settings.voices.voices.empty")}</div>}
-              >
-                <div class="settings-v2-voices-grid">
-                  <Show
-                    when={sortedVoices().length > 0}
-                    fallback={
-                      <For each={[1, 2, 3, 4, 5, 6]}>
-                        {() => (
-                          <div class="settings-v2-voices-card opacity-40 pointer-events-none">
-                            <div class="settings-v2-voices-card-header">
-                              <div class="settings-v2-voices-card-lead">
-                                <span class="settings-v2-voices-card-radio" />
-                                <span class="settings-v2-voices-card-name">Cargando catálogo...</span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </For>
-                    }
+                  <For each={VOLUMES}>
+                    {(volume) => <SegmentedControlItemV2 value={String(volume)}>{Math.round(volume * 100)} %</SegmentedControlItemV2>}
+                  </For>
+                </SegmentedControlV2>
+              </SettingsRowV2>
+              <Show when={getVoiceEngineMode() === "system"}>
+                <SettingsRowV2 title={language.t("settings.voices.pitch.title")} description={language.t("settings.voices.pitch.description")}>
+                  <SegmentedControlV2
+                    class="settings-v2-voices-segmented"
+                    value={String(getVoicePitch())}
+                    onChange={(value) => value && setVoicePitch(Number(value))}
+                    aria-label={language.t("settings.voices.pitch.title")}
                   >
-                    <For each={sortedVoices()}>
-                      {(voice) => {
-                        const selectable = canSelect(voice)
-                        const downloadProgress = piperProgress()[voice.id]
-                        const isSelected = () => selected() === voice.id
-
-                        return (
-                          <div
-                            role="button"
-                            tabIndex={selectable ? 0 : -1}
-                            aria-disabled={!selectable || undefined}
-                            class="settings-v2-voices-card"
-                            data-selected={isSelected() || undefined}
-                            data-disabled={!selectable || undefined}
-                            onClick={() => {
-                              if (selectable) void selectVoice(voice)
-                            }}
-                            onKeyDown={(event) => {
-                              if (!selectable || (event.key !== "Enter" && event.key !== " ")) return
-                              event.preventDefault()
-                              void selectVoice(voice)
-                            }}
-                          >
-                            {/* 1. Cabecera: Radio + Nombre + Help + Switch */}
-                            <div class="settings-v2-voices-card-header">
-                              <div class="settings-v2-voices-card-lead">
-                                <span
-                                  class="settings-v2-voices-card-radio"
-                                  data-checked={isSelected() || undefined}
-                                >
-                                  <Show when={isSelected()}>
-                                    <Icon name="check-small" size="small" />
-                                  </Show>
-                                </span>
-                                <span class="settings-v2-voices-card-name" title={voice.name}>
-                                  {voice.name}
-                                </span>
-                              </div>
-
-                              <div class="settings-v2-voices-card-actions-top">
-                                <IconButtonV2
-                                  size="small"
-                                  variant="ghost-muted"
-                                  aria-label={language.t("settings.voices.voice.info")}
-                                  icon={<IconV2 name="help" size="small" />}
-                                  onClick={(event: MouseEvent) => {
-                                    event.stopPropagation()
-                                    setInfoVoice(infoVoice() === voice.id ? undefined : voice.id)
-                                  }}
-                                />
-                                <div class="settings-v2-voices-card-toggle" onClick={(e: MouseEvent) => e.stopPropagation()}>
-                                  <Switch
-                                    checked={voice.enabled !== false}
-                                    onChange={(enabled) => void toggleEnabled(voice, enabled)}
-                                    hideLabel
-                                  >
-                                    {language.t("settings.voices.voice.enabled")}
-                                  </Switch>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* 2. Cuerpo: Meta y Descripción detallada + Chips */}
-                            <div class="settings-v2-voices-card-body">
-                              <p class="settings-v2-voices-card-desc">
-                                Voz femenina neural en español con pronunciación y entonación limpia.
-                              </p>
-
-                              <div class="settings-v2-voices-card-chips">
-                                <span class="settings-v2-voices-chip" data-variant="engine">
-                                  {voice.engine === "kokoro-es" ? "Kokoro ES" : voice.engine === "piper" ? "Piper" : voice.engine}
-                                </span>
-
-                                {/* El género viene del catálogo, no de una etiqueta fija en la tarjeta. */}
-                                <span class="settings-v2-voices-chip" data-variant={voice.gender}>
-                                  {voice.gender === "female" ? "♀ Femenina" : "♂ Masculina"}
-                                </span>
-
-                                <span class="settings-v2-voices-chip" data-variant="lang">
-                                  {voice.language.toUpperCase()}
-                                </span>
-
-                                <Show when={voice.sizeMb}>
-                                  <span class="settings-v2-voices-chip">{voice.sizeMb} MB</span>
-                                </Show>
-                              </div>
-                            </div>
-
-                            {/* Detalle informativo compacto si se activa info */}
-                            <Show when={infoVoice() === voice.id}>
-                              <div
-                                class="settings-v2-voices-card-info"
-                                onClick={(e: MouseEvent) => e.stopPropagation()}
-                              >
-                                <div class="flex items-center justify-between text-[11px] font-semibold text-v2-text-text-base border-b border-v2-border-border-muted pb-1 mb-1">
-                                  <span>{voice.name}</span>
-                                  <button
-                                    type="button"
-                                    class="text-text-weaker hover:text-text-base text-[11px] p-0.5 leading-none cursor-pointer"
-                                    onClick={() => setInfoVoice(undefined)}
-                                  >
-                                    ✕
-                                  </button>
-                                </div>
-                                <div class="settings-v2-voices-info-grid">
-                                  <span class="settings-v2-voices-info-caption">Motor</span>
-                                  <span class="settings-v2-voices-info-value">{voice.engine}</span>
-                                  <span class="settings-v2-voices-info-caption">Licencia</span>
-                                  <span class="settings-v2-voices-info-value">{voice.license ?? "Open"}</span>
-                                </div>
-                              </div>
-                            </Show>
-
-                            {/* 3. Pie: Estado / Descarga / Eliminar + Botón Probar */}
-                            <div class="settings-v2-voices-card-footer">
-                              <div class="settings-v2-voices-card-status">
-                                <Show
-                                  when={voice.engine === "piper" || voice.engine === "kokoro-es"}
-                                  fallback={
-                                    <span class={`text-[11px] font-medium ${isSelected() ? "text-emerald-400 font-semibold" : "text-text-weaker"}`}>
-                                      {isSelected() ? "✓ Activa" : "Disponible"}
-                                    </span>
-                                  }
-                                >
-                                  <Show
-                                    when={downloadProgress !== undefined}
-                                    fallback={
-                                      <Show
-                                        when={voice.downloaded === true}
-                                        fallback={
-                                          <ButtonV2
-                                            type="button"
-                                            variant="outline"
-                                            size="small"
-                                            onClick={(event: MouseEvent) => {
-                                              event.stopPropagation()
-                                              void downloadVoice(voice)
-                                            }}
-                                          >
-                                            {language.t("settings.voices.voice.download")}
-                                          </ButtonV2>
-                                        }
-                                      >
-                                        <span class="settings-v2-voices-installed">
-                                          <span class={`text-[11px] font-medium ${isSelected() ? "text-emerald-400 font-semibold" : "text-text-weaker"}`}>
-                                            {isSelected() ? "✓ Activa" : "Instalada"}
-                                          </span>
-                                          <Show when={voice.engine === "piper" || voice.engine === "kokoro-es"}>
-                                            <ButtonV2
-                                              type="button"
-                                              variant="ghost-muted"
-                                              size="small"
-                                              icon="trash"
-                                              disabled={deleting()[voice.id] === true}
-                                              aria-label={language.t("settings.voices.voice.delete")}
-                                              onClick={(event: MouseEvent) => {
-                                                event.stopPropagation()
-                                                void deleteVoice(voice)
-                                              }}
-                                            />
-                                          </Show>
-                                        </span>
-                                      </Show>
-                                    }
-                                  >
-                                    <div class="settings-v2-voices-card-progress">
-                                      <div class="settings-v2-voices-progress-track">
-                                        <div
-                                          class="settings-v2-voices-progress-fill"
-                                          style={{ width: `${Math.max(0, Math.min(100, downloadProgress))}%` }}
-                                        />
-                                      </div>
-                                      <span class="settings-v2-voices-card-progress-label">
-                                        {Math.max(0, Math.min(100, downloadProgress))}%
-                                      </span>
-                                    </div>
-                                  </Show>
-                                </Show>
-                              </div>
-
-                              <ButtonV2
-                                type="button"
-                                variant={isVoiceSpeaking(voiceProbeKey(voice.id)) ? "contrast" : "outline"}
-                                size="small"
-                                disabled={!voice.supported || deleting()[voice.id] === true}
-                                onClick={(event: MouseEvent) => {
-                                  event.stopPropagation()
-                                  void probe(voice)
-                                }}
-                              >
-                                {probeLabel(voice)}
-                              </ButtonV2>
-                            </div>
-                          </div>
-                        )
-                      }}
+                    <For each={PITCHES}>
+                      {(pitch) => <SegmentedControlItemV2 value={String(pitch.value)}>{language.t(pitch.label)}</SegmentedControlItemV2>}
                     </For>
-                  </Show>
-                </div>
+                  </SegmentedControlV2>
+                </SettingsRowV2>
               </Show>
-            </div></Show>
+              <SettingsRowV2 title={language.t("settings.voices.bargeIn.title")} description={language.t("settings.voices.bargeIn.description")}>
+                <Switch checked={getBargeInEnabled()} onChange={setBargeInEnabled} hideLabel>
+                  {language.t("settings.voices.bargeIn.title")}
+                </Switch>
+              </SettingsRowV2>
+              <SettingsRowV2 title={language.t("settings.voices.sample.title")} description={language.t("settings.voices.sample.description")}>
+                <ButtonV2 variant={isVoiceSpeaking(SAMPLE_KEY) ? "contrast" : "outline"} size="small" onClick={() => void playSample()}>
+                  {language.t(isVoiceSpeaking(SAMPLE_KEY) ? "settings.voices.voice.speaking" : "settings.voices.sample.play")}
+                </ButtonV2>
+              </SettingsRowV2>
+            </SettingsListV2>
+          </div>
+
+          <Show when={getVoiceEngineMode() !== "system"}>
+            <div class="settings-v2-section">
+              <h3 class="settings-v2-section-title">Fish Audio</h3>
+              <SettingsListV2>
+                <SettingsRowV2 title={language.t("settings.voices.fish.key.title")} description={language.t("settings.voices.fish.key.description")}>
+                  <div class="settings-v2-voices-inline settings-v2-voices-key">
+                    <TextInputV2
+                      appearance="base"
+                      type={ui.revealKey ? "text" : "password"}
+                      value={getFishAudioKey()}
+                      placeholder={language.t("settings.voices.fish.key.placeholder")}
+                      onInput={(event) => setFishAudioKey(event.currentTarget.value)}
+                      spellcheck={false}
+                      autocomplete="off"
+                      aria-label={language.t("settings.voices.fish.key.title")}
+                    />
+                    <ButtonV2 variant="ghost" size="small" onClick={() => setUi("revealKey", (value) => !value)}>
+                      {language.t(ui.revealKey ? "settings.voices.fish.key.hide" : "settings.voices.fish.key.show")}
+                    </ButtonV2>
+                  </div>
+                </SettingsRowV2>
+                <SettingsRowV2 title={language.t("settings.voices.fish.voice.title")} description={language.t("settings.voices.fish.voice.description")}>
+                  <div class="settings-v2-voices-inline">
+                    <SelectV2
+                      appearance="inline"
+                      options={CURATED_FISH_VOICES}
+                      current={CURATED_FISH_VOICES.find((voice) => voice.id === getFishAudioVoice()) ?? CURATED_FISH_VOICES[0]}
+                      value={(voice) => voice.id}
+                      label={(voice) => voice.name}
+                      placement="bottom-end"
+                      gutter={6}
+                      onSelect={(voice) => voice && setFishAudioVoice(voice.id)}
+                    />
+                    <ButtonV2 variant="outline" size="small" disabled={!getFishAudioKey()} onClick={() => void probeFish()}>
+                      {language.t(isVoiceSpeaking("voice:fish-sample") ? "settings.voices.voice.speaking" : "settings.voices.voice.probe")}
+                    </ButtonV2>
+                  </div>
+                </SettingsRowV2>
+              </SettingsListV2>
+            </div>
           </Show>
-        </div>
-      </>
-    )
-  }
+        </Show>
+
+        <Show when={ui.section === "voices"}>
+          <Show when={api} fallback={<p class="settings-v2-voices-note">{language.t("settings.voices.desktopOnly")}</p>}>
+            <Show when={getVoiceEngineMode() !== "auto"}>
+              <div class="settings-v2-voices-note" data-tone="info">
+                <span>{language.t("settings.voices.voices.modeNote")}</span>
+                <ButtonV2 variant="outline" size="small" onClick={() => setVoiceEngineMode("auto")}>
+                  {language.t("settings.voices.voices.useLocal")}
+                </ButtonV2>
+              </div>
+            </Show>
+            <Show when={status()?.error}>
+              {(error) => <p class="settings-v2-voices-note" data-tone="error">{error()}</p>}
+            </Show>
+            <Show
+              when={voices().length > 0}
+              fallback={
+                <p class="settings-v2-voices-note">
+                  {language.t(status.loading ? "settings.voices.loading" : "settings.voices.voices.empty")}
+                </p>
+              }
+            >
+              <ul class="settings-v2-voices-grid">
+                <For each={voices()}>
+                  {(voice) => (
+                    <li
+                      class="settings-v2-voices-card"
+                      data-selected={chosen() === voice.id ? "" : undefined}
+                      data-unavailable={voice.supported ? undefined : ""}
+                    >
+                      <button
+                        type="button"
+                        class="settings-v2-voices-card-main"
+                        role="radio"
+                        aria-checked={chosen() === voice.id}
+                        disabled={!voice.supported}
+                        onClick={() => void selectVoice(voice)}
+                      >
+                        <span class="settings-v2-voices-radio" aria-hidden="true" />
+                        <span class="settings-v2-voices-card-copy">
+                          <span class="settings-v2-voices-card-name">{voice.name}</span>
+                          <span class="settings-v2-voices-card-meta">
+                            {[
+                              language.t(voice.gender === "female" ? "settings.voices.gender.female" : "settings.voices.gender.male"),
+                              voice.language.toUpperCase(),
+                              engineLabel(voice),
+                              ...(voice.sizeMb ? [language.t("settings.voices.voice.size", { size: voice.sizeMb })] : []),
+                            ].join(" · ")}
+                          </span>
+                        </span>
+                        <Show when={chosen() === voice.id}>
+                          <span class="settings-v2-voices-pill" data-tone="accent">
+                            {language.t(voice.downloaded ? "settings.voices.voice.inUse" : "settings.voices.voice.whenReady")}
+                          </span>
+                        </Show>
+                      </button>
+                      <div class="settings-v2-voices-card-foot">
+                        <Show
+                          when={!downloading(voice)}
+                          fallback={
+                            <div class="settings-v2-voices-progress" aria-label={language.t("settings.voices.voice.downloading")}>
+                              <div class="settings-v2-voices-progress-track">
+                                <div class="settings-v2-voices-progress-fill" style={{ width: `${ui.progress[voice.id] ?? 0}%` }} />
+                              </div>
+                              <span>{Math.round(ui.progress[voice.id] ?? 0)} %</span>
+                            </div>
+                          }
+                        >
+                          <Show
+                            when={voice.downloaded}
+                            fallback={
+                              <ButtonV2 variant="outline" size="small" disabled={!voice.supported} onClick={() => void downloadVoice(voice)}>
+                                {language.t("settings.voices.voice.download")}
+                              </ButtonV2>
+                            }
+                          >
+                            <span class="settings-v2-voices-installed">{language.t("settings.voices.voice.installed")}</span>
+                            <Show when={voice.engine === "piper" || voice.engine === "kokoro-es"}>
+                              <ButtonV2
+                                variant="ghost"
+                                size="small"
+                                disabled={ui.deleting === voice.id}
+                                onClick={() => deleteVoice(voice)}
+                              >
+                                {language.t("settings.voices.voice.delete")}
+                              </ButtonV2>
+                            </Show>
+                          </Show>
+                        </Show>
+                        <ButtonV2
+                          class="ml-auto"
+                          variant={isVoiceSpeaking(voiceKey(voice.id)) ? "contrast" : "outline"}
+                          size="small"
+                          disabled={!voice.downloaded || ui.deleting === voice.id}
+                          title={voice.downloaded ? undefined : language.t("settings.voices.voice.downloadFirst")}
+                          onClick={() => void probe(voice)}
+                        >
+                          {language.t(isVoiceSpeaking(voiceKey(voice.id)) ? "settings.voices.voice.speaking" : "settings.voices.voice.probe")}
+                        </ButtonV2>
+                      </div>
+                    </li>
+                  )}
+                </For>
+              </ul>
+            </Show>
+          </Show>
+        </Show>
+      </div>
+    </>
+  )
+}

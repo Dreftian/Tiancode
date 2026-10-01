@@ -46,7 +46,7 @@ export const SETTINGS_PAGES: SettingsSearchEntry[] = [
   page("models", "settings.models.title", ["modelos", "models"]),
   page("models-hub", "settings.tab.modelsHub", ["modelos locales", "local models", "gguf", "llama", "huggingface"]),
   page("connections", "settings.connections.section.github", ["github", "git", "repositorios", "pull request"], undefined, "github"),
-  page("voices", "settings.tab.voices", ["voces", "voices", "tts", "micrófono", "dictado"]),
+  page("voices", "settings.tab.voices", ["voces", "voices", "tts", "micrófono", "dictado", "leer en voz alta", "fish audio", "velocidad"]),
   page("skills", "settings.tab.skills", ["skills", "habilidades", "ui skills"]),
   page("sub-agents", "settings.tab.subAgents", ["sub-agentes", "subagents", "agentes", "agents"]),
   page("mcp-plugins", "settings.tab.mcpPlugins", ["mcp", "plugins", "extensiones", "extensions"]),

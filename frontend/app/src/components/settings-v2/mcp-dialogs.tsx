@@ -1,5 +1,5 @@
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
-import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitle, DialogTitleGroup } from "@tiancode-ai/ui/v2/dialog-v2"
+import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitle } from "@tiancode-ai/ui/v2/dialog-v2"
 import { DividerV2 } from "@tiancode-ai/ui/v2/divider-v2"
 import { SegmentedControlItemV2, SegmentedControlV2 } from "@tiancode-ai/ui/v2/segmented-control-v2"
 import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
@@ -341,38 +341,6 @@ export function DialogMcpPlugin(props: { onSave: (spec: string) => Promise<void>
           </ButtonV2>
         </DialogFooter>
       </form>
-    </Dialog>
-  )
-}
-
-/** Removal confirmation in the app's own dialog instead of the native window.confirm. */
-export function DialogMcpConfirm(props: {
-  title: string
-  description: string
-  confirm: string
-  onConfirm: () => void
-  onClose: () => void
-}) {
-  const language = useLanguage()
-  return (
-    <Dialog fit>
-      <DialogHeader hideClose>
-        <DialogTitleGroup title={props.title} description={props.description} />
-      </DialogHeader>
-      <DialogFooter>
-        <ButtonV2 variant="outline" autofocus onClick={props.onClose}>
-          {language.t("common.cancel")}
-        </ButtonV2>
-        <ButtonV2
-          variant="danger"
-          onClick={() => {
-            props.onClose()
-            props.onConfirm()
-          }}
-        >
-          {props.confirm}
-        </ButtonV2>
-      </DialogFooter>
     </Dialog>
   )
 }

@@ -8,8 +8,10 @@ import {
   asrLanguageForLocale,
   DictationError,
   getAudioInputDevices,
+  getHoldToRecord,
   getSelectedAudioDeviceId,
   onAudioDeviceChange,
+  setHoldToRecord,
   setSelectedAudioDeviceId,
   startLocalDictation,
   applyDictationDictionary,
@@ -75,7 +77,7 @@ export function VoiceDictationButton(props: {
   const [devices, setDevices] = createSignal<MediaDeviceInfo[]>([])
   const [selectedDeviceId, setSelectedDeviceIdState] = createSignal<string | null>(getSelectedAudioDeviceId())
   const [recording, setRecording] = createStore({
-    hold: localStorage.getItem("tiancode.audio.hold_to_record") === "true",
+    hold: getHoldToRecord(),
     pressed: false,
     menuOpen: false,
     initializing: false,
@@ -121,6 +123,9 @@ export function VoiceDictationButton(props: {
       setSelectedDeviceIdState(customEvent.detail?.deviceId ?? getSelectedAudioDeviceId())
     }
     window.addEventListener("tiancode:microphone-changed", micListener)
+    // Settings › Voces can switch push-to-talk while the composer is open.
+    const holdListener = () => setRecording("hold", getHoldToRecord())
+    window.addEventListener("tiancode:hold-to-record-changed", holdListener)
     const releaseHold = () => {
       if (recording.pressed) stop()
     }
@@ -132,6 +137,7 @@ export function VoiceDictationButton(props: {
       cleanupListener()
       window.removeEventListener("tiancode:voice-dictation-toggle", toggleListener)
       window.removeEventListener("tiancode:microphone-changed", micListener)
+      window.removeEventListener("tiancode:hold-to-record-changed", holdListener)
       window.removeEventListener("pointerup", releaseHold)
       window.removeEventListener("pointercancel", releaseHold)
       window.removeEventListener("blur", releaseHold)
@@ -481,7 +487,7 @@ export function VoiceDictationButton(props: {
               onChange={(value) => {
                 stop()
                 setRecording("hold", value)
-                localStorage.setItem("tiancode.audio.hold_to_record", String(value))
+                setHoldToRecord(value)
               }}
             >
               {language.t("chat.mic.holdToRecord")}

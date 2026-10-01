@@ -65,7 +65,6 @@ export type VoicesAPI = {
   onProgress: (cb: (event: VoicesProgress) => void) => () => void
   downloadVoice: (voiceId: string) => Promise<void>
   deleteVoice: (voiceId: string) => Promise<void>
-  setEnabled: (voiceId: string, enabled: boolean) => Promise<void>
   onPiperProgress: (cb: (event: VoicesPiperProgress) => void) => () => void
   speakFish?: (
     text: string,
@@ -79,6 +78,8 @@ export const voicesAPI = (): VoicesAPI | undefined => window.api?.voices
 
 const [speakingKey, setSpeakingKey] = createSignal<string | undefined>()
 let activeAudio: HTMLAudioElement | undefined
+// Fish Audio applies the speed on the server, so a live speed change must not touch its clip.
+let activeIsFish = false
 let activeURL: string | undefined
 let pendingPlay: (() => void) | undefined
 let speechGeneration = 0
@@ -87,6 +88,7 @@ const MAX_SPEECH_CHARS = 2_000
 
 const clearActive = () => {
   activeAudio = undefined
+  activeIsFish = false
   if (activeURL) {
     URL.revokeObjectURL(activeURL)
     activeURL = undefined
@@ -114,13 +116,14 @@ export function stopSpeaking() {
 const SPEED_KEY = "tiancode.voice.speed"
 const PITCH_KEY = "tiancode.voice.pitch"
 const BARGE_IN_KEY = "tiancode.voice.barge_in"
-const CUSTOM_VOICES_KEY = "tiancode.voice.custom_list"
 const ENGINE_KEY = "tiancode.voice.engine"
 
-export type VoiceEngineMode = "auto" | "fish" | "system" | "neural"
+export type VoiceEngineMode = "auto" | "fish" | "system"
 
+// "neural" was an earlier name of the automatic mode; any other stored value falls back to it.
+const storedEngine = typeof localStorage !== "undefined" ? localStorage.getItem(ENGINE_KEY) : null
 export const [voiceEngineMode, setVoiceEngineState] = createSignal<VoiceEngineMode>(
-  typeof localStorage !== "undefined" ? ((localStorage.getItem(ENGINE_KEY) as VoiceEngineMode) ?? "auto") : "auto",
+  storedEngine === "fish" || storedEngine === "system" ? storedEngine : "auto",
 )
 
 export function getVoiceEngineMode(): VoiceEngineMode {
@@ -202,26 +205,12 @@ const [voiceVolume, setVoiceVolumeState] = createSignal<number>(
 const [bargeInEnabled, setBargeInState] = createSignal<boolean>(
   typeof localStorage !== "undefined" ? localStorage.getItem(BARGE_IN_KEY) === "true" : true,
 )
-const [customVoices, setCustomVoicesState] = createSignal<VoiceInfo[]>(
-  typeof localStorage !== "undefined" ? parseCustomVoices(localStorage.getItem(CUSTOM_VOICES_KEY)) : [],
-)
-
-// Un valor corrupto en localStorage no debe tumbar el arranque del módulo.
-function parseCustomVoices(raw: string | null): VoiceInfo[] {
-  if (!raw) return []
-  try {
-    const parsed: unknown = JSON.parse(raw)
-    return Array.isArray(parsed) ? (parsed as VoiceInfo[]) : []
-  } catch {
-    return []
-  }
-}
 
 export const getVoiceSpeed = () => voiceSpeed()
 export const setVoiceSpeed = (val: number) => {
   setVoiceSpeedState(val)
   if (typeof localStorage !== "undefined") localStorage.setItem(SPEED_KEY, String(val))
-  if (activeAudio) activeAudio.playbackRate = val
+  if (activeAudio && !activeIsFish) activeAudio.playbackRate = val
 }
 
 export const getVoicePitch = () => voicePitch()
@@ -248,13 +237,6 @@ export function clampVolume(value: number) {
   return Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 1
 }
 
-export const getCustomVoices = () => customVoices()
-export const addCustomVoice = (voice: VoiceInfo) => {
-  const next = [...customVoices().filter((v) => v.id !== voice.id), voice]
-  setCustomVoicesState(next)
-  if (typeof localStorage !== "undefined") localStorage.setItem(CUSTOM_VOICES_KEY, JSON.stringify(next))
-}
-
 // Barge-In Voice Activity Detection (VAD) listener
 let vadMediaStream: MediaStream | undefined
 let vadAudioContext: AudioContext | undefined
@@ -279,9 +261,10 @@ export async function enableBargeInListener() {
   if (vadAudioContext) return
   try {
     const deviceId = typeof localStorage !== "undefined" ? localStorage.getItem(MIC_STORAGE) : null
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: deviceId ? { deviceId: { exact: deviceId } } : true,
-    })
+    // The saved microphone may be unplugged: fall back to the default one instead of giving up.
+    const stream = await navigator.mediaDevices
+      .getUserMedia({ audio: deviceId ? { deviceId: { exact: deviceId } } : true })
+      .catch(() => navigator.mediaDevices.getUserMedia({ audio: true }))
     vadMediaStream = stream
     const audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
     vadAudioContext = audioCtx
@@ -292,15 +275,22 @@ export async function enableBargeInListener() {
 
     const buffer = new Uint8Array(analyser.frequencyBinCount)
     let speechFrames = 0
+    let idleSince = Date.now()
 
     const checkVolume = () => {
       if (!vadAudioContext) return
-      // Nothing to interrupt while nothing is playing: keep the loop idle instead of hot.
+      // Nothing to interrupt while nothing is playing. A few seconds after the voice stops the
+      // microphone is released (and the OS indicator goes off); speak() opens it again.
       if (!isVoiceSpeaking()) {
         speechFrames = 0
+        if (Date.now() - idleSince > 3000) {
+          disableBargeInListener()
+          return
+        }
         vadTimer = setTimeout(checkVolume, 250)
         return
       }
+      idleSince = Date.now()
       analyser.getByteFrequencyData(buffer)
       let sum = 0
       for (let i = 0; i < buffer.length; i++) sum += buffer[i]
@@ -325,12 +315,26 @@ export async function enableBargeInListener() {
   }
 }
 
+// Gives up on a clip that never reports its end: its own length (at the playback rate) plus a
+// margin once the length is known, two minutes before that. The clip is paused, so a stuck audio
+// element can never keep playing after the queue has moved on.
+function armWatchdog(audio: HTMLAudioElement, finish: () => void) {
+  let timer = setTimeout(finish, 120_000)
+  audio.onloadedmetadata = () => {
+    if (!Number.isFinite(audio.duration)) return
+    clearTimeout(timer)
+    timer = setTimeout(finish, (audio.duration / (audio.playbackRate || 1)) * 1000 + 5000)
+  }
+}
+
 const playWav = (key: string, wav: Uint8Array) =>
   new Promise<void>((resolve) => {
     let resolved = false
+    let element: HTMLAudioElement | undefined
     const finish = () => {
       if (resolved) return
       resolved = true
+      element?.pause()
       if (pendingPlay === finish) {
         pendingPlay = undefined
         clearActive()
@@ -342,6 +346,7 @@ const playWav = (key: string, wav: Uint8Array) =>
       const blob = new Blob([wav as Uint8Array<ArrayBuffer>], { type: "audio/wav" })
       const url = URL.createObjectURL(blob)
       const audio = new Audio(url)
+      element = audio
       audio.playbackRate = getVoiceSpeed()
       audio.volume = clampVolume(getVoiceVolume())
       activeURL = url
@@ -349,9 +354,8 @@ const playWav = (key: string, wav: Uint8Array) =>
       audio.onended = finish
       audio.onerror = finish
       pendingPlay = finish
+      armWatchdog(audio, finish)
       audio.play().catch(finish)
-      // Watchdog: auto-resolve si el audio no termina en 30s para no trabar la cola
-      setTimeout(finish, 30000)
     } catch {
       finish()
     }
@@ -396,7 +400,7 @@ export function isSpanishText(text: string) {
 // sesión activa puede dejar el renderer sin capacidad de respuesta.
 async function resolveSpanishVoice(text: string): Promise<string | undefined> {
   if (!isSpanishText(text)) return undefined
-  const list = await voicesList()
+  const list = (await voicesList()).filter((voice) => voice.downloaded !== false)
   const dora = list.find((voice) => voice.id === "ef_dora" && voice.downloaded)
   if (dora) return dora.id
   const femaleEs = list.find(
@@ -541,9 +545,11 @@ export async function speakWithFishAudio(
 
     return new Promise<undefined>((resolve) => {
       let resolved = false
+      let element: HTMLAudioElement | undefined
       const finish = () => {
         if (resolved) return
         resolved = true
+        element?.pause()
         if (pendingPlay === finish) {
           pendingPlay = undefined
           clearActive()
@@ -556,16 +562,18 @@ export async function speakWithFishAudio(
         const blob = new Blob([audioBuffer as BlobPart], { type: "audio/mpeg" })
         const url = URL.createObjectURL(blob)
         const audio = new Audio(url)
+        element = audio
         // The server already applied prosody.speed; a second playbackRate would square it.
         audio.playbackRate = 1
         audio.volume = clampVolume(getVoiceVolume())
         activeURL = url
         activeAudio = audio
+        activeIsFish = true
         audio.onended = finish
         audio.onerror = finish
         pendingPlay = finish
+        armWatchdog(audio, finish)
         audio.play().catch(finish)
-        setTimeout(finish, 45000)
       } catch {
         finish()
       }
@@ -629,10 +637,10 @@ async function speak(
     return speakWithWebSpeech(key, normalized)
   }
 
+  // A local voice the user downloaded and selected wins; Fish is the fallback, not the default.
+  const local = voiceId ?? (await selectedLocalVoice())
+  if (speechGeneration !== expectedGeneration || speakingKey() !== key) return
   if (!forced && mode === "auto") {
-    // A local voice the user downloaded and selected wins; Fish is the fallback, not the default.
-    const local = voiceId ?? (await selectedLocalVoice())
-    if (speechGeneration !== expectedGeneration || speakingKey() !== key) return
     if (!local) {
       const fishKey = getFishAudioKey()
       if (fishKey) {
@@ -647,18 +655,21 @@ async function speak(
     return speakWithWebSpeech(key, normalized)
   }
 
-  // El texto en español usa una voz de español descargada cuando existe; el
-  // inglés y el resto usan la voz seleccionada por el usuario.
-  const effectiveVoice = voiceId ?? (await resolveSpanishVoice(normalized))
+  // The chosen voice speaks; with none ready, Spanish text takes a downloaded Spanish voice.
+  const effectiveVoice = local ?? (await resolveSpanishVoice(normalized))
   if (speechGeneration !== expectedGeneration || speakingKey() !== key) return
   let result: VoicesSpeakResult
   try {
     result = await api.speak(normalized, effectiveVoice, apiOptions)
-  } catch {
-    return speakWithWebSpeech(key, normalized)
+  } catch (error) {
+    result = { error: error instanceof Error ? error.message : String(error) }
   }
   if (speechGeneration !== expectedGeneration || speakingKey() !== key) return
   if (result.error || !result.wav) {
+    if (forced === "local") {
+      setSpeakingKey(undefined)
+      return result.error ?? "No audio"
+    }
     return speakWithWebSpeech(key, normalized)
   }
   await playWav(key, result.wav)

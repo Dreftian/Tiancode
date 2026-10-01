@@ -26,7 +26,8 @@ import { useServerSDK } from "@/context/server-sdk"
 import type { dict } from "@/i18n/en"
 import { showToast } from "@/utils/toast"
 import { CURATED_SKILLS, fetchMarketplace, MARKETPLACE_SNAPSHOT, type MarketplaceItem } from "./marketplace"
-import { DialogMcpConfirm, DialogMcpPlugin, DialogMcpServer } from "./mcp-dialogs"
+import { DialogMcpPlugin, DialogMcpServer } from "./mcp-dialogs"
+import { SettingsConfirmDialog } from "./parts/confirm-dialog"
 import { BrandOrFallback } from "./parts/brand-icon"
 import { SettingsHubHeader } from "./parts/hub-header"
 import { SettingsPagerV2 } from "./parts/pager"
@@ -327,7 +328,7 @@ export const SettingsMcpPluginsV2: Component<{
 
   const confirm = (title: string, description: string, action: () => void) =>
     void dialog.push(() => (
-      <DialogMcpConfirm
+      <SettingsConfirmDialog
         title={title}
         description={description}
         confirm={language.t("settings.mcpServers.action.remove")}

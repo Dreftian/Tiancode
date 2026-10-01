@@ -39,7 +39,6 @@ import {
   getVoicesStatus,
   listVoices,
   selectVoice,
-  setVoiceEnabled,
   speakVoice,
   speakFishVoice,
 } from "./voices"
@@ -303,9 +302,6 @@ export function registerIpcHandlers(deps: Deps) {
   ipcMain.handle("voices-select", (_event: IpcMainInvokeEvent, voiceId: string) => selectVoice(voiceId))
   ipcMain.handle("voices-download-voice", (_event: IpcMainInvokeEvent, voiceId: string) => downloadVoice(voiceId))
   ipcMain.handle("voices-delete-voice", (_event: IpcMainInvokeEvent, voiceId: string) => deleteVoice(voiceId))
-  ipcMain.handle("voices-set-enabled", (_event: IpcMainInvokeEvent, voiceId: string, enabled: boolean) =>
-    setVoiceEnabled(voiceId, enabled),
-  )
   ipcMain.handle("asr-status", () => getAsrStatus())
   ipcMain.handle("asr-ensure-model", (_event: IpcMainInvokeEvent, language: unknown) =>
     ensureAsrModel(resolveAsrLanguage(language)),

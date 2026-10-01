@@ -1,351 +1,154 @@
-import { Component, createEffect, createSignal, onCleanup, Show } from "solid-js"
+import { type Component, createEffect, onCleanup, Show } from "solid-js"
+import { createStore } from "solid-js/store"
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
 import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
 import { useLanguage } from "@/context/language"
 import { getSelectedAudioDeviceId } from "@/utils/asr"
 
+type TesterState = "idle" | "listening" | "fallback" | "silent" | "error"
+
+/**
+ * Live microphone check: a level meter with a peak marker and the level in dB. It opens the mic
+ * with the same processing dictation uses (echo cancellation, noise suppression, mono), so the
+ * meter shows what the transcriber hears, and says which device actually opened.
+ */
 export const MicTester: Component<{ selectedDeviceId?: string | null; active?: boolean }> = (props) => {
   const language = useLanguage()
-  const [testing, setTesting] = createSignal(false)
-  const [volumePercent, setVolumePercent] = createSignal(0)
-  const [peakPercent, setPeakPercent] = createSignal(0)
-  const [dbLevel, setDbLevel] = createSignal<number | null>(null)
-  const [statusMessage, setStatusMessage] = createSignal<string>("Listo para probar. Haz clic en el botón para verificar.")
-  const [statusVariant, setStatusVariant] = createSignal<"idle" | "listening" | "active" | "error">("idle")
-  const [loopback, setLoopback] = createSignal(false)
-  const [audioInfo, setAudioInfo] = createSignal<{ sampleRate: number; channelCount: number } | null>(null)
+  const [state, setState] = createStore({
+    testing: false,
+    level: 0,
+    peak: 0,
+    db: undefined as number | undefined,
+    device: "",
+    status: "idle" as TesterState,
+    loopback: false,
+    heard: false,
+  })
 
-  let streamRef: MediaStream | undefined
-  let audioContextRef: AudioContext | undefined
-  let sourceNodeRef: MediaStreamAudioSourceNode | undefined
-  let analyserRef: AnalyserNode | undefined
-  let animId: number | undefined
-  let canvasRef: HTMLCanvasElement | undefined
-  let peakDecayTimer: number | undefined
-  let lastPeak = 0
-
-  const stopTest = () => {
-    if (animId !== undefined) {
-      cancelAnimationFrame(animId)
-      animId = undefined
-    }
-    if (peakDecayTimer !== undefined) {
-      clearInterval(peakDecayTimer)
-      peakDecayTimer = undefined
-    }
-    if (sourceNodeRef) {
-      try {
-        sourceNodeRef.disconnect()
-      } catch {}
-      sourceNodeRef = undefined
-    }
-    if (audioContextRef) {
-      void audioContextRef.close().catch(() => {})
-      audioContextRef = undefined
-    }
-    if (streamRef) {
-      streamRef.getTracks().forEach((track) => track.stop())
-      streamRef = undefined
-    }
-    analyserRef = undefined
-    lastPeak = 0
-    setTesting(false)
-    setVolumePercent(0)
-    setPeakPercent(0)
-    setDbLevel(null)
-    setAudioInfo(null)
-    setStatusVariant("idle")
-    setStatusMessage("Prueba finalizada. Micrófono apagado y liberado.")
+  const audio = {
+    stream: undefined as MediaStream | undefined,
+    context: undefined as AudioContext | undefined,
+    frame: undefined as number | undefined,
+    silence: undefined as ReturnType<typeof setTimeout> | undefined,
   }
 
-  const startTest = async () => {
-    stopTest()
-    setStatusVariant("listening")
-    setStatusMessage("Iniciando acceso al micrófono...")
-    setTesting(true)
+  const stop = () => {
+    if (audio.frame !== undefined) cancelAnimationFrame(audio.frame)
+    if (audio.silence !== undefined) clearTimeout(audio.silence)
+    audio.stream?.getTracks().forEach((track) => track.stop())
+    void audio.context?.close().catch(() => {})
+    audio.frame = undefined
+    audio.silence = undefined
+    audio.stream = undefined
+    audio.context = undefined
+    setState({ testing: false, level: 0, peak: 0, db: undefined })
+  }
 
+  const start = async () => {
+    stop()
+    setState({ testing: true, status: "listening", heard: false, device: "" })
     const deviceId = props.selectedDeviceId ?? getSelectedAudioDeviceId() ?? undefined
-    const constraints: MediaTrackConstraints = {
-      echoCancellation: !loopback(), // Disable echo cancellation if loopback is desired to test raw sound
-      noiseSuppression: false,
-      autoGainControl: true,
-      ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
-    }
-
-    try {
-      let stream: MediaStream
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: constraints })
-      } catch {
-        // Fallback without exact deviceId if specific ID failed
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      }
-      streamRef = stream
-
-      const track = stream.getAudioTracks()[0]
-      const settings = track?.getSettings()
-
-      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-      const ctx = new AudioCtx()
-      audioContextRef = ctx
-
-      const analyser = ctx.createAnalyser()
-      analyser.fftSize = 512
-      analyser.smoothingTimeConstant = 0.4
-      analyserRef = analyser
-
-      const source = ctx.createMediaStreamSource(stream)
-      sourceNodeRef = source
-      source.connect(analyser)
-
-      if (loopback()) {
-        source.connect(ctx.destination)
-      }
-
-      setAudioInfo({
-        sampleRate: settings?.sampleRate || ctx.sampleRate,
-        channelCount: settings?.channelCount || 1,
-      })
-
-      setStatusMessage("Escuchando... Di algo hacia tu micrófono.")
-
-      const timeBuffer = new Uint8Array(analyser.frequencyBinCount)
-      const freqBuffer = new Uint8Array(analyser.frequencyBinCount)
-
-      // Peak decay loop
-      peakDecayTimer = window.setInterval(() => {
-        if (lastPeak > 0) {
-          lastPeak = Math.max(0, lastPeak - 3)
-          setPeakPercent(lastPeak)
-        }
-      }, 50)
-
-      let silentFrames = 0
-
-      const drawLoop = () => {
-        if (!analyserRef || !audioContextRef) return
-
-        analyserRef.getByteTimeDomainData(timeBuffer)
-        analyserRef.getByteFrequencyData(freqBuffer)
-
-        // RMS calculation
-        let sum = 0
-        for (let i = 0; i < timeBuffer.length; i++) {
-          const norm = (timeBuffer[i] - 128) / 128
-          sum += norm * norm
-        }
-        const rms = Math.sqrt(sum / timeBuffer.length)
-        // Scaled volume for responsive UI feedback
-        const percent = Math.min(100, Math.round(rms * 320))
-        setVolumePercent(percent)
-
-        if (percent > lastPeak) {
-          lastPeak = percent
-          setPeakPercent(lastPeak)
-        }
-
-        // dB calculation
-        if (rms > 0.0001) {
-          const db = Math.round(20 * Math.log10(rms))
-          setDbLevel(Math.max(-60, Math.min(0, db)))
-        } else {
-          setDbLevel(-60)
-        }
-
-        // Status update
-        if (percent >= 6) {
-          silentFrames = 0
-          setStatusVariant("active")
-          setStatusMessage(`Micrófono funcionando correctamente — Señal detectada (${percent}%)`)
-        } else {
-          silentFrames++
-          if (silentFrames > 30) {
-            setStatusVariant("listening")
-            setStatusMessage("Esperando voz... habla cerca del micrófono para comprobar.")
-          }
-        }
-
-        // Mini canvas waveform visualizer
-        if (canvasRef) {
-          const canvasCtx = canvasRef.getContext("2d")
-          if (canvasCtx) {
-            const w = canvasRef.width
-            const h = canvasRef.height
-            canvasCtx.clearRect(0, 0, w, h)
-
-            canvasCtx.lineWidth = 2
-            canvasCtx.strokeStyle = percent >= 6 ? "#34d399" : "#64748b"
-            canvasCtx.beginPath()
-
-            const sliceWidth = w / timeBuffer.length
-            let x = 0
-            for (let i = 0; i < timeBuffer.length; i++) {
-              const v = timeBuffer[i] / 128.0
-              const y = (v * h) / 2
-              if (i === 0) canvasCtx.moveTo(x, y)
-              else canvasCtx.lineTo(x, y)
-              x += sliceWidth
-            }
-            canvasCtx.lineTo(w, h / 2)
-            canvasCtx.stroke()
-          }
-        }
-
-        animId = requestAnimationFrame(drawLoop)
-      }
-
-      animId = requestAnimationFrame(drawLoop)
-    } catch (error) {
-      stopTest()
-      setStatusVariant("error")
-      setStatusMessage(
-        error instanceof Error
-          ? `No se pudo acceder al micrófono: ${error.message}`
-          : "Error al intentar capturar el micrófono. Revisa los permisos de Windows.",
+    const constraints: MediaTrackConstraints = { echoCancellation: true, noiseSuppression: true, channelCount: 1 }
+    const opened = await navigator.mediaDevices
+      .getUserMedia({ audio: deviceId ? { ...constraints, deviceId: { exact: deviceId } } : constraints })
+      .then((stream) => ({ stream, fallback: false }))
+      .catch(() =>
+        // The chosen device may be unplugged: test the default one and say so.
+        navigator.mediaDevices
+          .getUserMedia({ audio: constraints })
+          .then((stream) => ({ stream, fallback: Boolean(deviceId) })),
       )
+      .catch(() => undefined)
+    if (!opened) {
+      setState({ testing: false, status: "error" })
+      return
     }
+    audio.stream = opened.stream
+    const context = new AudioContext()
+    audio.context = context
+    const analyser = context.createAnalyser()
+    analyser.fftSize = 1024
+    analyser.smoothingTimeConstant = 0.5
+    const source = context.createMediaStreamSource(opened.stream)
+    source.connect(analyser)
+    if (state.loopback) source.connect(context.destination)
+    setState({
+      device: opened.stream.getAudioTracks()[0]?.label ?? "",
+      status: opened.fallback ? "fallback" : "listening",
+    })
+
+    const samples = new Float32Array(analyser.fftSize)
+    const tick = () => {
+      analyser.getFloatTimeDomainData(samples)
+      const rms = Math.sqrt(samples.reduce((sum, value) => sum + value * value, 0) / samples.length)
+      const db = rms > 0 ? 20 * Math.log10(rms) : -100
+      // -60 dB (silence) → 0 %, 0 dB (full scale) → 100 %.
+      const level = Math.max(0, Math.min(100, ((db + 60) / 60) * 100))
+      setState({ level, db: Math.round(db), peak: Math.max(level, state.peak - 0.8) })
+      if (level > 25 && !state.heard) setState("heard", true)
+      audio.frame = requestAnimationFrame(tick)
+    }
+    audio.frame = requestAnimationFrame(tick)
+    // Eight seconds without a voice-level sound usually means a muted or wrong microphone.
+    audio.silence = setTimeout(() => {
+      if (!state.heard && state.testing) setState("status", "silent")
+    }, 8000)
   }
 
-  const toggleLoopback = (enabled: boolean) => {
-    setLoopback(enabled)
-    if (!audioContextRef || !sourceNodeRef) return
-    try {
-      if (enabled) {
-        sourceNodeRef.connect(audioContextRef.destination)
-      } else {
-        sourceNodeRef.disconnect(audioContextRef.destination)
-      }
-    } catch {}
-  }
-
-  // The panel stays mounted behind other tabs: release the microphone when it is hidden.
+  // Leaving the panel releases the microphone.
   createEffect(() => {
-    if (props.active === false) stopTest()
+    if (props.active === false && state.testing) stop()
   })
+  onCleanup(stop)
 
-  onCleanup(() => {
-    stopTest()
-  })
+  const message = () => {
+    if (state.status === "error") return language.t("settings.voices.tester.error")
+    if (!state.testing) return language.t("settings.voices.tester.idle")
+    if (state.status === "silent") return language.t("settings.voices.tester.silent")
+    if (state.heard) return language.t("settings.voices.tester.ok")
+    if (state.status === "fallback") return language.t("settings.voices.tester.fallback")
+    return language.t("settings.voices.tester.listening")
+  }
 
   return (
-    <div class="settings-v2-mic-tester">
-      <div class="settings-v2-mic-tester-top">
-        <div class="settings-v2-mic-tester-info">
-          <div class="settings-v2-mic-tester-title-row">
-            <span class="settings-v2-mic-tester-heading">Prueba de funcionamiento del micrófono</span>
-            <span
-              class="settings-v2-mic-tester-badge"
-              data-variant={statusVariant()}
-            >
-              <span class="settings-v2-mic-tester-dot" />
-              <Show when={statusVariant() === "idle"}>Inactivo</Show>
-              <Show when={statusVariant() === "listening"}>Esperando audio</Show>
-              <Show when={statusVariant() === "active"}>Señal óptima</Show>
-              <Show when={statusVariant() === "error"}>Error</Show>
-            </span>
-          </div>
-          <p class="settings-v2-mic-tester-desc">{statusMessage()}</p>
+    <div class="settings-v2-voices-tester" data-state={state.testing ? (state.heard ? "ok" : state.status) : state.status}>
+      <div class="settings-v2-voices-tester-row">
+        <ButtonV2
+          variant={state.testing ? "contrast" : "outline"}
+          size="small"
+          onClick={() => (state.testing ? stop() : void start())}
+        >
+          {language.t(state.testing ? "settings.voices.tester.stop" : "settings.voices.tester.start")}
+        </ButtonV2>
+        <div
+          class="settings-v2-voices-meter"
+          role="meter"
+          aria-label={language.t("settings.voices.tester.level")}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(state.level)}
+        >
+          <div class="settings-v2-voices-meter-fill" style={{ width: `${state.level}%` }} />
+          <div class="settings-v2-voices-meter-peak" style={{ left: `${state.peak}%` }} />
         </div>
-
-        <div class="settings-v2-mic-tester-actions">
-          <Show
-            when={testing()}
-            fallback={
-              <ButtonV2
-                type="button"
-                variant="contrast"
-                size="small"
-                onClick={() => void startTest()}
-              >
-                <span class="flex items-center gap-1.5">
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <polygon points="5 3 13 8 5 13 5 3" fill="currentColor" />
-                  </svg>
-                  Probar micrófono
-                </span>
-              </ButtonV2>
-            }
-          >
-            <ButtonV2
-              type="button"
-              variant="danger"
-              size="small"
-              onClick={() => stopTest()}
-            >
-              <span class="flex items-center gap-1.5">
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                  <rect x="4" y="4" width="8" height="8" rx="1.5" />
-                </svg>
-                Detener prueba
-              </span>
-            </ButtonV2>
-          </Show>
-        </div>
+        <span class="settings-v2-voices-meter-db">{state.db === undefined ? "— dB" : `${state.db} dB`}</span>
+        <Switch
+          class="settings-v2-voices-loopback"
+          checked={state.loopback}
+          onChange={(checked) => {
+            setState("loopback", checked)
+            if (state.testing) void start()
+          }}
+        >
+          {language.t("settings.voices.tester.loopback")}
+        </Switch>
       </div>
-
-      {/* VU Meter / Barra de volumen en vivo */}
-      <div class="settings-v2-mic-meter-wrap">
-        <div class="settings-v2-mic-meter-track">
-          <div
-            class="settings-v2-mic-meter-fill"
-            style={{
-              width: `${Math.min(100, volumePercent())}%`,
-            }}
-          />
-          <Show when={peakPercent() > 0}>
-            <div
-              class="settings-v2-mic-meter-peak"
-              style={{
-                left: `${Math.min(99, peakPercent())}%`,
-              }}
-            />
-          </Show>
-        </div>
-
-        <div class="settings-v2-mic-meter-labels">
-          <div class="flex items-center gap-2">
-            <span>Nivel de entrada: <strong class="text-text-base">{volumePercent()}%</strong></span>
-            <Show when={dbLevel() !== null}>
-              <span class="text-text-weaker text-[11px] font-mono">({dbLevel()} dB)</span>
-            </Show>
-          </div>
-          <Show when={audioInfo()}>
-            <div class="flex items-center gap-1.5 text-[11px] text-text-weaker font-mono">
-              <span>{Math.round(audioInfo()!.sampleRate / 1000)} kHz</span>
-              <span>•</span>
-              <span>
-              {audioInfo()!.channelCount === 1
-                ? language.t("settings.voices.mic.channels.mono")
-                : language.t("settings.voices.mic.channels.stereo")}
-            </span>
-            </div>
-          </Show>
-        </div>
-      </div>
-
-      {/* Onda reactiva en tiempo real */}
-      <Show when={testing()}>
-        <div class="settings-v2-mic-waveform-wrap">
-          <canvas
-            ref={canvasRef}
-            width={380}
-            height={28}
-            class="w-full h-7 rounded bg-v2-background-bg-layer-01 border border-v2-border-border-muted"
-          />
-        </div>
-      </Show>
-
-      {/* Opciones de retorno de audio */}
-      <div class="settings-v2-mic-options">
-        <label class="flex items-center gap-2 text-[12px] text-text-weak hover:text-text-base cursor-pointer select-none">
-          <Switch
-            size="small"
-            checked={loopback()}
-            onChange={(checked) => toggleLoopback(checked)}
-          />
-          <span>Escuchar retorno de audio (Hear myself / Loopback en auriculares)</span>
-        </label>
-      </div>
+      <p class="settings-v2-voices-tester-status">
+        {message()}
+        <Show when={state.testing && state.device}>
+          <span class="settings-v2-voices-tester-device"> · {state.device}</span>
+        </Show>
+      </p>
     </div>
   )
 }

@@ -1,7 +1,8 @@
-import { For } from "solid-js"
+import { For, type JSX } from "solid-js"
 import { Icon, type IconName } from "@tiancode-ai/ui/icon"
 
-export type HubSection<T extends string> = { id: T; label: string; hint: string; icon: IconName }
+// `glyph` draws an icon the shared set does not have (a microphone, say) instead of `icon`.
+export type HubSection<T extends string> = { id: T; label: string; hint: string; icon: IconName; glyph?: JSX.Element }
 
 /**
  * The top of a settings page that groups several pages (Servidor, Conexiones): what the group is
@@ -9,6 +10,7 @@ export type HubSection<T extends string> = { id: T; label: string; hint: string;
  */
 export function SettingsHubHeader<T extends string>(props: {
   icon: IconName
+  glyph?: JSX.Element
   title: string
   description: string
   sections: readonly HubSection<T>[]
@@ -19,7 +21,7 @@ export function SettingsHubHeader<T extends string>(props: {
     <div class="settings-v2-tab-header settings-v2-hub-header">
       <div class="settings-v2-hub-hero">
         <span class="settings-v2-hub-icon" aria-hidden="true">
-          <Icon name={props.icon} />
+          {props.glyph ?? <Icon name={props.icon} />}
         </span>
         <div class="settings-v2-hub-copy">
           <h2 class="settings-v2-tab-title">{props.title}</h2>
@@ -38,7 +40,7 @@ export function SettingsHubHeader<T extends string>(props: {
               onClick={() => props.onChange(section.id)}
             >
               <span class="settings-v2-hub-tab-icon" aria-hidden="true">
-                <Icon name={section.icon} size="small" />
+                {section.glyph ?? <Icon name={section.icon} size="small" />}
               </span>
               <span class="settings-v2-hub-tab-copy">
                 <span class="settings-v2-hub-tab-label">{section.label}</span>

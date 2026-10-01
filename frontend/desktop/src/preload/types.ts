@@ -100,7 +100,6 @@ export type VoicesAPI = {
   onProgress: (cb: (event: VoicesProgress) => void) => () => void
   downloadVoice: (voiceId: string) => Promise<void>
   deleteVoice: (voiceId: string) => Promise<void>
-  setEnabled: (voiceId: string, enabled: boolean) => Promise<void>
   onPiperProgress: (cb: (event: VoicesPiperProgress) => void) => () => void
   speakFish?: (
     text: string,
