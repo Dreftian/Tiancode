@@ -386,11 +386,11 @@ export function createMainWindow(id: string = randomUUID()) {
     const { responseHeaders = {} } = details
     // A page previewed in the Sandbox (an iframe of this window) gets neither the open CORS the app
     // needs to reach its server nor a cache: a restarted dev server must never show the old page.
-    if (fromSubframe(details.frame)) {
-      if (isLoopbackUrl(details.url)) upsertKeyValue(responseHeaders, "Cache-Control", ["no-store"])
-    } else {
+    if (!fromSubframe(details.frame)) {
       addRendererHeaders(details.url, responseHeaders)
+      return callback({ responseHeaders })
     }
+    if (isLoopbackUrl(details.url)) upsertKeyValue(responseHeaders, "Cache-Control", ["no-store"])
     callback({ responseHeaders })
   })
 
@@ -398,10 +398,15 @@ export function createMainWindow(id: string = randomUUID()) {
   // and nothing it triggers may download files.
   win.webContents.on("will-frame-navigate", (event) => {
     if (event.isMainFrame || !isAgentActionInFlight()) return
+    // The app itself points its frames somewhere (a new preview iframe, a reload): not the agent.
+    const initiator = frameUrl(event.initiator)
+    if (isRendererUrl(initiator)) return
+    // A frame with no document yet (about:blank) is judged by the page that started the navigation.
     const current = frameUrl(event.frame)
-    if (current && URL.canParse(current) && URL.canParse(event.url) && new URL(current).origin === new URL(event.url).origin) return
+    const from = current && URL.canParse(current) && new URL(current).origin !== "null" ? current : initiator
+    if (from && URL.canParse(from) && URL.canParse(event.url) && new URL(from).origin === new URL(event.url).origin) return
     event.preventDefault()
-    writeLog("window", "blocked agent cross-origin frame navigation", { from: current, url: event.url }, "warn")
+    writeLog("window", "blocked agent cross-origin frame navigation", { from, url: event.url }, "warn")
   })
   win.webContents.session.on("will-download", (event, item) => {
     if (!isAgentActionInFlight()) return

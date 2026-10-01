@@ -83,3 +83,33 @@ describe("preview server lifecycle", () => {
     expect(state.url).toBe(`http://localhost:${port}/`)
   }, 60_000)
 })
+
+describe("servers that are not ours", () => {
+  test("a URL an adapter logs (an API it proxies to) is neither published nor killed on restart", async () => {
+    const port = await freePort()
+    const strangerPort = await freePort()
+    strangers.push(Bun.serve({ port: strangerPort, hostname: "127.0.0.1", fetch: () => new Response("api") }))
+    const dir = mkdtempSync(join(tmpdir(), "tiancode-preview-"))
+    dirs.push(dir)
+    // Logs the stranger's URL first, then starts its own server half a second later.
+    writeFileSync(
+      join(dir, "server.js"),
+      `console.log("Proxy -> http://127.0.0.1:" + process.argv[3]); setTimeout(() => Bun.serve({ port: Number(process.argv[2]), hostname: "127.0.0.1", fetch: () => new Response(process.argv[4]) }), 500)`,
+    )
+    const write = (body: string) =>
+      writeFileSync(
+        join(dir, "tiancode.preview.json"),
+        JSON.stringify({ command: [process.execPath, "server.js", String(port), String(strangerPort), body], url: `http://127.0.0.1:${port}` }),
+      )
+    write("v1")
+    await startPreviewServer(dir)
+    const first = await settled(dir)
+    expect(first.status).toBe("ready")
+    expect(first.url).toBe(`http://127.0.0.1:${port}/`)
+    write("v2")
+    await startPreviewServer(dir)
+    expect((await settled(dir)).status).toBe("ready")
+    expect(await (await fetch(`http://127.0.0.1:${strangerPort}`)).text()).toBe("api")
+    expect(await (await fetch(`http://127.0.0.1:${port}`)).text()).toBe("v2")
+  }, 60_000)
+})

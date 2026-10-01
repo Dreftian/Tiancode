@@ -191,6 +191,14 @@ const IFRAME_SANDBOX =
   "allow-scripts allow-same-origin allow-forms allow-modals allow-downloads allow-popups allow-pointer-lock"
 const IFRAME_ALLOW = "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
 
+// Which server a URL points at: loopback spellings (localhost, 127.0.0.1, ::1) are one host there.
+function serverKey(url: string | undefined) {
+  if (!url || !URL.canParse(url)) return undefined
+  const parsed = new URL(url)
+  const loopback = ["localhost", "127.0.0.1", "[::1]", "0.0.0.0"].includes(parsed.hostname)
+  return loopback ? `loopback:${parsed.port}` : parsed.origin
+}
+
 export function isBlankPreviewUrl(url: string | undefined) {
   return !url || url.startsWith("about:blank")
 }
@@ -2074,6 +2082,9 @@ export function LivePreview(props: {
     const status = devServer()?.status
     const command = devServer()?.command
     const key = props.autoStartKey?.()
+    // A tiancode.preview.json command is whatever the file says, and the agent can write that file:
+    // it runs from preview_start (which asks first) or from the user's own Start, never on its own.
+    if (command === "tiancode.preview.json") return
     if (status === "idle" && command && !hasAutoStarted) {
       hasAutoStarted = true
       void devServerAction("start")
@@ -2089,15 +2100,20 @@ export function LivePreview(props: {
   // A restarted server is a new process, maybe running another command on the same URL: the page
   // on screen is the old one, so it reloads (or follows the new URL) as soon as the new one is ready.
   let seenServerStart: number | null | undefined
+  let seenServerUrl: string | undefined
   createEffect(() => {
     const managed = devServer()
     if (managed?.status !== "ready" || !managed.url) return
     const started = managed.startedAt
     const previous = seenServerStart
+    const previousUrl = seenServerUrl
     seenServerStart = started
+    seenServerUrl = managed.url
     if (previous === undefined || previous === started) return
-    if (samePreviewUrl(requestedUrl, managed.url)) reloadIframe()
-    else navigateTo(managed.url)
+    // Same server address: reload whatever page of it is open. A new address: follow it, unless the
+    // panel was taken to another site meanwhile.
+    if (serverKey(requestedUrl) === serverKey(managed.url)) return reloadIframe()
+    if (!requestedUrl || serverKey(requestedUrl) === serverKey(previousUrl)) navigateTo(managed.url)
   })
 
   // Un servidor listo se publica como destino canónico y reemplaza la

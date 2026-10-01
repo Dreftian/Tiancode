@@ -19,6 +19,7 @@ import {
 import type { PreviewState } from "../preview/types"
 import { detectProject } from "../preview/project-detector"
 import { ShellID } from "./shell/id"
+import { BashArity } from "@/permission/arity"
 
 function describe(state: PreviewState) {
   return JSON.stringify(state, null, 2)
@@ -54,7 +55,8 @@ const askForAdapter = (directory: string, ctx: Tool.Context) =>
     yield* ctx.ask({
       permission: ShellID.ToolID,
       patterns: [command],
-      always: [`${detected.command[0]} *`],
+      // The same "always" the shell would offer for this command, never a wider one.
+      always: [`${BashArity.prefix(detected.command).join(" ")} *`],
       metadata: { command, description: "tiancode.preview.json" },
     })
   })
