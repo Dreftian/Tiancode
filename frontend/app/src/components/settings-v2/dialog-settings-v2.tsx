@@ -173,10 +173,10 @@ export const DialogSettings: Component<{
         class="settings-v2"
       >
         <TabsV2.List>
-          <div class="flex flex-col justify-between h-full w-full">
-            <div class="flex flex-col gap-3 w-full">
+          <div class="settings-v2-nav flex flex-col justify-between h-full w-full">
+            <div class="settings-v2-nav-main flex flex-col gap-3 w-full">
               <SettingsSearchV2 query={search()} onQuery={setSearch} onSelect={openSearchResult} hasTab={hasTab} />
-              <div class="flex flex-col gap-3" classList={{ hidden: !!search().trim() }}>
+              <div class="settings-v2-nav-groups flex flex-col gap-3" classList={{ hidden: !!search().trim() }}>
                 {/* Desktop Section */}
                 <div class="flex flex-col gap-1.5">
                   <TabsV2.SectionTitle>{language.t("settings.section.desktop")}</TabsV2.SectionTitle>

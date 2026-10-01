@@ -299,8 +299,35 @@
     border-bottom: 1px solid var(--v2-border-border-muted);
   }
 
-  /* Flatten the desktop navigation groups into a scrollable tab strip. */
-  .settings-v2 [data-slot="tabs-v2-list"] div:not([data-slot]):not([data-component]) {
+  /* Search keeps its own row; the desktop navigation groups flatten into a tab strip below it
+     that scrolls sideways on its own. */
+  .settings-v2 [data-slot="tabs-v2-list"] {
+    overflow: visible;
+  }
+
+  .settings-v2 [data-slot="tabs-v2-list"] .settings-v2-nav,
+  .settings-v2 [data-slot="tabs-v2-list"] .settings-v2-nav-main {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .settings-v2 [data-slot="tabs-v2-list"] .settings-v2-nav-groups {
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .settings-v2 [data-slot="tabs-v2-list"] .settings-v2-nav-groups.hidden {
+    display: none;
+  }
+
+  .settings-v2 [data-slot="tabs-v2-list"] .settings-v2-nav-groups div:not([data-slot]):not([data-component]) {
     display: contents;
   }
 
