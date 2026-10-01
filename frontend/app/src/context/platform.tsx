@@ -242,6 +242,9 @@ type PlatformBase = {
   /** Webview zoom level (desktop only) */
   webviewZoom?: Accessor<number>
 
+  /** Set the window's zoom factor (desktop only; Settings › General › Escala de la interfaz) */
+  setUiZoom?(factor: number): void
+
   /** Whether the native desktop window is fullscreen */
   windowFullscreen?: Accessor<boolean>
 

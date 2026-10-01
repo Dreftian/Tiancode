@@ -483,3 +483,95 @@
     justify-content: flex-start;
   }
 }
+
+/* General › Espacio de trabajo: the chat's top bar as a row of toggles, in its real order. */
+.settings-v2-general-titlebar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.settings-v2-general-titlebar-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px dashed var(--v2-border-border-muted);
+  border-radius: 9px;
+  background: transparent;
+  font-size: 12px;
+  color: var(--v2-text-text-muted);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.settings-v2-general-titlebar-item[aria-pressed="true"] {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--v2-text-text-accent) 40%, transparent);
+  background: color-mix(in srgb, var(--v2-text-text-accent) 10%, var(--v2-background-bg-layer-02));
+  color: var(--v2-text-text-base);
+}
+
+.settings-v2-general-titlebar-item:focus-visible {
+  outline: 2px solid var(--v2-text-text-accent);
+  outline-offset: 1px;
+}
+
+/* General › Vista: one card per font with a live sample. */
+.settings-v2-general-fonts {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.settings-v2-general-font {
+  gap: 8px;
+}
+
+.settings-v2-general-font-sample {
+  overflow: hidden;
+  font-size: 18px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--v2-text-text-base);
+}
+
+.settings-v2-general-font [data-component="text-input-v2"] {
+  width: 100%;
+}
+
+/* General › Datos: every kept backup, newest first. */
+.settings-v2-general-backups {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.settings-v2-general-backups li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+}
+
+.settings-v2-general-backups li + li {
+  border-top: 1px solid var(--v2-border-border-muted);
+}
+
+.settings-v2-general-backup-date {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  font-size: 12.5px;
+  color: var(--v2-text-text-base);
+}
+
+.settings-v2-general-backup-date span {
+  font-size: 11px;
+  color: var(--v2-text-text-muted);
+}

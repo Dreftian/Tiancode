@@ -25,7 +25,7 @@ import { render } from "solid-js/web"
 import pkg from "../../package.json"
 import { t } from "./i18n"
 import { initializationData } from "./initialization"
-import { resetZoom, setPinchZoomEnabled, webviewZoom, zoomIn, zoomOut } from "./webview-zoom"
+import { resetZoom, setPinchZoomEnabled, setZoomLevel, webviewZoom, zoomIn, zoomOut } from "./webview-zoom"
 import { windowFullscreen } from "./window-fullscreen"
 import { availableStartupServer, readyWslConnections } from "./wsl/connections"
 import { Splash } from "@tiancode-ai/ui/logo"
@@ -308,6 +308,7 @@ const createPlatform = (windowState: DesktopWindowState): Platform => {
     },
 
     webviewZoom,
+    setUiZoom: (factor) => setZoomLevel(factor),
 
     windowFullscreen,
 
