@@ -64,16 +64,18 @@ import { setNativeTranslations } from "./native-translations"
 import { createTray } from "./tray"
 import { ensureLoopbackNoProxy, useEnvProxy } from "./util/proxy"
 import { installSystemCaTrust, installWindowsSystemCaTrust } from "./windows-system-ca"
-import { migrateDesktopXdgPaths } from "./xdg-paths"
+import { dropInheritedProfileEnv, migrateDesktopXdgPaths } from "./xdg-paths"
+import {
+  APP_IDS,
+  DEV_APP_ID,
+  portableDataRoot,
+  PUBLIC_APP_ID,
+  resolveProfile,
+  saveProfileChoice,
+} from "./profile"
+import { setResolvedProfile } from "./profile-state"
+import { countSessions } from "./session-count"
 
-const APP_IDS: Record<string, string> = {
-  dev: "ai.tiancode.desktop.codex",
-  beta: "ai.tiancode.desktop.beta",
-  prod: "ai.tiancode.desktop",
-}
-// The public GitHub build lives in its own profile and never migrates data from the local ids
-// above, so installing it always starts clean: welcome dialog, no sessions, no provider keys.
-const PUBLIC_APP_ID = "ai.tiancode.desktop.release"
 const TEST_ONBOARDING = process.env.TIANCODE_TEST_ONBOARDING === "1"
 const TEST_ONBOARDING_ROOT = process.env.TIANCODE_TEST_ONBOARDING_ROOT
 const SIDECAR_VERSION = process.env.TIANCODE_SIDECAR_V2 === "1" ? "v2" : "v1"
@@ -114,7 +116,7 @@ const main = Effect.gen(function* () {
 
   process.env.TIANCODE_DISABLE_EMBEDDED_WEB_UI = "true"
 
-  const appId = app.isPackaged ? (DISTRIBUTION === "github" ? PUBLIC_APP_ID : APP_IDS[CHANNEL]) : "ai.tiancode.desktop.codex"
+  const appId = app.isPackaged ? (DISTRIBUTION === "github" ? PUBLIC_APP_ID : APP_IDS[CHANNEL]) : DEV_APP_ID
   const onboardingTestRoot = ((): string | undefined => {
     if (!TEST_ONBOARDING) return
 
@@ -136,9 +138,28 @@ const main = Effect.gen(function* () {
   } else {
     app.setAppUserModelId(appId)
   }
-  const portableDir = process.env.PORTABLE_EXECUTABLE_DIR
-  const defaultUserData = portableDir ? join(portableDir, "data") : join(app.getPath("appData"), appId)
-  app.setPath("userData", onboardingTestRoot ? join(onboardingTestRoot, "desktop") : defaultUserData)
+  // The GitHub build keeps the data of a local install it replaced (see profile.ts).
+  const profile = resolveProfile({
+    distribution: DISTRIBUTION,
+    channel: CHANNEL,
+    packaged: app.isPackaged,
+    appData: app.getPath("appData"),
+    portableDir: portableDataRoot(process.env, process.execPath, app.getPath("temp")),
+    testRoot: onboardingTestRoot,
+    sessions: countSessions,
+  })
+  app.setPath("userData", profile.path)
+  setResolvedProfile(profile)
+  // Before anything reads the environment: roots a previous Tiancode process passed down point
+  // into its profile, which may not be the one this run uses.
+  // An installed app the portable's updater started inherits the portable's folder too; only the
+  // portable itself uses it.
+  const portableData =
+    profile.kind === "portable" || !process.env.PORTABLE_EXECUTABLE_DIR
+      ? undefined
+      : join(process.env.PORTABLE_EXECUTABLE_DIR, "data")
+  const inheritedEnv = dropInheritedProfileEnv(process.env, app.getPath("appData"), profile.path, portableData)
+  if (portableData) delete process.env.PORTABLE_EXECUTABLE_DIR
   if (onboardingTestRoot) app.setPath("sessionData", join(onboardingTestRoot, "session"))
   initializeOldLayoutEligibility(app.getPath("userData"))
   // Chats that are not tied to a chosen folder live in a scratch workspace inside the profile.
@@ -203,6 +224,13 @@ const main = Effect.gen(function* () {
     packaged: app.isPackaged,
     distribution: DISTRIBUTION,
     onboardingTest: Boolean(onboardingTestRoot),
+    profile: {
+      kind: profile.kind,
+      reason: profile.reason,
+      userData: profile.path,
+      alternative: profile.alternative,
+    },
+    inheritedEnv,
   })
 
   ensureLoopbackNoProxy()
@@ -220,6 +248,8 @@ const main = Effect.gen(function* () {
     app.quit()
     return
   }
+  // Only the process that owns the folder records the choice (see profile.ts).
+  if (profile.choice) saveProfileChoice(app.getPath("appData"), profile.choice)
 
   const appEnvironment = preferAppEnv(app.getPath("userData"))
 

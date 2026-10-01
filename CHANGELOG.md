@@ -4,6 +4,30 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.3] — 2026-10-01
+
+Actualizar desde GitHub ya no oculta los datos de una instalación anterior. Las dos ediciones se
+instalan en la misma carpeta y comparten el canal de actualizaciones, así que el instalador de
+GitHub podía sustituir una instalación local o anterior y abrir su propio perfil vacío
+(`ai.tiancode.desktop.release`): sesiones, claves de proveedores y ajustes parecían perdidos,
+aunque seguían en `ai.tiancode.desktop`. Ahora la edición de GitHub usa esa carpeta cuando su
+propio perfil está vacío o cuando la otra tiene las claves de proveedores y al menos las mismas
+sesiones (las sesiones se cuentan en la base de datos, también las que aún están en el WAL). Si el
+perfil de GitHub ya tiene sus propias claves, se respeta y un aviso indica dónde están los datos
+anteriores. La decisión se guarda al arrancar y se revisa si el perfil de GitHub gana datos; nada
+se borra ni se mueve. En un equipo sin Tiancode sigue empezando limpia y la edición local nunca
+adopta el perfil de GitHub.
+
+Ajustes › General › Datos muestra la carpeta de datos en uso, la abre y, si la otra carpeta
+también tiene sesiones o claves, permite cambiar a ella con un reinicio; esa elección se respeta
+siempre. Un aviso, una sola vez por carpeta, indica cuándo la otra carpeta tiene datos. Se
+descartan las rutas de datos heredadas del proceso que lanza la actualización, una app instalada
+que abre la actualización de la portátil ya no toma los datos de la portátil, una clave de
+cifrado ilegible nunca se sobrescribe (si no se puede descifrar se guarda aparte) y las sesiones
+MCP cifradas con otra clave se conservan al guardar las demás. Para probar una instalación limpia
+de GitHub en un equipo con datos, usa la edición portátil en una carpeta vacía o
+`TIANCODE_TEST_ONBOARDING=1`.
+
 ## [1.0.2] — 2026-09-30
 
 Paridad con opencode v2 de escritorio. Omitir permisos pide confirmación con el aviso «¿Omitir

@@ -32,6 +32,7 @@ import { Dialog } from "@tiancode-ai/ui/dialog"
 import { getFilename } from "@tiancode-ai/core/util/path"
 import { Session } from "@tiancode-ai/sdk/v2/client"
 import { usePlatform } from "@/context/platform"
+import { DataFolderNotice } from "@/components/data-folder-notice"
 import { useSettings } from "@/context/settings"
 import { createStore, produce, reconcile } from "solid-js/store"
 import { DragDropProvider, DragDropSensors, DragOverlay, SortableProvider, closestCenter } from "@thisbeyond/solid-dnd"
@@ -2265,6 +2266,7 @@ export default function LegacyLayout(props: ParentProps) {
         {import.meta.env.DEV && import.meta.env.VITE_DISABLE_DEBUG_BAR !== "1" && state.debugTools && <DebugBar />}
       </div>
       <TabsInfoPopup />
+      <DataFolderNotice />
       <ToastRegion v2={false} />
     </div>
   )

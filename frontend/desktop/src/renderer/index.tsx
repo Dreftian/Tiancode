@@ -317,6 +317,10 @@ const createPlatform = (windowState: DesktopWindowState): Platform => {
       info: () => window.api.pairingInfo(),
       setEnabled: (enabled: boolean) => window.api.setPairingEnabled(enabled),
     },
+    dataFolder: {
+      info: () => window.api.dataFolderInfo(),
+      switchTo: (path: string) => window.api.switchDataFolder(path),
+    },
     setKeepScreenActive: (enabled: boolean) => window.api.setKeepScreenActive(enabled),
 
     setPinchZoomEnabled,

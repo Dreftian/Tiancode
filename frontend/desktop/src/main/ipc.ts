@@ -54,6 +54,8 @@ import { COMPUTER_DENIED_KEY, COMPUTER_ENABLED_KEY, COMPUTER_RESTORE_KEY, regist
 import { openInChrome } from "./chrome"
 import { getKeepScreenActive, setKeepScreenActive } from "./screen-activity"
 import { pairingInfo, setPairingEnabled } from "./pairing"
+import { saveProfileChoice } from "./profile"
+import { resolvedProfile } from "./profile-state"
 
 // Apps "abrir con" que acepta open-path. En macOS y Linux el renderer envía
 // el nombre tal cual; en Windows envía el path resuelto por resolveAppPath
@@ -476,6 +478,19 @@ export function registerIpcHandlers(deps: Deps) {
   })
   ipcMain.handle("get-keep-screen-active", () => getKeepScreenActive())
   ipcMain.handle("pairing-info", () => pairingInfo())
+  // Settings › General › Data: the folder in use and the other Tiancode folder that holds data.
+  ipcMain.handle("data-folder-info", () => ({
+    path: app.getPath("userData"),
+    alternative: resolvedProfile()?.alternative ?? null,
+    chosen: resolvedProfile()?.reason === "chosen",
+  }))
+  // Only the folder data-folder-info offered can be chosen, never a path the renderer names.
+  ipcMain.handle("data-folder-switch", (_event: IpcMainInvokeEvent, path: string) => {
+    if (typeof path !== "string" || path !== resolvedProfile()?.alternative?.path) return false
+    if (!saveProfileChoice(app.getPath("appData"), { path, reason: "chosen" })) return false
+    deps.relaunch()
+    return true
+  })
   ipcMain.handle("pairing-set-enabled", (_event: IpcMainInvokeEvent, enabled: boolean) =>
     setPairingEnabled(enabled === true),
   )

@@ -85,6 +85,7 @@ export const SETTINGS_ROWS: SettingsSearchEntry[] = [
   row("general", "display", "settings.general.row.minimizeToTray.title", "settings-minimize-to-tray", ["bandeja", "tray", "minimizar"], "windows"),
   row("general", "display", "settings.general.row.loginItem.title", "settings-login-item", ["inicio", "windows", "startup", "arranque"], "windows"),
   row("general", "display", "settings.general.row.fileWatcher.title", "settings-file-watcher", ["archivos", "watcher", "vigilar"], "desktop"),
+  row("general", "data", "settings.general.row.dataFolder.title", "settings-data-folder", ["carpeta de datos", "data folder", "perfil", "profile", "appdata", "userdata"], "desktop"),
   row("general", "data", "settings.general.row.autoBackup.title", "settings-auto-backup", ["respaldo", "backup", "copia"], "desktop"),
   row("notifications", undefined, "settings.general.notifications.agent.title", "settings-notifications-agent", ["notificación", "notification", "agente", "terminado"]),
   row("notifications", undefined, "settings.general.notifications.permissions.title", "settings-notifications-permissions", ["notificación", "notification", "permisos", "permissions"]),

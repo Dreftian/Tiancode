@@ -9,6 +9,7 @@ import { PetCompanion } from "@/components/pet/pet-companion"
 import { PreviewPanel } from "@/components/preview/preview-panel"
 import { Titlebar, type TitlebarUpdate } from "@/components/titlebar/titlebar"
 import { usePlatform } from "@/context/platform"
+import { DataFolderNotice } from "@/components/data-folder-notice"
 import { setV2Toast, ToastRegion } from "@/utils/toast"
 
 export default function NewLayout(props: ParentProps) {
@@ -82,6 +83,7 @@ export default function NewLayout(props: ParentProps) {
       </div>
       {import.meta.env.DEV && state.debugTools && <DebugBar inline />}
       <TabsInfoPopup />
+      <DataFolderNotice />
       <ToastRegion v2 />
     </div>
   )

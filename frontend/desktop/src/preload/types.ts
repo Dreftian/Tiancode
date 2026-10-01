@@ -180,6 +180,14 @@ export type FatalRendererError = {
 
 // Vista en vivo del panel de sesión: estado del WebContentsView del preview
 // (frontend/desktop/src/main/preview-view.ts).
+export type DataFolderInfo = {
+  path: string
+  /** The other Tiancode data folder, when it holds provider keys or sessions. */
+  alternative: { path: string; keys: boolean; sessions: number | undefined } | null
+  /** The user picked this folder in Settings (as opposed to Tiancode picking it at startup). */
+  chosen: boolean
+}
+
 export type PairingInfo = {
   enabled: boolean
   urls: string[]
@@ -417,6 +425,10 @@ export type ElectronAPI = {
   /** Settings › Pairing (frontend/desktop/src/main/pairing.ts). */
   pairingInfo: () => Promise<PairingInfo>
   setPairingEnabled: (enabled: boolean) => Promise<PairingInfo>
+  /** Settings › General › Data (frontend/desktop/src/main/profile.ts). */
+  dataFolderInfo: () => Promise<DataFolderInfo>
+  /** Records the other folder and restarts; false when it could not be recorded. */
+  switchDataFolder: (path: string) => Promise<boolean>
   /** Resolves with the resulting state, which stays off when the OS refuses the blocker. */
   setKeepScreenActive: (enabled: boolean) => Promise<boolean>
   onPinchZoomEnabledChanged: (cb: (enabled: boolean) => void) => () => void

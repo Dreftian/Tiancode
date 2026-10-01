@@ -586,6 +586,29 @@ export const SettingsGeneralV2: Component<{
     }
   }
 
+  // La carpeta de datos en uso y la otra carpeta de Tiancode que también tiene datos
+  // (desktop/src/main/profile.ts). Cambiar de carpeta reinicia la app; no se mueve nada.
+  const [dataFolder] = createResource(
+    () => desktop() && platform.dataFolder,
+    (folder) => folder.info().catch(() => undefined),
+  )
+
+  const dataFolderDetails = (other: { keys: boolean; sessions: number | undefined }) =>
+    [
+      other.sessions === undefined
+        ? language.t("settings.general.dataFolder.sessionsUnknown")
+        : language.t("settings.general.dataFolder.sessions", { count: other.sessions }),
+      ...(other.keys ? [language.t("settings.general.dataFolder.keys")] : []),
+    ].join(" · ")
+
+  const switchDataFolder = async (path: string) => {
+    const folder = platform.dataFolder
+    if (!folder) return
+    if (!window.confirm(language.t("settings.general.dataFolder.switch.confirm", { path }))) return
+    const switched = await folder.switchTo(path).catch(() => false)
+    if (!switched) showToast({ variant: "error", title: language.t("settings.general.dataFolder.switch.failed") })
+  }
+
   const [fileWatcher, { mutate: setFileWatcher }] = createResource(
     () => desktop(),
     () =>
@@ -883,6 +906,51 @@ export const SettingsGeneralV2: Component<{
         <h3 class="settings-v2-section-title">{language.t("settings.general.section.data")}</h3>
 
         <SettingsListV2>
+          <Show when={dataFolder()}>
+            {(folder) => (
+              <>
+                <SettingsRowV2
+                  title={language.t("settings.general.row.dataFolder.title")}
+                  description={language.t("settings.general.row.dataFolder.description", { path: folder().path })}
+                >
+                  <div data-action="settings-data-folder">
+                    <ButtonV2
+                      type="button"
+                      variant="outline"
+                      size="small"
+                      disabled={!platform.openPath}
+                      onClick={() => void platform.openPath?.(folder().path).catch(() => undefined)}
+                    >
+                      {language.t("settings.general.row.dataFolder.open")}
+                    </ButtonV2>
+                  </div>
+                </SettingsRowV2>
+                <Show when={folder().alternative}>
+                  {(other) => (
+                    <SettingsRowV2
+                      title={language.t("settings.general.row.otherDataFolder.title")}
+                      description={language.t("settings.general.row.otherDataFolder.description", {
+                        path: other().path,
+                        details: dataFolderDetails(other()),
+                      })}
+                    >
+                      <div data-action="settings-other-data-folder">
+                        <ButtonV2
+                          type="button"
+                          variant="outline"
+                          size="small"
+                          onClick={() => void switchDataFolder(other().path)}
+                        >
+                          {language.t("settings.general.row.otherDataFolder.button")}
+                        </ButtonV2>
+                      </div>
+                    </SettingsRowV2>
+                  )}
+                </Show>
+              </>
+            )}
+          </Show>
+
           <SettingsRowV2
             title={language.t("settings.general.row.autoBackup.title")}
             description={language.t("settings.general.row.autoBackup.description")}

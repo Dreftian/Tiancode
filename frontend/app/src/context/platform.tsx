@@ -92,6 +92,21 @@ export type PreviewAgentPlatform = {
   available(frameUrl?: string): Promise<boolean>
 }
 
+/** Where the desktop app keeps sessions, provider keys and settings. */
+export type DataFolderInfo = {
+  path: string
+  /** The other Tiancode data folder, when it holds provider keys or sessions. */
+  alternative: { path: string; keys: boolean; sessions: number | undefined } | null
+  /** The user picked this folder in Settings (as opposed to Tiancode picking it at startup). */
+  chosen: boolean
+}
+
+export type DataFolderPlatform = {
+  info(): Promise<DataFolderInfo>
+  /** Restarts the app on the other folder; resolves false when the choice could not be saved. */
+  switchTo(path: string): Promise<boolean>
+}
+
 /** What another device on the LAN needs to reach this machine's server. */
 export type PairingInfo = {
   /** The user opted in to listening on the local network. */
@@ -222,6 +237,9 @@ type PlatformBase = {
 
   /** Share this machine's server with other devices on the local network (desktop only) */
   pairing?: PairingPlatform
+
+  /** The data folder in use and the other one that can be switched to (desktop only) */
+  dataFolder?: DataFolderPlatform
 
   /** Get whether native pinch/Ctrl-scroll zoom gestures are enabled (desktop only) */
   getPinchZoomEnabled?(): Promise<boolean> | boolean

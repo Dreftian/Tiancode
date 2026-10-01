@@ -120,10 +120,13 @@ export const DialogSettings: Component<{
     ? "mcp-plugins"
     : props.defaultValue === "browser"
       ? "computer-use"
-      : props.defaultValue ?? "general"
+      : props.defaultValue === "data"
+        ? "general"
+        : props.defaultValue ?? "general"
   const [tab, setTab] = createSignal(initialTab)
   const [search, setSearch] = createSignal("")
-  const [generalSection, setGeneralSection] = createSignal("general")
+  // "data" opens General on its Data sub-tab (the data-folder notice links there).
+  const [generalSection, setGeneralSection] = createSignal(props.defaultValue === "data" ? "data" : "general")
 
   // Lazy cache (matching OpenCode Desktop): only mount the active tab initially,
   // and keep visited tabs cached in DOM for instant 0ms switching without CPU/background thrashing.
