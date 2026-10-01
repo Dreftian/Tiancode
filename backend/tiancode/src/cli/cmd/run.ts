@@ -20,6 +20,7 @@ import { open } from "node:fs/promises"
 import { Effect } from "effect"
 import { UI } from "../ui"
 import { effectCmd } from "../effect-cmd"
+import { reachServer } from "../network"
 import { EOL } from "os"
 import { Filesystem } from "@/util/filesystem"
 import { createOpencodeClient, type OpencodeClient, type ToolPart } from "@tiancode-ai/sdk/v2"
@@ -838,8 +839,11 @@ export const RunCommand = effectCmd({
             process.exitCode = 1
           })
           async function finish() {
-            if (args.attach) return
-            const error = await completed
+            // Attached, the answer streams from the other server: returning before its idle event
+            // printed nothing, because the process exits right after. Wait for it, but never hang.
+            const error = args.attach
+              ? await Promise.race([completed, new Promise<undefined>((resolve) => setTimeout(resolve, 15_000))])
+              : await completed
             if (error) process.exitCode = 1
           }
 
@@ -942,6 +946,12 @@ export const RunCommand = effectCmd({
       }
 
       if (args.attach) {
+        const unreachable = await reachServer(args.attach, attachHeaders)
+        if (unreachable) {
+          UI.error(unreachable)
+          process.exitCode = 1
+          return
+        }
         const sdk = attachSDK(directory)
         return await execute(sdk)
       }

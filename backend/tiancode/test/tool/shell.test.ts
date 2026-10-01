@@ -1228,3 +1228,19 @@ describe("tool.shell truncation", () => {
     ),
   )
 })
+
+describe("tool.shell encoding", () => {
+  // cmd.exe writes internal commands to a pipe in the ANSI code page whatever chcp says; the agent
+  // reaches it only when it is the configured shell, so PowerShell and bash are what matter here.
+  each("keeps accents and ñ", (item) =>
+    item.label === "cmd"
+      ? Effect.void
+      : runIn(
+          projectRoot,
+          Effect.gen(function* () {
+            const result = yield* run({ command: 'echo "ñandú acción"' })
+            expect(result.metadata.output).toContain("ñandú acción")
+          }),
+        ),
+  )
+})

@@ -258,6 +258,15 @@ function selectBedrockMantleLanguageModel(sdk: BundledSDK, modelID: string) {
   return sdk.responses?.(modelID) ?? sdk.languageModel(modelID)
 }
 
+function localRuntime(baseURL: string) {
+  return Effect.promise(() =>
+    fetch(`${baseURL}/models`, { signal: AbortSignal.timeout(600) }).then(
+      (response) => response.ok,
+      () => false,
+    ),
+  ).pipe(Effect.map((running) => ({ autoload: running, options: { baseURL } })))
+}
+
 /** Exported for tests: the local loader must delegate to `dep.startLocalEngine`, never spawn. */
 export function custom(dep: CustomDep): Record<string, CustomLoader> {
   return {
@@ -308,16 +317,11 @@ export function custom(dep: CustomDep): Record<string, CustomLoader> {
           return sdk.languageModel(modelID)
         },
       }),
-    ollama: () =>
-      Effect.succeed({
-        autoload: true,
-        options: { baseURL: "http://localhost:11434/v1" },
-      }),
-    lmstudio: () =>
-      Effect.succeed({
-        autoload: true,
-        options: { baseURL: "http://localhost:1234/v1" },
-      }),
+    // Ollama and LM Studio are offered only while they answer: loaded blindly, a fresh install with
+    // no keys made LM Studio the default model and every `tiancode run` spent a minute retrying a
+    // refused connection before failing.
+    ollama: () => localRuntime("http://localhost:11434/v1"),
+    lmstudio: () => localRuntime("http://localhost:1234/v1"),
     openai: () =>
       Effect.succeed({
         autoload: false,

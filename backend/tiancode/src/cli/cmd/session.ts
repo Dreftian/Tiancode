@@ -86,7 +86,11 @@ export const SessionListCommand = effectCmd({
   handler: Effect.fn("Cli.session.list")(function* (args) {
     const sessions = yield* Session.Service.use((svc) => svc.list({ roots: true, limit: args.maxCount }))
 
-    if (sessions.length === 0) return
+    // Scripts reading the JSON form expect an empty array, not empty output.
+    if (sessions.length === 0) {
+      if (args.format === "json") process.stdout.write("[]" + EOL)
+      return
+    }
 
     const output = args.format === "json" ? formatSessionJSON(sessions) : formatSessionTable(sessions)
 

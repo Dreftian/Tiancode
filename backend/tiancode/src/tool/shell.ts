@@ -322,9 +322,13 @@ const ask = Effect.fn("ShellTool.ask")(function* (
   })
 })
 
+// Windows PowerShell writes to a pipe in the OEM code page, so "ñandú acción" came back as
+// "�and� acci�n". It is switched to UTF-8 for the command, which is how the output is decoded.
+const PS_UTF8 = "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;$OutputEncoding=[System.Text.Encoding]::UTF8;"
+
 function cmd(shell: string, command: string, cwd: string, env: NodeJS.ProcessEnv) {
   if (process.platform === "win32" && Shell.ps(shell)) {
-    return ChildProcess.make(shell, ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", command], {
+    return ChildProcess.make(shell, ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", PS_UTF8 + command], {
       cwd,
       env,
       stdin: "ignore",

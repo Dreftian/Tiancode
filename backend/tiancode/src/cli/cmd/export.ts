@@ -251,6 +251,7 @@ const run = Effect.fn("Cli.export.body")(function* (args: { sessionID?: string; 
     if (sessions.length === 0) {
       prompts.log.error("No sessions found", { output: process.stderr })
       prompts.outro("Done", { output: process.stderr })
+      process.exitCode = 1
       return
     }
 

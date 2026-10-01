@@ -318,6 +318,11 @@ export const ProvidersLoginCommand = effectCmd({
         type: "string",
       }),
   handler: Effect.fn("Cli.providers.login")(function* (args) {
+    // Provider login prompts; without a terminal the prompt waited forever for input.
+    if (!args.url && !process.stdin.isTTY)
+      return yield* fail(
+        "`tiancode auth login` needs an interactive terminal. In scripts, set the provider's API key environment variable instead (e.g. ANTHROPIC_API_KEY).",
+      )
     const authSvc = yield* Auth.Service
 
     UI.empty()
