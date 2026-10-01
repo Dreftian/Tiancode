@@ -397,12 +397,16 @@ describe("ProviderTransform.options - minimax m3 thinking", () => {
 describe("ProviderTransform.options - google thinkingConfig gating", () => {
   const sessionID = "test-session-123"
 
-  const createGoogleModel = (reasoning: boolean, npm: "@ai-sdk/google" | "@ai-sdk/google-vertex") =>
+  const createGoogleModel = (
+    reasoning: boolean,
+    npm: "@ai-sdk/google" | "@ai-sdk/google-vertex",
+    apiId = "gemini-2.0-flash",
+  ) =>
     ({
-      id: `${npm === "@ai-sdk/google" ? "google" : "google-vertex"}/gemini-2.0-flash`,
+      id: `${npm === "@ai-sdk/google" ? "google" : "google-vertex"}/${apiId}`,
       providerID: npm === "@ai-sdk/google" ? "google" : "google-vertex",
       api: {
-        id: "gemini-2.0-flash",
+        id: apiId,
         url: npm === "@ai-sdk/google" ? "https://generativelanguage.googleapis.com" : "https://vertexai.googleapis.com",
         npm,
       },
@@ -457,6 +461,40 @@ describe("ProviderTransform.options - google thinkingConfig gating", () => {
       providerOptions: {},
     })
     expect(result.thinkingConfig).toBeUndefined()
+  })
+
+  const openrouterGoogle = (apiId: string) => ({
+    ...createGoogleModel(true, "@ai-sdk/google", `google/${apiId}`),
+    providerID: "openrouter",
+    api: { id: `google/${apiId}`, url: "https://openrouter.ai/api/v1", npm: "@openrouter/ai-sdk-provider" },
+  })
+
+  test.each(["gemini-1.5-pro", "gemini-2.0-flash", "gemini-2.5-pro", "gemini-2.5-flash"])(
+    "omits default thinkingLevel for legacy model %s",
+    (apiId) => {
+      for (const npm of ["@ai-sdk/google", "@ai-sdk/google-vertex"] as const) {
+        const result = ProviderTransform.options({ model: createGoogleModel(true, npm, apiId), sessionID, providerOptions: {} })
+        expect(result.thinkingConfig).toEqual({ includeThoughts: true })
+      }
+      const openrouter = ProviderTransform.options({ model: openrouterGoogle(apiId) as any, sessionID, providerOptions: {} })
+      expect(openrouter.reasoning).toBeUndefined()
+    },
+  )
+
+  test.each([
+    "gemini-3-pro-preview",
+    "gemini-3-flash-preview",
+    "gemini-9-pro",
+    "gemini-9-flash",
+    "gemini-pro-latest",
+    "gemini-flash-latest",
+  ])("sets default thinkingLevel=high and OpenRouter reasoning effort=high for %s", (apiId) => {
+    for (const npm of ["@ai-sdk/google", "@ai-sdk/google-vertex"] as const) {
+      const result = ProviderTransform.options({ model: createGoogleModel(true, npm, apiId), sessionID, providerOptions: {} })
+      expect(result.thinkingConfig).toEqual({ includeThoughts: true, thinkingLevel: "high" })
+    }
+    const openrouter = ProviderTransform.options({ model: openrouterGoogle(apiId) as any, sessionID, providerOptions: {} })
+    expect(openrouter.reasoning).toEqual({ effort: "high" })
   })
 })
 

@@ -94,6 +94,41 @@ function timeoutController(ms: number) {
   }
 }
 
+// Applies the `headerTimeout`, `chunkTimeout` (SSE idle) and `timeout` provider options at the
+// fetch layer, on top of `options.fetch` when a custom fetch is configured.
+function timeoutFetch(options: Record<string, any>) {
+  const customFetch = options["fetch"]
+  const chunkTimeout = options["chunkTimeout"]
+  const headerTimeout = options["headerTimeout"]
+  const timeout = options["timeout"]
+
+  return async (input: any, init?: BunFetchRequestInit) => {
+    const fetchFn = customFetch ?? fetch
+    const opts = init ?? {}
+    const chunkAbortCtl = typeof chunkTimeout === "number" && chunkTimeout > 0 ? new AbortController() : undefined
+    const headerTimeoutMs = headerTimeout === false ? undefined : headerTimeout
+    const headerTimeoutCtl = typeof headerTimeoutMs === "number" ? timeoutController(headerTimeoutMs) : undefined
+    const signals: AbortSignal[] = []
+
+    if (opts.signal) signals.push(opts.signal)
+    if (chunkAbortCtl) signals.push(chunkAbortCtl.signal)
+    if (headerTimeoutCtl) signals.push(headerTimeoutCtl.signal)
+    if (timeout !== undefined && timeout !== null && timeout !== false) signals.push(AbortSignal.timeout(timeout))
+
+    const combined = signals.length === 0 ? null : signals.length === 1 ? signals[0] : AbortSignal.any(signals)
+    if (combined) opts.signal = combined
+
+    const res = await fetchFn(input, {
+      ...opts,
+      // @ts-ignore see here: https://github.com/oven-sh/bun/issues/16682
+      timeout: false,
+    }).finally(() => headerTimeoutCtl?.clear())
+
+    if (!chunkAbortCtl) return res
+    return wrapSSE(res, chunkTimeout, chunkAbortCtl)
+  }
+}
+
 function googleVertexAnthropicBaseURL(project: string | undefined, location: string | undefined) {
   if (!project) return
   if (location !== "eu" && location !== "us") return
@@ -885,7 +920,7 @@ export function custom(dep: CustomDep): Record<string, CustomLoader> {
       }
 
       // Use official ai-gateway-provider package (v2.x for AI SDK v5 compatibility)
-      const { createAiGateway } = yield* Effect.promise(() => import("ai-gateway-provider"))
+      const { createAiGateway, parseAiGatewayOptions } = yield* Effect.promise(() => import("ai-gateway-provider"))
       const { createUnified } = yield* Effect.promise(() => import("ai-gateway-provider/providers/unified"))
 
       const metadata = iife(() => {
@@ -907,12 +942,6 @@ export function custom(dep: CustomDep): Record<string, CustomLoader> {
         },
       }
 
-      const aigateway = createAiGateway({
-        accountId,
-        gateway,
-        apiKey: apiToken,
-        ...(Object.values(opts).some((v) => v !== undefined) ? { options: opts } : {}),
-      })
       // The gateway token authenticates us to Cloudflare and travels in cf-aig-authorization,
       // which createAiGateway sets. Passing it as the model's apiKey as well puts it in
       // Authorization, which the gateway forwards verbatim to OpenAI/Anthropic/whichever
@@ -922,7 +951,28 @@ export function custom(dep: CustomDep): Record<string, CustomLoader> {
 
       return {
         autoload: true,
-        async getModel(_sdk: any, modelID: string, _options?: Record<string, any>) {
+        async getModel(_sdk: any, modelID: string, options?: Record<string, any>) {
+          // This loader builds its own client instead of the SDK from resolveSDK, so the provider
+          // timeouts (headerTimeout, chunkTimeout, timeout) have to be applied here (opencode
+          // 1.18.33). The library's REST path always calls the global fetch; its binding path hands
+          // over the request, so send what the REST path would send through the timeout-aware fetch.
+          const gatewayFetch = timeoutFetch(options ?? {})
+          const aigateway = createAiGateway({
+            binding: {
+              run(body, init) {
+                const headers = parseAiGatewayOptions(opts)
+                headers.set("Content-Type", "application/json")
+                headers.set("cf-aig-authorization", `Bearer ${apiToken}`)
+                headers.set("User-Agent", opts.headers["User-Agent"])
+                return gatewayFetch(`https://gateway.ai.cloudflare.com/v1/${accountId}/${gateway}`, {
+                  body: JSON.stringify(body),
+                  headers,
+                  method: "POST",
+                  signal: init?.signal,
+                })
+              },
+            },
+          })
           // Model IDs use Unified API format: provider/model (e.g., "anthropic/claude-sonnet-4-5")
           return aigateway(unified(modelID))
         },
@@ -1982,38 +2032,9 @@ const layer = Layer.effect(
         const existing = s.sdk.get(key)
         if (existing) return existing
 
-        const customFetch = options["fetch"]
-        const chunkTimeout = options["chunkTimeout"]
-        const headerTimeout = options["headerTimeout"]
+        options["fetch"] = timeoutFetch(options)
         delete options["chunkTimeout"]
         delete options["headerTimeout"]
-
-        options["fetch"] = async (input: any, init?: BunFetchRequestInit) => {
-          const fetchFn = customFetch ?? fetch
-          const opts = init ?? {}
-          const chunkAbortCtl = typeof chunkTimeout === "number" && chunkTimeout > 0 ? new AbortController() : undefined
-          const headerTimeoutMs = headerTimeout === false ? undefined : headerTimeout
-          const headerTimeoutCtl = typeof headerTimeoutMs === "number" ? timeoutController(headerTimeoutMs) : undefined
-          const signals: AbortSignal[] = []
-
-          if (opts.signal) signals.push(opts.signal)
-          if (chunkAbortCtl) signals.push(chunkAbortCtl.signal)
-          if (headerTimeoutCtl) signals.push(headerTimeoutCtl.signal)
-          if (options["timeout"] !== undefined && options["timeout"] !== null && options["timeout"] !== false)
-            signals.push(AbortSignal.timeout(options["timeout"]))
-
-          const combined = signals.length === 0 ? null : signals.length === 1 ? signals[0] : AbortSignal.any(signals)
-          if (combined) opts.signal = combined
-
-          const res = await fetchFn(input, {
-            ...opts,
-            // @ts-ignore see here: https://github.com/oven-sh/bun/issues/16682
-            timeout: false,
-          }).finally(() => headerTimeoutCtl?.clear())
-
-          if (!chunkAbortCtl) return res
-          return wrapSSE(res, chunkTimeout, chunkAbortCtl)
-        }
 
         const bundledLoader = BUNDLED_PROVIDERS[model.api.npm]
         if (bundledLoader) {
