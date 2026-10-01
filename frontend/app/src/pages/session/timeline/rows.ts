@@ -4,6 +4,7 @@ import { AssistantMessage, Part, SessionStatus, UserMessage } from "@tiancode-ai
 import { groupParts, renderable, type PartGroup } from "@tiancode-ai/session-ui/message-part"
 import { TimelineRow, type SummaryDiff } from "./timeline-row"
 import { uniqueSummaryDiffs } from "./summary-diffs"
+import { previewOffer } from "./preview-offer"
 
 export { TimelineRow, type SummaryDiff } from "./timeline-row"
 
@@ -29,6 +30,12 @@ export type TimelineRowMap = {
   Retry: { userMessageID: string }
   DiffSummary: { userMessageID: string; diffs: SummaryDiff[] }
   Error: { userMessageID: string; text: string }
+  PreviewOffer: {
+    userMessageID: string
+    reason: "modified" | "started" | "reviewed"
+    entry?: string
+    finishedAt?: number
+  }
 }
 
 export namespace Timeline {
@@ -40,6 +47,8 @@ export namespace Timeline {
     status: SessionStatus["type"],
     inlineComments: boolean,
     projectedUserMessages: UserMessage[],
+    // Offer to open the app at the end of the latest finished turn (root sessions only).
+    previewOffers = false,
   ) {
     const turns: { user: UserMessage; assistants: AssistantMessage[] }[] = []
     const turnByUserID = new Map<string, (typeof turns)[number]>()
@@ -92,6 +101,7 @@ export namespace Timeline {
           status,
           turn.user.id === activeMessageID,
           inlineComments,
+          previewOffers,
         ),
       ),
     }
@@ -107,6 +117,7 @@ export namespace Timeline {
     isActive: boolean,
     // v2 renders comments inside the user message attachments row instead of a strip row
     inlineComments: boolean,
+    previewOffers = false,
   ) {
     const rows: TimelineRow.TimelineRow[] = []
 
@@ -213,6 +224,21 @@ export namespace Timeline {
           diffs,
         }),
       )
+    }
+
+    if (previewOffers && isActive && status === "idle" && !error && !interrupted) {
+      const offer = previewOffer(
+        assistantMessages.flatMap((message) => getMessageParts(message.id)),
+        diffs,
+      )
+      if (offer)
+        rows.push(
+          new TimelineRow.PreviewOffer({
+            userMessageID: userMessage.id,
+            ...offer,
+            finishedAt: assistantMessages.at(-1)?.time.completed,
+          }),
+        )
     }
 
     if (error) {

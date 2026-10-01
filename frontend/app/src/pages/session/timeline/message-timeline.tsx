@@ -81,6 +81,7 @@ import { sessionTitle } from "@/utils/session-title"
 import { scheduleConnectedMeasure } from "./measure"
 import { observeElementOffsetReconnectAware } from "./observe-element-offset"
 import { createTimelineProjection } from "./projection"
+import { TimelinePreviewOfferRow } from "./preview-offer-row"
 import { MessageComment, SummaryDiff, TimelineRow, TimelineRowMap } from "./rows"
 import { filterVirtualIndexes } from "./virtual-items"
 
@@ -360,6 +361,7 @@ export function MessageTimeline(props: {
     status: sessionStatus,
     showReasoningSummaries: reasoningSummariesVisible,
     inlineComments: settings.general.newLayoutDesigns,
+    previewOffers: () => !parentID() && settings.general.previewOnFinish() !== "off",
   })
   const activeMessageID = projection.activeMessageID
   const assistantMessagesByParent = projection.assistantMessagesByParent
@@ -1376,6 +1378,21 @@ export function MessageTimeline(props: {
           <TimelineRowFrame row={diffSummaryRow}>
             <div data-slot="session-turn-message-container" class="w-full px-4 md:px-5">
               <TimelineDiffSummaryRow diffs={diffSummaryRow().diffs} />
+            </div>
+          </TimelineRowFrame>
+        )
+      }
+      case "PreviewOffer": {
+        const offerRow = row as Accessor<TimelineRowByTag<"PreviewOffer">>
+        return (
+          <TimelineRowFrame row={offerRow}>
+            <div data-slot="session-turn-message-container" class="w-full px-4 md:px-5">
+              <TimelinePreviewOfferRow
+                userMessageID={offerRow().userMessageID}
+                reason={offerRow().reason}
+                entry={offerRow().entry}
+                finishedAt={offerRow().finishedAt}
+              />
             </div>
           </TimelineRowFrame>
         )

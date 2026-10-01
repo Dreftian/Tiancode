@@ -13,9 +13,12 @@ import { useLayout, type LiveViewTab } from "@/context/layout"
 import { useSDK } from "@/context/sdk"
 import { useSync } from "@/context/sync"
 import { useSessionLayout } from "@/pages/session/session-layout"
+import { showToast } from "@/utils/toast"
 import { LivePreview } from "@/pages/session/live-preview/live-preview"
 import { ScrollView } from "@tiancode-ai/ui/scroll-view"
 import { liveViewProjectFolder, liveViewSessionTools, liveViewToolDetail, liveViewToolFiles } from "./live-view-activity"
+import { usePreviewOpeners } from "./live-preview/use-preview-openers"
+import { isAppFile } from "./timeline/preview-offer"
 
 export const LIVE_VIEW_URL = "http://127.0.0.1:8790/"
 const LIVE_VIEW_CHECK_MS = 3000
@@ -1018,6 +1021,7 @@ function CodePane(props: {
 
 export function LiveViewPanel(props: { onCapture?: (file: File) => void; expandable?: boolean; sessionID?: string }) {
   const language = useLanguage()
+  const openers = usePreviewOpeners()
   const { view, tabs: sessionTabs } = useSessionLayout()
   const layout = useLayout()
   const sync = useSync()
@@ -1145,9 +1149,11 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
   const autoStartKey = createMemo(() => {
     const fromSnap = previewAutoStartKey(snapshot())
     if (fromSnap) return fromSnap
-    const diffs = sessionDiffs()
+    // Only app files restart a dev server that is not running: a README or backend edit must not.
+    const diffs = sessionDiffs().filter((d) => isAppFile(d.file))
     if (diffs.length > 0) return diffs.map((d) => d.file).join("|")
-    return activeEditFile()
+    const editing = activeEditFile()
+    return editing && isAppFile(editing) ? editing : undefined
   })
   const browserTarget = () => embeddedPreviewTarget(liveViewManagedTarget(), effectiveProjectDir(), snapshot())
 
@@ -1652,6 +1658,28 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
         </div>
         {/* shrink-0: IconButtonV2 no lo trae de serie y sin él los botones de la
             derecha se aplastarían antes que el chip de carpeta. */}
+        <Show when={content() === "preview"}>
+          <IconButtonV2
+            type="button"
+            variant="ghost-muted"
+            size="large"
+            class="shrink-0"
+            data-action="live-view-open-external"
+            onClick={() => {
+              const url = browserTarget()
+              void (url ? openers.openInBrowser(url) : openers.desktop()).catch((error: unknown) =>
+                showToast({
+                  variant: "error",
+                  title: language.t("session.previewOffer.failed"),
+                  description: error instanceof Error && error.message ? error.message : undefined,
+                }),
+              )
+            }}
+            aria-label={language.t("liveView.openExternal")}
+            title={language.t("liveView.openExternal")}
+            icon={<IconV2 name="outline-square-arrow" />}
+          />
+        </Show>
         <IconButtonV2
           type="button"
           variant="ghost-muted"

@@ -1097,26 +1097,18 @@ export default function Page() {
     inputRef?.focus()
   }
 
-  // Heurística de intención: si el prompt pide construir una web, una app, un
-  // documento o una hoja de cálculo, abrimos automáticamente la vista en vivo
-  // (que por exclusión mutua del dock inferior cierra la terminal). Es solo un
-  // regex barato sobre el texto plano del prompt, sin llamadas adicionales.
-  const BUILD_INTENT_REGEX =
-    /\b(website|websites|pagina|página|web|landing|frontend|app|apps|aplicacion|aplicación|excel|hoja de calculo|hoja de cálculo|documento|documentos|docs|doc|construye|construir|crea|crear|build|make|interfaz|ui)\b/i
-  const maybeOpenLiveView = () => {
-    if (!newSessionDesign()) return
-    const text = prompt
-      .current()
-      .map((part) => ("content" in part ? part.content : ""))
-      .join("")
-    if (BUILD_INTENT_REGEX.test(text)) view().liveView.open()
-  }
-
   // Navegación del agente a mitad de sesión (set_preview o dev server en los
   // logs): abre el sandbox si está cerrado para que la app aparezca en el
   // panel "Vista en vivo", no en el navegador flotante (que solo se abre por
   // clic del usuario).
-  useLiveViewAutoOpen({ enabled: () => newSessionDesign() && !!params.id && settings.general.previewAutoOpen() })
+  // The app the agent built is offered at the end of the turn (timeline PreviewOffer row); this
+  // watcher only opens the Sandbox while the agent itself needs to look at the page.
+  useLiveViewAutoOpen({
+    enabled: () =>
+      newSessionDesign() && !!params.id && settings.general.previewAutoOpen() && settings.general.agentBrowser(),
+    busy: () => !!params.id && (sync().data.session_status[params.id]?.type ?? "idle") !== "idle",
+    sessionID: () => params.id,
+  })
 
   // Redirección interna de destinos de vista previa local: el desktop shell
   // reenvía aquí los clics del renderer a un dev server local (o a un HTML del
@@ -2230,7 +2222,6 @@ export default function Page() {
                       onSubmit: () => {
                         comments.clear()
                         resumeScroll()
-                        maybeOpenLiveView()
                         // Sincronización de voz: al enviar una petición se corta
                         // la lectura del anuncio anterior; la voz del nuevo
                         // anuncio arranca limpia cuando el modelo empieza a

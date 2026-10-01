@@ -1,0 +1,95 @@
+[data-component="session-turn-preview-offer"] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 8px 8px 8px 10px;
+  border: 0.5px solid var(--v2-border-border-base);
+  border-radius: 10px;
+  background: var(--v2-background-bg-layer-01);
+  animation: preview-offer-in 180ms ease-out;
+  min-width: 0;
+  flex-wrap: wrap;
+
+  [data-slot="preview-offer-icon"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: var(--v2-overlay-simple-overlay-hover);
+    color: var(--v2-icon-icon-base);
+  }
+
+  [data-slot="preview-offer-copy"] {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1 1 160px;
+  }
+
+  [data-slot="preview-offer-title"] {
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 530;
+    color: var(--v2-text-text-base);
+  }
+
+  [data-slot="preview-offer-file"] {
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--v2-text-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  [data-slot="preview-offer-actions"] {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    margin-inline-start: auto;
+  }
+
+  [data-slot="preview-offer-busy"] {
+    font-size: 12px;
+    color: var(--v2-text-text-muted);
+  }
+
+  &[data-state="sandbox"],
+  &[data-state="desktop"] {
+    padding-block: 4px;
+
+    [data-slot="preview-offer-icon"] {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+    }
+
+    [data-slot="preview-offer-title"] {
+      font-weight: 440;
+      color: var(--v2-text-text-muted);
+    }
+  }
+}
+
+@keyframes preview-offer-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-component="session-turn-preview-offer"] {
+    animation: none;
+  }
+}

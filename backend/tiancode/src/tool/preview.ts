@@ -40,6 +40,11 @@ function waitForReady(directory: string) {
   })
 }
 
+// Machine-readable copy of what `describe` prints, so the app can read the URL from the part.
+function previewMetadata(state: ReturnType<typeof getPreviewState>) {
+  return { status: state.status, url: state.url, isDesktop: state.isDesktop, framework: state.framework }
+}
+
 export const PreviewStartTool = Tool.define(
   "preview_start",
   Effect.succeed({
@@ -53,7 +58,7 @@ export const PreviewStartTool = Tool.define(
           try: async () => {
             await startPreviewServer(directory)
             await waitForReady(directory)
-            return { title: "Preview iniciado", output: describe(getPreviewState(directory)), metadata: {} }
+            return { title: "Preview iniciado", output: describe(getPreviewState(directory)), metadata: previewMetadata(getPreviewState(directory)) }
           },
           catch: (error) => new Error(error instanceof Error ? error.message : String(error)),
         }).pipe(
@@ -96,7 +101,7 @@ export const PreviewRestartTool = Tool.define(
           try: async () => {
             await restartPreviewServer(directory)
             await waitForReady(directory)
-            return { title: "Preview reiniciado", output: describe(getPreviewState(directory)), metadata: {} }
+            return { title: "Preview reiniciado", output: describe(getPreviewState(directory)), metadata: previewMetadata(getPreviewState(directory)) }
           },
           catch: (error) => new Error(error instanceof Error ? error.message : String(error)),
         }).pipe(
@@ -117,10 +122,11 @@ export const PreviewStatusTool = Tool.define(
     execute: () =>
       Effect.gen(function* () {
         const directory = yield* InstanceState.directory
+        const state = getPreviewState(directory)
         return {
           title: "Estado del preview",
-          output: describe(getPreviewState(directory)),
-          metadata: {},
+          output: describe(state),
+          metadata: previewMetadata(state),
         }
       }),
   }),

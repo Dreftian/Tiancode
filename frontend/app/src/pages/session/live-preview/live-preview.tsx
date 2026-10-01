@@ -10,6 +10,7 @@ import { normalizeUrl } from "@/components/preview/preview-panel"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { useSDK } from "@/context/sdk"
+import { useSettings } from "@/context/settings"
 import { ServerConnection, useServer } from "@/context/server"
 import { authTokenFromCredentials } from "@/utils/server"
 import type { PreviewViewState } from "@/context/platform"
@@ -108,9 +109,8 @@ function isDesktopBridgeAction(action: BridgeAction): action is DesktopBridgeAct
  * Copia literal de BROWSER_SURFACE_TOKEN en frontend/desktop/src/main/preview-agent.ts: los dos
  * tienen que coincidir y `app` no puede importar de `desktop`.
  *
- * Ninguna acción trae hoy `surface: "browser"`: el long-poll descarta ese campo al codificar
- * (PreviewAgentActionSchema, backend/tiancode/src/server/routes/.../groups/preview.ts). Esta rama
- * queda montada para cuando el esquema lo acepte.
+ * PreviewAgentActionSchema (backend/tiancode/src/server/routes/.../groups/preview.ts) transporta
+ * `surface`, así que las acciones `surface: "browser"` llegan por esta rama.
  */
 const BROWSER_SURFACE_TOKEN = "tiancode-surface:browser"
 
@@ -270,6 +270,7 @@ export function LivePreview(props: {
   const platform = usePlatform()
   const preview = () => platform.previewView
   const sdk = useSDK()
+  const settings = useSettings()
   const server = useServer()
 
   const [state, setState] = createSignal<PreviewViewState | null>(null)
@@ -1732,6 +1733,12 @@ export function LivePreview(props: {
           return { ok: false, output: error instanceof Error ? error.message : String(error) }
         }
       }
+      if (!settings.general.agentBrowser())
+        return {
+          ok: false,
+          output:
+            "El usuario desactivó el control del navegador por el agente (Ajustes › Experimental › Navegador). Pídele que revise la página o que vuelva a activar esa opción.",
+        }
       if (!agent) return { ok: false, output: "Esta sesión no puede ejecutar acciones dentro de la página." }
       try {
         const hint = action.surface === "browser" ? BROWSER_SURFACE_TOKEN : previewFrameHint()
@@ -2035,7 +2042,8 @@ export function LivePreview(props: {
       void devServerAction("start")
       return
     }
-    if (key && key !== lastAutoStartKey && status !== "starting" && status !== "ready") {
+    // A server the user stopped stays stopped; only an idle or failed one restarts on new app edits.
+    if (key && key !== lastAutoStartKey && (status === "idle" || status === "error")) {
       lastAutoStartKey = key
       void devServerAction("start")
     }

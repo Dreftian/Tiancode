@@ -961,19 +961,24 @@ async function spawnServer(managed: Managed) {
   scheduleReadinessTimeout(managed)
 }
 
-const detectedStateCache = new Map<string, PreviewState>()
+const detectedStateCache = new Map<string, { state: PreviewState; at: number }>()
+// detectProject walks parents and subfolders with statSync; the UI asks for the state on every
+// poll, so a short-lived cache keeps idle folders (home, Desktop) from hitting the disk nonstop.
+const DETECT_TTL_MS = 10_000
 
 export async function detectPreviewState(directory: string): Promise<PreviewState> {
   const existing = servers.get(directory)
   if (existing) return existing.state
+  const cached = detectedStateCache.get(directory)
+  if (cached && Date.now() - cached.at < DETECT_TTL_MS) return cached.state
   const detected = await detectProject(directory)
   const state = idleState(detected)
-  detectedStateCache.set(directory, state)
+  detectedStateCache.set(directory, { state, at: Date.now() })
   return state
 }
 
 export function getPreviewState(directory: string): PreviewState {
-  return servers.get(directory)?.state ?? detectedStateCache.get(directory) ?? idleState(null)
+  return servers.get(directory)?.state ?? detectedStateCache.get(directory)?.state ?? idleState(null)
 }
 
 export function getPreviewLogs(directory: string) {
