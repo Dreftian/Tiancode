@@ -241,12 +241,13 @@ export const loadProvidersQuery = (
           return normalizeProviderList(result.data!)
         }
         const location = directory ? { location: { directory } } : undefined
+        // Tiancode servers have no GET /api/model/default: a 404 there must not lose the providers.
         const [providers, models, defaultModel] = await Promise.all([
           sdk.provider.list(location),
           sdk.model.list(location),
-          sdk.model.default(location),
+          sdk.model.default(location).catch(() => undefined),
         ])
-        return normalizeProviderList(providers.data, models.data, defaultModel.data)
+        return normalizeProviderList(providers.data, models.data, defaultModel?.data)
       }, BOOTSTRAP_RETRY),
   })
 

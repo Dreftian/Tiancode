@@ -1,7 +1,13 @@
 import { batch, createMemo, startTransition } from "solid-js"
 import { useModels } from "@/context/models"
 import type { ModelKey, ModelSelection } from "@/context/local"
-import { cycleModelVariant, getConfiguredAgentVariant, resolveModelVariant } from "@/context/model-variant"
+import {
+  cycleModelVariant,
+  DEFAULT_VARIANT,
+  getConfiguredAgentVariant,
+  nextCycleIndex,
+  resolveVariant,
+} from "@/context/model-variant"
 import { usePrompt } from "@/context/prompt"
 import { useSDK } from "@/context/sdk"
 import { useSync } from "@/context/sync"
@@ -70,14 +76,16 @@ export function createPromptModelSelection(input: { agent: () => { model?: Model
       const item = current()
       if (!item) return
       const index = items.findIndex((entry) => entry.provider.id === item.provider.id && entry.id === item.id)
-      if (index === -1) return
-      const next = items[(index + direction + items.length) % items.length]
+      const next = items[nextCycleIndex(index, items.length, direction)]
       if (next) selection.set({ providerID: next.provider.id, modelID: next.id })
     },
     set(item: ModelKey | undefined, options?: { recent?: boolean }) {
       startTransition(() =>
         batch(() => {
-          prompt.model.set(item ? { ...item, variant: prompt.model.current()?.variant } : undefined)
+          // The effort stays only when the model stays; another model uses its own remembered effort.
+          const previous = prompt.model.current()
+          const same = !!previous && !!item && previous.providerID === item.providerID && previous.modelID === item.modelID
+          prompt.model.set(item ? { ...item, variant: same ? previous?.variant : undefined } : undefined)
           if (!item) return
           models.setVisibility(item, true)
           if (options?.recent) models.recent.push(item)
@@ -100,16 +108,13 @@ export function createPromptModelSelection(input: { agent: () => { model?: Model
         return prompt.model.current()?.variant
       },
       current() {
-        const resolved = resolveModelVariant({
+        const model = current()
+        return resolveVariant({
           variants: this.list(),
           selected: this.selected(),
+          remembered: model ? models.variant.get({ providerID: model.provider.id, modelID: model.id }) : undefined,
           configured: this.configured(),
         })
-        if (resolved) return resolved
-        const model = current()
-        if (!model) return
-        const saved = models.variant.get({ providerID: model.provider.id, modelID: model.id })
-        if (saved && this.list().includes(saved)) return saved
       },
       list() {
         return Object.keys(current()?.variants ?? {})
@@ -120,7 +125,7 @@ export function createPromptModelSelection(input: { agent: () => { model?: Model
             const model = current()
             if (!model) return
             prompt.model.set({ providerID: model.provider.id, modelID: model.id, variant: value ?? null })
-            models.variant.set({ providerID: model.provider.id, modelID: model.id }, value)
+            models.variant.set({ providerID: model.provider.id, modelID: model.id }, value ?? DEFAULT_VARIANT)
           }),
         )
       },
