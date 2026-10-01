@@ -1153,7 +1153,7 @@ export const SettingsModelsHubV2: Component<{ directory?: string; active?: boole
                     description={
                       runtime.available && runtime.models?.length
                         ? t("settings.modelsHub.runtime.models", { count: runtime.models.length })
-                        : t(runtime.available ? "settings.modelsHub.runtime.available" : "settings.modelsHub.runtime.notDetected")
+                        : ""
                     }
                   >
                     <span class="settings-v2-mh-status" data-state={runtime.available ? "running" : "stopped"}>

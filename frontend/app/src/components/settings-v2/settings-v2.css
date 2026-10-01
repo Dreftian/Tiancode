@@ -196,6 +196,10 @@
   color: var(--v2-text-text-muted);
 }
 
+[data-slot="settings-v2-row-description"]:empty {
+  display: none;
+}
+
 [data-slot="settings-v2-row-control"] {
   display: flex;
   width: 100%;
@@ -636,10 +640,6 @@
 
 .settings-v2-models .settings-v2-section-title + [data-component="settings-v2-list"] {
   margin-top: 0;
-}
-
-.settings-v2-models [data-slot="settings-v2-row-description"]:empty {
-  display: none;
 }
 
 .settings-v2-models [data-slot="settings-v2-row-copy"] {
@@ -2720,11 +2720,18 @@
   padding-bottom: 0;
 }
 
+/* Three columns keep the six desktop facts (or the three on the web) in full rows. */
 .settings-v2-about-system {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin: 0;
+}
+
+@media (max-width: 640px) {
+  .settings-v2-about-system {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .settings-v2-about-fact {
