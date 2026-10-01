@@ -2444,6 +2444,10 @@ export const dict = {
   "settings.modelsHub.dir.custom": "Una carpeta elegida por ti.",
   "settings.modelsHub.dir.placeholder": "Ruta de la carpeta",
   "settings.modelsHub.dir.apply": "Aplicar",
+  "settings.modelsHub.retry": "Reintentar",
+  "settings.modelsHub.files.failed": "No se pudo leer la lista de archivos de Hugging Face.",
+  "settings.modelsHub.settings.loadFailed": "No se pudieron leer los ajustes de carga guardados; no se cambia nada hasta leerlos.",
+  "settings.voices.voice.noAudio": "La voz no produjo audio.",
   "settings.modelsHub.title": "Modelos Locales",
   "settings.modelsHub.description":
     "Busca y descarga modelos GGUF desde HuggingFace para ejecutar IA localmente, como LM Studio.",

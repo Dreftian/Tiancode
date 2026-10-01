@@ -87,7 +87,10 @@ export const globalHandlers = HttpApiBuilder.group(RootHttpApi, "global", (handl
     })
 
     const configUpdate = Effect.fn("GlobalHttpApi.configUpdate")(function* (ctx) {
-      const result = yield* config.updateGlobal(unredactConfigInfo(ctx.payload, yield* config.getGlobal()))
+      // Hidden secrets come back from the file as written first, so a `{env:TOKEN}` placeholder stays a
+      // placeholder; values only the merged config knows (other global files) come from it after.
+      const restored = unredactConfigInfo(unredactConfigInfo(ctx.payload, yield* config.getGlobalRaw()), yield* config.getGlobal())
+      const result = yield* config.updateGlobal(restored)
       if (result.changed) bridge.fork(disposeAllInstancesAndEmitGlobalDisposed({ swallowErrors: true }))
       return result.info
     })

@@ -2,7 +2,7 @@ import path from "node:path"
 import { Effect } from "effect"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
 import { Config } from "@/config/config"
-import * as InstanceState from "@/effect/instance-state"
+import { InstanceState } from "@/effect/instance-state"
 import { markInstanceForDisposal } from "../lifecycle"
 import { ModelHub } from "@/model-hub"
 import { LocalEngine } from "@/local-engine"
@@ -125,12 +125,11 @@ export const modelHubHandlers = HttpApiBuilder.group(InstanceHttpApi, "model-hub
       return yield* engine.loadDefaults()
     })
 
-    // The provider caches each local model's context limit and the lightweight choice per instance:
-    // a changed default has to reach the next request, so the instance reloads like a config save.
+    // No instance reload here: Settings saves on every change, and a reload cancels the sessions
+    // running in the project. The light mode is read on each request; a new context size applies
+    // the next time the model loads.
     const engineDefaultsSet = Effect.fn("ModelHubHttpApi.engineDefaultsSet")(function* (ctx) {
-      const saved = yield* engine.setLoadDefaults(ctx.payload)
-      yield* markInstanceForDisposal(yield* InstanceState.context)
-      return saved
+      return yield* engine.setLoadDefaults(ctx.payload)
     })
 
     const engineLogs = Effect.fn("ModelHubHttpApi.engineLogs")(function* () {

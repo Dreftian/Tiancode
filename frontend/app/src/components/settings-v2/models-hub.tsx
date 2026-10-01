@@ -5,7 +5,7 @@ import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
 import { TextInputV2 } from "@tiancode-ai/ui/v2/text-input-v2"
 import { useDialog } from "@tiancode-ai/ui/context/dialog"
 import type { FitTier } from "@tiancode-ai/core/model-fit"
-import { type Component, createEffect, createMemo, createResource, For, type JSX, on, onCleanup, Show } from "solid-js"
+import { type Component, createEffect, createMemo, createResource, For, type JSX, on, onCleanup, Show, untrack } from "solid-js"
 import { createStore, reconcile } from "solid-js/store"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
@@ -213,7 +213,8 @@ export const SettingsModelsHubV2: Component<{ directory?: string; active?: boole
     submitted: "",
     selected: PICKS[0].id as string,
     quant: {} as Record<string, string>,
-    files: {} as Record<string, QuantFile[] | "loading">,
+    // "error" is not a result: reselecting the repository tries again.
+    files: {} as Record<string, QuantFile[] | "loading" | "error">,
     estimates: {} as Record<string, Estimate | "loading">,
     jobs: [] as DownloadJob[],
     local: [] as LocalFile[],
@@ -223,7 +224,8 @@ export const SettingsModelsHubV2: Component<{ directory?: string; active?: boole
     dirInput: "",
   })
   const [form, setForm] = createStore<Defaults>({ ...FACTORY })
-  const [loaded, setLoaded] = createStore({ defaults: false })
+  // Saving waits for the saved values: factory values sent after a failed read would replace them.
+  const [loaded, setLoaded] = createStore({ defaults: false, failed: false })
 
   // ------------------------------------------------------------------ server state
 
@@ -353,32 +355,41 @@ export const SettingsModelsHubV2: Component<{ directory?: string; active?: boole
     ...Object.fromEntries(NUMERIC.map((key) => [key, numberValue(key)]).filter(([, value]) => value !== undefined)),
   })
 
-  void hub()
-    .engineDefaults(params())
-    .then((res) => {
-      if (res.data) setForm(fromServer(res.data as unknown as Record<string, unknown>))
-    })
-    .catch(() => undefined)
-    .finally(() => setLoaded("defaults", true))
+  const loadDefaults = () =>
+    void hub()
+      .engineDefaults(params())
+      .then((res) => {
+        if (!res.data) throw new Error("no defaults")
+        setForm(fromServer(res.data as unknown as Record<string, unknown>))
+        setLoaded({ defaults: true, failed: false })
+      })
+      .catch(() => setLoaded("failed", true))
+  loadDefaults()
 
-  // Saved shortly after the last change, so typing a number is one save, not one per key.
-  let saveTimer: ReturnType<typeof setTimeout> | undefined
+  // Saved shortly after the last change, so typing a number is one save, not one per key; a change
+  // still pending when Settings closes is sent right away instead of being dropped.
+  const pending = { timer: undefined as ReturnType<typeof setTimeout> | undefined, body: "" }
+  const flush = () => {
+    if (!pending.timer) return
+    clearTimeout(pending.timer)
+    pending.timer = undefined
+    void hub()
+      .engineDefaultsSet({ ...params(), ...JSON.parse(pending.body) })
+      .catch(() => showToast({ variant: "error", title: t("settings.modelsHub.settings.saveFailed") }))
+  }
   createEffect(
     on(
       () => JSON.stringify(toServer()),
       (body) => {
         if (!loaded.defaults) return
-        if (saveTimer) clearTimeout(saveTimer)
-        saveTimer = setTimeout(() => {
-          void hub()
-            .engineDefaultsSet({ ...params(), ...JSON.parse(body) })
-            .catch(() => showToast({ variant: "error", title: t("settings.modelsHub.settings.saveFailed") }))
-        }, 700)
+        if (pending.timer) clearTimeout(pending.timer)
+        pending.body = body
+        pending.timer = setTimeout(flush, 700)
       },
       { defer: true },
     ),
   )
-  onCleanup(() => saveTimer && clearTimeout(saveTimer))
+  onCleanup(flush)
 
   // ------------------------------------------------------------------ explore
 
@@ -398,17 +409,18 @@ export const SettingsModelsHubV2: Component<{ directory?: string; active?: boole
 
   // The full file list (exact sizes, sub-folders) is read once per repository, when it is opened.
   const ensureFiles = async (id: string) => {
-    if (ui.files[id]) return
+    const cached = ui.files[id]
+    if (cached && cached !== "error") return
     setUi("files", id, "loading")
     const files = await hub()
-      .files({ ...params(), model: id })
+      .files({ ...params(), model: id }, { throwOnError: true })
       .then((res) => (res.data ?? []) as QuantFile[])
-      .catch(() => [] as QuantFile[])
+      .catch(() => "error" as const)
     setUi("files", id, files)
   }
   createEffect(() => {
     const model = selectedModel()
-    if (model) void ensureFiles(model.id)
+    if (model) untrack(() => void ensureFiles(model.id))
   })
 
   const filesOf = (model: HubModel) => {
@@ -424,7 +436,8 @@ export const SettingsModelsHubV2: Component<{ directory?: string; active?: boole
   // the user is looking at, never for every card (that was megabytes per result).
   const ensureEstimate = async (model: string, file: string) => {
     const key = `${model}/${file}`
-    if (ui.estimates[key]) return
+    const cached = ui.estimates[key]
+    if (cached === "loading" || (cached && !cached.error)) return
     setUi("estimates", key, "loading")
     const estimate = await hub()
       .estimate({ ...params(), model, file })
@@ -435,7 +448,7 @@ export const SettingsModelsHubV2: Component<{ directory?: string; active?: boole
   createEffect(() => {
     const model = selectedModel()
     const quant = model && quantOf(model)
-    if (model && quant) void ensureEstimate(model.id, quant.file)
+    if (model && quant) untrack(() => void ensureEstimate(model.id, quant.file))
   })
   const estimateOf = (model: string, file: string) => {
     const entry = ui.estimates[`${model}/${file}`]
@@ -786,6 +799,14 @@ export const SettingsModelsHubV2: Component<{ directory?: string; active?: boole
                   <Show when={pickNote(model().id)}>{(note) => <p class="settings-v2-mh-detail-note">{t(note())}</p>}</Show>
 
                   <h4 class="settings-v2-mh-subtitle">{t("settings.modelsHub.detail.files")}</h4>
+                  <Show when={ui.files[model().id] === "error"}>
+                    <div class="settings-v2-mh-retry">
+                      <span>{t("settings.modelsHub.files.failed")}</span>
+                      <ButtonV2 size="small" variant="outline" onClick={() => void ensureFiles(model().id)}>
+                        {t("settings.modelsHub.retry")}
+                      </ButtonV2>
+                    </div>
+                  </Show>
                   <Show
                     when={ui.files[model().id] !== "loading"}
                     fallback={<p class="settings-v2-mh-empty">{t("settings.modelsHub.size.unknown")}</p>}
@@ -1051,7 +1072,10 @@ export const SettingsModelsHubV2: Component<{ directory?: string; active?: boole
                   <Show when={asNumber(applied().ubatchSize)}>{(value) => <span class="settings-v2-mh-tag">ubatch {value()}</span>}</Show>
                   <Show when={applied().kvCacheType}>{(value) => <span class="settings-v2-mh-tag">KV {value()}</span>}</Show>
                   <Show when={applied().flashAttention !== undefined}>
-                    <span class="settings-v2-mh-tag">FA {applied().flashAttention ? "on" : "off"}</span>
+                    <span class="settings-v2-mh-tag">
+                      {t("settings.modelsHub.load.flashAttention.title")} ·{" "}
+                      {t(applied().flashAttention ? "settings.modelsHub.load.choice.on" : "settings.modelsHub.load.choice.off")}
+                    </span>
                   </Show>
                   <Show when={asNumber(applied().nCpuMoe)}>{(value) => <span class="settings-v2-mh-tag">MoE CPU {value()}</span>}</Show>
                 </div>
@@ -1143,7 +1167,15 @@ export const SettingsModelsHubV2: Component<{ directory?: string; active?: boole
         </Show>
 
         {/* ------------------------------------------------------------ Ajustes */}
-        <Show when={ui.tab === "settings"}>
+        <Show when={ui.tab === "settings" && loaded.failed && !loaded.defaults}>
+          <div class="settings-v2-mh-retry">
+            <span>{t("settings.modelsHub.settings.loadFailed")}</span>
+            <ButtonV2 size="small" variant="outline" onClick={loadDefaults}>
+              {t("settings.modelsHub.retry")}
+            </ButtonV2>
+          </div>
+        </Show>
+        <Show when={ui.tab === "settings" && loaded.defaults}>
           {section(
             t("settings.modelsHub.settings.load.title"),
             undefined,
@@ -1354,6 +1386,8 @@ export const SettingsModelsHubV2: Component<{ directory?: string; active?: boole
 function HubAvatar(props: { id: string; large?: boolean }) {
   const [state, setState] = createStore({ attempt: 0 })
   const author = () => (props.id.includes("/") ? props.id.split("/")[0]! : "")
+  // The detail pane reuses one avatar across selections: each author starts from the first source.
+  createEffect(on(author, () => setState("attempt", 0), { defer: true }))
   const sources = () => [
     `https://huggingface.co/api/organizations/${encodeURIComponent(author())}/avatar?redirect=true`,
     `https://huggingface.co/api/users/${encodeURIComponent(author())}/avatar?redirect=true`,

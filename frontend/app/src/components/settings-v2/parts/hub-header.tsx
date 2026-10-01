@@ -1,4 +1,4 @@
-import { For, type JSX } from "solid-js"
+import { Index, type JSX } from "solid-js"
 import { Icon, type IconName } from "@tiancode-ai/ui/icon"
 
 // `glyph` draws an icon the shared set does not have (a microphone, say) instead of `icon`.
@@ -29,26 +29,28 @@ export function SettingsHubHeader<T extends string>(props: {
         </div>
       </div>
       <div class="settings-v2-hub-tabs" role="tablist" aria-label={props.title}>
-        <For each={props.sections}>
+        {/* Index, not For: pages rebuild this array whenever a live hint changes, and the tiles must
+            stay the same elements (focus, a click in progress) while their text updates. */}
+        <Index each={props.sections}>
           {(section) => (
             <button
               type="button"
               role="tab"
               class="settings-v2-hub-tab"
-              aria-selected={props.value === section.id}
-              data-action={`settings-hub-${section.id}`}
-              onClick={() => props.onChange(section.id)}
+              aria-selected={props.value === section().id}
+              data-action={`settings-hub-${section().id}`}
+              onClick={() => props.onChange(section().id)}
             >
               <span class="settings-v2-hub-tab-icon" aria-hidden="true">
-                {section.glyph ?? <Icon name={section.icon} size="small" />}
+                {section().glyph ?? <Icon name={section().icon} size="small" />}
               </span>
               <span class="settings-v2-hub-tab-copy">
-                <span class="settings-v2-hub-tab-label">{section.label}</span>
-                <span class="settings-v2-hub-tab-hint">{section.hint}</span>
+                <span class="settings-v2-hub-tab-label">{section().label}</span>
+                <span class="settings-v2-hub-tab-hint">{section().hint}</span>
               </span>
             </button>
           )}
-        </For>
+        </Index>
       </div>
     </div>
   )

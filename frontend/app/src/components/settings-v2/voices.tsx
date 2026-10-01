@@ -35,6 +35,7 @@ import {
   getVoiceSpeed,
   getVoiceVolume,
   isVoiceSpeaking,
+  NO_AUDIO,
   setBargeInEnabled,
   setFishAudioKey,
   setFishAudioVoice,
@@ -289,7 +290,12 @@ export const SettingsVoicesV2: Component<{ active?: boolean }> = (props) => {
     const error = await speakWithVoices(voiceKey(voice.id), language.t("settings.voices.sample.text"), voice.id, {
       engine: "local",
     })
-    if (error) showToast({ variant: "error", title: language.t("settings.voices.voice.probe.failed"), description: error })
+    if (error)
+      showToast({
+        variant: "error",
+        title: language.t("settings.voices.voice.probe.failed"),
+        description: error === NO_AUDIO ? language.t("settings.voices.voice.noAudio") : error,
+      })
   }
 
   const engineLabel = (voice: VoiceInfo) =>

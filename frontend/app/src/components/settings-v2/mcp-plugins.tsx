@@ -286,8 +286,12 @@ export const SettingsMcpPluginsV2: Component<{
               { ...params(), name: server.name, config: { ...server.definition, enabled: !server.enabled } },
               { throwOnError: true },
             )
-          : // A bare { enabled } entry switches a server defined elsewhere (a plugin, a default).
-            saveConfig({ mcp: { [server.name]: { enabled: !server.enabled } } }),
+          : // A bare { enabled } entry switches a server defined elsewhere (a plugin, a default). It goes
+            // to the global config: a project entry cannot override a server the global config defines.
+            serverSdk().client.global.config.update(
+              { config: { mcp: { [server.name]: { enabled: !server.enabled } } } },
+              { throwOnError: true },
+            ),
       language.t(
         server.enabled ? "settings.mcpPlugins.toast.serverDisabled" : "settings.mcpPlugins.toast.serverEnabled",
         { name: server.name },
@@ -386,12 +390,18 @@ export const SettingsMcpPluginsV2: Component<{
         editing={editing}
         onClose={() => dialog.close()}
         onSave={async (serverName, definition, activate) => {
-          // A full definition replaces the entry, so cleared fields are really removed. A new entry
-          // is written switched off; turning it on below is the explicit approval (MCP.add).
-          await saveConfig({ mcp: { [serverName]: editing ? definition : { ...definition, enabled: false } } })
-          if (activate) {
+          // Servers from Settings live in the global config, never in the project's tiancode.json:
+          // that file is usually committed (headers and variables would leak with it), and a project
+          // entry is ignored for any server the global config defines. A full definition replaces
+          // the entry, so cleared fields are really removed; MCP.add is the approval that turns it on.
+          if (activate && !editing) {
             await serverSdk().client.mcp.add(
               { ...params(), name: serverName, config: { ...definition, enabled: true } },
+              { throwOnError: true },
+            )
+          } else {
+            await serverSdk().client.global.config.update(
+              { config: { mcp: { [serverName]: editing ? definition : { ...definition, enabled: false } } } },
               { throwOnError: true },
             )
           }

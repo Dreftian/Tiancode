@@ -320,12 +320,18 @@ export async function enableBargeInListener() {
 // element can never keep playing after the queue has moved on.
 function armWatchdog(audio: HTMLAudioElement, finish: () => void) {
   let timer = setTimeout(finish, 120_000)
-  audio.onloadedmetadata = () => {
+  // Re-sized from what is left whenever the length becomes known or the speed changes mid-clip.
+  const resize = () => {
     if (!Number.isFinite(audio.duration)) return
     clearTimeout(timer)
-    timer = setTimeout(finish, (audio.duration / (audio.playbackRate || 1)) * 1000 + 5000)
+    timer = setTimeout(finish, ((audio.duration - audio.currentTime) / (audio.playbackRate || 1)) * 1000 + 5000)
   }
+  audio.onloadedmetadata = resize
+  audio.onratechange = resize
 }
+
+/** speak() result when synthesis returned no audio and no message; the panel translates it. */
+export const NO_AUDIO = "no-audio"
 
 const playWav = (key: string, wav: Uint8Array) =>
   new Promise<void>((resolve) => {
@@ -462,11 +468,23 @@ function speakWithWebSpeech(key: string, text: string): Promise<string | undefin
 
       if (femaleEsVoice) utterance.voice = femaleEsVoice
 
+      // Chromium sometimes never fires onend for long utterances; the queue must not wait forever.
+      // About 14 characters a second at 1x, plus a margin.
+      const watchdog = setTimeout(
+        () => {
+          window.speechSynthesis.cancel()
+          if (speakingKey() === key) setSpeakingKey(undefined)
+          resolve(undefined)
+        },
+        (text.length / 14 / (utterance.rate || 1)) * 1000 + 8000,
+      )
       utterance.onend = () => {
+        clearTimeout(watchdog)
         if (speakingKey() === key) setSpeakingKey(undefined)
         resolve(undefined)
       }
       utterance.onerror = (e) => {
+        clearTimeout(watchdog)
         if (speakingKey() === key) setSpeakingKey(undefined)
         resolve(e.error ? `Speech error: ${e.error}` : undefined)
       }
@@ -668,7 +686,7 @@ async function speak(
   if (result.error || !result.wav) {
     if (forced === "local") {
       setSpeakingKey(undefined)
-      return result.error ?? "No audio"
+      return result.error ?? NO_AUDIO
     }
     return speakWithWebSpeech(key, normalized)
   }

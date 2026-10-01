@@ -1003,12 +1003,25 @@ const layer = Layer.effect(
         jobs.delete(job.id)
       }
       const removed = yield* Effect.tryPromise(async () => {
+        // A missing file is not a deletion: nothing to report and nothing to tidy up.
+        if (!(await stat(target).then((info) => info.isFile(), () => false))) return false
         await rm(`${target}.part`, { force: true }).catch(() => {})
-        await rm(target, { force: true })
+        // Windows can hold the file for a moment after the engine that mapped it was stopped.
+        await rm(target, { force: true, maxRetries: 5, retryDelay: 200 })
+        // Only this file's own folders, up to its models root; never other empty folders there.
+        const root = modelsRootCandidates(resolvedModelsDir()).find((candidate) => isDeletableModelFile(target, [candidate]))
+        if (!root) return true
+        const belowRoot = (dir: string) => {
+          const relative = path.relative(path.resolve(root), dir)
+          return relative !== "" && !relative.startsWith("..") && !path.isAbsolute(relative)
+        }
+        for (let dir = path.dirname(target); belowRoot(dir); dir = path.dirname(dir)) {
+          if ((await readdir(dir).catch(() => ["unreadable"])).length > 0) break
+          await rmdir(dir).catch(() => {})
+        }
         return true
       }).pipe(Effect.catch(() => Effect.succeed(false)))
       yield* fs.writeJson(jobsFile(), Array.from(jobs.values())).pipe(Effect.catch(() => Effect.void))
-      if (removed) yield* pruneEmptyDirs()
       return removed
     })
 

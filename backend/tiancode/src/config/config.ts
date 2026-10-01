@@ -124,6 +124,8 @@ type State = {
 export interface Interface {
   readonly get: () => Effect.Effect<Info>
   readonly getGlobal: () => Effect.Effect<Info>
+  /** The global config file as written: `{env:…}` and `{file:…}` placeholders are not substituted. */
+  readonly getGlobalRaw: () => Effect.Effect<Info>
   readonly getConsoleState: () => Effect.Effect<ConsoleState>
   readonly update: (config: Info) => Effect.Effect<void>
   readonly updateGlobal: (config: Info) => Effect.Effect<{ info: Info; changed: boolean }>
@@ -467,6 +469,16 @@ const layer = Layer.effect(
 
     const getGlobal = Effect.fn("Config.getGlobal")(function* () {
       return yield* cachedGlobal
+    })
+
+    const getGlobalRaw = Effect.fn("Config.getGlobalRaw")(function* () {
+      const file = globalConfigFile()
+      const text = yield* readConfigFile(file)
+      if (!text) return {} as Info
+      const parsed = yield* Effect.try({ try: () => ConfigParse.jsonc(text, file), catch: (error) => error }).pipe(
+        Effect.orElseSucceed(() => ({})),
+      )
+      return (isRecord(parsed) ? parsed : {}) as Info
     })
 
     const ensureGitignore = Effect.fn("Config.ensureGitignore")(function* (dir: string) {
@@ -1027,6 +1039,7 @@ const layer = Layer.effect(
     return Service.of({
       get,
       getGlobal,
+      getGlobalRaw,
       getConsoleState,
       update,
       updateGlobal,

@@ -26,6 +26,8 @@ export const MicTester: Component<{ selectedDeviceId?: string | null; active?: b
   })
 
   const audio = {
+    // Bumped by stop(): an open that resolves after a stop, a second start or an unmount is dropped.
+    run: 0,
     stream: undefined as MediaStream | undefined,
     context: undefined as AudioContext | undefined,
     frame: undefined as number | undefined,
@@ -33,6 +35,7 @@ export const MicTester: Component<{ selectedDeviceId?: string | null; active?: b
   }
 
   const stop = () => {
+    audio.run += 1
     if (audio.frame !== undefined) cancelAnimationFrame(audio.frame)
     if (audio.silence !== undefined) clearTimeout(audio.silence)
     audio.stream?.getTracks().forEach((track) => track.stop())
@@ -46,6 +49,7 @@ export const MicTester: Component<{ selectedDeviceId?: string | null; active?: b
 
   const start = async () => {
     stop()
+    const run = audio.run
     setState({ testing: true, status: "listening", heard: false, device: "" })
     const deviceId = props.selectedDeviceId ?? getSelectedAudioDeviceId() ?? undefined
     const constraints: MediaTrackConstraints = { echoCancellation: true, noiseSuppression: true, channelCount: 1 }
@@ -59,6 +63,10 @@ export const MicTester: Component<{ selectedDeviceId?: string | null; active?: b
           .then((stream) => ({ stream, fallback: Boolean(deviceId) })),
       )
       .catch(() => undefined)
+    if (run !== audio.run) {
+      opened?.stream.getTracks().forEach((track) => track.stop())
+      return
+    }
     if (!opened) {
       setState({ testing: false, status: "error" })
       return

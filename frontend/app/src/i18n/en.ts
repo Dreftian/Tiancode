@@ -2313,6 +2313,10 @@ export const dict = {
   "settings.modelsHub.dir.custom": "A folder you chose.",
   "settings.modelsHub.dir.placeholder": "Folder path",
   "settings.modelsHub.dir.apply": "Apply",
+  "settings.modelsHub.retry": "Try again",
+  "settings.modelsHub.files.failed": "The file list could not be read from Hugging Face.",
+  "settings.modelsHub.settings.loadFailed": "The saved load settings could not be read, so nothing is changed until they are.",
+  "settings.voices.voice.noAudio": "The voice produced no audio.",
   "settings.modelsHub.title": "Local Models",
   "settings.modelsHub.description":
     "Search and download GGUF models from HuggingFace to run AI locally, like LM Studio.",

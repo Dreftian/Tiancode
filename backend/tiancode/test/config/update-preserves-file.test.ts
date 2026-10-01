@@ -176,6 +176,49 @@ test("a partial patch to the global config keeps provider, mcp and unknown keys"
   }
 })
 
+// Settings › MCP edits a server by sending its whole definition with secrets shown as <redacted>.
+// Restoring them from the loaded config wrote the resolved token over an {env:...} placeholder.
+test("editing a global MCP server keeps an {env:...} secret as a placeholder", async () => {
+  const SECRET = "sk-mcp-should-never-be-written"
+  process.env.TIANCODE_TEST_SECRET = SECRET
+  const file = path.join(Global.Path.config, "tiancode.json")
+  const others = ["tiancode.jsonc", "config.json"].map((name) => path.join(Global.Path.config, name))
+  const saved = [file, ...others].map((name) => [name, existsSync(name) ? readFileSync(name, "utf8") : undefined] as const)
+  others.forEach((name) => rmSync(name, { force: true }))
+  writeFileSync(
+    file,
+    JSON.stringify(
+      {
+        mcp: {
+          docs: { type: "remote", url: "https://old.example.com/mcp", headers: { Authorization: "{env:TIANCODE_TEST_SECRET}" } },
+        },
+      },
+      null,
+      2,
+    ),
+  )
+  try {
+    await run(() =>
+      Effect.gen(function* () {
+        const svc = yield* Config.Service
+        const edited = {
+          mcp: { docs: { type: "remote" as const, url: "https://new.example.com/mcp", headers: { Authorization: "<redacted>" } } },
+        }
+        // The order the /global/config handler uses: the file as written, then the merged config.
+        const restored = unredactConfigInfo(unredactConfigInfo(edited, yield* svc.getGlobalRaw()), yield* svc.getGlobal())
+        yield* svc.updateGlobal(restored)
+        const after = readFileSync(file, "utf8")
+        expect(after).toContain("https://new.example.com/mcp")
+        expect(after).toContain("{env:TIANCODE_TEST_SECRET}")
+        expect(after).not.toContain(SECRET)
+      }),
+    )
+  } finally {
+    delete process.env.TIANCODE_TEST_SECRET
+    saved.forEach(([name, text]) => (text === undefined ? rmSync(name, { force: true }) : writeFileSync(name, text)))
+  }
+})
+
 test("resetting an agent removes only its overrides and keeps the rest of the file", async () => {
   await run((dir) =>
     Effect.gen(function* () {
