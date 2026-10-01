@@ -250,6 +250,10 @@ function ToolButton(props: {
   )
 }
 
+// Last page each project's Sandbox showed. Moving the panel between the bottom dock and the side
+// remounts it, and a hand-typed URL used to vanish with the old instance.
+const rememberedUrls = new Map<string, string>()
+
 export function LivePreview(props: {
   targetUrl?: () => string | undefined
   autoStartKey?: () => string | undefined
@@ -752,6 +756,8 @@ export function LivePreview(props: {
     setPreviewIssue(null)
     requestedUrl = nextTarget
     setUrlInput(nextTarget)
+    const directory = devServerDirectory()
+    if (directory) rememberedUrls.set(directory, target)
     if (iframeTarget) {
       if (historyMode === "push" && !samePreviewUrl(iframeHistory[iframeHistoryIndex], iframeTarget)) {
         iframeHistory = [...iframeHistory.slice(0, iframeHistoryIndex + 1), iframeTarget]
@@ -2025,6 +2031,17 @@ export function LivePreview(props: {
       void view.setBounds(HIDDEN_PREVIEW_BOUNDS)
       void view.setVisible(false)
     })
+  })
+
+  let restoredUrl = false
+  createEffect(() => {
+    if (restoredUrl) return
+    const directory = devServerDirectory()
+    if (!directory) return
+    restoredUrl = true
+    const remembered = rememberedUrls.get(directory)
+    if (!remembered || props.targetUrl?.() || requestedUrl) return
+    navigateTo(remembered)
   })
 
   // URL del agente / dev server detectado / tool-call del chat: navega y
