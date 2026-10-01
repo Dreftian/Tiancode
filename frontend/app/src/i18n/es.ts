@@ -1648,7 +1648,7 @@ export const dict = {
   "settings.section.extensions": "Extensiones",
   "settings.tab.plugins": "Plugins",
   "settings.tab.skills": "Skills",
-  "settings.tab.subAgents": "Sub-Agentes",
+  "settings.tab.subAgents": "Sub-agentes",
   "settings.tab.mcpServers": "Servidores MCP",
   "settings.tab.mcpPlugins": "MCP y Plugins",
   "settings.section.integrations": "Integraciones",
