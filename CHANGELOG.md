@@ -4,6 +4,40 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.4] — 2026-10-01
+
+Guardar ajustes ya no borra configuración: activar o desactivar un sub-agente o una skill eliminaba
+las secciones `provider` y `mcp` de `tiancode.json` (proveedores y servidores MCP), porque el paso
+que restaura los secretos añadía ambas claves vacías a cada cambio parcial. Ahora solo viajan las
+secciones del cambio, un `tiancode.jsonc` de proyecto se edita en su sitio y conserva los
+comentarios, importar una skill ya no copia la configuración completa (con los `{env:}` resueltos)
+al proyecto y activar una skill solo toca `skills.disabled`. Los 14 sub-agentes especialistas
+respetan tus reglas de `permission` como el resto de agentes.
+
+El agente controla el Sandbox de forma fiable: reiniciar la vista previa espera a que el puerto
+quede libre en IPv4 e IPv6, recupera el puerto de servidores que Tiancode inició (también los que
+quedaron huérfanos), no adopta un puerto de otro proceso y lo nombra con su PID, detiene un servidor
+que no llegó a arrancar, publica la dirección que responde de verdad y, al volver a iniciarla, aplica los cambios de
+`tiancode.preview.json` (ese comando ya no arranca solo desde la Vista en vivo). La Vista en vivo recarga sola tras un reinicio, la página previa no se
+guarda en caché y el informe de `preview_inspect` incluye el estado HTTP y avisa del texto mal
+codificado. La página previsualizada queda aislada: sin cámara, micrófono, lectura del portapapeles
+ni notificaciones, sin CORS abierto, sin navegar la ventana de la app ni escapar con ventanas
+emergentes, y sin navegaciones a otro sitio ni descargas iniciadas por el agente. Ejecutar el
+comando de `tiancode.preview.json` pide permiso como la shell.
+
+Sub-agentes se puede editar: una lista por categorías y un editor con modelo, temperatura, pasos
+máximos, permisos por herramienta (con lo que aplica hoy), instrucciones adicionales que no
+reemplazan las integradas, color y ocultar del menú @, guardados en el proyecto o en global y con
+«Restablecer». Skills tiene buscador, filtros con nombre y recuento, acciones rápidas,
+auto-selección a la vista, una lista sin paginación de cuatro en cuatro y una ficha con tipo,
+origen, uso y ubicación. En el chat, las herramientas se muestran con nombre («Inspeccionar
+página», «Abrir en la vista previa · /ruta») en lugar de «Se llamó a `preview_inspect`», con la
+salida desplegable. Ajustes se reorganiza: Servidores, Proyectos y Worktrees forman la página
+Servidor, GitHub pasa a Conexiones junto a la mensajería y los webhooks, cada grupo abre con una
+cabecera y una tarjeta por sección, y Emparejar y Experimental son pestañas de Uso de la PC. El
+logo se ve completo, el cuadro de Ajustes es 3 px más ancho y alto y el menú de la sesión dice
+«Transcripción».
+
 ## [1.0.3] — 2026-10-01
 
 Actualizar desde GitHub ya no oculta los datos de una instalación anterior. Las dos ediciones se
