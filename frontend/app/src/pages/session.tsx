@@ -396,9 +396,16 @@ export default function Page() {
   // window, its rounded frame stays visible, and no off-screen panel is
   // produced while the desktop window is resized.
   const desktopSandboxExpanded = createMemo(() => desktopSandboxOpen() && view().liveView.expanded())
-  const bottomDockOpen = createMemo(() => terminalOpen() || (!sandboxSideAvailable() && liveViewOpen()))
+  // Ajustes > General > Posición del terminal. Las ventanas estrechas y el
+  // diseño clásico siempre usan el dock inferior.
+  const sideTerminal = createMemo(
+    () => isDesktop() && newSessionDesign() && settings.general.terminalPlacement() === "side",
+  )
+  const sideTerminalOpen = createMemo(() => terminalOpen() && sideTerminal())
+  const bottomTerminalOpen = createMemo(() => terminalOpen() && !sideTerminal())
+  const bottomDockOpen = createMemo(() => bottomTerminalOpen() || (!sandboxSideAvailable() && liveViewOpen()))
   createEffect(() => {
-    if (sandboxSideAvailable() || !terminalOpen() || !liveViewOpen()) return
+    if (sandboxSideAvailable() || !bottomTerminalOpen() || !liveViewOpen()) return
     view().liveView.close()
   })
   const desktopFileTreeOpen = createMemo(
@@ -409,8 +416,9 @@ export default function Page() {
         opened: layout.fileTree.opened(),
       }),
   )
-  const desktopSessionResizeOpen = createMemo(() =>
-    desktopSandboxOpen() || (newSessionDesign() ? desktopV2ReviewOpen() : desktopReviewOpen()),
+  const desktopSessionResizeOpen = createMemo(
+    () =>
+      desktopSandboxOpen() || sideTerminalOpen() || (newSessionDesign() ? desktopV2ReviewOpen() : desktopReviewOpen()),
   )
   const desktopSidePanelOpen = createMemo(() => desktopSessionResizeOpen() || desktopFileTreeOpen())
   let panelRow: HTMLDivElement | undefined
@@ -461,13 +469,14 @@ export default function Page() {
   const dockMaxHeight = () => (typeof window === "undefined" ? 600 : window.innerHeight * 0.6)
   const bottomDockHeight = createMemo(() => Math.min(layout.terminal.height(), dockMaxHeight()))
   const closeBottomDock = () => {
-    view().terminal.close()
+    if (bottomTerminalOpen()) view().terminal.close()
     if (!sandboxSideAvailable()) view().liveView.close()
   }
   const desktopV2PanelLayout = createMemo(() =>
     sessionPanelLayout({
       review: desktopV2ReviewOpen(),
       files: desktopFileTreeOpen(),
+      terminal: sideTerminalOpen(),
     }),
   )
 
@@ -600,8 +609,10 @@ export default function Page() {
   let diffFrame: number | undefined
   let diffTimer: number | undefined
 
+  // Opening the review or the side terminal snaps the chat width: a terminal that mounts
+  // mid-animation would size its PTY to the narrow in-between width.
   createComputed((prev) => {
-    const open = desktopReviewOpen()
+    const open = `${desktopReviewOpen()}:${sideTerminalOpen()}`
     if (prev === undefined || prev === open) return open
 
     if (reviewFrame !== undefined) cancelAnimationFrame(reviewFrame)
@@ -611,7 +622,7 @@ export default function Page() {
       setUi("reviewSnap", false)
     })
     return open
-  }, desktopReviewOpen())
+  }, `${desktopReviewOpen()}:${sideTerminalOpen()}`)
 
   const turnDiffs = createMemo(() => list(lastUserMessage()?.summary?.diffs))
   const nogit = createMemo(() => {
@@ -2384,6 +2395,7 @@ export default function Page() {
             </Show>
             <Show when={newSessionDesign() && desktopV2PanelLayout().visible}>
               <div class="min-w-0 h-full flex flex-1 flex-col">
+                <Show when={desktopV2ReviewOpen() || desktopFileTreeOpen()}>
                 <div class="min-h-0 flex-1">
                   <Suspense>
                     <SessionSidePanel
@@ -2411,6 +2423,27 @@ export default function Page() {
                     />
                   </Suspense>
                 </div>
+                </Show>
+                <Show when={sideTerminalOpen()}>
+                  <Show when={desktopV2PanelLayout().stacked}>
+                    <div class="relative h-2 shrink-0" onPointerDown={() => size.start()}>
+                      <ResizeHandle
+                        class="!relative !inset-auto !h-full !w-full !transform-none"
+                        direction="vertical"
+                        size={layout.terminal.height()}
+                        min={100}
+                        max={dockMaxHeight()}
+                        collapseThreshold={50}
+                        onResize={(height) => {
+                          size.touch()
+                          layout.terminal.resize(height)
+                        }}
+                        onCollapse={() => view().terminal.close()}
+                      />
+                    </div>
+                  </Show>
+                  <TerminalPanelV2 stacked={desktopV2PanelLayout().stacked} />
+                </Show>
               </div>
             </Show>
             <Show when={desktopSandboxOpen()}>
@@ -2464,10 +2497,10 @@ export default function Page() {
             class="min-h-0 shrink-0 border-t border-[var(--v2-border-border-base)]"
             style={{ height: `${bottomDockHeight()}px` }}
           >
-            <Show when={terminalOpen()}>
+            <Show when={bottomTerminalOpen()}>
               <TerminalPanelV2 stacked />
             </Show>
-            <Show when={!terminalOpen() && !sandboxSideAvailable() && liveViewOpen()}>
+            <Show when={!bottomTerminalOpen() && !sandboxSideAvailable() && liveViewOpen()}>
               <LiveViewPanel onCapture={attachLiveViewCapture} sessionID={params.id} />
             </Show>
           </div>

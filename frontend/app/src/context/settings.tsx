@@ -386,7 +386,8 @@ const defaultSettings: Settings = {
     agentBrowser: true,
     // Tiancode always docked the terminal at the bottom; upgraded users keep that.
     terminalPlacement: "bottom",
-    diffWrap: false,
+    // Diffs always wrapped before this switch existed.
+    diffWrap: true,
   },
   appearance: {
     fontSize: "medium",

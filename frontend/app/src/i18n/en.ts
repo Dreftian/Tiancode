@@ -3012,4 +3012,10 @@ export const dict = {
   "settings.experimental.tabs.vertical": "Vertical",
   "settings.experimental.projectNames.title": "Show project names",
   "settings.experimental.projectNames.description": "Show project names in vertical tabs",
+  "settings.general.row.terminalPlacement.title": "Terminal placement",
+  "settings.general.row.terminalPlacement.description": "Choose where the terminal opens in sessions",
+  "settings.general.row.terminalPlacement.side": "Side",
+  "settings.general.row.terminalPlacement.bottom": "Bottom",
+  "session.review.wrapLines": "Wrap lines",
+  "settings.general.row.diffWrap.description": "Wrap long lines in diffs instead of scrolling horizontally",
 }

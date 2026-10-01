@@ -31,6 +31,7 @@ import { Effect } from "effect"
 import { base64Encode } from "@tiancode-ai/core/util/encode"
 import {
   type Component,
+  type ComponentProps,
   createEffect,
   createMemo,
   createRenderEffect,
@@ -740,6 +741,7 @@ export function AppInterface(props: {
     >
       <GlobalProvider>
         <SettingsProvider>
+          <FileComponentProvider component={SettingsFile}>
           <ConnectionGate disableHealthCheck={props.disableHealthCheck} startup={props.startup}>
             <Show when={useSettings().general.newLayoutDesigns().toString()} keyed>
               <Dynamic
@@ -763,10 +765,18 @@ export function AppInterface(props: {
               </Dynamic>
             </Show>
           </ConnectionGate>
+          </FileComponentProvider>
         </SettingsProvider>
       </GlobalProvider>
     </ServerProvider>
   )
+}
+
+// Settings > General > Wrap lines. Diffs wrap by default; turning it off scrolls long lines
+// horizontally. An explicit overflow from the caller still wins.
+function SettingsFile(props: ComponentProps<typeof File>) {
+  const settings = useSettings()
+  return <File {...(props.mode === "diff" && !settings.general.diffWrap() ? { overflow: "scroll" as const } : {})} {...props} />
 }
 
 function Routes(props: { serverScoped?: JSX.Element }) {

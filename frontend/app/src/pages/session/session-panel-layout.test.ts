@@ -20,4 +20,19 @@ describe("sessionPanelLayout", () => {
       stacked: false,
     })
   })
+
+  test("side terminal opens the column and stacks under review or files", () => {
+    expect(sessionPanelLayout({ review: false, files: false, terminal: true })).toEqual({
+      visible: true,
+      stacked: false,
+    })
+    expect(sessionPanelLayout({ review: true, files: false, terminal: true })).toEqual({
+      visible: true,
+      stacked: true,
+    })
+    expect(sessionPanelLayout({ review: false, files: true, terminal: true })).toEqual({
+      visible: true,
+      stacked: true,
+    })
+  })
 })

@@ -57,6 +57,8 @@ export const SETTINGS_ROWS: SettingsSearchEntry[] = [
   row("general", "general", "settings.general.row.showCustomAgents.title", "settings-show-custom-agents", ["agente", "agent", "build"]),
   row("general", "general", "settings.general.row.followup.title", "settings-follow-up-behavior", ["seguimiento", "follow-up", "cola", "queue", "steer", "dirigir"]),
   row("general", "general", "settings.general.row.shell.title", "settings-shell", ["shell", "terminal", "powershell", "bash"]),
+  row("general", "general", "settings.general.row.terminalPlacement.title", "settings-terminal-placement", ["terminal", "posición", "placement", "lateral", "side", "inferior", "bottom"]),
+  row("general", "general", "session.review.wrapLines", "settings-diff-wrap", ["ajustar", "wrap", "líneas", "lines", "diff", "cambios"]),
   row("general", "preview", "settings.general.row.previewOnFinish.title", "settings-preview-on-finish", ["vista previa", "preview", "sandbox", "escritorio", "desktop", "navegador"]),
   row("general", "preview", "settings.general.row.previewWhileWorking.title", "settings-preview-auto-open", ["vista previa", "preview", "abrir", "automático", "automatic"]),
   row("general", "titlebar", "settings.general.row.showCapture.title", "settings-show-capture", ["captura", "capture", "screenshot"]),

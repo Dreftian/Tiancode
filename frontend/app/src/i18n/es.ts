@@ -3169,4 +3169,10 @@ export const dict = {
   "settings.experimental.tabs.vertical": "Verticales",
   "settings.experimental.projectNames.title": "Mostrar nombres de proyecto",
   "settings.experimental.projectNames.description": "Muestra el nombre del proyecto en las pestañas verticales",
+  "settings.general.row.terminalPlacement.title": "Posición del terminal",
+  "settings.general.row.terminalPlacement.description": "Elige dónde se abre el terminal en las sesiones",
+  "settings.general.row.terminalPlacement.side": "Lateral",
+  "settings.general.row.terminalPlacement.bottom": "Inferior",
+  "session.review.wrapLines": "Ajustar líneas",
+  "settings.general.row.diffWrap.description": "Ajusta las líneas largas en los diffs en vez de desplazarse horizontalmente",
 }

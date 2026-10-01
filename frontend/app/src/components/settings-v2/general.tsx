@@ -12,11 +12,13 @@ import { usePlatform } from "@/context/platform"
 import { useUpdaterAction } from "../updater-action"
 import {
   previewOnFinishOptions,
+  terminalPlacements,
   transcriptTextSizes,
   transcriptWidths,
   useSettings,
   workspaceDestinations,
   type PreviewOnFinish,
+  type TerminalPlacement,
   type TranscriptTextSize,
   type TranscriptWidth,
   type WorkspaceDestination,
@@ -44,6 +46,7 @@ const transcriptTextOptions: TranscriptTextSize[] = [...transcriptTextSizes]
 const transcriptWidthOptions: TranscriptWidth[] = [...transcriptWidths]
 const previewOnFinishChoices: PreviewOnFinish[] = [...previewOnFinishOptions]
 const destinationOptions: WorkspaceDestination[] = [...workspaceDestinations]
+const terminalPlacementOptions: TerminalPlacement[] = [...terminalPlacements]
 const followupOptions = ["steer", "queue"] as const
 // Electron store shared with the desktop main process via the store IPC.
 const settingsStoreName = "tiancode.settings"
@@ -125,6 +128,28 @@ const ShellSetting: Component<{ controller: ShellSettingsController }> = (props)
           return `${option.name} (${language.t("settings.general.row.shell.terminalOnly")})`
         }}
         onSelect={(option) => option && props.controller.select(option.value)}
+      />
+    </SettingsRowV2>
+  )
+}
+
+const TerminalPlacementSetting = () => {
+  const language = useLanguage()
+  const settings = useSettings()
+  return (
+    <SettingsRowV2
+      title={language.t("settings.general.row.terminalPlacement.title")}
+      description={language.t("settings.general.row.terminalPlacement.description")}
+    >
+      <SelectV2
+        appearance="inline"
+        data-action="settings-terminal-placement"
+        options={terminalPlacementOptions}
+        current={settings.general.terminalPlacement()}
+        placement="bottom-end"
+        gutter={6}
+        label={(option) => language.t(`settings.general.row.terminalPlacement.${option}`)}
+        onSelect={(option) => option && settings.general.setTerminalPlacement(option)}
       />
     </SettingsRowV2>
   )
@@ -624,6 +649,18 @@ export const SettingsGeneralV2: Component<{
         <ShowAgentSetting />
         <FollowupSetting />
         <ShellSetting controller={shell} />
+        <TerminalPlacementSetting />
+        <SettingsRowV2
+          title={language.t("session.review.wrapLines")}
+          description={language.t("settings.general.row.diffWrap.description")}
+        >
+          <div data-action="settings-diff-wrap">
+            <Switch
+              checked={settings.general.diffWrap()}
+              onChange={(checked) => settings.general.setDiffWrap(checked)}
+            />
+          </div>
+        </SettingsRowV2>
 
         <SettingsRowV2
           title={language.t("settings.general.wizard.title")}

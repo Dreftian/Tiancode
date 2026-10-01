@@ -1,10 +1,11 @@
-export function sessionPanelLayout(input: { review: boolean; files: boolean }) {
+export function sessionPanelLayout(input: { review: boolean; files: boolean; terminal?: boolean }) {
+  const region = input.review || input.files
   return {
-    // La columna lateral del diseño nuevo ya no contiene la terminal (ahora es
-    // un dock inferior), así que solo la revisión y el árbol de archivos la abren.
-    visible: input.review || input.files,
-    // La revisión ya no comparte columna con la terminal: nunca necesita
-    // encogerse para dejarle sitio, por lo que queda siempre sin apilar.
-    stacked: false,
+    // La columna lateral la abren la revisión, el árbol de archivos o la
+    // terminal cuando Ajustes > General > Posición del terminal es "Lateral".
+    visible: region || !!input.terminal,
+    // Solo se apila cuando la terminal lateral comparte columna con la
+    // revisión o el árbol: la terminal queda debajo con su propia altura.
+    stacked: region && !!input.terminal,
   }
 }
