@@ -1,6 +1,6 @@
 export * as Connections from "./connections"
 
-import { Context, Effect, Fiber, Layer, Schema } from "effect"
+import { Context, Effect, Fiber, Layer, Option, Schema } from "effect"
 import { LayerNode } from "@tiancode-ai/core/effect/layer-node"
 import { Flag } from "@tiancode-ai/core/flag/flag"
 import { ConfigConnections } from "@tiancode-ai/core/config/connections"
@@ -9,6 +9,9 @@ import { ConfigV1 } from "@tiancode-ai/core/v1/config/config"
 import { Auth } from "@/auth"
 import { Config } from "@/config/config"
 import { EventV2Bridge } from "@/event-v2-bridge"
+import { DecisionEngine } from "@/decision/engine"
+import { DecisionPresets } from "@/decision/presets"
+import { ConfigIntelligence } from "@tiancode-ai/core/config/intelligence"
 import { ConnectionSenders as Senders } from "./senders"
 
 // Messaging gateways behind Settings → Conexiones. One global service: it delivers session
@@ -122,14 +125,30 @@ function clip(text: string, max = TEXT_LIMIT) {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text
 }
 
-export function formatIdle(input: { title?: string; text?: string; directory?: string }) {
-  const head = input.title ? `✅ ${input.title}` : "✅ Sesión terminada"
+/** How the turn ended, when the local decision model could tell (Settings › Inteligencia). */
+export type Outcome = "done" | "question" | "failed"
+
+export function formatIdle(input: { title?: string; text?: string; directory?: string; outcome?: Outcome }) {
+  const head =
+    input.outcome === "question"
+      ? `❓ Necesita tu respuesta${input.title ? ` · ${input.title}` : ""}`
+      : input.outcome === "failed"
+        ? `⚠️ No se pudo terminar${input.title ? ` · ${input.title}` : ""}`
+        : input.title
+          ? `✅ ${input.title}`
+          : "✅ Sesión terminada"
   const body = input.text ? clip(input.text) : "(sin respuesta de texto)"
   return `${head}\n\n${body}`
 }
 
 export function formatError(input: { title?: string; error?: string }) {
   return `❌ ${input.title ?? "Sesión"}: ${input.error ?? "error desconocido"}`
+}
+
+/** Stopping a turn, or a context overflow that compaction recovers from, is not a failure. */
+export function isQuietError(error: unknown) {
+  const name = typeof error === "object" && error !== null && "name" in error ? error.name : undefined
+  return name === "MessageAbortedError" || name === "ContextOverflowError"
 }
 
 /** Exported for tests, which provide the config, credential store and event bus as mocks. */
@@ -140,6 +159,7 @@ export const layer = Layer.effect(
     const auth = yield* Auth.Service
     const events = yield* EventV2Bridge.Service
     const fetch = yield* FetchRef
+    const decisions = yield* DecisionEngine.Service
 
     const state = {
       delivery: new Map<Provider, { at?: number; error?: string }>(),
@@ -224,7 +244,7 @@ export const layer = Layer.effect(
     // --- Outbound delivery --------------------------------------------------------------
     const deliver = Effect.fn("Connections.deliver")(function* (
       kind: "idle" | "error",
-      ctx: { sessionID: string; directory?: string; title?: string; text?: string; error?: string },
+      ctx: { sessionID: string; directory?: string; title?: string; text?: string; error?: string; outcome?: Outcome },
     ) {
       const resolved = yield* settings()
       const body = kind === "idle" ? formatIdle(ctx) : formatError(ctx)
@@ -297,7 +317,14 @@ export const layer = Layer.effect(
       const resolved = yield* settings()
       if (!anyoneListening(resolved, "idle", sessionID)) return
       const text = directory ? yield* sessionText(sessionID, directory) : ""
-      yield* deliver("idle", { sessionID, directory, text })
+      const smart = ConfigIntelligence.fromConfig((yield* config.getGlobal()).experimental?.intelligence).smartAlerts
+      // Without the local model (or with the switch off) this is None and the alert stays as before.
+      const answer = smart && text ? yield* decisions.decide(text, DecisionPresets.outcome, 3000) : Option.none()
+      const outcome = Option.match(answer, {
+        onNone: () => undefined,
+        onSome: (value) => (value.choice === "question" || value.choice === "failed" ? value.choice : "done") as Outcome,
+      })
+      yield* deliver("idle", { sessionID, directory, text, outcome })
     })
 
     const onError = Effect.fn("Connections.onError")(function* (
@@ -305,6 +332,7 @@ export const layer = Layer.effect(
       directory: string | undefined,
       error: unknown,
     ) {
+      if (isQuietError(error)) return
       const resolved = yield* settings()
       if (!anyoneListening(resolved, "error", sessionID)) return
       const detail = error as { name?: string; data?: { message?: string } } | undefined
@@ -534,4 +562,8 @@ export const layer = Layer.effect(
   }),
 )
 
-export const node = LayerNode.make({ service: Service, layer, deps: [Config.node, Auth.node, EventV2Bridge.node] })
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [Config.node, Auth.node, EventV2Bridge.node, DecisionEngine.node],
+})

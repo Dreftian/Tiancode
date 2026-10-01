@@ -17,6 +17,7 @@ describe("ConfigIntelligence.fromEntries", () => {
       loopBreaker: true,
       cleanWeb: true,
       autoSkillLearn: true,
+      smartAlerts: true,
     })
   })
 

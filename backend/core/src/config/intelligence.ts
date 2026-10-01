@@ -21,6 +21,7 @@ export interface Resolved {
   readonly loopBreaker: boolean
   readonly cleanWeb: boolean
   readonly autoSkillLearn: boolean
+  readonly smartAlerts: boolean
 }
 
 export const DEFAULTS: Resolved = {
@@ -33,6 +34,7 @@ export const DEFAULTS: Resolved = {
   loopBreaker: true,
   cleanWeb: true,
   autoSkillLearn: true,
+  smartAlerts: true,
 }
 
 /** One authored `experimental.intelligence` block: every switch optional. */
@@ -49,6 +51,7 @@ function apply(resolved: Resolved, switches: Switches): Resolved {
     loopBreaker: switches.loopBreaker ?? resolved.loopBreaker,
     cleanWeb: switches.cleanWeb ?? resolved.cleanWeb,
     autoSkillLearn: switches.autoSkillLearn ?? resolved.autoSkillLearn,
+    smartAlerts: switches.smartAlerts ?? resolved.smartAlerts,
   }
 }
 

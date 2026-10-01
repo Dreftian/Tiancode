@@ -1,10 +1,11 @@
 import { describe, expect, test } from "bun:test"
-import { Effect, Layer } from "effect"
+import { Effect, Layer, Option } from "effect"
 import type { EventV2 } from "@tiancode-ai/core/event"
 import { Auth } from "../../src/auth"
 import { Config } from "../../src/config/config"
 import { Connections } from "../../src/connections/connections"
 import { EventV2Bridge } from "../../src/event-v2-bridge"
+import { DecisionEngine } from "../../src/decision/engine"
 
 type Call = { url: string; body: unknown }
 
@@ -12,7 +13,7 @@ type Call = { url: string; body: unknown }
  * Drives the service with in-memory config, credential store and event bus, and a fetch
  * that records every outbound request. Nothing here touches the network or disk.
  */
-function harness(initial: Record<string, unknown>) {
+function harness(initial: Record<string, unknown>, decided?: DecisionEngine.Answer) {
   let global: Record<string, unknown> = initial
   const secrets = new Map<string, string>()
   const calls: Call[] = []
@@ -59,6 +60,9 @@ function harness(initial: Record<string, unknown>) {
       }),
     ),
     Layer.provide(Layer.succeed(Connections.FetchRef)(fetch)),
+    Layer.provide(
+      Layer.mock(DecisionEngine.Service)({ decide: () => Effect.succeed(Option.fromNullishOr(decided)) }),
+    ),
   )
 
   const run = <A, E>(f: (svc: Connections.Interface) => Effect.Effect<A, E>) =>
@@ -179,5 +183,23 @@ describe("Connections", () => {
       ]),
     ).toBe("new")
     expect(Connections.lastAssistantText(null)).toBe("")
+  })
+
+  test("formatIdle says when the turn needs an answer or failed", () => {
+    expect(Connections.formatIdle({ title: "Login", text: "¿OAuth o email?", outcome: "question" })).toStartWith(
+      "❓ Necesita tu respuesta · Login",
+    )
+    expect(Connections.formatIdle({ title: "Login", text: "npm falló", outcome: "failed" })).toStartWith(
+      "⚠️ No se pudo terminar · Login",
+    )
+    expect(Connections.formatIdle({ title: "Login", text: "Listo" })).toStartWith("✅ Login")
+  })
+
+  test("stopping a turn is not sent as an error", async () => {
+    const h = harness({ experimental: { connections: { telegram: { enabled: true, chatId: "42", notifyError: true } } } })
+    await h.run((svc) => svc.configure("telegram", { secret: "token" }))
+    h.calls.length = 0
+    await h.emit({ type: "session.error", data: { sessionID: "s1", error: { name: "MessageAbortedError", data: {} } } })
+    expect(h.calls.filter((call) => call.url.includes("sendMessage"))).toEqual([])
   })
 })
