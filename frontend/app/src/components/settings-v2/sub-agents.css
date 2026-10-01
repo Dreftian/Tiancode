@@ -449,10 +449,36 @@
   display: none;
 }
 
+/* The agents tab fills the panel below its header; the list and the editor scroll inside it, so
+   nothing slides under the sticky header and nothing is cut off by the dialog's height. */
+.settings-v2-panel:has(> .settings-v2-tab-body.settings-v2-sub-agents[data-section="agents"]) {
+  overflow: hidden;
+}
+
+.settings-v2-tab-body.settings-v2-sub-agents[data-section="agents"] {
+  flex: 1;
+  min-height: 0;
+}
+
+.settings-v2-sub-agents[data-section="agents"] .settings-v2-sa-layout {
+  flex: 1;
+  min-height: 0;
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.settings-v2-sa-list,
+.settings-v2-sa-editor {
+  min-height: 0;
+}
+
+.settings-v2-sa-list {
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
 @container settings-panel (min-width: 900px) {
   .settings-v2-sa-layout {
     grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
-    align-items: start;
   }
 
   .settings-v2-sa-layout[data-editing] .settings-v2-sa-list,
@@ -462,14 +488,6 @@
 
   .settings-v2-sa-back {
     display: none !important;
-  }
-
-  .settings-v2-sa-list {
-    position: sticky;
-    top: 0;
-    max-height: calc(100vh - 260px);
-    overflow-y: auto;
-    padding-right: 4px;
   }
 }
 
@@ -648,6 +666,7 @@
   display: flex;
   min-width: 0;
   flex-direction: column;
+  overflow: hidden;
   border: 1px solid var(--v2-border-border-muted);
   border-radius: 14px;
   background: var(--v2-background-bg-layer-01);
@@ -725,9 +744,24 @@
 
 .settings-v2-sa-editor-body {
   display: flex;
+  flex: 1;
+  min-height: 0;
   flex-direction: column;
   gap: 18px;
+  overflow-y: auto;
   padding: 16px 18px;
+}
+
+/* On a narrow panel the editor header scrolls away with the body instead of taking the room. */
+@container settings-panel (max-width: 899px) {
+  .settings-v2-sa-editor {
+    overflow-y: auto;
+  }
+
+  .settings-v2-sa-editor-body {
+    flex: none;
+    overflow: visible;
+  }
 }
 
 .settings-v2-sa-section {
@@ -916,6 +950,7 @@
 .settings-v2-sa-editor-footer {
   position: sticky;
   bottom: 0;
+  flex: none;
   display: flex;
   flex-wrap: wrap;
   align-items: center;

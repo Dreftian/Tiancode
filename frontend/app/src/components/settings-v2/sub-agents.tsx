@@ -71,7 +71,16 @@ const AGENT_META = [
 
 const GROUP_ORDER = ["engineering", "design", "data", "quality", "operations", "security", "research", "marketing", "other"] as const
 
-const SWATCHES = ["#3B82F6", "#8B5CF6", "#EC4899", "#E11D48", "#F97316", "#EAB308", "#10B981", "#06B6D4"]
+const SWATCHES = [
+  ["#3B82F6", "blue"],
+  ["#8B5CF6", "violet"],
+  ["#EC4899", "pink"],
+  ["#E11D48", "red"],
+  ["#F97316", "orange"],
+  ["#EAB308", "yellow"],
+  ["#10B981", "green"],
+  ["#06B6D4", "cyan"],
+] as const
 
 const PERMISSION_CHOICES = ["inherit", "allow", "ask", "deny"] as const
 // The select needs a real value for "inherit"; an empty id reads as nothing selected.
@@ -196,6 +205,16 @@ export const SettingsSubAgentsV2: Component<{
     { initialValue: {} },
   )
 
+  // In the project scope the merged config also carries global overrides, which saving or resetting
+  // here cannot change; the editor says so when the agent has any.
+  const [globalAgents] = createResource(
+    () => (ui.scope === "project" ? target() : undefined),
+    async () => {
+      const res = await serverSdk().client.global.config.get().catch(() => undefined)
+      return ((res?.data as { agent?: Record<string, unknown> } | undefined)?.agent ?? {}) as Record<string, unknown>
+    },
+  )
+
   const [agents, { refetch }] = createResource<{ items: Agent[]; failed: boolean }, ScopeTarget>(
     target,
     async (_, info) => {
@@ -250,10 +269,11 @@ export const SettingsSubAgentsV2: Component<{
       ? serverSdk().client.global.config.update({ config })
       : serverSdk().client.config.update({ directory: where.directory, config })
 
-  const resetConfig = (where: ScopeTarget, name: string) =>
+  // `fields` removes only those keys ("model", "permission.bash"); without it, the whole entry.
+  const resetConfig = (where: ScopeTarget, name: string, fields?: string[]) =>
     where.kind === "global"
-      ? serverSdk().client.global.config.agent.reset({ name })
-      : serverSdk().client.config.agent.reset({ name, directory: where.directory })
+      ? serverSdk().client.global.config.agent.reset({ name, fields: fields?.join(",") })
+      : serverSdk().client.config.agent.reset({ name, directory: where.directory, fields: fields?.join(",") })
 
   const toggleAgent = async (agentName: string, enable: boolean) => {
     if (pending[agentName]) return
@@ -350,15 +370,18 @@ export const SettingsSubAgentsV2: Component<{
   const selectedAgent = createMemo(() => agentList().find((agent) => agent.name === ui.selected))
 
   const [draft, setDraft] = createStore<Draft>(toDraft({}))
+  // What is stored for the selected agent, as text: the memo only notifies when it really changes,
+  // so recomputing the list (another agent toggled) does not throw away unsaved edits.
+  const storedOverrides = createMemo(() => {
+    const { disable: _disable, ...rest } = selectedAgent()?.overrides ?? {}
+    return JSON.stringify(rest)
+  })
   // A different agent, or the same one after a save, starts from what is stored.
   createEffect(
-    on(
-      () => [ui.selected, JSON.stringify(selectedAgent()?.overrides ?? {})] as const,
-      () => {
-        setDraft(reconcile(toDraft(selectedAgent()?.overrides ?? {})))
-        setUi("promptOpen", false)
-      },
-    ),
+    on([() => ui.selected, storedOverrides], () => {
+      setDraft(reconcile(toDraft(selectedAgent()?.overrides ?? {})))
+      setUi("promptOpen", false)
+    }),
   )
 
   const temperature = createMemo(() => parseOverrideNumber(draft.temperature, { min: 0, max: 2 }))
@@ -384,7 +407,7 @@ export const SettingsSubAgentsV2: Component<{
     const where = target()
     const plan = overridePlan(agent.overrides, draftOverrides())
     try {
-      if (plan.reset) await resetConfig(where, agent.name)
+      if (plan.cleared.length > 0) await resetConfig(where, agent.name, plan.cleared)
       if (Object.keys(plan.patch).length > 0)
         await writeConfig(where, { agent: { [agent.name]: plan.patch as AgentConfig } })
       await Promise.all([refetchConfig(), refetch()])
@@ -472,6 +495,9 @@ export const SettingsSubAgentsV2: Component<{
             </Show>
             <Show when={agent.tools.restricted}>
               <span class="settings-v2-sa-tag">{toolsSummary(agent.tools.allowed)}</span>
+            </Show>
+            <Show when={agent.overrides.hidden}>
+              <span class="settings-v2-sa-tag">{language.t("settings.subAgents.tag.hidden")}</span>
             </Show>
             <Show when={agent.customized}>
               <span class="settings-v2-sa-tag" data-tone="accent">
@@ -665,13 +691,14 @@ export const SettingsSubAgentsV2: Component<{
                 onClick={() => setDraft("color", "")}
               />
               <For each={SWATCHES}>
-                {(color) => (
+                {([color, name]) => (
                   <button
                     type="button"
                     role="radio"
                     class="settings-v2-sa-swatch"
                     aria-checked={draft.color.toLowerCase() === color.toLowerCase()}
-                    title={color}
+                    aria-label={language.t(`settings.subAgents.editor.color.${name}`)}
+                    title={language.t(`settings.subAgents.editor.color.${name}`)}
                     style={{ "background-color": color }}
                     onClick={() => setDraft("color", color)}
                   />
@@ -692,7 +719,13 @@ export const SettingsSubAgentsV2: Component<{
       </div>
 
       <footer class="settings-v2-sa-editor-footer">
-        <span class="settings-v2-sa-footer-note">{scopeHint()}</span>
+        <span class="settings-v2-sa-footer-note">
+          {scopeHint()}
+          <Show when={ui.scope === "project" && globalAgents()?.[agent().name]}>
+            {" "}
+            {language.t("settings.subAgents.editor.globalNote")}
+          </Show>
+        </span>
         <div class="settings-v2-sa-footer-actions">
           <ButtonV2 type="button" variant="ghost" size="small" disabled={!agent().customized || ui.saving} onClick={() => void reset()}>
             {language.t("settings.subAgents.editor.reset")}
@@ -746,7 +779,7 @@ export const SettingsSubAgentsV2: Component<{
         />
       </div>
 
-      <div class="settings-v2-tab-body settings-v2-sub-agents">
+      <div class="settings-v2-tab-body settings-v2-sub-agents" data-section={ui.section}>
         <Show when={ui.section === "agents"}>
           <div class="settings-v2-sa-toolbar">
             <TextInputV2
@@ -802,7 +835,7 @@ export const SettingsSubAgentsV2: Component<{
           </Show>
 
           <div class="settings-v2-sa-layout" data-editing={ui.editing ? "" : undefined}>
-            <div class="settings-v2-sa-list" role="list">
+            <div class="settings-v2-sa-list">
               <For each={groups()}>
                 {(group) => (
                   <div class="settings-v2-sa-group" role="group" aria-label={language.t(`settings.subAgents.category.${group.id}`)}>

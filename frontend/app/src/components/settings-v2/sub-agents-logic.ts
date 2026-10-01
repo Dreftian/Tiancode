@@ -258,7 +258,9 @@ export function mergePanelAgents(options: MergeOptions): PanelAgent[] {
   const hidden = new Set(server.filter((agent) => agent.hidden).map((agent) => agent.name))
 
   for (const agent of server) {
-    if (!agent?.name || agent.hidden === true) continue
+    // Hidden ones are internal or aliases, except a built-in the user hid from @ in Settings: it
+    // stays here, or it could never be shown again.
+    if (!agent?.name || (agent.hidden === true && !meta[agent.name])) continue
     byName.set(agent.name, agent)
   }
   // Built-ins and user agents that are switched off are absent from the server list; keep them
@@ -487,13 +489,13 @@ export function sameOverrides(a: AgentOverrides, b: AgentOverrides) {
 }
 
 /**
- * How to save an edited agent. Config writes merge and cannot delete a key, so clearing a field
- * (going back to "inherit") first resets the agent's entry and then writes everything that should
- * remain; otherwise one write with the full desired entry is enough.
+ * How to save an edited agent. Config writes merge and cannot delete a key, so the fields the user
+ * cleared (back to "inherit") are removed by name ("model", "permission.bash") and the rest is
+ * merged. Keys this editor does not manage (a custom prompt, options, pattern rules) are untouched.
  */
 export function overridePlan(saved: AgentOverrides, draft: AgentOverrides) {
   const remaining = flatten(draft)
-  return { reset: [...flatten(saved).keys()].some((key) => !remaining.has(key)), patch: draft }
+  return { cleared: [...flatten(saved).keys()].filter((key) => key !== "disable" && !remaining.has(key)), patch: draft }
 }
 
 /**

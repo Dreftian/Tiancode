@@ -100,6 +100,21 @@ describe("mergePanelAgents", () => {
       }),
     ).toEqual([])
   })
+  test("keeps a built-in the user hid from @, so it can be shown again", () => {
+    const merged = mergePanelAgents({
+      server: [
+        { name: "pentest", mode: "subagent", native: true, hidden: true },
+        { name: "pentest-alias", mode: "subagent", native: true, hidden: true },
+      ],
+      meta: { pentest: meta[Object.keys(meta)[0]!]! },
+      config: { pentest: { hidden: true } },
+      isEnabled: () => true,
+      fallback,
+    })
+    expect(merged.map((agent) => agent.name)).toEqual(["pentest"])
+    expect(merged[0]!.overrides.hidden).toBe(true)
+  })
+
   // The bug this whole panel had: agentList() was built only from the hardcoded metadata map,
   // so the user's own agent/*.md files — nine of them — never appeared anywhere in the UI.
   test("lists the agents the server reports even when there is no metadata for them", () => {
@@ -572,12 +587,15 @@ describe("sub-agent overrides", () => {
     expect(hasOverrides({ disable: true, model: "x/y" })).toBe(true)
   })
 
-  test("clearing a field resets the entry first, because a config merge cannot delete keys", () => {
-    const saved = { model: "openai/gpt-5", permission: { bash: "ask" as const } }
-    expect(overridePlan(saved, { model: "openai/gpt-5" })).toEqual({ reset: true, patch: { model: "openai/gpt-5" } })
-    expect(overridePlan(saved, { permission: { bash: "ask" } }).reset).toBe(true)
+  test("clearing a field removes that field by name, because a config merge cannot delete keys", () => {
+    const saved = { model: "openai/gpt-5", disable: true, permission: { bash: "ask" as const } }
+    expect(overridePlan(saved, { model: "openai/gpt-5", disable: true })).toEqual({
+      cleared: ["permission.bash"],
+      patch: { model: "openai/gpt-5", disable: true },
+    })
+    expect(overridePlan(saved, { permission: { bash: "ask" }, disable: true }).cleared).toEqual(["model"])
     // Changing or adding values is a plain merge.
-    expect(overridePlan(saved, { model: "anthropic/claude", permission: { bash: "deny", edit: "ask" } }).reset).toBe(false)
+    expect(overridePlan(saved, { model: "x/y", disable: true, permission: { bash: "deny", edit: "ask" } }).cleared).toEqual([])
   })
 
   test("compares overrides by value, permissions included", () => {

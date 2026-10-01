@@ -2109,10 +2109,43 @@
   display: none;
 }
 
+/* Installed tab: it fills the panel below its header and the list and the detail scroll inside
+   it, so nothing is cut off by the dialog's height or slides under the sticky header. The import
+   tab scrolls with the panel as a normal page. */
+.settings-v2-panel:has(> .settings-v2-tab-body.settings-v2-skills[data-section="installed"]) {
+  overflow: hidden;
+}
+
+.settings-v2-tab-body.settings-v2-skills[data-section="installed"] {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.settings-v2-tab-body.settings-v2-skills[data-section="import"] {
+  flex: none;
+  overflow: visible;
+}
+
+.settings-v2-skills[data-section="installed"] .settings-v2-sk-layout {
+  flex: 1;
+  min-height: 0;
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.settings-v2-sk-list,
+.settings-v2-sk-detail {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.settings-v2-sk-list {
+  padding-right: 4px;
+}
+
 @container settings-panel (min-width: 900px) {
   .settings-v2-sk-layout {
     grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
-    align-items: start;
   }
 
   .settings-v2-sk-layout[data-viewing] .settings-v2-sk-list,
@@ -2122,20 +2155,6 @@
 
   .settings-v2-sk-back {
     display: none !important;
-  }
-
-  .settings-v2-sk-list {
-    position: sticky;
-    top: 0;
-    max-height: calc(100vh - 280px);
-    overflow-y: auto;
-    padding-right: 4px;
-  }
-
-  .settings-v2-sk-detail {
-    position: sticky;
-    top: 0;
-    max-height: calc(100vh - 280px);
   }
 }
 
@@ -2354,14 +2373,11 @@
 }
 
 .settings-v2-sk-detail-body {
+  flex: none;
+  min-height: auto;
   max-height: none;
+  overflow: visible;
   padding: 4px 2px 8px;
-}
-
-@container settings-panel (min-width: 900px) {
-  .settings-v2-sk-detail-body {
-    overflow-y: auto;
-  }
 }
 
 .settings-v2-sk-discover {

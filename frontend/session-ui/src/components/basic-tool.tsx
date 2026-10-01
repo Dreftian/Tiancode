@@ -336,6 +336,10 @@ export function GenericTool(props: {
   hideDetails?: boolean
   input?: Record<string, unknown>
   output?: string
+  open?: boolean
+  defaultOpen?: boolean
+  onOpenChange?: (open: boolean) => void
+  deferContent?: boolean
 }) {
   const i18n = useI18n()
   const display = () => toolDisplay(props.tool, props.input, i18n.t)
@@ -354,6 +358,10 @@ export function GenericTool(props: {
         args: display().known ? [] : args(props.input),
       }}
       hideDetails={props.hideDetails}
+      open={props.open}
+      defaultOpen={props.defaultOpen}
+      onOpenChange={props.onOpenChange}
+      defer={props.deferContent !== false}
     >
       {output() && props.status === "completed" ? (
         <div data-component="bash-output" dir="ltr">

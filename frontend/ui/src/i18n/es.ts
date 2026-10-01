@@ -252,7 +252,7 @@ export const dict = {
   "ui.toolName.previewInspect": "Inspeccionar página",
   "ui.toolName.surface.browser": "Navegador",
   "ui.toolName.previewInteract": "Usar la página",
-  "ui.toolName.previewInteract.click": "Clic en la página",
+  "ui.toolName.previewInteract.click": "Hacer clic en la página",
   "ui.toolName.previewInteract.fill": "Escribir en la página",
   "ui.toolName.previewInteract.select": "Elegir una opción",
   "ui.toolName.previewInteract.press": "Pulsar una tecla",

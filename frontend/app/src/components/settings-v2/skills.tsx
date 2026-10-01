@@ -249,6 +249,7 @@ export const SettingsSkillsV2: Component<{
     setView("bulk", true)
     try {
       await updateDisabledSkills(next)
+      setSkillOverrides({})
       showToast({ variant: "success", title: language.t("settings.skills.bulk.done", { enabled: skills().length - next.length }) })
     } catch {
       showToast({ variant: "error", title: language.t("settings.skills.toggle.failed") })
@@ -326,12 +327,18 @@ export const SettingsSkillsV2: Component<{
     else nextDisabled.add(name)
 
     void updateDisabledSkills(Array.from(nextDisabled))
-      .then(() =>
+      .then(() => {
+        // Saved: the server's list is the truth again, so a later bulk change is not undone by it.
+        setSkillOverrides((prev) => {
+          const next = { ...prev }
+          delete next[name]
+          return next
+        })
         showToast({
           variant: "success",
           title: language.t(enabled ? "settings.skills.toggle.enabled" : "settings.skills.toggle.disabled", { name }),
-        }),
-      )
+        })
+      })
       .catch(() => {
         setSkillOverrides((prev) => {
           const next = { ...prev }
@@ -432,7 +439,7 @@ export const SettingsSkillsV2: Component<{
         />
       </div>
 
-      <div class="settings-v2-tab-body settings-v2-skills">
+      <div class="settings-v2-tab-body settings-v2-skills" data-section={section()}>
         <Show when={message() === "success" || message() === "error"}>
           <div class="settings-v2-skills-message" data-variant={message()}>
             {message() === "success"
