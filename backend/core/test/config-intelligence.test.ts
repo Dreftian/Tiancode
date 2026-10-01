@@ -81,3 +81,18 @@ describe("ConfigIntelligence.fromConfig", () => {
     expect(resolved.toolCallRepair).toBe(true)
   })
 })
+
+describe("ConfigIntelligence.layered", () => {
+  const at = (file: string, intelligence: Record<string, boolean>) =>
+    ({ type: "document", path: file, info: { experimental: { intelligence } } }) as never
+
+  test("the fresh global block replaces the stale global document, and a project document still wins", () => {
+    const entries = [at("/home/me/.config/tiancode/tiancode.json", { loopBreaker: false, cleanWeb: false }), at("/work/app/tiancode.json", { cleanWeb: true })]
+    const resolved = ConfigIntelligence.layered({ loopBreaker: true, cleanWeb: false, guardrails: false }, entries, "/home/me/.config/tiancode")
+    // The stale global value (loopBreaker: false) is ignored in favour of the fresh one.
+    expect(resolved.loopBreaker).toBe(true)
+    expect(resolved.guardrails).toBe(false)
+    // The project document overrides the global switch.
+    expect(resolved.cleanWeb).toBe(true)
+  })
+})

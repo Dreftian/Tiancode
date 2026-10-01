@@ -58,6 +58,12 @@ type NotificationIndex = {
 const MAX_NOTIFICATIONS = 500
 const NOTIFICATION_TTL_MS = 1000 * 60 * 60 * 24 * 30
 
+/** Errors that are part of a normal turn: the user pressed Stop, or the context filled up and is being compacted. */
+export function isQuietError(error: unknown) {
+  if (!error || typeof error !== "object" || !("name" in error)) return false
+  return error.name === "MessageAbortedError" || error.name === "ContextOverflowError"
+}
+
 function pruneNotifications(list: Notification[]) {
   const cutoff = Date.now() - NOTIFICATION_TTL_MS
   const pruned = list.filter((n) => n.time >= cutoff)
@@ -341,8 +347,19 @@ function createServerNotificationState(input: {
     return sessionID === activeSession
   }
 
+  // The backend can publish idle twice for one turn (the error path sets idle, then the runner
+  // does), and an error is followed by idle: neither should sound or notify "response ready".
+  const lastIdle = new Map<string, number>()
+  const lastError = new Map<string, number>()
+  const IDLE_DEDUPE_MS = 3000
+  const DONE_AFTER_ERROR_MS = 10_000
+
   const handleSessionIdle = (directory: string, event: { properties: { sessionID?: string } }, time: number) => {
     const sessionID = event.properties.sessionID
+    const key = `${directory}:${sessionID}`
+    if (time - (lastIdle.get(key) ?? 0) < IDLE_DEDUPE_MS) return
+    lastIdle.set(key, time)
+    if (time - (lastError.get(key) ?? 0) < DONE_AFTER_ERROR_MS) return
     void lookup(directory, sessionID).then((session) => {
       if (meta.disposed) return
       if (!session) return
@@ -375,6 +392,11 @@ function createServerNotificationState(input: {
     time: number,
   ) => {
     const sessionID = event.properties.sessionID
+    const error = "error" in event.properties ? event.properties.error : undefined
+    // Stopping a turn is not an error, and a context overflow is followed by automatic
+    // compaction: the session goes on, so neither sounds or notifies as a failure.
+    if (isQuietError(error)) return
+    lastError.set(`${directory}:${sessionID}`, time)
     void lookup(directory, sessionID).then((session) => {
       if (meta.disposed) return
       if (session?.parentID) return
@@ -383,7 +405,6 @@ function createServerNotificationState(input: {
         void playSoundById(settings.sounds.errors())
       }
 
-      const error = "error" in event.properties ? event.properties.error : undefined
       append({
         directory,
         time,

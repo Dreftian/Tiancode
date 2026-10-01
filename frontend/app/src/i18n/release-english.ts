@@ -603,4 +603,10 @@ export const RELEASE_ENGLISH = {
   "settings.modelsHub.files.failed": "The file list could not be read from Hugging Face.",
   "settings.modelsHub.settings.loadFailed": "The saved load settings could not be read, so nothing is changed until they are.",
   "settings.voices.voice.noAudio": "The voice produced no audio.",
+  "permission.risk.title": "Risky command",
+  "permission.risk.run": "Run anyway",
+  "permission.risk.category.destructive": "It can delete data or damage the system",
+  "permission.risk.category.secret_leak": "It can expose or send secrets",
+  "permission.risk.category.unsafe_remote_exec": "It runs a script downloaded from the internet",
+  "settings.permissions.tool.shell_risk.description": "AgentShield flagged this command. It always asks, even with auto-accept on.",
 }

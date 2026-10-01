@@ -47,7 +47,7 @@ import {
 import { asrChunk, asrStart, asrStop, ensureAsrModel, getAsrStatus, resolveAsrLanguage } from "./asr"
 import { getRuntimeInstallState, installRuntime } from "./runtime-install"
 import { captureArea, captureLiveView, capturePreview, captureScreen, captureWindow } from "./capture"
-import { backupNow, deleteBackup, listBackups, restoreBackup } from "./backup"
+import { backupNow, deleteBackup, listBackups, scheduleRestore } from "./backup"
 import { registerPreviewViewIpc } from "./preview-view"
 import { registerPreviewAgentIpc } from "./preview-agent"
 import { registerWindowMirrorIpc } from "./window-mirror"
@@ -582,16 +582,20 @@ export function registerIpcHandlers(deps: Deps) {
   ipcMain.handle("clear-webview-data", () => clearWebviewData())
 
   // Inicio con Windows: el estado lo gestiona el sistema operativo.
+  // The portable build runs from a temporary copy; the login item must point at the .exe the
+  // user keeps (electron-builder passes it as PORTABLE_EXECUTABLE_FILE).
+  const loginPath = () => process.env.PORTABLE_EXECUTABLE_FILE || process.execPath
   ipcMain.handle("set-login-item", (_event: IpcMainInvokeEvent, enabled: boolean) => {
-    app.setLoginItemSettings({ openAtLogin: enabled, path: process.execPath })
-    return app.getLoginItemSettings().openAtLogin
+    app.setLoginItemSettings({ openAtLogin: enabled, path: loginPath() })
+    return app.getLoginItemSettings({ path: loginPath() }).openAtLogin
   })
-  ipcMain.handle("get-login-item", () => app.getLoginItemSettings().openAtLogin)
+  ipcMain.handle("get-login-item", () => app.getLoginItemSettings({ path: loginPath() }).openAtLogin)
 
   // Respaldos de datos (sesiones + configuración; los modelos no se respaldan).
   ipcMain.handle("backup-now", () => backupNow())
   ipcMain.handle("backup-list", () => listBackups())
-  ipcMain.handle("backup-restore", (_event: IpcMainInvokeEvent, name: string) => restoreBackup(name))
+  // Applied at the next start, before the server opens the databases (the renderer relaunches).
+  ipcMain.handle("backup-restore", (_event: IpcMainInvokeEvent, name: string) => scheduleRestore(name))
   ipcMain.handle("backup-delete", (_event: IpcMainInvokeEvent, name: string) => deleteBackup(name))
 
   ipcMain.handle("get-window-id", (event: IpcMainInvokeEvent) => {

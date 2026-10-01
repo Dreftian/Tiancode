@@ -3364,4 +3364,10 @@ export const dict = {
   "settings.connections.hint.gateways": "Telegram, Discord, Slack y webhooks",
   "settings.connections.section.github": "GitHub",
   "settings.connections.hint.github": "Repositorios, ramas y pull requests",
+  "permission.risk.title": "Comando de riesgo",
+  "permission.risk.run": "Ejecutar igualmente",
+  "permission.risk.category.destructive": "Puede borrar datos o dañar el sistema",
+  "permission.risk.category.secret_leak": "Puede exponer o enviar secretos",
+  "permission.risk.category.unsafe_remote_exec": "Ejecuta un script descargado de internet",
+  "settings.permissions.tool.shell_risk.description": "AgentShield marcó este comando. Siempre pregunta, aunque aceptes permisos automáticamente.",
 }

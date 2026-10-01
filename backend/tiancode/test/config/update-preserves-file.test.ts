@@ -293,3 +293,20 @@ test("resetting an agent globally works without an open project", async () => {
     saved.forEach(([name, text]) => (text === undefined ? rmSync(name, { force: true }) : writeFileSync(name, text)))
   }
 })
+
+test("update keeps a repository's own config.json and removes only a legacy Tiancode one", async () => {
+  await run((dir) =>
+    Effect.gen(function* () {
+      const foreign = path.join(dir, "config.json")
+      writeFileSync(foreign, JSON.stringify({ port: 8080, database: "app.db" }, null, 2))
+      const svc = yield* Config.Service
+      yield* svc.update({ username: "first" })
+      expect(existsSync(foreign)).toBe(true)
+      expect(JSON.parse(readFileSync(foreign, "utf8")).port).toBe(8080)
+
+      writeFileSync(foreign, JSON.stringify({ $schema: "https://tiancode.ai/config.json", shell: "bash" }, null, 2))
+      yield* svc.update({ username: "second" })
+      expect(existsSync(foreign)).toBe(false)
+    }),
+  )
+})

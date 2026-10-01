@@ -11,6 +11,10 @@ import { Language, type Node } from "web-tree-sitter"
 import { FSUtil } from "@tiancode-ai/core/fs-util"
 import { fileURLToPath } from "url"
 import { Config } from "@/config/config"
+import { IntelligenceSwitches } from "@/config/intelligence-switches"
+import { AgentShield } from "@tiancode-ai/core/security/agent-shield"
+import { OutputDistiller } from "@tiancode-ai/core/tool/output-distiller"
+import { LocationServiceMap } from "@tiancode-ai/core/location-services"
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import { Shell } from "@tiancode-ai/core/shell"
 import { ShellID } from "./shell/id"
@@ -261,7 +265,34 @@ const parse = Effect.fn("ShellTool.parse")(function* (command: string, ps: boole
   return tree
 })
 
-const ask = Effect.fn("ShellTool.ask")(function* (ctx: Tool.Context, scan: Scan, input: { command: string }) {
+const ask = Effect.fn("ShellTool.ask")(function* (
+  ctx: Tool.Context,
+  scan: Scan,
+  input: { command: string },
+  threats: ReadonlyArray<AgentShield.ShieldThreat>,
+) {
+  // A critical AgentShield match always reaches the user, whatever the rules say: `shell_risk`
+  // defaults to ask and the app never answers it automatically, even with auto-accept on.
+  const critical = threats.filter((threat) => threat.level === "critical")
+  if (critical.length > 0) {
+    yield* ctx.ask({
+      permission: "shell_risk",
+      patterns: [input.command],
+      always: [],
+      metadata: {
+        command: input.command,
+        risk: {
+          level: "high",
+          threats: critical.map((threat) => ({
+            category: threat.category,
+            description: threat.description,
+            matched: threat.matched,
+          })),
+        },
+      },
+    })
+  }
+
   if (scan.dirs.size > 0) {
     const directories = Array.from(scan.dirs)
     const globs = directories.map((dir) => {
@@ -345,6 +376,7 @@ export const ShellTool = Tool.define(
     const trunc = yield* Truncate.Service
     const plugin = yield* Plugin.Service
     const flags = yield* RuntimeFlags.Service
+    const locations = yield* LocationServiceMap.Service
     const defaultTimeoutMs = flags.bashDefaultTimeoutMs ?? 2 * 60 * 1000
 
     const cygpath = Effect.fn("ShellTool.cygpath")(function* (shell: string, text: string) {
@@ -433,6 +465,8 @@ export const ShellTool = Tool.define(
         cwd: string
         env: NodeJS.ProcessEnv
         timeout: number
+        threats: ReadonlyArray<AgentShield.ShieldThreat>
+        distill: boolean
       },
       ctx: Tool.Context,
     ) {
@@ -584,23 +618,39 @@ export const ShellTool = Tool.define(
         file = yield* trunc.write(raw)
       }
 
-      let output = end.text
-      if (!output) output = "(no output)"
+      // Settings → Inteligencia › Destilación: progress bars, repeated lines and passing tests are
+      // condensed for the model. The full text is kept on disk so nothing is lost.
+      const distilled = input.distill
+        ? OutputDistiller.distill({ command: input.command, output: end.text, exitCode: code ?? undefined })
+        : undefined
+      const condensed = distilled?.distilled && distilled.savedTokens >= 50
+      if (condensed && !file) file = yield* trunc.write(raw)
+
+      let output = (condensed ? distilled.output : end.text) || "(no output)"
 
       if (cut && file) {
         output = `...output truncated...\n\nFull output saved to: ${file}\n\n` + output
+      }
+      if (condensed && !cut) {
+        output += `\n\n<shell_metadata>\nOutput condensed by Tiancode (about ${distilled.savedTokens} tokens saved). Full output: ${file}\n</shell_metadata>`
       }
 
       if (meta.length > 0) {
         output += "\n\n<shell_metadata>\n" + meta.join("\n") + "\n</shell_metadata>"
       }
+      const warnings = input.threats.map(
+        (threat) => `[AgentShield ${threat.level.toUpperCase()}] ${threat.description} ("${threat.matched}")`,
+      )
+      if (warnings.length > 0) output += "\n\n<agent_shield>\n" + warnings.join("\n") + "\n</agent_shield>"
       return {
         title: input.command,
         metadata: {
           output: last || preview(output),
           exit: code,
           truncated: cut,
-          ...(cut && file ? { outputPath: file } : {}),
+          ...((cut || condensed) && file ? { outputPath: file } : {}),
+          ...(warnings.length > 0 ? { warnings } : {}),
+          ...(condensed ? { savedTokens: distilled.savedTokens } : {}),
         },
         output,
       }
@@ -641,6 +691,8 @@ export const ShellTool = Tool.define(
               }
               const timeout = params.timeout ?? defaultTimeoutMs
               const ps = Shell.ps(shell)
+              const switches = yield* IntelligenceSwitches.read(config, locations)
+              const threats = switches.guardrails ? AgentShield.scanCommand(params.command).threats : []
               yield* Effect.scoped(
                 Effect.gen(function* () {
                   const tree = yield* Effect.acquireRelease(parse(params.command, ps), (tree) =>
@@ -648,7 +700,7 @@ export const ShellTool = Tool.define(
                   )
                   const scan = yield* collect(tree.rootNode, cwd, ps, shell, instanceCtx)
                   if (!containsPath(cwd, instanceCtx)) scan.dirs.add(cwd)
-                  yield* ask(ctx, scan, params)
+                  yield* ask(ctx, scan, params, threats)
                 }),
               )
 
@@ -659,6 +711,8 @@ export const ShellTool = Tool.define(
                   cwd,
                   env: yield* shellEnv(ctx, cwd),
                   timeout,
+                  threats,
+                  distill: switches.outputDistiller,
                 },
                 ctx,
               )

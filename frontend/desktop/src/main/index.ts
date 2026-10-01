@@ -32,7 +32,7 @@ import {
   type SidecarListener,
 } from "./server"
 import { setupAutoUpdater, showUpdaterDialog } from "./updater"
-import { backupNow } from "./backup"
+import { applyPendingRestore, backupNow } from "./backup"
 import { getStore } from "./store"
 import { AUTO_BACKUP_KEY, CHECK_UPDATES_ON_START_KEY, LAST_BACKUP_KEY } from "./store-keys"
 import { safeWebContentsURL } from "./window-state"
@@ -433,6 +433,12 @@ const main = Effect.gen(function* () {
     10 * 60 * 1000,
   )
   updateTimer.unref()
+  // A restore chosen in Settings runs here, before the server opens the databases it replaces.
+  yield* Effect.promise(() =>
+    applyPendingRestore()
+      .then((name) => name && logger.log("backup restored at startup", { name }))
+      .catch((error) => logger.error("pending backup restore failed", error)),
+  )
   // Respaldo diario automático (Ajustes → General; ausente = activado). Solo
   // datos (sesiones + configuración); los modelos se excluyen por diseño.
   if (getStore().get(AUTO_BACKUP_KEY) !== "false") {

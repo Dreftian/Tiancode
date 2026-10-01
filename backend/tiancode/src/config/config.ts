@@ -898,7 +898,7 @@ const layer = Layer.effect(
       // A .jsonc file is edited in place so the user's comments and layout survive.
       if (text && file.endsWith(".jsonc")) {
         yield* writeGlobalAtomic(file, patchJsonc(text, writable(config))).pipe(Effect.orDie)
-        yield* fs.remove(path.join(dir, "config.json")).pipe(Effect.catch(() => Effect.void))
+        yield* removeLegacyProjectConfig(dir)
         return
       }
       const original = text ? ConfigParse.jsonc(text, file) : undefined
@@ -908,7 +908,20 @@ const layer = Layer.effect(
         merged.plugin = config.plugin
       }
       yield* writeGlobalAtomic(file, JSON.stringify(merged, null, 2)).pipe(Effect.orDie)
-      yield* fs.remove(path.join(dir, "config.json")).pipe(Effect.catch(() => Effect.void))
+      yield* removeLegacyProjectConfig(dir)
+    })
+
+    // Only a config.json that an older Tiancode wrote is an orphan. A repository's own
+    // config.json (any file without a Tiancode or opencode $schema) belongs to the user.
+    const removeLegacyProjectConfig = Effect.fnUntraced(function* (dir: string) {
+      const file = path.join(dir, "config.json")
+      const text = yield* readConfigFile(file)
+      if (!text) return
+      const parsed = yield* Effect.try({ try: () => ConfigParse.jsonc(text, file), catch: () => undefined }).pipe(
+        Effect.orElseSucceed(() => undefined),
+      )
+      if (!isRecord(parsed) || typeof parsed.$schema !== "string" || !/tiancode|opencode/.test(parsed.$schema)) return
+      yield* fs.remove(file).pipe(Effect.catch(() => Effect.void))
     })
 
     const invalidate = Effect.fn("Config.invalidate")(function* () {

@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs"
-import { cp, mkdir, readdir, rm, stat } from "node:fs/promises"
+import { cp, mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises"
 import { dirname, join, relative, resolve, sep } from "node:path"
 import { resolveDesktopXdgPaths, type DesktopXdgPaths } from "./xdg-paths"
 
@@ -16,6 +16,9 @@ import { resolveDesktopXdgPaths, type DesktopXdgPaths } from "./xdg-paths"
 
 const BACKUP_DIR = "backups"
 const KEEP_BACKUPS = 7
+// Restoring copies SQLite files that the running server holds open; the request is written here
+// and applied at the next start, before the server opens them.
+const PENDING_RESTORE = "pending-restore.json"
 
 // backupNow genera los nombres con este patrón (ver más abajo).
 const BACKUP_NAME_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}$/
@@ -135,11 +138,43 @@ export function createBackupService(userData: string, writeLog: BackupLog = () =
     const restored = entries().filter((entry) => existsSync(join(source, entry.destination)))
     for (const entry of restored) {
       await mkdir(dirname(entry.source), { recursive: true })
+      // A -wal/-shm left by the previous run would be replayed into the restored database.
+      await removeStaleSidecars(join(source, entry.destination), entry.source)
       await copyBackupEntry({ ...entry, source: join(source, entry.destination) }, entry.source, {
         direction: "restore",
       })
     }
     writeLog("backup", "restored", { name, entries: restored.length })
+  }
+
+  async function scheduleRestore(name: string) {
+    const source = assertValidBackupSource(name)
+    if (!existsSync(source)) throw new Error(`Backup not found: ${name}`)
+    await mkdir(backupsDir(), { recursive: true })
+    await writeFile(join(backupsDir(), PENDING_RESTORE), JSON.stringify({ name }))
+    writeLog("backup", "restore scheduled", { name })
+  }
+
+  // Runs before the server starts. The marker is removed first, so a backup that fails to
+  // restore cannot trap the app in a restore-and-crash loop.
+  async function applyPendingRestore(): Promise<string | undefined> {
+    const marker = join(backupsDir(), PENDING_RESTORE)
+    if (!existsSync(marker)) return
+    const text = await readFile(marker, "utf8").catch(() => "")
+    await rm(marker, { force: true })
+    const name = (() => {
+      try {
+        const parsed: unknown = JSON.parse(text)
+        return parsed && typeof parsed === "object" && "name" in parsed && typeof parsed.name === "string"
+          ? parsed.name
+          : undefined
+      } catch {
+        return undefined
+      }
+    })()
+    if (!name) return
+    await restoreBackup(name)
+    return name
   }
 
   // Valida el nombre de un respaldo antes de leer nada: backupNow los nombra
@@ -162,7 +197,16 @@ export function createBackupService(userData: string, writeLog: BackupLog = () =
     writeLog("backup", "deleted", { target })
   }
 
-  return { backupNow, listBackups, restoreBackup, deleteBackup }
+  return { backupNow, listBackups, restoreBackup, scheduleRestore, applyPendingRestore, deleteBackup }
+}
+
+async function removeStaleSidecars(backup: string, live: string) {
+  const info = await stat(backup).catch(() => null)
+  if (!info) return
+  const databases = info.isFile() ? (isSqliteDatabase(backup) ? [live] : []) : (await walk(backup, () => false)).filter(isSqliteDatabase).map((file) => join(live, relative(backup, file)))
+  for (const database of databases) {
+    for (const suffix of ["-wal", "-shm", "-journal"]) await rm(database + suffix, { force: true })
+  }
 }
 
 async function copyBackupEntry(entry: BackupEntry, destination: string, mode: CopyMode) {
@@ -250,8 +294,12 @@ export async function listBackups() {
   return (await appBackups()).listBackups()
 }
 
-export async function restoreBackup(name: string) {
-  return (await appBackups()).restoreBackup(name)
+export async function scheduleRestore(name: string) {
+  return (await appBackups()).scheduleRestore(name)
+}
+
+export async function applyPendingRestore() {
+  return (await appBackups()).applyPendingRestore()
 }
 
 export async function deleteBackup(name: string) {

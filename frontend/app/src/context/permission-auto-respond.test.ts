@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import type { PermissionRequest, Session } from "@tiancode-ai/sdk/v2/client"
 import { base64Encode } from "@tiancode-ai/core/util/encode"
-import { autoRespondsPermission, isDirectoryAutoAccepting, sessionAutoAccept } from "./permission-auto-respond"
+import { autoRespondsPermission, isDirectoryAutoAccepting, requiresUser, sessionAutoAccept } from "./permission-auto-respond"
 
 const session = (input: { id: string; parentID?: string }) =>
   ({
@@ -186,5 +186,12 @@ describe("isDirectoryAutoAccepting", () => {
     const directory = "/tmp/project"
     const autoAccept = { [`${base64Encode(directory)}/*`]: false }
     expect(isDirectoryAutoAccepting(autoAccept, directory)).toBe(false)
+  })
+})
+
+describe("requiresUser", () => {
+  test("AgentShield's shell_risk is never answered automatically", () => {
+    expect(requiresUser({ permission: "shell_risk" })).toBe(true)
+    expect(requiresUser({ permission: "bash" })).toBe(false)
   })
 })

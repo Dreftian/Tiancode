@@ -6,6 +6,7 @@ import { Effect, Layer } from "effect"
 import { FetchHttpClient, HttpClient } from "effect/unstable/http"
 import { Agent } from "../../src/agent/agent"
 import { Truncate } from "@/tool/truncate"
+import { Config } from "@/config/config"
 import { WebFetchTool } from "../../src/tool/webfetch"
 import { SessionID, MessageID } from "../../src/session/schema"
 import { Tool } from "@/tool/tool"
@@ -14,7 +15,7 @@ import { testEffect } from "../lib/effect"
 // webfetch reads Settings → Intelligence to decide whether to strip page boilerplate, and Config
 // is location-scoped in core, so the tool now needs the location service map the way codegraph does.
 const it = testEffect(
-  LayerNode.compile(LayerNode.group([httpClient, Truncate.node, Agent.node, LocationServiceMap.node]), [
+  LayerNode.compile(LayerNode.group([httpClient, Truncate.node, Agent.node, Config.node, LocationServiceMap.node]), [
     [httpClient, FetchHttpClient.layer as Layer.Layer<HttpClient.HttpClient>],
     [LocationServiceMap.node, locationServiceMapLayer],
   ]),

@@ -37,6 +37,14 @@ function sessionLineage(session: { id: string; parentID?: string }[], sessionID:
   return ids
 }
 
+/**
+ * A request only the user may answer: AgentShield's `shell_risk` (wiping a drive, uploading
+ * secrets, running a downloaded script). Neither auto-accept nor "Omitir permisos" answers it.
+ */
+export function requiresUser(permission: { permission?: string }) {
+  return permission.permission === "shell_risk"
+}
+
 export function autoRespondsPermission(
   autoAccept: Record<string, boolean>,
   session: { id: string; parentID?: string }[],

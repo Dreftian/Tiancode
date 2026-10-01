@@ -156,6 +156,12 @@ function distillTypeScriptOrLinter(text: string): string {
   return deduplicateLines(cleaned).join("\n")
 }
 
+// A runner invocation, not any command that mentions the word: `ls test/` or `cat latest.log`
+// summarised as "Tests passed" would hide the output the agent asked for.
+const TEST_RUNNER =
+  /(?:^|[\s;&|(])(?:(?:bun|npm|pnpm|yarn|npx|bunx)\s+(?:run\s+)?test(?::[\w-]+)?|jest|vitest|pytest|mocha|cargo\s+test|go\s+test|dotnet\s+test|phpunit|rspec)(?=$|[\s;&|)])/
+const LINTER = /(?:^|[\s;&|(])(?:tsc|tsgo|eslint|biome|ruff|oxlint)(?=$|[\s;&|)])/
+
 export function distill(options: DistillOptions): DistillResult {
   const rawBytes = Buffer.byteLength(options.output, "utf-8")
   if (rawBytes === 0) {
@@ -176,19 +182,12 @@ export function distill(options: DistillOptions): DistillResult {
     distilledText = distillGitStatus(cleaned)
   } else if (cmd.startsWith("git diff")) {
     distilledText = distillGitDiff(cleaned)
-  } else if (
-    cmd.includes("test") ||
-    cmd.includes("jest") ||
-    cmd.includes("vitest") ||
-    cmd.includes("pytest") ||
-    cmd.includes("cargo test") ||
-    cmd.includes("go test")
-  ) {
+  } else if (TEST_RUNNER.test(cmd)) {
     const testDistilled = distillTestOutput(cleaned, options.exitCode)
     if (testDistilled) {
       distilledText = testDistilled
     }
-  } else if (cmd.includes("tsc") || cmd.includes("eslint") || cmd.includes("biome") || cmd.includes("ruff")) {
+  } else if (LINTER.test(cmd)) {
     distilledText = distillTypeScriptOrLinter(cleaned)
   } else {
     // Generic deduplication

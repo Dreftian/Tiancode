@@ -13,7 +13,8 @@ import type { LLMClientService } from "@tiancode-ai/llm/route"
 import { GitLabWorkflowLanguageModel } from "gitlab-ai-provider"
 import { ProviderTransform } from "@/provider/transform"
 import { Config } from "@/config/config"
-import { ConfigIntelligence } from "@tiancode-ai/core/config/intelligence"
+import { IntelligenceSwitches } from "@/config/intelligence-switches"
+import { LocationServiceMap, locationServiceMapLayer } from "@tiancode-ai/core/location-services"
 import type { Agent } from "@/agent/agent"
 import type { MessageV2 } from "./message-v2"
 import { Plugin } from "@/plugin"
@@ -73,6 +74,7 @@ const live: Layer.Layer<
   | EventV2Bridge.Service
   | LLMClientService
   | RuntimeFlags.Service
+  | LocationServiceMap.Service
 > = Layer.effect(
   Service,
   Effect.gen(function* () {
@@ -84,6 +86,7 @@ const live: Layer.Layer<
     const events = yield* EventV2Bridge.Service
     const llmClient = yield* LLMClient.Service
     const flags = yield* RuntimeFlags.Service
+    const locations = yield* LocationServiceMap.Service
 
     const run = Effect.fn("LLM.run")(function* (input: StreamRequest) {
       yield* Effect.logInfo("stream", {
@@ -105,7 +108,7 @@ const live: Layer.Layer<
         { concurrency: "unbounded" },
       )
 
-      const intelligence = ConfigIntelligence.fromConfig(cfg.experimental?.intelligence)
+      const intelligence = yield* IntelligenceSwitches.read(config, locations)
       const isWorkflow = language instanceof GitLabWorkflowLanguageModel
       const prepared = yield* LLMRequestPrep.prepare({
         ...input,
@@ -393,10 +396,17 @@ const live: Layer.Layer<
 
 export const hasToolCalls = LLMRequestPrep.hasToolCalls
 
+const locationServiceMapNode = LayerNode.make({
+  service: LocationServiceMap.Service,
+  layer: locationServiceMapLayer,
+  deps: [],
+})
+
 export const node = LayerNode.make({
   service: Service,
   layer: live,
   deps: [
+    locationServiceMapNode,
     Auth.node,
     Config.node,
     Provider.node,

@@ -20,6 +20,7 @@ import {
   directoryAcceptKey,
   isDirectoryAutoAccepting,
   autoRespondsPermission,
+  requiresUser,
   sessionAutoAccept,
 } from "./permission-auto-respond"
 
@@ -327,6 +328,7 @@ function createServerPermissionState(input: { sdk: ServerSDK; sync: ServerSync }
   function shouldAutoRespond(permission: PermissionRequest, directory?: string) {
     failedRevision()
     if (failedReplies.has(permission.id)) return false
+    if (requiresUser(permission)) return false
     const mode = directory && getComposerMode(input.sdk.scope, directory, permission.sessionID)?.mode
     if (mode) return mode === "skip"
     return autoRespondsPermission(store.autoAccept, sessions(directory), permission, directory)
@@ -338,6 +340,7 @@ function createServerPermissionState(input: { sdk: ServerSDK; sync: ServerSync }
   }
 
   async function shouldAutoRespondResolved(permission: PermissionRequest, directory?: string) {
+    if (requiresUser(permission)) return false
     const mode = directory && getComposerMode(input.sdk.scope, directory, permission.sessionID)?.mode
     if (mode) return mode === "skip"
     const override = sessionAutoAccept(store.autoAccept, sessions(directory), permission, directory)

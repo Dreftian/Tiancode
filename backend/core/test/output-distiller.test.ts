@@ -115,3 +115,21 @@ Test Suites: 1 failed, 1 passed, 2 total`
     expect(result.output.length).toBeGreaterThan(0)
   })
 })
+
+describe("OutputDistiller command detection", () => {
+  test("a command that only mentions 'test' keeps its output", () => {
+    const output = Array.from({ length: 30 }, (_, i) => `file-${i}.ts`).join("\n")
+    for (const command of ["ls test/", "cat latest.log", "git log --oneline | grep test"]) {
+      const result = OutputDistiller.distill({ command, output, exitCode: 0 })
+      expect(result.output).not.toContain("Tests passed")
+      expect(result.output).toContain("file-29.ts")
+    }
+  })
+
+  test("a real test runner is summarised", () => {
+    const output = ["(pass) a", "(pass) b", " 2 pass", " 0 fail"].join("\n")
+    for (const command of ["bun test", "npm run test:unit", "cd app && vitest run", "pytest -q"]) {
+      expect(OutputDistiller.distill({ command, output, exitCode: 0 }).output).toContain("Tests passed")
+    }
+  })
+})

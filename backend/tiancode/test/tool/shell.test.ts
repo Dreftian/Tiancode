@@ -21,6 +21,7 @@ import { testEffect } from "../lib/effect"
 import { Tool } from "@/tool/tool"
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import { InstanceStore } from "@/project/instance-store"
+import { LocationServiceMap, locationServiceMapLayer } from "@tiancode-ai/core/location-services"
 
 const shellLayer = Layer.mergeAll(
   LayerNode.compile(
@@ -32,7 +33,9 @@ const shellLayer = Layer.mergeAll(
       Config.node,
       Agent.node,
       RuntimeFlags.node,
+      LocationServiceMap.node,
     ]),
+    [[LocationServiceMap.node, locationServiceMapLayer]],
   ),
   testInstanceStoreLayer,
 )
@@ -179,6 +182,34 @@ const mustTruncate = (result: {
     [`shell: ${process.env.SHELL || ""}`, `exit: ${String(result.metadata.exit)}`, "output:", result.output].join("\n"),
   )
 }
+
+describe("tool.shell AgentShield", () => {
+  it.live("asks shell_risk before a critical command and never runs it when refused", () =>
+    runIn(
+      projectRoot,
+      Effect.gen(function* () {
+        const requests: Array<Omit<PermissionV1.Request, "id" | "sessionID" | "tool">> = []
+        const refused = new Error("refused in test")
+        // The ask throws, so the command below is never executed.
+        const err = yield* fail({ command: "rm -rf $HOME" }, capture(requests, refused))
+        expect(err.message).toContain("refused in test")
+        expect(requests[0]?.permission).toBe("shell_risk")
+        expect(requests[0]?.metadata).toMatchObject({ command: "rm -rf $HOME", risk: { level: "high" } })
+      }),
+    ),
+  )
+
+  it.live("does not ask shell_risk for a routine command", () =>
+    runIn(
+      projectRoot,
+      Effect.gen(function* () {
+        const requests: Array<Omit<PermissionV1.Request, "id" | "sessionID" | "tool">> = []
+        yield* run({ command: "echo routine" }, capture(requests))
+        expect(requests.some((request) => request.permission === "shell_risk")).toBe(false)
+      }),
+    ),
+  )
+})
 
 describe("tool.shell", () => {
   each("basic", () =>

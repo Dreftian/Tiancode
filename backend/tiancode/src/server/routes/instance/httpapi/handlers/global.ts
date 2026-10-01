@@ -91,7 +91,10 @@ export const globalHandlers = HttpApiBuilder.group(RootHttpApi, "global", (handl
       // placeholder; values only the merged config knows (other global files) come from it after.
       const restored = unredactConfigInfo(unredactConfigInfo(ctx.payload, yield* config.getGlobalRaw()), yield* config.getGlobal())
       const result = yield* config.updateGlobal(restored)
-      if (result.changed) bridge.fork(disposeAllInstancesAndEmitGlobalDisposed({ swallowErrors: true }))
+      // Reopening every project cancels running sessions. The Intelligence switches are read live
+      // (IntelligenceSwitches.read), so a change that only touches them skips that.
+      if (result.changed && !onlyIntelligence(ctx.payload))
+        bridge.fork(disposeAllInstancesAndEmitGlobalDisposed({ swallowErrors: true }))
       return result.info
     })
 
@@ -170,3 +173,14 @@ export const globalHandlers = HttpApiBuilder.group(RootHttpApi, "global", (handl
       .handleRaw("upgrade", upgradeRaw)
   }),
 )
+
+function onlyIntelligence(payload: object) {
+  const experimental: unknown = "experimental" in payload ? payload.experimental : undefined
+  return (
+    Object.keys(payload).length === 1 &&
+    typeof experimental === "object" &&
+    experimental !== null &&
+    Object.keys(experimental).length === 1 &&
+    "intelligence" in experimental
+  )
+}

@@ -3210,4 +3210,10 @@ export const dict = {
   "settings.connections.hint.gateways": "Telegram, Discord, Slack and webhooks",
   "settings.connections.section.github": "GitHub",
   "settings.connections.hint.github": "Repositories, branches and pull requests",
+  "permission.risk.title": "Risky command",
+  "permission.risk.run": "Run anyway",
+  "permission.risk.category.destructive": "It can delete data or damage the system",
+  "permission.risk.category.secret_leak": "It can expose or send secrets",
+  "permission.risk.category.unsafe_remote_exec": "It runs a script downloaded from the internet",
+  "settings.permissions.tool.shell_risk.description": "AgentShield flagged this command. It always asks, even with auto-accept on.",
 }

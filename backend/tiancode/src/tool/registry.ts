@@ -73,6 +73,7 @@ import { PermissionV1 } from "@tiancode-ai/core/v1/permission"
 import { McpCatalog } from "@/mcp/catalog"
 import { Global } from "@tiancode-ai/core/global"
 import { LocationServiceMap, locationServiceMapLayer } from "@tiancode-ai/core/location-services"
+import { IntelligenceSwitches } from "@/config/intelligence-switches"
 
 const locationServiceMapNode = LayerNode.make({
   service: LocationServiceMap.Service,
@@ -116,6 +117,7 @@ const layer = Layer.effect(
     const agents = yield* Agent.Service
     const truncate = yield* Truncate.Service
     const flags = yield* RuntimeFlags.Service
+    const locations = yield* LocationServiceMap.Service
     const mcp = yield* MCP.Service
 
     const invalid = yield* InvalidTool
@@ -294,6 +296,7 @@ const layer = Layer.effect(
             tool.search,
             tool.skill,
             tool.memory,
+            tool.codegraph,
             tool.skillCreate,
             tool.sessionSearch,
             tool.patch,
@@ -357,7 +360,16 @@ const layer = Layer.effect(
     })
 
     const tools: Interface["tools"] = Effect.fn("ToolRegistry.tools")(function* (input) {
+      // A tool switched off in Settings → Inteligencia is not offered at all, rather than offered
+      // and then refusing: that costs the model a turn and the prompt its description.
+      const switches = yield* IntelligenceSwitches.read(config, locations)
+      const disabled = new Set([
+        ...(switches.codeGraph ? [] : [CodeGraphTool.id]),
+        ...(switches.autoSkillLearn ? [] : [SkillCreateTool.id]),
+        ...(switches.userMemory || switches.projectMemory ? [] : [MemoryTool.id]),
+      ])
       const filtered = (yield* all()).filter((tool) => {
+        if (disabled.has(tool.id)) return false
         if (tool.id === WebSearchTool.id) {
           return webSearchEnabled(input.providerID, { exa: flags.enableExa, parallel: flags.enableParallel })
         }

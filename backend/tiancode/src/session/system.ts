@@ -27,7 +27,8 @@ import { LocationServiceMap, locationServiceMapLayer } from "@tiancode-ai/core/l
 import { Reference } from "@tiancode-ai/core/reference"
 import { MCP } from "@/mcp"
 import { Memory } from "@tiancode-ai/core/memory"
-import { ConfigIntelligence } from "@tiancode-ai/core/config/intelligence"
+import { Config } from "@/config/config"
+import { IntelligenceSwitches } from "@/config/intelligence-switches"
 import { PermissionV1 } from "@tiancode-ai/core/v1/permission"
 
 /** Compact prompt for small-context / local models (see session/lightweight.ts). */
@@ -78,6 +79,7 @@ const layer = Layer.effect(
     const skill = yield* Skill.Service
     const mcp = yield* MCP.Service
     const locations = yield* LocationServiceMap.Service
+    const config = yield* Config.Service
 
     return Service.of({
       environment: Effect.fn("SystemPrompt.environment")(function* (model: Provider.Model) {
@@ -197,10 +199,10 @@ const layer = Layer.effect(
 
       memory: Effect.fn("SystemPrompt.memory")(function* () {
         const ctx = yield* InstanceState.context
+        // Settings → Intelligence decides which memory files reach the prompt.
+        const intelligence = yield* IntelligenceSwitches.read(config, locations)
         return yield* Effect.gen(function* () {
           const mem = yield* Memory.Service
-          // Settings → Intelligence decides which memory files reach the prompt.
-          const intelligence = yield* ConfigIntelligence.resolve()
           return yield* mem.format({ user: intelligence.userMemory, project: intelligence.projectMemory })
         }).pipe(Effect.provide(locations.get(Location.Ref.make({ directory: AbsolutePath.make(ctx.directory) }))))
       }),
@@ -217,7 +219,7 @@ const locationServiceMapNode = LayerNode.make({
 export const node = LayerNode.make({
   service: Service,
   layer: layer,
-  deps: [Skill.node, MCP.node, locationServiceMapNode],
+  deps: [Skill.node, MCP.node, Config.node, locationServiceMapNode],
 })
 
 export * as SystemPrompt from "./system"

@@ -133,6 +133,13 @@ const layer = Layer.effect(
           question: "deny",
           plan_enter: "deny",
           plan_exit: "deny",
+          // A screenshot shows every app on screen and the clipboard often holds passwords, so
+          // both ask unless the user allows them (Ajustes › Uso de la PC says so).
+          screenshot: "ask",
+          clipboard: "ask",
+          // A command AgentShield marks critical (wiping a drive, uploading secrets, running a
+          // downloaded script) is confirmed by the user even when bash itself is allowed.
+          shell_risk: "ask",
           // mirrors github.com/github/gitignore Node.gitignore pattern for .env files
           read: {
             "*": "allow",

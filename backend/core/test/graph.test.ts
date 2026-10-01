@@ -59,7 +59,7 @@ describe("CodeGraph service", () => {
             const graph = yield* CodeGraph.Service
             const analyzed = yield* graph.analyzeFile(sampleFile)
 
-            expect(analyzed.filePath).toBe(sampleFile)
+            expect(analyzed.filePath).toBe("service.ts")
             expect(analyzed.imports).toContain("effect")
             expect(analyzed.imports).toContain("./memory")
 
@@ -79,6 +79,42 @@ describe("CodeGraph service", () => {
             expect(formatted).toContain("DatabaseService")
             expect(formatted).toContain("import from=\"effect\"")
           }).pipe(Effect.provide(layer))
+        }),
+      ),
+    ),
+  )
+
+  it.live("indexes the project to answer dependents and dependencies", () =>
+    Effect.acquireRelease(
+      Effect.promise(() => tmpdir()),
+      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
+    ).pipe(
+      Effect.flatMap((tmp) =>
+        Effect.gen(function* () {
+          const write = (file: string, text: string) =>
+            Effect.promise(async () => {
+              await fs.mkdir(path.dirname(path.join(tmp.path, file)), { recursive: true })
+              await fs.writeFile(path.join(tmp.path, file), text, "utf-8")
+            })
+          yield* write("src/util/math.ts", ["export function add(a: number, b: number) {", "  return a + b", "}"].join("\n"))
+          yield* write("src/util/index.ts", 'export * from "./math"')
+          yield* write(
+            "src/app.ts",
+            ["import {", "  add,", '} from "./util/math.js"', 'import { z } from "zod"', "export const total = add(1, 2)"].join(
+              "\n",
+            ),
+          )
+          yield* write("src/other.ts", 'import "./util"')
+
+          yield* Effect.gen(function* () {
+            const graph = yield* CodeGraph.Service
+            expect(yield* graph.indexed()).toBe(4)
+            expect((yield* graph.findDependents("src/util/math.ts")).sort()).toEqual(["src/app.ts", "src/util/index.ts"])
+            expect(yield* graph.findDependents("src/util/index.ts")).toEqual(["src/other.ts"])
+            expect(yield* graph.findDependencies("src/app.ts")).toEqual(["src/util/math.ts", "zod"])
+            const hits = yield* graph.findSymbol("add")
+            expect(hits[0]).toMatchObject({ name: "add", kind: "function", filePath: "src/util/math.ts", line: 1 })
+          }).pipe(Effect.provide(makeGraphLayer(tmp.path)))
         }),
       ),
     ),

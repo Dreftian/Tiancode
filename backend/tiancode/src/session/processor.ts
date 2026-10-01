@@ -27,7 +27,8 @@ import { Database } from "@tiancode-ai/core/database/database"
 import { Usage, type LLMEvent } from "@tiancode-ai/llm"
 import { ToolCallRepair } from "./llm/tool-call-repair"
 import { LoopDetector } from "./loop-detector"
-import { ConfigIntelligence } from "@tiancode-ai/core/config/intelligence"
+import { IntelligenceSwitches } from "@/config/intelligence-switches"
+import { LocationServiceMap, locationServiceMapLayer } from "@tiancode-ai/core/location-services"
 
 export type Result = "compact" | "stop" | "continue"
 
@@ -100,6 +101,7 @@ const layer = Layer.effect(
     const image = yield* Image.Service
     const events = yield* EventV2Bridge.Service
     const database = yield* Database.Service
+    const locations = yield* LocationServiceMap.Service
 
     const create = Effect.fn("SessionProcessor.create")(function* (input: Input) {
       // Pre-capture snapshot before the LLM stream starts. The AI SDK
@@ -109,7 +111,7 @@ const layer = Layer.effect(
       // Settings → Intelligence gates the tool-call repair and the loop breaker. Resolved once
       // per run so a toggle flipped mid-stream cannot leave one tool call repaired but
       // unchecked, or the reverse.
-      const intelligence = ConfigIntelligence.fromConfig((yield* config.get()).experimental?.intelligence)
+      const intelligence = yield* IntelligenceSwitches.read(config, locations)
       const ctx: ProcessorContext = {
         assistantMessage: input.assistantMessage,
         sessionID: input.sessionID,
@@ -787,10 +789,17 @@ const layer = Layer.effect(
   }),
 )
 
+const locationServiceMapNode = LayerNode.make({
+  service: LocationServiceMap.Service,
+  layer: locationServiceMapLayer,
+  deps: [],
+})
+
 export const node = LayerNode.make({
   service: Service,
   layer: layer,
   deps: [
+    locationServiceMapNode,
     Session.node,
     Config.node,
     Snapshot.node,
