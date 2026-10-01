@@ -158,6 +158,8 @@ import type {
   McpStatusResponses,
   ModelhubCancelErrors,
   ModelhubCancelResponses,
+  ModelhubDeleteLocalErrors,
+  ModelhubDeleteLocalResponses,
   ModelhubDownloadErrors,
   ModelhubDownloadResponses,
   ModelhubDownloadsErrors,
@@ -167,6 +169,8 @@ import type {
   ModelhubEngineDefaultsSetErrors,
   ModelhubEngineDefaultsSetResponses,
   ModelhubEngineErrors,
+  ModelhubEngineLogsErrors,
+  ModelhubEngineLogsResponses,
   ModelhubEngineResponses,
   ModelhubEngineStartErrors,
   ModelhubEngineStartResponses,
@@ -4072,6 +4076,75 @@ export class Modelhub extends HeyApiClient {
   }
 
   /**
+   * Delete a local model file
+   *
+   * Delete one .gguf file by its exact path (only inside a models folder), drop its download record, and stop the engine first when it is serving that file.
+   */
+  public deleteLocal<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      path?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "path" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<ModelhubDeleteLocalResponses, ModelhubDeleteLocalErrors, ThrowOnError>(
+      {
+        url: "/models/local/delete",
+        ...options,
+        ...params,
+        headers: {
+          "Content-Type": "application/json",
+          ...options?.headers,
+          ...params.headers,
+        },
+      },
+    )
+  }
+
+  /**
+   * Read the engine log
+   *
+   * The last lines llama-server wrote to stderr, which explain a failed or crashed start.
+   */
+  public engineLogs<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<ModelhubEngineLogsResponses, ModelhubEngineLogsErrors, ThrowOnError>({
+      url: "/models/engine/logs",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
    * Cancel a model download
    *
    * Cancel a download job and remove its partial .part file.
@@ -4163,6 +4236,10 @@ export class Modelhub extends HeyApiClient {
       cpuBudget?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
       placement?: "auto" | "gpu" | "hybrid" | "cpu"
       idleUnloadMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      ubatchSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      threadsBatch?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      nCpuMoe?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      loadTimeoutMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
       auto?: boolean
     },
     options?: Options<never, ThrowOnError>,
@@ -4195,6 +4272,10 @@ export class Modelhub extends HeyApiClient {
             { in: "body", key: "cpuBudget" },
             { in: "body", key: "placement" },
             { in: "body", key: "idleUnloadMinutes" },
+            { in: "body", key: "ubatchSize" },
+            { in: "body", key: "threadsBatch" },
+            { in: "body", key: "nCpuMoe" },
+            { in: "body", key: "loadTimeoutMinutes" },
             { in: "body", key: "auto" },
           ],
         },
@@ -4276,6 +4357,11 @@ export class Modelhub extends HeyApiClient {
       cpuBudget?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
       placement?: "auto" | "gpu" | "hybrid" | "cpu"
       idleUnloadMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      ubatchSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      threadsBatch?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      nCpuMoe?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      loadTimeoutMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      lightweight?: "auto" | "always" | "never"
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -4305,6 +4391,11 @@ export class Modelhub extends HeyApiClient {
             { in: "body", key: "cpuBudget" },
             { in: "body", key: "placement" },
             { in: "body", key: "idleUnloadMinutes" },
+            { in: "body", key: "ubatchSize" },
+            { in: "body", key: "threadsBatch" },
+            { in: "body", key: "nCpuMoe" },
+            { in: "body", key: "loadTimeoutMinutes" },
+            { in: "body", key: "lightweight" },
           ],
         },
       ],

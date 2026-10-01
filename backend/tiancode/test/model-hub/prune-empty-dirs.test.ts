@@ -2,7 +2,7 @@ import { test, expect } from "bun:test"
 import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import path from "node:path"
-import { forgetRemovedSomething, modelsRootCandidates, pruneEmptyDirsUnder } from "@/model-hub"
+import { forgetRemovedSomething, isDeletableModelFile, modelsRootCandidates, pruneEmptyDirsUnder } from "@/model-hub"
 
 // Deleting the .gguf left `models/bartowski/` behind as an empty directory, which is
 // what kept making the Hub look like something was still installed.
@@ -135,4 +135,14 @@ test("forgetRemovedSomething is false for a forget that matched nothing", () => 
   expect(forgetRemovedSomething({ models: ["local/a.gguf"], providers: [], files: [] })).toBe(true)
   expect(forgetRemovedSomething({ models: [], providers: ["local"], files: [] })).toBe(true)
   expect(forgetRemovedSomething({ models: [], providers: [], files: ["/tmp/tiancode.jsonc"] })).toBe(true)
+})
+
+test("deleting a model is limited to that exact file inside a models folder", () => {
+  const root = path.join(tmpdir(), "models")
+  expect(isDeletableModelFile(path.join(root, "unsloth", "gemma-3-4b-it-Q4_K_M.gguf"), [root])).toBe(true)
+  // A sibling folder that only shares the prefix, a path that climbs out, the root, other files.
+  expect(isDeletableModelFile(path.join(`${root}2`, "x.gguf"), [root])).toBe(false)
+  expect(isDeletableModelFile(path.join(root, "..", "x.gguf"), [root])).toBe(false)
+  expect(isDeletableModelFile(root, [root])).toBe(false)
+  expect(isDeletableModelFile(path.join(root, "notes.txt"), [root])).toBe(false)
 })

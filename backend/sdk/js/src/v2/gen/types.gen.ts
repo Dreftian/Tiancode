@@ -10187,6 +10187,69 @@ export type ModelhubForgetResponses = {
 
 export type ModelhubForgetResponse = ModelhubForgetResponses[keyof ModelhubForgetResponses]
 
+export type ModelhubDeleteLocalData = {
+  body?: {
+    path: string
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/models/local/delete"
+}
+
+export type ModelhubDeleteLocalErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ModelhubDeleteLocalError = ModelhubDeleteLocalErrors[keyof ModelhubDeleteLocalErrors]
+
+export type ModelhubDeleteLocalResponses = {
+  /**
+   * Deleted model file
+   */
+  200: {
+    deleted: boolean
+    stopped: boolean
+  }
+}
+
+export type ModelhubDeleteLocalResponse = ModelhubDeleteLocalResponses[keyof ModelhubDeleteLocalResponses]
+
+export type ModelhubEngineLogsData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/models/engine/logs"
+}
+
+export type ModelhubEngineLogsErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ModelhubEngineLogsError = ModelhubEngineLogsErrors[keyof ModelhubEngineLogsErrors]
+
+export type ModelhubEngineLogsResponses = {
+  /**
+   * Recent llama-server output
+   */
+  200: {
+    lines: Array<string>
+  }
+}
+
+export type ModelhubEngineLogsResponse = ModelhubEngineLogsResponses[keyof ModelhubEngineLogsResponses]
+
 export type ModelhubCancelData = {
   body?: never
   path: {
@@ -10263,6 +10326,9 @@ export type ModelhubEngineResponses = {
       useMmap?: boolean
       kvOffload?: boolean
       parallel?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      ubatchSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      threadsBatch?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      nCpuMoe?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     }
     lastActivityAt?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     idleUnloadMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
@@ -10294,6 +10360,10 @@ export type ModelhubEngineStartData = {
     cpuBudget?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     placement?: "auto" | "gpu" | "hybrid" | "cpu"
     idleUnloadMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    ubatchSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    threadsBatch?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    nCpuMoe?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    loadTimeoutMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     auto?: boolean
   }
   path?: never
@@ -10340,6 +10410,9 @@ export type ModelhubEngineStartResponses = {
       useMmap?: boolean
       kvOffload?: boolean
       parallel?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      ubatchSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      threadsBatch?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      nCpuMoe?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     }
     lastActivityAt?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     idleUnloadMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
@@ -10391,6 +10464,11 @@ export type ModelhubEngineDefaultsResponses = {
     cpuBudget?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     placement?: "auto" | "gpu" | "hybrid" | "cpu"
     idleUnloadMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    ubatchSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    threadsBatch?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    nCpuMoe?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    loadTimeoutMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    lightweight?: "auto" | "always" | "never"
   }
 }
 
@@ -10417,6 +10495,11 @@ export type ModelhubEngineDefaultsSetData = {
     cpuBudget?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     placement?: "auto" | "gpu" | "hybrid" | "cpu"
     idleUnloadMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    ubatchSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    threadsBatch?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    nCpuMoe?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    loadTimeoutMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    lightweight?: "auto" | "always" | "never"
   }
   path?: never
   query?: {
@@ -10459,6 +10542,11 @@ export type ModelhubEngineDefaultsSetResponses = {
     cpuBudget?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     placement?: "auto" | "gpu" | "hybrid" | "cpu"
     idleUnloadMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    ubatchSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    threadsBatch?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    nCpuMoe?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    loadTimeoutMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    lightweight?: "auto" | "always" | "never"
   }
 }
 
@@ -10511,6 +10599,9 @@ export type ModelhubEngineStopResponses = {
       useMmap?: boolean
       kvOffload?: boolean
       parallel?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      ubatchSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      threadsBatch?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      nCpuMoe?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     }
     lastActivityAt?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     idleUnloadMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"

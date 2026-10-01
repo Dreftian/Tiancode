@@ -1,2302 +1,1374 @@
-import { Tag } from "@tiancode-ai/ui/v2/badge-v2"
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
+import { SegmentedControlItemV2, SegmentedControlV2 } from "@tiancode-ai/ui/v2/segmented-control-v2"
 import { SelectV2 } from "@tiancode-ai/ui/v2/select-v2"
 import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
 import { TextInputV2 } from "@tiancode-ai/ui/v2/text-input-v2"
-import {
-  type Component,
-  createResource,
-  For,
-  Show,
-  createSignal,
-  createMemo,
-  createEffect,
-  on,
-  onCleanup,
-  onMount,
-} from "solid-js"
-import { createStore } from "solid-js/store"
-import { compatibilityFor, type FitTier } from "@tiancode-ai/core/model-fit"
+import { useDialog } from "@tiancode-ai/ui/context/dialog"
+import type { FitTier } from "@tiancode-ai/core/model-fit"
+import { type Component, createEffect, createMemo, createResource, For, type JSX, on, onCleanup, Show } from "solid-js"
+import { createStore, reconcile } from "solid-js/store"
 import { useLanguage } from "@/context/language"
-import { reconcileForgottenFromConfig, type ConfigProviders } from "@/context/models-local"
+import { usePlatform } from "@/context/platform"
 import { useServerSDK } from "@/context/server-sdk"
 import { useServerSync } from "@/context/server-sync"
-import { authTokenFromCredentials } from "@/utils/server"
+import type { dict } from "@/i18n/en"
 import { showToast } from "@/utils/toast"
-import { Persist, persisted } from "@/utils/persist"
-import { SoundEffects } from "@/utils/sound-effects"
-import { SettingsPagerV2 } from "./parts/pager"
-import { SettingsSectionTabs } from "./parts/section-tabs"
+import { SettingsConfirmDialog } from "./parts/confirm-dialog"
+import { SettingsHubHeader } from "./parts/hub-header"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
 import "./models-hub.css"
 
 export type { FitTier } from "@tiancode-ai/core/model-fit"
-export type DownloadStatus = "downloading" | "paused" | "completed" | "failed"
 
+// The generated SDK spells numbers as `number | "NaN" | …`; only real numbers are shown.
 type Numish = number | "NaN" | "Infinity" | "-Infinity"
+const asNumber = (value: Numish | undefined): number | undefined => (typeof value === "number" ? value : undefined)
 
-export type QuantFile = {
-  file: string
-  quant?: string
-  size?: Numish
-  sha256?: string
-  fit?: { tier: FitTier; label: string }
-  recommended?: boolean
-}
+type HubTab = "explore" | "disk" | "engine" | "settings"
+type Fit = { tier: FitTier; label: string }
 
-export type Model = {
-  id: string
-  downloads?: Numish
-  likes?: Numish
-  pipeline_tag?: string
-  quantFiles: QuantFile[]
-  tags?: string[]
-  description?: string
-  author?: string
-}
-
-export type DownloadJob = {
+type QuantFile = { file: string; quant?: string; size?: Numish; fit?: Fit; recommended?: boolean }
+type HubModel = { id: string; downloads?: Numish; likes?: Numish; pipeline_tag?: string; quantFiles: QuantFile[] }
+type DownloadJob = {
   id: string
   model: string
   file: string
-  status: DownloadStatus
-  total: Numish
-  received: Numish
-  done: boolean
+  status: "downloading" | "paused" | "completed" | "failed"
   error?: string
-  speedBytesPerSec?: Numish
   percent?: Numish
-  remainingBytes?: Numish
+  speedBytesPerSec?: Numish
   etaSeconds?: Numish
+  total?: Numish
+  received?: Numish
 }
-
-export type RuntimeInfo = {
-  id: string
-  name: string
-  available: boolean
-  port?: number | string
-  version?: string
-  models?: string[]
-}
-
-export type LoadRecommendation = {
+type Recommendation = {
   contextSize: number
   gpuLayers: number
   threads: number
-  batchSize: number
-  flashAttention?: boolean
-  kvCacheType: "f16" | "q8_0" | "q4_0"
-  useMmap: boolean
-  keepInMemory: boolean
-  kvOffload: boolean
-  parallel: number
+  kvCacheType?: string
+  layers?: number
+  estimatedBytes?: number
   placement: "gpu" | "hybrid" | "cpu"
-  layers: number
-  trainContext?: number
-  kvBytesPerToken: number
-  estimatedBytes: number
-  budgetBytes: number
   vramBytes?: number
   ramBytes?: number
   reasons: string[]
 }
-
-export type FileEstimate = {
-  model: string
-  file: string
-  sizeBytes?: number
-  metadata?: LocalModelFile["metadata"]
-  recommended?: LoadRecommendation
-  error?: string
-}
-
-export type LocalModelFile = {
+type LocalFile = {
   path: string
   file: string
   name: string
   repo?: string
-  root: string
   sizeBytes: number
-  modifiedAt: number
   quant?: string
-  fit?: { tier: FitTier; label: string }
+  fit?: Fit
   metadata?: {
     architecture?: string
-    name?: string
     sizeLabel?: string
     contextLength?: number
     blockCount?: number
-    quantization?: string
-    parameterCount?: number
     hasChatTemplate: boolean
   }
-  recommended?: LoadRecommendation
+  recommended?: Recommendation
   error?: string
 }
+type Estimate = { recommended?: Recommendation; error?: string }
 
-const asNumber = (value: Numish | undefined): number | undefined =>
-  typeof value === "number" ? value : undefined
-
-const formatBytes = (bytes: Numish | undefined) => {
-  const n = asNumber(bytes)
-  if (n === undefined || Number.isNaN(n) || n <= 0) return "0 B"
-  const units = ["B", "KB", "MB", "GB", "TB"]
-  const i = Math.min(units.length - 1, Math.floor(Math.log(n) / Math.log(1024)))
-  const value = n / Math.pow(1024, i)
-  return `${value.toFixed(value >= 10 || i === 0 ? 1 : 2)} ${units[i]}`
+// What the panel edits. Numbers are text so an empty field means "automatic" or "the model's own".
+type Defaults = {
+  auto: boolean
+  vramBudget: number
+  ramBudget: number
+  cpuBudget: number
+  placement: "auto" | "gpu" | "hybrid" | "cpu"
+  idleUnloadMinutes: number
+  lightweight: "auto" | "always" | "never"
+  flashAttention: "auto" | "on" | "off"
+  kvCacheType: "f16" | "q8_0" | "q4_0"
+  keepInMemory: boolean
+  useMmap: boolean
+  kvOffload: boolean
+  contextSize: string
+  gpuLayers: string
+  threads: string
+  batchSize: string
+  parallel: string
+  ubatchSize: string
+  threadsBatch: string
+  nCpuMoe: string
+  seed: string
+  ropeFrequencyBase: string
+  ropeFrequencyScale: string
+  loadTimeoutMinutes: string
 }
 
-const formatNumber = (num: Numish | undefined) => {
-  const n = asNumber(num)
-  if (n === undefined) return "0"
+const NUMERIC = [
+  "contextSize",
+  "gpuLayers",
+  "threads",
+  "batchSize",
+  "parallel",
+  "ubatchSize",
+  "threadsBatch",
+  "nCpuMoe",
+  "seed",
+  "ropeFrequencyBase",
+  "ropeFrequencyScale",
+  "loadTimeoutMinutes",
+] as const
+type NumericKey = (typeof NUMERIC)[number]
+
+const FACTORY: Defaults = {
+  auto: true,
+  vramBudget: 90,
+  ramBudget: 60,
+  cpuBudget: 75,
+  placement: "auto",
+  idleUnloadMinutes: 10,
+  lightweight: "auto",
+  flashAttention: "auto",
+  kvCacheType: "f16",
+  keepInMemory: false,
+  useMmap: true,
+  kvOffload: true,
+  contextSize: "",
+  gpuLayers: "",
+  threads: "",
+  batchSize: "",
+  parallel: "",
+  ubatchSize: "",
+  threadsBatch: "",
+  nCpuMoe: "",
+  seed: "",
+  ropeFrequencyBase: "",
+  ropeFrequencyScale: "",
+  loadTimeoutMinutes: "",
+}
+
+// Well-known GGUF repositories to start from; their files and sizes are read live from Hugging Face.
+const PICKS = [
+  { id: "Qwen/Qwen2.5-Coder-7B-Instruct-GGUF", note: "settings.modelsHub.pick.coder" },
+  { id: "unsloth/Qwen3-8B-GGUF", note: "settings.modelsHub.pick.reasoning" },
+  { id: "unsloth/gemma-3-4b-it-GGUF", note: "settings.modelsHub.pick.compact" },
+  { id: "bartowski/Llama-3.2-3B-Instruct-GGUF", note: "settings.modelsHub.pick.fast" },
+  { id: "bartowski/DeepSeek-R1-Distill-Qwen-7B-GGUF", note: "settings.modelsHub.pick.thinking" },
+  { id: "unsloth/gpt-oss-20b-GGUF", note: "settings.modelsHub.pick.large" },
+] as const
+
+const BUDGETS = {
+  vramBudget: [50, 60, 70, 80, 90, 100],
+  ramBudget: [30, 40, 50, 60, 70, 80],
+  cpuBudget: [25, 50, 75, 100],
+} as const
+const IDLE_MINUTES = [0, 5, 10, 30, 60]
+
+const formatBytes = (bytes: Numish | undefined) => {
+  const value = asNumber(bytes)
+  if (value === undefined || !(value > 0)) return "—"
+  const units = ["B", "KB", "MB", "GB", "TB"]
+  const index = Math.min(units.length - 1, Math.floor(Math.log(value) / Math.log(1024)))
+  const scaled = value / 1024 ** index
+  return `${scaled.toFixed(scaled >= 10 || index === 0 ? 0 : 1)} ${units[index]}`
+}
+
+const formatCount = (value: Numish | undefined) => {
+  const n = asNumber(value)
+  if (n === undefined) return undefined
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`
   return String(n)
 }
 
-const formatSpeed = (bytesPerSec: Numish | undefined) => {
-  const n = asNumber(bytesPerSec)
-  if (n === undefined || n <= 0) return undefined
-  return `${formatBytes(n)}/s`
-}
+const formatTokens = (tokens: number) => (tokens >= 1024 ? `${Math.round(tokens / 1024)}k` : String(tokens))
 
 const formatEta = (seconds: Numish | undefined) => {
   const s = asNumber(seconds)
   if (s === undefined || s <= 0) return undefined
-  if (s < 60) return `${s}s`
+  if (s < 60) return `${Math.round(s)} s`
   const minutes = Math.floor(s / 60)
-  const remaining = s % 60
-  if (minutes < 60) return `${minutes}m ${remaining}s`
-  const hours = Math.floor(minutes / 60)
-  return `${hours}h ${minutes % 60}m`
+  if (minutes < 60) return `${minutes} min`
+  return `${Math.floor(minutes / 60)} h ${minutes % 60} min`
 }
 
-// The author's real avatar from Hugging Face (organisation first, then user); the drawn marks
-// below only appear when the network has nothing for that name.
-function HubAvatar(props: { id: string; author?: string; class?: string }) {
-  const [attempt, setAttempt] = createSignal(0)
-  const author = () => props.author || (props.id.includes("/") ? props.id.split("/")[0] : "")
-  const sources = () => [
-    `https://huggingface.co/api/organizations/${encodeURIComponent(author())}/avatar?redirect=true`,
-    `https://huggingface.co/api/users/${encodeURIComponent(author())}/avatar?redirect=true`,
-  ]
-  return (
-    <Show when={author() && attempt() < 2} fallback={<BrandLogo id={props.id} author={props.author} class={props.class} />}>
-      <div class={`lm-brand-badge lm-brand-hf-avatar ${props.class ?? ""}`} title={`${author()} en Hugging Face`}>
-        <img
-          src={sources()[attempt()]}
-          alt={author()}
-          class="w-full h-full object-cover rounded-xl"
-          loading="lazy"
-          referrerPolicy="no-referrer"
-          onError={() => setAttempt((value) => value + 1)}
-        />
-      </div>
-    </Show>
-  )
-}
+const modelKey = (file: string) => file.replace(/\.gguf$/i, "")
 
-function HubOrgAvatar(props: { org: string; fallback: string }) {
-  const [failed, setFailed] = createSignal(false)
-  return (
-    <Show when={!failed()} fallback={<span>{props.fallback}</span>}>
-      <img
-        class="lm-quick-tag-avatar"
-        src={`https://huggingface.co/api/organizations/${encodeURIComponent(props.org)}/avatar?redirect=true`}
-        alt=""
-        loading="lazy"
-        referrerPolicy="no-referrer"
-        onError={() => setFailed(true)}
-      />
-    </Show>
-  )
-}
+// "C:/x/models/llama.gguf" and "c:\\x\\models\\llama.gguf" are the same file on Windows.
+const samePath = (a: string | undefined, b: string | undefined) =>
+  Boolean(a && b) && a!.replaceAll("\\", "/").toLowerCase() === b!.replaceAll("\\", "/").toLowerCase()
 
-// Iconos de marca oficiales de Hugging Face, Labs y avatares reales
-function BrandLogo(props: { id: string; author?: string; class?: string }) {
-  const [imgError, setImgError] = createSignal(false)
-  const author = () => {
-    if (props.author) return props.author
-    return props.id.includes("/") ? props.id.split("/")[0] : ""
-  }
-  const text = () => `${props.id} ${author()}`.toLowerCase()
-
-  // 1. DeepSeek (Whale official emblem)
-  if (text().includes("deepseek")) {
-    return (
-      <div class={`lm-brand-badge lm-brand-deepseek ${props.class ?? ""}`} title="DeepSeek Official">
-        <svg viewBox="0 0 100 100" width="26" height="26" fill="none">
-          <path
-            d="M18 52C22 36 34 26 50 26C66 26 80 36 84 50C86 56 84 64 78 70C72 76 62 80 50 80C36 80 24 72 18 60L12 66C10 68 8 66 9 63L14 48C15 45 18 45 19 48L22 56"
-            fill="#ffffff"
-          />
-          <circle cx="68" cy="46" r="4" fill="#1e40af" />
-          <path d="M50 36C60 36 70 42 74 52" stroke="#38bdf8" stroke-width="3.5" stroke-linecap="round" />
-        </svg>
-      </div>
-    )
-  }
-
-  // 2. Alibaba Qwen (Prism Diamond official emblem)
-  if (text().includes("qwen")) {
-    return (
-      <div class={`lm-brand-badge lm-brand-qwen ${props.class ?? ""}`} title="Alibaba Qwen Official">
-        <svg viewBox="0 0 100 100" width="26" height="26" fill="none">
-          <polygon points="50,12 86,34 86,66 50,88 14,66 14,34" fill="#4f46e5" stroke="#a5b4fc" stroke-width="2" />
-          <polygon points="50,12 86,34 50,56 14,34" fill="#818cf8" />
-          <polygon points="14,34 50,56 50,88 14,66" fill="#6366f1" />
-          <polygon points="86,34 50,56 50,88 86,66" fill="#4338ca" />
-          <polygon points="50,28 72,42 50,56 28,42" fill="#c7d2fe" />
-        </svg>
-      </div>
-    )
-  }
-
-  // 3. Meta Llama / CodeLlama (Official Meta Infinity Ribbon)
-  if (text().includes("llama") || text().includes("meta")) {
-    return (
-      <div class={`lm-brand-badge lm-brand-meta ${props.class ?? ""}`} title="Meta Llama Official">
-        <svg viewBox="0 0 100 100" width="26" height="26" fill="none">
-          <path
-            d="M28 35C18 35 10 42 10 52C10 62 18 69 28 69C38 69 46 60 50 52C54 60 62 69 72 69C82 69 90 62 90 52C90 42 82 35 72 35C62 35 54 44 50 52C46 44 38 35 28 35ZM28 43C34 43 40 48 44 52C40 56 34 61 28 61C22 61 18 57 18 52C18 47 22 43 28 43ZM72 43C78 43 82 47 82 52C82 57 78 61 72 61C66 61 60 56 56 52C60 48 66 43 72 43Z"
-            fill="#ffffff"
-          />
-        </svg>
-      </div>
-    )
-  }
-
-  // 4. NVIDIA (Nemotron / Megatron official Eye logo)
-  if (text().includes("nvidia") || text().includes("nemotron") || text().includes("megatron")) {
-    return (
-      <div class={`lm-brand-badge lm-brand-nvidia ${props.class ?? ""}`} title="NVIDIA Official">
-        <svg viewBox="0 0 100 100" width="26" height="26" fill="none">
-          <path
-            d="M50 18C28 18 12 36 12 50C12 64 28 82 50 82C66 82 78 72 84 62C85 60 84 58 82 58L72 58C71 58 69 59 68 60C64 66 58 72 50 72C34 72 22 58 22 50C22 42 34 28 50 28C62 28 70 36 74 42C75 43 77 44 79 44L87 44C89 44 90 42 89 40C82 28 68 18 50 18Z"
-            fill="#ffffff"
-          />
-          <path
-            d="M50 36C40 36 32 44 32 50C32 56 40 64 50 64C56 64 62 60 64 54C65 52 64 50 62 50L52 50C51 50 50 51 49 52C48 53 46 54 44 54C42 54 40 52 40 50C40 48 42 46 44 46L63 46C65 46 66 44 65 42C62 38 56 36 50 36Z"
-            fill="#ffffff"
-          />
-        </svg>
-      </div>
-    )
-  }
-
-  // 5. Google Gemma (Gemma / CodeGemma 4-Point Sparkling Star)
-  if (text().includes("gemma") || text().includes("google") || text().includes("codegemma")) {
-    return (
-      <div class={`lm-brand-badge lm-brand-google ${props.class ?? ""}`} title="Google Gemma Official">
-        <svg viewBox="0 0 100 100" width="26" height="26" fill="none">
-          <defs>
-            <linearGradient id="gemma-g1" x1="0" y1="0" x2="100" y2="100">
-              <stop offset="0%" stop-color="#4285F4" />
-              <stop offset="30%" stop-color="#9333EA" />
-              <stop offset="70%" stop-color="#EC4899" />
-              <stop offset="100%" stop-color="#FBBC05" />
-            </linearGradient>
-          </defs>
-          <path d="M50 8C50 34 66 50 92 50C66 50 50 66 50 92C50 66 34 50 8 50C34 50 50 34 50 8Z" fill="url(#gemma-g1)" />
-          <circle cx="50" cy="50" r="9" fill="#ffffff" opacity="0.95" />
-        </svg>
-      </div>
-    )
-  }
-
-  // 6. Mistral AI (Codestral / Mixtral / Ministral official stepped M)
-  if (text().includes("mistral") || text().includes("codestral") || text().includes("mixtral") || text().includes("ministral")) {
-    return (
-      <div class={`lm-brand-badge lm-brand-mistral ${props.class ?? ""}`} title="Mistral AI Official">
-        <svg viewBox="0 0 100 100" width="26" height="26" fill="none">
-          <rect x="14" y="16" width="16" height="16" fill="#ff7000" />
-          <rect x="70" y="16" width="16" height="16" fill="#ff7000" />
-          <rect x="14" y="36" width="16" height="16" fill="#ff8c00" />
-          <rect x="42" y="36" width="16" height="16" fill="#ff7000" />
-          <rect x="70" y="36" width="16" height="16" fill="#ff8c00" />
-          <rect x="14" y="56" width="16" height="16" fill="#ffa500" />
-          <rect x="28" y="56" width="16" height="16" fill="#ff7000" />
-          <rect x="56" y="56" width="16" height="16" fill="#ff7000" />
-          <rect x="70" y="56" width="16" height="16" fill="#ffa500" />
-          <rect x="14" y="76" width="16" height="16" fill="#ffb700" />
-          <rect x="70" y="76" width="16" height="16" fill="#ffb700" />
-        </svg>
-      </div>
-    )
-  }
-
-  // 7. Microsoft Phi (Phi-3 / Phi-4 / Phi-2)
-  if (text().includes("phi") || text().includes("microsoft")) {
-    return (
-      <div class={`lm-brand-badge lm-brand-microsoft ${props.class ?? ""}`} title="Microsoft Official">
-        <svg viewBox="0 0 100 100" width="24" height="24" fill="none">
-          <rect x="14" y="14" width="32" height="32" rx="4" fill="#f25022" />
-          <rect x="54" y="14" width="32" height="32" rx="4" fill="#7fba00" />
-          <rect x="14" y="54" width="32" height="32" rx="4" fill="#00a4ef" />
-          <rect x="54" y="54" width="32" height="32" rx="4" fill="#ffb900" />
-        </svg>
-      </div>
-    )
-  }
-
-  // 8. IBM Granite
-  if (text().includes("granite") || text().includes("ibm")) {
-    return (
-      <div class={`lm-brand-badge lm-brand-ibm ${props.class ?? ""}`} title="IBM Granite Official">
-        <svg viewBox="0 0 100 100" width="26" height="26" fill="none">
-          <rect x="12" y="20" width="76" height="7" fill="#ffffff" />
-          <rect x="12" y="30" width="76" height="7" fill="#ffffff" />
-          <rect x="12" y="40" width="76" height="7" fill="#ffffff" />
-          <rect x="12" y="50" width="76" height="7" fill="#ffffff" />
-          <rect x="12" y="60" width="76" height="7" fill="#ffffff" />
-          <rect x="12" y="70" width="76" height="7" fill="#ffffff" />
-        </svg>
-      </div>
-    )
-  }
-
-  // 8b. Nous Research Hermes (Hermes-3 official winged emblem)
-  if (text().includes("hermes") || text().includes("nous")) {
-    return (
-      <div class={`lm-brand-badge lm-brand-nous ${props.class ?? ""}`} title="Nous Research Hermes Official">
-        <svg viewBox="0 0 100 100" width="26" height="26" fill="none">
-          <circle cx="50" cy="50" r="40" fill="#18181b" stroke="#a855f7" stroke-width="2.5" />
-          <path d="M30 42C38 32 62 32 70 42C74 47 72 56 65 62L50 75L35 62C28 56 26 47 30 42Z" fill="#c084fc" opacity="0.9" />
-          <path d="M22 36C28 30 38 28 46 32L34 44C28 42 24 39 22 36Z" fill="#e9d5ff" />
-          <path d="M78 36C72 30 62 28 54 32L66 44C72 42 76 39 78 36Z" fill="#e9d5ff" />
-          <circle cx="50" cy="50" r="5" fill="#ffffff" />
-        </svg>
-      </div>
-    )
-  }
-
-  // 9. Real Hugging Face Author / Org Avatar si está disponible
-  const authName = author()
-  if (authName && !imgError()) {
-    return (
-      <div class={`lm-brand-badge lm-brand-hf-avatar ${props.class ?? ""}`} title={`${authName} en Hugging Face`}>
-        <img
-          src={`https://huggingface.co/avatars/${encodeURIComponent(authName)}.png`}
-          alt={authName}
-          class="w-full h-full object-cover rounded-xl"
-          onError={() => setImgError(true)}
-          loading="lazy"
-        />
-      </div>
-    )
-  }
-
-  // 10. Hugging Face / Default Fallback
-  return (
-    <div class={`lm-brand-badge lm-brand-hf ${props.class ?? ""}`} title="Hugging Face">
-      <svg viewBox="0 0 100 100" width="28" height="28" fill="none">
-        <circle cx="50" cy="50" r="38" fill="#ffd21e" />
-        <ellipse cx="38" cy="46" rx="4" ry="5.5" fill="#1e1e1e" />
-        <ellipse cx="62" cy="46" rx="4" ry="5.5" fill="#1e1e1e" />
-        <path d="M36 60C40 68 60 68 64 60" stroke="#1e1e1e" stroke-width="4" stroke-linecap="round" fill="none" />
-        <ellipse cx="28" cy="54" rx="4.5" ry="3" fill="#f87171" opacity="0.65" />
-        <ellipse cx="72" cy="54" rx="4.5" ry="3" fill="#f87171" opacity="0.65" />
-        <path d="M12 42C16 40 24 46 22 56C20 64 12 62 10 56C8 50 10 44 12 42Z" fill="#ffd21e" stroke="#1e1e1e" stroke-width="2.5" />
-        <path d="M88 42C84 40 76 46 78 56C80 64 88 62 90 56C92 50 90 44 88 42Z" fill="#ffd21e" stroke="#1e1e1e" stroke-width="2.5" />
-      </svg>
-    </div>
-  )
-}
-
-// Staff picks iniciales recomendados para la interfaz
-const STAFF_PICKS: Model[] = [
-  {
-    id: "Qwen/Qwen2.5-Coder-7B-Instruct-GGUF",
-    downloads: 1420500,
-    likes: 3840,
-    pipeline_tag: "text-generation",
-    author: "Qwen",
-    description: "State-of-the-art code reasoning, multi-language coding and long context generation.",
-    tags: ["code", "reasoning", "instruct", "gguf"],
-    quantFiles: [
-      { file: "qwen2.5-coder-7b-instruct-q4_k_m.gguf", quant: "Q4_K_M", size: 4.68e9, recommended: true },
-      { file: "qwen2.5-coder-7b-instruct-q5_k_m.gguf", quant: "Q5_K_M", size: 5.43e9 },
-      { file: "qwen2.5-coder-7b-instruct-q8_0.gguf", quant: "Q8_0", size: 8.12e9 },
-    ],
-  },
-  {
-    id: "bartowski/Llama-3.2-3B-Instruct-GGUF",
-    downloads: 890200,
-    likes: 2150,
-    pipeline_tag: "text-generation",
-    author: "meta-llama",
-    description: "Compact, ultrafast 3B multilingual model optimized for on-device reasoning and assistance.",
-    tags: ["instruct", "reasoning", "gguf"],
-    quantFiles: [
-      { file: "Llama-3.2-3B-Instruct-Q4_K_M.gguf", quant: "Q4_K_M", size: 2.02e9, recommended: true },
-      { file: "Llama-3.2-3B-Instruct-Q8_0.gguf", quant: "Q8_0", size: 3.42e9 },
-    ],
-  },
-  {
-    id: "bartowski/Nemotron-Mini-4B-Instruct-GGUF",
-    downloads: 541110,
-    likes: 1240,
-    pipeline_tag: "text-generation",
-    author: "nvidia",
-    description: "NVIDIA Nemotron 4B optimized for precise tool calling, reasoning and edge inference.",
-    tags: ["tools", "reasoning", "gguf"],
-    quantFiles: [
-      { file: "Nemotron-Mini-4B-Instruct-Q4_K_M.gguf", quant: "Q4_K_M", size: 2.84e9, recommended: true },
-      { file: "Nemotron-Mini-4B-Instruct-Q5_K_M.gguf", quant: "Q5_K_M", size: 3.25e9 },
-    ],
-  },
-  {
-    id: "bartowski/gemma-2-9b-it-GGUF",
-    downloads: 720300,
-    likes: 1980,
-    pipeline_tag: "text-generation",
-    author: "google",
-    description: "Google Gemma 2 9B instruction-tuned model with deep mathematical and coding capabilities.",
-    tags: ["vision", "tools", "reasoning", "gguf"],
-    quantFiles: [
-      { file: "gemma-2-9b-it-Q4_K_M.gguf", quant: "Q4_K_M", size: 5.86e9, recommended: true },
-      { file: "gemma-2-9b-it-Q5_K_M.gguf", quant: "Q5_K_M", size: 6.82e9 },
-    ],
-  },
-  {
-    id: "bartowski/DeepSeek-R1-Distill-Qwen-7B-GGUF",
-    downloads: 2150000,
-    likes: 8420,
-    pipeline_tag: "text-generation",
-    author: "deepseek-ai",
-    description: "High-power chain-of-thought reasoning model distilled from DeepSeek-R1 with full thinking traces.",
-    tags: ["reasoning", "code", "gguf"],
-    quantFiles: [
-      { file: "DeepSeek-R1-Distill-Qwen-7B-Q4_K_M.gguf", quant: "Q4_K_M", size: 4.68e9, recommended: true },
-      { file: "DeepSeek-R1-Distill-Qwen-7B-Q8_0.gguf", quant: "Q8_0", size: 7.95e9 },
-    ],
-  },
-  {
-    id: "NousResearch/Hermes-3-Llama-3.1-8B-GGUF",
-    downloads: 480200,
-    likes: 2310,
-    pipeline_tag: "text-generation",
-    author: "NousResearch",
-    description: "State-of-the-art agentic & reasoning model from Nous Research with advanced tool-calling and structured JSON output.",
-    tags: ["agent", "reasoning", "tools", "gguf"],
-    quantFiles: [
-      { file: "Hermes-3-Llama-3.1-8B.Q4_K_M.gguf", quant: "Q4_K_M", size: 4.92e9, recommended: true },
-      { file: "Hermes-3-Llama-3.1-8B.Q8_0.gguf", quant: "Q8_0", size: 8.54e9 },
-    ],
-  },
-]
-
-export const SettingsModelsHubV2: Component<{
-  directory?: string
-  active?: boolean
-}> = (props) => {
+/** Settings › Modelos locales: find GGUF models, run them with the built-in llama.cpp engine. */
+export const SettingsModelsHubV2: Component<{ directory?: string; active?: boolean }> = (props) => {
   const language = useLanguage()
+  const platform = usePlatform()
   const serverSdk = useServerSDK()
   const serverSync = useServerSync()
-  const [query, setQuery] = createSignal("")
-  const [submitted, setSubmitted] = createSignal("")
-  let searchDebounceTimer: ReturnType<typeof setTimeout> | undefined
-  const handleSearchInput = (val: string) => {
-    setQuery(val)
-    if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
-    const trimmed = val.trim()
-    if (!trimmed) {
-      setSubmitted("")
-      return
-    }
-    searchDebounceTimer = setTimeout(() => {
-      setSubmitted(trimmed)
-    }, 450)
-  }
-  onCleanup(() => {
-    if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
-  })
-  const [selectedId, setSelectedId] = createSignal<string>(STAFF_PICKS[0].id)
-  const [selectedQuant, setSelectedQuant] = createSignal<string>("")
-  const [jobs, setJobs] = createSignal<DownloadJob[]>([])
-  const [sortBy, setSortBy] = createSignal<"recommended" | "downloads" | "likes" | "name">("recommended")
-  const [showSortMenu, setShowSortMenu] = createSignal(false)
-
-  const [memoryPrefs, setMemoryPrefs] = persisted(
-    Persist.global("settings-v2.models-hub.memory"),
-    createStore({ useGpu: true, useRamFallback: true }),
-  )
-
+  const dialog = useDialog()
   const params = () => (props.directory ? { directory: props.directory } : undefined)
+  const hub = () => serverSdk().client.modelhub
+  const t = (key: string, vars?: Record<string, string | number>) => language.t(key as keyof typeof dict, vars)
 
-  // Load parameters for the native engine, named after LM Studio's per-model load settings
-  // (context length, GPU offload, thread pool, eval batch, flash attention, K/V cache quant,
-  // keep in memory, mmap, KV offload, seed, RoPE, parallel slots). 0 or -1 means "automatic".
-  type EngineLoad = {
-    contextSize: number
-    gpuLayers: number
-    threads: number
-    batchSize: number
-    flashAttention: "auto" | "on" | "off"
-    kvCacheType: "f16" | "q8_0" | "q4_0"
-    keepInMemory: boolean
-    useMmap: boolean
-    kvOffload: boolean
-    seed: number
-    ropeFrequencyBase: number
-    ropeFrequencyScale: number
-    parallel: number
-    /** Derive context, GPU layers, threads, batch and KV cache from the GGUF header + hardware. */
-    auto: boolean
-    /** Automatic configuration limits (percent of VRAM / RAM / CPU cores) and layer placement. */
-    vramBudget: number
-    ramBudget: number
-    cpuBudget: number
-    placement: "auto" | "gpu" | "hybrid" | "cpu"
-    /** Unload the model after this many idle minutes (0 = keep loaded). */
-    idleUnloadMinutes: number
-  }
-  const defaultLoad: EngineLoad = {
-    auto: true,
-    vramBudget: 90,
-    ramBudget: 60,
-    cpuBudget: 75,
-    placement: "auto",
-    idleUnloadMinutes: 10,
-    contextSize: 8192,
-    gpuLayers: 99,
-    threads: 0,
-    batchSize: 0,
-    flashAttention: "auto",
-    kvCacheType: "f16",
-    keepInMemory: false,
-    useMmap: true,
-    kvOffload: true,
-    seed: -1,
-    ropeFrequencyBase: 0,
-    ropeFrequencyScale: 0,
-    parallel: 1,
-  }
-  const [load, setLoad, , loadReady] = persisted("settings-v2.models-hub.load", createStore<EngineLoad>({ ...defaultLoad }))
-  const resetLoad = () => setLoad({ ...defaultLoad })
-  // Stores written before the switch existed have no `auto`: automatic is the default.
-  const autoLoad = () => load.auto !== false
-  const numberOf = (raw: string, fallback: number) => {
-    const value = Number(raw)
-    return Number.isFinite(value) ? value : fallback
-  }
-  const budget = (value: number | undefined, fallback: number) =>
-    typeof value === "number" && Number.isFinite(value) ? value : fallback
-  const enginePayload = () => ({
-    auto: autoLoad(),
-    vramBudget: budget(load.vramBudget, defaultLoad.vramBudget),
-    ramBudget: budget(load.ramBudget, defaultLoad.ramBudget),
-    cpuBudget: budget(load.cpuBudget, defaultLoad.cpuBudget),
-    placement: load.placement ?? "auto",
-    idleUnloadMinutes: budget(load.idleUnloadMinutes, defaultLoad.idleUnloadMinutes),
-    contextSize: load.contextSize > 0 ? Math.floor(load.contextSize) : undefined,
-    gpuLayers: load.gpuLayers >= 0 ? Math.floor(load.gpuLayers) : undefined,
-    threads: load.threads > 0 ? Math.floor(load.threads) : undefined,
-    batchSize: load.batchSize > 0 ? Math.floor(load.batchSize) : undefined,
-    flashAttention: load.flashAttention === "auto" ? undefined : load.flashAttention === "on",
-    kvCacheType: load.kvCacheType,
-    keepInMemory: load.keepInMemory || undefined,
-    useMmap: load.useMmap ? undefined : false,
-    kvOffload: load.kvOffload ? undefined : false,
-    seed: load.seed >= 0 ? Math.floor(load.seed) : undefined,
-    ropeFrequencyBase: load.ropeFrequencyBase > 0 ? load.ropeFrequencyBase : undefined,
-    ropeFrequencyScale: load.ropeFrequencyScale > 0 ? load.ropeFrequencyScale : undefined,
-    parallel: load.parallel > 1 ? Math.floor(load.parallel) : undefined,
+  const [ui, setUi] = createStore({
+    tab: "explore" as HubTab,
+    query: "",
+    submitted: "",
+    selected: PICKS[0].id as string,
+    quant: {} as Record<string, string>,
+    files: {} as Record<string, QuantFile[] | "loading">,
+    estimates: {} as Record<string, Estimate | "loading">,
+    jobs: [] as DownloadJob[],
+    local: [] as LocalFile[],
+    localLoading: false,
+    busy: "",
+    logs: undefined as string[] | undefined,
+    dirInput: "",
   })
-  const flashOptions = ["auto", "on", "off"] as const
-  const kvOptions = ["f16", "q8_0", "q4_0"] as const
-  const loadNumber = (
-    key: "contextSize" | "gpuLayers" | "threads" | "batchSize" | "seed" | "ropeFrequencyBase" | "ropeFrequencyScale" | "parallel",
-    attrs: { min?: number; max?: number; step?: number } = {},
-  ) => (
-    <input
-      type="number"
-      class="lm-load-input"
-      value={load[key]}
-      min={attrs.min}
-      max={attrs.max}
-      step={attrs.step ?? 1}
-      disabled={autoLoad()}
-      onChange={(event) => setLoad(key, numberOf(event.currentTarget.value, defaultLoad[key]))}
-    />
+  const [form, setForm] = createStore<Defaults>({ ...FACTORY })
+  const [loaded, setLoaded] = createStore({ defaults: false })
+
+  // ------------------------------------------------------------------ server state
+
+  const [system, { refetch: refetchSystem }] = createResource(async () =>
+    hub()
+      .system(params())
+      .then((res) => res.data)
+      .catch(() => undefined),
+  )
+  const [engine, { refetch: refetchEngine }] = createResource(async () =>
+    hub()
+      .engine(params())
+      .then((res) => res.data)
+      .catch(() => undefined),
+  )
+  const [runtimes] = createResource(async () =>
+    hub()
+      .runtimes(params())
+      .then((res) => (res.data ?? []).filter((runtime) => runtime.id !== "local"))
+      .catch(() => []),
+  )
+  const [results] = createResource(
+    () => ui.submitted,
+    async (query) =>
+      query
+        ? hub()
+            .search({ ...params(), query, limit: "30" })
+            .then((res) => (res.data ?? []) as HubModel[])
+            .catch(() => [] as HubModel[])
+        : [],
+    { initialValue: [] as HubModel[] },
   )
 
-  const [system, { refetch: refetchSystem }] = createResource(
-    async () => {
-      try {
-        const res = await serverSdk().client.modelhub.system(params())
-        return res?.data
-      } catch {
-        return undefined
-      }
-    },
-  )
+  const refreshJobs = () =>
+    hub()
+      .downloads(params())
+      // Keyed, so polling updates the rows in place instead of recreating them (and their buttons).
+      .then((res) => setUi("jobs", reconcile((res.data ?? []) as DownloadJob[], { key: "id" })))
+      .catch(() => undefined)
 
-  const [searchedModels, { refetch: refetchModels }] = createResource(
-    () => submitted(),
-    async (query) => {
-      if (!query) return []
-      try {
-        const res = await serverSdk().client.modelhub.search({ ...params(), query, limit: "40" })
-        return (res?.data ?? []) as Model[]
-      } catch {
-        return []
-      }
-    },
-    { initialValue: [] as Model[] },
-  )
-
-  const [filesResource, { refetch: refetchFiles }] = createResource(
-    () => selectedId(),
-    async (model) => {
-      if (!model) return undefined
-      try {
-        const res = await serverSdk().client.modelhub.files({ ...params(), model })
-        return res?.data
-      } catch {
-        return undefined
-      }
-    },
-  )
-
-  const [runtimes, { refetch: refetchRuntimes }] = createResource(
-    async () => {
-      try {
-        const res = await serverSdk().client.modelhub.runtimes(params())
-        return (res?.data ?? []) as RuntimeInfo[]
-      } catch {
-        return []
-      }
-    },
-    { initialValue: [] as RuntimeInfo[] },
-  )
-
-  const [engineStatus, { refetch: refetchEngine }] = createResource(
-    async () => {
-      try {
-        const res = await serverSdk().client.modelhub.engine(params())
-        return res?.data
-      } catch {
-        return undefined
-      }
-    },
-  )
-
-  // Sin lectura del sistema devolvemos undefined, no una cifra inventada: estos tres valores
-  // alimentan la insignia de compatibilidad, así que un 8 GB de VRAM supuesto hacía que el panel
-  // afirmara con seguridad que un modelo cabe en una GPU que nunca llegó a consultar.
-  const ram = createMemo(() => asNumber(system()?.ram))
-  const vramTotal = createMemo(() => asNumber(system()?.vram?.total))
-  const vramFree = createMemo(() => asNumber(system()?.vram?.free))
-
-  const syncedJobSet = new Set<string>()
-
-  const syncCompletedModels = async (jobList: DownloadJob[]) => {
-    const completed = jobList.filter((j) => j.status === "completed")
-    const newCompleted = completed.filter((j) => !syncedJobSet.has(j.id))
-    if (!newCompleted.length) return
-    for (const j of newCompleted) {
-      syncedJobSet.add(j.id)
-    }
-    try {
-      const configRes = await serverSdk().client.config.get(params()).catch(() => undefined)
-      const existingProviders = ((configRes?.data as any)?.provider ?? {}) as Record<string, any>
-      const localProvider = existingProviders.local ?? {
-        npm: "@ai-sdk/openai-compatible",
-        options: { baseURL: "http://localhost:58282/v1" },
-        models: {},
-      }
-      const existingModels = { ...(localProvider.models ?? {}) }
-      let changed = false
-      for (const j of newCompleted) {
-        const cleanName = j.file.replace(/\.gguf$/i, "")
-        if (!existingModels[cleanName]) {
-          existingModels[cleanName] = { name: cleanName }
-          changed = true
-        }
-      }
-      if (changed) {
-        const updatedProviders = {
-          ...existingProviders,
-          local: {
-            npm: "@ai-sdk/openai-compatible",
-            options: { baseURL: "http://localhost:58282/v1" },
-            models: existingModels,
-          },
-        }
-        await serverSdk().client.global.config.update({
-          config: {
-            provider: updatedProviders as never,
-          },
-        }).catch(() => undefined)
-
-        await serverSdk().client.config.update({
-          ...params(),
-          config: {
-            provider: updatedProviders as never,
-          },
-        }).catch(() => undefined)
-      }
-    } catch {
-      // ignore
-    }
-  }
-
-  let isRefreshing = false
-  const refreshJobs = async () => {
-    if (isRefreshing) return
-    isRefreshing = true
-    try {
-      const res = await serverSdk().client.modelhub.downloads(params())
-      const list = res.data ?? []
-      setJobs(list)
-      void syncCompletedModels(list)
-    } catch {
-      // ignore transient polling error
-    } finally {
-      isRefreshing = false
-    }
-  }
-
-  // Controlled polling: runs ONLY when this tab is active (props.active === true)
-  // and does NOT track jobs() to avoid reactive runaway loops.
-  createEffect(() => {
-    const isActive = props.active ?? true
-    if (!isActive) return
-
-    void refreshJobs()
-    const timer = setInterval(() => {
-      void refreshJobs()
-    }, 4000)
-    onCleanup(() => clearInterval(timer))
-  })
-
-  const jobsByKey = createMemo(() => {
-    const map: Record<string, DownloadJob> = {}
-    for (const job of jobs()) map[`${job.model}/${job.file}`] = job
-    return map
-  })
-
-  const [hubCategory, setHubCategory] = createSignal<"all" | "coding" | "reasoning" | "lightweight" | "downloaded">("all")
-  // Top bar: explore Hugging Face, what is on disk, the local engines, and where models are kept.
-  const [hubTab, setHubTab] = createSignal<"explore" | "disk" | "engines" | "settings">("explore")
-  createEffect(
-    on(hubTab, (tab) => {
-      if (tab === "disk") setHubCategory("downloaded")
-      if (tab === "explore" && hubCategory() === "downloaded") setHubCategory("all")
-    }),
-  )
-  const localModelsApi = () => window.api?.localModels
-  const [modelsDir, setModelsDir] = createSignal<string | null>(null)
-  onMount(() => {
-    void localModelsApi()?.getDir().then((dir) => setModelsDir(dir)).catch(() => {})
-  })
-  const pickModelsDir = async () => {
-    const api = localModelsApi()
-    if (!api) return
-    const dir = await api.pickDir(language.t("settings.modelsHub.dir.picker")).catch(() => null)
-    if (!dir) return
-    setModelsDir(dir)
-    // The server switches folders right away: downloads, the engine and the disk scan follow.
-    await postToServer("/models/dir", { dir }).catch(() => undefined)
-    void refetchSystem()
-    void refreshLocal()
-    showToast({
-      variant: "success",
-      title: language.t("settings.modelsHub.dir.title"),
-      description: `${dir} · ${language.t("settings.modelsHub.dir.applied")}`,
-    })
-  }
-  const resetModelsDir = async () => {
-    const api = localModelsApi()
-    if (!api) return
-    await api.setDir(null).catch(() => {})
-    setModelsDir(null)
-    await postToServer("/models/dir", { dir: null }).catch(() => undefined)
-    void refetchSystem()
-    void refreshLocal()
-  }
-
-  // ---- sizes for search results ---------------------------------------------------------------
-  // Hugging Face's search lists file names without sizes; the exact sizes come from the repo tree.
-  // The server fills the first page, the rest is fetched here the first time a card renders.
-  const [fileCache, setFileCache] = createSignal<Record<string, QuantFile[]>>({})
-  const inflightFiles = new Set<string>()
-  const ensureFiles = async (modelId: string) => {
-    if (fileCache()[modelId] || inflightFiles.has(modelId)) return
-    inflightFiles.add(modelId)
-    try {
-      const res = await serverSdk().client.modelhub.files({ ...params(), model: modelId })
-      const list = (res?.data ?? []) as QuantFile[]
-      if (list.length > 0) setFileCache((prev) => ({ ...prev, [modelId]: list }))
-    } catch {
-      // the card keeps its unsized list; the download resolves the size server-side
-    } finally {
-      inflightFiles.delete(modelId)
-    }
-  }
-  const filesFor = (model: Model): QuantFile[] => fileCache()[model.id] ?? model.quantFiles
-  const sizeLabel = (size: Numish | undefined) =>
-    asNumber(size) === undefined ? language.t("settings.modelsHub.size.unknown") : formatBytes(size)
-  const formatTokens = (tokens: number) => (tokens >= 1024 ? `${Math.round(tokens / 1024)}k` : String(tokens))
-  const fitLabel = (tier: FitTier | undefined) =>
-    tier === "full_gpu"
-      ? language.t("settings.modelsHub.fit.fullGpu")
-      : tier === "ram_only"
-        ? language.t("settings.modelsHub.fit.ramOnly")
-        : tier === "no_fit"
-          ? language.t("settings.modelsHub.fit.noFit")
-          : language.t("settings.modelsHub.fit.partialGpu")
-  const placementLabel = (placement: LoadRecommendation["placement"]) =>
-    language.t(`settings.modelsHub.placement.${placement}`)
-  // What lands where: "VRAM ≈ 5.1 GB · RAM ≈ 0 B" or the hybrid split.
-  const splitLine = (rec: { vramBytes?: number; ramBytes?: number; placement?: string }) => {
-    if (rec.vramBytes === undefined && rec.ramBytes === undefined) return ""
-    const parts: string[] = []
-    if (rec.placement !== "cpu") parts.push(`VRAM ≈ ${formatBytes(rec.vramBytes ?? 0)}`)
-    if ((rec.ramBytes ?? 0) > 0 || rec.placement === "cpu") parts.push(`RAM ≈ ${formatBytes(rec.ramBytes ?? 0)}`)
-    return parts.join(" · ")
-  }
-
-  // Per-quantisation estimates from the remote GGUF header (cached per model/file).
-  const [estimates, setEstimates] = createSignal<Record<string, FileEstimate | "loading">>({})
-  const ensureEstimate = async (model: string, file: string) => {
-    const key = `${model}/${file}`
-    if (estimates()[key]) return
-    setEstimates((prev) => ({ ...prev, [key]: "loading" }))
-    const result = await getFromServer<FileEstimate>(
-      `/models/estimate?model=${encodeURIComponent(model)}&file=${encodeURIComponent(file)}`,
-      true,
-    )
-    setEstimates((prev) => ({ ...prev, [key]: result ?? { model, file, error: "unavailable" } }))
-  }
-  const estimateFor = (model: string, file: string) => {
-    const entry = estimates()[`${model}/${file}`]
-    return entry && entry !== "loading" ? entry : undefined
-  }
-
-  const recommendationLine = (rec: {
-    contextSize: number
-    gpuLayers: number
-    threads: number
-    kvCacheType?: string
-    layers?: number
-    estimatedBytes?: number
-  }) => {
-    const gpu = rec.gpuLayers >= 99 ? "100%" : rec.layers ? `${rec.gpuLayers}/${rec.layers}` : String(rec.gpuLayers)
-    const parts = [
-      `ctx ${formatTokens(rec.contextSize)}`,
-      `GPU ${gpu}`,
-      `${language.t("settings.modelsHub.load.threads.title")} ${rec.threads}`,
-      `KV ${rec.kvCacheType ?? "f16"}`,
-    ]
-    if (rec.estimatedBytes) parts.push(`~${formatBytes(rec.estimatedBytes)}`)
-    return parts.join(" · ")
-  }
-
-  // ---- the server keeps the same defaults ----------------------------------------------------
-  // The engine also starts on demand from the chat, without this panel: it reads the defaults saved
-  // here (automatic on/off + manual knobs) so both paths load a model the same way.
-  let defaultsTimer: ReturnType<typeof setTimeout> | undefined
-  createEffect(() => {
-    if (!loadReady()) return
-    const body = enginePayload()
-    if (defaultsTimer) clearTimeout(defaultsTimer)
-    defaultsTimer = setTimeout(() => {
-      void postToServer("/models/engine/defaults", body).catch(() => undefined)
-    }, 400)
-  })
-
-  // ---- what is really on disk ----------------------------------------------------------------
-  const [localFiles, setLocalFiles] = createSignal<LocalModelFile[]>([])
-  const [localLoading, setLocalLoading] = createSignal(false)
   const refreshLocal = async () => {
-    setLocalLoading(true)
-    try {
-      const list = await getFromServer<LocalModelFile[]>("/models/local")
-      if (list) setLocalFiles(list)
-    } finally {
-      setLocalLoading(false)
-    }
+    setUi("localLoading", true)
+    await hub()
+      .local(params())
+      .then((res) => setUi("local", reconcile((res.data ?? []) as LocalFile[], { key: "path" })))
+      .catch(() => undefined)
+    setUi("localLoading", false)
   }
-  // The generated SDK types predate `auto`/`applied` on the engine status; the server sends them.
-  type AppliedLoad = { contextSize: number; gpuLayers: number; threads: number; batchSize?: number; kvCacheType?: string }
-  const engineExtras = () => engineStatus() as { auto?: boolean; applied?: AppliedLoad } | undefined
+
+  // Downloads and the engine are polled only while this panel is open; faster while something moves.
   createEffect(() => {
-    const tab = hubTab()
-    if (tab === "disk" || tab === "settings" || tab === "explore") void refreshLocal()
+    if (props.active === false) return
+    void refreshJobs()
+    void refreshLocal()
+    const busy = () =>
+      ui.jobs.some((job) => job.status === "downloading") ||
+      engine()?.status === "starting" ||
+      engine()?.binaryDownloading === true ||
+      ui.tab === "engine"
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const tick = () => {
+      void refreshJobs()
+      void refetchEngine()
+      timer = setTimeout(tick, busy() ? 2000 : 8000)
+    }
+    timer = setTimeout(tick, 2000)
+    onCleanup(() => clearTimeout(timer))
   })
+
+  // A finished download shows up on disk without a manual rescan.
   createEffect(
     on(
-      () => jobs().filter((j) => j.status === "completed").length,
+      () => ui.jobs.filter((job) => job.status === "completed").length,
       () => void refreshLocal(),
       { defer: true },
     ),
   )
 
-  const activeModelList = createMemo<Model[]>(() => {
-    let list: Model[] = []
-    const liveQuery = query().trim().toLowerCase()
-    const isSubmitted = submitted().trim().toLowerCase()
+  // ------------------------------------------------------------------ defaults (server is the truth)
 
-    if (isSubmitted && searchedModels() && searchedModels()!.length > 0) {
-      list = [...searchedModels()!]
-      if (liveQuery && liveQuery !== isSubmitted) {
-        list = list.filter((m) => {
-          const t = `${m.id} ${m.author ?? ""} ${m.tags?.join(" ") ?? ""} ${m.description ?? ""}`.toLowerCase()
-          return t.includes(liveQuery)
-        })
-      }
-    } else if (liveQuery) {
-      // Instant exact search: filters matching models immediately as user types
-      list = STAFF_PICKS.filter((m) => {
-        const t = `${m.id} ${m.author ?? ""} ${m.tags?.join(" ") ?? ""} ${m.description ?? ""}`.toLowerCase()
-        return t.includes(liveQuery)
-      })
-      for (const j of jobs().filter((j) => j.status === "completed")) {
-        const t = `${j.model} ${j.file}`.toLowerCase()
-        if (t.includes(liveQuery) && !list.some((m) => m.id === j.model)) {
-          list.push({
-            id: j.model,
-            pipeline_tag: "text-generation",
-            author: j.model.includes("/") ? j.model.split("/")[0] : "local",
-            description: `Modelo local descargado en disco (${j.file}).`,
-            tags: ["gguf", "local"],
-            quantFiles: [{ file: j.file, quant: "GGUF", size: j.total, recommended: true }],
-          })
-        }
-      }
-    } else if (hubCategory() === "downloaded") {
-      list = STAFF_PICKS.filter((m) => jobs().some((j) => j.model === m.id && j.status === "completed"))
-      for (const j of jobs().filter((j) => j.status === "completed")) {
-        if (!list.some((m) => m.id === j.model)) {
-          list.push({
-            id: j.model,
-            pipeline_tag: "text-generation",
-            author: j.model.includes("/") ? j.model.split("/")[0] : "local",
-            description: `Modelo local descargado en disco (${j.file}).`,
-            tags: ["gguf", "local"],
-            quantFiles: [{ file: j.file, quant: "GGUF", size: j.total, recommended: true }],
-          })
-        }
-      }
-    } else {
-      list = [...STAFF_PICKS]
+  const fromServer = (data: Record<string, unknown>): Defaults => {
+    const next: Defaults = { ...FACTORY }
+    const pick = <K extends keyof Defaults>(key: K, allowed: readonly Defaults[K][]) => {
+      const value = data[key] as Defaults[K]
+      if (allowed.includes(value)) next[key] = value
     }
-
-    const sort = sortBy()
-    if (sort === "downloads") {
-      list = [...list].sort((a, b) => (asNumber(b.downloads) ?? 0) - (asNumber(a.downloads) ?? 0))
-    } else if (sort === "likes") {
-      list = [...list].sort((a, b) => (asNumber(b.likes) ?? 0) - (asNumber(a.likes) ?? 0))
-    } else if (sort === "name") {
-      list = [...list].sort((a, b) => a.id.localeCompare(b.id))
+    next.auto = data.auto !== false
+    for (const key of ["vramBudget", "ramBudget", "cpuBudget", "idleUnloadMinutes"] as const) {
+      if (typeof data[key] === "number") next[key] = data[key] as number
     }
-
-    const cat = hubCategory()
-    if (cat === "coding") {
-      list = list.filter((m) => {
-        const t = `${m.id} ${m.description ?? ""}`.toLowerCase()
-        return t.includes("coder") || t.includes("code") || t.includes("program")
-      })
-    } else if (cat === "reasoning") {
-      list = list.filter((m) => {
-        const t = `${m.id} ${m.description ?? ""}`.toLowerCase()
-        return t.includes("r1") || t.includes("reason") || t.includes("qwq") || t.includes("deepseek")
-      })
-    } else if (cat === "lightweight") {
-      list = list.filter((m) => {
-        return m.quantFiles.some((qf) => {
-          const s = asNumber(qf.size)
-          return s !== undefined && s <= 4.2 * 1024 * 1024 * 1024
-        })
-      })
-    } else if (cat === "downloaded") {
-      list = list.filter((m) => jobs().some((j) => j.model === m.id && j.status === "completed"))
+    pick("placement", ["auto", "gpu", "hybrid", "cpu"])
+    pick("lightweight", ["auto", "always", "never"])
+    pick("kvCacheType", ["f16", "q8_0", "q4_0"])
+    next.flashAttention = data.flashAttention === true ? "on" : data.flashAttention === false ? "off" : "auto"
+    next.keepInMemory = data.keepInMemory === true
+    next.useMmap = data.useMmap !== false
+    next.kvOffload = data.kvOffload !== false
+    for (const key of NUMERIC) {
+      if (typeof data[key] === "number") next[key] = String(data[key])
     }
-
-    return list
-  })
-
-  // Pagination 10x10 for Models Hub
-  const HUB_PAGE_SIZE = 10
-  const [hubPage, setHubPage] = createSignal(1)
-  const hubTotal = () => Math.max(1, Math.ceil(activeModelList().length / HUB_PAGE_SIZE))
-  const pageModelList = createMemo(() => {
-    const page = Math.min(hubPage(), hubTotal())
-    const start = (page - 1) * HUB_PAGE_SIZE
-    return activeModelList().slice(start, start + HUB_PAGE_SIZE)
-  })
-
-  createEffect(() => {
-    query()
-    submitted()
-    hubCategory()
-    setHubPage(1)
-  })
-
-  createEffect(() => {
-    if (hubPage() > hubTotal()) setHubPage(hubTotal())
-  })
-
-  const [selectedQuantMap, setSelectedQuantMap] = createSignal<Record<string, string>>({})
-  const getSelectedFile = (model: Model): QuantFile => {
-    const list = filesFor(model)
-    const override = selectedQuantMap()[model.id]
-    if (override) {
-      const match = list.find((f) => f.file === override)
-      if (match) return match
-    }
-    const rec = list.find((f) => f.recommended) || list.find((f) => (f.quant || "").includes("Q4")) || list[0]
-    return rec || { file: "model.gguf", quant: "Q4_K_M" }
-  }
-  const setModelQuant = (modelId: string, file: string) => {
-    setSelectedQuantMap((prev) => ({ ...prev, [modelId]: file }))
+    return next
   }
 
-  const getJobForModel = (model: Model) => {
-    const file = getSelectedFile(model)
-    return jobsByKey()[`${model.id}/${file.file}`] || jobs().find((j) => j.model === model.id)
+  const numberValue = (key: NumericKey) => {
+    const text = form[key].trim()
+    if (!text) return undefined
+    const value = Number(text)
+    // gpuLayers 0 (CPU only) and seed 0 are real choices; everything else must be positive.
+    if (!Number.isFinite(value) || value < 0 || (value === 0 && key !== "gpuLayers" && key !== "seed")) return undefined
+    return value
   }
+  const invalid = (key: NumericKey) => form[key].trim() !== "" && numberValue(key) === undefined
 
-  const currentModel = createMemo<Model>(() => {
-    const id = selectedId()
-    const found = activeModelList().find((m) => m.id === id) || STAFF_PICKS.find((m) => m.id === id)
-    return found || activeModelList()[0] || STAFF_PICKS[0]
+  const toServer = () => ({
+    auto: form.auto,
+    vramBudget: form.vramBudget,
+    ramBudget: form.ramBudget,
+    cpuBudget: form.cpuBudget,
+    placement: form.placement,
+    idleUnloadMinutes: form.idleUnloadMinutes,
+    lightweight: form.lightweight,
+    kvCacheType: form.kvCacheType,
+    flashAttention: form.flashAttention === "auto" ? undefined : form.flashAttention === "on",
+    keepInMemory: form.keepInMemory || undefined,
+    useMmap: form.useMmap ? undefined : false,
+    kvOffload: form.kvOffload ? undefined : false,
+    ...Object.fromEntries(NUMERIC.map((key) => [key, numberValue(key)]).filter(([, value]) => value !== undefined)),
   })
 
-  const availableFiles = createMemo<QuantFile[]>(() => {
-    const fetched = filesResource()
-    if (fetched && fetched.length > 0) return fetched
-    return currentModel()?.quantFiles ?? []
-  })
-
-  // Auto-seleccionar la cuantización recomendada
-  createEffect(() => {
-    const list = availableFiles()
-    if (list.length > 0) {
-      const current = selectedQuant()
-      if (!current || !list.some((f) => f.file === current)) {
-        const rec = list.find((f) => f.recommended) || list.find((f) => (f.quant || "").includes("Q4")) || list[0]
-        setSelectedQuant(rec.file)
-      }
-    }
-  })
-
-  const currentQuantFile = createMemo<QuantFile | undefined>(() => {
-    const f = selectedQuant()
-    return availableFiles().find((item) => item.file === f) || availableFiles()[0]
-  })
-
-  // Shared with the server so the badge can never disagree with the server's own answer.
-  const compat = (sizeBytes: Numish | undefined): FitTier =>
-    compatibilityFor({
-      sizeBytes: asNumber(sizeBytes),
-      // Sin lectura del sistema van en 0 / undefined, y compatibilityFor responde "partial_gpu":
-      // su respuesta neutra documentada, que no promete descarga completa ni descarta el modelo.
-      ramBytes: ram() ?? 0,
-      vram: (vramTotal() ?? 0) > 0 ? { total: vramTotal()!, free: vramFree() ?? 0 } : undefined,
-      useGpu: memoryPrefs.useGpu,
-      useRamFallback: memoryPrefs.useRamFallback,
+  void hub()
+    .engineDefaults(params())
+    .then((res) => {
+      if (res.data) setForm(fromServer(res.data as unknown as Record<string, unknown>))
     })
+    .catch(() => undefined)
+    .finally(() => setLoaded("defaults", true))
 
+  // Saved shortly after the last change, so typing a number is one save, not one per key.
+  let saveTimer: ReturnType<typeof setTimeout> | undefined
+  createEffect(
+    on(
+      () => JSON.stringify(toServer()),
+      (body) => {
+        if (!loaded.defaults) return
+        if (saveTimer) clearTimeout(saveTimer)
+        saveTimer = setTimeout(() => {
+          void hub()
+            .engineDefaultsSet({ ...params(), ...JSON.parse(body) })
+            .catch(() => showToast({ variant: "error", title: t("settings.modelsHub.settings.saveFailed") }))
+        }, 700)
+      },
+      { defer: true },
+    ),
+  )
+  onCleanup(() => saveTimer && clearTimeout(saveTimer))
 
+  // ------------------------------------------------------------------ explore
 
-  const handleSearch = (e?: Event) => {
-    e?.preventDefault()
-    const val = query().trim()
-    if (!val) {
-      setSubmitted("")
-      return
-    }
-    setSubmitted(val)
+  let searchTimer: ReturnType<typeof setTimeout> | undefined
+  const search = (value: string) => {
+    setUi("query", value)
+    if (searchTimer) clearTimeout(searchTimer)
+    searchTimer = setTimeout(() => setUi("submitted", value.trim()), 400)
   }
+  onCleanup(() => searchTimer && clearTimeout(searchTimer))
+
+  const models = createMemo<HubModel[]>(() =>
+    ui.submitted ? results() : PICKS.map((pick) => ({ id: pick.id, quantFiles: [] })),
+  )
+  const pickNote = (id: string) => PICKS.find((pick) => pick.id === id)?.note
+  const selectedModel = createMemo(() => models().find((model) => model.id === ui.selected) ?? models()[0])
+
+  // The full file list (exact sizes, sub-folders) is read once per repository, when it is opened.
+  const ensureFiles = async (id: string) => {
+    if (ui.files[id]) return
+    setUi("files", id, "loading")
+    const files = await hub()
+      .files({ ...params(), model: id })
+      .then((res) => (res.data ?? []) as QuantFile[])
+      .catch(() => [] as QuantFile[])
+    setUi("files", id, files)
+  }
+  createEffect(() => {
+    const model = selectedModel()
+    if (model) void ensureFiles(model.id)
+  })
+
+  const filesOf = (model: HubModel) => {
+    const cached = ui.files[model.id]
+    return Array.isArray(cached) && cached.length > 0 ? cached : model.quantFiles
+  }
+  const quantOf = (model: HubModel) => {
+    const files = filesOf(model)
+    return files.find((file) => file.file === ui.quant[model.id]) ?? files.find((file) => file.recommended) ?? files[0]
+  }
+
+  // The requirements of one quantisation come from its remote GGUF header: read only for the one
+  // the user is looking at, never for every card (that was megabytes per result).
+  const ensureEstimate = async (model: string, file: string) => {
+    const key = `${model}/${file}`
+    if (ui.estimates[key]) return
+    setUi("estimates", key, "loading")
+    const estimate = await hub()
+      .estimate({ ...params(), model, file })
+      .then((res) => (res.data ?? { error: "unavailable" }) as Estimate)
+      .catch(() => ({ error: "unavailable" }) as Estimate)
+    setUi("estimates", key, estimate)
+  }
+  createEffect(() => {
+    const model = selectedModel()
+    const quant = model && quantOf(model)
+    if (model && quant) void ensureEstimate(model.id, quant.file)
+  })
+  const estimateOf = (model: string, file: string) => {
+    const entry = ui.estimates[`${model}/${file}`]
+    return entry === "loading" ? "loading" : entry
+  }
+
+  const jobFor = (model: string, file: string) => ui.jobs.find((job) => job.model === model && job.file === file)
+  const onDisk = (file: string) => ui.local.some((local) => local.file === file.split("/").at(-1))
 
   const startDownload = async (model: string, file: string) => {
-    const key = `${model}/${file}`
-    const job = jobsByKey()[key]
-    if (job?.status === "downloading") return
-    try {
-      await serverSdk().client.modelhub.download({ ...params(), model, file })
-      showToast({ variant: "success", title: "Descarga iniciada", description: file })
-      await refreshJobs()
-    } catch {
-      showToast({ variant: "error", title: "Error al iniciar descarga" })
+    const job = await hub()
+      .download({ ...params(), model, file })
+      .then((res) => res.data as DownloadJob | undefined)
+      .catch(() => undefined)
+    if (!job || job.status === "failed") {
+      showToast({ variant: "error", title: t("settings.modelsHub.toast.downloadFailed"), description: job?.error })
+      return
     }
+    showToast({ variant: "success", title: t("settings.modelsHub.toast.downloadStarted"), description: file.split("/").at(-1) })
+    void refreshJobs()
   }
 
-  // Lo que devuelve POST /models/forget: qué se quitó de verdad, para que el toast
-  // pueda decirlo en vez de adivinarlo.
-  type ForgetResult = {
-    models: string[]
-    providers: string[]
-    files: string[]
-    directories: string[]
-    clearedDefaultModel: boolean
-    clearedSmallModel: boolean
+  const cancelJob = async (job: DownloadJob) => {
+    await hub()
+      .cancel({ ...params(), id: job.id })
+      .catch(() => undefined)
+    void refreshJobs()
   }
 
-  // El SDK generado no tiene binding para esta ruta, así que se llama a mano con la
-  // URL del servidor + Basic auth, igual que en prompt-input/prompt-optimizer-button.tsx.
-  // Único punto de este componente que habla HTTP directo: si hace falta otra ruta
-  // sin binding, va por aquí.
-  const postToServer = async <T,>(route: string, body: unknown): Promise<T | undefined> => {
-    const serverHttp = serverSdk()?.server?.http
-    if (!serverHttp?.url) return undefined
-    const headers: Record<string, string> = { "Content-Type": "application/json" }
-    if (serverHttp.password) {
-      headers["Authorization"] = `Basic ${authTokenFromCredentials({
-        username: serverHttp.username,
-        password: serverHttp.password,
-      })}`
+  // ------------------------------------------------------------------ disk & engine actions
+
+  const running = (file: LocalFile) => engine()?.status === "running" && samePath(engine()?.modelPath, file.path)
+
+  const load = async (file: LocalFile) => {
+    setUi("busy", file.path)
+    const status = await hub()
+      .engineStart({ ...params(), model: file.repo ?? file.name, file: file.path })
+      .then((res) => res.data)
+      .catch((error: unknown) => ({ status: "error" as const, error: error instanceof Error ? error.message : String(error) }))
+    setUi("busy", "")
+    void refetchEngine()
+    if (status?.status === "error") {
+      showToast({ variant: "error", title: t("settings.modelsHub.toast.loadFailed"), description: status.error })
+      return
     }
-    // Sin directory el enrutado de workspace resuelve al proyecto por defecto del
-    // servidor, no al que el usuario tiene abierto.
-    const query = props.directory ? `?directory=${encodeURIComponent(props.directory)}` : ""
-    const response = await fetch(`${serverHttp.url.replace(/\/+$/, "")}${route}${query}`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-    })
-    if (!response.ok) return undefined
-    return (await response.json()) as T
+    showToast({ variant: "success", title: t("settings.modelsHub.toast.loaded", { name: modelKey(file.file) }) })
   }
 
-  const getFromServer = async <T,>(route: string, hasQuery = false): Promise<T | undefined> => {
-    const serverHttp = serverSdk()?.server?.http
-    if (!serverHttp?.url) return undefined
-    const headers: Record<string, string> = {}
-    if (serverHttp.password) {
-      headers["Authorization"] = `Basic ${authTokenFromCredentials({
-        username: serverHttp.username,
-        password: serverHttp.password,
-      })}`
+  const stop = async () => {
+    await hub()
+      .engineStop(params())
+      .catch(() => undefined)
+    void refetchEngine()
+  }
+
+  // The chat model, in this project's config (the global one without a project). The provider
+  // already lists every .gguf on disk as local/<name>; nothing else is written.
+  const useInChat = async (file: LocalFile) => {
+    const model = `local/${modelKey(file.file)}`
+    const disabled = (serverSync().data.config.disabled_providers ?? []) as string[]
+    const config = {
+      model,
+      ...(disabled.includes("local") ? { disabled_providers: disabled.filter((id) => id !== "local") } : {}),
     }
-    const query = props.directory ? `${hasQuery ? "&" : "?"}directory=${encodeURIComponent(props.directory)}` : ""
-    const response = await fetch(`${serverHttp.url.replace(/\/+$/, "")}${route}${query}`, { headers }).catch(() => undefined)
-    if (!response?.ok) return undefined
-    return (await response.json()) as T
+    const saved = await (props.directory
+      ? serverSdk().client.config.update({ ...params(), config }, { throwOnError: true })
+      : serverSdk().client.global.config.update({ config }, { throwOnError: true })
+    )
+      .then(() => true)
+      .catch(() => false)
+    if (!saved) {
+      showToast({ variant: "error", title: t("settings.modelsHub.toast.useFailed") })
+      return
+    }
+    void serverSync().refreshProviders().catch(() => undefined)
+    showToast({ variant: "success", title: t("settings.modelsHub.toast.used", { name: modelKey(file.file) }) })
   }
 
-  const removeDownload = async (job: DownloadJob) => {
-    try {
-      // 1. Detener el motor nativo para liberar bloqueos de archivo en Windows
-      await serverSdk().client.modelhub.engineStop(params()).catch(() => undefined)
-      await new Promise((r) => setTimeout(r, 250))
-
-      // 2. Invocación de borrado físico directo vía Desktop IPC en Windows (elimina de disco, .jobs.json y procesos)
-      const electronApi = (window as unknown as { api?: { modelHub?: { deleteFile: (target: unknown) => Promise<{ success?: boolean }> } } })?.api
-      if (electronApi?.modelHub?.deleteFile) {
-        await electronApi.modelHub
-          .deleteFile({
-            file: job.file,
-            id: job.id,
-            destPath: (job as any).destPath,
+  const remove = (file: LocalFile) =>
+    void dialog.push(() => (
+      <SettingsConfirmDialog
+        title={t("settings.modelsHub.remove.confirm", { name: file.file })}
+        description={t("settings.modelsHub.remove.description")}
+        confirm={t("settings.modelsHub.disk.delete")}
+        onClose={() => dialog.close()}
+        onConfirm={async () => {
+          setUi("busy", file.path)
+          const result = await hub()
+            .deleteLocal({ ...params(), path: file.path })
+            .then((res) => res.data)
+            .catch(() => undefined)
+          if (!result?.deleted) {
+            setUi("busy", "")
+            showToast({ variant: "error", title: t("settings.modelsHub.remove.failed.title") })
+            return
+          }
+          // The provider entries and a default that pointed at it go too.
+          const forgot = await hub()
+            .forget({ ...params(), file: file.file, model: file.repo })
+            .then((res) => res.data)
+            .catch(() => undefined)
+          setUi("busy", "")
+          void refreshLocal()
+          void refreshJobs()
+          void refetchEngine()
+          void serverSync().refreshProviders().catch(() => undefined)
+          showToast({
+            variant: "success",
+            title: t("settings.modelsHub.remove.success.title"),
+            description: [
+              t("settings.modelsHub.remove.success.description", { file: file.file }),
+              forgot?.clearedDefaultModel ? t("settings.modelsHub.remove.success.defaultCleared") : "",
+            ]
+              .filter(Boolean)
+              .join(" "),
           })
-          .catch(() => undefined)
-      }
+        }}
+      />
+    ))
 
-      // 3. Eliminar archivo de disco y cancelar job en backend con múltiples formatos de clave
-      const safeFile = encodeURIComponent(job.file)
-      const safeId = encodeURIComponent(job.id)
-      await Promise.all([
-        serverSdk().client.modelhub.cancel({ id: safeFile, ...params() }).catch(() => undefined),
-        serverSdk().client.modelhub.cancel({ id: job.file, ...params() }).catch(() => undefined),
-        serverSdk().client.modelhub.cancel({ id: safeId, ...params() }).catch(() => undefined),
-        serverSdk().client.modelhub.cancel({ id: job.id, ...params() }).catch(() => undefined),
-      ])
-
-      // 4. Olvidar el modelo en la config (proyecto Y global) desde el servidor.
-      //    Esto NO se puede hacer con config.update: update/updateGlobal hacen
-      //    mergeDeep(base, patch), y un merge profundo sólo añade y sobrescribe —
-      //    nunca borra. Mandar el mapa de modelos sin la clave era un no-op por
-      //    construcción, y además sólo tocaba la config de proyecto, mientras que
-      //    la entrada vive en la global. /models/forget borra en ambos archivos,
-      //    quita el proveedor local si se queda sin modelos, y limpia `model`
-      //    cuando apuntaba al modelo eliminado.
-      const forgotten = await postToServer<ForgetResult>("/models/forget", {
-        model: job.model,
-        file: job.file,
-      }).catch(() => undefined)
-
-      // 5. Confirmación y sincronización final en la UI
-      await refreshJobs()
-      refetchEngine()
-      setJobs((prev) => prev.filter((j) => j.id !== job.id && j.file !== job.file))
-
-      // El backend puede re-agregar el job si el archivo sigue bloqueado en
-      // disco; verificar que realmente desapareció antes de anunciar éxito.
-      const after = await serverSdk().client.modelhub.downloads(params()).catch(() => undefined)
-      // A failed IPC attempt may be followed by a successful backend deletion.
-      // Verify final inventory; an unavailable response must never mean empty.
-      if (!after?.data) throw new Error("Model inventory verification failed")
-      const stillThere = after.data.some((j) => j.id === job.id || j.file === job.file)
-
-      if (stillThere) {
-        showToast({
-          variant: "error",
-          title: language.t("settings.modelsHub.remove.locked.title"),
-          description: language.t("settings.modelsHub.remove.locked.description", { file: job.file }),
-        })
-        return
-      }
-
-      // Podar la config cacheada: es la contraparte del
-      // serverSync().set("config", "provider", …) que hace activateDownloadedModel.
-      // /models/forget reescribe los ficheros del servidor, pero nada vuelve a
-      // pedir la query de config — refreshProviders() sólo refresca las queries
-      // con queryKey[2] === "providers", y nadie publica "config.updated" — así que
-      // sin esto el documento cacheado conserva el proveedor borrado durante
-      // el resto de la sesión, aunque el archivo ya no exista.
-      if (forgotten) {
-        const pruned = reconcileForgottenFromConfig({
-          providers: serverSync().data.config.provider as ConfigProviders | undefined,
-          forgotten,
-          file: job.file,
-        })
-        // Solid store setters merge objects; reconciliation removes absent keys.
-        serverSync().set("config", "provider", pruned as never)
-        // El servidor borra también estas referencias cuando apuntaban al modelo.
-        if (forgotten.clearedDefaultModel) serverSync().set("config", "model", undefined as never)
-        if (forgotten.clearedSmallModel) serverSync().set("config", "small_model", undefined as never)
-      }
-
-      // Proveedores y Modelos leen la config cacheada del servidor: sin refrescar,
-      // el modelo recién olvidado sigue ofreciéndose hasta reiniciar la app.
-      await serverSdk().client.global.dispose().catch(() => undefined)
-      await serverSync().refreshProviders().catch(() => undefined)
-
-      // El toast dice lo que realmente pasó, no lo que se intentó.
-      const details = [language.t("settings.modelsHub.remove.success.description", { file: job.file })]
-      if (!forgotten) details.push(language.t("settings.modelsHub.remove.configFailed"))
-      else {
-        if (forgotten.models.length) details.push(language.t("settings.modelsHub.remove.success.fromProviders"))
-        if (forgotten.clearedDefaultModel) details.push(language.t("settings.modelsHub.remove.success.defaultCleared"))
-      }
-
-      showToast({
-        variant: forgotten ? "success" : "default",
-        title: language.t("settings.modelsHub.remove.success.title"),
-        description: details.join(" "),
-      })
-    } catch {
-      showToast({ variant: "error", title: language.t("settings.modelsHub.remove.failed.title") })
-      await refreshJobs()
+  const toggleLogs = async () => {
+    if (ui.logs) {
+      setUi("logs", undefined)
+      return
     }
+    const lines = await hub()
+      .engineLogs(params())
+      .then((res) => res.data?.lines ?? [])
+      .catch(() => [])
+    setUi("logs", [...lines])
   }
 
-  const stopNativeEngine = async () => {
-    try {
-      await serverSdk().client.modelhub.engineStop(params())
-      refetchEngine()
-      refetchRuntimes()
-      showToast({
-        variant: "success",
-        title: "Motor Nativo detenido",
-        description: "Se ha liberado la memoria VRAM y los recursos de la GPU.",
-      })
-    } catch {
-      showToast({ variant: "error", title: "Error al detener el motor nativo" })
-    }
+  // ------------------------------------------------------------------ models folder
+
+  const localModels = () => window.api?.localModels
+  const pickDir = async () => {
+    const dir = await localModels()
+      ?.pickDir(t("settings.modelsHub.dir.picker"))
+      .catch(() => null)
+    if (dir) await applyDir(dir)
+  }
+  const applyDir = async (dir: string | null) => {
+    if (dir === null) await localModels()?.setDir(null).catch(() => undefined)
+    const ok = await hub()
+      // The API takes null for "back to the default folder"; the generated type only lists strings.
+      .setDir({ ...params(), dir: dir as string })
+      .then(() => true)
+      .catch(() => false)
+    void refetchSystem()
+    void refreshLocal()
+    if (ok && dir) showToast({ variant: "success", title: t("settings.modelsHub.dir.title"), description: dir })
   }
 
-  const activateDownloadedModel = async (job: { model: string; file: string; path?: string }) => {
-    const modelName = job.file.replace(/\.gguf$/i, "")
-    // The context Tiancode assumes for compaction must match llama-server's -c; the engine reports
-    // what it applied and the provider entry below carries it.
-    let engineContext: number | undefined
-    const availableRuntime = (runtimes() ?? []).find(
-      (r) => r.available && r.id !== "tiancode-native" && r.id !== "local",
-    )?.id
+  // ------------------------------------------------------------------ labels
 
-    let runtimeId = "local"
-    let baseURL = "http://127.0.0.1:58282/v1"
+  const fitLabel = (tier: FitTier | undefined) =>
+    tier === "full_gpu"
+      ? t("settings.modelsHub.fit.fullGpu")
+      : tier === "ram_only"
+        ? t("settings.modelsHub.fit.ramOnly")
+        : tier === "no_fit"
+          ? t("settings.modelsHub.fit.noFit")
+          : t("settings.modelsHub.fit.partialGpu")
 
-    if (availableRuntime === "ollama") {
-      runtimeId = "ollama"
-      baseURL = "http://localhost:11434/v1"
-    } else if (availableRuntime === "lmstudio") {
-      runtimeId = "lmstudio"
-      baseURL = "http://localhost:1234/v1"
-    } else {
-      // Iniciar automáticamente Tiancode Native Engine si no hay un runtime externo
-      runtimeId = "local"
-      baseURL = "http://127.0.0.1:58282/v1"
-      showToast({
-        title: "Iniciando Tiancode Native Engine...",
-        description: `Cargando ${modelName} en GPU/VRAM...`,
-      })
-      const engRes = await serverSdk()
-        .client.modelhub.engineStart({
-          ...params(),
-          ...enginePayload(),
-          model: job.model,
-          // The absolute path wins when the file was found by the disk scan (custom folders, legacy roots).
-          file: job.path ?? job.file,
-        })
-        .catch((err) => ({ data: { status: "error", error: String(err) } }))
+  const recommendationParts = (rec: Recommendation) =>
+    [
+      t("settings.modelsHub.spec.context", { value: formatTokens(rec.contextSize) }),
+      t("settings.modelsHub.spec.gpu", {
+        value: rec.gpuLayers >= 99 || (rec.layers && rec.gpuLayers >= rec.layers) ? "100%" : rec.layers ? `${rec.gpuLayers}/${rec.layers}` : String(rec.gpuLayers),
+      }),
+      t("settings.modelsHub.spec.threads", { value: rec.threads }),
+      `KV ${rec.kvCacheType ?? "f16"}`,
+    ]
 
-      if (engRes?.data?.status === "error") {
-        showToast({
-          variant: "error",
-          title: "Error al iniciar el motor nativo",
-          description: engRes.data.error || "No se pudo iniciar el proceso de inferencia.",
-        })
-        return
-      }
-      const applied = (engRes?.data as { applied?: { contextSize?: number } } | undefined)?.applied
-      if (applied?.contextSize) engineContext = applied.contextSize
-      refetchEngine()
-      refetchRuntimes()
-    }
+  const splitLine = (rec: Recommendation) =>
+    [
+      rec.placement !== "cpu" ? `VRAM ≈ ${formatBytes(rec.vramBytes ?? 0)}` : "",
+      (rec.ramBytes ?? 0) > 0 || rec.placement === "cpu" ? `RAM ≈ ${formatBytes(rec.ramBytes ?? 0)}` : "",
+    ]
+      .filter(Boolean)
+      .join(" · ")
 
-    try {
-      const configRes = await serverSdk().client.config.get(params()).catch(() => undefined)
-      const existingProviders = (configRes?.data?.provider ?? {}) as Record<
-        string,
-        { npm?: string; options?: { baseURL?: string }; models?: Record<string, { name: string }> }
-      >
+  const engineState = () => engine()?.status ?? "stopped"
+  const diskSize = () => ui.local.reduce((sum, file) => sum + file.sizeBytes, 0)
+  const activeJobs = () => ui.jobs.filter((job) => job.status !== "completed")
 
-      const existingRuntimeModels = (existingProviders[runtimeId]?.models ?? {}) as Record<string, { name: string }>
-      const limit = engineContext
-        ? { limit: { context: engineContext, output: Math.min(8192, Math.max(1024, Math.floor(engineContext / 4))) } }
-        : {}
-      const updatedModels: Record<string, { name: string; limit?: { context: number; output: number } }> = {
-        ...existingRuntimeModels,
-        [modelName]: { name: modelName, ...limit },
-        [job.file]: { name: job.file, ...limit },
-      }
-
-      const updatedProviders = {
-        ...existingProviders,
-        [runtimeId]: {
-          npm: "@ai-sdk/openai-compatible",
-          options: { baseURL },
-          models: updatedModels,
-        },
-        local: {
-          npm: "@ai-sdk/openai-compatible",
-          options: { baseURL: "http://127.0.0.1:58282/v1" },
-          models: {
-            ...(existingProviders.local?.models ?? {}),
-            [modelName]: { name: modelName, ...limit },
-            [job.file]: { name: job.file, ...limit },
-          },
-        },
-      }
-
-      // IMPORTANTE: Asegurar que ni runtimeId ni local queden en disabled_providers
-      const currentDisabled = ((configRes?.data?.disabled_providers ?? serverSync().data.config.disabled_providers ?? []) as string[])
-      const nextDisabled = currentDisabled.filter((id) => id !== runtimeId && id !== "local")
-
-      await serverSdk()
-        .client.global.config.update({
-          config: {
-            provider: updatedProviders as never,
-            disabled_providers: nextDisabled,
-            model: `${runtimeId}/${modelName}`,
-          },
-        })
-        .catch(() => undefined)
-
-      await serverSdk()
-        .client.config.update({
-          ...params(),
-          config: {
-            provider: updatedProviders as never,
-            disabled_providers: nextDisabled,
-            model: `${runtimeId}/${modelName}`,
-          },
-        })
-        .catch(() => undefined)
-
-      serverSync().set("config", "provider", updatedProviders)
-      serverSync().set("config", "disabled_providers", nextDisabled)
-      serverSync().set("config", "model", `${runtimeId}/${modelName}`)
-
-      await serverSdk().client.global.dispose().catch(() => undefined)
-      await serverSync().refreshProviders().catch(() => undefined)
-
-      showToast({
-        variant: "success",
-        title: `Modelo activado: ${modelName}`,
-        description: "El modelo local está activo y listo para ser seleccionado en cualquier sesión de Tiancode.",
-      })
-    } catch {
-      showToast({ variant: "error", title: "No se pudo activar el modelo local" })
-    }
+  const engineHint = () => {
+    const status = engine()
+    if (status?.status === "running") return t("settings.modelsHub.hint.engine.running", { name: status.modelName ?? "" })
+    if (status?.status === "starting") return t("settings.modelsHub.hint.engine.starting")
+    if (status?.status === "error") return t("settings.modelsHub.hint.engine.error")
+    return t("settings.modelsHub.hint.engine.stopped")
   }
 
-  const activeJob = createMemo(() => {
-    const m = currentModel()
-    const f = currentQuantFile()
-    if (!m || !f) return undefined
-    return jobsByKey()[`${m.id}/${f.file}`]
-  })
+  const idleCountdown = () => {
+    const status = engine()
+    const minutes = asNumber(status?.idleUnloadMinutes)
+    const last = asNumber(status?.lastActivityAt)
+    if (status?.status !== "running" || !minutes || !last) return undefined
+    const left = Math.max(0, Math.round((last + minutes * 60_000 - Date.now()) / 60_000))
+    return t("settings.modelsHub.engine.idleIn", { minutes: left })
+  }
+
+  const numberField = (key: NumericKey, placeholder: string) => (
+    <TextInputV2
+      appearance="base"
+      class="settings-v2-mh-number"
+      inputMode="decimal"
+      value={form[key]}
+      invalid={invalid(key)}
+      placeholder={placeholder}
+      onInput={(event) => setForm(key, event.currentTarget.value)}
+      aria-label={t(`settings.modelsHub.load.${key}.title`)}
+    />
+  )
+
+  const choice = <T extends string | number>(props2: {
+    value: T
+    options: readonly T[]
+    label: (value: T) => string
+    onChange: (value: T) => void
+  }) => (
+    <SelectV2
+      appearance="inline"
+      options={[...props2.options]}
+      current={props2.value}
+      value={(option) => String(option)}
+      label={props2.label}
+      placement="bottom-end"
+      gutter={6}
+      onSelect={(option) => option !== null && option !== undefined && props2.onChange(option)}
+    />
+  )
+
+  const section = (title: string, description: string | undefined, children: JSX.Element) => (
+    <div class="settings-v2-section">
+      <h3 class="settings-v2-section-title">{title}</h3>
+      <Show when={description}>
+        <p class="settings-v2-mh-section-hint">{description}</p>
+      </Show>
+      <SettingsListV2>{children}</SettingsListV2>
+    </div>
+  )
 
   return (
     <>
-      <div class="settings-v2-tab-header settings-v2-tab-header--stacked">
-        <div class="settings-v2-tab-header-row">
-          <h2 class="settings-v2-tab-title">{language.t("settings.modelsHub.title")}</h2>
-        </div>
-        <p class="settings-v2-tab-description">{language.t("settings.modelsHub.description")}</p>
-        <SettingsSectionTabs
-          value={hubTab()}
-          onChange={setHubTab}
-          options={[
-            { id: "explore", label: language.t("settings.modelsHub.tab.explore") },
-            { id: "disk", label: language.t("settings.modelsHub.tab.disk") },
-            { id: "engines", label: language.t("settings.modelsHub.tab.engines") },
-            { id: "settings", label: language.t("settings.modelsHub.tab.settings") },
-          ]}
-        />
-      </div>
+      <SettingsHubHeader
+        icon="models"
+        title={t("settings.modelsHub.title")}
+        description={t("settings.modelsHub.description")}
+        value={ui.tab}
+        onChange={(tab) => setUi("tab", tab)}
+        sections={[
+          { id: "explore", label: t("settings.modelsHub.tab.explore"), hint: t("settings.modelsHub.hint.explore"), icon: "magnifying-glass" },
+          {
+            id: "disk",
+            label: t("settings.modelsHub.tab.disk"),
+            hint: t("settings.modelsHub.hint.disk", { count: ui.local.length, size: formatBytes(diskSize()) }),
+            icon: "folder",
+          },
+          { id: "engine", label: t("settings.modelsHub.tab.engine"), hint: engineHint(), icon: "console" },
+          {
+            id: "settings",
+            label: t("settings.modelsHub.tab.settings"),
+            hint: t(form.auto ? "settings.modelsHub.hint.settings.auto" : "settings.modelsHub.hint.settings.manual"),
+            icon: "sliders",
+          },
+        ]}
+      />
 
-      <div class="lm-hub-container" data-tab={hubTab()}>
-        <Show when={hubTab() === "settings"}>
-          <div class="settings-v2-section">
-            <h3 class="settings-v2-section-title">{language.t("settings.modelsHub.tab.settings")}</h3>
-            <SettingsListV2>
-              <SettingsRowV2
-                title={language.t("settings.modelsHub.dir.title")}
-                description={modelsDir() ?? language.t("settings.modelsHub.dir.default")}
-              >
-                <div class="flex flex-wrap items-center justify-end gap-2">
-                  <ButtonV2 type="button" variant="outline" size="small" disabled={!localModelsApi()} onClick={() => void pickModelsDir()}>
-                    {language.t("settings.modelsHub.dir.change")}
-                  </ButtonV2>
-                  <Show when={modelsDir()}>
-                    <ButtonV2 type="button" variant="ghost" size="small" onClick={() => void resetModelsDir()}>
-                      {language.t("settings.modelsHub.dir.reset")}
-                    </ButtonV2>
-                  </Show>
-                </div>
-              </SettingsRowV2>
-            </SettingsListV2>
-            <p class="settings-v2-note">{language.t("settings.modelsHub.dir.restart")}</p>
-          </div>
-
-          <div class="settings-v2-section">
-            <div class="lm-load-head">
-              <div>
-                <h3 class="settings-v2-section-title">{language.t("settings.modelsHub.load.title")}</h3>
-                <p class="settings-v2-note lm-load-note">{language.t("settings.modelsHub.load.description")}</p>
-              </div>
-              <ButtonV2 type="button" variant="ghost" size="small" onClick={resetLoad}>
-                {language.t("settings.modelsHub.load.reset")}
-              </ButtonV2>
-            </div>
-            <SettingsListV2>
-              <SettingsRowV2
-                title={language.t("settings.modelsHub.auto.title")}
-                description={language.t("settings.modelsHub.auto.description")}
-              >
-                <Switch checked={autoLoad()} onChange={(checked) => setLoad("auto", checked)} />
-              </SettingsRowV2>
-            </SettingsListV2>
-            <div class="settings-v2-section lm-auto-limits">
-              <h3 class="settings-v2-section-title">{language.t("settings.modelsHub.auto.limits.title")}</h3>
-              <p class="settings-v2-note lm-load-note">{language.t("settings.modelsHub.auto.limits.description")}</p>
-              <SettingsListV2>
-                <SettingsRowV2
-                  title={language.t("settings.modelsHub.auto.vram.title")}
-                  description={language.t("settings.modelsHub.auto.vram.description")}
-                >
-                  <SelectV2
-                    appearance="inline"
-                    options={[50, 60, 70, 80, 90, 100]}
-                    current={budget(load.vramBudget, defaultLoad.vramBudget)}
-                    placement="bottom-end"
-                    gutter={6}
-                    label={(option) => `${option} %`}
-                    onSelect={(option) => option && setLoad("vramBudget", option)}
-                  />
-                </SettingsRowV2>
-                <SettingsRowV2
-                  title={language.t("settings.modelsHub.auto.ram.title")}
-                  description={language.t("settings.modelsHub.auto.ram.description")}
-                >
-                  <SelectV2
-                    appearance="inline"
-                    options={[30, 40, 50, 60, 70, 80]}
-                    current={budget(load.ramBudget, defaultLoad.ramBudget)}
-                    placement="bottom-end"
-                    gutter={6}
-                    label={(option) => `${option} %`}
-                    onSelect={(option) => option && setLoad("ramBudget", option)}
-                  />
-                </SettingsRowV2>
-                <SettingsRowV2
-                  title={language.t("settings.modelsHub.auto.cpu.title")}
-                  description={language.t("settings.modelsHub.auto.cpu.description")}
-                >
-                  <SelectV2
-                    appearance="inline"
-                    options={[25, 50, 75, 100]}
-                    current={budget(load.cpuBudget, defaultLoad.cpuBudget)}
-                    placement="bottom-end"
-                    gutter={6}
-                    label={(option) => `${option} %`}
-                    onSelect={(option) => option && setLoad("cpuBudget", option)}
-                  />
-                </SettingsRowV2>
-                <SettingsRowV2
-                  title={language.t("settings.modelsHub.auto.placement.title")}
-                  description={language.t("settings.modelsHub.auto.placement.description")}
-                >
-                  <SelectV2
-                    appearance="inline"
-                    options={["auto", "gpu", "hybrid", "cpu"] as const}
-                    current={load.placement ?? "auto"}
-                    placement="bottom-end"
-                    gutter={6}
-                    label={(option) => language.t(`settings.modelsHub.placement.${option}` as Parameters<typeof language.t>[0])}
-                    onSelect={(option) => option && setLoad("placement", option)}
-                  />
-                </SettingsRowV2>
-                <SettingsRowV2
-                  title={language.t("settings.modelsHub.auto.idle.title")}
-                  description={language.t("settings.modelsHub.auto.idle.description")}
-                >
-                  <SelectV2
-                    appearance="inline"
-                    options={[0, 5, 10, 30, 60]}
-                    current={budget(load.idleUnloadMinutes, defaultLoad.idleUnloadMinutes)}
-                    placement="bottom-end"
-                    gutter={6}
-                    label={(option) =>
-                      option === 0
-                        ? language.t("settings.modelsHub.auto.idle.never")
-                        : language.t("settings.modelsHub.auto.idle.minutes", { n: option })
-                    }
-                    onSelect={(option) => option !== undefined && option !== null && setLoad("idleUnloadMinutes", option)}
-                  />
-                </SettingsRowV2>
-              </SettingsListV2>
-              <p class="settings-v2-note lm-load-note">{language.t("settings.modelsHub.auto.lightweight")}</p>
-            </div>
-            <Show when={autoLoad()}>
-              <div class="lm-auto-summary">
-                <Show
-                  when={engineExtras()?.auto ? engineExtras()?.applied : undefined}
-                  fallback={<span>{language.t("settings.modelsHub.auto.idle")}</span>}
-                >
-                  {(applied) => (
-                    <span>
-                      <b>{language.t("settings.modelsHub.auto.applied")}</b> · {engineStatus()?.modelName}:{" "}
-                      {recommendationLine(applied())}
-                    </span>
-                  )}
-                </Show>
-                <span class="lm-auto-summary-note">{language.t("settings.modelsHub.auto.manualDisabled")}</span>
-              </div>
-            </Show>
-            <div class="lm-load-manual" classList={{ "is-disabled": autoLoad() }}>
-            <SettingsListV2>
-              <SettingsRowV2
-                title={language.t("settings.modelsHub.load.contextSize.title")}
-                description={language.t("settings.modelsHub.load.contextSize.description")}
-              >
-                {loadNumber("contextSize", { min: 512, max: 262144, step: 512 })}
-              </SettingsRowV2>
-              <SettingsRowV2
-                title={language.t("settings.modelsHub.load.gpuLayers.title")}
-                description={language.t("settings.modelsHub.load.gpuLayers.description")}
-              >
-                {loadNumber("gpuLayers", { min: 0, max: 999 })}
-              </SettingsRowV2>
-              <SettingsRowV2
-                title={language.t("settings.modelsHub.load.threads.title")}
-                description={language.t("settings.modelsHub.load.threads.description")}
-              >
-                {loadNumber("threads", { min: 0, max: 256 })}
-              </SettingsRowV2>
-              <SettingsRowV2
-                title={language.t("settings.modelsHub.load.batchSize.title")}
-                description={language.t("settings.modelsHub.load.batchSize.description")}
-              >
-                {loadNumber("batchSize", { min: 0, max: 8192, step: 64 })}
-              </SettingsRowV2>
-              <SettingsRowV2
-                title={language.t("settings.modelsHub.load.flashAttention.title")}
-                description={language.t("settings.modelsHub.load.flashAttention.description")}
-              >
-                <SelectV2
-                  appearance="inline"
-                  options={[...flashOptions]}
-                  current={load.flashAttention}
-                  placement="bottom-end"
-                  gutter={6}
-                  label={(option) => language.t(`settings.modelsHub.load.choice.${option}` as Parameters<typeof language.t>[0])}
-                  onSelect={(option) => option && setLoad("flashAttention", option)}
-                />
-              </SettingsRowV2>
-              <SettingsRowV2
-                title={language.t("settings.modelsHub.load.kvCacheType.title")}
-                description={language.t("settings.modelsHub.load.kvCacheType.description")}
-              >
-                <SelectV2
-                  appearance="inline"
-                  options={[...kvOptions]}
-                  current={load.kvCacheType}
-                  placement="bottom-end"
-                  gutter={6}
-                  label={(option) => option}
-                  onSelect={(option) => option && setLoad("kvCacheType", option)}
-                />
-              </SettingsRowV2>
-              <SettingsRowV2
-                title={language.t("settings.modelsHub.load.keepInMemory.title")}
-                description={language.t("settings.modelsHub.load.keepInMemory.description")}
-              >
-                <Switch checked={load.keepInMemory} onChange={(checked) => setLoad("keepInMemory", checked)} />
-              </SettingsRowV2>
-              <SettingsRowV2
-                title={language.t("settings.modelsHub.load.useMmap.title")}
-                description={language.t("settings.modelsHub.load.useMmap.description")}
-              >
-                <Switch checked={load.useMmap} onChange={(checked) => setLoad("useMmap", checked)} />
-              </SettingsRowV2>
-              <SettingsRowV2
-                title={language.t("settings.modelsHub.load.kvOffload.title")}
-                description={language.t("settings.modelsHub.load.kvOffload.description")}
-              >
-                <Switch checked={load.kvOffload} onChange={(checked) => setLoad("kvOffload", checked)} />
-              </SettingsRowV2>
-              <SettingsRowV2
-                title={language.t("settings.modelsHub.load.seed.title")}
-                description={language.t("settings.modelsHub.load.seed.description")}
-              >
-                {loadNumber("seed", { min: -1 })}
-              </SettingsRowV2>
-              <SettingsRowV2
-                title={language.t("settings.modelsHub.load.ropeFrequencyBase.title")}
-                description={language.t("settings.modelsHub.load.ropeFrequencyBase.description")}
-              >
-                {loadNumber("ropeFrequencyBase", { min: 0, step: 1000 })}
-              </SettingsRowV2>
-              <SettingsRowV2
-                title={language.t("settings.modelsHub.load.ropeFrequencyScale.title")}
-                description={language.t("settings.modelsHub.load.ropeFrequencyScale.description")}
-              >
-                {loadNumber("ropeFrequencyScale", { min: 0, max: 8, step: 0.05 })}
-              </SettingsRowV2>
-              <SettingsRowV2
-                title={language.t("settings.modelsHub.load.parallel.title")}
-                description={language.t("settings.modelsHub.load.parallel.description")}
-              >
-                {loadNumber("parallel", { min: 1, max: 16 })}
-              </SettingsRowV2>
-            </SettingsListV2>
-            </div>
-            <p class="settings-v2-note">{language.t("settings.modelsHub.load.hint")}</p>
-          </div>
+      <div class="settings-v2-tab-body settings-v2-mh" data-tab={ui.tab}>
+        <Show when={activeJobs().length > 0 && ui.tab !== "disk"}>
+          <button type="button" class="settings-v2-mh-strip" onClick={() => setUi("tab", "disk")}>
+            <span class="settings-v2-mh-strip-dot" aria-hidden="true" />
+            {t("settings.modelsHub.downloads.strip", { count: activeJobs().length })}
+          </button>
         </Show>
 
-        {/* 1. Telemetría de Hardware & Runtimes */}
-        <Show when={hubTab() === "engines"}>
-        <div class="lm-hub-telemetry">
-          <div class="lm-hub-stat" data-state="info" title="GPU detectada">
-            <span class="lm-hub-dot" />
-            <span class="lm-hub-stat-k">{system()?.gpu ? system()!.gpu!.split(" ")[0] : "GPU"}</span>
-            <span class="lm-hub-stat-v" title={`${formatBytes(vramFree())} libres de ${formatBytes(vramTotal())}`}>
-              <Show when={vramTotal() !== undefined} fallback="—">
-                {formatBytes(vramFree())} / {formatBytes(vramTotal())}
+        {/* ------------------------------------------------------------ Explorar */}
+        <Show when={ui.tab === "explore"}>
+          <TextInputV2
+            type="search"
+            appearance="base"
+            class="settings-v2-mh-search"
+            value={ui.query}
+            placeholder={t("settings.modelsHub.search.placeholder")}
+            aria-label={t("settings.modelsHub.search.placeholder")}
+            onInput={(event) => search(event.currentTarget.value)}
+            spellcheck={false}
+            autocomplete="off"
+          />
+          <div class="settings-v2-mh-layout">
+            <div class="settings-v2-mh-list">
+              <Show when={!ui.submitted}>
+                <p class="settings-v2-mh-list-title">{t("settings.modelsHub.picks.title")}</p>
               </Show>
-            </span>
-          </div>
-
-          <div class="lm-hub-stat" data-state="info" title="RAM del sistema">
-            <span class="lm-hub-dot" />
-            <span class="lm-hub-stat-k">RAM</span>
-            <span class="lm-hub-stat-v">
-              <Show when={ram() !== undefined} fallback="—">
-                {formatBytes(ram())}
+              <Show when={ui.submitted && !results.loading && models().length === 0}>
+                <p class="settings-v2-mh-empty">{t("settings.modelsHub.empty")}</p>
               </Show>
-            </span>
-          </div>
-
-          <Show when={engineStatus()?.status === "running"}>
-            <div class="lm-hub-stat" data-state="on" title="Motor Nativo activo">
-              <span class="lm-hub-dot" />
-              <span class="lm-hub-stat-k">Motor Nativo</span>
-              <span class="lm-hub-stat-v">{engineStatus()?.modelName}</span>
-              <button
-                type="button"
-                class="lm-hub-stat-stop"
-                title="Detener motor y liberar VRAM"
-                onClick={stopNativeEngine}
-              >
-                ✕
-              </button>
-            </div>
-          </Show>
-
-          <Show when={engineStatus()?.status === "starting" || engineStatus()?.binaryDownloading}>
-            <div class="lm-hub-stat" data-state="pending">
-              <span class="lm-hub-dot" />
-              <span class="lm-hub-stat-k">Motor Nativo</span>
-              <span class="lm-hub-stat-v">
-                {engineStatus()?.binaryDownloading
-                  ? `Descargando ${engineStatus()?.downloadProgress ?? 0}%`
-                  : "Cargando en GPU"}
-              </span>
-            </div>
-          </Show>
-
-          {/* Runtimes Locales Externos (Ollama / LM Studio) */}
-          <For each={(runtimes() ?? []).filter((r) => r.id === "ollama" || r.id === "lmstudio")}>
-            {(rt) => (
-              <div
-                class="lm-hub-stat"
-                data-state={rt.available ? "on" : "off"}
-                title={rt.available ? `${rt.name} conectado${rt.port ? ` en puerto ${rt.port}` : ""}` : `${rt.name} no detectado`}
-              >
-                <span class="lm-hub-dot" />
-                <span class="lm-hub-stat-k">{rt.name}</span>
-                <span class="lm-hub-stat-v">{rt.available ? (rt.port ? `:${rt.port}` : "Online") : "Offline"}</span>
-              </div>
-            )}
-          </For>
-        </div>
-        </Show>
-
-        {/* 2. Buscador Central y Filtros */}
-        <Show when={hubTab() === "explore"}>
-        <div class="flex flex-col gap-2.5">
-          <form
-            class="lm-search-box w-full"
-            onSubmit={(e) => {
-              e.preventDefault()
-              const val = query().trim()
-              if (val) setSubmitted(val)
-            }}
-          >
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" class="lm-search-icon">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              type="text"
-              class="lm-search-input py-2 text-sm"
-              placeholder="Buscar modelos GGUF en Hugging Face (ej. DeepSeek-R1, Qwen2.5-Coder, Llama-3.2, Gemma-2)..."
-              value={query()}
-              onInput={(e) => handleSearchInput(e.currentTarget.value)}
-            />
-            <Show when={query()}>
-              <button type="button" class="lm-search-clear mr-2 cursor-pointer" onClick={() => { setQuery(""); setSubmitted("") }}>×</button>
-            </Show>
-            <ButtonV2 type="submit" variant="contrast" size="small">
-              {language.t("settings.modelsHub.search.button")}
-            </ButtonV2>
-          </form>
-
-          <div class="flex items-center justify-between gap-2 flex-wrap text-xs">
-            <div class="flex items-center gap-1.5 flex-wrap">
-              <span class="lm-hub-filter-label">Sugeridos:</span>
-              <For
-                each={[
-                  { label: "DeepSeek-R1", tag: "DeepSeek-R1-Distill", icon: "🐋", org: "deepseek-ai" },
-                  { label: "Qwen 2.5 Coder", tag: "Qwen2.5-Coder", icon: "💻", org: "Qwen" },
-                  { label: "Hermes 3", tag: "Hermes-3", icon: "🏛️", org: "NousResearch" },
-                  { label: "Llama 3.2", tag: "Llama-3.2", icon: "🦙", org: "meta-llama" },
-                  { label: "Gemma 2", tag: "gemma-2", icon: "💎", org: "google" },
-                  { label: "Phi-4", tag: "Phi-4", icon: "🔬", org: "microsoft" },
-                  { label: "Nemotron", tag: "Nemotron", icon: "⚡", org: "nvidia" },
-                ]}
-              >
-                {(item) => (
+              <Show when={results.loading}>
+                <p class="settings-v2-mh-empty">{t("settings.modelsHub.searching")}</p>
+              </Show>
+              <For each={models()}>
+                {(model) => (
                   <button
                     type="button"
-                    class="lm-quick-tag"
-                    onClick={() => {
-                      setQuery(item.tag)
-                      setSubmitted(item.tag)
-                      setHubCategory("all")
-                    }}
+                    class="settings-v2-mh-row"
+                    aria-current={selectedModel()?.id === model.id ? "true" : undefined}
+                    onClick={() => setUi("selected", model.id)}
                   >
-                    <HubOrgAvatar org={item.org} fallback={item.icon} />
-                    <span>{item.label}</span>
+                    <HubAvatar id={model.id} />
+                    <span class="settings-v2-mh-row-copy">
+                      <span class="settings-v2-mh-row-title">{model.id.split("/").at(-1)}</span>
+                      <span class="settings-v2-mh-row-meta">
+                        {[
+                          model.id.split("/")[0],
+                          formatCount(model.downloads) ? `↓ ${formatCount(model.downloads)}` : "",
+                          formatCount(model.likes) ? `♥ ${formatCount(model.likes)}` : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </span>
+                      <Show when={pickNote(model.id)}>
+                        {(note) => <span class="settings-v2-mh-row-note">{t(note())}</span>}
+                      </Show>
+                    </span>
                   </button>
                 )}
               </For>
             </div>
 
-            <div class="flex items-center gap-1.5">
-              <button
-                type="button"
-                class="lm-pill-badge"
-                classList={{ "lm-pill-active": hubCategory() === "downloaded" }}
-                onClick={() => {
-                  setHubCategory(hubCategory() === "downloaded" ? "all" : "downloaded")
-                  setQuery("")
-                  setSubmitted("")
-                }}
-              >
-                ⬇️ Modelos en Disco ({localFiles().length || jobs().filter((j) => j.status === "completed").length})
-              </button>
-            </div>
-          </div>
-        </div>
-
-        </Show>
-
-        {/* 3. Área de Contenido Principal: Hero o Resultados Detallados */}
-        <Show when={hubTab() === "explore"}>
-        <div class="lm-hub-results">
-          <Show
-            when={submitted() || hubCategory() !== "all" || pageModelList().length > 0}
-            fallback={
-              /* Estado Inicial Hero Limpio: Sin saturar la pantalla */
-              <div class="lm-hub-empty">
-                <span class="lm-hub-empty-icon">🤗</span>
-                <h3 class="lm-hub-empty-title">Explorador de Modelos Locales Hugging Face</h3>
-                <p class="lm-hub-empty-body">
-                  Escribe en el buscador o pulsa una etiqueta sugerida para buscar modelos en formato <strong>GGUF</strong> directamente desde Hugging Face y ver sus especificaciones completas, compatibilidad de GPU y cuantizaciones.
-                </p>
-
-                <div class="lm-hub-empty-grid">
-                  <div class="lm-hub-empty-card">
-                    <span class="lm-hub-empty-card-title">🎮 Aceleración por GPU</span>
-                    <p class="lm-hub-empty-card-body">
-                      <Show
-                        when={vramTotal() !== undefined}
-                        fallback="No hemos podido leer la GPU de este equipo, así que la insignia de compatibilidad de cada modelo se queda en «parcial» en vez de afirmar algo que no sabemos."
+            <Show when={selectedModel()} fallback={<div class="settings-v2-mh-detail" />}>
+              {(model) => (
+                <div class="settings-v2-mh-detail">
+                  <div class="settings-v2-mh-detail-head">
+                    <HubAvatar id={model().id} large />
+                    <div class="settings-v2-mh-detail-identity">
+                      <h3 class="settings-v2-mh-detail-title">{model().id.split("/").at(-1)}</h3>
+                      <button
+                        type="button"
+                        class="settings-v2-mh-link"
+                        onClick={() => platform.openExternal(`https://huggingface.co/${model().id}`)}
                       >
-                        {system()?.gpu ? system()!.gpu!.split(" ")[0] : "GPU"} detectada con {formatBytes(vramFree())}{" "}
-                        libres de {formatBytes(vramTotal())} de VRAM.
-                      </Show>
-                    </p>
+                        {model().id} ↗
+                      </button>
+                    </div>
                   </div>
-                  <div class="lm-hub-empty-card">
-                    <span class="lm-hub-empty-card-title">🧠 Descarga Híbrida RAM</span>
-                    <p class="lm-hub-empty-card-body">
-                      <Show when={ram() !== undefined} fallback="Memoria del sistema no disponible.">
-                        Tu sistema tiene {formatBytes(ram())} de memoria RAM para albergar capas que sobrepasen la VRAM.
-                      </Show>
-                    </p>
-                  </div>
-                </div>
+                  <Show when={pickNote(model().id)}>{(note) => <p class="settings-v2-mh-detail-note">{t(note())}</p>}</Show>
 
-                <Show when={jobs().filter((j) => j.status === "completed").length > 0}>
-                  <div class="lm-hub-empty-footer">
-                    <span>Tienes modelos descargados listos para usar:</span>
-                    <ButtonV2 variant="outline" size="small" onClick={() => setHubCategory("downloaded")}>
-                      Ver {jobs().filter((j) => j.status === "completed").length} modelo(s) en disco ↗
-                    </ButtonV2>
-                  </div>
-                </Show>
-              </div>
-            }
-          >
-            {/* Resultados de Búsqueda o Modelos Descargados */}
-            <Show
-              when={searchedModels.loading}
-              fallback={
-                <Show
-                  when={pageModelList().length > 0}
-                  fallback={
-                    <Show
-                      when={hubTab() === "disk"}
-                      fallback={
-                        <div class="lm-hub-empty">
-                          <span class="lm-hub-empty-icon">🔍</span>
-                          <span class="lm-hub-empty-title">No se encontraron modelos</span>
-                          <p class="lm-hub-empty-body">Prueba con otro término de búsqueda o selecciona una de las etiquetas sugeridas.</p>
-                        </div>
-                      }
-                    >
-                      {/* The disk tab has nothing to search: it only lists what has been downloaded */}
-                      <div class="lm-hub-empty">
-                        <span class="lm-hub-empty-icon">💾</span>
-                        <span class="lm-hub-empty-title">Todavía no hay modelos en disco</span>
-                        <p class="lm-hub-empty-body">
-                          Descarga uno desde Explorar y aparecerá aquí con su tamaño, cuantización y el botón para cargarlo o borrarlo.
-                        </p>
-                        <button type="button" class="lm-results-clear" onClick={() => setHubTab("explore")}>
-                          Ir a Explorar
-                        </button>
-                      </div>
-                    </Show>
-                  }
-                >
-                  <div class="lm-results-bar">
-                    <span>
-                      {hubCategory() === "downloaded"
-                        ? `Modelos descargados en disco (${activeModelList().length})`
-                        : submitted()
-                          ? `Resultados para "${submitted()}" (${activeModelList().length} modelos encontrados)`
-                          : `Modelos destacados (${activeModelList().length})`}
-                    </span>
-                    <button
-                      type="button"
-                      class="lm-results-clear"
-                      onClick={() => {
-                        setSubmitted("")
-                        setQuery("")
-                        setHubCategory("all")
-                      }}
-                    >
-                      ✕ Limpiar búsqueda
-                    </button>
-                  </div>
-
-                  <For each={pageModelList()}>
-                    {(model) => {
-                      const authorName = () => model.author || (model.id.includes("/") ? model.id.split("/")[0] : "huggingface")
-                      const shortName = () => model.id.split("/").pop() || model.id
-                      const downloadCount = () => formatNumber(model.downloads)
-                      const likesCount = () => formatNumber(model.likes)
-                      const currentJob = () => getJobForModel(model)
-                      const file = () => getSelectedFile(model)
-                      const fit = () => compat(file()?.size)
-                      const isDownloaded = () => currentJob()?.status === "completed"
-                      // El badge sólo es cierto para los modelos de la lista curada, no para
-                      // cualquier modelo que aparezca sin búsqueda activa (p.ej. los del disco).
-                      const isStaffPick = () => STAFF_PICKS.some((pick) => pick.id === model.id)
-                      if (model.quantFiles.some((qf) => asNumber(qf.size) === undefined)) void ensureFiles(model.id)
-                      // The selected quantisation is sized against this machine from its remote header.
-                      createEffect(() => {
-                        const selected = file()
-                        if (selected?.file && selected.file !== "model.gguf") void ensureEstimate(model.id, selected.file)
-                      })
-                      const estimate = () => estimateFor(model.id, file()?.file ?? "")
-
-                      return (
-                        <div class="lm-result-card">
-                          {/* Top: BrandLogo + Info + Hugging Face link */}
-                          <div class="lm-result-card-head">
-                            <div class="lm-result-card-identity">
-                              <HubAvatar id={model.id} author={authorName()} />
-                              <div class="lm-result-card-titles">
-                                <div class="lm-result-card-name-row">
-                                  <span class="lm-result-card-name">{shortName()}</span>
-                                  <Show when={isDownloaded()}>
-                                    <span class="lm-downloaded-pill">Descargado</span>
-                                  </Show>
-                                  <Show when={isStaffPick()}>
-                                    <span class="lm-staff-badge-sm">🌟 Staff Pick</span>
-                                  </Show>
-                                </div>
-                                <div class="lm-result-card-meta">
-                                  <span class="lm-result-card-author">@{authorName()}</span>
-                                  <span>⬇ {downloadCount()} descargas</span>
-                                  <span>❤️ {likesCount()}</span>
-                                  <Tag>GGUF</Tag>
-                                  <Show when={model.pipeline_tag}>
-                                    <Tag>{model.pipeline_tag}</Tag>
-                                  </Show>
-                                </div>
-                              </div>
-                            </div>
-
-                            <a
-                              href={`https://huggingface.co/${model.id}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              class="lm-result-card-link"
-                            >
-                              <span>Hugging Face</span>
-                              <span>↗</span>
-                            </a>
-                          </div>
-
-                          {/* Description */}
-                          <p class="lm-result-card-description">
-                            {model.description || "Modelo cuantizado GGUF listo para ejecución local de alta fidelidad en Tiancode."}
-                          </p>
-
-                          {/* Quantization picker & Hardware Compatibility & Actions Strip */}
-                          <div class="lm-result-card-footer">
-                            <div class="lm-result-card-picker">
-                              {/* Selector de cuantización */}
-                              <span class="lm-result-card-quant-label">Cuantización:</span>
-                              <Show
-                                when={filesFor(model).length > 0}
-                                fallback={<Tag>GGUF</Tag>}
+                  <h4 class="settings-v2-mh-subtitle">{t("settings.modelsHub.detail.files")}</h4>
+                  <Show
+                    when={ui.files[model().id] !== "loading"}
+                    fallback={<p class="settings-v2-mh-empty">{t("settings.modelsHub.size.unknown")}</p>}
+                  >
+                    <Show when={filesOf(model()).length > 0} fallback={<p class="settings-v2-mh-empty">{t("settings.modelsHub.files.none")}</p>}>
+                      <ul class="settings-v2-mh-quants" role="radiogroup">
+                        <For each={filesOf(model())}>
+                          {(file) => {
+                            const job = () => jobFor(model().id, file.file)
+                            return (
+                              <li
+                                class="settings-v2-mh-quant"
+                                data-selected={quantOf(model())?.file === file.file ? "" : undefined}
                               >
-                                <SelectV2
-                                  appearance="inline"
-                                  options={filesFor(model)}
-                                  current={file()}
-                                  value={(qf) => qf.file}
-                                  label={(qf) => `${qf.quant || "GGUF"} (${sizeLabel(qf.size)})${qf.recommended ? " ★" : ""}`}
-                                  onSelect={(qf) => qf && setModelQuant(model.id, qf.file)}
-                                  placement="bottom-start"
-                                  gutter={4}
-                                />
-                              </Show>
-
-                              <Show when={estimate()?.recommended}>
-                                {(rec) => (
-                                  <span class="lm-quant-estimate" title={recommendationLine(rec())}>
-                                    {splitLine(rec())} · ctx {formatTokens(rec().contextSize)} ·{" "}
-                                    {rec().gpuLayers >= 99 ? "GPU 100%" : `GPU ${rec().gpuLayers}/${rec().layers}`}
+                                <button
+                                  type="button"
+                                  role="radio"
+                                  aria-checked={quantOf(model())?.file === file.file}
+                                  class="settings-v2-mh-quant-main"
+                                  onClick={() => setUi("quant", model().id, file.file)}
+                                >
+                                  <span class="settings-v2-mh-quant-label">{file.quant ?? file.file.split("/").at(-1)}</span>
+                                  <Show when={file.recommended}>
+                                    <span class="settings-v2-mh-tag" data-tone="accent">{t("settings.modelsHub.recommended")}</span>
+                                  </Show>
+                                  <span class="settings-v2-mh-quant-size">{formatBytes(file.size)}</span>
+                                  <Show when={file.fit}>
+                                    {(fit) => (
+                                      <span class="settings-v2-mh-fit" data-tier={fit().tier}>
+                                        {fitLabel(fit().tier)}
+                                      </span>
+                                    )}
+                                  </Show>
+                                </button>
+                                <Show
+                                  when={job() && job()!.status !== "completed"}
+                                  fallback={
+                                    <Show
+                                      when={onDisk(file.file) || job()?.status === "completed"}
+                                      fallback={
+                                        <ButtonV2 size="small" variant="outline" onClick={() => void startDownload(model().id, file.file)}>
+                                          {t("settings.modelsHub.download")}
+                                        </ButtonV2>
+                                      }
+                                    >
+                                      <ButtonV2 size="small" variant="ghost" onClick={() => setUi("tab", "disk")}>
+                                        {t("settings.modelsHub.onDisk")}
+                                      </ButtonV2>
+                                    </Show>
+                                  }
+                                >
+                                  <span class="settings-v2-mh-quant-progress">
+                                    {t(`settings.modelsHub.download.${job()!.status}`)} · {Math.round(asNumber(job()!.percent) ?? 0)} %
                                   </span>
-                                )}
-                              </Show>
-
-                              {/* Hardware Fit badge */}
-                              <div class={`lm-compat-badge lm-compat-${fit()}`}>
-                                <Show when={fit() === "full_gpu"}>⚡ {language.t("settings.modelsHub.fit.fullGpu")}</Show>
-                                <Show when={fit() === "partial_gpu"}>⚡ {language.t("settings.modelsHub.fit.partialGpu")}</Show>
-                                <Show when={fit() === "ram_only"}>🧠 {language.t("settings.modelsHub.fit.ramOnly")}</Show>
-                                <Show when={fit() === "no_fit"}>⚠️ {language.t("settings.modelsHub.fit.noFit")}</Show>
-                              </div>
-                            </div>
-
-                            {/* Actions */}
-                            <div class="lm-result-card-actions">
-                              <Show
-                                when={isDownloaded()}
-                                fallback={
-                                  <Show
-                                    when={currentJob()?.status === "downloading"}
-                                    fallback={
-                                      <button
-                                        type="button"
-                                        class="lm-btn-download-sm"
-                                        onClick={() => startDownload(model.id, file().file)}
-                                      >
-                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                          <polyline points="7 10 12 15 17 10" />
-                                          <line x1="12" y1="15" x2="12" y2="3" />
-                                        </svg>
-                                        <span>Descargar {sizeLabel(file()?.size)}</span>
-                                      </button>
-                                    }
-                                  >
-                                    <div class="lm-downloading-pill-sm">
-                                      <span class="lm-spinner" />
-                                      <span>{currentJob()?.percent ?? 0}% ({formatSpeed(currentJob()?.speedBytesPerSec)})</span>
-                                    </div>
-                                  </Show>
-                                }
-                              >
-                                <button
-                                  type="button"
-                                  class="lm-btn-activate-sm"
-                                  onClick={() => currentJob() && activateDownloadedModel(currentJob()!)}
-                                >
-                                  ⚡ Activar y Usar
-                                </button>
-                                <button
-                                  type="button"
-                                  class="lm-btn-delete-sm"
-                                  onClick={() => currentJob() && removeDownload(currentJob()!)}
-                                  title="Eliminar de disco"
-                                >
-                                  🗑️
-                                </button>
-                              </Show>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    }}
-                  </For>
-
-                  <Show when={hubTotal() > 1}>
-                    <div class="mt-2 mb-4">
-                      <SettingsPagerV2
-                        page={hubPage()}
-                        totalPages={hubTotal()}
-                        onPage={setHubPage}
-                      />
-                    </div>
+                                </Show>
+                              </li>
+                            )
+                          }}
+                        </For>
+                      </ul>
+                    </Show>
                   </Show>
-                </Show>
-              }
-            >
-              <div class="lm-hub-empty">
-                <span class="lm-spinner lm-hub-empty-spinner" />
-                <span class="lm-hub-empty-title">Consultando Hugging Face...</span>
-                <p class="lm-hub-empty-body">Obteniendo archivos GGUF y compatibilidad de hardware.</p>
-              </div>
-            </Show>
-          </Show>
-        </div>
 
-        {/* Cajón Inferior de Descargas Activas y Gestión de Disco */}
-        </Show>
-
-        <Show when={hubTab() === "disk"}>
-          <div class="lm-disk">
-            <div class="lm-disk-head">
-              <div>
-                <h3 class="settings-v2-section-title">{language.t("settings.modelsHub.disk.title")}</h3>
-                <p class="settings-v2-note lm-load-note">{language.t("settings.modelsHub.disk.description")}</p>
-              </div>
-              <ButtonV2 type="button" variant="outline" size="small" disabled={localLoading()} onClick={() => void refreshLocal()}>
-                {language.t("settings.modelsHub.disk.rescan")}
-              </ButtonV2>
-            </div>
-          <Show when={jobs().some((j) => j.status !== "completed")}>
-          <div class="lm-downloads-drawer">
-            <div class="lm-downloads-drawer-header">
-              <span class="lm-downloads-drawer-title">Descargas en curso ({jobs().filter((j) => j.status !== "completed").length})</span>
-            </div>
-            <div class="lm-downloads-drawer-list">
-              <For each={jobs().filter((j) => j.status !== "completed")}>
-                {(j) => {
-                  const percent = () => asNumber(j.percent) ?? (j.status === "completed" ? 100 : 0)
-                  const speed = () => formatSpeed(j.speedBytesPerSec)
-                  const eta = () => formatEta(j.etaSeconds)
-
-                  return (
-                    <div class="lm-drawer-item" data-status={j.status}>
-                      <div class="lm-drawer-item-info">
-                        <span class="lm-drawer-item-name">{j.file}</span>
-                        <span class="lm-drawer-item-sub">
-                          {j.status === "completed" ? "✓ Completado" : `${j.status} · ${percent()}%`}
-                          {speed() ? ` · ⚡ ${speed()}` : ""}
-                          {eta() ? ` · ⏱️ ${eta()}` : ""}
-                        </span>
-                      </div>
-
-                      <Show when={j.status === "downloading" || j.status === "paused"}>
-                        <div class="lm-drawer-progress-bar">
-                          <div class="lm-drawer-progress-fill" style={{ width: `${percent()}%` }} />
-                        </div>
-                      </Show>
-
-                      <div class="lm-drawer-item-actions">
-                        <Show when={j.status === "paused" || j.status === "failed"}>
-                          <button
-                            type="button"
-                            class="lm-btn-sm-activate"
-                            data-variant="resume"
-                            onClick={() => startDownload(j.model, j.file)}
+                  <Show when={quantOf(model())}>
+                    {(quant) => (
+                      <div class="settings-v2-mh-estimate">
+                        <h4 class="settings-v2-mh-subtitle">{t("settings.modelsHub.estimate.title", { quant: quant().quant ?? "" })}</h4>
+                        <Show
+                          when={estimateOf(model().id, quant().file) !== "loading"}
+                          fallback={<p class="settings-v2-mh-empty">{t("settings.modelsHub.estimate.loading")}</p>}
+                        >
+                          <Show
+                            when={(estimateOf(model().id, quant().file) as Estimate | undefined)?.recommended}
+                            fallback={<p class="settings-v2-mh-empty">{t("settings.modelsHub.estimate.unavailable")}</p>}
                           >
-                            ▶ Reanudar
-                          </button>
-                        </Show>
-                        <Show when={j.status === "completed"}>
-                          <button type="button" class="lm-btn-sm-activate" onClick={() => activateDownloadedModel(j)}>
-                            ⚡ Activar y Usar
-                          </button>
-                        </Show>
-                        <button type="button" class="lm-btn-sm-delete" onClick={() => removeDownload(j)}>
-                          Eliminar de disco
-                        </button>
-                      </div>
-                    </div>
-                  )
-                }}
-              </For>
-            </div>
-          </div>
-          </Show>
-
-            <Show
-              when={localFiles().length > 0}
-              fallback={
-                <div class="lm-hub-empty">
-                  <span class="lm-hub-empty-icon">💾</span>
-                  <span class="lm-hub-empty-title">{language.t("settings.modelsHub.disk.empty")}</span>
-                  <button type="button" class="lm-results-clear" onClick={() => setHubTab("explore")}>
-                    Ir a Explorar
-                  </button>
-                </div>
-              }
-            >
-              <div class="lm-disk-list">
-                <For each={localFiles()}>
-                  {(entry) => {
-                    const job = () => jobs().find((j) => j.status === "completed" && j.file === entry.file)
-                    const loaded = () =>
-                      engineStatus()?.status === "running" &&
-                      (engineStatus()?.modelPath ?? "").toLowerCase() === entry.path.toLowerCase()
-                    const author = () => entry.repo?.split("/")[0] ?? "local"
-                    return (
-                      <div class="lm-disk-card" data-loaded={loaded()}>
-                        <div class="lm-disk-card-head">
-                          <HubAvatar id={entry.repo ?? entry.name} author={author()} />
-                          <div class="lm-result-card-titles">
-                            <div class="lm-result-card-name-row">
-                              <span class="lm-result-card-name">{entry.name}</span>
-                              <Show when={loaded()}>
-                                <span class="lm-downloaded-pill">{language.t("settings.modelsHub.disk.active")}</span>
-                              </Show>
-                            </div>
-                            <div class="lm-result-card-meta">
-                              <Show when={entry.repo}>
-                                <span class="lm-result-card-author">@{entry.repo}</span>
-                              </Show>
-                              <span>{formatBytes(entry.sizeBytes)}</span>
-                              <Tag>{entry.quant ?? "GGUF"}</Tag>
-                              <Show when={entry.metadata?.architecture}>
-                                <Tag>{entry.metadata!.architecture}</Tag>
-                              </Show>
-                              <Show when={entry.metadata?.sizeLabel}>
-                                <Tag>{entry.metadata!.sizeLabel}</Tag>
-                              </Show>
-                            </div>
-                          </div>
-                          <div class={`lm-compat-badge lm-compat-${entry.fit?.tier ?? "partial_gpu"}`}>{fitLabel(entry.fit?.tier)}</div>
-                        </div>
-                        <div class="lm-disk-card-facts">
-                          <span>
-                            <b>{language.t("settings.modelsHub.disk.folder")}</b> {entry.root}
-                          </span>
-                          <Show when={entry.metadata?.contextLength}>
-                            <span>
-                              <b>{language.t("settings.modelsHub.disk.trainContext")}</b> {formatTokens(entry.metadata!.contextLength!)}
-                            </span>
-                          </Show>
-                          <Show when={entry.metadata?.blockCount}>
-                            <span>
-                              <b>{language.t("settings.modelsHub.disk.layers")}</b> {entry.metadata!.blockCount}
-                            </span>
-                          </Show>
-                        </div>
-                        <Show when={entry.recommended}>
-                          {(rec) => (
-                            <div class="lm-disk-card-rec">
-                              <span class="lm-disk-card-rec-title">
-                                {language.t("settings.modelsHub.disk.recommended")} · {placementLabel(rec().placement)}
-                              </span>
-                              <span class="lm-disk-card-rec-values">{recommendationLine(rec())}</span>
-                              <span class="lm-disk-card-rec-split">{splitLine(rec())}</span>
-                              <span class="lm-disk-card-rec-why">
-                                {rec()
-                                  .reasons.map((code) => language.t(`settings.modelsHub.reason.${code}`))
-                                  .join(" ")}
-                              </span>
-                            </div>
-                          )}
-                        </Show>
-                        <div class="lm-disk-card-actions">
-                          <button
-                            type="button"
-                            class="lm-btn-activate-sm"
-                            onClick={() =>
-                              void activateDownloadedModel({ model: entry.repo ?? "local", file: entry.file, path: entry.path })
-                            }
-                          >
-                            ⚡ {language.t("settings.modelsHub.disk.activate")}
-                          </button>
-                          <Show when={job()}>
-                            {(j) => (
-                              <button type="button" class="lm-btn-delete-sm" onClick={() => void removeDownload(j())}>
-                                {language.t("settings.modelsHub.disk.delete")}
-                              </button>
+                            {(rec) => (
+                              <>
+                                <div class="settings-v2-mh-chips">
+                                  <span class="settings-v2-mh-tag" data-tone="accent">{t(`settings.modelsHub.placement.${rec().placement}`)}</span>
+                                  <For each={recommendationParts(rec())}>{(part) => <span class="settings-v2-mh-tag">{part}</span>}</For>
+                                </div>
+                                <p class="settings-v2-mh-detail-note">{splitLine(rec())}</p>
+                                <For each={rec().reasons}>
+                                  {(reason) => <p class="settings-v2-mh-reason">{t(`settings.modelsHub.reason.${reason}`)}</p>}
+                                </For>
+                              </>
                             )}
                           </Show>
+                        </Show>
+                      </div>
+                    )}
+                  </Show>
+                </div>
+              )}
+            </Show>
+          </div>
+        </Show>
+
+        {/* ------------------------------------------------------------ En disco */}
+        <Show when={ui.tab === "disk"}>
+          <Show when={activeJobs().length > 0}>
+            <div class="settings-v2-section">
+              <h3 class="settings-v2-section-title">{t("settings.modelsHub.downloads.title")}</h3>
+              <ul class="settings-v2-mh-jobs">
+                <For each={activeJobs()}>
+                  {(job) => (
+                    <li class="settings-v2-mh-job" data-status={job.status}>
+                      <div class="settings-v2-mh-job-head">
+                        <span class="settings-v2-mh-row-title">{job.file.split("/").at(-1)}</span>
+                        <span class="settings-v2-mh-job-status">{t(`settings.modelsHub.download.${job.status}`)}</span>
+                      </div>
+                      <div class="settings-v2-mh-progress">
+                        <div class="settings-v2-mh-progress-fill" style={{ width: `${asNumber(job.percent) ?? 0}%` }} />
+                      </div>
+                      <div class="settings-v2-mh-job-foot">
+                        <span class="settings-v2-mh-row-meta">
+                          {[
+                            `${Math.round(asNumber(job.percent) ?? 0)} %`,
+                            `${formatBytes(job.received)} / ${formatBytes(job.total)}`,
+                            job.status === "downloading" && asNumber(job.speedBytesPerSec) ? `${formatBytes(job.speedBytesPerSec)}/s` : "",
+                            job.status === "downloading" ? (formatEta(job.etaSeconds) ?? "") : "",
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </span>
+                        <div class="settings-v2-mh-actions">
+                          <Show when={job.status !== "downloading"}>
+                            <ButtonV2 size="small" variant="outline" onClick={() => void startDownload(job.model, job.file)}>
+                              {t("settings.modelsHub.download.resume")}
+                            </ButtonV2>
+                          </Show>
+                          <ButtonV2 size="small" variant="ghost" onClick={() => void cancelJob(job)}>
+                            {t("settings.modelsHub.download.cancel")}
+                          </ButtonV2>
                         </div>
                       </div>
-                    )
-                  }}
+                      <Show when={job.status === "failed" && job.error}>
+                        <p class="settings-v2-mh-error">{job.error}</p>
+                      </Show>
+                    </li>
+                  )}
                 </For>
-              </div>
+              </ul>
+            </div>
+          </Show>
+
+          <div class="settings-v2-section">
+            <div class="settings-v2-mh-section-head">
+              <h3 class="settings-v2-section-title">{t("settings.modelsHub.disk.title")}</h3>
+              <ButtonV2 size="small" variant="ghost" disabled={ui.localLoading} onClick={() => void refreshLocal()}>
+                {t("settings.modelsHub.disk.rescan")}
+              </ButtonV2>
+            </div>
+            <Show when={ui.local.length > 0} fallback={<p class="settings-v2-mh-empty">{t("settings.modelsHub.disk.empty")}</p>}>
+              <ul class="settings-v2-mh-files">
+                <For each={ui.local}>
+                  {(file) => (
+                    <li class="settings-v2-mh-file" data-running={running(file) ? "" : undefined}>
+                      <div class="settings-v2-mh-file-head">
+                        <HubAvatar id={file.repo ?? file.name} />
+                        <div class="settings-v2-mh-row-copy">
+                          <span class="settings-v2-mh-row-title" title={file.path}>
+                            {modelKey(file.file)}
+                          </span>
+                          <span class="settings-v2-mh-row-meta">
+                            {[
+                              formatBytes(file.sizeBytes),
+                              file.quant ?? "",
+                              file.metadata?.architecture ?? "",
+                              file.metadata?.sizeLabel ?? "",
+                              file.metadata?.contextLength ? t("settings.modelsHub.spec.trained", { value: formatTokens(file.metadata.contextLength) }) : "",
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </span>
+                        </div>
+                        <Show when={running(file)}>
+                          <span class="settings-v2-mh-tag" data-tone="success">{t("settings.modelsHub.disk.active")}</span>
+                        </Show>
+                        <Show when={file.fit}>
+                          {(fit) => (
+                            <span class="settings-v2-mh-fit" data-tier={fit().tier}>
+                              {fitLabel(fit().tier)}
+                            </span>
+                          )}
+                        </Show>
+                      </div>
+                      <Show when={file.recommended}>
+                        {(rec) => (
+                          <div class="settings-v2-mh-chips">
+                            <span class="settings-v2-mh-tag" data-tone="accent">{t(`settings.modelsHub.placement.${rec().placement}`)}</span>
+                            <For each={recommendationParts(rec())}>{(part) => <span class="settings-v2-mh-tag">{part}</span>}</For>
+                          </div>
+                        )}
+                      </Show>
+                      <Show when={file.metadata && !file.metadata.hasChatTemplate}>
+                        <p class="settings-v2-mh-warning">{t("settings.modelsHub.disk.noTemplate")}</p>
+                      </Show>
+                      <Show when={file.error}>
+                        <p class="settings-v2-mh-error">{file.error}</p>
+                      </Show>
+                      <div class="settings-v2-mh-actions">
+                        <Show
+                          when={running(file)}
+                          fallback={
+                            <ButtonV2 size="small" variant="contrast" disabled={Boolean(ui.busy)} onClick={() => void load(file)}>
+                              {ui.busy === file.path ? t("settings.modelsHub.disk.loading") : t("settings.modelsHub.disk.load")}
+                            </ButtonV2>
+                          }
+                        >
+                          <ButtonV2 size="small" variant="outline" onClick={() => void stop()}>
+                            {t("settings.modelsHub.disk.unload")}
+                          </ButtonV2>
+                        </Show>
+                        <ButtonV2 size="small" variant="outline" onClick={() => void useInChat(file)}>
+                          {t("settings.modelsHub.disk.use")}
+                        </ButtonV2>
+                        <Show when={platform.revealPath}>
+                          <ButtonV2 size="small" variant="ghost" onClick={() => void platform.revealPath?.(file.path)}>
+                            {t("settings.modelsHub.disk.reveal")}
+                          </ButtonV2>
+                        </Show>
+                        <ButtonV2 size="small" variant="ghost" class="ml-auto" disabled={ui.busy === file.path} onClick={() => remove(file)}>
+                          {t("settings.modelsHub.disk.delete")}
+                        </ButtonV2>
+                      </div>
+                    </li>
+                  )}
+                </For>
+              </ul>
             </Show>
-            <p class="settings-v2-note lm-disk-note">{language.t("settings.modelsHub.disk.smallModelNote")}</p>
+          </div>
+        </Show>
+
+        {/* ------------------------------------------------------------ Motor */}
+        <Show when={ui.tab === "engine"}>
+          <section class="settings-v2-mh-engine" data-state={engineState()}>
+            <div class="settings-v2-mh-engine-head">
+              <span class="settings-v2-mh-status" data-state={engineState()}>
+                {t(`settings.modelsHub.engine.state.${engineState()}`)}
+              </span>
+              <h3 class="settings-v2-mh-engine-model">
+                {engine()?.modelName ?? t("settings.modelsHub.engine.noModel")}
+              </h3>
+              <Show when={idleCountdown()}>{(text) => <span class="settings-v2-mh-row-meta">{text()}</span>}</Show>
+            </div>
+            <Show when={engine()?.binaryDownloading}>
+              <div class="settings-v2-mh-progress">
+                <div class="settings-v2-mh-progress-fill" style={{ width: `${asNumber(engine()?.downloadProgress) ?? 0}%` }} />
+              </div>
+              <p class="settings-v2-mh-row-meta">{t("settings.modelsHub.engine.binaryDownloading")}</p>
+            </Show>
+            <Show when={engine()?.applied}>
+              {(applied) => (
+                <div class="settings-v2-mh-chips">
+                  <span class="settings-v2-mh-tag" data-tone="accent">
+                    {t(engine()?.auto ? "settings.modelsHub.hint.settings.auto" : "settings.modelsHub.hint.settings.manual")}
+                  </span>
+                  <span class="settings-v2-mh-tag">{t("settings.modelsHub.spec.context", { value: formatTokens(asNumber(applied().contextSize) ?? 0) })}</span>
+                  <span class="settings-v2-mh-tag">{t("settings.modelsHub.spec.gpu", { value: asNumber(applied().gpuLayers) ?? 0 })}</span>
+                  <span class="settings-v2-mh-tag">{t("settings.modelsHub.spec.threads", { value: asNumber(applied().threads) ?? 0 })}</span>
+                  <Show when={asNumber(applied().batchSize)}>{(value) => <span class="settings-v2-mh-tag">batch {value()}</span>}</Show>
+                  <Show when={asNumber(applied().ubatchSize)}>{(value) => <span class="settings-v2-mh-tag">ubatch {value()}</span>}</Show>
+                  <Show when={applied().kvCacheType}>{(value) => <span class="settings-v2-mh-tag">KV {value()}</span>}</Show>
+                  <Show when={applied().flashAttention !== undefined}>
+                    <span class="settings-v2-mh-tag">FA {applied().flashAttention ? "on" : "off"}</span>
+                  </Show>
+                  <Show when={asNumber(applied().nCpuMoe)}>{(value) => <span class="settings-v2-mh-tag">MoE CPU {value()}</span>}</Show>
+                </div>
+              )}
+            </Show>
+            <Show when={engineState() === "error" && engine()?.error}>
+              <p class="settings-v2-mh-error">{engine()?.error}</p>
+            </Show>
+            <div class="settings-v2-mh-actions">
+              <Show when={engineState() === "running" || engineState() === "starting"}>
+                <ButtonV2 size="small" variant="outline" onClick={() => void stop()}>
+                  {t("settings.modelsHub.engine.stop")}
+                </ButtonV2>
+              </Show>
+              <Show when={engineState() === "running" && engine()?.modelPath}>
+                {(path) => (
+                  <ButtonV2
+                    size="small"
+                    variant="outline"
+                    onClick={async () => {
+                      const file = ui.local.find((candidate) => samePath(candidate.path, path()))
+                      await stop()
+                      if (file) void load(file)
+                    }}
+                  >
+                    {t("settings.modelsHub.engine.reload")}
+                  </ButtonV2>
+                )}
+              </Show>
+              <ButtonV2 size="small" variant="ghost" onClick={() => void toggleLogs()}>
+                {t(ui.logs ? "settings.modelsHub.engine.hideLog" : "settings.modelsHub.engine.showLog")}
+              </ButtonV2>
+              <span class="settings-v2-mh-row-meta ml-auto">
+                {t("settings.modelsHub.engine.port", { port: asNumber(engine()?.port) ?? 58282 })}
+              </span>
+            </div>
+            <Show when={ui.logs}>
+              {(lines) => (
+                <pre class="settings-v2-mh-log">{lines().length ? lines().join("\n") : t("settings.modelsHub.engine.logEmpty")}</pre>
+              )}
+            </Show>
+          </section>
+
+          {section(
+            t("settings.modelsHub.hardware.title"),
+            undefined,
+            <>
+              <SettingsRowV2 title={t("settings.modelsHub.system.gpu")} description={system()?.gpu ?? "—"}>
+                <span class="settings-v2-mh-value">
+                  {asNumber(system()?.vram?.total)
+                    ? `${formatBytes(system()?.vram?.free)} ${t("settings.modelsHub.hardware.free")} / ${formatBytes(system()?.vram?.total)}`
+                    : "—"}
+                </span>
+              </SettingsRowV2>
+              <SettingsRowV2 title={t("settings.modelsHub.system.ram")} description={system()?.cpu ?? "—"}>
+                <span class="settings-v2-mh-value">
+                  {formatBytes(system()?.ram)}
+                  {asNumber(system()?.cpuCores) ? ` · ${t("settings.modelsHub.hardware.cores", { count: asNumber(system()?.cpuCores)! })}` : ""}
+                </span>
+              </SettingsRowV2>
+              <SettingsRowV2 title={t("settings.modelsHub.system.disk")} description={system()?.modelsDir ?? "—"}>
+                <span class="settings-v2-mh-value">{formatBytes(system()?.diskFree)}</span>
+              </SettingsRowV2>
+            </>,
+          )}
+
+          <Show when={(runtimes() ?? []).length > 0}>
+            {section(
+              t("settings.modelsHub.runtime.title"),
+              t("settings.modelsHub.runtime.description"),
+              <For each={runtimes()}>
+                {(runtime) => (
+                  <SettingsRowV2
+                    title={runtime.name}
+                    description={
+                      runtime.available && runtime.models?.length
+                        ? t("settings.modelsHub.runtime.models", { count: runtime.models.length })
+                        : t(runtime.available ? "settings.modelsHub.runtime.available" : "settings.modelsHub.runtime.notDetected")
+                    }
+                  >
+                    <span class="settings-v2-mh-status" data-state={runtime.available ? "running" : "stopped"}>
+                      {t(runtime.available ? "settings.modelsHub.runtime.available" : "settings.modelsHub.runtime.notDetected")}
+                    </span>
+                  </SettingsRowV2>
+                )}
+              </For>,
+            )}
+          </Show>
+        </Show>
+
+        {/* ------------------------------------------------------------ Ajustes */}
+        <Show when={ui.tab === "settings"}>
+          {section(
+            t("settings.modelsHub.settings.load.title"),
+            undefined,
+            <>
+              <SettingsRowV2 title={t("settings.modelsHub.auto.title")} description={t("settings.modelsHub.auto.description")}>
+                <Switch checked={form.auto} onChange={(checked) => setForm("auto", checked)} hideLabel>
+                  {t("settings.modelsHub.auto.title")}
+                </Switch>
+              </SettingsRowV2>
+              <Show
+                when={form.auto}
+                fallback={
+                  <>
+                    <SettingsRowV2 title={t("settings.modelsHub.load.contextSize.title")} description={t("settings.modelsHub.load.contextSize.hint")}>
+                      {numberField("contextSize", "8192")}
+                    </SettingsRowV2>
+                    <SettingsRowV2 title={t("settings.modelsHub.load.gpuLayers.title")} description={t("settings.modelsHub.load.gpuLayers.hint")}>
+                      {numberField("gpuLayers", "99")}
+                    </SettingsRowV2>
+                    <SettingsRowV2 title={t("settings.modelsHub.load.threads.title")} description={t("settings.modelsHub.load.threads.description")}>
+                      {numberField("threads", t("settings.modelsHub.settings.auto"))}
+                    </SettingsRowV2>
+                    <SettingsRowV2 title={t("settings.modelsHub.load.batchSize.title")} description={t("settings.modelsHub.load.batchSize.description")}>
+                      {numberField("batchSize", "2048")}
+                    </SettingsRowV2>
+                    <SettingsRowV2 title={t("settings.modelsHub.load.flashAttention.title")} description={t("settings.modelsHub.load.flashAttention.description")}>
+                      {choice({
+                        value: form.flashAttention,
+                        options: ["auto", "on", "off"] as const,
+                        label: (value) => t(`settings.modelsHub.load.choice.${value}`),
+                        onChange: (value) => setForm("flashAttention", value),
+                      })}
+                    </SettingsRowV2>
+                    <SettingsRowV2 title={t("settings.modelsHub.load.kvCacheType.title")} description={t("settings.modelsHub.load.kvCacheType.hint")}>
+                      {choice({
+                        value: form.kvCacheType,
+                        options: ["f16", "q8_0", "q4_0"] as const,
+                        label: (value) => t(`settings.modelsHub.kv.${value}`),
+                        onChange: (value) => setForm("kvCacheType", value),
+                      })}
+                    </SettingsRowV2>
+                    <SettingsRowV2 title={t("settings.modelsHub.load.parallel.title")} description={t("settings.modelsHub.load.parallel.description")}>
+                      {numberField("parallel", "1")}
+                    </SettingsRowV2>
+                  </>
+                }
+              >
+                <SettingsRowV2 title={t("settings.modelsHub.auto.placement.title")} description={t("settings.modelsHub.auto.placement.description")}>
+                  {choice({
+                    value: form.placement,
+                    options: ["auto", "gpu", "hybrid", "cpu"] as const,
+                    label: (value) => t(`settings.modelsHub.placement.${value}`),
+                    onChange: (value) => setForm("placement", value),
+                  })}
+                </SettingsRowV2>
+                <For each={["vramBudget", "ramBudget", "cpuBudget"] as const}>
+                  {(key) => (
+                    <SettingsRowV2
+                      title={t(`settings.modelsHub.auto.${key.replace("Budget", "")}.title`)}
+                      description={t(`settings.modelsHub.auto.${key.replace("Budget", "")}.description`)}
+                    >
+                      {choice({
+                        value: form[key],
+                        options: BUDGETS[key],
+                        label: (value) => `${value} %`,
+                        onChange: (value) => setForm(key, value),
+                      })}
+                    </SettingsRowV2>
+                  )}
+                </For>
+              </Show>
+            </>,
+          )}
+
+          {section(
+            t("settings.modelsHub.settings.memory.title"),
+            undefined,
+            <>
+              <SettingsRowV2 title={t("settings.modelsHub.auto.idle.title")} description={t("settings.modelsHub.auto.idle.description")}>
+                {choice({
+                  value: form.idleUnloadMinutes,
+                  options: IDLE_MINUTES,
+                  label: (value) => (value === 0 ? t("settings.modelsHub.auto.idle.never") : t("settings.modelsHub.auto.idle.minutes", { n: value })),
+                  onChange: (value) => setForm("idleUnloadMinutes", value),
+                })}
+              </SettingsRowV2>
+              <SettingsRowV2 title={t("settings.modelsHub.load.keepInMemory.title")} description={t("settings.modelsHub.load.keepInMemory.description")}>
+                <Switch checked={form.keepInMemory} onChange={(checked) => setForm("keepInMemory", checked)} hideLabel>
+                  {t("settings.modelsHub.load.keepInMemory.title")}
+                </Switch>
+              </SettingsRowV2>
+              <SettingsRowV2 title={t("settings.modelsHub.load.useMmap.title")} description={t("settings.modelsHub.load.useMmap.description")}>
+                <Switch checked={form.useMmap} onChange={(checked) => setForm("useMmap", checked)} hideLabel>
+                  {t("settings.modelsHub.load.useMmap.title")}
+                </Switch>
+              </SettingsRowV2>
+              <SettingsRowV2 title={t("settings.modelsHub.load.kvOffload.title")} description={t("settings.modelsHub.load.kvOffload.description")}>
+                <Switch checked={form.kvOffload} onChange={(checked) => setForm("kvOffload", checked)} hideLabel>
+                  {t("settings.modelsHub.load.kvOffload.title")}
+                </Switch>
+              </SettingsRowV2>
+            </>,
+          )}
+
+          {section(
+            t("settings.modelsHub.settings.advanced.title"),
+            t("settings.modelsHub.settings.advanced.description"),
+            <>
+              <SettingsRowV2 title={t("settings.modelsHub.load.nCpuMoe.title")} description={t("settings.modelsHub.load.nCpuMoe.description")}>
+                {numberField("nCpuMoe", "0")}
+              </SettingsRowV2>
+              <SettingsRowV2 title={t("settings.modelsHub.load.ubatchSize.title")} description={t("settings.modelsHub.load.ubatchSize.description")}>
+                {numberField("ubatchSize", "512")}
+              </SettingsRowV2>
+              <SettingsRowV2 title={t("settings.modelsHub.load.threadsBatch.title")} description={t("settings.modelsHub.load.threadsBatch.description")}>
+                {numberField("threadsBatch", t("settings.modelsHub.settings.auto"))}
+              </SettingsRowV2>
+              <SettingsRowV2 title={t("settings.modelsHub.load.loadTimeoutMinutes.title")} description={t("settings.modelsHub.load.loadTimeoutMinutes.description")}>
+                {numberField("loadTimeoutMinutes", "15")}
+              </SettingsRowV2>
+              <SettingsRowV2 title={t("settings.modelsHub.load.seed.title")} description={t("settings.modelsHub.load.seed.hint")}>
+                {numberField("seed", t("settings.modelsHub.settings.random"))}
+              </SettingsRowV2>
+              <SettingsRowV2 title={t("settings.modelsHub.load.ropeFrequencyBase.title")} description={t("settings.modelsHub.load.ropeFrequencyBase.hint")}>
+                {numberField("ropeFrequencyBase", t("settings.modelsHub.settings.modelValue"))}
+              </SettingsRowV2>
+              <SettingsRowV2 title={t("settings.modelsHub.load.ropeFrequencyScale.title")} description={t("settings.modelsHub.load.ropeFrequencyScale.hint")}>
+                {numberField("ropeFrequencyScale", t("settings.modelsHub.settings.modelValue"))}
+              </SettingsRowV2>
+            </>,
+          )}
+
+          {section(
+            t("settings.modelsHub.settings.chat.title"),
+            undefined,
+            <SettingsRowV2 title={t("settings.modelsHub.lightweight.title")} description={t("settings.modelsHub.lightweight.description")}>
+              <SegmentedControlV2
+                class="settings-v2-mh-segmented"
+                value={form.lightweight}
+                onChange={(value) => {
+                  if (value === "auto" || value === "always" || value === "never") setForm("lightweight", value)
+                }}
+                aria-label={t("settings.modelsHub.lightweight.title")}
+              >
+                <For each={["auto", "always", "never"] as const}>
+                  {(value) => <SegmentedControlItemV2 value={value}>{t(`settings.modelsHub.lightweight.${value}`)}</SegmentedControlItemV2>}
+                </For>
+              </SegmentedControlV2>
+            </SettingsRowV2>,
+          )}
+
+          {section(
+            t("settings.modelsHub.dir.title"),
+            t("settings.modelsHub.dir.restart"),
+            <SettingsRowV2
+              title={system()?.modelsDir ?? "—"}
+              description={t(system()?.modelsDirCustom ? "settings.modelsHub.dir.custom" : "settings.modelsHub.dir.default")}
+            >
+              <div class="settings-v2-mh-actions">
+                <Show
+                  when={localModels()}
+                  fallback={
+                    <form
+                      class="settings-v2-mh-dir-form"
+                      onSubmit={(event) => {
+                        event.preventDefault()
+                        if (ui.dirInput.trim()) void applyDir(ui.dirInput.trim())
+                      }}
+                    >
+                      <TextInputV2
+                        appearance="base"
+                        value={ui.dirInput}
+                        placeholder={t("settings.modelsHub.dir.placeholder")}
+                        onInput={(event) => setUi("dirInput", event.currentTarget.value)}
+                        spellcheck={false}
+                      />
+                      <ButtonV2 type="submit" size="small" variant="outline">
+                        {t("settings.modelsHub.dir.apply")}
+                      </ButtonV2>
+                    </form>
+                  }
+                >
+                  <ButtonV2 size="small" variant="outline" onClick={() => void pickDir()}>
+                    {t("settings.modelsHub.dir.change")}
+                  </ButtonV2>
+                </Show>
+                <Show when={system()?.modelsDirCustom}>
+                  <ButtonV2 size="small" variant="ghost" onClick={() => void applyDir(null)}>
+                    {t("settings.modelsHub.dir.reset")}
+                  </ButtonV2>
+                </Show>
+              </div>
+            </SettingsRowV2>,
+          )}
+
+          <div class="settings-v2-mh-reset">
+            <ButtonV2 size="small" variant="ghost" onClick={() => setForm({ ...FACTORY })}>
+              {t("settings.modelsHub.settings.reset")}
+            </ButtonV2>
           </div>
         </Show>
       </div>
     </>
+  )
+}
+
+// The author's avatar from Hugging Face (organisation, then user), and its initial otherwise.
+function HubAvatar(props: { id: string; large?: boolean }) {
+  const [state, setState] = createStore({ attempt: 0 })
+  const author = () => (props.id.includes("/") ? props.id.split("/")[0]! : "")
+  const sources = () => [
+    `https://huggingface.co/api/organizations/${encodeURIComponent(author())}/avatar?redirect=true`,
+    `https://huggingface.co/api/users/${encodeURIComponent(author())}/avatar?redirect=true`,
+  ]
+  return (
+    <span class="settings-v2-mh-avatar" data-size={props.large ? "large" : undefined} aria-hidden="true">
+      <Show when={author() && state.attempt < 2} fallback={<span>{(props.id.split("/").at(-1) ?? "?").charAt(0).toUpperCase()}</span>}>
+        <img
+          src={sources()[state.attempt]}
+          alt=""
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={() => setState("attempt", (value) => value + 1)}
+        />
+      </Show>
+    </span>
   )
 }

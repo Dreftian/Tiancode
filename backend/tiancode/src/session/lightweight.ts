@@ -9,6 +9,7 @@
  * small skill index so they can still load the right workflow on demand.
  */
 import type { Provider } from "@/provider/provider"
+import { getLoadDefaults } from "@/local-engine/load-defaults"
 
 /** Models at or below this context get the lightweight payload. */
 export const LIGHTWEIGHT_CONTEXT_MAX = 65_536
@@ -48,9 +49,11 @@ export function compactCapabilities(items: readonly { name: string; description?
   return lines.join("\n")
 }
 
+// The environment variable wins (tests, power users); otherwise Settings › Local models › Chat.
 export function lightweightMode(): LightweightMode {
   const value = process.env.TIANCODE_LIGHTWEIGHT?.trim().toLowerCase()
-  return value === "always" || value === "never" ? value : "auto"
+  if (value === "always" || value === "never" || value === "auto") return value
+  return getLoadDefaults().lightweight ?? "auto"
 }
 
 export function isLightweightModel(

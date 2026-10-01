@@ -1,14 +1,14 @@
 import { execFile } from "node:child_process"
 import { release } from "node:os"
 import { stat, writeFile } from "node:fs/promises"
-import { basename, isAbsolute, join, relative, resolve } from "node:path"
+import { basename, isAbsolute, join, resolve } from "node:path"
 import { app, BrowserWindow, clipboard, dialog, globalShortcut, ipcMain, screen, shell } from "electron"
 import type { IpcMainEvent, IpcMainInvokeEvent } from "electron"
 import type { DesktopMenuAction } from "@tiancode-ai/app/desktop-menu"
 import { parseDesktopNativeBundle, type DesktopNativeBundle } from "@tiancode-ai/app/i18n/desktop-native"
 
 import type { FatalRendererError, ServerReadyData, TitlebarTheme } from "../preload/types"
-import { getLogger, write as writeLog } from "./logging"
+import { write as writeLog } from "./logging"
 import { runDesktopMenuAction } from "./desktop-menu-actions"
 import { setForceFocus } from "./debug"
 import { assertAttachmentBudget, createPickedFileAuthorizations } from "./attachment-picker"
@@ -674,120 +674,6 @@ export function registerIpcHandlers(deps: Deps) {
       relaunch: deps.relaunch,
     })
   })
-
-  ipcMain.handle(
-    "model-hub-delete-file",
-    async (_event: IpcMainInvokeEvent, target: { file?: string; id?: string; destPath?: string }) => {
-      getLogger()?.info("model-hub-delete-file requested", target)
-
-      // 1. Matar cualquier proceso de llama-server para liberar bloqueos en Windows
-      if (process.platform === "win32") {
-        try {
-          execFile("taskkill", ["/F", "/IM", "llama-server.exe", "/T"])
-          execFile("taskkill", ["/F", "/IM", "llama.exe", "/T"])
-        } catch {}
-      }
-
-      const fileOrName = target.file || target.id || ""
-      const cleanFileName = fileOrName.replace(/\.gguf$/i, "")
-
-      const candidateDirs = [
-        join(app.getPath("appData"), "ai.tiancode.desktop", "xdg", "data", "tiancode", "models"),
-        join(app.getPath("appData"), "ai.tiancode.desktop.codex", "xdg", "data", "tiancode", "models"),
-        join(app.getPath("userData"), "xdg", "data", "tiancode", "models"),
-        join(app.getPath("home"), ".tiancode", "models"),
-        join(app.getPath("home"), ".local", "share", "tiancode", "models"),
-      ]
-
-      const { rm, readdir, readFile, writeFile } = await import("node:fs/promises")
-
-      for (const dir of candidateDirs) {
-        // Limpieza en .jobs.json
-        try {
-          const jobsPath = join(dir, ".jobs.json")
-          const content = await readFile(jobsPath, "utf-8")
-          const jobsList = JSON.parse(content)
-          if (Array.isArray(jobsList)) {
-            const filtered = jobsList.filter((j: any) => {
-              if (!j) return false
-              if (target.id && j.id === target.id) return false
-              if (target.file && j.file === target.file) return false
-              if (target.destPath && j.destPath === target.destPath) return false
-              if (fileOrName && (j.file?.includes(fileOrName) || j.destPath?.includes(fileOrName))) return false
-              return true
-            })
-            await writeFile(jobsPath, JSON.stringify(filtered, null, 2), "utf-8")
-          }
-        } catch {}
-
-        // Eliminación física recursiva de archivos .gguf o carpetas
-        try {
-          const deleteMatching = async (currentDir: string) => {
-            const entries = await readdir(currentDir, { withFileTypes: true }).catch(() => [])
-            for (const entry of entries) {
-              const full = join(currentDir, entry.name)
-              const nameLower = entry.name.toLowerCase()
-              const isMatch =
-                (target.file && nameLower === target.file.toLowerCase()) ||
-                (target.destPath && full.toLowerCase() === target.destPath.toLowerCase()) ||
-                (fileOrName && nameLower.includes(fileOrName.toLowerCase())) ||
-                (cleanFileName && nameLower.includes(cleanFileName.toLowerCase()))
-
-              if (isMatch) {
-                await rm(full, { recursive: true, force: true }).catch(() => {})
-              } else if (entry.isDirectory() && entry.name !== "." && entry.name !== "..") {
-                await deleteMatching(full)
-              }
-            }
-          }
-          await deleteMatching(dir)
-        } catch {}
-      }
-
-      const isInsideCandidateDir = (targetPath: string) => {
-        const resolvedTarget = resolve(targetPath)
-        return candidateDirs.some((dir) => {
-          const rel = relative(resolve(dir), resolvedTarget)
-          return !rel.startsWith("..") && !isAbsolute(rel)
-        })
-      }
-
-      if (target.destPath && isInsideCandidateDir(target.destPath)) {
-        try {
-          await rm(target.destPath, { recursive: true, force: true }).catch(() => {})
-          await rm(`${target.destPath}.part`, { recursive: true, force: true }).catch(() => {})
-        } catch {}
-      }
-
-      // Verify the artifact is really gone; a locked file (llama-server still
-      // holding the handle, AV quarantine, etc.) must not report success or
-      // the model silently resurrects via auto-discovery on next start.
-      let stillExists = false
-      for (const dir of candidateDirs) {
-        try {
-          const verifyDir = async (currentDir: string) => {
-            const entries = await readdir(currentDir, { withFileTypes: true }).catch(() => [])
-            for (const entry of entries) {
-              if (stillExists) return
-              const nameLower = entry.name.toLowerCase()
-              const isMatch =
-                (target.file && nameLower === target.file.toLowerCase()) ||
-                (fileOrName && nameLower.includes(fileOrName.toLowerCase())) ||
-                (cleanFileName && nameLower.includes(cleanFileName.toLowerCase()))
-              if (isMatch && entry.isFile() && !nameLower.endsWith(".part")) {
-                stillExists = true
-                return
-              }
-              if (entry.isDirectory()) await verifyDir(join(currentDir, entry.name))
-            }
-          }
-          await verifyDir(dir)
-        } catch {}
-      }
-
-      return { success: !stillExists }
-    },
-  )
 }
 
 export function sendMenuCommand(win: BrowserWindow, id: string) {

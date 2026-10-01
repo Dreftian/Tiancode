@@ -14,6 +14,18 @@ describe("model-hub", () => {
         { file: "model-F16.gguf", quant: "F16", size: 400, sha256: undefined, fit: undefined, recommended: false },
       ])
     })
+
+    test("leaves out files one download cannot run: vision projectors and split shards", () => {
+      const files = ModelHub.parseQuantFiles([
+        { rfilename: "model-Q4_K_M.gguf", size: 100 },
+        { rfilename: "mmproj-model-f16.gguf", size: 50 },
+        { rfilename: "vision/mmproj-F16.gguf", size: 50 },
+        { rfilename: "Q8_0/model-Q8_0-00001-of-00002.gguf", size: 300 },
+        { rfilename: "Q8_0/model-Q8_0-00002-of-00002.gguf", size: 300 },
+        { rfilename: "Q6_K/model-Q6_K.gguf", size: 200 },
+      ])
+      expect(files.map((file) => file.file)).toEqual(["model-Q4_K_M.gguf", "Q6_K/model-Q6_K.gguf"])
+    })
   })
 
   describe("compatibilityFor", () => {

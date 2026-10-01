@@ -470,9 +470,6 @@ export type ElectronAPI = {
     setDir: (dir: string | null) => Promise<void>
     pickDir: (title?: string) => Promise<string | null>
   }
-  modelHub: {
-    deleteFile: (target: { file?: string; id?: string; destPath?: string }) => Promise<{ success: boolean }>
-  }
 }
 
 export type DesktopPetState = {

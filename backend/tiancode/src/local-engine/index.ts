@@ -8,7 +8,7 @@ import { getLoadDefaults, setLoadDefaults, type LoadDefaults } from "./load-defa
 import { FSUtil } from "@tiancode-ai/core/fs-util"
 import { Global } from "@tiancode-ai/core/global"
 import { httpClient } from "@tiancode-ai/core/effect/app-node-platform"
-import { Context, Duration, Effect, Layer } from "effect"
+import { Context, Duration, Effect, Layer, Semaphore } from "effect"
 import { type ChildProcess, execFile, spawn } from "node:child_process"
 import { promisify } from "node:util"
 import { existsSync, createWriteStream, readdirSync, readFileSync, writeFileSync, copyFileSync, statSync } from "node:fs"
@@ -66,6 +66,14 @@ export interface EngineLoadOptions {
   readonly placement?: "auto" | "gpu" | "hybrid" | "cpu"
   /** Unload the model after this many minutes without requests (0 = keep loaded). */
   readonly idleUnloadMinutes?: number
+  /** Physical batch (llama-server -ub): prompt tokens processed per GPU pass. */
+  readonly ubatchSize?: number
+  /** Threads for prompt processing (llama-server -tb); generation keeps `threads`. */
+  readonly threadsBatch?: number
+  /** Keep the MoE experts of the first N layers on the CPU (llama-server --n-cpu-moe). */
+  readonly nCpuMoe?: number
+  /** How long a model may take to load before the start gives up (minutes). */
+  readonly loadTimeoutMinutes?: number
 }
 
 export interface StartEngineOptions extends EngineLoadOptions {
@@ -88,6 +96,9 @@ export interface AppliedLoadOptions {
   readonly useMmap?: boolean
   readonly kvOffload?: boolean
   readonly parallel?: number
+  readonly ubatchSize?: number
+  readonly threadsBatch?: number
+  readonly nCpuMoe?: number
 }
 
 export interface Interface {
@@ -102,6 +113,8 @@ export interface Interface {
   readonly setLoadDefaults: (next: unknown) => Effect.Effect<LoadDefaults>
   /** The context size the engine would run `file` with right now (automatic or manual). */
   readonly expectedContext: (file: string) => Effect.Effect<number>
+  /** The last lines llama-server wrote to stderr: what explains a failed or crashed start. */
+  readonly logs: () => Effect.Effect<readonly string[]>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@tiancode/LocalEngine") {}
@@ -196,6 +209,9 @@ export function buildServerArgs(input: ServerArgsInput): string[] {
   if (input.ropeFrequencyBase !== undefined && input.ropeFrequencyBase > 0) args.push("--rope-freq-base", String(input.ropeFrequencyBase))
   if (input.ropeFrequencyScale !== undefined && input.ropeFrequencyScale > 0) args.push("--rope-freq-scale", String(input.ropeFrequencyScale))
   if (input.kvOffload === false) args.push("-nkvo")
+  if (input.ubatchSize !== undefined && input.ubatchSize > 0) args.push("-ub", String(Math.floor(input.ubatchSize)))
+  if (input.threadsBatch !== undefined && input.threadsBatch > 0) args.push("-tb", String(Math.floor(input.threadsBatch)))
+  if (input.nCpuMoe !== undefined && input.nCpuMoe > 0) args.push("--n-cpu-moe", String(Math.floor(input.nCpuMoe)))
   return args
 }
 
@@ -1001,6 +1017,8 @@ const layer = Layer.effect(
       currentStatus = "stopped"
       currentModelPath = undefined
       currentModelName = undefined
+      currentApplied = undefined
+      currentAuto = false
       lastError = undefined
       return getStatus()
     })
@@ -1163,7 +1181,21 @@ const layer = Layer.effect(
       return effective.contextSize ?? DEFAULT_CTX_SIZE
     })
 
-    const startEngine = Effect.fn("LocalEngine.start")(function* (requested: StartEngineOptions) {
+    // One start at a time. The chat's first message starts the engine for the reply and, in a
+    // forked fiber, for the title; without the lock the second start killed the first mid-load.
+    const startLock = Semaphore.makeUnsafe(1)
+
+    const startUnlocked = Effect.fn("LocalEngine.start")(function* (requested: StartEngineOptions) {
+      const resolvedModelFile = resolveModelFile(requested.model, requested.file)
+
+      // A start that names no load options (the chat's) joins the model already running instead of
+      // reloading it; the hub's "Reload" stops first when the user wants new options applied.
+      const explicit = Object.entries(requested).some(
+        ([key, value]) => key !== "model" && key !== "file" && key !== "auto" && value !== undefined,
+      )
+      if (!explicit && currentStatus === "running" && currentProcess && resolvedModelFile && currentModelPath === resolvedModelFile)
+        return getStatus()
+
       // 1. Detener instancia previa si existe
       yield* stopEngine()
 
@@ -1172,8 +1204,6 @@ const layer = Layer.effect(
       lastError = undefined
       stderrRing = []
       currentApplied = undefined
-
-      const resolvedModelFile = resolveModelFile(requested.model, requested.file)
 
       if (!resolvedModelFile || !existsSync(resolvedModelFile)) {
         currentStatus = "error"
@@ -1215,6 +1245,9 @@ const layer = Layer.effect(
         useMmap: options.useMmap,
         kvOffload: options.kvOffload,
         parallel: options.parallel,
+        ubatchSize: options.ubatchSize,
+        threadsBatch: options.threadsBatch,
+        nCpuMoe: options.nCpuMoe,
       }
       const args = buildServerArgs({
         modelPath: resolvedModelFile,
@@ -1232,6 +1265,9 @@ const layer = Layer.effect(
         ropeFrequencyScale: options.ropeFrequencyScale,
         kvOffload: options.kvOffload,
         parallel: options.parallel,
+        ubatchSize: options.ubatchSize,
+        threadsBatch: options.threadsBatch,
+        nCpuMoe: options.nCpuMoe,
       })
 
       yield* Effect.logInfo("Iniciando Tiancode Local Engine (llama-server)", {
@@ -1265,10 +1301,20 @@ const layer = Layer.effect(
       child.once("exit", (code) => {
         exited = true
         exitCode = code
-        if (currentStatus === "running" || currentStatus === "starting") {
+        // Stopped or replaced on purpose: whoever did it already set the state.
+        if (currentProcess !== child) return
+        currentProcess = undefined
+        if (currentStatus === "starting") {
           currentStatus = "stopped"
-          currentProcess = undefined
+          return
         }
+        if (currentStatus !== "running") return
+        // A crash after the model was serving (GPU device lost, out of memory on a long prompt) is
+        // an error with its cause, not a quiet "stopped" the user cannot explain.
+        const detail = pickRelevantStderr(stderrRing)
+        currentStatus = "error"
+        currentApplied = undefined
+        lastError = `llama-server se cerró de forma inesperada (código ${code ?? "desconocido"}).${detail ? ` ${detail}` : ""}`
       })
 
       // 4. Sondeo de salud: esperar con paciencia mientras el modelo carga (503 "Loading model"),
@@ -1287,12 +1333,15 @@ const layer = Layer.effect(
         // this port is somebody else's server and must not hold the start request open for 15min.
         if (probe.kind === "loading") sawServer = true
         if (probe.kind === "foreign") foreignStatus = probe.status
-        outcome = decideHealthWait({
-          elapsedMs: Date.now() - startedAt,
-          sawServer,
-          processExited: exited,
-          last: probe,
-        })
+        outcome = decideHealthWait(
+          {
+            elapsedMs: Date.now() - startedAt,
+            sawServer,
+            processExited: exited,
+            last: probe,
+          },
+          { loadMs: options.loadTimeoutMinutes && options.loadTimeoutMinutes > 0 ? options.loadTimeoutMinutes * 60_000 : undefined },
+        )
       }
 
       if (outcome.kind !== "ready") {
@@ -1331,12 +1380,13 @@ const layer = Layer.effect(
     return Service.of({
       status: () => Effect.sync(getStatus),
       ensureBinary,
-      start: startEngine,
+      start: (requested: StartEngineOptions) => startLock.withPermits(1)(startUnlocked(requested)),
       stop: stopEngine,
       resolveModelFile: (model: string, file: string) => Effect.sync(() => resolveModelFile(model, file)),
       loadDefaults: () => Effect.sync(() => getLoadDefaults()),
       setLoadDefaults: (next: unknown) => Effect.sync(() => setLoadDefaults(next)),
       expectedContext,
+      logs: () => Effect.sync(() => [...stderrRing]),
     })
   }),
 )

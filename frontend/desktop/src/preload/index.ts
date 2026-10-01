@@ -281,9 +281,6 @@ const api: ElectronAPI = {
       return () => ipcRenderer.removeListener("desktop-pet-hidden", handler)
     },
   },
-  modelHub: {
-    deleteFile: (target) => ipcRenderer.invoke("model-hub-delete-file", target),
-  },
   localModels: {
     getDir: () => ipcRenderer.invoke("local-models-dir-get"),
     setDir: (dir: string | null) => ipcRenderer.invoke("local-models-dir-set", dir),
