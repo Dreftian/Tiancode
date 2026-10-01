@@ -828,6 +828,7 @@ export const RELEASE_ENGLISH = {
   "settings.intelligence.area.tests": "Tests",
   "settings.intelligence.area.docs": "Documentation",
   "settings.intelligence.area.devops": "Build and deploy",
-  "settings.computerUse.projectRules": "This project has its own rules in its config; changes made here are saved there too.",
+  "settings.computerUse.projectRules": "Another config loaded after the global one (this project's tiancode.json, .tiancode/ or ~/.tiancode) has its own browser rules here, and they take priority over these.",
   "settings.config.loadFailed": "Could not load the settings from the server. The values shown may be out of date.",
+  "settings.computerUse.projectOverride": "In this project “{{action}}” applies: a config loaded after the global one sets it.",
 }

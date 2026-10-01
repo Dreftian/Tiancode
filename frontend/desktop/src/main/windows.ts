@@ -40,6 +40,11 @@ const rendererProtocol = "oc"
 const rendererHost = "renderer"
 const rendererPermissions = createRendererPermissionPolicy(isRendererUrl, isLoopbackUrl)
 const overlayWindows = new WeakSet<BrowserWindow>()
+// The app's own windows, the only ones the interface scale applies to: the desktop pet and the
+// computer-use indicator are fixed-size pages that would clip, and Chromium keeps their zoom.
+const zoomWindows = new WeakSet<BrowserWindow>()
+let uiZoom: number | undefined
+let uiZoomWrite: ReturnType<typeof setTimeout> | undefined
 const oc2Theme = oc2ThemeJson as DesktopTheme
 const oc2Background = {
   light: resolveThemeVariant(oc2Theme.light, false)["background-base"],
@@ -200,6 +205,7 @@ export function updateTitlebar(win: BrowserWindow) {
 export function setPinchZoomEnabled(enabled: boolean) {
   getStore().set(PINCH_ZOOM_ENABLED_KEY, enabled)
   for (const win of BrowserWindow.getAllWindows()) {
+    if (!zoomWindows.has(win) || win.isDestroyed() || win.webContents.isDestroyed()) continue
     pinchZoomEnabled.set(win, enabled)
     win.webContents.send("pinch-zoom-enabled-changed", enabled)
     if (!enabled && win.webContents.getZoomFactor() !== getUiZoom()) win.webContents.setZoomFactor(getUiZoom())
@@ -207,20 +213,27 @@ export function setPinchZoomEnabled(enabled: boolean) {
   }
 }
 
-// Pinch and Ctrl+wheel zoom are momentary; this is the scale windows open at and return to.
+// Pinch and Ctrl+wheel zoom are momentary; this is the scale the app's windows open at and return to.
 export function getUiZoom() {
+  if (uiZoom !== undefined) return uiZoom
   const value = Number(getStore().get(UI_ZOOM_FACTOR_KEY))
   return Number.isFinite(value) && value > 0 ? clampZoom(value) : 1
 }
 
 export function setUiZoom(factor: number) {
   const next = clampZoom(factor)
-  getStore().set(UI_ZOOM_FACTOR_KEY, next)
+  uiZoom = next
   for (const win of BrowserWindow.getAllWindows()) {
-    if (win.isDestroyed() || win.webContents.isDestroyed()) continue
+    if (!zoomWindows.has(win) || win.isDestroyed() || win.webContents.isDestroyed()) continue
     win.webContents.setZoomFactor(next)
     updateZoom(win)
   }
+  // A pinch sends dozens of steps a second, and each store write syncs the file to disk on the main
+  // thread: only the value the gesture settles on is written.
+  clearTimeout(uiZoomWrite)
+  uiZoomWrite = setTimeout(() => {
+    if (getStore().get(UI_ZOOM_FACTOR_KEY) !== next) getStore().set(UI_ZOOM_FACTOR_KEY, next)
+  }, 400)
 }
 
 export function getPinchZoomEnabled() {
@@ -907,8 +920,17 @@ function isRendererUrl(value?: string, html = false) {
 }
 
 function wireZoom(win: BrowserWindow) {
+  zoomWindows.add(win)
   pinchZoomEnabled.set(win, getPinchZoomEnabled())
-  win.webContents.setZoomFactor(getUiZoom())
+  // Zoom set before the page commits is ignored; Chromium opens it at the level it keeps per host.
+  win.webContents.on("did-finish-load", () => {
+    // Earlier versions kept the scale only in Chromium, so the first run keeps the one on screen.
+    if (getStore().get(UI_ZOOM_FACTOR_KEY) === undefined && uiZoom === undefined)
+      return void getStore().set(UI_ZOOM_FACTOR_KEY, clampZoom(win.webContents.getZoomFactor()))
+    if (win.webContents.getZoomFactor() === getUiZoom()) return
+    win.webContents.setZoomFactor(getUiZoom())
+    updateZoom(win)
+  })
   win.webContents.on("zoom-changed", (event, zoomDirection) => {
     event.preventDefault()
     if (pinchZoomEnabled.get(win)) {

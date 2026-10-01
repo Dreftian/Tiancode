@@ -3474,6 +3474,7 @@ export const dict = {
   "settings.intelligence.area.tests": "Pruebas",
   "settings.intelligence.area.docs": "Documentación",
   "settings.intelligence.area.devops": "Compilación y despliegue",
-  "settings.computerUse.projectRules": "Este proyecto tiene sus propias reglas en su configuración; los cambios que hagas aquí también se guardan ahí.",
+  "settings.computerUse.projectRules": "Otra configuración que se carga después de la global (el tiancode.json de este proyecto, .tiancode/ o ~/.tiancode) tiene sus propias reglas de navegador aquí y prevalecen sobre estas.",
   "settings.config.loadFailed": "No se pudo cargar la configuración del servidor. Los valores que ves pueden no estar al día.",
+  "settings.computerUse.projectOverride": "En este proyecto se aplica «{{action}}»: lo fija una configuración que se carga después de la global.",
 }

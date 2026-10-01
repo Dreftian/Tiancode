@@ -209,11 +209,12 @@ const JSONC_FORMAT = { formattingOptions: { insertSpaces: true, tabSize: 2 } }
 
 function patchJsonc(input: string, patch: unknown, path: string[] = []): string {
   if (!isRecord(patch) || (path.length === 2 && path[0] === "mcp" && "type" in patch)) {
-    const edits = modify(input, path, patch, {
-      ...JSONC_FORMAT,
-      // A new `*` permission rule is the fallback, so it goes before the rules it yields to.
-      getInsertionIndex: path[0] === "permission" && path.at(-1) === "*" ? () => 0 : undefined,
-    })
+    // A new `*` permission rule is the fallback, so it goes before the rules it yields to. Only inside
+    // a map that exists: modify() creates a missing parent through the same hook, and a whole new
+    // `browser` map placed first would fall under a top-level `*` that now came after it.
+    const tree = path[0] === "permission" && path.at(-1) === "*" ? parseTree(input) : undefined
+    const first = tree && findNodeAtLocation(tree, path.slice(0, -1))
+    const edits = modify(input, path, patch, { ...JSONC_FORMAT, getInsertionIndex: first ? () => 0 : undefined })
     return applyEdits(input, edits)
   }
 

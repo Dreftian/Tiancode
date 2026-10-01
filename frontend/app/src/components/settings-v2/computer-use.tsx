@@ -25,9 +25,9 @@ import { useSettings } from "@/context/settings"
 import { showToast } from "@/utils/toast"
 import {
   browserExceptions,
-  browserRules,
-  effectiveBrowserAction,
   isAction,
+  permissionRules,
+  resolveRule,
   type PermissionAction,
   toExecutable,
   toOrigin,
@@ -121,44 +121,50 @@ export const SettingsComputerUseV2: Component<{
         .then((result) => result.data ?? null)
         .catch(() => null),
   )
-  // 1.0.5 wrote these rules into the open project's tiancode.json, which overrides the global config
-  // there. The page shows what applies in that project, and keeps the project's own rules in step.
-  const [applied] = createResource(
-    () => props.directory,
-    (directory) =>
-      Promise.resolve()
-        .then(() => serverSdk().client.config.get({ directory }, { throwOnError: true }))
-        .then((result) => result.data)
-        .catch(() => undefined),
-  )
-  const [project, setProject] = createStore({ keys: [] as string[] })
   createEffect(() => {
-    const value = (props.directory ? applied() : undefined) ?? remote()
+    const value = remote()
     if (value) setShown(() => value.permission)
-  })
-  createEffect(() => {
-    const here = applied()?.permission
-    const global = remote()?.permission
-    if (!props.directory || here === undefined || !remote()) return
-    // One action written for the whole map applies to every key.
-    const read = (value: unknown, key: string) =>
-      value && typeof value === "object" ? (value as Record<string, unknown>)[key] : value
-    const keys = [...TOOLS, "browser"].filter(
-      (key) => JSON.stringify(read(here, key)) !== JSON.stringify(read(global, key)),
-    )
-    setProject("keys", (previous) => [...new Set([...previous, ...keys])])
   })
   const permission = () => {
     const value = shown()
     return value && typeof value === "object" ? (value as Record<string, unknown>) : {}
   }
-  const toolAction = (tool: Tool): PermissionAction => {
-    const rule = permission()[tool]
-    return isAction(rule) ? rule : TOOL_DEFAULTS[tool]
-  }
-  const rules = () => browserRules(permission().browser)
-  const browserDefault = () => effectiveBrowserAction(rules(), "*")
+  const rules = () => permissionRules(shown())
+  const toolAction = (tool: Tool): PermissionAction => resolveRule(rules(), tool) ?? TOOL_DEFAULTS[tool]
+  const browserDefault = () => resolveRule(rules(), "browser") ?? "allow"
   const exceptions = () => browserExceptions(rules())
+
+  // Config loaded after the global one (the project's tiancode.json, .tiancode/, ~/.tiancode or a
+  // managed config) overrides these rules in the open project; 1.0.5 wrote them into the project.
+  // The page edits only the global config, so it says what applies here instead of writing files
+  // it cannot rank. Both are read together, so a difference means another layer sets the rule.
+  const [layers] = createResource(
+    () => props.directory,
+    (directory) =>
+      Promise.all([
+        serverSdk().client.global.config.get({ throwOnError: true }),
+        serverSdk().client.config.get({ directory }, { throwOnError: true }),
+      ])
+        .then(([global, merged]) => ({
+          global: permissionRules(global.data?.permission),
+          merged: permissionRules(merged.data?.permission),
+        }))
+        .catch(() => undefined),
+  )
+  const overridden = (key: string, fallback: PermissionAction) => {
+    const value = layers()
+    if (!value) return undefined
+    const here = resolveRule(value.merged, key) ?? fallback
+    return here === (resolveRule(value.global, key) ?? fallback) ? undefined : here
+  }
+  const browserOverridden = () => {
+    const value = layers()
+    if (!value) return false
+    return (
+      overridden("browser", "allow") !== undefined ||
+      JSON.stringify(browserExceptions(value.merged)) !== JSON.stringify(browserExceptions(value.global))
+    )
+  }
 
   const savePermission = async (patch: Record<string, unknown>) => {
     const before = shown()
@@ -167,19 +173,7 @@ export const SettingsComputerUseV2: Component<{
       .client.global.config.update({ config: { permission: patch as Config["permission"] } }, { throwOnError: true })
       .then(() => true)
       .catch(() => false)
-    const directory = props.directory
-    const local = Object.fromEntries(Object.entries(patch).filter(([key]) => project.keys.includes(key)))
-    const kept =
-      saved && directory && Object.keys(local).length > 0
-        ? await serverSdk()
-            .client.config.update(
-              { directory, config: { permission: local as Config["permission"] } },
-              { throwOnError: true },
-            )
-            .then(() => true)
-            .catch(() => false)
-        : saved
-    if (saved && kept) return
+    if (saved) return
     setShown(() => before)
     showToast({ variant: "error", title: language.t("settings.computerUse.save.failed") })
     void refetch()
@@ -449,6 +443,13 @@ export const SettingsComputerUseV2: Component<{
                         <span class="settings-v2-kit-card-description">
                           {language.t(`settings.computerUse.tool.${tool}.description`)}
                         </span>
+                        <Show when={overridden(tool, TOOL_DEFAULTS[tool])}>
+                          {(action) => (
+                            <span class="settings-v2-kit-card-description" data-tone="warn">
+                              {language.t("settings.computerUse.projectOverride", { action: actionLabel(action()) })}
+                            </span>
+                          )}
+                        </Show>
                       </div>
                     </div>
                     <div class="settings-v2-kit-card-foot">
@@ -463,9 +464,6 @@ export const SettingsComputerUseV2: Component<{
               </For>
             </div>
             <p class="settings-v2-kit-note">{language.t("settings.computerUse.permissions.note")}</p>
-            <Show when={project.keys.some((key) => key !== "browser")}>
-              <p class="settings-v2-kit-note">{language.t("settings.computerUse.projectRules")}</p>
-            </Show>
           </div>
 
           <Show when={windows()}>
@@ -647,8 +645,10 @@ export const SettingsComputerUseV2: Component<{
                 </div>
               </Show>
             </div>
-            <Show when={project.keys.includes("browser")}>
-              <p class="settings-v2-kit-note">{language.t("settings.computerUse.projectRules")}</p>
+            <Show when={browserOverridden()}>
+              <p class="settings-v2-kit-note" data-tone="warn">
+                {language.t("settings.computerUse.projectRules")}
+              </p>
             </Show>
           </div>
 

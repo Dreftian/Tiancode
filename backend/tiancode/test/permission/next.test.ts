@@ -636,6 +636,29 @@ it.instance(
 )
 
 it.instance(
+  "ask - a broad deny still refuses shell_risk",
+  () =>
+    Effect.gen(function* () {
+      const err = yield* fail(
+        ask({
+          sessionID: SessionID.make("session_test"),
+          permission: "shell_risk",
+          patterns: ["rm -rf /"],
+          metadata: {},
+          always: [],
+          ruleset: [
+            { permission: "shell_risk", pattern: "*", action: "ask" },
+            { permission: "*", pattern: "*", action: "deny" },
+            { permission: "bash", pattern: "*", action: "allow" },
+          ],
+        }),
+      )
+      expect(err).toBeInstanceOf(PermissionV1.DeniedError)
+    }),
+  { git: true },
+)
+
+it.instance(
   "ask - a rule naming shell_risk still answers it",
   () =>
     Effect.gen(function* () {

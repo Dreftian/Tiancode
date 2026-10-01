@@ -376,3 +376,22 @@ test("a new browser default goes before the site rules it yields to", async () =
     }),
   )
 })
+
+// modify() creates a missing parent through the same insertion hook: a new `browser` map must not
+// land before a top-level `*`, which would then override every browser rule.
+test("a first browser default in .jsonc goes after a top-level allow-all", async () => {
+  await run((dir) =>
+    Effect.gen(function* () {
+      const file = path.join(dir, "tiancode.jsonc")
+      writeFileSync(file, ["{", '  "permission": "allow"', "}"].join("\n"))
+
+      const svc = yield* Config.Service
+      yield* svc.update({ permission: { browser: { "*": "ask" } } })
+      yield* svc.update({ permission: { browser: { "https://evil.example": "deny" } } })
+
+      const permission = parse(readFileSync(file, "utf8")).permission
+      expect(Object.keys(permission)).toEqual(["*", "browser"])
+      expect(Object.keys(permission.browser)).toEqual(["*", "https://evil.example"])
+    }),
+  )
+})

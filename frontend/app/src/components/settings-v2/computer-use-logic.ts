@@ -30,27 +30,39 @@ export function toExecutable(raw: string): string | undefined {
   return name
 }
 
+export type PermissionRule = { key: string; pattern: string; action: PermissionAction }
+
+const record = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value)
+
 /**
- * The browser rules as written: `permission.browser` may be one action for every site or a map
- * of patterns. The backend resolves with findLast, so the last matching rule wins.
+ * The permission config as the backend reads it, in order: a single action ("allow") is the `*`
+ * rule for every key, and a key holds one action or a map of patterns.
  */
-export function browserRules(rule: unknown): [string, PermissionAction][] {
-  if (isAction(rule)) return [["*", rule]]
-  if (typeof rule !== "object" || rule === null || Array.isArray(rule)) return []
-  return Object.entries(rule).filter((entry): entry is [string, PermissionAction] => isAction(entry[1]))
+export function permissionRules(permission: unknown): PermissionRule[] {
+  if (isAction(permission)) return [{ key: "*", pattern: "*", action: permission }]
+  if (!record(permission)) return []
+  return Object.entries(permission).flatMap(([key, value]): PermissionRule[] => {
+    if (isAction(value)) return [{ key, pattern: "*", action: value }]
+    if (!record(value)) return []
+    return Object.entries(value).flatMap(([pattern, action]) => (isAction(action) ? [{ key, pattern, action }] : []))
+  })
 }
 
-/** The action that applies to `pattern` ("*" for the default), "allow" when nothing matches. */
-export function effectiveBrowserAction(rules: [string, PermissionAction][], pattern: string): PermissionAction {
-  const match = rules.findLast(([key]) => key === "*" || key === pattern)
-  return match?.[1] ?? "allow"
+/** What applies to `key` on `pattern`: the last matching rule wins, as on the backend (findLast). */
+export function resolveRule(rules: PermissionRule[], key: string, pattern = "*"): PermissionAction | undefined {
+  return rules.findLast(
+    (rule) => (rule.key === key || rule.key === "*") && (rule.pattern === "*" || rule.pattern === pattern),
+  )?.action
 }
 
-/** Sites with a rule of their own that differs from the default: the exceptions worth listing. */
-export function browserExceptions(rules: [string, PermissionAction][]) {
-  const fallback = effectiveBrowserAction(rules.filter(([key]) => key === "*"), "*")
-  const sites = [...new Set(rules.map(([key]) => key).filter((key) => key !== "*"))]
+/** Browser sites whose rule differs from the default ("allow" when nothing is written). */
+export function browserExceptions(rules: PermissionRule[]) {
+  const fallback = resolveRule(rules, "browser") ?? "allow"
+  const sites = [
+    ...new Set(rules.filter((rule) => rule.key === "browser" && rule.pattern !== "*").map((rule) => rule.pattern)),
+  ]
   return sites
-    .map((site) => ({ site, action: effectiveBrowserAction(rules, site) }))
+    .map((site) => ({ site, action: resolveRule(rules, "browser", site) ?? fallback }))
     .filter((item) => item.action !== fallback)
 }

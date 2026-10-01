@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { browserExceptions, browserRules, effectiveBrowserAction, toExecutable, toOrigin } from "./computer-use-logic"
+import { browserExceptions, permissionRules, resolveRule, toExecutable, toOrigin } from "./computer-use-logic"
 
 describe("computer use logic", () => {
   test("a bare local host is http, anything else https", () => {
@@ -16,13 +16,25 @@ describe("computer use logic", () => {
   })
 
   test("only sites whose rule differs from the default are exceptions; the last rule wins", () => {
-    const rules = browserRules({ "*": "ask", "https://a.com": "allow", "https://b.com": "ask", "https://c.com": "deny" })
-    expect(effectiveBrowserAction(rules, "*")).toBe("ask")
+    const rules = permissionRules({
+      browser: { "*": "ask", "https://a.com": "allow", "https://b.com": "ask", "https://c.com": "deny" },
+    })
+    expect(resolveRule(rules, "browser")).toBe("ask")
     expect(browserExceptions(rules)).toEqual([
       { site: "https://a.com", action: "allow" },
       { site: "https://c.com", action: "deny" },
     ])
-    expect(browserRules("deny")).toEqual([["*", "deny"]])
-    expect(effectiveBrowserAction(browserRules(undefined), "https://x.com")).toBe("allow")
+    expect(resolveRule(permissionRules({ browser: "deny" }), "browser", "https://x.com")).toBe("deny")
+    expect(resolveRule(permissionRules(undefined), "browser")).toBeUndefined()
+  })
+
+  test("a single action or a later `*` applies to every key, as on the backend", () => {
+    expect(resolveRule(permissionRules("allow"), "screenshot")).toBe("allow")
+    expect(resolveRule(permissionRules({ screenshot: "ask", "*": "allow" }), "screenshot")).toBe("allow")
+    expect(resolveRule(permissionRules({ "*": "allow", screenshot: "ask" }), "screenshot")).toBe("ask")
+    // A top-level `*` after the browser map overrides its site rules too.
+    const rules = permissionRules({ browser: { "https://evil.com": "deny" }, "*": "allow" })
+    expect(resolveRule(rules, "browser", "https://evil.com")).toBe("allow")
+    expect(browserExceptions(rules)).toEqual([])
   })
 })

@@ -14,6 +14,7 @@ import { useServerSDK } from "@/context/server-sdk"
 import { showToast } from "@/utils/toast"
 import { SettingsConfirmDialog } from "./parts/confirm-dialog"
 import { SettingsHubHeader } from "./parts/hub-header"
+import { permissionRules, resolveRule } from "./computer-use-logic"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
 import "./parts/kit.css"
@@ -133,14 +134,8 @@ export const SettingsIntelligenceV2: Component<{
   const setCompaction = (patch: NonNullable<Config["compaction"]>) =>
     save({ compaction: patch }, (draft) => ({ ...draft, compaction: { ...draft.compaction, ...patch } }))
   const outputLines = () => config.value.tool_output?.max_lines ?? 2000
-  const doomLoop = () => {
-    const permission: unknown = config.value.permission
-    // A single action or a `*` rule also covers the loop breaker when it has no rule of its own.
-    if (typeof permission === "string") return permission
-    const rules = permission && typeof permission === "object" ? (permission as Record<string, unknown>) : {}
-    const rule = rules.doom_loop ?? rules["*"]
-    return typeof rule === "string" ? rule : "ask"
-  }
+  // The last of `doom_loop` and `*` wins, and a single action ("allow") covers it, as on the server.
+  const doomLoop = () => resolveRule(permissionRules(config.value.permission), "doom_loop") ?? "ask"
   const continueOnDeny = () => config.value.experimental?.continue_loop_on_deny === true
 
   // ------------------------------------------------------------------ Memory
