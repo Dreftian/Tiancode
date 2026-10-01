@@ -324,8 +324,8 @@ const setNativeValue = (el, value) => {
 // this where a bare el.click() does nothing.
 const press = (el, point) => {
   const rect = el.getBoundingClientRect();
-  const x = point && point.x !== undefined ? point.x : rect.left + rect.width / 2;
-  const y = point && point.y !== undefined ? point.y : rect.top + rect.height / 2;
+  const x = point && typeof point.x === "number" ? point.x : rect.left + rect.width / 2;
+  const y = point && typeof point.y === "number" ? point.y : rect.top + rect.height / 2;
   const init = { bubbles: true, cancelable: true, composed: true, button: 0, clientX: x, clientY: y };
   const Pointer = window.PointerEvent || window.MouseEvent;
   el.dispatchEvent(new Pointer("pointerdown", Object.assign({ pointerType: "mouse", isPrimary: true }, init)));
