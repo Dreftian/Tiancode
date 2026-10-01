@@ -3163,4 +3163,10 @@ export const dict = {
   "settings.timeline.category.subagents": "Subagentes",
   "settings.timeline.category.notices": "Avisos",
   "settings.timeline.category.tools": "Otras herramientas",
+  "settings.experimental.tabs.title": "Pestañas",
+  "settings.experimental.tabs.description": "Elige cómo se organizan las pestañas de sesión",
+  "settings.experimental.tabs.horizontal": "Horizontales",
+  "settings.experimental.tabs.vertical": "Verticales",
+  "settings.experimental.projectNames.title": "Mostrar nombres de proyecto",
+  "settings.experimental.projectNames.description": "Muestra el nombre del proyecto en las pestañas verticales",
 }

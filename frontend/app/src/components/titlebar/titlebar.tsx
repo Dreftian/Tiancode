@@ -11,6 +11,7 @@ import {
   untrack,
 } from "solid-js"
 import { createStore } from "solid-js/store"
+import { Portal } from "solid-js/web"
 import { useLocation, useNavigate, useParams } from "@solidjs/router"
 import { IconButton } from "@tiancode-ai/ui/icon-button"
 import { Icon } from "@tiancode-ai/ui/icon"
@@ -62,7 +63,12 @@ export function useTitlebarRightMount() {
   return mount
 }
 
-export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visible: boolean; toggle: () => void } }) {
+export function Titlebar(props: {
+  update?: TitlebarUpdate
+  debugTools?: { visible: boolean; toggle: () => void }
+  // Settings > Experimental > Tabs: Vertical. The tab list and New session move into this element.
+  verticalTabs?: HTMLElement
+}) {
   const layout = useLayout()
   const platform = usePlatform()
   const command = useCommand()
@@ -401,40 +407,74 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
                   />
                 </TooltipV2>
 
-                <TitlebarTabStrip
-                  tabs={tabsStore}
-                  currentTab={currentTab}
-                  forceTruncate={tabsAreOverflowing()}
-                  onOverflowChange={setTabsAreOverflowing}
-                  onNavigate={(tab, el) => {
-                    tabs.select(tab)
-                    el?.scrollIntoView({ behavior: "instant" })
-                  }}
-                  onClose={(tab) => {
-                    const index = tabsStore.findIndex((item) => tabKey(item) === tabKey(tab))
-                    if (index !== -1) tabsStoreActions.closeTab(index)
-                  }}
-                  onReorder={(keys) => tabsStoreActions.reorder(keys)}
-                />
-                <TooltipV2
-                  placement="bottom"
-                  value={
-                    <>
-                      {language.t("command.session.new")}
-                      <KeybindV2 keys={newTabTooltipKeybind(command)} variant="neutral" />
-                    </>
-                  }
-                >
-                  <IconButtonV2
-                    type="button"
-                    variant="ghost-muted"
-                    size="large"
-                    class="shrink-0"
-                    icon={<IconV2 name="plus" />}
-                    onClick={openNewTab}
-                    aria-label={language.t("command.session.new")}
-                  />
-                </TooltipV2>
+                {(() => {
+                  const strip = (orientation: "horizontal" | "vertical") => (
+                    <TitlebarTabStrip
+                      tabs={tabsStore}
+                      currentTab={currentTab}
+                      forceTruncate={tabsAreOverflowing()}
+                      onOverflowChange={setTabsAreOverflowing}
+                      orientation={orientation}
+                      showProjectName={settings.appearance.showProjectName()}
+                      onNavigate={(tab, el) => {
+                        tabs.select(tab)
+                        el?.scrollIntoView({ behavior: "instant", block: "nearest" })
+                      }}
+                      onClose={(tab) => {
+                        const index = tabsStore.findIndex((item) => tabKey(item) === tabKey(tab))
+                        if (index !== -1) tabsStoreActions.closeTab(index)
+                      }}
+                      onReorder={(keys) => tabsStoreActions.reorder(keys)}
+                    />
+                  )
+                  return (
+                    <Show
+                      when={props.verticalTabs}
+                      fallback={
+                        <>
+                          {strip("horizontal")}
+                          <TooltipV2
+                            placement="bottom"
+                            value={
+                              <>
+                                {language.t("command.session.new")}
+                                <KeybindV2 keys={newTabTooltipKeybind(command)} variant="neutral" />
+                              </>
+                            }
+                          >
+                            <IconButtonV2
+                              type="button"
+                              variant="ghost-muted"
+                              size="large"
+                              class="shrink-0"
+                              icon={<IconV2 name="plus" />}
+                              onClick={openNewTab}
+                              aria-label={language.t("command.session.new")}
+                            />
+                          </TooltipV2>
+                        </>
+                      }
+                    >
+                      {(mount) => (
+                        <Portal mount={mount()}>
+                          <div data-slot="vertical-tabs" class="flex h-full min-h-0 flex-col gap-2 p-2">
+                            <button
+                              type="button"
+                              data-action="vertical-tabs-new-session"
+                              class="flex h-8 w-full shrink-0 items-center gap-2 rounded-[6px] px-2 text-[13px] font-medium text-v2-text-text-base hover:bg-v2-overlay-simple-overlay-hover"
+                              onClick={openNewTab}
+                            >
+                              <IconV2 name="plus" />
+                              <span class="min-w-0 flex-1 truncate text-start">{language.t("command.session.new")}</span>
+                              <KeybindV2 keys={newTabTooltipKeybind(command)} variant="neutral" />
+                            </button>
+                            {strip("vertical")}
+                          </div>
+                        </Portal>
+                      )}
+                    </Show>
+                  )
+                })()}
                 <div class="flex-1" />
                 <TitlebarV2Right state={v2RightState()} />
               </div>

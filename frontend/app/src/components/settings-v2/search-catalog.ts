@@ -92,6 +92,8 @@ export const SETTINGS_ROWS: SettingsSearchEntry[] = [
   row("notifications", undefined, "settings.general.sounds.errors.title", "settings-sounds-errors", ["sonido", "sound", "errores"]),
   row("pairing", undefined, "settings.pairing.screenActive.title", "settings-keep-screen-active", ["pantalla", "screen", "suspender", "sleep", "activa"], "desktop"),
   row("experimental", undefined, "settings.experimental.browser.title", "settings-agent-browser", ["navegador", "browser", "agente", "controlar"]),
+  row("experimental", undefined, "settings.experimental.tabs.title", "settings-tab-layout", ["pestañas", "tabs", "vertical", "horizontal"]),
+  row("experimental", undefined, "settings.experimental.projectNames.title", "settings-show-project-name", ["proyecto", "project", "nombres", "names"]),
 ]
 
 // Notifications and sounds share their row labels; the result line names which group it is.

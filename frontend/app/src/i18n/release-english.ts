@@ -194,4 +194,10 @@ export const RELEASE_ENGLISH = {
   "settings.timeline.category.subagents": "Subagents",
   "settings.timeline.category.notices": "Notices",
   "settings.timeline.category.tools": "Other tools",
+  "settings.experimental.tabs.title": "Tabs",
+  "settings.experimental.tabs.description": "Choose how session tabs are arranged",
+  "settings.experimental.tabs.horizontal": "Horizontal",
+  "settings.experimental.tabs.vertical": "Vertical",
+  "settings.experimental.projectNames.title": "Show project names",
+  "settings.experimental.projectNames.description": "Show project names in vertical tabs",
 }
