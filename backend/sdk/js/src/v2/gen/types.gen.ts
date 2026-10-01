@@ -2041,6 +2041,7 @@ export type Config = {
       loopBreaker?: boolean
       cleanWeb?: boolean
       autoSkillLearn?: boolean
+      smartAlerts?: boolean
     }
     connections?: {
       telegram?: {
@@ -2113,10 +2114,10 @@ export type ConnectionTestResult = {
 export type DecisionStatus = {
   state: "unavailable" | "missing" | "downloading" | "ready" | "error"
   loaded: boolean
-  totalBytes: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
-  receivedBytes: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  totalBytes: number
+  receivedBytes: number
   message?: string
-  loadMs?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  loadMs?: number
   model: string
   base: string
 }
@@ -2126,16 +2127,16 @@ export type DecisionPreset = "outcome" | "area"
 export type DecisionClassifyInput = {
   preset: DecisionPreset
   text: string
-  timeoutMs?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  timeoutMs?: number
 }
 
 export type DecisionAnswer = {
   choice: string
-  confidence: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  confidence: number
   probabilities: {
-    [key: string]: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    [key: string]: number
   }
-  ms: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  ms: number
 }
 
 export type Model = {
@@ -2361,6 +2362,22 @@ export type McpResource = {
   description?: string
   mimeType?: string
   client: string
+}
+
+export type MemoryFile = {
+  path: string
+  text: string
+  limit: number
+}
+
+export type MemoryFiles = {
+  user: MemoryFile
+  project: MemoryFile
+}
+
+export type MemoryReplaceInput = {
+  target: "user" | "project"
+  text: string
 }
 
 export type OptimizePromptPayload = {
@@ -8417,6 +8434,63 @@ export type ExperimentalResourceListResponses = {
 
 export type ExperimentalResourceListResponse =
   ExperimentalResourceListResponses[keyof ExperimentalResourceListResponses]
+
+export type ExperimentalMemoryGetData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/experimental/memory"
+}
+
+export type ExperimentalMemoryGetErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ExperimentalMemoryGetError = ExperimentalMemoryGetErrors[keyof ExperimentalMemoryGetErrors]
+
+export type ExperimentalMemoryGetResponses = {
+  /**
+   * The user and project memory files
+   */
+  200: MemoryFiles
+}
+
+export type ExperimentalMemoryGetResponse = ExperimentalMemoryGetResponses[keyof ExperimentalMemoryGetResponses]
+
+export type ExperimentalMemoryReplaceData = {
+  body?: MemoryReplaceInput
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/experimental/memory"
+}
+
+export type ExperimentalMemoryReplaceErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ExperimentalMemoryReplaceError = ExperimentalMemoryReplaceErrors[keyof ExperimentalMemoryReplaceErrors]
+
+export type ExperimentalMemoryReplaceResponses = {
+  /**
+   * The memory files after the change
+   */
+  200: MemoryFiles
+}
+
+export type ExperimentalMemoryReplaceResponse =
+  ExperimentalMemoryReplaceResponses[keyof ExperimentalMemoryReplaceResponses]
 
 export type ExperimentalPromptOptimizeData = {
   body?: OptimizePromptPayload

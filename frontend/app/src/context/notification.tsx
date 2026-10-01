@@ -58,6 +58,22 @@ type NotificationIndex = {
 const MAX_NOTIFICATIONS = 500
 const NOTIFICATION_TTL_MS = 1000 * 60 * 60 * 24 * 30
 
+/** The last assistant text in a session's messages (`[{ info: { role }, parts }]`). */
+export function lastAssistantText(messages: unknown): string {
+  if (!Array.isArray(messages)) return ""
+  const text = messages
+    .toReversed()
+    .map((message: { info?: { role?: string }; parts?: Array<{ type?: string; text?: string }> }) =>
+      message?.info?.role === "assistant"
+        ? (message.parts ?? [])
+            .flatMap((part) => (part.type === "text" && part.text?.trim() ? [part.text.trim()] : []))
+            .join("\n\n")
+        : "",
+    )
+    .find(Boolean)
+  return text ?? ""
+}
+
 /** Errors that are part of a normal turn: the user pressed Stop, or the context filled up and is being compacted. */
 export function isQuietError(error: unknown) {
   if (!error || typeof error !== "object" || !("name" in error)) return false
@@ -354,19 +370,54 @@ function createServerNotificationState(input: {
   const IDLE_DEDUPE_MS = 3000
   const DONE_AFTER_ERROR_MS = 10_000
 
+  // Settings › Inteligencia › Avisos inteligentes: with the local decision model installed, the
+  // alert says whether the turn needs an answer or failed. Without it (or past the timeout) the
+  // plain "response ready" stays.
+  const OUTCOME_TIMEOUT_MS = 2500
+  const smartAlerts = { checkedAt: 0, enabled: false }
+  const onIntelligenceChanged = () => (smartAlerts.checkedAt = 0)
+  window.addEventListener("tiancode:intelligence-changed", onIntelligenceChanged)
+  const smartOutcome = async (directory: string, sessionID: string) => {
+    const client = serverSDK().client
+    if (Date.now() - smartAlerts.checkedAt > 60_000) {
+      const config = await client.global.config
+        .get()
+        .then((result) => result.data)
+        .catch(() => undefined)
+      smartAlerts.enabled = config?.experimental?.intelligence?.smartAlerts !== false
+      smartAlerts.checkedAt = Date.now()
+    }
+    if (!smartAlerts.enabled) return undefined
+    const messages = await client.session
+      .messages({ sessionID, directory, limit: 6 })
+      .then((result) => result.data)
+      .catch(() => undefined)
+    const text = lastAssistantText(messages)
+    if (!text) return undefined
+    const answer = await client.global.decision
+      .classify({ decisionClassifyInput: { preset: "outcome", text: text.slice(-4000), timeoutMs: OUTCOME_TIMEOUT_MS } })
+      .then((result) => result.data)
+      .catch(() => undefined)
+    return answer?.choice
+  }
+
   const handleSessionIdle = (directory: string, event: { properties: { sessionID?: string } }, time: number) => {
     const sessionID = event.properties.sessionID
     const key = `${directory}:${sessionID}`
     if (time - (lastIdle.get(key) ?? 0) < IDLE_DEDUPE_MS) return
     lastIdle.set(key, time)
     if (time - (lastError.get(key) ?? 0) < DONE_AFTER_ERROR_MS) return
-    void lookup(directory, sessionID).then((session) => {
+    void lookup(directory, sessionID).then(async (session) => {
       if (meta.disposed) return
       if (!session) return
       if (session.parentID) return
+      const outcome = sessionID ? await smartOutcome(directory, sessionID) : undefined
+      if (meta.disposed) return
 
-      if (settings.sounds.agentEnabled()) {
-        void playSoundById(settings.sounds.agent())
+      // A turn the local model reads as failed sounds like an error; anything else like a finished turn.
+      const failed = outcome === "failed"
+      if (failed ? settings.sounds.errorsEnabled() : settings.sounds.agentEnabled()) {
+        void playSoundById(failed ? settings.sounds.errors() : settings.sounds.agent())
       }
 
       append({
@@ -378,10 +429,14 @@ function createServerNotificationState(input: {
       })
 
       const href = `/${base64Encode(directory)}/session/${sessionID}`
+      const title =
+        outcome === "question"
+          ? language.t("notification.session.needsAnswer.title")
+          : failed
+            ? language.t("notification.session.failed.title")
+            : language.t("notification.session.responseReady.title")
       if (settings.notifications.agent()) {
-        void platform.notify(language.t("notification.session.responseReady.title"), session.title ?? sessionID, () =>
-          input.navigate(href),
-        )
+        void platform.notify(title, session.title ?? sessionID, () => input.navigate(href))
       }
     })
   }
@@ -511,6 +566,7 @@ function createServerNotificationState(input: {
   onCleanup(() => {
     meta.disposed = true
     unsub()
+    window.removeEventListener("tiancode:intelligence-changed", onIntelligenceChanged)
     alertToasts.forEach((toastId) => dismissToast(toastId))
   })
 

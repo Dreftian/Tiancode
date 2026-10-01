@@ -56,6 +56,10 @@ import type {
   ExperimentalConsoleSwitchOrgResponses,
   ExperimentalControlPlaneMoveSessionErrors,
   ExperimentalControlPlaneMoveSessionResponses,
+  ExperimentalMemoryGetErrors,
+  ExperimentalMemoryGetResponses,
+  ExperimentalMemoryReplaceErrors,
+  ExperimentalMemoryReplaceResponses,
   ExperimentalProjectCopyGenerateNameErrors,
   ExperimentalProjectCopyGenerateNameResponses,
   ExperimentalPromptOptimizeErrors,
@@ -167,6 +171,7 @@ import type {
   McpRemoveResponses,
   McpStatusErrors,
   McpStatusResponses,
+  MemoryReplaceInput,
   ModelhubCancelErrors,
   ModelhubCancelResponses,
   ModelhubDeleteLocalErrors,
@@ -1326,6 +1331,83 @@ export class Resource extends HeyApiClient {
   }
 }
 
+export class Memory extends HeyApiClient {
+  /**
+   * Read long-term memory
+   *
+   * USER.md (all projects) and this project's MEMORY.md, with their paths and size limits.
+   */
+  public get<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      ExperimentalMemoryGetResponses,
+      ExperimentalMemoryGetErrors,
+      ThrowOnError
+    >({
+      url: "/experimental/memory",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Edit long-term memory
+   *
+   * Replace USER.md or this project's MEMORY.md with the given text; an empty text clears it.
+   */
+  public replace<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      memoryReplaceInput?: MemoryReplaceInput
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { key: "memoryReplaceInput", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).put<
+      ExperimentalMemoryReplaceResponses,
+      ExperimentalMemoryReplaceErrors,
+      ThrowOnError
+    >({
+      url: "/experimental/memory",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+}
+
 export class Prompt extends HeyApiClient {
   /**
    * Stream optimized prompt
@@ -1711,6 +1793,11 @@ export class Experimental extends HeyApiClient {
   private _resource?: Resource
   get resource(): Resource {
     return (this._resource ??= new Resource({ client: this.client }))
+  }
+
+  private _memory?: Memory
+  get memory(): Memory {
+    return (this._memory ??= new Memory({ client: this.client }))
   }
 
   private _prompt?: Prompt

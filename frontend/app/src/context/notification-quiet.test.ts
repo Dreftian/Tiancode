@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { isQuietError } from "./notification"
+import { isQuietError, lastAssistantText } from "./notification"
 
 describe("isQuietError", () => {
   test("stopping a turn and compaction overflow are not reported as errors", () => {
@@ -11,5 +11,18 @@ describe("isQuietError", () => {
     expect(isQuietError({ name: "APIError", data: { message: "500" } })).toBe(false)
     expect(isQuietError("boom")).toBe(false)
     expect(isQuietError(undefined)).toBe(false)
+  })
+})
+
+describe("lastAssistantText", () => {
+  test("takes the newest assistant message with text", () => {
+    const messages = [
+      { info: { role: "user" }, parts: [{ type: "text", text: "hazlo" }] },
+      { info: { role: "assistant" }, parts: [{ type: "text", text: "Primero" }] },
+      { info: { role: "assistant" }, parts: [{ type: "reasoning", text: "pienso" }, { type: "text", text: "¿Sigo?" }] },
+      { info: { role: "assistant" }, parts: [{ type: "tool" }] },
+    ]
+    expect(lastAssistantText(messages)).toBe("¿Sigo?")
+    expect(lastAssistantText(undefined)).toBe("")
   })
 })

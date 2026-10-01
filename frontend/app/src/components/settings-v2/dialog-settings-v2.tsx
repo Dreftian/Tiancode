@@ -17,7 +17,7 @@ import { SettingsMcpPluginsV2 } from "./mcp-plugins"
 import { SettingsPetsV2 } from "./pets"
 import { SettingsConnectionsHubV2, type ConnectionsSection } from "./connections-hub"
 import { COMPUTER_USE_SECTIONS, SettingsComputerUseV2, type ComputerUseSection } from "./computer-use"
-import { SettingsIntelligenceV2 } from "./intelligence"
+import { INTELLIGENCE_SECTIONS, type IntelligenceSection, SettingsIntelligenceV2 } from "./intelligence"
 import { SettingsVoicesV2 } from "./voices"
 import "./settings-v2.css"
 import { SERVER_SECTIONS, SettingsServerHubV2, type ServerSection } from "./server-hub"
@@ -100,6 +100,7 @@ type SettingsTarget = {
   computerUse?: ComputerUseSection
   server?: ServerSection
   connections?: ConnectionsSection
+  intelligence?: IntelligenceSection
 }
 
 function settingsTarget(value: unknown): SettingsTarget {
@@ -110,6 +111,8 @@ function settingsTarget(value: unknown): SettingsTarget {
     return { tab: "computer-use", computerUse: requested as ComputerUseSection }
   if ((SERVER_SECTIONS as readonly string[]).includes(requested)) return { tab: "server", server: requested as ServerSection }
   if (requested === "github") return { tab: "connections", connections: "github" }
+  if ((INTELLIGENCE_SECTIONS as readonly string[]).includes(requested))
+    return { tab: "intelligence", intelligence: requested as IntelligenceSection }
   return { tab: requested }
 }
 
@@ -133,6 +136,7 @@ export const DialogSettings: Component<{
     computerUse: target.computerUse ?? ("tools" as ComputerUseSection),
     server: target.server ?? ("servers" as ServerSection),
     connections: target.connections ?? ("gateways" as ConnectionsSection),
+    intelligence: target.intelligence ?? ("memory" as IntelligenceSection),
   })
 
   // Lazy cache (matching OpenCode Desktop): only mount the active tab initially,
@@ -170,6 +174,8 @@ export const DialogSettings: Component<{
     if (entry.tab === "server") setSections("server", (entry.section as ServerSection | undefined) ?? "servers")
     if (entry.tab === "connections")
       setSections("connections", (entry.section as ConnectionsSection | undefined) ?? "gateways")
+    if (entry.tab === "intelligence")
+      setSections("intelligence", (entry.section as IntelligenceSection | undefined) ?? "memory")
     markVisited(entry.tab)
     if (entry.target) revealSettingsRow(entry.target)
   }
@@ -309,7 +315,11 @@ export const DialogSettings: Component<{
 
         <TabsV2.Content forceMount value="intelligence" class="settings-v2-panel" classList={{ "!hidden": tab() !== "intelligence" }}>
           <Show when={visited().has("intelligence")}>
-            <SettingsIntelligenceV2 />
+            <SettingsIntelligenceV2
+              directory={directory()}
+              section={sections.intelligence}
+              onSectionChange={(section) => setSections("intelligence", section)}
+            />
           </Show>
         </TabsV2.Content>
 

@@ -114,7 +114,21 @@ export class OptimizePromptModelError extends Schema.ErrorClass<OptimizePromptMo
   { httpApiStatus: 422 },
 ) {}
 
+export const MemoryFile = Schema.Struct({
+  path: Schema.String,
+  text: Schema.String,
+  limit: Schema.Finite,
+}).annotate({ identifier: "MemoryFile" })
+
+export const MemoryFiles = Schema.Struct({ user: MemoryFile, project: MemoryFile }).annotate({ identifier: "MemoryFiles" })
+
+export const MemoryReplaceInput = Schema.Struct({
+  target: Schema.Literals(["user", "project"]),
+  text: Schema.String,
+}).annotate({ identifier: "MemoryReplaceInput" })
+
 export const ExperimentalPaths = {
+  memory: "/experimental/memory",
   capabilities: "/experimental/capabilities",
   console: "/experimental/console",
   consoleOrgs: "/experimental/console/orgs",
@@ -281,6 +295,27 @@ export const ExperimentalApi = HttpApi.make("experimental")
             identifier: "experimental.resource.list",
             summary: "Get MCP resources",
             description: "Get all available MCP resources from connected servers. Optionally filter by name.",
+          }),
+        ),
+        HttpApiEndpoint.get("memory", ExperimentalPaths.memory, {
+          query: WorkspaceRoutingQuery,
+          success: described(MemoryFiles, "The user and project memory files"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "experimental.memory.get",
+            summary: "Read long-term memory",
+            description: "USER.md (all projects) and this project's MEMORY.md, with their paths and size limits.",
+          }),
+        ),
+        HttpApiEndpoint.put("memoryReplace", ExperimentalPaths.memory, {
+          query: WorkspaceRoutingQuery,
+          payload: MemoryReplaceInput,
+          success: described(MemoryFiles, "The memory files after the change"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "experimental.memory.replace",
+            summary: "Edit long-term memory",
+            description: "Replace USER.md or this project's MEMORY.md with the given text; an empty text clears it.",
           }),
         ),
         HttpApiEndpoint.post("optimizePrompt", ExperimentalPaths.promptOptimize, {

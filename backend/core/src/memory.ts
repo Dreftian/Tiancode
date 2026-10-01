@@ -22,6 +22,8 @@ export interface Interface {
   readonly saveUser: (entry: string, category?: MemoryCategory) => Effect.Effect<void>
   readonly saveProject: (entry: string, category?: MemoryCategory) => Effect.Effect<void>
   readonly recall: (query?: string) => Effect.Effect<{ user: string; project: string; matching: string[] }>
+  /** Replace a memory file with text edited by the user (clipped to its limit; empty clears it). */
+  readonly replace: (target: "user" | "project", text: string) => Effect.Effect<void>
   readonly format: (include?: { user?: boolean; project?: boolean }) => Effect.Effect<string | undefined>
 }
 
@@ -136,6 +138,12 @@ const layer = Layer.effect(
       yield* fsys.writeWithDirs(projectMemoryPath, trimmed).pipe(Effect.orDie)
     })
 
+    const replace = Effect.fn("Memory.replace")(function* (target: "user" | "project", text: string) {
+      const limit = target === "user" ? USER_MAX_CHARS : PROJECT_MAX_CHARS
+      const file = target === "user" ? userMemoryPath : projectMemoryPath
+      yield* fsys.writeWithDirs(file, text.trim() ? trimContent(text.trim() + "\n", limit) : "").pipe(Effect.orDie)
+    })
+
     const recall = Effect.fn("Memory.recall")(function* (query?: string) {
       const user = yield* readUser()
       const project = yield* readProject()
@@ -176,6 +184,7 @@ const layer = Layer.effect(
       saveUser,
       saveProject,
       recall,
+      replace,
       format,
     })
   }),

@@ -55,38 +55,6 @@ export const defaultPetSettings = {
   position: "bottom-right" as PetPosition,
 }
 
-/**
- * Settings → Intelligence.
- *
- * One field per switch the server config actually honours, named exactly as it is named under
- * `experimental.intelligence`: the panel mirrors this block to the server and seeds it back on
- * mount, so a name that drifts here silently stops reaching the agent. The defaults match the
- * server's own (everything on), which is what a client sees before the first read answers.
- */
-export interface IntelligenceSettings {
-  userMemory: boolean
-  projectMemory: boolean
-  codeGraph: boolean
-  cleanWeb: boolean
-  autoSkillLearn: boolean
-  guardrails: boolean
-  outputDistiller: boolean
-  toolCallRepair: boolean
-  loopBreaker: boolean
-}
-
-export const defaultIntelligenceSettings: IntelligenceSettings = {
-  userMemory: true,
-  projectMemory: true,
-  codeGraph: true,
-  cleanWeb: true,
-  autoSkillLearn: true,
-  guardrails: true,
-  outputDistiller: true,
-  toolCallRepair: true,
-  loopBreaker: true,
-}
-
 export const transcriptTextSizes = ["small", "medium", "large"] as const
 export type TranscriptTextSize = (typeof transcriptTextSizes)[number]
 export const transcriptWidths = ["narrow", "medium", "wide"] as const
@@ -220,7 +188,6 @@ export interface Settings {
   }
   notifications: NotificationSettings
   sounds: SoundSettings
-  intelligence: IntelligenceSettings
 }
 
 export const monoDefault = "System Mono"
@@ -419,7 +386,6 @@ const defaultSettings: Settings = {
     errorsEnabled: true,
     errors: "nope-03",
   },
-  intelligence: defaultIntelligenceSettings,
 }
 
 function withFallback<T>(read: () => T | undefined, fallback: T) {
@@ -905,68 +871,6 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         errors: withFallback(() => store.sounds?.errors, defaultSettings.sounds.errors),
         setErrors(value: string) {
           setStore("sounds", "errors", value)
-        },
-      },
-      intelligence: {
-        userMemory: withFallback(() => store.intelligence?.userMemory, defaultSettings.intelligence.userMemory),
-        setUserMemory(value: boolean) {
-          setStore("intelligence", "userMemory", value)
-        },
-        projectMemory: withFallback(
-          () => store.intelligence?.projectMemory,
-          defaultSettings.intelligence.projectMemory,
-        ),
-        setProjectMemory(value: boolean) {
-          setStore("intelligence", "projectMemory", value)
-        },
-        codeGraph: withFallback(() => store.intelligence?.codeGraph, defaultSettings.intelligence.codeGraph),
-        setCodeGraph(value: boolean) {
-          setStore("intelligence", "codeGraph", value)
-        },
-        cleanWeb: withFallback(() => store.intelligence?.cleanWeb, defaultSettings.intelligence.cleanWeb),
-        setCleanWeb(value: boolean) {
-          setStore("intelligence", "cleanWeb", value)
-        },
-        autoSkillLearn: withFallback(
-          () => store.intelligence?.autoSkillLearn,
-          defaultSettings.intelligence.autoSkillLearn,
-        ),
-        setAutoSkillLearn(value: boolean) {
-          setStore("intelligence", "autoSkillLearn", value)
-        },
-        guardrails: withFallback(() => store.intelligence?.guardrails, defaultSettings.intelligence.guardrails),
-        setGuardrails(value: boolean) {
-          setStore("intelligence", "guardrails", value)
-        },
-        outputDistiller: withFallback(
-          () => store.intelligence?.outputDistiller,
-          defaultSettings.intelligence.outputDistiller,
-        ),
-        setOutputDistiller(value: boolean) {
-          setStore("intelligence", "outputDistiller", value)
-        },
-        toolCallRepair: withFallback(
-          () => store.intelligence?.toolCallRepair,
-          defaultSettings.intelligence.toolCallRepair,
-        ),
-        setToolCallRepair(value: boolean) {
-          setStore("intelligence", "toolCallRepair", value)
-        },
-        loopBreaker: withFallback(() => store.intelligence?.loopBreaker, defaultSettings.intelligence.loopBreaker),
-        setLoopBreaker(value: boolean) {
-          setStore("intelligence", "loopBreaker", value)
-        },
-        // Seeds the block from the server config the panel reads on mount. Only booleans are
-        // taken, so a switch the server omits — or carries as something else — keeps its
-        // current value instead of being reset.
-        merge(values: Partial<IntelligenceSettings>) {
-          setStore("intelligence", (current) => {
-            const next: IntelligenceSettings = { ...defaultSettings.intelligence, ...current }
-            for (const [key, value] of Object.entries(values)) {
-              if (typeof value === "boolean") next[key as keyof IntelligenceSettings] = value
-            }
-            return next
-          })
         },
       },
     }

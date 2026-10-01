@@ -5,10 +5,10 @@ import { described } from "./metadata"
 export const DecisionStatus = Schema.Struct({
   state: Schema.Literals(["unavailable", "missing", "downloading", "ready", "error"]),
   loaded: Schema.Boolean,
-  totalBytes: Schema.Number,
-  receivedBytes: Schema.Number,
+  totalBytes: Schema.Finite,
+  receivedBytes: Schema.Finite,
   message: Schema.optional(Schema.String),
-  loadMs: Schema.optional(Schema.Number),
+  loadMs: Schema.optional(Schema.Finite),
   model: Schema.String,
   base: Schema.String,
 }).annotate({ identifier: "DecisionStatus" })
@@ -19,14 +19,14 @@ export const DecisionClassifyInput = Schema.Struct({
   preset: DecisionPreset,
   text: Schema.String,
   /** Give up after this many milliseconds (default 5000). */
-  timeoutMs: Schema.optional(Schema.Number),
+  timeoutMs: Schema.optional(Schema.Finite),
 }).annotate({ identifier: "DecisionClassifyInput" })
 
 export const DecisionAnswer = Schema.Struct({
   choice: Schema.String,
-  confidence: Schema.Number,
-  probabilities: Schema.Record(Schema.String, Schema.Number),
-  ms: Schema.Number,
+  confidence: Schema.Finite,
+  probabilities: Schema.Record(Schema.String, Schema.Finite),
+  ms: Schema.Finite,
 }).annotate({ identifier: "DecisionAnswer" })
 
 export const DecisionPaths = {
