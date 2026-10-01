@@ -774,6 +774,26 @@ export function createServerSyncContextInner(serverSDK: ServerSDK) {
           },
         })
       },
+      // A switch means enabled/disabled, not connected: turning off a failed server must disable
+      // it (toggle would retry the connection), and turning on one that needs auth signs in.
+      setEnabled: async (directory: string, name: string, enabled: boolean) => {
+        const key = directoryKey(directory)
+        const sdk = sdkFor(key)
+        const status = children.child(key, { bootstrap: false })[0].mcp[name]?.status
+        if (!status || status === "pending") return
+        const v1 = (await serverSDK.protocol) === "v1"
+        if (enabled && status === "needs_auth") await sdk.mcp.auth.authenticate({ name })
+        if (enabled && status !== "needs_auth" && status !== "connected") {
+          if (v1) await sdk.mcp.connect({ name })
+          if (!v1) await serverSDK.api.mcp.connect({ server: name, location: { directory: key } })
+        }
+        if (!enabled && status !== "disabled") {
+          if (v1) await sdk.mcp.disconnect({ name })
+          if (!v1) await serverSDK.api.mcp.disconnect({ server: name, location: { directory: key } })
+        }
+        await queryClient.refetchQueries(queryOptionsApi.mcp(key))
+        await queryClient.refetchQueries(queryOptionsApi.mcpResources(key))
+      },
     },
   }
 }

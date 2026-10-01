@@ -759,6 +759,14 @@ const layer = Layer.effect(
       if (current?.enabled === false) {
         yield* cfgSvc.updateGlobal({ ...cfg, mcp: { ...cfg.mcp, [name]: enabled } })
       }
+      // A server only the project's tiancode.json defines is gated off until approved, and
+      // approval is the entry in the global config (the same thing MCP.add writes from Settings).
+      // Turning it on from any switch is that approval; without this it ran for this session only
+      // and was off again after a restart.
+      if (!current) {
+        yield* cfgSvc.updateGlobal({ mcp: { [name]: enabled } })
+        yield* cfgSvc.invalidateInstance()
+      }
     })
 
     const disconnect = Effect.fn("MCP.disconnect")(function* (name: string) {

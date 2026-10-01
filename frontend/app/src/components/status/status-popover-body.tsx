@@ -17,6 +17,7 @@ import { useGlobal } from "@/context/global"
 import { useSettings } from "@/context/settings"
 import { useMcpToggle } from "@/context/mcp"
 import { useServerProtocol } from "@/context/server-sdk"
+import { pluginEntries } from "@/components/session/session-summary"
 
 const pluginEmptyMessage = (value: string, file: string): JSXElement => {
   const parts = value.split(file)
@@ -268,10 +269,6 @@ export function StatusPopoverBody(props: { shown: Accessor<boolean> }) {
     })
   }
 
-  createEffect(() => {
-    if (!props.shown()) return
-  })
-
   let dialogRun = 0
   let dialogDead = false
   onCleanup(() => {
@@ -291,9 +288,7 @@ export function StatusPopoverBody(props: { shown: Accessor<boolean> }) {
   const mcpConnected = createMemo(() => mcpNames().filter((name) => mcpStatus(name) === "connected").length)
   const lspItems = createMemo(() => sync().data.lsp ?? [])
   const lspCount = createMemo(() => lspItems().length)
-  const plugins = createMemo(() =>
-    (sync().data.config.plugin ?? []).map((item) => (typeof item === "string" ? item : item[0])),
-  )
+  const plugins = createMemo(() => pluginEntries(sync().data.config.plugin))
   const pluginCount = createMemo(() => plugins().length)
   const pluginEmpty = createMemo(() => pluginEmptyMessage(language.t("dialog.plugins.empty"), "tiancode.json"))
 
@@ -426,7 +421,7 @@ export function StatusPopoverBody(props: { shown: Accessor<boolean> }) {
                   class="text-[11px] px-1.5 py-0.5 rounded bg-surface-raised-base hover:bg-surface-raised-base-hover text-text-weak hover:text-text-base transition-colors"
                   onClick={() => setShowOnlyActive(!showOnlyActive())}
                 >
-                  {showOnlyActive() ? "Ver todos" : "Solo activos"}
+                  {language.t(showOnlyActive() ? "status.popover.mcp.showAll" : "status.popover.mcp.onlyActive")}
                 </button>
               </div>
               <Show
@@ -439,17 +434,11 @@ export function StatusPopoverBody(props: { shown: Accessor<boolean> }) {
                   <For each={visibleMcpNames()}>
                     {(name) => {
                       const status = () => mcpStatus(name)
-                      const enabled = () => status() === "connected"
+                      // On means enabled: a failed or not-yet-authenticated server is still on.
+                      const enabled = () => status() !== "disabled"
+                      const busy = () => toggleMcp.isPending && toggleMcp.variables?.name === name
                       return (
-                        <button
-                          type="button"
-                          class="flex items-center gap-2 w-full min-h-8 pl-2 pr-1.5 py-1 rounded-md hover:bg-surface-raised-base-hover transition-colors text-left"
-                          onClick={() => {
-                            if (toggleMcp.isPending) return
-                            toggleMcp.mutate(name)
-                          }}
-                          disabled={toggleMcp.isPending && toggleMcp.variables === name}
-                        >
+                        <div class="flex items-center gap-2 w-full min-h-8 pl-2 pr-1.5 py-1 rounded-md hover:bg-surface-raised-base-hover transition-colors text-left">
                           <div
                             classList={{
                               "size-1.5 rounded-full shrink-0": true,
@@ -470,17 +459,16 @@ export function StatusPopoverBody(props: { shown: Accessor<boolean> }) {
                               </span>
                             </Show>
                           </span>
-                          <div onClick={(event) => event.stopPropagation()}>
-                            <Switch
-                              checked={enabled()}
-                              disabled={toggleMcp.isPending && toggleMcp.variables === name}
-                              onChange={() => {
-                                if (toggleMcp.isPending) return
-                                toggleMcp.mutate(name)
-                              }}
-                            />
-                          </div>
-                        </button>
+                          <Switch
+                            checked={enabled()}
+                            disabled={busy() || status() === "pending"}
+                            aria-label={name}
+                            onChange={(checked) => {
+                              if (toggleMcp.isPending) return
+                              toggleMcp.mutate({ name, enabled: checked })
+                            }}
+                          />
+                        </div>
                       )
                     }}
                   </For>
@@ -528,9 +516,18 @@ export function StatusPopoverBody(props: { shown: Accessor<boolean> }) {
                 >
                   <For each={plugins()}>
                     {(plugin) => (
-                      <div class="flex items-center gap-2 w-full px-2 py-1">
-                        <div class="size-1.5 rounded-full shrink-0 bg-icon-success-base" />
-                        <span class="text-14-regular text-text-base truncate">{plugin}</span>
+                      <div class="flex items-center gap-2 w-full px-2 py-1" title={plugin.spec}>
+                        <div
+                          classList={{
+                            "size-1.5 rounded-full shrink-0": true,
+                            "bg-icon-success-base": plugin.enabled,
+                            "bg-border-weak-base": !plugin.enabled,
+                          }}
+                        />
+                        <span class="text-14-regular text-text-base truncate">{plugin.name}</span>
+                        <Show when={!plugin.enabled}>
+                          <span class="ml-auto text-12-regular text-text-weak">{language.t("session.summary.disabled")}</span>
+                        </Show>
                       </div>
                     )}
                   </For>

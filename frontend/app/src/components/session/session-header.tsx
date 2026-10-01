@@ -30,6 +30,7 @@ import { fileManagerApp } from "@/utils/file-manager"
 import { Persist, persisted } from "@/utils/persist"
 import { StatusPopover, StatusPopoverV2 } from "../status/status-popover"
 import { IconButtonV2 } from "@tiancode-ai/ui/v2/icon-button-v2"
+import { SessionSummaryPopover } from "./session-summary-popover"
 import { Icon as IconV2 } from "@tiancode-ai/ui/v2/icon"
 import { KeybindV2 } from "@tiancode-ai/ui/v2/keybind-v2"
 import { TooltipV2 } from "@tiancode-ai/ui/v2/tooltip-v2"
@@ -248,6 +249,7 @@ export function SessionHeader() {
     reviewVisible: isDesktop() && settings.general.showReview(),
     reviewOpened: view().reviewPanel.opened(),
     onReviewToggle: () => view().reviewPanel.toggle(),
+    onReviewOpen: () => view().reviewPanel.open(),
     terminalLabel: language.t("command.terminal.toggle"),
     terminalKeybind: terminalTooltipKeybind(command),
     terminalOpened: view().terminal.opened(),
@@ -267,9 +269,7 @@ export function SessionHeader() {
       layout.fileTree.toggle()
     },
     voiceActive: settings.general.autoSpeak(),
-    voiceLabel: settings.general.autoSpeak()
-      ? "Voz activa: la IA narrará al responder (clic para silenciar)"
-      : "Voz silenciada: modo rápido 0% CPU (clic para activar)",
+    voiceLabel: language.t(settings.general.autoSpeak() ? "session.header.voice.on" : "session.header.voice.off"),
     onVoiceToggle: () => {
       const next = !settings.general.autoSpeak()
       settings.general.setAutoSpeak(next)
@@ -562,6 +562,7 @@ type SessionHeaderV2ActionsState = {
   reviewVisible: boolean
   reviewOpened: boolean
   onReviewToggle: () => void
+  onReviewOpen: () => void
   terminalLabel: string
   terminalKeybind: string[]
   terminalOpened: boolean
@@ -593,6 +594,7 @@ function SessionHeaderV2Actions(props: { state: SessionHeaderV2ActionsState }) {
           detail: { file, directory: sdk().directory, sessionID: params.id },
         }))} />
       </Show>
+      <SessionSummaryPopover sessionID={params.id} onReview={props.state.onReviewOpen} />
       <Show when={props.state.statusVisible}>
         <Tooltip placement="bottom" value={props.state.statusLabel}>
           <StatusPopoverV2 />
