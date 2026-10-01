@@ -1,4 +1,5 @@
 import { Component, createMemo, createSignal, Show } from "solid-js"
+import { createStore } from "solid-js/store"
 import { createMediaQuery } from "@solid-primitives/media"
 import { Dialog } from "@tiancode-ai/ui/v2/dialog-v2"
 import { TabsV2 } from "@tiancode-ai/ui/v2/tabs-v2"
@@ -15,17 +16,15 @@ import { SettingsSubAgentsV2 } from "./sub-agents"
 import { SettingsMcpPluginsV2 } from "./mcp-plugins"
 import { SettingsPetsV2 } from "./pets"
 import { SettingsConnectionsV2 } from "./connections"
-import { SettingsComputerUseV2 } from "./computer-use"
+import { COMPUTER_USE_SECTIONS, SettingsComputerUseV2, type ComputerUseSection } from "./computer-use"
 import { SettingsGithubV2 } from "./github"
 import { SettingsIntelligenceV2 } from "./intelligence"
 import { SettingsVoicesV2 } from "./voices"
 import "./settings-v2.css"
 import { SettingsServersV2 } from "./servers"
 import { SettingsNotificationsV2 } from "./notifications"
-import { SettingsPairingV2 } from "./pairing"
 import { SettingsProjectsV2 } from "./projects"
 import { SettingsWorktreesV2 } from "./worktrees"
-import { SettingsExperimentalV2 } from "./experimental"
 import { SettingsAboutV2 } from "./about"
 import { SettingsSearchV2, revealSettingsRow } from "./search"
 import type { SettingsSearchEntry } from "./search-catalog"
@@ -85,25 +84,26 @@ const IconBell = () => (
   </svg>
 )
 
-const IconPairing = () => (
-  <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-    <rect x="6" y="2.5" width="8" height="15" rx="2" />
-    <path d="M9 14.5h2" />
-  </svg>
-)
-
-const IconExperimental = () => (
-  <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M8 2.5h4M8.5 2.5v5L4 15.5a1.3 1.3 0 001.1 2h9.8a1.3 1.3 0 001.1-2L11.5 7.5v-5M6 12.5h8" />
-  </svg>
-)
-
 const IconAbout = () => (
   <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
     <circle cx="10" cy="10" r="7.5" />
     <path d="M10 9v5M10 6.5v.01" />
   </svg>
 )
+
+/**
+ * Where Settings opens. Besides a tab, callers may name a section: "data" (General › Datos),
+ * "browser", "pairing" or "experimental" (Uso de la PC). Anything that is not a string, such as
+ * the click event a button forwards, opens General.
+ */
+function settingsTarget(value: unknown) {
+  const requested = typeof value === "string" ? value : "general"
+  if (requested === "mcp-servers" || requested === "plugins") return { tab: "mcp-plugins" }
+  if (requested === "data") return { tab: "general", general: "data" }
+  if ((COMPUTER_USE_SECTIONS as readonly string[]).includes(requested))
+    return { tab: "computer-use", computerUse: requested as ComputerUseSection }
+  return { tab: requested }
+}
 
 export const DialogSettings: Component<{
   sessionID?: string
@@ -116,17 +116,14 @@ export const DialogSettings: Component<{
   const layout = useLayout()
   const tabs = useTabs()
   const serverSync = useServerSync()
-  const initialTab = props.defaultValue === "mcp-servers" || props.defaultValue === "plugins"
-    ? "mcp-plugins"
-    : props.defaultValue === "browser"
-      ? "computer-use"
-      : props.defaultValue === "data"
-        ? "general"
-        : props.defaultValue ?? "general"
+  const target = settingsTarget(props.defaultValue)
+  const initialTab = target.tab
   const [tab, setTab] = createSignal(initialTab)
   const [search, setSearch] = createSignal("")
-  // "data" opens General on its Data sub-tab (the data-folder notice links there).
-  const [generalSection, setGeneralSection] = createSignal(props.defaultValue === "data" ? "data" : "general")
+  const [sections, setSections] = createStore({
+    general: target.general ?? "general",
+    computerUse: target.computerUse ?? ("tools" as ComputerUseSection),
+  })
 
   // Lazy cache (matching OpenCode Desktop): only mount the active tab initially,
   // and keep visited tabs cached in DOM for instant 0ms switching without CPU/background thrashing.
@@ -153,11 +150,13 @@ export const DialogSettings: Component<{
   }
   const directory = createMemo(rawDirectory, undefined, { equals: (a, b) => a === b })
 
-  const hasTab = (value: string) => value !== "pairing" || !!(platform.pairing || platform.setKeepScreenActive)
+  const hasEntry = (entry: SettingsSearchEntry) =>
+    entry.tab !== "computer-use" || entry.section !== "pairing" || !!(platform.pairing || platform.setKeepScreenActive)
 
   const openSearchResult = (entry: SettingsSearchEntry) => {
     setSearch("")
-    if (entry.tab === "general") setGeneralSection(entry.section ?? "general")
+    if (entry.tab === "general") setSections("general", entry.section ?? "general")
+    if (entry.tab === "computer-use") setSections("computerUse", (entry.section as ComputerUseSection | undefined) ?? "tools")
     markVisited(entry.tab)
     if (entry.target) revealSettingsRow(entry.target)
   }
@@ -178,7 +177,7 @@ export const DialogSettings: Component<{
         <TabsV2.List>
           <div class="settings-v2-nav flex flex-col justify-between h-full w-full">
             <div class="settings-v2-nav-main flex flex-col gap-3 w-full">
-              <SettingsSearchV2 query={search()} onQuery={setSearch} onSelect={openSearchResult} hasTab={hasTab} />
+              <SettingsSearchV2 query={search()} onQuery={setSearch} onSelect={openSearchResult} hasEntry={hasEntry} />
               <div class="settings-v2-nav-groups flex flex-col gap-3" classList={{ hidden: !!search().trim() }}>
                 {/* Desktop Section */}
                 <div class="flex flex-col gap-1.5">
@@ -204,12 +203,6 @@ export const DialogSettings: Component<{
                       <Icon name="keyboard" />
                       {language.t("settings.tab.shortcuts")}
                     </TabsV2.Trigger>
-                    <Show when={platform.pairing || platform.setKeepScreenActive}>
-                      <TabsV2.Trigger value="pairing">
-                        <IconPairing />
-                        {language.t("settings.tab.pairing")}
-                      </TabsV2.Trigger>
-                    </Show>
                   </div>
                 </div>
 
@@ -288,10 +281,6 @@ export const DialogSettings: Component<{
               </div>
             </div>
             <div class="flex flex-col gap-1 w-full pt-3" classList={{ hidden: !!search().trim() }}>
-              <TabsV2.Trigger value="experimental">
-                <IconExperimental />
-                {language.t("settings.tab.experimental")}
-              </TabsV2.Trigger>
               <TabsV2.Trigger value="about">
                 <IconAbout />
                 {language.t("settings.tab.about")}
@@ -309,8 +298,8 @@ export const DialogSettings: Component<{
           <Show when={visited().has("general")}>
             <SettingsGeneralV2
               sessionID={props.sessionID}
-              section={generalSection()}
-              onSectionChange={setGeneralSection}
+              section={sections.general}
+              onSectionChange={(section) => setSections("general", section)}
             />
           </Show>
         </TabsV2.Content>
@@ -329,19 +318,18 @@ export const DialogSettings: Component<{
 
         <TabsV2.Content forceMount value="computer-use" class="settings-v2-panel" classList={{ "!hidden": tab() !== "computer-use" }}>
           <Show when={visited().has("computer-use")}>
-            <SettingsComputerUseV2 directory={directory()} active={tab() === "computer-use"} />
+            <SettingsComputerUseV2
+              directory={directory()}
+              active={tab() === "computer-use"}
+              section={sections.computerUse}
+              onSectionChange={(section) => setSections("computerUse", section)}
+            />
           </Show>
         </TabsV2.Content>
 
         <TabsV2.Content forceMount value="shortcuts" class="settings-v2-panel" classList={{ "!hidden": tab() !== "shortcuts" }}>
           <Show when={visited().has("shortcuts")}>
             <SettingsKeybinds v2 />
-          </Show>
-        </TabsV2.Content>
-
-        <TabsV2.Content forceMount value="pairing" class="settings-v2-panel" classList={{ "!hidden": tab() !== "pairing" }}>
-          <Show when={visited().has("pairing")}>
-            <SettingsPairingV2 active={tab() === "pairing"} />
           </Show>
         </TabsV2.Content>
 
@@ -420,12 +408,6 @@ export const DialogSettings: Component<{
         <TabsV2.Content forceMount value="pets" class="settings-v2-panel" classList={{ "!hidden": tab() !== "pets" }}>
           <Show when={visited().has("pets")}>
             <SettingsPetsV2 active={tab() === "pets"} />
-          </Show>
-        </TabsV2.Content>
-
-        <TabsV2.Content forceMount value="experimental" class="settings-v2-panel" classList={{ "!hidden": tab() !== "experimental" }}>
-          <Show when={visited().has("experimental")}>
-            <SettingsExperimentalV2 active={tab() === "experimental"} />
           </Show>
         </TabsV2.Content>
 

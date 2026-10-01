@@ -2880,7 +2880,7 @@ export const dict = {
   "settings.general.row.transcriptView.option.normal": "Normal",
   "settings.general.row.transcriptView.option.thinking": "Razonamiento",
   "settings.general.row.transcriptView.option.detailed": "Detallada",
-  "session.transcriptView.menu": "Vista de la transcripción",
+  "session.transcriptView.menu": "Transcripción",
   "welcome.step.preferences": "Idioma y experiencia",
   "welcome.pet.label": "Mascota de escritorio",
   "welcome.pet.desc": "Un pequeño compañero que muestra lo que está haciendo el agente. No descarga nada.",

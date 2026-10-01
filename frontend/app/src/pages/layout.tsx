@@ -2098,7 +2098,7 @@ export default function LegacyLayout(props: ParentProps) {
       renderProjectOverlay={projectOverlay}
       settingsLabel={() => language.t("sidebar.settings")}
       settingsKeybind={() => command.keybind("settings.open")}
-      onOpenSettings={openSettings}
+      onOpenSettings={() => openSettings()}
       helpLabel={() => language.t("sidebar.help")}
       onOpenHelp={() => platform.openExternal("https://tiancode.vercel.app/")}
       renderPanel={() =>

@@ -14,8 +14,13 @@ export type SettingsSearchEntry = {
   context?: string
 }
 
-const page = (tab: string, label: string, keywords: string[], available?: SettingsSearchEntry["available"]) =>
-  ({ tab, label, keywords, available }) satisfies SettingsSearchEntry
+const page = (
+  tab: string,
+  label: string,
+  keywords: string[],
+  available?: SettingsSearchEntry["available"],
+  section?: string,
+) => ({ tab, label, keywords, available, section }) satisfies SettingsSearchEntry
 
 const row = (
   tab: string,
@@ -32,7 +37,7 @@ export const SETTINGS_PAGES: SettingsSearchEntry[] = [
   page("intelligence", "settings.tab.intelligence", ["inteligencia", "memoria", "memory", "guardrails"]),
   page("computer-use", "settings.tab.computerUse", ["uso de la pc", "computer use", "navegador", "browser", "ratón"]),
   page("shortcuts", "settings.tab.shortcuts", ["atajos", "teclado", "keybinds", "shortcuts", "keyboard"]),
-  page("pairing", "settings.tab.pairing", ["emparejar", "pairing", "qr", "red local", "pantalla"], "desktop"),
+  page("computer-use", "settings.tab.pairing", ["emparejar", "pairing", "qr", "red local", "pantalla"], "desktop", "pairing"),
   page("servers", "status.popover.tab.servers", ["servidores", "servers", "conexión"]),
   page("projects", "settings.tab.projects", ["proyectos", "projects", "carpetas"]),
   page("worktrees", "settings.tab.worktrees", ["worktrees", "árbol de trabajo", "disco", "disk"]),
@@ -46,7 +51,7 @@ export const SETTINGS_PAGES: SettingsSearchEntry[] = [
   page("mcp-plugins", "settings.tab.mcpPlugins", ["mcp", "plugins", "extensiones", "extensions"]),
   page("connections", "settings.tab.connections", ["conexiones", "connections", "telegram", "whatsapp", "webhooks"]),
   page("pets", "settings.tab.pets", ["mascotas", "pets"]),
-  page("experimental", "settings.tab.experimental", ["experimental", "beta"]),
+  page("computer-use", "settings.tab.experimental", ["experimental", "beta"], undefined, "experimental"),
   page("about", "settings.tab.about", ["acerca de", "about", "versión", "version", "licencia", "license"]),
 ]
 
@@ -93,15 +98,18 @@ export const SETTINGS_ROWS: SettingsSearchEntry[] = [
   row("notifications", undefined, "settings.general.sounds.agent.title", "settings-sounds-agent", ["sonido", "sound", "agente"]),
   row("notifications", undefined, "settings.general.sounds.permissions.title", "settings-sounds-permissions", ["sonido", "sound", "permisos"]),
   row("notifications", undefined, "settings.general.sounds.errors.title", "settings-sounds-errors", ["sonido", "sound", "errores"]),
-  row("pairing", undefined, "settings.pairing.connection.title", "settings-pairing-local-network", ["red", "network", "lan", "móvil", "phone", "qr", "wifi"], "desktop"),
-  row("pairing", undefined, "settings.pairing.screenActive.title", "settings-keep-screen-active", ["pantalla", "screen", "suspender", "sleep", "activa"], "desktop"),
-  row("experimental", undefined, "settings.experimental.browser.title", "settings-agent-browser", ["navegador", "browser", "agente", "controlar"]),
-  row("experimental", undefined, "settings.experimental.tabs.title", "settings-tab-layout", ["pestañas", "tabs", "vertical", "horizontal"]),
-  row("experimental", undefined, "settings.experimental.projectNames.title", "settings-show-project-name", ["proyecto", "project", "nombres", "names"]),
+  row("computer-use", "pairing", "settings.pairing.connection.title", "settings-pairing-local-network", ["red", "network", "lan", "móvil", "phone", "qr", "wifi"], "desktop"),
+  row("computer-use", "pairing", "settings.pairing.screenActive.title", "settings-keep-screen-active", ["pantalla", "screen", "suspender", "sleep", "activa"], "desktop"),
+  row("computer-use", "experimental", "settings.experimental.browser.title", "settings-agent-browser", ["navegador", "browser", "agente", "controlar"]),
+  row("computer-use", "experimental", "settings.experimental.tabs.title", "settings-tab-layout", ["pestañas", "tabs", "vertical", "horizontal"]),
+  row("computer-use", "experimental", "settings.experimental.projectNames.title", "settings-show-project-name", ["proyecto", "project", "nombres", "names"]),
 ]
 
 // Notifications and sounds share their row labels; the result line names which group it is.
 for (const entry of SETTINGS_ROWS) {
   if (entry.target?.startsWith("settings-notifications-")) entry.context = "settings.general.section.notifications"
   if (entry.target?.startsWith("settings-sounds-")) entry.context = "settings.general.section.sounds"
+  // Uso de la PC sections are named like their tabs, not like General's sections.
+  if (entry.tab === "computer-use" && entry.section === "pairing") entry.context = "settings.tab.pairing"
+  if (entry.tab === "computer-use" && entry.section === "experimental") entry.context = "settings.tab.experimental"
 }

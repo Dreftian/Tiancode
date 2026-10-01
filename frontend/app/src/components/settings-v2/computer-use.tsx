@@ -13,7 +13,6 @@ import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
 import { SelectV2 } from "@tiancode-ai/ui/v2/select-v2"
 import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
 import { TextInputV2 } from "@tiancode-ai/ui/v2/text-input-v2"
-import { SegmentedControlItemV2, SegmentedControlV2 } from "@tiancode-ai/ui/v2/segmented-control-v2"
 import type { McpLocalConfig, McpRemoteConfig } from "@tiancode-ai/sdk/v2/client"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
@@ -22,12 +21,17 @@ import { useSettings } from "@/context/settings"
 import { showToast } from "@/utils/toast"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
+import { SettingsSectionTabs } from "./parts/section-tabs"
+import { SettingsPairingSection } from "./pairing"
+import { SettingsExperimentalSection } from "./experimental"
 
 type McpConfigValue = McpLocalConfig | McpRemoteConfig | { enabled: boolean }
 type PermissionAction = "ask" | "allow" | "deny"
 type PermissionRule = PermissionAction | Record<string, PermissionAction>
 type PermissionMap = Record<string, PermissionRule>
-type ComputerUseTab = "tools" | "browser" | "bridges"
+// Pairing and Experimental used to be pages of their own; they live here as sections now.
+export type ComputerUseSection = "tools" | "browser" | "bridges" | "pairing" | "experimental"
+export const COMPUTER_USE_SECTIONS: readonly ComputerUseSection[] = ["tools", "browser", "bridges", "pairing", "experimental"]
 type BrowserLinks = "integrated" | "system" | "chrome"
 type CookieRetention = "always" | "session"
 
@@ -71,16 +75,35 @@ function toExecutable(raw: string): string | undefined {
   return name
 }
 
+const SECTION_LABELS = {
+  tools: "settings.computerUse.tab.tools",
+  browser: "settings.computerUse.tab.browser",
+  bridges: "settings.computerUse.tab.bridges",
+  pairing: "settings.tab.pairing",
+  experimental: "settings.tab.experimental",
+} as const
+
 export const SettingsComputerUseV2: Component<{
   directory?: string
   active?: boolean
+  section?: ComputerUseSection
+  onSectionChange?: (section: ComputerUseSection) => void
 }> = (props) => {
   const language = useLanguage()
   const platform = usePlatform()
   const settings = useSettings()
   const serverSdk = useServerSDK()
   const [saving, setSaving] = createSignal(false)
-  const [activeTab, setActiveTab] = createSignal<ComputerUseTab>("tools")
+  const [localTab, setLocalTab] = createSignal<ComputerUseSection>("tools")
+  const activeTab = () => props.section ?? localTab()
+  const setActiveTab = (section: ComputerUseSection) => {
+    setLocalTab(section)
+    props.onSectionChange?.(section)
+  }
+  const sections = () =>
+    COMPUTER_USE_SECTIONS.filter((id) => id !== "pairing" || !!(platform.pairing || platform.setKeepScreenActive)).map(
+      (id) => ({ id, label: language.t(SECTION_LABELS[id]) }),
+    )
   const [siteDraft, setSiteDraft] = createSignal("")
   const [appDraft, setAppDraft] = createSignal("")
   const [clearing, setClearing] = createSignal(false)
@@ -420,22 +443,16 @@ export const SettingsComputerUseV2: Component<{
           <h2 class="settings-v2-tab-title">{language.t("settings.computerUse.title")}</h2>
         </div>
         <p class="settings-v2-tab-description">{language.t("settings.computerUse.description")}</p>
-        <div style={{ "margin-top": "6px" }}>
-          <SegmentedControlV2 value={activeTab()} onChange={(val) => val && setActiveTab(val as ComputerUseTab)}>
-            <SegmentedControlItemV2 value="tools">
-              {language.t("settings.computerUse.tab.tools")}
-            </SegmentedControlItemV2>
-            <SegmentedControlItemV2 value="browser">
-              {language.t("settings.computerUse.tab.browser")}
-            </SegmentedControlItemV2>
-            <SegmentedControlItemV2 value="bridges">
-              {language.t("settings.computerUse.tab.bridges")}
-            </SegmentedControlItemV2>
-          </SegmentedControlV2>
-        </div>
+        <SettingsSectionTabs value={activeTab()} options={sections()} onChange={setActiveTab} />
       </div>
 
       <div class="settings-v2-tab-body">
+        <Show when={activeTab() === "pairing"}>
+          <SettingsPairingSection />
+        </Show>
+        <Show when={activeTab() === "experimental"}>
+          <SettingsExperimentalSection />
+        </Show>
         <Show when={activeTab() === "tools"}>
           <div class="settings-v2-section">
             <h3 class="settings-v2-section-title">{language.t("settings.computerUse.section.tools")}</h3>

@@ -15,7 +15,7 @@ export function SettingsSearchV2(props: {
   query: string
   onQuery: (value: string) => void
   onSelect: (entry: SettingsSearchEntry) => void
-  hasTab: (tab: string) => boolean
+  hasEntry: (entry: SettingsSearchEntry) => boolean
 }) {
   const language = useLanguage()
   const platform = usePlatform()
@@ -24,13 +24,13 @@ export function SettingsSearchV2(props: {
 
   const t = (key: string) => language.t(key as LanguageKey)
   const available = (entry: SettingsSearchEntry) => {
-    if (!props.hasTab(entry.tab)) return false
+    if (!props.hasEntry(entry)) return false
     if (entry.available === "desktop") return platform.platform === "desktop"
     if (entry.available === "windows") return platform.platform === "desktop" && platform.os === "windows"
     return true
   }
   const items = createMemo<SettingsSearchItem[]>(() => {
-    const pageTitle = new Map(SETTINGS_PAGES.map((page) => [page.tab, t(page.label)]))
+    const pageTitle = new Map(SETTINGS_PAGES.filter((page) => !page.section).map((page) => [page.tab, t(page.label)]))
     return [...SETTINGS_PAGES, ...SETTINGS_ROWS].filter(available).map((entry) => ({
       ...entry,
       title: t(entry.label),

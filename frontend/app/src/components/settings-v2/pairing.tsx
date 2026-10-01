@@ -11,7 +11,8 @@ import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
 import "./settings-v2.css"
 
-export const SettingsPairingV2: Component<{ active?: boolean }> = () => {
+/** Settings › Uso de la PC › Emparejar. */
+export const SettingsPairingSection: Component = () => {
   const language = useLanguage()
   const platform = usePlatform()
   const dialog = useDialog()
@@ -58,92 +59,83 @@ export const SettingsPairingV2: Component<{ active?: boolean }> = () => {
   }
 
   return (
-    <>
-      <div class="settings-v2-tab-header settings-v2-tab-header--stacked">
-        <div class="settings-v2-tab-header-row">
-          <h2 class="settings-v2-tab-title">{language.t("settings.pairing.title")}</h2>
-        </div>
-        <p class="settings-v2-tab-description">{language.t("settings.pairing.description")}</p>
-      </div>
-      <div class="settings-v2-tab-body">
-        <div class="settings-v2-section">
-          <SettingsListV2>
-            <Show when={platform.pairing}>
-              <SettingsRowV2
-                title={language.t("settings.pairing.connection.title")}
-                description={language.t("settings.pairing.connection.description")}
-              >
-                <div data-action="settings-pairing-local-network">
-                  <Switch
-                    checked={pairing.latest?.enabled ?? false}
-                    disabled={switching() || pairing.loading}
-                    onChange={onLocalNetwork}
-                  />
-                </div>
-              </SettingsRowV2>
-              <Show when={pairing.latest}>
-                {(info) => (
-                  <Show
-                    when={!info().restartRequired}
-                    fallback={
-                      <SettingsRowV2
-                        title={language.t("settings.pairing.restart.title")}
-                        description={language.t("settings.pairing.restart.description")}
-                      >
-                        <ButtonV2 type="button" size="small" variant="contrast" onClick={() => void platform.restart()}>
-                          {language.t("settings.pairing.restart.action")}
-                        </ButtonV2>
-                      </SettingsRowV2>
-                    }
+    <div class="settings-v2-section">
+      <p class="settings-v2-note">{language.t("settings.pairing.description")}</p>
+      <SettingsListV2>
+        <Show when={platform.pairing}>
+          <SettingsRowV2
+            title={language.t("settings.pairing.connection.title")}
+            description={language.t("settings.pairing.connection.description")}
+          >
+            <div data-action="settings-pairing-local-network">
+              <Switch
+                checked={pairing.latest?.enabled ?? false}
+                disabled={switching() || pairing.loading}
+                onChange={onLocalNetwork}
+              />
+            </div>
+          </SettingsRowV2>
+          <Show when={pairing.latest}>
+            {(info) => (
+              <Show
+                when={!info().restartRequired}
+                fallback={
+                  <SettingsRowV2
+                    title={language.t("settings.pairing.restart.title")}
+                    description={language.t("settings.pairing.restart.description")}
                   >
-                    <Show when={info().enabled}>
-                      <SettingsRowV2
-                        title={language.t("settings.pairing.details.title")}
-                        description={
-                          info().urls.length > 0
-                            ? language.t("settings.pairing.details.description")
-                            : language.t("settings.pairing.details.noNetwork")
-                        }
-                      >
-                        <ButtonV2
-                          type="button"
-                          size="small"
-                          variant="neutral"
-                          data-action="settings-pairing-details"
-                          disabled={info().urls.length === 0 || !info().password}
-                          onClick={() => void dialog.push(() => <DialogPairing info={info()} />)}
-                        >
-                          {language.t("settings.pairing.details.open")}
-                        </ButtonV2>
-                      </SettingsRowV2>
-                    </Show>
-                  </Show>
-                )}
-              </Show>
-            </Show>
-            <Show when={platform.setKeepScreenActive}>
-              <SettingsRowV2
-                title={language.t("settings.pairing.screenActive.title")}
-                description={
-                  <>
-                    {language.t("settings.pairing.screenActive.description")}
-                    <Show when={failed()}>
-                      <span class="block text-v2-state-fg-danger">
-                        {language.t("settings.pairing.screenActive.error")}
-                      </span>
-                    </Show>
-                  </>
+                    <ButtonV2 type="button" size="small" variant="contrast" onClick={() => void platform.restart()}>
+                      {language.t("settings.pairing.restart.action")}
+                    </ButtonV2>
+                  </SettingsRowV2>
                 }
               >
-                <div data-action="settings-keep-screen-active">
-                  <Switch checked={keepAwake.latest} disabled={pending()} onChange={onKeepAwake} />
-                </div>
-              </SettingsRowV2>
-            </Show>
-          </SettingsListV2>
-        </div>
-      </div>
-    </>
+                <Show when={info().enabled}>
+                  <SettingsRowV2
+                    title={language.t("settings.pairing.details.title")}
+                    description={
+                      info().urls.length > 0
+                        ? language.t("settings.pairing.details.description")
+                        : language.t("settings.pairing.details.noNetwork")
+                    }
+                  >
+                    <ButtonV2
+                      type="button"
+                      size="small"
+                      variant="neutral"
+                      data-action="settings-pairing-details"
+                      disabled={info().urls.length === 0 || !info().password}
+                      onClick={() => void dialog.push(() => <DialogPairing info={info()} />)}
+                    >
+                      {language.t("settings.pairing.details.open")}
+                    </ButtonV2>
+                  </SettingsRowV2>
+                </Show>
+              </Show>
+            )}
+          </Show>
+        </Show>
+        <Show when={platform.setKeepScreenActive}>
+          <SettingsRowV2
+            title={language.t("settings.pairing.screenActive.title")}
+            description={
+              <>
+                {language.t("settings.pairing.screenActive.description")}
+                <Show when={failed()}>
+                  <span class="block text-v2-state-fg-danger">
+                    {language.t("settings.pairing.screenActive.error")}
+                  </span>
+                </Show>
+              </>
+            }
+          >
+            <div data-action="settings-keep-screen-active">
+              <Switch checked={keepAwake.latest} disabled={pending()} onChange={onKeepAwake} />
+            </div>
+          </SettingsRowV2>
+        </Show>
+      </SettingsListV2>
+    </div>
   )
 }
 

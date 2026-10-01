@@ -33,7 +33,7 @@ export const SettingsAboutV2: Component<{ active?: boolean }> = () => {
   return (
     <div class="settings-v2-tab-body" data-component="settings-about">
       <div class="mx-auto flex max-w-[520px] flex-col items-center gap-3 py-10 text-center">
-        <Mark class="size-12 text-v2-text-text-base" />
+        <Mark class="w-24 text-v2-text-text-base" />
         <div class="text-16-medium text-v2-text-text-base">{language.t("app.name.desktop")}</div>
         <div class="text-13-regular text-v2-text-text-muted">
           {platform.version

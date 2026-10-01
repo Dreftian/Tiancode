@@ -28,10 +28,24 @@
    their content without heavy scrolling. */
 [data-component="dialog-v2"][data-variant="settings"] [data-slot="dialog-container"] {
   background: var(--v2-background-bg-base);
-  width: min(calc(100vw - 32px), 1240px);
-  height: min(calc(100vh - 72px), 760px);
+  width: min(calc(100vw - 29px), 1243px);
+  height: min(calc(100vh - 69px), 763px);
   isolation: isolate;
   contain: layout paint;
+}
+
+/* Small windows: keep a narrow margin instead of the desktop one so the panels keep their room. */
+@media (max-height: 640px) {
+  [data-component="dialog-v2"][data-variant="settings"] [data-slot="dialog-container"] {
+    height: calc(100vh - 48px);
+  }
+}
+
+@media (max-width: 639px) {
+  [data-component="dialog-v2"][data-variant="settings"] [data-slot="dialog-container"] {
+    width: calc(100vw - 16px);
+    height: calc(100vh - 56px);
+  }
 }
 
 [data-component="dialog-v2"][data-variant="settings"] [data-slot="dialog-body"] {
