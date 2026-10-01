@@ -36,6 +36,7 @@ import { useFileComponent } from "@tiancode-ai/ui/context/file"
 import { useDialog } from "@tiancode-ai/ui/context/dialog"
 import { type UiI18n, useI18n } from "@tiancode-ai/ui/context/i18n"
 import { BasicTool, GenericTool } from "./basic-tool"
+import { toolDisplay } from "./tool-display"
 import { Mascot } from "@tiancode-ai/ui/mascot"
 import { Accordion } from "@tiancode-ai/ui/accordion"
 import { StickyAccordionHeader } from "@tiancode-ai/ui/sticky-accordion-header"
@@ -608,7 +609,7 @@ export function getToolInfo(
     default:
       return {
         icon: "mcp",
-        title: tool,
+        title: toolDisplay(tool, input, i18n.t).title,
       }
   }
 }

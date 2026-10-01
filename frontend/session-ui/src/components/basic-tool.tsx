@@ -1,6 +1,7 @@
 import { createEffect, For, Match, on, onCleanup, onMount, Show, Switch, type Accessor, type JSX } from "solid-js"
 import { animate, type AnimationPlaybackControls } from "framer-motion"
 import { useI18n } from "@tiancode-ai/ui/context/i18n"
+import { toolDisplay } from "./tool-display"
 import { createStore } from "solid-js/store"
 import { Collapsible } from "@tiancode-ai/ui/collapsible"
 import type { IconProps } from "@tiancode-ai/ui/icon"
@@ -326,24 +327,43 @@ function args(input: Record<string, unknown> | undefined) {
     .slice(0, 3)
 }
 
+// Long tool output (a page snapshot, server logs) stays readable without flooding the chat.
+const OUTPUT_LIMIT = 20_000
+
 export function GenericTool(props: {
   tool: string
   status?: string
   hideDetails?: boolean
   input?: Record<string, unknown>
+  output?: string
 }) {
   const i18n = useI18n()
+  const display = () => toolDisplay(props.tool, props.input, i18n.t)
+  const output = () => {
+    const text = typeof props.output === "string" ? props.output.trim() : ""
+    return text.length > OUTPUT_LIMIT ? `${text.slice(0, OUTPUT_LIMIT)}\n…` : text
+  }
 
   return (
     <BasicTool
       icon="mcp"
       status={props.status}
       trigger={{
-        title: i18n.t("ui.basicTool.called", { tool: props.tool }),
-        subtitle: label(props.input),
-        args: args(props.input),
+        title: display().title,
+        subtitle: display().subtitle ?? (display().known ? undefined : label(props.input)),
+        args: display().known ? [] : args(props.input),
       }}
       hideDetails={props.hideDetails}
-    />
+    >
+      {output() && props.status === "completed" ? (
+        <div data-component="bash-output" dir="ltr">
+          <div data-slot="bash-scroll" data-scrollable tabIndex={0} role="region" aria-label={display().title}>
+            <pre data-slot="bash-pre">
+              <code>{output()}</code>
+            </pre>
+          </div>
+        </div>
+      ) : undefined}
+    </BasicTool>
   )
 }

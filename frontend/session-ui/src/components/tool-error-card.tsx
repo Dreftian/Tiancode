@@ -6,6 +6,7 @@ import { Icon } from "@tiancode-ai/ui/icon"
 import { IconButton } from "@tiancode-ai/ui/icon-button"
 import { Tooltip } from "@tiancode-ai/ui/tooltip"
 import { useI18n } from "@tiancode-ai/ui/context/i18n"
+import { toolDisplay } from "./tool-display"
 
 export interface ToolErrorCardProps extends Omit<ComponentProps<typeof Card>, "children" | "variant"> {
   tool: string
@@ -59,7 +60,7 @@ export function ToolErrorCard(props: ToolErrorCardProps) {
       question: "ui.tool.questions",
     }
     const key = map[split.tool]
-    if (!key) return split.tool
+    if (!key) return toolDisplay(split.tool, undefined, i18n.t).title
     if (!key.includes(".")) return key
     return i18n.t(key)
   })

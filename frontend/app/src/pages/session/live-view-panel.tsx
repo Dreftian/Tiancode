@@ -17,6 +17,8 @@ import { showToast } from "@/utils/toast"
 import { LivePreview } from "@/pages/session/live-preview/live-preview"
 import { ScrollView } from "@tiancode-ai/ui/scroll-view"
 import { liveViewProjectFolder, liveViewSessionTools, liveViewToolDetail, liveViewToolFiles } from "./live-view-activity"
+import { toolDisplay } from "@tiancode-ai/session-ui/tool-display"
+import type { ToolPart } from "@tiancode-ai/sdk/v2/client"
 import { usePreviewOpeners } from "./live-preview/use-preview-openers"
 import { isAppFile } from "./timeline/preview-offer"
 import {
@@ -1100,6 +1102,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
     return liveViewSessionTools(id, id ? sync().data.message[id] ?? [] : [], sync().data.part)
   })
   const recentTools = createMemo(() => sessionTools().slice(-12).reverse())
+  const toolTitle = (part: ToolPart) => toolDisplay(part.tool, part.state.input, language.t).title
   const runningEditFile = createMemo(() => {
     const part = sessionTools().findLast((part) => part.state.status === "running" && liveViewToolFiles(part).length > 0)
     return part ? liveViewToolFiles(part)[0] : undefined
@@ -1723,7 +1726,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
           <summary class="cursor-pointer px-3 py-2 text-v2-text-text-muted">
             {language.t("liveView.activity.title")}
             <span class="ml-2 text-v2-text-text-base" role="status" aria-live="polite">
-              {language.t(`liveView.activity.${recentTools()[0].state.status}`)} · {recentTools()[0].tool}
+              {language.t(`liveView.activity.${recentTools()[0].state.status}`)} · {toolTitle(recentTools()[0])}
             </span>
           </summary>
           <ol class="max-h-40 overflow-auto px-3 pb-2" aria-label={language.t("liveView.activity.title")}>
@@ -1731,7 +1734,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
               {(part) => (
                 <li class="flex min-w-0 items-center gap-2 py-1" data-tool-status={part.state.status}>
                   <span class="w-20 shrink-0 text-v2-text-text-muted">{language.t(`liveView.activity.${part.state.status}`)}</span>
-                  <span class="shrink-0 font-mono text-v2-text-text-base">{part.tool}</span>
+                  <span class="shrink-0 text-v2-text-text-base" title={part.tool}>{toolTitle(part)}</span>
                   <span class="min-w-0 truncate text-v2-text-text-muted" title={liveViewToolDetail(part)}>{liveViewToolDetail(part)}</span>
                 </li>
               )}
