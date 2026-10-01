@@ -274,6 +274,12 @@ const api: ElectronAPI = {
     update: (partial) => ipcRenderer.invoke("desktop-pet-update", partial),
     toggle: () => ipcRenderer.invoke("desktop-pet-toggle"),
     getState: () => ipcRenderer.invoke("desktop-pet-get-state"),
+    resetPosition: () => ipcRenderer.invoke("desktop-pet-reset-position"),
+    onHidden: (cb) => {
+      const handler = () => cb()
+      ipcRenderer.on("desktop-pet-hidden", handler)
+      return () => ipcRenderer.removeListener("desktop-pet-hidden", handler)
+    },
   },
   modelHub: {
     deleteFile: (target) => ipcRenderer.invoke("model-hub-delete-file", target),

@@ -1,5 +1,5 @@
 import windowState from "electron-window-state"
-import { isDesktopPetWindow } from "./desktop-pet"
+import { destroyDesktopPet, isDesktopPetWindow } from "./desktop-pet"
 import { resolveThemeVariant } from "@tiancode-ai/ui/theme/resolve"
 import type { DesktopTheme } from "@tiancode-ai/ui/theme/types"
 import oc2ThemeJson from "../../../ui/src/theme/themes/oc-2.json"
@@ -529,7 +529,12 @@ function registerWindow(win: BrowserWindow, id: string) {
   // Windows never emits before-quit on OS shutdown/logoff, but each window
   // gets session-end before it closes; flag the quit so ids stay persisted.
   win.on("session-end", () => registry.setQuitting())
-  win.on("closed", () => registry.closed(id))
+  win.on("closed", () => {
+    registry.closed(id)
+    // A hidden pet window would keep window-all-closed from firing and the app (and its server)
+    // running with no window to return to.
+    if (!registry.any()) destroyDesktopPet()
+  })
 }
 
 function windowStateFile(id: string) {

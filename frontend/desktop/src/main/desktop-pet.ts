@@ -1,7 +1,10 @@
-import { app, BrowserWindow, screen, Notification, ipcMain } from "electron"
+import { app, BrowserWindow, screen, ipcMain } from "electron"
 import { readFileSync } from "node:fs"
 import { write } from "./logging"
 import { join } from "node:path"
+import { nativeLocale, nativeT } from "./native-translations"
+import { getStore } from "./store"
+import { DESKTOP_PET_POSITION_KEY } from "./store-keys"
 
 function safeScriptJson(value: unknown): string {
   return JSON.stringify(value).replace(/</g, "\\u003c").replace(/>/g, "\\u003e")
@@ -33,23 +36,8 @@ function compactDesktopPetText(input: string, limit = 96) {
   return `${(boundary > limit * 0.55 ? clipped.slice(0, boundary) : clipped).trimEnd()}…`
 }
 
-const petGlyphs: Record<string, string> = {
-  dewey: "💧",
-  fireball: "🔥",
-  hoots: "🦉",
-  rocky: "🪨",
-  seedy: "🌱",
-  stacky: "🥞",
-  bsod: "🖥️",
-  nullsignal: "🤖",
-  cat: "🐱",
-  dog: "🐶",
-  rabbit: "🐰",
-  panda: "🐼",
-  fox: "🦊",
-}
-
-const petGlyphKinds = Object.keys(petGlyphs)
+// The kinds drawn as SVG in the window; the page-mascot characters below arrive as sprite sheets.
+const petGlyphKinds = ["dewey", "fireball", "hoots", "rocky", "seedy", "stacky", "bsod", "nullsignal", "cat", "dog", "rabbit", "panda", "fox"]
 
 // page-mascot characters (MIT): two 3×3 WebP sheets each, packaged under resources/mascots and
 // read straight from frontend/ui in development. Sent to the pet window as data URIs.
@@ -127,8 +115,23 @@ let petWindow: BrowserWindow | null = null
 let petState: DesktopPetState = {
   kind: "cat",
   status: "ready",
-  text: "Descansando",
+  text: "",
   visible: false,
+}
+// The kind whose sprite sheets the window already holds; sheets (tens of KB as data URIs) are
+// sent again only when the kind changes, not with every streamed bubble text.
+let sheetsSentFor: string | undefined
+
+function syncPayload() {
+  const sheets = sheetsFor(petState.kind)
+  const fresh = sheetsSentFor !== petState.kind
+  sheetsSentFor = petState.kind
+  return {
+    ...petState,
+    sprite: Boolean(sheets),
+    ...(fresh && sheets ? { sheets } : {}),
+    labels: { openApp: nativeT("desktop.pet.openApp"), hide: nativeT("desktop.pet.hide"), lang: nativeLocale() },
+  }
 }
 
 function getPetSvg(kind: DesktopPetKind): string {
@@ -222,11 +225,12 @@ export function getPetHtml(state: DesktopPetState): string {
     status: state.status,
     text: state.text,
     petted: state.petted ?? false,
+    sprite: Boolean(sheetsFor(state.kind)),
     sheets: sheetsFor(state.kind),
   }
 
   return `<!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <style>
@@ -399,12 +403,12 @@ export function getPetHtml(state: DesktopPetState): string {
 </head>
 <body>
   <div class="pet-container pet-enter" id="container">
-    <div class="pet-bubble" id="bubble" title="Doble clic para abrir Tiancode">
+    <div class="pet-bubble" id="bubble">
       <span class="bubble-text" id="bubbleText"></span>
       <span class="typing-dots"><span></span><span></span><span></span></span>
     </div>
     <div class="pet-avatar-wrapper" id="avatar">
-      <div class="pet-close-btn" id="closeBtn" title="Ocultar del escritorio">×</div>
+      <div class="pet-close-btn" id="closeBtn">×</div>
       <div class="pet-ring"></div>
       <span class="pet-glyph"><span class="pet-box" id="glyph"></span></span>
       <span class="pet-sprite" id="sprite"><span class="pet-layer" id="dirLayer"></span><span class="pet-layer" id="reactLayer"></span></span>
@@ -423,6 +427,9 @@ export function getPetHtml(state: DesktopPetState): string {
     const dirLayer = document.getElementById("dirLayer")
     const reactLayer = document.getElementById("reactLayer")
     const hearts = document.getElementById("hearts")
+    const bubble = document.getElementById("bubble")
+    const avatar = document.getElementById("avatar")
+    const closeBtn = document.getElementById("closeBtn")
 
     // Mismas hojas 3×3 que la mascota de la app: nueve direcciones y nueve expresiones.
     const CENTER = 4
@@ -535,12 +542,17 @@ export function getPetHtml(state: DesktopPetState): string {
       const status = state.status || "ready"
       container.className = "pet-container pet-enter " + status + (state.text ? " has-text" : "")
       bubbleText.textContent = state.text || ""
-      if (state.sheets) {
-        if (currentSheets !== state.sheets.directions) {
-          currentSheets = state.sheets.directions
-          dirLayer.style.backgroundImage = "url(" + state.sheets.directions + ")"
-          reactLayer.style.backgroundImage = "url(" + state.sheets.reactions + ")"
-        }
+      if (state.labels) {
+        bubble.title = state.labels.openApp
+        closeBtn.title = state.labels.hide
+        document.documentElement.lang = state.labels.lang
+      }
+      if (state.sheets && currentSheets !== state.sheets.directions) {
+        currentSheets = state.sheets.directions
+        dirLayer.style.backgroundImage = "url(" + state.sheets.directions + ")"
+        reactLayer.style.backgroundImage = "url(" + state.sheets.reactions + ")"
+      }
+      if (state.sprite) {
         container.classList.add("has-sprite")
       } else {
         container.classList.remove("has-sprite")
@@ -551,13 +563,40 @@ export function getPetHtml(state: DesktopPetState): string {
       if (next !== mood) play(next)
     }
 
-    document.getElementById("avatar").addEventListener("click", (e) => {
+    // Dragging the character moves the window; a press that does not move is a click (a pet).
+    let drag = null
+    let dragged = false
+    avatar.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0 || e.target === closeBtn) return
+      drag = { x: e.screenX, y: e.screenY, ox: e.clientX, oy: e.clientY, moved: false }
+      avatar.setPointerCapture(e.pointerId)
+    })
+    avatar.addEventListener("pointermove", (e) => {
+      if (!drag) return
+      if (!drag.moved && Math.hypot(e.screenX - drag.x, e.screenY - drag.y) < 4) return
+      drag.moved = true
+      bridge?.drag?.(e.screenX - drag.ox, e.screenY - drag.oy)
+    })
+    const endDrag = () => {
+      if (!drag) return
+      dragged = drag.moved
+      drag = null
+      if (dragged) bridge?.dragEnd?.()
+    }
+    avatar.addEventListener("pointerup", endDrag)
+    avatar.addEventListener("pointercancel", endDrag)
+
+    // The hearts and the boop come back through "pet-burst", the same path a pet from the app
+    // takes; playing them here as well doubled every click and set off the dizzy reaction.
+    avatar.addEventListener("click", (e) => {
       e.stopPropagation()
-      boop()
-      burstHearts()
+      if (dragged) {
+        dragged = false
+        return
+      }
       bridge?.sendAction("pet")
     })
-    document.getElementById("avatar").addEventListener("dblclick", (e) => {
+    avatar.addEventListener("dblclick", (e) => {
       e.stopPropagation()
       bridge?.sendAction("focus-main")
     })
@@ -569,7 +608,7 @@ export function getPetHtml(state: DesktopPetState): string {
 
     bridge?.onSync((state) => applyState(state))
     // "pet-burst" trae solo la ráfaga de corazones (una caricia desde la app).
-    bridge?.onBurst(() => { burstHearts(); if (mood === "idle") boop() })
+    bridge?.onBurst(() => { burstHearts(); boop() })
     // El proceso principal sigue el cursor por toda la pantalla y manda hacia dónde mirar.
     bridge?.onLook?.((index) => {
       if (mood !== "idle" || reaction !== null) return
@@ -598,13 +637,9 @@ export function createDesktopPetWindow(): BrowserWindow {
     return petWindow
   }
 
-  const primaryDisplay = screen.getPrimaryDisplay()
-  const { workArea } = primaryDisplay
-
-  const width = 232
-  const height = 150
-  const x = workArea.x + workArea.width - width - 20
-  const y = workArea.y + workArea.height - height - 20
+  const { x, y } = savedPetPosition() ?? defaultPetPosition()
+  const width = PET_WIDTH
+  const height = PET_HEIGHT
 
   petWindow = new BrowserWindow({
     width,
@@ -652,24 +687,27 @@ export function createDesktopPetWindow(): BrowserWindow {
     if (event.level === "error" || event.level === "warning") write("pet", "console", { level: event.level, message: event.message }, "warn")
   })
   petWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(getPetHtml(petState))}`)
+  sheetsSentFor = petState.kind
   petWindow.webContents.on("did-finish-load", () => {
     if (!petSyncedOnce && petWindow && !petWindow.isDestroyed()) {
       petSyncedOnce = true
-      petWindow.webContents.send("pet-sync", { ...petState, sheets: sheetsFor(petState.kind) })
+      petWindow.webContents.send("pet-sync", syncPayload())
     }
   })
 
+  petWindow.on("moved", savePetPosition)
   petWindow.on("closed", () => {
     stopLooking()
     petWindow = null
     petSyncedOnce = false
+    sheetsSentFor = undefined
   })
+  watchDisplays()
 
   return petWindow
 }
 
 export function updateDesktopPet(partial: Partial<DesktopPetState>) {
-  const previousStatus = petState.status
   const previousPetted = petState.petted
   petState = {
     ...petState,
@@ -686,26 +724,10 @@ export function updateDesktopPet(partial: Partial<DesktopPetState>) {
       if (!petWindow.isVisible()) petWindow.showInactive()
       startLooking()
       if (petState.petted && !previousPetted) petWindow.webContents.send("pet-burst")
-      petWindow.webContents.send("pet-sync", { ...petState, sheets: sheetsFor(petState.kind) })
+      petWindow.webContents.send("pet-sync", syncPayload())
     } else {
       stopLooking()
       petWindow.hide()
-    }
-  }
-
-  // Notificación nativa de Windows cuando se requiere input o hay bloqueo
-  if (petState.status !== previousStatus && (petState.status === "needs-input" || petState.status === "blocked")) {
-    try {
-      if (Notification.isSupported()) {
-        const notif = new Notification({
-          title: `Tiancode ${petGlyphs[petState.kind] || ""}`,
-          body: petState.text || (petState.status === "needs-input" ? "Esperando tu confirmación" : "La tarea fue pausada"),
-          silent: false,
-        })
-        notif.show()
-      }
-    } catch {
-      // Ignore notification failures on platforms without native notification support
     }
   }
 }
@@ -716,7 +738,14 @@ export function toggleDesktopPet(): boolean {
   return petState.visible
 }
 
-export function registerDesktopPetIpc() {
+/** The last main window closed: the pet goes too, so the app can quit (window-all-closed). */
+export function destroyDesktopPet() {
+  stopLooking()
+  if (petWindow && !petWindow.isDestroyed()) petWindow.destroy()
+  petWindow = null
+}
+
+export function registerDesktopPetIpc(deps: { focusMain: () => void }) {
   ipcMain.handle("desktop-pet-update", (_event, partial: Partial<DesktopPetState>) => {
     updateDesktopPet(partial)
     return petState
@@ -735,19 +764,77 @@ export function registerDesktopPetIpc() {
       updateDesktopPet({ petted: true })
       setTimeout(() => updateDesktopPet({ petted: false }), 900)
     } else if (action === "focus-main") {
-      const windows = BrowserWindow.getAllWindows().filter((w) => w !== petWindow)
-      if (windows.length > 0) {
-        const main = windows[0]
-        if (main.isMinimized()) main.restore()
-        main.show()
-        main.focus()
-      }
+      deps.focusMain()
     } else if (action === "hide") {
       petState.visible = false
       stopLooking()
       if (petWindow && !petWindow.isDestroyed()) {
         petWindow.hide()
       }
+      // Settings owns "show on the desktop"; without this the next status change showed it again.
+      for (const win of BrowserWindow.getAllWindows()) {
+        if (win !== petWindow && !win.isDestroyed()) win.webContents.send("desktop-pet-hidden")
+      }
     }
   })
+
+  ipcMain.on("desktop-pet-drag", (_event, x: unknown, y: unknown) => {
+    if (!petWindow || petWindow.isDestroyed() || typeof x !== "number" || typeof y !== "number") return
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return
+    petWindow.setPosition(Math.round(x), Math.round(y))
+  })
+  ipcMain.on("desktop-pet-drag-end", savePetPosition)
+
+  ipcMain.handle("desktop-pet-reset-position", () => {
+    getStore().delete(DESKTOP_PET_POSITION_KEY)
+    if (!petWindow || petWindow.isDestroyed()) return
+    const position = defaultPetPosition()
+    petWindow.setPosition(position.x, position.y)
+  })
+}
+
+const PET_WIDTH = 232
+const PET_HEIGHT = 150
+
+function defaultPetPosition() {
+  const { workArea } = screen.getPrimaryDisplay()
+  return { x: workArea.x + workArea.width - PET_WIDTH - 20, y: workArea.y + workArea.height - PET_HEIGHT - 20 }
+}
+
+// Kept inside the work area of the display it is on, so a removed monitor or a resolution change
+// never leaves the pet off screen.
+function clampToDisplay(position: { x: number; y: number }) {
+  const { workArea } = screen.getDisplayMatching({ ...position, width: PET_WIDTH, height: PET_HEIGHT })
+  return {
+    x: Math.min(Math.max(position.x, workArea.x), workArea.x + workArea.width - PET_WIDTH),
+    y: Math.min(Math.max(position.y, workArea.y), workArea.y + workArea.height - PET_HEIGHT),
+  }
+}
+
+function savedPetPosition() {
+  const stored = getStore().get(DESKTOP_PET_POSITION_KEY)
+  if (!stored || typeof stored !== "object") return undefined
+  const { x, y } = stored as { x?: unknown; y?: unknown }
+  if (typeof x !== "number" || typeof y !== "number") return undefined
+  return clampToDisplay({ x, y })
+}
+
+function savePetPosition() {
+  if (!petWindow || petWindow.isDestroyed()) return
+  const [x, y] = petWindow.getPosition()
+  getStore().set(DESKTOP_PET_POSITION_KEY, { x, y })
+}
+
+let watchingDisplays = false
+function watchDisplays() {
+  if (watchingDisplays) return
+  watchingDisplays = true
+  const settle = () => {
+    if (!petWindow || petWindow.isDestroyed()) return
+    const [x, y] = petWindow.getPosition()
+    const next = clampToDisplay({ x, y })
+    if (next.x !== x || next.y !== y) petWindow.setPosition(next.x, next.y)
+  }
+  screen.on("display-removed", settle)
+  screen.on("display-metrics-changed", settle)
 }

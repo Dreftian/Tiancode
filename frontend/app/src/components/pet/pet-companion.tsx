@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, onCleanup, Show } from "solid-js"
+import { createEffect, createMemo, createSignal, onCleanup, onMount, Show } from "solid-js"
 import { useParams } from "@solidjs/router"
 import type { Part as MessagePart, TextPart } from "@tiancode-ai/sdk/v2"
 import { useLanguage } from "@/context/language"
@@ -71,7 +71,10 @@ export function PetCompanion() {
   // (p. ej. razonando) se muestra la etiqueta genérica del estado. Un dict de
   // idioma incompleto nunca debe crashear la app: si la clave falta, el
   // translator devuelve undefined y se usa el estado como texto final.
+  // A greeting from Settings › Mascotas › Acariciar shows for a moment, then the live text returns.
+  const [greeting, setGreeting] = createSignal("")
   const bubbleText = createMemo(() => {
+    if (greeting()) return greeting()
     if (status() === "running") return actionText() || language.t(statusLabels.running) || statusLabels.running
     const key = statusLabels[status()]
     return language.t(key) ?? key
@@ -98,8 +101,43 @@ export function PetCompanion() {
       setPetted(false)
     }, 900)
   }
+  let greetingTimer: ReturnType<typeof setTimeout> | undefined
   onCleanup(() => {
     if (pettedTimer !== undefined) clearTimeout(pettedTimer)
+    if (greetingTimer !== undefined) clearTimeout(greetingTimer)
+  })
+
+  onMount(() => {
+    // Settings › Mascotas › Acariciar: both pets react, and the desktop one gets the greeting.
+    const onPet = (event: Event) => {
+      setPetted(true)
+      if (pettedTimer !== undefined) clearTimeout(pettedTimer)
+      pettedTimer = setTimeout(() => {
+        pettedTimer = undefined
+        setPetted(false)
+      }, 900)
+      setGreeting((event as CustomEvent<{ text?: string }>).detail?.text ?? "")
+      if (greetingTimer !== undefined) clearTimeout(greetingTimer)
+      greetingTimer = setTimeout(() => {
+        greetingTimer = undefined
+        setGreeting("")
+      }, 2500)
+    }
+    // The "pet.toggle" command.
+    const onToggle = () => settings.general.setPetEnabled(!settings.general.petEnabled())
+    window.addEventListener("tiancode:pet-pet", onPet)
+    window.addEventListener("tiancode:pet-toggle", onToggle)
+    // The desktop pet's own × hides it; the setting follows, or the next update would show it again.
+    const api = (window as unknown as { api?: { pet?: { onHidden?: (cb: () => void) => () => void } } }).api
+    const stopHidden = api?.pet?.onHidden?.(() => {
+      if (settings.general.petDisplay() === "both") settings.general.setPetDisplay("app")
+      else if (settings.general.petDisplay() === "desktop") settings.general.setPetEnabled(false)
+    })
+    onCleanup(() => {
+      window.removeEventListener("tiancode:pet-pet", onPet)
+      window.removeEventListener("tiancode:pet-toggle", onToggle)
+      stopHidden?.()
+    })
   })
 
   // Sincronización continua con la Mascota Flotante de Escritorio en Windows
@@ -160,7 +198,7 @@ export function PetCompanion() {
         aria-label={label()}
         onClick={onPet}
         onDblClick={cycleNextPet}
-        title="Clic para acariciar / Doble clic para cambiar mascota"
+        title={language.t("pet.companion.title")}
       >
         <span class="pet-companion-glyph" aria-hidden="true">
           <PetGlyph kind={settings.general.petKind()} size={40} mood={mood()} />

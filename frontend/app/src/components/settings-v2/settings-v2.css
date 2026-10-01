@@ -1652,129 +1652,172 @@
   background-color: var(--v2-background-bg-layer-02);
 }
 
-/* Tira de estado en vivo de la mascota de escritorio. El color del punto lo decide data-state,
-   nunca un intercambio de clases desde el TSX, igual que los puntos de connections.css. */
-.settings-v2-pets-state {
+/* Mascotas: the current pet with its live state, then the catalogue. State colours come from
+   data-state, never from classes swapped in the TSX. */
+.settings-v2-pets {
+  gap: 18px;
+}
+
+.settings-v2-pets-hero {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  min-width: 0;
-  margin-top: 10px;
-  padding: 8px 12px;
+  gap: 16px 20px;
+  padding: 18px 20px;
   border: 1px solid var(--v2-border-border-muted);
-  border-radius: 10px;
+  border-radius: 16px;
   background: var(--v2-background-bg-layer-01);
 }
 
-.settings-v2-pets-state-dot {
+.settings-v2-pets-hero[data-enabled] {
+  border-color: color-mix(in srgb, var(--v2-text-text-accent) 30%, var(--v2-border-border-muted));
+  background:
+    radial-gradient(80% 160% at 0% 50%, color-mix(in srgb, var(--v2-text-text-accent) 12%, transparent), transparent 70%),
+    var(--v2-background-bg-layer-01);
+}
+
+.settings-v2-pets-hero-glyph {
+  display: grid;
   flex: none;
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--v2-icon-icon-muted);
+  width: 104px;
+  height: 104px;
+  place-items: center;
+  border-radius: 24px;
+  background: var(--v2-background-bg-layer-02);
 }
 
-.settings-v2-pets-state[data-state="ready"] .settings-v2-pets-state-dot {
-  background: var(--v2-state-fg-success);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--v2-state-fg-success) 22%, transparent);
+.settings-v2-pets-hero:not([data-enabled]) .settings-v2-pets-hero-glyph {
+  filter: grayscale(0.7);
+  opacity: 0.7;
 }
 
-.settings-v2-pets-state[data-state="running"] .settings-v2-pets-state-dot {
-  background: var(--v2-icon-icon-accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--v2-icon-icon-accent) 22%, transparent);
+.settings-v2-pets-hero-copy {
+  display: flex;
+  flex: 1 1 220px;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.settings-v2-pets-state[data-state="needs-input"] .settings-v2-pets-state-dot {
-  background: var(--v2-state-fg-warning);
+.settings-v2-pets-hero-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 }
 
-.settings-v2-pets-state[data-state="blocked"] .settings-v2-pets-state-dot {
-  background: var(--v2-state-fg-danger);
-}
-
-.settings-v2-pets-state-label {
-  flex: none;
-  font-size: 12px;
-  font-weight: 560;
+.settings-v2-pets-hero-name {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 660;
   color: var(--v2-text-text-base);
 }
 
-.settings-v2-pets-state-text {
-  min-width: 0;
-  flex: 1;
-  overflow: hidden;
-  font-size: 12px;
-  color: var(--v2-text-text-muted);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.settings-v2-pets-state-visibility {
-  flex: none;
+.settings-v2-pets-tag {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--v2-background-bg-layer-03);
   font-size: 11px;
-  color: var(--v2-text-text-faint);
+  font-weight: 600;
+  color: var(--v2-text-text-muted);
 }
 
-/* Aviso de "solo escritorio": ocupa la columna de control de una fila, no el hueco bajo una
-   sección, así que pierde el margen superior de .settings-v2-note. */
-.settings-v2-pets-unavailable {
-  margin-top: 0;
-  text-align: end;
+.settings-v2-pets-hero-trait {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--v2-text-text-muted);
 }
 
-/* Cabecera del catálogo: título a la izquierda, recuento a la derecha. */
+.settings-v2-pets-hero-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.settings-v2-pets-hero-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.settings-v2-pets-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px 2px 8px;
+  border-radius: 999px;
+  background: var(--v2-background-bg-layer-03);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-pets-state::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.settings-v2-pets-state[data-state="ready"],
+.settings-v2-pets-state[data-state="visible"] {
+  background: color-mix(in srgb, var(--v2-state-fg-success) 12%, transparent);
+  color: var(--v2-state-fg-success);
+}
+
+.settings-v2-pets-state[data-state="running"] {
+  background: color-mix(in srgb, var(--v2-text-text-accent) 14%, transparent);
+  color: var(--v2-text-text-accent);
+}
+
+.settings-v2-pets-state[data-state="needs-input"] {
+  background: color-mix(in srgb, var(--v2-state-fg-warning) 14%, transparent);
+  color: var(--v2-state-fg-warning);
+}
+
+.settings-v2-pets-state[data-state="blocked"] {
+  background: color-mix(in srgb, var(--v2-state-fg-danger) 12%, transparent);
+  color: var(--v2-state-fg-danger);
+}
+
 .settings-v2-pets-head {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
 }
 
 .settings-v2-pets-count {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--v2-background-bg-layer-03);
   font-size: 11px;
-  color: var(--v2-text-text-faint);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
+  color: var(--v2-text-text-muted);
 }
 
-/* Una sola columna por defecto: la descripción va completa y necesita ancho. El panel vive en un
-   diálogo con carril de navegación, así que sólo el contenedor sabe cuánto sitio queda; las
-   media queries de ventana mentirían. */
 .settings-v2-pets-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   gap: 10px;
-  margin-top: 10px;
-}
-
-@container settings-panel (min-width: 560px) {
-  .settings-v2-pets-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@container settings-panel (min-width: 880px) {
-  .settings-v2-pets-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
 }
 
 .settings-v2-pets-card {
   display: flex;
-  /* flex-start y no center: la copia ocupa varias líneas y centrada empujaría el icono hacia abajo. */
-  align-items: flex-start;
-  gap: 14px;
   min-width: 0;
-  padding: 14px 16px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
   border: 1px solid var(--v2-border-border-muted);
-  border-radius: 12px;
+  border-radius: 14px;
   background: var(--v2-background-bg-layer-01);
-  box-shadow: var(--v2-elevation-raised);
-  text-align: start;
+  color: inherit;
+  text-align: left;
   cursor: pointer;
-  transition:
-    border-color 120ms ease,
-    background-color 120ms ease,
-    box-shadow 120ms ease;
+  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
 }
 
 .settings-v2-pets-card:hover {
@@ -1787,36 +1830,29 @@
   outline-offset: 2px;
 }
 
-/* Después de :hover a propósito: así la tarjeta activa gana por orden y no hace falta !important. */
-.settings-v2-pets-card[data-selected] {
+.settings-v2-pets-card[aria-checked="true"] {
   border-color: var(--v2-border-border-focus);
-  background: color-mix(in srgb, var(--v2-background-bg-accent) 10%, var(--v2-background-bg-layer-01));
-  box-shadow: inset 0 0 0 1px var(--v2-border-border-focus);
+  background: color-mix(in srgb, var(--v2-text-text-accent) 7%, var(--v2-background-bg-layer-01));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--v2-border-border-focus) 40%, transparent);
 }
 
 .settings-v2-pets-card-glyph {
-  display: flex;
+  display: grid;
   flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--v2-background-bg-layer-02);
+  transition: transform 0.2s ease;
 }
 
-.settings-v2-pets-card-glyph svg {
-  transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.settings-v2-pets-card:hover .settings-v2-pets-card-glyph svg {
-  transform: scale(1.08);
+.settings-v2-pets-card:hover .settings-v2-pets-card-glyph {
+  transform: translateY(-2px) rotate(-3deg);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .settings-v2-pets-card-glyph svg {
-    transition: none;
-  }
-
-  .settings-v2-pets-card:hover .settings-v2-pets-card-glyph svg {
+  .settings-v2-pets-card:hover .settings-v2-pets-card-glyph {
     transform: none;
   }
 }
@@ -1824,59 +1860,30 @@
 .settings-v2-pets-card-copy {
   display: flex;
   min-width: 0;
-  flex: 1;
   flex-direction: column;
-  gap: 5px;
+  gap: 2px;
 }
 
 .settings-v2-pets-card-name {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  font-size: 13.5px;
-  font-weight: 650;
+  font-size: 13px;
+  font-weight: 620;
   color: var(--v2-text-text-base);
 }
 
-.settings-v2-pets-card-selected {
-  flex: none;
-  padding: 1.5px 7px;
-  border: 1px solid color-mix(in srgb, var(--v2-border-border-focus) 45%, transparent);
-  border-radius: 6px;
-  font-size: 9px;
-  font-weight: 650;
-  letter-spacing: 0.02em;
+.settings-v2-pets-card-species {
+  font-size: 11px;
+  font-weight: 600;
   color: var(--v2-text-text-accent);
-  background-color: color-mix(in srgb, var(--v2-background-bg-accent) 14%, transparent);
 }
 
-.settings-v2-pets-card-meta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.settings-v2-pets-card-id {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 10.5px;
-  color: var(--v2-text-text-faint);
-}
-
-/* text-muted y no text-faint: esta es la frase que antes iba recortada a una línea y en el gris
-   de menor contraste de la escala. */
 .settings-v2-pets-card-description {
-  font-size: 12px;
-  font-weight: 420;
-  line-height: 1.45;
-  color: var(--v2-text-text-muted);
-}
-
-.settings-v2-pets-card-trait {
+  display: -webkit-box;
+  overflow: hidden;
   font-size: 11.5px;
   line-height: 1.45;
-  color: var(--v2-text-text-faint);
+  color: var(--v2-text-text-muted);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .settings-v2-item-icon {

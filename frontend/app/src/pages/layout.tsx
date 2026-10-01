@@ -862,34 +862,34 @@ export default function LegacyLayout(props: ParentProps) {
         },
       },
       {
+        // No default keybind: mod+shift+p belongs to the command palette, which always won.
         id: "pet.toggle",
-        title: "Alternar Mascota de Escritorio",
+        title: language.t("command.pet.toggle"),
         category: language.t("command.category.view"),
-        keybind: "mod+shift+p",
         onSelect: () => {
           window.dispatchEvent(new CustomEvent("tiancode:pet-toggle"))
         },
       },
       {
         id: "mcp.health",
-        title: "Diagnóstico y Salud de Servidores MCP",
-        category: "MCP",
+        title: language.t("command.mcp.open"),
+        category: language.t("command.category.mcp"),
         keybind: "mod+shift+c",
-        onSelect: () => openSettings(),
+        onSelect: () => openSettings("mcp-plugins"),
       },
       {
         id: "skills.open",
-        title: "Gestor de Habilidades y Auto-Harness (Skills)",
-        category: "Agente",
+        title: language.t("command.skills.open"),
+        category: language.t("command.category.agent"),
         keybind: "mod+shift+k",
-        onSelect: () => openSettings(),
+        onSelect: () => openSettings("skills"),
       },
       {
         id: "rlm.tree",
-        title: "Árbol de Recursión RLM de Sub-Agentes",
-        category: "Agente",
+        title: language.t("command.subagents.open"),
+        category: language.t("command.category.agent"),
         keybind: "mod+shift+r",
-        onSelect: () => openSettings(),
+        onSelect: () => openSettings("sub-agents"),
       },
     ]
 

@@ -460,6 +460,10 @@ export type ElectronAPI = {
     update: (partial: Partial<DesktopPetState>) => Promise<DesktopPetState>
     toggle: () => Promise<boolean>
     getState: () => Promise<DesktopPetState>
+    /** Moves the desktop pet back to the bottom-right corner of the primary display. */
+    resetPosition: () => Promise<void>
+    /** The pet's own × hid it; Settings turns "show on the desktop" off to match. */
+    onHidden: (cb: () => void) => () => void
   }
   localModels: {
     getDir: () => Promise<string | null>
@@ -472,7 +476,7 @@ export type ElectronAPI = {
 }
 
 export type DesktopPetState = {
-  /** Cualquiera de las 13 de `petKinds`; la lista corta de antes dejaba fuera 10 mascotas reales. */
+  /** Any of `petKinds`. */
   kind: string
   status: "ready" | "running" | "needs-input" | "blocked"
   text: string

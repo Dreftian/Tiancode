@@ -15,6 +15,8 @@ import { assertAttachmentBudget, createPickedFileAuthorizations } from "./attach
 import { getStore, removeStoreFileIfEmpty } from "./store"
 import { LOCAL_MODELS_DIR_KEY } from "./store-keys"
 import {
+  getAnyMainWindow,
+  getLastFocusedWindow,
   getPinchZoomEnabled,
   getWindowID,
   getWelcomeWindow,
@@ -184,8 +186,16 @@ export function registerIpcHandlers(deps: Deps) {
   // Canales exclusivos window-mirror:*.
   registerWindowMirrorIpc()
 
-  // Mascota de escritorio independiente
-  registerDesktopPetIpc()
+  // Mascota de escritorio independiente. Double-clicking it opens the window the user used last.
+  registerDesktopPetIpc({
+    focusMain: () => {
+      const win = getLastFocusedWindow() ?? getAnyMainWindow()
+      if (!win || win.isDestroyed()) return
+      if (win.isMinimized()) win.restore()
+      win.show()
+      win.focus()
+    },
+  })
 
   // Uso del computador: el agente mueve el ratón y teclea en el escritorio real (sólo Windows).
   // Canales exclusivos computer:*. computer-use.ts no importa electron para poder probarse con

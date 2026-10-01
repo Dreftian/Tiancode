@@ -6,6 +6,10 @@ contextBridge.exposeInMainWorld("petApi", {
       ipcRenderer.send("desktop-pet-action", action)
     }
   },
+  drag: (x: number, y: number) => {
+    if (typeof x === "number" && typeof y === "number") ipcRenderer.send("desktop-pet-drag", x, y)
+  },
+  dragEnd: () => ipcRenderer.send("desktop-pet-drag-end"),
   onSync: (callback: (state: unknown) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, state: unknown) => callback(state)
     ipcRenderer.on("pet-sync", handler)
