@@ -160,6 +160,19 @@ it.instance(
   },
 )
 
+it.instance(
+  "the user's permission rules apply to the specialist sub-agents",
+  () =>
+    Effect.gen(function* () {
+      const pentest = yield* load((svc) => svc.get("pentest"))
+      const fullstack = yield* load((svc) => svc.get("fullstack-coder"))
+      expect(evalPerm(pentest, "bash")).toBe("ask")
+      expect(evalPerm(fullstack, "bash")).toBe("ask")
+      expect(evalPerm(fullstack, "edit")).toBe("deny")
+    }),
+  { config: { permission: { bash: "ask", edit: "deny" } } },
+)
+
 it.instance("explore agent denies edit and write", () =>
   Effect.gen(function* () {
     const explore = yield* load((svc) => svc.get("explore"))

@@ -247,7 +247,8 @@ const layer = Layer.effect(
                 options: {},
                 mode: "subagent" as const,
                 native: true,
-                permission: defaults,
+                // The user's own rules (e.g. bash: "ask") apply to specialists like every other agent.
+                permission: Permission.merge(defaults, user),
               },
             ]),
           ),
