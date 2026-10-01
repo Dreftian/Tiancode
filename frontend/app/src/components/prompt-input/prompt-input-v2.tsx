@@ -13,7 +13,7 @@ import { ModelSelectorPopoverV2 } from "@/components/dialogs/dialog-select-model
 import { DialogSelectModelUnpaidV2 } from "@/components/dialogs/dialog-select-model-unpaid-v2"
 import type { PromptInputProps } from "@/components/prompt-input/contracts"
 import { DictationOverlay, dictationState, VoiceDictationButton } from "@/components/prompt-input/voice-dictation-button"
-import { promptWithFolder, promptWithOptimizedText, promptWithDictation } from "@/components/prompt-input/optimized-prompt"
+import { promptWithBlock, promptWithFolder, promptWithOptimizedText, promptWithDictation } from "@/components/prompt-input/optimized-prompt"
 import { PromptOptimizerButton } from "@/components/prompt-input/prompt-optimizer-button"
 import { SpeedModeButton } from "@/components/prompt-input/speed-mode-button"
 import { ComposerModeButton } from "@/components/prompt-input/composer-mode-button"
@@ -110,8 +110,15 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
       setIsOptimizingPrompt(!!detail?.active)
     }
     const handleInsertPrompt = (e: Event) => {
-      const detail = (e as CustomEvent<{ text: string; submit?: boolean }>).detail
+      const detail = (e as CustomEvent<{ text: string; submit?: boolean; append?: boolean }>).detail
       if (!detail?.text) return
+      if (detail.append) {
+        const next = promptWithBlock(props.controller.parts(), detail.text)
+        const value = next.map((part) => ("content" in part ? part.content : "")).join("")
+        props.controller.onInput(value, next, value.length)
+        props.controller.restoreFocus()
+        return
+      }
       props.controller.onInput(
         detail.text,
         [{ type: "text", content: detail.text, start: 0, end: detail.text.length }],

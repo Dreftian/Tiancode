@@ -75,11 +75,12 @@ function isPreviewUrl(value: string) {
   }
 }
 
-// Script de selección de elementos inyectado con executeJavaScript (no lo
-// bloquea la CSP de la página): overlay de crosshair que resalta el elemento
-// bajo el cursor y al hacer clic guarda su descripción en
-// window.__tiancode_selection. Un clic de tecla Escape sale del modo.
-// El resultado se lee después con getSelection (executeJavaScript del main).
+// Modo diseño: script inyectado con executeJavaScript (no lo bloquea la CSP de
+// la página). Un overlay con cruz resalta el elemento bajo el cursor; cada clic
+// guarda su descripción en window.__tiancode_selection y lo avisa por consola
+// con SELECTION_MARKER, que el main intercepta. Sigue activo hasta Escape o
+// hasta que la app lo apaga.
+const SELECTION_MARKER = "[tiancode-selection]"
 const SELECT_ENTER_SCRIPT = `(() => {
   if (window.__tiancodeSelectActive) return "active"
   const overlay = document.createElement("div")
@@ -91,23 +92,19 @@ const SELECT_ENTER_SCRIPT = `(() => {
   document.documentElement.appendChild(overlay)
   document.documentElement.appendChild(outline)
   const selectorFor = (el) => {
-    if (el.id) return "#" + CSS.escape(el.id)
     const parts = []
     let node = el
     while (node && node.nodeType === 1 && node !== document.body && node !== document.documentElement) {
-      let part = node.tagName.toLowerCase()
       if (node.id) { parts.unshift("#" + CSS.escape(node.id)); break }
-      const cls = Array.from(node.classList).slice(0, 2).map((c) => "." + CSS.escape(c)).join("")
-      if (cls) part += cls
+      let part = node.tagName.toLowerCase() + Array.from(node.classList).slice(0, 2).map((c) => "." + CSS.escape(c)).join("")
       const parent = node.parentElement
-      if (parent) {
-        const sameTag = Array.from(parent.children).filter((s) => s.tagName === node.tagName)
-        if (sameTag.length > 1) part += ":nth-child(" + (Array.from(parent.children).indexOf(node) + 1) + ")"
+      if (parent && Array.from(parent.children).filter((s) => s.tagName === node.tagName).length > 1) {
+        part += ":nth-child(" + (Array.from(parent.children).indexOf(node) + 1) + ")"
       }
       parts.unshift(part)
       node = parent
     }
-    return parts.join(" > ")
+    return parts.join(" > ") || el.tagName.toLowerCase()
   }
   const pick = (x, y) => {
     overlay.style.pointerEvents = "none"
@@ -115,20 +112,25 @@ const SELECT_ENTER_SCRIPT = `(() => {
     overlay.style.pointerEvents = "auto"
     return el
   }
+  const STYLE_KEYS = ["display", "position", "color", "background-color", "font-family", "font-size", "font-weight", "line-height", "border-radius", "gap"]
   const describe = (el) => {
     const r = el.getBoundingClientRect()
-    const text = (el.innerText || el.textContent || "").replace(/\\s+/g, " ").trim().slice(0, 200)
-    const className = typeof el.className === "string" ? el.className : ""
+    const cs = getComputedStyle(el)
+    const read = (key) => cs.getPropertyValue(key).trim()
+    const html = el.outerHTML
     return {
       tag: el.tagName.toLowerCase(),
-      text,
-      className,
       id: el.id || "",
+      classes: typeof el.className === "string" ? el.className.trim() : "",
       selector: selectorFor(el),
+      text: (el.textContent || "").replace(/\\s+/g, " ").trim().slice(0, 200),
+      html: html.length > 1200 ? html.slice(0, 1200) + "\u2026" : html,
+      styles: STYLE_KEYS.map((key) => [key, read(key)]).filter((entry) => entry[1] && entry[1] !== "normal" && entry[1] !== "none").map((entry) => entry[0] + ": " + entry[1]).join("; "),
+      margin: ["margin-top", "margin-right", "margin-bottom", "margin-left"].map(read).join(" "),
+      padding: ["padding-top", "padding-right", "padding-bottom", "padding-left"].map(read).join(" "),
       url: location.href,
-      pathname: location.pathname,
-      dims: { width: Math.round(r.width), height: Math.round(r.height) },
-      rect: { x: Math.round(r.x), y: Math.round(r.y), width: Math.round(r.width), height: Math.round(r.height) },
+      rect: { x: r.x, y: r.y, width: r.width, height: r.height },
+      viewport: { width: innerWidth, height: innerHeight },
     }
   }
   const move = (e) => {
@@ -145,11 +147,11 @@ const SELECT_ENTER_SCRIPT = `(() => {
     e.preventDefault()
     e.stopPropagation()
     const el = pick(e.clientX, e.clientY)
-    if (el && el !== overlay && el !== outline) {
-      window.__tiancode_selection = describe(el)
-      console.log("[tiancode-selection]", "selected")
-    }
-    exit()
+    if (!el || el === overlay || el === outline || el === document.documentElement || el === document.body) return
+    window.__tiancode_selection = describe(el)
+    // The outline must be off the page before the main process captures it.
+    outline.style.display = "none"
+    requestAnimationFrame(() => requestAnimationFrame(() => console.log("${SELECTION_MARKER}", "selected")))
   }
   const key = (e) => { if (e.key === "Escape") exit() }
   const exit = () => {
@@ -159,22 +161,22 @@ const SELECT_ENTER_SCRIPT = `(() => {
     overlay.removeEventListener("click", click, true)
     document.removeEventListener("keydown", key, true)
     window.__tiancodeSelectActive = false
-    console.log("[tiancode-selection]", "exit")
+    window.__tiancodeSelectExit = undefined
+    console.log("${SELECTION_MARKER}", "exit")
   }
   window.__tiancodeSelectActive = true
+  window.__tiancodeSelectExit = exit
   overlay.addEventListener("mousemove", move)
   overlay.addEventListener("click", click, true)
   document.addEventListener("keydown", key, true)
   return "ok"
 })()`
 
+// Only our own nodes: pages may legitimately use the maximum z-index too.
 const SELECT_EXIT_SCRIPT = `(() => {
-  const overlay = document.getElementById("__tiancode_inspect_overlay")
-  const outline = document.getElementById("__tiancode_inspect_outline")
-  if (overlay) overlay.remove()
-  if (outline) outline.remove()
-  document.querySelectorAll("[style*='z-index:2147483647']").forEach((el) => el.remove())
-  document.querySelectorAll("[style*='z-index:2147483646']").forEach((el) => el.remove())
+  if (typeof window.__tiancodeSelectExit === "function") window.__tiancodeSelectExit()
+  document.getElementById("__tiancode_inspect_overlay")?.remove()
+  document.getElementById("__tiancode_inspect_outline")?.remove()
   window.__tiancodeSelectActive = false
   return "ok"
 })()`
@@ -289,6 +291,10 @@ function getOrCreatePreviewView(hostId: number, win: BrowserWindow) {
     } satisfies PreviewViewEvent)
   })
   contents.on("console-message", (_event, level, message, line, sourceId) => {
+    if (message.startsWith(SELECTION_MARKER)) {
+      void handleSelectionMarker(entry, message)
+      return
+    }
     if (isBenignPreviewConsole(message)) return
     if (entry.win.isDestroyed() || entry.win.webContents.isDestroyed()) return
     entry.win.webContents.send("preview-view-event", {
@@ -319,6 +325,23 @@ async function injectSelectScript(entry: PreviewViewEntry, enabled: boolean) {
   } catch (error) {
     writeLog("preview-view", "select script failed", { error }, "warn")
   }
+}
+
+// The marker only tells the main process to look: a page that prints it on its
+// own gets its window.__tiancode_selection validated like any other.
+async function handleSelectionMarker(entry: PreviewViewEntry, message: string) {
+  const contents = entry.view.webContents
+  if (contents.isDestroyed() || entry.win.isDestroyed() || entry.win.webContents.isDestroyed()) return
+  if (message.endsWith("exit")) {
+    entry.state.selectMode = false
+    sendState(entry)
+    return
+  }
+  if (!entry.state.selectMode) return
+  const value: unknown = await contents.executeJavaScript(SELECT_GET_SCRIPT, true).catch(() => null)
+  const selection = parseSelection(value)
+  if (!selection || entry.win.webContents.isDestroyed()) return
+  entry.win.webContents.send("preview-view-event", { type: "selection", selection } satisfies PreviewViewEvent)
 }
 
 function clampZoom(value: number) {
@@ -447,26 +470,60 @@ function isBenignPreviewConsole(message: string) {
 function parseSelection(value: unknown): PreviewViewSelection | null {
   if (typeof value !== "object" || value === null) return null
   const tag = readString(value, "tag")
-  const text = readString(value, "text")
-  const className = readString(value, "className")
   const id = readString(value, "id")
+  const classes = readString(value, "classes")
   const selector = readString(value, "selector")
+  const text = readString(value, "text")
+  const html = readString(value, "html")
+  const styles = readString(value, "styles")
+  const margin = readString(value, "margin")
+  const padding = readString(value, "padding")
   const url = readString(value, "url")
-  const pathname = readString(value, "pathname")
   const rect = readRect(value, "rect")
+  const viewport = readSize(value, "viewport")
   if (
     tag === null ||
-    text === null ||
-    className === null ||
     id === null ||
+    classes === null ||
     selector === null ||
+    text === null ||
+    html === null ||
+    styles === null ||
+    margin === null ||
+    padding === null ||
     url === null ||
-    pathname === null ||
-    rect === null
+    rect === null ||
+    viewport === null
   ) {
     return null
   }
-  return { tag, text, className, id, selector, url, pathname, dims: { width: rect.width, height: rect.height }, rect }
+  // Lengths are capped again here: the page owns window.__tiancode_selection.
+  return {
+    tag: tag.slice(0, 40),
+    id: id.slice(0, 200),
+    classes: classes.slice(0, 400),
+    selector: selector.slice(0, 600),
+    text: text.slice(0, 200),
+    html: html.slice(0, 1201),
+    styles: styles.slice(0, 800),
+    margin: margin.slice(0, 80),
+    padding: padding.slice(0, 80),
+    url: url.slice(0, 2000),
+    rect,
+    viewport,
+  }
+}
+
+function readSize(source: object, key: string): { width: number; height: number } | null {
+  for (const [entryKey, entryValue] of Object.entries(source)) {
+    if (entryKey !== key) continue
+    if (typeof entryValue !== "object" || entryValue === null) return null
+    const width = readNumber(entryValue, "width")
+    const height = readNumber(entryValue, "height")
+    if (width === null || height === null) return null
+    return { width, height }
+  }
+  return null
 }
 
 function readString(source: object, key: string): string | null {

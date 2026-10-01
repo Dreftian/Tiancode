@@ -50,6 +50,17 @@ import {
 } from "./preview-poll"
 import { clampZoom, fittedPreviewViewport, nextZoomStep, type PreviewZoom } from "./preview-viewport"
 import { createReloadScheduler } from "./live-preview-reload"
+import {
+  cropCapture,
+  DESIGN_EXIT_MESSAGE,
+  DESIGN_PICKER_EXIT_SCRIPT,
+  DESIGN_PICKER_SCRIPT,
+  DESIGN_SELECTION_MESSAGE,
+  elementPrompt,
+  parsePickedElement,
+  type PickedElement,
+} from "./element-context"
+import { showToast } from "@/utils/toast"
 import "./live-preview.css"
 
 // Estado del dev server gestionado por el agente (DevServerManager, /preview).
@@ -158,15 +169,6 @@ function toBase64(buffer: ArrayBuffer) {
     binary += String.fromCharCode(...bytes.subarray(i, i + 8192))
   }
   return btoa(binary)
-}
-
-type InspectedElementInfo = {
-  tag: string
-  classes: string
-  id: string
-  dimensions: string
-  margin: string
-  padding: string
 }
 
 type PreviewIssue = {
@@ -301,7 +303,23 @@ export function LivePreview(props: {
   const deviceId = () => previewPrefs.deviceId
   const setDeviceId = (id: DeviceId) => setPreviewPrefs("deviceId", id)
   const [inspectActive, setInspectActive] = createSignal(false)
-  const [selectedElement, setSelectedElement] = createSignal<InspectedElementInfo | null>(null)
+  const [selectedElement, setSelectedElement] = createSignal<PickedElement | null>(null)
+  // Cropped screenshot of the picked element (desktop only). It travels with "Add to chat".
+  const [selectedShot, setSelectedShot] = createSignal<{ file: File; url: string } | undefined>()
+  createEffect(
+    on(selectedShot, (_shot, previous) => {
+      if (previous) URL.revokeObjectURL(previous.url)
+    }),
+  )
+  onCleanup(() => {
+    const shot = selectedShot()
+    if (shot) URL.revokeObjectURL(shot.url)
+  })
+  const keepShot = (file: File | undefined, picked: PickedElement) => {
+    // A late capture of an element the user already replaced must not overwrite the new one.
+    if (selectedElement() !== picked) return
+    setSelectedShot(file ? { file, url: URL.createObjectURL(file) } : undefined)
+  }
   const [previewIssue, setPreviewIssue] = createSignal<PreviewIssue | null>(null)
 
   // The Sandbox header's quick buttons arrive as {mode, seq}. Keying on `seq` makes every press
@@ -404,19 +422,11 @@ export function LivePreview(props: {
   let iframeHistory: string[] = []
   let iframeHistoryIndex = -1
   let whiteScreenTimer: number | undefined
-  let inspectorCleanup: (() => void) | undefined
 
   const clearWhiteScreenTimer = () => {
     if (whiteScreenTimer !== undefined) {
       window.clearTimeout(whiteScreenTimer)
       whiteScreenTimer = undefined
-    }
-  }
-
-  const detachInspector = () => {
-    if (inspectorCleanup) {
-      inspectorCleanup()
-      inspectorCleanup = undefined
     }
   }
 
@@ -434,7 +444,6 @@ export function LivePreview(props: {
     } catch {
       // cross-origin document: nothing to carry over
     }
-    detachInspector()
     iframe = next
     setActiveFrameId(nextId)
     if (scroll && (scroll.x || scroll.y)) {
@@ -450,121 +459,39 @@ export function LivePreview(props: {
     })
   }
 
-  const attachInspector = () => {
-    detachInspector()
-    if (!iframe) return
-    try {
-      const doc = iframe.contentDocument
-      if (!doc || !doc.body) return
-
-      let overlay = doc.getElementById("__tiancode_inspector_overlay") as HTMLDivElement | null
-      if (!overlay) {
-        overlay = doc.createElement("div")
-        overlay.id = "__tiancode_inspector_overlay"
-        overlay.style.cssText =
-          "position:fixed;pointer-events:none;z-index:2147483647;display:none;box-sizing:border-box;border:2px solid #06b6d4;background:rgba(6,182,212,0.15);box-shadow:0 0 10px rgba(6,182,212,0.4);transition:top 0.05s ease,left 0.05s ease,width 0.05s ease,height 0.05s ease;"
-        doc.body.appendChild(overlay)
-      }
-
-      let badge = doc.getElementById("__tiancode_inspector_badge") as HTMLDivElement | null
-      if (!badge) {
-        badge = doc.createElement("div")
-        badge.id = "__tiancode_inspector_badge"
-        badge.style.cssText =
-          "position:absolute;bottom:100%;left:0;margin-bottom:4px;background:#083344;color:#67e8f9;padding:2px 6px;border-radius:4px;font-size:11px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:600;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.5);border:1px solid #06b6d4;pointer-events:none;"
-        overlay.appendChild(badge)
-      }
-
-      const handleMouseOver = (e: MouseEvent) => {
-        const target = e.target as HTMLElement | null
-        if (
-          !target ||
-          target === overlay ||
-          overlay.contains(target) ||
-          target === doc.body ||
-          target === doc.documentElement
-        ) {
-          return
-        }
-        const rect = target.getBoundingClientRect()
-        overlay.style.display = "block"
-        overlay.style.top = `${rect.top}px`
-        overlay.style.left = `${rect.left}px`
-        overlay.style.width = `${rect.width}px`
-        overlay.style.height = `${rect.height}px`
-
-        const tag = target.tagName.toLowerCase()
-        const idStr = target.id ? `#${target.id}` : ""
-        const classStr =
-          typeof target.className === "string" && target.className.trim()
-            ? `.${target.className.trim().split(/\s+/).slice(0, 2).join(".")}`
-            : ""
-        const dimStr = `${Math.round(rect.width)} × ${Math.round(rect.height)}`
-        badge.textContent = `${tag}${idStr}${classStr}  ${dimStr}`
-
-        if (rect.top < 26) {
-          badge.style.bottom = "auto"
-          badge.style.top = "100%"
-          badge.style.marginTop = "4px"
-          badge.style.marginBottom = "0"
-        } else {
-          badge.style.bottom = "100%"
-          badge.style.top = "auto"
-          badge.style.marginTop = "0"
-          badge.style.marginBottom = "4px"
-        }
-      }
-
-      const handleClick = (e: MouseEvent) => {
-        const target = e.target as HTMLElement | null
-        if (!target || target === overlay || overlay.contains(target)) return
-        e.preventDefault()
-        e.stopPropagation()
-        const rect = target.getBoundingClientRect()
-        const win = doc.defaultView ?? window
-        const computed = win.getComputedStyle(target)
-        const tag = target.tagName.toLowerCase()
-        const classNames = typeof target.className === "string" ? target.className.trim() : ""
-        setSelectedElement({
-          tag,
-          classes: classNames,
-          id: target.id || "",
-          dimensions: `${Math.round(rect.width)}px × ${Math.round(rect.height)}px`,
-          margin: `${computed.marginTop} ${computed.marginRight} ${computed.marginBottom} ${computed.marginLeft}`,
-          padding: `${computed.paddingTop} ${computed.paddingRight} ${computed.paddingBottom} ${computed.paddingLeft}`,
-        })
-      }
-
-      const handleDocKeyDown = (e: KeyboardEvent) => {
-        if ((e.ctrlKey || e.metaKey) && e.altKey && (e.key === "i" || e.key === "I" || e.code === "KeyI")) {
-          e.preventDefault()
-          setInspectActive((prev) => !prev)
-        }
-      }
-
-      const handleScroll = () => {
-        overlay.style.display = "none"
-      }
-
-      doc.addEventListener("mouseover", handleMouseOver, true)
-      doc.addEventListener("click", handleClick, true)
-      doc.addEventListener("keydown", handleDocKeyDown, true)
-      doc.addEventListener("scroll", handleScroll, true)
-
-      inspectorCleanup = () => {
-        try {
-          doc.removeEventListener("mouseover", handleMouseOver, true)
-          doc.removeEventListener("click", handleClick, true)
-          doc.removeEventListener("keydown", handleDocKeyDown, true)
-          doc.removeEventListener("scroll", handleScroll, true)
-          overlay.remove()
-        } catch {
-          // ignore
-        }
-      }
-    } catch {
-      // Cross-origin iframe
+  // Design mode in the iframe. The picker runs inside the page because a dev server is another
+  // origin than the app: same-origin documents get it injected directly, other origins need the
+  // desktop app, which runs it in the frame through the preview agent channel.
+  const runInFrame = async (frame: HTMLIFrameElement, code: string) => {
+    const doc = frame.contentDocument
+    if (doc?.documentElement) {
+      const script = doc.createElement("script")
+      script.textContent = code
+      doc.documentElement.appendChild(script)
+      script.remove()
+      return true
     }
+    const agent = platform.previewAgent
+    if (!agent) return false
+    const result = await agent.execute(code, frame.src).catch(() => undefined)
+    return !!result?.ok
+  }
+
+  const attachFramePicker = async () => {
+    const frame = iframe
+    if (!frame) return
+    if (await runInFrame(frame, DESIGN_PICKER_SCRIPT)) return
+    if (frame !== iframe || !inspectActive()) return
+    setInspectActive(false)
+    showToast({ variant: "error", description: language.t("livePreview.design.unavailable") })
+  }
+
+  const takeFramePick = (picked: PickedElement, source: MessageEventSource | null) => {
+    if (!inspectActive()) return
+    setSelectedShot(undefined)
+    setSelectedElement(picked)
+    const frame = Array.from(frameElements.values()).find((element) => element.contentWindow === source)
+    if (frame) void captureFrameElement(frame, picked).then((file) => keepShot(file, picked))
   }
 
   createEffect(
@@ -582,14 +509,87 @@ export function LivePreview(props: {
     }),
   )
 
-  createEffect(() => {
-    if (inspectActive()) {
-      attachInspector()
-    } else {
-      detachInspector()
-      setSelectedElement(null)
-    }
-  })
+  // Design mode. The iframe runs DESIGN_PICKER_SCRIPT; the desktop native view runs its own twin
+  // and reports each pick as a "selection" event.
+  const nativeInspect = () => nativePreviewActive() && !iframeUrl()
+  createEffect(
+    on(
+      inspectActive,
+      (active, previous) => {
+        if (active) {
+          if (nativeInspect()) void preview()?.setSelectMode(true).catch(() => undefined)
+          else void attachFramePicker()
+          return
+        }
+        setSelectedElement(null)
+        setSelectedShot(undefined)
+        if (!previous) return
+        void preview()?.setSelectMode(false).catch(() => undefined)
+        const frame = iframe
+        if (frame) void runInFrame(frame, DESIGN_PICKER_EXIT_SCRIPT)
+      },
+      { defer: true },
+    ),
+  )
+  // Switching between the iframe and the native view leaves the picker behind on the old surface.
+  createEffect(on(nativeInspect, () => setInspectActive(false), { defer: true }))
+
+  const captureFrameElement = async (frame: HTMLIFrameElement, picked: PickedElement) => {
+    const capture = platform.captureScreenshot
+    if (!capture) return
+    const image = await capture("window").catch(() => null)
+    if (!image) return
+    // The iframe can be scaled down to fit a device frame: map its CSS pixels into the window.
+    const box = frame.getBoundingClientRect()
+    const zoom = frame.offsetWidth ? box.width / frame.offsetWidth : 1
+    return cropCapture({
+      image,
+      rect: {
+        x: box.x + picked.rect.x * zoom,
+        y: box.y + picked.rect.y * zoom,
+        width: picked.rect.width * zoom,
+        height: picked.rect.height * zoom,
+      },
+      viewportWidth: window.innerWidth,
+      name: `elemento-${picked.tag}`,
+    })
+  }
+
+  const captureNativeElement = async (picked: PickedElement) => {
+    const view = preview()
+    if (!view) return
+    const shot = await view.capture().catch(() => undefined)
+    if (!shot) return
+    return cropCapture({
+      image: new Blob([shot.buffer], { type: "image/png" }),
+      rect: picked.rect,
+      viewportWidth: picked.viewport.width,
+      name: `elemento-${picked.tag}`,
+    })
+  }
+
+  const addSelectionToChat = () => {
+    const picked = selectedElement()
+    if (!picked) return
+    window.dispatchEvent(
+      new CustomEvent("tiancode:insert-prompt", {
+        detail: {
+          text: elementPrompt(picked, {
+            intro: language.t("livePreview.design.prompt.intro"),
+            page: language.t("livePreview.design.prompt.page"),
+            selector: language.t("livePreview.design.prompt.selector"),
+            text: language.t("livePreview.design.prompt.text"),
+            size: language.t("livePreview.design.prompt.size"),
+            styles: language.t("livePreview.design.prompt.styles"),
+          }),
+          append: true,
+        },
+      }),
+    )
+    const shot = selectedShot()
+    if (shot) props.onCapture?.(shot.file)
+    setInspectActive(false)
+  }
 
   const revealPreview = () => {
     if (!previewMounted || !nativePreviewActive() || previewVisible || !boundsReady || !previewContentReady) return
@@ -1212,7 +1212,7 @@ export function LivePreview(props: {
               return
             }
             const elements = body.querySelectorAll(
-              "*:not(script):not(style):not(noscript):not(meta):not(link):not(#__tiancode_inspector_overlay):not(#__tiancode_inspector_badge)",
+              "*:not(script):not(style):not(noscript):not(meta):not(link):not([data-tiancode-design])",
             )
             const visible = Array.from(elements).filter((el) => {
               const rect = el.getBoundingClientRect()
@@ -1232,14 +1232,12 @@ export function LivePreview(props: {
             // Cross-origin iframe
           }
         }, 4000)
-
-        if (inspectActive()) {
-          attachInspector()
-        }
       }
     } catch {
       // Cross-origin iframe
     }
+    // A reload replaces the document, and the picker with it.
+    if (inspectActive()) void attachFramePicker()
     setIframeLoading(false)
     setReloading(false)
     updateIframeState(target, false)
@@ -1828,7 +1826,6 @@ export function LivePreview(props: {
 
     onCleanup(() => {
       clearWhiteScreenTimer()
-      detachInspector()
       window.removeEventListener("tiancode:toggle-inspector", handleToggleInspector)
       window.removeEventListener("keydown", handleWindowKeyDown)
     })
@@ -1872,11 +1869,20 @@ export function LivePreview(props: {
     // own reloads to us, so a file change produces one buffered swap instead of a self-reload
     // (white flash) plus ours.
     const handleMessage = (event: MessageEvent) => {
-      const data = event.data as { type?: unknown; path?: unknown } | null
+      const data = event.data as { type?: unknown; path?: unknown; selection?: unknown } | null
       if (!data || typeof data.type !== "string" || !event.source) return
       let known = false
       for (const element of frameElements.values()) if (element.contentWindow === event.source) known = true
       if (!known) return
+      if (data.type === DESIGN_SELECTION_MESSAGE) {
+        const picked = parsePickedElement(data.selection)
+        if (picked) takeFramePick(picked, event.source)
+        return
+      }
+      if (data.type === DESIGN_EXIT_MESSAGE) {
+        setInspectActive(false)
+        return
+      }
       if (data.type === "tiancode:preview-client") {
         try {
           ;(event.source as Window).postMessage({ type: "tiancode:host", delegateReloads: true }, "*")
@@ -1931,11 +1937,23 @@ export function LivePreview(props: {
         revealPreview()
       }
     })
+    let nativeSelecting = false
     const unsubscribe = view.onEvent((event) => {
       // The native view can still report a delayed event after a local target
       // switches to the iframe. Never let that stale event overwrite iframe UI.
       if (iframeUrl()) return
+      if (event.type === "selection") {
+        if (!inspectActive()) return
+        const picked = event.selection
+        setSelectedShot(undefined)
+        setSelectedElement(picked)
+        void captureNativeElement(picked).then((file) => keepShot(file, picked))
+        return
+      }
       if (event.type === "state") {
+        // Escape inside the page ends design mode there; mirror it on the toolbar button.
+        if (nativeSelecting && !event.state.selectMode && inspectActive()) setInspectActive(false)
+        nativeSelecting = event.state.selectMode
         if (isWelcomePreviewUrl(event.state.url)) {
           setState(null)
           setUrlInput("")
@@ -2500,7 +2518,19 @@ export function LivePreview(props: {
 
       <Show when={inspectActive() && selectedElement()}>
         {(info) => (
-          <div class="flex shrink-0 items-center justify-between gap-3 border-b border-v2-state-border-info bg-v2-state-bg-info px-3 py-1.5 font-mono text-[11px] text-v2-text-text-base">
+          <div
+            data-slot="live-preview-selection"
+            class="flex shrink-0 items-center justify-between gap-3 border-b border-v2-state-border-info bg-v2-state-bg-info px-3 py-1.5 font-mono text-[11px] text-v2-text-text-base"
+          >
+            <Show when={selectedShot()}>
+              {(shot) => (
+                <img
+                  src={shot().url}
+                  alt=""
+                  class="h-8 max-w-16 shrink-0 rounded border border-v2-state-border-info bg-v2-background-bg-base object-contain"
+                />
+              )}
+            </Show>
             <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
               <span class="rounded bg-v2-background-bg-base px-1.5 py-0.5 font-bold text-v2-state-fg-info">
                 &lt;{info().tag}&gt;
@@ -2516,20 +2546,34 @@ export function LivePreview(props: {
               <span aria-hidden="true">|</span>
               {/* `margin` y `padding` se escriben como las propiedades CSS que son: el valor de al
                   lado es CSS literal, no prosa traducible. */}
-              <span title={info().dimensions}>
-                {language.t("livePreview.selection.size")}: {info().dimensions}
+              <span>
+                {language.t("livePreview.selection.size")}: {Math.round(info().rect.width)}px ×{" "}
+                {Math.round(info().rect.height)}px
               </span>
               <span aria-hidden="true">|</span>
               <span title={info().margin}>margin: {info().margin}</span>
               <span aria-hidden="true">|</span>
               <span title={info().padding}>padding: {info().padding}</span>
             </div>
+            <ButtonV2
+              type="button"
+              size="small"
+              variant="contrast"
+              class="shrink-0 font-sans"
+              data-action="live-preview-add-selection"
+              onClick={addSelectionToChat}
+            >
+              {language.t("livePreview.design.addToChat")}
+            </ButtonV2>
             <IconButtonV2
               type="button"
               variant="ghost-muted"
               size="small"
               class="shrink-0"
-              onClick={() => setSelectedElement(null)}
+              onClick={() => {
+                setSelectedElement(null)
+                setSelectedShot(undefined)
+              }}
               title={language.t("common.close")}
               icon={<IconV2 name="xmark-small" size="small" />}
             />

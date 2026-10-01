@@ -3018,4 +3018,12 @@ export const dict = {
   "settings.general.row.terminalPlacement.bottom": "Bottom",
   "session.review.wrapLines": "Wrap lines",
   "settings.general.row.diffWrap.description": "Wrap long lines in diffs instead of scrolling horizontally",
+  "livePreview.design.addToChat": "Add to chat",
+  "livePreview.design.prompt.intro": "Element selected in the preview:",
+  "livePreview.design.prompt.page": "Page",
+  "livePreview.design.prompt.selector": "Selector",
+  "livePreview.design.prompt.text": "Text",
+  "livePreview.design.prompt.size": "Size",
+  "livePreview.design.prompt.styles": "Styles",
+  "livePreview.design.unavailable": "Design mode can't reach this page here. Open the project in the Tiancode desktop app to pick elements.",
 }

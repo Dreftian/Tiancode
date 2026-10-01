@@ -20,6 +20,14 @@ export function promptWithDictation(parts: PromptInputV2Prompt, transcript: stri
   return [...parts, { type: "text", content, start: length, end: length + content.length }]
 }
 
+// Design mode "Add to chat": the element context goes below whatever the user already wrote.
+export function promptWithBlock(parts: PromptInputV2Prompt, block: string): PromptInputV2Prompt {
+  const length = parts.reduce((total, part) => total + ("content" in part ? part.content.length : 0), 0)
+  const written = parts.some((part) => "content" in part && part.content.trim())
+  const content = written ? `\n\n${block}` : block
+  return [...parts, { type: "text", content, start: length, end: length + content.length }]
+}
+
 // "Add folder" from the + menu: a directory mention the backend expands into a listing, so the
 // agent can work across that folder as well as the project.
 export function promptWithFolder(parts: PromptInputV2Prompt, path: string): PromptInputV2Prompt {

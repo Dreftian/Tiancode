@@ -3175,4 +3175,12 @@ export const dict = {
   "settings.general.row.terminalPlacement.bottom": "Inferior",
   "session.review.wrapLines": "Ajustar líneas",
   "settings.general.row.diffWrap.description": "Ajusta las líneas largas en los diffs en vez de desplazarse horizontalmente",
+  "livePreview.design.addToChat": "Añadir al chat",
+  "livePreview.design.prompt.intro": "Elemento seleccionado en la vista previa:",
+  "livePreview.design.prompt.page": "Página",
+  "livePreview.design.prompt.selector": "Selector",
+  "livePreview.design.prompt.text": "Texto",
+  "livePreview.design.prompt.size": "Tamaño",
+  "livePreview.design.prompt.styles": "Estilos",
+  "livePreview.design.unavailable": "El modo diseño no puede acceder a esta página aquí. Abre el proyecto en la app de escritorio de Tiancode para seleccionar elementos.",
 }

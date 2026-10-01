@@ -189,16 +189,21 @@ export type PreviewViewState = {
   selectMode: boolean
 }
 
+// Design mode: the element picked in the page. Same shape as PickedElement in
+// frontend/app/src/pages/session/live-preview/element-context.ts.
 export type PreviewViewSelection = {
   tag: string
-  text: string
-  className: string
   id: string
+  classes: string
   selector: string
+  text: string
+  html: string
+  styles: string
+  margin: string
+  padding: string
   url: string
-  pathname: string
-  dims: { width: number; height: number }
   rect: { x: number; y: number; width: number; height: number }
+  viewport: { width: number; height: number }
 }
 
 export type PreviewViewEvent =
@@ -206,6 +211,7 @@ export type PreviewViewEvent =
   | { type: "loaded"; url: string }
   | { type: "console"; message: { level: number; message: string; line: number; sourceId: string } }
   | { type: "fail"; fail: { code: number; description: string; url: string; isMainFrame: boolean } }
+  | { type: "selection"; selection: PreviewViewSelection }
 
 export type PreviewViewAPI = {
   setBounds: (bounds: { x: number; y: number; width: number; height: number }) => Promise<void>
