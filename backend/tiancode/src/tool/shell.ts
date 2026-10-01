@@ -323,12 +323,16 @@ const ask = Effect.fn("ShellTool.ask")(function* (
 })
 
 // Windows PowerShell writes to a pipe in the OEM code page, so "ñandú acción" came back as
-// "�and� acci�n". It is switched to UTF-8 for the command, which is how the output is decoded.
-const PS_UTF8 = "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;$OutputEncoding=[System.Text.Encoding]::UTF8;"
+// "�and� acci�n". Output switches to UTF-8 without a BOM: with one, every string piped into a native
+// program (python, node, git) would start with EF BB BF.
+const PS_UTF8 = "$OutputEncoding=[Console]::OutputEncoding=New-Object System.Text.UTF8Encoding $false;"
+// `using` statements and a `param` block only parse at the very start of a script.
+const PS_PREAMBLE = /^\s*(?:using\s|param\s*\(|\[cmdletbinding)/i
 
 function cmd(shell: string, command: string, cwd: string, env: NodeJS.ProcessEnv) {
   if (process.platform === "win32" && Shell.ps(shell)) {
-    return ChildProcess.make(shell, ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", PS_UTF8 + command], {
+    const script = PS_PREAMBLE.test(command) ? command : PS_UTF8 + command
+    return ChildProcess.make(shell, ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", script], {
       cwd,
       env,
       stdin: "ignore",

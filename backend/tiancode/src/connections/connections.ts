@@ -305,7 +305,8 @@ export const layer = Layer.effect(
         (resolved.telegram.enabled && resolved.telegram[flag]) ||
         (resolved.discord.enabled && resolved.discord[flag]) ||
         (resolved.slack.enabled && resolved.slack[flag]) ||
-        (resolved.webhook.enabled && resolved.webhook.events.includes(kind === "idle" ? "session.idle" : "session.error"))
+        (resolved.webhook.enabled &&
+          resolved.webhook.events.includes(kind === "idle" ? "session.idle" : "session.error"))
       )
     }
 
@@ -319,10 +320,13 @@ export const layer = Layer.effect(
       const text = directory ? yield* sessionText(sessionID, directory) : ""
       const smart = ConfigIntelligence.fromConfig((yield* config.getGlobal()).experimental?.intelligence).smartAlerts
       // Without the local model (or with the switch off) this is None and the alert stays as before.
-      const answer = smart && text ? yield* decisions.decide(text, DecisionPresets.outcome, 3000) : Option.none()
+      // The model reads about a thousand tokens; the end of the message is what tells how it ended.
+      const answer =
+        smart && text ? yield* decisions.decide(text.slice(-4000), DecisionPresets.outcome, 3000) : Option.none()
       const outcome = Option.match(answer, {
         onNone: () => undefined,
-        onSome: (value) => (value.choice === "question" || value.choice === "failed" ? value.choice : "done") as Outcome,
+        onSome: (value) =>
+          (value.choice === "question" || value.choice === "failed" ? value.choice : "done") as Outcome,
       })
       yield* deliver("idle", { sessionID, directory, text, outcome })
     })
@@ -401,7 +405,11 @@ export const layer = Layer.effect(
       if (chatId !== telegram.chatId) {
         if (!state.warnedChats.has(chatId)) {
           state.warnedChats.add(chatId)
-          yield* reply(token, chatId, `Este chat no está autorizado. Su id es ${chatId}; ponlo en Ajustes → Conexiones.`)
+          yield* reply(
+            token,
+            chatId,
+            `Este chat no está autorizado. Su id es ${chatId}; ponlo en Ajustes → Conexiones.`,
+          )
         }
         return
       }
@@ -428,7 +436,11 @@ export const layer = Layer.effect(
       if (result._tag === "Failure") {
         const error = result.failure
         yield* Effect.logWarning("telegram prompt failed", { error: String(error) })
-        return yield* reply(token, chatId, `No pude ejecutarlo: ${error instanceof Error ? error.message : String(error)}`)
+        return yield* reply(
+          token,
+          chatId,
+          `No pude ejecutarlo: ${error instanceof Error ? error.message : String(error)}`,
+        )
       }
       yield* reply(token, chatId, "⏳ Trabajando… te aviso al terminar.")
     })
@@ -470,9 +482,11 @@ export const layer = Layer.effect(
           const fiber = yield* Effect.forkScoped(
             poll().pipe(
               Effect.catch((error) => Effect.logWarning("telegram poller stopped", { error: String(error) })),
-              Effect.ensuring(Effect.sync(() => {
-                if (state.poller === fiber) state.poller = undefined
-              })),
+              Effect.ensuring(
+                Effect.sync(() => {
+                  if (state.poller === fiber) state.poller = undefined
+                }),
+              ),
             ),
           )
           state.poller = fiber
@@ -541,7 +555,11 @@ export const layer = Layer.effect(
               : Promise.resolve({ ok: false, message: "falta el token del bot", latencyMs: 0 })
           case "discord":
             return key
-              ? Senders.discord.test(fetch, { mode: resolved.discord.mode, secret: key, channelId: resolved.discord.channelId })
+              ? Senders.discord.test(fetch, {
+                  mode: resolved.discord.mode,
+                  secret: key,
+                  channelId: resolved.discord.channelId,
+                })
               : Promise.resolve({ ok: false, message: "falta la URL del webhook o el token", latencyMs: 0 })
           case "slack":
             return key

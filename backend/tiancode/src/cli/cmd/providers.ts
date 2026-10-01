@@ -318,10 +318,11 @@ export const ProvidersLoginCommand = effectCmd({
         type: "string",
       }),
   handler: Effect.fn("Cli.providers.login")(function* (args) {
-    // Provider login prompts; without a terminal the prompt waited forever for input.
-    if (!args.url && !process.stdin.isTTY)
+    // Choosing a provider or method prompts, and without a terminal the prompt waited forever. With
+    // both given, device and browser OAuth flows only print a URL, so they still run headless.
+    if (!args.url && !process.stdin.isTTY && !(args.provider && args.method))
       return yield* fail(
-        "`tiancode auth login` needs an interactive terminal. In scripts, set the provider's API key environment variable instead (e.g. ANTHROPIC_API_KEY).",
+        "`tiancode auth login` needs an interactive terminal, or both --provider and --method. In scripts, set the provider's API key environment variable instead (e.g. ANTHROPIC_API_KEY).",
       )
     const authSvc = yield* Auth.Service
 

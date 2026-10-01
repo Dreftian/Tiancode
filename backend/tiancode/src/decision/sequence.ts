@@ -12,6 +12,10 @@ export interface Question {
   readonly type: QuestionType
   readonly instructions: string
   readonly criteria: Readonly<Record<string, string>> | readonly string[]
+  /** Keep the end of a text too long for the model, for questions about how it ends. */
+  readonly tail?: boolean
+  /** Read only the closing sentences, up to this many characters (at least the last one). */
+  readonly ending?: number
 }
 
 export const QUESTION_TYPE: Record<QuestionType, number> = { choice: 0, score: 1, noul: 2 }
@@ -46,7 +50,11 @@ export function labels(question: Question): string[] {
  */
 export function build(tok: Tokenizer, state: string, question: Question, maxLen: number, headMaxLen: number) {
   const strip = (text: string) => text.split(tok.maskToken).join(" ")
-  const optionIds = options(question).map((text) => [tok.maskId, ...tok.encode(" " + strip(text)).slice(0, OPTION_TOKENS)])
+  const source = question.ending ? closing(state, question.ending) : state
+  const optionIds = options(question).map((text) => [
+    tok.maskId,
+    ...tok.encode(" " + strip(text)).slice(0, OPTION_TOKENS),
+  ])
   const used = optionIds.reduce((sum, ids) => sum + ids.length, 0)
   // When the options leave less than 16 tokens for the question, every option is cut evenly.
   const fitted =
@@ -63,8 +71,24 @@ export function build(tok: Tokenizer, state: string, question: Question, maxLen:
   })
   prefix.push(tok.sepId)
   const room = Math.max(0, maxLen - prefix.length - 1)
-  const ids = [...prefix, ...tok.encode(strip(state)).slice(0, room), tok.sepId].slice(0, maxLen)
+  const encoded = tok.encode(strip(source))
+  const kept = question.tail ? encoded.slice(Math.max(0, encoded.length - room)) : encoded.slice(0, room)
+  const ids = [...prefix, ...kept, tok.sepId].slice(0, maxLen)
   return { ids, markers: markers.filter((position) => position < maxLen) }
+}
+
+/** The last whole sentences (or lines) of `text`, at most `limit` characters but never empty. */
+export function closing(text: string, limit: number) {
+  const pieces = text
+    .trim()
+    .split(/(?<=[.!?…])\s+|\n+/)
+    .filter((piece) => piece.trim())
+  const kept: string[] = []
+  for (const piece of pieces.toReversed()) {
+    if (kept.length > 0 && [piece, ...kept].join(" ").length > limit) break
+    kept.unshift(piece.trim())
+  }
+  return kept.join(" ")
 }
 
 export function softmax(values: number[]) {

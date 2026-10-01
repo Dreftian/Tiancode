@@ -10,6 +10,10 @@ import type { Question } from "./sequence"
 export const outcome: Question = {
   type: "choice",
   instructions: "How does this assistant message end the turn?",
+  // How a message ends is in its last sentences: reading only those (about 160 characters) was
+  // right on 11 of 12 long Spanish and English replies, against 8 of 12 for the last 4000.
+  tail: true,
+  ending: 160,
   criteria: {
     done: "the work is finished and the message does not ask the user anything",
     question: "the message asks the user to answer, choose or confirm something before continuing",

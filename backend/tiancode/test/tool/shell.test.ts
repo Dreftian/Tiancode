@@ -1243,4 +1243,34 @@ describe("tool.shell encoding", () => {
           }),
         ),
   )
+
+  const powershell = (label: string) => label === "pwsh" || label === "powershell"
+
+  // A UTF-8 $OutputEncoding with a preamble made every string piped into a native program start with
+  // a BOM, which broke `$json | python -c "json.load(...)"`.
+  each("pipes into native programs without a BOM", (item) =>
+    !powershell(item.label)
+      ? Effect.void
+      : runIn(
+          projectRoot,
+          Effect.gen(function* () {
+            const result = yield* run({
+              command: `'hi' | node -e "process.stdin.on('data', (d) => console.log(d[0]))"`,
+            })
+            expect(result.metadata.output.trim()).toBe(String("h".charCodeAt(0)))
+          }),
+        ),
+  )
+
+  each("still runs scripts that open with using", (item) =>
+    !powershell(item.label)
+      ? Effect.void
+      : runIn(
+          projectRoot,
+          Effect.gen(function* () {
+            const result = yield* run({ command: "using namespace System.Net\n[WebUtility]::UrlEncode('a b')" })
+            expect(result.metadata.output).toContain("a+b")
+          }),
+        ),
+  )
 })

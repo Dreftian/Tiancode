@@ -804,7 +804,8 @@ export const RunCommand = effectCmd({
               const permission = event.properties
               if (!sessions.has(permission.sessionID)) continue
 
-              if (auto) {
+              // AgentShield's critical matches are never auto-approved; with nobody to ask, they are refused.
+              if (auto && permission.permission !== "shell_risk") {
                 await client.permission.reply({
                   requestID: permission.id,
                   reply: "once",

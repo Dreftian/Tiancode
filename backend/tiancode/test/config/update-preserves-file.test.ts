@@ -1,4 +1,5 @@
 import { test, expect } from "bun:test"
+import { parse } from "jsonc-parser"
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { Effect, Layer } from "effect"
@@ -307,6 +308,71 @@ test("update keeps a repository's own config.json and removes only a legacy Tian
       writeFileSync(foreign, JSON.stringify({ $schema: "https://tiancode.ai/config.json", shell: "bash" }, null, 2))
       yield* svc.update({ username: "second" })
       expect(existsSync(foreign)).toBe(false)
+    }),
+  )
+})
+
+// "permission": "allow" means allow for every pattern; merging { doom_loop: "deny" } into it used to
+// replace the string, so the user's allow-all silently became a single rule.
+test("a permission patch keeps a global allow-all as its * rule", async () => {
+  const file = path.join(Global.Path.config, "tiancode.json")
+  const others = ["tiancode.jsonc", "config.json"].map((name) => path.join(Global.Path.config, name))
+  const saved = [file, ...others].map((name) => [name, existsSync(name) ? readFileSync(name, "utf8") : undefined] as const)
+  others.forEach((name) => rmSync(name, { force: true }))
+  writeFileSync(file, JSON.stringify({ permission: "allow" }, null, 2))
+  try {
+    await run(() =>
+      Effect.gen(function* () {
+        const svc = yield* Config.Service
+        yield* svc.updateGlobal({ permission: { doom_loop: "deny" } })
+        expect(JSON.parse(readFileSync(file, "utf8")).permission).toEqual({ "*": "allow", doom_loop: "deny" })
+      }),
+    )
+  } finally {
+    saved.forEach(([name, text]) => (text === undefined ? rmSync(name, { force: true }) : writeFileSync(name, text)))
+  }
+})
+
+test("a site rule keeps a .jsonc browser default and its comments", async () => {
+  await run((dir) =>
+    Effect.gen(function* () {
+      const file = path.join(dir, "tiancode.jsonc")
+      writeFileSync(file, ["{", "  // browsing", '  "permission": { "browser": "ask" }', "}"].join("\n"))
+
+      const svc = yield* Config.Service
+      yield* svc.update({ permission: { browser: { "https://evil.example": "deny" } } })
+
+      const after = readFileSync(file, "utf8")
+      expect(after).toContain("// browsing")
+      expect(Object.entries(parse(after).permission.browser)).toEqual([
+        ["*", "ask"],
+        ["https://evil.example", "deny"],
+      ])
+    }),
+  )
+})
+
+// The last matching rule wins, so a default added to a map of site rules must come before them.
+test("a new browser default goes before the site rules it yields to", async () => {
+  await run((dir) =>
+    Effect.gen(function* () {
+      const json = path.join(dir, "tiancode.json")
+      writeFileSync(json, JSON.stringify({ permission: { browser: { "https://evil.example": "deny" } } }, null, 2))
+
+      const svc = yield* Config.Service
+      yield* svc.update({ permission: { browser: { "*": "ask" } } })
+
+      expect(Object.keys(JSON.parse(readFileSync(json, "utf8")).permission.browser)).toEqual(["*", "https://evil.example"])
+      rmSync(json)
+
+      const jsonc = path.join(dir, "tiancode.jsonc")
+      writeFileSync(jsonc, ["{", '  "permission": { "browser": { "https://evil.example": "deny" } }', "}"].join("\n"))
+      yield* svc.update({ permission: { browser: { "*": "allow" } } })
+
+      expect(Object.keys(parse(readFileSync(jsonc, "utf8")).permission.browser)).toEqual([
+        "*",
+        "https://evil.example",
+      ])
     }),
   )
 })

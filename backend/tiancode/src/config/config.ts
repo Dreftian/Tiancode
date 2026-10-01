@@ -10,7 +10,7 @@ import fsNode from "fs/promises"
 import { Flag } from "@tiancode-ai/core/flag/flag"
 import { Auth } from "../auth"
 import { Env } from "../env"
-import { applyEdits, findNodeAtLocation, modify, parseTree } from "jsonc-parser"
+import { applyEdits, findNodeAtLocation, modify, parse, parseTree } from "jsonc-parser"
 import { InstallationLocal } from "@tiancode-ai/core/installation/version"
 import { existsSync } from "fs"
 import { Account } from "@/account/account"
@@ -134,11 +134,7 @@ export interface Interface {
    * Drops an agent's overrides (`agent.<name>`) from one scope's file, or only the listed fields
    * ("model", "permission.bash"); false when there was nothing to remove.
    */
-  readonly resetAgent: (
-    name: string,
-    scope: "project" | "global",
-    fields?: readonly string[],
-  ) => Effect.Effect<boolean>
+  readonly resetAgent: (name: string, scope: "project" | "global", fields?: readonly string[]) => Effect.Effect<boolean>
   /**
    * Delete a local model from the provider registry in BOTH the project and the
    * global config file. update()/updateGlobal() cannot express this: they merge.
@@ -183,13 +179,40 @@ function writeGlobalAtomic(file: string, content: string) {
   })
 }
 
+// One action ("allow") means that action for every pattern, and `*` is the fallback the specific
+// rules override (the last matching rule wins), so it has to come first. Merging an object patch
+// into a string replaced it, so `"permission": "allow"` lost its allow-all, and a `*` added to an
+// existing map landed after the site rules it should yield to and overrode them.
+function permissionBase(base: unknown, patch: unknown): unknown {
+  if (!isRecord(patch)) return base
+  if (typeof base === "string") return { "*": base }
+  if (!isRecord(base)) return base
+  const entries = Object.entries(base).map(([key, value]) => [key, permissionBase(value, patch[key])] as const)
+  return Object.fromEntries("*" in patch && !("*" in base) ? [["*", patch["*"]], ...entries] : entries)
+}
+
+function expandJsoncPermission(input: string, patch: unknown) {
+  const parsed: unknown = parse(input)
+  if (!isRecord(patch) || !isRecord(parsed) || parsed.permission === undefined) return input
+  const current = parsed.permission
+  if (typeof current === "string")
+    return applyEdits(input, modify(input, ["permission"], { "*": current }, JSONC_FORMAT))
+  if (!isRecord(current)) return input
+  return Object.entries(patch).reduce((result, [key, value]) => {
+    const rule = current[key]
+    if (typeof rule !== "string" || !isRecord(value)) return result
+    return applyEdits(result, modify(result, ["permission", key], { "*": rule }, JSONC_FORMAT))
+  }, input)
+}
+
+const JSONC_FORMAT = { formattingOptions: { insertSpaces: true, tabSize: 2 } }
+
 function patchJsonc(input: string, patch: unknown, path: string[] = []): string {
   if (!isRecord(patch) || (path.length === 2 && path[0] === "mcp" && "type" in patch)) {
     const edits = modify(input, path, patch, {
-      formattingOptions: {
-        insertSpaces: true,
-        tabSize: 2,
-      },
+      ...JSONC_FORMAT,
+      // A new `*` permission rule is the fallback, so it goes before the rules it yields to.
+      getInsertionIndex: path[0] === "permission" && path.at(-1) === "*" ? () => 0 : undefined,
     })
     return applyEdits(input, edits)
   }
@@ -200,7 +223,12 @@ function patchJsonc(input: string, patch: unknown, path: string[] = []): string 
 // A full MCP definition replaces that server. Deep merging remote into local
 // retains invalid URL/command fields and prevents removing old headers/secrets.
 export function mergeConfigPatch(base: Record<string, unknown>, patch: Record<string, unknown>) {
-  const merged = mergeDeep(base, patch)
+  const merged = mergeDeep(
+    isRecord(patch.permission) && base.permission !== undefined
+      ? { ...base, permission: permissionBase(base.permission, patch.permission) }
+      : base,
+    patch,
+  )
   if (isRecord(patch.mcp) && isRecord(merged.mcp)) {
     for (const [name, entry] of Object.entries(patch.mcp)) {
       if (isRecord(entry) && "type" in entry) merged.mcp[name] = entry
@@ -897,7 +925,10 @@ const layer = Layer.effect(
       const text = yield* readConfigFile(file)
       // A .jsonc file is edited in place so the user's comments and layout survive.
       if (text && file.endsWith(".jsonc")) {
-        yield* writeGlobalAtomic(file, patchJsonc(text, writable(config))).pipe(Effect.orDie)
+        const patch = writable(config)
+        yield* writeGlobalAtomic(file, patchJsonc(expandJsoncPermission(text, patch.permission), patch)).pipe(
+          Effect.orDie,
+        )
         yield* removeLegacyProjectConfig(dir)
         return
       }
@@ -958,7 +989,7 @@ const layer = Layer.effect(
         if (changed) yield* writeGlobalAtomic(file, serialized).pipe(Effect.orDie)
         next = ConfigParse.schema(ConfigV1.Info, merged, file)
       } else {
-        const updated = patchJsonc(before, patch)
+        const updated = patchJsonc(expandJsoncPermission(before, patch.permission), patch)
         next = ConfigParse.schema(ConfigV1.Info, ConfigParse.jsonc(updated, file), file)
         changed = updated !== before
         if (changed) yield* writeGlobalAtomic(file, updated).pipe(Effect.orDie)

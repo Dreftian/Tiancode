@@ -27,8 +27,16 @@ export const MODEL = {
   base: "convaiinnovations/laya-multilingual",
   revision: "0966c4fa58da6878b39e7e14cb5e93313b82d828",
   files: [
-    { name: "model.onnx", bytes: 325_734_062, sha256: "d389d2304822a59569387e257067360a84e016aed43b407f1cfde87dadb7e485" },
-    { name: "tokenizer.json", bytes: 34_363_188, sha256: "609d8f4c067cd3950f88594c5a802616cea245823836ef5848ee4fc40aab5b6f" },
+    {
+      name: "model.onnx",
+      bytes: 325_734_062,
+      sha256: "d389d2304822a59569387e257067360a84e016aed43b407f1cfde87dadb7e485",
+    },
+    {
+      name: "tokenizer.json",
+      bytes: 34_363_188,
+      sha256: "609d8f4c067cd3950f88594c5a802616cea245823836ef5848ee4fc40aab5b6f",
+    },
   ],
   maxLen: 1024,
   headMaxLen: 256,
@@ -79,6 +87,8 @@ type Ort = {
   InferenceSession: { create: (path: string, options: Record<string, unknown>) => Promise<OrtSession> }
 }
 
+type Loaded = { ort: Ort; session: OrtSession; tok: DecisionTokenizer.Tokenizer; loadMs: number }
+
 const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
@@ -87,7 +97,9 @@ const layer = Layer.effect(
     const state = {
       download: undefined as { controller: AbortController; received: number } | undefined,
       error: undefined as string | undefined,
-      loaded: undefined as { ort: Ort; session: OrtSession; tok: DecisionTokenizer.Tokenizer; loadMs: number } | undefined,
+      loaded: undefined as Loaded | undefined,
+      // A load outlives a caller's timeout; later callers wait for it instead of opening a second copy.
+      loading: undefined as Promise<Loaded> | undefined,
       lastUsed: 0,
     }
 
@@ -102,11 +114,23 @@ const layer = Layer.effect(
 
     const installed = () =>
       Effect.promise(() =>
-        Promise.all(MODEL.files.map((file) => stat(path.join(dir, file.name)).then((info) => info.size === file.bytes, () => false))),
+        Promise.all(
+          MODEL.files.map((file) =>
+            stat(path.join(dir, file.name)).then(
+              (info) => info.size === file.bytes,
+              () => false,
+            ),
+          ),
+        ),
       ).pipe(Effect.map((sizes) => sizes.every(Boolean)))
 
     const status = Effect.fn("DecisionEngine.status")(function* () {
-      const base = { loaded: state.loaded !== undefined, totalBytes: TOTAL_BYTES, receivedBytes: 0, loadMs: state.loaded?.loadMs }
+      const base = {
+        loaded: state.loaded !== undefined,
+        totalBytes: TOTAL_BYTES,
+        receivedBytes: 0,
+        loadMs: state.loaded?.loadMs,
+      }
       const result: Status = !runtimeAvailable()
         ? { ...base, state: "unavailable" }
         : state.download
@@ -126,13 +150,19 @@ const layer = Layer.effect(
           const done: number[] = []
           for (const file of MODEL.files) {
             const target = path.join(dir, file.name)
-            const ready = await stat(target).then((info) => info.size === file.bytes, () => false)
+            const ready = await stat(target).then(
+              (info) => info.size === file.bytes,
+              () => false,
+            )
             if (ready) {
               done.push(file.bytes)
               continue
             }
             const part = `${target}.part`
-            const offset = await stat(part).then((info) => (info.size < file.bytes ? info.size : 0), () => 0)
+            const offset = await stat(part).then(
+              (info) => (info.size < file.bytes ? info.size : 0),
+              () => 0,
+            )
             const url = `https://huggingface.co/${MODEL.repo}/resolve/${MODEL.revision}/${file.name}`
             const response = await fetch(url, {
               headers: offset > 0 ? { Range: `bytes=${offset}-` } : undefined,
@@ -147,7 +177,9 @@ const layer = Layer.effect(
               received += chunk.byteLength
               if (state.download) state.download.received = sum() + received
             })
-            await pipeline(counted, createWriteStream(part, { flags: resuming ? "a" : "w" }), { signal: controller.signal })
+            await pipeline(counted, createWriteStream(part, { flags: resuming ? "a" : "w" }), {
+              signal: controller.signal,
+            })
             const digest = createHash("sha256")
             await pipeline(createReadStream(part), digest)
             if (digest.digest("hex") !== file.sha256) {
@@ -203,23 +235,32 @@ const layer = Layer.effect(
       return yield* status()
     })
 
+    const open = async () => {
+      const started = performance.now()
+      const required: unknown = createRequire(import.meta.url)(RUNTIME)
+      const ort = required as Ort
+      const tok = DecisionTokenizer.parse(JSON.parse(await readFile(path.join(dir, "tokenizer.json"), "utf8")))
+      if (!tok) throw new Error("the tokenizer could not be read")
+      // Leave cores for the editor and for a local llama-server.
+      const threads = Math.max(1, Math.min(4, Math.floor(os.availableParallelism() / 2)))
+      const session = await ort.InferenceSession.create(path.join(dir, "model.onnx"), {
+        intraOpNumThreads: threads,
+        interOpNumThreads: 1,
+        graphOptimizationLevel: "all",
+      })
+      state.loaded = { ort, session, tok, loadMs: Math.round(performance.now() - started) }
+      // Counted as a use, or the idle check would release weights a timed-out caller just loaded.
+      state.lastUsed = Date.now()
+      return state.loaded
+    }
+
     const load = Effect.tryPromise({
-      try: async () => {
-        if (state.loaded) return state.loaded
-        const started = performance.now()
-        const required: unknown = createRequire(import.meta.url)(RUNTIME)
-        const ort = required as Ort
-        const tok = DecisionTokenizer.parse(JSON.parse(await readFile(path.join(dir, "tokenizer.json"), "utf8")))
-        if (!tok) throw new Error("the tokenizer could not be read")
-        // Leave cores for the editor and for a local llama-server.
-        const threads = Math.max(1, Math.min(4, Math.floor(os.availableParallelism() / 2)))
-        const session = await ort.InferenceSession.create(path.join(dir, "model.onnx"), {
-          intraOpNumThreads: threads,
-          interOpNumThreads: 1,
-          graphOptimizationLevel: "all",
+      try: () => {
+        if (state.loaded) return Promise.resolve(state.loaded)
+        state.loading ??= open().finally(() => {
+          state.loading = undefined
         })
-        state.loaded = { ort, session, tok, loadMs: Math.round(performance.now() - started) }
-        return state.loaded
+        return state.loading
       },
       catch: (error) => (error instanceof Error ? error.message : String(error)),
     })
@@ -238,7 +279,11 @@ const layer = Layer.effect(
               attention_mask: new engine.ort.Tensor("int64", new BigInt64Array(length).fill(1n), [1, length]),
               marker_pos: new engine.ort.Tensor("int64", BigInt64Array.from(seq.markers, BigInt), [1, count]),
               marker_mask: new engine.ort.Tensor("bool", new Uint8Array(count).fill(1), [1, count]),
-              qtype: new engine.ort.Tensor("int64", BigInt64Array.from([BigInt(DecisionSequence.QUESTION_TYPE[question.type])]), [1]),
+              qtype: new engine.ort.Tensor(
+                "int64",
+                BigInt64Array.from([BigInt(DecisionSequence.QUESTION_TYPE[question.type])]),
+                [1],
+              ),
             }),
           catch: (error) => (error instanceof Error ? error.message : String(error)),
         })
@@ -251,21 +296,25 @@ const layer = Layer.effect(
         return {
           choice: labels[best] ?? "",
           confidence: Math.round(probabilities[best] * 1000) / 1000,
-          probabilities: Object.fromEntries(labels.map((label, i) => [label, Math.round((probabilities[i] ?? 0) * 1000) / 1000])),
+          probabilities: Object.fromEntries(
+            labels.map((label, i) => [label, Math.round((probabilities[i] ?? 0) * 1000) / 1000]),
+          ),
           ms: Math.round(performance.now() - started),
         } satisfies Answer
       })
 
     const decide = Effect.fn("DecisionEngine.decide")(function* (text: string, question: Question, timeoutMs?: number) {
       if (!runtimeAvailable() || state.download || !(yield* installed())) return Option.none<Answer>()
-      return yield* lock.withPermits(1)(run(text, question)).pipe(
-        Effect.map(Option.some),
-        Effect.catch((message) =>
-          Effect.logWarning("local decision failed", { message }).pipe(Effect.as(Option.none<Answer>())),
-        ),
-        Effect.timeoutOption(Duration.millis(timeoutMs ?? 30_000)),
-        Effect.map(Option.flatten),
-      )
+      return yield* lock
+        .withPermits(1)(run(text, question))
+        .pipe(
+          Effect.map(Option.some),
+          Effect.catch((message) =>
+            Effect.logWarning("local decision failed", { message }).pipe(Effect.as(Option.none<Answer>())),
+          ),
+          Effect.timeoutOption(Duration.millis(timeoutMs ?? 30_000)),
+          Effect.map(Option.flatten),
+        )
     })
 
     // Release the weights after a quiet spell; the next question loads them again.

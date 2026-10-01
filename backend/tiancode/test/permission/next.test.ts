@@ -612,6 +612,50 @@ it.instance(
 )
 
 it.instance(
+  "ask - a blanket allow does not answer shell_risk",
+  () =>
+    Effect.gen(function* () {
+      // The composer's skip-permissions rule and `"permission": "allow"` both end in `*`/`*`/allow.
+      const fiber = yield* ask({
+        sessionID: SessionID.make("session_test"),
+        permission: "shell_risk",
+        patterns: ["rm -rf /"],
+        metadata: {},
+        always: [],
+        ruleset: [
+          { permission: "shell_risk", pattern: "*", action: "ask" },
+          { permission: "*", pattern: "*", action: "allow" },
+        ],
+      }).pipe(Effect.forkScoped)
+
+      expect(yield* waitForPending(1)).toHaveLength(1)
+      yield* rejectAll()
+      yield* Fiber.await(fiber)
+    }),
+  { git: true },
+)
+
+it.instance(
+  "ask - a rule naming shell_risk still answers it",
+  () =>
+    Effect.gen(function* () {
+      const result = yield* ask({
+        sessionID: SessionID.make("session_test"),
+        permission: "shell_risk",
+        patterns: ["rm -rf /"],
+        metadata: {},
+        always: [],
+        ruleset: [
+          { permission: "shell_risk", pattern: "*", action: "ask" },
+          { permission: "shell_risk", pattern: "*", action: "allow" },
+        ],
+      })
+      expect(result).toBeUndefined()
+    }),
+  { git: true },
+)
+
+it.instance(
   "ask - adds request to pending list",
   () =>
     Effect.gen(function* () {

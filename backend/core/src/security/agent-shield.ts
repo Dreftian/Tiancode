@@ -45,20 +45,23 @@ const DESTRUCTIVE_PATTERNS: ReadonlyArray<{ readonly pattern: RegExp; readonly d
     description: "Intento de sobreescritura de sistema de archivos (mkfs)",
   },
   {
-    pattern: /\brm\s+-(?:[a-zA-Z]*r[a-zA-Z]*f|[a-zA-Z]*f[a-zA-Z]*r)\s+(?:"|')?\$(?:HOME|\{HOME\})(?:["'\/\\\s]|$)/i,
+    pattern:
+      /\brm\s+-(?:[a-zA-Z]*r[a-zA-Z]*f|[a-zA-Z]*f[a-zA-Z]*r)\s+(?:"|')?\$(?:HOME|\{HOME\})(?:[\/\\]\*?)?(?=["'\s;&|]|$)/i,
     description: "Intento de eliminación recursiva forzada del directorio de usuario ($HOME)",
   },
   {
     pattern:
       /\b(?:Remove-Item|ri|rm|del|rd|rmdir)\b(?=[^;|&\n]*-Recurse)[^;|&\n]*?[\s'"](?:[A-Za-z]:\\?\*?|~[\\\/]?\*?|\$HOME|\$env:USERPROFILE|\$env:SystemRoot|C:\\Windows|C:\\Users(?:\\[^\\\s'"]+)?)(?=['"\s]|$)/i,
-    description: "Intento de borrado recursivo de una unidad, del perfil de usuario o de Windows (Remove-Item -Recurse)",
+    description:
+      "Intento de borrado recursivo de una unidad, del perfil de usuario o de Windows (Remove-Item -Recurse)",
   },
   {
     pattern: /\bdd\b[^;|&\n]*\bof=\/dev\/(?:sd|hd|vd|nvme|disk|mmcblk)/i,
     description: "Escritura directa sobre un disco (dd of=/dev/…)",
   },
   {
-    pattern: /\b(?:Format-Volume|Clear-Disk|Initialize-Disk|diskpart)\b/i,
+    pattern:
+      /(?:^|[;&|({]|\bcmd(?:\.exe)?\s+\/[ck]|\bStart-Process(?:\s+-FilePath)?|\bsudo)\s*(?:Format-Volume|Clear-Disk|Initialize-Disk|diskpart(?:\.exe)?)\b/im,
     description: "Comando que formatea o reparticiona discos",
   },
   {
@@ -94,15 +97,17 @@ const SECRET_LEAK_PATTERNS: ReadonlyArray<{ readonly pattern: RegExp; readonly d
 const EXFILTRATION_PATTERNS: ReadonlyArray<{ readonly pattern: RegExp; readonly description: string }> = [
   {
     pattern:
-      /\b(?:curl|wget|Invoke-WebRequest|iwr|Invoke-RestMethod|irm|nc|ncat|scp|rsync)\b[^\n]*(?:\.env\b|id_rsa|id_ed25519|id_ecdsa|\.aws[\\\/]credentials|\.npmrc|\.ssh[\\\/]|\.git-credentials)/i,
+      /\b(?:curl|wget|Invoke-WebRequest|iwr|Invoke-RestMethod|irm|nc|ncat|scp|rsync)\b[^\n;&|]*?(?<!(?:--exclude|-o|--output|-OutFile)[ =]['"]?)(?<![\w.-])(?:@|<\s*)?(?:[^\s'"=@<]*[\\\/])?(?:\.env(?:\.local|\.production|\.prod)?|id_rsa|id_ed25519|id_ecdsa|\.aws[\\\/]credentials|\.npmrc|\.ssh[\\\/][^\s'"]*|\.git-credentials)(?=$|[\s'";&|)])/im,
     description: "Envía a la red archivos con secretos (.env, claves SSH o credenciales)",
   },
   {
-    pattern: /\b(?:cat|type|Get-Content|gc)\b[^|\n]*(?:\.env\b|id_rsa|id_ed25519|credentials)[^|\n]*\|\s*(?:curl|wget|nc|ncat|iwr|irm|Invoke-WebRequest|Invoke-RestMethod)\b/i,
+    pattern:
+      /\b(?:cat|type|Get-Content|gc)\b[^|\n]*(?:\.env(?:\.local|\.production|\.prod)?(?![\w.-])|id_rsa|id_ed25519|credentials)[^|\n]*\|\s*(?:curl|wget|nc|ncat|iwr|irm|Invoke-WebRequest|Invoke-RestMethod)\b/i,
     description: "Pasa archivos con secretos a un comando de red",
   },
   {
-    pattern: /\b(?:printenv|env|set|Get-ChildItem\s+env:|gci\s+env:|dir\s+env:)\s*\|\s*(?:curl|wget|nc|ncat|iwr|irm|Invoke-WebRequest|Invoke-RestMethod)\b/i,
+    pattern:
+      /\b(?:printenv|env|set|Get-ChildItem\s+env:|gci\s+env:|dir\s+env:)\s*\|\s*(?:curl|wget|nc|ncat|iwr|irm|Invoke-WebRequest|Invoke-RestMethod)\b/i,
     description: "Envía las variables de entorno (con posibles claves) a la red",
   },
 ]
@@ -121,7 +126,8 @@ const REMOTE_EXEC_PATTERNS: ReadonlyArray<{ readonly pattern: RegExp; readonly d
     description: "Ejecución remota no verificada en PowerShell (Invoke-RestMethod | Invoke-Expression)",
   },
   {
-    pattern: /\b(?:iex|Invoke-Expression)\s*\(\s*(?:irm|iwr|Invoke-RestMethod|Invoke-WebRequest|\(?New-Object\s+(?:System\.)?Net\.WebClient\)?)/i,
+    pattern:
+      /\b(?:iex|Invoke-Expression)\s*\(\s*(?:irm|iwr|Invoke-RestMethod|Invoke-WebRequest|\(?New-Object\s+(?:System\.)?Net\.WebClient\)?)/i,
     description: "Ejecución remota no verificada en PowerShell (Invoke-Expression de un script descargado)",
   },
 ]
