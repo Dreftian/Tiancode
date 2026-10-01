@@ -4,6 +4,38 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.2] — 2026-09-30
+
+Paridad con opencode v2 de escritorio. Omitir permisos pide confirmación con el aviso «¿Omitir
+todos los permisos?». Los ajustes estrenan buscador, General por secciones (Línea de tiempo, Vista
+previa, Barra superior, Apariencia, Actualizaciones, Pantalla y Datos) y las páginas
+Notificaciones, Proyectos, Worktrees, Emparejamiento, Experimental y Acerca de. La línea de tiempo
+gana un control de detalle, la selección de modelo sigue las reglas de opencode v2 (variantes por
+modelo, elección recordada por agente) y el resumen de sesión (Ctrl/⌘+Mayús+Y) muestra proyecto,
+rama, archivos cambiados y extensiones. Llegan las pestañas verticales con nombre de proyecto, la
+posición del terminal (lateral o inferior), Ajustar líneas en los diffs, los mensajes de
+seguimiento en cola editables y el entorno predeterminado de las sesiones nuevas.
+
+Al terminar una tarea que cambia una app, el chat ofrece abrirla en el Sandbox o en el escritorio.
+El modo diseño añade al chat el elemento elegido en la vista previa (selector, HTML, estilos y
+captura), también con servidores de otro origen. El emparejamiento por red local abre Tiancode en
+otro dispositivo con un código QR y la app web propia de Tiancode; la contraseña se guarda cifrada.
+La ventana se abre mientras arranca el servidor y el Sandbox y el diseño clásico se cargan bajo
+demanda. El agente del navegador usa referencias estables, marca lo nuevo, lo tapado y lo que está
+fuera de vista, y no pulsa lo que el usuario no podría pulsar. El marketplace suma Composio y las
+skills de ui-skills.com; las skills integradas suman product-brief, product-requirements,
+architecture-spine, brainstorm-session, adversarial-code-review, persona-roundtable y refine-output
+(adaptadas de BMAD-METHOD, MIT) y diagram-design (MIT). Se incorporan las correcciones de opencode
+1.18.33 y 1.18.34.
+
+## [1.0.1] — 2026-09-23
+
+Modelos locales Llama 3 sin llamadas de herramienta inválidas ni bucles de reintento, comprobación
+del modelo cargado antes de reutilizar el motor local, índice compacto de skills y agentes en el
+modo ligero, mascotas con textos breves, permisos del micrófono por ventana, marketplace de Cline
+con copia local, MCP configurables con OAuth y entradas nuevas desactivadas hasta completarlas,
+ajustes que caben a 390 px y las correcciones de opencode 1.18.32.
+
 ## [1.0.0] — 2026-09-16
 
 La numeración se reinicia en 1.0.0. El chat adopta el diseño de Claude Code Desktop: esfuerzo
