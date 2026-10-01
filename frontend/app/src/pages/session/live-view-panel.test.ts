@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test"
+import { managedUrlForDirectory } from "./live-view-target"
 import {
   applyLiveSnapshotUpdate,
   embeddedPreviewTarget,
@@ -7,7 +8,6 @@ import {
   findDevServerUrl,
   liveViewContentForTab,
   liveViewSnapshotForDirectory,
-  managedUrlForDirectory,
   mergePreviewWorkspaceFiles,
   mergeLiveSnapshot,
   preferredPreviewCodePath,

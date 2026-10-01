@@ -40,10 +40,12 @@ import {
   ErrorBoundary,
   For,
   type JSX,
+  lazy,
   onCleanup,
   onMount,
   type ParentProps,
   Show,
+  Suspense,
 } from "solid-js"
 import { Dynamic } from "solid-js/web"
 import { makeEventListener } from "@solid-primitives/event-listener"
@@ -70,7 +72,6 @@ import { TabsProvider, useTabs, type DraftTab } from "@/context/tabs"
 import { SDKProvider, useSDK } from "@/context/sdk"
 import { WslServersProvider } from "@/wsl/context"
 import DirectoryLayout, { DirectoryDataProvider } from "@/pages/directory-layout"
-import LegacyLayout from "@/pages/layout"
 import NewLayout from "@/pages/layout-new"
 import { ErrorPage } from "./pages/error"
 import { useCheckServerHealth } from "./utils/server-health"
@@ -420,10 +421,15 @@ function ServerScopedProviders(props: ServerScopedShellProps) {
   )
 }
 
+// The classic layout only loads for people who switched back to it.
+const LegacyLayout = lazy(() => import("@/pages/layout"))
+
 function LegacyServerScopedShell(props: ServerScopedShellProps) {
   return (
     <ServerScopedProviders directory={props.directory} serverScoped={props.serverScoped}>
-      <LegacyLayout>{props.children}</LegacyLayout>
+      <Suspense>
+        <LegacyLayout>{props.children}</LegacyLayout>
+      </Suspense>
     </ServerScopedProviders>
   )
 }

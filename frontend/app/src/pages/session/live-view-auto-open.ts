@@ -5,7 +5,7 @@ import { useSDK } from "@/context/sdk"
 import { useServer } from "@/context/server"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { previewAgentDemandUrl, previewStatusUrl } from "@/pages/session/live-preview/live-preview-url"
-import { setLiveViewManagedTarget } from "@/pages/session/live-view-panel"
+import { setLiveViewManagedTarget } from "@/pages/session/live-view-target"
 import { authTokenFromCredentials } from "@/utils/server"
 
 // The watcher only runs while the agent works (plus a short grace for its last tool call): an idle

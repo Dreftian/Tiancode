@@ -524,14 +524,17 @@ const main = Effect.gen(function* () {
     logger.log("loading task finished")
   }).pipe(forwardInitializationFailure(serverReady), Effect.forkChild)
 
-  yield* Fiber.await(loadingTask)
-
+  // Windows open while the sidecar boots (like opencode's early window): the renderer loads in
+  // parallel, shows its splash and waits on await-initialization, so startup costs the slower of
+  // the two instead of their sum.
   // A fresh profile shows the welcome card alone (transparent window); the main window is
   // created when the card finishes (welcome-done).
   const pendingWelcome = isFirstLaunchOnboardingPending()
   const windows = pendingWelcome ? [] : restoreMainWindows()
   if (pendingWelcome) createWelcomeWindow()
   if (windows.length) createMenu(menuDeps)
+
+  yield* Fiber.await(loadingTask)
 
   const showWindow = () => {
     const win = getLastFocusedWindow() ?? getAnyMainWindow()

@@ -19,6 +19,12 @@ import { ScrollView } from "@tiancode-ai/ui/scroll-view"
 import { liveViewProjectFolder, liveViewSessionTools, liveViewToolDetail, liveViewToolFiles } from "./live-view-activity"
 import { usePreviewOpeners } from "./live-preview/use-preview-openers"
 import { isAppFile } from "./timeline/preview-offer"
+import {
+  liveViewManagedTarget,
+  managedUrlForDirectory,
+  setLiveViewManagedTarget,
+  type LiveViewManagedTarget,
+} from "./live-view-target"
 
 export const LIVE_VIEW_URL = "http://127.0.0.1:8790/"
 const LIVE_VIEW_CHECK_MS = 3000
@@ -240,16 +246,6 @@ export function previewAutoStartKey(snapshot: SnapshotPayload | undefined) {
   return unique.length > 0 ? unique.join("|") : undefined
 }
 
-// Destino confirmado por preview_start. Tiene prioridad sobre el preview del
-// dashboard, que sólo representa los archivos estáticos de la sesión y no el
-// runtime gestionado (Vite, JSX, Python, etc.). Se mantiene ligado al
-// directorio para que una sesión nueva nunca herede la URL de otra.
-export type LiveViewManagedTarget = { directory: string; url: string }
-export const [liveViewManagedTarget, setLiveViewManagedTarget] = createSignal<LiveViewManagedTarget | undefined>(undefined)
-
-export function managedUrlForDirectory(target: LiveViewManagedTarget | undefined, directory: string | undefined) {
-  return target && target.directory === directory ? target.url : undefined
-}
 
 // El dashboard `/preview/` es una representación de archivos, no el runtime
 // de una aplicación. Para entradas ejecutables esperamos al preview
@@ -476,6 +472,9 @@ function CodeEditor(props: {
 }
 
 function CodePane(props: {
+  // False while the Preview tab is showing: the pane stays mounted to keep drafts, but the
+  // project tree is only listed when someone can see it.
+  active?: boolean
   followPath?: string
   requestedPath?: string
   currentCode?: string | null
@@ -579,6 +578,7 @@ function CodePane(props: {
   // Re-list when the project changes and after the live server publishes an
   // update. A small debounce batches an agent's sequence of file writes.
   createEffect(() => {
+    if (props.active === false) return
     const directory = sdk().directory
     void props.files?.map((entry) => `${entry.rel}:${entry.mtime ?? ""}:${entry.size ?? ""}`).join("|")
     const timer = window.setTimeout(refreshWorkspaceFiles, 180)
@@ -1787,6 +1787,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
           aria-hidden={content() !== "code" || undefined}
         >
           <CodePane
+            active={content() === "code"}
             followPath={snapshot()?.current_file ?? activeEditFile() ?? undefined}
             requestedPath={requestedCodePath()}
             currentCode={snapshot()?.current_code}

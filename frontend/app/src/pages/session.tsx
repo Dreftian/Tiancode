@@ -14,6 +14,7 @@ import {
   createEffect,
   createComputed,
   createSignal,
+  lazy,
   on,
   onMount,
   type ParentProps,
@@ -102,7 +103,7 @@ import { createReviewPanelV2State } from "@/pages/session/v2/review-panel-v2-sta
 import { reviewDiffDirectory, reviewDiffNeedsLoad, reviewRootDirectory } from "@/pages/session/v2/review-diff-kinds"
 import { TerminalPanel } from "@/pages/session/terminal-panel"
 import { TerminalPanelV2 } from "@/pages/session/terminal-panel-v2"
-import { LiveViewPanel, setLiveViewManagedTarget } from "@/pages/session/live-view-panel"
+import { setLiveViewManagedTarget } from "@/pages/session/live-view-target"
 import { useLiveViewAutoOpen } from "@/pages/session/live-view-auto-open"
 import { liveViewNavigateRequest, requestLiveViewNavigation } from "@/pages/session/live-view-navigate"
 import { setPreviewPanelOpen } from "@/components/preview/preview-panel"
@@ -269,6 +270,12 @@ function SessionProviders(props: ParentProps) {
     </TerminalProvider>
   )
 }
+
+// The Sandbox (live preview, code view, agent bridge) is the heaviest part of the session page
+// and most sessions never open it: it loads the first time the panel opens.
+const LiveViewPanel = lazy(() =>
+  import("@/pages/session/live-view-panel").then((module) => ({ default: module.LiveViewPanel })),
+)
 
 export default function Page() {
   const serverSync = useServerSync()
@@ -2465,14 +2472,18 @@ export default function Page() {
                   />
                 </div>
                 <div class="min-h-0 min-w-0 flex-1 h-full">
-                  <LiveViewPanel onCapture={attachLiveViewCapture} expandable sessionID={params.id} />
+                  <Suspense>
+                    <LiveViewPanel onCapture={attachLiveViewCapture} expandable sessionID={params.id} />
+                  </Suspense>
                 </div>
               </div>
             </Show>
           </Show>
           <Show when={desktopSandboxExpanded()}>
             <div class="h-full min-h-0 min-w-0 flex-1 overflow-hidden">
-              <LiveViewPanel onCapture={attachLiveViewCapture} expandable sessionID={params.id} />
+              <Suspense>
+                    <LiveViewPanel onCapture={attachLiveViewCapture} expandable sessionID={params.id} />
+                  </Suspense>
             </div>
           </Show>
         </div>
@@ -2501,7 +2512,9 @@ export default function Page() {
               <TerminalPanelV2 stacked />
             </Show>
             <Show when={!bottomTerminalOpen() && !sandboxSideAvailable() && liveViewOpen()}>
-              <LiveViewPanel onCapture={attachLiveViewCapture} sessionID={params.id} />
+              <Suspense>
+                <LiveViewPanel onCapture={attachLiveViewCapture} sessionID={params.id} />
+              </Suspense>
             </Show>
           </div>
         </Show>
