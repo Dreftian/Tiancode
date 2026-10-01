@@ -225,6 +225,10 @@ export const dict = {
   "desktop.menu.reportBug": "Informar de un error",
   "desktop.menu.ariaLabel": "Menú de Tiancode",
 
+  "desktop.tray.show": "Mostrar ventana",
+  "desktop.tray.quit": "Salir",
+  "desktop.pet.openApp": "Doble clic para abrir Tiancode",
+  "desktop.pet.hide": "Ocultar del escritorio",
   "desktop.updater.dialog.checkFailed.message": "No se pudo buscar actualizaciones.",
   "desktop.updater.dialog.checkFailed.title": "Error de actualización",
   "desktop.updater.dialog.upToDate.message": "Estás al día.",
@@ -1746,6 +1750,8 @@ export const dict = {
   "settings.skills.description": "Importa skills desde tu equipo o descarga skills publicadas en la web.",
   "settings.skills.section.installed": "Instaladas",
   "settings.skills.autoSelect.title": "Auto-selección de skills",
+  "settings.skills.autoSelect.short": "Auto-selección",
+  "settings.skills.actions.menu": "Acciones",
   "settings.skills.autoSelect.description":
     "Elegir automáticamente las skills según el proyecto (framework, tooling, etc.) en cada conversación",
   "settings.skills.section.import": "Importar skill",
@@ -3296,7 +3302,6 @@ export const dict = {
   "settings.skills.origin.installed": "Instalada",
   "settings.skills.origin.project": "Del proyecto",
   "settings.skills.manualOnly": "Solo manual",
-  "settings.skills.shown": "Mostrando {{count}}",
   "settings.skills.switch.label": "Activar o desactivar {{name}}",
   "settings.skills.back": "Volver a la lista",
   "settings.skills.detail.type": "Tipo",

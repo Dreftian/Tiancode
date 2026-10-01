@@ -216,6 +216,10 @@ export const dict = {
   "desktop.menu.reportBug": "Сообщить об ошибке",
   "desktop.menu.ariaLabel": "Меню Tiancode",
 
+  "desktop.tray.show": "Показать окно",
+  "desktop.tray.quit": "Выйти",
+  "desktop.pet.openApp": "Дважды щёлкните, чтобы открыть Tiancode",
+  "desktop.pet.hide": "Скрыть с рабочего стола",
   "desktop.updater.dialog.checkFailed.message": "Не удалось проверить наличие обновлений.",
   "desktop.updater.dialog.checkFailed.title": "Ошибка обновления",
   "desktop.updater.dialog.upToDate.message": "У вас установлена последняя версия.",

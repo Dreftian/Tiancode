@@ -1627,6 +1627,8 @@ export const dict = {
   "settings.skills.description": "Import skills from your computer or download published skills from the web.",
   "settings.skills.section.installed": "Installed",
   "settings.skills.autoSelect.title": "Auto-select skills",
+  "settings.skills.autoSelect.short": "Auto-select",
+  "settings.skills.actions.menu": "Actions",
   "settings.skills.autoSelect.description":
     "Automatically pick the skills matching your project (framework, tooling, etc.) in every conversation",
   "settings.skills.section.import": "Import skill",
@@ -3139,7 +3141,6 @@ export const dict = {
   "settings.skills.origin.installed": "Installed",
   "settings.skills.origin.project": "From the project",
   "settings.skills.manualOnly": "Manual only",
-  "settings.skills.shown": "Showing {{count}}",
   "settings.skills.switch.label": "Turn {{name}} on or off",
   "settings.skills.back": "Back to the list",
   "settings.skills.detail.type": "Type",

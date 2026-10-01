@@ -190,6 +190,10 @@ export const dict = {
   "desktop.menu.reportBug": "バグを報告",
   "desktop.menu.ariaLabel": "Tiancodeメニュー",
 
+  "desktop.tray.show": "ウインドウを表示",
+  "desktop.tray.quit": "終了",
+  "desktop.pet.openApp": "ダブルクリックで Tiancode を開く",
+  "desktop.pet.hide": "デスクトップから隠す",
   "desktop.updater.dialog.checkFailed.message": "アップデートを確認できませんでした。",
   "desktop.updater.dialog.checkFailed.title": "アップデートエラー",
   "desktop.updater.dialog.upToDate.message": "最新の状態です。",

@@ -1358,6 +1358,10 @@ export const dict = {
   "desktop.menu.reportBug": "버그 신고",
   "desktop.menu.ariaLabel": "Tiancode 메뉴",
 
+  "desktop.tray.show": "윈도우 표시",
+  "desktop.tray.quit": "종료",
+  "desktop.pet.openApp": "두 번 클릭하여 Tiancode 열기",
+  "desktop.pet.hide": "데스크톱에서 숨기기",
   "desktop.updater.dialog.checkFailed.message": "업데이트를 확인하지 못했습니다.",
   "desktop.updater.dialog.checkFailed.title": "업데이트 오류",
   "desktop.updater.dialog.upToDate.message": "최신 버전을 사용 중입니다.",

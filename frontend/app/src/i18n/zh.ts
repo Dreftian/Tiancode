@@ -215,6 +215,10 @@ export const dict = {
   "desktop.menu.reportBug": "报告错误",
   "desktop.menu.ariaLabel": "Tiancode 菜单",
 
+  "desktop.tray.show": "显示窗口",
+  "desktop.tray.quit": "退出",
+  "desktop.pet.openApp": "双击打开 Tiancode",
+  "desktop.pet.hide": "从桌面隐藏",
   "desktop.updater.dialog.checkFailed.message": "检查更新失败。",
   "desktop.updater.dialog.checkFailed.title": "更新错误",
   "desktop.updater.dialog.upToDate.message": "你使用的是最新版本。",

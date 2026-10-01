@@ -60,6 +60,11 @@ export const DESKTOP_NATIVE_ENGLISH = {
   "desktop.menu.reportBug": "Report a Bug",
   "desktop.menu.ariaLabel": "Tiancode menu",
 
+  "desktop.tray.show": "Show window",
+  "desktop.tray.quit": "Quit",
+  "desktop.pet.openApp": "Double-click to open Tiancode",
+  "desktop.pet.hide": "Hide from desktop",
+
   "desktop.updater.dialog.checkFailed.message": "Update check failed.",
   "desktop.updater.dialog.checkFailed.title": "Update Error",
   "desktop.updater.dialog.upToDate.message": "You're up to date.",

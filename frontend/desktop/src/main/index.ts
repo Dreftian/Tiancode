@@ -61,7 +61,7 @@ import { startBackgroundCli } from "./background-cli"
 import { getCredentialKey } from "./credential-key"
 import { seedBundledMcpServers } from "./mcp-bundle"
 import { setNativeTranslations } from "./native-translations"
-import { createTray } from "./tray"
+import { createTray, refreshTrayMenu } from "./tray"
 import { ensureLoopbackNoProxy, useEnvProxy } from "./util/proxy"
 import { installSystemCaTrust, installWindowsSystemCaTrust } from "./windows-system-ca"
 import { dropInheritedProfileEnv, migrateDesktopXdgPaths } from "./xdg-paths"
@@ -414,7 +414,9 @@ const main = Effect.gen(function* () {
     exportDebugLogs: () => exportDebugLogs(),
     recordFatalRendererError: (error) => writeLog("renderer", "fatal renderer error", { ...error }, "error"),
     setNativeTranslations: (bundle) => {
-      if (setNativeTranslations(bundle)) createMenu(menuDeps)
+      if (!setNativeTranslations(bundle)) return
+      createMenu(menuDeps)
+      refreshTrayMenu()
     },
   })
   registerWslIpcHandlers(wslServers)
@@ -582,7 +584,18 @@ const main = Effect.gen(function* () {
   }
   // macOS keeps its own window lifecycle conventions (closing the window does
   // not quit the app), so the tray is Windows/Linux only.
-  const tray = process.platform === "darwin" ? null : createTray({ onShow: showWindow, onQuit: quitApp })
+  const tray =
+    process.platform === "darwin"
+      ? null
+      : createTray({
+          onShow: showWindow,
+          onSettings: () => {
+            showWindow()
+            menuDeps.trigger("settings.open")
+          },
+          onCheckForUpdates: menuDeps.checkForUpdates,
+          onQuit: quitApp,
+        })
   app.once("will-quit", () => tray?.destroy())
 })
 

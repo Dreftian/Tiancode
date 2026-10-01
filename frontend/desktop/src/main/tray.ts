@@ -1,4 +1,6 @@
 import { Menu, Tray, app, nativeImage } from "electron"
+import { UPDATER_ENABLED } from "./constants"
+import { nativeT } from "./native-translations"
 import { existsSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -19,18 +21,40 @@ export function resolveTrayIconPath(): string {
   return candidates[0]
 }
 
-export function createTray(options: { onShow: () => void; onQuit: () => void }) {
+type TrayOptions = {
+  onShow: () => void
+  onSettings: () => void
+  onCheckForUpdates: () => void
+  onQuit: () => void
+}
+
+// The tray is created after the sidecar loads, but the renderer may report its language before or
+// after that, so the menu is rebuilt from nativeT whenever the translations change.
+let current: { tray: Tray; options: TrayOptions } | undefined
+
+export function createTray(options: TrayOptions) {
   const iconPath = resolveTrayIconPath()
   const image = nativeImage.createFromPath(iconPath)
   const tray = new Tray(image.isEmpty() ? iconPath : image)
   tray.setToolTip(app.getName())
-  tray.setContextMenu(
-    Menu.buildFromTemplate([
-      { label: "Show window", click: () => options.onShow() },
-      { type: "separator" },
-      { label: "Quit", click: () => options.onQuit() },
-    ]),
-  )
+  current = { tray, options }
+  refreshTrayMenu()
   if (process.platform === "win32") tray.on("click", () => options.onShow())
   return tray
+}
+
+export function refreshTrayMenu() {
+  if (!current || current.tray.isDestroyed()) return
+  const options = current.options
+  current.tray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: nativeT("desktop.tray.show"), click: () => options.onShow() },
+      { label: nativeT("desktop.menu.settings"), click: () => options.onSettings() },
+      ...(UPDATER_ENABLED
+        ? [{ label: nativeT("desktop.menu.checkForUpdates"), click: () => options.onCheckForUpdates() }]
+        : []),
+      { type: "separator" },
+      { label: nativeT("desktop.tray.quit"), click: () => options.onQuit() },
+    ]),
+  )
 }

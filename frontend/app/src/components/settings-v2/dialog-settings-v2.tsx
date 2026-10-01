@@ -286,10 +286,6 @@ export const DialogSettings: Component<{
                 <IconAbout />
                 {language.t("settings.tab.about")}
               </TabsV2.Trigger>
-              <div class="settings-v2-nav-footer">
-                <span>{language.t("app.name.desktop")}</span>
-                <span>v{platform.version}</span>
-              </div>
             </div>
           </div>
         </TabsV2.List>
