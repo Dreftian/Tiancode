@@ -1,7 +1,7 @@
 import { Dialog, DialogFooter, DialogHeader, DialogTitleGroup } from "@tiancode-ai/ui/v2/dialog-v2"
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
 import { useDialog } from "@tiancode-ai/ui/context/dialog"
-import { Show } from "solid-js"
+import { Show, onMount } from "solid-js"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 
@@ -65,6 +65,9 @@ export function useConfirmSkipPermissions() {
 function DialogSkipPermissions(props: { directory: string | undefined; onConfirm: () => void; onCancel: () => void }) {
   const language = useLanguage()
   const platform = usePlatform()
+  let cancel: HTMLButtonElement | undefined
+  // The menu that opened this dialog hands focus back to its trigger as it closes; take it after.
+  onMount(() => setTimeout(() => cancel?.focus(), 60))
   return (
     <Dialog fit class="dialog-skip-permissions">
       <DialogHeader hideClose>
@@ -96,7 +99,7 @@ function DialogSkipPermissions(props: { directory: string | undefined; onConfirm
         </p>
       </div>
       <DialogFooter>
-        <ButtonV2 variant="outline" autofocus onClick={props.onCancel}>
+        <ButtonV2 ref={cancel} variant="outline" autofocus onClick={props.onCancel}>
           {language.t("common.cancel")}
         </ButtonV2>
         <ButtonV2 variant="contrast" data-action="confirm-skip-permissions" onClick={props.onConfirm}>
