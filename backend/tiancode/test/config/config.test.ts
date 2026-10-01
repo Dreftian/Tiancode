@@ -1805,6 +1805,29 @@ describe("deduplicatePluginOrigins", () => {
   )
 })
 
+describe("auto-discovered plugins", () => {
+  it.effect("a discovered file switched off in config stays off", () =>
+    withConfigTree(
+      {},
+      Effect.gen(function* () {
+        const test = yield* TestInstance
+        const file = path.join(test.directory, ".tiancode", "plugin", "my-plugin.js")
+        yield* FSUtil.use.writeWithDirs(file, "export default {}")
+        const spec = pathToFileURL(file).href
+        yield* FSUtil.use.writeWithDirs(
+          path.join(test.directory, ".tiancode", "tiancode.json"),
+          JSON.stringify({ plugin: [[spec, { enabled: false }]] }),
+        )
+
+        const plugins = (yield* Config.use.get()).plugin ?? []
+        const entries = plugins.filter((plugin) => ConfigPlugin.pluginSpecifier(plugin) === spec)
+        expect(entries).toHaveLength(1)
+        expect(ConfigPlugin.isEnabled(entries[0]!)).toBe(false)
+      }),
+    ),
+  )
+})
+
 describe("TIANCODE_DISABLE_PROJECT_CONFIG", () => {
   it.instance(
     "skips project config files when flag is set",

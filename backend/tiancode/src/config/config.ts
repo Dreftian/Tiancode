@@ -676,8 +676,13 @@ const layer = Layer.effect(
           result.agent = mergeDeep(result.agent ?? {}, yield* Effect.promise(() => ConfigAgent.load(dir)))
           result.agent = mergeDeep(result.agent ?? {}, yield* Effect.promise(() => ConfigAgent.loadMode(dir)))
           // Auto-discovered plugins under `.tiancode/plugin(s)` are already local files, so ConfigPlugin.load
-          // returns normalized Specs and we only need to attach origin metadata here.
-          const list = yield* Effect.promise(() => ConfigPlugin.load(dir))
+          // returns normalized Specs and we only need to attach origin metadata here. A file a config
+          // already lists keeps that entry (Settings switches one off as [file, { enabled: false }]);
+          // discovery only adds the files nobody declared, otherwise it would switch them back on.
+          const declared = new Set((result.plugin ?? []).map(ConfigPlugin.pluginSpecifier))
+          const list = (yield* Effect.promise(() => ConfigPlugin.load(dir))).filter(
+            (spec) => !declared.has(ConfigPlugin.pluginSpecifier(spec)),
+          )
           yield* mergePluginOrigins(dir, list)
         }
 
