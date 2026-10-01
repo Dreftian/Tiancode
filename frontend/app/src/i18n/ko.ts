@@ -12,7 +12,6 @@ export const dict = {
   "settings.general.row.previewAutoOpen.title": "미리보기 자동 열기",
   "settings.general.row.previewAutoOpen.description": "이 세션에서 AI가 웹 앱을 시작하면 라이브 미리보기를 자동으로 엽니다. 끄면 수동으로만 열립니다.",
   "settings.general.row.restore.delete": "삭제",
-  "settings.general.backup.delete.confirm": "{{name}} 백업을 완전히 삭제할까요? 되돌릴 수 없습니다.",
   "settings.general.backup.delete.success": "백업을 삭제했습니다",
   "settings.general.backup.delete.failed": "백업을 삭제할 수 없습니다",
   "settings.modelsHub.load.title": "로드 매개변수",
@@ -107,7 +106,6 @@ export const dict = {
   "settings.general.row.showVoice.description": "채팅 헤더에 음성 재생 컨트롤을 표시합니다.",
   "settings.general.row.showCapture.title": "스크린샷",
   "settings.general.row.showCapture.description": "상태 옆에 스크린샷 캡처를 표시합니다.",
-  "settings.intelligence.storage": "Tiancode는 메모리와 학습한 스킬을 프로젝트별로 분리하여 애플리케이션 데이터에 저장합니다. 기존 프로젝트 파일은 호환성을 위해 계속 읽을 수 있습니다.",
   "settings.browser.links.chrome": "Google Chrome",
   "settings.browser.chromeUnavailable": "Chrome을 열 수 없습니다. Google Chrome이 설치되어 있는지 확인하세요.",
   "desktop.browser.chromeUnavailable": "Chrome을 열 수 없습니다. Google Chrome이 설치되어 있는지 확인하세요.",
@@ -875,17 +873,11 @@ export const dict = {
   "sound.option.yup05": "네 05",
   "sound.option.yup06": "네 06",
   "settings.general.notifications.agent.title": "에이전트",
-  "settings.general.notifications.agent.description": "에이전트가 완료되거나 주의가 필요할 때 시스템 알림 표시",
   "settings.general.notifications.permissions.title": "권한",
-  "settings.general.notifications.permissions.description": "권한이 필요할 때 시스템 알림 표시",
   "settings.general.notifications.errors.title": "오류",
-  "settings.general.notifications.errors.description": "오류가 발생했을 때 시스템 알림 표시",
   "settings.general.sounds.agent.title": "에이전트",
-  "settings.general.sounds.agent.description": "에이전트가 완료되거나 주의가 필요할 때 소리 재생",
   "settings.general.sounds.permissions.title": "권한",
-  "settings.general.sounds.permissions.description": "권한이 필요할 때 소리 재생",
   "settings.general.sounds.errors.title": "오류",
-  "settings.general.sounds.errors.description": "오류가 발생했을 때 소리 재생",
   "settings.shortcuts.title": "키보드 단축키",
   "settings.shortcuts.reset.button": "기본값으로 초기화",
   "settings.shortcuts.reset.toast.title": "단축키 초기화됨",
@@ -1251,13 +1243,6 @@ export const dict = {
   "settings.general.row.petKind.description": "앱에 표시할 동반자를 선택합니다",
   "settings.general.row.petPosition.title": "위치",
   "settings.general.row.petPosition.description": "동반자가 표시될 위치를 선택합니다",
-  "settings.general.pets.kind.cat": "고양이",
-  "settings.general.pets.kind.dog": "개",
-  "settings.general.pets.kind.rabbit": "토끼",
-  "settings.general.pets.position.bottomRight": "오른쪽 아래",
-  "settings.general.pets.position.bottomLeft": "왼쪽 아래",
-  "settings.general.pets.position.topRight": "오른쪽 위",
-  "settings.general.pets.position.topLeft": "왼쪽 위",
   "pets.status.ready": "준비됨",
   "pets.status.resting": "휴식 중",
 
@@ -1456,8 +1441,6 @@ export const dict = {
   "settings.general.row.minimizeToTray.description": "창을 닫으면 종료하지 않고 시스템 트레이로 최소화합니다",
   "settings.general.row.fileWatcher.title": "실시간 파일 업데이트",
   "settings.general.row.fileWatcher.description": "파일 트리와 Git 변경 사항을 자동으로 새로 고칩니다.",
-  "settings.general.fileWatcher.restart.confirm":
-    "실시간 파일 업데이트 변경 사항을 적용하려면 Tiancode를 다시 시작하시겠습니까?",
   "session.export.button": "대화를 Markdown으로 내보내기",
   "session.export.jsonButton": "JSON 내보내기",
   "session.export.title": "대화 내보내기",
@@ -1475,8 +1458,6 @@ export const dict = {
   "settings.general.row.restore.button": "복원",
   "settings.general.backup.now.success": "백업을 만들었습니다",
   "settings.general.backup.now.failed": "백업할 데이터가 아직 없습니다",
-  "settings.general.backup.restore.confirm": "백업 {{name}}을(를) 복원하시겠습니까? 현재 세션과 설정이 대체됩니다.",
-  "settings.general.backup.restore.success": "백업을 복원했습니다",
   "settings.general.backup.restore.failed": "백업을 복원할 수 없습니다",
   "settings.general.row.loginItem.title": "시작 시 실행",
   "settings.general.row.loginItem.description": "Windows에 로그인하면 Tiancode를 자동으로 엽니다",
@@ -1800,14 +1781,7 @@ export const dict = {
   "settings.pets.position.topRight": "오른쪽 위",
   "settings.pets.position.topLeft": "왼쪽 위",
   "settings.computerUse.title": "PC 사용",
-  "settings.computerUse.description": "에이전트가 통합할 수 있는 로컬 앱과 computer use 작업의 권한을 설정합니다.",
   "settings.computerUse.section.permissions": "권한",
-  "settings.computerUse.section.apps": "로컬 앱",
-  "settings.computerUse.apps.description":
-    "이 컴퓨터에 구성된 로컬 MCP 서버(Android Studio, Photoshop, Opera GX, Unreal 등)입니다. 상태는 실제 연결을 반영합니다.",
-  "settings.computerUse.apps.connected": "연결됨",
-  "settings.computerUse.apps.disconnected": "연결 안 됨",
-  "settings.computerUse.empty": "아직 구성된 로컬 앱이 없습니다",
   "settings.computerUse.save.failed": "권한을 업데이트할 수 없습니다",
   "settings.mcpServers.description": "Model Context Protocol(MCP) 서버를 통해 에이전트를 외부 도구에 연결합니다.",
   "settings.mcpServers.section.servers": "서버",
@@ -2087,16 +2061,7 @@ export const dict = {
 
   // --- Restored keys: referenced by app code but previously absent from this dictionary ---
   "settings.tab.intelligence": "인텔리전스",
-  "settings.intelligence.title": "인텔리전스 및 메모리",
-  "settings.intelligence.description": "장기 메모리(LTM), 스마트 웹 추출, 그래프 분석 및 실행 안전성을 설정합니다.",
-  "settings.intelligence.section.memory": "장기 메모리 (LTM)",
-  "settings.intelligence.userMemory": "사용자 메모리 (USER.md)",
-  "settings.intelligence.userMemory.desc": "모든 프로젝트에 걸쳐 코딩, 스타일, 언어 선호도를 기억합니다.",
-  "settings.intelligence.projectMemory": "프로젝트 메모리 (MEMORY.md)",
-  "settings.intelligence.projectMemory.desc": "이 저장소의 기술 아키텍처, 네트워크 포트, 빌드 특성을 저장합니다.",
   "settings.intelligence.codeGraph": "코드 그래프 분석 (CodeGraph)",
-  "settings.intelligence.codeGraph.desc": "함수, 클래스, 의존성을 색인하여 편집 전에 아키텍처 영향을 판단합니다.",
-  "settings.intelligence.section.safety": "웹 및 실행 보안",
   "settings.github.repo.create.failed": "저장소를 만들지 못했습니다",
   "settings.github.repo.create.success": "저장소 {{name}}을(를) 만들었습니다",
   "settings.github.sync.success": "GitHub를 새로고침했습니다",
@@ -2176,43 +2141,15 @@ export const dict = {
   "livePreview.reloading": "새로 고치는 중…",
   "settings.computerUse.tab.tools": "도구",
   "settings.computerUse.tab.bridges": "브리지",
-  "settings.computerUse.section.tools": "에이전트가 이 컴퓨터에서 할 수 있는 작업",
-  "settings.computerUse.screenshot.title": "화면 캡처(screenshot 도구)",
-  "settings.computerUse.screenshot.description":
-    "에이전트는 화면, Tiancode 창 또는 화면의 일부를 촬영하고 이미지를 읽을 수 있습니다. 아래에서 승인하지 않으면 캡처할 때마다 권한을 요청합니다.",
-  "settings.computerUse.clipboard.title": "클립보드(clipboard 도구)",
-  "settings.computerUse.clipboard.description":
-    "에이전트는 시스템 클립보드의 텍스트를 읽고 바꿀 수 있습니다. 읽기와 쓰기는 매번 하나씩 확인합니다.",
-  "settings.computerUse.clipboard.note":
-    "클립보드는 미리 승인할 수 없습니다. 비밀번호가 들어 있는 경우가 많으므로 에이전트가 매번 묻습니다.",
-  "settings.computerUse.autoApproveScreenshot": "화면 캡처를 자동으로 승인",
-  "settings.computerUse.autoApproveScreenshot.description":
-    "설정에 permission.screenshot = allow를 기록하여 screenshot 도구가 확인 없이 실행되도록 합니다.",
-  "settings.computerUse.autoApproveScreenshot.note":
-    "캡처에는 그 순간 화면에 보이는 모든 것이 담기며, 다른 애플리케이션도 포함됩니다. 신뢰하는 컴퓨터에서만 미리 승인하세요.",
-  "settings.computerUse.save.done": "권한이 업데이트되었습니다",
   "settings.computerUse.tool.desktopOnly": "데스크톱 앱 전용",
   "settings.computerUse.tool.ready": "사용 가능",
   "prompt.attachment.unavailable": "첨부 파일을 읽을 수 없습니다. 제거한 뒤 파일을 다시 첨부하세요.",
   "settings.intelligence.skillCreate": "스킬 작성 (SKILL.md)",
-  "settings.intelligence.skillCreate.desc":
-    "에이전트가 작업 흐름을 재사용 가능한 SKILL.md로 .tiancode/skills 또는 전역 스킬 폴더에 저장할 수 있게 합니다. 작성 시점은 에이전트가 결정합니다.",
-  "settings.intelligence.section.context": "코드 그래프 및 컨텍스트",
   "settings.intelligence.outputDistiller": "터미널 출력 요약",
-  "settings.intelligence.outputDistiller.desc":
-    "긴 터미널 출력을 모델이 읽기 전에 줄입니다. 전체 출력은 도구 결과에 그대로 남습니다.",
   "settings.intelligence.webBoilerplate": "웹 페이지 상용구 제거",
-  "settings.intelligence.webBoilerplate.desc":
-    "가져온 페이지를 Markdown으로 변환할 때 스크립트, 내비게이션, 푸터, 폼을 제거합니다. 본문이 이런 요소 안에 있는 페이지에서는 끄세요.",
   "settings.intelligence.shellScan": "셸 명령 검사 (AgentShield)",
-  "settings.intelligence.shellScan.desc":
-    "모든 셸 명령에서 파괴적인 삭제, 비밀 파일 읽기, 파이프를 통한 원격 실행을 찾아 도구 호출에 경고를 붙입니다. 안내일 뿐이며 명령을 차단하거나 값을 가리지 않습니다.",
   "settings.intelligence.toolCallRepair": "도구 호출 인자 복구",
-  "settings.intelligence.toolCallRepair.desc":
-    "로컬 모델이나 스트리밍이 만들어내는 잘못된 인자(잘린 JSON, 닫히지 않은 중괄호, 마크다운 코드 펜스)를 복구합니다. 끄면 잘못된 호출은 그대로 실패합니다.",
   "settings.intelligence.loopBreaker": "루프 차단기",
-  "settings.intelligence.loopBreaker.desc":
-    "같은 도구 호출을 반복하거나 한 턴에 너무 많은 도구를 실행하면 에이전트를 멈추고 계속할지 묻습니다.",
   "settings.pets.desktop.unavailable": "데스크톱 앱에서만 사용할 수 있습니다.",
   "settings.pets.pet.action": "쓰다듬기",
   "settings.pets.pet.greeting": "안녕하세요! 코딩을 도울 준비가 됐어요.",
@@ -2440,61 +2377,18 @@ export const dict = {
   "welcome.language.field": "언어",
   "welcome.provider.autoOpen": "완료하면 공급자 설정이 열려 모델을 추가할 수 있습니다. 나중에 하려면 닫으세요.",
   "settings.computerUse.tab.browser": "브라우저",
-  "settings.computerUse.tools.intro":
-    "화면 캡처, 클립보드, 그리고 Windows에서만 마우스와 키보드. 모두 데스크톱 앱을 거칩니다. 웹 브라우저에서 연 세션에는 접근할 데스크톱이 없습니다.",
-  "settings.computerUse.section.computer": "마우스와 키보드",
-  "settings.computerUse.computer.title": "마우스와 키보드(computer 도구)",
-  "settings.computerUse.computer.description":
-    "에이전트가 실제 커서를 움직여 앞에 있는 애플리케이션에서 클릭하고 입력합니다. 세션의 첫 동작에서 해당 앱 이름을 밝히는 대화상자가 열리며, 제어는 스스로 만료되고 표시기에서 언제든 중지할 수 있습니다.",
   "settings.computerUse.computer.enable": "에이전트가 마우스와 키보드를 쓰도록 허용",
-  "settings.computerUse.computer.enable.description":
-    "tiancode.json이 아니라 데스크톱 앱 자체에 저장됩니다. tiancode.json은 에이전트가 자신의 도구로 편집할 수 있어, 에이전트가 고칠 수 있는 제동장치는 제동장치가 아닙니다. 끄면 메인 프로세스가 모든 동작을 거부하고 진행 중인 제어도 중단됩니다.",
   "settings.computerUse.computer.windowsOnly": "Windows 전용",
   "settings.computerUse.denied.title": "차단할 실행 파일",
-  "settings.computerUse.denied.description":
-    "이 목록에 있는 창이 앞에 있는 동안에는 세션에서 이미 허용했더라도 Tiancode가 클릭과 키 입력 전송을 거부합니다. 목록은 재실행 후에도 유지되지만, 세션별 허용은 유지되지 않습니다.",
-  "settings.computerUse.denied.note":
-    "비교는 실행 파일 이름, 즉 경로의 마지막 조각을 소문자로 바꾼 값으로 합니다. 이름이 같은 서로 다른 프로그램은 구분할 수 없고, 파일 이름을 바꾸면 목록에서 빠집니다. 이것은 파일 이름이지 애플리케이션의 신원이 아닙니다.",
   "settings.computerUse.denied.placeholder": "notepad.exe",
   "settings.computerUse.denied.add": "차단",
-  "settings.computerUse.denied.remove": "제거",
-  "settings.computerUse.denied.empty": "차단된 실행 파일이 없습니다",
   "settings.computerUse.denied.invalid": "실행 파일 이름을 입력하세요. 예: notepad.exe",
   "settings.computerUse.denied.duplicate": "이미 목록에 있는 실행 파일입니다",
-  "settings.computerUse.platform.note":
-    "PC 사용에는 데스크톱 앱이 필요하며 Windows에서만 동작합니다. macOS에서는 시스템 손쉬운 사용 권한과 다른 백엔드가 필요하고, Linux에서는 X11이나 Wayland에 좌우됩니다. Tiancode는 이상하게 실패하는 대신 그렇게 알리고 거부합니다.",
-  "settings.computerUse.browser.section": "통합 브라우저",
-  "settings.computerUse.browser.control": "에이전트가 통합 브라우저를 읽고 조작하도록 허용",
-  "settings.computerUse.browser.control.description":
-    "열린 페이지를 읽고 클릭하거나 입력하는 동작은 사이트의 오리진을 패턴으로 삼아 허가를 요청합니다. 한 사이트에 대한 승낙이 다음 사이트의 승낙이 되지 않습니다.",
-  "settings.computerUse.browser.control.ask": "사이트마다 묻기",
-  "settings.computerUse.browser.control.allow": "묻지 않고 모든 사이트 허용",
-  "settings.computerUse.browser.control.deny": "에이전트가 브라우저를 쓰지 못하게 하기",
-  "settings.computerUse.browser.control.inherited": "상속된 기본값",
-  "settings.computerUse.browser.control.note":
-    '지금까지는 규칙이 쓰여 있지 않았고 에이전트의 기본값이 모든 오리진을 허용했습니다. 즉 통합 브라우저의 어떤 페이지든 묻지 않고 읽고 조작할 수 있었습니다. 「사이트마다 묻기」를 고르면 이 프로젝트 설정에 permission.browser = {"*": "ask"}가 기록되고, 이후로는 아래 목록에 없는 사이트 앞에서 Tiancode가 묻습니다. 이미 쓰던 사람에게는 실제 동작 변경입니다.',
-  "settings.computerUse.browser.sites": "허용한 사이트",
-  "settings.computerUse.browser.sites.description": "이 프로젝트 설정에 허용 규칙이 저장된 오리진입니다.",
-  "settings.computerUse.browser.sites.note":
-    "권한 창에서 답한 「항상 허용」은 여기에 없습니다. 실행 중인 인스턴스가 메모리에 갖고 있다가 함께 사라집니다. 설정에 기록되는 것은 이 화면에서 추가한 항목뿐이므로, 이 목록이 지금 승인된 전부를 보여주지는 않습니다.",
-  "settings.computerUse.browser.sites.inert":
-    "일반 규칙이 「묻지 않고 모든 사이트 허용」인 동안에는 이 목록이 아무것도 바꾸지 않습니다. 모든 사이트가 이미 허용된 상태입니다.",
   "settings.computerUse.browser.sites.placeholder": "https://example.com",
-  "settings.computerUse.browser.sites.add": "허용",
-  "settings.computerUse.browser.sites.revoke": "철회",
-  "settings.computerUse.browser.sites.revoked": "철회했습니다. 그 사이트에서는 다시 묻습니다",
-  "settings.computerUse.browser.sites.empty": "미리 허용한 사이트가 없습니다",
   "settings.computerUse.browser.sites.invalid": "전체 주소를 입력하세요. 예: https://example.com",
-  "settings.computerUse.browser.sites.duplicate": "이미 허용된 오리진입니다",
-  "settings.computerUse.browser.sites.orderFailed":
-    '규칙은 기록되었지만 permission.browser 안의 뒤쪽 규칙이 그 오리진에 대해 여전히 우선합니다. tiancode.json을 열어 permission.browser의 첫 키를 "*"로 두세요.',
   "settings.computerUse.browser.cookies": "쿠키와 세션",
-  "settings.computerUse.browser.cookies.description":
-    "통합 브라우저와 라이브 뷰의 로그인과 쿠키를 얼마나 오래 유지할지.",
   "settings.computerUse.browser.cookies.always": "계속",
   "settings.computerUse.browser.cookies.session": "Tiancode를 닫을 때까지",
-  "settings.computerUse.browser.cookies.note":
-    "「Tiancode를 닫을 때까지」는 닫는 도중이 아니라 다음에 앱을 시작할 때 쿠키, 캐시, 로컬 저장소를 지웁니다. 종료 시 Electron은 비동기 삭제를 기다리지 않아, 그때 하면 아무 일도 일어나지 않을 때가 있기 때문입니다. 「저장하지 않음」 선택지는 없습니다. 통합 브라우저는 고정된 영구 파티션에서 돌아가고, 페이지가 로드된 뒤에는 Electron이 이를 바꾸지 못하게 합니다.",
   "settings.general.row.transcriptView.title": "대화 기록 보기",
   "settings.general.row.transcriptView.description":
     "각 턴을 기본적으로 얼마나 펼칠지 결정합니다. 세션별로 '더 많은 옵션'에서 변경할 수 있습니다",

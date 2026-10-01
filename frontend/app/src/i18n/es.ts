@@ -18,7 +18,6 @@ export const dict = {
   "settings.general.row.previewAutoOpen.title": "Abrir la vista previa automáticamente",
   "settings.general.row.previewAutoOpen.description": "Abre la vista previa sola cuando la IA arranca una app web en esta sesión. Desactivado, solo se abre a mano.",
   "settings.general.row.restore.delete": "Eliminar",
-  "settings.general.backup.delete.confirm": "¿Eliminar por completo el respaldo de {{name}}? No se puede deshacer.",
   "settings.general.backup.delete.success": "Respaldo eliminado",
   "settings.general.backup.delete.failed": "No se pudo eliminar el respaldo",
   "settings.modelsHub.load.title": "Parámetros de carga",
@@ -113,7 +112,6 @@ export const dict = {
   "settings.general.row.showVoice.description": "Muestra los controles de reproducción de voz en la cabecera del chat.",
   "settings.general.row.showCapture.title": "Captura de pantalla",
   "settings.general.row.showCapture.description": "Muestra la captura de pantalla junto a Estado.",
-  "settings.intelligence.storage": "Tiancode guarda la memoria y las habilidades aprendidas en sus datos de aplicación, separados por proyecto. Los archivos anteriores siguen disponibles por compatibilidad.",
   "settings.browser.links.chrome": "Google Chrome",
   "settings.browser.chromeUnavailable": "No se pudo abrir Chrome. Comprueba que Google Chrome esté instalado.",
   "desktop.browser.chromeUnavailable": "No se pudo abrir Chrome. Comprueba que Google Chrome esté instalado.",
@@ -1212,13 +1210,6 @@ export const dict = {
   "settings.general.row.petKind.description": "Elige el compañero que se muestra en la aplicación",
   "settings.general.row.petPosition.title": "Posición",
   "settings.general.row.petPosition.description": "Elige dónde aparece el compañero",
-  "settings.general.pets.kind.cat": "Gato",
-  "settings.general.pets.kind.dog": "Perro",
-  "settings.general.pets.kind.rabbit": "Conejo",
-  "settings.general.pets.position.bottomRight": "Abajo a la derecha",
-  "settings.general.pets.position.bottomLeft": "Abajo a la izquierda",
-  "settings.general.pets.position.topRight": "Arriba a la derecha",
-  "settings.general.pets.position.topLeft": "Arriba a la izquierda",
   "pets.status.ready": "Listo",
   "pets.status.resting": "Descansando",
 
@@ -1248,8 +1239,6 @@ export const dict = {
     "Cerrar la ventana minimiza a la bandeja del sistema en lugar de salir",
   "settings.general.row.fileWatcher.title": "Actualización de archivos en tiempo real",
   "settings.general.row.fileWatcher.description": "Refresca el árbol de archivos y los cambios de git automáticamente.",
-  "settings.general.fileWatcher.restart.confirm":
-    "Reiniciar Tiancode para aplicar el cambio en la actualización de archivos en tiempo real?",
 
   "session.export.button": "Exportar conversación a Markdown",
   "session.export.jsonButton": "Exportar JSON",
@@ -1268,9 +1257,6 @@ export const dict = {
   "settings.general.row.restore.button": "Restaurar",
   "settings.general.backup.now.success": "Respaldo creado",
   "settings.general.backup.now.failed": "No hay datos que respaldar todavía",
-  "settings.general.backup.restore.confirm":
-    "¿Restaurar el respaldo {{name}}? Se reemplazarán las sesiones y la configuración actuales.",
-  "settings.general.backup.restore.success": "Respaldo restaurado",
   "settings.general.backup.restore.failed": "No se pudo restaurar el respaldo",
   "settings.general.row.loginItem.title": "Iniciar con Windows",
   "settings.general.row.loginItem.description": "Abre Tiancode automáticamente al iniciar sesión en Windows",
@@ -1415,20 +1401,12 @@ export const dict = {
   "sound.option.yup06": "Sí 06",
 
   "settings.general.notifications.agent.title": "Agente",
-  "settings.general.notifications.agent.description":
-    "Mostrar notificación del sistema cuando el agente termine o necesite atención",
   "settings.general.notifications.permissions.title": "Permisos",
-  "settings.general.notifications.permissions.description":
-    "Mostrar notificación del sistema cuando se requiera un permiso",
   "settings.general.notifications.errors.title": "Errores",
-  "settings.general.notifications.errors.description": "Mostrar notificación del sistema cuando ocurra un error",
 
   "settings.general.sounds.agent.title": "Agente",
-  "settings.general.sounds.agent.description": "Reproducir sonido cuando el agente termine o necesite atención",
   "settings.general.sounds.permissions.title": "Permisos",
-  "settings.general.sounds.permissions.description": "Reproducir sonido cuando se requiera un permiso",
   "settings.general.sounds.errors.title": "Errores",
-  "settings.general.sounds.errors.description": "Reproducir sonido cuando ocurra un error",
 
   "settings.shortcuts.title": "Atajos de teclado",
   "settings.shortcuts.reset.button": "Restablecer a valores predeterminados",
@@ -2030,15 +2008,7 @@ export const dict = {
   "settings.pets.position.topRight": "Arriba a la derecha",
   "settings.pets.position.topLeft": "Arriba a la izquierda",
   "settings.computerUse.title": "Uso de la PC",
-  "settings.computerUse.description":
-    "Aplicaciones locales que el agente puede integrar y permisos para las acciones de tipo computer use.",
   "settings.computerUse.section.permissions": "Permisos",
-  "settings.computerUse.section.apps": "Aplicaciones locales",
-  "settings.computerUse.apps.description":
-    "Servidores MCP locales configurados en esta computadora (Android Studio, Photoshop, Opera GX, Unreal…). Su estado refleja la conexión real.",
-  "settings.computerUse.apps.connected": "Conectado",
-  "settings.computerUse.apps.disconnected": "Desconectado",
-  "settings.computerUse.empty": "Aún no hay aplicaciones locales configuradas",
   "settings.computerUse.save.failed": "No se pudo actualizar el permiso",
   "settings.mcpServers.description":
     "Conecta el agente a herramientas externas mediante servidores de Protocolo de Contexto de Modelo (MCP).",
@@ -2498,20 +2468,7 @@ export const dict = {
 
   // --- Restored keys: referenced by app code but previously absent from this dictionary ---
   "settings.tab.intelligence": "Inteligencia",
-  "settings.intelligence.title": "Inteligencia y Memoria",
-  "settings.intelligence.description":
-    "Configura la memoria a largo plazo (LTM), extracción web inteligente, análisis de grafos y seguridad de ejecución.",
-  "settings.intelligence.section.memory": "Memoria a Largo Plazo (LTM)",
-  "settings.intelligence.userMemory": "Memoria de Usuario (USER.md)",
-  "settings.intelligence.userMemory.desc":
-    "Recuerda preferencias globales de programación, estilo e idioma a través de todos tus proyectos.",
-  "settings.intelligence.projectMemory": "Memoria del Proyecto (MEMORY.md)",
-  "settings.intelligence.projectMemory.desc":
-    "Guarda la arquitectura técnica, puertos de red y particularidades de build de este repositorio.",
   "settings.intelligence.codeGraph": "Análisis de Grafo de Código (CodeGraph)",
-  "settings.intelligence.codeGraph.desc":
-    "Indexa funciones, clases y dependencias para razonar sobre impactos arquitectónicos antes de editar.",
-  "settings.intelligence.section.safety": "Seguridad Web y de Ejecución",
   "settings.github.repo.create.failed": "No se pudo crear el repositorio",
   "settings.github.repo.create.success": "Repositorio {{name}} creado",
   "settings.github.sync.success": "GitHub sincronizado",
@@ -2561,43 +2518,15 @@ export const dict = {
   "livePreview.reloading": "Actualizando…",
   "settings.computerUse.tab.tools": "Herramientas",
   "settings.computerUse.tab.bridges": "Bridges",
-  "settings.computerUse.section.tools": "Lo que el agente puede hacer en esta computadora",
-  "settings.computerUse.screenshot.title": "Captura de pantalla (herramienta screenshot)",
-  "settings.computerUse.screenshot.description":
-    "El agente puede fotografiar la pantalla, la ventana de Tiancode o una región de la pantalla y leer la imagen. Pide permiso en cada captura salvo que las apruebes abajo.",
-  "settings.computerUse.clipboard.title": "Portapapeles (herramienta clipboard)",
-  "settings.computerUse.clipboard.description":
-    "El agente puede leer el texto del portapapeles del sistema y reemplazarlo. Cada lectura y cada escritura se confirma una a una.",
-  "settings.computerUse.clipboard.note":
-    "El portapapeles nunca se aprueba por adelantado: suele contener contraseñas, así que el agente pregunta cada vez.",
-  "settings.computerUse.autoApproveScreenshot": "Aprobar las capturas de pantalla automáticamente",
-  "settings.computerUse.autoApproveScreenshot.description":
-    "Escribe permission.screenshot = allow en tu configuración, para que la herramienta screenshot se ejecute sin preguntar.",
-  "settings.computerUse.autoApproveScreenshot.note":
-    "Una captura muestra todo lo que haya en pantalla en ese momento, incluidas otras aplicaciones. Apruébalas por adelantado solo en una computadora de confianza.",
-  "settings.computerUse.save.done": "Permiso actualizado",
   "settings.computerUse.tool.desktopOnly": "Solo en la app de escritorio",
   "settings.computerUse.tool.ready": "Disponible",
   "prompt.attachment.unavailable": "No se pudo leer el adjunto. Quítalo y vuelve a adjuntar el archivo.",
   "settings.intelligence.skillCreate": "Creación de habilidades (SKILL.md)",
-  "settings.intelligence.skillCreate.desc":
-    "Permite al agente guardar un flujo de trabajo como un SKILL.md reutilizable en .tiancode/skills o en tu carpeta global de habilidades. El agente decide cuándo escribirlo.",
-  "settings.intelligence.section.context": "Grafo de Código y Contexto",
   "settings.intelligence.outputDistiller": "Destilación de la salida del terminal",
-  "settings.intelligence.outputDistiller.desc":
-    "Acorta las salidas largas del terminal antes de que el modelo las lea. La salida completa se conserva en el resultado de la herramienta.",
   "settings.intelligence.webBoilerplate": "Eliminar el relleno de las páginas web",
-  "settings.intelligence.webBoilerplate.desc":
-    "Descarta scripts, navegación, pies de página y formularios al convertir una página descargada en Markdown. Desactívalo en páginas cuyo contenido viva dentro de esos elementos.",
   "settings.intelligence.shellScan": "Revisión de comandos de terminal (AgentShield)",
-  "settings.intelligence.shellScan.desc":
-    "Revisa cada comando de terminal en busca de borrados destructivos, lecturas de archivos con secretos y ejecución remota por tubería, y añade una advertencia a la llamada. Solo informa: no bloquea ni enmascara nada.",
   "settings.intelligence.toolCallRepair": "Reparación de argumentos de llamadas a herramientas",
-  "settings.intelligence.toolCallRepair.desc":
-    "Reconstruye argumentos mal formados —JSON truncado, llaves sin cerrar, bloques de código Markdown— que producen los modelos locales o en streaming. Si se desactiva, la llamada mal formada simplemente falla.",
   "settings.intelligence.loopBreaker": "Cortacircuitos de bucles",
-  "settings.intelligence.loopBreaker.desc":
-    "Detiene al agente cuando repite la misma llamada a una herramienta o lanza demasiadas en un mismo turno, y te pregunta antes de continuar.",
   "settings.pets.desktop.unavailable": "Solo disponible en la aplicación de escritorio.",
   "settings.pets.pet.action": "Acariciar",
   "settings.pets.pet.greeting": "¡Hola! Estoy listo para ayudarte a programar.",
@@ -2841,62 +2770,18 @@ export const dict = {
   "welcome.provider.autoOpen":
     "Al terminar se abrirán los ajustes de proveedor para que añadas un modelo. Ciérralos si prefieres hacerlo luego.",
   "settings.computerUse.tab.browser": "Navegador",
-  "settings.computerUse.tools.intro":
-    "Captura de pantalla, portapapeles y —sólo en Windows— ratón y teclado. Todo pasa por la app de escritorio: en una sesión abierta en el navegador no hay escritorio al que llegar.",
-  "settings.computerUse.section.computer": "Ratón y teclado",
-  "settings.computerUse.computer.title": "Ratón y teclado (tool computer)",
-  "settings.computerUse.computer.description":
-    "El agente mueve el cursor real, hace clic y escribe en la aplicación que tengas delante. La primera acción de cada sesión abre un diálogo que nombra esa aplicación, el control caduca solo y puedes pararlo cuando quieras desde el indicador.",
   "settings.computerUse.computer.enable": "Dejar que el agente use el ratón y el teclado",
-  "settings.computerUse.computer.enable.description":
-    "Se guarda en la propia app de escritorio, no en tiancode.json: el agente puede editar tiancode.json con sus tools, y un freno que el agente edita no frena. Apagado, el proceso principal rechaza todas las acciones y corta el control que hubiera en marcha.",
   "settings.computerUse.computer.windowsOnly": "Sólo Windows",
   "settings.computerUse.denied.title": "Ejecutables vetados",
-  "settings.computerUse.denied.description":
-    "Tiancode se niega a mandar clics o teclas mientras uno de estos tenga la ventana delante, aunque lo hayas autorizado antes en la sesión. La lista se guarda entre arranques; las autorizaciones de la sesión no.",
-  "settings.computerUse.denied.note":
-    "La comparación es por nombre de ejecutable: el último tramo de la ruta, en minúsculas. Dos programas distintos que se llamen igual no se distinguen, y renombrar el archivo lo saca de la lista. Es un nombre de archivo, no la identidad de una aplicación.",
   "settings.computerUse.denied.placeholder": "notepad.exe",
   "settings.computerUse.denied.add": "Vetar",
-  "settings.computerUse.denied.remove": "Quitar",
-  "settings.computerUse.denied.empty": "Ningún ejecutable vetado",
   "settings.computerUse.denied.invalid": "Escribe el nombre de un ejecutable, por ejemplo notepad.exe",
   "settings.computerUse.denied.duplicate": "Ese ejecutable ya está en la lista",
-  "settings.computerUse.platform.note":
-    "El uso de la PC necesita la app de escritorio y sólo funciona en Windows: en macOS haría falta el permiso de Accesibilidad del sistema y otro backend, y en Linux depende de X11 o Wayland. Tiancode lo dice y se niega, en vez de fallar de forma rara.",
-  "settings.computerUse.browser.section": "Navegador integrado",
-  "settings.computerUse.browser.control": "Dejar que el agente lea y maneje el navegador integrado",
-  "settings.computerUse.browser.control.description":
-    "Leer la página abierta y pulsar o escribir en ella se pide con el origen del sitio como patrón, así que un sí para un sitio no es un sí para el siguiente.",
-  "settings.computerUse.browser.control.ask": "Preguntar en cada sitio",
-  "settings.computerUse.browser.control.allow": "Permitir todos los sitios sin preguntar",
-  "settings.computerUse.browser.control.deny": "No dejar que el agente use el navegador",
-  "settings.computerUse.browser.control.inherited": "Valor heredado",
-  "settings.computerUse.browser.control.note":
-    'Hasta ahora no había ninguna regla escrita y el valor por defecto del agente permitía todos los orígenes: podía leer y manejar cualquier página del navegador integrado sin preguntar. Elegir «Preguntar en cada sitio» escribe permission.browser = {"*": "ask"} en la configuración de este proyecto, y a partir de ahí Tiancode pregunta antes de cualquier sitio que no esté en la lista de abajo. Para quien ya lo usaba, es un cambio real.',
-  "settings.computerUse.browser.sites": "Sitios permitidos",
-  "settings.computerUse.browser.sites.description":
-    "Orígenes con una regla de permiso guardada en la configuración de este proyecto.",
-  "settings.computerUse.browser.sites.note":
-    "El «Siempre» que respondes en un aviso de permiso NO está aquí: lo guarda en memoria la instancia en marcha y se va con ella. Sólo lo que añadas en esta pantalla se escribe en la configuración, así que esta lista no es el retrato completo de lo aprobado ahora mismo.",
-  "settings.computerUse.browser.sites.inert":
-    "Mientras la regla general sea «Permitir todos los sitios sin preguntar», esta lista no cambia nada: todos los sitios ya están permitidos.",
   "settings.computerUse.browser.sites.placeholder": "https://ejemplo.com",
-  "settings.computerUse.browser.sites.add": "Permitir",
-  "settings.computerUse.browser.sites.revoke": "Revocar",
-  "settings.computerUse.browser.sites.revoked": "Revocado: Tiancode volverá a preguntar en ese sitio",
-  "settings.computerUse.browser.sites.empty": "Ningún sitio permitido de antemano",
   "settings.computerUse.browser.sites.invalid": "Escribe una dirección completa, por ejemplo https://ejemplo.com",
-  "settings.computerUse.browser.sites.duplicate": "Ese origen ya está permitido",
-  "settings.computerUse.browser.sites.orderFailed":
-    'La regla se escribió, pero otra regla posterior dentro de permission.browser sigue ganando para ese origen. Abre tiancode.json y deja "*" como primera clave de permission.browser.',
   "settings.computerUse.browser.cookies": "Cookies y sesiones",
-  "settings.computerUse.browser.cookies.description":
-    "Cuánto duran los inicios de sesión y las cookies del navegador integrado y de la vista en vivo.",
   "settings.computerUse.browser.cookies.always": "Siempre",
   "settings.computerUse.browser.cookies.session": "Hasta que cierre Tiancode",
-  "settings.computerUse.browser.cookies.note":
-    "«Hasta que cierre Tiancode» borra cookies, caché y almacenamiento local la PRÓXIMA vez que arranque la app, no mientras se cierra: Electron no espera a un borrado asíncrono al salir, así que hacerlo ahí no funcionaría siempre. No hay opción de «no guardar nunca»: el navegador integrado corre en una partición persistente fija y Electron no deja cambiarla una vez cargada la página.",
   "settings.general.row.transcriptView.title": "Vista de la transcripción",
   "settings.general.row.transcriptView.description":
     "Cuánto de cada turno se abre desplegado por defecto; cada sesión puede cambiarlo desde Más opciones",
@@ -3063,9 +2948,7 @@ export const dict = {
   "composer.followup.queueAction": "Poner en cola",
   "composer.followup.steerAction": "Enviar ya (dirigir)",
   "settings.general.row.followup.descriptionKeybind": "Mientras el agente trabaja, elige si un mensaje nuevo redirige el turno actual o espera en cola. Usa {{keybind}} para la otra opción.",
-  "settings.notifications.description": "Elige cuándo recibir notificaciones y oír sonidos",
   "settings.general.wizard.title": "Asistente de bienvenida y configuración",
-  "settings.general.wizard.description": "Vuelve a abrir el asistente inicial para cambiar el idioma, el tema y las preferencias del aviso legal.",
   "settings.general.wizard.button": "Abrir asistente",
   "settings.general.section.preview": "Vista previa",
   "settings.general.row.previewOnFinish.title": "Cuando el agente termine una app",
@@ -3081,9 +2964,6 @@ export const dict = {
   "settings.workspaces.default.last-used": "El último usado en cada proyecto",
   "settings.workspaces.default.local": "Carpeta local",
   "settings.workspaces.default.new": "Worktree nuevo",
-  "settings.experimental.description": "Prueba funciones experimentales",
-  "settings.experimental.browser.title": "Navegador",
-  "settings.experimental.browser.description": "Permite que los agentes abran y controlen un navegador de desarrollo dentro de la app.",
   "settings.about.version": "Versión {{version}}",
   "settings.about.development": "Compilación de desarrollo",
   "settings.about.license.before": "Publicado bajo la ",
@@ -3206,7 +3086,6 @@ export const dict = {
   "settings.experimental.tabs.horizontal": "Horizontales",
   "settings.experimental.tabs.vertical": "Verticales",
   "settings.experimental.projectNames.title": "Mostrar nombres de proyecto",
-  "settings.experimental.projectNames.description": "Muestra el nombre del proyecto en las pestañas verticales",
   "settings.general.row.terminalPlacement.title": "Posición del terminal",
   "settings.general.row.terminalPlacement.description": "Elige dónde se abre el terminal en las sesiones",
   "settings.general.row.terminalPlacement.side": "Lateral",
@@ -3452,15 +3331,6 @@ export const dict = {
   "settings.intelligence.probe.time": "{{ms}} ms por pregunta",
   "settings.intelligence.probe.outcome": "Cómo termina el turno",
   "settings.intelligence.probe.area": "Tipo de trabajo",
-  "settings.intelligence.outcome.done": "Terminado",
-  "settings.intelligence.outcome.question": "Necesita tu respuesta",
-  "settings.intelligence.outcome.failed": "No se pudo terminar",
-  "settings.intelligence.area.ui": "Interfaz",
-  "settings.intelligence.area.backend": "Servidor y API",
-  "settings.intelligence.area.data": "Base de datos",
-  "settings.intelligence.area.tests": "Pruebas",
-  "settings.intelligence.area.docs": "Documentación",
-  "settings.intelligence.area.devops": "Compilación y despliegue",
   "settings.computerUse.page.description": "Lo que el agente puede hacer en este equipo, en el navegador integrado y desde tus otros dispositivos.",
   "settings.computerUse.tab.desktop": "Escritorio",
   "settings.computerUse.tab.remote": "Acceso remoto",

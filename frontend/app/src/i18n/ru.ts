@@ -12,7 +12,6 @@ export const dict = {
   "settings.general.row.previewAutoOpen.title": "Открывать предпросмотр автоматически",
   "settings.general.row.previewAutoOpen.description": "Открывать живой предпросмотр самостоятельно, когда ИИ запускает веб-приложение в этой сессии. Выключено — только вручную.",
   "settings.general.row.restore.delete": "Удалить",
-  "settings.general.backup.delete.confirm": "Удалить резервную копию от {{name}} навсегда? Это нельзя отменить.",
   "settings.general.backup.delete.success": "Резервная копия удалена",
   "settings.general.backup.delete.failed": "Не удалось удалить резервную копию",
   "settings.modelsHub.load.title": "Параметры загрузки",
@@ -107,7 +106,6 @@ export const dict = {
   "settings.general.row.showVoice.description": "Показывать элементы воспроизведения голоса в шапке чата.",
   "settings.general.row.showCapture.title": "Снимок экрана",
   "settings.general.row.showCapture.description": "Показывать создание снимка экрана рядом со статусом.",
-  "settings.intelligence.storage": "Tiancode хранит память и изученные навыки в данных приложения отдельно для каждого проекта. Существующие файлы в проектах по-прежнему читаются для совместимости.",
   "settings.browser.links.chrome": "Google Chrome",
   "settings.browser.chromeUnavailable": "Не удалось открыть Chrome. Убедитесь, что Google Chrome установлен.",
   "desktop.browser.chromeUnavailable": "Не удалось открыть Chrome. Убедитесь, что Google Chrome установлен.",
@@ -1206,13 +1204,6 @@ export const dict = {
   "settings.general.row.petKind.description": "Выберите компаньона для отображения в приложении",
   "settings.general.row.petPosition.title": "Расположение",
   "settings.general.row.petPosition.description": "Выберите место отображения компаньона",
-  "settings.general.pets.kind.cat": "Кот",
-  "settings.general.pets.kind.dog": "Собака",
-  "settings.general.pets.kind.rabbit": "Кролик",
-  "settings.general.pets.position.bottomRight": "Внизу справа",
-  "settings.general.pets.position.bottomLeft": "Внизу слева",
-  "settings.general.pets.position.topRight": "Вверху справа",
-  "settings.general.pets.position.topLeft": "Вверху слева",
   "pets.status.ready": "Готово",
   "pets.status.resting": "Отдыхаю",
 
@@ -1304,20 +1295,12 @@ export const dict = {
   "sound.option.yup06": "Yup 06",
 
   "settings.general.notifications.agent.title": "Агент",
-  "settings.general.notifications.agent.description":
-    "Показывать системное уведомление, когда агент завершил работу или требует внимания",
   "settings.general.notifications.permissions.title": "Разрешения",
-  "settings.general.notifications.permissions.description":
-    "Показывать системное уведомление, когда требуется разрешение",
   "settings.general.notifications.errors.title": "Ошибки",
-  "settings.general.notifications.errors.description": "Показывать системное уведомление, когда происходит ошибка",
 
   "settings.general.sounds.agent.title": "Агент",
-  "settings.general.sounds.agent.description": "Воспроизводить звук, когда агент завершил работу или требует внимания",
   "settings.general.sounds.permissions.title": "Разрешения",
-  "settings.general.sounds.permissions.description": "Воспроизводить звук, когда требуется разрешение",
   "settings.general.sounds.errors.title": "Ошибки",
-  "settings.general.sounds.errors.description": "Воспроизводить звук, когда происходит ошибка",
 
   "settings.shortcuts.title": "Горячие клавиши",
   "settings.shortcuts.reset.button": "Восстановить настройки по умолчанию",
@@ -1553,8 +1536,6 @@ export const dict = {
     "Закрытие окна сворачивает приложение в системный трей вместо выхода",
   "settings.general.row.fileWatcher.title": "Обновление файлов в реальном времени",
   "settings.general.row.fileWatcher.description": "Автоматически обновляет дерево файлов и изменения git.",
-  "settings.general.fileWatcher.restart.confirm":
-    "Перезапустить Tiancode, чтобы применить изменение обновления файлов в реальном времени?",
   "session.export.button": "Экспортировать разговор в Markdown",
   "session.export.jsonButton": "Экспорт JSON",
   "session.export.title": "Экспорт разговора",
@@ -1572,9 +1553,6 @@ export const dict = {
   "settings.general.row.restore.button": "Восстановить",
   "settings.general.backup.now.success": "Резервная копия создана",
   "settings.general.backup.now.failed": "Пока нет данных для резервного копирования",
-  "settings.general.backup.restore.confirm":
-    "Восстановить резервную копию {{name}}? Текущие сессии и конфигурация будут заменены.",
-  "settings.general.backup.restore.success": "Резервная копия восстановлена",
   "settings.general.backup.restore.failed": "Не удалось восстановить резервную копию",
   "settings.general.row.loginItem.title": "Запускать при входе",
   "settings.general.row.loginItem.description": "Автоматически открывать Tiancode при входе в Windows",
@@ -1906,15 +1884,7 @@ export const dict = {
   "settings.pets.position.topRight": "Справа вверху",
   "settings.pets.position.topLeft": "Слева вверху",
   "settings.computerUse.title": "Управление ПК",
-  "settings.computerUse.description":
-    "Локальные приложения, которые агент может интегрировать, и разрешения для действий computer use.",
   "settings.computerUse.section.permissions": "Разрешения",
-  "settings.computerUse.section.apps": "Локальные приложения",
-  "settings.computerUse.apps.description":
-    "Локальные MCP-серверы, настроенные на этом компьютере (Android Studio, Photoshop, Opera GX, Unreal и др.). Статус отражает реальное подключение.",
-  "settings.computerUse.apps.connected": "Подключено",
-  "settings.computerUse.apps.disconnected": "Не подключено",
-  "settings.computerUse.empty": "Локальные приложения ещё не настроены",
   "settings.computerUse.save.failed": "Не удалось обновить разрешение",
   "settings.mcpServers.description":
     "Подключите агента к внешним инструментам через серверы Model Context Protocol (MCP).",
@@ -2202,20 +2172,7 @@ export const dict = {
 
   // --- Restored keys: referenced by app code but previously absent from this dictionary ---
   "settings.tab.intelligence": "Интеллект",
-  "settings.intelligence.title": "Интеллект и память",
-  "settings.intelligence.description":
-    "Настройте долговременную память (LTM), умное извлечение веб-страниц, анализ графов и безопасность выполнения.",
-  "settings.intelligence.section.memory": "Долговременная память (LTM)",
-  "settings.intelligence.userMemory": "Память пользователя (USER.md)",
-  "settings.intelligence.userMemory.desc":
-    "Запоминает глобальные предпочтения по коду, стилю и языку во всех ваших проектах.",
-  "settings.intelligence.projectMemory": "Память проекта (MEMORY.md)",
-  "settings.intelligence.projectMemory.desc":
-    "Хранит техническую архитектуру репозитория, сетевые порты и особенности сборки.",
   "settings.intelligence.codeGraph": "Анализ графа кода (CodeGraph)",
-  "settings.intelligence.codeGraph.desc":
-    "Индексирует функции, классы и зависимости, чтобы оценить влияние на архитектуру до правок.",
-  "settings.intelligence.section.safety": "Безопасность веба и выполнения",
   "settings.github.repo.create.failed": "Не удалось создать репозиторий",
   "settings.github.repo.create.success": "Репозиторий {{name}} создан",
   "settings.github.sync.success": "GitHub обновлён",
@@ -2301,43 +2258,15 @@ export const dict = {
   "livePreview.reloading": "Обновление…",
   "settings.computerUse.tab.tools": "Инструменты",
   "settings.computerUse.tab.bridges": "Мосты",
-  "settings.computerUse.section.tools": "Что агент может делать на этом компьютере",
-  "settings.computerUse.screenshot.title": "Снимок экрана (инструмент screenshot)",
-  "settings.computerUse.screenshot.description":
-    "Агент может сфотографировать экран, окно Tiancode или область экрана и прочитать изображение. Он запрашивает разрешение при каждом снимке, пока вы не одобрите их ниже.",
-  "settings.computerUse.clipboard.title": "Буфер обмена (инструмент clipboard)",
-  "settings.computerUse.clipboard.description":
-    "Агент может прочитать текст системного буфера обмена и заменить его. Каждое чтение и каждая запись подтверждаются по отдельности.",
-  "settings.computerUse.clipboard.note":
-    "Буфер обмена никогда не одобряется заранее: в нём часто лежат пароли, поэтому агент спрашивает каждый раз.",
-  "settings.computerUse.autoApproveScreenshot": "Автоматически одобрять снимки экрана",
-  "settings.computerUse.autoApproveScreenshot.description":
-    "Записывает permission.screenshot = allow в вашу конфигурацию, чтобы инструмент screenshot работал без запроса.",
-  "settings.computerUse.autoApproveScreenshot.note":
-    "Снимок показывает всё, что в этот момент на экране, включая другие приложения. Одобряйте заранее только на компьютере, которому доверяете.",
-  "settings.computerUse.save.done": "Разрешение обновлено",
   "settings.computerUse.tool.desktopOnly": "Только в настольном приложении",
   "settings.computerUse.tool.ready": "Доступно",
   "prompt.attachment.unavailable": "Не удалось прочитать вложение. Удалите его и прикрепите файл заново.",
   "settings.intelligence.skillCreate": "Создание навыков (SKILL.md)",
-  "settings.intelligence.skillCreate.desc":
-    "Позволяет агенту сохранять рабочий процесс как переиспользуемый SKILL.md в .tiancode/skills или в глобальной папке навыков. Момент записи выбирает сам агент.",
-  "settings.intelligence.section.context": "Граф кода и контекст",
   "settings.intelligence.outputDistiller": "Сжатие вывода терминала",
-  "settings.intelligence.outputDistiller.desc":
-    "Сокращает длинный вывод терминала до того, как его прочитает модель. Полный вывод остаётся в результате инструмента.",
   "settings.intelligence.webBoilerplate": "Удалять обвязку веб-страниц",
-  "settings.intelligence.webBoilerplate.desc":
-    "Убирает скрипты, навигацию, подвалы и формы при преобразовании загруженной страницы в Markdown. Отключите для страниц, содержимое которых лежит внутри этих элементов.",
   "settings.intelligence.shellScan": "Проверка команд оболочки (AgentShield)",
-  "settings.intelligence.shellScan.desc":
-    "Проверяет каждую команду оболочки на разрушительные удаления, чтение файлов с секретами и удалённое выполнение через конвейер и добавляет предупреждение к вызову инструмента. Только предупреждает: ничего не блокирует и не маскирует.",
   "settings.intelligence.toolCallRepair": "Починка аргументов вызова инструментов",
-  "settings.intelligence.toolCallRepair.desc":
-    "Восстанавливает некорректные аргументы — обрезанный JSON, незакрытые скобки, ограждения Markdown, — которые выдают локальные и потоковые модели. Если выключить, некорректный вызов просто завершится ошибкой.",
   "settings.intelligence.loopBreaker": "Прерыватель циклов",
-  "settings.intelligence.loopBreaker.desc":
-    "Останавливает агента, когда он повторяет один и тот же вызов инструмента или запускает слишком много инструментов за ход, и спрашивает, продолжать ли.",
   "settings.pets.desktop.unavailable": "Доступно только в десктопном приложении.",
   "settings.pets.pet.action": "Погладить",
   "settings.pets.pet.greeting": "Привет! Я готов помочь тебе с кодом.",
@@ -2573,62 +2502,18 @@ export const dict = {
   "welcome.provider.autoOpen":
     "После завершения откроются настройки провайдера, чтобы вы добавили модель. Закройте их, если хотите сделать это позже.",
   "settings.computerUse.tab.browser": "Браузер",
-  "settings.computerUse.tools.intro":
-    "Снимок экрана, буфер обмена и — только в Windows — мышь и клавиатура. Всё это работает через десктопное приложение: в сессии, открытой в браузере, нет рабочего стола.",
-  "settings.computerUse.section.computer": "Мышь и клавиатура",
-  "settings.computerUse.computer.title": "Мышь и клавиатура (инструмент computer)",
-  "settings.computerUse.computer.description":
-    "Агент двигает настоящий курсор, щёлкает и печатает в том приложении, которое сейчас на переднем плане. Первое действие каждой сессии открывает диалог с названием этого приложения, управление истекает само, и его можно остановить из индикатора в любой момент.",
   "settings.computerUse.computer.enable": "Разрешить агенту пользоваться мышью и клавиатурой",
-  "settings.computerUse.computer.enable.description":
-    "Хранится в самом десктопном приложении, а не в tiancode.json: агент может править tiancode.json своими инструментами, а тормоз, который правит сам агент, — не тормоз. При выключении главный процесс отклоняет любое действие и прерывает начатое управление.",
   "settings.computerUse.computer.windowsOnly": "Только Windows",
   "settings.computerUse.denied.title": "Запрещённые исполняемые файлы",
-  "settings.computerUse.denied.description":
-    "Пока одно из этих окон находится на переднем плане, Tiancode отказывается отправлять клики и нажатия клавиш, даже если вы разрешили его раньше в этой сессии. Список сохраняется между запусками, а разрешения сессии — нет.",
-  "settings.computerUse.denied.note":
-    "Сравнение идёт по имени исполняемого файла — последней части пути в нижнем регистре. Две разные программы с одинаковым именем файла неразличимы, а переименование файла выводит его из списка. Это имя файла, а не личность приложения.",
   "settings.computerUse.denied.placeholder": "notepad.exe",
   "settings.computerUse.denied.add": "Запретить",
-  "settings.computerUse.denied.remove": "Убрать",
-  "settings.computerUse.denied.empty": "Ни один файл не запрещён",
   "settings.computerUse.denied.invalid": "Введите имя исполняемого файла, например notepad.exe",
   "settings.computerUse.denied.duplicate": "Этот файл уже в списке",
-  "settings.computerUse.platform.note":
-    "Управление компьютером требует десктопного приложения и работает только в Windows: в macOS нужны системное разрешение «Универсальный доступ» и другой бэкенд, а в Linux всё зависит от X11 или Wayland. Tiancode прямо сообщает об этом и отказывается, вместо того чтобы странно падать.",
-  "settings.computerUse.browser.section": "Встроенный браузер",
-  "settings.computerUse.browser.control": "Разрешить агенту читать и вести встроенный браузер",
-  "settings.computerUse.browser.control.description":
-    "Чтение открытой страницы и клики или ввод на ней запрашиваются с origin сайта в качестве шаблона, поэтому «да» для одного сайта не становится «да» для следующего.",
-  "settings.computerUse.browser.control.ask": "Спрашивать для каждого сайта",
-  "settings.computerUse.browser.control.allow": "Разрешать любой сайт без вопросов",
-  "settings.computerUse.browser.control.deny": "Не давать агенту пользоваться браузером",
-  "settings.computerUse.browser.control.inherited": "Унаследованное значение",
-  "settings.computerUse.browser.control.note":
-    'До сих пор правила не было, а значение агента по умолчанию разрешало любой origin: он мог читать и вести любую страницу встроенного браузера без запроса. Выбор «Спрашивать для каждого сайта» записывает permission.browser = {"*": "ask"} в конфигурацию этого проекта, и дальше Tiancode спрашивает перед любым сайтом, которого нет в списке ниже. Для тех, кто уже этим пользуется, это настоящее изменение поведения.',
-  "settings.computerUse.browser.sites": "Разрешённые сайты",
-  "settings.computerUse.browser.sites.description":
-    "Origin-ы с постоянным правилом allow в конфигурации этого проекта.",
-  "settings.computerUse.browser.sites.note":
-    "Ответ «Всегда» в запросе разрешения сюда НЕ попадает: его держит в памяти работающий экземпляр, и вместе с ним оно исчезает. В конфигурацию пишется только то, что вы добавите на этом экране, поэтому список не показывает всё, что одобрено прямо сейчас.",
-  "settings.computerUse.browser.sites.inert":
-    "Пока общее правило — «Разрешать любой сайт без вопросов», этот список ничего не меняет: все сайты и так разрешены.",
   "settings.computerUse.browser.sites.placeholder": "https://example.com",
-  "settings.computerUse.browser.sites.add": "Разрешить",
-  "settings.computerUse.browser.sites.revoke": "Отозвать",
-  "settings.computerUse.browser.sites.revoked": "Отозвано: Tiancode снова спросит про этот сайт",
-  "settings.computerUse.browser.sites.empty": "Нет заранее разрешённых сайтов",
   "settings.computerUse.browser.sites.invalid": "Введите полный адрес, например https://example.com",
-  "settings.computerUse.browser.sites.duplicate": "Этот origin уже разрешён",
-  "settings.computerUse.browser.sites.orderFailed":
-    'Правило записано, но другое правило ниже в permission.browser всё ещё побеждает для этого origin. Откройте tiancode.json и оставьте "*" первым ключом permission.browser.',
   "settings.computerUse.browser.cookies": "Cookie и сессии",
-  "settings.computerUse.browser.cookies.description":
-    "Сколько живут входы и cookie встроенного браузера и живого просмотра.",
   "settings.computerUse.browser.cookies.always": "Всегда",
   "settings.computerUse.browser.cookies.session": "Пока не закрою Tiancode",
-  "settings.computerUse.browser.cookies.note":
-    "«Пока не закрою Tiancode» очищает cookie, кэш и локальное хранилище при СЛЕДУЮЩЕМ запуске приложения, а не во время закрытия: при выходе Electron не дожидается асинхронной очистки, поэтому там она иногда не срабатывала бы вовсе. Варианта «никогда не хранить» нет: встроенный браузер работает в фиксированном постоянном разделе, и Electron не позволяет менять его после загрузки страницы.",
   "settings.general.row.transcriptView.title": "Вид переписки",
   "settings.general.row.transcriptView.description":
     "Насколько раскрыт каждый ход по умолчанию; для любой сессии это можно изменить в «Дополнительные опции»",

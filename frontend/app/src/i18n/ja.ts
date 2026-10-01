@@ -12,7 +12,6 @@ export const dict = {
   "settings.general.row.previewAutoOpen.title": "プレビューを自動で開く",
   "settings.general.row.previewAutoOpen.description": "このセッションで AI が Web アプリを起動したとき、ライブプレビューを自動で開きます。オフなら手動のみ。",
   "settings.general.row.restore.delete": "削除",
-  "settings.general.backup.delete.confirm": "{{name}} のバックアップを完全に削除しますか？元に戻せません。",
   "settings.general.backup.delete.success": "バックアップを削除しました",
   "settings.general.backup.delete.failed": "バックアップを削除できませんでした",
   "settings.modelsHub.load.title": "読み込みパラメーター",
@@ -107,7 +106,6 @@ export const dict = {
   "settings.general.row.showVoice.description": "チャットヘッダーに音声再生コントロールを表示します。",
   "settings.general.row.showCapture.title": "スクリーンショット",
   "settings.general.row.showCapture.description": "ステータスの横にスクリーンショットの取得を表示します。",
-  "settings.intelligence.storage": "Tiancode はメモリと学習したスキルをプロジェクトごとに分けてアプリケーションデータに保存します。既存のプロジェクト内ファイルは互換性のために引き続き読み取られます。",
   "settings.browser.links.chrome": "Google Chrome",
   "settings.browser.chromeUnavailable":
     "Chrome を開けませんでした。Google Chrome がインストールされているか確認してください。",
@@ -1096,13 +1094,6 @@ export const dict = {
   "settings.general.row.petKind.description": "アプリに表示するコンパニオンを選択します",
   "settings.general.row.petPosition.title": "位置",
   "settings.general.row.petPosition.description": "コンパニオンを表示する場所を選択します",
-  "settings.general.pets.kind.cat": "猫",
-  "settings.general.pets.kind.dog": "犬",
-  "settings.general.pets.kind.rabbit": "うさぎ",
-  "settings.general.pets.position.bottomRight": "右下",
-  "settings.general.pets.position.bottomLeft": "左下",
-  "settings.general.pets.position.topRight": "右上",
-  "settings.general.pets.position.topLeft": "左上",
   "pets.status.ready": "準備完了",
   "pets.status.resting": "休憩中",
 
@@ -1190,18 +1181,11 @@ export const dict = {
   "sound.option.yup05": "はい 05",
   "sound.option.yup06": "はい 06",
   "settings.general.notifications.agent.title": "エージェント",
-  "settings.general.notifications.agent.description":
-    "エージェントが完了したか、注意が必要な場合にシステム通知を表示します",
   "settings.general.notifications.permissions.title": "権限",
-  "settings.general.notifications.permissions.description": "権限が必要な場合にシステム通知を表示します",
   "settings.general.notifications.errors.title": "エラー",
-  "settings.general.notifications.errors.description": "エラーが発生した場合にシステム通知を表示します",
   "settings.general.sounds.agent.title": "エージェント",
-  "settings.general.sounds.agent.description": "エージェントが完了したか、注意が必要な場合に音を再生します",
   "settings.general.sounds.permissions.title": "権限",
-  "settings.general.sounds.permissions.description": "権限が必要な場合に音を再生します",
   "settings.general.sounds.errors.title": "エラー",
-  "settings.general.sounds.errors.description": "エラーが発生した場合に音を再生します",
   "settings.shortcuts.title": "キーボードショートカット",
   "settings.shortcuts.reset.button": "デフォルトにリセット",
   "settings.shortcuts.reset.toast.title": "ショートカットをリセットしました",
@@ -1461,8 +1445,6 @@ export const dict = {
   "settings.general.row.minimizeToTray.description": "ウィンドウを閉じると終了せずにシステムトレイに最小化します",
   "settings.general.row.fileWatcher.title": "リアルタイムのファイル更新",
   "settings.general.row.fileWatcher.description": "ファイルツリーと Git の変更を自動的に更新します。",
-  "settings.general.fileWatcher.restart.confirm":
-    "リアルタイムのファイル更新設定を反映するには Tiancode を再起動しますか？",
   "session.export.button": "会話を Markdown にエクスポート",
   "session.export.jsonButton": "JSONで書き出す",
   "session.export.title": "会話をエクスポート",
@@ -1480,9 +1462,6 @@ export const dict = {
   "settings.general.row.restore.button": "復元",
   "settings.general.backup.now.success": "バックアップを作成しました",
   "settings.general.backup.now.failed": "バックアップするデータがまだありません",
-  "settings.general.backup.restore.confirm":
-    "バックアップ {{name}} を復元しますか？現在のセッションと設定は置き換えられます。",
-  "settings.general.backup.restore.success": "バックアップを復元しました",
   "settings.general.backup.restore.failed": "バックアップを復元できませんでした",
   "settings.general.row.loginItem.title": "起動時に自動起動",
   "settings.general.row.loginItem.description": "Windows にサインインすると Tiancode を自動的に起動します",
@@ -1813,14 +1792,7 @@ export const dict = {
   "settings.pets.position.topRight": "右上",
   "settings.pets.position.topLeft": "左上",
   "settings.computerUse.title": "PC操作",
-  "settings.computerUse.description": "エージェントが連携できるローカルアプリと、computer use 操作の権限を設定します。",
   "settings.computerUse.section.permissions": "権限",
-  "settings.computerUse.section.apps": "ローカルアプリ",
-  "settings.computerUse.apps.description":
-    "このコンピューターに設定されたローカル MCP サーバー（Android Studio、Photoshop、Opera GX、Unreal など）。状態は実際の接続を反映します。",
-  "settings.computerUse.apps.connected": "接続済み",
-  "settings.computerUse.apps.disconnected": "未接続",
-  "settings.computerUse.empty": "ローカルアプリはまだ設定されていません",
   "settings.computerUse.save.failed": "権限を更新できませんでした",
   "settings.mcpServers.description":
     "Model Context Protocol（MCP）サーバーを介してエージェントを外部ツールに接続します。",
@@ -2106,18 +2078,7 @@ export const dict = {
 
   // --- Restored keys: referenced by app code but previously absent from this dictionary ---
   "settings.tab.intelligence": "インテリジェンス",
-  "settings.intelligence.title": "インテリジェンスとメモリ",
-  "settings.intelligence.description": "長期メモリ (LTM)、スマートWeb抽出、グラフ解析、実行時の安全性を設定します。",
-  "settings.intelligence.section.memory": "長期メモリ (LTM)",
-  "settings.intelligence.userMemory": "ユーザーメモリ (USER.md)",
-  "settings.intelligence.userMemory.desc":
-    "すべてのプロジェクトに共通するコーディング・スタイル・言語の設定を記憶します。",
-  "settings.intelligence.projectMemory": "プロジェクトメモリ (MEMORY.md)",
-  "settings.intelligence.projectMemory.desc": "このリポジトリの技術アーキテクチャ、ポート、ビルド上の癖を保存します。",
   "settings.intelligence.codeGraph": "コードグラフ解析 (CodeGraph)",
-  "settings.intelligence.codeGraph.desc":
-    "関数・クラス・依存関係をインデックス化し、編集前にアーキテクチャへの影響を検討します。",
-  "settings.intelligence.section.safety": "Web と実行の安全性",
   "settings.github.repo.create.failed": "リポジトリを作成できませんでした",
   "settings.github.repo.create.success": "リポジトリ {{name}} を作成しました",
   "settings.github.sync.success": "GitHub を更新しました",
@@ -2202,43 +2163,15 @@ export const dict = {
   "livePreview.reloading": "更新中…",
   "settings.computerUse.tab.tools": "ツール",
   "settings.computerUse.tab.bridges": "ブリッジ",
-  "settings.computerUse.section.tools": "エージェントがこのコンピューターでできること",
-  "settings.computerUse.screenshot.title": "画面キャプチャ（screenshot ツール）",
-  "settings.computerUse.screenshot.description":
-    "エージェントは画面、Tiancode のウィンドウ、または画面の一部を撮影して画像を読み取れます。下で承認しない限り、キャプチャのたびに許可を求めます。",
-  "settings.computerUse.clipboard.title": "クリップボード（clipboard ツール）",
-  "settings.computerUse.clipboard.description":
-    "エージェントはシステムのクリップボードのテキストを読み取り、書き換えられます。読み取りも書き込みも 1 回ずつ確認されます。",
-  "settings.computerUse.clipboard.note":
-    "クリップボードは事前承認できません。パスワードが入っていることが多いため、エージェントは毎回確認します。",
-  "settings.computerUse.autoApproveScreenshot": "画面キャプチャを自動的に承認する",
-  "settings.computerUse.autoApproveScreenshot.description":
-    "設定に permission.screenshot = allow を書き込み、screenshot ツールが確認なしで実行されるようにします。",
-  "settings.computerUse.autoApproveScreenshot.note":
-    "キャプチャにはその瞬間に画面に映っているものがすべて含まれ、他のアプリケーションも写ります。信頼できるコンピューターでのみ事前承認してください。",
-  "settings.computerUse.save.done": "権限を更新しました",
   "settings.computerUse.tool.desktopOnly": "デスクトップアプリのみ",
   "settings.computerUse.tool.ready": "利用可能",
   "prompt.attachment.unavailable": "添付ファイルを読み取れませんでした。削除してから、もう一度添付してください。",
   "settings.intelligence.skillCreate": "スキルの作成 (SKILL.md)",
-  "settings.intelligence.skillCreate.desc":
-    "エージェントがワークフローを再利用可能な SKILL.md として .tiancode/skills またはグローバルのスキルフォルダーに保存できるようにします。書き出すタイミングはエージェントが判断します。",
-  "settings.intelligence.section.context": "コードグラフとコンテキスト",
   "settings.intelligence.outputDistiller": "ターミナル出力の要約",
-  "settings.intelligence.outputDistiller.desc":
-    "長いターミナル出力をモデルが読む前に短縮します。完全な出力はツールの結果にそのまま残ります。",
   "settings.intelligence.webBoilerplate": "Web ページの定型部分を除去",
-  "settings.intelligence.webBoilerplate.desc":
-    "取得したページを Markdown に変換する際、スクリプト・ナビゲーション・フッター・フォームを取り除きます。本文がこれらの要素の中にあるページではオフにしてください。",
   "settings.intelligence.shellScan": "シェルコマンドの検査 (AgentShield)",
-  "settings.intelligence.shellScan.desc":
-    "すべてのシェルコマンドを検査し、破壊的な削除・機密ファイルの読み取り・パイプ経由のリモート実行を見つけると、ツール呼び出しに警告を添えます。あくまで助言であり、コマンドを止めることも値を隠すこともありません。",
   "settings.intelligence.toolCallRepair": "ツール呼び出し引数の修復",
-  "settings.intelligence.toolCallRepair.desc":
-    "ローカルモデルやストリーミングが生成する不正な引数 (途中で切れた JSON、閉じていない波かっこ、Markdown のコードフェンス) を修復します。オフにすると、不正な呼び出しはそのまま失敗します。",
   "settings.intelligence.loopBreaker": "ループブレーカー",
-  "settings.intelligence.loopBreaker.desc":
-    "同じツール呼び出しを繰り返したり、1 ターンで過剰にツールを実行したりしたときにエージェントを停止し、続行してよいか確認します。",
   "settings.pets.desktop.unavailable": "デスクトップアプリでのみ利用できます。",
   "settings.pets.pet.action": "なでる",
   "settings.pets.pet.greeting": "こんにちは！コーディングのお手伝いをする準備はできています。",
@@ -2471,61 +2404,18 @@ export const dict = {
   "welcome.provider.autoOpen":
     "完了するとプロバイダー設定が開き、モデルを追加できます。後で設定する場合は閉じてください。",
   "settings.computerUse.tab.browser": "ブラウザ",
-  "settings.computerUse.tools.intro":
-    "画面キャプチャ、クリップボード、そして Windows のみマウスとキーボード。いずれもデスクトップアプリ経由で動作します。ブラウザで開いたセッションには操作できるデスクトップがありません。",
-  "settings.computerUse.section.computer": "マウスとキーボード",
-  "settings.computerUse.computer.title": "マウスとキーボード（computer ツール）",
-  "settings.computerUse.computer.description":
-    "エージェントが実際のカーソルを動かし、最前面のアプリケーションでクリックや入力を行います。各セッションの最初の操作でそのアプリ名を示すダイアログが開き、制御は自動的に期限切れになり、インジケーターからいつでも停止できます。",
   "settings.computerUse.computer.enable": "エージェントにマウスとキーボードの使用を許可する",
-  "settings.computerUse.computer.enable.description":
-    "tiancode.json ではなくデスクトップアプリ自身に保存されます。tiancode.json はエージェント自身がツールで編集できるため、そこに置いたブレーキはブレーキになりません。オフにするとメインプロセスがすべての操作を拒否し、進行中の制御も停止します。",
   "settings.computerUse.computer.windowsOnly": "Windows のみ",
   "settings.computerUse.denied.title": "ブロックする実行ファイル",
-  "settings.computerUse.denied.description":
-    "これらのいずれかが最前面にある間、Tiancode はクリックやキー入力の送信を拒否します。セッション中に許可済みでも同じです。このリストは起動をまたいで保存されますが、セッションごとの許可は保存されません。",
-  "settings.computerUse.denied.note":
-    "照合は実行ファイル名（パスの最後の部分を小文字にしたもの）で行います。同じファイル名の別プログラムは区別できず、ファイル名を変えればリストから外れます。これはファイル名であり、アプリケーションの同一性ではありません。",
   "settings.computerUse.denied.placeholder": "notepad.exe",
   "settings.computerUse.denied.add": "ブロック",
-  "settings.computerUse.denied.remove": "削除",
-  "settings.computerUse.denied.empty": "ブロック中の実行ファイルはありません",
   "settings.computerUse.denied.invalid": "実行ファイル名を入力してください（例: notepad.exe）",
   "settings.computerUse.denied.duplicate": "その実行ファイルはすでにリストにあります",
-  "settings.computerUse.platform.note":
-    "PC の操作にはデスクトップアプリが必要で、動作するのは Windows のみです。macOS ではシステムのアクセシビリティ権限と別のバックエンドが必要で、Linux では X11 か Wayland に依存します。Tiancode は奇妙に失敗する代わりに、そう伝えて拒否します。",
-  "settings.computerUse.browser.section": "統合ブラウザ",
-  "settings.computerUse.browser.control": "エージェントに統合ブラウザの読み取りと操作を許可する",
-  "settings.computerUse.browser.control.description":
-    "開いているページの読み取りと、そこでのクリックや入力は、サイトのオリジンをパターンとして許可を求めます。あるサイトへの「はい」が次のサイトへの「はい」にはなりません。",
-  "settings.computerUse.browser.control.ask": "サイトごとに確認する",
-  "settings.computerUse.browser.control.allow": "確認せずにすべてのサイトを許可",
-  "settings.computerUse.browser.control.deny": "エージェントにブラウザを使わせない",
-  "settings.computerUse.browser.control.inherited": "既定値を継承",
-  "settings.computerUse.browser.control.note":
-    'これまでルールは書かれておらず、エージェントの既定値がすべてのオリジンを許可していました。つまり統合ブラウザのどのページでも確認なしに読み取り・操作できていたということです。「サイトごとに確認する」を選ぶと、このプロジェクトの設定に permission.browser = {"*": "ask"} が書き込まれ、以後は下のリストにないサイトの前に Tiancode が確認します。すでに使っている人にとっては実際の挙動変更です。',
-  "settings.computerUse.browser.sites": "許可したサイト",
-  "settings.computerUse.browser.sites.description": "このプロジェクトの設定に許可ルールが保存されているオリジンです。",
-  "settings.computerUse.browser.sites.note":
-    "許可ダイアログで答えた「常に許可」はここには現れません。実行中のインスタンスがメモリに保持し、そのインスタンスとともに消えます。設定に書き込まれるのはこの画面で追加したものだけなので、このリストは現時点で承認されているすべてを表してはいません。",
-  "settings.computerUse.browser.sites.inert":
-    "全体のルールが「確認せずにすべてのサイトを許可」である間、このリストは何も変えません。すべてのサイトがすでに許可されています。",
   "settings.computerUse.browser.sites.placeholder": "https://example.com",
-  "settings.computerUse.browser.sites.add": "許可",
-  "settings.computerUse.browser.sites.revoke": "取り消す",
-  "settings.computerUse.browser.sites.revoked": "取り消しました。そのサイトでは再び確認します",
-  "settings.computerUse.browser.sites.empty": "事前に許可したサイトはありません",
   "settings.computerUse.browser.sites.invalid": "完全なアドレスを入力してください（例: https://example.com）",
-  "settings.computerUse.browser.sites.duplicate": "そのオリジンはすでに許可されています",
-  "settings.computerUse.browser.sites.orderFailed":
-    'ルールは書き込まれましたが、permission.browser 内の後続のルールがそのオリジンに対して優先されたままです。tiancode.json を開き、permission.browser の最初のキーを "*" にしてください。',
   "settings.computerUse.browser.cookies": "Cookie とセッション",
-  "settings.computerUse.browser.cookies.description":
-    "統合ブラウザとライブビューのログインと Cookie をどれだけ保持するか。",
   "settings.computerUse.browser.cookies.always": "ずっと",
   "settings.computerUse.browser.cookies.session": "Tiancode を閉じるまで",
-  "settings.computerUse.browser.cookies.note":
-    "「Tiancode を閉じるまで」は、閉じている最中ではなく次回アプリを起動したときに Cookie・キャッシュ・ローカルストレージを消去します。終了時に Electron は非同期の消去を待たないため、そこで行うと消えないことがあるからです。「保存しない」という選択肢はありません。統合ブラウザは固定の永続パーティションで動作し、ページの読み込み後に Electron はそれを変更させません。",
   "settings.general.row.transcriptView.title": "トランスクリプトの表示",
   "settings.general.row.transcriptView.description":
     "各ターンを既定でどこまで展開するか。セッションごとに「その他のオプション」から変更できます",
