@@ -50,4 +50,15 @@ describe("buildPreviewAgentScript", () => {
     expect(code).toContain('spot.where.indexOf("tapado") === 0')
     expect(code).toContain("pointerdown")
   })
+
+  test("the report runs in a page and warns about text decoded with the wrong charset", async () => {
+    document.title = "iPhone 18 Pro Max â€” Titanio. MÃ¡s allÃ¡."
+    document.body.innerHTML = "<button>Comprar</button>"
+    const report = (await (0, eval)(buildPreviewAgentScript({ type: "inspect" }))) as string
+    expect(report).toContain("Título: iPhone 18 Pro Max")
+    expect(report).toContain("el texto parece mal codificado")
+    document.title = "Más allá"
+    const clean = (await (0, eval)(buildPreviewAgentScript({ type: "inspect" }))) as string
+    expect(clean).not.toContain("mal codificado")
+  })
 })

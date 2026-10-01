@@ -289,6 +289,16 @@ const snapshot = (note, root) => {
   if (note) lines.push(note, "");
   lines.push("URL: " + location.href);
   lines.push("Título: " + (document.title || "(sin título)"));
+  const navigation = typeof performance.getEntriesByType === "function" && performance.getEntriesByType("navigation")[0];
+  if (navigation && navigation.responseStatus) lines.push("Estado HTTP: " + navigation.responseStatus);
+  // Text sent without a charset is read as windows-1252, which turns "á" into "Ã¡": say so instead
+  // of letting the agent chase a bug in its own strings.
+  const charset = (document.characterSet || "").toUpperCase();
+  if (charset && charset !== "UTF-8") {
+    lines.push("Codificación: " + charset + ". Si el texto muestra caracteres como Ã© o â€, el servidor no declara UTF-8: añade <meta charset=utf-8> al principio del <head> o usa la vista previa de Tiancode, que lo envía.");
+  } else if (/Ã[\u0080-\u00BF]|â€/.test(document.title + " " + (document.body ? document.body.innerText.slice(0, 2000) : ""))) {
+    lines.push("Aviso: el texto parece mal codificado (Ã©, â€…); el archivo pudo guardarse con otra codificación que no es UTF-8.");
+  }
   lines.push(scrollInfo());
   const dialog = document.querySelector('[role=dialog], dialog[open]');
   if (dialog && visible(dialog)) lines.push("Diálogo abierto: " + JSON.stringify(clean(nameOf(dialog)).slice(0, 120)));

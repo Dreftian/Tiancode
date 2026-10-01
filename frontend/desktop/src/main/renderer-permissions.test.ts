@@ -25,4 +25,19 @@ describe("renderer permissions", () => {
     expect(policy.allows({ ...request, topURL: "https://example.com" })).toBe(false)
     expect(policy.allows({ ...request, permission: "geolocation" })).toBe(false)
   })
+
+  test("a page previewed in the Sandbox gets fullscreen but not the camera, microphone or clipboard", () => {
+    const policy = createRendererPermissionPolicy(
+      (url) => url === "oc://renderer/index.html",
+      (url) => url?.startsWith("http://localhost:") === true,
+    )
+    policy.register(1)
+    const request = { id: 1, topURL: "oc://renderer/index.html", requestingURL: "http://localhost:4173/" }
+    expect(policy.allows({ ...request, permission: "fullscreen" })).toBe(true)
+    expect(policy.allows({ ...request, permission: "media" })).toBe(false)
+    expect(policy.allows({ ...request, permission: "clipboard-read" })).toBe(false)
+    expect(policy.allows({ ...request, permission: "notifications" })).toBe(false)
+    // The app itself keeps its microphone.
+    expect(policy.allows({ ...request, permission: "media", requestingURL: "oc://renderer/index.html" })).toBe(true)
+  })
 })

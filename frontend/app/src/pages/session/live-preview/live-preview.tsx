@@ -184,10 +184,12 @@ type PreviewIssue = {
 const CUSTOM_MIN = 80
 const CUSTOM_MAX = 4096
 const HIDDEN_PREVIEW_BOUNDS = { x: 0, y: 0, width: 0, height: 0 }
+// The previewed project is untrusted code running inside the app window: it may not navigate the
+// app itself (no allow-top-navigation*), escape the sandbox through a popup, or reach devices and
+// clipboard contents (the desktop permission handler denies those to it as well).
 const IFRAME_SANDBOX =
-  "allow-scripts allow-same-origin allow-forms allow-modals allow-downloads allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-top-navigation-by-user-activation allow-storage-access-by-user-activation"
-const IFRAME_ALLOW =
-  "accelerometer; autoplay; camera; clipboard-read; clipboard-write; display-capture; encrypted-media; fullscreen; gamepad; geolocation; gyroscope; hid; microphone; midi; payment; picture-in-picture; screen-wake-lock; usb; web-share"
+  "allow-scripts allow-same-origin allow-forms allow-modals allow-downloads allow-popups allow-pointer-lock"
+const IFRAME_ALLOW = "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
 
 export function isBlankPreviewUrl(url: string | undefined) {
   return !url || url.startsWith("about:blank")
@@ -2082,6 +2084,20 @@ export function LivePreview(props: {
       lastAutoStartKey = key
       void devServerAction("start")
     }
+  })
+
+  // A restarted server is a new process, maybe running another command on the same URL: the page
+  // on screen is the old one, so it reloads (or follows the new URL) as soon as the new one is ready.
+  let seenServerStart: number | null | undefined
+  createEffect(() => {
+    const managed = devServer()
+    if (managed?.status !== "ready" || !managed.url) return
+    const started = managed.startedAt
+    const previous = seenServerStart
+    seenServerStart = started
+    if (previous === undefined || previous === started) return
+    if (samePreviewUrl(requestedUrl, managed.url)) reloadIframe()
+    else navigateTo(managed.url)
   })
 
   // Un servidor listo se publica como destino canónico y reemplaza la

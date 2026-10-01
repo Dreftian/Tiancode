@@ -38,7 +38,7 @@ const root = dirname(fileURLToPath(import.meta.url))
 const rendererRoot = join(root, "../renderer")
 const rendererProtocol = "oc"
 const rendererHost = "renderer"
-const rendererPermissions = createRendererPermissionPolicy(isTrustedRendererUrl)
+const rendererPermissions = createRendererPermissionPolicy(isRendererUrl, isLoopbackUrl)
 const overlayWindows = new WeakSet<BrowserWindow>()
 const oc2Theme = oc2ThemeJson as DesktopTheme
 const oc2Background = {
@@ -384,8 +384,29 @@ export function createMainWindow(id: string = randomUUID()) {
 
   win.webContents.session.webRequest.onHeadersReceived((details, callback) => {
     const { responseHeaders = {} } = details
-    addRendererHeaders(details.url, responseHeaders)
+    // A page previewed in the Sandbox (an iframe of this window) gets neither the open CORS the app
+    // needs to reach its server nor a cache: a restarted dev server must never show the old page.
+    if (fromSubframe(details.frame)) {
+      if (isLoopbackUrl(details.url)) upsertKeyValue(responseHeaders, "Cache-Control", ["no-store"])
+    } else {
+      addRendererHeaders(details.url, responseHeaders)
+    }
     callback({ responseHeaders })
+  })
+
+  // A link the agent clicks inside the previewed page may not take that frame to another site,
+  // and nothing it triggers may download files.
+  win.webContents.on("will-frame-navigate", (event) => {
+    if (event.isMainFrame || !isAgentActionInFlight()) return
+    const current = frameUrl(event.frame)
+    if (current && URL.canParse(current) && URL.canParse(event.url) && new URL(current).origin === new URL(event.url).origin) return
+    event.preventDefault()
+    writeLog("window", "blocked agent cross-origin frame navigation", { from: current, url: event.url }, "warn")
+  })
+  win.webContents.session.on("will-download", (event, item) => {
+    if (!isAgentActionInFlight()) return
+    event.preventDefault()
+    writeLog("window", "blocked agent-initiated download", { url: item.getURL() }, "warn")
   })
 
   state.manage(win)
@@ -729,11 +750,29 @@ function allowRendererPermissions(win: BrowserWindow) {
   })
 }
 
-function isTrustedRendererUrl(value?: string) {
-  if (isRendererUrl(value)) return true
+// Dev servers previewed in the Sandbox. They are the user's projects, not the app: they get
+// only harmless permissions (renderer-permissions.ts) and no CORS rewrite.
+function isLoopbackUrl(value?: string) {
   if (!value || !URL.canParse(value)) return false
   const url = new URL(value)
-  return url.hostname === "127.0.0.1" || url.hostname === "localhost"
+  return url.hostname === "127.0.0.1" || url.hostname === "localhost" || url.hostname === "[::1]"
+}
+
+function fromSubframe(frame: Electron.WebFrameMain | null | undefined) {
+  try {
+    return !!frame?.parent
+  } catch {
+    // The frame is gone; treat the response like the app's own.
+    return false
+  }
+}
+
+function frameUrl(frame: Electron.WebFrameMain | null | undefined) {
+  try {
+    return frame?.url
+  } catch {
+    return undefined
+  }
 }
 
 // Los <webview> de preview corren en particiones propias que los handlers de

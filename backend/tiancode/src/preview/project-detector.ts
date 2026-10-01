@@ -18,6 +18,11 @@ export type DetectedProject = {
   workingDirectory?: string
   error?: string
   isDesktop?: boolean
+  /**
+   * The folder the project was found in when it is a parent of the one asked about (the session is
+   * in src/, the project one level up). workingDirectory is relative to it.
+   */
+  root?: string
 }
 
 const DEV_SCRIPTS = ["dev", "develop", "start", "serve"] as const
@@ -867,7 +872,7 @@ export async function detectProject(dir: string): Promise<DetectedProject | null
   while (parent && parent !== targetDir && levels < 3) {
     if (existsSync(parent)) {
       const parentDetected = await detectSingleDirectory(parent, parent)
-      if (parentDetected) return parentDetected
+      if (parentDetected) return { ...parentDetected, root: parent }
     }
     const nextParent = dirname(parent)
     if (nextParent === parent) break
