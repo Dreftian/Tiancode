@@ -6,8 +6,18 @@ import { TextInputV2 } from "@tiancode-ai/ui/v2/text-input-v2"
 import { Icon, type IconName } from "@tiancode-ai/ui/icon"
 import { useDialog } from "@tiancode-ai/ui/context/dialog"
 import type { Config } from "@tiancode-ai/sdk/v2/client"
-import { type Component, createEffect, createMemo, createResource, For, on, onCleanup, Show } from "solid-js"
-import { createStore, reconcile, unwrap } from "solid-js/store"
+import {
+  type Component,
+  createEffect,
+  createMemo,
+  createResource,
+  createSignal,
+  For,
+  on,
+  onCleanup,
+  Show,
+} from "solid-js"
+import { createStore } from "solid-js/store"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { useServerSDK } from "@/context/server-sdk"
@@ -52,6 +62,7 @@ const COMPUTER_RESTORE_KEY = "computerUseRestoreWindows"
 const WEBVIEW_RETENTION_KEY = "webviewRetention"
 
 const ACTIONS: readonly PermissionAction[] = ["ask", "allow", "deny"]
+const TOOLS: readonly Tool[] = ["screenshot", "clipboard", "computer"]
 // What each tool does when no rule is written (agent defaults in backend/tiancode/src/agent/agent.ts).
 const TOOL_DEFAULTS: Record<Tool, PermissionAction> = { screenshot: "ask", clipboard: "ask", computer: "allow" }
 const TOOL_ICONS: Record<Tool, IconName> = { screenshot: "photo", clipboard: "copy", computer: "window-cursor" }
@@ -82,7 +93,13 @@ export const SettingsComputerUseV2: Component<{
     app: "",
     clearing: false,
   })
-  createEffect(on(() => props.section, (section) => section && setUi("section", section), { defer: true }))
+  createEffect(
+    on(
+      () => props.section,
+      (section) => section && setUi("section", section),
+      { defer: true },
+    ),
+  )
   const section = () => (ui.section === "remote" && !remoteAvailable() ? "desktop" : ui.section)
   const select = (next: ComputerUseSection) => {
     setUi("section", next)
@@ -91,20 +108,48 @@ export const SettingsComputerUseV2: Component<{
 
   // ------------------------------------------------------------------ Global config
 
-  const [config, setConfig] = createStore<{ value: Config }>({ value: {} })
+  // A signal, not a store: which rule wins depends on their order, and a store merge appends new
+  // keys after the existing ones, so a new default looked as if it overrode every site rule.
+  const [shown, setShown] = createSignal<Config["permission"]>()
+  // A failed load leaves the defaults on screen; letting the resource throw replaced the whole
+  // window with the error page.
   const [remote, { refetch }] = createResource(
     () => serverSdk(),
     () =>
       Promise.resolve()
         .then(() => serverSdk().client.global.config.get({ throwOnError: true }))
-        .then((result) => result.data),
+        .then((result) => result.data ?? null)
+        .catch(() => null),
   )
+  // 1.0.5 wrote these rules into the open project's tiancode.json, which overrides the global config
+  // there. The page shows what applies in that project, and keeps the project's own rules in step.
+  const [applied] = createResource(
+    () => props.directory,
+    (directory) =>
+      Promise.resolve()
+        .then(() => serverSdk().client.config.get({ directory }, { throwOnError: true }))
+        .then((result) => result.data)
+        .catch(() => undefined),
+  )
+  const [project, setProject] = createStore({ keys: [] as string[] })
   createEffect(() => {
-    const value = remote()
-    if (value) setConfig("value", reconcile(value))
+    const value = (props.directory ? applied() : undefined) ?? remote()
+    if (value) setShown(() => value.permission)
+  })
+  createEffect(() => {
+    const here = applied()?.permission
+    const global = remote()?.permission
+    if (!props.directory || here === undefined || !remote()) return
+    // One action written for the whole map applies to every key.
+    const read = (value: unknown, key: string) =>
+      value && typeof value === "object" ? (value as Record<string, unknown>)[key] : value
+    const keys = [...TOOLS, "browser"].filter(
+      (key) => JSON.stringify(read(here, key)) !== JSON.stringify(read(global, key)),
+    )
+    setProject("keys", (previous) => [...new Set([...previous, ...keys])])
   })
   const permission = () => {
-    const value = config.value.permission
+    const value = shown()
     return value && typeof value === "object" ? (value as Record<string, unknown>) : {}
   }
   const toolAction = (tool: Tool): PermissionAction => {
@@ -116,15 +161,26 @@ export const SettingsComputerUseV2: Component<{
   const exceptions = () => browserExceptions(rules())
 
   const savePermission = async (patch: Record<string, unknown>) => {
-    const before = structuredClone(unwrap(config.value))
-    const current = before.permission && typeof before.permission === "object" ? before.permission : {}
-    setConfig("value", "permission", reconcile(mergePatch(current, patch) as Config["permission"]))
+    const before = shown()
+    setShown(() => mergePatch(before, patch) as Config["permission"])
     const saved = await serverSdk()
       .client.global.config.update({ config: { permission: patch as Config["permission"] } }, { throwOnError: true })
       .then(() => true)
       .catch(() => false)
-    if (saved) return
-    setConfig("value", reconcile(before))
+    const directory = props.directory
+    const local = Object.fromEntries(Object.entries(patch).filter(([key]) => project.keys.includes(key)))
+    const kept =
+      saved && directory && Object.keys(local).length > 0
+        ? await serverSdk()
+            .client.config.update(
+              { directory, config: { permission: local as Config["permission"] } },
+              { throwOnError: true },
+            )
+            .then(() => true)
+            .catch(() => false)
+        : saved
+    if (saved && kept) return
+    setShown(() => before)
     showToast({ variant: "error", title: language.t("settings.computerUse.save.failed") })
     void refetch()
   }
@@ -139,7 +195,12 @@ export const SettingsComputerUseV2: Component<{
         () => false,
       ),
   }
-  const [machine, setMachine] = createStore({ enabled: true, restore: true, denied: [] as string[], retention: "always" as CookieRetention })
+  const [machine, setMachine] = createStore({
+    enabled: true,
+    restore: true,
+    denied: [] as string[],
+    retention: "always" as CookieRetention,
+  })
   createEffect(() => {
     if (!desktop()) return
     void Promise.all([
@@ -156,7 +217,12 @@ export const SettingsComputerUseV2: Component<{
       }),
     )
   })
-  const setMachineValue = async <K extends keyof typeof machine>(key: K, value: (typeof machine)[K], storeKey: string, raw: string) => {
+  const setMachineValue = async <K extends keyof typeof machine>(
+    key: K,
+    value: (typeof machine)[K],
+    storeKey: string,
+    raw: string,
+  ) => {
     const previous = machine[key]
     setMachine(key, value)
     if (await store.set(storeKey, raw)) return
@@ -184,14 +250,16 @@ export const SettingsComputerUseV2: Component<{
     if (!desktop()) return { tone: "warn", label: language.t("settings.computerUse.tool.desktopOnly") }
     if (!windows()) return { tone: "warn", label: language.t("settings.computerUse.computer.windowsOnly") }
     if (!machine.enabled) return { tone: undefined, label: language.t("settings.computerUse.state.off") }
-    if (status()?.active) return { tone: "busy", label: language.t("settings.computerUse.state.active", { count: status()?.actions ?? 0 }) }
+    if (status()?.active)
+      return { tone: "busy", label: language.t("settings.computerUse.state.active", { count: status()?.actions ?? 0 }) }
     return { tone: "ok", label: language.t("settings.computerUse.state.ready") }
   }
 
   const addDeniedApp = () => {
     const name = toExecutable(ui.app)
     if (!name) return showToast({ variant: "error", title: language.t("settings.computerUse.denied.invalid") })
-    if (machine.denied.includes(name)) return showToast({ variant: "error", title: language.t("settings.computerUse.denied.duplicate") })
+    if (machine.denied.includes(name))
+      return showToast({ variant: "error", title: language.t("settings.computerUse.denied.duplicate") })
     const next = [...machine.denied, name]
     void setMachineValue("denied", next, COMPUTER_DENIED_KEY, JSON.stringify(next))
     setUi("app", "")
@@ -288,7 +356,9 @@ export const SettingsComputerUseV2: Component<{
       onChange={(next) => isAction(next) && onChange(next)}
       aria-label={label}
     >
-      <For each={ACTIONS}>{(action) => <SegmentedControlItemV2 value={action}>{actionLabel(action)}</SegmentedControlItemV2>}</For>
+      <For each={ACTIONS}>
+        {(action) => <SegmentedControlItemV2 value={action}>{actionLabel(action)}</SegmentedControlItemV2>}
+      </For>
     </SegmentedControlV2>
   )
 
@@ -304,8 +374,17 @@ export const SettingsComputerUseV2: Component<{
       />
 
       <div class="settings-v2-tab-body settings-v2-kit-page">
+        <Show when={remote() === null}>
+          <p class="settings-v2-kit-note" data-tone="warn">
+            {language.t("settings.config.loadFailed")}
+          </p>
+        </Show>
         <Show when={section() === "desktop"}>
-          <div class="settings-v2-kit-hero" data-active={windows() && machine.enabled ? "" : undefined} data-action="settings-computer-use-enabled">
+          <div
+            class="settings-v2-kit-hero"
+            data-active={windows() && machine.enabled ? "" : undefined}
+            data-action="settings-computer-use-enabled"
+          >
             <span class="settings-v2-kit-hero-icon" aria-hidden="true">
               <Icon name="window-cursor" />
             </span>
@@ -316,7 +395,9 @@ export const SettingsComputerUseV2: Component<{
                   {controlState().label}
                 </span>
               </span>
-              <span class="settings-v2-kit-hero-description">{language.t("settings.computerUse.computer.summary")}</span>
+              <span class="settings-v2-kit-hero-description">
+                {language.t("settings.computerUse.computer.summary")}
+              </span>
               <Show when={windows()}>
                 <div class="settings-v2-kit-chips">
                   <Show when={status()?.stopShortcut}>
@@ -362,25 +443,39 @@ export const SettingsComputerUseV2: Component<{
                         <Icon name={TOOL_ICONS[tool]} size="small" />
                       </span>
                       <div class="settings-v2-kit-card-copy">
-                        <span class="settings-v2-kit-card-title">{language.t(`settings.computerUse.tool.${tool}.title`)}</span>
-                        <span class="settings-v2-kit-card-description">{language.t(`settings.computerUse.tool.${tool}.description`)}</span>
+                        <span class="settings-v2-kit-card-title">
+                          {language.t(`settings.computerUse.tool.${tool}.title`)}
+                        </span>
+                        <span class="settings-v2-kit-card-description">
+                          {language.t(`settings.computerUse.tool.${tool}.description`)}
+                        </span>
                       </div>
                     </div>
                     <div class="settings-v2-kit-card-foot">
-                      {segmented(toolAction(tool), (action) => void savePermission({ [tool]: action }), language.t(`settings.computerUse.tool.${tool}.title`))}
+                      {segmented(
+                        toolAction(tool),
+                        (action) => void savePermission({ [tool]: action }),
+                        language.t(`settings.computerUse.tool.${tool}.title`),
+                      )}
                     </div>
                   </div>
                 )}
               </For>
             </div>
             <p class="settings-v2-kit-note">{language.t("settings.computerUse.permissions.note")}</p>
+            <Show when={project.keys.some((key) => key !== "browser")}>
+              <p class="settings-v2-kit-note">{language.t("settings.computerUse.projectRules")}</p>
+            </Show>
           </div>
 
           <Show when={windows()}>
             <div class="settings-v2-kit-section">
               <p class="settings-v2-kit-label">{language.t("settings.computerUse.section.protections")}</p>
               <SettingsListV2 density="compact">
-                <SettingsRowV2 title={language.t("settings.computerUse.restore.title")} description={language.t("settings.computerUse.restore.description")}>
+                <SettingsRowV2
+                  title={language.t("settings.computerUse.restore.title")}
+                  description={language.t("settings.computerUse.restore.description")}
+                >
                   <Switch
                     checked={machine.restore}
                     onChange={(value) => void setMachineValue("restore", value, COMPUTER_RESTORE_KEY, String(value))}
@@ -389,7 +484,10 @@ export const SettingsComputerUseV2: Component<{
                     {language.t("settings.computerUse.restore.title")}
                   </Switch>
                 </SettingsRowV2>
-                <SettingsRowV2 title={language.t("settings.computerUse.denied.title")} description={language.t("settings.computerUse.denied.short")}>
+                <SettingsRowV2
+                  title={language.t("settings.computerUse.denied.title")}
+                  description={language.t("settings.computerUse.denied.short")}
+                >
                   <div class="settings-v2-row-inline">
                     <TextInputV2
                       appearance="base"
@@ -429,15 +527,25 @@ export const SettingsComputerUseV2: Component<{
         </Show>
 
         <Show when={section() === "browser"}>
-          <div class="settings-v2-kit-hero" data-active={settings.general.agentBrowser() ? "" : undefined} data-action="settings-agent-browser">
+          <div
+            class="settings-v2-kit-hero"
+            data-active={settings.general.agentBrowser() ? "" : undefined}
+            data-action="settings-agent-browser"
+          >
             <span class="settings-v2-kit-hero-icon" aria-hidden="true">
               <Icon name="eye" />
             </span>
             <div class="settings-v2-kit-hero-copy">
               <span class="settings-v2-kit-hero-title">{language.t("settings.computerUse.browser.agent.title")}</span>
-              <span class="settings-v2-kit-hero-description">{language.t("settings.computerUse.browser.agent.description")}</span>
+              <span class="settings-v2-kit-hero-description">
+                {language.t("settings.computerUse.browser.agent.description")}
+              </span>
             </div>
-            <Switch checked={settings.general.agentBrowser()} onChange={(value) => settings.general.setAgentBrowser(value)} hideLabel>
+            <Switch
+              checked={settings.general.agentBrowser()}
+              onChange={(value) => settings.general.setAgentBrowser(value)}
+              hideLabel
+            >
               {language.t("settings.computerUse.browser.agent.title")}
             </Switch>
           </div>
@@ -448,14 +556,25 @@ export const SettingsComputerUseV2: Component<{
               description={language.t("settings.computerUse.browser.default.description")}
             >
               <div data-action="settings-browser-permission">
-                {segmented(browserDefault(), (action) => void savePermission(browserPatch({ "*": action })), language.t("settings.computerUse.browser.default"))}
+                {segmented(
+                  browserDefault(),
+                  (action) => void savePermission(browserPatch({ "*": action })),
+                  language.t("settings.computerUse.browser.default"),
+                )}
               </div>
             </SettingsRowV2>
-            <SettingsRowV2 title={language.t("settings.browser.links")} description={language.t("settings.browser.links.description")}>
+            <SettingsRowV2
+              title={language.t("settings.browser.links")}
+              description={language.t("settings.browser.links.description")}
+            >
               <SelectV2
                 appearance="inline"
                 data-action="settings-browser-links"
-                options={windows() ? (["integrated", "system", "chrome"] as BrowserLinks[]) : (["integrated", "system"] as BrowserLinks[])}
+                options={
+                  windows()
+                    ? (["integrated", "system", "chrome"] as BrowserLinks[])
+                    : (["integrated", "system"] as BrowserLinks[])
+                }
                 current={settings.general.browserLinks()}
                 placement="bottom-end"
                 gutter={6}
@@ -468,7 +587,9 @@ export const SettingsComputerUseV2: Component<{
           <div class="settings-v2-kit-section">
             <p class="settings-v2-kit-label">{language.t("settings.computerUse.browser.sites.label")}</p>
             <div class="settings-v2-kit-card">
-              <span class="settings-v2-kit-card-description">{language.t("settings.computerUse.browser.sites.summary")}</span>
+              <span class="settings-v2-kit-card-description">
+                {language.t("settings.computerUse.browser.sites.summary")}
+              </span>
               <div class="settings-v2-row-inline">
                 <TextInputV2
                   type="url"
@@ -496,13 +617,20 @@ export const SettingsComputerUseV2: Component<{
               </div>
               <Show
                 when={exceptions().length > 0}
-                fallback={<span class="settings-v2-kit-card-description">{language.t("settings.computerUse.browser.sites.none")}</span>}
+                fallback={
+                  <span class="settings-v2-kit-card-description">
+                    {language.t("settings.computerUse.browser.sites.none")}
+                  </span>
+                }
               >
                 <div class="settings-v2-kit-chips">
                   <For each={exceptions()}>
                     {(item) => (
                       <span class="settings-v2-kit-chip">
-                        <span class="settings-v2-kit-pill" data-tone={item.action === "allow" ? "ok" : item.action === "deny" ? "error" : "warn"}>
+                        <span
+                          class="settings-v2-kit-pill"
+                          data-tone={item.action === "allow" ? "ok" : item.action === "deny" ? "error" : "warn"}
+                        >
                           {actionLabel(item.action)}
                         </span>
                         {item.site}
@@ -519,6 +647,9 @@ export const SettingsComputerUseV2: Component<{
                 </div>
               </Show>
             </div>
+            <Show when={project.keys.includes("browser")}>
+              <p class="settings-v2-kit-note">{language.t("settings.computerUse.projectRules")}</p>
+            </Show>
           </div>
 
           <Show when={desktop()}>
@@ -539,14 +670,23 @@ export const SettingsComputerUseV2: Component<{
                       }
                       aria-label={language.t("settings.computerUse.browser.cookies")}
                     >
-                      <SegmentedControlItemV2 value="always">{language.t("settings.computerUse.browser.cookies.always")}</SegmentedControlItemV2>
-                      <SegmentedControlItemV2 value="session">{language.t("settings.computerUse.browser.cookies.session")}</SegmentedControlItemV2>
+                      <SegmentedControlItemV2 value="always">
+                        {language.t("settings.computerUse.browser.cookies.always")}
+                      </SegmentedControlItemV2>
+                      <SegmentedControlItemV2 value="session">
+                        {language.t("settings.computerUse.browser.cookies.session")}
+                      </SegmentedControlItemV2>
                     </SegmentedControlV2>
                   </div>
                 </SettingsRowV2>
-                <SettingsRowV2 title={language.t("settings.browser.clearData")} description={language.t("settings.browser.clearData.description")}>
+                <SettingsRowV2
+                  title={language.t("settings.browser.clearData")}
+                  description={language.t("settings.browser.clearData.description")}
+                >
                   <ButtonV2 variant="danger" size="small" disabled={ui.clearing} onClick={clearData}>
-                    {language.t(ui.clearing ? "settings.browser.clearData.clearing" : "settings.browser.clearData.button")}
+                    {language.t(
+                      ui.clearing ? "settings.browser.clearData.clearing" : "settings.browser.clearData.button",
+                    )}
                   </ButtonV2>
                 </SettingsRowV2>
               </SettingsListV2>
@@ -574,13 +714,15 @@ function parseList(raw: string | null): string[] {
   return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : []
 }
 
+// Mirrors the server's merge (permissionBase in config.ts): a single action is its `*` rule, and a
+// new `*` goes before the rules it yields to, since the last matching rule wins.
 function mergePatch(base: unknown, patch: Record<string, unknown>): Record<string, unknown> {
-  const current = base && typeof base === "object" && !Array.isArray(base) ? (base as Record<string, unknown>) : {}
+  const record = (value: unknown): value is Record<string, unknown> =>
+    !!value && typeof value === "object" && !Array.isArray(value)
+  const current = record(base) ? base : typeof base === "string" ? { "*": base } : {}
+  const ordered = "*" in patch && !("*" in current) ? { "*": patch["*"], ...current } : current
   return Object.fromEntries([
-    ...Object.entries(current),
-    ...Object.entries(patch).map(([key, value]) => [
-      key,
-      value && typeof value === "object" && !Array.isArray(value) ? mergePatch(current[key], value as Record<string, unknown>) : value,
-    ]),
+    ...Object.entries(ordered),
+    ...Object.entries(patch).map(([key, value]) => [key, record(value) ? mergePatch(ordered[key], value) : value]),
   ])
 }

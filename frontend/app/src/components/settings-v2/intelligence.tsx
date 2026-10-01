@@ -42,19 +42,35 @@ export const SettingsIntelligenceV2: Component<{
   const dialog = useDialog()
   const serverSdk = useServerSDK()
   const client = () => serverSdk().client
-  const [ui, setUi] = createStore({ section: props.section ?? ("memory" as IntelligenceSection), probe: "", probing: false })
+  const [ui, setUi] = createStore({
+    section: props.section ?? ("memory" as IntelligenceSection),
+    probe: "",
+    probing: false,
+  })
   const [config, setConfig] = createStore<{ value: Config; loaded: boolean }>({ value: {}, loaded: false })
   const [probe, setProbe] = createStore<{ outcome?: DecisionAnswer | null; area?: DecisionAnswer | null }>({})
 
-  createEffect(on(() => props.section, (section) => section && setUi("section", section), { defer: true }))
+  createEffect(
+    on(
+      () => props.section,
+      (section) => section && setUi("section", section),
+      { defer: true },
+    ),
+  )
   const select = (section: IntelligenceSection) => {
     setUi("section", section)
     props.onSectionChange?.(section)
   }
 
+  // null when the server could not be read: a rejected resource replaced the whole window with
+  // the error page the moment this tab (or a refetch after a failed save) read it.
   const [remote, { refetch: refetchConfig }] = createResource(
     () => serverSdk(),
-    () => client().global.config.get({ throwOnError: true }).then((result) => result.data),
+    () =>
+      Promise.resolve()
+        .then(() => client().global.config.get({ throwOnError: true }))
+        .then((result) => result.data ?? null)
+        .catch(() => null),
   )
   createEffect(() => {
     const value = remote()
@@ -118,8 +134,11 @@ export const SettingsIntelligenceV2: Component<{
     save({ compaction: patch }, (draft) => ({ ...draft, compaction: { ...draft.compaction, ...patch } }))
   const outputLines = () => config.value.tool_output?.max_lines ?? 2000
   const doomLoop = () => {
-    const permission = config.value.permission
-    const rule = permission && typeof permission === "object" ? permission.doom_loop : undefined
+    const permission: unknown = config.value.permission
+    // A single action or a `*` rule also covers the loop breaker when it has no rule of its own.
+    if (typeof permission === "string") return permission
+    const rules = permission && typeof permission === "object" ? (permission as Record<string, unknown>) : {}
+    const rule = rules.doom_loop ?? rules["*"]
     return typeof rule === "string" ? rule : "ask"
   }
   const continueOnDeny = () => config.value.experimental?.continue_loop_on_deny === true
@@ -140,7 +159,9 @@ export const SettingsIntelligenceV2: Component<{
     if (!file) return
     dialog.push(() => (
       <MemoryEditor
-        title={language.t(target === "user" ? "settings.intelligence.memory.user.title" : "settings.intelligence.memory.project.title")}
+        title={language.t(
+          target === "user" ? "settings.intelligence.memory.user.title" : "settings.intelligence.memory.project.title",
+        )}
         text={file.text}
         limit={file.limit}
         onSave={(text) => replaceMemory(target, text)}
@@ -152,15 +173,19 @@ export const SettingsIntelligenceV2: Component<{
   const replaceMemory = async (target: "user" | "project", text: string) => {
     const directory = props.directory
     const result = await client()
-      .experimental.memory.replace({ ...(directory ? { directory } : {}), memoryReplaceInput: { target, text } }, { throwOnError: true })
+      .experimental.memory.replace(
+        { ...(directory ? { directory } : {}), memoryReplaceInput: { target, text } },
+        { throwOnError: true },
+      )
       .then((response) => response.data)
       .catch(() => undefined)
     if (!result) {
       showToast({ variant: "error", title: language.t("settings.intelligence.memory.save.failed") })
-      return
+      return false
     }
     setMemory(result)
     showToast({ variant: "success", icon: "circle-check", title: language.t("settings.intelligence.memory.saved") })
+    return true
   }
 
   const clearMemory = (target: "user" | "project") =>
@@ -178,7 +203,9 @@ export const SettingsIntelligenceV2: Component<{
 
   const openFolder = (file: string) => {
     const folder = file.replace(/[\\/][^\\/]*$/, "")
-    void platform.openPath?.(folder).catch(() => showToast({ variant: "error", title: language.t("common.requestFailed") }))
+    void platform
+      .openPath?.(folder)
+      .catch(() => showToast({ variant: "error", title: language.t("common.requestFailed") }))
   }
 
   // ------------------------------------------------------------------ Decisions
@@ -186,7 +213,8 @@ export const SettingsIntelligenceV2: Component<{
   const decisionHint = () => {
     const status = decision()
     if (!status) return "—"
-    if (status.state === "downloading") return language.t("settings.intelligence.decisions.state.downloading", { percent: percent(status) })
+    if (status.state === "downloading")
+      return language.t("settings.intelligence.decisions.state.downloading", { percent: percent(status) })
     return language.t(`settings.intelligence.decisions.state.${status.state}`)
   }
 
@@ -236,7 +264,9 @@ export const SettingsIntelligenceV2: Component<{
       id: "context" as const,
       label: language.t("settings.intelligence.tab.context"),
       hint: language.t(
-        compaction().auto === false ? "settings.intelligence.hint.context.manual" : "settings.intelligence.hint.context.auto",
+        compaction().auto === false
+          ? "settings.intelligence.hint.context.manual"
+          : "settings.intelligence.hint.context.auto",
       ),
       icon: "code-lines" as const,
     },
@@ -278,6 +308,11 @@ export const SettingsIntelligenceV2: Component<{
       />
 
       <div class="settings-v2-tab-body settings-v2-kit-page">
+        <Show when={remote() === null}>
+          <p class="settings-v2-kit-note" data-tone="warn">
+            {language.t("settings.config.loadFailed")}
+          </p>
+        </Show>
         <Show when={ui.section === "memory"}>
           <div class="settings-v2-kit-cards">
             <For each={["user", "project"] as const}>
@@ -288,7 +323,11 @@ export const SettingsIntelligenceV2: Component<{
                 const limit = () => file()?.limit ?? 1
                 const available = () => target === "user" || !!props.directory
                 return (
-                  <div class="settings-v2-kit-card" data-off={on_(key) ? undefined : ""} data-action={`settings-intelligence-${key}`}>
+                  <div
+                    class="settings-v2-kit-card"
+                    data-off={on_(key) ? undefined : ""}
+                    data-action={`settings-intelligence-${key}`}
+                  >
                     <div class="settings-v2-kit-card-head">
                       <span class="settings-v2-kit-card-icon" aria-hidden="true">
                         <Icon name={target === "user" ? "brain" : "folder"} size="small" />
@@ -308,11 +347,18 @@ export const SettingsIntelligenceV2: Component<{
                     <div class="settings-v2-kit-card-body">
                       <Show
                         when={available()}
-                        fallback={<span class="settings-v2-kit-card-description">{language.t("settings.intelligence.memory.noProject")}</span>}
+                        fallback={
+                          <span class="settings-v2-kit-card-description">
+                            {language.t("settings.intelligence.memory.noProject")}
+                          </span>
+                        }
                       >
                         <div class="settings-v2-kit-meter" data-tone={used() / limit() > 0.85 ? "warn" : undefined}>
                           <div class="settings-v2-kit-meter-track">
-                            <div class="settings-v2-kit-meter-fill" style={{ width: `${Math.min(100, (used() / limit()) * 100)}%` }} />
+                            <div
+                              class="settings-v2-kit-meter-fill"
+                              style={{ width: `${Math.min(100, (used() / limit()) * 100)}%` }}
+                            />
                           </div>
                           <div class="settings-v2-kit-meter-caption">
                             <span>
@@ -337,7 +383,9 @@ export const SettingsIntelligenceV2: Component<{
                     <Show when={available() && file()}>
                       <div class="settings-v2-kit-card-foot">
                         <ButtonV2 size="small" variant="outline" onClick={() => editMemory(target)}>
-                          {language.t(used() === 0 ? "settings.intelligence.memory.write" : "settings.intelligence.memory.edit")}
+                          {language.t(
+                            used() === 0 ? "settings.intelligence.memory.write" : "settings.intelligence.memory.edit",
+                          )}
                         </ButtonV2>
                         <Show when={platform.openPath}>
                           <ButtonV2 size="small" variant="ghost" onClick={() => openFolder(file()!.path)}>
@@ -388,7 +436,11 @@ export const SettingsIntelligenceV2: Component<{
               title={language.t("settings.intelligence.compaction.prune")}
               description={language.t("settings.intelligence.compaction.prune.description")}
             >
-              <Switch checked={compaction().prune !== false} onChange={(value) => void setCompaction({ prune: value })} hideLabel>
+              <Switch
+                checked={compaction().prune !== false}
+                onChange={(value) => void setCompaction({ prune: value })}
+                hideLabel
+              >
                 {language.t("settings.intelligence.compaction.prune")}
               </Switch>
             </SettingsRowV2>
@@ -402,7 +454,9 @@ export const SettingsIntelligenceV2: Component<{
                 onChange={(value) => value && void setCompaction({ tail_turns: Number(value) })}
                 aria-label={language.t("settings.intelligence.compaction.tail")}
               >
-                <For each={TAIL_TURNS}>{(turns) => <SegmentedControlItemV2 value={String(turns)}>{turns}</SegmentedControlItemV2>}</For>
+                <For each={TAIL_TURNS}>
+                  {(turns) => <SegmentedControlItemV2 value={String(turns)}>{turns}</SegmentedControlItemV2>}
+                </For>
               </SegmentedControlV2>
             </SettingsRowV2>
             <SettingsRowV2
@@ -423,7 +477,9 @@ export const SettingsIntelligenceV2: Component<{
               >
                 <For each={OUTPUT_LINES}>
                   {(lines) => (
-                    <SegmentedControlItemV2 value={String(lines)}>{lines.toLocaleString(language.intl())}</SegmentedControlItemV2>
+                    <SegmentedControlItemV2 value={String(lines)}>
+                      {lines.toLocaleString(language.intl())}
+                    </SegmentedControlItemV2>
                   )}
                 </For>
               </SegmentedControlV2>
@@ -445,13 +501,19 @@ export const SettingsIntelligenceV2: Component<{
         </Show>
 
         <Show when={ui.section === "protection"}>
-          <div class="settings-v2-kit-hero" data-active={on_("guardrails") ? "" : undefined} data-action="settings-intelligence-shield">
+          <div
+            class="settings-v2-kit-hero"
+            data-active={on_("guardrails") ? "" : undefined}
+            data-action="settings-intelligence-shield"
+          >
             <span class="settings-v2-kit-hero-icon" aria-hidden="true">
               <Icon name="shield" />
             </span>
             <div class="settings-v2-kit-hero-copy">
               <span class="settings-v2-kit-hero-title">{language.t("settings.intelligence.shellScan")}</span>
-              <span class="settings-v2-kit-hero-description">{language.t("settings.intelligence.shellScan.description")}</span>
+              <span class="settings-v2-kit-hero-description">
+                {language.t("settings.intelligence.shellScan.description")}
+              </span>
             </div>
             <Switch checked={on_("guardrails")} onChange={(value) => void setSwitch("guardrails", value)} hideLabel>
               {language.t("settings.intelligence.shellScan")}
@@ -475,14 +537,24 @@ export const SettingsIntelligenceV2: Component<{
                     value &&
                     void save({ permission: { doom_loop: value as (typeof DOOM_LOOP)[number] } }, (draft) => ({
                       ...draft,
-                      permission: { ...(typeof draft.permission === "object" ? draft.permission : {}), doom_loop: value as (typeof DOOM_LOOP)[number] },
+                      // A single action ("allow") stays as the `*` rule, as the server keeps it.
+                      permission: {
+                        ...(typeof draft.permission === "object"
+                          ? draft.permission
+                          : draft.permission
+                            ? { "*": draft.permission }
+                            : {}),
+                        doom_loop: value as (typeof DOOM_LOOP)[number],
+                      },
                     }))
                   }
                   aria-label={language.t("settings.intelligence.doomLoop")}
                 >
                   <For each={DOOM_LOOP}>
                     {(action) => (
-                      <SegmentedControlItemV2 value={action}>{language.t(`settings.intelligence.doomLoop.${action}`)}</SegmentedControlItemV2>
+                      <SegmentedControlItemV2 value={action}>
+                        {language.t(`settings.intelligence.doomLoop.${action}`)}
+                      </SegmentedControlItemV2>
                     )}
                   </For>
                 </SegmentedControlV2>
@@ -546,7 +618,9 @@ export const SettingsIntelligenceV2: Component<{
                 </span>
                 <div class="settings-v2-kit-card-copy">
                   <span class="settings-v2-kit-card-title">{language.t("settings.intelligence.probe.title")}</span>
-                  <span class="settings-v2-kit-card-description">{language.t("settings.intelligence.probe.description")}</span>
+                  <span class="settings-v2-kit-card-description">
+                    {language.t("settings.intelligence.probe.description")}
+                  </span>
                 </div>
               </div>
               <TextareaV2
@@ -556,7 +630,12 @@ export const SettingsIntelligenceV2: Component<{
                 onInput={(event) => setUi("probe", event.currentTarget.value)}
               />
               <div class="settings-v2-kit-card-foot">
-                <ButtonV2 size="small" variant="contrast" disabled={!ui.probe.trim() || ui.probing} onClick={() => void runProbe()}>
+                <ButtonV2
+                  size="small"
+                  variant="contrast"
+                  disabled={!ui.probe.trim() || ui.probing}
+                  onClick={() => void runProbe()}
+                >
                   {language.t(ui.probing ? "settings.intelligence.probe.running" : "settings.intelligence.probe.run")}
                 </ButtonV2>
                 <Show when={probe.outcome}>
@@ -568,10 +647,22 @@ export const SettingsIntelligenceV2: Component<{
                 </Show>
               </div>
               <Show when={probe.outcome}>
-                {(answer) => <Bars title={language.t("settings.intelligence.probe.outcome")} answer={answer()} prefix="settings.intelligence.outcome" />}
+                {(answer) => (
+                  <Bars
+                    title={language.t("settings.intelligence.probe.outcome")}
+                    answer={answer()}
+                    prefix="settings.intelligence.outcome"
+                  />
+                )}
               </Show>
               <Show when={probe.area}>
-                {(answer) => <Bars title={language.t("settings.intelligence.probe.area")} answer={answer()} prefix="settings.intelligence.area" />}
+                {(answer) => (
+                  <Bars
+                    title={language.t("settings.intelligence.probe.area")}
+                    answer={answer()}
+                    prefix="settings.intelligence.area"
+                  />
+                )}
               </Show>
             </div>
           </Show>
@@ -619,7 +710,9 @@ function DecisionCard(props: {
             </span>
           </Show>
           <Show when={props.status?.loaded}>
-            <span class="settings-v2-kit-pill" data-tone="info">{language.t("settings.intelligence.decisions.loaded")}</span>
+            <span class="settings-v2-kit-pill" data-tone="info">
+              {language.t("settings.intelligence.decisions.loaded")}
+            </span>
           </Show>
         </span>
         <span class="settings-v2-kit-hero-description">
@@ -685,7 +778,7 @@ function MemoryEditor(props: {
   title: string
   text: string
   limit: number
-  onSave: (text: string) => void | Promise<void>
+  onSave: (text: string) => Promise<boolean>
   onClose: () => void
 }) {
   const language = useLanguage()
@@ -718,8 +811,9 @@ function MemoryEditor(props: {
           disabled={draft.saving}
           onClick={async () => {
             setDraft("saving", true)
-            await props.onSave(draft.text)
-            props.onClose()
+            // A failed save keeps the editor open with the user's text; the toast says what happened.
+            if (await props.onSave(draft.text)) return props.onClose()
+            setDraft("saving", false)
           }}
         >
           {language.t("common.save")}
