@@ -4,6 +4,27 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.5] — 2026-10-01
+
+Modelos locales deja de poner en riesgo otros archivos: eliminar un modelo borraba cualquier
+archivo cuyo nombre lo contuviera y cancelar una descarga mataba todos los `llama-server` del
+equipo. Ahora se borra una ruta exacta dentro de una carpeta de modelos (el motor se detiene solo si
+servía ese archivo), cancelar afecta a su descarga y «Usar en el chat» ya no copia el mapa de
+proveedores entre la configuración global y la del proyecto ni envía el GGUF a Ollama o LM Studio.
+El motor arranca un modelo a la vez, informa de un cierre inesperado con su causa y muestra su
+registro; se añaden el lote físico (`-ub`), los hilos para el prompt (`-tb`), los expertos MoE en la
+CPU (`--n-cpu-moe`), el tiempo máximo de carga y el modo ligero del chat, guardados en el servidor.
+La lista de cuantizaciones incluye subcarpetas y omite fragmentos sueltos y proyectores `mmproj`.
+
+Ajustes se rediseña: Skills compacta su cabecera para dar el espacio a la lista y la ficha; MCP y
+Plugins pasa a tarjetas, catálogo en cuadrícula y diálogos con campos (Escape ya no cierra Ajustes,
+`sse://` ya no se guarda como comando y apagar un plugin de `.tiancode/plugins` se respeta); Voces
+usa la voz elegida, no corta a los 30 s, no lee mensajes viejos, libera el micrófono, entiende tildes
+en el diccionario y añade prueba de micrófono, pulsar para hablar y voces de Fish Audio; Mascotas
+muestra la mascota actual y la de escritorio se arrastra, recuerda su posición, sigue el idioma, no
+duplica notificaciones y se cierra con la app; Acerca de añade estado de actualización, versiones,
+carpetas y enlaces. El menú de la bandeja está traducido y suma Ajustes y Buscar actualizaciones.
+
 ## [1.0.4] — 2026-10-01
 
 Guardar ajustes ya no borra configuración: activar o desactivar un sub-agente o una skill eliminaba
