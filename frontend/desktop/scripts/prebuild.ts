@@ -16,4 +16,4 @@ if (channel === "dev") await downloadCliToResources()
 
 // Settings › Pairing: the sidecar serves this web build to devices on the local network
 // (packaged as resources/web-ui, see electron-builder.config.ts).
-await $`bun run --cwd ../app build`
+await $`bun run --cwd ../app build`.env({ ...process.env, VITE_TIANCODE_VERSION: version })

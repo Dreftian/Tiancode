@@ -118,7 +118,8 @@ const clearAuthToken = () => {
 const platform: Platform = {
   platform: "web",
   draftStore: createBrowserDraftStore(),
-  version: pkg.version,
+  // The desktop ships this build for paired devices and stamps it with its own version.
+  version: import.meta.env.VITE_TIANCODE_VERSION || pkg.version,
   openExternal,
   // The web build never reroutes links into the Sandbox, so a new tab already is "the desktop".
   openSystemBrowser: async (url) => openExternal(url),
