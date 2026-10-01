@@ -33,4 +33,21 @@ describe("buildPreviewAgentScript", () => {
     const code = buildPreviewAgentScript({ type: "navigate", url: "https://example.com" })
     expect(code).toContain("resolved.origin !== location.origin")
   })
+
+  test("refs are assigned once per element and never fall back to a text search", () => {
+    const code = buildPreviewAgentScript({ type: "click", target: "e12" })
+    // One id per element for the page's lifetime, so e12 is the same button in the next report.
+    expect(code).toContain("store.ids.get(node)")
+    expect(code).not.toContain("store.refs = new Map()")
+    // A ref that is gone is reported as stale instead of matching the text "e12" somewhere.
+    expect(code.indexOf("if (isRef(target))")).toBeLessThan(code.indexOf("document.querySelector(target)"))
+    expect(code).toContain("missing(")
+  })
+
+  test("the report reaches shadow DOM and refuses to click covered elements", () => {
+    const code = buildPreviewAgentScript({ type: "click", target: "e1" })
+    expect(code).toContain("host.shadowRoot")
+    expect(code).toContain('spot.where.indexOf("tapado") === 0')
+    expect(code).toContain("pointerdown")
+  })
 })
