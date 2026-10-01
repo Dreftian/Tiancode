@@ -437,8 +437,19 @@ const LanguageSetting = () => {
 
 export const SettingsGeneralV2: Component<{
   sessionID?: string
+  section?: string
+  onSectionChange?: (section: string) => void
 }> = (props) => {
-  const [page, setPage] = createStore({ section: "general" })
+  const [local, setLocal] = createStore({ section: "general" })
+  const page = {
+    get section() {
+      return props.section ?? local.section
+    },
+  }
+  const setPage = (_: "section", section: string) => {
+    setLocal("section", section)
+    props.onSectionChange?.(section)
+  }
   const language = useLanguage()
   const platform = usePlatform()
   const dialog = useDialog()

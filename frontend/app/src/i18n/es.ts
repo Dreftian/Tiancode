@@ -3127,4 +3127,9 @@ export const dict = {
   "status.popover.mcp.onlyActive": "Solo activos",
   "session.header.voice.on": "Voz activa: la IA leerá sus respuestas en voz alta (clic para silenciar)",
   "session.header.voice.off": "Voz silenciada (clic para activar)",
+  "settings.search.placeholder": "Buscar en ajustes",
+  "settings.search.group.pages": "Páginas",
+  "settings.search.group.settings": "Ajustes",
+  "settings.search.empty": "Ningún ajuste coincide con «{{query}}»",
+  "settings.search.refine": "Afina la búsqueda para ver más resultados",
 }

@@ -27,6 +27,8 @@ import { SettingsProjectsV2 } from "./projects"
 import { SettingsWorktreesV2 } from "./worktrees"
 import { SettingsExperimentalV2 } from "./experimental"
 import { SettingsAboutV2 } from "./about"
+import { SettingsSearchV2, revealSettingsRow } from "./search"
+import type { SettingsSearchEntry } from "./search-catalog"
 import { useDialog } from "@tiancode-ai/ui/context/dialog"
 import { useLayout } from "@/context/layout"
 import { useTabs } from "@/context/tabs"
@@ -120,6 +122,8 @@ export const DialogSettings: Component<{
       ? "computer-use"
       : props.defaultValue ?? "general"
   const [tab, setTab] = createSignal(initialTab)
+  const [search, setSearch] = createSignal("")
+  const [generalSection, setGeneralSection] = createSignal("general")
 
   // Lazy cache (matching OpenCode Desktop): only mount the active tab initially,
   // and keep visited tabs cached in DOM for instant 0ms switching without CPU/background thrashing.
@@ -146,6 +150,15 @@ export const DialogSettings: Component<{
   }
   const directory = createMemo(rawDirectory, undefined, { equals: (a, b) => a === b })
 
+  const hasTab = (value: string) => value !== "pairing" || !!(platform.pairing || platform.setKeepScreenActive)
+
+  const openSearchResult = (entry: SettingsSearchEntry) => {
+    setSearch("")
+    if (entry.tab === "general") setGeneralSection(entry.section ?? "general")
+    markVisited(entry.tab)
+    if (entry.target) revealSettingsRow(entry.target)
+  }
+
   const showProviders = () => {
     void dialog.show(() => <DialogSettings sessionID={props.sessionID} defaultValue="providers" />)
   }
@@ -162,7 +175,8 @@ export const DialogSettings: Component<{
         <TabsV2.List>
           <div class="flex flex-col justify-between h-full w-full">
             <div class="flex flex-col gap-3 w-full">
-              <div class="flex flex-col gap-3">
+              <SettingsSearchV2 query={search()} onQuery={setSearch} onSelect={openSearchResult} hasTab={hasTab} />
+              <div class="flex flex-col gap-3" classList={{ hidden: !!search().trim() }}>
                 {/* Desktop Section */}
                 <div class="flex flex-col gap-1.5">
                   <TabsV2.SectionTitle>{language.t("settings.section.desktop")}</TabsV2.SectionTitle>
@@ -270,7 +284,7 @@ export const DialogSettings: Component<{
                 </div>
               </div>
             </div>
-            <div class="flex flex-col gap-1 w-full pt-3">
+            <div class="flex flex-col gap-1 w-full pt-3" classList={{ hidden: !!search().trim() }}>
               <TabsV2.Trigger value="experimental">
                 <IconExperimental />
                 {language.t("settings.tab.experimental")}
@@ -290,7 +304,11 @@ export const DialogSettings: Component<{
         {/* Tab Panels with Fluid Cached Switching */}
         <TabsV2.Content forceMount value="general" class="settings-v2-panel" classList={{ "!hidden": tab() !== "general" }}>
           <Show when={visited().has("general")}>
-            <SettingsGeneralV2 sessionID={props.sessionID} />
+            <SettingsGeneralV2
+              sessionID={props.sessionID}
+              section={generalSection()}
+              onSectionChange={setGeneralSection}
+            />
           </Show>
         </TabsV2.Content>
 

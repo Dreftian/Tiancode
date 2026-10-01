@@ -2970,4 +2970,9 @@ export const dict = {
   "status.popover.mcp.onlyActive": "Only active",
   "session.header.voice.on": "Voice on: the AI reads its answers aloud (click to mute)",
   "session.header.voice.off": "Voice muted (click to turn on)",
+  "settings.search.placeholder": "Search settings",
+  "settings.search.group.pages": "Pages",
+  "settings.search.group.settings": "Settings",
+  "settings.search.empty": "No settings match \"{{query}}\"",
+  "settings.search.refine": "Narrow your search to see more results",
 }
