@@ -41,6 +41,7 @@ import type {
   ConfigUpdateResponses,
   ConnectionProvider,
   ConnectionsUpdateInput,
+  DecisionClassifyInput,
   EventSubscribeResponses,
   EventTuiCommandExecute,
   EventTuiPromptAppend,
@@ -123,6 +124,16 @@ import type {
   GlobalConnectionsTestResponses,
   GlobalConnectionsUpdateErrors,
   GlobalConnectionsUpdateResponses,
+  GlobalDecisionCancelErrors,
+  GlobalDecisionCancelResponses,
+  GlobalDecisionClassifyErrors,
+  GlobalDecisionClassifyResponses,
+  GlobalDecisionInstallErrors,
+  GlobalDecisionInstallResponses,
+  GlobalDecisionRemoveErrors,
+  GlobalDecisionRemoveResponses,
+  GlobalDecisionStatusErrors,
+  GlobalDecisionStatusResponses,
   GlobalDisposeErrors,
   GlobalDisposeResponses,
   GlobalEventErrors,
@@ -1897,6 +1908,88 @@ export class Connections extends HeyApiClient {
   }
 }
 
+export class Decision extends HeyApiClient {
+  /**
+   * Remove the local decision model
+   *
+   * Unload the model and delete its files.
+   */
+  public remove<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).delete<
+      GlobalDecisionRemoveResponses,
+      GlobalDecisionRemoveErrors,
+      ThrowOnError
+    >({ url: "/global/decision", ...options })
+  }
+
+  /**
+   * Local decision model status
+   *
+   * Whether the offline laya model is available, downloading, installed and loaded.
+   */
+  public status<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).get<
+      GlobalDecisionStatusResponses,
+      GlobalDecisionStatusErrors,
+      ThrowOnError
+    >({ url: "/global/decision", ...options })
+  }
+
+  /**
+   * Download the local decision model
+   *
+   * Start downloading the pinned laya model (about 360 MB) in the background.
+   */
+  public install<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).post<
+      GlobalDecisionInstallResponses,
+      GlobalDecisionInstallErrors,
+      ThrowOnError
+    >({ url: "/global/decision/install", ...options })
+  }
+
+  /**
+   * Cancel the model download
+   *
+   * Stop a running download; the partial file is kept so a later download resumes.
+   */
+  public cancel<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).post<
+      GlobalDecisionCancelResponses,
+      GlobalDecisionCancelErrors,
+      ThrowOnError
+    >({ url: "/global/decision/cancel", ...options })
+  }
+
+  /**
+   * Classify a text locally
+   *
+   * Answer one of Tiancode's built-in questions about a text with the offline laya model.
+   */
+  public classify<ThrowOnError extends boolean = false>(
+    parameters?: {
+      decisionClassifyInput?: DecisionClassifyInput
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ key: "decisionClassifyInput", map: "body" }] }])
+    return (options?.client ?? this.client).post<
+      GlobalDecisionClassifyResponses,
+      GlobalDecisionClassifyErrors,
+      ThrowOnError
+    >({
+      url: "/global/decision/classify",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+}
+
 export class Global extends HeyApiClient {
   /**
    * Get health
@@ -1966,6 +2059,11 @@ export class Global extends HeyApiClient {
   private _connections?: Connections
   get connections(): Connections {
     return (this._connections ??= new Connections({ client: this.client }))
+  }
+
+  private _decision?: Decision
+  get decision(): Decision {
+    return (this._decision ??= new Decision({ client: this.client }))
   }
 }
 

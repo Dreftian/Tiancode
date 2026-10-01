@@ -154,5 +154,8 @@
   },
   "overrides": {
     "drizzle-orm": "catalog:"
+  },
+  "optionalDependencies": {
+    "onnxruntime-node": "1.21.0"
   }
 }

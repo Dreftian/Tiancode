@@ -15,6 +15,8 @@ import { controlHandlers } from "../../src/server/routes/instance/httpapi/handle
 import { controlPlaneHandlers } from "../../src/server/routes/instance/httpapi/handlers/control-plane"
 import { globalHandlers } from "../../src/server/routes/instance/httpapi/handlers/global"
 import { connectionsHandlers } from "../../src/server/routes/instance/httpapi/handlers/connections"
+import { decisionHandlers } from "../../src/server/routes/instance/httpapi/handlers/decision"
+import { DecisionEngine } from "../../src/decision/engine"
 import { Connections } from "../../src/connections/connections"
 import { authorizationLayer } from "../../src/server/routes/instance/httpapi/middleware/authorization"
 import { schemaErrorLayer } from "../../src/server/routes/instance/httpapi/middleware/schema-error"
@@ -29,7 +31,7 @@ const called = Ref.makeUnsafe<MoveSession.Input | undefined>(undefined)
 
 const apiLayer = HttpRouter.serve(
   HttpApiBuilder.layer(RootHttpApi).pipe(
-    Layer.provide([controlHandlers, controlPlaneHandlers, globalHandlers, connectionsHandlers]),
+    Layer.provide([controlHandlers, controlPlaneHandlers, globalHandlers, connectionsHandlers, decisionHandlers]),
     Layer.provide([authorizationLayer, schemaErrorLayer]),
     // Raw HttpApi routes expose an opaque handler context at the request boundary.
     // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion
@@ -40,6 +42,7 @@ const apiLayer = HttpRouter.serve(
   Layer.provideMerge(NodeHttpServer.layerTest),
   Layer.provide(Layer.mock(Auth.Service)({})),
   Layer.provide(Layer.mock(Connections.Service)({})),
+  Layer.provide(Layer.mock(DecisionEngine.Service)({})),
   Layer.provide(Layer.mock(Config.Service)({})),
   Layer.provide(Layer.mock(Installation.Service)({})),
   Layer.provide(

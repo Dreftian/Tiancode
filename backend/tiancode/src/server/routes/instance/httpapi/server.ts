@@ -93,6 +93,8 @@ import { fileHandlers } from "./handlers/file"
 import { githubHandlers } from "./handlers/github"
 import { globalHandlers } from "./handlers/global"
 import { connectionsHandlers } from "./handlers/connections"
+import { decisionHandlers } from "./handlers/decision"
+import { DecisionEngine } from "@/decision/engine"
 import { Connections } from "@/connections/connections"
 import { instanceHandlers } from "./handlers/instance"
 import { mcpHandlers } from "./handlers/mcp"
@@ -147,7 +149,7 @@ const ptyConnectHttpApiAuthLayer = ptyConnectAuthorizationLayer.pipe(Layer.provi
 const serverHttpApiAuthLayer = serverAuthorizationLayer.pipe(Layer.provide(ServerAuth.Config.layer))
 const workspaceRoutingLive = workspaceRoutingLayer.pipe(Layer.provide(Socket.layerWebSocketConstructorGlobal))
 const rootApiRoutes = HttpApiBuilder.layer(RootHttpApi).pipe(
-  Layer.provide([controlHandlers, controlPlaneHandlers, globalHandlers, connectionsHandlers]),
+  Layer.provide([controlHandlers, controlPlaneHandlers, globalHandlers, connectionsHandlers, decisionHandlers]),
   Layer.provide(schemaErrorLayer),
   Layer.provide(httpApiAuthLayer),
 )
@@ -231,6 +233,7 @@ const app = LayerNode.group([
   Database.node,
   Auth.node,
   Connections.node,
+  DecisionEngine.node,
   Account.node,
   Config.node,
   Global.node,

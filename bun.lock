@@ -628,6 +628,9 @@
         "vscode-languageserver-types": "3.17.5",
         "why-is-node-running": "3.2.2",
       },
+      "optionalDependencies": {
+        "onnxruntime-node": "1.21.0",
+      },
     },
     "frontend/app": {
       "name": "@tiancode-ai/app",
@@ -701,7 +704,7 @@
     },
     "frontend/desktop": {
       "name": "@tiancode-ai/desktop",
-      "version": "1.0.1",
+      "version": "1.0.5",
       "dependencies": {
         "@huggingface/transformers": "3.8.1",
         "@zip.js/zip.js": "2.7.62",

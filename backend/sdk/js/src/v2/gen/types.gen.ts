@@ -2110,6 +2110,34 @@ export type ConnectionTestResult = {
   latencyMs: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
 }
 
+export type DecisionStatus = {
+  state: "unavailable" | "missing" | "downloading" | "ready" | "error"
+  loaded: boolean
+  totalBytes: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  receivedBytes: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  message?: string
+  loadMs?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  model: string
+  base: string
+}
+
+export type DecisionPreset = "outcome" | "area"
+
+export type DecisionClassifyInput = {
+  preset: DecisionPreset
+  text: string
+  timeoutMs?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+}
+
+export type DecisionAnswer = {
+  choice: string
+  confidence: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  probabilities: {
+    [key: string]: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  }
+  ms: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+}
+
 export type Model = {
   id: string
   providerID: string
@@ -7730,6 +7758,131 @@ export type GlobalConnectionsTestResponses = {
 }
 
 export type GlobalConnectionsTestResponse = GlobalConnectionsTestResponses[keyof GlobalConnectionsTestResponses]
+
+export type GlobalDecisionRemoveData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/global/decision"
+}
+
+export type GlobalDecisionRemoveErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalDecisionRemoveError = GlobalDecisionRemoveErrors[keyof GlobalDecisionRemoveErrors]
+
+export type GlobalDecisionRemoveResponses = {
+  /**
+   * Status after removing the model
+   */
+  200: DecisionStatus
+}
+
+export type GlobalDecisionRemoveResponse = GlobalDecisionRemoveResponses[keyof GlobalDecisionRemoveResponses]
+
+export type GlobalDecisionStatusData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/global/decision"
+}
+
+export type GlobalDecisionStatusErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalDecisionStatusError = GlobalDecisionStatusErrors[keyof GlobalDecisionStatusErrors]
+
+export type GlobalDecisionStatusResponses = {
+  /**
+   * Local decision model status
+   */
+  200: DecisionStatus
+}
+
+export type GlobalDecisionStatusResponse = GlobalDecisionStatusResponses[keyof GlobalDecisionStatusResponses]
+
+export type GlobalDecisionInstallData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/global/decision/install"
+}
+
+export type GlobalDecisionInstallErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalDecisionInstallError = GlobalDecisionInstallErrors[keyof GlobalDecisionInstallErrors]
+
+export type GlobalDecisionInstallResponses = {
+  /**
+   * Status after starting the download
+   */
+  200: DecisionStatus
+}
+
+export type GlobalDecisionInstallResponse = GlobalDecisionInstallResponses[keyof GlobalDecisionInstallResponses]
+
+export type GlobalDecisionCancelData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/global/decision/cancel"
+}
+
+export type GlobalDecisionCancelErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalDecisionCancelError = GlobalDecisionCancelErrors[keyof GlobalDecisionCancelErrors]
+
+export type GlobalDecisionCancelResponses = {
+  /**
+   * Status after cancelling
+   */
+  200: DecisionStatus
+}
+
+export type GlobalDecisionCancelResponse = GlobalDecisionCancelResponses[keyof GlobalDecisionCancelResponses]
+
+export type GlobalDecisionClassifyData = {
+  body?: DecisionClassifyInput
+  path?: never
+  query?: never
+  url: "/global/decision/classify"
+}
+
+export type GlobalDecisionClassifyErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalDecisionClassifyError = GlobalDecisionClassifyErrors[keyof GlobalDecisionClassifyErrors]
+
+export type GlobalDecisionClassifyResponses = {
+  /**
+   * The answer, or null when the model is not ready
+   */
+  200: DecisionAnswer
+}
+
+export type GlobalDecisionClassifyResponse = GlobalDecisionClassifyResponses[keyof GlobalDecisionClassifyResponses]
 
 export type EventSubscribeData = {
   body?: never
