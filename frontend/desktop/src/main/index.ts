@@ -65,14 +65,7 @@ import { createTray, refreshTrayMenu } from "./tray"
 import { ensureLoopbackNoProxy, useEnvProxy } from "./util/proxy"
 import { installSystemCaTrust, installWindowsSystemCaTrust } from "./windows-system-ca"
 import { dropInheritedProfileEnv, migrateDesktopXdgPaths } from "./xdg-paths"
-import {
-  APP_IDS,
-  DEV_APP_ID,
-  portableDataRoot,
-  PUBLIC_APP_ID,
-  resolveProfile,
-  saveProfileChoice,
-} from "./profile"
+import { APP_IDS, DEV_APP_ID, portableDataRoot, PUBLIC_APP_ID, resolveProfile, saveProfileChoice } from "./profile"
 import { setResolvedProfile } from "./profile-state"
 import { countSessions } from "./session-count"
 
@@ -346,6 +339,15 @@ const main = Effect.gen(function* () {
       : yield* Effect.promise(() => migrateDesktopXdgPaths(appEnvironment.xdg))
   if (xdgMigration.migrated) logger.log("migrated desktop XDG data", xdgMigration)
 
+  // A restore chosen in Settings runs here, before anything opens the files it replaces: the IPC
+  // handlers keep drafts.sqlite open, and Windows refuses to replace or delete an open file, which
+  // left a half-restored profile.
+  yield* Effect.promise(() =>
+    applyPendingRestore()
+      .then((name) => name && logger.log("backup restored at startup", { name }))
+      .catch((error) => logger.error("pending backup restore failed", error)),
+  )
+
   // Exit waits for cookie cleanup above; startup also clears after an interrupted shutdown.
   if (webviewRetention(getStore().get(WEBVIEW_RETENTION_KEY)) === "session") {
     // El fallo se traga aquí dentro, no con Effect.catch: `Effect.promise` convierte un rechazo en
@@ -433,12 +435,6 @@ const main = Effect.gen(function* () {
     10 * 60 * 1000,
   )
   updateTimer.unref()
-  // A restore chosen in Settings runs here, before the server opens the databases it replaces.
-  yield* Effect.promise(() =>
-    applyPendingRestore()
-      .then((name) => name && logger.log("backup restored at startup", { name }))
-      .catch((error) => logger.error("pending backup restore failed", error)),
-  )
   // Respaldo diario automático (Ajustes → General; ausente = activado). Solo
   // datos (sesiones + configuración); los modelos se excluyen por diseño.
   if (getStore().get(AUTO_BACKUP_KEY) !== "false") {

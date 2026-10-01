@@ -4,6 +4,8 @@ export const FIRST_LAUNCH_ONBOARDING_COMPLETE_KEY = "firstLaunchOnboardingComple
 export const OLD_LAYOUT_ELIGIBLE_KEY = "oldLayoutEligible"
 export const WSL_SERVERS_KEY = "wslServers"
 export const PINCH_ZOOM_ENABLED_KEY = "pinchZoomEnabled"
+// The interface scale (Settings › General, Ctrl +/-), kept across restarts and new windows.
+export const UI_ZOOM_FACTOR_KEY = "uiZoomFactor"
 export const MINIMIZE_TO_TRAY_KEY = "minimizeToTray"
 export const FILE_WATCHER_KEY = "fileWatcher"
 export const CHECK_UPDATES_ON_START_KEY = "checkUpdatesOnStart"

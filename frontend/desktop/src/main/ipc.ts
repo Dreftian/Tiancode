@@ -25,7 +25,7 @@ import {
   openLocalFileURL,
   setPinchZoomEnabled,
   setTitlebar,
-  updateTitlebar,
+  setUiZoom,
   preferredWindowSize,
   clearWebviewData,
   WEBVIEW_RETENTION_KEY,
@@ -657,11 +657,9 @@ export function registerIpcHandlers(deps: Deps) {
   })
 
   ipcMain.handle("get-zoom-factor", (event: IpcMainInvokeEvent) => event.sender.getZoomFactor())
-  ipcMain.handle("set-zoom-factor", (event: IpcMainInvokeEvent, factor: number) => {
-    event.sender.setZoomFactor(factor)
-    const win = BrowserWindow.fromWebContents(event.sender)
-    if (!win) return
-    updateTitlebar(win)
+  ipcMain.handle("set-zoom-factor", (_event: IpcMainInvokeEvent, factor: number) => {
+    if (typeof factor !== "number" || !Number.isFinite(factor)) return
+    setUiZoom(factor)
   })
   ipcMain.handle("get-pinch-zoom-enabled", () => getPinchZoomEnabled())
   ipcMain.handle("set-pinch-zoom-enabled", (_event: IpcMainInvokeEvent, enabled: boolean) => {

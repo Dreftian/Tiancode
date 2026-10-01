@@ -50,6 +50,13 @@ window.api.onZoomFactorChanged((factor) => {
   setWebviewZoom(requestedZoom)
 })
 
+// Windows open at the saved interface scale, so start from it rather than from 1.
+void window.api.getZoomFactor().then((factor) => {
+  if (requestedZoom !== 1 || !Number.isFinite(factor)) return
+  requestedZoom = clamp(factor)
+  setWebviewZoom(requestedZoom)
+})
+
 void window.api.getPinchZoomEnabled().then((enabled) => {
   pinchZoomEnabled = enabled
 })

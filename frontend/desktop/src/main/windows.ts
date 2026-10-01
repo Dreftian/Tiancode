@@ -23,7 +23,7 @@ import type { TitlebarTheme } from "../preload/types"
 import { APP_NAMES, CHANNEL } from "./constants"
 import { exportDebugLogs, write as writeLog } from "./logging"
 import { getStore, removeStoreFile } from "./store"
-import { PINCH_ZOOM_ENABLED_KEY, MINIMIZE_TO_TRAY_KEY, WINDOW_IDS_KEY } from "./store-keys"
+import { PINCH_ZOOM_ENABLED_KEY, MINIMIZE_TO_TRAY_KEY, UI_ZOOM_FACTOR_KEY, WINDOW_IDS_KEY } from "./store-keys"
 import { createUnresponsiveSampler } from "./unresponsive"
 import { nativeT } from "./native-translations"
 import { createWindowRegistry } from "./window-registry"
@@ -202,7 +202,23 @@ export function setPinchZoomEnabled(enabled: boolean) {
   for (const win of BrowserWindow.getAllWindows()) {
     pinchZoomEnabled.set(win, enabled)
     win.webContents.send("pinch-zoom-enabled-changed", enabled)
-    if (!enabled && win.webContents.getZoomFactor() !== 1) win.webContents.setZoomFactor(1)
+    if (!enabled && win.webContents.getZoomFactor() !== getUiZoom()) win.webContents.setZoomFactor(getUiZoom())
+    updateZoom(win)
+  }
+}
+
+// Pinch and Ctrl+wheel zoom are momentary; this is the scale windows open at and return to.
+export function getUiZoom() {
+  const value = Number(getStore().get(UI_ZOOM_FACTOR_KEY))
+  return Number.isFinite(value) && value > 0 ? clampZoom(value) : 1
+}
+
+export function setUiZoom(factor: number) {
+  const next = clampZoom(factor)
+  getStore().set(UI_ZOOM_FACTOR_KEY, next)
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (win.isDestroyed() || win.webContents.isDestroyed()) continue
+    win.webContents.setZoomFactor(next)
     updateZoom(win)
   }
 }
@@ -404,7 +420,8 @@ export function createMainWindow(id: string = randomUUID()) {
     // A frame with no document yet (about:blank) is judged by the page that started the navigation.
     const current = frameUrl(event.frame)
     const from = current && URL.canParse(current) && new URL(current).origin !== "null" ? current : initiator
-    if (from && URL.canParse(from) && URL.canParse(event.url) && new URL(from).origin === new URL(event.url).origin) return
+    if (from && URL.canParse(from) && URL.canParse(event.url) && new URL(from).origin === new URL(event.url).origin)
+      return
     event.preventDefault()
     writeLog("window", "blocked agent cross-origin frame navigation", { from, url: event.url }, "warn")
   })
@@ -743,12 +760,14 @@ function allowRendererPermissions(win: BrowserWindow) {
   win.webContents.once("destroyed", () => rendererPermissions.unregister(webContentsId))
 
   win.webContents.session.setPermissionRequestHandler((webContents, permission, callback, details) => {
-    callback(rendererPermissions.allows({
-      id: webContents.id,
-      permission,
-      topURL: webContents.getURL(),
-      requestingURL: details.requestingUrl,
-    }))
+    callback(
+      rendererPermissions.allows({
+        id: webContents.id,
+        permission,
+        topURL: webContents.getURL(),
+        requestingURL: details.requestingUrl,
+      }),
+    )
   })
   win.webContents.session.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
     return rendererPermissions.allows({
@@ -889,7 +908,7 @@ function isRendererUrl(value?: string, html = false) {
 
 function wireZoom(win: BrowserWindow) {
   pinchZoomEnabled.set(win, getPinchZoomEnabled())
-  win.webContents.setZoomFactor(1)
+  win.webContents.setZoomFactor(getUiZoom())
   win.webContents.on("zoom-changed", (event, zoomDirection) => {
     event.preventDefault()
     if (pinchZoomEnabled.get(win)) {
@@ -897,7 +916,7 @@ function wireZoom(win: BrowserWindow) {
       updateZoom(win)
       return
     }
-    if (win.webContents.getZoomFactor() !== 1) win.webContents.setZoomFactor(1)
+    if (win.webContents.getZoomFactor() !== getUiZoom()) win.webContents.setZoomFactor(getUiZoom())
     updateZoom(win)
   })
 }
