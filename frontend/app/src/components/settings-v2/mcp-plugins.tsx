@@ -20,6 +20,14 @@ import {
 import { createStore } from "solid-js/store"
 import { usePlatform } from "@/context/platform"
 import { fetchMarketplace, MARKETPLACE_SNAPSHOT, CURATED_SKILLS, type MarketplaceItem } from "./marketplace"
+
+// Curated entries are described in the user's language rather than the catalog's English.
+const curatedDescriptions: Record<string, "settings.marketplace.diagramDescription" | "settings.marketplace.securityDescription" | "settings.marketplace.focusDescription" | "settings.marketplace.composioDescription"> = {
+  "diagram-design": "settings.marketplace.diagramDescription",
+  "security-audit": "settings.marketplace.securityDescription",
+  "i-have-adhd": "settings.marketplace.focusDescription",
+  composio: "settings.marketplace.composioDescription",
+}
 import { decodeGitHubUrl, fetchGitHubSkills } from "./skills-github"
 import { parseMcpConfig, parseCommand } from "./mcp-config"
 import { useLanguage } from "@/context/language"
@@ -94,8 +102,7 @@ export const SettingsMcpPluginsV2: Component<{
   )
   const marketplace = createMemo(() => [...CURATED_SKILLS.map((entry) => ({
     ...entry,
-    desc: language.t(entry.id === "diagram-design" ? "settings.marketplace.diagramDescription"
-      : entry.id === "security-audit" ? "settings.marketplace.securityDescription" : "settings.marketplace.focusDescription"),
+    desc: language.t(curatedDescriptions[entry.id] ?? "settings.marketplace.focusDescription"),
   })), ...clineCatalog().filter((entry) => !CURATED_SKILLS.some((curated) => curated.type === entry.type && curated.id === entry.id))])
   const [installedSkills, { refetch: refetchSkills }] = createResource(async () => {
     const result = await serverSdk().client.app.skills(params()).catch(() => ({ data: [] }))

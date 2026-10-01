@@ -94,6 +94,9 @@ export const MARKETPLACE_SNAPSHOT = parseMarketplace(snapshot)
 export const CURATED_SKILLS = parseMarketplace({ entries: [
   { id: "diagram-design", type: "skill", name: "Diagram Design", description: "Architecture and process diagrams as self-contained HTML and SVG.", tags: ["creative"], homepage: "https://github.com/cathrynlavery/diagram-design/tree/main/skills/diagram-design", license: "MIT", install: { args: [] } },
   { id: "security-audit", type: "skill", name: "Security Audit", description: "Security audits with evidence, independent validation and structured findings.", tags: ["security"], homepage: "https://github.com/cloudflare/security-audit-skill/tree/main/skills/security-audit", license: "Apache-2.0", install: { args: [] } },
+  // Composio's hosted MCP: 1000+ app integrations behind one server, signed in through MCP OAuth
+  // in the browser (no key in the catalog; per-user `x-consumer-api-key` headers are the user's).
+  { id: "composio", type: "mcp", name: "Composio", description: "Connect 1000+ apps (Gmail, Slack, GitHub, Notion…) through one MCP server.", tags: ["productivity"], homepage: "https://docs.composio.dev/docs/composio-connect", license: "MIT", featured: true, install: { args: ["composio", "--transport", "http", "https://connect.composio.dev/mcp"] } },
   { id: "i-have-adhd", type: "skill", name: "I Have ADHD", description: "Concise, action-first responses with clear next steps and reduced reading load.", tags: ["productivity"], homepage: "https://github.com/ayghri/i-have-adhd/tree/main/skills/i-have-adhd", license: "MIT", install: { args: [] } },
 ] })
 

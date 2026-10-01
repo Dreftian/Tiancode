@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { MARKETPLACE_SNAPSHOT, marketplaceMcpConfig, parseMarketplace } from "./marketplace"
+import { CURATED_SKILLS, MARKETPLACE_SNAPSHOT, marketplaceMcpConfig, parseMarketplace } from "./marketplace"
 import { parseCommand, parseMcpConfig } from "./mcp-config"
 
 describe("optional marketplace", () => {
@@ -35,5 +35,13 @@ describe("optional marketplace", () => {
     expect(parseCommand('"C:\\Program Files\\node.exe" "C:\\My Tools\\server.js" --name "two words"'))
       .toEqual(["C:\\Program Files\\node.exe", "C:\\My Tools\\server.js", "--name", "two words"])
     expect(() => parseCommand('node "unterminated')).toThrow()
+  })
+})
+
+describe("curated marketplace entries", () => {
+  test("Composio installs as a disabled remote MCP without credentials", () => {
+    const composio = CURATED_SKILLS.find((entry) => entry.id === "composio")
+    expect(composio?.type).toBe("mcp")
+    expect(composio?.config).toEqual({ type: "remote", url: "https://connect.composio.dev/mcp", enabled: false })
   })
 })

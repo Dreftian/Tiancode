@@ -3202,4 +3202,5 @@ export const dict = {
   "settings.pairing.field.address": "Dirección",
   "settings.pairing.field.username": "Usuario",
   "settings.pairing.field.password": "Contraseña",
+  "settings.marketplace.composioDescription": "Conecta más de 1000 apps (Gmail, Slack, GitHub, Notion…) con un solo servidor MCP. Inicias sesión desde el navegador al autenticarlo.",
 }

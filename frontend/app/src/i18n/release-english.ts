@@ -233,4 +233,5 @@ export const RELEASE_ENGLISH = {
   "settings.pairing.field.address": "Address",
   "settings.pairing.field.username": "Username",
   "settings.pairing.field.password": "Password",
+  "settings.marketplace.composioDescription": "Connect 1000+ apps (Gmail, Slack, GitHub, Notion…) through one MCP server. You sign in from the browser when you authenticate it.",
 }
