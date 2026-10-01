@@ -14,6 +14,7 @@ import { checkAppExists, resolveAppPath } from "./apps"
 import { APP_NAMES, CHANNEL, DISTRIBUTION } from "./constants"
 import { registerIpcHandlers, sendDeepLinks, sendMenuCommand } from "./ipc"
 import { restoreKeepScreenActive } from "./screen-activity"
+import { markPairingRunning, pairingListen } from "./pairing"
 import { forwardInitializationFailure } from "./initialization"
 import { exportDebugLogs, initCrashReporter, initLogging, startNetLog, write as writeLog } from "./logging"
 import { createMenu } from "./menu"
@@ -478,19 +479,22 @@ const main = Effect.gen(function* () {
       return yield* Deferred.await(res)
     })
     const hostname = "127.0.0.1"
-    const url = `http://${hostname}:${port}`
-    const password = randomUUID()
+    const listen = yield* Effect.promise(() => pairingListen({ port, password: randomUUID() }))
+    const url = `http://${hostname}:${listen.port}`
+    const password = listen.password
 
-    logger.log("spawning sidecar", { url })
+    logger.log("spawning sidecar", { url, lan: listen.lan })
     const { listener, health } = yield* Effect.promise(() =>
-      spawnLocalServer(hostname, port, password, {
+      spawnLocalServer(hostname, listen.port, password, {
         userDataPath: app.getPath("userData"),
+        listenHostname: listen.lan ? "0.0.0.0" : undefined,
         onStdout: (message) => writeLog("server", "stdout", { message }),
         onStderr: (message) => writeLog("server", "stderr", { message }, "warn"),
         onExit: (code) => writeLog("utility", "sidecar exited", { code }, "warn"),
       }),
     )
     server = listener
+    markPairingRunning(listen)
     yield* Deferred.succeed(serverReady, {
       url,
       username: "tiancode",

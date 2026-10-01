@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { app, utilityProcess } from "electron"
@@ -24,6 +25,8 @@ const SIDECAR_STOP_TIMEOUT = 6_000
 
 type SpawnLocalServerOptions = {
   userDataPath: string
+  // Settings › Pairing binds every interface; health checks keep using `hostname`.
+  listenHostname?: string
   onStdout?: (message: string) => void
   onStderr?: (message: string) => void
   onExit?: (code: number) => void
@@ -143,7 +146,7 @@ export async function spawnLocalServer(
     refreshTimeout()
     child.postMessage({
       type: "start",
-      hostname,
+      hostname: options.listenHostname ?? hostname,
       port,
       password,
       userDataPath: options.userDataPath,
@@ -231,6 +234,9 @@ function createSidecarEnv(): Record<string, string> {
   // A folder chosen in Settings › Local models; the backend downloads and looks for GGUF files there.
   const modelsDir = getStore().get(LOCAL_MODELS_DIR_KEY)
   if (typeof modelsDir === "string" && modelsDir.trim()) env.TIANCODE_MODELS_DIR = modelsDir.trim()
+  // Devices paired over the network load Tiancode's own web app from the packaged build.
+  const webUi = join(process.resourcesPath, "web-ui")
+  if (app.isPackaged && existsSync(join(webUi, "index.html"))) env.TIANCODE_WEB_UI_DIR = webUi
   return env
 }
 

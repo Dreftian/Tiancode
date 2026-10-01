@@ -1,4 +1,7 @@
 import { createHash } from "node:crypto"
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import path from "node:path"
 import { describe, expect } from "bun:test"
 import { Flag } from "@tiancode-ai/core/flag/flag"
 import { ConfigProvider, Effect, Layer, Option } from "effect"
@@ -17,7 +20,7 @@ import { RuntimeFlags } from "../../src/effect/runtime-flags"
 import { ServerAuth } from "../../src/server/auth"
 import { authorizationRouterMiddleware } from "../../src/server/routes/instance/httpapi/middleware/authorization"
 import { HttpApiApp } from "../../src/server/routes/instance/httpapi/server"
-import { serveEmbeddedUIEffect, serveUIEffect } from "../../src/server/shared/ui"
+import { serveDirectoryUIEffect, serveEmbeddedUIEffect, serveUIEffect } from "../../src/server/shared/ui"
 import { testEffect } from "../lib/effect"
 
 const testStateLayer = Layer.effectDiscard(
@@ -393,6 +396,20 @@ describe("HttpApi UI fallback", () => {
     }),
   )
 
+  it.live("serves the app bundle without auth but keeps the page shell protected", () =>
+    Effect.gen(function* () {
+      const app = uiApp({
+        password: "secret",
+        username: "tiancode",
+        disableEmbeddedWebUi: true,
+        client: httpClient(new Response("console.log('bundle')")),
+      })
+      expect((yield* app.request("/assets/index-abc.js")).status).toBe(200)
+      expect((yield* app.request("/")).status).toBe(401)
+      expect((yield* app.request("/assets/x.js", { method: "POST" })).status).toBe(401)
+    }),
+  )
+
   it.live("accepts basic auth for the web UI", () =>
     Effect.gen(function* () {
       const response = yield* uiApp({
@@ -442,6 +459,8 @@ describe("HttpApi UI fallback", () => {
 
   it.live("allows web UI preflight without auth", () =>
     Effect.gen(function* () {
+      // Loopback origins are only trusted when the server has a password (server/src/cors.ts).
+      Flag.TIANCODE_SERVER_PASSWORD = "secret"
       const response = yield* app({ password: "secret", username: "tiancode" }).request("/", {
         method: "OPTIONS",
         headers: {
@@ -453,5 +472,65 @@ describe("HttpApi UI fallback", () => {
       expect(response.status).toBe(204)
       expect(response.headers.get("access-control-allow-origin")).toBe("http://localhost:3000")
     }),
+  )
+})
+
+describe("web UI from a directory", () => {
+  const withApp = <A, E, R>(run: (dir: string) => Effect.Effect<A, E, R>) =>
+    Effect.acquireUseRelease(
+      Effect.promise(async () => {
+        const dir = await mkdtemp(path.join(tmpdir(), "tiancode-web-ui-"))
+        await mkdir(path.join(dir, "assets"))
+        await writeFile(path.join(dir, "index.html"), "<html>shell</html>")
+        await writeFile(path.join(dir, "assets", "app.js"), "console.log('dir')")
+        return dir
+      }),
+      run,
+      (dir) => Effect.promise(() => rm(dir, { recursive: true, force: true })),
+    )
+
+  const get = (fs: FSUtil.Interface, dir: string, pathname: string) =>
+    serveDirectoryUIEffect(pathname, fs, dir).pipe(Effect.map(HttpServerResponse.toWeb))
+
+  it.live("serves assets and the app shell for client routes", () =>
+    withApp((dir) =>
+      Effect.gen(function* () {
+        const fs = yield* FSUtil.Service
+        const asset = yield* get(fs, dir, "/assets/app.js")
+        expect(asset.status).toBe(200)
+        expect(asset.headers.get("content-type")).toContain("javascript")
+        expect(yield* responseText(asset)).toBe("console.log('dir')")
+
+        for (const route of ["/", "/server/abc/session/ses_1"]) {
+          const shell = yield* get(fs, dir, route)
+          expect(shell.status).toBe(200)
+          expect(shell.headers.get("content-security-policy")).toBeTruthy()
+          expect(yield* responseText(shell)).toBe("<html>shell</html>")
+        }
+      }),
+    ),
+  )
+
+  it.live("answers 404 for a missing asset instead of the shell", () =>
+    withApp((dir) =>
+      Effect.gen(function* () {
+        const fs = yield* FSUtil.Service
+        expect((yield* get(fs, dir, "/assets/missing.js")).status).toBe(404)
+        expect((yield* get(fs, dir, "/assets/")).status).toBe(404)
+        expect((yield* get(fs, dir, "/assets")).status).toBe(404)
+      }),
+    ),
+  )
+
+  it.live("never reads outside the directory", () =>
+    withApp((dir) =>
+      Effect.gen(function* () {
+        const fs = yield* FSUtil.Service
+        yield* Effect.promise(() => writeFile(path.join(path.dirname(dir), "tiancode-secret.txt"), "secret"))
+        const response = yield* get(fs, dir, "/../tiancode-secret.txt")
+        expect(yield* responseText(response)).not.toBe("secret")
+        yield* Effect.promise(() => rm(path.join(path.dirname(dir), "tiancode-secret.txt"), { force: true }))
+      }),
+    ),
   )
 })

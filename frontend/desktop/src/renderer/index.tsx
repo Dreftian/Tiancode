@@ -313,6 +313,10 @@ const createPlatform = (windowState: DesktopWindowState): Platform => {
 
     getPinchZoomEnabled: () => window.api.getPinchZoomEnabled(),
     getKeepScreenActive: () => window.api.getKeepScreenActive(),
+    pairing: {
+      info: () => window.api.pairingInfo(),
+      setEnabled: (enabled: boolean) => window.api.setPairingEnabled(enabled),
+    },
     setKeepScreenActive: (enabled: boolean) => window.api.setKeepScreenActive(enabled),
 
     setPinchZoomEnabled,

@@ -92,6 +92,7 @@ export const SETTINGS_ROWS: SettingsSearchEntry[] = [
   row("notifications", undefined, "settings.general.sounds.agent.title", "settings-sounds-agent", ["sonido", "sound", "agente"]),
   row("notifications", undefined, "settings.general.sounds.permissions.title", "settings-sounds-permissions", ["sonido", "sound", "permisos"]),
   row("notifications", undefined, "settings.general.sounds.errors.title", "settings-sounds-errors", ["sonido", "sound", "errores"]),
+  row("pairing", undefined, "settings.pairing.connection.title", "settings-pairing-local-network", ["red", "network", "lan", "móvil", "phone", "qr", "wifi"], "desktop"),
   row("pairing", undefined, "settings.pairing.screenActive.title", "settings-keep-screen-active", ["pantalla", "screen", "suspender", "sleep", "activa"], "desktop"),
   row("experimental", undefined, "settings.experimental.browser.title", "settings-agent-browser", ["navegador", "browser", "agente", "controlar"]),
   row("experimental", undefined, "settings.experimental.tabs.title", "settings-tab-layout", ["pestañas", "tabs", "vertical", "horizontal"]),

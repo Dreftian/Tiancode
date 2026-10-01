@@ -49,19 +49,12 @@
     "vite-plugin-solid": "catalog:"
   },
   "dependencies": {
-    "zod": "catalog:",
     "@corvu/drawer": "catalog:",
     "@dnd-kit/abstract": "0.5.0",
     "@dnd-kit/dom": "0.5.0",
     "@dnd-kit/helpers": "0.5.0",
     "@dnd-kit/solid": "0.5.0",
     "@kobalte/core": "catalog:",
-    "@tiancode-ai/client": "file:vendor/tiancode-ai-client-1.17.13-v2.tgz",
-    "@tiancode-ai/core": "workspace:*",
-    "@tiancode-ai/schema": "workspace:*",
-    "@tiancode-ai/sdk": "workspace:*",
-    "@tiancode-ai/session-ui": "workspace:*",
-    "@tiancode-ai/ui": "workspace:*",
     "@pierre/trees": "1.0.0-beta.4",
     "@sentry/solid": "catalog:",
     "@shikijs/transformers": "3.9.2",
@@ -82,6 +75,12 @@
     "@tanstack/solid-query": "5.91.4",
     "@tanstack/solid-virtual": "catalog:",
     "@thisbeyond/solid-dnd": "0.7.5",
+    "@tiancode-ai/client": "file:vendor/tiancode-ai-client-1.17.13-v2.tgz",
+    "@tiancode-ai/core": "workspace:*",
+    "@tiancode-ai/schema": "workspace:*",
+    "@tiancode-ai/sdk": "workspace:*",
+    "@tiancode-ai/session-ui": "workspace:*",
+    "@tiancode-ai/ui": "workspace:*",
     "diff": "catalog:",
     "dompurify": "catalog:",
     "effect": "catalog:",
@@ -95,6 +94,8 @@
     "solid-js": "catalog:",
     "solid-list": "catalog:",
     "solid-presence": "0.2.0",
-    "tailwindcss": "catalog:"
+    "tailwindcss": "catalog:",
+    "uqr": "0.1.3",
+    "zod": "catalog:"
   }
 }

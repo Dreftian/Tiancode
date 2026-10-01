@@ -82,6 +82,13 @@ const getBase = (appId: string): Configuration => ({
       from: "resources/icons",
       to: "icons",
     },
+    // Tiancode's web app for devices paired over the local network (Settings › Pairing). The
+    // sidecar serves it from here; source maps stay out of the installer.
+    {
+      from: "../app/dist",
+      to: "web-ui",
+      filter: ["**/*", "!**/*.map"],
+    },
     // page-mascot characters for the floating desktop pet (the app bundles its own copy).
     {
       from: "../ui/src/components/mascots",

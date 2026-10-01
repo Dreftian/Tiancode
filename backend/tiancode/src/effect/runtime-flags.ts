@@ -18,6 +18,8 @@ export class Service extends ConfigService.Service<Service>()("@tiancode/Runtime
   pure: bool("TIANCODE_PURE"),
   disableDefaultPlugins: bool("TIANCODE_DISABLE_DEFAULT_PLUGINS"),
   disableEmbeddedWebUi: bool("TIANCODE_DISABLE_EMBEDDED_WEB_UI"),
+  // A built web app on disk (the desktop ships one for devices paired over the local network).
+  webUiDir: Config.string("TIANCODE_WEB_UI_DIR").pipe(Config.withDefault("")),
   disableExternalSkills: bool("TIANCODE_DISABLE_EXTERNAL_SKILLS"),
   disableLspDownload: bool("TIANCODE_DISABLE_LSP_DOWNLOAD"),
   disableClaudeCodePrompt: Config.all({

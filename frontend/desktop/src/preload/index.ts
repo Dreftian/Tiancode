@@ -248,6 +248,8 @@ const api: ElectronAPI = {
   getPinchZoomEnabled: () => ipcRenderer.invoke("get-pinch-zoom-enabled"),
   setPinchZoomEnabled: (enabled) => ipcRenderer.invoke("set-pinch-zoom-enabled", enabled),
   getKeepScreenActive: () => ipcRenderer.invoke("get-keep-screen-active"),
+  pairingInfo: () => ipcRenderer.invoke("pairing-info"),
+  setPairingEnabled: (enabled) => ipcRenderer.invoke("pairing-set-enabled", enabled),
   setKeepScreenActive: (enabled) => ipcRenderer.invoke("set-keep-screen-active", enabled),
   onPinchZoomEnabledChanged: (cb) => {
     const handler = (_: unknown, enabled: boolean) => cb(enabled)

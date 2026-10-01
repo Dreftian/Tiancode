@@ -180,6 +180,14 @@ export type FatalRendererError = {
 
 // Vista en vivo del panel de sesión: estado del WebContentsView del preview
 // (frontend/desktop/src/main/preview-view.ts).
+export type PairingInfo = {
+  enabled: boolean
+  urls: string[]
+  username: string
+  password: string | null
+  restartRequired: boolean
+}
+
 export type PreviewViewState = {
   url: string
   loading: boolean
@@ -406,6 +414,9 @@ export type ElectronAPI = {
   getPinchZoomEnabled: () => Promise<boolean>
   setPinchZoomEnabled: (enabled: boolean) => Promise<void>
   getKeepScreenActive: () => Promise<boolean>
+  /** Settings › Pairing (frontend/desktop/src/main/pairing.ts). */
+  pairingInfo: () => Promise<PairingInfo>
+  setPairingEnabled: (enabled: boolean) => Promise<PairingInfo>
   /** Resolves with the resulting state, which stays off when the OS refuses the blocker. */
   setKeepScreenActive: (enabled: boolean) => Promise<boolean>
   onPinchZoomEnabledChanged: (cb: (enabled: boolean) => void) => () => void

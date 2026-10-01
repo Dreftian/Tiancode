@@ -53,6 +53,7 @@ import { registerDesktopPetIpc } from "./desktop-pet"
 import { COMPUTER_DENIED_KEY, COMPUTER_ENABLED_KEY, COMPUTER_RESTORE_KEY, registerComputerUseIpc } from "./computer-use"
 import { openInChrome } from "./chrome"
 import { getKeepScreenActive, setKeepScreenActive } from "./screen-activity"
+import { pairingInfo, setPairingEnabled } from "./pairing"
 
 // Apps "abrir con" que acepta open-path. En macOS y Linux el renderer envía
 // el nombre tal cual; en Windows envía el path resuelto por resolveAppPath
@@ -474,6 +475,10 @@ export function registerIpcHandlers(deps: Deps) {
     openExternalURL(url)
   })
   ipcMain.handle("get-keep-screen-active", () => getKeepScreenActive())
+  ipcMain.handle("pairing-info", () => pairingInfo())
+  ipcMain.handle("pairing-set-enabled", (_event: IpcMainInvokeEvent, enabled: boolean) =>
+    setPairingEnabled(enabled === true),
+  )
   ipcMain.handle("set-keep-screen-active", (_event: IpcMainInvokeEvent, enabled: boolean) =>
     setKeepScreenActive(enabled === true),
   )
