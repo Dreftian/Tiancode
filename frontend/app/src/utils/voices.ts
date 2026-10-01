@@ -1,3 +1,4 @@
+import { analyse } from "./language-detect"
 import { createSignal } from "solid-js"
 import { getSpeechRecognitionCtor } from "./runtime-adapters"
 
@@ -389,7 +390,40 @@ const EN_WORDS = new Set([
   "your", "we", "are", "going", "create", "make", "build", "first", "then",
   "now", "can", "want", "need", "but", "because", "more", "well",
 ])
+// The Web Speech language for each script and Latin language the detector names.
+const SPEECH_LOCALES: Record<string, string> = {
+  es: "es-ES",
+  en: "en-US",
+  pt: "pt-BR",
+  fr: "fr-FR",
+  de: "de-DE",
+  it: "it-IT",
+  nl: "nl-NL",
+  ro: "ro-RO",
+  az: "az-AZ",
+  han: "zh-CN",
+  kana: "ja-JP",
+  hangul: "ko-KR",
+  cyrillic: "ru-RU",
+  arabic: "ar-SA",
+  devanagari: "hi-IN",
+  bengali: "bn-IN",
+  greek: "el-GR",
+  hebrew: "he-IL",
+  thai: "th-TH",
+}
+
+/** BCP-47 language of what is being read (laya's detector, no model), or undefined when unclear. */
+export function speechLocale(text: string): string | undefined {
+  const result = analyse(text)
+  if (result.script !== "latin") return SPEECH_LOCALES[result.script]
+  if (result.language) return SPEECH_LOCALES[result.language]
+  return isSpanishText(text) ? "es-ES" : undefined
+}
+
 export function isSpanishText(text: string) {
+  const detected = analyse(text)
+  if (detected.script === "latin" && detected.language && !detected.languageUndecided) return detected.language === "es"
   if (SPANISH_CHARS.test(text)) return true
   const words = text.toLowerCase().match(/[a-záéíóúñü]+/g) ?? []
   let es = 0
@@ -450,15 +484,16 @@ function speakWithWebSpeech(key: string, text: string): Promise<string | undefin
     try {
       window.speechSynthesis.cancel()
       const utterance = new SpeechSynthesisUtterance(text)
-      const spanish = isSpanishText(text)
-      utterance.lang = spanish ? "es-ES" : "en-US"
+      const locale = speechLocale(text) ?? (navigator.language || "es-ES")
+      const spanish = locale.startsWith("es")
+      utterance.lang = locale
       utterance.rate = getVoiceSpeed() ?? 1.05
       utterance.pitch = getVoicePitch() ?? 1.0
       utterance.volume = getVoiceVolume() ?? 1.0
 
       const voices = window.speechSynthesis.getVoices()
       // Priorizar voces naturales en español de Windows (Microsoft Sabina, Helena, Laura, Dalia, etc.)
-      const prefix = spanish ? "es" : "en"
+      const prefix = spanish ? "es" : locale.slice(0, 2).toLowerCase()
       const femaleEsVoice =
         voices.find(
           (v) =>
