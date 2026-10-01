@@ -255,9 +255,9 @@ const createPlatform = (windowState: DesktopWindowState): Platform => {
       window.api.relaunch()
     },
 
-    notify: async (title, description, onClick) => {
+    notify: async (title, description, onClick, options) => {
       const focused = await window.api.getWindowFocused().catch(() => document.hasFocus())
-      if (focused) return
+      if (focused && !options?.force) return
 
       const notification = new Notification(title, {
         body: description ?? "",

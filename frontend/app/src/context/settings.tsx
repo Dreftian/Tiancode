@@ -9,6 +9,8 @@ export interface NotificationSettings {
   agent: boolean
   permissions: boolean
   errors: boolean
+  /** "Needs your answer". Absent: follows `agent`, which covered it before it had its own switch. */
+  questions?: boolean
 }
 
 export interface SoundSettings {
@@ -18,6 +20,15 @@ export interface SoundSettings {
   permissions: string
   errorsEnabled: boolean
   errors: string
+  /** Absent: follow the agent sound, as before. */
+  questionsEnabled?: boolean
+  questions?: string
+  /** Silences sounds and system notifications at once. */
+  muted?: boolean
+  /** 0 to 1. */
+  volume?: number
+  /** Only sound when Tiancode is in the background. */
+  backgroundOnly?: boolean
 }
 
 export const petKinds = [
@@ -843,6 +854,12 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         setErrors(value: boolean) {
           setStore("notifications", "errors", value)
         },
+        questions: createMemo(
+          () => store.notifications?.questions ?? store.notifications?.agent ?? defaultSettings.notifications.agent,
+        ),
+        setQuestions(value: boolean) {
+          setStore("notifications", "questions", value)
+        },
       },
       sounds: {
         agentEnabled: withFallback(() => store.sounds?.agentEnabled, defaultSettings.sounds.agentEnabled),
@@ -871,6 +888,28 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         errors: withFallback(() => store.sounds?.errors, defaultSettings.sounds.errors),
         setErrors(value: string) {
           setStore("sounds", "errors", value)
+        },
+        questionsEnabled: createMemo(
+          () => store.sounds?.questionsEnabled ?? store.sounds?.agentEnabled ?? defaultSettings.sounds.agentEnabled,
+        ),
+        setQuestionsEnabled(value: boolean) {
+          setStore("sounds", "questionsEnabled", value)
+        },
+        questions: createMemo(() => store.sounds?.questions ?? store.sounds?.agent ?? defaultSettings.sounds.agent),
+        setQuestions(value: string) {
+          setStore("sounds", "questions", value)
+        },
+        muted: withFallback(() => store.sounds?.muted, false),
+        setMuted(value: boolean) {
+          setStore("sounds", "muted", value)
+        },
+        volume: withFallback(() => store.sounds?.volume, 1),
+        setVolume(value: number) {
+          setStore("sounds", "volume", value)
+        },
+        backgroundOnly: withFallback(() => store.sounds?.backgroundOnly, false),
+        setBackgroundOnly(value: boolean) {
+          setStore("sounds", "backgroundOnly", value)
         },
       },
     }

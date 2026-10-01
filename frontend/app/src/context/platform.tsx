@@ -191,7 +191,8 @@ type PlatformBase = {
   restart(): Promise<void>
 
   /** Send a system notification */
-  notify(title: string, description?: string, onClick?: () => void): Promise<void>
+  /** Skipped while Tiancode is focused, unless `force` (the test button in Settings). */
+  notify(title: string, description?: string, onClick?: () => void, options?: { force?: boolean }): Promise<void>
 
   /** Open a native attachment picker and read selected files sequentially (desktop only) */
   openAttachmentPickerDialog?(

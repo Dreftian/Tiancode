@@ -416,3 +416,70 @@
 .settings-v2-kit-card [data-component="textarea-v2"] {
   width: 100%;
 }
+
+/* Notificaciones: one row per event with its system notification and sound side by side. */
+.settings-v2-notifications-events {
+  gap: 0;
+  padding-block: 6px;
+}
+
+.settings-v2-notifications-head,
+.settings-v2-notifications-event {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) 56px minmax(190px, 230px);
+  align-items: center;
+  gap: 12px;
+}
+
+.settings-v2-notifications-head {
+  padding: 4px 0 8px;
+  border-bottom: 1px solid var(--v2-border-border-muted);
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-notifications-head span:first-child {
+  grid-column: 1 / 3;
+}
+
+.settings-v2-notifications-head span:nth-child(2) {
+  text-align: center;
+}
+
+.settings-v2-notifications-event {
+  padding: 10px 0;
+}
+
+.settings-v2-notifications-event + .settings-v2-notifications-event {
+  border-top: 1px solid var(--v2-border-border-muted);
+}
+
+.settings-v2-notifications-event > [data-component="switch"] {
+  justify-self: center;
+}
+
+.settings-v2-notifications-sound {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .settings-v2-notifications-head {
+    display: none;
+  }
+
+  .settings-v2-notifications-event {
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+  }
+
+  .settings-v2-notifications-sound {
+    grid-column: 2 / -1;
+    justify-content: flex-start;
+  }
+}

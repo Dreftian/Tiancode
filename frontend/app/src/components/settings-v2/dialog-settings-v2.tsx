@@ -1,4 +1,4 @@
-import { Component, createMemo, createSignal, Show } from "solid-js"
+import { Component, createMemo, createSignal, onCleanup, Show } from "solid-js"
 import { createStore } from "solid-js/store"
 import { createMediaQuery } from "@solid-primitives/media"
 import { Dialog } from "@tiancode-ai/ui/v2/dialog-v2"
@@ -191,6 +191,19 @@ export const DialogSettings: Component<{
     markVisited(entry.tab)
     if (entry.target) revealSettingsRow(entry.target)
   }
+
+  // Links inside a page ("Configurar en Conexiones") move the dialog without reopening it.
+  const onGoto = (event: Event) => {
+    const next = settingsTarget(event instanceof CustomEvent ? event.detail : undefined)
+    if (next.computerUse) setSections("computerUse", next.computerUse)
+    if (next.server) setSections("server", next.server)
+    if (next.connections) setSections("connections", next.connections)
+    if (next.intelligence) setSections("intelligence", next.intelligence)
+    if (next.general) setSections("general", next.general)
+    markVisited(next.tab)
+  }
+  window.addEventListener("tiancode:settings-goto", onGoto)
+  onCleanup(() => window.removeEventListener("tiancode:settings-goto", onGoto))
 
   const showProviders = () => {
     void dialog.show(() => <DialogSettings sessionID={props.sessionID} defaultValue="providers" />)

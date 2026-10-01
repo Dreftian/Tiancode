@@ -363,6 +363,19 @@ function createServerNotificationState(input: {
     return sessionID === activeSession
   }
 
+  // Settings › Notificaciones: "Silenciar todo" stops sounds and system notifications, the volume
+  // applies to every sound, and "solo en segundo plano" keeps quiet while Tiancode is in front.
+  const inBackground = () => document.visibilityState !== "visible" || !document.hasFocus()
+  const playAlert = (enabled: boolean, id: string) => {
+    if (!enabled || settings.sounds.muted()) return
+    if (settings.sounds.backgroundOnly() && !inBackground()) return
+    void playSoundById(id, settings.sounds.volume())
+  }
+  const notifyAlert = (enabled: boolean, title: string, description: string, onClick: () => void) => {
+    if (!enabled || settings.sounds.muted()) return
+    void platform.notify(title, description, onClick)
+  }
+
   // The backend can publish idle twice for one turn (the error path sets idle, then the runner
   // does), and an error is followed by idle: neither should sound or notify "response ready".
   const lastIdle = new Map<string, number>()
@@ -414,11 +427,13 @@ function createServerNotificationState(input: {
       const outcome = sessionID ? await smartOutcome(directory, sessionID) : undefined
       if (meta.disposed) return
 
-      // A turn the local model reads as failed sounds like an error; anything else like a finished turn.
+      // A turn the local model reads as failed sounds like an error, one that asks something like a
+      // question; anything else like a finished turn.
       const failed = outcome === "failed"
-      if (failed ? settings.sounds.errorsEnabled() : settings.sounds.agentEnabled()) {
-        void playSoundById(failed ? settings.sounds.errors() : settings.sounds.agent())
-      }
+      const asks = outcome === "question"
+      if (failed) playAlert(settings.sounds.errorsEnabled(), settings.sounds.errors())
+      else if (asks) playAlert(settings.sounds.questionsEnabled(), settings.sounds.questions())
+      else playAlert(settings.sounds.agentEnabled(), settings.sounds.agent())
 
       append({
         directory,
@@ -435,9 +450,9 @@ function createServerNotificationState(input: {
           : failed
             ? language.t("notification.session.failed.title")
             : language.t("notification.session.responseReady.title")
-      if (settings.notifications.agent()) {
-        void platform.notify(title, session.title ?? sessionID, () => input.navigate(href))
-      }
+      notifyAlert(asks ? settings.notifications.questions() : settings.notifications.agent(), title, session.title ?? sessionID, () =>
+        input.navigate(href),
+      )
     })
   }
 
@@ -456,9 +471,7 @@ function createServerNotificationState(input: {
       if (meta.disposed) return
       if (session?.parentID) return
 
-      if (settings.sounds.errorsEnabled()) {
-        void playSoundById(settings.sounds.errors())
-      }
+      playAlert(settings.sounds.errorsEnabled(), settings.sounds.errors())
 
       append({
         directory,
@@ -472,9 +485,9 @@ function createServerNotificationState(input: {
         session?.title ??
         (typeof error === "string" ? error : language.t("notification.session.error.fallbackDescription"))
       const href = sessionID ? `/${base64Encode(directory)}/session/${sessionID}` : `/${base64Encode(directory)}`
-      if (settings.notifications.errors()) {
-        void platform.notify(language.t("notification.session.error.title"), description, () => input.navigate(href))
-      }
+      notifyAlert(settings.notifications.errors(), language.t("notification.session.error.title"), description, () =>
+        input.navigate(href),
+      )
     })
   }
 
@@ -509,10 +522,14 @@ function createServerNotificationState(input: {
         { sessionTitle, projectName },
       )
       const href = `/${base64Encode(directory)}/session/${target}`
-      const sound = kind === "permission" ? settings.sounds.permissionsEnabled() : settings.sounds.agentEnabled()
-      if (sound) void playSoundById(kind === "permission" ? settings.sounds.permissions() : settings.sounds.agent())
-      const notify = kind === "permission" ? settings.notifications.permissions() : settings.notifications.agent()
-      if (notify) void platform.notify(title, description, () => input.navigate(href))
+      if (kind === "permission") playAlert(settings.sounds.permissionsEnabled(), settings.sounds.permissions())
+      else playAlert(settings.sounds.questionsEnabled(), settings.sounds.questions())
+      notifyAlert(
+        kind === "permission" ? settings.notifications.permissions() : settings.notifications.questions(),
+        title,
+        description,
+        () => input.navigate(href),
+      )
       // The session (or its parent) is on screen: the request dock is already visible there.
       if (viewedInCurrentSession(directory, sessionID) || viewedInCurrentSession(directory, target)) return
       dismissAlert(key)

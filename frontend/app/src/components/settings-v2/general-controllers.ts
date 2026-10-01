@@ -120,7 +120,7 @@ export type SoundSelectOption = (typeof soundOptions)[number]
 
 export function createSoundSettingsController() {
   const settings = useSettings()
-  const preview = createSoundPreviewController(playSoundById)
+  const preview = createSoundPreviewController((id) => playSoundById(id, settings.sounds.volume()))
   const channel = (
     enabled: Accessor<boolean>,
     current: Accessor<string>,
@@ -167,6 +167,13 @@ export function createSoundSettingsController() {
       (value) => settings.sounds.setErrorsEnabled(value),
       (id) => settings.sounds.setErrors(id),
     ),
+    questions: channel(
+      settings.sounds.questionsEnabled,
+      settings.sounds.questions,
+      (value) => settings.sounds.setQuestionsEnabled(value),
+      (id) => settings.sounds.setQuestions(id),
+    ),
+    play: (id: string | undefined) => preview.play(id),
   }
 }
 
