@@ -12,8 +12,10 @@ function app() {
   return Server.Default().app
 }
 
+// An exact site origin: loopback origins are only trusted when the server has a password
+// (server/src/cors.ts), which this suite does not set.
 const PREFLIGHT_HEADERS = {
-  origin: "http://localhost:3000",
+  origin: "https://tiancode.vercel.app",
   "access-control-request-method": "POST",
   "access-control-request-headers": "content-type, x-tiancode-directory",
 }
@@ -32,7 +34,7 @@ describe("CORS preflight Vary header", () => {
     })
 
     expect([200, 204]).toContain(response.status)
-    expect(response.headers.get("access-control-allow-origin")).toBe("http://localhost:3000")
+    expect(response.headers.get("access-control-allow-origin")).toBe("https://tiancode.vercel.app")
     expect((response.headers.get("vary") ?? "").toLowerCase()).toContain("origin")
   })
 
