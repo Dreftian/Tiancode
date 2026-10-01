@@ -9,6 +9,8 @@ import type {
   AppAgentsDeleteErrors,
   AppAgentsDeleteResponses,
   AppAgentsErrors,
+  AppAgentsGenerateErrors,
+  AppAgentsGenerateResponses,
   AppAgentsResponses,
   AppAgentsUpdateErrors,
   AppAgentsUpdateResponses,
@@ -29,6 +31,8 @@ import type {
   CommandListErrors,
   CommandListResponses,
   Config as Config3,
+  ConfigAgentResetErrors,
+  ConfigAgentResetResponses,
   ConfigGetErrors,
   ConfigGetResponses,
   ConfigProvidersErrors,
@@ -105,6 +109,8 @@ import type {
   GithubReposResponses,
   GithubStatusErrors,
   GithubStatusResponses,
+  GlobalConfigAgentResetErrors,
+  GlobalConfigAgentResetResponses,
   GlobalConfigGetErrors,
   GlobalConfigGetResponses,
   GlobalConfigUpdateErrors,
@@ -156,18 +162,30 @@ import type {
   ModelhubDownloadResponses,
   ModelhubDownloadsErrors,
   ModelhubDownloadsResponses,
+  ModelhubEngineDefaultsErrors,
+  ModelhubEngineDefaultsResponses,
+  ModelhubEngineDefaultsSetErrors,
+  ModelhubEngineDefaultsSetResponses,
   ModelhubEngineErrors,
   ModelhubEngineResponses,
   ModelhubEngineStartErrors,
   ModelhubEngineStartResponses,
   ModelhubEngineStopErrors,
   ModelhubEngineStopResponses,
+  ModelhubEstimateErrors,
+  ModelhubEstimateResponses,
   ModelhubFilesErrors,
   ModelhubFilesResponses,
+  ModelhubForgetErrors,
+  ModelhubForgetResponses,
+  ModelhubLocalErrors,
+  ModelhubLocalResponses,
   ModelhubRuntimesErrors,
   ModelhubRuntimesResponses,
   ModelhubSearchErrors,
   ModelhubSearchResponses,
+  ModelhubSetDirErrors,
+  ModelhubSetDirResponses,
   ModelhubSystemErrors,
   ModelhubSystemResponses,
   ModelRef,
@@ -190,6 +208,12 @@ import type {
   PermissionRuleset,
   PermissionV2Reply,
   PermissionV2Source,
+  PreviewAgentDemandErrors,
+  PreviewAgentDemandResponses,
+  PreviewAgentPendingErrors,
+  PreviewAgentPendingResponses,
+  PreviewAgentResultErrors,
+  PreviewAgentResultResponses,
   PreviewLogsErrors,
   PreviewLogsResponses,
   PreviewRestartErrors,
@@ -728,6 +752,47 @@ export class Agents extends HeyApiClient {
   }
 
   /**
+   * Draft an agent with a model
+   *
+   * Ask a model to draft an agent identifier, when-to-use line and system prompt from a plain description. Nothing is written to disk: the caller reviews the draft and then calls create.
+   */
+  public generate<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      description?: string
+      providerID?: string
+      modelID?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "description" },
+            { in: "body", key: "providerID" },
+            { in: "body", key: "modelID" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<AppAgentsGenerateResponses, AppAgentsGenerateErrors, ThrowOnError>({
+      url: "/agent/generate",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
    * Delete an agent
    *
    * Remove an agent definition file and reload the agent list.
@@ -1250,7 +1315,7 @@ export class Prompt extends HeyApiClient {
   /**
    * Stream optimized prompt
    *
-   * Stream an AI-enhanced version of a prompt tailored for AI coding assistants.
+   * Stream an AI-enhanced version of a prompt tailored for AI coding assistants. The body is the optimized prompt as plain text. With `heartbeat: true` it also carries U+0001 liveness bytes while the model has produced no text yet, which the caller must strip; without it, nothing but the answer.
    */
   public optimize<ThrowOnError extends boolean = false>(
     parameters?: {
@@ -1649,6 +1714,31 @@ export class Experimental extends HeyApiClient {
   }
 }
 
+export class Agent extends HeyApiClient {
+  /**
+   * Reset agent overrides globally
+   *
+   * Remove an agent's overrides from the global configuration, restoring its defaults.
+   */
+  public reset<ThrowOnError extends boolean = false>(
+    parameters: {
+      name: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "path", key: "name" }] }])
+    return (options?.client ?? this.client).delete<
+      GlobalConfigAgentResetResponses,
+      GlobalConfigAgentResetErrors,
+      ThrowOnError
+    >({
+      url: "/global/config/agent/{name}",
+      ...options,
+      ...params,
+    })
+  }
+}
+
 export class Config extends HeyApiClient {
   /**
    * Get global configuration
@@ -1684,6 +1774,11 @@ export class Config extends HeyApiClient {
         ...params.headers,
       },
     })
+  }
+
+  private _agent?: Agent
+  get agent(): Agent {
+    return (this._agent ??= new Agent({ client: this.client }))
   }
 }
 
@@ -1891,6 +1986,40 @@ export class Event extends HeyApiClient {
   }
 }
 
+export class Agent2 extends HeyApiClient {
+  /**
+   * Reset agent overrides
+   *
+   * Remove an agent's overrides from the project configuration, restoring its defaults.
+   */
+  public reset<ThrowOnError extends boolean = false>(
+    parameters: {
+      name: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "name" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).delete<ConfigAgentResetResponses, ConfigAgentResetErrors, ThrowOnError>({
+      url: "/config/agent/{name}",
+      ...options,
+      ...params,
+    })
+  }
+}
+
 export class Config2 extends HeyApiClient {
   /**
    * Get configuration
@@ -1987,6 +2116,11 @@ export class Config2 extends HeyApiClient {
       ...options,
       ...params,
     })
+  }
+
+  private _agent?: Agent2
+  get agent(): Agent2 {
+    return (this._agent ??= new Agent2({ client: this.client }))
   }
 }
 
@@ -3686,6 +3820,107 @@ export class Modelhub extends HeyApiClient {
   }
 
   /**
+   * List local GGUF files
+   *
+   * Scan the models folder (and the legacy roots) for .gguf files and return each one with its GGUF header facts and the recommended load configuration for this machine.
+   */
+  public local<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<ModelhubLocalResponses, ModelhubLocalErrors, ThrowOnError>({
+      url: "/models/local",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Estimate a quantisation before downloading
+   *
+   * Read the remote GGUF header of a Hugging Face file and return the VRAM / RAM split, context and GPU layers this machine would use for it.
+   */
+  public estimate<ThrowOnError extends boolean = false>(
+    parameters: {
+      directory?: string
+      workspace?: string
+      model: string
+      file: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "query", key: "model" },
+            { in: "query", key: "file" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<ModelhubEstimateResponses, ModelhubEstimateErrors, ThrowOnError>({
+      url: "/models/estimate",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Change the models folder
+   *
+   * Switch the folder where models are stored and scanned, effective immediately (null restores the default).
+   */
+  public setDir<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      dir?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "dir" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<ModelhubSetDirResponses, ModelhubSetDirErrors, ThrowOnError>({
+      url: "/models/dir",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
    * Detect local runtimes
    *
    * Probe local inference runtimes (Ollama, LM Studio) and report whether they are available on this machine.
@@ -3785,6 +4020,45 @@ export class Modelhub extends HeyApiClient {
   }
 
   /**
+   * Forget a local model
+   *
+   * Remove a deleted local model from the provider registry in the project and global config, drop the local engine provider when it is left empty, clear the default model when it pointed at the removed entry, and prune empty model directories.
+   */
+  public forget<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      model?: string
+      file?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "model" },
+            { in: "body", key: "file" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<ModelhubForgetResponses, ModelhubForgetErrors, ThrowOnError>({
+      url: "/models/forget",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
    * Cancel a model download
    *
    * Cancel a download job and remove its partial .part file.
@@ -3860,6 +4134,23 @@ export class Modelhub extends HeyApiClient {
       gpuLayers?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
       contextSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
       port?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      batchSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      flashAttention?: boolean
+      kvCacheType?: "f16" | "q8_0" | "q4_0"
+      keepInMemory?: boolean
+      useMmap?: boolean
+      seed?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      threads?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      ropeFrequencyBase?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      ropeFrequencyScale?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      kvOffload?: boolean
+      parallel?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      vramBudget?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      ramBudget?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      cpuBudget?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      placement?: "auto" | "gpu" | "hybrid" | "cpu"
+      idleUnloadMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      auto?: boolean
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -3875,6 +4166,23 @@ export class Modelhub extends HeyApiClient {
             { in: "body", key: "gpuLayers" },
             { in: "body", key: "contextSize" },
             { in: "body", key: "port" },
+            { in: "body", key: "batchSize" },
+            { in: "body", key: "flashAttention" },
+            { in: "body", key: "kvCacheType" },
+            { in: "body", key: "keepInMemory" },
+            { in: "body", key: "useMmap" },
+            { in: "body", key: "seed" },
+            { in: "body", key: "threads" },
+            { in: "body", key: "ropeFrequencyBase" },
+            { in: "body", key: "ropeFrequencyScale" },
+            { in: "body", key: "kvOffload" },
+            { in: "body", key: "parallel" },
+            { in: "body", key: "vramBudget" },
+            { in: "body", key: "ramBudget" },
+            { in: "body", key: "cpuBudget" },
+            { in: "body", key: "placement" },
+            { in: "body", key: "idleUnloadMinutes" },
+            { in: "body", key: "auto" },
           ],
         },
       ],
@@ -3891,6 +4199,117 @@ export class Modelhub extends HeyApiClient {
         },
       },
     )
+  }
+
+  /**
+   * Get default load options
+   *
+   * The load options (automatic configuration flag and manual knobs) used whenever the engine starts without explicit values, e.g. on demand from the chat.
+   */
+  public engineDefaults<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      ModelhubEngineDefaultsResponses,
+      ModelhubEngineDefaultsErrors,
+      ThrowOnError
+    >({
+      url: "/models/engine/defaults",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Save default load options
+   *
+   * Persist the load options chosen in Settings so every engine start, including the automatic one from the chat, uses them.
+   */
+  public engineDefaultsSet<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      auto?: boolean
+      gpuLayers?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      contextSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      batchSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      flashAttention?: boolean
+      kvCacheType?: "f16" | "q8_0" | "q4_0"
+      keepInMemory?: boolean
+      useMmap?: boolean
+      seed?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      threads?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      ropeFrequencyBase?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      ropeFrequencyScale?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      kvOffload?: boolean
+      parallel?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      vramBudget?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      ramBudget?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      cpuBudget?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      placement?: "auto" | "gpu" | "hybrid" | "cpu"
+      idleUnloadMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "auto" },
+            { in: "body", key: "gpuLayers" },
+            { in: "body", key: "contextSize" },
+            { in: "body", key: "batchSize" },
+            { in: "body", key: "flashAttention" },
+            { in: "body", key: "kvCacheType" },
+            { in: "body", key: "keepInMemory" },
+            { in: "body", key: "useMmap" },
+            { in: "body", key: "seed" },
+            { in: "body", key: "threads" },
+            { in: "body", key: "ropeFrequencyBase" },
+            { in: "body", key: "ropeFrequencyScale" },
+            { in: "body", key: "kvOffload" },
+            { in: "body", key: "parallel" },
+            { in: "body", key: "vramBudget" },
+            { in: "body", key: "ramBudget" },
+            { in: "body", key: "cpuBudget" },
+            { in: "body", key: "placement" },
+            { in: "body", key: "idleUnloadMinutes" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      ModelhubEngineDefaultsSetResponses,
+      ModelhubEngineDefaultsSetErrors,
+      ThrowOnError
+    >({
+      url: "/models/engine/defaults",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
   }
 
   /**
@@ -4593,6 +5012,111 @@ export class Preview extends HeyApiClient {
       url: "/preview/logs",
       ...options,
       ...params,
+    })
+  }
+
+  /**
+   * Acciones pendientes del agente sobre la vista previa
+   */
+  public agentPending<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      wait?: string
+      surface?: string
+      capable?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "query", key: "wait" },
+            { in: "query", key: "surface" },
+            { in: "query", key: "capable" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<PreviewAgentPendingResponses, PreviewAgentPendingErrors, ThrowOnError>({
+      url: "/preview/agent/pending",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Demanda del agente sobre la vista previa
+   */
+  public agentDemand<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      capable?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "query", key: "capable" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<PreviewAgentDemandResponses, PreviewAgentDemandErrors, ThrowOnError>({
+      url: "/preview/agent/demand",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Devuelve el resultado de una acción del agente
+   */
+  public agentResult<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      id?: string
+      ok?: boolean
+      output?: string
+      requeue?: boolean
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "id" },
+            { in: "body", key: "ok" },
+            { in: "body", key: "output" },
+            { in: "body", key: "requeue" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<PreviewAgentResultResponses, PreviewAgentResultErrors, ThrowOnError>({
+      url: "/preview/agent/result",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
     })
   }
 }
@@ -6458,7 +6982,7 @@ export class Location extends HeyApiClient {
   }
 }
 
-export class Agent extends HeyApiClient {
+export class Agent3 extends HeyApiClient {
   /**
    * List agents
    *
@@ -8397,9 +8921,9 @@ export class V2 extends HeyApiClient {
     return (this._location ??= new Location({ client: this.client }))
   }
 
-  private _agent?: Agent
-  get agent(): Agent {
-    return (this._agent ??= new Agent({ client: this.client }))
+  private _agent?: Agent3
+  get agent(): Agent3 {
+    return (this._agent ??= new Agent3({ client: this.client }))
   }
 
   private _session?: Session3

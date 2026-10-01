@@ -67,6 +67,7 @@ export const GlobalPaths = {
   health: "/global/health",
   event: "/global/event",
   config: "/global/config",
+  configAgent: "/global/config/agent/:name",
   dispose: "/global/dispose",
   upgrade: "/global/upgrade",
 } as const
@@ -110,6 +111,16 @@ export const GlobalApi = HttpApi.make("global").add(
           identifier: "global.config.update",
           summary: "Update global configuration",
           description: "Update global Tiancode configuration settings and preferences.",
+        }),
+      ),
+      HttpApiEndpoint.delete("configResetAgent", GlobalPaths.configAgent, {
+        params: { name: Schema.String },
+        success: described(Schema.Boolean, "Whether the global config had overrides for the agent"),
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "global.config.agent.reset",
+          summary: "Reset agent overrides globally",
+          description: "Remove an agent's overrides from the global configuration, restoring its defaults.",
         }),
       ),
       HttpApiEndpoint.post("dispose", GlobalPaths.dispose, {

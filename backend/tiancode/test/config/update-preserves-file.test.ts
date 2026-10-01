@@ -175,3 +175,29 @@ test("a partial patch to the global config keeps provider, mcp and unknown keys"
     saved.forEach(([name, text]) => (text === undefined ? rmSync(name, { force: true }) : writeFileSync(name, text)))
   }
 })
+
+test("resetting an agent removes only its overrides and keeps the rest of the file", async () => {
+  await run((dir) =>
+    Effect.gen(function* () {
+      const file = path.join(dir, "tiancode.jsonc")
+      writeFileSync(
+        file,
+        [
+          "{",
+          "  // my agents",
+          '  "agent": { "pentest": { "model": "openai/gpt-5", "prompt_append": "x" }, "plan": { "steps": 4 } },',
+          '  "provider": { "demo": { "options": { "baseURL": "http://localhost:1234" } } }',
+          "}",
+        ].join("\n"),
+      )
+      const svc = yield* Config.Service
+      expect(yield* svc.resetAgent("pentest", "project")).toBe(true)
+      const after = readFileSync(file, "utf8")
+      expect(after).toContain("// my agents")
+      expect(after).not.toContain("pentest")
+      expect(after).toContain('"plan"')
+      expect(after).toContain('"baseURL": "http://localhost:1234"')
+      expect(yield* svc.resetAgent("pentest", "project")).toBe(false)
+    }),
+  )
+})

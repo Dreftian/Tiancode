@@ -1,6 +1,7 @@
 import { Config } from "@/config/config"
 import { ConfigV1 } from "@tiancode-ai/core/v1/config/config"
 import { Provider } from "@/provider/provider"
+import { Schema } from "effect"
 import { HttpApi, HttpApiEndpoint, HttpApiError, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
 import { Authorization } from "../middleware/authorization"
 import { InstanceContextMiddleware } from "../middleware/instance-context"
@@ -33,6 +34,17 @@ export const ConfigApi = HttpApi.make("config")
             identifier: "config.update",
             summary: "Update configuration",
             description: "Update Tiancode configuration settings and preferences.",
+          }),
+        ),
+        HttpApiEndpoint.delete("resetAgent", `${root}/agent/:name`, {
+          params: { name: Schema.String },
+          query: WorkspaceRoutingQuery,
+          success: described(Schema.Boolean, "Whether the project config had overrides for the agent"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "config.agent.reset",
+            summary: "Reset agent overrides",
+            description: "Remove an agent's overrides from the project configuration, restoring its defaults.",
           }),
         ),
         HttpApiEndpoint.get("providers", `${root}/providers`, {

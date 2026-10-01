@@ -173,6 +173,18 @@ it.instance(
   { config: { permission: { bash: "ask", edit: "deny" } } },
 )
 
+it.instance(
+  "prompt_append adds instructions after a specialist's own prompt instead of replacing it",
+  () =>
+    Effect.gen(function* () {
+      const pentest = yield* load((svc) => svc.get("pentest"))
+      const builtin = SPECIALISTS.find((specialist) => specialist.name === "pentest")!.prompt!.trim()
+      expect(pentest?.prompt?.startsWith(builtin.slice(0, 200))).toBe(true)
+      expect(pentest?.prompt?.endsWith("Responde siempre en español.")).toBe(true)
+    }),
+  { config: { agent: { pentest: { prompt_append: "Responde siempre en español." } } } },
+)
+
 it.instance("explore agent denies edit and write", () =>
   Effect.gen(function* () {
     const explore = yield* load((svc) => svc.get("explore"))

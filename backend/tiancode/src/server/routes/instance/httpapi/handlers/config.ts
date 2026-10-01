@@ -26,6 +26,12 @@ export const configHandlers = HttpApiBuilder.group(InstanceHttpApi, "config", (h
       return ctx.payload
     })
 
+    const resetAgent = Effect.fn("ConfigHttpApi.resetAgent")(function* (ctx: { params: { name: string } }) {
+      const changed = yield* configSvc.resetAgent(ctx.params.name, "project")
+      if (changed) yield* markInstanceForDisposal(yield* InstanceState.context)
+      return changed
+    })
+
     const providers = Effect.fn("ConfigHttpApi.providers")(function* () {
       const providers = yield* providerSvc.list()
       return {
@@ -34,6 +40,10 @@ export const configHandlers = HttpApiBuilder.group(InstanceHttpApi, "config", (h
       }
     })
 
-    return handlers.handle("get", get).handle("update", update).handle("providers", providers)
+    return handlers
+      .handle("get", get)
+      .handle("update", update)
+      .handle("resetAgent", resetAgent)
+      .handle("providers", providers)
   }),
 )

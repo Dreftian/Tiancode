@@ -10,7 +10,7 @@ import fsNode from "fs/promises"
 import { Flag } from "@tiancode-ai/core/flag/flag"
 import { Auth } from "../auth"
 import { Env } from "../env"
-import { applyEdits, modify } from "jsonc-parser"
+import { applyEdits, findNodeAtLocation, modify, parseTree } from "jsonc-parser"
 import { InstallationLocal } from "@tiancode-ai/core/installation/version"
 import { existsSync } from "fs"
 import { Account } from "@/account/account"
@@ -128,6 +128,8 @@ export interface Interface {
   readonly update: (config: Info) => Effect.Effect<void>
   readonly updateGlobal: (config: Info) => Effect.Effect<{ info: Info; changed: boolean }>
   readonly removeMcp: (name: string) => Effect.Effect<void>
+  /** Drops an agent's overrides (`agent.<name>`) from one scope's file; false when there were none. */
+  readonly resetAgent: (name: string, scope: "project" | "global") => Effect.Effect<boolean>
   /**
    * Delete a local model from the provider registry in BOTH the project and the
    * global config file. update()/updateGlobal() cannot express this: they merge.
@@ -984,12 +986,32 @@ const layer = Layer.effect(
       yield* invalidateInstance()
     })
 
-    return Service.of({      get,
+    // A merge cannot delete keys (see the Removal section above), so resetting a sub-agent to its
+    // defaults edits the file in place, like removeMcp.
+    const resetAgent = Effect.fn("Config.resetAgent")(function* (name: string, scope: "project" | "global") {
+      const file = scope === "global" ? globalConfigFile() : yield* projectConfigFile(yield* InstanceState.directory)
+      const before = yield* readConfigFile(file)
+      if (!before) return false
+      // Only paths that exist: jsonc-parser refuses to delete a key whose parent is missing.
+      const after = ["agent", "agents"].reduce((text, key) => {
+        const tree = parseTree(text)
+        return tree && findNodeAtLocation(tree, [key, name]) ? removeJsoncPath(text, [key, name]) : text
+      }, before)
+      if (after === before) return false
+      yield* writeGlobalAtomic(file, after).pipe(Effect.orDie)
+      yield* invalidate()
+      yield* invalidateInstance()
+      return true
+    })
+
+    return Service.of({
+      get,
       getGlobal,
       getConsoleState,
       update,
       updateGlobal,
       removeMcp,
+      resetAgent,
       forgetProviderModel,
       invalidate,
       invalidateInstance,

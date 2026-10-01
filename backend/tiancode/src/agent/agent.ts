@@ -324,6 +324,9 @@ const layer = Layer.effect(
           if (value.model) item.model = Provider.parseModel(value.model)
           item.variant = value.variant ?? item.variant
           item.prompt = value.prompt ?? item.prompt
+          // Settings › Sub-agentes adds instructions without replacing the specialist's own prompt.
+          if (typeof value.prompt_append === "string" && value.prompt_append.trim())
+            item.prompt = [item.prompt?.trim(), value.prompt_append.trim()].filter(Boolean).join("\n\n")
           item.description = value.description ?? item.description
           item.temperature = value.temperature ?? item.temperature
           item.topP = value.top_p ?? item.topP

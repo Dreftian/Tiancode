@@ -91,6 +91,12 @@ export const globalHandlers = HttpApiBuilder.group(RootHttpApi, "global", (handl
       return result.info
     })
 
+    const configResetAgent = Effect.fn("GlobalHttpApi.configResetAgent")(function* (ctx: { params: { name: string } }) {
+      const changed = yield* config.resetAgent(ctx.params.name, "global")
+      if (changed) bridge.fork(disposeAllInstancesAndEmitGlobalDisposed({ swallowErrors: true }))
+      return changed
+    })
+
     const dispose = Effect.fn("GlobalHttpApi.dispose")(function* () {
       yield* disposeAllInstancesAndEmitGlobalDisposed()
       return true
@@ -152,6 +158,7 @@ export const globalHandlers = HttpApiBuilder.group(RootHttpApi, "global", (handl
       .handleRaw("event", event)
       .handle("configGet", configGet)
       .handle("configUpdate", configUpdate)
+      .handle("configResetAgent", configResetAgent)
       .handle("dispose", dispose)
       .handleRaw("upgrade", upgradeRaw)
   }),
