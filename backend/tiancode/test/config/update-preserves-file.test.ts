@@ -201,3 +201,24 @@ test("resetting an agent removes only its overrides and keeps the rest of the fi
     }),
   )
 })
+
+// The global route runs with no project instance open, unlike the project one.
+test("resetting an agent globally works without an open project", async () => {
+  const file = path.join(Global.Path.config, "tiancode.json")
+  const others = ["tiancode.jsonc", "config.json"].map((name) => path.join(Global.Path.config, name))
+  const saved = [file, ...others].map((name) => [name, existsSync(name) ? readFileSync(name, "utf8") : undefined] as const)
+  others.forEach((name) => rmSync(name, { force: true }))
+  writeFileSync(file, JSON.stringify({ agent: { pentest: { steps: 3 }, plan: { steps: 4 } }, username: "kept" }, null, 2))
+  try {
+    const changed = await Config.Service.use((svc) => svc.resetAgent("pentest", "global")).pipe(
+      Effect.provide(Layer.mergeAll(layer, testInstanceStoreLayer)),
+      Effect.runPromise,
+    )
+    expect(changed).toBe(true)
+    const after = JSON.parse(readFileSync(file, "utf8"))
+    expect(after.agent).toEqual({ plan: { steps: 4 } })
+    expect(after.username).toBe("kept")
+  } finally {
+    saved.forEach(([name, text]) => (text === undefined ? rmSync(name, { force: true }) : writeFileSync(name, text)))
+  }
+})

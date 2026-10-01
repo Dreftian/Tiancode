@@ -999,8 +999,9 @@ const layer = Layer.effect(
       }, before)
       if (after === before) return false
       yield* writeGlobalAtomic(file, after).pipe(Effect.orDie)
-      yield* invalidate()
-      yield* invalidateInstance()
+      // Global routes run outside any project instance: only the project scope has one to refresh.
+      if (scope === "global") yield* invalidate()
+      else yield* invalidateInstance()
       return true
     })
 

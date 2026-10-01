@@ -15,11 +15,6 @@
   width: 100%;
 }
 
-/* The card layout this panel used to render is gone: the list is a table now (see
-   .settings-v2-subagents-table below) and the tree is its own block. Only the avatar and the
-   category pill survived, reused by the table rows, so the ~120 lines of card rules — and the
-   rgba(255,255,255,0.0x) dark-only literals they carried — are not kept as dead weight. */
-
 .settings-v2-sub-agents-card-avatar {
   display: flex;
   align-items: center;
@@ -99,178 +94,6 @@
   gap: 6px 10px;
 }
 
-/* Scope selector (project vs global) above the table. */
-.settings-v2-sub-agents-scope {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px 16px;
-  margin-bottom: 18px;
-  padding: 10px 14px;
-  border-radius: 12px;
-  border: 1px solid var(--v2-border-border-muted);
-  background: var(--v2-background-bg-layer-01);
-}
-
-.settings-v2-sub-agents-scope-control {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-/* Items size to their labels; equal halves clipped "Proyecto actual". */
-.settings-v2-sub-agents-scope-control [data-slot="segmented-control-v2-item"] {
-  flex: 0 0 auto;
-}
-
-.settings-v2-sub-agents-scope-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--v2-text-text-base);
-  white-space: nowrap;
-}
-
-.settings-v2-sub-agents-scope-hint {
-  margin: 0;
-  font-size: 11.5px;
-  color: var(--v2-text-text-muted);
-}
-
-/* Detailed Column List Layout */
-.settings-v2-subagents-table {
-  width: 100%;
-  border-radius: 14px;
-  border: 1px solid var(--v2-border-border-muted);
-  background: var(--v2-background-bg-layer-01);
-  overflow-x: auto;
-  margin-top: 8px;
-  margin-bottom: 12px;
-}
-
-/* Mobile-first: the five-column layout has a hard floor of ~880px (the sum of its column
-   minimums), so below that the row stacks into a labelled card instead of forcing the user
-   to scroll a table sideways inside the settings panel. */
-.settings-v2-subagents-thead {
-  display: none;
-  padding: 9px 16px;
-  background: var(--v2-background-bg-layer-02);
-  border-bottom: 1px solid var(--v2-border-border-muted);
-  font-size: 10.5px;
-  font-weight: 650;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--v2-text-text-muted);
-}
-
-.settings-v2-subagents-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas:
-    "agent status"
-    "role role"
-    "model tools";
-  gap: 8px 12px;
-  align-items: start;
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--v2-border-border-muted);
-  transition: background-color 0.15s ease;
-}
-
-.settings-v2-subagents-row:last-child {
-  border-bottom: none;
-}
-
-.settings-v2-subagents-row:hover {
-  background: var(--v2-background-bg-layer-02);
-}
-
-.settings-v2-subagents-cell {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-}
-
-/* Stacked mode only: the column header is hidden, so each value carries its own label. */
-.settings-v2-subagents-cell::before {
-  content: attr(data-label);
-  flex: 0 0 96px;
-  font-size: 10.5px;
-  font-weight: 650;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--v2-text-text-muted);
-}
-
-/* Column cells (role and speciality) stack their label above the value: a fixed flex-basis
-   would otherwise turn into 96px of empty height. */
-.settings-v2-subagents-cell.flex-col::before {
-  flex: 0 0 auto;
-  margin-bottom: 2px;
-}
-
-.settings-v2-subagents-cell--status {
-  display: flex;
-  align-items: center;
-  gap: 22px;
-  min-width: 0;
-  padding: 0 8px;
-}
-
-/* Stacked card: identity top-left, switch top-right, role and description across, model and
-   tools side by side with their small labels. */
-.settings-v2-subagents-row > :nth-child(1) { grid-area: agent; }
-.settings-v2-subagents-row > :nth-child(2) { grid-area: role; }
-.settings-v2-subagents-row > :nth-child(3) { grid-area: model; }
-.settings-v2-subagents-row > :nth-child(4) { grid-area: tools; }
-.settings-v2-subagents-row > :nth-child(5) { grid-area: status; justify-self: end; }
-.settings-v2-subagents-row > :nth-child(1)::before,
-.settings-v2-subagents-row > :nth-child(2)::before,
-.settings-v2-subagents-cell--status::before { content: none; }
-.settings-v2-subagents-row > :nth-child(3)::before,
-.settings-v2-subagents-row > :nth-child(4)::before { flex: 0 0 auto; margin-right: 6px; }
-.settings-v2-subagents-row > :nth-child(3),
-.settings-v2-subagents-row > :nth-child(4) { flex-wrap: wrap; gap: 4px; }
-.settings-v2-subagents-row .settings-v2-subagents-cell--status { gap: 10px; padding: 0; }
-.settings-v2-subagents-row > :nth-child(2) { align-items: flex-start; }
-
-@container settings-panel (min-width: 900px) {
-  .settings-v2-subagents-thead,
-  .settings-v2-subagents-row {
-    display: grid;
-    grid-template-columns:
-      minmax(190px, 2fr) minmax(250px, 3.2fr) minmax(120px, 1.2fr)
-      minmax(130px, 1.2fr) minmax(190px, 1.8fr);
-    gap: 0;
-  }
-
-  .settings-v2-subagents-row {
-    align-items: center;
-    grid-template-areas: none;
-  }
-  /* Same specificity as the stacked :nth-child rules above, later in source: the named areas
-     no longer exist here, so every cell must fall back to auto placement. */
-  .settings-v2-subagents-row > :nth-child(n) {
-    grid-area: auto;
-    justify-self: stretch;
-  }
-  .settings-v2-subagents-row .settings-v2-subagents-cell--status {
-    gap: 22px;
-    padding: 0 8px;
-  }
-  .settings-v2-subagents-detail--toolbar { display: none; }
-
-  /* The real header is back, so the per-cell labels would be duplicates. */
-  .settings-v2-subagents-cell::before {
-    content: none;
-  }
-
-  .settings-v2-subagents-cell--status {
-    min-width: 185px;
-  }
-}
-
 /* Detail toggle: lives in the "Role" column header on wide panels and in the toolbar when the
    header is hidden (stacked cards). */
 .settings-v2-subagents-detail {
@@ -296,74 +119,6 @@
   background: color-mix(in srgb, var(--interactive-accent, #38bdf8) 12%, transparent);
 }
 .settings-v2-subagents-detail--toolbar { flex: 0 0 auto; }
-
-/* Detail view: the agent's real system prompt, compact and scrollable inside the row. */
-.settings-v2-subagents-prompt-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: 100%;
-  margin-top: 6px;
-}
-.settings-v2-subagents-prompt-label {
-  font-size: 10px;
-  font-weight: 650;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--v2-text-text-muted);
-}
-.settings-v2-subagents-prompt {
-  margin: 0;
-  max-height: 200px;
-  overflow: auto;
-  padding: 8px 10px;
-  border: 1px solid var(--v2-border-border-muted);
-  border-radius: 8px;
-  background: var(--v2-background-bg-layer-02);
-  color: var(--v2-text-text-base);
-  font: 10.5px/1.5 var(--font-mono, ui-monospace, monospace);
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-/* ------------------------------------------------------------------ toolbar */
-
-.settings-v2-sub-agents-toolbar-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
-  width: 100%;
-}
-
-.settings-v2-sub-agents-toolbar-row [data-component="text-input-v2"] {
-  flex: 1 1 200px;
-  min-width: 160px;
-}
-
-/* The status filter shrinks with the pane instead of being clipped at its right edge. */
-.settings-v2-sub-agents-toolbar-row [data-slot="segmented-control-v2"] {
-  flex: 1 1 240px;
-  min-width: 0;
-  max-width: 100%;
-}
-.settings-v2-sub-agents-toolbar-row [data-slot="segmented-control-v2-item"] {
-  flex: 1 1 0;
-  min-width: 0;
-  padding: 0 8px;
-  overflow: hidden;
-}
-.settings-v2-sub-agents-toolbar-row [data-slot="segmented-control-v2-item"] span {
-  display: block;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.settings-v2-sub-agents-toolbar-row--actions {
-  justify-content: flex-start;
-}
 
 /* --------------------------------------------------- create sub-agent form */
 
@@ -643,4 +398,542 @@
 .settings-v2-sub-agents-tree-more:hover {
   border-color: var(--v2-border-border-strong);
   color: var(--v2-text-text-base);
+}
+
+/* ======================================================= list + editor layout */
+
+/* Toolbar: search, status filter and the scope the editor writes to. */
+.settings-v2-sa-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 14px;
+}
+
+.settings-v2-sa-toolbar > [data-component="text-input-v2"] {
+  flex: 1 1 220px;
+  min-width: 160px;
+}
+
+.settings-v2-sa-toolbar [data-slot="segmented-control-v2-item"] {
+  flex: 0 0 auto;
+  padding: 0 10px;
+}
+
+.settings-v2-sa-scope {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.settings-v2-sa-scope-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--v2-text-text-muted);
+  white-space: nowrap;
+}
+
+/* Wide panels show the list and the editor side by side; narrow ones show one at a time
+   (data-editing switches to the editor, its Back button returns). */
+.settings-v2-sa-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  min-height: 0;
+}
+
+.settings-v2-sa-layout[data-editing] .settings-v2-sa-list,
+.settings-v2-sa-layout:not([data-editing]) .settings-v2-sa-editor {
+  display: none;
+}
+
+@container settings-panel (min-width: 900px) {
+  .settings-v2-sa-layout {
+    grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .settings-v2-sa-layout[data-editing] .settings-v2-sa-list,
+  .settings-v2-sa-layout:not([data-editing]) .settings-v2-sa-editor {
+    display: flex;
+  }
+
+  .settings-v2-sa-back {
+    display: none !important;
+  }
+
+  .settings-v2-sa-list {
+    position: sticky;
+    top: 0;
+    max-height: calc(100vh - 260px);
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+}
+
+.settings-v2-sa-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.settings-v2-sa-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-v2-sa-group-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-sa-group-count {
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--v2-background-bg-layer-03);
+  font-size: 10px;
+  letter-spacing: 0;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-sa-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--v2-border-border-muted);
+  border-radius: 12px;
+  background: var(--v2-background-bg-layer-01);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.settings-v2-sa-card:hover {
+  border-color: var(--v2-border-border-base);
+  background: var(--v2-background-bg-layer-02);
+}
+
+.settings-v2-sa-card[data-selected] {
+  border-color: var(--v2-border-border-focus);
+  background: var(--v2-background-bg-layer-02);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--v2-border-border-focus) 40%, transparent);
+}
+
+.settings-v2-sa-card[data-disabled] .settings-v2-sa-card-main {
+  opacity: 0.6;
+}
+
+.settings-v2-sa-card-main {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.settings-v2-sa-card-main:focus-visible {
+  outline: 2px solid var(--v2-border-border-focus);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.settings-v2-sa-card-switch {
+  flex: none;
+  margin-top: 2px;
+}
+
+.settings-v2-sa-avatar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid;
+  border-radius: 10px;
+  font-size: 17px;
+}
+
+.settings-v2-sa-avatar[data-size="large"] {
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  font-size: 22px;
+}
+
+.settings-v2-sa-card-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-v2-sa-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--v2-text-text-base);
+}
+
+.settings-v2-sa-card-role {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--v2-text-text-accent);
+}
+
+.settings-v2-sa-card-description {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--v2-text-text-muted);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.settings-v2-sa-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.settings-v2-sa-tags:empty {
+  display: none;
+}
+
+.settings-v2-sa-tag {
+  padding: 1px 7px;
+  border: 0.5px solid var(--v2-border-border-muted);
+  border-radius: 999px;
+  background: var(--v2-background-bg-layer-03);
+  font-size: 10.5px;
+  font-weight: 550;
+  line-height: 1.5;
+  color: var(--v2-text-text-muted);
+  white-space: nowrap;
+}
+
+.settings-v2-sa-tag[data-tone="accent"] {
+  border-color: color-mix(in srgb, var(--v2-text-text-accent) 35%, transparent);
+  background: color-mix(in srgb, var(--v2-text-text-accent) 12%, transparent);
+  color: var(--v2-text-text-accent);
+}
+
+.settings-v2-sa-empty {
+  margin: 0;
+  padding: 16px 4px;
+  font-size: 12px;
+  color: var(--v2-text-text-muted);
+}
+
+/* ------------------------------------------------------------------ editor */
+
+.settings-v2-sa-editor {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  border: 1px solid var(--v2-border-border-muted);
+  border-radius: 14px;
+  background: var(--v2-background-bg-layer-01);
+}
+
+.settings-v2-sa-editor--empty {
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  padding: 24px;
+  font-size: 12.5px;
+  color: var(--v2-text-text-muted);
+  text-align: center;
+}
+
+.settings-v2-sa-editor-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px 14px;
+  border-bottom: 1px solid var(--v2-border-border-muted);
+}
+
+.settings-v2-sa-back {
+  align-self: flex-start;
+  gap: 6px;
+}
+
+.settings-v2-sa-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.settings-v2-sa-identity-copy {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-v2-sa-editor-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+  color: var(--v2-text-text-base);
+}
+
+.settings-v2-sa-identity-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-v2-sa-handle {
+  font: 11.5px/1.4 var(--v2-font-mono, ui-monospace, monospace);
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-sa-role {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--v2-text-text-accent);
+}
+
+.settings-v2-sa-description {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-sa-editor-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 16px 18px;
+}
+
+.settings-v2-sa-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settings-v2-sa-section + .settings-v2-sa-section {
+  padding-top: 16px;
+  border-top: 1px solid var(--v2-border-border-muted);
+}
+
+.settings-v2-sa-section-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-sa-section-hint {
+  margin: -4px 0 0;
+  font-size: 12px;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-sa-field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.settings-v2-sa-field--stacked {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.settings-v2-sa-field-copy {
+  display: flex;
+  flex: 1 1 220px;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-v2-sa-field-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--v2-text-text-base);
+}
+
+.settings-v2-sa-field-hint {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-sa-field-hint[data-invalid] {
+  color: var(--v2-state-fg-danger);
+}
+
+.settings-v2-sa-model {
+  flex: 1 1 260px;
+  max-width: 360px;
+}
+
+.settings-v2-sa-field-pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px 16px;
+}
+
+.settings-v2-sa-tools {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 8px;
+}
+
+.settings-v2-sa-tool {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--v2-border-border-muted);
+  border-radius: 10px;
+  background: var(--v2-background-bg-layer-02);
+}
+
+.settings-v2-sa-tool[data-sensitive] {
+  border-color: color-mix(in srgb, var(--v2-state-fg-warning) 35%, var(--v2-border-border-muted));
+}
+
+.settings-v2-sa-tool-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.settings-v2-sa-tool-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--v2-text-text-base);
+}
+
+.settings-v2-sa-tool-current {
+  font-size: 11px;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-sa-prompt {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-v2-sa-prompt-toggle {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--v2-text-text-accent);
+  cursor: pointer;
+}
+
+.settings-v2-sa-prompt-toggle:disabled {
+  color: var(--v2-text-text-muted);
+  cursor: default;
+}
+
+.settings-v2-sa-prompt-text {
+  margin: 0;
+  max-height: 280px;
+  overflow: auto;
+  padding: 10px 12px;
+  border: 1px solid var(--v2-border-border-muted);
+  border-radius: 10px;
+  background: var(--v2-background-bg-layer-02);
+  color: var(--v2-text-text-base);
+  font: 11px/1.55 var(--v2-font-mono, ui-monospace, monospace);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.settings-v2-sa-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.settings-v2-sa-swatch {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, black 15%, transparent);
+  cursor: pointer;
+}
+
+.settings-v2-sa-swatch--default {
+  background: conic-gradient(#3b82f6, #ec4899, #f97316, #10b981, #3b82f6);
+}
+
+.settings-v2-sa-swatch[aria-checked="true"] {
+  border-color: var(--v2-text-text-base);
+}
+
+.settings-v2-sa-swatch:focus-visible {
+  outline: 2px solid var(--v2-border-border-focus);
+  outline-offset: 2px;
+}
+
+.settings-v2-sa-editor-footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--v2-border-border-muted);
+  border-radius: 0 0 14px 14px;
+  background: var(--v2-background-bg-layer-01);
+}
+
+.settings-v2-sa-footer-note {
+  font-size: 11.5px;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-sa-footer-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
 }
