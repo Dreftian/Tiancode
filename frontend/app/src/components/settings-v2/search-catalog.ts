@@ -35,9 +35,11 @@ export const SETTINGS_PAGES: SettingsSearchEntry[] = [
   page("general", "settings.tab.general", ["preferencias", "preferences", "general"]),
   page("notifications", "settings.tab.notifications", ["notificaciones", "sonidos", "sounds", "alerts", "avisos"]),
   page("intelligence", "settings.tab.intelligence", ["inteligencia", "memoria", "memory", "guardrails"]),
+  page("intelligence", "settings.intelligence.tab.decisions", ["decisiones", "laya", "modelo local", "avisos inteligentes", "smart alerts"], undefined, "decisions"),
   page("computer-use", "settings.tab.computerUse", ["uso de la pc", "computer use", "navegador", "browser", "ratón"]),
   page("shortcuts", "settings.tab.shortcuts", ["atajos", "teclado", "keybinds", "shortcuts", "keyboard"]),
-  page("computer-use", "settings.tab.pairing", ["emparejar", "pairing", "qr", "red local", "pantalla"], "desktop", "pairing"),
+  page("computer-use", "settings.computerUse.tab.remote", ["acceso remoto", "emparejar", "pairing", "qr", "red local", "móvil"], "desktop", "remote"),
+  page("computer-use", "settings.computerUse.tab.browser", ["navegador", "browser", "sitios", "cookies"], undefined, "browser"),
   page("server", "settings.tab.server", ["servidor", "server", "servidores", "proyectos", "worktrees"]),
   page("server", "status.popover.tab.servers", ["servidores", "servers", "conexión", "remoto", "wsl"], undefined, "servers"),
   page("server", "settings.tab.projects", ["proyectos", "projects", "carpetas"], undefined, "projects"),
@@ -52,7 +54,6 @@ export const SETTINGS_PAGES: SettingsSearchEntry[] = [
   page("mcp-plugins", "settings.tab.mcpPlugins", ["mcp", "plugins", "extensiones", "extensions"]),
   page("connections", "settings.tab.connections", ["conexiones", "connections", "telegram", "whatsapp", "webhooks"]),
   page("pets", "settings.tab.pets", ["mascotas", "pets"]),
-  page("computer-use", "settings.tab.experimental", ["experimental", "beta"], undefined, "experimental"),
   page("about", "settings.tab.about", ["acerca de", "about", "versión", "version", "licencia", "license", "registros", "logs", "sistema", "system", "electron"]),
 ]
 
@@ -99,18 +100,30 @@ export const SETTINGS_ROWS: SettingsSearchEntry[] = [
   row("notifications", undefined, "settings.general.sounds.agent.title", "settings-sounds-agent", ["sonido", "sound", "agente"]),
   row("notifications", undefined, "settings.general.sounds.permissions.title", "settings-sounds-permissions", ["sonido", "sound", "permisos"]),
   row("notifications", undefined, "settings.general.sounds.errors.title", "settings-sounds-errors", ["sonido", "sound", "errores"]),
-  row("computer-use", "pairing", "settings.pairing.connection.title", "settings-pairing-local-network", ["red", "network", "lan", "móvil", "phone", "qr", "wifi"], "desktop"),
-  row("computer-use", "pairing", "settings.pairing.screenActive.title", "settings-keep-screen-active", ["pantalla", "screen", "suspender", "sleep", "activa"], "desktop"),
-  row("computer-use", "experimental", "settings.experimental.browser.title", "settings-agent-browser", ["navegador", "browser", "agente", "controlar"]),
-  row("computer-use", "experimental", "settings.experimental.tabs.title", "settings-tab-layout", ["pestañas", "tabs", "vertical", "horizontal"]),
-  row("computer-use", "experimental", "settings.experimental.projectNames.title", "settings-show-project-name", ["proyecto", "project", "nombres", "names"]),
+  row("computer-use", "remote", "settings.pairing.connection.title", "settings-pairing-local-network", ["red", "network", "lan", "móvil", "phone", "qr", "wifi"], "desktop"),
+  row("computer-use", "remote", "settings.pairing.screenActive.title", "settings-keep-screen-active", ["pantalla", "screen", "suspender", "sleep", "activa"], "desktop"),
+  row("computer-use", "desktop", "settings.computerUse.mouse.title", "settings-computer-use-enabled", ["ratón", "teclado", "mouse", "keyboard", "computer use", "controlar"], "windows"),
+  row("computer-use", "desktop", "settings.computerUse.tool.screenshot.title", "settings-computer-use-screenshot", ["captura", "screenshot", "pantalla"], "desktop"),
+  row("computer-use", "desktop", "settings.computerUse.tool.clipboard.title", "settings-computer-use-clipboard", ["portapapeles", "clipboard", "copiar"], "desktop"),
+  row("computer-use", "browser", "settings.computerUse.browser.agent.title", "settings-agent-browser", ["navegador", "browser", "agente", "vista en vivo", "controlar"]),
+  row("computer-use", "browser", "settings.computerUse.browser.default", "settings-browser-permission", ["sitios", "sites", "permiso", "permission"]),
+  row("computer-use", "browser", "settings.browser.links", "settings-browser-links", ["enlaces", "links", "abrir", "chrome"]),
+  row("computer-use", "browser", "settings.computerUse.browser.cookies", "settings-browser-cookies", ["cookies", "sesiones", "borrar"], "desktop"),
+  row("intelligence", "memory", "settings.intelligence.memory.user.title", "settings-intelligence-userMemory", ["memoria", "memory", "user.md", "preferencias"]),
+  row("intelligence", "memory", "settings.intelligence.memory.project.title", "settings-intelligence-projectMemory", ["memoria", "memory", "memory.md", "proyecto"]),
+  row("intelligence", "memory", "settings.intelligence.skillCreate", "settings-intelligence-skills", ["habilidades", "skills", "skill.md", "aprender"]),
+  row("intelligence", "context", "settings.intelligence.compaction.auto", "settings-intelligence-compaction", ["compactación", "compaction", "contexto", "resumen"]),
+  row("intelligence", "context", "settings.intelligence.codeGraph", "settings-intelligence-codegraph", ["grafo", "graph", "símbolos", "imports"]),
+  row("intelligence", "protection", "settings.intelligence.shellScan", "settings-intelligence-shield", ["agentshield", "comandos", "peligroso", "seguridad", "security"]),
+  row("intelligence", "protection", "settings.intelligence.loopBreaker", "settings-intelligence-loop", ["bucle", "loop", "repetir"]),
+  row("intelligence", "decisions", "settings.intelligence.smartAlerts", "settings-intelligence-smart-alerts", ["avisos", "alerts", "laya", "notificaciones"]),
 ]
 
 // Notifications and sounds share their row labels; the result line names which group it is.
 for (const entry of SETTINGS_ROWS) {
   if (entry.target?.startsWith("settings-notifications-")) entry.context = "settings.general.section.notifications"
   if (entry.target?.startsWith("settings-sounds-")) entry.context = "settings.general.section.sounds"
-  // Uso de la PC sections are named like their tabs, not like General's sections.
-  if (entry.tab === "computer-use" && entry.section === "pairing") entry.context = "settings.tab.pairing"
-  if (entry.tab === "computer-use" && entry.section === "experimental") entry.context = "settings.tab.experimental"
+  // Uso de la PC and Inteligencia sections are named like their tiles, not like General's sections.
+  if (entry.tab === "computer-use" && entry.target) entry.context = `settings.computerUse.tab.${entry.section}`
+  if (entry.tab === "intelligence" && entry.target) entry.context = `settings.intelligence.tab.${entry.section}`
 }

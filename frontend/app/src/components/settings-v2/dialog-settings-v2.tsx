@@ -16,7 +16,12 @@ import { SettingsSubAgentsV2 } from "./sub-agents"
 import { SettingsMcpPluginsV2 } from "./mcp-plugins"
 import { SettingsPetsV2 } from "./pets"
 import { SettingsConnectionsHubV2, type ConnectionsSection } from "./connections-hub"
-import { COMPUTER_USE_SECTIONS, SettingsComputerUseV2, type ComputerUseSection } from "./computer-use"
+import {
+  COMPUTER_USE_SECTIONS,
+  LEGACY_COMPUTER_USE_SECTIONS,
+  SettingsComputerUseV2,
+  type ComputerUseSection,
+} from "./computer-use"
 import { INTELLIGENCE_SECTIONS, type IntelligenceSection, SettingsIntelligenceV2 } from "./intelligence"
 import { SettingsVoicesV2 } from "./voices"
 import "./settings-v2.css"
@@ -90,7 +95,8 @@ const IconAbout = () => (
 
 /**
  * Where Settings opens. Besides a tab, callers may name a section: "data" (General › Datos),
- * "browser", "pairing" or "experimental" (Uso de la PC). Anything that is not a string, such as
+ * "desktop", "browser" or "remote" (Uso de la PC; the older "tools", "pairing" and "experimental"
+ * still work), "memory", "context", "protection" or "decisions" (Inteligencia). Anything that is not a string, such as
  * the click event a button forwards, opens General. "servers", "projects" and "worktrees" open
  * Servidor on that section; "github" opens Conexiones on GitHub.
  */
@@ -109,6 +115,8 @@ function settingsTarget(value: unknown): SettingsTarget {
   if (requested === "data") return { tab: "general", general: "data" }
   if ((COMPUTER_USE_SECTIONS as readonly string[]).includes(requested))
     return { tab: "computer-use", computerUse: requested as ComputerUseSection }
+  if (requested in LEGACY_COMPUTER_USE_SECTIONS)
+    return { tab: "computer-use", computerUse: LEGACY_COMPUTER_USE_SECTIONS[requested] }
   if ((SERVER_SECTIONS as readonly string[]).includes(requested)) return { tab: "server", server: requested as ServerSection }
   if (requested === "github") return { tab: "connections", connections: "github" }
   if ((INTELLIGENCE_SECTIONS as readonly string[]).includes(requested))
@@ -133,7 +141,7 @@ export const DialogSettings: Component<{
   const [search, setSearch] = createSignal("")
   const [sections, setSections] = createStore({
     general: target.general ?? "general",
-    computerUse: target.computerUse ?? ("tools" as ComputerUseSection),
+    computerUse: target.computerUse ?? ("desktop" as ComputerUseSection),
     server: target.server ?? ("servers" as ServerSection),
     connections: target.connections ?? ("gateways" as ConnectionsSection),
     intelligence: target.intelligence ?? ("memory" as IntelligenceSection),
@@ -165,12 +173,16 @@ export const DialogSettings: Component<{
   const directory = createMemo(rawDirectory, undefined, { equals: (a, b) => a === b })
 
   const hasEntry = (entry: SettingsSearchEntry) =>
-    entry.tab !== "computer-use" || entry.section !== "pairing" || !!(platform.pairing || platform.setKeepScreenActive)
+    entry.tab !== "computer-use" || entry.section !== "remote" || !!(platform.pairing || platform.setKeepScreenActive)
 
   const openSearchResult = (entry: SettingsSearchEntry) => {
     setSearch("")
     if (entry.tab === "general") setSections("general", entry.section ?? "general")
-    if (entry.tab === "computer-use") setSections("computerUse", (entry.section as ComputerUseSection | undefined) ?? "tools")
+    if (entry.tab === "computer-use")
+      setSections(
+        "computerUse",
+        LEGACY_COMPUTER_USE_SECTIONS[entry.section ?? ""] ?? (entry.section as ComputerUseSection | undefined) ?? "desktop",
+      )
     if (entry.tab === "server") setSections("server", (entry.section as ServerSection | undefined) ?? "servers")
     if (entry.tab === "connections")
       setSections("connections", (entry.section as ConnectionsSection | undefined) ?? "gateways")

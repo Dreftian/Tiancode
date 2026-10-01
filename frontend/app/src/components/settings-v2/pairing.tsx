@@ -3,6 +3,7 @@ import { renderSVG } from "uqr"
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
 import { Dialog, DialogBody, DialogHeader, DialogTitleGroup } from "@tiancode-ai/ui/v2/dialog-v2"
 import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
+import { Icon } from "@tiancode-ai/ui/icon"
 import { useDialog } from "@tiancode-ai/ui/context/dialog"
 import { useLanguage } from "@/context/language"
 import { usePlatform, type PairingInfo } from "@/context/platform"
@@ -10,8 +11,9 @@ import { showToast } from "@/utils/toast"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
 import "./settings-v2.css"
+import "./parts/kit.css"
 
-/** Settings › Uso de la PC › Emparejar. */
+/** Settings › Uso de la PC › Acceso remoto: open Tiancode from a phone or another computer on the local network. */
 export const SettingsPairingSection: Component = () => {
   const language = useLanguage()
   const platform = usePlatform()
@@ -58,84 +60,97 @@ export const SettingsPairingSection: Component = () => {
       .finally(() => setSwitching(false))
   }
 
+  const state = () => {
+    const info = pairing.latest
+    if (!info) return { tone: undefined, label: language.t("settings.pairing.state.off") }
+    if (info.restartRequired) return { tone: "warn", label: language.t("settings.pairing.state.restart") }
+    if (!info.enabled) return { tone: undefined, label: language.t("settings.pairing.state.off") }
+    if (info.urls.length === 0) return { tone: "warn", label: language.t("settings.pairing.state.noNetwork") }
+    return { tone: "ok", label: language.t("settings.pairing.state.on", { count: info.urls.length }) }
+  }
+
   return (
-    <div class="settings-v2-section">
-      <p class="settings-v2-note">{language.t("settings.pairing.description")}</p>
-      <SettingsListV2>
-        <Show when={platform.pairing}>
-          <SettingsRowV2
-            title={language.t("settings.pairing.connection.title")}
-            description={language.t("settings.pairing.connection.description")}
-          >
-            <div data-action="settings-pairing-local-network">
-              <Switch
-                checked={pairing.latest?.enabled ?? false}
-                disabled={switching() || pairing.loading}
-                onChange={onLocalNetwork}
-              />
-            </div>
-          </SettingsRowV2>
-          <Show when={pairing.latest}>
-            {(info) => (
-              <Show
-                when={!info().restartRequired}
-                fallback={
-                  <SettingsRowV2
-                    title={language.t("settings.pairing.restart.title")}
-                    description={language.t("settings.pairing.restart.description")}
-                  >
-                    <ButtonV2 type="button" size="small" variant="contrast" onClick={() => void platform.restart()}>
-                      {language.t("settings.pairing.restart.action")}
-                    </ButtonV2>
-                  </SettingsRowV2>
-                }
+    <>
+      <Show when={platform.pairing}>
+        <div class="settings-v2-kit-hero" data-active={pairing.latest?.enabled ? "" : undefined} data-action="settings-pairing-local-network">
+          <span class="settings-v2-kit-hero-icon" aria-hidden="true">
+            <Icon name="share" />
+          </span>
+          <div class="settings-v2-kit-hero-copy">
+            <span class="settings-v2-kit-hero-title">
+              {language.t("settings.pairing.connection.title")}
+              <span class="settings-v2-kit-pill" data-tone={state().tone}>
+                {state().label}
+              </span>
+            </span>
+            <span class="settings-v2-kit-hero-description">{language.t("settings.pairing.connection.description")}</span>
+            <Show when={pairing.latest?.enabled && !pairing.latest?.restartRequired && pairing.latest.urls.length > 0}>
+              <div class="settings-v2-kit-chips">
+                <For each={pairing.latest?.urls ?? []}>
+                  {(url) => (
+                    <span class="settings-v2-kit-chip" data-muted>
+                      <bdi dir="ltr">{url}</bdi>
+                    </span>
+                  )}
+                </For>
+              </div>
+            </Show>
+          </div>
+          <div class="settings-v2-kit-actions">
+            <Show when={pairing.latest?.restartRequired}>
+              <ButtonV2 type="button" size="small" variant="contrast" onClick={() => void platform.restart()}>
+                {language.t("settings.pairing.restart.action")}
+              </ButtonV2>
+            </Show>
+            <Show when={pairing.latest?.enabled && !pairing.latest?.restartRequired}>
+              <ButtonV2
+                type="button"
+                size="small"
+                variant="outline"
+                data-action="settings-pairing-details"
+                disabled={(pairing.latest?.urls.length ?? 0) === 0 || !pairing.latest?.password}
+                onClick={() => {
+                  const info = pairing.latest
+                  if (info) void dialog.push(() => <DialogPairing info={info} />)
+                }}
               >
-                <Show when={info().enabled}>
-                  <SettingsRowV2
-                    title={language.t("settings.pairing.details.title")}
-                    description={
-                      info().urls.length > 0
-                        ? language.t("settings.pairing.details.description")
-                        : language.t("settings.pairing.details.noNetwork")
-                    }
-                  >
-                    <ButtonV2
-                      type="button"
-                      size="small"
-                      variant="neutral"
-                      data-action="settings-pairing-details"
-                      disabled={info().urls.length === 0 || !info().password}
-                      onClick={() => void dialog.push(() => <DialogPairing info={info()} />)}
-                    >
-                      {language.t("settings.pairing.details.open")}
-                    </ButtonV2>
-                  </SettingsRowV2>
-                </Show>
-              </Show>
-            )}
-          </Show>
-        </Show>
-        <Show when={platform.setKeepScreenActive}>
+                {language.t("settings.pairing.details.open")}
+              </ButtonV2>
+            </Show>
+            <Switch
+              checked={pairing.latest?.enabled ?? false}
+              disabled={switching() || pairing.loading}
+              onChange={onLocalNetwork}
+              hideLabel
+            >
+              {language.t("settings.pairing.connection.title")}
+            </Switch>
+          </div>
+        </div>
+        <p class="settings-v2-kit-note">{language.t("settings.pairing.description")}</p>
+      </Show>
+      <Show when={platform.setKeepScreenActive}>
+        <SettingsListV2 density="compact">
           <SettingsRowV2
             title={language.t("settings.pairing.screenActive.title")}
             description={
               <>
                 {language.t("settings.pairing.screenActive.description")}
                 <Show when={failed()}>
-                  <span class="block text-v2-state-fg-danger">
-                    {language.t("settings.pairing.screenActive.error")}
-                  </span>
+                  <span class="block text-v2-state-fg-danger">{language.t("settings.pairing.screenActive.error")}</span>
                 </Show>
               </>
             }
           >
             <div data-action="settings-keep-screen-active">
-              <Switch checked={keepAwake.latest} disabled={pending()} onChange={onKeepAwake} />
+              <Switch checked={keepAwake.latest} disabled={pending()} onChange={onKeepAwake} hideLabel>
+                {language.t("settings.pairing.screenActive.title")}
+              </Switch>
             </div>
           </SettingsRowV2>
-        </Show>
-      </SettingsListV2>
-    </div>
+        </SettingsListV2>
+      </Show>
+    </>
   )
 }
 

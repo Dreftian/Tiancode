@@ -62,6 +62,18 @@ interface Window {
     }
     voices?: any
     asr?: any
+    computer?: {
+      stop: () => Promise<boolean>
+      status: () => Promise<{
+        supported: boolean
+        active: boolean
+        allowed: string[]
+        actions: number
+        stopShortcut: string | null
+        enabled: boolean
+        denied: string[]
+      }>
+    }
     runtime?: {
       install: (kind: "ollama" | "lmstudio") => Promise<{ ok: boolean; error?: string }>
       onState: (

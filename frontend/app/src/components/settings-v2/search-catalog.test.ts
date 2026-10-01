@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { COMPUTER_USE_SECTIONS } from "./computer-use"
+import { INTELLIGENCE_SECTIONS } from "./intelligence"
 import { SETTINGS_PAGES, SETTINGS_ROWS } from "./search-catalog"
 
 // The tabs the settings dialog renders, read from its panels so a removed page fails here.
@@ -26,14 +27,20 @@ describe("settings search catalog", () => {
     expect(entries.some((entry) => entry.tab === "connections" && entry.section === "github")).toBe(true)
   })
 
-  test("Emparejar and Experimental are sections of Uso de la PC", () => {
+  test("Escritorio, Navegador and Acceso remoto are sections of Uso de la PC", () => {
     expect(panels.has("pairing")).toBe(false)
     expect(panels.has("experimental")).toBe(false)
     const computerUse = entries.filter((entry) => entry.tab === "computer-use")
     expect(computerUse.filter((entry) => entry.section && !COMPUTER_USE_SECTIONS.includes(entry.section as never))).toEqual([])
-    expect(computerUse.filter((entry) => entry.section === "pairing").length).toBeGreaterThan(1)
-    expect(computerUse.filter((entry) => entry.section === "experimental").length).toBeGreaterThan(1)
-    // Rows name their section so the result line reads "Uso de la PC › Emparejar".
+    expect(computerUse.filter((entry) => entry.section === "remote").length).toBeGreaterThan(1)
+    expect(computerUse.filter((entry) => entry.section === "browser").length).toBeGreaterThan(1)
+    // Rows name their section so the result line reads "Uso de la PC › Acceso remoto".
     expect(computerUse.filter((entry) => entry.target && !entry.context)).toEqual([])
+  })
+
+  test("Inteligencia rows point at its tiles", () => {
+    const intelligence = entries.filter((entry) => entry.tab === "intelligence" && entry.section)
+    expect(intelligence.filter((entry) => !INTELLIGENCE_SECTIONS.includes(entry.section as never))).toEqual([])
+    expect(intelligence.some((entry) => entry.section === "decisions")).toBe(true)
   })
 })

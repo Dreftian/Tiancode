@@ -1751,7 +1751,7 @@ export function LivePreview(props: {
         return {
           ok: false,
           output:
-            "El usuario desactivó el control del navegador por el agente (Ajustes › Experimental › Navegador). Pídele que revise la página o que vuelva a activar esa opción.",
+            "El usuario desactivó el control del navegador por el agente (Ajustes › Uso de la PC › Navegador). Pídele que revise la página o que vuelva a activar esa opción.",
         }
       if (!agent) return { ok: false, output: "Esta sesión no puede ejecutar acciones dentro de la página." }
       try {

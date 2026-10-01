@@ -284,6 +284,18 @@ declare global {
       }
       voices?: VoicesAPI
       asr?: AsrAPI
+      computer?: {
+        stop: () => Promise<boolean>
+        status: () => Promise<{
+          supported: boolean
+          active: boolean
+          allowed: string[]
+          actions: number
+          stopShortcut: string | null
+          enabled: boolean
+          denied: string[]
+        }>
+      }
       runtime?: {
         install: (kind: "ollama" | "lmstudio") => Promise<{ ok: boolean; error?: string }>
         onState: (
