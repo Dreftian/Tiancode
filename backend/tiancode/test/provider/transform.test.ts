@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test"
 import { Effect } from "effect"
 import { ProviderTransform } from "@/provider/transform"
 import { LLMRequestPrep } from "@/session/llm/request"
+import { SystemPrompt } from "@/session/system"
 import { ProviderV2 } from "@tiancode-ai/core/provider"
 import { ModelV2 } from "@tiancode-ai/core/model"
 import { ModelsDev } from "@tiancode-ai/core/models-dev"
@@ -629,6 +630,46 @@ describe("ProviderTransform.options - gpt-5 textVerbosity", () => {
     expect(result.params.options.reasoningSummary).toBeUndefined()
     expect(result.params.options.include).toBeUndefined()
     expect(result.tools.lookup.strict).toBe(false)
+  })
+
+  test("extra agent instructions follow the provider's default prompt instead of replacing it", async () => {
+    const model = {
+      ...createGpt5Model("gpt-5.4"),
+      id: "openai/gpt-5.4",
+      providerID: "openai",
+      api: { id: "gpt-5.4", url: "https://api.openai.com", npm: "@ai-sdk/openai" },
+    }
+    const result = await Effect.runPromise(
+      LLMRequestPrep.prepare({
+        user: {
+          id: "msg_user-test",
+          sessionID,
+          role: "user",
+          time: { created: Date.now() },
+          agent: "build",
+          model: { providerID: "openai", modelID: "gpt-5.4" },
+        } as any,
+        sessionID,
+        model,
+        agent: { name: "build", mode: "primary", options: {}, permission: [], promptAppend: "EXTRA-INSTRUCTIONS" } as any,
+        system: [],
+        messages: [{ role: "user", content: "Hello" }],
+        tools: {},
+        provider: { id: "openai", options: {} } as any,
+        auth: undefined,
+        plugin: {
+          trigger: (_name: string, _input: unknown, output: unknown) => Effect.succeed(output),
+          list: () => Effect.succeed([]),
+          init: () => Effect.void,
+        } as any,
+        flags: { outputTokenMax: 32_000, client: "test" } as any,
+        isWorkflow: false,
+      }),
+    )
+    const system = result.system.join("\n")
+    const base = SystemPrompt.provider(model as any)[0]!.trim().slice(0, 120)
+    expect(system).toContain(base)
+    expect(system.indexOf("EXTRA-INSTRUCTIONS")).toBeGreaterThan(system.indexOf(base))
   })
 
   test("gpt-5.1 should have textVerbosity set to low", () => {

@@ -53,6 +53,8 @@ export const Info = Schema.Struct({
   ),
   variant: Schema.optional(Schema.String),
   prompt: Schema.optional(Schema.String),
+  /** Extra instructions from config (`prompt_append`), added after whichever prompt the agent uses. */
+  promptAppend: Schema.optional(Schema.String),
   options: Schema.Record(Schema.String, Schema.Unknown),
   steps: Schema.optional(Schema.Finite),
 }).annotate({ identifier: "Agent" })
@@ -324,9 +326,11 @@ const layer = Layer.effect(
           if (value.model) item.model = Provider.parseModel(value.model)
           item.variant = value.variant ?? item.variant
           item.prompt = value.prompt ?? item.prompt
-          // Settings › Sub-agentes adds instructions without replacing the specialist's own prompt.
+          // Settings › Sub-agentes adds instructions without replacing the agent's prompt. Kept apart:
+          // an agent with no prompt of its own (build, plan) runs on the provider's default one, which
+          // only exists once the model is known (session/llm/request.ts).
           if (typeof value.prompt_append === "string" && value.prompt_append.trim())
-            item.prompt = [item.prompt?.trim(), value.prompt_append.trim()].filter(Boolean).join("\n\n")
+            item.promptAppend = value.prompt_append.trim()
           item.description = value.description ?? item.description
           item.temperature = value.temperature ?? item.temperature
           item.topP = value.top_p ?? item.topP

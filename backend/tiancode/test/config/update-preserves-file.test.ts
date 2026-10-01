@@ -202,6 +202,34 @@ test("resetting an agent removes only its overrides and keeps the rest of the fi
   )
 })
 
+test("clearing fields removes only those fields and keeps the rest of the agent entry", async () => {
+  await run((dir) =>
+    Effect.gen(function* () {
+      const file = path.join(dir, "tiancode.json")
+      writeFileSync(
+        file,
+        JSON.stringify({
+          agent: {
+            pentest: {
+              model: "openai/gpt-5",
+              prompt: "my own prompt",
+              options: { reasoningEffort: "high" },
+              permission: { bash: "ask", edit: "deny", read: { "*.env": "deny" } },
+            },
+          },
+        }),
+      )
+      const svc = yield* Config.Service
+      expect(yield* svc.resetAgent("pentest", "project", ["model", "permission.bash"])).toBe(true)
+      expect(JSON.parse(readFileSync(file, "utf8")).agent.pentest).toEqual({
+        prompt: "my own prompt",
+        options: { reasoningEffort: "high" },
+        permission: { edit: "deny", read: { "*.env": "deny" } },
+      })
+    }),
+  )
+})
+
 // The global route runs with no project instance open, unlike the project one.
 test("resetting an agent globally works without an open project", async () => {
   const file = path.join(Global.Path.config, "tiancode.json")

@@ -115,6 +115,11 @@ export const GlobalApi = HttpApi.make("global").add(
       ),
       HttpApiEndpoint.delete("configResetAgent", GlobalPaths.configAgent, {
         params: { name: Schema.String },
+        query: Schema.Struct({
+          fields: Schema.optional(Schema.String).annotate({
+            description: "Comma-separated fields to remove (e.g. model,permission.bash); all of them when omitted",
+          }),
+        }),
         success: described(Schema.Boolean, "Whether the global config had overrides for the agent"),
       }).annotateMerge(
         OpenApi.annotations({

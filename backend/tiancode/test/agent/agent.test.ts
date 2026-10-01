@@ -178,11 +178,19 @@ it.instance(
   () =>
     Effect.gen(function* () {
       const pentest = yield* load((svc) => svc.get("pentest"))
-      const builtin = SPECIALISTS.find((specialist) => specialist.name === "pentest")!.prompt!.trim()
-      expect(pentest?.prompt?.startsWith(builtin.slice(0, 200))).toBe(true)
-      expect(pentest?.prompt?.endsWith("Responde siempre en español.")).toBe(true)
+      const build = yield* load((svc) => svc.get("build"))
+      const builtin = SPECIALISTS.find((specialist) => specialist.name === "pentest")!.prompt!
+      expect(pentest?.prompt).toBe(builtin)
+      expect(pentest?.promptAppend).toBe("Responde siempre en español.")
+      // An agent without a prompt of its own keeps none, so the provider's default still applies.
+      expect(build?.prompt).toBeUndefined()
+      expect(build?.promptAppend).toBe("Sé breve.")
     }),
-  { config: { agent: { pentest: { prompt_append: "Responde siempre en español." } } } },
+  {
+    config: {
+      agent: { pentest: { prompt_append: "Responde siempre en español." }, build: { prompt_append: "Sé breve." } },
+    },
+  },
 )
 
 it.instance("explore agent denies edit and write", () =>

@@ -26,8 +26,11 @@ export const configHandlers = HttpApiBuilder.group(InstanceHttpApi, "config", (h
       return ctx.payload
     })
 
-    const resetAgent = Effect.fn("ConfigHttpApi.resetAgent")(function* (ctx: { params: { name: string } }) {
-      const changed = yield* configSvc.resetAgent(ctx.params.name, "project")
+    const resetAgent = Effect.fn("ConfigHttpApi.resetAgent")(function* (ctx: {
+      params: { name: string }
+      query: { fields?: string }
+    }) {
+      const changed = yield* configSvc.resetAgent(ctx.params.name, "project", splitFields(ctx.query.fields))
       if (changed) yield* markInstanceForDisposal(yield* InstanceState.context)
       return changed
     })
@@ -47,3 +50,9 @@ export const configHandlers = HttpApiBuilder.group(InstanceHttpApi, "config", (h
       .handle("providers", providers)
   }),
 )
+
+// "model,permission.bash" → ["model", "permission.bash"]; undefined resets the whole entry.
+export function splitFields(fields: string | undefined) {
+  const list = (fields ?? "").split(",").map((field) => field.trim()).filter(Boolean)
+  return list.length > 0 ? list : undefined
+}

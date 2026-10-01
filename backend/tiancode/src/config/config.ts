@@ -128,8 +128,15 @@ export interface Interface {
   readonly update: (config: Info) => Effect.Effect<void>
   readonly updateGlobal: (config: Info) => Effect.Effect<{ info: Info; changed: boolean }>
   readonly removeMcp: (name: string) => Effect.Effect<void>
-  /** Drops an agent's overrides (`agent.<name>`) from one scope's file; false when there were none. */
-  readonly resetAgent: (name: string, scope: "project" | "global") => Effect.Effect<boolean>
+  /**
+   * Drops an agent's overrides (`agent.<name>`) from one scope's file, or only the listed fields
+   * ("model", "permission.bash"); false when there was nothing to remove.
+   */
+  readonly resetAgent: (
+    name: string,
+    scope: "project" | "global",
+    fields?: readonly string[],
+  ) => Effect.Effect<boolean>
   /**
    * Delete a local model from the provider registry in BOTH the project and the
    * global config file. update()/updateGlobal() cannot express this: they merge.
@@ -988,20 +995,27 @@ const layer = Layer.effect(
 
     // A merge cannot delete keys (see the Removal section above), so resetting a sub-agent to its
     // defaults edits the file in place, like removeMcp.
-    const resetAgent = Effect.fn("Config.resetAgent")(function* (name: string, scope: "project" | "global") {
+    const resetAgent = Effect.fn("Config.resetAgent")(function* (
+      name: string,
+      scope: "project" | "global",
+      fields?: readonly string[],
+    ) {
       const file = scope === "global" ? globalConfigFile() : yield* projectConfigFile(yield* InstanceState.directory)
       const before = yield* readConfigFile(file)
       if (!before) return false
+      // Clearing one field in Settings removes that field only: the rest of the entry (a custom
+      // prompt, options, pattern rules) is the user's and stays.
+      const suffixes = fields?.length ? fields.map((field) => field.split(".").filter(Boolean)) : [[]]
+      const paths = ["agent", "agents"].flatMap((key) => suffixes.map((suffix) => [key, name, ...suffix]))
       // Only paths that exist: jsonc-parser refuses to delete a key whose parent is missing.
-      const after = ["agent", "agents"].reduce((text, key) => {
+      const after = paths.reduce((text, at) => {
         const tree = parseTree(text)
-        return tree && findNodeAtLocation(tree, [key, name]) ? removeJsoncPath(text, [key, name]) : text
+        return tree && findNodeAtLocation(tree, at) ? removeJsoncPath(text, at) : text
       }, before)
       if (after === before) return false
       yield* writeGlobalAtomic(file, after).pipe(Effect.orDie)
       // Global routes run outside any project instance: only the project scope has one to refresh.
-      if (scope === "global") yield* invalidate()
-      else yield* invalidateInstance()
+      yield* scope === "global" ? invalidate() : invalidateInstance()
       return true
     })
 

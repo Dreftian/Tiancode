@@ -2562,6 +2562,7 @@ export type Agent = {
   }
   variant?: string
   prompt?: string
+  promptAppend?: string
   options: {
     [key: string]: unknown
   }
@@ -7538,7 +7539,9 @@ export type GlobalConfigAgentResetData = {
   path: {
     name: string
   }
-  query?: never
+  query?: {
+    fields?: string
+  }
   url: "/global/config/agent/{name}"
 }
 
@@ -7811,6 +7814,7 @@ export type ConfigAgentResetData = {
   query?: {
     directory?: string
     workspace?: string
+    fields?: string
   }
   url: "/config/agent/{name}"
 }

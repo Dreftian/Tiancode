@@ -5,7 +5,7 @@ import { Schema } from "effect"
 import { HttpApi, HttpApiEndpoint, HttpApiError, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
 import { Authorization } from "../middleware/authorization"
 import { InstanceContextMiddleware } from "../middleware/instance-context"
-import { WorkspaceRoutingMiddleware, WorkspaceRoutingQuery } from "../middleware/workspace-routing"
+import { WorkspaceRoutingMiddleware, WorkspaceRoutingQuery, WorkspaceRoutingQueryFields } from "../middleware/workspace-routing"
 import { described } from "./metadata"
 
 const root = "/config"
@@ -38,7 +38,12 @@ export const ConfigApi = HttpApi.make("config")
         ),
         HttpApiEndpoint.delete("resetAgent", `${root}/agent/:name`, {
           params: { name: Schema.String },
-          query: WorkspaceRoutingQuery,
+          query: Schema.Struct({
+            ...WorkspaceRoutingQueryFields,
+            fields: Schema.optional(Schema.String).annotate({
+              description: "Comma-separated fields to remove (e.g. model,permission.bash); all of them when omitted",
+            }),
+          }),
           success: described(Schema.Boolean, "Whether the project config had overrides for the agent"),
         }).annotateMerge(
           OpenApi.annotations({

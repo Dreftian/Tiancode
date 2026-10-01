@@ -13,6 +13,7 @@ import * as Sse from "effect/unstable/encoding/Sse"
 import { RootHttpApi } from "../api"
 import { GlobalUpgradeInput } from "../groups/global"
 import { redactConfigInfo, unredactConfigInfo } from "@/server/redact-config"
+import { splitFields } from "./config"
 
 function eventData(data: unknown): Sse.Event {
   return {
@@ -91,8 +92,11 @@ export const globalHandlers = HttpApiBuilder.group(RootHttpApi, "global", (handl
       return result.info
     })
 
-    const configResetAgent = Effect.fn("GlobalHttpApi.configResetAgent")(function* (ctx: { params: { name: string } }) {
-      const changed = yield* config.resetAgent(ctx.params.name, "global")
+    const configResetAgent = Effect.fn("GlobalHttpApi.configResetAgent")(function* (ctx: {
+      params: { name: string }
+      query: { fields?: string }
+    }) {
+      const changed = yield* config.resetAgent(ctx.params.name, "global", splitFields(ctx.query.fields))
       if (changed) bridge.fork(disposeAllInstancesAndEmitGlobalDisposed({ swallowErrors: true }))
       return changed
     })

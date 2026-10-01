@@ -1723,10 +1723,21 @@ export class Agent extends HeyApiClient {
   public reset<ThrowOnError extends boolean = false>(
     parameters: {
       name: string
+      fields?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
-    const params = buildClientParams([parameters], [{ args: [{ in: "path", key: "name" }] }])
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "name" },
+            { in: "query", key: "fields" },
+          ],
+        },
+      ],
+    )
     return (options?.client ?? this.client).delete<
       GlobalConfigAgentResetResponses,
       GlobalConfigAgentResetErrors,
@@ -1997,6 +2008,7 @@ export class Agent2 extends HeyApiClient {
       name: string
       directory?: string
       workspace?: string
+      fields?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -2008,6 +2020,7 @@ export class Agent2 extends HeyApiClient {
             { in: "path", key: "name" },
             { in: "query", key: "directory" },
             { in: "query", key: "workspace" },
+            { in: "query", key: "fields" },
           ],
         },
       ],
