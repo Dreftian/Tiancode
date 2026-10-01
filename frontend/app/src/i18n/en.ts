@@ -3046,4 +3046,10 @@ export const dict = {
   "settings.pairing.field.username": "Username",
   "settings.pairing.field.password": "Password",
   "settings.marketplace.composioDescription": "Connect 1000+ apps (Gmail, Slack, GitHub, Notion…) through one MCP server. You sign in from the browser when you authenticate it.",
+  "settings.marketplace.baselineUiDescription": "Clean up spacing, hierarchy, typography and small layout issues in UI code. From ui-skills.com.",
+  "settings.marketplace.fixingAccessibilityDescription": "Find and fix accessibility problems in interfaces. From ui-skills.com.",
+  "settings.marketplace.fixingMotionDescription": "Make animations smooth and cheap to render. From ui-skills.com.",
+  "settings.marketplace.fixingMetadataDescription": "Correct page titles, descriptions, social cards and icons. From ui-skills.com.",
+  "settings.marketplace.improveUiDescription": "A guided design pass that raises the quality of an interface. From ui-skills.com.",
+  "settings.marketplace.designMdDescription": "Write a DESIGN.md that captures a project's design rules for agents. From ui-skills.com.",
 }

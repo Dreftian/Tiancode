@@ -44,4 +44,13 @@ describe("curated marketplace entries", () => {
     expect(composio?.type).toBe("mcp")
     expect(composio?.config).toEqual({ type: "remote", url: "https://connect.composio.dev/mcp", enabled: false })
   })
+
+  test("ui-skills.com skills import from their GitHub folders under Design", () => {
+    const ids = ["baseline-ui", "fixing-accessibility", "fixing-motion-performance", "fixing-metadata", "improve-ui", "create-design-md"]
+    for (const id of ids) {
+      const entry = CURATED_SKILLS.find((item) => item.id === id)
+      expect(entry?.skillURL).toBe(`https://github.com/ibelick/ui-skills/tree/main/skills/${id}`)
+      expect(entry?.category).toBe("diseno")
+    }
+  })
 })

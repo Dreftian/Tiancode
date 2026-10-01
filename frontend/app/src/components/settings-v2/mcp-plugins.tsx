@@ -20,13 +20,20 @@ import {
 import { createStore } from "solid-js/store"
 import { usePlatform } from "@/context/platform"
 import { fetchMarketplace, MARKETPLACE_SNAPSHOT, CURATED_SKILLS, type MarketplaceItem } from "./marketplace"
+import type { dict } from "@/i18n/en"
 
 // Curated entries are described in the user's language rather than the catalog's English.
-const curatedDescriptions: Record<string, "settings.marketplace.diagramDescription" | "settings.marketplace.securityDescription" | "settings.marketplace.focusDescription" | "settings.marketplace.composioDescription"> = {
+const curatedDescriptions: Record<string, keyof typeof dict> = {
   "diagram-design": "settings.marketplace.diagramDescription",
   "security-audit": "settings.marketplace.securityDescription",
   "i-have-adhd": "settings.marketplace.focusDescription",
   composio: "settings.marketplace.composioDescription",
+  "baseline-ui": "settings.marketplace.baselineUiDescription",
+  "fixing-accessibility": "settings.marketplace.fixingAccessibilityDescription",
+  "fixing-motion-performance": "settings.marketplace.fixingMotionDescription",
+  "fixing-metadata": "settings.marketplace.fixingMetadataDescription",
+  "improve-ui": "settings.marketplace.improveUiDescription",
+  "create-design-md": "settings.marketplace.designMdDescription",
 }
 import { decodeGitHubUrl, fetchGitHubSkills } from "./skills-github"
 import { parseMcpConfig, parseCommand } from "./mcp-config"

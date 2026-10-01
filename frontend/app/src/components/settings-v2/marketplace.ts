@@ -97,6 +97,13 @@ export const CURATED_SKILLS = parseMarketplace({ entries: [
   // Composio's hosted MCP: 1000+ app integrations behind one server, signed in through MCP OAuth
   // in the browser (no key in the catalog; per-user `x-consumer-api-key` headers are the user's).
   { id: "composio", type: "mcp", name: "Composio", description: "Connect 1000+ apps (Gmail, Slack, GitHub, Notion…) through one MCP server.", tags: ["productivity"], homepage: "https://docs.composio.dev/docs/composio-connect", license: "MIT", featured: true, install: { args: ["composio", "--transport", "http", "https://connect.composio.dev/mcp"] } },
+  // ui-skills.com (ibelick/ui-skills, MIT): design-engineering skills imported from GitHub.
+  { id: "baseline-ui", type: "skill", name: "Baseline UI", description: "Clean up spacing, hierarchy, typography and small layout issues in UI code.", tags: ["creative"], homepage: "https://github.com/ibelick/ui-skills/tree/main/skills/baseline-ui", license: "MIT", install: { args: [] } },
+  { id: "fixing-accessibility", type: "skill", name: "Fixing Accessibility", description: "Find and fix accessibility problems in interfaces.", tags: ["creative"], homepage: "https://github.com/ibelick/ui-skills/tree/main/skills/fixing-accessibility", license: "MIT", install: { args: [] } },
+  { id: "fixing-motion-performance", type: "skill", name: "Fixing Motion Performance", description: "Make animations smooth and cheap to render.", tags: ["creative"], homepage: "https://github.com/ibelick/ui-skills/tree/main/skills/fixing-motion-performance", license: "MIT", install: { args: [] } },
+  { id: "fixing-metadata", type: "skill", name: "Fixing Metadata", description: "Correct page titles, descriptions, social cards and icons.", tags: ["creative"], homepage: "https://github.com/ibelick/ui-skills/tree/main/skills/fixing-metadata", license: "MIT", install: { args: [] } },
+  { id: "improve-ui", type: "skill", name: "Improve UI", description: "A guided design pass that raises the quality of an interface.", tags: ["creative"], homepage: "https://github.com/ibelick/ui-skills/tree/main/skills/improve-ui", license: "MIT", install: { args: [] } },
+  { id: "create-design-md", type: "skill", name: "Create DESIGN.md", description: "Write a DESIGN.md that captures a project's design rules for agents.", tags: ["creative"], homepage: "https://github.com/ibelick/ui-skills/tree/main/skills/create-design-md", license: "MIT", install: { args: [] } },
   { id: "i-have-adhd", type: "skill", name: "I Have ADHD", description: "Concise, action-first responses with clear next steps and reduced reading load.", tags: ["productivity"], homepage: "https://github.com/ayghri/i-have-adhd/tree/main/skills/i-have-adhd", license: "MIT", install: { args: [] } },
 ] })
 
