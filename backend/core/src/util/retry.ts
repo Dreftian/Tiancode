@@ -32,13 +32,29 @@ function isTransientClientError(error: unknown): boolean | undefined {
   if (reason !== "UnexpectedStatus") return
   const status = (error.cause as { status?: number } | undefined)?.status
   if (typeof status !== "number") return false
-  return status === 408 || status === 429 || status >= 500
+  return recoverableStatus(status)
+}
+
+// 499: the server dropped the request because its instance reloaded mid-flight (a config write
+// such as registering an MCP server at startup), not because the request was wrong.
+function recoverableStatus(status: number) {
+  return status === 408 || status === 429 || status === 499 || status >= 500
+}
+
+// The legacy SDK wraps an empty error body as `Error("tiancode server GET … → 499 …")` with the
+// status in `cause` (backend/sdk/js/src/error-interceptor.ts).
+function wrappedStatus(error: unknown) {
+  if (!(error instanceof Error) || typeof error.cause !== "object" || error.cause === null) return
+  const status = (error.cause as { status?: unknown }).status
+  return typeof status === "number" ? status : undefined
 }
 
 function isTransientError(error: unknown, depth = 0): boolean {
   if (!error) return false
   const client = isTransientClientError(error)
   if (client !== undefined) return client
+  const status = wrappedStatus(error)
+  if (status !== undefined) return recoverableStatus(status)
   // oxlint-disable-next-line no-base-to-string -- error is unknown, intentional coercion for message matching
   const message = String(error instanceof Error ? error.message : error).toLowerCase()
   if (TRANSIENT_MESSAGES.some((m) => message.includes(m))) return true
