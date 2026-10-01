@@ -53,7 +53,7 @@ export const SETTINGS_PAGES: SettingsSearchEntry[] = [
   page("connections", "settings.tab.connections", ["conexiones", "connections", "telegram", "whatsapp", "webhooks"]),
   page("pets", "settings.tab.pets", ["mascotas", "pets"]),
   page("computer-use", "settings.tab.experimental", ["experimental", "beta"], undefined, "experimental"),
-  page("about", "settings.tab.about", ["acerca de", "about", "versión", "version", "licencia", "license"]),
+  page("about", "settings.tab.about", ["acerca de", "about", "versión", "version", "licencia", "license", "registros", "logs", "sistema", "system", "electron"]),
 ]
 
 export const SETTINGS_ROWS: SettingsSearchEntry[] = [

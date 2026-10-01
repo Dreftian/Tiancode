@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process"
+import { release } from "node:os"
 import { stat, writeFile } from "node:fs/promises"
 import { basename, isAbsolute, join, relative, resolve } from "node:path"
 import { app, BrowserWindow, clipboard, dialog, globalShortcut, ipcMain, screen, shell } from "electron"
@@ -56,6 +57,7 @@ import { getKeepScreenActive, setKeepScreenActive } from "./screen-activity"
 import { pairingInfo, setPairingEnabled } from "./pairing"
 import { saveProfileChoice } from "./profile"
 import { resolvedProfile } from "./profile-state"
+import { CHANNEL, DISTRIBUTION } from "./constants"
 
 // Apps "abrir con" que acepta open-path. En macOS y Linux el renderer envía
 // el nombre tal cual; en Windows envía el path resuelto por resolveAppPath
@@ -478,6 +480,19 @@ export function registerIpcHandlers(deps: Deps) {
   })
   ipcMain.handle("get-keep-screen-active", () => getKeepScreenActive())
   ipcMain.handle("pairing-info", () => pairingInfo())
+  // Settings › About: build and runtime facts the sandboxed renderer cannot read itself.
+  ipcMain.handle("app-info", () => ({
+    version: app.getVersion(),
+    channel: CHANNEL,
+    distribution: DISTRIBUTION,
+    portable: resolvedProfile()?.kind === "portable",
+    electron: process.versions.electron,
+    chrome: process.versions.chrome,
+    node: process.versions.node,
+    arch: process.arch,
+    osRelease: release(),
+    logs: join(app.getPath("userData"), "logs"),
+  }))
   // Settings › General › Data: the folder in use and the other Tiancode folder that holds data.
   ipcMain.handle("data-folder-info", () => ({
     path: app.getPath("userData"),

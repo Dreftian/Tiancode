@@ -92,6 +92,21 @@ export type PreviewAgentPlatform = {
   available(frameUrl?: string): Promise<boolean>
 }
 
+/** What Settings › About shows that the sandboxed renderer cannot read itself. */
+export type AppInfo = {
+  version: string
+  channel: "dev" | "beta" | "prod"
+  distribution: "local" | "github"
+  portable: boolean
+  electron: string
+  chrome: string
+  node: string
+  arch: string
+  osRelease: string
+  /** Folder that holds this run's diagnostic logs. */
+  logs: string
+}
+
 /** Where the desktop app keeps sessions, provider keys and settings. */
 export type DataFolderInfo = {
   path: string
@@ -240,6 +255,9 @@ type PlatformBase = {
 
   /** The data folder in use and the other one that can be switched to (desktop only) */
   dataFolder?: DataFolderPlatform
+
+  /** Build, runtime and log folder details for Settings › About (desktop only) */
+  appInfo?(): Promise<AppInfo>
 
   /** Get whether native pinch/Ctrl-scroll zoom gestures are enabled (desktop only) */
   getPinchZoomEnabled?(): Promise<boolean> | boolean

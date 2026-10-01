@@ -180,6 +180,21 @@ export type FatalRendererError = {
 
 // Vista en vivo del panel de sesión: estado del WebContentsView del preview
 // (frontend/desktop/src/main/preview-view.ts).
+/** What Settings › About shows that the sandboxed renderer cannot read itself. */
+export type AppInfo = {
+  version: string
+  channel: "dev" | "beta" | "prod"
+  distribution: "local" | "github"
+  portable: boolean
+  electron: string
+  chrome: string
+  node: string
+  arch: string
+  osRelease: string
+  /** Folder that holds this run's diagnostic logs. */
+  logs: string
+}
+
 export type DataFolderInfo = {
   path: string
   /** The other Tiancode data folder, when it holds provider keys or sessions. */
@@ -425,6 +440,8 @@ export type ElectronAPI = {
   /** Settings › Pairing (frontend/desktop/src/main/pairing.ts). */
   pairingInfo: () => Promise<PairingInfo>
   setPairingEnabled: (enabled: boolean) => Promise<PairingInfo>
+  /** Settings › About (frontend/desktop/src/main/ipc.ts "app-info"). */
+  appInfo: () => Promise<AppInfo>
   /** Settings › General › Data (frontend/desktop/src/main/profile.ts). */
   dataFolderInfo: () => Promise<DataFolderInfo>
   /** Records the other folder and restarts; false when it could not be recorded. */

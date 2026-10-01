@@ -317,6 +317,7 @@ const createPlatform = (windowState: DesktopWindowState): Platform => {
       info: () => window.api.pairingInfo(),
       setEnabled: (enabled: boolean) => window.api.setPairingEnabled(enabled),
     },
+    appInfo: () => window.api.appInfo(),
     dataFolder: {
       info: () => window.api.dataFolderInfo(),
       switchTo: (path: string) => window.api.switchDataFolder(path),

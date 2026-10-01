@@ -249,6 +249,7 @@ const api: ElectronAPI = {
   setPinchZoomEnabled: (enabled) => ipcRenderer.invoke("set-pinch-zoom-enabled", enabled),
   getKeepScreenActive: () => ipcRenderer.invoke("get-keep-screen-active"),
   pairingInfo: () => ipcRenderer.invoke("pairing-info"),
+  appInfo: () => ipcRenderer.invoke("app-info"),
   dataFolderInfo: () => ipcRenderer.invoke("data-folder-info"),
   switchDataFolder: (path) => ipcRenderer.invoke("data-folder-switch", path),
   setPairingEnabled: (enabled) => ipcRenderer.invoke("pairing-set-enabled", enabled),
