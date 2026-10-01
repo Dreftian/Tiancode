@@ -715,7 +715,13 @@ export function sameGroups(a: readonly PartGroup[] | undefined, b: readonly Part
   return a.every((item, i) => sameGroup(item, b[i]!))
 }
 
-export function groupParts(parts: { messageID: string; part: PartType }[]) {
+// `context: false` / `subagents: false` keep those tool calls as separate rows (timeline detail).
+export function groupParts(
+  parts: { messageID: string; part: PartType }[],
+  options: { context?: boolean; subagents?: boolean } = {},
+) {
+  const groupContext = options.context !== false
+  const groupSubagents = options.subagents !== false
   const result: PartGroup[] = []
   let contextStart = -1
   let subagentStart = -1
@@ -759,13 +765,13 @@ export function groupParts(parts: { messageID: string; part: PartType }[]) {
   }
 
   parts.forEach((item, index) => {
-    if (isContextGroupTool(item.part)) {
+    if (groupContext && isContextGroupTool(item.part)) {
       flushSubagents(index - 1)
       if (contextStart < 0) contextStart = index
       return
     }
 
-    if (isSubagentTool(item.part)) {
+    if (groupSubagents && isSubagentTool(item.part)) {
       flushContext(index - 1)
       if (subagentStart < 0) subagentStart = index
       return

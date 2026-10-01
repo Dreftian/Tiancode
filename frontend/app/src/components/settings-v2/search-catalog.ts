@@ -73,7 +73,7 @@ export const SETTINGS_ROWS: SettingsSearchEntry[] = [
   row("general", "appearance", "settings.general.row.theme.title", "settings-theme", ["tema", "theme", "colores"]),
   row("general", "appearance", "settings.general.row.transcriptText.title", "settings-transcript-text", ["texto", "tamaño", "font size"]),
   row("general", "appearance", "settings.general.row.transcriptWidth.title", "settings-transcript-width", ["ancho", "width"]),
-  row("general", "appearance", "settings.general.row.transcriptView.title", "settings-transcript-view", ["vista", "view", "pensando", "thinking", "detalle", "timeline"]),
+  row("general", "timeline", "settings.timeline.detail", "settings-timeline-detail", ["línea de tiempo", "timeline", "detalle", "detail", "razonamiento", "thinking", "vista", "view"]),
   row("general", "appearance", "settings.general.row.uiFont.title", "settings-ui-font", ["fuente", "font", "tipografía"]),
   row("general", "appearance", "settings.general.row.font.title", "settings-code-font", ["fuente", "font", "código", "code"]),
   row("general", "appearance", "settings.general.row.terminalFont.title", "settings-terminal-font", ["fuente", "font", "terminal"]),

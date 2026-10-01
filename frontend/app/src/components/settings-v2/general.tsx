@@ -13,13 +13,11 @@ import { useUpdaterAction } from "../updater-action"
 import {
   previewOnFinishOptions,
   transcriptTextSizes,
-  transcriptViews,
   transcriptWidths,
   useSettings,
   workspaceDestinations,
   type PreviewOnFinish,
   type TranscriptTextSize,
-  type TranscriptView,
   type TranscriptWidth,
   type WorkspaceDestination,
 } from "@/context/settings"
@@ -29,6 +27,7 @@ import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
 import { useConfirmSkipPermissions } from "@/components/dialogs/dialog-skip-permissions"
 import { LayoutRetirementNotice } from "./interface-transition"
+import { SettingsTimelineDetailV2 } from "./timeline-detail"
 import {
   createAppearanceSettingsController,
   createPermissionScopeController,
@@ -43,7 +42,6 @@ import "./settings-v2.css"
 const schemeOptions: ("system" | "light" | "dark")[] = ["system", "light", "dark"]
 const transcriptTextOptions: TranscriptTextSize[] = [...transcriptTextSizes]
 const transcriptWidthOptions: TranscriptWidth[] = [...transcriptWidths]
-const transcriptViewOptions: TranscriptView[] = [...transcriptViews]
 const previewOnFinishChoices: PreviewOnFinish[] = [...previewOnFinishOptions]
 const destinationOptions: WorkspaceDestination[] = [...workspaceDestinations]
 const followupOptions = ["steer", "queue"] as const
@@ -176,28 +174,6 @@ const TranscriptWidthSetting = () => {
   )
 }
 
-const TranscriptViewSetting = () => {
-  const language = useLanguage()
-  const settings = useSettings()
-  return (
-    <SettingsRowV2
-      title={language.t("settings.general.row.transcriptView.title")}
-      description={language.t("settings.general.row.transcriptView.description")}
-    >
-      <SelectV2
-        appearance="inline"
-        data-action="settings-transcript-view"
-        options={transcriptViewOptions}
-        current={transcriptViewOptions.find((option) => option === settings.general.transcriptView())}
-        placement="bottom-end"
-        gutter={6}
-        label={(option) => language.t(`settings.general.row.transcriptView.option.${option}`)}
-        onSelect={(option) => option && settings.general.setTranscriptView(option)}
-      />
-    </SettingsRowV2>
-  )
-}
-
 const ClearResponseSetting = () => {
   const language = useLanguage()
   const settings = useSettings()
@@ -263,7 +239,6 @@ const AppearanceSection: Component<{ controller: AppearanceSettingsController }>
 
         <TranscriptTextSetting />
         <TranscriptWidthSetting />
-        <TranscriptViewSetting />
         <ClearResponseSetting />
 
         <FontSetting kind="ui" fonts={props.controller.fonts} />
@@ -667,11 +642,6 @@ export const SettingsGeneralV2: Component<{
           </ButtonV2>
         </SettingsRowV2>
 
-        {/* Los tres interruptores de transcripción (razonamiento, shell, edit)
-            vivían aquí; ahora los escribe `TranscriptViewSetting` en Apariencia.
-            Mantener ambos controles sería fatal: escriben los mismos booleanos,
-            así que el último tocado ganaría y el otro mostraría un valor viejo. */}
-
         <Show when={mobile() && import.meta.env.VITE_TIANCODE_CHANNEL !== "prod"}>
           <SettingsRowV2
             title={language.t("settings.general.row.mobileTitlebarBottom.title")}
@@ -940,7 +910,7 @@ export const SettingsGeneralV2: Component<{
         <h2 class="settings-v2-tab-title">{language.t("settings.tab.general")}</h2>
         <SettingsSectionTabs value={page.section} onChange={(section) => setPage("section", section)} options={[
           { id: "general", label: language.t("settings.tab.general") },
-          ...["preview", "titlebar", "appearance", "updates", "display", "data"].filter((id) => desktop() || !["updates", "data"].includes(id)).map((id) => ({ id, label: language.t(`settings.general.section.${id}` as Parameters<typeof language.t>[0]) })),
+          ...["timeline", "preview", "titlebar", "appearance", "updates", "display", "data"].filter((id) => desktop() || !["updates", "data"].includes(id)).map((id) => ({ id, label: language.t(`settings.general.section.${id}` as Parameters<typeof language.t>[0]) })),
         ]} />
       </div>
 
@@ -950,6 +920,15 @@ export const SettingsGeneralV2: Component<{
         </Show>
 
         <Show when={page.section === "general"}><GeneralSection /></Show>
+
+        <Show when={page.section === "timeline"}>
+          <div class="settings-v2-section">
+            <h3 class="settings-v2-section-title">{language.t("settings.general.section.timeline")}</h3>
+            <div data-component="settings-v2-list">
+              <SettingsTimelineDetailV2 />
+            </div>
+          </div>
+        </Show>
 
         <Show when={page.section === "preview"}><PreviewSection /></Show>
 

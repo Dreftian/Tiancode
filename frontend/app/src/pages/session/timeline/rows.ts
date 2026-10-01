@@ -5,6 +5,7 @@ import { groupParts, renderable, type PartGroup } from "@tiancode-ai/session-ui/
 import { TimelineRow, type SummaryDiff } from "./timeline-row"
 import { uniqueSummaryDiffs } from "./summary-diffs"
 import { previewOffer } from "./preview-offer"
+import { partVisible, type TimelineDetail } from "./detail"
 
 export { TimelineRow, type SummaryDiff } from "./timeline-row"
 
@@ -49,6 +50,7 @@ export namespace Timeline {
     projectedUserMessages: UserMessage[],
     // Offer to open the app at the end of the latest finished turn (root sessions only).
     previewOffers = false,
+    detail?: TimelineDetail,
   ) {
     const turns: { user: UserMessage; assistants: AssistantMessage[] }[] = []
     const turnByUserID = new Map<string, (typeof turns)[number]>()
@@ -102,6 +104,7 @@ export namespace Timeline {
           turn.user.id === activeMessageID,
           inlineComments,
           previewOffers,
+          detail,
         ),
       ),
     }
@@ -118,6 +121,7 @@ export namespace Timeline {
     // v2 renders comments inside the user message attachments row instead of a strip row
     inlineComments: boolean,
     previewOffers = false,
+    detail?: TimelineDetail,
   ) {
     const rows: TimelineRow.TimelineRow[] = []
 
@@ -132,27 +136,30 @@ export namespace Timeline {
 
     const assistantPartRefs = assistantMessages.flatMap((message, messageIndex) =>
       getMessageParts(message.id)
-        .filter((part) => renderable(part, showReasoning))
+        .filter((part) => renderable(part, showReasoning) && (!detail || partVisible(part, detail)))
         .map((part) => ({ messageID: message.id, messageIndex, part })),
     )
+    const grouping = detail
+      ? { context: detail.tools.placement !== "separate", subagents: detail.subagents.placement !== "separate" }
+      : undefined
     const assistantItems =
       interrupted && !compaction
         ? [
-            ...groupParts(assistantPartRefs.filter((ref) => ref.messageIndex <= interruptedMessageIndex)).map(
+            ...groupParts(assistantPartRefs.filter((ref) => ref.messageIndex <= interruptedMessageIndex), grouping).map(
               (group) => ({
                 type: "part" as const,
                 group,
               }),
             ),
             { type: "interrupted" as const },
-            ...groupParts(assistantPartRefs.filter((ref) => ref.messageIndex > interruptedMessageIndex)).map(
+            ...groupParts(assistantPartRefs.filter((ref) => ref.messageIndex > interruptedMessageIndex), grouping).map(
               (group) => ({
                 type: "part" as const,
                 group,
               }),
             ),
           ]
-        : groupParts(assistantPartRefs).map((group) => ({ type: "part" as const, group }))
+        : groupParts(assistantPartRefs, grouping).map((group) => ({ type: "part" as const, group }))
     if (previousUserMessage) rows.push(new TimelineRow.TurnGap({ userMessageID: userMessage.id }))
 
     if (comments.length > 0 && !inlineComments)
@@ -169,7 +176,7 @@ export namespace Timeline {
       }),
     )
 
-    if (compaction) {
+    if (compaction && detail?.notices.placement !== "hidden") {
       rows.push(
         new TimelineRow.TurnDivider({
           userMessageID: userMessage.id,
