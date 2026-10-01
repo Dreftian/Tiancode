@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test"
-import { readFileSync, writeFileSync } from "node:fs"
+import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { Effect, Layer } from "effect"
 import { LayerNode } from "@tiancode-ai/core/effect/layer-node"
@@ -9,6 +9,8 @@ import { FSUtil } from "@tiancode-ai/core/fs-util"
 import { Npm } from "@tiancode-ai/core/npm"
 import { CrossSpawnSpawner } from "@tiancode-ai/core/cross-spawn-spawner"
 import { Config } from "@/config/config"
+import { unredactConfigInfo } from "@/server/redact-config"
+import { Global } from "@tiancode-ai/core/global"
 import { Auth } from "../../src/auth"
 import { Account } from "../../src/account/account"
 import { Env } from "../../src/env"
@@ -81,4 +83,95 @@ test("update keeps keys the config schema does not recognise", async () => {
       expect(after.anotherTool).toEqual([1, 2, 3])
     }),
   )
+})
+
+// Settings sends partial patches ({ agent: { pentest: { disable: true } } }) through the HTTP
+// handler, which restores redacted secrets first. That step used to add `provider: undefined`
+// and `mcp: undefined`, and the merge then deleted both sections from the user's file.
+test("a partial patch from the HTTP handler keeps the provider and mcp sections", async () => {
+  await run((dir) =>
+    Effect.gen(function* () {
+      const file = path.join(dir, "tiancode.json")
+      writeFileSync(
+        file,
+        JSON.stringify(
+          {
+            provider: { demo: { options: { apiKey: "{env:TIANCODE_TEST_SECRET}" } } },
+            mcp: { docs: { type: "remote", url: "https://example.com/mcp" } },
+          },
+          null,
+          2,
+        ),
+      )
+
+      const svc = yield* Config.Service
+      yield* svc.update(unredactConfigInfo({ agent: { pentest: { disable: true } } }, yield* svc.get()))
+
+      const after = JSON.parse(readFileSync(file, "utf8"))
+      expect(after.agent).toEqual({ pentest: { disable: true } })
+      expect(after.provider).toEqual({ demo: { options: { apiKey: "{env:TIANCODE_TEST_SECRET}" } } })
+      expect(after.mcp).toEqual({ docs: { type: "remote", url: "https://example.com/mcp" } })
+    }),
+  )
+})
+
+test("a partial patch keeps provider and mcp in a .jsonc project config", async () => {
+  await run((dir) =>
+    Effect.gen(function* () {
+      const file = path.join(dir, "tiancode.jsonc")
+      writeFileSync(
+        file,
+        [
+          "{",
+          "  // my providers",
+          '  "provider": { "demo": { "options": { "baseURL": "http://localhost:1234" } } },',
+          '  "mcp": { "docs": { "type": "remote", "url": "https://example.com/mcp" } }',
+          "}",
+        ].join("\n"),
+      )
+
+      const svc = yield* Config.Service
+      yield* svc.update(unredactConfigInfo({ agent: { pentest: { disable: true } } }, yield* svc.get()))
+
+      const after = readFileSync(file, "utf8")
+      expect(after).toContain("// my providers")
+      expect(after).toContain('"baseURL": "http://localhost:1234"')
+      expect(after).toContain('"url": "https://example.com/mcp"')
+      expect(after).toContain('"pentest"')
+    }),
+  )
+})
+
+test("a partial patch to the global config keeps provider, mcp and unknown keys", async () => {
+  const file = path.join(Global.Path.config, "tiancode.json")
+  const others = ["tiancode.jsonc", "config.json"].map((name) => path.join(Global.Path.config, name))
+  const saved = [file, ...others].map((name) => [name, existsSync(name) ? readFileSync(name, "utf8") : undefined] as const)
+  others.forEach((name) => rmSync(name, { force: true }))
+  writeFileSync(
+    file,
+    JSON.stringify(
+      {
+        provider: { demo: { options: { apiKey: "{env:TIANCODE_TEST_SECRET}" } } },
+        mcp: { docs: { type: "remote", url: "https://example.com/mcp" } },
+        someFutureKey: { keep: true },
+      },
+      null,
+      2,
+    ),
+  )
+  try {
+    await run(() =>
+      Effect.gen(function* () {
+        const svc = yield* Config.Service
+        yield* svc.updateGlobal(unredactConfigInfo({ agent: { pentest: { disable: true } } }, yield* svc.getGlobal()))
+        const after = JSON.parse(readFileSync(file, "utf8"))
+        expect(after.agent).toEqual({ pentest: { disable: true } })
+        expect(after.provider).toEqual({ demo: { options: { apiKey: "{env:TIANCODE_TEST_SECRET}" } } })
+        expect(after.mcp).toEqual({ docs: { type: "remote", url: "https://example.com/mcp" } })
+        expect(after.someFutureKey).toEqual({ keep: true })
+      }),
+    )
+  } finally {
+    saved.forEach(([name, text]) => (text === undefined ? rmSync(name, { force: true }) : writeFileSync(name, text)))
+  }
 })

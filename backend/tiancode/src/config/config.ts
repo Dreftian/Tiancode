@@ -869,6 +869,12 @@ const layer = Layer.effect(
       // {file:...} and drops every key the schema does not know, so merging the loaded value
       // wrote resolved secrets back in plaintext and deleted the user's unrecognised keys.
       const text = yield* readConfigFile(file)
+      // A .jsonc file is edited in place so the user's comments and layout survive.
+      if (text && file.endsWith(".jsonc")) {
+        yield* writeGlobalAtomic(file, patchJsonc(text, writable(config))).pipe(Effect.orDie)
+        yield* fs.remove(path.join(dir, "config.json")).pipe(Effect.catch(() => Effect.void))
+        return
+      }
       const original = text ? ConfigParse.jsonc(text, file) : undefined
       const base = isRecord(original) ? original : writable(existing)
       const merged = mergeConfigPatch(base, writable(config))
@@ -898,15 +904,20 @@ const layer = Layer.effect(
       let next: Info
       let changed: boolean
       if (!file.endsWith(".jsonc")) {
-        const existing = ConfigParse.schema(ConfigV1.Info, ConfigParse.jsonc(before, file), file)
-        const merged = mergeConfigPatch(writable(existing), patch)
+        // Merge into the file as written (see update()): decoding it first dropped the keys the
+        // schema does not know.
+        const original = ConfigParse.jsonc(before, file)
+        const merged = mergeConfigPatch(
+          isRecord(original) ? original : writable(ConfigParse.schema(ConfigV1.Info, original, file)),
+          patch,
+        )
         if (config.plugin !== undefined) {
           merged.plugin = config.plugin
         }
         const serialized = JSON.stringify(merged, null, 2)
         changed = serialized !== before
         if (changed) yield* writeGlobalAtomic(file, serialized).pipe(Effect.orDie)
-        next = merged as Info
+        next = ConfigParse.schema(ConfigV1.Info, merged, file)
       } else {
         const updated = patchJsonc(before, patch)
         next = ConfigParse.schema(ConfigV1.Info, ConfigParse.jsonc(updated, file), file)

@@ -97,29 +97,21 @@ export const instanceHandlers = HttpApiBuilder.group(InstanceHttpApi, "instance"
     const importSkill = Effect.fn("InstanceHttpApi.skillImport")(function* (ctx: {
       payload: typeof SkillImportInput.Type
     }) {
-      const cfg = yield* config.get()
-      const existing = cfg.skills
-      const paths = existing && !Array.isArray(existing) ? (existing.paths ?? []) : []
-      const urls = existing && !Array.isArray(existing) ? (existing.urls ?? []) : []
       if (ctx.payload.url) {
-        if (!urls.includes(ctx.payload.url)) {
-          const next =
-            existing && !Array.isArray(existing) ? { ...existing, urls: [...urls, ctx.payload.url] } : { urls: [ctx.payload.url] }
-          yield* config.update({ ...cfg, skills: next })
-        }
+        // Only the registry list, in the user's global file: the merged config carries every
+        // scope with {env:} and {file:} already resolved, and writing it back leaked secrets.
+        const existing = (yield* config.getGlobal()).skills
+        const urls = existing && !Array.isArray(existing) ? (existing.urls ?? []) : []
+        if (!urls.includes(ctx.payload.url)) yield* config.updateGlobal({ skills: { urls: [...urls, ctx.payload.url] } })
       } else {
         if (!ctx.payload.name || !ctx.payload.files?.length) return yield* new HttpApiError.BadRequest({})
         const root = skillImportRoot(global.config, ctx.payload.name)
         if (!root) return yield* new HttpApiError.BadRequest({})
         const files = ctx.payload.files.map((file) => ({ ...file, target: skillImportDestination(root, file.path) }))
         if (files.some((file) => !file.target)) return yield* new HttpApiError.BadRequest({})
+        // Discovery already scans <config>/skills/**/SKILL.md, so no config entry is needed.
         for (const file of files) {
           yield* fs.writeWithDirs(file.target!, file.content).pipe(Effect.orDie)
-        }
-        if (!paths.includes(root)) {
-          const next =
-            existing && !Array.isArray(existing) ? { ...existing, paths: [...paths, root] } : { paths: [root] }
-          yield* config.update({ ...cfg, skills: next })
         }
       }
       yield* skill.reload()

@@ -397,8 +397,9 @@ const layer = Layer.effect(
       const blocked = new Set(cfg.skills?.disabled ?? [])
       if (enabled) blocked.delete(name)
       else blocked.add(name)
-      const skills = { ...cfg.skills, disabled: Array.from(blocked).toSorted() }
-      yield* config.updateGlobal({ ...cfg, skills })
+      // Patch only the list: getGlobal() has {env:} and {file:} resolved, so sending it all back
+      // would write secrets into the file in plain text.
+      yield* config.updateGlobal({ skills: { disabled: Array.from(blocked).toSorted() } })
       yield* InstanceState.invalidate(state)
     })
 
