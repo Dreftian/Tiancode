@@ -571,11 +571,14 @@ export default function Page() {
       failed: Record<string, string | undefined>
       paused: Record<string, boolean | undefined>
       edit: Record<string, FollowupEdit | undefined>
+      // The queued item loaded into the composer: it keeps its place until resubmitted or sent.
+      editing?: Record<string, string | undefined>
     }>({
       items: {},
       failed: {},
       paused: {},
       edit: {},
+      editing: {},
     }),
   )
 
@@ -1748,11 +1751,13 @@ export default function Page() {
     return followupMutation.variables?.id
   })
 
-  const queueEnabled = createMemo(() => {
+  // Enter follows Settings > Follow-up behavior while the agent works; Mod+Enter does the other one.
+  const queueEnabled = (alternate: boolean) => {
     const id = params.id
-    if (!id) return false
-    return settings.general.followup() === "queue" && busy(id) && !composer.blocked() && !isChildSession()
-  })
+    if (!id || !busy(id) || composer.blocked() || isChildSession()) return false
+    const queue = settings.general.followup() === "queue"
+    return alternate ? !queue : queue
+  }
 
   const followupText = (item: FollowupDraft) => {
     const text = item.prompt
@@ -1772,6 +1777,17 @@ export default function Page() {
   }
 
   const queueFollowup = (draft: FollowupDraft) => {
+    const editing = followup.editing?.[draft.sessionID]
+    const current = followup.items[draft.sessionID] ?? []
+    setFollowup("editing", (value) => ({ ...value, [draft.sessionID]: undefined }))
+    if (editing && current.some((entry) => entry.id === editing)) {
+      setFollowup("items", draft.sessionID, (items) =>
+        (items ?? []).map((entry) => (entry.id === editing ? { id: editing, ...draft } : entry)),
+      )
+      setFollowup("failed", draft.sessionID, undefined)
+      setFollowup("paused", draft.sessionID, undefined)
+      return
+    }
     setFollowup("items", draft.sessionID, (items) => [
       ...(items ?? []),
       { id: Identifier.ascending("message"), ...draft },
@@ -1799,8 +1815,8 @@ export default function Page() {
     const item = queuedFollowups().find((entry) => entry.id === id)
     if (!item) return
 
-    setFollowup("items", sessionID, (items) => (items ?? []).filter((entry) => entry.id !== id))
     setFollowup("failed", sessionID, (value) => (value === id ? undefined : value))
+    setFollowup("editing", (value) => ({ ...value, [sessionID]: id }))
     setFollowup("edit", sessionID, {
       id: item.id,
       prompt: item.prompt,
@@ -1812,6 +1828,36 @@ export default function Page() {
     const id = params.id
     if (!id) return
     setFollowup("edit", id, undefined)
+  }
+
+  // The edited queued item was sent straight away (steer): it no longer belongs in the queue.
+  const dropEditedFollowup = () => {
+    const id = params.id
+    const editing = id ? followup.editing?.[id] : undefined
+    if (!id || !editing) return
+    setFollowup("editing", (value) => ({ ...value, [id]: undefined }))
+    setFollowup("items", id, (items) => (items ?? []).filter((entry) => entry.id !== editing))
+  }
+
+  const removeFollowup = (id: string) => {
+    const sessionID = params.id
+    if (!sessionID || followupBusy(sessionID)) return
+    setFollowup("items", sessionID, (items) => (items ?? []).filter((entry) => entry.id !== id))
+    setFollowup("failed", sessionID, (value) => (value === id ? undefined : value))
+    if (followup.editing?.[sessionID] === id) setFollowup("editing", (value) => ({ ...value, [sessionID]: undefined }))
+  }
+
+  const moveFollowupUp = (id: string) => {
+    const sessionID = params.id
+    if (!sessionID) return
+    setFollowup("items", sessionID, (items) => {
+      const list = [...(items ?? [])]
+      const index = list.findIndex((entry) => entry.id === id)
+      if (index < 1) return list
+      const [entry] = list.splice(index, 1)
+      list.splice(index - 1, 0, entry)
+      return list
+    })
   }
 
   const halt = (sessionID: string) =>
@@ -1930,7 +1976,8 @@ export default function Page() {
     const sessionID = params.id
     if (!sessionID) return
 
-    const item = queuedFollowups()[0]
+    // The item being edited in the composer waits; the rest of the queue keeps draining.
+    const item = queuedFollowups().find((entry) => entry.id !== followup.editing?.[sessionID])
     if (!item) return
     if (followupBusy(sessionID)) return
     if (followup.failed[sessionID] === item.id) return
@@ -2149,6 +2196,9 @@ export default function Page() {
                     sending: sendingFollowup(),
                     onSend: (id) => void sendFollowup(params.id!, id, { manual: true }),
                     onEdit: editFollowup,
+                    onRemove: removeFollowup,
+                    onMoveUp: moveFollowupUp,
+                    editing: params.id ? followup.editing?.[params.id] : undefined,
                   }
                 : undefined,
             revert: () =>
@@ -2194,6 +2244,7 @@ export default function Page() {
                       onSubmit={() => {
                         comments.clear()
                         resumeScroll()
+                        dropEditedFollowup()
                       }}
                       edit={editingFollowup()}
                       onEditLoaded={clearFollowupEdit}
@@ -2222,6 +2273,7 @@ export default function Page() {
                       onSubmit: () => {
                         comments.clear()
                         resumeScroll()
+                        dropEditedFollowup()
                         // Sincronización de voz: al enviar una petición se corta
                         // la lectura del anuncio anterior; la voz del nuevo
                         // anuncio arranca limpia cuando el modelo empieza a

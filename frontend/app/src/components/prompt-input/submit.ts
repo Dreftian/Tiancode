@@ -243,7 +243,8 @@ type PromptSubmitInput = {
   setPopover: (popover: "at" | "slash" | null) => void
   newSessionWorktree?: Accessor<string | undefined>
   onNewSessionWorktreeReset?: () => void
-  shouldQueue?: Accessor<boolean>
+  // `alternate` is Mod+Enter: while the agent works it flips the follow-up delivery (queue <-> steer).
+  shouldQueue?: (alternate: boolean) => boolean
   onQueue?: (draft: FollowupDraft) => void
   onAbort?: () => void
   onSubmit?: () => void
@@ -537,7 +538,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
       return true
     }
 
-    if (!isNewSession && mode === "normal" && input.shouldQueue?.()) {
+    if (!isNewSession && mode === "normal" && input.shouldQueue?.(!!options?.stay)) {
       input.onQueue?.(draft)
       clearContext(submission.target())
       clearInput()

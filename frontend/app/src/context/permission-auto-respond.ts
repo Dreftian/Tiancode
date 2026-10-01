@@ -43,10 +43,14 @@ export function autoRespondsPermission(
   permission: { sessionID: string },
   directory?: string,
 ) {
-  if (autoAccept["*"] !== false) return true
+  // An explicit choice for this session (or its parents) or this folder wins; the global switch,
+  // on by default as a deliberate product choice, only decides when nothing more specific exists.
+  // Checking the global switch first made Mod+Shift+A unable to stop auto-accepting a session.
   const value = sessionAutoAccept(autoAccept, session, permission, directory)
   if (value !== undefined) return value
-  return directory ? isDirectoryAutoAccepting(autoAccept, directory) : false
+  const folder = directory ? autoAccept[directoryAcceptKey(directory)] : undefined
+  if (folder !== undefined) return folder
+  return autoAccept["*"] !== false
 }
 
 export function sessionAutoAccept(

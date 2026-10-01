@@ -8,10 +8,13 @@ import { usePlatform } from "@/context/platform"
 import { useLanguage } from "@/context/language"
 import { useSettings } from "@/context/settings"
 import { base64Encode } from "@tiancode-ai/core/util/encode"
+import { getFilename } from "@tiancode-ai/core/util/path"
 import { decode64 } from "@/utils/base64"
 import { EventSessionError } from "@tiancode-ai/sdk/v2"
 import { Persist, persisted } from "@/utils/persist"
 import { playSoundById } from "@/utils/sound"
+import { dismissToast, showToast } from "@/utils/toast"
+import { usePermission } from "@/context/permission"
 import { useGlobal } from "./global"
 import { ServerConnection, useServer } from "./server"
 import { type DraftTab, useTabs } from "./tabs"
@@ -122,6 +125,7 @@ export const { use: useNotification, provider: NotificationProvider } = createSi
     const platform = usePlatform()
     const settings = useSettings()
     const language = useLanguage()
+    const permission = usePermission()
     const owner = getOwner()
     const states = new Map<ServerScope, { dispose: () => void; state: NotificationState }>()
 
@@ -155,6 +159,7 @@ export const { use: useNotification, provider: NotificationProvider } = createSi
             settings,
             language,
             navigate,
+            autoResponds: (request, directory) => permission.autoResponds(request, directory),
           }),
         }),
         owner ?? undefined,
@@ -220,6 +225,7 @@ function createServerNotificationState(input: {
   settings: ReturnType<typeof useSettings>
   language: ReturnType<typeof useLanguage>
   navigate: (href: string) => void
+  autoResponds: (request: Parameters<ReturnType<typeof usePermission>["autoResponds"]>[0], directory: string) => boolean
 }) {
   const serverSDK = () => input.sdk
   const serverSync = () => input.sync
@@ -396,8 +402,81 @@ function createServerNotificationState(input: {
     })
   }
 
+  // Permission and question requests: a sound, a system notification and a persistent toast with a
+  // shortcut to the session. They used to live in LegacyLayout, which the current interface never
+  // mounts, so a request asked while Tiancode was in the background went unnoticed.
+  const alertToasts = new Map<string, number>()
+  const alertedAt = new Map<string, number>()
+  const ALERT_COOLDOWN_MS = 5000
+
+  const dismissAlert = (key: string) => {
+    const toastId = alertToasts.get(key)
+    if (toastId === undefined) return
+    dismissToast(toastId)
+    alertToasts.delete(key)
+    alertedAt.delete(key)
+  }
+
+  const handleRequest = (directory: string, kind: "permission" | "question", sessionID: string) => {
+    const key = `${directory}:${sessionID}`
+    const now = Date.now()
+    if (now - (alertedAt.get(key) ?? 0) < ALERT_COOLDOWN_MS) return
+    alertedAt.set(key, now)
+    void lookup(directory, sessionID).then((session) => {
+      if (meta.disposed) return
+      const target = session?.parentID ?? sessionID
+      const sessionTitle = session?.title ?? language.t("command.session.new")
+      const projectName = getFilename(directory) || directory
+      const title = language.t(kind === "permission" ? "notification.permission.title" : "notification.question.title")
+      const description = language.t(
+        kind === "permission" ? "notification.permission.description" : "notification.question.description",
+        { sessionTitle, projectName },
+      )
+      const href = `/${base64Encode(directory)}/session/${target}`
+      const sound = kind === "permission" ? settings.sounds.permissionsEnabled() : settings.sounds.agentEnabled()
+      if (sound) void playSoundById(kind === "permission" ? settings.sounds.permissions() : settings.sounds.agent())
+      const notify = kind === "permission" ? settings.notifications.permissions() : settings.notifications.agent()
+      if (notify) void platform.notify(title, description, () => input.navigate(href))
+      // The session (or its parent) is on screen: the request dock is already visible there.
+      if (viewedInCurrentSession(directory, sessionID) || viewedInCurrentSession(directory, target)) return
+      dismissAlert(key)
+      const toastId = showToast({
+        persistent: true,
+        icon: kind === "permission" ? "checklist" : "bubble-5",
+        title,
+        description,
+        actions: [
+          { label: language.t("notification.action.goToSession"), onClick: () => input.navigate(href) },
+          { label: language.t("common.dismiss"), onClick: "dismiss" },
+        ],
+      })
+      alertToasts.set(key, toastId)
+    })
+  }
+
+  createEffect(() => {
+    const session = currentSession()
+    if (!session) return
+    alertToasts.forEach((_, key) => {
+      if (key.endsWith(`:${session}`)) dismissAlert(key)
+    })
+  })
+
   const unsub = serverSDK().event.listen((e) => {
     const event = e.details
+    if (event.type === "permission.asked") {
+      // Auto-accepted requests are answered without the user: nothing to tell them.
+      if (!input.autoResponds(event.properties, e.name)) handleRequest(e.name, "permission", event.properties.sessionID)
+      return
+    }
+    if (event.type === "question.asked") {
+      handleRequest(e.name, "question", event.properties.sessionID)
+      return
+    }
+    if (event.type === "permission.replied" || event.type === "question.replied" || event.type === "question.rejected") {
+      dismissAlert(`${e.name}:${(event.properties as { sessionID: string }).sessionID}`)
+      return
+    }
     if (event.type !== "session.idle" && event.type !== "session.error") return
 
     const directory = e.name
@@ -411,6 +490,7 @@ function createServerNotificationState(input: {
   onCleanup(() => {
     meta.disposed = true
     unsub()
+    alertToasts.forEach((toastId) => dismissToast(toastId))
   })
 
   return {

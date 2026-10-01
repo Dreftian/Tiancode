@@ -597,6 +597,13 @@ export function usePromptInputV2Controller(props: PromptInputV2ControllerProps):
       submit: {
         stopping,
         working,
+        // While the agent works, Mod+Enter is the other follow-up delivery, so the send menu says which.
+        stayLabel: () => {
+          if (!props.controls.session.id || !working() || !props.shouldQueue) return
+          const queueNow = props.shouldQueue(false)
+          if (queueNow === props.shouldQueue(true)) return
+          return language.t(queueNow ? "composer.followup.steerAction" : "composer.followup.queueAction")
+        },
         onSubmit: (options) => void submission.handleSubmit(new Event("submit"), options),
         onStop: () => void submission.abort(),
       },

@@ -50,7 +50,7 @@ export interface PromptInputProps {
   onNewSessionWorktreeReset?: () => void
   edit?: { id: string; prompt: Prompt; context: FollowupDraft["context"] }
   onEditLoaded?: () => void
-  shouldQueue?: () => boolean
+  shouldQueue?: (alternate: boolean) => boolean
   onQueue?: (draft: FollowupDraft) => void
   onAbort?: () => void
   onSubmit?: () => void

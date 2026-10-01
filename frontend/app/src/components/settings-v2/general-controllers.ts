@@ -32,14 +32,9 @@ export function createPermissionScopeController(sessionID: Accessor<string | und
   })
 
   return {
-    accepting: createMemo(() => {
-      const id = sessionID()
-      const dir = directory()
-      if (id && dir) {
-        return permission.isAutoAccepting(id, dir) || permission.isGlobalAutoAccepting()
-      }
-      return permission.isGlobalAutoAccepting()
-    }),
+    // The global default, as its label says. Per-session exceptions show in the composer's Mode
+    // selector; mixing them in here made the switch contradict that selector.
+    accepting: createMemo(() => permission.isGlobalAutoAccepting()),
     enabled: createMemo(() => true),
     set: (checked: boolean) => {
       const id = sessionID()
@@ -159,9 +154,13 @@ export function createSoundSettingsController() {
       (value) => settings.sounds.setAgentEnabled(value),
       (id) => settings.sounds.setAgent(id),
     ),
-    // Sin canal de permisos: el sonido de `permission.asked` solo se dispara
-    // en pages/layout.tsx (LegacyLayout), que la interfaz v2 no monta. Vuelve
-    // cuando ese aviso viva en context/notification.tsx.
+    // context/notification.tsx plays it on permission.asked in every layout.
+    permissions: channel(
+      settings.sounds.permissionsEnabled,
+      settings.sounds.permissions,
+      (value) => settings.sounds.setPermissionsEnabled(value),
+      (id) => settings.sounds.setPermissions(id),
+    ),
     errors: channel(
       settings.sounds.errorsEnabled,
       settings.sounds.errors,

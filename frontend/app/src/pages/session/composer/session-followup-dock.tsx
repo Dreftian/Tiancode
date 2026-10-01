@@ -10,6 +10,9 @@ export function SessionFollowupDock(props: {
   sending?: string
   onSend: (id: string) => void
   onEdit: (id: string) => void
+  onRemove: (id: string) => void
+  onMoveUp: (id: string) => void
+  editing?: string
 }) {
   const language = useLanguage()
   const [store, setStore] = createStore({
@@ -74,9 +77,24 @@ export function SessionFollowupDock(props: {
       <Show when={!store.collapsed}>
         <div class="px-3 pb-7 flex flex-col gap-1.5 max-h-42 overflow-y-auto no-scrollbar">
           <For each={props.items}>
-            {(item) => (
-              <div class="flex items-center gap-2 min-w-0 py-1">
+            {(item, index) => (
+              <div class="flex items-center gap-2 min-w-0 py-1" data-editing={props.editing === item.id ? "" : undefined}>
                 <span class="min-w-0 flex-1 truncate text-13-regular text-text-strong">{item.text}</span>
+                <Show when={props.editing === item.id}>
+                  <span class="shrink-0 text-12-regular text-text-weak">{language.t("session.followupDock.editing")}</span>
+                </Show>
+                <Show when={index() > 0}>
+                  <IconButton
+                    icon="arrow-up"
+                    size="normal"
+                    variant="ghost"
+                    class="shrink-0"
+                    disabled={!!props.sending}
+                    onClick={() => props.onMoveUp(item.id)}
+                    aria-label={language.t("session.followupDock.moveUp")}
+                    title={language.t("session.followupDock.moveUp")}
+                  />
+                </Show>
                 <Button
                   size="small"
                   variant="secondary"
@@ -95,6 +113,16 @@ export function SessionFollowupDock(props: {
                 >
                   {language.t("session.followupDock.edit")}
                 </Button>
+                <IconButton
+                  icon="close-small"
+                  size="normal"
+                  variant="ghost"
+                  class="shrink-0"
+                  disabled={props.sending === item.id}
+                  onClick={() => props.onRemove(item.id)}
+                  aria-label={language.t("session.followupDock.remove")}
+                  title={language.t("session.followupDock.remove")}
+                />
               </div>
             )}
           </For>

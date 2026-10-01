@@ -11,13 +11,17 @@ import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { useUpdaterAction } from "../updater-action"
 import {
+  previewOnFinishOptions,
   transcriptTextSizes,
   transcriptViews,
   transcriptWidths,
   useSettings,
+  workspaceDestinations,
+  type PreviewOnFinish,
   type TranscriptTextSize,
   type TranscriptView,
   type TranscriptWidth,
+  type WorkspaceDestination,
 } from "@/context/settings"
 import { ExternalLink } from "../external-link"
 import { showToast } from "@/utils/toast"
@@ -30,12 +34,9 @@ import {
   createPermissionScopeController,
   createShellOptions,
   createShellSettingsController,
-  createSoundSettingsController,
-  soundOptions,
   type AppearanceSettingsController,
   type PermissionScopeController,
   type ShellSettingsController,
-  type SoundSettingsController,
 } from "./general-controllers"
 import "./settings-v2.css"
 
@@ -43,6 +44,9 @@ const schemeOptions: ("system" | "light" | "dark")[] = ["system", "light", "dark
 const transcriptTextOptions: TranscriptTextSize[] = [...transcriptTextSizes]
 const transcriptWidthOptions: TranscriptWidth[] = [...transcriptWidths]
 const transcriptViewOptions: TranscriptView[] = [...transcriptViews]
+const previewOnFinishChoices: PreviewOnFinish[] = [...previewOnFinishOptions]
+const destinationOptions: WorkspaceDestination[] = [...workspaceDestinations]
+const followupOptions = ["steer", "queue"] as const
 // Electron store shared with the desktop main process via the store IPC.
 const settingsStoreName = "tiancode.settings"
 const minimizeToTrayKey = "minimizeToTray"
@@ -72,19 +76,6 @@ const fontSettings = {
     input: "setTerminal",
   },
 } as const
-const soundSettings = {
-  agent: {
-    action: "settings-sounds-agent",
-    title: "settings.general.sounds.agent.title",
-    description: "settings.general.sounds.agent.description",
-  },
-  errors: {
-    action: "settings-sounds-errors",
-    title: "settings.general.sounds.errors.title",
-    description: "settings.general.sounds.errors.description",
-  },
-} as const
-
 const PermissionScopeSetting: Component<{ controller: PermissionScopeController }> = (props) => {
   const language = useLanguage()
   const confirmSkip = useConfirmSkipPermissions()
@@ -311,40 +302,108 @@ const FontSetting: Component<{
   )
 }
 
-const SoundsSection: Component<{ controller: SoundSettingsController }> = (props) => {
+const DefaultEnvironmentSetting = () => {
   const language = useLanguage()
+  const settings = useSettings()
   return (
-    <div class="settings-v2-section">
-      <h3 class="settings-v2-section-title">{language.t("settings.general.section.sounds")}</h3>
-      <SettingsListV2>
-        <SoundSetting kind="agent" channel={props.controller.agent} />
-        <SoundSetting kind="errors" channel={props.controller.errors} />
-      </SettingsListV2>
-    </div>
+    <SettingsRowV2
+      title={language.t("settings.workspaces.default.title")}
+      description={language.t("settings.workspaces.default.description")}
+    >
+      <SelectV2
+        appearance="inline"
+        data-action="settings-workspace-destination"
+        options={destinationOptions}
+        current={settings.workspaces.defaultDestination()}
+        placement="bottom-end"
+        gutter={6}
+        label={(option) => language.t(`settings.workspaces.default.${option}`)}
+        onSelect={(option) => option && settings.workspaces.setDefaultDestination(option)}
+      />
+    </SettingsRowV2>
   )
 }
 
-const SoundSetting: Component<{
-  kind: "agent" | "errors"
-  channel: SoundSettingsController["agent"]
-}> = (props) => {
+const FollowupSetting = () => {
   const language = useLanguage()
-  const config = () => soundSettings[props.kind]
+  const settings = useSettings()
+  const platform = usePlatform()
   return (
-    <SettingsRowV2 title={language.t(config().title)} description={language.t(config().description)}>
+    <SettingsRowV2
+      title={language.t("settings.general.row.followup.title")}
+      description={language.t("settings.general.row.followup.descriptionKeybind", {
+        keybind: platform.os === "macos" ? "⌘ Enter" : "Ctrl+Enter",
+      })}
+    >
       <SelectV2
         appearance="inline"
-        data-action={config().action}
-        options={soundOptions}
-        current={props.channel.current()}
-        value={(option) => option.id}
-        label={(option) => language.t(option.label)}
-        onHighlight={props.channel.highlight}
-        onSelect={props.channel.select}
+        data-action="settings-follow-up-behavior"
+        options={[...followupOptions]}
+        current={settings.general.followup()}
         placement="bottom-end"
         gutter={6}
+        label={(option) => language.t(`settings.general.row.followup.option.${option}`)}
+        onSelect={(option) => option && settings.general.setFollowup(option)}
       />
     </SettingsRowV2>
+  )
+}
+
+const ShowAgentSetting = () => {
+  const language = useLanguage()
+  const settings = useSettings()
+  // Off hides the selector only when the project defines no agents of its own: context/local.tsx
+  // still shows it when one exists (`customAgents() || hasCustomAgent(list())`).
+  return (
+    <SettingsRowV2
+      title={language.t("settings.general.row.showCustomAgents.title")}
+      description={language.t("settings.general.row.showCustomAgents.description")}
+    >
+      <div data-action="settings-show-custom-agents">
+        <Switch
+          checked={settings.general.showCustomAgents()}
+          onChange={(checked) => settings.general.setShowCustomAgents(checked)}
+        />
+      </div>
+    </SettingsRowV2>
+  )
+}
+
+const PreviewSection = () => {
+  const language = useLanguage()
+  const settings = useSettings()
+  return (
+    <div class="settings-v2-section">
+      <h3 class="settings-v2-section-title">{language.t("settings.general.section.preview")}</h3>
+      <SettingsListV2>
+        <SettingsRowV2
+          title={language.t("settings.general.row.previewOnFinish.title")}
+          description={language.t("settings.general.row.previewOnFinish.description")}
+        >
+          <SelectV2
+            appearance="inline"
+            data-action="settings-preview-on-finish"
+            options={previewOnFinishChoices}
+            current={settings.general.previewOnFinish()}
+            placement="bottom-end"
+            gutter={6}
+            label={(option) => language.t(`settings.general.row.previewOnFinish.${option}`)}
+            onSelect={(option) => option && settings.general.setPreviewOnFinish(option)}
+          />
+        </SettingsRowV2>
+        <SettingsRowV2
+          title={language.t("settings.general.row.previewWhileWorking.title")}
+          description={language.t("settings.general.row.previewWhileWorking.description")}
+        >
+          <div data-action="settings-preview-auto-open">
+            <Switch
+              checked={settings.general.previewAutoOpen()}
+              onChange={(checked) => settings.general.setPreviewAutoOpen(checked)}
+            />
+          </div>
+        </SettingsRowV2>
+      </SettingsListV2>
+    </div>
   )
 }
 
@@ -389,7 +448,6 @@ export const SettingsGeneralV2: Component<{
   const permissionScope = createPermissionScopeController(() => props.sessionID)
   const shell = createShellSettingsController()
   const appearance = createAppearanceSettingsController()
-  const sounds = createSoundSettingsController()
   const desktop = createMemo(() => platform.platform === "desktop")
 
   const [pinchZoom, { mutate: setPinchZoom }] = createResource(
@@ -575,18 +633,15 @@ export const SettingsGeneralV2: Component<{
     <div class="settings-v2-section">
       <SettingsListV2>
         <LanguageSetting />
+        <DefaultEnvironmentSetting />
+        <PermissionScopeSetting controller={permissionScope} />
+        <ShowAgentSetting />
+        <FollowupSetting />
+        <ShellSetting controller={shell} />
 
         <SettingsRowV2
-          title={
-            language.intl().toLowerCase().startsWith("es")
-              ? "Asistente de Bienvenida e Inicialización"
-              : "Welcome & Setup Wizard"
-          }
-          description={
-            language.intl().toLowerCase().startsWith("es")
-              ? "Vuelve a abrir la pantalla de bienvenida, selección de idioma, temas y descargo de responsabilidad."
-              : "Re-open the initial setup wizard to change language, themes, and disclaimer preferences."
-          }
+          title={language.t("settings.general.wizard.title")}
+          description={language.t("settings.general.wizard.description")}
         >
           <ButtonV2
             type="button"
@@ -597,13 +652,9 @@ export const SettingsGeneralV2: Component<{
               window.dispatchEvent(new CustomEvent("tiancode:open-welcome-setup"))
             }}
           >
-            {language.intl().toLowerCase().startsWith("es") ? "Abrir Asistente" : "Open Wizard"}
+            {language.t("settings.general.wizard.button")}
           </ButtonV2>
         </SettingsRowV2>
-
-        <PermissionScopeSetting controller={permissionScope} />
-
-        <ShellSetting controller={shell} />
 
         {/* Los tres interruptores de transcripción (razonamiento, shell, edit)
             vivían aquí; ahora los escribe `TranscriptViewSetting` en Apariencia.
@@ -684,17 +735,6 @@ export const SettingsGeneralV2: Component<{
           </div>
         </SettingsRowV2>
         <SettingsRowV2
-          title={language.t("settings.general.row.previewAutoOpen.title")}
-          description={language.t("settings.general.row.previewAutoOpen.description")}
-        >
-          <div data-action="settings-preview-auto-open">
-            <Switch
-              checked={settings.general.previewAutoOpen()}
-              onChange={(checked) => settings.general.setPreviewAutoOpen(checked)}
-            />
-          </div>
-        </SettingsRowV2>
-        <SettingsRowV2
           title={language.t("settings.general.row.showReview.title")}
           description={language.t("settings.general.row.showReview.description")}
         >
@@ -724,68 +764,6 @@ export const SettingsGeneralV2: Component<{
         >
           <div data-action="settings-show-navigation">
             <Switch checked={settings.general.showNavigation()} onChange={(checked) => settings.general.setShowNavigation(checked)} />
-          </div>
-        </SettingsRowV2>
-      </SettingsListV2>
-    </div>
-  )
-
-  const AdvancedSection = () => (
-    <div class="settings-v2-section settings-v2-compact-options">
-      <h3 class="settings-v2-section-title">{language.t("settings.general.section.advanced")}</h3>
-
-      <SettingsListV2>
-        {/* Apagarlo oculta el selector solo si el proyecto no tiene agentes
-            propios: context/local.tsx lo muestra igualmente cuando existe uno
-            (`customAgents() || hasCustomAgent(list())`). La descripción lo
-            dice en lugar de prometer un ocultado que no ocurre. */}
-        <SettingsRowV2
-          title={language.t("settings.general.row.showCustomAgents.title")}
-          description={language.t("settings.general.row.showCustomAgents.description")}
-        >
-          <div data-action="settings-show-custom-agents">
-            <Switch
-              checked={settings.general.showCustomAgents()}
-              onChange={(checked) => settings.general.setShowCustomAgents(checked)}
-            />
-          </div>
-        </SettingsRowV2>
-      </SettingsListV2>
-    </div>
-  )
-
-  const NotificationsSection = () => (
-    <div class="settings-v2-section">
-      <h3 class="settings-v2-section-title">{language.t("settings.general.section.notifications")}</h3>
-
-      <SettingsListV2>
-        <SettingsRowV2
-          title={language.t("settings.general.notifications.agent.title")}
-          description={language.t("settings.general.notifications.agent.description")}
-        >
-          <div data-action="settings-notifications-agent">
-            <Switch
-              checked={settings.notifications.agent()}
-              onChange={(checked) => settings.notifications.setAgent(checked)}
-            />
-          </div>
-        </SettingsRowV2>
-
-        {/* "Permisos" se quita de Notificaciones y de Sonidos: el único sitio
-            que avisa de un `permission.asked` es pages/layout.tsx (LegacyLayout),
-            y la v2 navega a /server/:serverKey/session/:id, ruta que no lo monta.
-            Los ajustes siguen en el contexto para cuando ese aviso se mude a
-            context/notification.tsx, que sí está montado siempre. */}
-
-        <SettingsRowV2
-          title={language.t("settings.general.notifications.errors.title")}
-          description={language.t("settings.general.notifications.errors.description")}
-        >
-          <div data-action="settings-notifications-errors">
-            <Switch
-              checked={settings.notifications.errors()}
-              onChange={(checked) => settings.notifications.setErrors(checked)}
-            />
           </div>
         </SettingsRowV2>
       </SettingsListV2>
@@ -951,7 +929,7 @@ export const SettingsGeneralV2: Component<{
         <h2 class="settings-v2-tab-title">{language.t("settings.tab.general")}</h2>
         <SettingsSectionTabs value={page.section} onChange={(section) => setPage("section", section)} options={[
           { id: "general", label: language.t("settings.tab.general") },
-          ...["titlebar", "appearance", "notifications", "sounds", "updates", "display", "data", "advanced"].filter((id) => desktop() || !["updates", "data"].includes(id)).map((id) => ({ id, label: language.t(`settings.general.section.${id}` as Parameters<typeof language.t>[0]) })),
+          ...["preview", "titlebar", "appearance", "updates", "display", "data"].filter((id) => desktop() || !["updates", "data"].includes(id)).map((id) => ({ id, label: language.t(`settings.general.section.${id}` as Parameters<typeof language.t>[0]) })),
         ]} />
       </div>
 
@@ -962,13 +940,11 @@ export const SettingsGeneralV2: Component<{
 
         <Show when={page.section === "general"}><GeneralSection /></Show>
 
+        <Show when={page.section === "preview"}><PreviewSection /></Show>
+
         <Show when={page.section === "titlebar"}><TitlebarSection /></Show>
 
         <Show when={page.section === "appearance"}><AppearanceSection controller={appearance} /></Show>
-
-        <Show when={page.section === "notifications"}><NotificationsSection /></Show>
-
-        <Show when={page.section === "sounds"}><SoundsSection controller={sounds} /></Show>
 
         <Show when={desktop() && page.section === "updates"}>
           <UpdatesSection />
@@ -977,8 +953,6 @@ export const SettingsGeneralV2: Component<{
         <Show when={page.section === "display"}><DisplaySection /></Show>
 
         <Show when={page.section === "data"}><DataSection /></Show>
-
-        <Show when={page.section === "advanced"}><AdvancedSection /></Show>
       </div>
     </>
   )

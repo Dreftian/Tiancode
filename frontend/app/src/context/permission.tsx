@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createRoot, getOwner, onCleanup } from "solid-js"
+import { createEffect, createMemo, createRoot, createSignal, getOwner, onCleanup } from "solid-js"
 import { createStore, produce } from "solid-js/store"
 import { createSimpleContext } from "@tiancode-ai/ui/context"
 import type { PermissionRequest } from "@tiancode-ai/sdk/v2/client"
@@ -250,6 +250,13 @@ function createServerPermissionState(input: { sdk: ServerSDK; sync: ServerSync }
     }
   }
 
+  // A failed auto-reply is retried a few times; after that the request stops being hidden (see
+  // autoResponds) so the user can answer it instead of the agent waiting forever.
+  const MAX_REPLY_ATTEMPTS = 3
+  const replyAttempts = new Map<string, number>()
+  const failedReplies = new Set<string>()
+  const [failedRevision, setFailedRevision] = createSignal(0)
+
   const respond: PermissionRespondFn = (request) => {
     if (meta.disposed) return
     input.sdk.api.permission
@@ -259,8 +266,23 @@ function createServerPermissionState(input: { sdk: ServerSDK; sync: ServerSync }
         reply: request.response,
         location: request.directory ? { directory: request.directory } : undefined,
       })
+      .then(() => replyAttempts.delete(request.permissionID))
       .catch(() => {
         responded.delete(request.permissionID)
+        const attempts = (replyAttempts.get(request.permissionID) ?? 0) + 1
+        replyAttempts.set(request.permissionID, attempts)
+        if (attempts >= MAX_REPLY_ATTEMPTS) {
+          failedReplies.add(request.permissionID)
+          setFailedRevision((value) => value + 1)
+          return
+        }
+        setTimeout(() => {
+          if (meta.disposed || responded.has(request.permissionID)) return
+          const pending = input.sync.session.data.permission[request.sessionID]?.find(
+            (item) => item.id === request.permissionID,
+          )
+          if (pending) void respondPending(pending, request.directory)
+        }, 1500 * attempts)
       })
   }
 
@@ -303,6 +325,8 @@ function createServerPermissionState(input: { sdk: ServerSDK; sync: ServerSync }
   }
 
   function shouldAutoRespond(permission: PermissionRequest, directory?: string) {
+    failedRevision()
+    if (failedReplies.has(permission.id)) return false
     const mode = directory && getComposerMode(input.sdk.scope, directory, permission.sessionID)?.mode
     if (mode) return mode === "skip"
     return autoRespondsPermission(store.autoAccept, sessions(directory), permission, directory)
@@ -341,6 +365,17 @@ function createServerPermissionState(input: { sdk: ServerSDK; sync: ServerSync }
     enableVersion.set(key, next)
     return next
   }
+
+  // Sweep: requests that were already pending when this window loaded or reconnected never arrive
+  // as a live permission.asked event, yet the UI hides the ones it would auto-accept. Answer them.
+  createEffect(() => {
+    if (!ready() || meta.disposed) return
+    const pending = input.sync.session.data.permission
+    for (const [sessionID, requests] of Object.entries(pending)) {
+      const directory = input.sync.session.data.info[sessionID]?.directory
+      for (const request of requests ?? []) void respondPending(request, directory)
+    }
+  })
 
   const handlePermission = (e: PermissionEvent) => {
     const event = e.details

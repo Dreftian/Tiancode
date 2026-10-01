@@ -46,6 +46,7 @@ import { useGlobal } from "./global"
 import { ServerConnection, useServer } from "./server"
 import { retry } from "@tiancode-ai/core/util/retry"
 import type { ServerScope } from "@/utils/server-scope"
+import { Worktree as WorktreeState } from "@/utils/worktree"
 import { createHomeSessionIndexCache } from "./global-sync/home-session-index"
 import { persisted } from "@/utils/persist"
 import type { ServerApi } from "@/utils/server"
@@ -573,6 +574,11 @@ export function createServerSyncContextInner(serverSDK: ServerSDK) {
     const eventType: string = event.type
     const recent = bootingRoot || Date.now() - bootedAt < 1500
 
+    // Worktree readiness gates the first prompt of a session started in a new worktree
+    // (submit.ts waits on it). Handled here, not in a layout, so every interface sees it.
+    if (event.type === "worktree.ready") WorktreeState.ready(serverSDK.scope, directory)
+    if (event.type === "worktree.failed")
+      WorktreeState.failed(serverSDK.scope, directory, event.properties?.message ?? "")
     if (event.current) session.applyV2(event.current)
     session.apply(event)
     if (event.type === "session.created" || event.type === "session.updated" || event.type === "session.deleted") {
