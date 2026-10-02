@@ -144,6 +144,20 @@ import type {
   GlobalEventResponses,
   GlobalHealthErrors,
   GlobalHealthResponses,
+  GlobalMarketplaceCatalogErrors,
+  GlobalMarketplaceCatalogResponses,
+  GlobalMarketplaceConnectorsErrors,
+  GlobalMarketplaceConnectorsResponses,
+  GlobalMarketplaceIconErrors,
+  GlobalMarketplaceIconResponses,
+  GlobalMarketplaceInstalledErrors,
+  GlobalMarketplaceInstalledResponses,
+  GlobalMarketplaceInstallErrors,
+  GlobalMarketplaceInstallResponses,
+  GlobalMarketplaceSearchErrors,
+  GlobalMarketplaceSearchResponses,
+  GlobalMarketplaceUninstallErrors,
+  GlobalMarketplaceUninstallResponses,
   GlobalUpgradeErrors,
   GlobalUpgradeResponses,
   InstanceDisposeErrors,
@@ -151,6 +165,7 @@ import type {
   LocationRef,
   LspStatusErrors,
   LspStatusResponses,
+  MarketplaceInstallInput,
   McpAddErrors,
   McpAddResponses,
   McpAuthAuthenticateErrors,
@@ -2077,6 +2092,144 @@ export class Decision extends HeyApiClient {
   }
 }
 
+export class Marketplace extends HeyApiClient {
+  /**
+   * Discover catalog
+   *
+   * MCP servers, Claude Code and Codex plugins and skills from the public catalogs Tiancode mirrors, refreshed every few hours.
+   */
+  public catalog<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).get<
+      GlobalMarketplaceCatalogResponses,
+      GlobalMarketplaceCatalogErrors,
+      ThrowOnError
+    >({ url: "/global/marketplace", ...options })
+  }
+
+  /**
+   * App connectors
+   *
+   * The connectors Claude and Codex offer whose MCP server any client can reach.
+   */
+  public connectors<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).get<
+      GlobalMarketplaceConnectorsResponses,
+      GlobalMarketplaceConnectorsErrors,
+      ThrowOnError
+    >({ url: "/global/marketplace/connectors", ...options })
+  }
+
+  /**
+   * Search the MCP registry
+   *
+   * Searches the official MCP Registry by server name.
+   */
+  public search<ThrowOnError extends boolean = false>(
+    parameters: {
+      q: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "q" }] }])
+    return (options?.client ?? this.client).get<
+      GlobalMarketplaceSearchResponses,
+      GlobalMarketplaceSearchErrors,
+      ThrowOnError
+    >({
+      url: "/global/marketplace/search",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Logo of a catalog site
+   *
+   * The icon a site in the catalog publishes, fetched and cached by the server.
+   */
+  public icon<ThrowOnError extends boolean = false>(
+    parameters: {
+      domain: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "domain" }] }])
+    return (options?.client ?? this.client).get<
+      GlobalMarketplaceIconResponses,
+      GlobalMarketplaceIconErrors,
+      ThrowOnError
+    >({
+      url: "/global/marketplace/icon",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Uninstall a plugin
+   *
+   * Removes everything a plugin installed from Discover added.
+   */
+  public uninstall<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "id" }] }])
+    return (options?.client ?? this.client).delete<
+      GlobalMarketplaceUninstallResponses,
+      GlobalMarketplaceUninstallErrors,
+      ThrowOnError
+    >({
+      url: "/global/marketplace/plugins",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Installed plugins
+   *
+   * Claude Code and Codex plugins installed from Discover, with what each one added.
+   */
+  public installed<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).get<
+      GlobalMarketplaceInstalledResponses,
+      GlobalMarketplaceInstalledErrors,
+      ThrowOnError
+    >({ url: "/global/marketplace/plugins", ...options })
+  }
+
+  /**
+   * Install a plugin
+   *
+   * Downloads a Claude Code or Codex plugin and adds its skills, commands, sub-agents and MCP servers to the global config.
+   */
+  public install<ThrowOnError extends boolean = false>(
+    parameters?: {
+      marketplaceInstallInput?: MarketplaceInstallInput
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ key: "marketplaceInstallInput", map: "body" }] }])
+    return (options?.client ?? this.client).post<
+      GlobalMarketplaceInstallResponses,
+      GlobalMarketplaceInstallErrors,
+      ThrowOnError
+    >({
+      url: "/global/marketplace/plugins",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+}
+
 export class Global extends HeyApiClient {
   /**
    * Get health
@@ -2151,6 +2304,11 @@ export class Global extends HeyApiClient {
   private _decision?: Decision
   get decision(): Decision {
     return (this._decision ??= new Decision({ client: this.client }))
+  }
+
+  private _marketplace?: Marketplace
+  get marketplace(): Marketplace {
+    return (this._marketplace ??= new Marketplace({ client: this.client }))
   }
 }
 

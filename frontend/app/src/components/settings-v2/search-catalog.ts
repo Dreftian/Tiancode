@@ -51,8 +51,10 @@ export const SETTINGS_PAGES: SettingsSearchEntry[] = [
   page("voices", "settings.tab.voices", ["voces", "voices", "tts", "micrófono", "dictado", "leer en voz alta", "fish audio", "velocidad"]),
   page("skills", "settings.tab.skills", ["skills", "habilidades", "ui skills"]),
   page("sub-agents", "settings.tab.subAgents", ["sub-agentes", "subagents", "agentes", "agents"]),
-  page("mcp-plugins", "settings.tab.mcpPlugins", ["mcp", "plugins", "extensiones", "extensions"]),
-  page("connections", "settings.tab.connections", ["conexiones", "connections", "telegram", "whatsapp", "webhooks"]),
+  page("mcp-plugins", "settings.tab.mcpPlugins", ["mcp", "plugins", "extensiones", "extensions", "descubrir", "discover", "tienda", "store", "marketplace", "claude code", "codex", "skills"]),
+  page("connections", "settings.tab.connections", ["conexiones", "connections"]),
+  page("connections", "settings.connections.section.connectors", ["conectores", "connectors", "apps", "gmail", "google drive", "notion", "linear", "slack", "jira", "atlassian", "hubspot", "stripe", "figma", "canva", "asana", "dropbox", "oauth"], undefined, "connectors"),
+  page("connections", "settings.connections.section.gateways", ["mensajería", "messaging", "telegram", "discord", "whatsapp", "webhooks"], undefined, "gateways"),
   page("pets", "settings.tab.pets", ["mascotas", "pets"]),
   page("about", "settings.tab.about", ["acerca de", "about", "versión", "version", "licencia", "license", "registros", "logs", "sistema", "system", "electron"]),
 ]

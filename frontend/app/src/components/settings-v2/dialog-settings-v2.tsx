@@ -98,7 +98,7 @@ const IconAbout = () => (
  * "desktop", "browser" or "remote" (Uso de la PC; the older "tools", "pairing" and "experimental"
  * still work), "memory", "context", "protection" or "decisions" (Inteligencia). Anything that is not a string, such as
  * the click event a button forwards, opens General. "servers", "projects" and "worktrees" open
- * Servidor on that section; "github" opens Conexiones on GitHub.
+ * Servidor on that section; "connectors", "gateways" and "github" open Conexiones on that section.
  */
 type SettingsTarget = {
   tab: string
@@ -118,7 +118,8 @@ function settingsTarget(value: unknown): SettingsTarget {
   if (requested in LEGACY_COMPUTER_USE_SECTIONS)
     return { tab: "computer-use", computerUse: LEGACY_COMPUTER_USE_SECTIONS[requested] }
   if ((SERVER_SECTIONS as readonly string[]).includes(requested)) return { tab: "server", server: requested as ServerSection }
-  if (requested === "github") return { tab: "connections", connections: "github" }
+  if (requested === "connectors" || requested === "gateways" || requested === "github")
+    return { tab: "connections", connections: requested }
   if ((INTELLIGENCE_SECTIONS as readonly string[]).includes(requested))
     return { tab: "intelligence", intelligence: requested as IntelligenceSection }
   return { tab: requested }
@@ -143,7 +144,7 @@ export const DialogSettings: Component<{
     general: target.general ?? "general",
     computerUse: target.computerUse ?? ("desktop" as ComputerUseSection),
     server: target.server ?? ("servers" as ServerSection),
-    connections: target.connections ?? ("gateways" as ConnectionsSection),
+    connections: target.connections ?? ("connectors" as ConnectionsSection),
     intelligence: target.intelligence ?? ("memory" as IntelligenceSection),
   })
 
@@ -185,7 +186,7 @@ export const DialogSettings: Component<{
       )
     if (entry.tab === "server") setSections("server", (entry.section as ServerSection | undefined) ?? "servers")
     if (entry.tab === "connections")
-      setSections("connections", (entry.section as ConnectionsSection | undefined) ?? "gateways")
+      setSections("connections", (entry.section as ConnectionsSection | undefined) ?? "connectors")
     if (entry.tab === "intelligence")
       setSections("intelligence", (entry.section as IntelligenceSection | undefined) ?? "memory")
     markVisited(entry.tab)

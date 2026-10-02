@@ -94,6 +94,8 @@ import { githubHandlers } from "./handlers/github"
 import { globalHandlers } from "./handlers/global"
 import { connectionsHandlers } from "./handlers/connections"
 import { decisionHandlers } from "./handlers/decision"
+import { marketplaceHandlers } from "./handlers/marketplace"
+import { Marketplace } from "@/marketplace"
 import { DecisionEngine } from "@/decision/engine"
 import { Connections } from "@/connections/connections"
 import { instanceHandlers } from "./handlers/instance"
@@ -149,7 +151,14 @@ const ptyConnectHttpApiAuthLayer = ptyConnectAuthorizationLayer.pipe(Layer.provi
 const serverHttpApiAuthLayer = serverAuthorizationLayer.pipe(Layer.provide(ServerAuth.Config.layer))
 const workspaceRoutingLive = workspaceRoutingLayer.pipe(Layer.provide(Socket.layerWebSocketConstructorGlobal))
 const rootApiRoutes = HttpApiBuilder.layer(RootHttpApi).pipe(
-  Layer.provide([controlHandlers, controlPlaneHandlers, globalHandlers, connectionsHandlers, decisionHandlers]),
+  Layer.provide([
+    controlHandlers,
+    controlPlaneHandlers,
+    globalHandlers,
+    connectionsHandlers,
+    decisionHandlers,
+    marketplaceHandlers,
+  ]),
   Layer.provide(schemaErrorLayer),
   Layer.provide(httpApiAuthLayer),
 )
@@ -234,6 +243,7 @@ const app = LayerNode.group([
   Auth.node,
   Connections.node,
   DecisionEngine.node,
+  Marketplace.node,
   Account.node,
   Config.node,
   Global.node,

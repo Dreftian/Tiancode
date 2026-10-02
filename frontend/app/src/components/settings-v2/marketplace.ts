@@ -1,116 +1,132 @@
-import { z } from "zod"
-import type { McpLocalConfig, McpRemoteConfig } from "@tiancode-ai/sdk/v2/client"
-import snapshot from "./marketplace-snapshot"
+import type { MarketplaceItem, MarketplaceMcp, McpLocalConfig, McpRemoteConfig } from "@tiancode-ai/sdk/v2/client"
 
-export const MARKETPLACE_URL = "https://cline.github.io/marketplace/catalog.json"
+// Discover lists the catalog the server mirrors (Claude Code and Codex plugins, the Anthropic
+// connector directory, the GitHub and official MCP registries, skill repositories and Cline's
+// catalog) plus a few entries Tiancode picks itself, which come first.
 
-const entrySchema = z.object({
-  id: z.string().regex(/^[\w-]+$/),
-  type: z.enum(["mcp", "plugin", "skill"]),
-  name: z.string(),
-  description: z.string(),
-  tags: z.array(z.string()).default([]),
-  homepage: z.string().optional(),
-  repo: z.string().optional(),
-  license: z.string().optional(),
-  featured: z.boolean().optional(),
-  install: z.object({ args: z.array(z.string()) }),
-})
+/** Entries Tiancode recommends; their descriptions are translated (see `CURATED_DESCRIPTIONS`). */
+export const CURATED_ITEMS: MarketplaceItem[] = [
+  skill("diagram-design", "Diagram Design", "diseno", "https://github.com/cathrynlavery/diagram-design/tree/main/skills/diagram-design"),
+  skill("security-audit", "Security Audit", "seguridad", "https://github.com/cloudflare/security-audit-skill/tree/main/skills/security-audit"),
+  // Composio's hosted MCP: 1000+ app integrations behind one server, signed in through MCP OAuth
+  // in the browser (no key in the catalog; per-user `x-consumer-api-key` headers are the user's).
+  {
+    id: "tiancode:composio",
+    type: "mcp",
+    name: "composio",
+    title: "Composio",
+    description: "Connect 1000+ apps (Gmail, Slack, GitHub, Notion…) through one MCP server.",
+    source: "tiancode",
+    category: "productividad",
+    icon: "https://avatars.githubusercontent.com/ComposioHQ?size=96",
+    domain: "composio.dev",
+    homepage: "https://docs.composio.dev/docs/composio-connect",
+    verified: true,
+    auth: "oauth",
+    mcp: { transport: "remote", url: "https://connect.composio.dev/mcp" },
+    installable: false,
+  },
+  // ui-skills.com (ibelick/ui-skills, MIT): design-engineering skills imported from GitHub.
+  ...["baseline-ui", "fixing-accessibility", "fixing-motion-performance", "fixing-metadata", "improve-ui", "create-design-md"].map(
+    (name) =>
+      skill(
+        name,
+        name === "create-design-md" ? "Create DESIGN.md" : titleCase(name),
+        "diseno",
+        `https://github.com/ibelick/ui-skills/tree/main/skills/${name}`,
+      ),
+  ),
+  skill("i-have-adhd", "I Have ADHD", "productividad", "https://github.com/ayghri/i-have-adhd/tree/main/skills/i-have-adhd"),
+]
 
-export type MarketplaceItem = {
-  id: string
-  name: string
-  type: "mcp" | "plugin" | "skill"
-  category: string
-  desc: string
-  icon: string
-  popular: boolean
-  source?: string
-  license?: string
-  command?: string
-  spec?: string
-  config?: McpLocalConfig | McpRemoteConfig
-  skillURL?: string
+/** Which catalog an entry comes from, as the Discover source filter groups them. */
+export function sourceGroup(source: string) {
+  if (source === "tiancode") return "tiancode"
+  if (source === "claude" || source === "claude-work" || source === "anthropic-skills") return "claude"
+  if (source === "codex" || source === "openai-skills") return "codex"
+  if (source === "github" || source === "registry") return "registry"
+  if (source === "cline") return "cline"
+  return "community"
 }
 
-function httpsURL(value?: string) {
-  if (!value || !URL.canParse(value)) return
-  const url = new URL(value)
-  if (url.protocol === "https:" && !url.username && !url.password) return url.href
-}
+export const SOURCE_GROUPS = ["tiancode", "claude", "codex", "registry", "cline", "community"] as const
 
-// Catalog commands are data. Never evaluate a shell string or invoke the Cline CLI.
-export function marketplaceMcpConfig(args: string[]): McpLocalConfig | McpRemoteConfig | undefined {
-  const separator = args.indexOf("--")
-  if (separator > 0 && separator < args.length - 1) {
-    return { type: "local", command: args.slice(separator + 1), enabled: false }
+/**
+ * A catalog MCP entry as Tiancode config. It starts disabled: the user reviews it in the server
+ * dialog, and turning it on there is the approval that runs it.
+ */
+export function mcpConfig(mcp: MarketplaceMcp): McpLocalConfig | McpRemoteConfig | undefined {
+  if (mcp.transport === "remote") {
+    if (!mcp.url) return
+    return { type: "remote", url: mcp.url, ...(mcp.headers ? { headers: { ...mcp.headers } } : {}), enabled: false }
   }
-  const transport = args.indexOf("--transport")
-  if (transport < 1 || !["http", "sse"].includes(args[transport + 1])) return
-  const url = httpsURL(args[transport + 2])
-  if (!url) return
-  const headers: Record<string, string> = {}
-  for (let index = transport + 3; index < args.length; index += 2) {
-    if (args[index] !== "--header") return
-    const header = args[index + 1]
-    const colon = header?.indexOf(":") ?? -1
-    if (colon <= 0) return
-    headers[header.slice(0, colon).trim()] = header.slice(colon + 1).trim()
+  if (!mcp.command?.length) return
+  return {
+    type: "local",
+    command: [...mcp.command],
+    ...(mcp.environment ? { environment: { ...mcp.environment } } : {}),
+    enabled: false,
   }
-  return { type: "remote", url, ...(Object.keys(headers).length ? { headers } : {}), enabled: false }
 }
 
-export function parseMarketplace(value: unknown): MarketplaceItem[] {
-  const parsed = z.object({ entries: z.array(z.unknown()) }).safeParse(value)
-  if (!parsed.success) return []
+/** Catalog order, with matches on the name ahead of matches in the description. */
+export function searchCatalog(items: MarketplaceItem[], query: string) {
+  const term = query.toLowerCase().trim()
+  if (!term) return items
+  const rank = (item: MarketplaceItem) => {
+    const title = item.title.toLowerCase()
+    if (title === term || item.name === term) return 0
+    if (title.startsWith(term) || item.name.startsWith(term)) return 1
+    if (title.includes(term) || item.name.includes(term)) return 2
+    if (item.description.toLowerCase().includes(term)) return 3
+    return 4
+  }
+  return items
+    .map((item, index) => ({ item, index, rank: rank(item) }))
+    .filter((entry) => entry.rank < 4)
+    .toSorted((a, b) => a.rank - b.rank || a.index - b.index)
+    .map((entry) => entry.item)
+}
+
+/** One list from several, keeping the first entry for an id or for an MCP server's URL or command. */
+export function mergeCatalog(...lists: MarketplaceItem[][]) {
   const seen = new Set<string>()
-  return parsed.data.entries.flatMap((raw) => {
-    const result = entrySchema.safeParse(raw)
-    if (!result.success) return []
-    const entry = result.data
-    const key = `${entry.type}:${entry.id}`
-    if (seen.has(key)) return []
-    seen.add(key)
-    const config = entry.type === "mcp" ? marketplaceMcpConfig(entry.install.args) : undefined
-    const source = httpsURL(entry.homepage) ?? httpsURL(entry.repo)
-    const skillURL = entry.type === "skill" && source?.startsWith("https://github.com/") ? source : undefined
-    const categories: Record<string, string> = {
-      software: "desarrollo", data: "datos", security: "seguridad", creative: "diseno",
-      finance: "finanzas", business: "ventas", research: "documentacion", productivity: "herramientas",
-    }
-    return [{
-      id: entry.id, name: entry.name, type: entry.type, desc: entry.description,
-      category: entry.tags.map((tag) => categories[tag]).find(Boolean) ?? "herramientas",
-      icon: entry.type === "mcp" ? "🔌" : entry.type === "skill" ? "⚡" : "🧩",
-      popular: entry.featured === true, source, license: entry.license, config, skillURL,
-      command: config?.type === "local" ? JSON.stringify(config.command) : config?.url,
-      spec: source,
-    }]
+  return lists.flat().filter((item) => {
+    const keys = [item.id, ...(item.mcp ? [mcpKey(item.mcp)] : [])]
+    if (keys.some((key) => seen.has(key))) return false
+    for (const key of keys) seen.add(key)
+    return true
   })
 }
 
-export const MARKETPLACE_SNAPSHOT = parseMarketplace(snapshot)
+export function mcpKey(mcp: { url?: string; command?: readonly string[] }) {
+  if (mcp.url && URL.canParse(mcp.url)) {
+    const url = new URL(mcp.url)
+    return `${url.hostname}${url.pathname.replace(/\/+$/, "")}`
+  }
+  return (mcp.command ?? []).join(" ")
+}
 
-export const CURATED_SKILLS = parseMarketplace({ entries: [
-  { id: "diagram-design", type: "skill", name: "Diagram Design", description: "Architecture and process diagrams as self-contained HTML and SVG.", tags: ["creative"], homepage: "https://github.com/cathrynlavery/diagram-design/tree/main/skills/diagram-design", license: "MIT", install: { args: [] } },
-  { id: "security-audit", type: "skill", name: "Security Audit", description: "Security audits with evidence, independent validation and structured findings.", tags: ["security"], homepage: "https://github.com/cloudflare/security-audit-skill/tree/main/skills/security-audit", license: "Apache-2.0", install: { args: [] } },
-  // Composio's hosted MCP: 1000+ app integrations behind one server, signed in through MCP OAuth
-  // in the browser (no key in the catalog; per-user `x-consumer-api-key` headers are the user's).
-  { id: "composio", type: "mcp", name: "Composio", description: "Connect 1000+ apps (Gmail, Slack, GitHub, Notion…) through one MCP server.", tags: ["productivity"], homepage: "https://docs.composio.dev/docs/composio-connect", license: "MIT", featured: true, install: { args: ["composio", "--transport", "http", "https://connect.composio.dev/mcp"] } },
-  // ui-skills.com (ibelick/ui-skills, MIT): design-engineering skills imported from GitHub.
-  { id: "baseline-ui", type: "skill", name: "Baseline UI", description: "Clean up spacing, hierarchy, typography and small layout issues in UI code.", tags: ["creative"], homepage: "https://github.com/ibelick/ui-skills/tree/main/skills/baseline-ui", license: "MIT", install: { args: [] } },
-  { id: "fixing-accessibility", type: "skill", name: "Fixing Accessibility", description: "Find and fix accessibility problems in interfaces.", tags: ["creative"], homepage: "https://github.com/ibelick/ui-skills/tree/main/skills/fixing-accessibility", license: "MIT", install: { args: [] } },
-  { id: "fixing-motion-performance", type: "skill", name: "Fixing Motion Performance", description: "Make animations smooth and cheap to render.", tags: ["creative"], homepage: "https://github.com/ibelick/ui-skills/tree/main/skills/fixing-motion-performance", license: "MIT", install: { args: [] } },
-  { id: "fixing-metadata", type: "skill", name: "Fixing Metadata", description: "Correct page titles, descriptions, social cards and icons.", tags: ["creative"], homepage: "https://github.com/ibelick/ui-skills/tree/main/skills/fixing-metadata", license: "MIT", install: { args: [] } },
-  { id: "improve-ui", type: "skill", name: "Improve UI", description: "A guided design pass that raises the quality of an interface.", tags: ["creative"], homepage: "https://github.com/ibelick/ui-skills/tree/main/skills/improve-ui", license: "MIT", install: { args: [] } },
-  { id: "create-design-md", type: "skill", name: "Create DESIGN.md", description: "Write a DESIGN.md that captures a project's design rules for agents.", tags: ["creative"], homepage: "https://github.com/ibelick/ui-skills/tree/main/skills/create-design-md", license: "MIT", install: { args: [] } },
-  { id: "i-have-adhd", type: "skill", name: "I Have ADHD", description: "Concise, action-first responses with clear next steps and reduced reading load.", tags: ["productivity"], homepage: "https://github.com/ayghri/i-have-adhd/tree/main/skills/i-have-adhd", license: "MIT", install: { args: [] } },
-] })
+function skill(name: string, title: string, category: string, url: string): MarketplaceItem {
+  return {
+    id: `tiancode:${name}`,
+    type: "skill",
+    name,
+    title,
+    description: "",
+    source: "tiancode",
+    category,
+    icon: `https://avatars.githubusercontent.com/${new URL(url).pathname.split("/")[1]}?size=96`,
+    homepage: url,
+    skillUrl: url,
+    verified: true,
+    installable: false,
+  }
+}
 
-export async function fetchMarketplace() {
-  const response = await fetch(MARKETPLACE_URL, { signal: AbortSignal.timeout(10_000), credentials: "omit" })
-  if (!response.ok) throw new Error(`Marketplace: HTTP ${response.status}`)
-  const entries = parseMarketplace(await response.json())
-  if (entries.length === 0) throw new Error("Marketplace: empty or invalid catalog")
-  return entries
+function titleCase(value: string) {
+  return value
+    .split("-")
+    .map((word) => (word === "ui" ? "UI" : word[0]!.toUpperCase() + word.slice(1)))
+    .join(" ")
 }

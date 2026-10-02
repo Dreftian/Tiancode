@@ -2139,6 +2139,88 @@ export type DecisionAnswer = {
   ms: number
 }
 
+export type MarketplaceAuth = "none" | "oauth" | "own-app" | "token" | "restricted"
+
+export type MarketplaceMcp = {
+  transport: "remote" | "local"
+  url?: string
+  headers?: {
+    [key: string]: string
+  }
+  command?: Array<string>
+  environment?: {
+    [key: string]: string
+  }
+}
+
+export type MarketplaceItem = {
+  id: string
+  type: "mcp" | "plugin" | "skill"
+  name: string
+  title: string
+  description: string
+  source: string
+  category: string
+  icon?: string
+  domain?: string
+  homepage?: string
+  verified?: boolean
+  stars?: number
+  auth?: MarketplaceAuth
+  mcp?: MarketplaceMcp
+  skillUrl?: string
+  installable: boolean
+}
+
+export type MarketplaceSource = {
+  id: string
+  ok: boolean
+  count: number
+}
+
+export type MarketplaceCatalog = {
+  fetchedAt: number
+  items: Array<MarketplaceItem>
+  sources: Array<MarketplaceSource>
+}
+
+export type MarketplaceConnector = {
+  id: string
+  name: string
+  title: string
+  description: string
+  category: string
+  url: string
+  transport: "http" | "sse"
+  auth: MarketplaceAuth
+  icon?: string
+  domain?: string
+  docs?: string
+  sources: Array<string>
+}
+
+export type MarketplaceInstalled = {
+  id: string
+  name: string
+  title: string
+  source: string
+  installedAt: number
+  skills: Array<string>
+  commands: Array<string>
+  agents: Array<string>
+  mcp: Array<string>
+  skipped: Array<string>
+}
+
+export type MarketplaceInstallInput = {
+  id: string
+}
+
+export type MarketplaceInstallError = {
+  _tag: "MarketplaceInstallError"
+  message: string
+}
+
 export type Model = {
   id: string
   providerID: string
@@ -7900,6 +7982,193 @@ export type GlobalDecisionClassifyResponses = {
 }
 
 export type GlobalDecisionClassifyResponse = GlobalDecisionClassifyResponses[keyof GlobalDecisionClassifyResponses]
+
+export type GlobalMarketplaceCatalogData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/global/marketplace"
+}
+
+export type GlobalMarketplaceCatalogErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalMarketplaceCatalogError = GlobalMarketplaceCatalogErrors[keyof GlobalMarketplaceCatalogErrors]
+
+export type GlobalMarketplaceCatalogResponses = {
+  /**
+   * Every MCP server, plugin and skill Discover lists
+   */
+  200: MarketplaceCatalog
+}
+
+export type GlobalMarketplaceCatalogResponse =
+  GlobalMarketplaceCatalogResponses[keyof GlobalMarketplaceCatalogResponses]
+
+export type GlobalMarketplaceConnectorsData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/global/marketplace/connectors"
+}
+
+export type GlobalMarketplaceConnectorsErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalMarketplaceConnectorsError =
+  GlobalMarketplaceConnectorsErrors[keyof GlobalMarketplaceConnectorsErrors]
+
+export type GlobalMarketplaceConnectorsResponses = {
+  /**
+   * App connectors (remote MCP servers)
+   */
+  200: Array<MarketplaceConnector>
+}
+
+export type GlobalMarketplaceConnectorsResponse =
+  GlobalMarketplaceConnectorsResponses[keyof GlobalMarketplaceConnectorsResponses]
+
+export type GlobalMarketplaceSearchData = {
+  body?: never
+  path?: never
+  query: {
+    q: string
+  }
+  url: "/global/marketplace/search"
+}
+
+export type GlobalMarketplaceSearchErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalMarketplaceSearchError = GlobalMarketplaceSearchErrors[keyof GlobalMarketplaceSearchErrors]
+
+export type GlobalMarketplaceSearchResponses = {
+  /**
+   * MCP servers from the official registry
+   */
+  200: Array<MarketplaceItem>
+}
+
+export type GlobalMarketplaceSearchResponse = GlobalMarketplaceSearchResponses[keyof GlobalMarketplaceSearchResponses]
+
+export type GlobalMarketplaceIconData = {
+  body?: never
+  path?: never
+  query: {
+    domain: string
+  }
+  url: "/global/marketplace/icon"
+}
+
+export type GlobalMarketplaceIconErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalMarketplaceIconError = GlobalMarketplaceIconErrors[keyof GlobalMarketplaceIconErrors]
+
+export type GlobalMarketplaceIconResponses = {
+  /**
+   * The site's logo as a data URL, or null
+   */
+  200: string
+}
+
+export type GlobalMarketplaceIconResponse = GlobalMarketplaceIconResponses[keyof GlobalMarketplaceIconResponses]
+
+export type GlobalMarketplaceUninstallData = {
+  body?: never
+  path?: never
+  query: {
+    id: string
+  }
+  url: "/global/marketplace/plugins"
+}
+
+export type GlobalMarketplaceUninstallErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalMarketplaceUninstallError = GlobalMarketplaceUninstallErrors[keyof GlobalMarketplaceUninstallErrors]
+
+export type GlobalMarketplaceUninstallResponses = {
+  /**
+   * Whether the plugin was installed
+   */
+  200: boolean
+}
+
+export type GlobalMarketplaceUninstallResponse =
+  GlobalMarketplaceUninstallResponses[keyof GlobalMarketplaceUninstallResponses]
+
+export type GlobalMarketplaceInstalledData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/global/marketplace/plugins"
+}
+
+export type GlobalMarketplaceInstalledErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalMarketplaceInstalledError = GlobalMarketplaceInstalledErrors[keyof GlobalMarketplaceInstalledErrors]
+
+export type GlobalMarketplaceInstalledResponses = {
+  /**
+   * Plugins installed from the catalog
+   */
+  200: Array<MarketplaceInstalled>
+}
+
+export type GlobalMarketplaceInstalledResponse =
+  GlobalMarketplaceInstalledResponses[keyof GlobalMarketplaceInstalledResponses]
+
+export type GlobalMarketplaceInstallData = {
+  body?: MarketplaceInstallInput
+  path?: never
+  query?: never
+  url: "/global/marketplace/plugins"
+}
+
+export type GlobalMarketplaceInstallErrors = {
+  /**
+   * MarketplaceInstallError | InvalidRequestError
+   */
+  400: MarketplaceInstallError | InvalidRequestError
+}
+
+export type GlobalMarketplaceInstallError = GlobalMarketplaceInstallErrors[keyof GlobalMarketplaceInstallErrors]
+
+export type GlobalMarketplaceInstallResponses = {
+  /**
+   * What the plugin added
+   */
+  200: MarketplaceInstalled
+}
+
+export type GlobalMarketplaceInstallResponse =
+  GlobalMarketplaceInstallResponses[keyof GlobalMarketplaceInstallResponses]
 
 export type EventSubscribeData = {
   body?: never

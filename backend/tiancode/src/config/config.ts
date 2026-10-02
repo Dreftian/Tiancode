@@ -130,6 +130,8 @@ export interface Interface {
   readonly update: (config: Info) => Effect.Effect<void>
   readonly updateGlobal: (config: Info) => Effect.Effect<{ info: Info; changed: boolean }>
   readonly removeMcp: (name: string) => Effect.Effect<void>
+  /** Removes an MCP server from the global config only; needs no open project. */
+  readonly removeGlobalMcp: (name: string) => Effect.Effect<void>
   /**
    * Drops an agent's overrides (`agent.<name>`) from one scope's file, or only the listed fields
    * ("model", "permission.bash"); false when there was nothing to remove.
@@ -1055,6 +1057,16 @@ const layer = Layer.effect(
       yield* invalidateInstance()
     })
 
+    const removeGlobalMcp = Effect.fn("Config.removeGlobalMcp")(function* (name: string) {
+      const file = globalConfigFile()
+      const before = yield* readConfigFile(file)
+      if (!before) return
+      const after = removeJsoncPath(before, ["mcp", name])
+      if (after === before) return
+      yield* writeGlobalAtomic(file, after).pipe(Effect.orDie)
+      yield* invalidate()
+    })
+
     // A merge cannot delete keys (see the Removal section above), so resetting a sub-agent to its
     // defaults edits the file in place, like removeMcp.
     const resetAgent = Effect.fn("Config.resetAgent")(function* (
@@ -1089,6 +1101,7 @@ const layer = Layer.effect(
       update,
       updateGlobal,
       removeMcp,
+      removeGlobalMcp,
       resetAgent,
       forgetProviderModel,
       invalidate,

@@ -273,7 +273,7 @@ export const SettingsNotificationsV2: Component<{ active?: boolean }> = () => {
               </For>
             </div>
             <div class="settings-v2-kit-card-foot">
-              <ButtonV2 size="small" variant="outline" onClick={() => goToSettings("connections")}>
+              <ButtonV2 size="small" variant="outline" onClick={() => goToSettings("gateways")}>
                 {language.t("settings.notifications.remote.open")}
               </ButtonV2>
             </div>

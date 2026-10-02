@@ -11,6 +11,7 @@ export function make(overrides: Partial<Config.Interface> = {}) {
     update: () => Effect.void,
     updateGlobal: (config) => Effect.succeed({ info: config, changed: false }),
     removeMcp: () => Effect.void,
+    removeGlobalMcp: () => Effect.void,
     resetAgent: () => Effect.succeed(false),
     forgetProviderModel: () =>
       Effect.succeed({

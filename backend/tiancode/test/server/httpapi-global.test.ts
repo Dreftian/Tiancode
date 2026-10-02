@@ -15,6 +15,8 @@ import { controlPlaneHandlers } from "../../src/server/routes/instance/httpapi/h
 import { globalHandlers } from "../../src/server/routes/instance/httpapi/handlers/global"
 import { connectionsHandlers } from "../../src/server/routes/instance/httpapi/handlers/connections"
 import { decisionHandlers } from "../../src/server/routes/instance/httpapi/handlers/decision"
+import { marketplaceHandlers } from "../../src/server/routes/instance/httpapi/handlers/marketplace"
+import { Marketplace } from "../../src/marketplace"
 import { DecisionEngine } from "../../src/decision/engine"
 import { Connections } from "../../src/connections/connections"
 import { authorizationLayer } from "../../src/server/routes/instance/httpapi/middleware/authorization"
@@ -23,7 +25,14 @@ import { testEffect } from "../lib/effect"
 
 const apiLayer = HttpRouter.serve(
   HttpApiBuilder.layer(RootHttpApi).pipe(
-    Layer.provide([controlHandlers, controlPlaneHandlers, globalHandlers, connectionsHandlers, decisionHandlers]),
+    Layer.provide([
+      controlHandlers,
+      controlPlaneHandlers,
+      globalHandlers,
+      connectionsHandlers,
+      decisionHandlers,
+      marketplaceHandlers,
+    ]),
     Layer.provide([authorizationLayer, schemaErrorLayer]),
     // Raw HttpApi routes expose an opaque handler context at the request boundary.
     // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion
@@ -35,6 +44,7 @@ const apiLayer = HttpRouter.serve(
   Layer.provide(Layer.mock(Auth.Service)({})),
   Layer.provide(Layer.mock(Connections.Service)({})),
   Layer.provide(Layer.mock(DecisionEngine.Service)({})),
+  Layer.provide(Layer.mock(Marketplace.Service)({})),
   Layer.provide(Layer.mock(Config.Service)({})),
   Layer.provide(Layer.mock(MoveSession.Service)({})),
   Layer.provide(

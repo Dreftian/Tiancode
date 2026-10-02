@@ -9,6 +9,7 @@ import { HttpApi, HttpApiEndpoint, HttpApiError, HttpApiGroup, HttpApiSchema, Op
 import { described } from "./metadata"
 import { ConnectionsGroup } from "./connections"
 import { DecisionGroup } from "./decision"
+import { MarketplaceGroup } from "./marketplace"
 
 const GlobalHealth = Schema.Struct({
   healthy: Schema.Literal(true),
@@ -151,4 +152,4 @@ export const GlobalApi = HttpApi.make("global").add(
       ),
     )
     .annotateMerge(OpenApi.annotations({ title: "global", description: "Global server routes." })),
-).add(ConnectionsGroup).add(DecisionGroup)
+).add(ConnectionsGroup).add(DecisionGroup).add(MarketplaceGroup)
