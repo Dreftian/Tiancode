@@ -28,6 +28,7 @@ export type UpdaterAPI = {
   subscribe: (cb: (state: UpdaterState) => void) => Promise<() => void>
   check: () => Promise<UpdaterState>
   install: () => Promise<void>
+  onShow: (cb: () => void) => () => void
 }
 
 // "kokoro" ya no tiene voces en el catálogo (las 10 inglesas se retiraron en 1.0.45); se conserva
@@ -100,7 +101,6 @@ export type VoicesAPI = {
   onProgress: (cb: (event: VoicesProgress) => void) => () => void
   downloadVoice: (voiceId: string) => Promise<void>
   deleteVoice: (voiceId: string) => Promise<void>
-  setEnabled: (voiceId: string, enabled: boolean) => Promise<void>
   onPiperProgress: (cb: (event: VoicesPiperProgress) => void) => () => void
   speakFish?: (
     text: string,
@@ -180,6 +180,37 @@ export type FatalRendererError = {
 
 // Vista en vivo del panel de sesión: estado del WebContentsView del preview
 // (frontend/desktop/src/main/preview-view.ts).
+/** What Settings › About shows that the sandboxed renderer cannot read itself. */
+export type AppInfo = {
+  version: string
+  channel: "dev" | "beta" | "prod"
+  distribution: "local" | "github"
+  portable: boolean
+  electron: string
+  chrome: string
+  node: string
+  arch: string
+  osRelease: string
+  /** Folder that holds this run's diagnostic logs. */
+  logs: string
+}
+
+export type DataFolderInfo = {
+  path: string
+  /** The other Tiancode data folder, when it holds provider keys or sessions. */
+  alternative: { path: string; keys: boolean; sessions: number | undefined } | null
+  /** The user picked this folder in Settings (as opposed to Tiancode picking it at startup). */
+  chosen: boolean
+}
+
+export type PairingInfo = {
+  enabled: boolean
+  urls: string[]
+  username: string
+  password: string | null
+  restartRequired: boolean
+}
+
 export type PreviewViewState = {
   url: string
   loading: boolean
@@ -189,16 +220,21 @@ export type PreviewViewState = {
   selectMode: boolean
 }
 
+// Design mode: the element picked in the page. Same shape as PickedElement in
+// frontend/app/src/pages/session/live-preview/element-context.ts.
 export type PreviewViewSelection = {
   tag: string
-  text: string
-  className: string
   id: string
+  classes: string
   selector: string
+  text: string
+  html: string
+  styles: string
+  margin: string
+  padding: string
   url: string
-  pathname: string
-  dims: { width: number; height: number }
   rect: { x: number; y: number; width: number; height: number }
+  viewport: { width: number; height: number }
 }
 
 export type PreviewViewEvent =
@@ -206,6 +242,7 @@ export type PreviewViewEvent =
   | { type: "loaded"; url: string }
   | { type: "console"; message: { level: number; message: string; line: number; sourceId: string } }
   | { type: "fail"; fail: { code: number; description: string; url: string; isMainFrame: boolean } }
+  | { type: "selection"; selection: PreviewViewSelection }
 
 export type PreviewViewAPI = {
   setBounds: (bounds: { x: number; y: number; width: number; height: number }) => Promise<void>
@@ -352,6 +389,8 @@ export type ElectronAPI = {
   writeTextFile: (path: string, content: string) => Promise<boolean>
   openExternal: (url: string) => void
   openInChrome: (url: string) => Promise<void>
+  /** Opens a URL in the PC browser even when it is a local preview (never rerouted to the Sandbox). */
+  openInSystemBrowser: (url: string) => Promise<void>
   openLocalFile: (url: string) => void
   onLiveViewNavigate: (cb: (url: string) => void) => () => void
   openPath: (path: string, app?: string) => Promise<void>
@@ -397,6 +436,18 @@ export type ElectronAPI = {
   setZoomFactor: (factor: number) => Promise<void>
   getPinchZoomEnabled: () => Promise<boolean>
   setPinchZoomEnabled: (enabled: boolean) => Promise<void>
+  getKeepScreenActive: () => Promise<boolean>
+  /** Settings › Pairing (frontend/desktop/src/main/pairing.ts). */
+  pairingInfo: () => Promise<PairingInfo>
+  setPairingEnabled: (enabled: boolean) => Promise<PairingInfo>
+  /** Settings › About (frontend/desktop/src/main/ipc.ts "app-info"). */
+  appInfo: () => Promise<AppInfo>
+  /** Settings › General › Data (frontend/desktop/src/main/profile.ts). */
+  dataFolderInfo: () => Promise<DataFolderInfo>
+  /** Records the other folder and restarts; false when it could not be recorded. */
+  switchDataFolder: (path: string) => Promise<boolean>
+  /** Resolves with the resulting state, which stays off when the OS refuses the blocker. */
+  setKeepScreenActive: (enabled: boolean) => Promise<boolean>
   onPinchZoomEnabledChanged: (cb: (enabled: boolean) => void) => () => void
   onZoomFactorChanged: (cb: (factor: number) => void) => () => void
   setTitlebar: (theme: TitlebarTheme) => Promise<void>
@@ -410,19 +461,20 @@ export type ElectronAPI = {
     update: (partial: Partial<DesktopPetState>) => Promise<DesktopPetState>
     toggle: () => Promise<boolean>
     getState: () => Promise<DesktopPetState>
+    /** Moves the desktop pet back to the bottom-right corner of the primary display. */
+    resetPosition: () => Promise<void>
+    /** The pet's own × hid it; Settings turns "show on the desktop" off to match. */
+    onHidden: (cb: () => void) => () => void
   }
   localModels: {
     getDir: () => Promise<string | null>
     setDir: (dir: string | null) => Promise<void>
     pickDir: (title?: string) => Promise<string | null>
   }
-  modelHub: {
-    deleteFile: (target: { file?: string; id?: string; destPath?: string }) => Promise<{ success: boolean }>
-  }
 }
 
 export type DesktopPetState = {
-  /** Cualquiera de las 13 de `petKinds`; la lista corta de antes dejaba fuera 10 mascotas reales. */
+  /** Any of `petKinds`. */
   kind: string
   status: "ready" | "running" | "needs-input" | "blocked"
   text: string

@@ -1,858 +1,493 @@
-/* ==========================================================================
-   Tiancode Voices — Apple / Cupertino Glassmorphism UI
-   ========================================================================== */
+/* Settings › Voces: microphone and dictation, reading aloud, and the local voice catalogue.
+   Only v2 tokens, so the light and dark themes both read. */
 
 .settings-v2-voices {
-  display: flex;
-  flex-direction: column;
   gap: 18px;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, sans-serif;
-  letter-spacing: -0.01em;
 }
 
-.settings-v2-voices-description {
-  font-size: 13px;
-  line-height: 1.5;
-  color: #8e8e93;
-}
-
-.settings-v2-voices-actions {
+.settings-v2-voices-inline {
   display: flex;
-  justify-content: flex-start;
-  gap: 8px;
-  padding-top: 4px;
-}
-
-.settings-v2-voices-progress {
-  display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
   gap: 6px;
-  max-width: 420px;
 }
 
-.settings-v2-voices-progress-track {
-  height: 6px;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.08);
-  overflow: hidden;
+.settings-v2-voices-key [data-component="text-input-v2"] {
+  width: 240px;
 }
 
-.settings-v2-voices-progress-fill {
-  height: 100%;
-  border-radius: 9999px;
-  background: linear-gradient(90deg, #0077ed 0%, #2997ff 100%);
-  transition: width 0.2s ease-out;
-  box-shadow: 0 0 10px rgba(0, 113, 227, 0.5);
+.settings-v2-voices-key input {
+  font-family: var(--v2-font-mono, ui-monospace, monospace);
 }
 
-.settings-v2-voices-progress-label {
+.settings-v2-voices-kbd {
+  padding: 3px 8px;
+  border: 1px solid var(--v2-border-border-muted);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: var(--v2-background-bg-layer-02);
+  font: 12px/1.4 var(--v2-font-mono, ui-monospace, monospace);
+  color: var(--v2-text-text-base);
+  white-space: nowrap;
+}
+
+.settings-v2-voices-count {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-voices-segmented {
+  flex: none;
+}
+
+.settings-v2-voices-segmented [data-slot="segmented-control-v2-item"] {
+  flex: 0 0 auto;
+  padding: 0 10px;
+}
+
+.settings-v2-voices-note {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  font-size: 11.5px;
-  color: #8e8e93;
-}
-
-.settings-v2-voices-master-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px 20px;
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--v2-background-bg-layer-02, rgba(255, 255, 255, 0.05)) 90%, transparent);
-  border: 1px solid var(--v2-border-border-weak, rgba(255, 255, 255, 0.1));
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.settings-v2-voices-master-card[data-active="true"] {
-  border-color: color-mix(in srgb, #38bdf8 45%, transparent);
-  background: color-mix(in srgb, #38bdf8 7%, var(--v2-background-bg-layer-02, rgba(0, 0, 0, 0.2)));
-  box-shadow: 0 0 20px color-mix(in srgb, #38bdf8 12%, transparent);
-}
-
-.settings-v2-voices-master-info {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-width: 0;
-}
-
-.settings-v2-voices-master-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
+  gap: 8px 16px;
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--v2-border-border-muted);
   border-radius: 12px;
-  background: color-mix(in srgb, var(--v2-text-text-base, #ffffff) 8%, transparent);
-  color: var(--v2-text-text-muted, #8e8e93);
-  flex-shrink: 0;
-  transition: all 0.2s ease;
+  background: var(--v2-background-bg-layer-01);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--v2-text-text-muted);
 }
 
-.settings-v2-voices-master-card[data-active="true"] .settings-v2-voices-master-icon {
-  background: color-mix(in srgb, #38bdf8 20%, transparent);
-  color: #38bdf8;
+.settings-v2-voices-note[data-tone="info"] {
+  border-color: color-mix(in srgb, var(--v2-text-text-accent) 30%, transparent);
+  background: color-mix(in srgb, var(--v2-text-text-accent) 7%, var(--v2-background-bg-layer-01));
 }
 
-.settings-v2-voices-master-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
+.settings-v2-voices-note[data-tone="error"] {
+  border-color: color-mix(in srgb, var(--v2-state-fg-danger) 35%, transparent);
+  color: var(--v2-state-fg-danger);
 }
 
-.settings-v2-voices-master-title {
-  font-size: 14.5px;
-  font-weight: 650;
-  color: var(--v2-text-text-base, #ffffff);
-}
-
-.settings-v2-voices-master-desc {
+.settings-v2-voices-empty {
+  padding: 12px 4px;
   font-size: 12px;
-  line-height: 1.4;
-  color: var(--v2-text-text-muted, #8e8e93);
+  color: var(--v2-text-text-muted);
+  list-style: none;
 }
 
-.settings-v2-voices-waveform-card {
+/* ------------------------------------------------------------------ Microphone test */
+
+.settings-v2-voices-tester {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 14px 18px;
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--v2-background-bg-layer-02, rgba(255, 255, 255, 0.05)) 85%, transparent);
-  border: 1px solid var(--v2-border-border-weak, rgba(255, 255, 255, 0.1));
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  transition: all 0.2s ease;
-}
-
-.settings-v2-voices-selected {
-  display: flex;
-  align-items: center;
   gap: 8px;
-  padding: 12px 16px;
-  border-radius: 14px;
-  background: rgba(52, 199, 89, 0.12);
-  border: 1px solid rgba(52, 199, 89, 0.3);
-  color: #f5f5f7;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-}
-
-.settings-v2-voices-selected [data-component="icon"] {
-  color: #30d158;
-}
-
-.settings-v2-voices-selected-label {
-  font-size: 11.5px;
-  color: #8e8e93;
-  font-weight: 500;
-}
-
-.settings-v2-voices-selected-name {
-  font-size: 13.5px;
-  font-weight: 650;
-  color: #30d158;
-}
-
-.settings-v2-voices-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
+  margin-top: 10px;
   padding: 12px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.03);
-  text-align: start;
-  cursor: pointer;
-  margin-bottom: 6px;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid var(--v2-border-border-muted);
+  border-radius: 12px;
+  background: var(--v2-background-bg-layer-01);
 }
 
-.settings-v2-voices-row:last-child {
-  margin-bottom: 0;
-}
-
-.settings-v2-voices-row:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.12);
-  transform: translateY(-1px);
-}
-
-.settings-v2-voices-row[data-selected] {
-  background: linear-gradient(135deg, rgba(0, 113, 227, 0.18) 0%, rgba(0, 113, 227, 0.06) 100%) !important;
-  border-color: #2997ff !important;
-  box-shadow: 0 0 0 1px #2997ff, 0 6px 20px rgba(0, 113, 227, 0.25) !important;
-}
-
-.settings-v2-voices-row-radio {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  border: 1.5px solid rgba(255, 255, 255, 0.2);
-  color: #ffffff;
-  transition: all 0.15s ease;
-}
-
-.settings-v2-voices-row-radio[data-checked] {
-  border-color: #2997ff;
-  background: #0071e3;
-  box-shadow: 0 0 8px rgba(0, 113, 227, 0.6);
-}
-
-.settings-v2-voices-row-radio [data-component="icon"] {
-  width: 12px;
-  height: 12px;
-}
-
-.settings-v2-voices-row-copy {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 3px;
-  flex: 1;
-}
-
-.settings-v2-voices-row-name-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.settings-v2-voices-row-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 13.5px;
-  font-weight: 600;
-  color: #ffffff;
-}
-
-.settings-v2-voices-chip {
-  flex-shrink: 0;
-  padding: 2px 7px;
-  border-radius: 9999px;
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: #8e8e93;
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.settings-v2-voices-chip[data-variant="female"] {
-  color: #ff375f;
-  background: rgba(255, 55, 95, 0.14);
-  border: 1px solid rgba(255, 55, 95, 0.3);
-}
-
-.settings-v2-voices-chip[data-variant="male"] {
-  color: #2997ff;
-  background: rgba(0, 113, 227, 0.14);
-  border: 1px solid rgba(0, 113, 227, 0.3);
-}
-
-.settings-v2-voices-row-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: #8e8e93;
-}
-
-.settings-v2-voices-unsupported {
-  font-size: 11px;
-  color: #ff453a;
-}
-
-.settings-v2-voices-chip[data-variant="engine"] {
-  color: #bf5af2;
-  background: rgba(175, 82, 222, 0.14);
-}
-
-.settings-v2-voices-chip[data-variant="builtin"] {
-  color: #8e8e93;
-}
-
-.settings-v2-voices-chip[data-variant="default"] {
-  color: #30d158;
-  background: rgba(52, 199, 89, 0.16);
-  border: 1px solid rgba(52, 199, 89, 0.35);
-}
-
-.settings-v2-voices-filters {
+.settings-v2-voices-tester-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  padding-bottom: 12px;
+  gap: 10px 14px;
 }
 
-.settings-v2-voices-row[data-disabled] {
-  opacity: 0.55;
-}
-
-.settings-v2-voices-row[data-disabled]:hover {
-  background-color: transparent;
-}
-
-.settings-v2-voices-row-toggle {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.settings-v2-voices-row-progress {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 110px;
-  flex-shrink: 0;
-}
-
-.settings-v2-voices-row-progress .settings-v2-voices-progress-track {
-  flex: 1;
-  height: 5px;
-}
-
-.settings-v2-voices-row-progress-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: #8e8e93;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.settings-v2-voices-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding-top: 14px;
-}
-
-.settings-v2-voices-pagination-label {
-  font-size: 12px;
-  font-weight: 550;
-  color: #8e8e93;
-  font-variant-numeric: tabular-nums;
-}
-
-.settings-v2-voices-info {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 0 4px 10px 32px;
-  padding: 12px 16px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-}
-
-.settings-v2-voices-info-title {
-  font-size: 13px;
-  font-weight: 650;
-  color: #ffffff;
-}
-
-.settings-v2-voices-info-grid {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 12px;
-  font-size: 12px;
-}
-
-.settings-v2-voices-info-caption {
-  color: #6e6e73;
-}
-
-.settings-v2-voices-info-caption::after {
-  content: ":";
-}
-
-.settings-v2-voices-info-value {
-  color: #d1d1d6;
-  font-variant-numeric: tabular-nums;
-}
-
-/* ==========================================================================
-   Microphone & Dictation (Codex Desktop Style)
-   ========================================================================== */
-
-.settings-v2-mic-tester {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px 18px;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--v2-background-bg-layer-02, rgba(255, 255, 255, 0.04)) 95%, transparent);
-  border: 1px solid var(--v2-border-border-weak, rgba(255, 255, 255, 0.08));
-  margin-top: 6px;
-  transition: all 0.2s ease;
-}
-
-.settings-v2-mic-tester-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
-}
-
-.settings-v2-mic-tester-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.settings-v2-mic-tester-title-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.settings-v2-mic-tester-heading {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--v2-text-text-base, #ffffff);
-}
-
-.settings-v2-mic-tester-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 2px 8px;
-  border-radius: 9999px;
-  font-size: 10.5px;
-  font-weight: 550;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--v2-text-text-muted, #8e8e93);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.settings-v2-mic-tester-badge[data-variant="active"] {
-  background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
-  border-color: rgba(16, 185, 129, 0.35);
-}
-
-.settings-v2-mic-tester-badge[data-variant="listening"] {
-  background: rgba(234, 179, 8, 0.12);
-  color: #facc15;
-  border-color: rgba(234, 179, 8, 0.28);
-}
-
-.settings-v2-mic-tester-badge[data-variant="error"] {
-  background: rgba(239, 68, 68, 0.15);
-  color: #f87171;
-  border-color: rgba(239, 68, 68, 0.35);
-}
-
-.settings-v2-mic-tester-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 9999px;
-  background: currentColor;
-}
-
-.settings-v2-mic-tester-badge[data-variant="active"] .settings-v2-mic-tester-dot {
-  box-shadow: 0 0 6px #34d399;
-  animation: pulse 1.5s infinite;
-}
-
-.settings-v2-mic-tester-desc {
-  font-size: 11.5px;
-  color: var(--v2-text-text-muted, #8e8e93);
-  line-height: 1.4;
-}
-
-.settings-v2-mic-meter-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  width: 100%;
-}
-
-.settings-v2-mic-meter-track {
+.settings-v2-voices-meter {
   position: relative;
-  height: 9px;
-  width: 100%;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.08);
+  flex: 1 1 200px;
+  min-width: 140px;
+  height: 8px;
   overflow: hidden;
+  border-radius: 999px;
+  background: var(--v2-background-bg-layer-03);
 }
 
-.settings-v2-mic-meter-fill {
+.settings-v2-voices-meter-fill {
   height: 100%;
-  border-radius: 9999px;
-  background: linear-gradient(90deg, #10b981 0%, #34d399 60%, #eab308 85%, #ef4444 100%);
-  transition: width 0.06s ease-out;
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    var(--v2-state-fg-success) 0%,
+    var(--v2-state-fg-success) 70%,
+    var(--v2-state-fg-warning) 88%,
+    var(--v2-state-fg-danger) 100%
+  );
+  background-size: 200px 100%;
+  transition: width 60ms linear;
 }
 
-.settings-v2-mic-meter-peak {
+.settings-v2-voices-meter-peak {
   position: absolute;
   top: 0;
   bottom: 0;
   width: 2px;
-  background: #ffffff;
-  border-radius: 1px;
-  box-shadow: 0 0 4px #ffffff;
-  pointer-events: none;
+  margin-left: -1px;
+  background: var(--v2-text-text-base);
+  opacity: 0.6;
 }
 
-.settings-v2-mic-meter-labels {
+.settings-v2-voices-meter-db {
+  width: 56px;
+  font: 11.5px/1 var(--v2-font-mono, ui-monospace, monospace);
+  text-align: right;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-voices-loopback {
+  font-size: 12px;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-voices-tester-status {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-voices-tester[data-state="ok"] .settings-v2-voices-tester-status {
+  color: var(--v2-state-fg-success);
+}
+
+.settings-v2-voices-tester[data-state="silent"] .settings-v2-voices-tester-status,
+.settings-v2-voices-tester[data-state="fallback"] .settings-v2-voices-tester-status {
+  color: var(--v2-state-fg-warning);
+}
+
+.settings-v2-voices-tester[data-state="error"] .settings-v2-voices-tester-status {
+  color: var(--v2-state-fg-danger);
+}
+
+.settings-v2-voices-tester-device {
+  color: var(--v2-text-text-muted);
+}
+
+/* ------------------------------------------------------------------ Dictation */
+
+.settings-v2-voices-words {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  font-size: 11px;
-  color: var(--v2-text-text-muted, #8e8e93);
-}
-
-.settings-v2-mic-waveform-wrap {
-  width: 100%;
-  margin-top: 2px;
-}
-
-.settings-v2-mic-options {
-  display: flex;
-  align-items: center;
-  padding-top: 4px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-/* Dictation dictionary styling */
-.settings-v2-dictation-dict-list {
-  display: flex;
-  flex-direction: column;
   gap: 6px;
-  width: 100%;
-  margin-top: 6px;
+  padding: 4px 0 14px;
 }
 
-.settings-v2-dictation-dict-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 6px 12px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  font-size: 12.5px;
-  color: var(--v2-text-text-base, #ffffff);
-  transition: all 0.15s ease;
-}
-
-.settings-v2-dictation-dict-item:hover {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.14);
-}
-
-.settings-v2-dictation-add-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  margin-top: 4px;
-}
-
-.settings-v2-shortcut-badge {
+.settings-v2-voices-word {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 8px;
-  font-size: 11.5px;
-  font-weight: 500;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--v2-text-text-base, #ffffff);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 4px;
+  padding: 2px 4px 2px 10px;
+  border: 1px solid var(--v2-border-border-muted);
+  border-radius: 999px;
+  background: var(--v2-background-bg-layer-02);
+  font-size: 12px;
+  font-weight: 550;
+  color: var(--v2-text-text-base);
 }
 
-.settings-v2-dictation-recordings-list {
+.settings-v2-voices-word-remove {
+  display: inline-grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--v2-text-text-muted);
+  cursor: pointer;
+}
+
+.settings-v2-voices-word-remove:hover {
+  background: var(--v2-background-bg-layer-03);
+  color: var(--v2-state-fg-danger);
+}
+
+.settings-v2-voices-word-form {
+  display: flex;
+  flex: 1 1 100%;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-v2-voices-word-form [data-component="text-input-v2"] {
+  flex: 1;
+  width: auto;
+}
+
+.settings-v2-voices-recordings {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  width: 100%;
-  max-height: 200px;
-  overflow-y: auto;
-  margin-top: 6px;
+  gap: 2px;
+  margin: 0;
+  padding: 0 0 12px;
+  list-style: none;
 }
 
-.settings-v2-dictation-recording-item {
+.settings-v2-voices-recording {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 12px;
+  gap: 10px;
+  padding: 6px 8px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  font-size: 12px;
 }
 
-.settings-v2-dictation-recording-text {
+.settings-v2-voices-recording:hover {
+  background: var(--v2-background-bg-layer-02);
+}
+
+.settings-v2-voices-recording-text {
   flex: 1;
-  color: var(--v2-text-text-base, #ffffff);
-  white-space: nowrap;
+  min-width: 0;
   overflow: hidden;
+  font-size: 12.5px;
   text-overflow: ellipsis;
-}
-
-.settings-v2-dictation-recording-meta {
-  font-size: 11px;
-  color: var(--v2-text-text-muted, #8e8e93);
   white-space: nowrap;
+  color: var(--v2-text-text-base);
 }
 
-/* ==========================================================================
-   Grid de 4 Columnas Semi-Juntas para Voces
-   ========================================================================== */
+.settings-v2-voices-recording-meta {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--v2-text-text-muted);
+}
+
+/* ------------------------------------------------------------------ Reading aloud */
+
+.settings-v2-voices-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--v2-border-border-muted);
+  border-radius: 14px;
+  background: var(--v2-background-bg-layer-01);
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.settings-v2-voices-hero[data-active] {
+  border-color: color-mix(in srgb, var(--v2-text-text-accent) 35%, transparent);
+  background:
+    radial-gradient(90% 160% at 0% 0%, color-mix(in srgb, var(--v2-text-text-accent) 12%, transparent), transparent 65%),
+    var(--v2-background-bg-layer-01);
+}
+
+.settings-v2-voices-hero-icon {
+  display: grid;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--v2-background-bg-layer-03);
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-voices-hero[data-active] .settings-v2-voices-hero-icon {
+  background: color-mix(in srgb, var(--v2-text-text-accent) 16%, var(--v2-background-bg-layer-02));
+  color: var(--v2-text-text-accent);
+}
+
+.settings-v2-voices-hero-copy {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.settings-v2-voices-hero-title {
+  font-size: 14px;
+  font-weight: 620;
+  color: var(--v2-text-text-base);
+}
+
+.settings-v2-voices-hero-description {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-voices-engine {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--v2-border-border-muted);
+}
+
+.settings-v2-voices-engine-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--v2-text-text-muted);
+}
+
+/* ------------------------------------------------------------------ Local voices */
 
 .settings-v2-voices-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px; /* "semi juntas": compacto, simétrico y ordenado */
-  width: 100%;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-@container settings-panel (max-width: 1120px) {
-  .settings-v2-voices-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@container settings-panel (max-width: 840px) {
-  .settings-v2-voices-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px;
-  }
-}
-
-@container settings-panel (max-width: 520px) {
-  .settings-v2-voices-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Tarjeta individual de Voz (Card) */
 .settings-v2-voices-card {
   display: flex;
+  min-width: 0;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--v2-border-border-muted);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  text-align: start;
-  cursor: pointer;
-  position: relative;
-  min-height: 124px;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  background: var(--v2-background-bg-layer-01);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .settings-v2-voices-card:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.16);
-  transform: translateY(-1.5px);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  border-color: var(--v2-border-border-base);
 }
 
 .settings-v2-voices-card[data-selected] {
-  background: linear-gradient(135deg, rgba(0, 113, 227, 0.18) 0%, rgba(0, 113, 227, 0.06) 100%) !important;
-  border-color: #2997ff !important;
-  box-shadow: 0 0 0 1px #2997ff, 0 4px 16px rgba(0, 113, 227, 0.25) !important;
+  border-color: var(--v2-border-border-focus);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--v2-border-border-focus) 40%, transparent);
 }
 
-.settings-v2-voices-card[data-disabled] {
-  opacity: 0.5;
+.settings-v2-voices-card[data-unavailable] {
+  opacity: 0.55;
+}
+
+.settings-v2-voices-card-main {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.settings-v2-voices-card-main:disabled {
   cursor: default;
 }
 
-.settings-v2-voices-card[data-disabled]:hover {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.07);
-  transform: none;
+.settings-v2-voices-card-main:focus-visible {
+  outline: 2px solid var(--v2-border-border-focus);
+  outline-offset: 4px;
+  border-radius: 8px;
 }
 
-/* Cabecera de la tarjeta */
-.settings-v2-voices-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  min-width: 0;
-}
-
-.settings-v2-voices-card-lead {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  min-width: 0;
-  flex: 1;
-}
-
-.settings-v2-voices-card-radio {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.settings-v2-voices-radio {
+  flex: none;
   width: 16px;
   height: 16px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  border: 1.5px solid rgba(255, 255, 255, 0.22);
-  color: #ffffff;
-  transition: all 0.15s ease;
+  border: 1.5px solid var(--v2-border-border-base);
+  border-radius: 999px;
+  transition: border-width 0.15s ease, border-color 0.15s ease;
 }
 
-.settings-v2-voices-card-radio[data-checked] {
-  border-color: #2997ff;
-  background: #0071e3;
-  box-shadow: 0 0 8px rgba(0, 113, 227, 0.6);
+.settings-v2-voices-card[data-selected] .settings-v2-voices-radio {
+  border-width: 5px;
+  border-color: var(--v2-text-text-accent);
 }
 
-.settings-v2-voices-card-radio [data-component="icon"] {
-  width: 11px;
-  height: 11px;
+.settings-v2-voices-card-copy {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .settings-v2-voices-card-name {
   overflow: hidden;
+  font-size: 13px;
+  font-weight: 620;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
-  font-weight: 600;
-  color: #ffffff;
-}
-
-.settings-v2-voices-card-actions-top {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  flex-shrink: 0;
-}
-
-.settings-v2-voices-card-toggle {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-/* Cuerpo central */
-.settings-v2-voices-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
+  color: var(--v2-text-text-base);
 }
 
 .settings-v2-voices-card-meta {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  color: #8e8e93;
-}
-
-.settings-v2-voices-card-chips {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
-}
-
-.settings-v2-voices-card-desc {
-  font-size: 11px;
-  line-height: 1.4;
-  color: #a1a1a6;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
   overflow: hidden;
-  margin: 1px 0 4px 0;
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-voices-pill {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--v2-background-bg-layer-03);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-voices-pill[data-tone="accent"] {
+  background: color-mix(in srgb, var(--v2-text-text-accent) 14%, transparent);
+  color: var(--v2-text-text-accent);
+}
+
+.settings-v2-voices-card-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   min-height: 28px;
 }
 
-/* Micro-ajuste para chips dentro de tarjeta compacta */
-.settings-v2-voices-chip {
-  flex-shrink: 0;
-  padding: 1.5px 6px;
-  border-radius: 9999px;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: #8e8e93;
-  background: rgba(255, 255, 255, 0.08);
-  white-space: nowrap;
+.settings-v2-voices-installed {
+  font-size: 11.5px;
+  font-weight: 560;
+  color: var(--v2-state-fg-success);
 }
 
-.settings-v2-voices-chip[data-variant="fish"] {
-  color: #38bdf8;
-  background: rgba(56, 189, 248, 0.14);
-  border: 1px solid rgba(56, 189, 248, 0.35);
-}
-
-.settings-v2-voices-chip[data-variant="lang"] {
-  color: #fbbf24;
-  background: rgba(251, 191, 36, 0.12);
-  border: 1px solid rgba(251, 191, 36, 0.25);
-}
-
-/* Pie de tarjeta */
-.settings-v2-voices-card-footer {
+.settings-v2-voices-progress {
   display: flex;
+  flex: 1;
   align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  margin-top: auto;
-}
-
-.settings-v2-voices-card-status {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  flex-shrink: 0;
-}
-
-.settings-v2-voices-card-progress {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 90px;
-}
-
-.settings-v2-voices-card-progress-label {
-  font-size: 10px;
-  font-weight: 600;
-  color: #8e8e93;
+  gap: 8px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+  color: var(--v2-text-text-muted);
 }
 
-/* Mini info drawer dentro de la tarjeta */
-.settings-v2-voices-card-info {
-  margin-top: 4px;
-  padding: 6px 8px;
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+.settings-v2-voices-progress-track {
+  flex: 1;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--v2-background-bg-layer-03);
 }
 
+.settings-v2-voices-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--v2-text-text-accent);
+  transition: width 0.2s ease;
+}
 
+@media (prefers-reduced-motion: reduce) {
+  .settings-v2-voices-meter-fill,
+  .settings-v2-voices-progress-fill {
+    transition: none;
+  }
+}

@@ -13,6 +13,8 @@ import type { EngineLoadOptions } from "./index"
 export interface LoadDefaults extends EngineLoadOptions {
   /** Derive context, GPU layers, threads, batch and KV cache from the GGUF header + hardware. */
   readonly auto: boolean
+  /** Compact chat payload for local models: "auto" (local or small context), "always", "never". */
+  readonly lightweight?: "auto" | "always" | "never"
 }
 
 const FILE = "local-engine-load.json"
@@ -35,6 +37,10 @@ const KEYS: ReadonlyArray<keyof EngineLoadOptions> = [
   "cpuBudget",
   "placement",
   "idleUnloadMinutes",
+  "ubatchSize",
+  "threadsBatch",
+  "nCpuMoe",
+  "loadTimeoutMinutes",
 ]
 
 let cache: LoadDefaults | undefined
@@ -46,6 +52,7 @@ function file() {
 function sanitize(input: unknown): LoadDefaults {
   const raw = (input && typeof input === "object" ? input : {}) as Record<string, unknown>
   const out: Record<string, unknown> = { auto: raw.auto !== false }
+  if (raw.lightweight === "auto" || raw.lightweight === "always" || raw.lightweight === "never") out.lightweight = raw.lightweight
   for (const key of KEYS) {
     const value = raw[key]
     if (value === undefined || value === null) continue

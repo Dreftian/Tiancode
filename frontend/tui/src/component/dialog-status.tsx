@@ -20,7 +20,8 @@ export function DialogStatus() {
       const value = typeof item === "string" ? item : item[0]
       if (value.startsWith("file://")) {
         const path = fileURLToPath(value)
-        const parts = path.split("/")
+        // fileURLToPath gives backslashes on Windows (opencode 1.18.34).
+        const parts = path.split(/[\\/]/)
         const filename = parts.pop() || path
         if (!filename.includes(".")) return { name: filename }
         const basename = filename.split(".")[0]

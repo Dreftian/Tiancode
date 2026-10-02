@@ -21,6 +21,7 @@ import { testEffect } from "../lib/effect"
 import { Tool } from "@/tool/tool"
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import { InstanceStore } from "@/project/instance-store"
+import { LocationServiceMap, locationServiceMapLayer } from "@tiancode-ai/core/location-services"
 
 const shellLayer = Layer.mergeAll(
   LayerNode.compile(
@@ -32,7 +33,9 @@ const shellLayer = Layer.mergeAll(
       Config.node,
       Agent.node,
       RuntimeFlags.node,
+      LocationServiceMap.node,
     ]),
+    [[LocationServiceMap.node, locationServiceMapLayer]],
   ),
   testInstanceStoreLayer,
 )
@@ -179,6 +182,34 @@ const mustTruncate = (result: {
     [`shell: ${process.env.SHELL || ""}`, `exit: ${String(result.metadata.exit)}`, "output:", result.output].join("\n"),
   )
 }
+
+describe("tool.shell AgentShield", () => {
+  it.live("asks shell_risk before a critical command and never runs it when refused", () =>
+    runIn(
+      projectRoot,
+      Effect.gen(function* () {
+        const requests: Array<Omit<PermissionV1.Request, "id" | "sessionID" | "tool">> = []
+        const refused = new Error("refused in test")
+        // The ask throws, so the command below is never executed.
+        const err = yield* fail({ command: "rm -rf $HOME" }, capture(requests, refused))
+        expect(err.message).toContain("refused in test")
+        expect(requests[0]?.permission).toBe("shell_risk")
+        expect(requests[0]?.metadata).toMatchObject({ command: "rm -rf $HOME", risk: { level: "high" } })
+      }),
+    ),
+  )
+
+  it.live("does not ask shell_risk for a routine command", () =>
+    runIn(
+      projectRoot,
+      Effect.gen(function* () {
+        const requests: Array<Omit<PermissionV1.Request, "id" | "sessionID" | "tool">> = []
+        yield* run({ command: "echo routine" }, capture(requests))
+        expect(requests.some((request) => request.permission === "shell_risk")).toBe(false)
+      }),
+    ),
+  )
+})
 
 describe("tool.shell", () => {
   each("basic", () =>
@@ -1195,5 +1226,55 @@ describe("tool.shell truncation", () => {
         expect(lines[lineCount - 1]).toBe(String(lineCount))
       }),
     ),
+  )
+})
+
+describe("tool.shell encoding", () => {
+  // cmd.exe writes internal commands to a pipe in the ANSI code page whatever chcp says; the agent
+  // reaches it only when it is the configured shell, so PowerShell and bash are what matter here.
+  each("keeps accents and ñ", (item) =>
+    item.label === "cmd"
+      ? Effect.void
+      : runIn(
+          projectRoot,
+          Effect.gen(function* () {
+            const result = yield* run({ command: 'echo "ñandú acción"' })
+            expect(result.metadata.output).toContain("ñandú acción")
+          }),
+        ),
+  )
+
+  const powershell = (label: string) => label === "pwsh" || label === "powershell"
+
+  // A UTF-8 $OutputEncoding with a preamble made every string piped into a native program start with
+  // a BOM, which broke `$json | python -c "json.load(...)"`.
+  each("pipes into native programs without a BOM", (item) =>
+    !powershell(item.label)
+      ? Effect.void
+      : runIn(
+          projectRoot,
+          Effect.gen(function* () {
+            const result = yield* run({
+              command: `'hi' | node -e "process.stdin.on('data', (d) => console.log(d[0]))"`,
+            })
+            expect(result.metadata.output.trim()).toBe(String("h".charCodeAt(0)))
+          }),
+        ),
+  )
+
+  each("still runs scripts that open with using", (item) =>
+    !powershell(item.label)
+      ? Effect.void
+      : runIn(
+          projectRoot,
+          Effect.gen(function* () {
+            const result = yield* run({ command: "using namespace System.Net\n[WebUtility]::UrlEncode('a b')" })
+            expect(result.metadata.output).toContain("a+b")
+            const commented = yield* run({
+              command: "#requires -Version 5\n# encode\nusing namespace System.Net\n[WebUtility]::UrlEncode('c d')",
+            })
+            expect(commented.metadata.output).toContain("c+d")
+          }),
+        ),
   )
 })

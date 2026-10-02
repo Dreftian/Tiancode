@@ -28,6 +28,37 @@ export function getConfiguredAgentVariant(input: { agent: Agent | undefined; mod
   return input.agent.variant
 }
 
+/** Stored as a model's remembered variant when the user explicitly picked the default effort. */
+export const DEFAULT_VARIANT = "default"
+
+/**
+ * The effort to use, in opencode's order: this session's explicit pick, then what the user last
+ * picked for this model (an explicit "default" sticks too), then the agent's configured variant.
+ */
+export function resolveVariant(input: VariantInput & { remembered: string | undefined }) {
+  if (input.selected === null) return undefined
+  if (input.selected && input.variants.includes(input.selected)) return input.selected
+  if (input.remembered === DEFAULT_VARIANT) return undefined
+  if (input.remembered && input.variants.includes(input.remembered)) return input.remembered
+  if (input.configured && input.variants.includes(input.configured)) return input.configured
+  return undefined
+}
+
+/** The model a configured "provider/model" id names; only the first slash separates them. */
+export function parseModelID(value: string | undefined) {
+  if (!value) return
+  const slash = value.indexOf("/")
+  if (slash <= 0 || slash === value.length - 1) return
+  return { providerID: value.slice(0, slash), modelID: value.slice(slash + 1) }
+}
+
+/** The next model when cycling; a current model outside the list jumps to its first or last entry. */
+export function nextCycleIndex(index: number, length: number, direction: 1 | -1) {
+  if (length === 0) return -1
+  if (index === -1) return direction > 0 ? 0 : length - 1
+  return (index + direction + length) % length
+}
+
 export function resolveModelVariant(input: VariantInput) {
   if (input.selected === null) return undefined
   if (input.selected && input.variants.includes(input.selected)) return input.selected

@@ -4,7 +4,7 @@ import { UPDATER_ENABLED } from "./constants"
 import { createUpdaterController, type UpdaterReadyRecord } from "./updater-controller"
 import { getLogger } from "./logging"
 import { getStore } from "./store"
-import { setAppQuitting } from "./windows"
+import { getAnyMainWindow, getLastFocusedWindow, setAppQuitting } from "./windows"
 import { nativeT } from "./native-translations"
 import { notifyUser } from "./notifications"
 import { backupNow } from "./backup"
@@ -85,7 +85,32 @@ export function setupAutoUpdater(stop: () => Promise<void>) {
   return controller
 }
 
+// Windows (by webContents id) whose page has mounted the update assistant.
+const assistants = new Set<number>()
+
+export function setUpdateAssistant(id: number, listening: boolean) {
+  if (listening) assistants.add(id)
+  else assistants.delete(id)
+}
+
 export async function showUpdaterDialog(controller: ReturnType<typeof setupAutoUpdater>, alertOnFail: boolean) {
+  // With a window whose page shows the update assistant, the assistant runs the check and shows the
+  // notes and the progress; otherwise (no window, a page still loading or without it) the system
+  // dialogs below do.
+  const win = getLastFocusedWindow() ?? getAnyMainWindow()
+  if (
+    alertOnFail &&
+    win &&
+    !win.isDestroyed() &&
+    !win.webContents.isLoading() &&
+    assistants.has(win.webContents.id)
+  ) {
+    if (win.isMinimized()) win.restore()
+    win.show()
+    win.focus()
+    win.webContents.send("updater-show")
+    return
+  }
   const state = await controller.check()
   if (state.status === "error") {
     if (!alertOnFail) return

@@ -20,6 +20,7 @@ describe("automatic speech eligibility", () => {
     expect(isCompletedAutoSpeakMessage({ created: now - 500, now })).toBe(false)
     expect(isCompletedAutoSpeakMessage({ created: now - 500, completed: now - 1, error: {}, now })).toBe(false)
     expect(isCompletedAutoSpeakMessage({ created: now - 500, completed: now - 1, summary: true, now })).toBe(false)
-    expect(isCompletedAutoSpeakMessage({ created: now - 120_001, completed: now - 1, now })).toBe(false)
+    expect(isCompletedAutoSpeakMessage({ created: now - 300_000, completed: now - 1, now })).toBe(true)
+    expect(isCompletedAutoSpeakMessage({ created: now - 300_000, completed: now - 120_001, now })).toBe(false)
   })
 })

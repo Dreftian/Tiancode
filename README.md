@@ -192,7 +192,7 @@ Opciones útiles: `-m proveedor/modelo` elige el modelo, `--agent` el especialis
 - **Global:** `~/.config/tiancode/tiancode.json` (o `.jsonc`) guarda proveedores, modelo por defecto, tema, agentes, MCP y plugins.
 - **Por proyecto:** un `tiancode.json` o `tiancode.jsonc` en la raíz del repositorio (o en `.tiancode/`) se fusiona sobre la configuración global.
 - **Servidor:** con `tiancode serve` o `tiancode web` fuera de tu máquina, define `TIANCODE_SERVER_PASSWORD` para exigir autenticación HTTP básica.
-- **App de escritorio:** los datos viven en `%APPDATA%\ai.tiancode.desktop.release` (instalador) o junto al ejecutable (portable); los respaldos se gestionan desde **Ajustes › General**.
+- **App de escritorio:** los datos viven en `%APPDATA%\ai.tiancode.desktop.release` (instalador) o junto al ejecutable (portable). Si el instalador actualiza una instalación anterior cuyos datos están en `%APPDATA%\ai.tiancode.desktop`, sigue usando esa carpeta para conservar sesiones, claves y ajustes, salvo que ya trabajes en la carpeta nueva con tus propias claves; **Ajustes › General › Datos** muestra la carpeta en uso y cambia a la otra. Los respaldos se gestionan desde **Ajustes › General**.
 
 ## Arquitectura
 

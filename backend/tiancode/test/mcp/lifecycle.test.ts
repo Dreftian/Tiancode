@@ -386,6 +386,24 @@ it.instance("connect preserves an implicitly enabled server configuration", () =
   }),
 )
 
+it.instance(
+  "turning on a server only the project defines approves it in the global config",
+  () =>
+    Effect.gen(function* () {
+      const config = yield* Config.Service
+      const mcp = yield* MCP.Service
+      expect((yield* config.getGlobal()).mcp?.["project-only"]).toBeUndefined()
+
+      yield* mcp.connect("project-only")
+
+      expect((yield* config.getGlobal()).mcp?.["project-only"]?.enabled).toBe(true)
+    }),
+  {
+    git: true,
+    config: { mcp: { "project-only": { type: "remote", url: "http://127.0.0.1:9/mcp", timeout: 500 } } },
+  },
+)
+
 it.instance("add() closes the old protocol session when replacing a server", () =>
   Effect.gen(function* () {
     const first = yield* lifecycleServer()

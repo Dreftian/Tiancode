@@ -56,11 +56,14 @@ describe("config HttpApi", () => {
         lsp: false,
       })
       yield* Fiber.join(disposed)
-      expect(yield* Effect.promise(() => Bun.file(path.join(tmp.path, "config.json")).json())).toMatchObject({
+      // Config.update merges into the project's tiancode.json (the file the loader reads) and
+      // removes any config.json left by older versions.
+      expect(yield* Effect.promise(() => Bun.file(path.join(tmp.path, "tiancode.json")).json())).toMatchObject({
         username: "patched-user",
         formatter: false,
         lsp: false,
       })
+      expect(yield* Effect.promise(() => Bun.file(path.join(tmp.path, "config.json")).exists())).toBe(false)
     }),
   )
 

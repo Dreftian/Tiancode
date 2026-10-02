@@ -52,6 +52,10 @@ export class Intelligence extends Schema.Class<Intelligence>("ConfigV2.Experimen
   autoSkillLearn: Schema.Boolean.pipe(Schema.optional).annotate({
     description: "Allow the agent to write SKILL.md files with the skill_create tool",
   }),
+  smartAlerts: Schema.Boolean.pipe(Schema.optional).annotate({
+    description:
+      "With the local decision model installed, say whether a finished turn needs an answer or failed in notifications and remote alerts",
+  }),
 }) {}
 
 /**

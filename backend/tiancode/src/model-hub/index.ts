@@ -189,9 +189,23 @@ export interface QuantFile {
   readonly recommended: boolean
 }
 
+// Files a single download cannot run: a vision projector (mmproj) only works next to its model,
+// and one shard of a split model (-00001-of-00003) is useless without the others.
+const NOT_LOADABLE = /(?:^|\/)mmproj[^/]*\.gguf$|-\d{5}-of-\d{5}\.gguf$/i
+
+/** A .gguf strictly inside one of the models roots: never a root itself, never `..` out of one. */
+export function isDeletableModelFile(file: string, roots: readonly string[]) {
+  const target = path.resolve(file)
+  if (!/\.gguf$/i.test(target)) return false
+  return roots.some((root) => {
+    const relative = path.relative(path.resolve(root), target)
+    return relative !== "" && !relative.startsWith("..") && !path.isAbsolute(relative)
+  })
+}
+
 export function parseQuantFiles(siblings: readonly HfSibling[] | undefined): QuantFile[] {
   return (siblings ?? [])
-    .filter((sibling) => sibling.rfilename.toLowerCase().endsWith(".gguf"))
+    .filter((sibling) => sibling.rfilename.toLowerCase().endsWith(".gguf") && !NOT_LOADABLE.test(sibling.rfilename))
     .map((sibling) => {
       const match = sibling.rfilename.match(QUANT_PATTERN)
       const size = sibling.lfs?.size ?? sibling.size
@@ -471,6 +485,8 @@ export interface Interface {
   readonly downloads: () => Effect.Effect<DownloadState[]>
   readonly download: (model: string, file: string) => Effect.Effect<DownloadState>
   readonly cancelDownload: (id: string) => Effect.Effect<boolean>
+  /** Delete one model file by its exact path; only files inside a models root. */
+  readonly deleteLocal: (file: string) => Effect.Effect<boolean>
   /**
    * Remove model sub-directories that are left genuinely empty (e.g. the
    * `models/bartowski/` that survives a .gguf deletion and makes the Hub look
@@ -653,7 +669,8 @@ const layer = Layer.effect(
     const treeEntries = Effect.fn("ModelHub.tree")(function* (model: string) {
       const hit = treeCache.get(model)
       if (hit && Date.now() - hit.at < TREE_TTL_MS) return hit.entries
-      const url = `${HUGGINGFACE_API}/models/${model}/tree/main`
+      // Recursive: large quants often live in sub-folders that a flat listing leaves out.
+      const url = `${HUGGINGFACE_API}/models/${model}/tree/main?recursive=true`
       const data = yield* HttpClientRequest.get(url).pipe(
         HttpClientRequest.acceptJson,
         http.execute,
@@ -944,98 +961,68 @@ const layer = Layer.effect(
       return toDownloadState(job)
     })
 
-    const cancelDownload = Effect.fn("ModelHub.cancelDownload")(function* (id: string) {
-      const decodedId = decodeURIComponent(id).trim()
-      const matches = (j: MutableDownloadJob) =>
-        j.id === id ||
-        j.id === decodedId ||
-        j.file === id ||
-        j.file === decodedId ||
-        j.file.toLowerCase() === decodedId.toLowerCase() ||
-        j.file.replace(/\.gguf$/i, "").toLowerCase() === decodedId.replace(/\.gguf$/i, "").toLowerCase() ||
-        `${j.owner}/${j.repo}` === decodedId ||
-        j.destPath.includes(decodedId) ||
-        j.destPath.includes(id)
-
-      const targetJobs: MutableDownloadJob[] = []
-      for (const [k, j] of jobs.entries()) {
-        if (k === id || k === decodedId || matches(j)) {
-          targetJobs.push(j)
-        }
-      }
-
-      for (const job of targetJobs) {
-        controllers.get(job.id)?.abort()
-        controllers.delete(job.id)
-        jobs.delete(job.id)
-
-        yield* Effect.tryPromise(async () => {
-          if (job.tempPath) {
-            await rm(job.tempPath, { force: true, recursive: true }).catch(() => {})
-          }
-          if (job.destPath) {
-            await rm(job.destPath, { force: true, recursive: true }).catch(() => {})
-          }
-          const parentDir = path.dirname(job.destPath)
-          if (parentDir && parentDir !== resolvedModelsDir() && parentDir.startsWith(resolvedModelsDir())) {
-            const remaining = await readdir(parentDir).catch(() => [])
-            if (remaining.length === 0) {
-              await rm(parentDir, { recursive: true, force: true }).catch(() => {})
-            }
-          }
-        }).pipe(Effect.catch(() => Effect.void))
-      }
-
-      // Direct disk cleanup fallback for any loose files or folders matching id / decodedId
-      yield* Effect.tryPromise(async () => {
-        if (process.platform === "win32") {
-          await execFileAsync("taskkill", ["/F", "/IM", "llama-server.exe", "/T"], { windowsHide: true }).catch(() => {})
-          await execFileAsync("taskkill", ["/F", "/IM", "llama.exe", "/T"], { windowsHide: true }).catch(() => {})
-        }
-
-        const candidateDirs = modelsRootCandidates(resolvedModelsDir())
-
-        const cleanDir = async (dir: string) => {
-          const entries = await readdir(dir, { withFileTypes: true }).catch(() => [])
-          for (const entry of entries) {
-            const fullPath = path.join(dir, entry.name)
-            if (
-              entry.name === id ||
-              entry.name === decodedId ||
-              entry.name.toLowerCase() === decodedId.toLowerCase() ||
-              entry.name.replace(/\.gguf$/i, "").toLowerCase() === decodedId.replace(/\.gguf$/i, "").toLowerCase()
-            ) {
-              await rm(fullPath, { recursive: true, force: true }).catch(async () => {
-                if (process.platform === "win32") {
-                  await execFileAsync(
-                    "powershell",
-                    [
-                      "-NoProfile",
-                      "-NonInteractive",
-                      "-WindowStyle",
-                      "Hidden",
-                      "-Command",
-                      `Remove-Item -LiteralPath '${fullPath}' -Force -Recurse -ErrorAction SilentlyContinue`,
-                    ],
-                    { windowsHide: true },
-                  ).catch(() => {})
-                }
-              })
-            } else if (entry.isDirectory()) {
-              await cleanDir(fullPath)
-            }
-          }
-        }
-
-        for (const dir of candidateDirs) {
-          if (existsSync(dir)) {
-            await cleanDir(dir)
-          }
+    // Removes a job's files: the partial download, the finished file, and the repo folder when that
+    // leaves it empty. Never anything outside the models folder.
+    const removeJobFiles = (job: MutableDownloadJob) =>
+      Effect.tryPromise(async () => {
+        if (job.tempPath) await rm(job.tempPath, { force: true }).catch(() => {})
+        if (job.destPath) await rm(job.destPath, { force: true }).catch(() => {})
+        const parentDir = path.dirname(job.destPath)
+        if (parentDir && parentDir !== resolvedModelsDir() && parentDir.startsWith(resolvedModelsDir())) {
+          const remaining = await readdir(parentDir).catch(() => [])
+          if (remaining.length === 0) await rm(parentDir, { recursive: true, force: true }).catch(() => {})
         }
       }).pipe(Effect.catch(() => Effect.void))
 
+    // Exactly one job: by id, or (older clients) by its exact file name. A partial-name match used to
+    // delete other models whose names contained this one, and every cancel killed every llama-server
+    // on the machine, including the one serving the chat.
+    const cancelDownload = Effect.fn("ModelHub.cancelDownload")(function* (id: string) {
+      const decodedId = decodeURIComponent(id).trim()
+      const job =
+        jobs.get(decodedId) ??
+        jobs.get(id) ??
+        Array.from(jobs.values()).find((candidate) => candidate.file.toLowerCase() === decodedId.toLowerCase())
+      if (!job) return false
+      controllers.get(job.id)?.abort()
+      controllers.delete(job.id)
+      jobs.delete(job.id)
+      yield* removeJobFiles(job)
       yield* fs.writeJson(jobsFile(), Array.from(jobs.values())).pipe(Effect.catch(() => Effect.void))
       return true
+    })
+
+    const deleteLocal = Effect.fn("ModelHub.deleteLocal")(function* (file: string) {
+      const target = path.resolve(file)
+      if (!isDeletableModelFile(target, modelsRootCandidates(resolvedModelsDir()))) return false
+      const sameFile = (candidate: string) =>
+        process.platform === "win32" ? candidate.toLowerCase() === target.toLowerCase() : candidate === target
+      for (const job of Array.from(jobs.values()).filter((candidate) => sameFile(path.resolve(candidate.destPath)))) {
+        controllers.get(job.id)?.abort()
+        controllers.delete(job.id)
+        jobs.delete(job.id)
+      }
+      const removed = yield* Effect.tryPromise(async () => {
+        // A missing file is not a deletion: nothing to report and nothing to tidy up.
+        if (!(await stat(target).then((info) => info.isFile(), () => false))) return false
+        await rm(`${target}.part`, { force: true }).catch(() => {})
+        // Windows can hold the file for a moment after the engine that mapped it was stopped.
+        await rm(target, { force: true, maxRetries: 5, retryDelay: 200 })
+        // Only this file's own folders, up to its models root; never other empty folders there.
+        const root = modelsRootCandidates(resolvedModelsDir()).find((candidate) => isDeletableModelFile(target, [candidate]))
+        if (!root) return true
+        const belowRoot = (dir: string) => {
+          const relative = path.relative(path.resolve(root), dir)
+          return relative !== "" && !relative.startsWith("..") && !path.isAbsolute(relative)
+        }
+        for (let dir = path.dirname(target); belowRoot(dir); dir = path.dirname(dir)) {
+          if ((await readdir(dir).catch(() => ["unreadable"])).length > 0) break
+          await rmdir(dir).catch(() => {})
+        }
+        return true
+      }).pipe(Effect.catch(() => Effect.succeed(false)))
+      yield* fs.writeJson(jobsFile(), Array.from(jobs.values())).pipe(Effect.catch(() => Effect.void))
+      return removed
     })
 
     const pruneEmptyDirs = Effect.fn("ModelHub.pruneEmptyDirs")(function* () {
@@ -1166,6 +1153,7 @@ const layer = Layer.effect(
       downloads: listDownloads,
       download,
       cancelDownload,
+      deleteLocal,
       pruneEmptyDirs,
       listLocal,
       recommendFor,

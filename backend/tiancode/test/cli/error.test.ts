@@ -89,6 +89,13 @@ describe("cli.error", () => {
     expect(FormatError({ _tag: "ProviderInitError", ...data })).toBe(expected)
   })
 
+  test("prints the server's next step when no provider is available", () => {
+    const message = "No providers are available. Run `tiancode auth login` or pass --model provider/model."
+
+    expect(FormatError({ name: "ProviderNoProvidersError", data: { message } })).toBe(message)
+    expect(FormatError({ name: "ProviderNoModelsError", data: { message } })).toBe(message)
+  })
+
   test("formats cancelled UI errors as empty output", () => {
     expect(FormatError(new UI.CancelledError())).toBe("")
   })

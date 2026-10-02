@@ -32,6 +32,8 @@ export function TabNavItem(props: {
   dragging?: boolean
   pressed?: boolean
   hidden?: boolean
+  // Vertical tabs: show the project name under the title.
+  subtitle?: boolean
 }) {
   const language = useLanguage()
   const [editing, setEditing] = createSignal(false)
@@ -182,8 +184,8 @@ export function TabNavItem(props: {
       data-slot="titlebar-tab-item"
       data-title-overflow={titleOverflowing()}
       data-editing={editing()}
-      class="group relative flex h-7 w-full min-w-0 select-none flex-row items-center gap-1.5 overflow-hidden whitespace-nowrap rounded-[6px] px-1.5 [container-type:inline-size]"
-      classList={{ invisible: props.hidden }}
+      class="group relative flex w-full min-w-0 select-none flex-row items-center gap-1.5 overflow-hidden whitespace-nowrap rounded-[6px] px-1.5 [container-type:inline-size]"
+      classList={{ invisible: props.hidden, "h-7": !props.subtitle, "min-h-9 py-1": !!props.subtitle }}
       data-active={props.active}
       data-dragging={props.dragging}
       data-state={props.active || props.pressed ? "pressed" : undefined}
@@ -241,6 +243,7 @@ export function TabNavItem(props: {
             )}
           </Show>
         </span>
+        <span class="flex min-w-0 flex-1 flex-col">
         <span
           ref={(el) => {
             titleEl = el
@@ -248,7 +251,7 @@ export function TabNavItem(props: {
           }}
           data-slot="tab-title"
           data-titlebar-tab-title
-          class="min-w-0 flex-1 outline-none leading-4"
+          class="min-w-0 w-full outline-none leading-4"
           classList={{
             "overflow-hidden text-clip whitespace-nowrap": !editing(),
             "select-text": editing(),
@@ -277,6 +280,14 @@ export function TabNavItem(props: {
             event.preventDefault()
           }}
         />
+        <Show when={props.subtitle && projectName()}>
+          {(name) => (
+            <span data-slot="tab-subtitle" class="truncate text-[11px] font-normal leading-3 text-v2-text-text-faint">
+              {name()}
+            </span>
+          )}
+        </Show>
+        </span>
       </a>
 
       <div data-slot="tab-close">

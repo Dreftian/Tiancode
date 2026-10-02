@@ -2,6 +2,11 @@ import { describe, expect, test } from "bun:test"
 import { readFileSync } from "node:fs"
 import path from "node:path"
 import {
+  hasOverrides,
+  overridePlan,
+  parseOverrideNumber,
+  readOverrides,
+  sameOverrides,
   agentCanDelegate,
   agentDisablePatch,
   buildDelegationTree,
@@ -62,6 +67,9 @@ const CATALOG = ["read", "grep", "glob", "bash", "edit", "write", "webfetch", "w
 
 const panelAgent = (overrides: Partial<PanelAgent> & { name: string }): PanelAgent => ({
   title: overrides.name,
+  group: "other",
+  overrides: {},
+  customized: false,
   role: "",
   category: "",
   description: "",
@@ -92,6 +100,21 @@ describe("mergePanelAgents", () => {
       }),
     ).toEqual([])
   })
+  test("keeps a built-in the user hid from @, so it can be shown again", () => {
+    const merged = mergePanelAgents({
+      server: [
+        { name: "pentest", mode: "subagent", native: true, hidden: true },
+        { name: "pentest-alias", mode: "subagent", native: true, hidden: true },
+      ],
+      meta: { pentest: meta[Object.keys(meta)[0]!]! },
+      config: { pentest: { hidden: true } },
+      isEnabled: () => true,
+      fallback,
+    })
+    expect(merged.map((agent) => agent.name)).toEqual(["pentest"])
+    expect(merged[0]!.overrides.hidden).toBe(true)
+  })
+
   // The bug this whole panel had: agentList() was built only from the hardcoded metadata map,
   // so the user's own agent/*.md files — nine of them — never appeared anywhere in the UI.
   test("lists the agents the server reports even when there is no metadata for them", () => {
@@ -364,13 +387,13 @@ describe("agentDisablePatch", () => {
   test("names one agent and nothing else", () => {
     const patch = agentDisablePatch("Seguridad", false)
 
+    expect(Object.keys(patch)).toEqual(["agent"])
     expect(Object.keys(patch.agent)).toEqual(["Seguridad"])
-    expect(Object.keys(patch.agents)).toEqual(["Seguridad"])
-    expect(patch.agent["Seguridad"]).toEqual({ disable: true, disabled: true })
+    expect(patch.agent["Seguridad"]).toEqual({ disable: true })
   })
 
-  test("enabling clears both spellings of the flag", () => {
-    expect(agentDisablePatch("Hao", true).agent["Hao"]).toEqual({ disable: false, disabled: false })
+  test("enabling clears the flag without an unknown key that would reach the model options", () => {
+    expect(agentDisablePatch("Hao", true).agent["Hao"]).toEqual({ disable: false })
   })
 
   test("carries no prompt, description or other definition field", () => {
@@ -528,5 +551,65 @@ describe("delegation tree wiring", () => {
     expect(tree).toContain("settings.subAgents.hierarchy.rootDisabled")
     // The note has to come from the reason, not from `children.length > 0`.
     expect(tree).toMatch(/root\.reason === "denied"/)
+  })
+})
+
+describe("sub-agent overrides", () => {
+  test("reads only the fields the editor manages and keeps both disable spellings as one", () => {
+    expect(
+      readOverrides({
+        model: "openai/gpt-5",
+        temperature: 0.2,
+        steps: 12,
+        prompt_append: "Responde en español.",
+        color: "#E11D48",
+        hidden: true,
+        disabled: true,
+        options: { reasoningEffort: "high" },
+        permission: { bash: "ask", edit: "deny", read: { "*.env": "deny" }, unknown: "allow" },
+      }),
+    ).toEqual({
+      model: "openai/gpt-5",
+      temperature: 0.2,
+      steps: 12,
+      prompt_append: "Responde en español.",
+      color: "#E11D48",
+      hidden: true,
+      disable: true,
+      permission: { bash: "ask", edit: "deny" },
+    })
+    expect(readOverrides(undefined)).toEqual({})
+    expect(readOverrides({ model: "  ", prompt_append: " " })).toEqual({})
+  })
+
+  test("a switched-off agent alone is not customized", () => {
+    expect(hasOverrides({ disable: true })).toBe(false)
+    expect(hasOverrides({ disable: true, model: "x/y" })).toBe(true)
+  })
+
+  test("clearing a field removes that field by name, because a config merge cannot delete keys", () => {
+    const saved = { model: "openai/gpt-5", disable: true, permission: { bash: "ask" as const } }
+    expect(overridePlan(saved, { model: "openai/gpt-5", disable: true })).toEqual({
+      cleared: ["permission.bash"],
+      patch: { model: "openai/gpt-5", disable: true },
+    })
+    expect(overridePlan(saved, { permission: { bash: "ask" }, disable: true }).cleared).toEqual(["model"])
+    // Changing or adding values is a plain merge.
+    expect(overridePlan(saved, { model: "x/y", disable: true, permission: { bash: "deny", edit: "ask" } }).cleared).toEqual([])
+  })
+
+  test("compares overrides by value, permissions included", () => {
+    expect(sameOverrides({ model: "a/b", permission: { bash: "ask" } }, { permission: { bash: "ask" }, model: "a/b" })).toBe(true)
+    expect(sameOverrides({ permission: { bash: "ask" } }, { permission: { bash: "deny" } })).toBe(false)
+    expect(sameOverrides({ temperature: undefined }, {})).toBe(true)
+  })
+
+  test("numbers typed in the editor are validated, and empty means not set", () => {
+    expect(parseOverrideNumber("", { min: 0, max: 2 })).toEqual({ value: undefined, valid: true })
+    expect(parseOverrideNumber("0,7", { min: 0, max: 2 })).toEqual({ value: 0.7, valid: true })
+    expect(parseOverrideNumber("3", { min: 0, max: 2 }).valid).toBe(false)
+    expect(parseOverrideNumber("2.5", { min: 1, integer: true }).valid).toBe(false)
+    expect(parseOverrideNumber("abc", { min: 1 }).valid).toBe(false)
+    expect(parseOverrideNumber("40", { min: 1, integer: true })).toEqual({ value: 40, valid: true })
   })
 })

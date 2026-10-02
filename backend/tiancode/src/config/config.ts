@@ -10,7 +10,7 @@ import fsNode from "fs/promises"
 import { Flag } from "@tiancode-ai/core/flag/flag"
 import { Auth } from "../auth"
 import { Env } from "../env"
-import { applyEdits, modify } from "jsonc-parser"
+import { applyEdits, findNodeAtLocation, modify, parse, parseTree } from "jsonc-parser"
 import { InstallationLocal } from "@tiancode-ai/core/installation/version"
 import { existsSync } from "fs"
 import { Account } from "@/account/account"
@@ -124,9 +124,19 @@ type State = {
 export interface Interface {
   readonly get: () => Effect.Effect<Info>
   readonly getGlobal: () => Effect.Effect<Info>
+  /** The global config file as written: `{env:…}` and `{file:…}` placeholders are not substituted. */
+  readonly getGlobalRaw: () => Effect.Effect<Info>
   readonly getConsoleState: () => Effect.Effect<ConsoleState>
   readonly update: (config: Info) => Effect.Effect<void>
   readonly updateGlobal: (config: Info) => Effect.Effect<{ info: Info; changed: boolean }>
+  readonly removeMcp: (name: string) => Effect.Effect<void>
+  /** Removes an MCP server from the global config only; needs no open project. */
+  readonly removeGlobalMcp: (name: string) => Effect.Effect<void>
+  /**
+   * Drops an agent's overrides (`agent.<name>`) from one scope's file, or only the listed fields
+   * ("model", "permission.bash"); false when there was nothing to remove.
+   */
+  readonly resetAgent: (name: string, scope: "project" | "global", fields?: readonly string[]) => Effect.Effect<boolean>
   /**
    * Delete a local model from the provider registry in BOTH the project and the
    * global config file. update()/updateGlobal() cannot express this: they merge.
@@ -171,18 +181,63 @@ function writeGlobalAtomic(file: string, content: string) {
   })
 }
 
+// One action ("allow") means that action for every pattern, and `*` is the fallback the specific
+// rules override (the last matching rule wins), so it has to come first. Merging an object patch
+// into a string replaced it, so `"permission": "allow"` lost its allow-all, and a `*` added to an
+// existing map landed after the site rules it should yield to and overrode them.
+function permissionBase(base: unknown, patch: unknown): unknown {
+  if (!isRecord(patch)) return base
+  if (typeof base === "string") return { "*": base }
+  if (!isRecord(base)) return base
+  const entries = Object.entries(base).map(([key, value]) => [key, permissionBase(value, patch[key])] as const)
+  return Object.fromEntries("*" in patch && !("*" in base) ? [["*", patch["*"]], ...entries] : entries)
+}
+
+function expandJsoncPermission(input: string, patch: unknown) {
+  const parsed: unknown = parse(input)
+  if (!isRecord(patch) || !isRecord(parsed) || parsed.permission === undefined) return input
+  const current = parsed.permission
+  if (typeof current === "string")
+    return applyEdits(input, modify(input, ["permission"], { "*": current }, JSONC_FORMAT))
+  if (!isRecord(current)) return input
+  return Object.entries(patch).reduce((result, [key, value]) => {
+    const rule = current[key]
+    if (typeof rule !== "string" || !isRecord(value)) return result
+    return applyEdits(result, modify(result, ["permission", key], { "*": rule }, JSONC_FORMAT))
+  }, input)
+}
+
+const JSONC_FORMAT = { formattingOptions: { insertSpaces: true, tabSize: 2 } }
+
 function patchJsonc(input: string, patch: unknown, path: string[] = []): string {
-  if (!isRecord(patch)) {
-    const edits = modify(input, path, patch, {
-      formattingOptions: {
-        insertSpaces: true,
-        tabSize: 2,
-      },
-    })
+  if (!isRecord(patch) || (path.length === 2 && path[0] === "mcp" && "type" in patch)) {
+    // A new `*` permission rule is the fallback, so it goes before the rules it yields to. Only inside
+    // a map that exists: modify() creates a missing parent through the same hook, and a whole new
+    // `browser` map placed first would fall under a top-level `*` that now came after it.
+    const tree = path[0] === "permission" && path.at(-1) === "*" ? parseTree(input) : undefined
+    const first = tree && findNodeAtLocation(tree, path.slice(0, -1))
+    const edits = modify(input, path, patch, { ...JSONC_FORMAT, getInsertionIndex: first ? () => 0 : undefined })
     return applyEdits(input, edits)
   }
 
   return Object.entries(patch).reduce((result, [key, value]) => patchJsonc(result, value, [...path, key]), input)
+}
+
+// A full MCP definition replaces that server. Deep merging remote into local
+// retains invalid URL/command fields and prevents removing old headers/secrets.
+export function mergeConfigPatch(base: Record<string, unknown>, patch: Record<string, unknown>) {
+  const merged = mergeDeep(
+    isRecord(patch.permission) && base.permission !== undefined
+      ? { ...base, permission: permissionBase(base.permission, patch.permission) }
+      : base,
+    patch,
+  )
+  if (isRecord(patch.mcp) && isRecord(merged.mcp)) {
+    for (const [name, entry] of Object.entries(patch.mcp)) {
+      if (isRecord(entry) && "type" in entry) merged.mcp[name] = entry
+    }
+  }
+  return merged
 }
 
 // --- Removal -----------------------------------------------------------------
@@ -447,6 +502,16 @@ const layer = Layer.effect(
       return yield* cachedGlobal
     })
 
+    const getGlobalRaw = Effect.fn("Config.getGlobalRaw")(function* () {
+      const file = globalConfigFile()
+      const text = yield* readConfigFile(file)
+      if (!text) return {} as Info
+      const parsed = yield* Effect.try({ try: () => ConfigParse.jsonc(text, file), catch: (error) => error }).pipe(
+        Effect.orElseSucceed(() => ({})),
+      )
+      return (isRecord(parsed) ? parsed : {}) as Info
+    })
+
     const ensureGitignore = Effect.fn("Config.ensureGitignore")(function* (dir: string) {
       yield* fs.ensureDir(dir)
       const gitignore = path.join(dir, ".gitignore")
@@ -654,8 +719,13 @@ const layer = Layer.effect(
           result.agent = mergeDeep(result.agent ?? {}, yield* Effect.promise(() => ConfigAgent.load(dir)))
           result.agent = mergeDeep(result.agent ?? {}, yield* Effect.promise(() => ConfigAgent.loadMode(dir)))
           // Auto-discovered plugins under `.tiancode/plugin(s)` are already local files, so ConfigPlugin.load
-          // returns normalized Specs and we only need to attach origin metadata here.
-          const list = yield* Effect.promise(() => ConfigPlugin.load(dir))
+          // returns normalized Specs and we only need to attach origin metadata here. A file a config
+          // already lists keeps that entry (Settings switches one off as [file, { enabled: false }]);
+          // discovery only adds the files nobody declared, otherwise it would switch them back on.
+          const declared = new Set((result.plugin ?? []).map(ConfigPlugin.pluginSpecifier))
+          const list = (yield* Effect.promise(() => ConfigPlugin.load(dir))).filter(
+            (spec) => !declared.has(ConfigPlugin.pluginSpecifier(spec)),
+          )
           yield* mergePluginOrigins(dir, list)
         }
 
@@ -856,14 +926,36 @@ const layer = Layer.effect(
       // {file:...} and drops every key the schema does not know, so merging the loaded value
       // wrote resolved secrets back in plaintext and deleted the user's unrecognised keys.
       const text = yield* readConfigFile(file)
+      // A .jsonc file is edited in place so the user's comments and layout survive.
+      if (text && file.endsWith(".jsonc")) {
+        const patch = writable(config)
+        yield* writeGlobalAtomic(file, patchJsonc(expandJsoncPermission(text, patch.permission), patch)).pipe(
+          Effect.orDie,
+        )
+        yield* removeLegacyProjectConfig(dir)
+        return
+      }
       const original = text ? ConfigParse.jsonc(text, file) : undefined
       const base = isRecord(original) ? original : writable(existing)
-      const merged = mergeDeep(base, writable(config)) as Record<string, unknown>
+      const merged = mergeConfigPatch(base, writable(config))
       if (config.plugin !== undefined) {
         merged.plugin = config.plugin
       }
       yield* writeGlobalAtomic(file, JSON.stringify(merged, null, 2)).pipe(Effect.orDie)
-      yield* fs.remove(path.join(dir, "config.json")).pipe(Effect.catch(() => Effect.void))
+      yield* removeLegacyProjectConfig(dir)
+    })
+
+    // Only a config.json that an older Tiancode wrote is an orphan. A repository's own
+    // config.json (any file without a Tiancode or opencode $schema) belongs to the user.
+    const removeLegacyProjectConfig = Effect.fnUntraced(function* (dir: string) {
+      const file = path.join(dir, "config.json")
+      const text = yield* readConfigFile(file)
+      if (!text) return
+      const parsed = yield* Effect.try({ try: () => ConfigParse.jsonc(text, file), catch: () => undefined }).pipe(
+        Effect.orElseSucceed(() => undefined),
+      )
+      if (!isRecord(parsed) || typeof parsed.$schema !== "string" || !/tiancode|opencode/.test(parsed.$schema)) return
+      yield* fs.remove(file).pipe(Effect.catch(() => Effect.void))
     })
 
     const invalidate = Effect.fn("Config.invalidate")(function* () {
@@ -885,17 +977,22 @@ const layer = Layer.effect(
       let next: Info
       let changed: boolean
       if (!file.endsWith(".jsonc")) {
-        const existing = ConfigParse.schema(ConfigV1.Info, ConfigParse.jsonc(before, file), file)
-        const merged = mergeDeep(writable(existing), patch) as Record<string, unknown>
+        // Merge into the file as written (see update()): decoding it first dropped the keys the
+        // schema does not know.
+        const original = ConfigParse.jsonc(before, file)
+        const merged = mergeConfigPatch(
+          isRecord(original) ? original : writable(ConfigParse.schema(ConfigV1.Info, original, file)),
+          patch,
+        )
         if (config.plugin !== undefined) {
           merged.plugin = config.plugin
         }
         const serialized = JSON.stringify(merged, null, 2)
         changed = serialized !== before
         if (changed) yield* writeGlobalAtomic(file, serialized).pipe(Effect.orDie)
-        next = merged as Info
+        next = ConfigParse.schema(ConfigV1.Info, merged, file)
       } else {
-        const updated = patchJsonc(before, patch)
+        const updated = patchJsonc(expandJsoncPermission(before, patch.permission), patch)
         next = ConfigParse.schema(ConfigV1.Info, ConfigParse.jsonc(updated, file), file)
         changed = updated !== before
         if (changed) yield* writeGlobalAtomic(file, updated).pipe(Effect.orDie)
@@ -947,11 +1044,68 @@ const layer = Layer.effect(
       }
     })
 
-    return Service.of({      get,
+    const removeMcp = Effect.fn("Config.removeMcp")(function* (name: string) {
+      const dir = yield* InstanceState.directory
+      const projectFile = yield* projectConfigFile(dir)
+      for (const file of new Set([projectFile, globalConfigFile()])) {
+        const before = yield* readConfigFile(file)
+        if (!before) continue
+        const after = removeJsoncPath(before, ["mcp", name])
+        if (after !== before) yield* writeGlobalAtomic(file, after).pipe(Effect.orDie)
+      }
+      yield* invalidate()
+      yield* invalidateInstance()
+    })
+
+    const removeGlobalMcp = Effect.fn("Config.removeGlobalMcp")(function* (name: string) {
+      const file = globalConfigFile()
+      const before = yield* readConfigFile(file)
+      if (!before) return
+      // Only a key that exists: jsonc-parser refuses to delete one whose parent is missing.
+      const tree = parseTree(before)
+      if (!tree || !findNodeAtLocation(tree, ["mcp", name])) return
+      const after = removeJsoncPath(before, ["mcp", name])
+      if (after === before) return
+      yield* writeGlobalAtomic(file, after).pipe(Effect.orDie)
+      yield* invalidate()
+    })
+
+    // A merge cannot delete keys (see the Removal section above), so resetting a sub-agent to its
+    // defaults edits the file in place, like removeMcp.
+    const resetAgent = Effect.fn("Config.resetAgent")(function* (
+      name: string,
+      scope: "project" | "global",
+      fields?: readonly string[],
+    ) {
+      const file = scope === "global" ? globalConfigFile() : yield* projectConfigFile(yield* InstanceState.directory)
+      const before = yield* readConfigFile(file)
+      if (!before) return false
+      // Clearing one field in Settings removes that field only: the rest of the entry (a custom
+      // prompt, options, pattern rules) is the user's and stays.
+      const suffixes = fields?.length ? fields.map((field) => field.split(".").filter(Boolean)) : [[]]
+      const paths = ["agent", "agents"].flatMap((key) => suffixes.map((suffix) => [key, name, ...suffix]))
+      // Only paths that exist: jsonc-parser refuses to delete a key whose parent is missing.
+      const after = paths.reduce((text, at) => {
+        const tree = parseTree(text)
+        return tree && findNodeAtLocation(tree, at) ? removeJsoncPath(text, at) : text
+      }, before)
+      if (after === before) return false
+      yield* writeGlobalAtomic(file, after).pipe(Effect.orDie)
+      // Global routes run outside any project instance: only the project scope has one to refresh.
+      yield* scope === "global" ? invalidate() : invalidateInstance()
+      return true
+    })
+
+    return Service.of({
+      get,
       getGlobal,
+      getGlobalRaw,
       getConsoleState,
       update,
       updateGlobal,
+      removeMcp,
+      removeGlobalMcp,
+      resetAgent,
       forgetProviderModel,
       invalidate,
       invalidateInstance,

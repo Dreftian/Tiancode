@@ -800,6 +800,34 @@
     padding: 0;
   }
 
+  [data-slot="permission-row"][data-risk="high"] [data-slot="permission-icon"] [data-component="icon"] {
+    color: var(--icon-critical-base, var(--icon-warning-base));
+  }
+
+  [data-slot="permission-risks"] {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 8px 0 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--icon-critical-base, #e5484d) 10%, transparent);
+      font-size: calc(13px * var(--transcript-text-scale, 1));
+      color: var(--v2-text-text-base);
+    }
+
+    code {
+      color: var(--v2-text-text-muted);
+    }
+  }
+
   [data-slot="permission-patterns"] {
     display: flex;
     flex-direction: column;

@@ -1,0 +1,577 @@
+/* Shared building blocks of the redesigned settings pages (Inteligencia, Uso de la PC,
+   Notificaciones, General): hero cards, status pills, card grids, meters and compact rows.
+   Only v2 tokens, so the light and dark themes both read. */
+
+.settings-v2-kit-page {
+  gap: 18px;
+}
+
+.settings-v2-kit-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-v2-kit-label {
+  margin: 0;
+  padding: 0 2px;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--v2-text-text-muted);
+}
+
+/* ------------------------------------------------------------------ Hero */
+
+.settings-v2-kit-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--v2-border-border-muted);
+  border-radius: 14px;
+  background: var(--v2-background-bg-layer-01);
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.settings-v2-kit-hero[data-active] {
+  border-color: color-mix(in srgb, var(--v2-text-text-accent) 35%, transparent);
+  background:
+    radial-gradient(90% 160% at 0% 0%, color-mix(in srgb, var(--v2-text-text-accent) 12%, transparent), transparent 65%),
+    var(--v2-background-bg-layer-01);
+}
+
+.settings-v2-kit-hero[data-tone="danger"] {
+  border-color: color-mix(in srgb, var(--v2-state-fg-danger) 35%, transparent);
+}
+
+.settings-v2-kit-hero-icon {
+  display: grid;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--v2-background-bg-layer-03);
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-kit-hero[data-active] .settings-v2-kit-hero-icon {
+  background: color-mix(in srgb, var(--v2-text-text-accent) 16%, var(--v2-background-bg-layer-02));
+  color: var(--v2-text-text-accent);
+}
+
+.settings-v2-kit-hero-copy {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-v2-kit-hero-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 620;
+  color: var(--v2-text-text-base);
+}
+
+.settings-v2-kit-hero-description {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-kit-actions {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+/* ------------------------------------------------------------------ Pills */
+
+.settings-v2-kit-pill {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 8px 1px 7px;
+  border-radius: 999px;
+  background: var(--v2-background-bg-layer-03);
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-kit-pill::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.settings-v2-kit-pill[data-tone="ok"] {
+  background: color-mix(in srgb, var(--v2-state-fg-success) 12%, transparent);
+  color: var(--v2-state-fg-success);
+}
+
+.settings-v2-kit-pill[data-tone="busy"],
+.settings-v2-kit-pill[data-tone="info"] {
+  background: color-mix(in srgb, var(--v2-text-text-accent) 12%, transparent);
+  color: var(--v2-text-text-accent);
+}
+
+.settings-v2-kit-pill[data-tone="warn"] {
+  background: color-mix(in srgb, var(--v2-state-fg-warning) 12%, transparent);
+  color: var(--v2-state-fg-warning);
+}
+
+.settings-v2-kit-pill[data-tone="error"] {
+  background: color-mix(in srgb, var(--v2-state-fg-danger) 12%, transparent);
+  color: var(--v2-state-fg-danger);
+}
+
+.settings-v2-kit-pill[data-tone="busy"]::before {
+  animation: settings-v2-kit-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes settings-v2-kit-pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* ------------------------------------------------------------------ Cards */
+
+.settings-v2-kit-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 10px;
+}
+
+.settings-v2-kit-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--v2-border-border-muted);
+  border-radius: 12px;
+  background: var(--v2-background-bg-layer-01);
+}
+
+.settings-v2-kit-card[data-off] {
+  background: transparent;
+}
+
+.settings-v2-kit-card[data-off] .settings-v2-kit-card-body {
+  opacity: 0.55;
+}
+
+.settings-v2-kit-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.settings-v2-kit-card-icon {
+  display: grid;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--v2-background-bg-layer-03);
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-kit-card-copy {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-v2-kit-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--v2-text-text-base);
+}
+
+.settings-v2-kit-card-description {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-kit-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-v2-kit-card-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ------------------------------------------------------------------ Meter */
+
+.settings-v2-kit-meter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-v2-kit-meter-track {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--v2-background-bg-layer-03);
+}
+
+.settings-v2-kit-meter-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--v2-text-text-accent);
+  transition: width 0.3s ease;
+}
+
+.settings-v2-kit-meter[data-tone="warn"] .settings-v2-kit-meter-fill {
+  background: var(--v2-state-fg-warning);
+}
+
+.settings-v2-kit-meter-caption {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--v2-text-text-muted);
+}
+
+/* ------------------------------------------------------------------ Bits */
+
+.settings-v2-kit-path {
+  overflow: hidden;
+  font: 11px/1.4 var(--v2-font-mono, ui-monospace, monospace);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-kit-segmented {
+  flex: none;
+}
+
+.settings-v2-kit-segmented [data-slot="segmented-control-v2-item"] {
+  flex: 0 0 auto;
+  padding: 0 10px;
+}
+
+.settings-v2-kit-note {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--v2-border-border-muted);
+  border-radius: 12px;
+  background: var(--v2-background-bg-layer-01);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-kit-note[data-tone="info"] {
+  border-color: color-mix(in srgb, var(--v2-text-text-accent) 30%, transparent);
+  background: color-mix(in srgb, var(--v2-text-text-accent) 7%, var(--v2-background-bg-layer-01));
+}
+
+.settings-v2-kit-note[data-tone="warn"] {
+  border-color: color-mix(in srgb, var(--v2-state-fg-warning) 35%, transparent);
+  background: color-mix(in srgb, var(--v2-state-fg-warning) 6%, var(--v2-background-bg-layer-01));
+}
+
+.settings-v2-kit-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.settings-v2-kit-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--v2-border-border-muted);
+  border-radius: 999px;
+  background: var(--v2-background-bg-layer-02);
+  font-size: 11.5px;
+  color: var(--v2-text-text-base);
+}
+
+.settings-v2-kit-chip[data-muted] {
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-kit-chip button {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--v2-text-text-muted);
+  cursor: pointer;
+}
+
+.settings-v2-kit-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.settings-v2-kit-bar {
+  display: grid;
+  grid-template-columns: minmax(80px, 140px) 1fr 44px;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--v2-text-text-base);
+}
+
+.settings-v2-kit-bar[data-best] {
+  font-weight: 600;
+}
+
+.settings-v2-kit-bar-value {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-kit-kbd {
+  padding: 2px 7px;
+  border: 1px solid var(--v2-border-border-muted);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: var(--v2-background-bg-layer-02);
+  font: 11.5px/1.4 var(--v2-font-mono, ui-monospace, monospace);
+  color: var(--v2-text-text-base);
+  white-space: nowrap;
+}
+
+/* Nested option shown under the row it depends on. */
+.settings-v2-kit-subrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin: -4px 0 0;
+  padding: 0 0 12px 14px;
+  border-left: 2px solid var(--v2-border-border-muted);
+  font-size: 12.5px;
+  color: var(--v2-text-text-muted);
+}
+
+/* Compact lists: one-line descriptions and tighter rows, for pages with many settings. */
+[data-component="settings-v2-list"][data-density="compact"] [data-component="settings-v2-row"] {
+  padding-block: 9px;
+}
+
+[data-component="settings-v2-list"][data-density="compact"] [data-slot="settings-v2-row-copy"] {
+  gap: 2px;
+}
+
+[data-component="settings-v2-list"][data-density="compact"] [data-slot="settings-v2-row-description"] {
+  margin-block: 0;
+  font-size: 12px;
+  line-height: 17px;
+}
+
+@media (max-width: 640px) {
+  .settings-v2-kit-hero {
+    flex-wrap: wrap;
+  }
+
+  .settings-v2-kit-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+.settings-v2-kit-card [data-component="textarea-v2"] {
+  width: 100%;
+}
+
+/* Notificaciones: one row per event with its system notification and sound side by side. */
+.settings-v2-notifications-events {
+  gap: 0;
+  padding-block: 6px;
+}
+
+.settings-v2-notifications-head,
+.settings-v2-notifications-event {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) 56px minmax(190px, 230px);
+  align-items: center;
+  gap: 12px;
+}
+
+.settings-v2-notifications-head {
+  padding: 4px 0 8px;
+  border-bottom: 1px solid var(--v2-border-border-muted);
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-notifications-head span:first-child {
+  grid-column: 1 / 3;
+}
+
+.settings-v2-notifications-head span:nth-child(2) {
+  text-align: center;
+}
+
+.settings-v2-notifications-event {
+  padding: 10px 0;
+}
+
+.settings-v2-notifications-event + .settings-v2-notifications-event {
+  border-top: 1px solid var(--v2-border-border-muted);
+}
+
+.settings-v2-notifications-event > [data-component="switch"] {
+  justify-self: center;
+}
+
+.settings-v2-notifications-sound {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .settings-v2-notifications-head {
+    display: none;
+  }
+
+  .settings-v2-notifications-event {
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+  }
+
+  .settings-v2-notifications-sound {
+    grid-column: 2 / -1;
+    justify-content: flex-start;
+  }
+}
+
+/* General › Espacio de trabajo: the chat's top bar as a row of toggles, in its real order. */
+.settings-v2-general-titlebar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.settings-v2-general-titlebar-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px dashed var(--v2-border-border-muted);
+  border-radius: 9px;
+  background: transparent;
+  font-size: 12px;
+  color: var(--v2-text-text-muted);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.settings-v2-general-titlebar-item[aria-pressed="true"] {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--v2-text-text-accent) 40%, transparent);
+  background: color-mix(in srgb, var(--v2-text-text-accent) 10%, var(--v2-background-bg-layer-02));
+  color: var(--v2-text-text-base);
+}
+
+.settings-v2-general-titlebar-item:focus-visible {
+  outline: 2px solid var(--v2-text-text-accent);
+  outline-offset: 1px;
+}
+
+/* General › Vista: one card per font with a live sample. */
+.settings-v2-general-fonts {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.settings-v2-general-font {
+  gap: 8px;
+}
+
+.settings-v2-general-font-sample {
+  overflow: hidden;
+  font-size: 18px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--v2-text-text-base);
+}
+
+.settings-v2-general-font [data-component="text-input-v2"] {
+  width: 100%;
+}
+
+/* General › Datos: every kept backup, newest first. */
+.settings-v2-general-backups {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.settings-v2-general-backups li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+}
+
+.settings-v2-general-backups li + li {
+  border-top: 1px solid var(--v2-border-border-muted);
+}
+
+.settings-v2-general-backup-date {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  font-size: 12.5px;
+  color: var(--v2-text-text-base);
+}
+
+.settings-v2-general-backup-date span {
+  font-size: 11px;
+  color: var(--v2-text-text-muted);
+}

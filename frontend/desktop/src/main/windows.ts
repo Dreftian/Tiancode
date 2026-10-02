@@ -1,5 +1,5 @@
 import windowState from "electron-window-state"
-import { isDesktopPetWindow } from "./desktop-pet"
+import { destroyDesktopPet, isDesktopPetWindow } from "./desktop-pet"
 import { resolveThemeVariant } from "@tiancode-ai/ui/theme/resolve"
 import type { DesktopTheme } from "@tiancode-ai/ui/theme/types"
 import oc2ThemeJson from "../../../ui/src/theme/themes/oc-2.json"
@@ -23,10 +23,11 @@ import type { TitlebarTheme } from "../preload/types"
 import { APP_NAMES, CHANNEL } from "./constants"
 import { exportDebugLogs, write as writeLog } from "./logging"
 import { getStore, removeStoreFile } from "./store"
-import { PINCH_ZOOM_ENABLED_KEY, MINIMIZE_TO_TRAY_KEY, WINDOW_IDS_KEY } from "./store-keys"
+import { PINCH_ZOOM_ENABLED_KEY, MINIMIZE_TO_TRAY_KEY, UI_ZOOM_FACTOR_KEY, WINDOW_IDS_KEY } from "./store-keys"
 import { createUnresponsiveSampler } from "./unresponsive"
 import { nativeT } from "./native-translations"
 import { createWindowRegistry } from "./window-registry"
+import { createRendererPermissionPolicy } from "./renderer-permissions"
 import { safeWindowURL } from "./window-state"
 import { resolveExternalURL, resolveLocalFilePath } from "./external-url"
 import { isAgentActionInFlight } from "./preview-view"
@@ -37,20 +38,13 @@ const root = dirname(fileURLToPath(import.meta.url))
 const rendererRoot = join(root, "../renderer")
 const rendererProtocol = "oc"
 const rendererHost = "renderer"
-const clipboardWritePermission = "clipboard-sanitized-write"
-const clipboardReadPermission = "clipboard-read"
-const notificationPermission = "notifications"
-const mediaPermission = "media"
-const fullscreenPermission = "fullscreen"
-const pointerLockPermission = "pointerLock"
-const rendererPermissions = new Set([
-  clipboardWritePermission,
-  clipboardReadPermission,
-  notificationPermission,
-  mediaPermission,
-  fullscreenPermission,
-  pointerLockPermission,
-])
+const rendererPermissions = createRendererPermissionPolicy(isRendererUrl, isLoopbackUrl)
+const overlayWindows = new WeakSet<BrowserWindow>()
+// The app's own windows, the only ones the interface scale applies to: the desktop pet and the
+// computer-use indicator are fixed-size pages that would clip, and Chromium keeps their zoom.
+const zoomWindows = new WeakSet<BrowserWindow>()
+let uiZoom: number | undefined
+let uiZoomWrite: ReturnType<typeof setTimeout> | undefined
 const oc2Theme = oc2ThemeJson as DesktopTheme
 const oc2Background = {
   light: resolveThemeVariant(oc2Theme.light, false)["background-base"],
@@ -204,18 +198,50 @@ export function setTitlebar(win: BrowserWindow, theme: Partial<TitlebarTheme> = 
 }
 
 export function updateTitlebar(win: BrowserWindow) {
-  if (process.platform !== "win32") return
+  if (process.platform !== "win32" || win.isDestroyed() || !overlayWindows.has(win)) return
   win.setTitleBarOverlay(overlay(titlebarThemes.get(win), win.webContents.getZoomFactor()))
 }
 
 export function setPinchZoomEnabled(enabled: boolean) {
   getStore().set(PINCH_ZOOM_ENABLED_KEY, enabled)
   for (const win of BrowserWindow.getAllWindows()) {
+    if (!zoomWindows.has(win) || win.isDestroyed() || win.webContents.isDestroyed()) continue
     pinchZoomEnabled.set(win, enabled)
     win.webContents.send("pinch-zoom-enabled-changed", enabled)
-    if (!enabled && win.webContents.getZoomFactor() !== 1) win.webContents.setZoomFactor(1)
+    if (!enabled && win.webContents.getZoomFactor() !== getUiZoom()) win.webContents.setZoomFactor(getUiZoom())
     updateZoom(win)
   }
+}
+
+// Pinch and Ctrl+wheel zoom are momentary; this is the scale the app's windows open at and return to.
+export function getUiZoom() {
+  if (uiZoom !== undefined) return uiZoom
+  const value = Number(getStore().get(UI_ZOOM_FACTOR_KEY))
+  return Number.isFinite(value) && value > 0 ? clampZoom(value) : 1
+}
+
+export function setUiZoom(factor: number, source?: BrowserWindow | null) {
+  const next = clampZoom(factor)
+  // The scale is chosen in the app's windows. The welcome card shares their host, and Chromium zooms
+  // a host as a whole, so zooming the card alone would resize the app behind the app's back.
+  if (source && !zoomWindows.has(source)) return
+  uiZoom = next
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!zoomWindows.has(win) || win.isDestroyed() || win.webContents.isDestroyed()) continue
+    win.webContents.setZoomFactor(next)
+    updateZoom(win)
+  }
+  // A pinch sends dozens of steps a second, and each store write syncs the file to disk on the main
+  // thread: only the value the gesture settles on is written.
+  clearTimeout(uiZoomWrite)
+  uiZoomWrite = setTimeout(flushUiZoom, 400)
+}
+
+/** Writes a scale still waiting for its gesture to settle; called again before quitting. */
+export function flushUiZoom() {
+  clearTimeout(uiZoomWrite)
+  uiZoomWrite = undefined
+  if (uiZoom !== undefined && getStore().get(UI_ZOOM_FACTOR_KEY) !== uiZoom) getStore().set(UI_ZOOM_FACTOR_KEY, uiZoom)
 }
 
 export function getPinchZoomEnabled() {
@@ -338,8 +364,9 @@ export function createMainWindow(id: string = randomUUID()) {
   const win = new BrowserWindow({
     x: undefined,
     y: undefined,
-    width: isOnboarding ? 780 : 440,
-    height: isOnboarding ? 560 : 380,
+    // While it loads the window shows the splash; 465×385 leaves the whole logo room around it.
+    width: isOnboarding ? 780 : 465,
+    height: isOnboarding ? 560 : 385,
     resizable: false,
     maximizable: false,
     center: true,
@@ -377,6 +404,7 @@ export function createMainWindow(id: string = randomUUID()) {
   // This is important on Windows after an in-place update: it prevents a
   // stale string-path association from leaving the taskbar with the previous
   // app icon until Explorer refreshes its cache.
+  if (process.platform === "win32") overlayWindows.add(win)
   if (icon) win.setIcon(icon)
 
   allowRendererPermissions(win)
@@ -394,8 +422,35 @@ export function createMainWindow(id: string = randomUUID()) {
 
   win.webContents.session.webRequest.onHeadersReceived((details, callback) => {
     const { responseHeaders = {} } = details
-    addRendererHeaders(details.url, responseHeaders)
+    // A page previewed in the Sandbox (an iframe of this window) gets neither the open CORS the app
+    // needs to reach its server nor a cache: a restarted dev server must never show the old page.
+    if (!fromSubframe(details.frame)) {
+      addRendererHeaders(details.url, responseHeaders)
+      return callback({ responseHeaders })
+    }
+    if (isLoopbackUrl(details.url)) upsertKeyValue(responseHeaders, "Cache-Control", ["no-store"])
     callback({ responseHeaders })
+  })
+
+  // A link the agent clicks inside the previewed page may not take that frame to another site,
+  // and nothing it triggers may download files.
+  win.webContents.on("will-frame-navigate", (event) => {
+    if (event.isMainFrame || !isAgentActionInFlight()) return
+    // The app itself points its frames somewhere (a new preview iframe, a reload): not the agent.
+    const initiator = frameUrl(event.initiator)
+    if (isRendererUrl(initiator)) return
+    // A frame with no document yet (about:blank) is judged by the page that started the navigation.
+    const current = frameUrl(event.frame)
+    const from = current && URL.canParse(current) && new URL(current).origin !== "null" ? current : initiator
+    if (from && URL.canParse(from) && URL.canParse(event.url) && new URL(from).origin === new URL(event.url).origin)
+      return
+    event.preventDefault()
+    writeLog("window", "blocked agent cross-origin frame navigation", { from, url: event.url }, "warn")
+  })
+  win.webContents.session.on("will-download", (event, item) => {
+    if (!isAgentActionInFlight()) return
+    event.preventDefault()
+    writeLog("window", "blocked agent-initiated download", { url: item.getURL() }, "warn")
   })
 
   state.manage(win)
@@ -513,7 +568,12 @@ function registerWindow(win: BrowserWindow, id: string) {
   // Windows never emits before-quit on OS shutdown/logoff, but each window
   // gets session-end before it closes; flag the quit so ids stay persisted.
   win.on("session-end", () => registry.setQuitting())
-  win.on("closed", () => registry.closed(id))
+  win.on("closed", () => {
+    registry.closed(id)
+    // A hidden pet window would keep window-all-closed from firing and the app (and its server)
+    // running with no window to return to.
+    if (!registry.any()) destroyDesktopPet()
+  })
 }
 
 function windowStateFile(id: string) {
@@ -718,26 +778,52 @@ function addDocumentPolicy(response: Response, file: string) {
 
 function allowRendererPermissions(win: BrowserWindow) {
   const webContentsId = win.webContents.id
+  rendererPermissions.register(webContentsId)
+  win.webContents.once("destroyed", () => rendererPermissions.unregister(webContentsId))
 
   win.webContents.session.setPermissionRequestHandler((webContents, permission, callback, details) => {
     callback(
-      rendererPermissions.has(permission) &&
-        isTrustedRendererUrl(details.requestingUrl) &&
-        webContents.id === webContentsId,
+      rendererPermissions.allows({
+        id: webContents.id,
+        permission,
+        topURL: webContents.getURL(),
+        requestingURL: details.requestingUrl,
+      }),
     )
   })
   win.webContents.session.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
-    if (!rendererPermissions.has(permission)) return false
-    if (webContents && webContents.id !== webContentsId) return false
-    return isTrustedRendererUrl(details.requestingUrl) || isTrustedRendererUrl(requestingOrigin)
+    return rendererPermissions.allows({
+      id: webContents?.id,
+      permission,
+      topURL: webContents?.getURL(),
+      requestingURL: details.requestingUrl || requestingOrigin,
+    })
   })
 }
 
-function isTrustedRendererUrl(value?: string) {
-  if (isRendererUrl(value)) return true
+// Dev servers previewed in the Sandbox. They are the user's projects, not the app: they get
+// only harmless permissions (renderer-permissions.ts) and no CORS rewrite.
+function isLoopbackUrl(value?: string) {
   if (!value || !URL.canParse(value)) return false
   const url = new URL(value)
-  return url.hostname === "127.0.0.1" || url.hostname === "localhost"
+  return url.hostname === "127.0.0.1" || url.hostname === "localhost" || url.hostname === "[::1]"
+}
+
+function fromSubframe(frame: Electron.WebFrameMain | null | undefined) {
+  try {
+    return !!frame?.parent
+  } catch {
+    // The frame is gone; treat the response like the app's own.
+    return false
+  }
+}
+
+function frameUrl(frame: Electron.WebFrameMain | null | undefined) {
+  try {
+    return frame?.url
+  } catch {
+    return undefined
+  }
 }
 
 // Los <webview> de preview corren en particiones propias que los handlers de
@@ -843,8 +929,17 @@ function isRendererUrl(value?: string, html = false) {
 }
 
 function wireZoom(win: BrowserWindow) {
+  zoomWindows.add(win)
   pinchZoomEnabled.set(win, getPinchZoomEnabled())
-  win.webContents.setZoomFactor(1)
+  // Zoom set before the page commits is ignored; Chromium opens it at the level it keeps per host.
+  win.webContents.on("did-finish-load", () => {
+    // Earlier versions kept the scale only in Chromium, so the first run keeps the one on screen.
+    if (getStore().get(UI_ZOOM_FACTOR_KEY) === undefined && uiZoom === undefined)
+      return void getStore().set(UI_ZOOM_FACTOR_KEY, clampZoom(win.webContents.getZoomFactor()))
+    if (win.webContents.getZoomFactor() === getUiZoom()) return
+    win.webContents.setZoomFactor(getUiZoom())
+    updateZoom(win)
+  })
   win.webContents.on("zoom-changed", (event, zoomDirection) => {
     event.preventDefault()
     if (pinchZoomEnabled.get(win)) {
@@ -852,7 +947,7 @@ function wireZoom(win: BrowserWindow) {
       updateZoom(win)
       return
     }
-    if (win.webContents.getZoomFactor() !== 1) win.webContents.setZoomFactor(1)
+    if (win.webContents.getZoomFactor() !== getUiZoom()) win.webContents.setZoomFactor(getUiZoom())
     updateZoom(win)
   })
 }

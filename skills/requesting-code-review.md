@@ -32,7 +32,46 @@ HEAD_SHA=$(git rev-parse HEAD)
 
 **2. Dispatch code reviewer subagent:**
 
-Dispatch a `general-purpose` subagent, filling the template at [code-reviewer.md](code-reviewer.md)
+Dispatch a `general` subagent (Tiancode's general-purpose agent) with the `task` tool, using this prompt with the placeholders filled in:
+
+````
+You are reviewing code changes for production readiness. You have no context beyond this prompt;
+read the code yourself. Do not edit any files.
+
+## What was implemented
+{DESCRIPTION}
+
+## Requirements / plan
+{PLAN_OR_REQUIREMENTS}
+
+## Git range
+Base: {BASE_SHA}   Head: {HEAD_SHA}
+Run `git diff --stat {BASE_SHA}..{HEAD_SHA}` and `git diff {BASE_SHA}..{HEAD_SHA}`,
+then read the surrounding code as needed.
+
+## Check
+- Requirements: everything in the plan implemented? Anything added that was not asked for?
+- Correctness: edge cases, error handling, null/empty input, off-by-one, races.
+- Code quality: clear names, no duplication, follows the project's conventions (AGENTS.md, CLAUDE.md).
+- Architecture: fits existing patterns, sound boundaries, no needless abstraction.
+- Testing: tests exercise real behavior (not just mocks), cover edge cases, and pass.
+- Production readiness: security, performance, migrations and backward compatibility.
+
+## Output
+### Strengths
+Specific things done well (brief).
+### Issues
+#### Critical (must fix): bugs, security holes, data loss, broken functionality
+#### Important (should fix): missing requirements, weak error handling, test gaps, design problems
+#### Minor (nice to have): style, naming, small optimizations
+For each issue: file:line, what is wrong, why it matters, how to fix (if not obvious).
+Write "None" for an empty category.
+### Assessment
+Ready to merge? Yes / No / With fixes, plus one or two sentences of reasoning.
+
+Rules: grade by actual severity (not everything is Critical); be specific (file:line, not
+"improve error handling"); only report what you verified in the code.
+````
 
 **Placeholders:**
 - `{DESCRIPTION}` - Brief summary of what you built
@@ -93,4 +132,4 @@ You: [Fix progress indicators]
 - Show code/tests that prove it works
 - Request clarification
 
-See template at: [code-reviewer.md](code-reviewer.md)
+The reviewer prompt template is in step 2 above. For a multi-reviewer review with strict triage, use `adversarial-code-review`.

@@ -51,10 +51,20 @@ export const SAFE_SKILLS = new Set([
   "openclaw-gateway",
   "opendesign-ui",
   "generative_ui",
+  // Planning and review workflows adapted from BMAD-METHOD, and diagram-design.
+  "product-brief",
+  "product-requirements",
+  "architecture-spine",
+  "brainstorm-session",
+  "adversarial-code-review",
+  "persona-roundtable",
+  "refine-output",
+  "diagram-design",
 ])
 
 export const CATEGORY_FRONTEND = new Set([
   "accessibility",
+  "diagram-design",
   "apple-hig",
   "browser-automation",
   "browser-testing-with-devtools",
@@ -74,6 +84,7 @@ export const CATEGORY_FRONTEND = new Set([
 ])
 
 export const CATEGORY_BACKEND = new Set([
+  "architecture-spine",
   "api-and-interface-design",
   "api-rest-graphql-openapi",
   "database-design-and-migration",
@@ -93,6 +104,7 @@ export const CATEGORY_BACKEND = new Set([
 ])
 
 export const CATEGORY_TESTING = new Set([
+  "adversarial-code-review",
   "code-review-and-quality",
   "code-simplification",
   "debugging-and-error-recovery",

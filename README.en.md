@@ -192,7 +192,7 @@ Useful flags: `-m provider/model` picks the model, `--agent` the specialist, `--
 - **Global:** `~/.config/tiancode/tiancode.json` (or `.jsonc`) stores providers, default model, theme, agents, MCP and plugins.
 - **Per project:** a `tiancode.json` or `tiancode.jsonc` at the repository root (or inside `.tiancode/`) is merged over the global config.
 - **Server:** when `tiancode serve` or `tiancode web` is exposed beyond your machine, set `TIANCODE_SERVER_PASSWORD` to require HTTP basic auth.
-- **Desktop app:** data lives in `%APPDATA%\ai.tiancode.desktop.release` (installer) or next to the executable (portable); backups are managed from **Settings › General**.
+- **Desktop app:** data lives in `%APPDATA%\ai.tiancode.desktop.release` (installer) or next to the executable (portable). When the installer updates an earlier install whose data is in `%APPDATA%\ai.tiancode.desktop`, it keeps using that folder so sessions, keys and settings carry over, unless you already work in the new folder with your own keys; **Settings › General › Data** shows the folder in use and switches to the other one. Backups are managed from **Settings › General**.
 
 ## Architecture
 

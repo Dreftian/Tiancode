@@ -3,6 +3,7 @@ import { UI } from "@/cli/ui"
 import { errorMessage } from "@tiancode-ai/tui/util/error"
 import { validateSession } from "../tui/validate-session"
 import { ServerAuth } from "@/server/auth"
+import { reachServer } from "../network"
 
 export const AttachCommand = cmd({
   command: "attach <url>",
@@ -113,6 +114,13 @@ export const AttachCommand = cmd({
 
     const headers = ServerAuth.headers({ password: args.password, username: args.username })
     const config = await TuiConfig.get()
+
+    const unreachable = await reachServer(args.url, headers)
+    if (unreachable) {
+      UI.error(unreachable)
+      process.exitCode = 1
+      return
+    }
 
     try {
       await validateSession({

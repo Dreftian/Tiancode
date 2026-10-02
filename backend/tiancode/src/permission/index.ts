@@ -68,9 +68,18 @@ const layer = Layer.effect(
       const { approved, pending } = yield* InstanceState.get(state)
       const { ruleset, ...request } = input
       let needsAsk = false
+      // A critical AgentShield match (`shell_risk`) is allowed only by a rule that names it, so a
+      // blanket `"permission": "allow"` or the composer's skip-permissions rule cannot wave it
+      // through. Broad denials still refuse it.
+      const rulesets =
+        request.permission === "shell_risk"
+          ? [ruleset, approved].map((rules) =>
+              rules.filter((rule) => rule.permission === "shell_risk" || rule.action === "deny"),
+            )
+          : [ruleset, approved]
 
       for (const pattern of request.patterns) {
-        const rule = evaluate(request.permission, pattern, ruleset, approved)
+        const rule = evaluate(request.permission, pattern, ...rulesets)
         yield* Effect.logInfo("evaluated", { permission: request.permission, pattern, action: rule })
         if (rule.action === "deny") {
           return yield* new PermissionV1.DeniedError({

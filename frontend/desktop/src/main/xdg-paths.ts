@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs"
 import { cp, lstat, mkdir, readdir, writeFile } from "node:fs/promises"
 import { homedir } from "node:os"
-import { dirname, join, resolve } from "node:path"
+import { dirname, isAbsolute, join, relative, resolve } from "node:path"
 
 const appDirectory = "tiancode"
 const migrationMarker = ".desktop-xdg-v1"
@@ -75,6 +75,44 @@ export function applyDesktopXdgPaths(userData: string, environment: Environment 
   environment.XDG_CACHE_HOME = paths.homes.cache
   environment.XDG_STATE_HOME = paths.homes.state
   return paths
+}
+
+// An app started by a previous Tiancode process (the updater relaunching after an install)
+// inherits that process's XDG roots and credential key, which point into its profile. They are
+// never the user's choice, so they are dropped here and derived again from this run's userData.
+// Values outside the Tiancode profiles (a shell or managed install's own XDG) are kept, and so is
+// the credential key when every inherited root belongs to the profile this run uses. portableData
+// is a portable copy's folder this run does not use (an installed app its updater started).
+export function dropInheritedProfileEnv(
+  environment: Environment,
+  appData: string,
+  profile: string,
+  portableData?: string,
+) {
+  const keys = ["XDG_DATA_HOME", "XDG_CONFIG_HOME", "XDG_CACHE_HOME", "XDG_STATE_HOME", "TIANCODE_CONFIG_DIR"] as const
+  const inherited = keys.flatMap((key) => {
+    const value = environment[key]
+    const owner = value ? tiancodeProfileOf(value, appData, portableData) : undefined
+    return owner ? [{ key, owner }] : []
+  })
+  inherited.forEach((entry) => delete environment[entry.key])
+  if (inherited.some((entry) => !samePath(entry.owner, profile))) delete environment.TIANCODE_CREDENTIAL_KEY
+  return inherited.map((entry) => entry.key)
+}
+
+// The Tiancode profile folder (%APPDATA%\ai.tiancode.desktop or ai.tiancode.desktop.<edition>)
+// that contains path, if any. "ai.tiancode.desktop - copia" and similar siblings are not ours.
+function tiancodeProfileOf(path: string, appData: string, portableData?: string) {
+  if (portableData && within(portableData, path) !== undefined) return resolve(portableData)
+  const folder = within(appData, path)?.split(/[\\/]/)[0] ?? ""
+  return /^ai\.tiancode\.desktop(\.[a-z0-9-]+)?$/i.test(folder) ? join(resolve(appData), folder) : undefined
+}
+
+// path relative to dir when it lies inside it ("" for dir itself).
+function within(dir: string, path: string) {
+  const relativePath = relative(resolve(dir), resolve(path))
+  if (relativePath.startsWith("..") || isAbsolute(relativePath)) return undefined
+  return relativePath
 }
 
 // Move only missing legacy files into the desktop-owned roots. The old roots

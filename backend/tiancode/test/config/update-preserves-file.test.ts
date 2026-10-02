@@ -1,5 +1,6 @@
 import { test, expect } from "bun:test"
-import { readFileSync, writeFileSync } from "node:fs"
+import { parse } from "jsonc-parser"
+import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { Effect, Layer } from "effect"
 import { LayerNode } from "@tiancode-ai/core/effect/layer-node"
@@ -9,6 +10,8 @@ import { FSUtil } from "@tiancode-ai/core/fs-util"
 import { Npm } from "@tiancode-ai/core/npm"
 import { CrossSpawnSpawner } from "@tiancode-ai/core/cross-spawn-spawner"
 import { Config } from "@/config/config"
+import { unredactConfigInfo } from "@/server/redact-config"
+import { Global } from "@tiancode-ai/core/global"
 import { Auth } from "../../src/auth"
 import { Account } from "../../src/account/account"
 import { Env } from "../../src/env"
@@ -79,6 +82,316 @@ test("update keeps keys the config schema does not recognise", async () => {
       // A key from a newer release, or another tool's block, must not be deleted by a save.
       expect(after.someFutureKey).toEqual({ keep: true })
       expect(after.anotherTool).toEqual([1, 2, 3])
+    }),
+  )
+})
+
+// Settings sends partial patches ({ agent: { pentest: { disable: true } } }) through the HTTP
+// handler, which restores redacted secrets first. That step used to add `provider: undefined`
+// and `mcp: undefined`, and the merge then deleted both sections from the user's file.
+test("a partial patch from the HTTP handler keeps the provider and mcp sections", async () => {
+  await run((dir) =>
+    Effect.gen(function* () {
+      const file = path.join(dir, "tiancode.json")
+      writeFileSync(
+        file,
+        JSON.stringify(
+          {
+            provider: { demo: { options: { apiKey: "{env:TIANCODE_TEST_SECRET}" } } },
+            mcp: { docs: { type: "remote", url: "https://example.com/mcp" } },
+          },
+          null,
+          2,
+        ),
+      )
+
+      const svc = yield* Config.Service
+      yield* svc.update(unredactConfigInfo({ agent: { pentest: { disable: true } } }, yield* svc.get()))
+
+      const after = JSON.parse(readFileSync(file, "utf8"))
+      expect(after.agent).toEqual({ pentest: { disable: true } })
+      expect(after.provider).toEqual({ demo: { options: { apiKey: "{env:TIANCODE_TEST_SECRET}" } } })
+      expect(after.mcp).toEqual({ docs: { type: "remote", url: "https://example.com/mcp" } })
+    }),
+  )
+})
+
+test("a partial patch keeps provider and mcp in a .jsonc project config", async () => {
+  await run((dir) =>
+    Effect.gen(function* () {
+      const file = path.join(dir, "tiancode.jsonc")
+      writeFileSync(
+        file,
+        [
+          "{",
+          "  // my providers",
+          '  "provider": { "demo": { "options": { "baseURL": "http://localhost:1234" } } },',
+          '  "mcp": { "docs": { "type": "remote", "url": "https://example.com/mcp" } }',
+          "}",
+        ].join("\n"),
+      )
+
+      const svc = yield* Config.Service
+      yield* svc.update(unredactConfigInfo({ agent: { pentest: { disable: true } } }, yield* svc.get()))
+
+      const after = readFileSync(file, "utf8")
+      expect(after).toContain("// my providers")
+      expect(after).toContain('"baseURL": "http://localhost:1234"')
+      expect(after).toContain('"url": "https://example.com/mcp"')
+      expect(after).toContain('"pentest"')
+    }),
+  )
+})
+
+test("a partial patch to the global config keeps provider, mcp and unknown keys", async () => {
+  const file = path.join(Global.Path.config, "tiancode.json")
+  const others = ["tiancode.jsonc", "config.json"].map((name) => path.join(Global.Path.config, name))
+  const saved = [file, ...others].map((name) => [name, existsSync(name) ? readFileSync(name, "utf8") : undefined] as const)
+  others.forEach((name) => rmSync(name, { force: true }))
+  writeFileSync(
+    file,
+    JSON.stringify(
+      {
+        provider: { demo: { options: { apiKey: "{env:TIANCODE_TEST_SECRET}" } } },
+        mcp: { docs: { type: "remote", url: "https://example.com/mcp" } },
+        someFutureKey: { keep: true },
+      },
+      null,
+      2,
+    ),
+  )
+  try {
+    await run(() =>
+      Effect.gen(function* () {
+        const svc = yield* Config.Service
+        yield* svc.updateGlobal(unredactConfigInfo({ agent: { pentest: { disable: true } } }, yield* svc.getGlobal()))
+        const after = JSON.parse(readFileSync(file, "utf8"))
+        expect(after.agent).toEqual({ pentest: { disable: true } })
+        expect(after.provider).toEqual({ demo: { options: { apiKey: "{env:TIANCODE_TEST_SECRET}" } } })
+        expect(after.mcp).toEqual({ docs: { type: "remote", url: "https://example.com/mcp" } })
+        expect(after.someFutureKey).toEqual({ keep: true })
+      }),
+    )
+  } finally {
+    saved.forEach(([name, text]) => (text === undefined ? rmSync(name, { force: true }) : writeFileSync(name, text)))
+  }
+})
+
+// Settings › MCP edits a server by sending its whole definition with secrets shown as <redacted>.
+// Restoring them from the loaded config wrote the resolved token over an {env:...} placeholder.
+test("editing a global MCP server keeps an {env:...} secret as a placeholder", async () => {
+  const SECRET = "sk-mcp-should-never-be-written"
+  process.env.TIANCODE_TEST_SECRET = SECRET
+  const file = path.join(Global.Path.config, "tiancode.json")
+  const others = ["tiancode.jsonc", "config.json"].map((name) => path.join(Global.Path.config, name))
+  const saved = [file, ...others].map((name) => [name, existsSync(name) ? readFileSync(name, "utf8") : undefined] as const)
+  others.forEach((name) => rmSync(name, { force: true }))
+  writeFileSync(
+    file,
+    JSON.stringify(
+      {
+        mcp: {
+          docs: { type: "remote", url: "https://old.example.com/mcp", headers: { Authorization: "{env:TIANCODE_TEST_SECRET}" } },
+        },
+      },
+      null,
+      2,
+    ),
+  )
+  try {
+    await run(() =>
+      Effect.gen(function* () {
+        const svc = yield* Config.Service
+        const edited = {
+          mcp: { docs: { type: "remote" as const, url: "https://new.example.com/mcp", headers: { Authorization: "<redacted>" } } },
+        }
+        // The order the /global/config handler uses: the file as written, then the merged config.
+        const restored = unredactConfigInfo(unredactConfigInfo(edited, yield* svc.getGlobalRaw()), yield* svc.getGlobal())
+        yield* svc.updateGlobal(restored)
+        const after = readFileSync(file, "utf8")
+        expect(after).toContain("https://new.example.com/mcp")
+        expect(after).toContain("{env:TIANCODE_TEST_SECRET}")
+        expect(after).not.toContain(SECRET)
+      }),
+    )
+  } finally {
+    delete process.env.TIANCODE_TEST_SECRET
+    saved.forEach(([name, text]) => (text === undefined ? rmSync(name, { force: true }) : writeFileSync(name, text)))
+  }
+})
+
+test("resetting an agent removes only its overrides and keeps the rest of the file", async () => {
+  await run((dir) =>
+    Effect.gen(function* () {
+      const file = path.join(dir, "tiancode.jsonc")
+      writeFileSync(
+        file,
+        [
+          "{",
+          "  // my agents",
+          '  "agent": { "pentest": { "model": "openai/gpt-5", "prompt_append": "x" }, "plan": { "steps": 4 } },',
+          '  "provider": { "demo": { "options": { "baseURL": "http://localhost:1234" } } }',
+          "}",
+        ].join("\n"),
+      )
+      const svc = yield* Config.Service
+      expect(yield* svc.resetAgent("pentest", "project")).toBe(true)
+      const after = readFileSync(file, "utf8")
+      expect(after).toContain("// my agents")
+      expect(after).not.toContain("pentest")
+      expect(after).toContain('"plan"')
+      expect(after).toContain('"baseURL": "http://localhost:1234"')
+      expect(yield* svc.resetAgent("pentest", "project")).toBe(false)
+    }),
+  )
+})
+
+test("clearing fields removes only those fields and keeps the rest of the agent entry", async () => {
+  await run((dir) =>
+    Effect.gen(function* () {
+      const file = path.join(dir, "tiancode.json")
+      writeFileSync(
+        file,
+        JSON.stringify({
+          agent: {
+            pentest: {
+              model: "openai/gpt-5",
+              prompt: "my own prompt",
+              options: { reasoningEffort: "high" },
+              permission: { bash: "ask", edit: "deny", read: { "*.env": "deny" } },
+            },
+          },
+        }),
+      )
+      const svc = yield* Config.Service
+      expect(yield* svc.resetAgent("pentest", "project", ["model", "permission.bash"])).toBe(true)
+      expect(JSON.parse(readFileSync(file, "utf8")).agent.pentest).toEqual({
+        prompt: "my own prompt",
+        options: { reasoningEffort: "high" },
+        permission: { edit: "deny", read: { "*.env": "deny" } },
+      })
+    }),
+  )
+})
+
+// The global route runs with no project instance open, unlike the project one.
+test("resetting an agent globally works without an open project", async () => {
+  const file = path.join(Global.Path.config, "tiancode.json")
+  const others = ["tiancode.jsonc", "config.json"].map((name) => path.join(Global.Path.config, name))
+  const saved = [file, ...others].map((name) => [name, existsSync(name) ? readFileSync(name, "utf8") : undefined] as const)
+  others.forEach((name) => rmSync(name, { force: true }))
+  writeFileSync(file, JSON.stringify({ agent: { pentest: { steps: 3 }, plan: { steps: 4 } }, username: "kept" }, null, 2))
+  try {
+    const changed = await Config.Service.use((svc) => svc.resetAgent("pentest", "global")).pipe(
+      Effect.provide(Layer.mergeAll(layer, testInstanceStoreLayer)),
+      Effect.runPromise,
+    )
+    expect(changed).toBe(true)
+    const after = JSON.parse(readFileSync(file, "utf8"))
+    expect(after.agent).toEqual({ plan: { steps: 4 } })
+    expect(after.username).toBe("kept")
+  } finally {
+    saved.forEach(([name, text]) => (text === undefined ? rmSync(name, { force: true }) : writeFileSync(name, text)))
+  }
+})
+
+test("update keeps a repository's own config.json and removes only a legacy Tiancode one", async () => {
+  await run((dir) =>
+    Effect.gen(function* () {
+      const foreign = path.join(dir, "config.json")
+      writeFileSync(foreign, JSON.stringify({ port: 8080, database: "app.db" }, null, 2))
+      const svc = yield* Config.Service
+      yield* svc.update({ username: "first" })
+      expect(existsSync(foreign)).toBe(true)
+      expect(JSON.parse(readFileSync(foreign, "utf8")).port).toBe(8080)
+
+      writeFileSync(foreign, JSON.stringify({ $schema: "https://tiancode.ai/config.json", shell: "bash" }, null, 2))
+      yield* svc.update({ username: "second" })
+      expect(existsSync(foreign)).toBe(false)
+    }),
+  )
+})
+
+// "permission": "allow" means allow for every pattern; merging { doom_loop: "deny" } into it used to
+// replace the string, so the user's allow-all silently became a single rule.
+test("a permission patch keeps a global allow-all as its * rule", async () => {
+  const file = path.join(Global.Path.config, "tiancode.json")
+  const others = ["tiancode.jsonc", "config.json"].map((name) => path.join(Global.Path.config, name))
+  const saved = [file, ...others].map((name) => [name, existsSync(name) ? readFileSync(name, "utf8") : undefined] as const)
+  others.forEach((name) => rmSync(name, { force: true }))
+  writeFileSync(file, JSON.stringify({ permission: "allow" }, null, 2))
+  try {
+    await run(() =>
+      Effect.gen(function* () {
+        const svc = yield* Config.Service
+        yield* svc.updateGlobal({ permission: { doom_loop: "deny" } })
+        expect(JSON.parse(readFileSync(file, "utf8")).permission).toEqual({ "*": "allow", doom_loop: "deny" })
+      }),
+    )
+  } finally {
+    saved.forEach(([name, text]) => (text === undefined ? rmSync(name, { force: true }) : writeFileSync(name, text)))
+  }
+})
+
+test("a site rule keeps a .jsonc browser default and its comments", async () => {
+  await run((dir) =>
+    Effect.gen(function* () {
+      const file = path.join(dir, "tiancode.jsonc")
+      writeFileSync(file, ["{", "  // browsing", '  "permission": { "browser": "ask" }', "}"].join("\n"))
+
+      const svc = yield* Config.Service
+      yield* svc.update({ permission: { browser: { "https://evil.example": "deny" } } })
+
+      const after = readFileSync(file, "utf8")
+      expect(after).toContain("// browsing")
+      expect(Object.entries(parse(after).permission.browser)).toEqual([
+        ["*", "ask"],
+        ["https://evil.example", "deny"],
+      ])
+    }),
+  )
+})
+
+// The last matching rule wins, so a default added to a map of site rules must come before them.
+test("a new browser default goes before the site rules it yields to", async () => {
+  await run((dir) =>
+    Effect.gen(function* () {
+      const json = path.join(dir, "tiancode.json")
+      writeFileSync(json, JSON.stringify({ permission: { browser: { "https://evil.example": "deny" } } }, null, 2))
+
+      const svc = yield* Config.Service
+      yield* svc.update({ permission: { browser: { "*": "ask" } } })
+
+      expect(Object.keys(JSON.parse(readFileSync(json, "utf8")).permission.browser)).toEqual(["*", "https://evil.example"])
+      rmSync(json)
+
+      const jsonc = path.join(dir, "tiancode.jsonc")
+      writeFileSync(jsonc, ["{", '  "permission": { "browser": { "https://evil.example": "deny" } }', "}"].join("\n"))
+      yield* svc.update({ permission: { browser: { "*": "allow" } } })
+
+      expect(Object.keys(parse(readFileSync(jsonc, "utf8")).permission.browser)).toEqual([
+        "*",
+        "https://evil.example",
+      ])
+    }),
+  )
+})
+
+// modify() creates a missing parent through the same insertion hook: a new `browser` map must not
+// land before a top-level `*`, which would then override every browser rule.
+test("a first browser default in .jsonc goes after a top-level allow-all", async () => {
+  await run((dir) =>
+    Effect.gen(function* () {
+      const file = path.join(dir, "tiancode.jsonc")
+      writeFileSync(file, ["{", '  "permission": "allow"', "}"].join("\n"))
+
+      const svc = yield* Config.Service
+      yield* svc.update({ permission: { browser: { "*": "ask" } } })
+      yield* svc.update({ permission: { browser: { "https://evil.example": "deny" } } })
+
+      const permission = parse(readFileSync(file, "utf8")).permission
+      expect(Object.keys(permission)).toEqual(["*", "browser"])
+      expect(Object.keys(permission.browser)).toEqual(["*", "https://evil.example"])
     }),
   )
 })

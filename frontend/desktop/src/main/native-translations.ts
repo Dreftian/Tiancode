@@ -19,6 +19,10 @@ export function setNativeTranslations(next: DesktopNativeBundle) {
   return true
 }
 
+export function nativeLocale() {
+  return bundle.locale
+}
+
 export function nativeT(key: DesktopNativeKey, params?: Record<string, string | number>) {
   return formatDesktopNativeMessage(bundle.messages[key], params)
 }

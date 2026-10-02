@@ -1,6 +1,9 @@
+import path from "node:path"
 import { Effect } from "effect"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
 import { Config } from "@/config/config"
+import { InstanceState } from "@/effect/instance-state"
+import { markInstanceForDisposal } from "../lifecycle"
 import { ModelHub } from "@/model-hub"
 import { LocalEngine } from "@/local-engine"
 import { InstanceHttpApi } from "../api"
@@ -44,7 +47,7 @@ export const modelHubHandlers = HttpApiBuilder.group(InstanceHttpApi, "model-hub
         id: "local",
         name: "Tiancode Native Engine (llama.cpp)",
         available: engStatus.status === "running" || engStatus.binaryReady,
-        version: engStatus.status === "running" ? `v${engStatus.port} (Activo)` : "Listo",
+        version: engStatus.status,
         models: engStatus.modelName ? [engStatus.modelName] : [],
       }
       return [nativeEngine, ...list]
@@ -109,6 +112,10 @@ export const modelHubHandlers = HttpApiBuilder.group(InstanceHttpApi, "model-hub
         cpuBudget: ctx.payload.cpuBudget,
         placement: ctx.payload.placement,
         idleUnloadMinutes: ctx.payload.idleUnloadMinutes,
+        ubatchSize: ctx.payload.ubatchSize,
+        threadsBatch: ctx.payload.threadsBatch,
+        nCpuMoe: ctx.payload.nCpuMoe,
+        loadTimeoutMinutes: ctx.payload.loadTimeoutMinutes,
       }
       // The engine merges the saved defaults and, with `auto`, the per-model recommendation.
       return yield* engine.start({ ...manual, auto: ctx.payload.auto })
@@ -118,8 +125,30 @@ export const modelHubHandlers = HttpApiBuilder.group(InstanceHttpApi, "model-hub
       return yield* engine.loadDefaults()
     })
 
+    // No instance reload here: Settings saves on every change, and a reload cancels the sessions
+    // running in the project. The light mode is read on each request; a new context size applies
+    // the next time the model loads.
     const engineDefaultsSet = Effect.fn("ModelHubHttpApi.engineDefaultsSet")(function* (ctx) {
       return yield* engine.setLoadDefaults(ctx.payload)
+    })
+
+    const engineLogs = Effect.fn("ModelHubHttpApi.engineLogs")(function* () {
+      return { lines: [...(yield* engine.logs())] }
+    })
+
+    const deleteLocal = Effect.fn("ModelHubHttpApi.deleteLocal")(function* (ctx) {
+      const target = path.resolve(ctx.payload.path)
+      const status = yield* engine.status()
+      const serving =
+        status.modelPath !== undefined &&
+        (process.platform === "win32"
+          ? path.resolve(status.modelPath).toLowerCase() === target.toLowerCase()
+          : path.resolve(status.modelPath) === target)
+      // Only the engine that holds this file stops (Windows keeps a loaded file locked).
+      if (serving) yield* engine.stop()
+      const deleted = yield* hub.deleteLocal(target)
+      if (deleted) yield* markInstanceForDisposal(yield* InstanceState.context)
+      return { deleted, stopped: serving }
     })
 
     const local = Effect.fn("ModelHubHttpApi.local")(function* () {
@@ -130,8 +159,11 @@ export const modelHubHandlers = HttpApiBuilder.group(InstanceHttpApi, "model-hub
       return yield* hub.estimate(ctx.query.model, ctx.query.file)
     })
 
+    // A new folder brings other models: the provider re-discovers them on the next request.
     const setDir = Effect.fn("ModelHubHttpApi.setDir")(function* (ctx) {
-      return yield* hub.setDir(ctx.payload.dir)
+      const system = yield* hub.setDir(ctx.payload.dir)
+      yield* markInstanceForDisposal(yield* InstanceState.context)
+      return system
     })
 
     const stopEngine = Effect.fn("ModelHubHttpApi.engineStop")(function* () {
@@ -149,6 +181,8 @@ export const modelHubHandlers = HttpApiBuilder.group(InstanceHttpApi, "model-hub
       .handle("downloads", downloads)
       .handle("download", download)
       .handle("cancel", cancel)
+      .handle("deleteLocal", deleteLocal)
+      .handle("engineLogs", engineLogs)
       .handle("forget", forget)
       .handle("engine", getEngineStatus)
       .handle("engineStart", startEngine)

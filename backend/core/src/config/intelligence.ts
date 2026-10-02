@@ -1,6 +1,7 @@
 export * as ConfigIntelligence from "./intelligence"
 
 import { Effect } from "effect"
+import path from "path"
 import { Config } from "../config"
 
 /**
@@ -20,6 +21,7 @@ export interface Resolved {
   readonly loopBreaker: boolean
   readonly cleanWeb: boolean
   readonly autoSkillLearn: boolean
+  readonly smartAlerts: boolean
 }
 
 export const DEFAULTS: Resolved = {
@@ -32,6 +34,7 @@ export const DEFAULTS: Resolved = {
   loopBreaker: true,
   cleanWeb: true,
   autoSkillLearn: true,
+  smartAlerts: true,
 }
 
 /** One authored `experimental.intelligence` block: every switch optional. */
@@ -48,6 +51,7 @@ function apply(resolved: Resolved, switches: Switches): Resolved {
     loopBreaker: switches.loopBreaker ?? resolved.loopBreaker,
     cleanWeb: switches.cleanWeb ?? resolved.cleanWeb,
     autoSkillLearn: switches.autoSkillLearn ?? resolved.autoSkillLearn,
+    smartAlerts: switches.smartAlerts ?? resolved.smartAlerts,
   }
 }
 
@@ -59,8 +63,8 @@ function apply(resolved: Resolved, switches: Switches): Resolved {
  * the entries — tool handlers, whose Effects must carry no service requirements — can use it
  * without dragging Config.Service into their signature.
  */
-export function fromEntries(entries: readonly Config.Entry[]): Resolved {
-  let resolved = { ...DEFAULTS }
+export function fromEntries(entries: readonly Config.Entry[], base: Resolved = DEFAULTS): Resolved {
+  let resolved = { ...base }
   for (const entry of entries) {
     if (entry.type !== "document") continue
     const intelligence = entry.info.experimental?.intelligence
@@ -77,6 +81,21 @@ export function fromEntries(entries: readonly Config.Entry[]): Resolved {
  */
 export function fromConfig(switches: Switches | undefined): Resolved {
   return switches ? apply(DEFAULTS, switches) : DEFAULTS
+}
+
+/**
+ * The switches as they are right now: the global block read fresh, then every project document on
+ * top. A location reads its config documents once, so the global one it holds goes stale when
+ * Settings writes the global file; the fresh global read lets a toggle apply on the next turn
+ * without reopening every project (which would cancel running sessions).
+ */
+export function layered(global: Switches | undefined, entries: readonly Config.Entry[], globalDirectory: string): Resolved {
+  const project = entries.filter((entry) => {
+    if (!entry.path) return true
+    const relative = path.relative(globalDirectory, entry.path)
+    return relative.startsWith("..") || path.isAbsolute(relative)
+  })
+  return fromEntries(project, fromConfig(global))
 }
 
 /** Convenience wrapper for callers that can require Config.Service. */

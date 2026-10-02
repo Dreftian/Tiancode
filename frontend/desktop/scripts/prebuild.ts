@@ -13,3 +13,7 @@ await $`bun ./scripts/copy-metainfo.ts ${channel}`
 const { version } = await Bun.file("package.json").json()
 await $`bun run --cwd ../../backend/tiancode script/build-node.ts`.env({ TIANCODE_VERSION: version })
 if (channel === "dev") await downloadCliToResources()
+
+// Settings › Pairing: the sidecar serves this web build to devices on the local network
+// (packaged as resources/web-ui, see electron-builder.config.ts).
+await $`bun run --cwd ../app build`.env({ ...process.env, VITE_TIANCODE_VERSION: version })

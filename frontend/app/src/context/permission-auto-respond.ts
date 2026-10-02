@@ -37,16 +37,28 @@ function sessionLineage(session: { id: string; parentID?: string }[], sessionID:
   return ids
 }
 
+/**
+ * A request only the user may answer: AgentShield's `shell_risk` (wiping a drive, uploading
+ * secrets, running a downloaded script). Neither auto-accept nor "Omitir permisos" answers it.
+ */
+export function requiresUser(permission: { permission?: string }) {
+  return permission.permission === "shell_risk"
+}
+
 export function autoRespondsPermission(
   autoAccept: Record<string, boolean>,
   session: { id: string; parentID?: string }[],
   permission: { sessionID: string },
   directory?: string,
 ) {
-  if (autoAccept["*"] !== false) return true
+  // An explicit choice for this session (or its parents) or this folder wins; the global switch,
+  // on by default as a deliberate product choice, only decides when nothing more specific exists.
+  // Checking the global switch first made Mod+Shift+A unable to stop auto-accepting a session.
   const value = sessionAutoAccept(autoAccept, session, permission, directory)
   if (value !== undefined) return value
-  return directory ? isDirectoryAutoAccepting(autoAccept, directory) : false
+  const folder = directory ? autoAccept[directoryAcceptKey(directory)] : undefined
+  if (folder !== undefined) return folder
+  return autoAccept["*"] !== false
 }
 
 export function sessionAutoAccept(

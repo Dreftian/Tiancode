@@ -9,6 +9,8 @@ export interface NotificationSettings {
   agent: boolean
   permissions: boolean
   errors: boolean
+  /** "Needs your answer". Absent: follows `agent`, which covered it before it had its own switch. */
+  questions?: boolean
 }
 
 export interface SoundSettings {
@@ -18,6 +20,15 @@ export interface SoundSettings {
   permissions: string
   errorsEnabled: boolean
   errors: string
+  /** Absent: follow the agent sound, as before. */
+  questionsEnabled?: boolean
+  questions?: string
+  /** Silences sounds and system notifications at once. */
+  muted?: boolean
+  /** 0 to 1. */
+  volume?: number
+  /** Only sound when Tiancode is in the background. */
+  backgroundOnly?: boolean
 }
 
 export const petKinds = [
@@ -55,44 +66,22 @@ export const defaultPetSettings = {
   position: "bottom-right" as PetPosition,
 }
 
-/**
- * Settings → Intelligence.
- *
- * One field per switch the server config actually honours, named exactly as it is named under
- * `experimental.intelligence`: the panel mirrors this block to the server and seeds it back on
- * mount, so a name that drifts here silently stops reaching the agent. The defaults match the
- * server's own (everything on), which is what a client sees before the first read answers.
- */
-export interface IntelligenceSettings {
-  userMemory: boolean
-  projectMemory: boolean
-  codeGraph: boolean
-  cleanWeb: boolean
-  autoSkillLearn: boolean
-  guardrails: boolean
-  outputDistiller: boolean
-  toolCallRepair: boolean
-  loopBreaker: boolean
-}
-
-export const defaultIntelligenceSettings: IntelligenceSettings = {
-  userMemory: true,
-  projectMemory: true,
-  codeGraph: true,
-  cleanWeb: true,
-  autoSkillLearn: true,
-  guardrails: true,
-  outputDistiller: true,
-  toolCallRepair: true,
-  loopBreaker: true,
-}
-
 export const transcriptTextSizes = ["small", "medium", "large"] as const
 export type TranscriptTextSize = (typeof transcriptTextSizes)[number]
 export const transcriptWidths = ["narrow", "medium", "wide"] as const
 export type TranscriptWidth = (typeof transcriptWidths)[number]
 export const transcriptViews = ["normal", "thinking", "detailed"] as const
 export type TranscriptView = (typeof transcriptViews)[number]
+/** What happens when a turn that built or reviewed an app or website finishes. */
+export const previewOnFinishOptions = ["ask", "sandbox", "desktop", "off"] as const
+export type PreviewOnFinish = (typeof previewOnFinishOptions)[number]
+export const terminalPlacements = ["bottom", "side"] as const
+export type TerminalPlacement = (typeof terminalPlacements)[number]
+export const tabLayouts = ["horizontal", "vertical"] as const
+export type TabLayout = (typeof tabLayouts)[number]
+/** Where a new session starts: remembered per project, the project folder, or a new git worktree. */
+export const workspaceDestinations = ["last-used", "local", "new"] as const
+export type WorkspaceDestination = (typeof workspaceDestinations)[number]
 
 /**
  * Escalón de texto de la transcripción a partir de lo que haya en disco.
@@ -172,6 +161,15 @@ export interface Settings {
     allToolPartsExpanded: boolean
     showCustomAgents: boolean
     mobileTitlebarPosition: "top" | "bottom"
+    previewOnFinish: PreviewOnFinish
+    // Lets the agent open and drive the Sandbox/integrated browser on its own (preview_inspect,
+    // preview_interact, screenshots of the page). Off, only the user opens it.
+    agentBrowser: boolean
+    terminalPlacement: TerminalPlacement
+    diffWrap: boolean
+    // Stored as-is and interpreted by pages/session/timeline/detail.ts, which also migrates the
+    // legacy transcript booleans above when this is still undefined.
+    timelineDetail?: unknown
     newLayoutDesigns?: boolean
     layoutTransitionEligible?: boolean
     agentVisibilityInitialized?: boolean
@@ -187,6 +185,13 @@ export interface Settings {
     sans: string
     terminal: string
     transcriptWidth: TranscriptWidth
+    tabLayout: TabLayout
+    showProjectName: boolean
+  }
+  workspaces: {
+    defaultDestination: WorkspaceDestination
+    // `${serverScope}:${projectID}` → what the last new session in that project used.
+    lastUsed: Record<string, "local" | "workspace">
   }
   keybinds: Record<string, string>
   permissions: {
@@ -194,7 +199,6 @@ export interface Settings {
   }
   notifications: NotificationSettings
   sounds: SoundSettings
-  intelligence: IntelligenceSettings
 }
 
 export const monoDefault = "System Mono"
@@ -356,6 +360,12 @@ const defaultSettings: Settings = {
     allToolPartsExpanded: false,
     showCustomAgents: false,
     mobileTitlebarPosition: "top",
+    previewOnFinish: "ask",
+    agentBrowser: true,
+    // Tiancode always docked the terminal at the bottom; upgraded users keep that.
+    terminalPlacement: "bottom",
+    // Diffs always wrapped before this switch existed.
+    diffWrap: true,
   },
   appearance: {
     fontSize: "medium",
@@ -363,6 +373,12 @@ const defaultSettings: Settings = {
     sans: "",
     terminal: "",
     transcriptWidth: "medium",
+    tabLayout: "horizontal",
+    showProjectName: false,
+  },
+  workspaces: {
+    defaultDestination: "last-used",
+    lastUsed: {},
   },
   keybinds: {},
   permissions: {
@@ -381,7 +397,6 @@ const defaultSettings: Settings = {
     errorsEnabled: true,
     errors: "nope-03",
   },
-  intelligence: defaultIntelligenceSettings,
 }
 
 function withFallback<T>(read: () => T | undefined, fallback: T) {
@@ -544,11 +559,6 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
       root.style.setProperty("--transcript-text-scale", transcriptTextScales[text])
     })
 
-    createEffect(() => {
-      if (store.general?.followup !== "queue") return
-      setStore("general", "followup", "steer")
-    })
-
     // Reescribe el número heredado al escalón equivalente para que el disco deje
     // de guardar la forma vieja en cuanto el usuario abre la app.
     createEffect(() => {
@@ -570,12 +580,9 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         setReleaseNotes(value: boolean) {
           setStore("general", "releaseNotes", value)
         },
-        followup: withFallback(
-          () => (store.general?.followup === "queue" ? "steer" : store.general?.followup),
-          defaultSettings.general.followup,
-        ),
+        followup: withFallback(() => store.general?.followup, defaultSettings.general.followup),
         setFollowup(value: "queue" | "steer") {
-          setStore("general", "followup", value === "queue" ? "steer" : value)
+          setStore("general", "followup", value)
         },
         showFileTree,
         setShowFileTree(value: boolean) {
@@ -725,6 +732,29 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         dismissNewInterfaceNotice() {
           setStore("general", "newInterfaceNoticeDismissed", true)
         },
+        previewOnFinish: withFallback(() => store.general?.previewOnFinish, defaultSettings.general.previewOnFinish),
+        setPreviewOnFinish(value: PreviewOnFinish) {
+          setStore("general", "previewOnFinish", value)
+        },
+        agentBrowser: withFallback(() => store.general?.agentBrowser, defaultSettings.general.agentBrowser),
+        setAgentBrowser(value: boolean) {
+          setStore("general", "agentBrowser", value)
+        },
+        terminalPlacement: withFallback(
+          () => store.general?.terminalPlacement,
+          defaultSettings.general.terminalPlacement,
+        ),
+        setTerminalPlacement(value: TerminalPlacement) {
+          setStore("general", "terminalPlacement", value)
+        },
+        diffWrap: withFallback(() => store.general?.diffWrap, defaultSettings.general.diffWrap),
+        setDiffWrap(value: boolean) {
+          setStore("general", "diffWrap", value)
+        },
+        timelineDetail: createMemo(() => store.general?.timelineDetail),
+        setTimelineDetail(value: unknown) {
+          setStore("general", "timelineDetail", reconcile(value as never))
+        },
         shouldDisplayTabsToast: withFallback(() => store.general?.shouldDisplayTabsToast, false),
         dismissTabsToast() {
           setStore("general", "shouldDisplayTabsToast", false)
@@ -756,6 +786,36 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         terminalFont: withFallback(() => store.appearance?.terminal, defaultSettings.appearance.terminal),
         setTerminalFont(value: string) {
           setStore("appearance", "terminal", value.trim() ? value : "")
+        },
+        tabLayout: withFallback(() => store.appearance?.tabLayout, defaultSettings.appearance.tabLayout),
+        setTabLayout(value: TabLayout) {
+          setStore("appearance", "tabLayout", value)
+        },
+        showProjectName: withFallback(
+          () => store.appearance?.showProjectName,
+          defaultSettings.appearance.showProjectName,
+        ),
+        setShowProjectName(value: boolean) {
+          setStore("appearance", "showProjectName", value)
+        },
+      },
+      workspaces: {
+        defaultDestination: withFallback(
+          () => store.workspaces?.defaultDestination,
+          defaultSettings.workspaces.defaultDestination,
+        ),
+        setDefaultDestination(value: WorkspaceDestination) {
+          setStore("workspaces", "defaultDestination", value)
+        },
+        lastUsed(scope: string, projectID: string) {
+          return store.workspaces?.lastUsed?.[`${scope}:${projectID}`]
+        },
+        setLastUsed(scope: string, projectID: string, value: "local" | "workspace") {
+          if (!store.workspaces) {
+            setStore("workspaces", { ...defaultSettings.workspaces, lastUsed: { [`${scope}:${projectID}`]: value } })
+            return
+          }
+          setStore("workspaces", "lastUsed", `${scope}:${projectID}`, value)
         },
       },
       keybinds: {
@@ -794,6 +854,12 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         setErrors(value: boolean) {
           setStore("notifications", "errors", value)
         },
+        questions: createMemo(
+          () => store.notifications?.questions ?? store.notifications?.agent ?? defaultSettings.notifications.agent,
+        ),
+        setQuestions(value: boolean) {
+          setStore("notifications", "questions", value)
+        },
       },
       sounds: {
         agentEnabled: withFallback(() => store.sounds?.agentEnabled, defaultSettings.sounds.agentEnabled),
@@ -823,67 +889,27 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         setErrors(value: string) {
           setStore("sounds", "errors", value)
         },
-      },
-      intelligence: {
-        userMemory: withFallback(() => store.intelligence?.userMemory, defaultSettings.intelligence.userMemory),
-        setUserMemory(value: boolean) {
-          setStore("intelligence", "userMemory", value)
-        },
-        projectMemory: withFallback(
-          () => store.intelligence?.projectMemory,
-          defaultSettings.intelligence.projectMemory,
+        questionsEnabled: createMemo(
+          () => store.sounds?.questionsEnabled ?? store.sounds?.agentEnabled ?? defaultSettings.sounds.agentEnabled,
         ),
-        setProjectMemory(value: boolean) {
-          setStore("intelligence", "projectMemory", value)
+        setQuestionsEnabled(value: boolean) {
+          setStore("sounds", "questionsEnabled", value)
         },
-        codeGraph: withFallback(() => store.intelligence?.codeGraph, defaultSettings.intelligence.codeGraph),
-        setCodeGraph(value: boolean) {
-          setStore("intelligence", "codeGraph", value)
+        questions: createMemo(() => store.sounds?.questions ?? store.sounds?.agent ?? defaultSettings.sounds.agent),
+        setQuestions(value: string) {
+          setStore("sounds", "questions", value)
         },
-        cleanWeb: withFallback(() => store.intelligence?.cleanWeb, defaultSettings.intelligence.cleanWeb),
-        setCleanWeb(value: boolean) {
-          setStore("intelligence", "cleanWeb", value)
+        muted: withFallback(() => store.sounds?.muted, false),
+        setMuted(value: boolean) {
+          setStore("sounds", "muted", value)
         },
-        autoSkillLearn: withFallback(
-          () => store.intelligence?.autoSkillLearn,
-          defaultSettings.intelligence.autoSkillLearn,
-        ),
-        setAutoSkillLearn(value: boolean) {
-          setStore("intelligence", "autoSkillLearn", value)
+        volume: withFallback(() => store.sounds?.volume, 1),
+        setVolume(value: number) {
+          setStore("sounds", "volume", value)
         },
-        guardrails: withFallback(() => store.intelligence?.guardrails, defaultSettings.intelligence.guardrails),
-        setGuardrails(value: boolean) {
-          setStore("intelligence", "guardrails", value)
-        },
-        outputDistiller: withFallback(
-          () => store.intelligence?.outputDistiller,
-          defaultSettings.intelligence.outputDistiller,
-        ),
-        setOutputDistiller(value: boolean) {
-          setStore("intelligence", "outputDistiller", value)
-        },
-        toolCallRepair: withFallback(
-          () => store.intelligence?.toolCallRepair,
-          defaultSettings.intelligence.toolCallRepair,
-        ),
-        setToolCallRepair(value: boolean) {
-          setStore("intelligence", "toolCallRepair", value)
-        },
-        loopBreaker: withFallback(() => store.intelligence?.loopBreaker, defaultSettings.intelligence.loopBreaker),
-        setLoopBreaker(value: boolean) {
-          setStore("intelligence", "loopBreaker", value)
-        },
-        // Seeds the block from the server config the panel reads on mount. Only booleans are
-        // taken, so a switch the server omits — or carries as something else — keeps its
-        // current value instead of being reset.
-        merge(values: Partial<IntelligenceSettings>) {
-          setStore("intelligence", (current) => {
-            const next: IntelligenceSettings = { ...defaultSettings.intelligence, ...current }
-            for (const [key, value] of Object.entries(values)) {
-              if (typeof value === "boolean") next[key as keyof IntelligenceSettings] = value
-            }
-            return next
-          })
+        backgroundOnly: withFallback(() => store.sounds?.backgroundOnly, false),
+        setBackgroundOnly(value: boolean) {
+          setStore("sounds", "backgroundOnly", value)
         },
       },
     }

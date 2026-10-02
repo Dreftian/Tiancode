@@ -1,7 +1,7 @@
 import { Effect, Schema } from "effect"
 import { CodeGraph } from "@tiancode-ai/core/graph"
-import { ConfigIntelligence } from "@tiancode-ai/core/config/intelligence"
-import { Config } from "@tiancode-ai/core/config"
+import { Config } from "@/config/config"
+import { IntelligenceSwitches } from "@/config/intelligence-switches"
 import { LocationServiceMap } from "@tiancode-ai/core/location-services"
 import { Location } from "@tiancode-ai/core/location"
 import { AbsolutePath } from "@tiancode-ai/core/schema"
@@ -35,10 +35,11 @@ type Metadata = Record<string, unknown>
  * `dependents` is the query that is genuinely hard to answer with grep: it needs the import
  * edges resolved, not a text match.
  */
-export const CodeGraphTool = Tool.define<typeof Parameters, Metadata, LocationServiceMap.Service>(
+export const CodeGraphTool = Tool.define<typeof Parameters, Metadata, LocationServiceMap.Service | Config.Service>(
   "codegraph",
   Effect.gen(function* () {
     const locations = yield* LocationServiceMap.Service
+    const config = yield* Config.Service
 
     return {
       description:
@@ -52,9 +53,7 @@ export const CodeGraphTool = Tool.define<typeof Parameters, Metadata, LocationSe
           const root = instCtx.directory
           const locLayer = locations.get(Location.Ref.make({ directory: AbsolutePath.make(root) }))
 
-          // Config is location-scoped in core, so it resolves through the same layer.
-          const config = yield* Config.Service.pipe(Effect.provide(locLayer))
-          const intelligence = ConfigIntelligence.fromEntries(yield* config.entries())
+          const intelligence = yield* IntelligenceSwitches.read(config, locations)
           if (!intelligence.codeGraph) {
             return {
               title: "Code graph disabled",

@@ -38,8 +38,11 @@ const CUSTOMIZE_TIANCODE_SKILL_DESCRIPTION =
 const CUSTOMIZE_TIANCODE_SKILL_BODY = SkillPlugin.CustomizeOpencodeContent
 
 // Built-in engineering workflow skills that ship with tiancode, bundled from
-// https://github.com/addyosmani/agent-skills (MIT, (c) 2025 Addy Osmani) and
-// https://github.com/ayghri/i-have-adhd (MIT, (c) 2026 Ayoub Ghriss).
+// https://github.com/addyosmani/agent-skills (MIT, (c) 2025 Addy Osmani),
+// https://github.com/ayghri/i-have-adhd (MIT, (c) 2026 Ayoub Ghriss),
+// https://github.com/bmad-code-org/BMAD-METHOD (MIT, (c) 2025 BMad Code, LLC; condensed and
+// renamed planning and review workflows) and https://github.com/cathrynlavery/diagram-design
+// (MIT, (c) 2025 Cathryn Lavery). License texts live next to the skills as skills/LICENSE-*.md.
 // Each document is a SKILL.md-style file whose frontmatter provides the name
 // and description. They are registered before disk discovery so a user-disk
 // skill with the same name can override them.
@@ -394,8 +397,9 @@ const layer = Layer.effect(
       const blocked = new Set(cfg.skills?.disabled ?? [])
       if (enabled) blocked.delete(name)
       else blocked.add(name)
-      const skills = { ...cfg.skills, disabled: Array.from(blocked).toSorted() }
-      yield* config.updateGlobal({ ...cfg, skills })
+      // Patch only the list: getGlobal() has {env:} and {file:} resolved, so sending it all back
+      // would write secrets into the file in plain text.
+      yield* config.updateGlobal({ skills: { disabled: Array.from(blocked).toSorted() } })
       yield* InstanceState.invalidate(state)
     })
 

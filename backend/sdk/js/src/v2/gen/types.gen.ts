@@ -1689,6 +1689,7 @@ export type AgentConfig = {
   temperature?: number
   top_p?: number
   prompt?: string
+  prompt_append?: string
   injectAgentsMd?: boolean
   tools?: {
     [key: string]: boolean
@@ -2035,6 +2036,12 @@ export type Config = {
       projectMemory?: boolean
       guardrails?: boolean
       codeGraph?: boolean
+      outputDistiller?: boolean
+      toolCallRepair?: boolean
+      loopBreaker?: boolean
+      cleanWeb?: boolean
+      autoSkillLearn?: boolean
+      smartAlerts?: boolean
     }
     connections?: {
       telegram?: {
@@ -2102,6 +2109,116 @@ export type ConnectionTestResult = {
   status?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
   message: string
   latencyMs: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+}
+
+export type DecisionStatus = {
+  state: "unavailable" | "missing" | "downloading" | "ready" | "error"
+  loaded: boolean
+  totalBytes: number
+  receivedBytes: number
+  message?: string
+  loadMs?: number
+  model: string
+  base: string
+}
+
+export type DecisionPreset = "outcome" | "area"
+
+export type DecisionClassifyInput = {
+  preset: DecisionPreset
+  text: string
+  timeoutMs?: number
+}
+
+export type DecisionAnswer = {
+  choice: string
+  confidence: number
+  probabilities: {
+    [key: string]: number
+  }
+  ms: number
+}
+
+export type MarketplaceAuth = "none" | "oauth" | "own-app" | "token" | "restricted"
+
+export type MarketplaceMcp = {
+  transport: "remote" | "local"
+  url?: string
+  headers?: {
+    [key: string]: string
+  }
+  command?: Array<string>
+  environment?: {
+    [key: string]: string
+  }
+}
+
+export type MarketplaceItem = {
+  id: string
+  type: "mcp" | "plugin" | "skill"
+  name: string
+  title: string
+  description: string
+  source: string
+  category: string
+  icon?: string
+  domain?: string
+  homepage?: string
+  verified?: boolean
+  stars?: number
+  auth?: MarketplaceAuth
+  mcp?: MarketplaceMcp
+  skillUrl?: string
+  installable: boolean
+}
+
+export type MarketplaceSource = {
+  id: string
+  ok: boolean
+  count: number
+}
+
+export type MarketplaceCatalog = {
+  fetchedAt: number
+  items: Array<MarketplaceItem>
+  sources: Array<MarketplaceSource>
+}
+
+export type MarketplaceConnector = {
+  id: string
+  name: string
+  title: string
+  description: string
+  category: string
+  url: string
+  transport: "http" | "sse"
+  auth: MarketplaceAuth
+  icon?: string
+  domain?: string
+  docs?: string
+  sources: Array<string>
+}
+
+export type MarketplaceInstalled = {
+  id: string
+  name: string
+  title: string
+  source: string
+  installedAt: number
+  skills: Array<string>
+  commands: Array<string>
+  agents: Array<string>
+  mcp: Array<string>
+  skipped: Array<string>
+}
+
+export type MarketplaceInstallInput = {
+  id: string
+}
+
+export type MarketplaceInstallError = {
+  _tag: "MarketplaceInstallError"
+  message: string
 }
 
 export type Model = {
@@ -2329,12 +2446,38 @@ export type McpResource = {
   client: string
 }
 
+export type MemoryFile = {
+  path: string
+  text: string
+  limit: number
+}
+
+export type MemoryFiles = {
+  user: MemoryFile
+  project: MemoryFile
+}
+
+export type MemoryReplaceInput = {
+  target: "user" | "project"
+  text: string
+}
+
 export type OptimizePromptPayload = {
   prompt: string
   providerID?: string
   modelID?: string
+  variant?: string
   language?: string
   style?: "standard" | "rigorous" | "minimal"
+  heartbeat?: boolean
+}
+
+export type OptimizePromptModelError = {
+  name: "OptimizePromptModelUnavailableError"
+  data: {
+    providerID: string
+    modelID: string
+  }
 }
 
 export type Symbol = {
@@ -2403,6 +2546,7 @@ export type GithubStatus = {
   connected: boolean
   login?: string
   avatarUrl?: string
+  scopes?: Array<string>
 }
 
 export type GithubDisconnectResult = {
@@ -2545,10 +2689,25 @@ export type Agent = {
   }
   variant?: string
   prompt?: string
+  promptAppend?: string
   options: {
     [key: string]: unknown
   }
   steps?: number
+}
+
+export type AgentGenerateResult = {
+  identifier: string
+  whenToUse: string
+  systemPrompt: string
+}
+
+export type AgentGenerateError = {
+  name: "AgentGenerateError"
+  data: {
+    message: string
+    reason: "no-model" | "model-failed"
+  }
 }
 
 export type LspStatus = {
@@ -5190,6 +5349,7 @@ export type CommandV2Info = {
 export type SkillV2Info = {
   name: string
   description?: string
+  disableModelInvocation?: boolean
   slash?: boolean
   icon?: string
   location: string
@@ -7501,6 +7661,35 @@ export type GlobalConfigUpdateResponses = {
 
 export type GlobalConfigUpdateResponse = GlobalConfigUpdateResponses[keyof GlobalConfigUpdateResponses]
 
+export type GlobalConfigAgentResetData = {
+  body?: never
+  path: {
+    name: string
+  }
+  query?: {
+    fields?: string
+  }
+  url: "/global/config/agent/{name}"
+}
+
+export type GlobalConfigAgentResetErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalConfigAgentResetError = GlobalConfigAgentResetErrors[keyof GlobalConfigAgentResetErrors]
+
+export type GlobalConfigAgentResetResponses = {
+  /**
+   * Whether the global config had overrides for the agent
+   */
+  200: boolean
+}
+
+export type GlobalConfigAgentResetResponse = GlobalConfigAgentResetResponses[keyof GlobalConfigAgentResetResponses]
+
 export type GlobalDisposeData = {
   body?: never
   path?: never
@@ -7669,6 +7858,318 @@ export type GlobalConnectionsTestResponses = {
 
 export type GlobalConnectionsTestResponse = GlobalConnectionsTestResponses[keyof GlobalConnectionsTestResponses]
 
+export type GlobalDecisionRemoveData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/global/decision"
+}
+
+export type GlobalDecisionRemoveErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalDecisionRemoveError = GlobalDecisionRemoveErrors[keyof GlobalDecisionRemoveErrors]
+
+export type GlobalDecisionRemoveResponses = {
+  /**
+   * Status after removing the model
+   */
+  200: DecisionStatus
+}
+
+export type GlobalDecisionRemoveResponse = GlobalDecisionRemoveResponses[keyof GlobalDecisionRemoveResponses]
+
+export type GlobalDecisionStatusData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/global/decision"
+}
+
+export type GlobalDecisionStatusErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalDecisionStatusError = GlobalDecisionStatusErrors[keyof GlobalDecisionStatusErrors]
+
+export type GlobalDecisionStatusResponses = {
+  /**
+   * Local decision model status
+   */
+  200: DecisionStatus
+}
+
+export type GlobalDecisionStatusResponse = GlobalDecisionStatusResponses[keyof GlobalDecisionStatusResponses]
+
+export type GlobalDecisionInstallData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/global/decision/install"
+}
+
+export type GlobalDecisionInstallErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalDecisionInstallError = GlobalDecisionInstallErrors[keyof GlobalDecisionInstallErrors]
+
+export type GlobalDecisionInstallResponses = {
+  /**
+   * Status after starting the download
+   */
+  200: DecisionStatus
+}
+
+export type GlobalDecisionInstallResponse = GlobalDecisionInstallResponses[keyof GlobalDecisionInstallResponses]
+
+export type GlobalDecisionCancelData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/global/decision/cancel"
+}
+
+export type GlobalDecisionCancelErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalDecisionCancelError = GlobalDecisionCancelErrors[keyof GlobalDecisionCancelErrors]
+
+export type GlobalDecisionCancelResponses = {
+  /**
+   * Status after cancelling
+   */
+  200: DecisionStatus
+}
+
+export type GlobalDecisionCancelResponse = GlobalDecisionCancelResponses[keyof GlobalDecisionCancelResponses]
+
+export type GlobalDecisionClassifyData = {
+  body?: DecisionClassifyInput
+  path?: never
+  query?: never
+  url: "/global/decision/classify"
+}
+
+export type GlobalDecisionClassifyErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalDecisionClassifyError = GlobalDecisionClassifyErrors[keyof GlobalDecisionClassifyErrors]
+
+export type GlobalDecisionClassifyResponses = {
+  /**
+   * The answer, or null when the model is not ready
+   */
+  200: DecisionAnswer
+}
+
+export type GlobalDecisionClassifyResponse = GlobalDecisionClassifyResponses[keyof GlobalDecisionClassifyResponses]
+
+export type GlobalMarketplaceCatalogData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/global/marketplace"
+}
+
+export type GlobalMarketplaceCatalogErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalMarketplaceCatalogError = GlobalMarketplaceCatalogErrors[keyof GlobalMarketplaceCatalogErrors]
+
+export type GlobalMarketplaceCatalogResponses = {
+  /**
+   * Every MCP server, plugin and skill Discover lists
+   */
+  200: MarketplaceCatalog
+}
+
+export type GlobalMarketplaceCatalogResponse =
+  GlobalMarketplaceCatalogResponses[keyof GlobalMarketplaceCatalogResponses]
+
+export type GlobalMarketplaceConnectorsData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/global/marketplace/connectors"
+}
+
+export type GlobalMarketplaceConnectorsErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalMarketplaceConnectorsError =
+  GlobalMarketplaceConnectorsErrors[keyof GlobalMarketplaceConnectorsErrors]
+
+export type GlobalMarketplaceConnectorsResponses = {
+  /**
+   * App connectors (remote MCP servers)
+   */
+  200: Array<MarketplaceConnector>
+}
+
+export type GlobalMarketplaceConnectorsResponse =
+  GlobalMarketplaceConnectorsResponses[keyof GlobalMarketplaceConnectorsResponses]
+
+export type GlobalMarketplaceSearchData = {
+  body?: never
+  path?: never
+  query: {
+    q: string
+  }
+  url: "/global/marketplace/search"
+}
+
+export type GlobalMarketplaceSearchErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalMarketplaceSearchError = GlobalMarketplaceSearchErrors[keyof GlobalMarketplaceSearchErrors]
+
+export type GlobalMarketplaceSearchResponses = {
+  /**
+   * MCP servers from the official registry
+   */
+  200: Array<MarketplaceItem>
+}
+
+export type GlobalMarketplaceSearchResponse = GlobalMarketplaceSearchResponses[keyof GlobalMarketplaceSearchResponses]
+
+export type GlobalMarketplaceIconData = {
+  body?: never
+  path?: never
+  query: {
+    domain: string
+  }
+  url: "/global/marketplace/icon"
+}
+
+export type GlobalMarketplaceIconErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalMarketplaceIconError = GlobalMarketplaceIconErrors[keyof GlobalMarketplaceIconErrors]
+
+export type GlobalMarketplaceIconResponses = {
+  /**
+   * The site's logo as a data URL, or null
+   */
+  200: string
+}
+
+export type GlobalMarketplaceIconResponse = GlobalMarketplaceIconResponses[keyof GlobalMarketplaceIconResponses]
+
+export type GlobalMarketplaceUninstallData = {
+  body?: never
+  path?: never
+  query: {
+    id: string
+  }
+  url: "/global/marketplace/plugins"
+}
+
+export type GlobalMarketplaceUninstallErrors = {
+  /**
+   * MarketplaceInstallError | InvalidRequestError
+   */
+  400: MarketplaceInstallError | InvalidRequestError
+}
+
+export type GlobalMarketplaceUninstallError = GlobalMarketplaceUninstallErrors[keyof GlobalMarketplaceUninstallErrors]
+
+export type GlobalMarketplaceUninstallResponses = {
+  /**
+   * Whether the plugin was installed
+   */
+  200: boolean
+}
+
+export type GlobalMarketplaceUninstallResponse =
+  GlobalMarketplaceUninstallResponses[keyof GlobalMarketplaceUninstallResponses]
+
+export type GlobalMarketplaceInstalledData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/global/marketplace/plugins"
+}
+
+export type GlobalMarketplaceInstalledErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type GlobalMarketplaceInstalledError = GlobalMarketplaceInstalledErrors[keyof GlobalMarketplaceInstalledErrors]
+
+export type GlobalMarketplaceInstalledResponses = {
+  /**
+   * Plugins installed from the catalog
+   */
+  200: Array<MarketplaceInstalled>
+}
+
+export type GlobalMarketplaceInstalledResponse =
+  GlobalMarketplaceInstalledResponses[keyof GlobalMarketplaceInstalledResponses]
+
+export type GlobalMarketplaceInstallData = {
+  body?: MarketplaceInstallInput
+  path?: never
+  query?: never
+  url: "/global/marketplace/plugins"
+}
+
+export type GlobalMarketplaceInstallErrors = {
+  /**
+   * MarketplaceInstallError | InvalidRequestError
+   */
+  400: MarketplaceInstallError | InvalidRequestError
+}
+
+export type GlobalMarketplaceInstallError = GlobalMarketplaceInstallErrors[keyof GlobalMarketplaceInstallErrors]
+
+export type GlobalMarketplaceInstallResponses = {
+  /**
+   * What the plugin added
+   */
+  200: MarketplaceInstalled
+}
+
+export type GlobalMarketplaceInstallResponse =
+  GlobalMarketplaceInstallResponses[keyof GlobalMarketplaceInstallResponses]
+
 export type EventSubscribeData = {
   body?: never
   path?: never
@@ -7743,6 +8244,37 @@ export type ConfigUpdateResponses = {
 }
 
 export type ConfigUpdateResponse = ConfigUpdateResponses[keyof ConfigUpdateResponses]
+
+export type ConfigAgentResetData = {
+  body?: never
+  path: {
+    name: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+    fields?: string
+  }
+  url: "/config/agent/{name}"
+}
+
+export type ConfigAgentResetErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ConfigAgentResetError = ConfigAgentResetErrors[keyof ConfigAgentResetErrors]
+
+export type ConfigAgentResetResponses = {
+  /**
+   * Whether the project config had overrides for the agent
+   */
+  200: boolean
+}
+
+export type ConfigAgentResetResponse = ConfigAgentResetResponses[keyof ConfigAgentResetResponses]
 
 export type ConfigProvidersData = {
   body?: never
@@ -8172,6 +8704,63 @@ export type ExperimentalResourceListResponses = {
 export type ExperimentalResourceListResponse =
   ExperimentalResourceListResponses[keyof ExperimentalResourceListResponses]
 
+export type ExperimentalMemoryGetData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/experimental/memory"
+}
+
+export type ExperimentalMemoryGetErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ExperimentalMemoryGetError = ExperimentalMemoryGetErrors[keyof ExperimentalMemoryGetErrors]
+
+export type ExperimentalMemoryGetResponses = {
+  /**
+   * The user and project memory files
+   */
+  200: MemoryFiles
+}
+
+export type ExperimentalMemoryGetResponse = ExperimentalMemoryGetResponses[keyof ExperimentalMemoryGetResponses]
+
+export type ExperimentalMemoryReplaceData = {
+  body?: MemoryReplaceInput
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/experimental/memory"
+}
+
+export type ExperimentalMemoryReplaceErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ExperimentalMemoryReplaceError = ExperimentalMemoryReplaceErrors[keyof ExperimentalMemoryReplaceErrors]
+
+export type ExperimentalMemoryReplaceResponses = {
+  /**
+   * The memory files after the change
+   */
+  200: MemoryFiles
+}
+
+export type ExperimentalMemoryReplaceResponse =
+  ExperimentalMemoryReplaceResponses[keyof ExperimentalMemoryReplaceResponses]
+
 export type ExperimentalPromptOptimizeData = {
   body?: OptimizePromptPayload
   path?: never
@@ -8187,6 +8776,10 @@ export type ExperimentalPromptOptimizeErrors = {
    * BadRequest | InvalidRequestError
    */
   400: EffectHttpApiErrorBadRequest | InvalidRequestError
+  /**
+   * OptimizePromptModelError
+   */
+  422: OptimizePromptModelError
 }
 
 export type ExperimentalPromptOptimizeError = ExperimentalPromptOptimizeErrors[keyof ExperimentalPromptOptimizeErrors]
@@ -8991,6 +9584,7 @@ export type AppSkillsResponses = {
     name: string
     description?: string
     icon?: string
+    disableModelInvocation?: boolean
     location: string
     content: string
   }>
@@ -9032,6 +9626,7 @@ export type AppSkillsImportResponses = {
     name: string
     description?: string
     icon?: string
+    disableModelInvocation?: boolean
     location: string
     content: string
   }>
@@ -9069,6 +9664,7 @@ export type AppSkillsToggleResponses = {
     name: string
     description?: string
     icon?: string
+    disableModelInvocation?: boolean
     location: string
     content: string
   }>
@@ -9112,6 +9708,42 @@ export type AppAgentsCreateResponses = {
 }
 
 export type AppAgentsCreateResponse = AppAgentsCreateResponses[keyof AppAgentsCreateResponses]
+
+export type AppAgentsGenerateData = {
+  body?: {
+    description: string
+    providerID?: string
+    modelID?: string
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/agent/generate"
+}
+
+export type AppAgentsGenerateErrors = {
+  /**
+   * BadRequest | InvalidRequestError
+   */
+  400: EffectHttpApiErrorBadRequest | InvalidRequestError
+  /**
+   * AgentGenerateError
+   */
+  422: AgentGenerateError
+}
+
+export type AppAgentsGenerateError = AppAgentsGenerateErrors[keyof AppAgentsGenerateErrors]
+
+export type AppAgentsGenerateResponses = {
+  /**
+   * Generated agent draft
+   */
+  200: AgentGenerateResult
+}
+
+export type AppAgentsGenerateResponse = AppAgentsGenerateResponses[keyof AppAgentsGenerateResponses]
 
 export type AppAgentsDeleteData = {
   body?: never
@@ -9666,10 +10298,211 @@ export type ModelhubSystemResponses = {
       free: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     }
     modelsDir: string
+    modelsDirCustom?: boolean
+    defaultModelsDir?: string
+    cpuCores?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
   }
 }
 
 export type ModelhubSystemResponse = ModelhubSystemResponses[keyof ModelhubSystemResponses]
+
+export type ModelhubLocalData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/models/local"
+}
+
+export type ModelhubLocalErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ModelhubLocalError = ModelhubLocalErrors[keyof ModelhubLocalErrors]
+
+export type ModelhubLocalResponses = {
+  /**
+   * GGUF files on disk
+   */
+  200: Array<{
+    path: string
+    file: string
+    name: string
+    repo?: string
+    root: string
+    sizeBytes: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    modifiedAt: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    quant?: string
+    fit?: {
+      tier: "full_gpu" | "partial_gpu" | "ram_only" | "no_fit"
+      label: string
+    }
+    metadata?: {
+      version: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      tensorCount: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      architecture?: string
+      name?: string
+      sizeLabel?: string
+      contextLength?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      blockCount?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      embeddingLength?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      headCount?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      headCountKv?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      expertCount?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      fileType?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      quantization?: string
+      parameterCount?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      vocabSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      hasChatTemplate: boolean
+    }
+    recommended?: {
+      contextSize: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      gpuLayers: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      threads: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      batchSize: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      flashAttention?: boolean
+      kvCacheType: "f16" | "q8_0" | "q4_0"
+      useMmap: boolean
+      keepInMemory: boolean
+      kvOffload: boolean
+      parallel: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      placement: "gpu" | "hybrid" | "cpu"
+      layers: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      trainContext?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      kvBytesPerToken: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      estimatedBytes: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      budgetBytes: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      vramBytes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      ramBytes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      reasons: Array<string>
+    }
+    error?: string
+  }>
+}
+
+export type ModelhubLocalResponse = ModelhubLocalResponses[keyof ModelhubLocalResponses]
+
+export type ModelhubEstimateData = {
+  body?: never
+  path?: never
+  query: {
+    directory?: string
+    workspace?: string
+    model: string
+    file: string
+  }
+  url: "/models/estimate"
+}
+
+export type ModelhubEstimateErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ModelhubEstimateError = ModelhubEstimateErrors[keyof ModelhubEstimateErrors]
+
+export type ModelhubEstimateResponses = {
+  /**
+   * Memory estimate for a quantisation
+   */
+  200: {
+    model: string
+    file: string
+    sizeBytes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    metadata?: {
+      version: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      tensorCount: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      architecture?: string
+      name?: string
+      sizeLabel?: string
+      contextLength?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      blockCount?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      embeddingLength?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      headCount?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      headCountKv?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      expertCount?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      fileType?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      quantization?: string
+      parameterCount?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      vocabSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      hasChatTemplate: boolean
+    }
+    recommended?: {
+      contextSize: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      gpuLayers: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      threads: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      batchSize: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      flashAttention?: boolean
+      kvCacheType: "f16" | "q8_0" | "q4_0"
+      useMmap: boolean
+      keepInMemory: boolean
+      kvOffload: boolean
+      parallel: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      placement: "gpu" | "hybrid" | "cpu"
+      layers: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      trainContext?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      kvBytesPerToken: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      estimatedBytes: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      budgetBytes: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      vramBytes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      ramBytes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      reasons: Array<string>
+    }
+    error?: string
+  }
+}
+
+export type ModelhubEstimateResponse = ModelhubEstimateResponses[keyof ModelhubEstimateResponses]
+
+export type ModelhubSetDirData = {
+  body?: {
+    dir: string
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/models/dir"
+}
+
+export type ModelhubSetDirErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ModelhubSetDirError = ModelhubSetDirErrors[keyof ModelhubSetDirErrors]
+
+export type ModelhubSetDirResponses = {
+  /**
+   * System capabilities after the change
+   */
+  200: {
+    ram: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    diskFree: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    cpu?: string
+    gpu?: string
+    vram?: {
+      total: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      free: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    }
+    modelsDir: string
+    modelsDirCustom?: boolean
+    defaultModelsDir?: string
+    cpuCores?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  }
+}
+
+export type ModelhubSetDirResponse = ModelhubSetDirResponses[keyof ModelhubSetDirResponses]
 
 export type ModelhubRuntimesData = {
   body?: never
@@ -9812,6 +10645,107 @@ export type ModelhubDownloadResponses = {
 
 export type ModelhubDownloadResponse = ModelhubDownloadResponses[keyof ModelhubDownloadResponses]
 
+export type ModelhubForgetData = {
+  body?: {
+    model?: string
+    file: string
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/models/forget"
+}
+
+export type ModelhubForgetErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ModelhubForgetError = ModelhubForgetErrors[keyof ModelhubForgetErrors]
+
+export type ModelhubForgetResponses = {
+  /**
+   * Removed config entries
+   */
+  200: {
+    models: Array<string>
+    providers: Array<string>
+    files: Array<string>
+    directories: Array<string>
+    clearedDefaultModel: boolean
+    clearedSmallModel: boolean
+  }
+}
+
+export type ModelhubForgetResponse = ModelhubForgetResponses[keyof ModelhubForgetResponses]
+
+export type ModelhubDeleteLocalData = {
+  body?: {
+    path: string
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/models/local/delete"
+}
+
+export type ModelhubDeleteLocalErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ModelhubDeleteLocalError = ModelhubDeleteLocalErrors[keyof ModelhubDeleteLocalErrors]
+
+export type ModelhubDeleteLocalResponses = {
+  /**
+   * Deleted model file
+   */
+  200: {
+    deleted: boolean
+    stopped: boolean
+  }
+}
+
+export type ModelhubDeleteLocalResponse = ModelhubDeleteLocalResponses[keyof ModelhubDeleteLocalResponses]
+
+export type ModelhubEngineLogsData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/models/engine/logs"
+}
+
+export type ModelhubEngineLogsErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ModelhubEngineLogsError = ModelhubEngineLogsErrors[keyof ModelhubEngineLogsErrors]
+
+export type ModelhubEngineLogsResponses = {
+  /**
+   * Recent llama-server output
+   */
+  200: {
+    lines: Array<string>
+  }
+}
+
+export type ModelhubEngineLogsResponse = ModelhubEngineLogsResponses[keyof ModelhubEngineLogsResponses]
+
 export type ModelhubCancelData = {
   body?: never
   path: {
@@ -9876,6 +10810,24 @@ export type ModelhubEngineResponses = {
     error?: string
     gpuLayers?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     contextSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    auto?: boolean
+    applied?: {
+      contextSize: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      gpuLayers: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      threads: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      batchSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      flashAttention?: boolean
+      kvCacheType?: "f16" | "q8_0" | "q4_0"
+      keepInMemory?: boolean
+      useMmap?: boolean
+      kvOffload?: boolean
+      parallel?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      ubatchSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      threadsBatch?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      nCpuMoe?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    }
+    lastActivityAt?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    idleUnloadMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
   }
 }
 
@@ -9888,6 +10840,27 @@ export type ModelhubEngineStartData = {
     gpuLayers?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     contextSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     port?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    batchSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    flashAttention?: boolean
+    kvCacheType?: "f16" | "q8_0" | "q4_0"
+    keepInMemory?: boolean
+    useMmap?: boolean
+    seed?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    threads?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    ropeFrequencyBase?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    ropeFrequencyScale?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    kvOffload?: boolean
+    parallel?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    vramBudget?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    ramBudget?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    cpuBudget?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    placement?: "auto" | "gpu" | "hybrid" | "cpu"
+    idleUnloadMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    ubatchSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    threadsBatch?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    nCpuMoe?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    loadTimeoutMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    auto?: boolean
   }
   path?: never
   query?: {
@@ -9921,10 +10894,160 @@ export type ModelhubEngineStartResponses = {
     error?: string
     gpuLayers?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     contextSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    auto?: boolean
+    applied?: {
+      contextSize: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      gpuLayers: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      threads: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      batchSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      flashAttention?: boolean
+      kvCacheType?: "f16" | "q8_0" | "q4_0"
+      keepInMemory?: boolean
+      useMmap?: boolean
+      kvOffload?: boolean
+      parallel?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      ubatchSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      threadsBatch?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      nCpuMoe?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    }
+    lastActivityAt?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    idleUnloadMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
   }
 }
 
 export type ModelhubEngineStartResponse = ModelhubEngineStartResponses[keyof ModelhubEngineStartResponses]
+
+export type ModelhubEngineDefaultsData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/models/engine/defaults"
+}
+
+export type ModelhubEngineDefaultsErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ModelhubEngineDefaultsError = ModelhubEngineDefaultsErrors[keyof ModelhubEngineDefaultsErrors]
+
+export type ModelhubEngineDefaultsResponses = {
+  /**
+   * Default load options
+   */
+  200: {
+    auto: boolean
+    gpuLayers?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    contextSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    batchSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    flashAttention?: boolean
+    kvCacheType?: "f16" | "q8_0" | "q4_0"
+    keepInMemory?: boolean
+    useMmap?: boolean
+    seed?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    threads?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    ropeFrequencyBase?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    ropeFrequencyScale?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    kvOffload?: boolean
+    parallel?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    vramBudget?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    ramBudget?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    cpuBudget?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    placement?: "auto" | "gpu" | "hybrid" | "cpu"
+    idleUnloadMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    ubatchSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    threadsBatch?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    nCpuMoe?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    loadTimeoutMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    lightweight?: "auto" | "always" | "never"
+  }
+}
+
+export type ModelhubEngineDefaultsResponse = ModelhubEngineDefaultsResponses[keyof ModelhubEngineDefaultsResponses]
+
+export type ModelhubEngineDefaultsSetData = {
+  body?: {
+    auto: boolean
+    gpuLayers?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    contextSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    batchSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    flashAttention?: boolean
+    kvCacheType?: "f16" | "q8_0" | "q4_0"
+    keepInMemory?: boolean
+    useMmap?: boolean
+    seed?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    threads?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    ropeFrequencyBase?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    ropeFrequencyScale?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    kvOffload?: boolean
+    parallel?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    vramBudget?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    ramBudget?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    cpuBudget?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    placement?: "auto" | "gpu" | "hybrid" | "cpu"
+    idleUnloadMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    ubatchSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    threadsBatch?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    nCpuMoe?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    loadTimeoutMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    lightweight?: "auto" | "always" | "never"
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/models/engine/defaults"
+}
+
+export type ModelhubEngineDefaultsSetErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type ModelhubEngineDefaultsSetError = ModelhubEngineDefaultsSetErrors[keyof ModelhubEngineDefaultsSetErrors]
+
+export type ModelhubEngineDefaultsSetResponses = {
+  /**
+   * Saved default load options
+   */
+  200: {
+    auto: boolean
+    gpuLayers?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    contextSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    batchSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    flashAttention?: boolean
+    kvCacheType?: "f16" | "q8_0" | "q4_0"
+    keepInMemory?: boolean
+    useMmap?: boolean
+    seed?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    threads?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    ropeFrequencyBase?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    ropeFrequencyScale?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    kvOffload?: boolean
+    parallel?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    vramBudget?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    ramBudget?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    cpuBudget?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    placement?: "auto" | "gpu" | "hybrid" | "cpu"
+    idleUnloadMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    ubatchSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    threadsBatch?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    nCpuMoe?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    loadTimeoutMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    lightweight?: "auto" | "always" | "never"
+  }
+}
+
+export type ModelhubEngineDefaultsSetResponse =
+  ModelhubEngineDefaultsSetResponses[keyof ModelhubEngineDefaultsSetResponses]
 
 export type ModelhubEngineStopData = {
   body?: never
@@ -9960,6 +11083,24 @@ export type ModelhubEngineStopResponses = {
     error?: string
     gpuLayers?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     contextSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    auto?: boolean
+    applied?: {
+      contextSize: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      gpuLayers: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      threads: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      batchSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      flashAttention?: boolean
+      kvCacheType?: "f16" | "q8_0" | "q4_0"
+      keepInMemory?: boolean
+      useMmap?: boolean
+      kvOffload?: boolean
+      parallel?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      ubatchSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      threadsBatch?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      nCpuMoe?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    }
+    lastActivityAt?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    idleUnloadMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
   }
 }
 
@@ -10599,6 +11740,7 @@ export type PreviewStatusResponses = {
     startedAt: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     errorMessage: string
     isDesktop?: boolean
+    pid?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     build: {
       running: boolean
       startedAt: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
@@ -10652,6 +11794,7 @@ export type PreviewStartResponses = {
     startedAt: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     errorMessage: string
     isDesktop?: boolean
+    pid?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     build: {
       running: boolean
       startedAt: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
@@ -10705,6 +11848,7 @@ export type PreviewStopResponses = {
     startedAt: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     errorMessage: string
     isDesktop?: boolean
+    pid?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     build: {
       running: boolean
       startedAt: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
@@ -10758,6 +11902,7 @@ export type PreviewRestartResponses = {
     startedAt: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     errorMessage: string
     isDesktop?: boolean
+    pid?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
     build: {
       running: boolean
       startedAt: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
@@ -10798,6 +11943,146 @@ export type PreviewLogsResponses = {
 }
 
 export type PreviewLogsResponse = PreviewLogsResponses[keyof PreviewLogsResponses]
+
+export type PreviewAgentPendingData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+    wait?: string
+    surface?: string
+    capable?: string
+  }
+  url: "/preview/agent/pending"
+}
+
+export type PreviewAgentPendingErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type PreviewAgentPendingError = PreviewAgentPendingErrors[keyof PreviewAgentPendingErrors]
+
+export type PreviewAgentPendingResponses = {
+  /**
+   * Acciones que el agente quiere ejecutar sobre la página (long-poll)
+   */
+  200: Array<{
+    id: string
+    action: {
+      type:
+        | "inspect"
+        | "click"
+        | "fill"
+        | "press"
+        | "select"
+        | "scroll"
+        | "navigate"
+        | "capture"
+        | "clipboard_read"
+        | "clipboard_write"
+        | "computer"
+        | "origin"
+      surface?: "preview" | "browser"
+      target?: string
+      value?: string
+      key?: string
+      url?: string
+      direction?: string
+      bounds?: {
+        x: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+        y: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+        width: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+        height: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      }
+      computer?: {
+        action: "move" | "click" | "type" | "key" | "scroll" | "cursor_position" | "foreground_window"
+        x?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+        y?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+        button?: "left" | "right" | "middle"
+        double?: boolean
+        text?: string
+        keys?: string
+        direction?: "up" | "down" | "left" | "right"
+        amount?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      }
+    }
+    createdAt: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  }>
+}
+
+export type PreviewAgentPendingResponse = PreviewAgentPendingResponses[keyof PreviewAgentPendingResponses]
+
+export type PreviewAgentDemandData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+    capable?: string
+  }
+  url: "/preview/agent/demand"
+}
+
+export type PreviewAgentDemandErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type PreviewAgentDemandError = PreviewAgentDemandErrors[keyof PreviewAgentDemandErrors]
+
+export type PreviewAgentDemandResponses = {
+  /**
+   * Acciones del agente esperando una superficie
+   */
+  200: {
+    pending: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    id: string
+    since: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+  }
+}
+
+export type PreviewAgentDemandResponse = PreviewAgentDemandResponses[keyof PreviewAgentDemandResponses]
+
+export type PreviewAgentResultData = {
+  body?: {
+    id: string
+    ok: boolean
+    output: string
+    requeue?: boolean
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/preview/agent/result"
+}
+
+export type PreviewAgentResultErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type PreviewAgentResultError = PreviewAgentResultErrors[keyof PreviewAgentResultErrors]
+
+export type PreviewAgentResultResponses = {
+  /**
+   * Resultado entregado
+   */
+  200: {
+    ok: boolean
+  }
+}
+
+export type PreviewAgentResultResponse = PreviewAgentResultResponses[keyof PreviewAgentResultResponses]
 
 export type ProviderListData = {
   body?: never

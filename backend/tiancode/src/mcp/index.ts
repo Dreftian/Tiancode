@@ -733,8 +733,7 @@ const layer = Layer.effect(
       s.config[name] = mcp
       // Persist in the global config so the server survives restarts, even if
       // connecting below fails (e.g. the runtime is missing on this machine).
-      const cfg = yield* cfgSvc.getGlobal()
-      yield* cfgSvc.updateGlobal({ ...cfg, mcp: { ...cfg.mcp, [name]: mcp } })
+      yield* cfgSvc.updateGlobal({ mcp: { [name]: mcp } })
       // The instance config cache still holds the pre-add state; invalidate it
       // so GET /config and the settings list reflect the new server now, not
       // only after the next instance reload.
@@ -759,6 +758,14 @@ const layer = Layer.effect(
       const current = cfg.mcp?.[name]
       if (current?.enabled === false) {
         yield* cfgSvc.updateGlobal({ ...cfg, mcp: { ...cfg.mcp, [name]: enabled } })
+      }
+      // A server only the project's tiancode.json defines is gated off until approved, and
+      // approval is the entry in the global config (the same thing MCP.add writes from Settings).
+      // Turning it on from any switch is that approval; without this it ran for this session only
+      // and was off again after a restart.
+      if (!current) {
+        yield* cfgSvc.updateGlobal({ mcp: { [name]: enabled } })
+        yield* cfgSvc.invalidateInstance()
       }
     })
 
@@ -785,10 +792,7 @@ const layer = Layer.effect(
       delete s.config[name]
       delete s.status[name]
       // Persist the removal in the global config so it survives restarts.
-      const cfg = yield* cfgSvc.getGlobal()
-      const next = { ...cfg.mcp }
-      delete next[name]
-      yield* cfgSvc.updateGlobal({ ...cfg, mcp: next })
+      yield* cfgSvc.removeMcp(name)
       // Invalidate the instance config cache so the settings list drops the
       // server immediately instead of showing it as disabled until reload.
       yield* cfgSvc.invalidateInstance()

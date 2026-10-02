@@ -39,6 +39,13 @@ export namespace TimelineRow {
   export class Retry extends Data.TaggedClass("Retry")<{
     userMessageID: string
   }> {}
+  // Primitive fields only, so Equal keeps the row (and its card state) across recomputes.
+  export class PreviewOffer extends Data.TaggedClass("PreviewOffer")<{
+    userMessageID: string
+    reason: "modified" | "started" | "reviewed"
+    entry?: string
+    finishedAt?: number
+  }> {}
 
   export type TimelineRow =
     | TurnGap
@@ -50,6 +57,7 @@ export namespace TimelineRow {
     | DiffSummary
     | Error
     | Retry
+    | PreviewOffer
 
   export const key = (row: TimelineRow) => {
     switch (row._tag) {
@@ -71,6 +79,8 @@ export namespace TimelineRow {
         return `error:${row.userMessageID}`
       case "Retry":
         return `retry:${row.userMessageID}`
+      case "PreviewOffer":
+        return `preview-offer:${row.userMessageID}`
     }
   }
 

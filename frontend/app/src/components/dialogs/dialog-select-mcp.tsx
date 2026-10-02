@@ -44,7 +44,7 @@ export const DialogSelectMcp: Component = () => {
         sortBy={(a, b) => a.name.localeCompare(b.name)}
         onSelect={(x) => {
           if (!x || x.status === "pending" || toggle.isPending) return
-          toggle.mutate(x.name)
+          toggle.mutate({ name: x.name, enabled: x.status === "disabled" })
         }}
       >
         {(i) => {
@@ -59,7 +59,7 @@ export const DialogSelectMcp: Component = () => {
             const s = mcpStatus()
             if (s?.status === "failed" || s?.status === "needs_client_registration") return s.error
           }
-          const enabled = () => status() === "connected"
+          const enabled = () => status() !== "disabled"
           return (
             <div class="w-full flex items-center justify-between gap-x-3">
               <div class="flex flex-col gap-0.5 min-w-0">
@@ -76,10 +76,10 @@ export const DialogSelectMcp: Component = () => {
               <div onClick={(e) => e.stopPropagation()}>
                 <Switch
                   checked={enabled()}
-                  disabled={status() === "pending" || (toggle.isPending && toggle.variables === i.name)}
-                  onChange={() => {
+                  disabled={status() === "pending" || (toggle.isPending && toggle.variables?.name === i.name)}
+                  onChange={(checked) => {
                     if (toggle.isPending) return
-                    toggle.mutate(i.name)
+                    toggle.mutate({ name: i.name, enabled: checked })
                   }}
                 />
               </div>

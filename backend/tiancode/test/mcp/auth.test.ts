@@ -3,10 +3,12 @@ import { setTimeout as sleep } from "node:timers/promises"
 import { AppNodeBuilder } from "@tiancode-ai/core/effect/app-node-builder"
 import { Effect, Layer } from "effect"
 import { FSUtil } from "@tiancode-ai/core/fs-util"
+import { randomBytes } from "node:crypto"
+import { seal } from "@tiancode-ai/core/credential/cipher"
 import { McpAuth } from "../../src/mcp/auth"
 
-function authFile() {
-  let raw = ""
+function authFile(initial = "") {
+  let raw = initial
   let activeWrites = 0
   let sawOverlap = false
 
@@ -73,6 +75,24 @@ test("serializes concurrent auth file updates across service instances", async (
       expect(entry?.clientInfo?.clientId).toBe("client-id")
       expect(entry?.serverUrl).toBe("https://mcp.posthog.com/mcp")
       expect(() => JSON.parse(file.raw())).not.toThrow()
+    }),
+  )
+})
+
+test("keeps sign-ins sealed with another key and removes them only when asked", async () => {
+  // Sealed with a key this run does not have, as after the profile's key was set aside.
+  const foreign = seal(JSON.stringify({ tokens: { accessToken: "old" } }), randomBytes(32))
+  const file = authFile(JSON.stringify({ github: foreign }))
+
+  await Effect.runPromise(
+    Effect.gen(function* () {
+      const auth = yield* authService(file.fsLayer)
+      yield* auth.set("linear", { tokens: { accessToken: "new" } })
+      expect(JSON.parse(file.raw())).toMatchObject({ github: foreign, linear: { tokens: { accessToken: "new" } } })
+
+      yield* auth.remove("github")
+      expect(JSON.parse(file.raw()).github).toBeUndefined()
+      expect(JSON.parse(file.raw()).linear).toBeDefined()
     }),
   )
 })

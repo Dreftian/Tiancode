@@ -6,6 +6,9 @@ import { Effect, Layer } from "effect"
 import { HttpClient, HttpClientRequest, HttpRouter } from "effect/unstable/http"
 import { errorLayer } from "../../src/server/routes/instance/httpapi/middleware/error"
 import { NotFoundError } from "../../src/storage/storage"
+import { Provider } from "../../src/provider/provider"
+import { ProviderV2 } from "@tiancode-ai/core/provider"
+import { ModelV2 } from "@tiancode-ai/core/model"
 import { testEffect } from "../lib/effect"
 
 const it = testEffect(Layer.mergeAll(NodeHttpServer.layerTest, NodeServices.layer))
@@ -101,6 +104,47 @@ describe("HttpApi error middleware", () => {
 
       expect(response.status).toBe(400)
       expect(body).toEqual(configError.toObject())
+    }),
+  )
+
+  it.live("tells the client how to fix a missing provider", () =>
+    Effect.gen(function* () {
+      yield* HttpRouter.add("GET", "/no-providers", Effect.die(new Provider.NoProvidersError({}))).pipe(
+        Layer.provide(errorLayer),
+        HttpRouter.serve,
+        Layer.build,
+      )
+
+      const response = yield* HttpClientRequest.get("/no-providers").pipe(HttpClient.execute)
+      const body = yield* response.json
+
+      expect(response.status).toBe(400)
+      expect(body).toMatchObject({ name: "ProviderNoProvidersError" })
+      expect((body as { data: { message: string } }).data.message).toContain("tiancode auth login")
+    }),
+  )
+
+  it.live("keeps the model fields on a missing model", () =>
+    Effect.gen(function* () {
+      const error = new Provider.ModelNotFoundError({
+        providerID: ProviderV2.ID.make("deepseek"),
+        modelID: ModelV2.ID.make("nope"),
+        suggestions: ["deepseek-chat"],
+      })
+      yield* HttpRouter.add("GET", "/no-model", Effect.die(error)).pipe(
+        Layer.provide(errorLayer),
+        HttpRouter.serve,
+        Layer.build,
+      )
+
+      const response = yield* HttpClientRequest.get("/no-model").pipe(HttpClient.execute)
+      const body = yield* response.json
+
+      expect(response.status).toBe(400)
+      expect(body).toMatchObject({
+        name: "ProviderModelNotFoundError",
+        data: { providerID: "deepseek", modelID: "nope", suggestions: ["deepseek-chat"] },
+      })
     }),
   )
 

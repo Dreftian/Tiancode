@@ -1,9 +1,9 @@
 import { Effect } from "effect"
 import { UI } from "../ui"
 import { effectCmd } from "../effect-cmd"
-import { withNetworkOptions, resolveNetworkOptions, ensureSecuredListen } from "../network"
+import { withNetworkOptions, resolveNetworkOptions, ensureSecuredListen, listenFailure } from "../network"
 import { Flag } from "@tiancode-ai/core/flag/flag"
-import open from "open"
+import { openUrl } from "@/util/open-url"
 import { networkInterfaces } from "os"
 
 function getNetworkIPs() {
@@ -43,7 +43,10 @@ export const WebCommand = effectCmd({
     const opts = yield* resolveNetworkOptions(args)
     // Igual que serve: nunca escuchar fuera de loopback sin password.
     yield* ensureSecuredListen(opts)
-    const server = yield* Effect.promise(() => Server.listen(opts))
+    const server = yield* Effect.tryPromise({
+      try: () => Server.listen(opts),
+      catch: (error) => listenFailure(error, opts),
+    })
     UI.empty()
     UI.println(UI.logo("  "))
     UI.empty()
@@ -74,11 +77,11 @@ export const WebCommand = effectCmd({
       }
 
       // Open localhost in browser
-      open(localhostUrl).catch(() => {})
+      openUrl(localhostUrl).catch(() => {})
     } else {
       const displayUrl = server.url.toString()
       UI.println(UI.Style.TEXT_INFO_BOLD + "  Web interface:    ", UI.Style.TEXT_NORMAL, displayUrl)
-      open(displayUrl).catch(() => {})
+      openUrl(displayUrl).catch(() => {})
     }
 
     yield* Effect.never

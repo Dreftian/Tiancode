@@ -1,5 +1,6 @@
 import { NamedError } from "@tiancode-ai/core/util/error"
 import { ConfigErrorV1 } from "@tiancode-ai/core/v1/config/error"
+import { Provider } from "@/provider/provider"
 import { Cause, Effect } from "effect"
 import { HttpRouter, HttpServerError, HttpServerRespondable, HttpServerResponse } from "effect/unstable/http"
 
@@ -25,6 +26,47 @@ export const errorLayer = HttpRouter.middleware<{ handles: unknown }>()((effect)
       ) {
         return Effect.succeed(HttpServerResponse.jsonUnsafe(error.toObject(), { status: 400 }))
       }
+
+      // A missing or unusable model is the user's to fix, so say what to do instead of a generic 500.
+      if (Provider.NoProvidersError.isInstance(error) || Provider.NoModelsError.isInstance(error))
+        return Effect.succeed(
+          HttpServerResponse.jsonUnsafe(
+            {
+              name: error._tag,
+              data: { message: `${error.message}. Run \`tiancode auth login\` or pass --model provider/model.` },
+            },
+            { status: 400 },
+          ),
+        )
+      // The fields stay next to the message so clients can name the model the way they already do.
+      if (Provider.ModelNotFoundError.isInstance(error))
+        return Effect.succeed(
+          HttpServerResponse.jsonUnsafe(
+            {
+              name: error._tag,
+              data: {
+                providerID: error.providerID,
+                modelID: error.modelID,
+                suggestions: error.suggestions,
+                message: `${error.message} If the provider needs an API key, run \`tiancode auth login -p ${error.providerID}\`.`,
+              },
+            },
+            { status: 400 },
+          ),
+        )
+      if (Provider.InitError.isInstance(error))
+        return Effect.succeed(
+          HttpServerResponse.jsonUnsafe(
+            {
+              name: error._tag,
+              data: {
+                providerID: error.providerID,
+                message: `${error.message}. If the provider needs an API key, run \`tiancode auth login -p ${error.providerID}\`.`,
+              },
+            },
+            { status: 400 },
+          ),
+        )
 
       const ref = `err_${crypto.randomUUID().slice(0, 8)}`
 

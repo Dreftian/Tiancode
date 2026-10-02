@@ -46,6 +46,7 @@ import { useGlobal } from "./global"
 import { ServerConnection, useServer } from "./server"
 import { retry } from "@tiancode-ai/core/util/retry"
 import type { ServerScope } from "@/utils/server-scope"
+import { Worktree as WorktreeState } from "@/utils/worktree"
 import { createHomeSessionIndexCache } from "./global-sync/home-session-index"
 import { persisted } from "@/utils/persist"
 import type { ServerApi } from "@/utils/server"
@@ -573,6 +574,11 @@ export function createServerSyncContextInner(serverSDK: ServerSDK) {
     const eventType: string = event.type
     const recent = bootingRoot || Date.now() - bootedAt < 1500
 
+    // Worktree readiness gates the first prompt of a session started in a new worktree
+    // (submit.ts waits on it). Handled here, not in a layout, so every interface sees it.
+    if (event.type === "worktree.ready") WorktreeState.ready(serverSDK.scope, directory)
+    if (event.type === "worktree.failed")
+      WorktreeState.failed(serverSDK.scope, directory, event.properties?.message ?? "")
     if (event.current) session.applyV2(event.current)
     session.apply(event)
     if (event.type === "session.created" || event.type === "session.updated" || event.type === "session.deleted") {
@@ -767,6 +773,26 @@ export function createServerSyncContextInner(serverSDK: ServerSDK) {
             await queryClient.refetchQueries(queryOptionsApi.mcpResources(key))
           },
         })
+      },
+      // A switch means enabled/disabled, not connected: turning off a failed server must disable
+      // it (toggle would retry the connection), and turning on one that needs auth signs in.
+      setEnabled: async (directory: string, name: string, enabled: boolean) => {
+        const key = directoryKey(directory)
+        const sdk = sdkFor(key)
+        const status = children.child(key, { bootstrap: false })[0].mcp[name]?.status
+        if (!status || status === "pending") return
+        const v1 = (await serverSDK.protocol) === "v1"
+        if (enabled && status === "needs_auth") await sdk.mcp.auth.authenticate({ name })
+        if (enabled && status !== "needs_auth" && status !== "connected") {
+          if (v1) await sdk.mcp.connect({ name })
+          if (!v1) await serverSDK.api.mcp.connect({ server: name, location: { directory: key } })
+        }
+        if (!enabled && status !== "disabled") {
+          if (v1) await sdk.mcp.disconnect({ name })
+          if (!v1) await serverSDK.api.mcp.disconnect({ server: name, location: { directory: key } })
+        }
+        await queryClient.refetchQueries(queryOptionsApi.mcp(key))
+        await queryClient.refetchQueries(queryOptionsApi.mcpResources(key))
       },
     },
   }

@@ -37,6 +37,9 @@ export type PromptInputV2ViewConfig = {
   submit: {
     stopping: Accessor<boolean>
     working?: Accessor<boolean>
+    // Label for the Mod+Enter entry of the send menu when it means something other than "send and
+    // stay" (e.g. queue or steer while the agent works).
+    stayLabel?: Accessor<string | undefined>
     onSubmit: (options?: { stay?: boolean }) => void
     onStop: () => void
   }

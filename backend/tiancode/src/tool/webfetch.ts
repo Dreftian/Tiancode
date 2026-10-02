@@ -4,8 +4,8 @@ import { Parser } from "htmlparser2"
 import * as Tool from "./tool"
 import TurndownService from "turndown"
 import DESCRIPTION from "./webfetch.txt"
-import { ConfigIntelligence } from "@tiancode-ai/core/config/intelligence"
-import { Config } from "@tiancode-ai/core/config"
+import { Config } from "@/config/config"
+import { IntelligenceSwitches } from "@/config/intelligence-switches"
 import { LocationServiceMap } from "@tiancode-ai/core/location-services"
 import { Location } from "@tiancode-ai/core/location"
 import { AbsolutePath } from "@tiancode-ai/core/schema"
@@ -75,16 +75,11 @@ export const WebFetchTool = Tool.define(
     const http = yield* HttpClient.HttpClient
     const httpOk = HttpClient.filterStatusOk(http)
     const locations = yield* LocationServiceMap.Service
+    const config = yield* Config.Service
 
     // Settings → Intelligence decides whether the HTML→Markdown conversion strips boilerplate.
-    // Config is location-scoped in core, so it resolves through the instance's location layer.
     // Read per conversion so toggling it mid-session takes effect immediately.
-    const cleanWebEnabled = Effect.gen(function* () {
-      const instCtx = yield* InstanceState.context
-      const locLayer = locations.get(Location.Ref.make({ directory: AbsolutePath.make(instCtx.directory) }))
-      const config = yield* Config.Service.pipe(Effect.provide(locLayer))
-      return ConfigIntelligence.fromEntries(yield* config.entries()).cleanWeb
-    })
+    const cleanWebEnabled = IntelligenceSwitches.read(config, locations).pipe(Effect.map((switches) => switches.cleanWeb))
 
     return {
       description: DESCRIPTION,

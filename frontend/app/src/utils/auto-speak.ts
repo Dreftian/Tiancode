@@ -3,7 +3,7 @@
 // engine: apart from being confusing to hear, synthesizing each transient
 // chunk can use a substantial amount of CPU and memory.
 
-import { currentSpeakingKey, isVoiceSpeaking, speakAutomaticallyWithVoices, stopSpeaking } from "./voices"
+import { currentSpeakingKey, speakAutomaticallyWithVoices, stopSpeaking } from "./voices"
 
 const AUTO_KEY_PREFIX = "auto:"
 const MAX_REMEMBERED_PARTS = 200
@@ -82,7 +82,9 @@ export function isCompletedAutoSpeakMessage(input: {
   now?: number
 }) {
   if (input.completed === undefined || input.error || input.summary) return false
-  return (input.now ?? Date.now()) - input.created <= MAX_MESSAGE_AGE_MS
+  // Age counts from the end of the reply: a long answer that just finished is news, a reply that
+  // finished minutes ago (an old session being opened) is history.
+  return (input.now ?? Date.now()) - Math.max(input.completed, input.created) <= MAX_MESSAGE_AGE_MS
 }
 
 // Accepts exactly one finalized prose block for each assistant part. At most
@@ -111,8 +113,9 @@ export function enqueueAutoSpeak(partId: string, text: string) {
 }
 
 async function speakAutomatic(item: { key: string; partId: string; text: string }, expectedGeneration: number) {
-  const timeoutPromise = new Promise<string | undefined>((resolve) => setTimeout(() => resolve("timeout"), 30000))
-  const error = await Promise.race([speakAutomaticallyWithVoices(item.key, item.text), timeoutPromise])
+  // Resolves when the clip ends: synthesis has its own time limits and playback a watchdog sized to
+  // the clip, so a long reply is not cut off and counted as a failure here.
+  const error = await speakAutomaticallyWithVoices(item.key, item.text)
   if (generation !== expectedGeneration || currentKey !== item.key) return
 
   currentKey = undefined
@@ -137,6 +140,7 @@ async function speakAutomatic(item: { key: string; partId: string; text: string 
 export function stopAutoSpeak() {
   generation += 1
   pending = undefined
-  if (currentKey && isVoiceSpeaking(currentKey)) stopSpeaking()
+  // Any automatic clip, the queue's or the pet's, stops; a manual preview keeps playing.
+  if (currentSpeakingKey()?.startsWith(AUTO_KEY_PREFIX)) stopSpeaking()
   currentKey = undefined
 }

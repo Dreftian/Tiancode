@@ -64,6 +64,7 @@ export const prepare = Effect.fn("LLMRequestPrep.prepare")(function* (input: Pre
         : input.agent.prompt
           ? [input.agent.prompt]
           : SystemPrompt.provider(input.model)),
+      ...(input.agent.promptAppend ? [input.agent.promptAppend] : []),
       ...input.system,
       ...(input.user.system ? [input.user.system] : []),
     ]
@@ -200,6 +201,9 @@ export const prepare = Effect.fn("LLMRequestPrep.prepare")(function* (input: Pre
     params,
     messageTransformOptions: options,
     headers: {
+      // Namespaced identity on every request, whatever the provider (opencode 1.18.34).
+      "x-tiancode-session-id": input.sessionID,
+      ...(input.parentSessionID ? { "x-tiancode-parent-session-id": input.parentSessionID } : {}),
       ...(input.model.providerID.startsWith("tiancode")
         ? {
             ...(tiancodeProjectID ? { "x-tiancode-project": tiancodeProjectID } : {}),

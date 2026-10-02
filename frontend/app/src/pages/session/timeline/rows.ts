@@ -4,6 +4,8 @@ import { AssistantMessage, Part, SessionStatus, UserMessage } from "@tiancode-ai
 import { groupParts, renderable, type PartGroup } from "@tiancode-ai/session-ui/message-part"
 import { TimelineRow, type SummaryDiff } from "./timeline-row"
 import { uniqueSummaryDiffs } from "./summary-diffs"
+import { previewOffer } from "./preview-offer"
+import { partVisible, type TimelineDetail } from "./detail"
 
 export { TimelineRow, type SummaryDiff } from "./timeline-row"
 
@@ -29,6 +31,12 @@ export type TimelineRowMap = {
   Retry: { userMessageID: string }
   DiffSummary: { userMessageID: string; diffs: SummaryDiff[] }
   Error: { userMessageID: string; text: string }
+  PreviewOffer: {
+    userMessageID: string
+    reason: "modified" | "started" | "reviewed"
+    entry?: string
+    finishedAt?: number
+  }
 }
 
 export namespace Timeline {
@@ -40,6 +48,9 @@ export namespace Timeline {
     status: SessionStatus["type"],
     inlineComments: boolean,
     projectedUserMessages: UserMessage[],
+    // Offer to open the app at the end of the latest finished turn (root sessions only).
+    previewOffers = false,
+    detail?: TimelineDetail,
   ) {
     const turns: { user: UserMessage; assistants: AssistantMessage[] }[] = []
     const turnByUserID = new Map<string, (typeof turns)[number]>()
@@ -92,6 +103,8 @@ export namespace Timeline {
           status,
           turn.user.id === activeMessageID,
           inlineComments,
+          previewOffers,
+          detail,
         ),
       ),
     }
@@ -107,6 +120,8 @@ export namespace Timeline {
     isActive: boolean,
     // v2 renders comments inside the user message attachments row instead of a strip row
     inlineComments: boolean,
+    previewOffers = false,
+    detail?: TimelineDetail,
   ) {
     const rows: TimelineRow.TimelineRow[] = []
 
@@ -121,27 +136,30 @@ export namespace Timeline {
 
     const assistantPartRefs = assistantMessages.flatMap((message, messageIndex) =>
       getMessageParts(message.id)
-        .filter((part) => renderable(part, showReasoning))
+        .filter((part) => renderable(part, showReasoning) && (!detail || partVisible(part, detail)))
         .map((part) => ({ messageID: message.id, messageIndex, part })),
     )
+    const grouping = detail
+      ? { context: detail.tools.placement !== "separate", subagents: detail.subagents.placement !== "separate" }
+      : undefined
     const assistantItems =
       interrupted && !compaction
         ? [
-            ...groupParts(assistantPartRefs.filter((ref) => ref.messageIndex <= interruptedMessageIndex)).map(
+            ...groupParts(assistantPartRefs.filter((ref) => ref.messageIndex <= interruptedMessageIndex), grouping).map(
               (group) => ({
                 type: "part" as const,
                 group,
               }),
             ),
             { type: "interrupted" as const },
-            ...groupParts(assistantPartRefs.filter((ref) => ref.messageIndex > interruptedMessageIndex)).map(
+            ...groupParts(assistantPartRefs.filter((ref) => ref.messageIndex > interruptedMessageIndex), grouping).map(
               (group) => ({
                 type: "part" as const,
                 group,
               }),
             ),
           ]
-        : groupParts(assistantPartRefs).map((group) => ({ type: "part" as const, group }))
+        : groupParts(assistantPartRefs, grouping).map((group) => ({ type: "part" as const, group }))
     if (previousUserMessage) rows.push(new TimelineRow.TurnGap({ userMessageID: userMessage.id }))
 
     if (comments.length > 0 && !inlineComments)
@@ -158,7 +176,7 @@ export namespace Timeline {
       }),
     )
 
-    if (compaction) {
+    if (compaction && detail?.notices.placement !== "hidden") {
       rows.push(
         new TimelineRow.TurnDivider({
           userMessageID: userMessage.id,
@@ -213,6 +231,21 @@ export namespace Timeline {
           diffs,
         }),
       )
+    }
+
+    if (previewOffers && isActive && status === "idle" && !error && !interrupted) {
+      const offer = previewOffer(
+        assistantMessages.flatMap((message) => getMessageParts(message.id)),
+        diffs,
+      )
+      if (offer)
+        rows.push(
+          new TimelineRow.PreviewOffer({
+            userMessageID: userMessage.id,
+            ...offer,
+            finishedAt: assistantMessages.at(-1)?.time.completed,
+          }),
+        )
     }
 
     if (error) {

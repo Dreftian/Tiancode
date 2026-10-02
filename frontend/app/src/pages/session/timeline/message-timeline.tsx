@@ -81,6 +81,8 @@ import { sessionTitle } from "@/utils/session-title"
 import { scheduleConnectedMeasure } from "./measure"
 import { observeElementOffsetReconnectAware } from "./observe-element-offset"
 import { createTimelineProjection } from "./projection"
+import { TimelinePreviewOfferRow } from "./preview-offer-row"
+import { legacyView, parseTimelineDetail, transcriptViewDetail } from "./detail"
 import { MessageComment, SummaryDiff, TimelineRow, TimelineRowMap } from "./rows"
 import { filterVirtualIndexes } from "./virtual-items"
 
@@ -287,10 +289,20 @@ export function MessageTimeline(props: {
   // Una sola fuente para los tres puntos que leían los interruptores sueltos:
   // la anulación de esta sesión si existe, si no el ajuste global. Derivarla
   // aquí evita que el selector de ajustes y la transcripción discrepen.
-  const transcriptView = createMemo<TranscriptView>(
-    () => sessionViewState().transcriptView.mode() ?? settings.general.transcriptView(),
+  // Settings > Timeline detail, unless this session picked Normal / Thinking / Detailed in its menu.
+  // Installs that never touched the new control keep reading their older view (legacy booleans).
+  const globalDetail = createMemo(
+    () =>
+      parseTimelineDetail(settings.general.timelineDetail()) ?? transcriptViewDetail(settings.general.transcriptView()),
   )
-  const reasoningSummariesVisible = createMemo(() => transcriptView() !== "normal")
+  const timelineDetail = createMemo(() => {
+    const override = sessionViewState().transcriptView.mode()
+    return override ? transcriptViewDetail(override) : globalDetail()
+  })
+  const transcriptView = createMemo<TranscriptView>(
+    () => sessionViewState().transcriptView.mode() ?? legacyView(globalDetail()),
+  )
+  const reasoningSummariesVisible = createMemo(() => timelineDetail().thinking.placement !== "hidden")
   const ownerSessionKey = sessionKey()
   const cached = timelineCache.get(ownerSessionKey)
   const initialMeasurements = cached?.measurements
@@ -360,6 +372,8 @@ export function MessageTimeline(props: {
     status: sessionStatus,
     showReasoningSummaries: reasoningSummariesVisible,
     inlineComments: settings.general.newLayoutDesigns,
+    previewOffers: () => !parentID() && settings.general.previewOnFinish() !== "off",
+    detail: timelineDetail,
   })
   const activeMessageID = projection.activeMessageID
   const assistantMessagesByParent = projection.assistantMessagesByParent
@@ -1153,6 +1167,15 @@ export function MessageTimeline(props: {
       // Esperar a que la IA termine completamente de responder:
       if (!rowMessage.time?.completed && !rowMessage.finish) return
       if (rowMessage.error || item.synthetic || item.ignored) return
+      // Opening an old session must not read its history aloud.
+      if (
+        !isCompletedAutoSpeakMessage({
+          completed: rowMessage.time.completed ?? Date.now(),
+          created: rowMessage.time.created,
+          summary: rowMessage.summary,
+        })
+      )
+        return
 
       const firstText = getMsgParts(rowMessage.id).find((candidate) => candidate.type === "text")
       if (firstText?.id !== item.id) return
@@ -1172,10 +1195,12 @@ export function MessageTimeline(props: {
     const defaultOpen = createMemo(() => {
       const item = part()
       if (!item) return
-      // "detailed" es lo único que abre herramientas, y abre las tres familias
-      // a la vez: es exactamente lo que promete la opción del selector.
-      const detailed = transcriptView() === "detailed"
-      return partDefaultOpen(item, detailed, detailed, detailed)
+      // Timeline detail decides which families start open (separate + expanded); partDefaultOpen
+      // keeps its rule that a pure deletion opens collapsed.
+      const detail = timelineDetail()
+      const open = (category: "shell" | "edit") =>
+        detail[category].placement === "separate" && detail[category].details === "expanded"
+      return partDefaultOpen(item, open("shell"), open("edit"), false)
     })
 
     return (
@@ -1376,6 +1401,21 @@ export function MessageTimeline(props: {
           <TimelineRowFrame row={diffSummaryRow}>
             <div data-slot="session-turn-message-container" class="w-full px-4 md:px-5">
               <TimelineDiffSummaryRow diffs={diffSummaryRow().diffs} />
+            </div>
+          </TimelineRowFrame>
+        )
+      }
+      case "PreviewOffer": {
+        const offerRow = row as Accessor<TimelineRowByTag<"PreviewOffer">>
+        return (
+          <TimelineRowFrame row={offerRow}>
+            <div data-slot="session-turn-message-container" class="w-full px-4 md:px-5">
+              <TimelinePreviewOfferRow
+                userMessageID={offerRow().userMessageID}
+                reason={offerRow().reason}
+                entry={offerRow().entry}
+                finishedAt={offerRow().finishedAt}
+              />
             </div>
           </TimelineRowFrame>
         )

@@ -106,17 +106,14 @@ export function removeDictationDictionaryEntry(entry: string): void {
   setDictationDictionary(current.filter((w) => w.toLowerCase() !== entry.toLowerCase()))
 }
 
-export function applyDictationDictionary(text: string): string {
+export function applyDictationDictionary(text: string, dictionary = getDictationDictionary()): string {
   if (!text) return text
-  let result = text
-  const dict = getDictationDictionary()
-  for (const word of dict) {
-    if (!word) continue
+  return dictionary.reduce((result, word) => {
+    if (!word) return result
     const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-    const regex = new RegExp(`\\b${escaped}\\b`, "gi")
-    result = result.replace(regex, word)
-  }
-  return result
+    // \b only knows ASCII letters, so "café" or "Ñandú" never matched: use Unicode letter edges.
+    return result.replace(new RegExp(`(?<![\\p{L}\\p{N}_])${escaped}(?![\\p{L}\\p{N}_])`, "giu"), word)
+  }, text)
 }
 
 export function getRecentRecordings(): DictationRecording[] {
@@ -163,11 +160,30 @@ export async function getAudioInputDevices(): Promise<MediaDeviceInfo[]> {
     return []
   }
   try {
-    const devices = await navigator.mediaDevices.enumerateDevices()
-    return devices.filter((d) => d.kind === "audioinput")
+    return realAudioInputs(await navigator.mediaDevices.enumerateDevices())
   } catch {
     return []
   }
+}
+
+// Chromium on Windows also lists "default" and "communications", aliases of real devices; the
+// pickers already offer "System default", so the aliases only showed every microphone twice.
+export function realAudioInputs<T extends { kind: string; deviceId: string }>(devices: T[]) {
+  return devices.filter((device) => device.kind === "audioinput" && device.deviceId !== "default" && device.deviceId !== "communications")
+}
+
+const HOLD_TO_RECORD_KEY = "tiancode.audio.hold_to_record"
+
+/** Push-to-talk: the composer records while the mic button is held instead of toggling. */
+export function getHoldToRecord() {
+  if (typeof localStorage === "undefined") return false
+  return localStorage.getItem(HOLD_TO_RECORD_KEY) === "true"
+}
+
+export function setHoldToRecord(value: boolean) {
+  if (typeof localStorage === "undefined") return
+  localStorage.setItem(HOLD_TO_RECORD_KEY, String(value))
+  window.dispatchEvent(new CustomEvent("tiancode:hold-to-record-changed", { detail: { value } }))
 }
 
 export function getSelectedAudioDeviceId(): string | null {

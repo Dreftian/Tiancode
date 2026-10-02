@@ -2534,6 +2534,7 @@ export type SkillsListOutput = {
   readonly data: ReadonlyArray<{
     readonly name: string
     readonly description?: string
+    readonly disableModelInvocation?: boolean
     readonly slash?: boolean
     readonly icon?: string
     readonly location: string

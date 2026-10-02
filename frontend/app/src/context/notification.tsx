@@ -8,10 +8,13 @@ import { usePlatform } from "@/context/platform"
 import { useLanguage } from "@/context/language"
 import { useSettings } from "@/context/settings"
 import { base64Encode } from "@tiancode-ai/core/util/encode"
+import { getFilename } from "@tiancode-ai/core/util/path"
 import { decode64 } from "@/utils/base64"
 import { EventSessionError } from "@tiancode-ai/sdk/v2"
 import { Persist, persisted } from "@/utils/persist"
 import { playSoundById } from "@/utils/sound"
+import { dismissToast, showToast } from "@/utils/toast"
+import { usePermission } from "@/context/permission"
 import { useGlobal } from "./global"
 import { ServerConnection, useServer } from "./server"
 import { type DraftTab, useTabs } from "./tabs"
@@ -54,6 +57,28 @@ type NotificationIndex = {
 
 const MAX_NOTIFICATIONS = 500
 const NOTIFICATION_TTL_MS = 1000 * 60 * 60 * 24 * 30
+
+/** The last assistant text in a session's messages (`[{ info: { role }, parts }]`). */
+export function lastAssistantText(messages: unknown): string {
+  if (!Array.isArray(messages)) return ""
+  const text = messages
+    .toReversed()
+    .map((message: { info?: { role?: string }; parts?: Array<{ type?: string; text?: string }> }) =>
+      message?.info?.role === "assistant"
+        ? (message.parts ?? [])
+            .flatMap((part) => (part.type === "text" && part.text?.trim() ? [part.text.trim()] : []))
+            .join("\n\n")
+        : "",
+    )
+    .find(Boolean)
+  return text ?? ""
+}
+
+/** Errors that are part of a normal turn: the user pressed Stop, or the context filled up and is being compacted. */
+export function isQuietError(error: unknown) {
+  if (!error || typeof error !== "object" || !("name" in error)) return false
+  return error.name === "MessageAbortedError" || error.name === "ContextOverflowError"
+}
 
 function pruneNotifications(list: Notification[]) {
   const cutoff = Date.now() - NOTIFICATION_TTL_MS
@@ -122,6 +147,7 @@ export const { use: useNotification, provider: NotificationProvider } = createSi
     const platform = usePlatform()
     const settings = useSettings()
     const language = useLanguage()
+    const permission = usePermission()
     const owner = getOwner()
     const states = new Map<ServerScope, { dispose: () => void; state: NotificationState }>()
 
@@ -155,6 +181,7 @@ export const { use: useNotification, provider: NotificationProvider } = createSi
             settings,
             language,
             navigate,
+            autoResponds: (request, directory) => permission.autoResponds(request, directory),
           }),
         }),
         owner ?? undefined,
@@ -220,6 +247,7 @@ function createServerNotificationState(input: {
   settings: ReturnType<typeof useSettings>
   language: ReturnType<typeof useLanguage>
   navigate: (href: string) => void
+  autoResponds: (request: Parameters<ReturnType<typeof usePermission>["autoResponds"]>[0], directory: string) => boolean
 }) {
   const serverSDK = () => input.sdk
   const serverSync = () => input.sync
@@ -335,16 +363,77 @@ function createServerNotificationState(input: {
     return sessionID === activeSession
   }
 
+  // Settings › Notificaciones: "Silenciar todo" stops sounds and system notifications, the volume
+  // applies to every sound, and "solo en segundo plano" keeps quiet while Tiancode is in front.
+  const inBackground = () => document.visibilityState !== "visible" || !document.hasFocus()
+  const playAlert = (enabled: boolean, id: string) => {
+    if (!enabled || settings.sounds.muted()) return
+    if (settings.sounds.backgroundOnly() && !inBackground()) return
+    void playSoundById(id, settings.sounds.volume())
+  }
+  const notifyAlert = (enabled: boolean, title: string, description: string, onClick: () => void) => {
+    if (!enabled || settings.sounds.muted()) return
+    void platform.notify(title, description, onClick)
+  }
+
+  // The backend can publish idle twice for one turn (the error path sets idle, then the runner
+  // does), and an error is followed by idle: neither should sound or notify "response ready".
+  const lastIdle = new Map<string, number>()
+  const lastError = new Map<string, number>()
+  const IDLE_DEDUPE_MS = 3000
+  const DONE_AFTER_ERROR_MS = 10_000
+
+  // Settings › Inteligencia › Avisos inteligentes: with the local decision model installed, the
+  // alert says whether the turn needs an answer or failed. Without it (or past the timeout) the
+  // plain "response ready" stays.
+  const OUTCOME_TIMEOUT_MS = 2500
+  const smartAlerts = { checkedAt: 0, enabled: false }
+  const onIntelligenceChanged = () => (smartAlerts.checkedAt = 0)
+  window.addEventListener("tiancode:intelligence-changed", onIntelligenceChanged)
+  const smartOutcome = async (directory: string, sessionID: string) => {
+    const client = serverSDK().client
+    if (Date.now() - smartAlerts.checkedAt > 60_000) {
+      const config = await client.global.config
+        .get()
+        .then((result) => result.data)
+        .catch(() => undefined)
+      smartAlerts.enabled = config?.experimental?.intelligence?.smartAlerts !== false
+      smartAlerts.checkedAt = Date.now()
+    }
+    if (!smartAlerts.enabled) return undefined
+    const messages = await client.session
+      .messages({ sessionID, directory, limit: 6 })
+      .then((result) => result.data)
+      .catch(() => undefined)
+    const text = lastAssistantText(messages)
+    if (!text) return undefined
+    const answer = await client.global.decision
+      .classify({ decisionClassifyInput: { preset: "outcome", text: text.slice(-4000), timeoutMs: OUTCOME_TIMEOUT_MS } })
+      .then((result) => result.data)
+      .catch(() => undefined)
+    return answer?.choice
+  }
+
   const handleSessionIdle = (directory: string, event: { properties: { sessionID?: string } }, time: number) => {
     const sessionID = event.properties.sessionID
-    void lookup(directory, sessionID).then((session) => {
+    const key = `${directory}:${sessionID}`
+    if (time - (lastIdle.get(key) ?? 0) < IDLE_DEDUPE_MS) return
+    lastIdle.set(key, time)
+    if (time - (lastError.get(key) ?? 0) < DONE_AFTER_ERROR_MS) return
+    void lookup(directory, sessionID).then(async (session) => {
       if (meta.disposed) return
       if (!session) return
       if (session.parentID) return
+      const outcome = sessionID ? await smartOutcome(directory, sessionID) : undefined
+      if (meta.disposed) return
 
-      if (settings.sounds.agentEnabled()) {
-        void playSoundById(settings.sounds.agent())
-      }
+      // A turn the local model reads as failed sounds like an error, one that asks something like a
+      // question; anything else like a finished turn.
+      const failed = outcome === "failed"
+      const asks = outcome === "question"
+      if (failed) playAlert(settings.sounds.errorsEnabled(), settings.sounds.errors())
+      else if (asks) playAlert(settings.sounds.questionsEnabled(), settings.sounds.questions())
+      else playAlert(settings.sounds.agentEnabled(), settings.sounds.agent())
 
       append({
         directory,
@@ -355,11 +444,15 @@ function createServerNotificationState(input: {
       })
 
       const href = `/${base64Encode(directory)}/session/${sessionID}`
-      if (settings.notifications.agent()) {
-        void platform.notify(language.t("notification.session.responseReady.title"), session.title ?? sessionID, () =>
-          input.navigate(href),
-        )
-      }
+      const title =
+        outcome === "question"
+          ? language.t("notification.session.needsAnswer.title")
+          : failed
+            ? language.t("notification.session.failed.title")
+            : language.t("notification.session.responseReady.title")
+      notifyAlert(asks ? settings.notifications.questions() : settings.notifications.agent(), title, session.title ?? sessionID, () =>
+        input.navigate(href),
+      )
     })
   }
 
@@ -369,15 +462,17 @@ function createServerNotificationState(input: {
     time: number,
   ) => {
     const sessionID = event.properties.sessionID
+    const error = "error" in event.properties ? event.properties.error : undefined
+    // Stopping a turn is not an error, and a context overflow is followed by automatic
+    // compaction: the session goes on, so neither sounds or notifies as a failure.
+    if (isQuietError(error)) return
+    lastError.set(`${directory}:${sessionID}`, time)
     void lookup(directory, sessionID).then((session) => {
       if (meta.disposed) return
       if (session?.parentID) return
 
-      if (settings.sounds.errorsEnabled()) {
-        void playSoundById(settings.sounds.errors())
-      }
+      playAlert(settings.sounds.errorsEnabled(), settings.sounds.errors())
 
-      const error = "error" in event.properties ? event.properties.error : undefined
       append({
         directory,
         time,
@@ -390,14 +485,91 @@ function createServerNotificationState(input: {
         session?.title ??
         (typeof error === "string" ? error : language.t("notification.session.error.fallbackDescription"))
       const href = sessionID ? `/${base64Encode(directory)}/session/${sessionID}` : `/${base64Encode(directory)}`
-      if (settings.notifications.errors()) {
-        void platform.notify(language.t("notification.session.error.title"), description, () => input.navigate(href))
-      }
+      notifyAlert(settings.notifications.errors(), language.t("notification.session.error.title"), description, () =>
+        input.navigate(href),
+      )
     })
   }
 
+  // Permission and question requests: a sound, a system notification and a persistent toast with a
+  // shortcut to the session. They used to live in LegacyLayout, which the current interface never
+  // mounts, so a request asked while Tiancode was in the background went unnoticed.
+  const alertToasts = new Map<string, number>()
+  const alertedAt = new Map<string, number>()
+  const ALERT_COOLDOWN_MS = 5000
+
+  const dismissAlert = (key: string) => {
+    const toastId = alertToasts.get(key)
+    if (toastId === undefined) return
+    dismissToast(toastId)
+    alertToasts.delete(key)
+    alertedAt.delete(key)
+  }
+
+  const handleRequest = (directory: string, kind: "permission" | "question", sessionID: string) => {
+    const key = `${directory}:${sessionID}`
+    const now = Date.now()
+    if (now - (alertedAt.get(key) ?? 0) < ALERT_COOLDOWN_MS) return
+    alertedAt.set(key, now)
+    void lookup(directory, sessionID).then((session) => {
+      if (meta.disposed) return
+      const target = session?.parentID ?? sessionID
+      const sessionTitle = session?.title ?? language.t("command.session.new")
+      const projectName = getFilename(directory) || directory
+      const title = language.t(kind === "permission" ? "notification.permission.title" : "notification.question.title")
+      const description = language.t(
+        kind === "permission" ? "notification.permission.description" : "notification.question.description",
+        { sessionTitle, projectName },
+      )
+      const href = `/${base64Encode(directory)}/session/${target}`
+      if (kind === "permission") playAlert(settings.sounds.permissionsEnabled(), settings.sounds.permissions())
+      else playAlert(settings.sounds.questionsEnabled(), settings.sounds.questions())
+      notifyAlert(
+        kind === "permission" ? settings.notifications.permissions() : settings.notifications.questions(),
+        title,
+        description,
+        () => input.navigate(href),
+      )
+      // The session (or its parent) is on screen: the request dock is already visible there.
+      if (viewedInCurrentSession(directory, sessionID) || viewedInCurrentSession(directory, target)) return
+      dismissAlert(key)
+      const toastId = showToast({
+        persistent: true,
+        icon: kind === "permission" ? "checklist" : "bubble-5",
+        title,
+        description,
+        actions: [
+          { label: language.t("notification.action.goToSession"), onClick: () => input.navigate(href) },
+          { label: language.t("common.dismiss"), onClick: "dismiss" },
+        ],
+      })
+      alertToasts.set(key, toastId)
+    })
+  }
+
+  createEffect(() => {
+    const session = currentSession()
+    if (!session) return
+    alertToasts.forEach((_, key) => {
+      if (key.endsWith(`:${session}`)) dismissAlert(key)
+    })
+  })
+
   const unsub = serverSDK().event.listen((e) => {
     const event = e.details
+    if (event.type === "permission.asked") {
+      // Auto-accepted requests are answered without the user: nothing to tell them.
+      if (!input.autoResponds(event.properties, e.name)) handleRequest(e.name, "permission", event.properties.sessionID)
+      return
+    }
+    if (event.type === "question.asked") {
+      handleRequest(e.name, "question", event.properties.sessionID)
+      return
+    }
+    if (event.type === "permission.replied" || event.type === "question.replied" || event.type === "question.rejected") {
+      dismissAlert(`${e.name}:${(event.properties as { sessionID: string }).sessionID}`)
+      return
+    }
     if (event.type !== "session.idle" && event.type !== "session.error") return
 
     const directory = e.name
@@ -411,6 +583,8 @@ function createServerNotificationState(input: {
   onCleanup(() => {
     meta.disposed = true
     unsub()
+    window.removeEventListener("tiancode:intelligence-changed", onIntelligenceChanged)
+    alertToasts.forEach((toastId) => dismissToast(toastId))
   })
 
   return {

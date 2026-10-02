@@ -1,1630 +1,1169 @@
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
+import { MenuV2 } from "@tiancode-ai/ui/v2/menu-v2"
 import { SegmentedControlItemV2, SegmentedControlV2 } from "@tiancode-ai/ui/v2/segmented-control-v2"
+import { SelectV2 } from "@tiancode-ai/ui/v2/select-v2"
 import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
 import { TextInputV2 } from "@tiancode-ai/ui/v2/text-input-v2"
-import { Icon as IconV2 } from "@tiancode-ai/ui/v2/icon"
-import { IconButtonV2 } from "@tiancode-ai/ui/v2/icon-button-v2"
 import { Icon } from "@tiancode-ai/ui/icon"
-import type { McpLocalConfig, McpRemoteConfig, McpStatus } from "@tiancode-ai/sdk/v2/client"
+import { useDialog } from "@tiancode-ai/ui/context/dialog"
+import type {
+  Config,
+  MarketplaceInstalled,
+  MarketplaceItem,
+  McpLocalConfig,
+  McpRemoteConfig,
+  McpStatus,
+} from "@tiancode-ai/sdk/v2/client"
 import {
   type Component,
+  createComputed,
   createEffect,
+  createMemo,
   createResource,
   For,
-  Show,
-  createSignal,
-  createMemo,
-  onMount,
+  type JSX,
+  on,
   onCleanup,
+  Show,
 } from "solid-js"
-import { createMediaQuery } from "@solid-primitives/media"
+import { createStore, reconcile } from "solid-js/store"
 import { useLanguage } from "@/context/language"
+import { usePlatform } from "@/context/platform"
 import { useServerSDK } from "@/context/server-sdk"
+import type { dict } from "@/i18n/en"
 import { showToast } from "@/utils/toast"
 import {
-  displayName,
-  pluginEnabled,
-  pluginName,
-  pluginOrigin,
-  type PluginEntry,
-} from "./plugins-origin"
-import { SettingsPagerV2 } from "./parts/pager"
+  CURATED_ITEMS,
+  mcpConfig,
+  mcpKey,
+  mcpPackage,
+  mergeCatalog,
+  searchCatalog,
+  SOURCE_GROUPS,
+  sourceGroup,
+} from "./marketplace"
+import { DialogMcpPlugin, DialogMcpServer } from "./mcp-dialogs"
+import { SettingsConfirmDialog } from "./parts/confirm-dialog"
 import { BrandOrFallback } from "./parts/brand-icon"
+import { CatalogIcon } from "./parts/catalog-icon"
+import { SettingsHubHeader } from "./parts/hub-header"
+import { SettingsPagerV2 } from "./parts/pager"
+import { displayName, pluginEnabled, pluginName, pluginOrigin, pluginVersion, type PluginEntry } from "./plugins-origin"
+import { decodeGitHubUrl, fetchGitHubSkills } from "./skills-github"
 import "./mcp-plugins.css"
 
-type McpConfigValue = McpLocalConfig | McpRemoteConfig | { enabled: boolean }
-type TabMode = "mcp" | "plugins" | "builtin" | "discover"
+type McpDefinition = McpLocalConfig | McpRemoteConfig
+type McpConfigValue = McpDefinition | { enabled: boolean }
+type TabMode = "plugins" | "mcp" | "discover"
+type CatalogType = "all" | MarketplaceItem["type"]
+type SourceFilter = "all" | (typeof SOURCE_GROUPS)[number]
+type ServerState = "connected" | "failed" | "needs_auth" | "needs_client_registration" | "disabled" | "pending"
 
-// 7 Built-in Plugins
-const BUILTIN_PLUGINS = [
-  {
-    id: "android-emulator",
-    name: "Android Emulator",
-    desc: "Provides Android development workflows and emulator automation for Tiancode.",
-    icon: "🤖",
-    category: "desarrollo",
-  },
-  {
-    id: "browser-use",
-    name: "Browser Use",
-    desc: "Built-in browser automation runtime and guidance for Desktop IAB and explicitly enabled CLI-managed headless CDP: open, click, inspect, screenshot.",
-    icon: "🌐",
-    category: "web",
-  },
-  {
-    id: "document-skills",
-    name: "Document Skills",
-    desc: "Built-in DOCX and PDF document production skills, published as an official Tiancode plugin.",
-    icon: "📄",
-    category: "herramientas",
-  },
-  {
-    id: "ios-simulator",
-    name: "iOS Simulator",
-    desc: "Provides iOS development workflows and simulator automation for Tiancode.",
-    icon: "📱",
-    category: "desarrollo",
-  },
-  {
-    id: "restore-legacy-sessions",
-    name: "Restore Legacy Sessions",
-    desc: "Select and restore legacy sessions into the new Tiancode task and session store.",
-    icon: "💾",
-    category: "sistema",
-  },
-  {
-    id: "skill-creator",
-    name: "Skill Creator",
-    desc: "Create, edit, iterate local Tiancode skills.",
-    icon: "✏️",
-    category: "ia",
-  },
-  {
-    id: "tiancode-guide",
-    name: "Tiancode Guide",
-    desc: "Tiancode usage and self-diagnosis guide: teaches agents and users how to configure MCP servers, commands, skills, hooks, and extensions.",
-    icon: "📖",
-    category: "documentacion",
-  },
-] as const
-
-const formatCategory = (cat?: string) => {
-  if (!cat) return "General"
-  const map: Record<string, string> = {
-    diseno: "Diseño",
-    web: "Web",
-    backend: "Backend",
-    seguridad: "Seguridad",
-    finanzas: "Finanzas",
-    ia: "IA & ML",
-    desarrollo: "Desarrollo",
-    herramientas: "Herramientas",
-    sistema: "Sistema",
-    documentacion: "Documentación",
-    database: "Base de Datos",
-    cloud: "Cloud & DevOps",
-    ventas: "Ventas & CRM",
-    datos: "Ciencia Datos",
-  }
-  return map[cat.toLowerCase()] || cat.charAt(0).toUpperCase() + cat.slice(1)
+// Curated entries are described in the user's language rather than the catalog's English.
+const CURATED_DESCRIPTIONS: Record<string, keyof typeof dict> = {
+  "diagram-design": "settings.marketplace.diagramDescription",
+  "security-audit": "settings.marketplace.securityDescription",
+  "i-have-adhd": "settings.marketplace.focusDescription",
+  composio: "settings.marketplace.composioDescription",
+  "baseline-ui": "settings.marketplace.baselineUiDescription",
+  "fixing-accessibility": "settings.marketplace.fixingAccessibilityDescription",
+  "fixing-motion-performance": "settings.marketplace.fixingMotionDescription",
+  "fixing-metadata": "settings.marketplace.fixingMetadataDescription",
+  "improve-ui": "settings.marketplace.improveUiDescription",
+  "create-design-md": "settings.marketplace.designMdDescription",
 }
 
-// 23 Installed & Catalog Plugins
-const CATALOG_ITEMS = [
-  {
-    id: "canva",
-    name: "Canva",
-    type: "mcp" as const,
-    category: "diseno",
-    icon: "🎨",
-    desc: "Create, edit, review, resize, and brand-check Canva designs with the Canva MCP server.",
-    command: "npx -y @canva/mcp-server",
-    popular: true,
-  },
-  {
-    id: "chrome-devtools",
-    name: "Chrome Devtools MCP",
-    type: "mcp" as const,
-    category: "web",
-    icon: "🌐",
-    desc: "Reliable automation, in-depth debugging, and performance analysis in Chrome using Chrome DevTools and Puppeteer.",
-    command: "npx -y @modelcontextprotocol/server-puppeteer",
-    popular: true,
-  },
-  {
-    id: "appwrite",
-    name: "Appwrite",
-    type: "mcp" as const,
-    category: "backend",
-    icon: "⚡",
-    desc: "Appwrite tools for Claude Code, including SDK skills, Appwrite MCP servers, and deployment commands.",
-    command: "npx -y @appwrite/mcp",
-    popular: true,
-  },
-  {
-    id: "aikido",
-    name: "Aikido",
-    type: "plugin" as const,
-    category: "seguridad",
-    icon: "🛡️",
-    desc: "Aikido Security for Claude Code: scan code (SAST, secrets, IaC) and list all issues from your Aikido feed powered by the Aikido API.",
-    spec: "opencode-aikido-security",
-    popular: true,
-  },
-  {
-    id: "airwallex-agentos",
-    name: "Airwallex Agentos",
-    type: "mcp" as const,
-    category: "finanzas",
-    icon: "💳",
-    desc: "Bring Airwallex's global financial infrastructure to Claude. Orchestrate actions across your account in plain language, e.g., set up payment links, check balances, transfer funds.",
-    command: "npx -y @airwallex/agentos-mcp",
-    popular: true,
-  },
-  {
-    id: "agentforce-adlc",
-    name: "Agentforce Adlc",
-    type: "plugin" as const,
-    category: "ia",
-    icon: "☁️",
-    desc: "Agentforce Agent Development Life Cycle — author, discover, scaffold, deploy, test, secure, and optimize .agent files.",
-    spec: "opencode-agentforce-adlc",
-    popular: false,
-  },
-  {
-    id: "agent-sdk-dev",
-    name: "Agent Sdk Dev",
-    type: "plugin" as const,
-    category: "desarrollo",
-    icon: "📦",
-    desc: "Claude Agent SDK Development Plugin for building, testing, and debugging agent packages.",
-    spec: "opencode-agent-sdk-dev",
-    popular: false,
-  },
-  {
-    id: "42crunch-api-security",
-    name: "42crunch Api Security Testing",
-    type: "mcp" as const,
-    category: "seguridad",
-    icon: "🔒",
-    desc: "Catch API security issues during development: audit, scan, remediate, validate with AI guardrails in Claude Code.",
-    command: "npx -y 42crunch-mcp-server",
-    popular: false,
-  },
-  {
-    id: "superpowers",
-    name: "Superpowers",
-    type: "plugin" as const,
-    category: "desarrollo",
-    icon: "⚡",
-    desc: "Core skills library for Claude Code: TDD, debugging, collaboration patterns, and proven techniques.",
-    spec: "opencode-superpowers",
-    popular: true,
-  },
-  {
-    id: "feature-dev",
-    name: "Feature Dev",
-    type: "plugin" as const,
-    category: "desarrollo",
-    icon: "💡",
-    desc: "Comprehensive feature development workflow with specialized agents for codebase exploration, architecture design, and implementation.",
-    spec: "opencode-feature-dev",
-    popular: true,
-  },
-  {
-    id: "code-review",
-    name: "Code Review",
-    type: "plugin" as const,
-    category: "desarrollo",
-    icon: "🔎",
-    desc: "Automated code review for pull requests using multiple specialized agents with confidence-based scoring.",
-    spec: "opencode-code-review",
-    popular: true,
-  },
-  {
-    id: "context7",
-    name: "Context7",
-    type: "mcp" as const,
-    category: "documentacion",
-    icon: "📚",
-    desc: "Upstash Context7 MCP server for up-to-date documentation lookup. Pull version-specific documentation and code examples directly into context.",
-    command: "npx -y @upstash/context7-mcp",
-    popular: true,
-  },
-  {
-    id: "playwright",
-    name: "Playwright Automation",
-    type: "mcp" as const,
-    category: "web",
-    icon: "🎭",
-    desc: "Browser automation and end-to-end testing MCP server by Microsoft. Enables Claude to interact with web pages, take screenshots, test UI.",
-    command: "npx -y @playwright/mcp@latest",
-    popular: true,
-  },
-  {
-    id: "commit-commands",
-    name: "Commit Commands",
-    type: "plugin" as const,
-    category: "desarrollo",
-    icon: "🌿",
-    desc: "Streamline your git workflow with simple commands for committing, pushing, and creating pull requests.",
-    spec: "opencode-commit-commands",
-    popular: true,
-  },
-  {
-    id: "alloydb",
-    name: "Alloydb",
-    type: "mcp" as const,
-    category: "database",
-    icon: "🗄️",
-    desc: "Create, connect, and interact with an AlloyDB for PostgreSQL database and data.",
-    command: "npx -y @google-cloud/alloydb-mcp",
-    popular: false,
-  },
-  {
-    id: "alloydb-omni",
-    name: "Alloydb Omni",
-    type: "mcp" as const,
-    category: "database",
-    icon: "🗄️",
-    desc: "Create, connect, and interact with an AlloyDB Omni database and data.",
-    command: "npx -y @google-cloud/alloydb-omni-mcp",
-    popular: false,
-  },
-  {
-    id: "apollo",
-    name: "Apollo",
-    type: "mcp" as const,
-    category: "ventas",
-    icon: "📊",
-    desc: "Prospect, enrich leads, load outreach sequences, and query sales analytics with Apollo.io — one-click MCP server integration.",
-    command: "npx -y @apollo/mcp-server",
-    popular: false,
-  },
-  {
-    id: "apollo-skills",
-    name: "Apollo Skills",
-    type: "plugin" as const,
-    category: "desarrollo",
-    icon: "🚀",
-    desc: "Agent skills for AI coding agents working with Apollo GraphQL tools and technologies.",
-    spec: "opencode-apollo-graphql-skills",
-    popular: false,
-  },
-  {
-    id: "atlan",
-    name: "Atlan",
-    type: "plugin" as const,
-    category: "datos",
-    icon: "🏛️",
-    desc: "Atlan context layer plugin for Claude Code. Search, explore, govern, and manage your data assets through natural language.",
-    spec: "opencode-atlan-context",
-    popular: false,
-  },
-  {
-    id: "atomic-agents",
-    name: "Atomic Agents",
-    type: "plugin" as const,
-    category: "ia",
-    icon: "⚛️",
-    desc: "Skills plus explorer and reviewer subagents for building, scaffolding, understanding, and auditing applications with the Atomic Agents framework.",
-    spec: "opencode-atomic-agents",
-    popular: false,
-  },
-  {
-    id: "auth0",
-    name: "Auth0",
-    type: "plugin" as const,
-    category: "seguridad",
-    icon: "🛡️",
-    desc: "Auth0 skills for quickstarts, migration, major version upgrades, MFA, branding, custom domains, Advanced Custom Universal Login.",
-    spec: "opencode-auth0-skills",
-    popular: true,
-  },
-  {
-    id: "aws-agents",
-    name: "AWS Agents",
-    type: "plugin" as const,
-    category: "cloud",
-    icon: "☁️",
-    desc: "Build, deploy, and operate AI agents on AWS. Skills for scaffolding agents with Amazon Bedrock AgentCore (Strands, Flows, Knowledge Bases).",
-    spec: "opencode-aws-agents-bedrock",
-    popular: true,
-  },
-  {
-    id: "box",
-    name: "Box",
-    type: "plugin" as const,
-    category: "cloud",
-    icon: "📦",
-    desc: "Box Plugin for Claude Code to help with Box Platform integrations including content workflows, shared links, webhooks.",
-    spec: "opencode-box-platform",
-    popular: false,
-  },
-  {
-    id: "filesystem",
-    name: "Filesystem MCP",
-    type: "mcp" as const,
-    category: "desarrollo",
-    icon: "📁",
-    desc: "Acceso seguro a lectura y escritura de archivos locales y del workspace.",
-    command: "npx -y @modelcontextprotocol/server-filesystem .",
-    popular: true,
-  },
-  {
-    id: "fetch",
-    name: "Web Fetch & Scraper",
-    type: "mcp" as const,
-    category: "web",
-    icon: "🌐",
-    desc: "Descarga, procesa y convierte contenido web y documentación HTML a Markdown limpio.",
-    command: "npx -y @modelcontextprotocol/server-fetch",
-    popular: true,
-  },
-  {
-    id: "sqlite",
-    name: "SQLite Inspector",
-    type: "mcp" as const,
-    category: "database",
-    icon: "🗄️",
-    desc: "Consultas, inspección de esquemas y análisis de bases de datos SQLite.",
-    command: "npx -y @modelcontextprotocol/server-sqlite .",
-    popular: true,
-  },
-  {
-    id: "postgres",
-    name: "PostgreSQL Client",
-    type: "mcp" as const,
-    category: "database",
-    icon: "🐘",
-    desc: "Ejecución de consultas SQL, inspección de tablas e índices en PostgreSQL.",
-    command: "npx -y @modelcontextprotocol/server-postgres",
-    popular: true,
-  },
-  {
-    id: "docker",
-    name: "Docker Engine MCP",
-    type: "mcp" as const,
-    category: "desarrollo",
-    icon: "🐳",
-    desc: "Gestión de contenedores, imágenes, logs y docker-compose en tiempo real.",
-    command: "npx -y docker-mcp",
-    popular: true,
-  },
-  {
-    id: "git",
-    name: "Git & VCS Tools",
-    type: "mcp" as const,
-    category: "desarrollo",
-    icon: "🌿",
-    desc: "Operaciones avanzadas de git, diffs, ramas, inspección de historial y commits.",
-    command: "npx -y @modelcontextprotocol/server-git",
-    popular: true,
-  },
-  {
-    id: "brave-search",
-    name: "Brave Web Search",
-    type: "mcp" as const,
-    category: "web",
-    icon: "🔍",
-    desc: "Búsqueda en la web global con Brave Search API para información fresca.",
-    command: "npx -y @modelcontextprotocol/server-brave-search",
-    popular: true,
-  },
-  {
-    id: "memory",
-    name: "Knowledge Graph Memory",
-    type: "mcp" as const,
-    category: "ia",
-    icon: "🧠",
-    desc: "Memoria contextual persistente con grafo de conocimiento entre sesiones.",
-    command: "npx -y @modelcontextprotocol/server-memory",
-    popular: true,
-  },
-  {
-    id: "wakatime",
-    name: "WakaTime Observability",
-    type: "plugin" as const,
-    category: "desarrollo",
-    icon: "⏱️",
-    desc: "Métricas de tiempo de desarrollo y telemetría de sesiones con WakaTime.",
-    spec: "opencode-wakatime",
-    popular: true,
-  },
-  {
-    id: "supermemory",
-    name: "Supermemory AI",
-    type: "plugin" as const,
-    category: "ia",
-    icon: "⚡",
-    desc: "Memoria contextual externa y almacenamiento semántico de snippets.",
-    spec: "opencode-supermemory",
-    popular: false,
-  },
-  {
-    id: "envGuard",
-    name: "Env Guard Plugin",
-    type: "plugin" as const,
-    category: "seguridad",
-    icon: "🛡️",
-    desc: "Protege archivos .env y secretos para evitar modificaciones accidentales.",
-    spec: ".tiancode/plugins/env-guard.ts",
-    popular: true,
-  },
-]
+const CATALOG_TYPES: CatalogType[] = ["all", "mcp", "skill", "plugin"]
+const DISCOVER_PAGE_SIZE = 24
 
 export const SettingsMcpPluginsV2: Component<{
   directory?: string
   active?: boolean
 }> = (props) => {
   const language = useLanguage()
+  const platform = usePlatform()
   const serverSdk = useServerSDK()
-  const [activeTab, setActiveTab] = createSignal<TabMode>("plugins")
-  const [searchQuery, setSearchQuery] = createSignal("")
-  const [showAddModal, setShowAddModal] = createSignal(false)
-  const [addMode, setAddMode] = createSignal<"mcp" | "plugin">("plugin")
-  const [discoverCategory, setDiscoverCategory] = createSignal("all")
-
-  // Form states
-  const [formName, setFormName] = createSignal("")
-  const [formCommand, setFormCommand] = createSignal("")
-  /** Sólo aplica a servidores remotos: un servidor local no tiene flujo OAuth. */
-  const [formOAuth, setFormOAuth] = createSignal(false)
-  const [submitting, setSubmitting] = createSignal(false)
+  const dialog = useDialog()
+  const [ui, setUi] = createStore({
+    tab: "plugins" as TabMode,
+    query: "",
+    type: "all" as CatalogType,
+    category: "all",
+    source: "all" as SourceFilter,
+    // The search the registry is asked about, a moment after typing stops.
+    term: "",
+    // The full catalog is requested the first time this page is shown.
+    catalogRequested: false,
+    page: 1,
+    // The entry a save or toggle is running for; every switch waits for it.
+    saving: "",
+    // The catalog entry being installed.
+    pending: "",
+  })
 
   const params = () => (props.directory ? { directory: props.directory } : undefined)
+  const saveConfig = (config: Config) =>
+    props.directory
+      ? serverSdk().client.config.update({ ...params(), config }, { throwOnError: true })
+      : serverSdk().client.global.config.update({ config }, { throwOnError: true })
 
-  // Fetch Config
-  const [configData, { refetch: refetchConfig }] = createResource(
-    async () => {
-      try {
-        const result = await serverSdk().client.config.get(params()).catch(() => ({ data: {} }))
-        return (result.data ?? {}) as Record<string, any>
-      } catch {
-        return {} as Record<string, any>
-      }
-    },
-    { initialValue: {} as Record<string, any> },
+  // Discovery never changes installed state. The server mirrors the catalogs (and bundles a copy
+  // for offline use); a server too old to have them leaves Tiancode's own picks.
+  createEffect(() => {
+    if (props.active !== false && !ui.catalogRequested) setUi("catalogRequested", true)
+  })
+  const [remoteCatalog, { refetch: refetchCatalog }] = createResource(
+    () => ui.catalogRequested || undefined,
+    async () => (await serverSdk().client.global.marketplace.catalog({ throwOnError: true })).data.items,
   )
-
-  // Fetch MCP Status
+  createEffect(
+    on(
+      () => ui.query,
+      (value) => {
+        const timer = setTimeout(() => setUi("term", value.trim()), 400)
+        onCleanup(() => clearTimeout(timer))
+      },
+    ),
+  )
+  // The official MCP Registry lists far more servers than any mirror; a search also asks it.
+  const [registry] = createResource(
+    () =>
+      ui.tab === "discover" &&
+      ui.term.length >= 3 &&
+      (ui.type === "all" || ui.type === "mcp") &&
+      (ui.source === "all" || ui.source === "registry")
+        ? ui.term
+        : undefined,
+    async (q) => (await serverSdk().client.global.marketplace.search({ q }).catch(() => ({ data: [] }))).data ?? [],
+  )
+  const marketplace = createMemo(() =>
+    mergeCatalog(CURATED_ITEMS, remoteCatalog.error ? [] : (remoteCatalog.latest ?? []), registry.latest ?? []),
+  )
+  const describe = (item: MarketplaceItem) => {
+    const key = item.source === "tiancode" ? CURATED_DESCRIPTIONS[item.name] : undefined
+    return key ? language.t(key) : item.description
+  }
+  const [installedPlugins, { refetch: refetchInstalled }] = createResource(
+    async () => (await serverSdk().client.global.marketplace.installed().catch(() => ({ data: [] }))).data ?? [],
+    { initialValue: [] as MarketplaceInstalled[] },
+  )
+  const [installedSkills, { refetch: refetchSkills }] = createResource(
+    async () => (await serverSdk().client.app.skills(params()).catch(() => ({ data: [] }))).data ?? [],
+    { initialValue: [] },
+  )
+  const [configData, { refetch: refetchConfig }] = createResource(
+    async () => ((await serverSdk().client.config.get(params()).catch(() => ({ data: {} }))).data ?? {}) as Config,
+    { initialValue: {} as Config },
+  )
   const [mcpStatusData, { refetch: refetchStatus }] = createResource(
-    async () => {
-      try {
-        const result = await serverSdk().client.mcp.status(params()).catch(() => ({ data: {} }))
-        return (result.data ?? {}) as Record<string, McpStatus>
-      } catch {
-        return {} as Record<string, McpStatus>
-      }
-    },
+    async () =>
+      ((await serverSdk().client.mcp.status(params()).catch(() => ({ data: {} }))).data ?? {}) as Record<string, McpStatus>,
     { initialValue: {} as Record<string, McpStatus> },
   )
 
   createEffect(() => {
-    const isActive = props.active ?? true
-    if (!isActive) return
+    if (props.active === false) return
     const timer = setInterval(() => void refetchStatus(), 10000)
     onCleanup(() => clearInterval(timer))
   })
 
-  // Detail view: transport, endpoint, tool names (MCP) and origin/spec/path (plugins) for every
-  // row at once, without opening anything.
-  const [detailed, setDetailed] = createSignal(false)
-  const detailToggle = () => (
-    <button
-      type="button"
-      class="settings-v2-subagents-detail mcp-plugins-detail"
-      aria-pressed={detailed()}
-      title={language.t(detailed() ? "settings.mcpPlugins.detail.compact" : "settings.mcpPlugins.detail.full")}
-      onClick={() => setDetailed((value) => !value)}
-    >
-      {language.t(detailed() ? "settings.mcpPlugins.detail.compactShort" : "settings.mcpPlugins.detail.fullShort")}
-    </button>
+  const query = () => ui.query.toLowerCase().trim()
+
+  // The status refreshes every 10 s; keyed reconciliation keeps each card (and an open menu in it)
+  // in place and only updates what changed.
+  const servers = keyed("name", () => {
+    const statusMap = mcpStatusData()
+    return Object.entries((configData().mcp ?? {}) as Record<string, McpConfigValue>).map(([name, conf]) => {
+      const definition = "type" in conf ? conf : undefined
+      const enabled = conf.enabled !== false
+      const status = statusMap[name]
+      const state: ServerState = !enabled
+        ? "disabled"
+        : status && status.status !== "disabled"
+          ? status.status
+          : "pending"
+      return {
+        name,
+        enabled,
+        state,
+        definition,
+        command: definition?.type === "local" ? definition.command.join(" ") : (definition?.url ?? ""),
+        tools: status?.status === "connected" && typeof status.tools === "number" ? status.tools : 0,
+        error: status && "error" in status ? status.error : undefined,
+        environment: definition?.type === "local" ? Object.keys(definition.environment ?? {}).length : 0,
+        oauth: definition?.type === "remote" && definition.oauth !== false,
+      }
+    })
+  })
+  const visibleServers = createMemo(() =>
+    servers().filter(
+      (server) => !query() || server.name.toLowerCase().includes(query()) || server.command.toLowerCase().includes(query()),
+    ),
   )
 
-  // Overrides reactivos inmediatos (0 ms) para evitar retrasos en switches y notificaciones
-  const [mcpOverrides, setMcpOverrides] = createSignal<Record<string, boolean>>({})
-  const [builtinOverrides, setBuiltinOverrides] = createSignal<Record<string, boolean>>({})
-  const [pluginOverrides, setPluginOverrides] = createSignal<Record<string, boolean>>({})
+  // The plugin list of the scope this page writes; entries from the other scope stay untouched.
+  const ownPlugins = () => {
+    const origins = (configData() as Config & { plugin_origins?: { spec: PluginEntry; scope: string }[] }).plugin_origins
+    return origins?.length
+      ? origins.filter((origin) => origin.scope === (props.directory ? "local" : "global")).map((origin) => origin.spec)
+      : [...(configData().plugin ?? [])]
+  }
 
-  // Connected MCP servers list
-  const mcpServers = createMemo(() => {
-    const configMcp = (configData().mcp ?? {}) as Record<string, McpConfigValue>
-    const statusMap = mcpStatusData()
-    const query = searchQuery().toLowerCase().trim()
-    const overrides = mcpOverrides()
-
-    return Object.entries(configMcp)
-      .map(([name, conf]) => {
-        const isObject = typeof conf === "object" && conf !== null
-        const isLocal = isObject && "type" in conf && conf.type === "local"
-        const isRemote = isObject && "type" in conf && conf.type === "remote"
-        const configEnabled = isObject && "enabled" in conf ? (conf as any).enabled !== false : true
-        const enabled = name in overrides ? overrides[name] : configEnabled
-        const statusObj = statusMap[name]
-        const status = statusObj?.status ?? (enabled ? "connected" : "disabled")
-        const command = isLocal ? (conf as McpLocalConfig).command.join(" ") : isRemote ? (conf as McpRemoteConfig).url : "Builtin MCP"
-        const toolsCount = statusObj && "tools" in statusObj && statusObj.tools ? Object.keys((statusObj as any).tools ?? {}).length : 0
-        const toolNames = statusObj && "tools" in statusObj && statusObj.tools ? Object.keys((statusObj as any).tools ?? {}) : []
-        const statusError = statusObj && "error" in statusObj && typeof (statusObj as any).error === "string" ? ((statusObj as any).error as string) : undefined
-        const environment = isLocal && (conf as McpLocalConfig).environment ? Object.keys((conf as McpLocalConfig).environment ?? {}) : []
-
-        return {
-          name,
-          enabled,
-          status,
-          command,
-          toolsCount,
-          toolNames,
-          statusError,
-          environment,
-          isLocal,
-          isRemote,
-          config: conf,
-        }
-      })
-      .filter((server) => !query || server.name.toLowerCase().includes(query) || server.command.toLowerCase().includes(query))
-  })
-
-  // Built-in plugins list
-  const builtinPlugins = createMemo(() => {
-    const rawList = (configData().plugin ?? []) as PluginEntry[]
-    const query = searchQuery().toLowerCase().trim()
-    const overrides = builtinOverrides()
-    return BUILTIN_PLUGINS.map((p) => {
-      const entry = rawList.find((item) => pluginName(item) === `builtin-${p.id}`)
-      const configEnabled = entry ? pluginEnabled(entry) : true
-      const enabled = p.id in overrides ? overrides[p.id] : configEnabled
-      return {
-        ...p,
-        enabled,
-      }
-    }).filter((p) => !query || p.name.toLowerCase().includes(query) || p.desc.toLowerCase().includes(query))
-  })
-
-  // Installed Plugins list (including configured catalog plugins)
-  const pluginsList = createMemo(() => {
-    const rawList = (configData().plugin ?? []) as PluginEntry[]
-    const query = searchQuery().toLowerCase().trim()
-    const overrides = pluginOverrides()
-
-    // Base installed list (exclude internal builtin-* which are managed in the Built-in section)
-    const configured = rawList
+  const plugins = keyed("name", () =>
+    ((configData().plugin ?? []) as PluginEntry[])
+      // Older builds exposed these UI-only entries; they are not executable plugins.
       .filter((entry) => !pluginName(entry).startsWith("builtin-"))
       .map((entry) => {
         const name = pluginName(entry)
-        const display = displayName(entry)
-        const configEnabled = pluginEnabled(entry)
-        const enabled = name in overrides ? overrides[name] : configEnabled
-        const origin = pluginOrigin(entry)
-        const catalogItem = CATALOG_ITEMS.find((item) => item.type === "plugin" && item.spec === name)
-
+        const local = pluginOrigin(entry) === "local"
+        // Files under .tiancode/plugin(s) are loaded because they exist: removing the config entry
+        // would not unload them, so they offer their folder instead.
+        const discovered = /^file:/i.test(name) && /\/\.?tiancode\/plugins?\/[^/]+\.[cm]?[jt]s$/i.test(name)
         return {
           entry,
           name,
-          display: catalogItem?.name ?? display,
-          desc: catalogItem?.desc,
-          icon: catalogItem?.icon ?? "🧩",
-          category: catalogItem?.category ?? "extension",
-          enabled,
-          origin,
-          isLocal: origin === "local",
+          display: displayName(entry),
+          description: local ? language.t("settings.mcpPlugins.plugin.localDescription") : undefined,
+          version: pluginVersion(entry),
+          enabled: pluginEnabled(entry),
+          local,
+          file: discovered ? fileUrlPath(name) : undefined,
+          removable: !discovered && ownPlugins().some((own) => pluginName(own) === name),
         }
-      })
-
-    // If none configured, show all default installed catalog plugins ready to toggle
-    const items = configured.length > 0 ? configured : CATALOG_ITEMS.filter((item) => item.type === "plugin").map((item) => ({
-      entry: item.spec!,
-      name: item.spec!,
-      display: item.name,
-      desc: item.desc,
-      icon: item.icon,
-      category: item.category,
-      enabled: true,
-      origin: "npm" as const,
-      isLocal: false,
-    }))
-
-    return items.filter((plugin) => !query || plugin.name.toLowerCase().includes(query) || plugin.display.toLowerCase().includes(query))
-  })
+      }),
+  )
+  const visiblePlugins = createMemo(() =>
+    plugins().filter(
+      (plugin) => !query() || plugin.name.toLowerCase().includes(query()) || plugin.display.toLowerCase().includes(query()),
+    ),
+  )
+  const visibleInstalled = createMemo(() =>
+    installedPlugins().filter(
+      (entry) => !query() || entry.name.includes(query()) || entry.title.toLowerCase().includes(query()),
+    ),
+  )
 
   // A local plugin's name is its file:// URL; show the part under .tiancode/ instead of the
-  // whole absolute path, and never repeat the path as its description.
+  // whole absolute path.
   const shortPluginRef = (name: string) => {
     const looksLikePath = /^file:/i.test(name) || /^[a-zA-Z]:[\\/]/.test(name) || name.startsWith("/")
     if (!looksLikePath) return name
     const normalized = name.replace(/\\/g, "/")
-    const idx = normalized.indexOf("/.tiancode/")
-    if (idx >= 0) return normalized.slice(idx + 1)
+    const index = normalized.indexOf("/.tiancode/")
+    if (index >= 0) return normalized.slice(index + 1)
     return normalized.split("/").filter(Boolean).slice(-2).join("/")
   }
-  const pluginDescription = (plugin: { desc?: string; name: string; isLocal: boolean }) =>
-    plugin.desc ?? (plugin.isLocal ? language.t("settings.mcpPlugins.plugin.localDescription") : plugin.name)
 
-  // Catalog filtered list
-  const catalogList = createMemo(() => {
-    const cat = discoverCategory()
-    const query = searchQuery().toLowerCase().trim()
-    return CATALOG_ITEMS.filter((item) => {
-      const matchCat = cat === "all" || item.category === cat
-      const matchQuery = !query || item.name.toLowerCase().includes(query) || item.desc.toLowerCase().includes(query)
-      return matchCat && matchQuery
-    })
-  })
-
-  // Pagination 10x10 for Discover Catalog
-  const DISCOVER_PAGE_SIZE = 6
-  const [discoverPage, setDiscoverPage] = createSignal(1)
-  const discoverTotal = () => Math.max(1, Math.ceil(catalogList().length / DISCOVER_PAGE_SIZE))
-  const pageDiscoverItems = createMemo(() => {
-    const page = Math.min(discoverPage(), discoverTotal())
-    const start = (page - 1) * DISCOVER_PAGE_SIZE
-    return catalogList().slice(start, start + DISCOVER_PAGE_SIZE)
-  })
-
-  // Pagination 10x10 for MCP Servers
-  const MCP_PAGE_SIZE = 6
-  const [mcpPage, setMcpPage] = createSignal(1)
-  const mcpTotal = () => Math.max(1, Math.ceil(mcpServers().length / MCP_PAGE_SIZE))
-  const pageMcpServers = createMemo(() => {
-    const page = Math.min(mcpPage(), mcpTotal())
-    const start = (page - 1) * MCP_PAGE_SIZE
-    return mcpServers().slice(start, start + MCP_PAGE_SIZE)
-  })
-
-  // Pagination 10x10 for Installed Plugins
-  const PLUGINS_PAGE_SIZE = 6
-  const [pluginsPage, setPluginsPage] = createSignal(1)
-  const pluginsTotal = () => Math.max(1, Math.ceil(pluginsList().length / PLUGINS_PAGE_SIZE))
-  const pagePluginsList = createMemo(() => {
-    const page = Math.min(pluginsPage(), pluginsTotal())
-    const start = (page - 1) * PLUGINS_PAGE_SIZE
-    return pluginsList().slice(start, start + PLUGINS_PAGE_SIZE)
-  })
-
-  // Pagination 10x10 for Built-in Plugins
-  // Every built-in plugin fits a normal window; only a short one pages them six at a time.
-  const compactHeight = createMediaQuery("(max-height: 719px)")
-  const builtinPageSize = () => (compactHeight() ? 6 : Math.max(6, builtinPlugins().length))
-  const [builtinPage, setBuiltinPage] = createSignal(1)
-  const builtinTotal = () => Math.max(1, Math.ceil(builtinPlugins().length / builtinPageSize()))
-  const pageBuiltinPlugins = createMemo(() => {
-    const page = Math.min(builtinPage(), builtinTotal())
-    const start = (page - 1) * builtinPageSize()
-    return builtinPlugins().slice(start, start + builtinPageSize())
-  })
-
-  createEffect(() => {
-    discoverCategory()
-    searchQuery()
-    setDiscoverPage(1)
-    setMcpPage(1)
-    setPluginsPage(1)
-    setBuiltinPage(1)
-  })
-
-  createEffect(() => {
-    if (discoverPage() > discoverTotal()) setDiscoverPage(discoverTotal())
-    if (mcpPage() > mcpTotal()) setMcpPage(mcpTotal())
-    if (pluginsPage() > pluginsTotal()) setPluginsPage(pluginsTotal())
-    if (builtinPage() > builtinTotal()) setBuiltinPage(builtinTotal())
-  })
-
-  // Toggle MCP Server
-  const toggleMcpServer = (name: string, currentEnabled: boolean) => {
-    const nextEnabled = !currentEnabled
-    // 1. Inmediato (0 ms) reactivo y toast
-    setMcpOverrides((prev) => ({ ...prev, [name]: nextEnabled }))
-    showToast({
-      variant: "success",
-      title: language.t(nextEnabled ? "settings.mcpPlugins.toast.serverEnabled" : "settings.mcpPlugins.toast.serverDisabled", {
-        name,
-      }),
-    })
-
-    // 2. Ejecutar sincronización en segundo plano sin bloquear UI
-    const currentConfig = { ...((configData().mcp ?? {}) as Record<string, any>) }
-    const serverEntry = currentConfig[name]
-    const updatedEntry =
-      typeof serverEntry === "object" && serverEntry !== null
-        ? { ...serverEntry, enabled: nextEnabled }
-        : { enabled: nextEnabled }
-
-    currentConfig[name] = updatedEntry
-
-    const syncTask = async () => {
-      if (nextEnabled && typeof serverEntry === "object" && serverEntry !== null) {
-        await serverSdk().client.mcp.add({ ...params(), name, config: updatedEntry as any }).catch(() => {})
-        await serverSdk().client.mcp.connect({ ...params(), name }).catch(() => {})
-      } else if (!nextEnabled) {
-        await serverSdk().client.mcp.add({ ...params(), name, config: updatedEntry as any }).catch(() => {})
-      }
-      await serverSdk().client.config.update({ ...params(), config: { mcp: currentConfig } })
-      void refetchConfig()
-      void refetchStatus()
-    }
-
-    void syncTask().catch(() => {
-      setMcpOverrides((prev) => {
-        const next = { ...prev }
-        delete next[name]
-        return next
-      })
-      showToast({ variant: "error", title: language.t("settings.mcpPlugins.toast.serverUpdateFailed") })
-    })
+  const categoryLabel = (category: string) => {
+    const key = `settings.mcpPlugins.discover.category.${category}` as keyof typeof dict
+    const label = language.t(key)
+    return label === key ? category.charAt(0).toUpperCase() + category.slice(1) : label
+  }
+  // The type switch names groups ("Skills"); a catalog card names one entry ("Skill").
+  const typeLabel = (type: CatalogType, plural = false) => {
+    if (type === "all") return language.t("settings.mcpPlugins.discover.category.all")
+    if (type === "mcp") return language.t("settings.mcpPlugins.type.mcp")
+    if (type === "skill") return language.t(plural ? "settings.tab.skills" : "settings.mcpPlugins.type.skill")
+    return language.t(plural ? "settings.mcpPlugins.tab.plugins" : "settings.mcpPlugins.type.plugin")
   }
 
-  // Remove MCP Server
-  const removeMcpServer = async (name: string) => {
-    if (!window.confirm(`¿Deseas desconectar y eliminar el servidor MCP "${name}"?`)) return
+  const sourceLabel = (source: SourceFilter) =>
+    source === "all"
+      ? language.t("settings.mcpPlugins.discover.allSources")
+      : language.t(`settings.mcpPlugins.discover.source.${source}`)
+  const ofKind = createMemo(() => marketplace().filter((item) => ui.type === "all" || item.type === ui.type))
+  // Sources and categories come from the catalog itself, so every option has entries behind it.
+  const sources = createMemo(() => {
+    const counts = new Map<string, number>()
+    for (const item of ofKind()) counts.set(sourceGroup(item.source), (counts.get(sourceGroup(item.source)) ?? 0) + 1)
+    return [
+      { id: "all" as SourceFilter, label: sourceLabel("all"), count: ofKind().length },
+      ...SOURCE_GROUPS.filter((id) => counts.has(id)).map((id) => ({ id, label: sourceLabel(id), count: counts.get(id)! })),
+    ]
+  })
+  const ofType = createMemo(() => ofKind().filter((item) => ui.source === "all" || sourceGroup(item.source) === ui.source))
+  const categories = createMemo(() => {
+    const counts = new Map<string, number>()
+    for (const item of ofType()) counts.set(item.category, (counts.get(item.category) ?? 0) + 1)
+    return [
+      { id: "all", label: language.t("settings.mcpPlugins.discover.allCategories"), count: ofType().length },
+      ...[...counts]
+        .map(([id, count]) => ({ id, label: categoryLabel(id), count }))
+        .toSorted((a, b) => b.count - a.count || a.label.localeCompare(b.label)),
+    ]
+  })
+  const catalog = createMemo(() =>
+    searchCatalog(
+      ofType().filter((item) => ui.category === "all" || item.category === ui.category),
+      ui.query,
+    ),
+  )
+  const pages = () => Math.max(1, Math.ceil(catalog().length / DISCOVER_PAGE_SIZE))
+  const catalogPage = createMemo(() => {
+    const page = Math.min(ui.page, pages())
+    return catalog().slice((page - 1) * DISCOVER_PAGE_SIZE, page * DISCOVER_PAGE_SIZE)
+  })
+  createEffect(
+    on([() => ui.type, () => ui.source, () => ui.category, () => ui.query], () => setUi("page", 1), { defer: true }),
+  )
+  createEffect(
+    on(categories, (list) => {
+      if (!list.some((option) => option.id === ui.category)) setUi("category", "all")
+    }),
+  )
+  createEffect(
+    on(sources, (list) => {
+      if (!list.some((option) => option.id === ui.source)) setUi("source", "all")
+    }),
+  )
+
+  // A catalog server counts as added when a configured server points at the same URL or command,
+  // whatever its name: names like "memory" or "github" are shared by unrelated servers.
+  const configuredServers = createMemo(
+    () =>
+      new Set(
+        Object.values((configData().mcp ?? {}) as Record<string, McpConfigValue>).flatMap((conf) =>
+          "type" in conf ? [mcpKey(conf.type === "remote" ? { url: conf.url } : { command: conf.command })] : [],
+        ),
+      ),
+  )
+  const installed = (item: MarketplaceItem) => {
+    if (item.type === "mcp") return item.mcp ? configuredServers().has(mcpKey(item.mcp)) || sameNamed(item) : false
+    if (item.type === "skill") return installedSkills().some((skill) => skill.name === item.name)
+    return installedPlugins().some((plugin) => plugin.id === item.id)
+  }
+  // A server added under the entry's name that runs the same package or reaches the same host (the
+  // user may have edited its arguments or headers).
+  const sameNamed = (item: MarketplaceItem) => {
+    const conf = (configData().mcp ?? {})[item.name] as McpConfigValue | undefined
+    if (!conf || !("type" in conf) || !item.mcp) return false
+    if (conf.type === "remote")
+      return item.mcp.transport === "remote" && URL.canParse(conf.url) && URL.canParse(item.mcp.url ?? "")
+        ? new URL(conf.url).hostname === new URL(item.mcp.url!).hostname
+        : false
+    return item.mcp.transport === "local" && mcpPackage(conf.command) === mcpPackage(item.mcp.command ?? [])
+  }
+  const obtainable = (item: MarketplaceItem) =>
+    Boolean((item.mcp && mcpConfig(item.mcp)) || item.skillUrl || (item.type === "plugin" && item.installable))
+
+  const connected = () => servers().filter((server) => server.state === "connected").length
+
+  const refresh = async () => {
+    await refetchConfig()
+    await refetchStatus()
+  }
+
+  // Runs one change at a time and reports it; `fail` names what could not be done.
+  const run = async (key: string, action: () => Promise<unknown>, done: string, fail: string) => {
+    if (ui.saving) return
+    setUi("saving", key)
     try {
-      const currentConfig = { ...((configData().mcp ?? {}) as Record<string, any>) }
-      delete currentConfig[name]
-      await serverSdk().client.config.update({ ...params(), config: { mcp: currentConfig } })
-      void refetchConfig()
-      void refetchStatus()
-      showToast({ variant: "success", title: language.t("settings.mcpPlugins.toast.serverRemoved", { name }) })
+      await action()
+      await refresh()
+      showToast({ variant: "success", title: done })
     } catch {
-      showToast({ variant: "error", title: language.t("settings.mcpPlugins.toast.serverRemoveFailed") })
+      showToast({ variant: "error", title: fail })
+    } finally {
+      setUi("saving", "")
     }
   }
 
-  // Toggle Built-in Plugin with proper tuple handling
-  const toggleBuiltinPlugin = (id: string, currentEnabled: boolean) => {
-    const nextEnabled = !currentEnabled
-    // 1. Inmediato (0 ms)
-    setBuiltinOverrides((prev) => ({ ...prev, [id]: nextEnabled }))
-    showToast({
-      variant: "success",
-      title: language.t(nextEnabled ? "settings.mcpPlugins.toast.pluginEnabled" : "settings.mcpPlugins.toast.pluginDisabled"),
-    })
+  const toggleServer = (server: ReturnType<typeof servers>[number]) =>
+    run(
+      server.name,
+      () =>
+        server.definition
+          ? // Explicit activation approves a project-defined server in the global config;
+            // repository config alone is deliberately never executable.
+            serverSdk().client.mcp.add(
+              { ...params(), name: server.name, config: { ...server.definition, enabled: !server.enabled } },
+              { throwOnError: true },
+            )
+          : // A bare { enabled } entry switches a server defined elsewhere (a plugin, a default). It goes
+            // to the global config: a project entry cannot override a server the global config defines.
+            serverSdk().client.global.config.update(
+              { config: { mcp: { [server.name]: { enabled: !server.enabled } } } },
+              { throwOnError: true },
+            ),
+      language.t(
+        server.enabled ? "settings.mcpPlugins.toast.serverDisabled" : "settings.mcpPlugins.toast.serverEnabled",
+        { name: server.name },
+      ),
+      language.t("settings.mcpPlugins.toast.serverUpdateFailed"),
+    )
 
-    // 2. Sincronización en segundo plano
-    const currentPlugins = [...((configData().plugin ?? []) as PluginEntry[])]
-    const pluginId = `builtin-${id}`
-    const updated = currentPlugins.filter((p) => pluginName(p) !== pluginId)
-    if (!nextEnabled) {
-      updated.push([pluginId, { enabled: false }])
-    }
+  const reconnect = (name: string) =>
+    run(
+      name,
+      () => serverSdk().client.mcp.connect({ ...params(), name }, { throwOnError: true }),
+      language.t("settings.mcpPlugins.toast.reconnected", { name }),
+      language.t("settings.mcpPlugins.toast.actionFailed", { name }),
+    )
 
-    void serverSdk()
-      .client.config.update({ ...params(), config: { plugin: updated } as any })
-      .then(() => {
-        void refetchConfig()
-      })
-      .catch(() => {
-        setBuiltinOverrides((prev) => {
-          const next = { ...prev }
-          delete next[id]
-          return next
-        })
-        showToast({ variant: "error", title: language.t("settings.mcpPlugins.toast.pluginUpdateFailed") })
-      })
-  }
+  const signOut = (name: string) =>
+    run(
+      name,
+      () => serverSdk().client.mcp.auth.remove({ ...params(), name }, { throwOnError: true }),
+      language.t("settings.mcpPlugins.toast.signedOut", { name }),
+      language.t("settings.mcpPlugins.toast.actionFailed", { name }),
+    )
 
-  // Toggle Plugin with proper PluginEntry tuple format
-  const togglePlugin = (spec: PluginEntry, currentEnabled: boolean) => {
-    const nextEnabled = !currentEnabled
-    const targetName = pluginName(spec)
-
-    // 1. Inmediato (0 ms)
-    setPluginOverrides((prev) => ({ ...prev, [targetName]: nextEnabled }))
-    showToast({
-      variant: "success",
-      title: language.t(nextEnabled ? "settings.mcpPlugins.toast.pluginEnabled" : "settings.mcpPlugins.toast.pluginDisabled"),
-    })
-
-    // 2. Sincronización en segundo plano. Only the entries this scope's own file declares are
-    // written back: the merged list also carries plugins from the other scope and the ones found
-    // in .tiancode/plugins, and writing that whole list (or an empty one) into the file replaced
-    // it, so toggling one plugin made the others disappear from the panel.
-    const origins = (configData() as { plugin_origins?: { spec: PluginEntry; scope: string }[] }).plugin_origins ?? []
-    const scope = props.directory ? "local" : "global"
-    const currentPlugins: PluginEntry[] =
-      origins.length > 0
-        ? origins.filter((origin) => origin.scope === scope).map((origin) => origin.spec)
-        : [...((configData().plugin ?? []) as PluginEntry[])]
-    let found = false
-    const updated = currentPlugins.map((p) => {
-      if (pluginName(p) === targetName) {
-        found = true
-        if (nextEnabled) {
-          if (Array.isArray(p)) {
-            const opts = { ...p[1] }
-            delete (opts as any).enabled
-            return Object.keys(opts).length > 0 ? ([p[0], opts] as PluginEntry) : p[0]
-          }
-          return p
-        } else {
-          if (Array.isArray(p)) {
-            return [p[0], { ...p[1], enabled: false }] as PluginEntry
-          }
-          return [p, { enabled: false }] as PluginEntry
-        }
-      }
-      return p
-    })
-
-    if (!found) {
-      if (!nextEnabled) {
-        updated.push([targetName, { enabled: false }])
-      } else {
-        updated.push(targetName)
-      }
-    }
-
-    void serverSdk()
-      .client.config.update({ ...params(), config: { plugin: updated } as any })
-      .then(() => {
-        void refetchConfig()
-      })
-      .catch(() => {
-        setPluginOverrides((prev) => {
-          const next = { ...prev }
-          delete next[targetName]
-          return next
-        })
-        showToast({ variant: "error", title: language.t("settings.mcpPlugins.toast.pluginUpdateFailed") })
-      })
-  }
-
-  // Add / Install from Catalog
-  const installCatalogItem = async (item: (typeof CATALOG_ITEMS)[number]) => {
+  // The backend opens the browser and waits for the OAuth callback.
+  const authenticate = async (name: string) => {
+    if (ui.saving) return
+    setUi("saving", name)
     try {
-      if (item.type === "mcp" && item.command) {
-        const currentMcp = { ...((configData().mcp ?? {}) as Record<string, any>) }
-        const config: McpLocalConfig = {
-          type: "local",
-          command: item.command.split(" "),
-          enabled: true,
-        }
-        currentMcp[item.id] = config
-        await serverSdk().client.mcp.add({ ...params(), name: item.id, config }).catch(() => {})
-        await serverSdk().client.mcp.connect({ ...params(), name: item.id }).catch(() => {})
-        await serverSdk().client.config.update({ ...params(), config: { mcp: currentMcp } })
-        void refetchConfig()
-        void refetchStatus()
-        showToast({ variant: "success", title: language.t("settings.mcpPlugins.toast.serverConnected", { name: item.name }) })
-      } else if (item.type === "plugin" && item.spec) {
-        const currentPlugins = [...((configData().plugin ?? []) as PluginEntry[])]
-        if (!currentPlugins.some((p) => pluginName(p) === item.spec)) {
-          currentPlugins.push(item.spec)
-        }
-        await serverSdk().client.config.update({ ...params(), config: { plugin: currentPlugins } })
-        void refetchConfig()
-        showToast({ variant: "success", title: language.t("settings.mcpPlugins.toast.pluginInstalled", { name: item.name }) })
-      }
+      await serverSdk().client.mcp.auth.authenticate({ ...params(), name }, { throwOnError: true })
+      showToast({ variant: "success", title: language.t("settings.mcpPlugins.toast.authStarted", { name }) })
     } catch {
-      showToast({ variant: "error", title: language.t("settings.mcpPlugins.toast.installFailed", { name: item.name }) })
-    }
-  }
-
-  /** Arranca el flujo OAuth: el backend abre el navegador y espera la vuelta del callback. */
-  const authenticate = async (serverName: string) => {
-    try {
-      await serverSdk().client.mcp.auth.authenticate({ ...params(), name: serverName })
-      showToast({ variant: "success", title: language.t("settings.mcpPlugins.toast.authStarted", { name: serverName }) })
-    } catch {
-      showToast({ variant: "error", title: language.t("settings.mcpPlugins.toast.authFailed", { name: serverName }) })
+      showToast({ variant: "error", title: language.t("settings.mcpPlugins.toast.authFailed", { name }) })
+    } finally {
+      setUi("saving", "")
     }
     void refetchStatus()
   }
 
-  // Save Custom Add Modal
-  const handleSaveModal = async () => {
-    const name = formName().trim()
-    const cmd = formCommand().trim()
-    if (!name || !cmd) {
-      showToast({ variant: "error", title: language.t("settings.mcpPlugins.toast.formIncomplete") })
+  const confirm = (title: string, description: string, action: () => void) =>
+    void dialog.push(() => (
+      <SettingsConfirmDialog
+        title={title}
+        description={description}
+        confirm={language.t("settings.mcpServers.action.remove")}
+        onConfirm={action}
+        onClose={() => dialog.close()}
+      />
+    ))
+
+  const removeServer = (name: string) =>
+    confirm(language.t("settings.marketplace.removeConfirm", { name }), language.t("settings.mcpPlugins.remove.server.description"), () =>
+      void run(
+        name,
+        () => serverSdk().client.mcp.remove({ ...params(), name }, { throwOnError: true }),
+        language.t("settings.mcpPlugins.toast.serverRemoved", { name }),
+        language.t("settings.mcpPlugins.toast.serverRemoveFailed"),
+      ),
+    )
+
+  const togglePlugin = (spec: PluginEntry, enabled: boolean) => {
+    const target = pluginName(spec)
+    const current = ownPlugins()
+    const entries = current.some((entry) => pluginName(entry) === target) ? current : [...current, spec]
+    return run(
+      target,
+      () =>
+        saveConfig({
+          plugin: entries.map((entry): PluginEntry => {
+            if (pluginName(entry) !== target) return entry
+            return [target, { ...(Array.isArray(entry) ? entry[1] : {}), enabled: !enabled }]
+          }),
+        }),
+      language.t(enabled ? "settings.mcpPlugins.toast.pluginDisabled" : "settings.mcpPlugins.toast.pluginEnabled"),
+      language.t("settings.mcpPlugins.toast.pluginUpdateFailed"),
+    )
+  }
+
+  const removePlugin = (plugin: ReturnType<typeof plugins>[number]) =>
+    confirm(
+      language.t("settings.plugins.remove.confirm", { name: plugin.display }),
+      language.t("settings.mcpPlugins.remove.plugin.description"),
+      () =>
+        void run(
+          plugin.name,
+          () => saveConfig({ plugin: ownPlugins().filter((entry) => pluginName(entry) !== plugin.name) }),
+          language.t("settings.plugins.remove.success"),
+          language.t("settings.plugins.remove.failed"),
+        ),
+    )
+
+  const openServer = (name?: string, config?: McpDefinition, editing = false) =>
+    void dialog.push(() => (
+      <DialogMcpServer
+        name={name}
+        config={config}
+        editing={editing}
+        onClose={() => dialog.close()}
+        onSave={async (serverName, definition, activate) => {
+          // Servers from Settings live in the global config, never in the project's tiancode.json:
+          // that file is usually committed (headers and variables would leak with it), and a project
+          // entry is ignored for any server the global config defines. A full definition replaces
+          // the entry, so cleared fields are really removed; MCP.add is the approval that turns it on.
+          if (activate && !editing) {
+            await serverSdk().client.mcp.add(
+              { ...params(), name: serverName, config: { ...definition, enabled: true } },
+              { throwOnError: true },
+            )
+          } else {
+            await serverSdk().client.global.config.update(
+              { config: { mcp: { [serverName]: editing ? definition : { ...definition, enabled: false } } } },
+              { throwOnError: true },
+            )
+          }
+          await refresh()
+          showToast({ variant: "success", title: language.t("settings.mcpServers.add.success") })
+        }}
+      />
+    ))
+
+  const openPlugin = () =>
+    void dialog.push(() => (
+      <DialogMcpPlugin
+        onClose={() => dialog.close()}
+        onSave={async (spec) => {
+          const current = ownPlugins()
+          if (!current.some((entry) => pluginName(entry) === spec)) await saveConfig({ plugin: [...current, spec] })
+          await refresh()
+          showToast({ variant: "success", title: language.t("settings.mcpPlugins.toast.pluginInstalled", { name: spec }) })
+        }}
+      />
+    ))
+
+  // The catalog name, or the same with a number when another server already uses it.
+  const freeName = (name: string) => {
+    const taken = new Set(Object.keys(configData().mcp ?? {}))
+    return taken.has(name)
+      ? (Array.from({ length: 50 }, (_, index) => `${name}-${index + 2}`).find((next) => !taken.has(next)) ?? name)
+      : name
+  }
+
+  const install = async (item: MarketplaceItem) => {
+    // One install at a time: each one reopens the projects when it finishes.
+    if (ui.pending) return
+    const config = item.mcp ? mcpConfig(item.mcp) : undefined
+    if (config) {
+      openServer(freeName(item.name), config)
       return
     }
-
-    setSubmitting(true)
+    if (item.type === "plugin" && item.installable) {
+      await installPlugin(item)
+      return
+    }
+    if (!item.skillUrl) {
+      if (item.homepage) platform.openExternal(item.homepage)
+      return
+    }
+    const source = decodeGitHubUrl(item.skillUrl)
+    if (!source) return
+    setUi("pending", item.id)
     try {
-      if (addMode() === "mcp") {
-        const isUrl = cmd.startsWith("http://") || cmd.startsWith("https://") || cmd.startsWith("sse://")
-        const currentMcp = { ...((configData().mcp ?? {}) as Record<string, any>) }
-        if (isUrl) {
-          currentMcp[name] = { type: "remote", url: cmd, enabled: true, oauth: formOAuth() ? {} : false }
-        } else {
-          currentMcp[name] = { type: "local", command: cmd.split(" "), enabled: true }
-        }
-        const added = await serverSdk()
-          .client.mcp.add({ ...params(), name, config: currentMcp[name] })
-          .catch(() => undefined)
-        // Un servidor OAuth queda en "needs_auth" al darlo de alta: abrimos el navegador ahí mismo
-        // en vez de dejar al usuario con un servidor que aparece desconectado y sin explicación.
-        if (added !== undefined && "status" in added && (added as { status?: string }).status === "needs_auth") {
-          await authenticate(name)
-        }
-        await serverSdk().client.mcp.connect({ ...params(), name }).catch(() => {})
-        await serverSdk().client.config.update({ ...params(), config: { mcp: currentMcp } })
-      } else {
-        const currentPlugins = [...((configData().plugin ?? []) as PluginEntry[])]
-        if (!currentPlugins.some((p) => pluginName(p) === cmd)) {
-          currentPlugins.push(cmd)
-        }
-        await serverSdk().client.config.update({ ...params(), config: { plugin: currentPlugins } })
+      const skills = await fetchGitHubSkills(source)
+      if (skills.length === 0) throw new Error("No SKILL.md found")
+      for (const skill of skills) {
+        await serverSdk().client.app.skills2.import({ ...params(), ...skill }, { throwOnError: true })
       }
-
-      void refetchConfig()
-      void refetchStatus()
-      setShowAddModal(false)
-      setFormName("")
-      setFormCommand("")
-      setFormOAuth(false)
-      showToast({ variant: "success", title: language.t("settings.mcpPlugins.toast.added") })
+      await refetchSkills()
+      showToast({ variant: "success", title: language.t("settings.skills.import.success") })
     } catch {
-      showToast({ variant: "error", title: language.t("settings.mcpPlugins.toast.saveFailed") })
+      showToast({ variant: "error", title: language.t("settings.mcpPlugins.toast.installFailed", { name: item.title }) })
     } finally {
-      setSubmitting(false)
+      setUi("pending", "")
     }
   }
 
+  // A Claude Code or Codex plugin: the server downloads it and adds what Tiancode can run.
+  const installPlugin = async (item: MarketplaceItem) => {
+    setUi("pending", item.id)
+    try {
+      const result = await serverSdk().client.global.marketplace.install(
+        { marketplaceInstallInput: { id: item.id } },
+        { throwOnError: true },
+      )
+      await Promise.all([refetchInstalled(), refetchSkills(), refresh()])
+      showToast({
+        variant: "success",
+        title: language.t("settings.mcpPlugins.discover.pluginInstalled", { name: item.title }),
+        description: pluginSummary(result.data),
+      })
+    } catch (error) {
+      showToast({
+        variant: "error",
+        title: language.t("settings.mcpPlugins.toast.installFailed", { name: item.title }),
+        description: errorMessage(error),
+      })
+    } finally {
+      setUi("pending", "")
+    }
+  }
+
+  const pluginSummary = (entry: MarketplaceInstalled) =>
+    [
+      entry.skills.length && language.t("settings.mcpPlugins.installed.skills", { count: entry.skills.length }),
+      entry.commands.length && language.t("settings.mcpPlugins.installed.commands", { count: entry.commands.length }),
+      entry.agents.length && language.t("settings.mcpPlugins.installed.agents", { count: entry.agents.length }),
+      entry.mcp.length && language.t("settings.mcpPlugins.installed.servers", { count: entry.mcp.length }),
+      entry.skipped.length && language.t("settings.mcpPlugins.installed.skipped", { list: entry.skipped.join(", ") }),
+      // Plugin servers arrive off: the user sees each command or URL before it runs.
+      entry.mcp.length && language.t("settings.mcpPlugins.installed.serversOff"),
+    ]
+      .filter(Boolean)
+      .join(" · ")
+
+  const uninstallPlugin = (entry: MarketplaceInstalled) =>
+    confirm(
+      language.t("settings.plugins.remove.confirm", { name: entry.title }),
+      language.t("settings.mcpPlugins.installed.removeDescription"),
+      () =>
+        void run(
+          entry.id,
+          async () => {
+            await serverSdk().client.global.marketplace.uninstall({ id: entry.id }, { throwOnError: true })
+            await Promise.all([refetchInstalled(), refetchSkills()])
+          },
+          language.t("settings.plugins.remove.success"),
+          language.t("settings.plugins.remove.failed"),
+        ),
+    )
+
+  const statusLabel = (state: ServerState) =>
+    state === "pending" ? language.t("settings.mcpPlugins.status.pending") : language.t(`settings.mcpServers.status.${state}`)
+
+  const moreMenu = (label: string, items: () => JSX.Element) => (
+    <MenuV2 placement="bottom-end">
+      <MenuV2.Trigger as="button" type="button" class="settings-v2-mp-more" aria-label={label} title={label}>
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+          <circle cx="3.5" cy="8" r="1.25" fill="currentColor" />
+          <circle cx="8" cy="8" r="1.25" fill="currentColor" />
+          <circle cx="12.5" cy="8" r="1.25" fill="currentColor" />
+        </svg>
+      </MenuV2.Trigger>
+      <MenuV2.Portal>
+        <MenuV2.Content>{items()}</MenuV2.Content>
+      </MenuV2.Portal>
+    </MenuV2>
+  )
+
+  const addLabel = () =>
+    language.t(ui.tab === "plugins" ? "settings.mcpPlugins.add.plugin" : "settings.mcpPlugins.add.server")
+
   return (
     <>
-      {/* Header */}
-      <div class="settings-v2-tab-header settings-v2-tab-header--stacked">
-        <div class="flex items-center justify-between gap-4 w-full">
-          <div>
-            <h2 class="settings-v2-tab-title">{language.t("settings.mcpPlugins.title")}</h2>
-            <p class="settings-v2-tab-description">{language.t("settings.mcpPlugins.description")}</p>
-          </div>
-          <div class="flex items-center gap-2">
+      <SettingsHubHeader
+        icon="mcp"
+        title={language.t("settings.mcpPlugins.title")}
+        description={language.t("settings.mcpPlugins.description")}
+        value={ui.tab}
+        onChange={(tab) => setUi("tab", tab)}
+        sections={[
+          {
+            id: "plugins",
+            label: language.t("settings.mcpPlugins.tab.plugins"),
+            hint: language.t("settings.mcpPlugins.hint.plugins", { count: plugins().length + installedPlugins().length }),
+            icon: "plugin",
+          },
+          {
+            id: "mcp",
+            label: language.t("settings.mcpPlugins.tab.servers"),
+            hint: language.t("settings.mcpPlugins.hint.servers", { connected: connected(), total: servers().length }),
+            icon: "mcp",
+          },
+          {
+            id: "discover",
+            label: language.t("settings.mcpPlugins.tab.discover"),
+            hint: language.t("settings.mcpPlugins.hint.discover", { count: marketplace().length }),
+            icon: "magnifying-glass",
+          },
+        ]}
+      />
+
+      <div class="settings-v2-tab-body settings-v2-mp">
+        <div class="settings-v2-mp-toolbar">
+          <TextInputV2
+            class="settings-v2-mp-search"
+            type="search"
+            appearance="base"
+            value={ui.query}
+            onInput={(event) => setUi("query", event.currentTarget.value)}
+            placeholder={language.t("settings.mcpPlugins.search.placeholder")}
+            aria-label={language.t("settings.mcpPlugins.search.placeholder")}
+            spellcheck={false}
+            autocomplete="off"
+          />
+          <Show when={ui.tab === "discover"}>
+            <SegmentedControlV2
+              class="settings-v2-mp-types"
+              value={ui.type}
+              onChange={(value) => {
+                const type = CATALOG_TYPES.find((option) => option === value)
+                if (type) setUi("type", type)
+              }}
+              aria-label={language.t("settings.mcpPlugins.discover.typeLabel")}
+            >
+              <For each={CATALOG_TYPES}>
+                {(type) => <SegmentedControlItemV2 value={type}>{typeLabel(type, true)}</SegmentedControlItemV2>}
+              </For>
+            </SegmentedControlV2>
+            <SelectV2
+              appearance="base"
+              class="settings-v2-mp-category"
+              options={sources()}
+              current={sources().find((option) => option.id === ui.source)}
+              value={(option) => option.id}
+              label={(option) => `${option.label} · ${option.count}`}
+              onSelect={(option) => option && setUi("source", option.id)}
+            />
+            <SelectV2
+              appearance="base"
+              class="settings-v2-mp-category"
+              options={categories()}
+              current={categories().find((option) => option.id === ui.category)}
+              value={(option) => option.id}
+              label={(option) => `${option.label} · ${option.count}`}
+              onSelect={(option) => option && setUi("category", option.id)}
+            />
+          </Show>
+          <Show when={ui.tab !== "discover"}>
             <ButtonV2
               variant="contrast"
               size="small"
               icon="plus"
-              class="rounded-lg px-3 h-8 shadow-sm font-medium"
-              onClick={() => {
-                setAddMode(activeTab() === "plugins" || activeTab() === "builtin" ? "plugin" : "mcp")
-                setShowAddModal(true)
-              }}
+              class="settings-v2-mp-add"
+              onClick={() => (ui.tab === "plugins" ? openPlugin() : openServer())}
             >
-              {language.t(activeTab() === "plugins" ? "settings.mcpPlugins.add.plugin" : "settings.mcpPlugins.add.server")}
+              {addLabel()}
             </ButtonV2>
-          </div>
+          </Show>
         </div>
-        {/* Navigation & Controls */}
-        <div class="mcp-plugins-segmented-wrapper">
-          <SegmentedControlV2 value={activeTab()} onChange={(v) => setActiveTab(v as TabMode)}>
-            <SegmentedControlItemV2 value="plugins">
-              <span class="flex items-center gap-1.5 whitespace-nowrap">
-                <span>{language.t("settings.mcpPlugins.tab.plugins")}</span>
-                <span class="mcp-plugins-tab-count">{pluginsList().length + builtinPlugins().length}</span>
-              </span>
-            </SegmentedControlItemV2>
-            <SegmentedControlItemV2 value="builtin">
-              <span>{language.t("settings.mcpPlugins.section.builtin")}</span>
-              <span class="mcp-plugins-tab-count">{builtinPlugins().length}</span>
-            </SegmentedControlItemV2>
-            <SegmentedControlItemV2 value="mcp">
-              <span class="flex items-center gap-1.5 whitespace-nowrap">
-                <span>{language.t("settings.mcpPlugins.tab.servers")}</span>
-                <span class="mcp-plugins-tab-count">{mcpServers().length}</span>
-              </span>
-            </SegmentedControlItemV2>
-            <SegmentedControlItemV2 value="discover">
-              <span class="flex items-center gap-1.5 whitespace-nowrap">
-                <span>{language.t("settings.mcpPlugins.tab.discover")}</span>
-                <span class="mcp-plugins-tab-count">{catalogList().length}</span>
-              </span>
-            </SegmentedControlItemV2>
-          </SegmentedControlV2>
 
-          {detailToggle()}
-          <div class="mcp-plugins-search-box">
-            <TextInputV2
-              type="search"
-              appearance="base"
-              value={searchQuery()}
-              onInput={(e) => setSearchQuery(e.currentTarget.value)}
-              placeholder={language.t("settings.mcpPlugins.search.placeholder")}
-              aria-label={language.t("settings.mcpPlugins.search.placeholder")}
-            />
-          </div>
-        </div>
-      </div>
-
-      <div class="settings-v2-tab-body">
-        {/* TAB 1: MCP SERVERS */}
-        <Show when={activeTab() === "mcp"}>
-          <div class="flex flex-col gap-4">
-            <div class="mcp-plugins-intro">
-              <div class="mcp-plugins-intro-icon">
-                <Icon name="mcp" size="small" />
-              </div>
-              <div class="mcp-plugins-intro-copy">
-                <h4 class="mcp-plugins-intro-title">{language.t("settings.mcpPlugins.intro.title")}</h4>
-                <p class="mcp-plugins-intro-body">{language.t("settings.mcpPlugins.intro.body")}</p>
-                <div class="mcp-plugins-intro-kinds">
-                  <span>
-                    <strong>{language.t("settings.mcpServers.type.local")}</strong> · {language.t("settings.mcpPlugins.intro.local")}
-                  </span>
-                  <span>
-                    <strong>{language.t("settings.mcpServers.type.remote")}</strong> · {language.t("settings.mcpPlugins.intro.remote")}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <Show
-              when={mcpServers().length > 0}
-              fallback={
-                <div class="flex flex-col items-center justify-center p-12 text-center rounded-xl border border-dashed border-v2-border-border-muted bg-v2-background-bg-layer-01/40">
-                  <div class="size-12 rounded-2xl bg-cyan-400/10 text-cyan-400 flex items-center justify-center mb-3">
-                    <Icon name="mcp" size="large" />
-                  </div>
-                  <h3 class="text-[14px] font-medium text-v2-text-text-base">{language.t("settings.mcpServers.empty")}</h3>
-                  <p class="text-[12px] text-v2-text-text-muted max-w-sm mt-1 mb-4">
-                    {language.t("settings.mcpPlugins.empty.description")}
-                  </p>
-                  <div class="flex items-center gap-2">
-                    <ButtonV2
-                      variant="neutral"
-                      size="small"
-                      onClick={() => setActiveTab("discover")}
-                    >
-                      {language.t("settings.mcpPlugins.empty.explore")}
-                    </ButtonV2>
-                    <ButtonV2
-                      variant="contrast"
-                      size="small"
-                      icon="plus"
-                      onClick={() => {
-                        setAddMode("mcp")
-                        setShowAddModal(true)
-                      }}
-                    >
-                      {language.t("settings.mcpPlugins.empty.add")}
-                    </ButtonV2>
-                  </div>
-                </div>
-              }
-            >
-              <div class="mcp-plugins-table mcp-plugins-table--mcp">
-                <div class="mcp-plugins-thead">
-                  <div>{language.t("settings.mcpPlugins.column.server")}</div>
-                  <div>{language.t("settings.mcpPlugins.column.type")}</div>
-                  <div>{language.t("settings.mcpPlugins.column.command")}</div>
-                  <div>{language.t("settings.mcpPlugins.column.status")}</div>
-                  <div class="text-right">{language.t("settings.mcpPlugins.column.action")}</div>
-                </div>
-
-                <div class="divide-y divide-white/[0.04]">
-                  <For each={pageMcpServers()}>
-                    {(server) => (
-                      <div class="mcp-plugins-row">
-                        {/* 1. Servidor MCP */}
-                        <div class="mcp-plugins-cell gap-3 pr-2">
-                          <div class="size-9 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center shrink-0 text-lg shadow-sm">
-                            <BrandOrFallback names={[server.name, server.command]} size={20} fallback={<Icon name="mcp" size="small" />} />
-                          </div>
-                          <div class="flex flex-col min-w-0">
-                            <div class="flex items-center gap-1.5">
-                              <span class="text-xs font-semibold text-v2-text-text-base truncate" title={server.name}>
-                                {server.name}
-                              </span>
-                              <span
-                                class="mcp-plugins-status-dot"
-                                classList={{
-                                  connected: server.status === "connected" && server.enabled,
-                                  error: server.status === "failed",
-                                  disconnected: !server.enabled || server.status === "disabled" || server.status === "needs_auth",
-                                }}
-                                title={server.enabled ? server.status : language.t("settings.mcpServers.status.disabled")}
-                              />
-                            </div>
-                            <span class="text-[10px] text-v2-text-text-muted truncate">
-                              {server.enabled && server.status === "connected"
-                                ? language.t("settings.mcpServers.status.connected")
-                                : !server.enabled
-                                  ? language.t("settings.mcpServers.status.disabled")
-                                  : server.status}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* 2. Tipo & Alcance */}
-                        <div class="mcp-plugins-cell gap-2 pr-2">
-                          <span class="mcp-plugins-chip mcp-plugins-chip--category accent text-[10px]">
-                            {language.t(server.isLocal ? "settings.mcpServers.type.local" : "settings.mcpServers.type.remote")}
-                          </span>
-                          <Show when={server.toolsCount > 0}>
-                            <span class="mcp-plugins-chip mcp-plugins-chip--type text-[10px]">
-                              {language.t("settings.mcpServers.tools.count", { count: server.toolsCount })}
-                            </span>
-                          </Show>
-                        </div>
-
-                        {/* 3. Comando / Endpoint SSE */}
-                        <div class="mcp-plugins-cell pr-3 flex-col items-start gap-1.5">
-                          <div class="win11-spec-badge max-w-full text-[10.5px] py-0.5 px-2" title={server.command}>
-                            <span class="font-mono" classList={{ truncate: !detailed() }}>{server.command}</span>
-                          </div>
-                          <Show when={detailed()}>
-                            <div class="mcp-plugins-detail-block">
-                              <span>
-                                <b>{language.t("settings.mcpPlugins.detail.transport")}:</b>{" "}
-                                {server.isLocal ? "stdio (proceso local)" : server.isRemote ? "HTTP / SSE" : "integrado"}
-                              </span>
-                              <Show when={server.environment.length > 0}>
-                                <span>
-                                  <b>{language.t("settings.mcpPlugins.detail.env")}:</b> {server.environment.join(", ")}
-                                </span>
-                              </Show>
-                              <span>
-                                <b>{language.t("settings.mcpPlugins.detail.tools")}:</b>{" "}
-                                {server.toolNames.length > 0
-                                  ? server.toolNames.join(", ")
-                                  : language.t(server.enabled ? "settings.mcpPlugins.detail.noTools" : "settings.mcpPlugins.detail.disabledTools")}
-                              </span>
-                              <Show when={server.statusError}>
-                                <span class="mcp-plugins-detail-error">{server.statusError}</span>
-                              </Show>
-                            </div>
-                          </Show>
-                        </div>
-
-                        {/* 4. Estado */}
-                        <div class="mcp-plugins-cell mcp-plugins-cell--status">
-                          <Switch
-                            checked={server.enabled}
-                            onChange={() => void toggleMcpServer(server.name, server.enabled)}
-                          />
-                          <span
-                            class="settings-v2-chip text-[10px]"
-                            data-tone={server.enabled ? "accent" : "muted"}
-                          >
-                            {language.t(server.enabled ? "settings.mcpPlugins.status.active" : "settings.mcpPlugins.status.inactive")}
-                          </span>
-                        </div>
-
-                        {/* 5. Acción */}
-                        <div class="mcp-plugins-cell justify-end">
-                          <IconButtonV2
-                            type="button"
-                            variant="ghost-muted"
-                            size="small"
-                            icon={<IconV2 name="trash" class="text-v2-icon-icon-muted hover:text-v2-state-fg-danger" />}
-                            aria-label={language.t("settings.mcpPlugins.remove.server")}
-                            onClick={() => void removeMcpServer(server.name)}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </For>
-                </div>
-              </div>
-
-              <Show when={mcpTotal() > 1}>
-                <SettingsPagerV2
-                  page={mcpPage()}
-                  totalPages={mcpTotal()}
-                  onPage={setMcpPage}
-                />
+        <Show when={ui.tab === "plugins"}>
+          <Show
+            when={plugins().length + installedPlugins().length > 0}
+            fallback={
+              <EmptyState
+                icon="plugin"
+                title={language.t("settings.plugins.empty")}
+                description={language.t("settings.mcpPlugins.plugins.empty.description")}
+                explore={language.t("settings.mcpPlugins.empty.explore")}
+                add={language.t("settings.mcpPlugins.add.plugin")}
+                onExplore={() => setUi({ tab: "discover", type: "plugin" })}
+                onAdd={openPlugin}
+              />
+            }
+          >
+            <ul class="settings-v2-mp-list">
+              <Show when={visiblePlugins().length + visibleInstalled().length === 0}>
+                <li class="settings-v2-mp-none">{language.t("settings.mcpPlugins.plugins.searchEmpty")}</li>
               </Show>
-            </Show>
-          </div>
-        </Show>
-
-        {/* TAB 2: PLUGINS */}
-        <Show when={activeTab() === "plugins" || activeTab() === "builtin"}>
-          <div class="flex flex-col gap-6">
-            <Show when={activeTab() === "plugins"}>
-            {/* Installed & Extension Plugins */}
-            <div class="flex flex-col gap-3">
-              <div class="flex items-center justify-between">
-                <h3 class="text-[13px] font-semibold text-v2-text-text-base flex items-center gap-2">
-                  <span>{language.t("settings.mcpPlugins.section.installed")}</span>
-                  <span class="mcp-plugins-chip">{pluginsList().length}</span>
-                </h3>
-              </div>
-
-              <div class="mcp-plugins-table mcp-plugins-table--plugins">
-                <div class="mcp-plugins-thead">
-                  <div>{language.t("settings.mcpPlugins.column.plugin")}</div>
-                  <div>{language.t("settings.mcpPlugins.column.category")}</div>
-                  <div>{language.t("settings.mcpPlugins.column.description")}</div>
-                  <div>{language.t("settings.mcpPlugins.column.status")}</div>
-                </div>
-
-                <div class="divide-y divide-white/[0.04]">
-                  <For each={pagePluginsList()}>
-                    {(plugin) => (
-                      <div class="mcp-plugins-row">
-                        {/* 1. Plugin */}
-                        <div class="mcp-plugins-cell gap-3 pr-2">
-                          <div class="size-9 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center shrink-0 text-lg shadow-sm">
-                            <BrandOrFallback names={[plugin.display, plugin.name]} size={20} fallback={plugin.icon} />
-                          </div>
-                          <div class="flex flex-col min-w-0">
-                            <span class="text-xs font-semibold text-v2-text-text-base truncate" title={plugin.display}>
-                              {plugin.display}
-                            </span>
-                            <span class="text-[10px] font-mono text-v2-text-text-muted truncate" title={plugin.name}>
-                              {shortPluginRef(plugin.name)}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* 2. Categoría & Tipo */}
-                        <div class="mcp-plugins-cell gap-2 pr-2">
-                          <span class="mcp-plugins-chip mcp-plugins-chip--category accent text-[10px]">
-                            {formatCategory(plugin.category)}
-                          </span>
-                          <span class="mcp-plugins-chip mcp-plugins-chip--type text-[10px]">
-                            {language.t(plugin.isLocal ? "settings.mcpPlugins.origin.local" : "settings.mcpPlugins.origin.plugin")}
-                          </span>
-                        </div>
-
-                        {/* 3. Descripción */}
-                        <div class="mcp-plugins-cell pr-3 flex-col items-start gap-1.5">
-                          <p
-                            class="text-[11.5px] text-v2-text-text-muted leading-normal m-0"
-                            classList={{ "line-clamp-1": !detailed() }}
-                            title={pluginDescription(plugin)}
-                          >
-                            {pluginDescription(plugin)}
-                          </p>
-                          <Show when={detailed()}>
-                            <div class="mcp-plugins-detail-block">
-                              <span>
-                                <b>{language.t("settings.mcpPlugins.detail.spec")}:</b> <code>{plugin.name}</code>
-                              </span>
-                              <span>
-                                <b>{language.t("settings.mcpPlugins.detail.origin")}:</b>{" "}
-                                {language.t(plugin.isLocal ? "settings.mcpPlugins.origin.local" : "settings.mcpPlugins.origin.plugin")}
-                              </span>
-                            </div>
-                          </Show>
-                        </div>
-
-                        {/* 4. Estado */}
-                        <div class="mcp-plugins-cell mcp-plugins-cell--status">
-                          <Switch
-                            checked={plugin.enabled}
-                            onChange={() => void togglePlugin(plugin.entry, plugin.enabled)}
-                          />
-                          <span
-                            class="settings-v2-chip text-[10px]"
-                            data-tone={plugin.enabled ? "accent" : "muted"}
-                          >
-                            {language.t(plugin.enabled ? "settings.mcpPlugins.status.active" : "settings.mcpPlugins.status.inactive")}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </For>
-                </div>
-              </div>
-
-              <Show when={pluginsTotal() > 1}>
-                <SettingsPagerV2
-                  page={pluginsPage()}
-                  totalPages={pluginsTotal()}
-                  onPage={setPluginsPage}
-                />
-              </Show>
-            </div>
-
-            </Show>
-            {/* Built-in Plugins */}
-            <Show when={activeTab() === "builtin"}>
-            <div class="flex flex-col gap-3">
-              <div class="flex items-center justify-between">
-                <h3 class="text-[13px] font-semibold text-v2-text-text-base flex items-center gap-2">
-                  <span>{language.t("settings.mcpPlugins.section.builtin")}</span>
-                  <span class="mcp-plugins-chip">{builtinPlugins().length}</span>
-                </h3>
-              </div>
-
-              <div class="mcp-plugins-table mcp-plugins-table--plugins">
-                <div class="mcp-plugins-thead">
-                  <div>{language.t("settings.mcpPlugins.column.plugin")}</div>
-                  <div>{language.t("settings.mcpPlugins.column.category")}</div>
-                  <div>{language.t("settings.mcpPlugins.column.description")}</div>
-                  <div>{language.t("settings.mcpPlugins.column.status")}</div>
-                </div>
-
-                <div class="divide-y divide-white/[0.04]">
-                  <For each={pageBuiltinPlugins()}>
-                    {(plugin) => (
-                      <div class="mcp-plugins-row">
-                        {/* 1. Plugin */}
-                        <div class="mcp-plugins-cell gap-3 pr-2">
-                          <div class="size-9 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center shrink-0 text-lg shadow-sm">
-                            <BrandOrFallback names={[plugin.id, plugin.name]} size={20} fallback={plugin.icon} />
-                          </div>
-                          <div class="flex flex-col min-w-0">
-                            <span class="text-xs font-semibold text-v2-text-text-base truncate" title={plugin.name}>
-                              {plugin.name}
-                            </span>
-                            <span class="text-[10px] font-mono text-v2-text-text-muted truncate">
-                              builtin-{plugin.id}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* 2. Categoría & Tipo */}
-                        <div class="mcp-plugins-cell gap-2 pr-2">
-                          <span class="mcp-plugins-chip mcp-plugins-chip--category accent text-[10px]">
-                            {formatCategory(plugin.category)}
-                          </span>
-                          <span class="mcp-plugins-chip mcp-plugins-chip--type text-[10px]">
-                            {language.t("settings.mcpPlugins.origin.builtin")}
-                          </span>
-                        </div>
-
-                        {/* 3. Descripción */}
-                        <div class="mcp-plugins-cell pr-3">
-                          <p class="text-[11.5px] text-v2-text-text-muted line-clamp-1 leading-normal m-0" title={plugin.desc}>
-                            {plugin.desc}
-                          </p>
-                        </div>
-
-                        {/* 4. Estado */}
-                        <div class="mcp-plugins-cell mcp-plugins-cell--status">
-                          <Switch
-                            checked={plugin.enabled}
-                            onChange={() => void toggleBuiltinPlugin(plugin.id, plugin.enabled)}
-                          />
-                          <span
-                            class="settings-v2-chip text-[10px]"
-                            data-tone={plugin.enabled ? "accent" : "muted"}
-                          >
-                            {language.t(plugin.enabled ? "settings.mcpPlugins.status.active" : "settings.mcpPlugins.status.inactive")}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </For>
-                </div>
-              </div>
-
-              <Show when={builtinTotal() > 1}>
-                <SettingsPagerV2
-                  page={builtinPage()}
-                  totalPages={builtinTotal()}
-                  onPage={setBuiltinPage}
-                />
-              </Show>
-            </div>
-            </Show>
-          </div>
-        </Show>
-
-        {/* TAB 3: DISCOVER CATALOG - WINDOWS 11 FLUENT STORE DESIGN */}
-        <Show when={activeTab() === "discover"}>
-          <div class="win11-discover-wrapper">
-            <div class="mcp-plugins-discover-head">
-              <div class="mcp-plugins-discover-copy">
-                <h3 class="settings-v2-section-title">{language.t("settings.mcpPlugins.discover.title")}</h3>
-                <p class="mcp-plugins-discover-description">{language.t("settings.mcpPlugins.discover.description")}</p>
-              </div>
-              <div class="mcp-plugins-discover-stats">
-                <span class="settings-v2-chip" data-tone="muted">
-                  {language.t("settings.mcpPlugins.discover.available", { count: catalogList().length })}
-                </span>
-                <span class="settings-v2-chip" data-tone="accent">
-                  {language.t("settings.mcpPlugins.discover.installed", { count: mcpServers().length + pluginsList().length })}
-                </span>
-              </div>
-            </div>
-
-            {/* Windows 11 Fluent Category Filter Bar */}
-            <div class="win11-filter-bar no-scrollbar">
-              <For
-                each={[
-                  "all",
-                  "desarrollo",
-                  "ia",
-                  "seguridad",
-                  "web",
-                  "database",
-                  "cloud",
-                  "finanzas",
-                  "diseno",
-                  "ventas",
-                  "datos",
-                ]}
-              >
-                {(cat) => {
-                  const isActive = () => discoverCategory() === cat
+              <For each={visibleInstalled()}>
+                {(entry) => {
+                  const item = () => marketplace().find((candidate) => candidate.id === entry.id)
                   return (
-                    <button
-                      type="button"
-                      class="win11-filter-chip"
-                      classList={{ active: isActive() }}
-                      onClick={() => setDiscoverCategory(cat)}
-                    >
-                      <span>{language.t(`settings.mcpPlugins.discover.category.${cat}` as "settings.mcpPlugins.discover.category.all")}</span>
-                    </button>
+                    <li class="settings-v2-mp-card">
+                      <span class="settings-v2-mp-avatar" aria-hidden="true">
+                        <CatalogIcon
+                          title={entry.title}
+                          name={entry.name}
+                          icon={item()?.icon}
+                          domain={item()?.domain}
+                          size={22}
+                          fallback={<Icon name="plugin" />}
+                        />
+                      </span>
+                      <div class="settings-v2-mp-card-copy">
+                        <div class="settings-v2-mp-card-head">
+                          <span class="settings-v2-mp-card-title" title={entry.title}>
+                            {entry.title}
+                          </span>
+                        </div>
+                        <Show when={item() && describe(item()!)}>
+                          {(description) => <p class="settings-v2-mp-card-description">{description()}</p>}
+                        </Show>
+                        <div class="settings-v2-mp-tags">
+                          <span class="settings-v2-mp-tag" data-tone="accent">
+                            {sourceLabel(sourceGroup(entry.source))}
+                          </span>
+                          <Show when={entry.skills.length}>
+                            <span class="settings-v2-mp-tag">
+                              {language.t("settings.mcpPlugins.installed.skills", { count: entry.skills.length })}
+                            </span>
+                          </Show>
+                          <Show when={entry.commands.length}>
+                            <span class="settings-v2-mp-tag">
+                              {language.t("settings.mcpPlugins.installed.commands", { count: entry.commands.length })}
+                            </span>
+                          </Show>
+                          <Show when={entry.agents.length}>
+                            <span class="settings-v2-mp-tag">
+                              {language.t("settings.mcpPlugins.installed.agents", { count: entry.agents.length })}
+                            </span>
+                          </Show>
+                          <Show when={entry.mcp.length}>
+                            <span class="settings-v2-mp-tag">
+                              {language.t("settings.mcpPlugins.installed.servers", { count: entry.mcp.length })}
+                            </span>
+                          </Show>
+                        </div>
+                      </div>
+                      <div class="settings-v2-mp-card-actions">
+                        {moreMenu(language.t("settings.mcpPlugins.action.more", { name: entry.title }), () => (
+                          <>
+                            <Show when={item()?.homepage}>
+                              {(homepage) => (
+                                <MenuV2.Item onSelect={() => platform.openExternal(homepage())}>
+                                  {language.t("settings.marketplace.source")}
+                                </MenuV2.Item>
+                              )}
+                            </Show>
+                            <MenuV2.Item onSelect={() => uninstallPlugin(entry)}>{language.t("settings.plugins.remove")}</MenuV2.Item>
+                          </>
+                        ))}
+                      </div>
+                    </li>
                   )
                 }}
               </For>
-            </div>
-
-            {/* Windows 11 Fluent App List View (10x10) */}
-            <div class="mcp-plugins-table">
-              <div class="mcp-plugins-thead">
-                <div>{language.t("settings.mcpPlugins.column.extension")}</div>
-                <div>{language.t("settings.mcpPlugins.column.category")}</div>
-                <div>{language.t("settings.mcpPlugins.column.spec")}</div>
-                <div class="text-right">{language.t("settings.mcpPlugins.column.action")}</div>
-              </div>
-
-              <div class="divide-y divide-white/[0.04]">
-                <For each={pageDiscoverItems()}>
-                  {(item) => {
-                    const isInstalled = createMemo(() => {
-                      if (item.type === "mcp") return mcpServers().some((s) => s.name === item.id)
-                      return pluginsList().some((p) => p.name === item.spec)
-                    })
-
-                    return (
-                      <div class="mcp-plugins-row">
-                        {/* 1. Extensión / Herramienta */}
-                        <div class="mcp-plugins-cell gap-3 pr-2">
-                          <div class="size-9 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center shrink-0 text-lg shadow-sm">
-                            <BrandOrFallback names={[item.id, item.name, item.command]} size={20} fallback={item.icon} />
-                          </div>
-                          <div class="flex flex-col min-w-0">
-                            <div class="flex items-center gap-1.5 flex-wrap">
-                              <span class="text-xs font-semibold text-v2-text-text-base truncate" title={item.name}>
-                                {item.name}
-                              </span>
-                              <Show when={item.popular}>
-                                <span class="win11-badge-popular text-[9px] py-0 px-1.5">{language.t("settings.mcpPlugins.discover.popular")}</span>
-                              </Show>
-                            </div>
-                            <div class="flex items-center gap-1.5 mt-0.5">
-                              <span
-                                class="win11-app-pill text-[9.5px]"
-                                classList={{
-                                  "pill-mcp": item.type === "mcp",
-                                  "pill-plugin": item.type === "plugin",
-                                }}
-                              >
-                                {item.type === "mcp" ? "MCP" : "Plugin"}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* 2. Categoría */}
-                        <div class="mcp-plugins-cell pr-2">
-                          <span class="mcp-category-badge">
-                            {formatCategory(item.category)}
-                          </span>
-                        </div>
-
-                        {/* 3. Comando / Especificación & Descripción */}
-                        <div class="mcp-plugins-cell flex-col items-start gap-1 pr-3">
-                          <div class="win11-spec-badge max-w-full text-[10.5px] py-0.5 px-2" title={item.command ?? item.spec}>
-                            <span class="truncate font-mono">{item.command ?? item.spec}</span>
-                          </div>
-                          <p class="text-[11px] text-v2-text-text-muted line-clamp-1 leading-normal m-0">
-                            {item.desc}
-                          </p>
-                        </div>
-
-                        {/* 4. Estado / Acción */}
-                        <div class="mcp-plugins-cell justify-end">
-                          <button
-                            type="button"
-                            class="win11-action-btn text-xs py-1.5 px-3"
-                            classList={{
-                              "btn-installed": isInstalled(),
-                              "btn-install": !isInstalled(),
-                            }}
-                            disabled={isInstalled()}
-                            onClick={() => void installCatalogItem(item)}
-                          >
-                            <Show when={isInstalled()} fallback={<span>{language.t("settings.mcpPlugins.discover.get")}</span>}>
-                              <span>{language.t("settings.mcpPlugins.discover.installedBadge")}</span>
-                            </Show>
-                          </button>
-                        </div>
+              <For each={visiblePlugins()}>
+                {(plugin) => (
+                  <li class="settings-v2-mp-card" data-disabled={plugin.enabled ? undefined : ""}>
+                    <span class="settings-v2-mp-avatar" aria-hidden="true">
+                      <BrandOrFallback names={[plugin.display, plugin.name]} size={20} fallback={<Icon name="plugin" />} />
+                    </span>
+                    <div class="settings-v2-mp-card-copy">
+                      <div class="settings-v2-mp-card-head">
+                        <span class="settings-v2-mp-card-title" title={plugin.display}>
+                          {plugin.display}
+                        </span>
+                        <Show when={plugin.version}>
+                          <span class="settings-v2-mp-tag">v{plugin.version}</span>
+                        </Show>
                       </div>
-                    )
-                  }}
-                </For>
-              </div>
-            </div>
+                      <span class="settings-v2-mp-card-sub" title={plugin.name}>
+                        {shortPluginRef(plugin.name)}
+                      </span>
+                      <Show when={plugin.description}>
+                        <p class="settings-v2-mp-card-description">{plugin.description}</p>
+                      </Show>
+                      <div class="settings-v2-mp-tags">
+                        <span class="settings-v2-mp-tag">
+                          {language.t(plugin.local ? "settings.mcpPlugins.origin.local" : "settings.mcpPlugins.origin.npm")}
+                        </span>
+                      </div>
+                    </div>
+                    <div class="settings-v2-mp-card-actions">
+                      <Switch
+                        checked={plugin.enabled}
+                        disabled={Boolean(ui.saving)}
+                        onChange={() => void togglePlugin(plugin.entry, plugin.enabled)}
+                        hideLabel
+                      >
+                        {language.t("settings.mcpPlugins.switch.plugin", { name: plugin.display })}
+                      </Switch>
+                      <Show when={plugin.removable || (plugin.file && platform.revealPath)}>
+                        {moreMenu(language.t("settings.mcpPlugins.action.more", { name: plugin.display }), () => (
+                          <>
+                            <Show when={plugin.file}>
+                              {(file) => (
+                                <MenuV2.Item onSelect={() => void platform.revealPath?.(file())}>
+                                  {language.t("settings.mcpPlugins.action.reveal")}
+                                </MenuV2.Item>
+                              )}
+                            </Show>
+                            <Show when={plugin.removable}>
+                              <MenuV2.Item onSelect={() => removePlugin(plugin)}>{language.t("settings.plugins.remove")}</MenuV2.Item>
+                            </Show>
+                          </>
+                        ))}
+                      </Show>
+                    </div>
+                  </li>
+                )}
+              </For>
+            </ul>
+          </Show>
+        </Show>
 
-            <Show when={discoverTotal() > 1}>
-              <SettingsPagerV2
-                page={discoverPage()}
-                totalPages={discoverTotal()}
-                onPage={setDiscoverPage}
+        <Show when={ui.tab === "mcp"}>
+          <Show
+            when={servers().length > 0}
+            fallback={
+              <EmptyState
+                icon="mcp"
+                title={language.t("settings.mcpServers.empty")}
+                description={language.t("settings.mcpPlugins.empty.description")}
+                explore={language.t("settings.mcpPlugins.empty.explore")}
+                add={language.t("settings.mcpPlugins.empty.add")}
+                onExplore={() => setUi({ tab: "discover", type: "mcp" })}
+                onAdd={() => openServer()}
+                note={language.t("settings.mcpPlugins.intro.body")}
               />
-            </Show>
-          </div>
+            }
+          >
+            <ul class="settings-v2-mp-list">
+              <For
+                each={visibleServers()}
+                fallback={<li class="settings-v2-mp-none">{language.t("settings.mcpServers.search.empty")}</li>}
+              >
+                {(server) => (
+                  <li class="settings-v2-mp-card" data-disabled={server.enabled ? undefined : ""}>
+                    <span class="settings-v2-mp-avatar" aria-hidden="true">
+                      <BrandOrFallback names={[server.name, server.command]} size={20} fallback={<Icon name="mcp" />} />
+                    </span>
+                    <div class="settings-v2-mp-card-copy">
+                      <div class="settings-v2-mp-card-head">
+                        <span class="settings-v2-mp-card-title" title={server.name}>
+                          {server.name}
+                        </span>
+                        <span class="settings-v2-mp-status" data-state={server.state}>
+                          {statusLabel(server.state)}
+                        </span>
+                      </div>
+                      <Show when={server.command}>
+                        <span class="settings-v2-mp-card-sub" title={server.command}>
+                          {server.command}
+                        </span>
+                      </Show>
+                      <div class="settings-v2-mp-tags">
+                        <span class="settings-v2-mp-tag">
+                          {language.t(
+                            !server.definition
+                              ? "settings.mcpPlugins.origin.builtin"
+                              : server.definition.type === "local"
+                                ? "settings.mcpPlugins.origin.local"
+                                : "settings.mcpPlugins.type.remote",
+                          )}
+                        </span>
+                        <Show when={server.tools > 0}>
+                          <span class="settings-v2-mp-tag" data-tone="accent">
+                            {language.t("settings.mcpServers.tools.count", { count: server.tools })}
+                          </span>
+                        </Show>
+                        <Show when={server.environment > 0}>
+                          <span class="settings-v2-mp-tag">
+                            {language.t("settings.mcpPlugins.tag.env", { count: server.environment })}
+                          </span>
+                        </Show>
+                        <Show when={server.oauth}>
+                          <span class="settings-v2-mp-tag">OAuth</span>
+                        </Show>
+                      </div>
+                      <Show when={server.state === "failed" && server.error}>
+                        {(error) => (
+                          <p class="settings-v2-mp-card-error" title={error()}>
+                            {error()}
+                          </p>
+                        )}
+                      </Show>
+                    </div>
+                    <div class="settings-v2-mp-card-actions">
+                      <Show when={server.state === "needs_auth"}>
+                        <ButtonV2
+                          size="small"
+                          variant="contrast"
+                          disabled={Boolean(ui.saving)}
+                          onClick={() => void authenticate(server.name)}
+                        >
+                          {language.t("settings.mcpServers.action.authenticate")}
+                        </ButtonV2>
+                      </Show>
+                      <Switch
+                        checked={server.enabled}
+                        disabled={Boolean(ui.saving)}
+                        onChange={() => void toggleServer(server)}
+                        hideLabel
+                      >
+                        {language.t("settings.mcpPlugins.switch.server", { name: server.name })}
+                      </Switch>
+                      {moreMenu(language.t("settings.mcpPlugins.action.more", { name: server.name }), () => (
+                        <>
+                          <Show when={server.definition}>
+                            {(definition) => (
+                              <MenuV2.Item onSelect={() => openServer(server.name, definition(), true)}>
+                                {language.t("settings.mcpServers.action.edit")}
+                              </MenuV2.Item>
+                            )}
+                          </Show>
+                          <Show when={server.enabled && server.definition}>
+                            <MenuV2.Item onSelect={() => void reconnect(server.name)}>
+                              {language.t("settings.mcpPlugins.action.reconnect")}
+                            </MenuV2.Item>
+                          </Show>
+                          <Show when={server.oauth}>
+                            <MenuV2.Item onSelect={() => void signOut(server.name)}>
+                              {language.t("settings.mcpPlugins.action.signOut")}
+                            </MenuV2.Item>
+                          </Show>
+                          <Show when={server.definition}>
+                            <MenuV2.Separator />
+                            <MenuV2.Item onSelect={() => removeServer(server.name)}>
+                              {language.t("settings.mcpServers.action.remove")}
+                            </MenuV2.Item>
+                          </Show>
+                        </>
+                      ))}
+                    </div>
+                  </li>
+                )}
+              </For>
+            </ul>
+          </Show>
+        </Show>
+
+        <Show when={ui.tab === "discover"}>
+          <p class="settings-v2-mp-hint">{language.t("settings.mcpPlugins.discover.description")}</p>
+          <Show when={remoteCatalog.loading || remoteCatalog.error || registry.loading}>
+            <p class="settings-v2-mp-discover-status" role="status">
+              <Show
+                when={remoteCatalog.error}
+                fallback={language.t(
+                  remoteCatalog.loading ? "settings.mcpPlugins.discover.loading" : "settings.mcpPlugins.discover.searchingRegistry",
+                )}
+              >
+                {language.t("settings.mcpPlugins.discover.loadFailed")}
+                <button type="button" class="settings-v2-mp-link" onClick={() => void refetchCatalog()}>
+                  {language.t("settings.mcpPlugins.discover.retry")}
+                </button>
+              </Show>
+            </p>
+          </Show>
+          <ul class="settings-v2-mp-grid">
+            <For each={catalogPage()} fallback={<li class="settings-v2-mp-none">{language.t("settings.mcpPlugins.discover.empty")}</li>}>
+              {(item) => (
+                <li class="settings-v2-mp-item">
+                  <div class="settings-v2-mp-item-head">
+                    <span class="settings-v2-mp-avatar" aria-hidden="true">
+                      <CatalogIcon
+                        title={item.title}
+                        name={item.name}
+                        icon={item.icon}
+                        domain={item.domain}
+                        size={22}
+                        fallback={<Icon name={item.type === "mcp" ? "mcp" : item.type === "plugin" ? "plugin" : "brain"} />}
+                      />
+                    </span>
+                    <div class="settings-v2-mp-item-identity">
+                      <span class="settings-v2-mp-card-title" title={item.title}>
+                        {item.title}
+                      </span>
+                      <span class="settings-v2-mp-item-meta" title={item.id}>
+                        {typeLabel(item.type)} · {sourceLabel(sourceGroup(item.source))}
+                        {/* Registry servers often share a name; their publisher tells them apart. */}
+                        <Show when={sourceGroup(item.source) === "registry" && item.id.includes("/")}>
+                          {` · ${item.id.slice(item.id.indexOf(":") + 1, item.id.lastIndexOf("/"))}`}
+                        </Show>
+                      </span>
+                    </div>
+                    <Show
+                      when={item.auth === "restricted" || item.auth === "own-app"}
+                      fallback={
+                        <Show when={item.verified}>
+                          <span class="settings-v2-mp-tag" data-tone="accent">
+                            {language.t("settings.mcpPlugins.discover.official")}
+                          </span>
+                        </Show>
+                      }
+                    >
+                      <span
+                        class="settings-v2-mp-tag"
+                        title={language.t(
+                          item.auth === "restricted"
+                            ? "settings.connections.connectors.restricted.hint"
+                            : "settings.connections.connectors.ownApp.hint",
+                        )}
+                      >
+                        {language.t(
+                          item.auth === "restricted"
+                            ? "settings.connections.connectors.restricted"
+                            : "settings.connections.connectors.ownApp",
+                        )}
+                      </span>
+                    </Show>
+                  </div>
+                  <p class="settings-v2-mp-item-description">
+                    {describe(item) || language.t("settings.mcpPlugins.discover.noDescription")}
+                  </p>
+                  <div class="settings-v2-mp-item-foot">
+                    <span class="settings-v2-mp-item-license">{categoryLabel(item.category)}</span>
+                    <Show when={item.stars}>
+                      {(stars) => (
+                        <span class="settings-v2-mp-item-license" title={String(stars())}>
+                          ★ {compactNumber(stars(), language.intl())}
+                        </span>
+                      )}
+                    </Show>
+                    <Show when={item.homepage && obtainable(item)}>
+                      <button
+                        type="button"
+                        class="settings-v2-mp-link"
+                        onClick={() => item.homepage && platform.openExternal(item.homepage)}
+                      >
+                        {language.t("settings.marketplace.source")}
+                      </button>
+                    </Show>
+                    <ButtonV2
+                      size="small"
+                      class="ml-auto"
+                      variant={installed(item) ? "ghost" : obtainable(item) ? "contrast" : "outline"}
+                      disabled={installed(item) || Boolean(ui.pending) || (!obtainable(item) && !item.homepage)}
+                      onClick={() => void install(item)}
+                    >
+                      {installed(item)
+                        ? language.t("settings.mcpPlugins.discover.installedBadge")
+                        : ui.pending === item.id
+                          ? language.t("settings.mcpPlugins.discover.installing")
+                          : language.t(obtainable(item) ? "settings.mcpPlugins.discover.get" : "settings.marketplace.source")}
+                    </ButtonV2>
+                  </div>
+                </li>
+              )}
+            </For>
+          </ul>
+          <Show when={pages() > 1}>
+            <SettingsPagerV2 page={Math.min(ui.page, pages())} totalPages={pages()} onPage={(page) => setUi("page", page)} />
+          </Show>
         </Show>
       </div>
-
-      {/* Modal Añadir Servidor / Plugin */}
-      <Show when={showAddModal()}>
-        <div class="mcp-plugins-dialog-backdrop" onClick={() => setShowAddModal(false)}>
-          <div class="mcp-plugins-modal" onClick={(e) => e.stopPropagation()}>
-            <div class="flex items-center justify-between pb-2 border-b border-v2-border-border-muted">
-              <h3 class="text-[16px] font-semibold text-v2-text-text-base">
-                {language.t(addMode() === "mcp" ? "settings.mcpPlugins.add.server" : "settings.mcpPlugins.add.plugin")}
-              </h3>
-              <IconButtonV2
-                type="button"
-                variant="ghost-muted"
-                size="small"
-                icon={<IconV2 name="close" />}
-                aria-label={language.t("common.close")}
-                onClick={() => setShowAddModal(false)}
-              />
-            </div>
-
-            <div class="flex flex-col gap-3">
-              <label class="flex flex-col gap-1.5">
-                <span class="text-[12px] font-medium text-v2-text-text-base">{language.t("settings.mcpPlugins.form.name")}</span>
-                <TextInputV2
-                  value={formName()}
-                  onInput={(e) => setFormName(e.currentTarget.value)}
-                  placeholder={language.t("settings.mcpPlugins.form.name.placeholder")}
-                />
-              </label>
-
-              <label class="flex flex-col gap-1.5">
-                <span class="text-[12px] font-medium text-v2-text-text-base">
-                  {language.t(addMode() === "mcp" ? "settings.mcpPlugins.form.command.server" : "settings.mcpPlugins.form.command.plugin")}
-                </span>
-                <TextInputV2
-                  value={formCommand()}
-                  onInput={(e) => setFormCommand(e.currentTarget.value)}
-                  placeholder={language.t(
-                    addMode() === "mcp"
-                      ? "settings.mcpPlugins.form.command.server.placeholder"
-                      : "settings.mcpPlugins.form.command.plugin.placeholder",
-                  )}
-                />
-              </label>
-
-              <Show
-                when={
-                  addMode() === "mcp" &&
-                  /^(https?|sse):\/\//.test(formCommand().trim())
-                }
-              >
-                <label class="flex items-center justify-between gap-3">
-                  <span class="flex flex-col gap-0.5">
-                    <span class="text-[12px] font-medium text-v2-text-text-base">
-                      {language.t("settings.mcpPlugins.form.oauth")}
-                    </span>
-                    <span class="text-[11px] text-v2-text-text-muted">
-                      {language.t("settings.mcpPlugins.form.oauth.description")}
-                    </span>
-                  </span>
-                  <Switch checked={formOAuth()} onChange={setFormOAuth} hideLabel>
-                    {language.t("settings.mcpPlugins.form.oauth")}
-                  </Switch>
-                </label>
-              </Show>
-            </div>
-
-            <div class="flex items-center justify-end gap-2 pt-2 border-t border-v2-border-border-muted">
-              <ButtonV2 variant="neutral" size="normal" onClick={() => setShowAddModal(false)}>
-                {language.t("common.cancel")}
-              </ButtonV2>
-              <ButtonV2
-                variant="contrast"
-                size="normal"
-                disabled={submitting() || !formName().trim() || !formCommand().trim()}
-                onClick={() => void handleSaveModal()}
-              >
-                {submitting() ? language.t("common.saving") : language.t("settings.mcpPlugins.form.submit")}
-              </ButtonV2>
-            </div>
-          </div>
-        </div>
-      </Show>
     </>
+  )
+}
+
+// 1234 → "1.2K" in the user's locale.
+function compactNumber(value: number, locale: string) {
+  return new Intl.NumberFormat(locale, { notation: "compact", maximumFractionDigits: 1 }).format(value)
+}
+
+function errorMessage(error: unknown) {
+  if (error && typeof error === "object" && "message" in error && typeof error.message === "string") return error.message
+  return undefined
+}
+
+function keyed<T extends object>(key: keyof T & string, source: () => T[]) {
+  const [store, setStore] = createStore({ list: [] as T[] })
+  createComputed(() => setStore("list", reconcile(source(), { key })))
+  return () => store.list
+}
+
+// file:///C:/a%20b/x.ts → C:/a b/x.ts (the leading slash only belongs to POSIX paths).
+function fileUrlPath(url: string) {
+  const path = decodeURIComponent(new URL(url).pathname)
+  return /^\/[A-Za-z]:/.test(path) ? path.slice(1) : path
+}
+
+function EmptyState(props: {
+  icon: "mcp" | "plugin"
+  title: string
+  description: string
+  explore: string
+  add: string
+  note?: string
+  onExplore: () => void
+  onAdd: () => void
+}) {
+  return (
+    <div class="settings-v2-mp-empty">
+      <span class="settings-v2-mp-empty-icon" aria-hidden="true">
+        <Icon name={props.icon} />
+      </span>
+      <h3 class="settings-v2-mp-empty-title">{props.title}</h3>
+      <p class="settings-v2-mp-empty-description">{props.description}</p>
+      <div class="settings-v2-mp-empty-actions">
+        <ButtonV2 variant="outline" size="small" onClick={props.onExplore}>
+          {props.explore}
+        </ButtonV2>
+        <ButtonV2 variant="contrast" size="small" icon="plus" onClick={props.onAdd}>
+          {props.add}
+        </ButtonV2>
+      </div>
+      <Show when={props.note}>
+        <p class="settings-v2-mp-empty-note">{props.note}</p>
+      </Show>
+    </div>
   )
 }

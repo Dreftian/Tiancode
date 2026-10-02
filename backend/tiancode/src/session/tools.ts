@@ -130,7 +130,13 @@ export const resolve = Effect.fn("SessionTools.resolve")(function* (input: {
     if (input.lightweight && !LIGHTWEIGHT_TOOLS.has(item.id)) continue
     const schema = ProviderTransform.schema(input.model, ToolJsonSchema.fromTool(item))
     tools[item.id] = tool({
-      description: item.description,
+      description: input.lightweight
+        ? item.id === "skill"
+          ? "Load a relevant skill by its exact name from the available workflows. Follow its instructions for the current task."
+          : item.id === "task"
+            ? "Delegate a bounded independent task to a listed subagent by exact name. Verify its result."
+            : item.description.slice(0, 600)
+        : item.description,
       inputSchema: jsonSchema(schema),
       execute(args, options) {
         return run.promise(

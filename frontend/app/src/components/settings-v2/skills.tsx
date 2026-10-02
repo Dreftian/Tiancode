@@ -1,4 +1,8 @@
+import { decodeGitHubUrl, fetchGitHubSkills } from "./skills-github"
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
+import { MenuV2 } from "@tiancode-ai/ui/v2/menu-v2"
+import { SegmentedControlItemV2, SegmentedControlV2 } from "@tiancode-ai/ui/v2/segmented-control-v2"
+import { SelectV2 } from "@tiancode-ai/ui/v2/select-v2"
 import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
 import { TextInputV2 } from "@tiancode-ai/ui/v2/text-input-v2"
 import { TooltipV2 } from "@tiancode-ai/ui/v2/tooltip-v2"
@@ -14,6 +18,7 @@ import {
   onCleanup,
   Show,
 } from "solid-js"
+import { createStore } from "solid-js/store"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { useServerSDK } from "@/context/server-sdk"
@@ -27,116 +32,11 @@ import {
   SAFE_SKILLS,
 } from "./skills-catalogue"
 import { SettingsListV2 } from "./parts/list"
-import { SettingsRowV2 } from "./parts/row"
-import { SettingsSectionTabs } from "./parts/section-tabs"
 import { fallbackGlyph, hashColor, SettingsItemIconV2 } from "./parts/item-icon"
 import "./settings-v2.css"
 
-const PAGE_SIZE = 4
-
-// Ghost rows while the server answers: fewer than PAGE_SIZE so the column does not become a wall
-// of shimmer, enough that it reads as a list rather than as emptiness.
+// Ghost rows while the server answers: enough that it reads as a list rather than as emptiness.
 const SKELETON_ROWS = [0, 1, 2, 3, 4]
-
-const GITHUB_URL_RE =
-  /^https?:\/\/github\.com\/([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+?)(?:\.git)?(?:\/(tree|blob)\/([^/\s#]+)((?:\/[^\s#]*)?))?(?:[?#].*)?$/i
-
-const MAX_GITHUB_SKILLS = 20
-const MAX_FILES_PER_SKILL = 30
-
-type GitHubSource = {
-  owner: string
-  repo: string
-  kind?: "tree" | "blob"
-  ref: string
-  subpath: string
-}
-
-function decodeGitHubUrl(value: string): GitHubSource | undefined {
-  const match = GITHUB_URL_RE.exec(value.trim())
-  if (!match) return undefined
-  const kind = match[3] === "tree" || match[3] === "blob" ? match[3] : undefined
-  const subpath = (match[5] ?? "").replace(/^\//, "").replace(/\/$/, "")
-  return {
-    owner: match[1],
-    repo: match[2],
-    kind,
-    ref: match[4] ?? "HEAD",
-    subpath,
-  }
-}
-
-const githubApiJson = async (url: string) => {
-  const response = await fetch(url, { headers: { Accept: "application/vnd.github+json" } })
-  if (!response.ok) throw new Error(`GitHub request failed with ${response.status}`)
-  return response.json()
-}
-
-const fetchGitHubFile = async (source: GitHubSource, path: string) => {
-  const response = await fetch(`https://raw.githubusercontent.com/${source.owner}/${source.repo}/${source.ref}/${path}`)
-  if (!response.ok) throw new Error(`Failed to download ${path} (${response.status})`)
-  return response.text()
-}
-
-type GitHubSkillFiles = { name: string; files: { path: string; content: string }[] }
-
-// Resolves a GitHub URL (repo root, tree folder, or a single SKILL.md blob)
-// into one entry per discovered SKILL.md. Sibling files inside each skill's
-// own directory ride along so references keep working.
-type GitHubTreeEntry = { type: string; path: string }
-
-// Validates the git-trees API response shape without type assertions.
-function parseGitHubBlobPaths(value: unknown): string[] {
-  if (!value || typeof value !== "object" || !("tree" in value) || !Array.isArray(value.tree)) return []
-  const paths: string[] = []
-  for (const entry of value.tree) {
-    if (!entry || typeof entry !== "object") continue
-    if (!("type" in entry) || !("path" in entry)) continue
-    if (typeof entry.type === "string" && typeof entry.path === "string") {
-      paths.push(entry.path)
-    }
-  }
-  return paths
-}
-
-async function fetchGitHubSkills(source: GitHubSource): Promise<GitHubSkillFiles[]> {
-  if (source.kind === "blob") {
-    if (!source.subpath.endsWith("SKILL.md")) return []
-    const content = await fetchGitHubFile(source, source.subpath)
-    const segments = source.subpath.split("/")
-    segments.pop()
-    const name = segments.pop() ?? source.repo
-    return [{ name, files: [{ path: "SKILL.md", content }] }]
-  }
-
-  const data = await githubApiJson(
-    `https://api.github.com/repos/${source.owner}/${source.repo}/git/trees/${source.ref}?recursive=1`,
-  )
-  const blobPaths: GitHubTreeEntry["path"][] = parseGitHubBlobPaths(data)
-
-  const prefix = source.kind === "tree" && source.subpath ? `${source.subpath}/` : ""
-  const skillPaths = blobPaths
-    .filter((filePath) => filePath === "SKILL.md" || filePath.endsWith("/SKILL.md"))
-    .filter((filePath) => !prefix || filePath.startsWith(prefix))
-    .sort()
-    .slice(0, MAX_GITHUB_SKILLS)
-
-  return Promise.all(
-    skillPaths.map(async (skillPath) => {
-      const dir = skillPath.includes("/") ? skillPath.slice(0, skillPath.lastIndexOf("/")) : ""
-      const siblings = dir
-        ? blobPaths.filter((filePath) => filePath.startsWith(`${dir}/`)).slice(0, MAX_FILES_PER_SKILL)
-        : [skillPath]
-      const files = await Promise.all(
-        siblings.map(async (filePath) => ({
-          path: dir ? filePath.slice(dir.length + 1) : filePath,
-          content: await fetchGitHubFile(source, filePath),
-        })),
-      )
-      return { name: dir || source.repo, files }
-    }),
-  )
-}
 
 type SkillFilter = "all" | "safe" | "specialized" | "frontend" | "backend" | "testing"
 
@@ -147,6 +47,15 @@ type SkillInfo = {
   icon?: string
   location: string
   content: string
+  disableModelInvocation?: boolean
+}
+
+type SkillOrigin = "builtin" | "project" | "installed"
+
+// "adversarial-code-review" → "Adversarial code review": the slug stays visible under it.
+function skillTitle(name: string) {
+  const words = name.replace(/[-_]+/g, " ").trim()
+  return words ? words[0]!.toUpperCase() + words.slice(1) : name
 }
 
 export const SettingsSkillsV2: Component<{
@@ -161,10 +70,23 @@ export const SettingsSkillsV2: Component<{
   const [githubUrl, setGithubUrl] = createSignal("")
   const [importing, setImporting] = createSignal(false)
   const [message, setMessage] = createSignal<"success" | "error" | undefined>(undefined)
-  const [selected, setSelected] = createSignal<string | undefined>(undefined)
-  const [page, setPage] = createSignal(0)
-  const [section, setSection] = createSignal<"installed" | "import">("installed")
-  const [filterCategory, setFilterCategory] = createSignal<SkillFilter>("all")
+  const [view, setView] = createStore({
+    selected: undefined as string | undefined,
+    section: "installed" as "installed" | "import",
+    filter: "all" as SkillFilter,
+    query: "",
+    // Narrow panels show the list or the detail; wide ones show both.
+    viewing: false,
+    bulk: false,
+  })
+  const selected = () => view.selected
+  const setSelected = (name: string) => {
+    setView("selected", name)
+    setView("viewing", true)
+  }
+  const section = () => view.section
+  const setSection = (value: "installed" | "import") => setView("section", value)
+  const filterCategory = () => view.filter
 
   const params = () => (props.directory ? { directory: props.directory } : undefined)
 
@@ -254,16 +176,29 @@ export const SettingsSkillsV2: Component<{
     () => catalogueState({ count: skills().length, settled: catalogueSettled() }) === "loading",
   )
 
-  const filteredSkills = createMemo(() => {
-    const list = skills()
-    const cat = filterCategory()
-    if (cat === "safe") return list.filter((s) => SAFE_SKILLS.has(s.name))
-    if (cat === "specialized") return list.filter((s) => !SAFE_SKILLS.has(s.name))
-    if (cat === "frontend") return list.filter((s) => CATEGORY_FRONTEND.has(s.name))
-    if (cat === "backend") return list.filter((s) => CATEGORY_BACKEND.has(s.name))
-    if (cat === "testing") return list.filter((s) => CATEGORY_TESTING.has(s.name))
-    return list
-  })
+  const inCategory = (name: string, cat: SkillFilter) => {
+    if (cat === "safe") return SAFE_SKILLS.has(name)
+    if (cat === "specialized") return !SAFE_SKILLS.has(name)
+    if (cat === "frontend") return CATEGORY_FRONTEND.has(name)
+    if (cat === "backend") return CATEGORY_BACKEND.has(name)
+    if (cat === "testing") return CATEGORY_TESTING.has(name)
+    return true
+  }
+  const matchesQuery = (skill: SkillInfo) => {
+    const needle = view.query.trim().toLowerCase()
+    if (!needle) return true
+    return [skill.name, skill.description ?? "", skillTitle(skill.name)].some((text) => text.toLowerCase().includes(needle))
+  }
+  const filteredSkills = createMemo(() =>
+    skills().filter((skill) => inCategory(skill.name, filterCategory()) && matchesQuery(skill)),
+  )
+
+  const origin = (skill: SkillInfo): SkillOrigin => {
+    if (skill.location.startsWith("<")) return "builtin"
+    const dir = props.directory?.replace(/\\/g, "/").toLowerCase()
+    if (dir && skill.location.replace(/\\/g, "/").toLowerCase().startsWith(`${dir}/`)) return "project"
+    return "installed"
+  }
 
   const [skillOverrides, setSkillOverrides] = createSignal<Record<string, boolean>>({})
 
@@ -277,8 +212,6 @@ export const SettingsSkillsV2: Component<{
     return base
   })
   const autoSelect = createMemo(() => data().autoSelect)
-  const pages = createMemo(() => Math.max(1, Math.ceil(filteredSkills().length / PAGE_SIZE)))
-  const pageSkills = createMemo(() => filteredSkills().slice(page() * PAGE_SIZE, (page() + 1) * PAGE_SIZE))
   const selectedSkill = createMemo(() => skills().find((skill) => skill.name === selected()) ?? filteredSkills()[0] ?? skills()[0])
 
   const enabledCount = createMemo(() => skills().filter((s) => !disabled().has(s.name)).length)
@@ -294,45 +227,51 @@ export const SettingsSkillsV2: Component<{
       { id: "testing", label: language.t("settings.skills.filter.testing"), count: count((n) => CATEGORY_TESTING.has(n)), icon: "checklist" },
     ]
   })
-  const safeEnabledCount = createMemo(() => skills().filter((s) => SAFE_SKILLS.has(s.name) && !disabled().has(s.name)).length)
   const specializedEnabledCount = createMemo(() => skills().filter((s) => !SAFE_SKILLS.has(s.name) && !disabled().has(s.name)).length)
 
+  // The project's config when one is open; the global one otherwise (without a directory the
+  // project route wrote a tiancode.json into whatever folder the server was started from).
+  const writeSkillsConfig = (skills: { disabled?: string[]; autoSelect?: boolean }) => {
+    const p = params()
+    return p
+      ? serverSdk().client.config.update({ ...p, config: { skills } })
+      : serverSdk().client.global.config.update({ config: { skills } })
+  }
+
   const updateDisabledSkills = async (newDisabledList: string[]) => {
+    await writeSkillsConfig({ disabled: newDisabledList.toSorted() })
+    void refetch()
+  }
+
+  // Bulk changes say what happened, and say it when the save failed too.
+  const runBulk = async (next: string[]) => {
+    if (view.bulk) return
+    setView("bulk", true)
     try {
-      const sorted = newDisabledList.toSorted()
-      await serverSdk().client.config.update({
-        ...params(),
-        config: { skills: { disabled: sorted } },
-      })
-      void refetch()
-    } catch (e) {
-      console.warn("Failed to update disabled skills", e)
+      await updateDisabledSkills(next)
+      setSkillOverrides({})
+      showToast({ variant: "success", title: language.t("settings.skills.bulk.done", { enabled: skills().length - next.length }) })
+    } catch {
+      showToast({ variant: "error", title: language.t("settings.skills.toggle.failed") })
+    } finally {
+      setView("bulk", false)
     }
   }
 
-  const enableAll = async () => {
-    await updateDisabledSkills([])
-  }
+  const enableAll = () => runBulk([])
 
-  const disableAll = async () => {
-    await updateDisabledSkills(skills().map((s) => s.name))
-  }
+  const disableAll = () => runBulk(skills().map((s) => s.name))
 
-  const enableSafeOnly = async () => {
-    const specializedNames = skills().filter((s) => !SAFE_SKILLS.has(s.name)).map((s) => s.name)
-    await updateDisabledSkills(specializedNames)
-  }
+  const enableSafeOnly = () => runBulk(skills().filter((s) => !SAFE_SKILLS.has(s.name)).map((s) => s.name))
 
-  const toggleSpecialized = async () => {
+  const toggleSpecialized = () => {
     const specializedNames = skills().filter((s) => !SAFE_SKILLS.has(s.name)).map((s) => s.name)
     const allSpecializedDisabled = specializedNames.every((name) => disabled().has(name))
-    if (allSpecializedDisabled) {
-      const newDisabled = Array.from(disabled()).filter((name) => !specializedNames.includes(name))
-      await updateDisabledSkills(newDisabled)
-    } else {
-      const newDisabled = Array.from(new Set([...disabled(), ...specializedNames]))
-      await updateDisabledSkills(newDisabled)
-    }
+    return runBulk(
+      allSpecializedDisabled
+        ? Array.from(disabled()).filter((name) => !specializedNames.includes(name))
+        : Array.from(new Set([...disabled(), ...specializedNames])),
+    )
   }
 
   const pickFolder = () => {
@@ -381,42 +320,43 @@ export const SettingsSkillsV2: Component<{
   }
 
   const toggleSkill = (name: string, enabled: boolean) => {
-    // 1. Inmediato (0 ms) reactivo y toast
+    // The switch moves at once; the toast waits for the save, and a failed save puts it back.
     setSkillOverrides((prev) => ({ ...prev, [name]: enabled }))
-    showToast({
-      variant: "success",
-      title: language.t(enabled ? "settings.skills.toggle.enabled" : "settings.skills.toggle.disabled", { name }),
-    })
-
-    // 2. Persistencia en segundo plano sin congelar la animación del switch
     const nextDisabled = new Set(disabled())
-    if (enabled) {
-      nextDisabled.delete(name)
-    } else {
-      nextDisabled.add(name)
-    }
+    if (enabled) nextDisabled.delete(name)
+    else nextDisabled.add(name)
 
-    void updateDisabledSkills(Array.from(nextDisabled)).catch(() => {
-      setSkillOverrides((prev) => {
-        const next = { ...prev }
-        delete next[name]
-        return next
+    void updateDisabledSkills(Array.from(nextDisabled))
+      .then(() => {
+        // Saved: the server's list is the truth again, so a later bulk change is not undone by it.
+        setSkillOverrides((prev) => {
+          const next = { ...prev }
+          delete next[name]
+          return next
+        })
+        showToast({
+          variant: "success",
+          title: language.t(enabled ? "settings.skills.toggle.enabled" : "settings.skills.toggle.disabled", { name }),
+        })
       })
-      showToast({ variant: "error", title: language.t("settings.skills.toggle.failed") })
-    })
+      .catch(() => {
+        setSkillOverrides((prev) => {
+          const next = { ...prev }
+          delete next[name]
+          return next
+        })
+        showToast({ variant: "error", title: language.t("settings.skills.toggle.failed") })
+      })
   }
 
   // Auto-selección: el modelo elige automáticamente las skills según las
   // señales del proyecto (framework, tooling…). Persiste en skills.autoSelect.
   const toggleAutoSelect = async (enabled: boolean) => {
     try {
-      await serverSdk().client.config.update({
-        ...params(),
-        config: { skills: { autoSelect: enabled } },
-      })
+      await writeSkillsConfig({ autoSelect: enabled })
       void refetch()
-    } catch (e) {
-      console.warn("Failed to toggle autoSelect", e)
+    } catch {
+      showToast({ variant: "error", title: language.t("settings.skills.toggle.failed") })
     }
   }
 
@@ -424,14 +364,6 @@ export const SettingsSkillsV2: Component<{
     platform.openExternal(
       `https://www.google.com/search?q=${encodeURIComponent("tiancode skills SKILL.md")}`,
     )
-  }
-
-  const prevPage = () => {
-    setPage((page() + pages() - 1) % pages())
-  }
-
-  const nextPage = () => {
-    setPage((page() + 1) % pages())
   }
 
   const importFromGithub = async () => {
@@ -469,29 +401,47 @@ export const SettingsSkillsV2: Component<{
     }
   }
 
+  const skillBadges = (skill: SkillInfo) => (
+    <>
+      <span
+        class={`settings-v2-skill-badge ${SAFE_SKILLS.has(skill.name) ? "settings-v2-skill-badge--safe" : "settings-v2-skill-badge--specialized"}`}
+      >
+        {language.t(SAFE_SKILLS.has(skill.name) ? "settings.skills.badge.safe" : "settings.skills.badge.specialized")}
+      </span>
+      <Show when={origin(skill) !== "builtin"}>
+        <span class="settings-v2-sk-origin">{language.t(`settings.skills.origin.${origin(skill)}`)}</span>
+      </Show>
+      <Show when={skill.disableModelInvocation}>
+        <span class="settings-v2-sk-origin">{language.t("settings.skills.manualOnly")}</span>
+      </Show>
+    </>
+  )
+
   return (
     <>
-      <div class="settings-v2-tab-header settings-v2-tab-header--stacked">
-        <div class="settings-v2-tab-header-row">
+      <div class="settings-v2-tab-header settings-v2-sk-header">
+        <div class="settings-v2-sk-heading">
           <h2 class="settings-v2-tab-title">{language.t("settings.skills.title")}</h2>
-          <div class="flex items-center gap-2">
-            <ButtonV2 type="button" variant="ghost" size="small" onClick={searchGoogle}>
-              {language.t("settings.skills.search.google")}
-            </ButtonV2>
-          </div>
+          <Show when={skills().length > 0}>
+            <span class="settings-v2-chip shrink-0" data-tone="accent">
+              {language.t("settings.skills.stats.active", { enabled: enabledCount(), total: skills().length })}
+            </span>
+          </Show>
         </div>
-        <p class="settings-v2-tab-description">{language.t("settings.skills.description")}</p>
-        <SettingsSectionTabs
+        <SegmentedControlV2
+          class="settings-v2-sk-sections"
           value={section()}
-          onChange={setSection}
-          options={[
-            { id: "installed", label: language.t("settings.skills.section.installed") },
-            { id: "import", label: language.t("settings.skills.section.import") },
-          ]}
-        />
+          onChange={(value) => {
+            if (value === "installed" || value === "import") setSection(value)
+          }}
+          aria-label={language.t("settings.sections.label")}
+        >
+          <SegmentedControlItemV2 value="installed">{language.t("settings.skills.section.installed")}</SegmentedControlItemV2>
+          <SegmentedControlItemV2 value="import">{language.t("settings.skills.section.import")}</SegmentedControlItemV2>
+        </SegmentedControlV2>
       </div>
 
-      <div class="settings-v2-tab-body settings-v2-skills">
+      <div class="settings-v2-tab-body settings-v2-skills" data-section={section()}>
         <Show when={message() === "success" || message() === "error"}>
           <div class="settings-v2-skills-message" data-variant={message()}>
             {message() === "success"
@@ -500,321 +450,311 @@ export const SettingsSkillsV2: Component<{
           </div>
         </Show>
 
-        <div class="settings-v2-skills-layout" data-section={section()}>
-          <div class="settings-v2-skills-list">
-            <Show when={section() === "installed"}>
-            <div class="settings-v2-section">
+        <Show when={section() === "installed"}>
+          <div class="settings-v2-sk-toolbar">
+            <TextInputV2
+              class="settings-v2-sk-search"
+              type="search"
+              appearance="base"
+              value={view.query}
+              onInput={(event) => setView("query", event.currentTarget.value)}
+              placeholder={language.t("settings.skills.search.placeholder")}
+              aria-label={language.t("settings.skills.search.placeholder")}
+              spellcheck={false}
+              autocomplete="off"
+            />
+            <SelectV2
+              appearance="base"
+              class="settings-v2-sk-category"
+              aria-label={language.t("settings.skills.filter.label")}
+              options={filterOptions()}
+              current={filterOptions().find((option) => option.id === filterCategory())}
+              value={(option) => option.id}
+              label={(option) => `${option.label} · ${option.count}`}
+              onSelect={(option) => option && setView("filter", option.id)}
+            >
+              {(option) => (
+                <span class="settings-v2-sk-option">
+                  <SettingsItemIconV2 icon={option.icon} fallback="checklist" />
+                  <span class="settings-v2-sk-option-label">{option.label}</span>
+                  <span class="settings-v2-sk-filter-count">{option.count}</span>
+                </span>
+              )}
+            </SelectV2>
+            <TooltipV2 value={language.t("settings.skills.autoSelect.description")} placement="bottom">
+              <Switch
+                class="settings-v2-sk-auto"
+                checked={autoSelect()}
+                onChange={(checked) => void toggleAutoSelect(checked)}
+              >
+                {language.t("settings.skills.autoSelect.short")}
+              </Switch>
+            </TooltipV2>
+            <MenuV2 placement="bottom-end">
+              <MenuV2.Trigger
+                as="button"
+                type="button"
+                class="settings-v2-sk-actions"
+                disabled={view.bulk}
+                aria-label={language.t("settings.skills.bulk.title")}
+              >
+                <span>{language.t("settings.skills.actions.menu")}</span>
+                <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
+                  <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                </svg>
+              </MenuV2.Trigger>
+              <MenuV2.Portal>
+                <MenuV2.Content>
+                  <MenuV2.Group>
+                    <MenuV2.GroupLabel>{language.t("settings.skills.bulk.title")}</MenuV2.GroupLabel>
+                    <MenuV2.Item onSelect={() => void enableAll()}>
+                      {language.t("settings.skills.actions.enableAll")}
+                    </MenuV2.Item>
+                    <MenuV2.Item onSelect={() => void enableSafeOnly()}>
+                      {language.t("settings.skills.actions.safeOnly")}
+                    </MenuV2.Item>
+                    <MenuV2.Item onSelect={() => void toggleSpecialized()}>
+                      {language.t(
+                        specializedEnabledCount() > 0
+                          ? "settings.skills.actions.specialized.disable"
+                          : "settings.skills.actions.specialized.enable",
+                      )}
+                    </MenuV2.Item>
+                  </MenuV2.Group>
+                  <MenuV2.Separator />
+                  <MenuV2.Item onSelect={() => void disableAll()}>
+                    {language.t("settings.skills.actions.disableAll")}
+                  </MenuV2.Item>
+                </MenuV2.Content>
+              </MenuV2.Portal>
+            </MenuV2>
+          </div>
 
-              <Show when={!catalogueLoading()}>
-              <div class="settings-v2-skills-toolbar">
-
-                <Show when={section() === "installed"}><div class="settings-v2-skills-filters-row">
-                  <For each={filterOptions()}>
-                    {(option) => (
-                      <TooltipV2 placement="top" value={option.label}>
-                        <button
-                          type="button"
-                          class="settings-v2-skills-filter-btn"
-                          aria-label={option.label}
-                          data-active={filterCategory() === option.id ? "" : undefined}
-                          onClick={() => {
-                            setFilterCategory(option.id)
-                            setPage(0)
-                          }}
-                        >
-                          <SettingsItemIconV2 icon={option.icon} fallback="checklist" />
-                          <span class="settings-v2-skills-filter-count">{option.count}</span>
-                        </button>
-                      </TooltipV2>
-                    )}
-                  </For>
-                </div></Show>
-              </div>
-              </Show>
-
-              <Show when={section() === "installed"}><Show
+          <div class="settings-v2-sk-layout" data-viewing={view.viewing ? "" : undefined}>
+            <div class="settings-v2-sk-list">
+              <Show
                 when={filteredSkills().length > 0}
                 fallback={
                   <Show
                     when={catalogueLoading()}
                     fallback={
                       <div class="settings-v2-skills-status">
-                        {language.t(
-                          skills().length > 0 ? "settings.skills.empty.filtered" : "settings.skills.empty",
-                        )}
+                        {language.t(skills().length > 0 ? "settings.skills.empty.filtered" : "settings.skills.empty")}
                       </div>
                     }
                   >
-                    <SettingsListV2>
-                      <For each={SKELETON_ROWS}>
-                        {() => (
-                          <div class="settings-v2-skills-item settings-v2-skills-item--skeleton" aria-hidden="true">
-                            <div class="settings-v2-skeleton settings-v2-skeleton--icon" />
-                            <div class="settings-v2-skills-item-copy">
-                              <div class="settings-v2-skeleton settings-v2-skeleton--line settings-v2-skeleton--name" />
-                              <div class="settings-v2-skeleton settings-v2-skeleton--line" />
-                            </div>
-                            <div class="settings-v2-skills-item-toggle">
-                              <div class="settings-v2-skeleton settings-v2-skeleton--switch" />
-                            </div>
+                    <For each={SKELETON_ROWS}>
+                      {() => (
+                        <div class="settings-v2-sk-row settings-v2-sk-row--skeleton" aria-hidden="true">
+                          <div class="settings-v2-skeleton settings-v2-skeleton--icon" />
+                          <div class="settings-v2-sk-row-copy">
+                            <div class="settings-v2-skeleton settings-v2-skeleton--line settings-v2-skeleton--name" />
+                            <div class="settings-v2-skeleton settings-v2-skeleton--line" />
                           </div>
-                        )}
-                      </For>
-                    </SettingsListV2>
+                        </div>
+                      )}
+                    </For>
                     <div class="settings-v2-skills-status" role="status" aria-live="polite">
                       {language.t("settings.skills.loading")}
                     </div>
                   </Show>
                 }
               >
-                <SettingsListV2>
-                  <For each={pageSkills()}>
-                    {(skill) => (
-                      <div
-                        class="settings-v2-skills-item"
-                        data-selected={selected() === skill.name ? "" : undefined}
-                        data-disabled={disabled().has(skill.name) ? "" : undefined}
+                <For each={filteredSkills()}>
+                  {(skill) => (
+                    <div
+                      class="settings-v2-sk-row"
+                      data-selected={selectedSkill()?.name === skill.name ? "" : undefined}
+                      data-disabled={disabled().has(skill.name) ? "" : undefined}
+                    >
+                      <button
+                        type="button"
+                        class="settings-v2-sk-row-main"
+                        aria-current={selectedSkill()?.name === skill.name ? "true" : undefined}
                         onClick={() => setSelected(skill.name)}
                       >
-                        <SettingsItemIconV2
-                          icon={skill.icon}
-                          fallback={fallbackGlyph(skill.name)}
-                          color={hashColor(skill.name)}
-                        />
-                        <div class="settings-v2-skills-item-copy">
-                          <div class="settings-v2-skills-item-name flex items-center">
-                            {skill.name}
-                            <span
-                              class={`settings-v2-skill-badge ${SAFE_SKILLS.has(skill.name) ? "settings-v2-skill-badge--safe" : "settings-v2-skill-badge--specialized"}`}
-                            >
-                              {language.t(
-                                SAFE_SKILLS.has(skill.name) ? "settings.skills.badge.safe" : "settings.skills.badge.specialized",
-                              )}
-                            </span>
-                          </div>
-                          <div class="settings-v2-skills-item-description">
-                            {skill.description ?? ""}
-                          </div>
-                        </div>
-                        <div
-                          class="settings-v2-skills-item-toggle"
-                          onClick={(event) => event.stopPropagation()}
-                        >
-                          <Switch
-                            checked={!disabled().has(skill.name)}
-                            onChange={(checked) => void toggleSkill(skill.name, checked)}
-                            hideLabel
-                          >
-                            {skill.name}
-                          </Switch>
-                        </div>
-                      </div>
-                    )}
-                  </For>
-                </SettingsListV2>
-                <Show when={pages() > 1}>
-                  <div class="settings-v2-skills-pagination">
-                    <ButtonV2 type="button" variant="ghost" size="small" onClick={prevPage}>
-                      ←
-                    </ButtonV2>
-                    <span class="settings-v2-skills-pagination-label">
-                      {page() + 1} / {pages()}
-                    </span>
-                    <ButtonV2 type="button" variant="ghost" size="small" onClick={nextPage}>
-                      →
-                    </ButtonV2>
-                  </div>
-                </Show>
-              </Show></Show>
+                        <SettingsItemIconV2 icon={skill.icon} fallback={fallbackGlyph(skill.name)} color={hashColor(skill.name)} />
+                        <span class="settings-v2-sk-row-copy">
+                          <span class="settings-v2-sk-row-title">{skillTitle(skill.name)}</span>
+                          <span class="settings-v2-sk-row-slug">{skill.name}</span>
+                          <span class="settings-v2-sk-row-description">{skill.description ?? ""}</span>
+                          <span class="settings-v2-sk-row-badges">{skillBadges(skill)}</span>
+                        </span>
+                      </button>
+                      <Switch
+                        class="settings-v2-sk-row-switch"
+                        checked={!disabled().has(skill.name)}
+                        onChange={(checked) => void toggleSkill(skill.name, checked)}
+                        hideLabel
+                      >
+                        {language.t("settings.skills.switch.label", { name: skillTitle(skill.name) })}
+                      </Switch>
+                    </div>
+                  )}
+                </For>
+              </Show>
             </div>
-            </Show>
 
-            <Show when={section() === "import"}>
-            <div class="settings-v2-section">
-              <h3 class="settings-v2-section-title">{language.t("settings.skills.section.import")}</h3>
-              <SettingsListV2>
-                <SettingsRowV2
-                  title={language.t("settings.skills.autoSelect.title")}
-                  description={language.t("settings.skills.autoSelect.description")}
-                >
-                  <Switch checked={autoSelect()} onChange={(checked) => void toggleAutoSelect(checked)} hideLabel>
-                    {language.t("settings.skills.autoSelect.title")}
-                  </Switch>
-                </SettingsRowV2>
-              </SettingsListV2>
-              <div class="settings-v2-skills-toolbar">
-                <div class="settings-v2-skills-toolbar-row">
-                  <span class="settings-v2-skills-stats-pill">
-                    {language.t("settings.skills.stats.active", { enabled: enabledCount(), total: skills().length })}
-                  </span>
-                  <div class="settings-v2-skills-quick-buttons">
-                    <ButtonV2 type="button" variant="outline" size="small" onClick={() => void enableAll()}>
-                      {language.t("settings.skills.actions.enableAll")}
-                    </ButtonV2>
-                    <ButtonV2 type="button" variant="outline" size="small" onClick={() => void enableSafeOnly()}>
-                      {language.t("settings.skills.actions.safeOnly")}
-                    </ButtonV2>
-                    <ButtonV2 type="button" variant="outline" size="small" onClick={() => void toggleSpecialized()}>
-                      {language.t(
-                        specializedEnabledCount() > 0
-                          ? "settings.skills.actions.specialized.disable"
-                          : "settings.skills.actions.specialized.enable",
-                      )}
-                    </ButtonV2>
-                    <ButtonV2 type="button" variant="ghost" size="small" onClick={() => void disableAll()}>
-                      {language.t("settings.skills.actions.disableAll")}
-                    </ButtonV2>
-                  </div>
-                </div>
-              </div>
-              <SettingsListV2>
-                <div class="settings-v2-skills-import-row">
-                  <div class="settings-v2-skills-import-copy">
-                    <div class="settings-v2-skills-item-name">
-                      {language.t("settings.skills.import.folder.title")}
-                    </div>
-                    <div class="settings-v2-skills-item-description">
-                      {language.t("settings.skills.import.folder.description")}
-                    </div>
-                  </div>
+            <Show when={selectedSkill()} fallback={<div class="settings-v2-sk-detail settings-v2-sk-detail--empty" />}>
+              {(skill) => (
+                <div class="settings-v2-sk-detail">
                   <ButtonV2
                     type="button"
-                    variant="outline"
+                    variant="ghost"
                     size="small"
-                    disabled={importing()}
-                    onClick={pickFolder}
+                    class="settings-v2-sk-back"
+                    onClick={() => setView("viewing", false)}
                   >
-                    {importing()
-                      ? language.t("settings.skills.importing")
-                      : language.t("settings.skills.import.folder.button")}
+                    {language.t("settings.skills.back")}
                   </ButtonV2>
-                </div>
-                <div class="settings-v2-skills-import-row">
-                  <div class="settings-v2-skills-import-copy">
-                    <div class="settings-v2-skills-item-name">
-                      {language.t("settings.skills.import.github.title")}
+                  <div class="settings-v2-sk-detail-header">
+                    <SettingsItemIconV2 icon={skill().icon} fallback={fallbackGlyph(skill().name)} color={hashColor(skill().name)} />
+                    <div class="settings-v2-sk-detail-identity">
+                      <h3 class="settings-v2-sk-detail-title">{skillTitle(skill().name)}</h3>
+                      <span class="settings-v2-sk-row-slug">{skill().name}</span>
                     </div>
-                    <div class="settings-v2-skills-item-description">
-                      {language.t("settings.skills.import.github.description")}
-                    </div>
-                  </div>
-                  <div class="settings-v2-skills-url">
-                    <TextInputV2
-                      type="url"
-                      appearance="base"
-                      value={githubUrl()}
-                      onInput={(event) => setGithubUrl(event.currentTarget.value)}
-                      placeholder={language.t("settings.skills.import.github.placeholder")}
-                      spellcheck={false}
-                      autocomplete="off"
-                      aria-label={language.t("settings.skills.import.github.title")}
-                    />
-                    <ButtonV2
-                      type="button"
-                      variant="outline"
-                      size="small"
-                      disabled={importing() || !githubUrl()}
-                      onClick={() => void importFromGithub()}
-                    >
-                      {importing()
-                        ? language.t("settings.skills.importing")
-                        : language.t("settings.skills.import.github.button")}
-                    </ButtonV2>
-                  </div>
-                </div>
-                <div class="settings-v2-skills-import-row">
-                  <div class="settings-v2-skills-import-copy">
-                    <div class="settings-v2-skills-item-name">
-                      {language.t("settings.skills.import.url.title")}
-                    </div>
-                    <div class="settings-v2-skills-item-description">
-                      {language.t("settings.skills.import.url.description")}
-                    </div>
-                  </div>
-                  <div class="settings-v2-skills-url">
-                    <TextInputV2
-                      type="url"
-                      appearance="base"
-                      value={url()}
-                      onInput={(event) => setUrl(event.currentTarget.value)}
-                      placeholder={language.t("settings.skills.import.url.placeholder")}
-                      spellcheck={false}
-                      autocomplete="off"
-                      aria-label={language.t("settings.skills.import.url.title")}
-                    />
-                    <ButtonV2
-                      type="button"
-                      variant="outline"
-                      size="small"
-                      disabled={importing() || !url()}
-                      onClick={downloadFromUrl}
-                    >
-                      {importing()
-                        ? language.t("settings.skills.importing")
-                        : language.t("settings.skills.import.url.button")}
-                    </ButtonV2>
-                  </div>
-                </div>
-              </SettingsListV2>
-            </div>
-            </Show>
-          </div>
-
-          <Show when={section() === "installed"}><Show when={selectedSkill()} fallback={<div class="settings-v2-skills-detail-empty" />}>
-            {(skill) => (
-              <div class="settings-v2-skills-detail">
-                <div class="settings-v2-skills-detail-header">
-                  <SettingsItemIconV2
-                    icon={skill().icon}
-                    fallback={fallbackGlyph(skill().name)}
-                    color={hashColor(skill().name)}
-                  />
-                  <div class="settings-v2-skills-item-copy">
-                    <div class="settings-v2-skills-item-name flex items-center">
-                      {skill().name}
-                      <span
-                        class={`settings-v2-skill-badge ${SAFE_SKILLS.has(skill().name) ? "settings-v2-skill-badge--safe" : "settings-v2-skill-badge--specialized"}`}
-                      >
-                        {language.t(
-                          SAFE_SKILLS.has(skill().name) ? "settings.skills.badge.safe" : "settings.skills.badge.specialized",
-                        )}
-                      </span>
-                    </div>
-                    <div class="settings-v2-skills-item-description">
-                      {skill().description ?? ""}
-                    </div>
-                  </div>
-                  <div class="settings-v2-skills-item-toggle">
                     <Switch
                       checked={!disabled().has(skill().name)}
                       onChange={(checked) => void toggleSkill(skill().name, checked)}
                       hideLabel
                     >
-                      {skill().name}
+                      {language.t("settings.skills.switch.label", { name: skillTitle(skill().name) })}
                     </Switch>
                   </div>
+                  <p class="settings-v2-sk-detail-description">{skill().description ?? ""}</p>
+                  <ul class="settings-v2-sk-facts">
+                    <li
+                      class="settings-v2-sk-fact"
+                      data-tone={SAFE_SKILLS.has(skill().name) ? "safe" : "specialized"}
+                      title={language.t("settings.skills.detail.type")}
+                    >
+                      {language.t(
+                        SAFE_SKILLS.has(skill().name) ? "settings.skills.badge.safe" : "settings.skills.badge.specialized",
+                      )}
+                    </li>
+                    <li class="settings-v2-sk-fact" title={language.t("settings.skills.detail.origin")}>
+                      {language.t(`settings.skills.origin.${origin(skill())}`)}
+                    </li>
+                    <li class="settings-v2-sk-fact" title={language.t("settings.skills.detail.invocation")}>
+                      {language.t(
+                        skill().disableModelInvocation
+                          ? "settings.skills.detail.invocation.manual"
+                          : "settings.skills.detail.invocation.auto",
+                      )}
+                    </li>
+                  </ul>
+                  <p class="settings-v2-sk-note" data-tone={SAFE_SKILLS.has(skill().name) ? "safe" : "specialized"}>
+                    {SAFE_SKILLS.has(skill().name)
+                      ? language.t("settings.skills.callout.safe")
+                      : language.t("settings.skills.callout.specialized")}
+                  </p>
+                  <Show when={origin(skill()) !== "builtin"}>
+                    <div class="settings-v2-sk-location" title={language.t("settings.skills.detail.location")}>
+                      <span title={skill().location}>{skill().location}</span>
+                      <Show when={platform.revealPath}>
+                        <ButtonV2
+                          type="button"
+                          variant="ghost"
+                          size="small"
+                          onClick={() => void platform.revealPath?.(skill().location)}
+                        >
+                          {language.t("settings.skills.detail.reveal")}
+                        </ButtonV2>
+                      </Show>
+                    </div>
+                  </Show>
+                  <div class="settings-v2-skills-detail-body settings-v2-sk-detail-body">
+                    <Markdown
+                      text={localizeSkillHeadings(skill().content, isSpanish()) || (skill().description ?? "")}
+                      class="text-12-regular"
+                    />
+                  </div>
                 </div>
-                <div class="settings-v2-skills-detail-meta">{skill().location}</div>
+              )}
+            </Show>
+          </div>
+        </Show>
 
-                {/* Caja de aviso de compatibilidad y optimización */}
-                <div
-                  class={`settings-v2-skill-compatibility-callout ${SAFE_SKILLS.has(skill().name) ? "settings-v2-skill-compatibility-callout--safe" : "settings-v2-skill-compatibility-callout--specialized"}`}
-                >
-                  {SAFE_SKILLS.has(skill().name)
-                    ? language.t("settings.skills.callout.safe")
-                    : language.t("settings.skills.callout.specialized")}
+        <Show when={section() === "import"}>
+          <p class="settings-v2-tab-description settings-v2-sk-import-intro">{language.t("settings.skills.description")}</p>
+          <div class="settings-v2-section">
+            <SettingsListV2>
+              <div class="settings-v2-skills-import-row">
+                <div class="settings-v2-skills-import-copy">
+                  <div class="settings-v2-skills-item-name">{language.t("settings.skills.import.folder.title")}</div>
+                  <div class="settings-v2-skills-item-description">
+                    {language.t("settings.skills.import.folder.description")}
+                  </div>
                 </div>
-
-                <div class="settings-v2-skills-detail-body">
-                  <Markdown
-                    text={localizeSkillHeadings(skill().content, isSpanish()) || (skill().description ?? "")}
-                    class="text-12-regular"
+                <ButtonV2 type="button" variant="outline" size="small" disabled={importing()} onClick={pickFolder}>
+                  {importing() ? language.t("settings.skills.importing") : language.t("settings.skills.import.folder.button")}
+                </ButtonV2>
+              </div>
+              <div class="settings-v2-skills-import-row">
+                <div class="settings-v2-skills-import-copy">
+                  <div class="settings-v2-skills-item-name">{language.t("settings.skills.import.github.title")}</div>
+                  <div class="settings-v2-skills-item-description">
+                    {language.t("settings.skills.import.github.description")}
+                  </div>
+                </div>
+                <div class="settings-v2-skills-url">
+                  <TextInputV2
+                    type="url"
+                    appearance="base"
+                    value={githubUrl()}
+                    onInput={(event) => setGithubUrl(event.currentTarget.value)}
+                    placeholder={language.t("settings.skills.import.github.placeholder")}
+                    spellcheck={false}
+                    autocomplete="off"
+                    aria-label={language.t("settings.skills.import.github.title")}
                   />
+                  <ButtonV2
+                    type="button"
+                    variant="outline"
+                    size="small"
+                    disabled={importing() || !githubUrl()}
+                    onClick={() => void importFromGithub()}
+                  >
+                    {importing() ? language.t("settings.skills.importing") : language.t("settings.skills.import.github.button")}
+                  </ButtonV2>
                 </div>
               </div>
-            )}
-          </Show></Show>
-        </div>
+              <div class="settings-v2-skills-import-row">
+                <div class="settings-v2-skills-import-copy">
+                  <div class="settings-v2-skills-item-name">{language.t("settings.skills.import.url.title")}</div>
+                  <div class="settings-v2-skills-item-description">{language.t("settings.skills.import.url.description")}</div>
+                </div>
+                <div class="settings-v2-skills-url">
+                  <TextInputV2
+                    type="url"
+                    appearance="base"
+                    value={url()}
+                    onInput={(event) => setUrl(event.currentTarget.value)}
+                    placeholder={language.t("settings.skills.import.url.placeholder")}
+                    spellcheck={false}
+                    autocomplete="off"
+                    aria-label={language.t("settings.skills.import.url.title")}
+                  />
+                  <ButtonV2
+                    type="button"
+                    variant="outline"
+                    size="small"
+                    disabled={importing() || !url()}
+                    onClick={downloadFromUrl}
+                  >
+                    {importing() ? language.t("settings.skills.importing") : language.t("settings.skills.import.url.button")}
+                  </ButtonV2>
+                </div>
+              </div>
+            </SettingsListV2>
+            <div class="settings-v2-sk-discover">
+              <span>{language.t("settings.skills.discover.description")}</span>
+              <ButtonV2 type="button" variant="ghost" size="small" onClick={searchGoogle}>
+                {language.t("settings.skills.search.google")}
+              </ButtonV2>
+            </div>
+          </div>
+        </Show>
       </div>
     </>
   )

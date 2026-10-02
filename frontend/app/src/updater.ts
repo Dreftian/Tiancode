@@ -14,4 +14,6 @@ export type UpdaterPlatform = {
   state: Accessor<UpdaterState>
   check(): Promise<UpdaterState>
   install(): Promise<void>
+  /** The menu's "Check for updates" asks the window to open the update assistant. */
+  onShow?(handler: () => void): () => void
 }

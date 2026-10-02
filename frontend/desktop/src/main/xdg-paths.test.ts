@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test"
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
-import { applyDesktopXdgPaths, migrateDesktopXdgPaths } from "./xdg-paths"
+import { applyDesktopXdgPaths, dropInheritedProfileEnv, migrateDesktopXdgPaths } from "./xdg-paths"
 
 const roots: string[] = []
 
@@ -72,5 +72,57 @@ describe("desktop XDG paths", () => {
     expect(paths.managed.data).toBe(false)
     expect(paths.managed.config).toBe(false)
     expect(paths.managed.state).toBe(false)
+  })
+
+  test("drops XDG roots and the credential key inherited from another Tiancode profile", () => {
+    const appData = join("C:", "Users", "u", "AppData", "Roaming")
+    const environment: Record<string, string | undefined> = {
+      XDG_DATA_HOME: join(appData, "ai.tiancode.desktop", "xdg", "data"),
+      XDG_STATE_HOME: join(appData, "AI.Tiancode.Desktop.Release", "xdg", "state"),
+      TIANCODE_CONFIG_DIR: join(appData, "ai.tiancode.desktop", "xdg", "config", "tiancode"),
+      XDG_CONFIG_HOME: join("D:", "my-xdg", "config"),
+      XDG_CACHE_HOME: join(appData, "ai.tiancode.desktop - copia", "cache"),
+      TIANCODE_CREDENTIAL_KEY: "from-the-previous-process",
+    }
+    expect(dropInheritedProfileEnv(environment, appData, join(appData, "ai.tiancode.desktop.release"))).toEqual([
+      "XDG_DATA_HOME",
+      "XDG_STATE_HOME",
+      "TIANCODE_CONFIG_DIR",
+    ])
+    // Paths outside the Tiancode profiles are the user's, even a sibling copy of one.
+    expect(environment).toEqual({
+      XDG_CONFIG_HOME: join("D:", "my-xdg", "config"),
+      XDG_CACHE_HOME: join(appData, "ai.tiancode.desktop - copia", "cache"),
+    })
+  })
+
+  test("keeps the credential key when the inherited roots belong to the profile in use", () => {
+    const appData = join("C:", "Users", "u", "AppData", "Roaming")
+    const environment: Record<string, string | undefined> = {
+      XDG_DATA_HOME: join(appData, "ai.tiancode.desktop", "xdg", "data"),
+      TIANCODE_CREDENTIAL_KEY: "same-profile",
+    }
+    expect(dropInheritedProfileEnv(environment, appData, join(appData, "ai.tiancode.desktop"))).toEqual(["XDG_DATA_HOME"])
+    expect(environment).toEqual({ TIANCODE_CREDENTIAL_KEY: "same-profile" })
+  })
+
+  test("drops roots and the key inherited from a portable copy whose folder this run does not use", () => {
+    const appData = join("C:", "Users", "u", "AppData", "Roaming")
+    const portableData = join("D:", "usb", "data")
+    const environment: Record<string, string | undefined> = {
+      XDG_DATA_HOME: join(portableData, "xdg", "data"),
+      XDG_STATE_HOME: join("D:", "usb", "data-other", "state"),
+      TIANCODE_CREDENTIAL_KEY: "the-portable-key",
+    }
+    expect(
+      dropInheritedProfileEnv(environment, appData, join(appData, "ai.tiancode.desktop.release"), portableData),
+    ).toEqual(["XDG_DATA_HOME"])
+    expect(environment).toEqual({ XDG_STATE_HOME: join("D:", "usb", "data-other", "state") })
+  })
+
+  test("keeps a credential key the user set when no profile path was inherited", () => {
+    const environment: Record<string, string | undefined> = { TIANCODE_CREDENTIAL_KEY: "mine" }
+    expect(dropInheritedProfileEnv(environment, join("C:", "AppData"), join("C:", "AppData", "ai.tiancode.desktop"))).toEqual([])
+    expect(environment.TIANCODE_CREDENTIAL_KEY).toBe("mine")
   })
 })

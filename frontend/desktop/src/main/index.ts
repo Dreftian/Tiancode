@@ -13,6 +13,8 @@ import type { ServerReadyData } from "../preload/types"
 import { checkAppExists, resolveAppPath } from "./apps"
 import { APP_NAMES, CHANNEL, DISTRIBUTION } from "./constants"
 import { registerIpcHandlers, sendDeepLinks, sendMenuCommand } from "./ipc"
+import { restoreKeepScreenActive } from "./screen-activity"
+import { markPairingRunning, pairingListen } from "./pairing"
 import { forwardInitializationFailure } from "./initialization"
 import { exportDebugLogs, initCrashReporter, initLogging, startNetLog, write as writeLog } from "./logging"
 import { createMenu } from "./menu"
@@ -30,7 +32,7 @@ import {
   type SidecarListener,
 } from "./server"
 import { setupAutoUpdater, showUpdaterDialog } from "./updater"
-import { backupNow } from "./backup"
+import { applyPendingRestore, backupNow } from "./backup"
 import { getStore } from "./store"
 import { AUTO_BACKUP_KEY, CHECK_UPDATES_ON_START_KEY, LAST_BACKUP_KEY } from "./store-keys"
 import { safeWebContentsURL } from "./window-state"
@@ -38,6 +40,7 @@ import {
   clearWebviewData,
   createMainWindow,
   createWelcomeWindow,
+  getWelcomeWindow,
   getAnyMainWindow,
   getLastFocusedWindow,
   getMinimizeToTrayEnabled,
@@ -59,19 +62,14 @@ import { startBackgroundCli } from "./background-cli"
 import { getCredentialKey } from "./credential-key"
 import { seedBundledMcpServers } from "./mcp-bundle"
 import { setNativeTranslations } from "./native-translations"
-import { createTray } from "./tray"
+import { createTray, refreshTrayMenu } from "./tray"
 import { ensureLoopbackNoProxy, useEnvProxy } from "./util/proxy"
 import { installSystemCaTrust, installWindowsSystemCaTrust } from "./windows-system-ca"
-import { migrateDesktopXdgPaths } from "./xdg-paths"
+import { dropInheritedProfileEnv, migrateDesktopXdgPaths } from "./xdg-paths"
+import { APP_IDS, DEV_APP_ID, portableDataRoot, PUBLIC_APP_ID, resolveProfile, saveProfileChoice } from "./profile"
+import { setResolvedProfile } from "./profile-state"
+import { countSessions } from "./session-count"
 
-const APP_IDS: Record<string, string> = {
-  dev: "ai.tiancode.desktop.codex",
-  beta: "ai.tiancode.desktop.beta",
-  prod: "ai.tiancode.desktop",
-}
-// The public GitHub build lives in its own profile and never migrates data from the local ids
-// above, so installing it always starts clean: welcome dialog, no sessions, no provider keys.
-const PUBLIC_APP_ID = "ai.tiancode.desktop.release"
 const TEST_ONBOARDING = process.env.TIANCODE_TEST_ONBOARDING === "1"
 const TEST_ONBOARDING_ROOT = process.env.TIANCODE_TEST_ONBOARDING_ROOT
 const SIDECAR_VERSION = process.env.TIANCODE_SIDECAR_V2 === "1" ? "v2" : "v1"
@@ -112,7 +110,7 @@ const main = Effect.gen(function* () {
 
   process.env.TIANCODE_DISABLE_EMBEDDED_WEB_UI = "true"
 
-  const appId = app.isPackaged ? (DISTRIBUTION === "github" ? PUBLIC_APP_ID : APP_IDS[CHANNEL]) : "ai.tiancode.desktop.codex"
+  const appId = app.isPackaged ? (DISTRIBUTION === "github" ? PUBLIC_APP_ID : APP_IDS[CHANNEL]) : DEV_APP_ID
   const onboardingTestRoot = ((): string | undefined => {
     if (!TEST_ONBOARDING) return
 
@@ -134,9 +132,28 @@ const main = Effect.gen(function* () {
   } else {
     app.setAppUserModelId(appId)
   }
-  const portableDir = process.env.PORTABLE_EXECUTABLE_DIR
-  const defaultUserData = portableDir ? join(portableDir, "data") : join(app.getPath("appData"), appId)
-  app.setPath("userData", onboardingTestRoot ? join(onboardingTestRoot, "desktop") : defaultUserData)
+  // The GitHub build keeps the data of a local install it replaced (see profile.ts).
+  const profile = resolveProfile({
+    distribution: DISTRIBUTION,
+    channel: CHANNEL,
+    packaged: app.isPackaged,
+    appData: app.getPath("appData"),
+    portableDir: portableDataRoot(process.env, process.execPath, app.getPath("temp")),
+    testRoot: onboardingTestRoot,
+    sessions: countSessions,
+  })
+  app.setPath("userData", profile.path)
+  setResolvedProfile(profile)
+  // Before anything reads the environment: roots a previous Tiancode process passed down point
+  // into its profile, which may not be the one this run uses.
+  // An installed app the portable's updater started inherits the portable's folder too; only the
+  // portable itself uses it.
+  const portableData =
+    profile.kind === "portable" || !process.env.PORTABLE_EXECUTABLE_DIR
+      ? undefined
+      : join(process.env.PORTABLE_EXECUTABLE_DIR, "data")
+  const inheritedEnv = dropInheritedProfileEnv(process.env, app.getPath("appData"), profile.path, portableData)
+  if (portableData) delete process.env.PORTABLE_EXECUTABLE_DIR
   if (onboardingTestRoot) app.setPath("sessionData", join(onboardingTestRoot, "session"))
   initializeOldLayoutEligibility(app.getPath("userData"))
   // Chats that are not tied to a chosen folder live in a scratch workspace inside the profile.
@@ -201,6 +218,13 @@ const main = Effect.gen(function* () {
     packaged: app.isPackaged,
     distribution: DISTRIBUTION,
     onboardingTest: Boolean(onboardingTestRoot),
+    profile: {
+      kind: profile.kind,
+      reason: profile.reason,
+      userData: profile.path,
+      alternative: profile.alternative,
+    },
+    inheritedEnv,
   })
 
   ensureLoopbackNoProxy()
@@ -218,6 +242,8 @@ const main = Effect.gen(function* () {
     app.quit()
     return
   }
+  // Only the process that owns the folder records the choice (see profile.ts).
+  if (profile.choice) saveProfileChoice(app.getPath("appData"), profile.choice)
 
   const appEnvironment = preferAppEnv(app.getPath("userData"))
 
@@ -314,6 +340,15 @@ const main = Effect.gen(function* () {
       : yield* Effect.promise(() => migrateDesktopXdgPaths(appEnvironment.xdg))
   if (xdgMigration.migrated) logger.log("migrated desktop XDG data", xdgMigration)
 
+  // A restore chosen in Settings runs here, before anything opens the files it replaces: the IPC
+  // handlers keep drafts.sqlite open, and Windows refuses to replace or delete an open file, which
+  // left a half-restored profile.
+  yield* Effect.promise(() =>
+    applyPendingRestore()
+      .then((name) => name && logger.log("backup restored at startup", { name }))
+      .catch((error) => logger.error("pending backup restore failed", error)),
+  )
+
   // Exit waits for cookie cleanup above; startup also clears after an interrupted shutdown.
   if (webviewRetention(getStore().get(WEBVIEW_RETENTION_KEY)) === "session") {
     // El fallo se traga aquí dentro, no con Effect.catch: `Effect.promise` convierte un rechazo en
@@ -338,6 +373,7 @@ const main = Effect.gen(function* () {
     checkForUpdates: () => void showUpdaterDialog(updater, true),
     relaunch,
   }
+  restoreKeepScreenActive()
   registerIpcHandlers({
     killSidecar: () => killSidecar(),
     relaunch,
@@ -381,7 +417,9 @@ const main = Effect.gen(function* () {
     exportDebugLogs: () => exportDebugLogs(),
     recordFatalRendererError: (error) => writeLog("renderer", "fatal renderer error", { ...error }, "error"),
     setNativeTranslations: (bundle) => {
-      if (setNativeTranslations(bundle)) createMenu(menuDeps)
+      if (!setNativeTranslations(bundle)) return
+      createMenu(menuDeps)
+      refreshTrayMenu()
     },
   })
   registerWslIpcHandlers(wslServers)
@@ -476,19 +514,22 @@ const main = Effect.gen(function* () {
       return yield* Deferred.await(res)
     })
     const hostname = "127.0.0.1"
-    const url = `http://${hostname}:${port}`
-    const password = randomUUID()
+    const listen = yield* Effect.promise(() => pairingListen({ port, password: randomUUID() }))
+    const url = `http://${hostname}:${listen.port}`
+    const password = listen.password
 
-    logger.log("spawning sidecar", { url })
+    logger.log("spawning sidecar", { url, lan: listen.lan })
     const { listener, health } = yield* Effect.promise(() =>
-      spawnLocalServer(hostname, port, password, {
+      spawnLocalServer(hostname, listen.port, password, {
         userDataPath: app.getPath("userData"),
+        listenHostname: listen.lan ? "0.0.0.0" : undefined,
         onStdout: (message) => writeLog("server", "stdout", { message }),
         onStderr: (message) => writeLog("server", "stderr", { message }, "warn"),
         onExit: (code) => writeLog("utility", "sidecar exited", { code }, "warn"),
       }),
     )
     server = listener
+    markPairingRunning(listen)
     yield* Deferred.succeed(serverReady, {
       url,
       username: "tiancode",
@@ -518,8 +559,9 @@ const main = Effect.gen(function* () {
     logger.log("loading task finished")
   }).pipe(forwardInitializationFailure(serverReady), Effect.forkChild)
 
-  yield* Fiber.await(loadingTask)
-
+  // Windows open while the sidecar boots (like opencode's early window): the renderer loads in
+  // parallel, shows its splash and waits on await-initialization, so startup costs the slower of
+  // the two instead of their sum.
   // A fresh profile shows the welcome card alone (transparent window); the main window is
   // created when the card finishes (welcome-done).
   const pendingWelcome = isFirstLaunchOnboardingPending()
@@ -527,7 +569,17 @@ const main = Effect.gen(function* () {
   if (pendingWelcome) createWelcomeWindow()
   if (windows.length) createMenu(menuDeps)
 
+  yield* Fiber.await(loadingTask)
+
   const showWindow = () => {
+    // While the first-run card is open it is the app's only window: the main window comes after it,
+    // so it can start with the choices made there.
+    const welcome = getWelcomeWindow()
+    if (welcome && isFirstLaunchOnboardingPending()) {
+      welcome.show()
+      welcome.focus()
+      return
+    }
     const win = getLastFocusedWindow() ?? getAnyMainWindow()
     if (win && !win.isDestroyed()) {
       if (win.isMinimized()) win.restore()
@@ -543,7 +595,18 @@ const main = Effect.gen(function* () {
   }
   // macOS keeps its own window lifecycle conventions (closing the window does
   // not quit the app), so the tray is Windows/Linux only.
-  const tray = process.platform === "darwin" ? null : createTray({ onShow: showWindow, onQuit: quitApp })
+  const tray =
+    process.platform === "darwin"
+      ? null
+      : createTray({
+          onShow: showWindow,
+          onSettings: () => {
+            showWindow()
+            menuDeps.trigger("settings.open")
+          },
+          onCheckForUpdates: menuDeps.checkForUpdates,
+          onQuit: quitApp,
+        })
   app.once("will-quit", () => tray?.destroy())
 })
 

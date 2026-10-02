@@ -8,6 +8,8 @@ import { Schema } from "effect"
 import { HttpApi, HttpApiEndpoint, HttpApiError, HttpApiGroup, HttpApiSchema, OpenApi } from "effect/unstable/httpapi"
 import { described } from "./metadata"
 import { ConnectionsGroup } from "./connections"
+import { DecisionGroup } from "./decision"
+import { MarketplaceGroup } from "./marketplace"
 
 const GlobalHealth = Schema.Struct({
   healthy: Schema.Literal(true),
@@ -67,6 +69,7 @@ export const GlobalPaths = {
   health: "/global/health",
   event: "/global/event",
   config: "/global/config",
+  configAgent: "/global/config/agent/:name",
   dispose: "/global/dispose",
   upgrade: "/global/upgrade",
 } as const
@@ -112,6 +115,21 @@ export const GlobalApi = HttpApi.make("global").add(
           description: "Update global Tiancode configuration settings and preferences.",
         }),
       ),
+      HttpApiEndpoint.delete("configResetAgent", GlobalPaths.configAgent, {
+        params: { name: Schema.String },
+        query: Schema.Struct({
+          fields: Schema.optional(Schema.String).annotate({
+            description: "Comma-separated fields to remove (e.g. model,permission.bash); all of them when omitted",
+          }),
+        }),
+        success: described(Schema.Boolean, "Whether the global config had overrides for the agent"),
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "global.config.agent.reset",
+          summary: "Reset agent overrides globally",
+          description: "Remove an agent's overrides from the global configuration, restoring its defaults.",
+        }),
+      ),
       HttpApiEndpoint.post("dispose", GlobalPaths.dispose, {
         success: described(Schema.Boolean, "Global disposed"),
       }).annotateMerge(
@@ -134,4 +152,4 @@ export const GlobalApi = HttpApi.make("global").add(
       ),
     )
     .annotateMerge(OpenApi.annotations({ title: "global", description: "Global server routes." })),
-).add(ConnectionsGroup)
+).add(ConnectionsGroup).add(DecisionGroup).add(MarketplaceGroup)

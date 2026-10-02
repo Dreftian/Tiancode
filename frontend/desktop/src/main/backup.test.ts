@@ -211,4 +211,33 @@ describe("backups", () => {
     expect(await Bun.file(join(root, "backend-data", "tiancode.db-wal")).exists()).toBe(false)
     expect(await Bun.file(join(root, "backend-data", "tiancode.db-shm")).exists()).toBe(false)
   })
+
+  test("a scheduled restore waits for the next start and drops the live WAL it would replay", async () => {
+    const root = await userData()
+    const global = {
+      data: join(root, "backend-data"),
+      config: join(root, "backend-config"),
+      state: join(root, "backend-state"),
+    }
+    const backups = createBackupService(root, undefined, { global, snapshotDatabase: async (_s, d) => writeFile(d, "snapshot") })
+    await writeEntry(root, "backend-data/tiancode.db", "live database")
+    const name = await backups.backupNow()
+    if (!name) throw new Error("expected a backup")
+
+    await backups.scheduleRestore(name)
+    // Nothing is copied while the app (and its server) is still running.
+    expect(await readFile(join(root, "backend-data", "tiancode.db"), "utf8")).toBe("live database")
+    await writeEntry(root, "backend-data/tiancode.db-wal", "wal of the running server")
+
+    expect(await backups.applyPendingRestore()).toBe(name)
+    expect(await readFile(join(root, "backend-data", "tiancode.db"), "utf8")).toBe("snapshot")
+    expect(await Bun.file(join(root, "backend-data", "tiancode.db-wal")).exists()).toBe(false)
+    // The marker is consumed: the next start does not restore again.
+    expect(await backups.applyPendingRestore()).toBeUndefined()
+  })
+
+  test("refuses to schedule a backup that does not exist", async () => {
+    const root = await userData()
+    await expect(createBackupService(root).scheduleRestore("2026-01-01T00-00-00")).rejects.toThrow("Backup not found")
+  })
 })

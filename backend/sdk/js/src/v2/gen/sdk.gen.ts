@@ -9,6 +9,8 @@ import type {
   AppAgentsDeleteErrors,
   AppAgentsDeleteResponses,
   AppAgentsErrors,
+  AppAgentsGenerateErrors,
+  AppAgentsGenerateResponses,
   AppAgentsResponses,
   AppAgentsUpdateErrors,
   AppAgentsUpdateResponses,
@@ -29,6 +31,8 @@ import type {
   CommandListErrors,
   CommandListResponses,
   Config as Config3,
+  ConfigAgentResetErrors,
+  ConfigAgentResetResponses,
   ConfigGetErrors,
   ConfigGetResponses,
   ConfigProvidersErrors,
@@ -37,6 +41,7 @@ import type {
   ConfigUpdateResponses,
   ConnectionProvider,
   ConnectionsUpdateInput,
+  DecisionClassifyInput,
   EventSubscribeResponses,
   EventTuiCommandExecute,
   EventTuiPromptAppend,
@@ -51,6 +56,10 @@ import type {
   ExperimentalConsoleSwitchOrgResponses,
   ExperimentalControlPlaneMoveSessionErrors,
   ExperimentalControlPlaneMoveSessionResponses,
+  ExperimentalMemoryGetErrors,
+  ExperimentalMemoryGetResponses,
+  ExperimentalMemoryReplaceErrors,
+  ExperimentalMemoryReplaceResponses,
   ExperimentalProjectCopyGenerateNameErrors,
   ExperimentalProjectCopyGenerateNameResponses,
   ExperimentalPromptOptimizeErrors,
@@ -105,6 +114,8 @@ import type {
   GithubReposResponses,
   GithubStatusErrors,
   GithubStatusResponses,
+  GlobalConfigAgentResetErrors,
+  GlobalConfigAgentResetResponses,
   GlobalConfigGetErrors,
   GlobalConfigGetResponses,
   GlobalConfigUpdateErrors,
@@ -117,12 +128,36 @@ import type {
   GlobalConnectionsTestResponses,
   GlobalConnectionsUpdateErrors,
   GlobalConnectionsUpdateResponses,
+  GlobalDecisionCancelErrors,
+  GlobalDecisionCancelResponses,
+  GlobalDecisionClassifyErrors,
+  GlobalDecisionClassifyResponses,
+  GlobalDecisionInstallErrors,
+  GlobalDecisionInstallResponses,
+  GlobalDecisionRemoveErrors,
+  GlobalDecisionRemoveResponses,
+  GlobalDecisionStatusErrors,
+  GlobalDecisionStatusResponses,
   GlobalDisposeErrors,
   GlobalDisposeResponses,
   GlobalEventErrors,
   GlobalEventResponses,
   GlobalHealthErrors,
   GlobalHealthResponses,
+  GlobalMarketplaceCatalogErrors,
+  GlobalMarketplaceCatalogResponses,
+  GlobalMarketplaceConnectorsErrors,
+  GlobalMarketplaceConnectorsResponses,
+  GlobalMarketplaceIconErrors,
+  GlobalMarketplaceIconResponses,
+  GlobalMarketplaceInstalledErrors,
+  GlobalMarketplaceInstalledResponses,
+  GlobalMarketplaceInstallErrors,
+  GlobalMarketplaceInstallResponses,
+  GlobalMarketplaceSearchErrors,
+  GlobalMarketplaceSearchResponses,
+  GlobalMarketplaceUninstallErrors,
+  GlobalMarketplaceUninstallResponses,
   GlobalUpgradeErrors,
   GlobalUpgradeResponses,
   InstanceDisposeErrors,
@@ -130,6 +165,7 @@ import type {
   LocationRef,
   LspStatusErrors,
   LspStatusResponses,
+  MarketplaceInstallInput,
   McpAddErrors,
   McpAddResponses,
   McpAuthAuthenticateErrors,
@@ -150,24 +186,41 @@ import type {
   McpRemoveResponses,
   McpStatusErrors,
   McpStatusResponses,
+  MemoryReplaceInput,
   ModelhubCancelErrors,
   ModelhubCancelResponses,
+  ModelhubDeleteLocalErrors,
+  ModelhubDeleteLocalResponses,
   ModelhubDownloadErrors,
   ModelhubDownloadResponses,
   ModelhubDownloadsErrors,
   ModelhubDownloadsResponses,
+  ModelhubEngineDefaultsErrors,
+  ModelhubEngineDefaultsResponses,
+  ModelhubEngineDefaultsSetErrors,
+  ModelhubEngineDefaultsSetResponses,
   ModelhubEngineErrors,
+  ModelhubEngineLogsErrors,
+  ModelhubEngineLogsResponses,
   ModelhubEngineResponses,
   ModelhubEngineStartErrors,
   ModelhubEngineStartResponses,
   ModelhubEngineStopErrors,
   ModelhubEngineStopResponses,
+  ModelhubEstimateErrors,
+  ModelhubEstimateResponses,
   ModelhubFilesErrors,
   ModelhubFilesResponses,
+  ModelhubForgetErrors,
+  ModelhubForgetResponses,
+  ModelhubLocalErrors,
+  ModelhubLocalResponses,
   ModelhubRuntimesErrors,
   ModelhubRuntimesResponses,
   ModelhubSearchErrors,
   ModelhubSearchResponses,
+  ModelhubSetDirErrors,
+  ModelhubSetDirResponses,
   ModelhubSystemErrors,
   ModelhubSystemResponses,
   ModelRef,
@@ -190,6 +243,12 @@ import type {
   PermissionRuleset,
   PermissionV2Reply,
   PermissionV2Source,
+  PreviewAgentDemandErrors,
+  PreviewAgentDemandResponses,
+  PreviewAgentPendingErrors,
+  PreviewAgentPendingResponses,
+  PreviewAgentResultErrors,
+  PreviewAgentResultResponses,
   PreviewLogsErrors,
   PreviewLogsResponses,
   PreviewRestartErrors,
@@ -728,6 +787,47 @@ export class Agents extends HeyApiClient {
   }
 
   /**
+   * Draft an agent with a model
+   *
+   * Ask a model to draft an agent identifier, when-to-use line and system prompt from a plain description. Nothing is written to disk: the caller reviews the draft and then calls create.
+   */
+  public generate<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      description?: string
+      providerID?: string
+      modelID?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "description" },
+            { in: "body", key: "providerID" },
+            { in: "body", key: "modelID" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<AppAgentsGenerateResponses, AppAgentsGenerateErrors, ThrowOnError>({
+      url: "/agent/generate",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
    * Delete an agent
    *
    * Remove an agent definition file and reload the agent list.
@@ -1246,11 +1346,88 @@ export class Resource extends HeyApiClient {
   }
 }
 
+export class Memory extends HeyApiClient {
+  /**
+   * Read long-term memory
+   *
+   * USER.md (all projects) and this project's MEMORY.md, with their paths and size limits.
+   */
+  public get<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      ExperimentalMemoryGetResponses,
+      ExperimentalMemoryGetErrors,
+      ThrowOnError
+    >({
+      url: "/experimental/memory",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Edit long-term memory
+   *
+   * Replace USER.md or this project's MEMORY.md with the given text; an empty text clears it.
+   */
+  public replace<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      memoryReplaceInput?: MemoryReplaceInput
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { key: "memoryReplaceInput", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).put<
+      ExperimentalMemoryReplaceResponses,
+      ExperimentalMemoryReplaceErrors,
+      ThrowOnError
+    >({
+      url: "/experimental/memory",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+}
+
 export class Prompt extends HeyApiClient {
   /**
    * Stream optimized prompt
    *
-   * Stream an AI-enhanced version of a prompt tailored for AI coding assistants.
+   * Stream an AI-enhanced version of a prompt tailored for AI coding assistants. The body is the optimized prompt as plain text. With `heartbeat: true` it also carries U+0001 liveness bytes while the model has produced no text yet, which the caller must strip; without it, nothing but the answer.
    */
   public optimize<ThrowOnError extends boolean = false>(
     parameters?: {
@@ -1633,6 +1810,11 @@ export class Experimental extends HeyApiClient {
     return (this._resource ??= new Resource({ client: this.client }))
   }
 
+  private _memory?: Memory
+  get memory(): Memory {
+    return (this._memory ??= new Memory({ client: this.client }))
+  }
+
   private _prompt?: Prompt
   get prompt(): Prompt {
     return (this._prompt ??= new Prompt({ client: this.client }))
@@ -1646,6 +1828,42 @@ export class Experimental extends HeyApiClient {
   private _workspace?: Workspace
   get workspace(): Workspace {
     return (this._workspace ??= new Workspace({ client: this.client }))
+  }
+}
+
+export class Agent extends HeyApiClient {
+  /**
+   * Reset agent overrides globally
+   *
+   * Remove an agent's overrides from the global configuration, restoring its defaults.
+   */
+  public reset<ThrowOnError extends boolean = false>(
+    parameters: {
+      name: string
+      fields?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "name" },
+            { in: "query", key: "fields" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).delete<
+      GlobalConfigAgentResetResponses,
+      GlobalConfigAgentResetErrors,
+      ThrowOnError
+    >({
+      url: "/global/config/agent/{name}",
+      ...options,
+      ...params,
+    })
   }
 }
 
@@ -1684,6 +1902,11 @@ export class Config extends HeyApiClient {
         ...params.headers,
       },
     })
+  }
+
+  private _agent?: Agent
+  get agent(): Agent {
+    return (this._agent ??= new Agent({ client: this.client }))
   }
 }
 
@@ -1787,6 +2010,226 @@ export class Connections extends HeyApiClient {
   }
 }
 
+export class Decision extends HeyApiClient {
+  /**
+   * Remove the local decision model
+   *
+   * Unload the model and delete its files.
+   */
+  public remove<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).delete<
+      GlobalDecisionRemoveResponses,
+      GlobalDecisionRemoveErrors,
+      ThrowOnError
+    >({ url: "/global/decision", ...options })
+  }
+
+  /**
+   * Local decision model status
+   *
+   * Whether the offline laya model is available, downloading, installed and loaded.
+   */
+  public status<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).get<
+      GlobalDecisionStatusResponses,
+      GlobalDecisionStatusErrors,
+      ThrowOnError
+    >({ url: "/global/decision", ...options })
+  }
+
+  /**
+   * Download the local decision model
+   *
+   * Start downloading the pinned laya model (about 360 MB) in the background.
+   */
+  public install<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).post<
+      GlobalDecisionInstallResponses,
+      GlobalDecisionInstallErrors,
+      ThrowOnError
+    >({ url: "/global/decision/install", ...options })
+  }
+
+  /**
+   * Cancel the model download
+   *
+   * Stop a running download; the partial file is kept so a later download resumes.
+   */
+  public cancel<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).post<
+      GlobalDecisionCancelResponses,
+      GlobalDecisionCancelErrors,
+      ThrowOnError
+    >({ url: "/global/decision/cancel", ...options })
+  }
+
+  /**
+   * Classify a text locally
+   *
+   * Answer one of Tiancode's built-in questions about a text with the offline laya model.
+   */
+  public classify<ThrowOnError extends boolean = false>(
+    parameters?: {
+      decisionClassifyInput?: DecisionClassifyInput
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ key: "decisionClassifyInput", map: "body" }] }])
+    return (options?.client ?? this.client).post<
+      GlobalDecisionClassifyResponses,
+      GlobalDecisionClassifyErrors,
+      ThrowOnError
+    >({
+      url: "/global/decision/classify",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+}
+
+export class Marketplace extends HeyApiClient {
+  /**
+   * Discover catalog
+   *
+   * MCP servers, Claude Code and Codex plugins and skills from the public catalogs Tiancode mirrors, refreshed every few hours.
+   */
+  public catalog<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).get<
+      GlobalMarketplaceCatalogResponses,
+      GlobalMarketplaceCatalogErrors,
+      ThrowOnError
+    >({ url: "/global/marketplace", ...options })
+  }
+
+  /**
+   * App connectors
+   *
+   * The connectors Claude and Codex offer whose MCP server any client can reach.
+   */
+  public connectors<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).get<
+      GlobalMarketplaceConnectorsResponses,
+      GlobalMarketplaceConnectorsErrors,
+      ThrowOnError
+    >({ url: "/global/marketplace/connectors", ...options })
+  }
+
+  /**
+   * Search the MCP registry
+   *
+   * Searches the official MCP Registry by server name.
+   */
+  public search<ThrowOnError extends boolean = false>(
+    parameters: {
+      q: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "q" }] }])
+    return (options?.client ?? this.client).get<
+      GlobalMarketplaceSearchResponses,
+      GlobalMarketplaceSearchErrors,
+      ThrowOnError
+    >({
+      url: "/global/marketplace/search",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Logo of a catalog site
+   *
+   * The icon a site in the catalog publishes, fetched and cached by the server.
+   */
+  public icon<ThrowOnError extends boolean = false>(
+    parameters: {
+      domain: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "domain" }] }])
+    return (options?.client ?? this.client).get<
+      GlobalMarketplaceIconResponses,
+      GlobalMarketplaceIconErrors,
+      ThrowOnError
+    >({
+      url: "/global/marketplace/icon",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Uninstall a plugin
+   *
+   * Removes everything a plugin installed from Discover added.
+   */
+  public uninstall<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "id" }] }])
+    return (options?.client ?? this.client).delete<
+      GlobalMarketplaceUninstallResponses,
+      GlobalMarketplaceUninstallErrors,
+      ThrowOnError
+    >({
+      url: "/global/marketplace/plugins",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Installed plugins
+   *
+   * Claude Code and Codex plugins installed from Discover, with what each one added.
+   */
+  public installed<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).get<
+      GlobalMarketplaceInstalledResponses,
+      GlobalMarketplaceInstalledErrors,
+      ThrowOnError
+    >({ url: "/global/marketplace/plugins", ...options })
+  }
+
+  /**
+   * Install a plugin
+   *
+   * Downloads a Claude Code or Codex plugin and adds its skills, commands, sub-agents and MCP servers to the global config.
+   */
+  public install<ThrowOnError extends boolean = false>(
+    parameters?: {
+      marketplaceInstallInput?: MarketplaceInstallInput
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ key: "marketplaceInstallInput", map: "body" }] }])
+    return (options?.client ?? this.client).post<
+      GlobalMarketplaceInstallResponses,
+      GlobalMarketplaceInstallErrors,
+      ThrowOnError
+    >({
+      url: "/global/marketplace/plugins",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+}
+
 export class Global extends HeyApiClient {
   /**
    * Get health
@@ -1857,6 +2300,16 @@ export class Global extends HeyApiClient {
   get connections(): Connections {
     return (this._connections ??= new Connections({ client: this.client }))
   }
+
+  private _decision?: Decision
+  get decision(): Decision {
+    return (this._decision ??= new Decision({ client: this.client }))
+  }
+
+  private _marketplace?: Marketplace
+  get marketplace(): Marketplace {
+    return (this._marketplace ??= new Marketplace({ client: this.client }))
+  }
 }
 
 export class Event extends HeyApiClient {
@@ -1885,6 +2338,42 @@ export class Event extends HeyApiClient {
     )
     return (options?.client ?? this.client).sse.get<EventSubscribeResponses, unknown, ThrowOnError>({
       url: "/event",
+      ...options,
+      ...params,
+    })
+  }
+}
+
+export class Agent2 extends HeyApiClient {
+  /**
+   * Reset agent overrides
+   *
+   * Remove an agent's overrides from the project configuration, restoring its defaults.
+   */
+  public reset<ThrowOnError extends boolean = false>(
+    parameters: {
+      name: string
+      directory?: string
+      workspace?: string
+      fields?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "name" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "query", key: "fields" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).delete<ConfigAgentResetResponses, ConfigAgentResetErrors, ThrowOnError>({
+      url: "/config/agent/{name}",
       ...options,
       ...params,
     })
@@ -1987,6 +2476,11 @@ export class Config2 extends HeyApiClient {
       ...options,
       ...params,
     })
+  }
+
+  private _agent?: Agent2
+  get agent(): Agent2 {
+    return (this._agent ??= new Agent2({ client: this.client }))
   }
 }
 
@@ -3686,6 +4180,107 @@ export class Modelhub extends HeyApiClient {
   }
 
   /**
+   * List local GGUF files
+   *
+   * Scan the models folder (and the legacy roots) for .gguf files and return each one with its GGUF header facts and the recommended load configuration for this machine.
+   */
+  public local<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<ModelhubLocalResponses, ModelhubLocalErrors, ThrowOnError>({
+      url: "/models/local",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Estimate a quantisation before downloading
+   *
+   * Read the remote GGUF header of a Hugging Face file and return the VRAM / RAM split, context and GPU layers this machine would use for it.
+   */
+  public estimate<ThrowOnError extends boolean = false>(
+    parameters: {
+      directory?: string
+      workspace?: string
+      model: string
+      file: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "query", key: "model" },
+            { in: "query", key: "file" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<ModelhubEstimateResponses, ModelhubEstimateErrors, ThrowOnError>({
+      url: "/models/estimate",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Change the models folder
+   *
+   * Switch the folder where models are stored and scanned, effective immediately (null restores the default).
+   */
+  public setDir<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      dir?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "dir" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<ModelhubSetDirResponses, ModelhubSetDirErrors, ThrowOnError>({
+      url: "/models/dir",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
    * Detect local runtimes
    *
    * Probe local inference runtimes (Ollama, LM Studio) and report whether they are available on this machine.
@@ -3785,6 +4380,114 @@ export class Modelhub extends HeyApiClient {
   }
 
   /**
+   * Forget a local model
+   *
+   * Remove a deleted local model from the provider registry in the project and global config, drop the local engine provider when it is left empty, clear the default model when it pointed at the removed entry, and prune empty model directories.
+   */
+  public forget<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      model?: string
+      file?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "model" },
+            { in: "body", key: "file" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<ModelhubForgetResponses, ModelhubForgetErrors, ThrowOnError>({
+      url: "/models/forget",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Delete a local model file
+   *
+   * Delete one .gguf file by its exact path (only inside a models folder), drop its download record, and stop the engine first when it is serving that file.
+   */
+  public deleteLocal<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      path?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "path" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<ModelhubDeleteLocalResponses, ModelhubDeleteLocalErrors, ThrowOnError>(
+      {
+        url: "/models/local/delete",
+        ...options,
+        ...params,
+        headers: {
+          "Content-Type": "application/json",
+          ...options?.headers,
+          ...params.headers,
+        },
+      },
+    )
+  }
+
+  /**
+   * Read the engine log
+   *
+   * The last lines llama-server wrote to stderr, which explain a failed or crashed start.
+   */
+  public engineLogs<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<ModelhubEngineLogsResponses, ModelhubEngineLogsErrors, ThrowOnError>({
+      url: "/models/engine/logs",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
    * Cancel a model download
    *
    * Cancel a download job and remove its partial .part file.
@@ -3860,6 +4563,27 @@ export class Modelhub extends HeyApiClient {
       gpuLayers?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
       contextSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
       port?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      batchSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      flashAttention?: boolean
+      kvCacheType?: "f16" | "q8_0" | "q4_0"
+      keepInMemory?: boolean
+      useMmap?: boolean
+      seed?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      threads?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      ropeFrequencyBase?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      ropeFrequencyScale?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      kvOffload?: boolean
+      parallel?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      vramBudget?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      ramBudget?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      cpuBudget?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      placement?: "auto" | "gpu" | "hybrid" | "cpu"
+      idleUnloadMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      ubatchSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      threadsBatch?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      nCpuMoe?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      loadTimeoutMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      auto?: boolean
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -3875,6 +4599,27 @@ export class Modelhub extends HeyApiClient {
             { in: "body", key: "gpuLayers" },
             { in: "body", key: "contextSize" },
             { in: "body", key: "port" },
+            { in: "body", key: "batchSize" },
+            { in: "body", key: "flashAttention" },
+            { in: "body", key: "kvCacheType" },
+            { in: "body", key: "keepInMemory" },
+            { in: "body", key: "useMmap" },
+            { in: "body", key: "seed" },
+            { in: "body", key: "threads" },
+            { in: "body", key: "ropeFrequencyBase" },
+            { in: "body", key: "ropeFrequencyScale" },
+            { in: "body", key: "kvOffload" },
+            { in: "body", key: "parallel" },
+            { in: "body", key: "vramBudget" },
+            { in: "body", key: "ramBudget" },
+            { in: "body", key: "cpuBudget" },
+            { in: "body", key: "placement" },
+            { in: "body", key: "idleUnloadMinutes" },
+            { in: "body", key: "ubatchSize" },
+            { in: "body", key: "threadsBatch" },
+            { in: "body", key: "nCpuMoe" },
+            { in: "body", key: "loadTimeoutMinutes" },
+            { in: "body", key: "auto" },
           ],
         },
       ],
@@ -3891,6 +4636,127 @@ export class Modelhub extends HeyApiClient {
         },
       },
     )
+  }
+
+  /**
+   * Get default load options
+   *
+   * The load options (automatic configuration flag and manual knobs) used whenever the engine starts without explicit values, e.g. on demand from the chat.
+   */
+  public engineDefaults<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      ModelhubEngineDefaultsResponses,
+      ModelhubEngineDefaultsErrors,
+      ThrowOnError
+    >({
+      url: "/models/engine/defaults",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Save default load options
+   *
+   * Persist the load options chosen in Settings so every engine start, including the automatic one from the chat, uses them.
+   */
+  public engineDefaultsSet<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      auto?: boolean
+      gpuLayers?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      contextSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      batchSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      flashAttention?: boolean
+      kvCacheType?: "f16" | "q8_0" | "q4_0"
+      keepInMemory?: boolean
+      useMmap?: boolean
+      seed?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      threads?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      ropeFrequencyBase?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      ropeFrequencyScale?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      kvOffload?: boolean
+      parallel?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      vramBudget?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      ramBudget?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      cpuBudget?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      placement?: "auto" | "gpu" | "hybrid" | "cpu"
+      idleUnloadMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      ubatchSize?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      threadsBatch?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      nCpuMoe?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      loadTimeoutMinutes?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      lightweight?: "auto" | "always" | "never"
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "auto" },
+            { in: "body", key: "gpuLayers" },
+            { in: "body", key: "contextSize" },
+            { in: "body", key: "batchSize" },
+            { in: "body", key: "flashAttention" },
+            { in: "body", key: "kvCacheType" },
+            { in: "body", key: "keepInMemory" },
+            { in: "body", key: "useMmap" },
+            { in: "body", key: "seed" },
+            { in: "body", key: "threads" },
+            { in: "body", key: "ropeFrequencyBase" },
+            { in: "body", key: "ropeFrequencyScale" },
+            { in: "body", key: "kvOffload" },
+            { in: "body", key: "parallel" },
+            { in: "body", key: "vramBudget" },
+            { in: "body", key: "ramBudget" },
+            { in: "body", key: "cpuBudget" },
+            { in: "body", key: "placement" },
+            { in: "body", key: "idleUnloadMinutes" },
+            { in: "body", key: "ubatchSize" },
+            { in: "body", key: "threadsBatch" },
+            { in: "body", key: "nCpuMoe" },
+            { in: "body", key: "loadTimeoutMinutes" },
+            { in: "body", key: "lightweight" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      ModelhubEngineDefaultsSetResponses,
+      ModelhubEngineDefaultsSetErrors,
+      ThrowOnError
+    >({
+      url: "/models/engine/defaults",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
   }
 
   /**
@@ -4593,6 +5459,111 @@ export class Preview extends HeyApiClient {
       url: "/preview/logs",
       ...options,
       ...params,
+    })
+  }
+
+  /**
+   * Acciones pendientes del agente sobre la vista previa
+   */
+  public agentPending<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      wait?: string
+      surface?: string
+      capable?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "query", key: "wait" },
+            { in: "query", key: "surface" },
+            { in: "query", key: "capable" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<PreviewAgentPendingResponses, PreviewAgentPendingErrors, ThrowOnError>({
+      url: "/preview/agent/pending",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Demanda del agente sobre la vista previa
+   */
+  public agentDemand<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      capable?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "query", key: "capable" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<PreviewAgentDemandResponses, PreviewAgentDemandErrors, ThrowOnError>({
+      url: "/preview/agent/demand",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Devuelve el resultado de una acción del agente
+   */
+  public agentResult<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      id?: string
+      ok?: boolean
+      output?: string
+      requeue?: boolean
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "id" },
+            { in: "body", key: "ok" },
+            { in: "body", key: "output" },
+            { in: "body", key: "requeue" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<PreviewAgentResultResponses, PreviewAgentResultErrors, ThrowOnError>({
+      url: "/preview/agent/result",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
     })
   }
 }
@@ -6458,7 +7429,7 @@ export class Location extends HeyApiClient {
   }
 }
 
-export class Agent extends HeyApiClient {
+export class Agent3 extends HeyApiClient {
   /**
    * List agents
    *
@@ -8397,9 +9368,9 @@ export class V2 extends HeyApiClient {
     return (this._location ??= new Location({ client: this.client }))
   }
 
-  private _agent?: Agent
-  get agent(): Agent {
-    return (this._agent ??= new Agent({ client: this.client }))
+  private _agent?: Agent3
+  get agent(): Agent3 {
+    return (this._agent ??= new Agent3({ client: this.client }))
   }
 
   private _session?: Session3

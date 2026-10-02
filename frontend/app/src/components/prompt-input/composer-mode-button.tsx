@@ -5,6 +5,7 @@ import { useLanguage } from "@/context/language"
 import { useSDK } from "@/context/sdk"
 import { useServerSDK } from "@/context/server-sdk"
 import { usePermission } from "@/context/permission"
+import { useConfirmSkipPermissions } from "@/components/dialogs/dialog-skip-permissions"
 import { showToast } from "@/utils/toast"
 import {
   applyComposerMode,
@@ -24,6 +25,7 @@ export function ComposerModeButton(props: {
   const server = useServerSDK()
   const language = useLanguage()
   const permissions = usePermission()
+  const confirmSkip = useConfirmSkipPermissions()
   const [state, setState] = createStore({ saving: false })
   const mode = () =>
     getComposerMode(sdk().scope, sdk().directory, props.sessionID)?.mode ??
@@ -36,6 +38,7 @@ export function ComposerModeButton(props: {
         : "auto")
   const select = async (value: ComposerMode) => {
     const previous = mode()
+    if (value === "skip" && previous !== "skip" && !(await confirmSkip(sdk().directory))) return
     setState("saving", true)
     try {
       if (props.sessionID)

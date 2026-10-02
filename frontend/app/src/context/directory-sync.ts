@@ -147,6 +147,7 @@ export const createDirSyncContext = (
     },
     mcp: {
       toggle: (name: string) => serverSync.mcp.toggle(directory, name),
+      setEnabled: (name: string, enabled: boolean) => serverSync.mcp.setEnabled(directory, name, enabled),
     },
     absolute,
     get directory() {

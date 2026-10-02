@@ -86,10 +86,11 @@ export function soundSrc(id: string | undefined) {
   return next
 }
 
-export function playSound(src: string | undefined) {
+export function playSound(src: string | undefined, volume = 1) {
   if (typeof Audio === "undefined") return
   if (!src) return
   const audio = new Audio(src)
+  audio.volume = Math.min(1, Math.max(0, volume))
   audio.play().catch(() => undefined)
   return () => {
     audio.pause()
@@ -97,6 +98,6 @@ export function playSound(src: string | undefined) {
   }
 }
 
-export function playSoundById(id: string | undefined) {
-  return soundSrc(id).then((src) => playSound(src))
+export function playSoundById(id: string | undefined, volume = 1) {
+  return soundSrc(id).then((src) => playSound(src, volume))
 }

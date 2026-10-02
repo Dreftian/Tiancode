@@ -302,6 +302,8 @@ describe("HttpApi Server.listen", () => {
     expect(output).not.toContain("Sent HTTP response")
   })
 
+  // Boots a real listener and loads a plugin from disk before its own 5 s wait, so Bun's default
+  // 5 s per-test limit (bare `bun test` without the package script's --timeout) cut it short.
   test("plugin client requests reuse the listening server instance", async () => {
     await using tmp = await tmpdir({
       init: async (directory) => {
@@ -351,7 +353,7 @@ describe("HttpApi Server.listen", () => {
       if (previous === undefined) delete process.env.TIANCODE_DISABLE_DEFAULT_PLUGINS
       else process.env.TIANCODE_DISABLE_DEFAULT_PLUGINS = previous
     }
-  })
+  }, 20_000)
 
   test("port 0 prefers 4096 when free", async () => {
     if (!(await isPortFree(4096))) return

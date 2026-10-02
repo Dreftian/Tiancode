@@ -101,14 +101,27 @@ export function redactConfigInfo(info: ConfigV1.Info): ConfigV1.Info {
   }
 }
 
+// Only the sections the patch carries: an explicit `provider: undefined` means "delete" to the
+// config merge, so adding it to every partial patch erased the user's providers and MCP servers.
 export function unredactConfigInfo(incoming: ConfigV1.Info, existing: ConfigV1.Info): ConfigV1.Info {
   return {
     ...incoming,
-    provider: mapSectionWithExisting(
-      incoming.provider as Dict | undefined,
-      existing.provider as Dict | undefined,
-    ) as ConfigV1.Info["provider"],
-    mcp: mapSectionWithExisting(incoming.mcp as Dict | undefined, existing.mcp as Dict | undefined) as ConfigV1.Info["mcp"],
+    ...(incoming.provider === undefined
+      ? {}
+      : {
+          provider: mapSectionWithExisting(
+            incoming.provider as Dict | undefined,
+            existing.provider as Dict | undefined,
+          ) as ConfigV1.Info["provider"],
+        }),
+    ...(incoming.mcp === undefined
+      ? {}
+      : {
+          mcp: mapSectionWithExisting(
+            incoming.mcp as Dict | undefined,
+            existing.mcp as Dict | undefined,
+          ) as ConfigV1.Info["mcp"],
+        }),
   }
 }
 

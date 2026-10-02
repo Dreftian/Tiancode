@@ -174,6 +174,12 @@ export const ModelEngineDefaults = Schema.Struct({
   cpuBudget: Schema.optional(Schema.Number),
   placement: Schema.optional(Schema.Literals(["auto", "gpu", "hybrid", "cpu"])),
   idleUnloadMinutes: Schema.optional(Schema.Number),
+  ubatchSize: Schema.optional(Schema.Number),
+  threadsBatch: Schema.optional(Schema.Number),
+  nCpuMoe: Schema.optional(Schema.Number),
+  loadTimeoutMinutes: Schema.optional(Schema.Number),
+  /** Compact chat payload for local models. */
+  lightweight: Schema.optional(Schema.Literals(["auto", "always", "never"])),
 })
 
 export const ModelFileEstimate = Schema.Struct({
@@ -238,6 +244,9 @@ export const ModelEngineStatus = Schema.Struct({
       useMmap: Schema.optional(Schema.Boolean),
       kvOffload: Schema.optional(Schema.Boolean),
       parallel: Schema.optional(Schema.Number),
+      ubatchSize: Schema.optional(Schema.Number),
+      threadsBatch: Schema.optional(Schema.Number),
+      nCpuMoe: Schema.optional(Schema.Number),
     }),
   ),
   lastActivityAt: Schema.optional(Schema.Number),
@@ -267,8 +276,26 @@ export const ModelEngineStartInput = Schema.Struct({
   cpuBudget: Schema.optional(Schema.Number),
   placement: Schema.optional(Schema.Literals(["auto", "gpu", "hybrid", "cpu"])),
   idleUnloadMinutes: Schema.optional(Schema.Number),
+  ubatchSize: Schema.optional(Schema.Number),
+  threadsBatch: Schema.optional(Schema.Number),
+  nCpuMoe: Schema.optional(Schema.Number),
+  loadTimeoutMinutes: Schema.optional(Schema.Number),
   /** Let the server derive context, GPU layers, threads and KV cache from the GGUF header + hardware. */
   auto: Schema.optional(Schema.Boolean),
+})
+
+export const ModelEngineLogs = Schema.Struct({
+  lines: Schema.Array(Schema.String),
+})
+
+export const ModelDeleteLocalInput = Schema.Struct({
+  path: Schema.String,
+})
+
+export const ModelDeleteLocalResult = Schema.Struct({
+  deleted: Schema.Boolean,
+  /** The engine was serving this file and was stopped first. */
+  stopped: Schema.Boolean,
 })
 
 export const ModelHubApi = HttpApi.make("model-hub")
@@ -407,6 +434,28 @@ export const ModelHubApi = HttpApi.make("model-hub")
             summary: "Forget a local model",
             description:
               "Remove a deleted local model from the provider registry in the project and global config, drop the local engine provider when it is left empty, clear the default model when it pointed at the removed entry, and prune empty model directories.",
+          }),
+        ),
+        HttpApiEndpoint.post("deleteLocal", "/models/local/delete", {
+          query: WorkspaceRoutingQuery,
+          payload: ModelDeleteLocalInput,
+          success: described(ModelDeleteLocalResult, "Deleted model file"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "modelhub.deleteLocal",
+            summary: "Delete a local model file",
+            description:
+              "Delete one .gguf file by its exact path (only inside a models folder), drop its download record, and stop the engine first when it is serving that file.",
+          }),
+        ),
+        HttpApiEndpoint.get("engineLogs", "/models/engine/logs", {
+          query: WorkspaceRoutingQuery,
+          success: described(ModelEngineLogs, "Recent llama-server output"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "modelhub.engineLogs",
+            summary: "Read the engine log",
+            description: "The last lines llama-server wrote to stderr, which explain a failed or crashed start.",
           }),
         ),
         HttpApiEndpoint.delete("cancel", "/models/downloads/:id", {

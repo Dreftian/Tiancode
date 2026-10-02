@@ -8,7 +8,14 @@ import { useSettings } from "@/context/settings"
 import { useProviders } from "@/hooks/use-providers"
 import { Persist, persisted } from "@/utils/persist"
 import { hasCustomAgent, primaryAgents, resolveAgent } from "./local-agent"
-import { cycleModelVariant, getConfiguredAgentVariant, resolveModelVariant } from "./model-variant"
+import {
+  cycleModelVariant,
+  DEFAULT_VARIANT,
+  getConfiguredAgentVariant,
+  nextCycleIndex,
+  parseModelID,
+  resolveVariant,
+} from "./model-variant"
 import { useSDK } from "./sdk"
 import { useSync } from "./sync"
 import { useServerSDK } from "./server-sdk"
@@ -20,6 +27,8 @@ type State = {
   agent?: string
   model?: ModelKey
   variant?: string | null
+  // What the user picked for each agent in this session, restored when switching back to it.
+  choices?: Record<string, { model?: ModelKey; variant?: string | null } | undefined>
 }
 
 type Saved = {
@@ -149,11 +158,9 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
     })
 
     const configuredModel = () => {
-      const configured = sync().data.config.model
-      if (!configured) return
-      const [providerID, modelID] = configured.split("/")
-      const model = { providerID, modelID }
-      if (validModel(model)) return model
+      // "openrouter/anthropic/claude-sonnet-4.5": the model id keeps every slash after the first.
+      const model = parseModelID(sync().data.config.model)
+      if (model && validModel(model)) return model
     }
 
     const recentModel = () => {
@@ -202,10 +209,14 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
             variant: item.variant ?? null,
           })
           const prev = scope()
+          // Back to an agent: restore what the user picked for it; otherwise its own model, or
+          // the session's current one for an agent without a configured model.
+          const remembered = prev?.choices?.[item.name]
           const next = {
             agent: item.name,
-            model: item.model ?? prev?.model,
-            variant: item.variant ?? prev?.variant,
+            model: remembered?.model ?? item.model ?? prev?.model,
+            variant: remembered ? remembered.variant : item.variant,
+            choices: prev?.choices,
           } satisfies State
           const session = id()
           if (session) {
@@ -289,13 +300,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         if (!item) return
 
         const index = items.findIndex((entry) => entry?.provider.id === item.provider.id && entry?.id === item.id)
-        if (index === -1) return
-
-        let next = index + direction
-        if (next < 0) next = items.length - 1
-        if (next >= items.length) next = 0
-
-        const entry = items[next]
+        const entry = items[nextCycleIndex(index, items.length, direction)]
         if (!entry) return
         model.set({ providerID: entry.provider.id, modelID: entry.id })
       },
@@ -308,7 +313,12 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
               model: item ?? null,
               variant: selected(),
             })
-            write({ model: item })
+            // A different model starts from its own remembered effort, never the previous model's.
+            const previous = current()
+            const same = !!previous && !!item && previous.provider.id === item.providerID && previous.id === item.modelID
+            const agentName = agent.current()?.name
+            const choices = agentName ? { ...scope()?.choices, [agentName]: { model: item, variant: same ? selected() : undefined } } : scope()?.choices
+            write(same ? { model: item, choices } : { model: item, variant: undefined, choices })
             if (!item) return
             models.setVisibility(item, true)
             if (!options?.recent) return
@@ -326,16 +336,13 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         configured,
         selected,
         current() {
-          const resolved = resolveModelVariant({
+          const model = current()
+          return resolveVariant({
             variants: this.list(),
             selected: this.selected(),
+            remembered: model ? models.variant.get({ providerID: model.provider.id, modelID: model.id }) : undefined,
             configured: this.configured(),
           })
-          if (resolved) return resolved
-          const model = current()
-          if (!model) return
-          const saved = models.variant.get({ providerID: model.provider.id, modelID: model.id })
-          if (saved && this.list().includes(saved)) return saved
         },
         list() {
           const item = current()
@@ -352,10 +359,13 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
                 model: model ? { providerID: model.provider.id, modelID: model.id } : null,
                 variant: value ?? null,
               })
-              write({ variant: value ?? null })
-              if (model) {
-                models.variant.set({ providerID: model.provider.id, modelID: model.id }, value ?? undefined)
-              }
+              const agentName = agent.current()?.name
+              const key = model ? { providerID: model.provider.id, modelID: model.id } : undefined
+              const choices = agentName
+                ? { ...scope()?.choices, [agentName]: { model: key, variant: value ?? null } }
+                : scope()?.choices
+              write({ variant: value ?? null, choices })
+              if (key) models.variant.set(key, value ?? DEFAULT_VARIANT)
             }),
           )
         },

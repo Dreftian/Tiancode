@@ -74,21 +74,36 @@ const layer = Layer.effect(
       }
       return Schema.decodeUnknownOption(Entry)(value)
     }
-    const persist = Effect.fn("McpAuth.persist")(function* (data: AuthData) {
+    // Entries this run cannot open (sealed with another credential key, e.g. one set aside after the
+    // profile's key became unreadable) are written back exactly as stored unless the update replaces
+    // or removes them; rebuilding the file from what decodes would lose those sign-ins for good.
+    const persist = Effect.fn("McpAuth.persist")(function* (
+      data: AuthData,
+      raw: Record<string, unknown> = {},
+      removed: ReadonlyArray<string> = [],
+    ) {
+      const kept = Record.filter(
+        raw,
+        (value, name) => !(name in data) && !removed.includes(name) && Option.isNone(decodeEntry(value)),
+      )
       const next = key === undefined ? data : Record.map(data, (entry) => seal(JSON.stringify(entry), key))
-      yield* fs.writeJson(filepath, next, 0o600).pipe(Effect.orDie)
+      yield* fs.writeJson(filepath, { ...kept, ...next }, 0o600).pipe(Effect.orDie)
     })
 
-    const read = Effect.fn("McpAuth.read")(function* () {
+    const readRaw = Effect.fn("McpAuth.readRaw")(function* () {
       return yield* fs.readJson(filepath).pipe(
-        Effect.map(
-          (data): AuthData =>
-            Record.filterMap(data as Record<string, unknown>, (value) =>
-              Result.fromOption(decodeEntry(value), () => undefined),
-            ) as AuthData,
+        Effect.map((data): Record<string, unknown> =>
+          typeof data === "object" && data !== null && !Array.isArray(data) ? (data as Record<string, unknown>) : {},
         ),
-        Effect.catch(() => Effect.succeed({} as AuthData)),
+        Effect.catch(() => Effect.succeed({} as Record<string, unknown>)),
       )
+    })
+
+    const decodeAll = (raw: Record<string, unknown>) =>
+      Record.filterMap(raw, (value) => Result.fromOption(decodeEntry(value), () => undefined)) as AuthData
+
+    const read = Effect.fn("McpAuth.read")(function* () {
+      return decodeAll(yield* readRaw())
     })
 
     // Migración única: con clave disponible, re-cifra las entradas que siguen
@@ -97,8 +112,10 @@ const layer = Layer.effect(
       if (key === undefined) return
       const raw = yield* fs.readJson(filepath).pipe(Effect.catch(() => Effect.succeed(undefined)))
       if (raw === undefined) return
-      if (Object.values(raw as Record<string, unknown>).some((value) => typeof value !== "string"))
-        yield* persist(yield* read())
+      if (Object.values(raw as Record<string, unknown>).some((value) => typeof value !== "string")) {
+        const stored = yield* readRaw()
+        yield* persist(decodeAll(stored), stored)
+      }
     })
     yield* migrateAtRest()
 
@@ -106,11 +123,15 @@ const layer = Layer.effect(
       return yield* read().pipe(flock.withLock(lockKey), Effect.orDie)
     })
 
-    const mutate = Effect.fn("McpAuth.mutate")(function* (update: (data: AuthData) => AuthData | undefined) {
+    const mutate = Effect.fn("McpAuth.mutate")(function* (
+      update: (data: AuthData) => AuthData | undefined,
+      removed: ReadonlyArray<string> = [],
+    ) {
       yield* Effect.gen(function* () {
-        const next = update(yield* read())
+        const stored = yield* readRaw()
+        const next = update(decodeAll(stored))
         if (!next) return
-        yield* persist(next)
+        yield* persist(next, stored, removed)
       }).pipe(flock.withLock(lockKey), Effect.orDie)
     })
 
@@ -135,11 +156,14 @@ const layer = Layer.effect(
     })
 
     const remove = Effect.fn("McpAuth.remove")(function* (mcpName: string) {
-      yield* mutate((data) => {
-        const next = { ...data }
-        delete next[mcpName]
-        return next
-      })
+      yield* mutate(
+        (data) => {
+          const next = { ...data }
+          delete next[mcpName]
+          return next
+        },
+        [mcpName],
+      )
     })
 
     const updateField = <K extends keyof Entry>(field: K, spanName: string) =>

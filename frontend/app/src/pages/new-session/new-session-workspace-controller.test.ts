@@ -3,6 +3,7 @@ import {
   normalizeNewSessionWorktree,
   resolveNewSessionBranch,
   resolveNewSessionWorktree,
+  workspaceDefaultSelection,
 } from "./new-session-workspace-controller"
 
 describe("new session workspace selection", () => {
@@ -24,6 +25,28 @@ describe("new session workspace selection", () => {
     expect(resolveNewSessionWorktree({ enabled: true, directory: "/project", projectWorktree: "/project" })).toBe(
       "main",
     )
+  })
+
+  test("the default environment decides when nothing is selected in the project root", () => {
+    expect(
+      resolveNewSessionWorktree({ enabled: true, directory: "/project", projectWorktree: "/project", fallback: "create" }),
+    ).toBe("create")
+    expect(
+      resolveNewSessionWorktree({
+        enabled: true,
+        directory: "/project/feature",
+        projectWorktree: "/project",
+        fallback: "create",
+      }),
+    ).toBe("/project/feature")
+  })
+
+  test("maps Settings > Default environment to a selection", () => {
+    expect(workspaceDefaultSelection("local", "workspace")).toBe("main")
+    expect(workspaceDefaultSelection("new")).toBe("create")
+    expect(workspaceDefaultSelection("last-used")).toBe("main")
+    expect(workspaceDefaultSelection("last-used", "local")).toBe("main")
+    expect(workspaceDefaultSelection("last-used", "workspace")).toBe("create")
   })
 
   test("normalizes main to the project root outside the main worktree", () => {

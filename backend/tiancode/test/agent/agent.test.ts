@@ -160,6 +160,39 @@ it.instance(
   },
 )
 
+it.instance(
+  "the user's permission rules apply to the specialist sub-agents",
+  () =>
+    Effect.gen(function* () {
+      const pentest = yield* load((svc) => svc.get("pentest"))
+      const fullstack = yield* load((svc) => svc.get("fullstack-coder"))
+      expect(evalPerm(pentest, "bash")).toBe("ask")
+      expect(evalPerm(fullstack, "bash")).toBe("ask")
+      expect(evalPerm(fullstack, "edit")).toBe("deny")
+    }),
+  { config: { permission: { bash: "ask", edit: "deny" } } },
+)
+
+it.instance(
+  "prompt_append adds instructions after a specialist's own prompt instead of replacing it",
+  () =>
+    Effect.gen(function* () {
+      const pentest = yield* load((svc) => svc.get("pentest"))
+      const build = yield* load((svc) => svc.get("build"))
+      const builtin = SPECIALISTS.find((specialist) => specialist.name === "pentest")!.prompt!
+      expect(pentest?.prompt).toBe(builtin)
+      expect(pentest?.promptAppend).toBe("Responde siempre en español.")
+      // An agent without a prompt of its own keeps none, so the provider's default still applies.
+      expect(build?.prompt).toBeUndefined()
+      expect(build?.promptAppend).toBe("Sé breve.")
+    }),
+  {
+    config: {
+      agent: { pentest: { prompt_append: "Responde siempre en español." }, build: { prompt_append: "Sé breve." } },
+    },
+  },
+)
+
 it.instance("explore agent denies edit and write", () =>
   Effect.gen(function* () {
     const explore = yield* load((svc) => svc.get("explore"))

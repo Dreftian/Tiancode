@@ -69,6 +69,10 @@ export function FormatError(input: unknown): string | undefined {
     ].join("\n")
   }
 
+  // ProviderNoProvidersError, ProviderNoModelsError: { message: string } with the next step in it
+  const noProviders = configData(input, "ProviderNoProvidersError") ?? configData(input, "ProviderNoModelsError")
+  if (noProviders) return stringField(noProviders, "message") ?? "No providers are available."
+
   // ProviderInitError: { providerID: string }
   const providerInit = configData(input, "ProviderInitError")
   if (providerInit) {

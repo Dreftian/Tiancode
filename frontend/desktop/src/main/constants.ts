@@ -7,9 +7,9 @@ export const CHANNEL: Channel = raw === "dev" || raw === "beta" || raw === "prod
 export const UPDATER_ENABLED = true
 
 // Which build this is: "github" for the installer published on GitHub, "local" for the
-// developer's own build in install/. The GitHub build uses a profile of its own so a fresh
-// download never inherits sessions, provider keys or the finished-onboarding flag of a local
-// install on the same machine.
+// developer's own build in install/. The GitHub build starts clean in a profile of its own on a
+// machine without Tiancode, but keeps using the local profile of an install it updates
+// (profile.ts), so an update never hides sessions, provider keys or settings.
 type Distribution = "local" | "github"
 const rawDistribution = import.meta.env.TIANCODE_DISTRIBUTION
 export const DISTRIBUTION: Distribution = rawDistribution === "github" ? "github" : "local"

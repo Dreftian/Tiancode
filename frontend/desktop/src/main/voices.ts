@@ -6,7 +6,7 @@ import type { ProgressInfo } from "@huggingface/transformers"
 import type { VoiceInfo, VoicesSpeakOptions, VoicesSpeakResult } from "../preload/types"
 import { write as writeLog } from "./logging"
 import { getStore } from "./store"
-import { ENABLED_VOICES_KEY, SELECTED_VOICE_KEY } from "./store-keys"
+import { SELECTED_VOICE_KEY } from "./store-keys"
 import { float32ToWav } from "./wav"
 import {
   PIPER_VOICES,
@@ -205,9 +205,8 @@ export function getVoicesStatus() {
       ...voice,
       downloaded:
         voice.engine === "piper" ? isPiperDownloaded(voice.id) : voice.engine === "kokoro-es" ? isKokoroEsDownloaded() : true,
-      enabled: isVoiceEnabled(voice.id),
     })),
-    selected: getSelectedVoice(),
+    selected: chosenVoice() ?? readyVoice(),
     ...(failure ? { error: failure } : {}),
   }
 }
@@ -224,9 +223,8 @@ export async function speakVoice(text: string, voiceId?: string, options?: Voice
   const normalized = typeof text === "string" ? text.replace(/\s+/g, " ").trim() : ""
   if (!normalized) return { error: "Text must be a non-empty string." }
   if (normalized.length > MAX_SPEECH_CHARS) return { error: "Text is too long to synthesize safely." }
-  const voice = resolveVoice(voiceId ?? getSelectedVoice())
+  const voice = resolveVoice(voiceId ?? readyVoice())
   if (!voice) return { error: `Unknown voice "${voiceId}".` }
-  if (!isVoiceEnabled(voice.id)) return { error: `Voice "${voice.id}" is disabled.` }
   if (options?.automatic && !isVoiceReadyForAutomaticSpeech(voice)) {
     return { error: "The selected local voice is not ready for automatic speech." }
   }
@@ -306,7 +304,6 @@ function wavResult(samples: Float32Array, sampleRate: number): VoicesSpeakResult
 export function selectVoice(voiceId: string) {
   const voice = resolveVoice(voiceId)
   if (!voice) return false
-  if (!isVoiceEnabled(voice.id)) setVoiceEnabled(voice.id, true)
   getStore().set(SELECTED_VOICE_KEY, voice.id)
   if (voice.engine === "piper" && !isPiperDownloaded(voice.id)) {
     void downloadPiperVoice(voice.id)
@@ -332,24 +329,8 @@ export async function deleteVoice(voiceId: string) {
   if (voice.engine === "kokoro-es") await deleteKokoroEs()
   else await deletePiperVoice(voice.id)
   // A deleted voice can no longer be selected; fall back to the first
-  // selectable voice so getSelectedVoice() never returns a broken id.
+  // selectable voice so the choice never names a voice that is gone.
   if (getStore().get(SELECTED_VOICE_KEY) === voice.id) {
-    const fallback = firstSelectableVoice()
-    getStore().set(SELECTED_VOICE_KEY, fallback ? fallback.id : VOICE_CATALOG[0].id)
-  }
-}
-
-export function setVoiceEnabled(voiceId: string, enabled: boolean) {
-  const voice = resolveVoice(voiceId)
-  if (!voice) return
-  const store = getStore()
-  // The key holds the ids of enabled voices; an absent key means "all
-  // enabled", so the first toggle materializes the full catalog.
-  const stored = store.get(ENABLED_VOICES_KEY)
-  const current = stored === undefined ? VOICE_CATALOG.map((entry) => entry.id) : readEnabledVoices(stored)
-  const next = enabled ? [...current, voice.id] : current.filter((id) => id !== voice.id)
-  store.set(ENABLED_VOICES_KEY, next)
-  if (!enabled && getStore().get(SELECTED_VOICE_KEY) === voice.id) {
     const fallback = firstSelectableVoice()
     getStore().set(SELECTED_VOICE_KEY, fallback ? fallback.id : VOICE_CATALOG[0].id)
   }
@@ -396,23 +377,25 @@ function reportProgress(payload: { progress: number; file?: string }) {
   }
 }
 
-function getSelectedVoice() {
+// The voice the user picked, even while it is still downloading: picking a voice that is not on
+// disk starts its download, and the choice must survive until the file lands.
+function chosenVoice() {
   const stored = getStore().get(SELECTED_VOICE_KEY)
-  if (typeof stored === "string") {
-    const voice = resolveVoice(stored)
-    if (voice && isSelectable(voice)) return stored
-  }
-  const fallback = firstSelectableVoice()
-  if (fallback) {
-    if (fallback.id !== stored) getStore().set(SELECTED_VOICE_KEY, fallback.id)
-    return fallback.id
-  }
-  return "ef_dora"
+  if (typeof stored !== "string") return undefined
+  return resolveVoice(stored)?.supported ? stored : undefined
+}
+
+// The voice synthesis uses now: the chosen one when it is ready, otherwise the first ready voice.
+// The fallback is never written back, so the choice is not lost while it downloads.
+function readyVoice() {
+  const chosen = chosenVoice()
+  if (chosen && isSelectable(resolveVoice(chosen))) return chosen
+  return firstSelectableVoice()?.id ?? "ef_dora"
 }
 
 function isSelectable(voice: VoiceInfo | undefined) {
   if (!voice) return false
-  if (!voice.supported || !isVoiceEnabled(voice.id)) return false
+  if (!voice.supported) return false
   if (voice.engine === "kokoro-es") return isKokoroEsDownloaded()
   return voice.engine === "kokoro" || isPiperDownloaded(voice.id)
 }
@@ -423,16 +406,6 @@ function firstSelectableVoice() {
   const anyFemale = VOICE_CATALOG.find((v) => v.gender === "female" && isSelectable(v))
   if (anyFemale) return anyFemale
   return VOICE_CATALOG.find(isSelectable)
-}
-
-function readEnabledVoices(value: unknown) {
-  return Array.isArray(value) ? value.filter((id): id is string => typeof id === "string") : []
-}
-
-function isVoiceEnabled(voiceId: string) {
-  const stored = getStore().get(ENABLED_VOICES_KEY)
-  if (stored === undefined) return true
-  return readEnabledVoices(stored).includes(voiceId)
 }
 
 function resolveVoice(id: string) {
@@ -457,6 +430,8 @@ export async function speakFishVoice(
   try {
     const response = await fetch("https://api.fish.audio/v1/tts", {
       method: "POST",
+      // A stalled connection must not hold the speech queue forever.
+      signal: AbortSignal.timeout(20000),
       headers: {
         Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",

@@ -1,4 +1,6 @@
-import { Component, createMemo, createSignal, Show } from "solid-js"
+import { Component, createMemo, createSignal, onCleanup, Show } from "solid-js"
+import { createStore } from "solid-js/store"
+import { createMediaQuery } from "@solid-primitives/media"
 import { Dialog } from "@tiancode-ai/ui/v2/dialog-v2"
 import { TabsV2 } from "@tiancode-ai/ui/v2/tabs-v2"
 import { Icon } from "@tiancode-ai/ui/icon"
@@ -13,13 +15,21 @@ import { SettingsSkillsV2 } from "./skills"
 import { SettingsSubAgentsV2 } from "./sub-agents"
 import { SettingsMcpPluginsV2 } from "./mcp-plugins"
 import { SettingsPetsV2 } from "./pets"
-import { SettingsConnectionsV2 } from "./connections"
-import { SettingsComputerUseV2 } from "./computer-use"
-import { SettingsGithubV2 } from "./github"
-import { SettingsIntelligenceV2 } from "./intelligence"
+import { SettingsConnectionsHubV2, type ConnectionsSection } from "./connections-hub"
+import {
+  COMPUTER_USE_SECTIONS,
+  LEGACY_COMPUTER_USE_SECTIONS,
+  SettingsComputerUseV2,
+  type ComputerUseSection,
+} from "./computer-use"
+import { INTELLIGENCE_SECTIONS, type IntelligenceSection, SettingsIntelligenceV2 } from "./intelligence"
 import { SettingsVoicesV2 } from "./voices"
 import "./settings-v2.css"
-import { SettingsServersV2 } from "./servers"
+import { SERVER_SECTIONS, SettingsServerHubV2, type ServerSection } from "./server-hub"
+import { SettingsNotificationsV2 } from "./notifications"
+import { SettingsAboutV2 } from "./about"
+import { SettingsSearchV2, revealSettingsRow } from "./search"
+import type { SettingsSearchEntry } from "./search-catalog"
 import { useDialog } from "@tiancode-ai/ui/context/dialog"
 import { useLayout } from "@/context/layout"
 import { useTabs } from "@/context/tabs"
@@ -70,22 +80,73 @@ const IconPets = () => (
   </svg>
 )
 
+const IconBell = () => (
+  <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 8a5 5 0 0110 0v3.5l1.5 2.5h-13L5 11.5V8zM8 16.5a2 2 0 004 0" />
+  </svg>
+)
+
+const IconAbout = () => (
+  <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="10" cy="10" r="7.5" />
+    <path d="M10 9v5M10 6.5v.01" />
+  </svg>
+)
+
+/**
+ * Where Settings opens. Besides a tab, callers may name a section: "data" (General › Datos),
+ * "desktop", "browser" or "remote" (Uso de la PC; the older "tools", "pairing" and "experimental"
+ * still work), "memory", "context", "protection" or "decisions" (Inteligencia). Anything that is not a string, such as
+ * the click event a button forwards, opens General. "servers", "projects" and "worktrees" open
+ * Servidor on that section; "connectors", "gateways" and "github" open Conexiones on that section.
+ */
+type SettingsTarget = {
+  tab: string
+  general?: string
+  computerUse?: ComputerUseSection
+  server?: ServerSection
+  connections?: ConnectionsSection
+  intelligence?: IntelligenceSection
+}
+
+function settingsTarget(value: unknown): SettingsTarget {
+  const requested = typeof value === "string" ? value : "general"
+  if (requested === "mcp-servers" || requested === "plugins") return { tab: "mcp-plugins" }
+  if (requested === "data") return { tab: "general", general: "data" }
+  if ((COMPUTER_USE_SECTIONS as readonly string[]).includes(requested))
+    return { tab: "computer-use", computerUse: requested as ComputerUseSection }
+  if (requested in LEGACY_COMPUTER_USE_SECTIONS)
+    return { tab: "computer-use", computerUse: LEGACY_COMPUTER_USE_SECTIONS[requested] }
+  if ((SERVER_SECTIONS as readonly string[]).includes(requested)) return { tab: "server", server: requested as ServerSection }
+  if (requested === "connectors" || requested === "gateways" || requested === "github")
+    return { tab: "connections", connections: requested }
+  if ((INTELLIGENCE_SECTIONS as readonly string[]).includes(requested))
+    return { tab: "intelligence", intelligence: requested as IntelligenceSection }
+  return { tab: requested }
+}
+
 export const DialogSettings: Component<{
   sessionID?: string
   defaultValue?: string
 }> = (props) => {
   const language = useLanguage()
+  const narrow = createMediaQuery("(max-width: 639px)")
   const platform = usePlatform()
   const dialog = useDialog()
   const layout = useLayout()
   const tabs = useTabs()
   const serverSync = useServerSync()
-  const initialTab = props.defaultValue === "mcp-servers" || props.defaultValue === "plugins"
-    ? "mcp-plugins"
-    : props.defaultValue === "browser"
-      ? "computer-use"
-      : props.defaultValue ?? "general"
+  const target = settingsTarget(props.defaultValue)
+  const initialTab = target.tab
   const [tab, setTab] = createSignal(initialTab)
+  const [search, setSearch] = createSignal("")
+  const [sections, setSections] = createStore({
+    general: target.general ?? "general",
+    computerUse: target.computerUse ?? ("desktop" as ComputerUseSection),
+    server: target.server ?? ("servers" as ServerSection),
+    connections: target.connections ?? ("connectors" as ConnectionsSection),
+    intelligence: target.intelligence ?? ("memory" as IntelligenceSection),
+  })
 
   // Lazy cache (matching OpenCode Desktop): only mount the active tab initially,
   // and keep visited tabs cached in DOM for instant 0ms switching without CPU/background thrashing.
@@ -112,6 +173,39 @@ export const DialogSettings: Component<{
   }
   const directory = createMemo(rawDirectory, undefined, { equals: (a, b) => a === b })
 
+  const hasEntry = (entry: SettingsSearchEntry) =>
+    entry.tab !== "computer-use" || entry.section !== "remote" || !!(platform.pairing || platform.setKeepScreenActive)
+
+  const openSearchResult = (entry: SettingsSearchEntry) => {
+    setSearch("")
+    if (entry.tab === "general") setSections("general", entry.section ?? "general")
+    if (entry.tab === "computer-use")
+      setSections(
+        "computerUse",
+        LEGACY_COMPUTER_USE_SECTIONS[entry.section ?? ""] ?? (entry.section as ComputerUseSection | undefined) ?? "desktop",
+      )
+    if (entry.tab === "server") setSections("server", (entry.section as ServerSection | undefined) ?? "servers")
+    if (entry.tab === "connections")
+      setSections("connections", (entry.section as ConnectionsSection | undefined) ?? "connectors")
+    if (entry.tab === "intelligence")
+      setSections("intelligence", (entry.section as IntelligenceSection | undefined) ?? "memory")
+    markVisited(entry.tab)
+    if (entry.target) revealSettingsRow(entry.target)
+  }
+
+  // Links inside a page ("Configurar en Conexiones") move the dialog without reopening it.
+  const onGoto = (event: Event) => {
+    const next = settingsTarget(event instanceof CustomEvent ? event.detail : undefined)
+    if (next.computerUse) setSections("computerUse", next.computerUse)
+    if (next.server) setSections("server", next.server)
+    if (next.connections) setSections("connections", next.connections)
+    if (next.intelligence) setSections("intelligence", next.intelligence)
+    if (next.general) setSections("general", next.general)
+    markVisited(next.tab)
+  }
+  window.addEventListener("tiancode:settings-goto", onGoto)
+  onCleanup(() => window.removeEventListener("tiancode:settings-goto", onGoto))
+
   const showProviders = () => {
     void dialog.show(() => <DialogSettings sessionID={props.sessionID} defaultValue="providers" />)
   }
@@ -119,16 +213,17 @@ export const DialogSettings: Component<{
   return (
     <Dialog size="x-large" variant="settings" class="settings-v2-dialog">
       <TabsV2
-        orientation="vertical"
+        orientation={narrow() ? "horizontal" : "vertical"}
         variant="settings"
         value={tab()}
         onChange={(value) => markVisited(value)}
         class="settings-v2"
       >
         <TabsV2.List>
-          <div class="flex flex-col justify-between h-full w-full">
-            <div class="flex flex-col gap-3 w-full">
-              <div class="flex flex-col gap-3">
+          <div class="settings-v2-nav flex flex-col justify-between h-full w-full">
+            <div class="settings-v2-nav-main flex flex-col gap-3 w-full">
+              <SettingsSearchV2 query={search()} onQuery={setSearch} onSelect={openSearchResult} hasEntry={hasEntry} />
+              <div class="settings-v2-nav-groups flex flex-col gap-3" classList={{ hidden: !!search().trim() }}>
                 {/* Desktop Section */}
                 <div class="flex flex-col gap-1.5">
                   <TabsV2.SectionTitle>{language.t("settings.section.desktop")}</TabsV2.SectionTitle>
@@ -136,6 +231,10 @@ export const DialogSettings: Component<{
                     <TabsV2.Trigger value="general">
                       <Icon name="sliders" />
                       {language.t("settings.tab.general")}
+                    </TabsV2.Trigger>
+                    <TabsV2.Trigger value="notifications">
+                      <IconBell />
+                      {language.t("settings.tab.notifications")}
                     </TabsV2.Trigger>
                     <TabsV2.Trigger value="intelligence">
                       <Icon name="brain" />
@@ -156,9 +255,9 @@ export const DialogSettings: Component<{
                 <div class="flex flex-col gap-1.5">
                   <TabsV2.SectionTitle>{language.t("settings.section.server")}</TabsV2.SectionTitle>
                   <div class="flex flex-col gap-1 w-full">
-                    <TabsV2.Trigger value="servers">
+                    <TabsV2.Trigger value="server">
                       <Icon name="server" />
-                      {language.t("status.popover.tab.servers")}
+                      {language.t("settings.tab.server")}
                     </TabsV2.Trigger>
                     <TabsV2.Trigger value="providers">
                       <Icon name="providers" />
@@ -179,10 +278,6 @@ export const DialogSettings: Component<{
                 <div class="flex flex-col gap-1.5">
                   <TabsV2.SectionTitle>{language.t("settings.section.extensions")}</TabsV2.SectionTitle>
                   <div class="flex flex-col gap-1 w-full">
-                    <TabsV2.Trigger value="github">
-                      <Icon name="github" />
-                      {language.t("settings.tab.github")}
-                    </TabsV2.Trigger>
                     <TabsV2.Trigger value="voices">
                       <IconVoices />
                       {language.t("settings.tab.voices")}
@@ -218,9 +313,11 @@ export const DialogSettings: Component<{
                 </div>
               </div>
             </div>
-            <div class="settings-v2-nav-footer">
-              <span>{language.t("app.name.desktop")}</span>
-              <span>v{platform.version}</span>
+            <div class="flex flex-col gap-1 w-full pt-3" classList={{ hidden: !!search().trim() }}>
+              <TabsV2.Trigger value="about">
+                <IconAbout />
+                {language.t("settings.tab.about")}
+              </TabsV2.Trigger>
             </div>
           </div>
         </TabsV2.List>
@@ -228,19 +325,38 @@ export const DialogSettings: Component<{
         {/* Tab Panels with Fluid Cached Switching */}
         <TabsV2.Content forceMount value="general" class="settings-v2-panel" classList={{ "!hidden": tab() !== "general" }}>
           <Show when={visited().has("general")}>
-            <SettingsGeneralV2 sessionID={props.sessionID} />
+            <SettingsGeneralV2
+              sessionID={props.sessionID}
+              section={sections.general}
+              onSectionChange={(section) => setSections("general", section)}
+            />
+          </Show>
+        </TabsV2.Content>
+
+        <TabsV2.Content forceMount value="notifications" class="settings-v2-panel" classList={{ "!hidden": tab() !== "notifications" }}>
+          <Show when={visited().has("notifications")}>
+            <SettingsNotificationsV2 active={tab() === "notifications"} />
           </Show>
         </TabsV2.Content>
 
         <TabsV2.Content forceMount value="intelligence" class="settings-v2-panel" classList={{ "!hidden": tab() !== "intelligence" }}>
           <Show when={visited().has("intelligence")}>
-            <SettingsIntelligenceV2 />
+            <SettingsIntelligenceV2
+              directory={directory()}
+              section={sections.intelligence}
+              onSectionChange={(section) => setSections("intelligence", section)}
+            />
           </Show>
         </TabsV2.Content>
 
         <TabsV2.Content forceMount value="computer-use" class="settings-v2-panel" classList={{ "!hidden": tab() !== "computer-use" }}>
           <Show when={visited().has("computer-use")}>
-            <SettingsComputerUseV2 directory={directory()} active={tab() === "computer-use"} />
+            <SettingsComputerUseV2
+              directory={directory()}
+              active={tab() === "computer-use"}
+              section={sections.computerUse}
+              onSectionChange={(section) => setSections("computerUse", section)}
+            />
           </Show>
         </TabsV2.Content>
 
@@ -250,9 +366,13 @@ export const DialogSettings: Component<{
           </Show>
         </TabsV2.Content>
 
-        <TabsV2.Content forceMount value="servers" class="settings-v2-panel" classList={{ "!hidden": tab() !== "servers" }}>
-          <Show when={visited().has("servers")}>
-            <SettingsServersV2 />
+        <TabsV2.Content forceMount value="server" class="settings-v2-panel" classList={{ "!hidden": tab() !== "server" }}>
+          <Show when={visited().has("server")}>
+            <SettingsServerHubV2
+              active={tab() === "server"}
+              section={sections.server}
+              onSectionChange={(section) => setSections("server", section)}
+            />
           </Show>
         </TabsV2.Content>
 
@@ -271,12 +391,6 @@ export const DialogSettings: Component<{
         <TabsV2.Content forceMount value="models-hub" class="settings-v2-panel" classList={{ "!hidden": tab() !== "models-hub" }}>
           <Show when={visited().has("models-hub")}>
             <SettingsModelsHubV2 directory={directory()} active={tab() === "models-hub"} />
-          </Show>
-        </TabsV2.Content>
-
-        <TabsV2.Content forceMount value="github" class="settings-v2-panel" classList={{ "!hidden": tab() !== "github" }}>
-          <Show when={visited().has("github")}>
-            <SettingsGithubV2 directory={directory()} active={tab() === "github"} />
           </Show>
         </TabsV2.Content>
 
@@ -306,13 +420,24 @@ export const DialogSettings: Component<{
 
         <TabsV2.Content forceMount value="connections" class="settings-v2-panel" classList={{ "!hidden": tab() !== "connections" }}>
           <Show when={visited().has("connections")}>
-            <SettingsConnectionsV2 active={tab() === "connections"} />
+            <SettingsConnectionsHubV2
+              directory={directory()}
+              active={tab() === "connections"}
+              section={sections.connections}
+              onSectionChange={(section) => setSections("connections", section)}
+            />
           </Show>
         </TabsV2.Content>
 
         <TabsV2.Content forceMount value="pets" class="settings-v2-panel" classList={{ "!hidden": tab() !== "pets" }}>
           <Show when={visited().has("pets")}>
             <SettingsPetsV2 active={tab() === "pets"} />
+          </Show>
+        </TabsV2.Content>
+
+        <TabsV2.Content forceMount value="about" class="settings-v2-panel" classList={{ "!hidden": tab() !== "about" }}>
+          <Show when={visited().has("about")}>
+            <SettingsAboutV2 active={tab() === "about"} />
           </Show>
         </TabsV2.Content>
       </TabsV2>

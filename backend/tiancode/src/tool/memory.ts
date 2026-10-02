@@ -4,6 +4,8 @@ import { LocationServiceMap } from "@tiancode-ai/core/location-services"
 import { Location } from "@tiancode-ai/core/location"
 import { AbsolutePath } from "@tiancode-ai/core/schema"
 import { InstanceState } from "@/effect/instance-state"
+import { Config } from "@/config/config"
+import { IntelligenceSwitches } from "@/config/intelligence-switches"
 import * as Tool from "./tool"
 
 export const Parameters = Schema.Struct({
@@ -28,10 +30,11 @@ export const Parameters = Schema.Struct({
 
 type Metadata = Record<string, unknown>
 
-export const MemoryTool = Tool.define<typeof Parameters, Metadata, LocationServiceMap.Service>(
+export const MemoryTool = Tool.define<typeof Parameters, Metadata, LocationServiceMap.Service | Config.Service>(
   "memory",
   Effect.gen(function* () {
     const locations = yield* LocationServiceMap.Service
+    const config = yield* Config.Service
 
     return {
       description:
@@ -44,6 +47,13 @@ export const MemoryTool = Tool.define<typeof Parameters, Metadata, LocationServi
           const locLayer = locations.get(locRef)
 
           const memoryService = yield* Memory.Service.pipe(Effect.provide(locLayer))
+          // Settings → Inteligencia: a memory the user switched off is neither written nor read.
+          const switches = yield* IntelligenceSwitches.read(config, locations)
+          const off = (target: "user" | "project") => ({
+            title: "Memory disabled",
+            output: `${target === "user" ? "User" : "Project"} memory is turned off in Settings → Intelligence. Do not save or recall it unless the user turns it back on.`,
+            metadata: { target, enabled: false },
+          })
 
           if (params.action === "save") {
             const entryText = params.entry?.trim()
@@ -57,6 +67,7 @@ export const MemoryTool = Tool.define<typeof Parameters, Metadata, LocationServi
 
             const target = params.target ?? "project"
             const category: MemoryCategory = params.category ?? "general"
+            if (target === "user" ? !switches.userMemory : !switches.projectMemory) return off(target)
 
             if (target === "user") {
               yield* memoryService.saveUser(entryText, category)
@@ -75,7 +86,16 @@ export const MemoryTool = Tool.define<typeof Parameters, Metadata, LocationServi
             }
           }
 
-          const result = yield* memoryService.recall(params.query)
+          const recalled = yield* memoryService.recall(params.query)
+          const result = {
+            user: switches.userMemory ? recalled.user : "",
+            project: switches.projectMemory ? recalled.project : "",
+            matching: recalled.matching.filter(
+              (line) =>
+                (switches.userMemory || !recalled.user.includes(line)) &&
+                (switches.projectMemory || !recalled.project.includes(line)),
+            ),
+          }
           const lines: string[] = []
 
           if (params.query) {
@@ -88,11 +108,15 @@ export const MemoryTool = Tool.define<typeof Parameters, Metadata, LocationServi
             lines.push("")
           }
 
-          lines.push(`## User Memory (${memoryService.userPath()})`)
-          lines.push(result.user ? result.user.trim() : "(Empty)")
-          lines.push("")
-          lines.push(`## Project Memory (${memoryService.projectPath()})`)
-          lines.push(result.project ? result.project.trim() : "(Empty)")
+          if (switches.userMemory) {
+            lines.push(`## User Memory (${memoryService.userPath()})`)
+            lines.push(result.user ? result.user.trim() : "(Empty)")
+            lines.push("")
+          }
+          if (switches.projectMemory) {
+            lines.push(`## Project Memory (${memoryService.projectPath()})`)
+            lines.push(result.project ? result.project.trim() : "(Empty)")
+          }
 
           return {
             title: params.query ? `Memory recall: "${params.query}"` : "Memory recall",

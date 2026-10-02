@@ -53,6 +53,8 @@ export const Info = Schema.Struct({
   ),
   variant: Schema.optional(Schema.String),
   prompt: Schema.optional(Schema.String),
+  /** Extra instructions from config (`prompt_append`), added after whichever prompt the agent uses. */
+  promptAppend: Schema.optional(Schema.String),
   options: Schema.Record(Schema.String, Schema.Unknown),
   steps: Schema.optional(Schema.Finite),
 }).annotate({ identifier: "Agent" })
@@ -131,6 +133,13 @@ const layer = Layer.effect(
           question: "deny",
           plan_enter: "deny",
           plan_exit: "deny",
+          // A screenshot shows every app on screen and the clipboard often holds passwords, so
+          // both ask unless the user allows them (Ajustes › Uso de la PC says so).
+          screenshot: "ask",
+          clipboard: "ask",
+          // A command AgentShield marks critical (wiping a drive, uploading secrets, running a
+          // downloaded script) is confirmed by the user even when bash itself is allowed.
+          shell_risk: "ask",
           // mirrors github.com/github/gitignore Node.gitignore pattern for .env files
           read: {
             "*": "allow",
@@ -247,7 +256,8 @@ const layer = Layer.effect(
                 options: {},
                 mode: "subagent" as const,
                 native: true,
-                permission: defaults,
+                // The user's own rules (e.g. bash: "ask") apply to specialists like every other agent.
+                permission: Permission.merge(defaults, user),
               },
             ]),
           ),
@@ -323,6 +333,11 @@ const layer = Layer.effect(
           if (value.model) item.model = Provider.parseModel(value.model)
           item.variant = value.variant ?? item.variant
           item.prompt = value.prompt ?? item.prompt
+          // Settings › Sub-agentes adds instructions without replacing the agent's prompt. Kept apart:
+          // an agent with no prompt of its own (build, plan) runs on the provider's default one, which
+          // only exists once the model is known (session/llm/request.ts).
+          if (typeof value.prompt_append === "string" && value.prompt_append.trim())
+            item.promptAppend = value.prompt_append.trim()
           item.description = value.description ?? item.description
           item.temperature = value.temperature ?? item.temperature
           item.topP = value.top_p ?? item.topP

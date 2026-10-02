@@ -3,7 +3,7 @@ import { OAUTH_DUMMY_KEY } from "../auth"
 import { InstallationVersion } from "@tiancode-ai/core/installation/version"
 import { OauthCallbackPage } from "@tiancode-ai/core/oauth/page"
 import { createServer } from "http"
-import open from "open"
+import { openUrl } from "@/util/open-url"
 
 const OAUTH_CLIENT_ID = "LOCAL_APPLICATION"
 const OAUTH_CALLBACK_HOST = "127.0.0.1"
@@ -476,7 +476,7 @@ export async function SnowflakeCortexAuthPlugin(_input: PluginInput): Promise<Ho
             const role = (inputs.role || "").trim() || undefined
             const url = buildAuthorizeUrl(account, role, state, pkce)
             const callbackPromise = waitForOAuthCallback(account, pkce, state)
-            await open(url).catch(() => undefined)
+            await openUrl(url).catch(() => undefined)
 
             return {
               url,

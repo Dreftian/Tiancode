@@ -5,5 +5,6 @@ await $`bun run install-electron`
 
 await $`bun ./scripts/copy-icons.ts ${process.env.TIANCODE_CHANNEL ?? "dev"}`
 
-await $`cd ../../backend/tiancode && TIANCODE_VERSION=1.0.0 bun script/build-node.ts`
+const { version } = await Bun.file("package.json").json()
+await $`bun run --cwd ../../backend/tiancode script/build-node.ts`.env({ TIANCODE_VERSION: version })
 await downloadCliToResources()

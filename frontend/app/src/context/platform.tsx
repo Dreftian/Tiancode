@@ -41,16 +41,21 @@ export type PreviewViewState = {
   selectMode: boolean
 }
 
+// Design mode: the element picked in the page. Same shape as PickedElement in
+// frontend/app/src/pages/session/live-preview/element-context.ts.
 export type PreviewViewSelection = {
   tag: string
-  text: string
-  className: string
   id: string
+  classes: string
   selector: string
+  text: string
+  html: string
+  styles: string
+  margin: string
+  padding: string
   url: string
-  pathname: string
-  dims: { width: number; height: number }
   rect: { x: number; y: number; width: number; height: number }
+  viewport: { width: number; height: number }
 }
 
 export type PreviewViewEvent =
@@ -58,6 +63,7 @@ export type PreviewViewEvent =
   | { type: "loaded"; url: string }
   | { type: "console"; message: { level: number; message: string; line: number; sourceId: string } }
   | { type: "fail"; fail: { code: number; description: string; url: string; isMainFrame: boolean } }
+  | { type: "selection"; selection: PreviewViewSelection }
 
 export type PreviewViewPlatform = {
   setBounds(bounds: { x: number; y: number; width: number; height: number }): Promise<void>
@@ -84,6 +90,53 @@ export type PreviewAgentPlatform = {
   /** `frameUrl` is the `src` of the iframe on screen, so the script cannot land on the spare. */
   execute(code: string, frameUrl?: string): Promise<{ ok: true; value: string } | { ok: false; error: string }>
   available(frameUrl?: string): Promise<boolean>
+}
+
+/** What Settings › About shows that the sandboxed renderer cannot read itself. */
+export type AppInfo = {
+  version: string
+  channel: "dev" | "beta" | "prod"
+  distribution: "local" | "github"
+  portable: boolean
+  electron: string
+  chrome: string
+  node: string
+  arch: string
+  osRelease: string
+  /** Folder that holds this run's diagnostic logs. */
+  logs: string
+}
+
+/** Where the desktop app keeps sessions, provider keys and settings. */
+export type DataFolderInfo = {
+  path: string
+  /** The other Tiancode data folder, when it holds provider keys or sessions. */
+  alternative: { path: string; keys: boolean; sessions: number | undefined } | null
+  /** The user picked this folder in Settings (as opposed to Tiancode picking it at startup). */
+  chosen: boolean
+}
+
+export type DataFolderPlatform = {
+  info(): Promise<DataFolderInfo>
+  /** Restarts the app on the other folder; resolves false when the choice could not be saved. */
+  switchTo(path: string): Promise<boolean>
+}
+
+/** What another device on the LAN needs to reach this machine's server. */
+export type PairingInfo = {
+  /** The user opted in to listening on the local network. */
+  enabled: boolean
+  /** Non-loopback URLs the server answers on; empty while disabled or before a restart applies. */
+  urls: string[]
+  username: string
+  password: string | null
+  /** The saved choice differs from how the running server was started. */
+  restartRequired: boolean
+}
+
+export type PairingPlatform = {
+  info(): Promise<PairingInfo>
+  setEnabled(enabled: boolean): Promise<PairingInfo>
 }
 
 export type WindowMirrorSource = { id: string; name: string; icon: string | null; thumb: string }
@@ -119,6 +172,12 @@ type PlatformBase = {
   /** Open a web or mail URL in the default system application */
   openExternal(url: string): void
 
+  /**
+   * Open a URL in the PC's own browser, even a local preview that openExternal would route into the
+   * Sandbox. Only for explicit user choices (desktop only; the web build opens a new tab).
+   */
+  openSystemBrowser?(url: string): Promise<void>
+
   /** Open a local path in a local app (desktop only) */
   openPath?(path: string, app?: string): Promise<void>
 
@@ -132,7 +191,8 @@ type PlatformBase = {
   restart(): Promise<void>
 
   /** Send a system notification */
-  notify(title: string, description?: string, onClick?: () => void): Promise<void>
+  /** Skipped while Tiancode is focused, unless `force` (the test button in Settings). */
+  notify(title: string, description?: string, onClick?: () => void, options?: { force?: boolean }): Promise<void>
 
   /** Open a native attachment picker and read selected files sequentially (desktop only) */
   openAttachmentPickerDialog?(
@@ -182,8 +242,26 @@ type PlatformBase = {
   /** Webview zoom level (desktop only) */
   webviewZoom?: Accessor<number>
 
+  /** Set the window's zoom factor (desktop only; Settings › General › Escala de la interfaz) */
+  setUiZoom?(factor: number): void
+
   /** Whether the native desktop window is fullscreen */
   windowFullscreen?: Accessor<boolean>
+
+  /** Whether the display is kept awake while Tiancode runs (desktop only) */
+  getKeepScreenActive?(): Promise<boolean>
+
+  /** Keep the display awake; resolves with the resulting state (desktop only) */
+  setKeepScreenActive?(enabled: boolean): Promise<boolean>
+
+  /** Share this machine's server with other devices on the local network (desktop only) */
+  pairing?: PairingPlatform
+
+  /** The data folder in use and the other one that can be switched to (desktop only) */
+  dataFolder?: DataFolderPlatform
+
+  /** Build, runtime and log folder details for Settings › About (desktop only) */
+  appInfo?(): Promise<AppInfo>
 
   /** Get whether native pinch/Ctrl-scroll zoom gestures are enabled (desktop only) */
   getPinchZoomEnabled?(): Promise<boolean> | boolean

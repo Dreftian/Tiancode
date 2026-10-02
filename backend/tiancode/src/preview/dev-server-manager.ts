@@ -5,9 +5,10 @@
 // salir del sidecar.
 
 import { execFileSync, spawn, spawnSync, type ChildProcess } from "node:child_process"
-import { existsSync, readFileSync, readdirSync, watch, type FSWatcher } from "node:fs"
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, watch, writeFileSync, type FSWatcher } from "node:fs"
 import { dirname, join, relative, resolve } from "node:path"
 import net from "node:net"
+import { Global } from "@tiancode-ai/core/global"
 import { startBareJsxPreview, startStaticPreview, type BareJsxPreview, type StaticPreview } from "./bare-jsx-preview"
 import { backend as nativeBackend, native as nativeWatcher } from "@tiancode-ai/core/filesystem/native-watcher"
 import { parseBuildError } from "./error-parser"
@@ -24,7 +25,7 @@ const READINESS_POLL_MS = 250
 const isWin = process.platform === "win32"
 
 // "Local: http://localhost:5173/", "localhost:5173", "listening on 5173"
-const URL_RE = /(https?:\/\/(?:localhost|127\.0\.0\.1|\[::1\]|0\.0\.0\.0):(\d{2,5}))/i
+const URL_RE = /(https?:\/\/(?:localhost|127\.0\.0\.1|\[::1\]|\[::\]|0\.0\.0\.0):(\d{2,5}))/i
 // Salida de python -m http.server ("Serving HTTP on 127.0.0.1 port 8000").
 const PYTHON_SERVING_RE = /Serving HTTP on .* port (\d{2,5})/i
 
@@ -83,6 +84,13 @@ type Managed = {
   logs: string[]
   readyTimer: ReturnType<typeof setTimeout> | null
   readinessUrls: Set<string>
+  /** Processes this server runs as: the spawned one and whatever ends up listening on its port. */
+  pids: Set<number>
+  /**
+   * The port confirmed free on both loopback stacks right before the spawn. Only a listener on this
+   * port is known to be ours: a URL scraped from the log (a proxy target, a database) may be anyone's.
+   */
+  freePort: number | null
   /** Only set on the fs.watch fallback path; `unwatch` is the closer for both backends. */
   watcher?: FSWatcher | null
   unwatch?: (() => void) | null
@@ -239,9 +247,9 @@ function idleState(detected: DetectedProject | null): PreviewState {
   }
 }
 
-function portOpen(port: number) {
+function portOpen(port: number, host: string) {
   return new Promise<boolean>((resolve) => {
-    const socket = net.connect({ port, host: "127.0.0.1" })
+    const socket = net.connect({ port, host })
     socket.setTimeout(400)
     socket.once("connect", () => {
       socket.destroy()
@@ -258,13 +266,155 @@ function portOpen(port: number) {
   })
 }
 
+// Both loopback stacks: a server bound only to [::] or ::1 is invisible to a 127.0.0.1 probe, and
+// on Windows a second server can even bind a port next to an old one (SO_REUSEADDR), so the agent
+// saw the new page over IPv6 while the panel kept loading the old one over IPv4.
+async function portBusy(port: number) {
+  const [v4, v6] = await Promise.all([portOpen(port, "127.0.0.1"), portOpen(port, "::1")])
+  return v4 || v6
+}
+
 // Para los servidores cuyo puerto controlamos nosotros (python estático):
 // el primer puerto del rango que NO esté ocupado.
 async function findFreePort(start: number) {
   for (let port = start; port < start + PORT_SCAN_RANGE; port++) {
-    if (!(await portOpen(port))) return port
+    if (!(await portBusy(port))) return port
   }
   return null
+}
+
+// Servers this app started, now or in an earlier run, by directory. A restart reclaims a port only
+// from these; whatever else listens there belongs to someone else and is reported, never killed.
+// Each entry names its port, the sidecar that wrote it and when, so a reused pid on another port, a
+// week-old record or another running Tiancode's live servers are never taken for ours.
+const OWNED_FILE = join(Global.Path.state, "preview-servers.json")
+const OWNED_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
+
+type OwnedEntry = { pids: number[]; port: number | null; owner: number; at: number }
+
+function readOwned(): Record<string, OwnedEntry> {
+  try {
+    const value: unknown = JSON.parse(readFileSync(OWNED_FILE, "utf8"))
+    return typeof value === "object" && value !== null && !Array.isArray(value) ? (value as Record<string, OwnedEntry>) : {}
+  } catch {
+    return {}
+  }
+}
+
+function writeOwned(owned: Record<string, OwnedEntry>) {
+  try {
+    mkdirSync(dirname(OWNED_FILE), { recursive: true })
+    const temp = `${OWNED_FILE}.${process.pid}.tmp`
+    writeFileSync(temp, JSON.stringify(owned))
+    renameSync(temp, OWNED_FILE)
+  } catch {
+    // Without the record a later run reports the port as taken instead of reclaiming it.
+  }
+}
+
+function recordOwned(managed: Managed) {
+  const owned = readOwned()
+  owned[managed.directory] = {
+    pids: [...managed.pids],
+    port: managed.state.port ?? managed.freePort,
+    owner: process.pid,
+    at: Date.now(),
+  }
+  writeOwned(owned)
+}
+
+function forgetOwned(directory: string) {
+  const owned = readOwned()
+  if (!(directory in owned)) return
+  delete owned[directory]
+  writeOwned(owned)
+}
+
+function alive(pid: number) {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch (error) {
+    return typeof error === "object" && error !== null && "code" in error && error.code === "EPERM"
+  }
+}
+
+// Pids recorded for this port by this sidecar or by one that is no longer running, recently.
+function ownedPidsFor(port: number) {
+  return new Set(
+    Object.values(readOwned())
+      .filter((entry) => entry.port === port && Date.now() - (entry.at ?? 0) < OWNED_MAX_AGE_MS)
+      .filter((entry) => entry.owner === process.pid || !alive(entry.owner))
+      .flatMap((entry) => entry.pids)
+      .filter((pid) => pid !== process.pid),
+  )
+}
+
+// Processes listening on a local TCP port. netstat translates its state column on Windows
+// ("ESCUCHANDO"), so a listener is recognised by its empty foreign address instead.
+function listenerPids(port: number): number[] {
+  if (isWin) {
+    const result = spawnSync("netstat", ["-ano"], { windowsHide: true, encoding: "utf8" })
+    const pids = (result.stdout ?? "").split(/\r?\n/).flatMap((line) => {
+      const parts = line.trim().split(/\s+/)
+      if (parts.length < 5 || !/^TCP/i.test(parts[0]!) || !parts[1]!.endsWith(`:${port}`)) return []
+      if (parts[2] !== "0.0.0.0:0" && parts[2] !== "[::]:0") return []
+      const pid = Number(parts[4])
+      return pid > 0 ? [pid] : []
+    })
+    return [...new Set(pids)]
+  }
+  const result = spawnSync("lsof", ["-nP", `-iTCP:${port}`, "-sTCP:LISTEN", "-t"], { encoding: "utf8" })
+  return [...new Set((result.stdout ?? "").split(/\s+/).map(Number).filter((pid) => pid > 0))]
+}
+
+function processName(pid: number) {
+  if (isWin) {
+    const result = spawnSync("tasklist", ["/FI", `PID eq ${pid}`, "/FO", "CSV", "/NH"], { windowsHide: true, encoding: "utf8" })
+    return /^"([^"]+)"/.exec((result.stdout ?? "").trim())?.[1]
+  }
+  return spawnSync("ps", ["-p", String(pid), "-o", "comm="], { encoding: "utf8" }).stdout?.trim() || undefined
+}
+
+function killPid(pid: number) {
+  if (isWin) {
+    spawnSync("taskkill", ["/pid", String(pid), "/T", "/F"], { windowsHide: true })
+    return
+  }
+  try {
+    process.kill(pid, "SIGKILL")
+  } catch {
+    // Ya terminó.
+  }
+}
+
+async function waitPortFree(port: number, timeoutMs: number) {
+  const deadline = Date.now() + timeoutMs
+  while (await portBusy(port)) {
+    if (Date.now() >= deadline) return false
+    await wait(150)
+  }
+  return true
+}
+
+/**
+ * Frees `port` for a new server: listeners this app started are killed (including orphans of an
+ * earlier sidecar that died without cleaning up). Returns null once the port is free, or a message
+ * naming the process that still holds it.
+ */
+async function reclaimPort(port: number): Promise<string | null> {
+  if (!(await portBusy(port))) return null
+  // Never the sidecar itself: the built-in static and JSX servers listen inside this process.
+  const owned = ownedPidsFor(port)
+  listenerPids(port).filter((pid) => owned.has(pid)).forEach(killPid)
+  if (await waitPortFree(port, 5_000)) return null
+  const holders = listenerPids(port)
+    .filter((pid) => !owned.has(pid))
+    .map((pid) => `${processName(pid) ?? "proceso"} (PID ${pid})`)
+  return [
+    `El puerto ${port} ya lo usa otro proceso${holders.length ? `: ${holders.join(", ")}` : ""}.`,
+    `Tiancode no lo detiene porque no lo inició él: ciérralo (por ejemplo \`${isWin ? "taskkill /PID <pid> /F" : "kill <pid>"}\`) o usa otro puerto en tiancode.preview.json.`,
+  ].join(" ")
 }
 
 function killTree(proc: ChildProcess) {
@@ -319,17 +469,35 @@ async function probeUrl(target: string) {
   }
 }
 
-async function respondsToHttp(url: string) {
-  if (await probeUrl(url)) return true
-  if (url.includes("127.0.0.1")) {
-    const localhostUrl = url.replace("127.0.0.1", "localhost")
-    return await probeUrl(localhostUrl)
-  }
-  if (url.includes("localhost")) {
-    const ipUrl = url.replace("localhost", "127.0.0.1")
-    return await probeUrl(ipUrl)
-  }
-  return false
+// The address that actually answers: a server bound only to IPv6 answers on localhost, not on
+// 127.0.0.1, and the panel must load the one that works. The port was free before the spawn, so
+// whatever answers there is this server.
+async function respondingUrl(url: string) {
+  if (await probeUrl(url)) return url
+  const alternate = url.includes("127.0.0.1")
+    ? url.replace("127.0.0.1", "localhost")
+    : url.includes("localhost")
+      ? url.replace("localhost", "127.0.0.1")
+      : undefined
+  if (alternate && (await probeUrl(alternate))) return alternate
+  return null
+}
+
+function markReady(managed: Managed, url: string, port: number) {
+  setStatus(managed, { url, port, status: "ready", errorMessage: null })
+  clearReadyTimer(managed)
+  // Record the process that really listens (on Windows often a grandchild of a shell wrapper), so
+  // a restart, or a later run after a crash, can reclaim the port from it. Only on the port that
+  // was free before the spawn: anything listening there now was started by this server.
+  if (!managed.process) return
+  if (port === managed.freePort) listenerPids(port).forEach((pid) => managed.pids.add(pid))
+  recordOwned(managed)
+}
+
+// A server that never became ready must not keep its port: the next start would find it taken.
+function terminate(managed: Managed) {
+  if (managed.process) killTree(managed.process)
+  managed.process = null
 }
 
 function beginReadinessCheck(managed: Managed, url: string, port: number, timeoutMessage?: string) {
@@ -338,11 +506,9 @@ function beginReadinessCheck(managed: Managed, url: string, port: number, timeou
   void (async () => {
     const deadline = Date.now() + READY_TIMEOUT_MS
     while (isStarting(managed) && managed.readinessUrls.has(url)) {
-      if (await respondsToHttp(url)) {
-        if (isStarting(managed)) {
-          setStatus(managed, { url, port, status: "ready", errorMessage: null })
-          clearReadyTimer(managed)
-        }
+      const live = await respondingUrl(url)
+      if (live) {
+        if (isStarting(managed)) markReady(managed, live, port)
         return
       }
       if (Date.now() >= deadline) {
@@ -350,6 +516,7 @@ function beginReadinessCheck(managed: Managed, url: string, port: number, timeou
         if (timeoutMessage && isStarting(managed)) {
           setStatus(managed, { status: "error", errorMessage: timeoutMessage })
           clearReadyTimer(managed)
+          terminate(managed)
         }
         return
       }
@@ -369,13 +536,16 @@ function pushLog(managed: Managed, chunk: string) {
 
 function onOutput(managed: Managed, chunk: string) {
   pushLog(managed, chunk)
+  // A tiancode.preview.json server is known by its configured URL only: other localhost URLs in its
+  // output (an API it proxies to, a database) belong to other servers.
+  if (managed.detected.packageManager === "custom") return collectErrors(managed, chunk)
 
   // La URL de stdout solo propone una candidata. La vista no queda lista
   // hasta que esa URL responda por HTTP, no solo porque haya abierto un TCP.
   const urlMatch = URL_RE.exec(chunk)
   if (urlMatch) {
     const port = Number(urlMatch[2])
-    const url = urlMatch[1].replace("0.0.0.0", "127.0.0.1")
+    const url = urlMatch[1].replace("0.0.0.0", "127.0.0.1").replace("[::]", "127.0.0.1")
     beginReadinessCheck(managed, url, port, "La URL local publicada por el servidor no respondió por HTTP.")
     return
   }
@@ -401,7 +571,11 @@ function onOutput(managed: Managed, chunk: string) {
     return
   }
 
-  // Errores de compilación estructurados para el agente.
+  collectErrors(managed, chunk)
+}
+
+// Errores de compilación estructurados para el agente.
+function collectErrors(managed: Managed, chunk: string) {
   for (const line of chunk.split(/\r?\n/)) {
     const error = parseBuildError(line)
     if (!error) continue
@@ -419,6 +593,7 @@ function scheduleReadinessTimeout(managed: Managed) {
       errorMessage:
         "El servidor de desarrollo no publicó una URL HTTP local. Añade un script que anuncie su URL o configura tiancode.preview.json.",
     })
+    terminate(managed)
   }, READY_TIMEOUT_MS)
   managed.readyTimer = timer
   timer.unref()
@@ -639,9 +814,10 @@ async function spawnServer(managed: Managed) {
   // controlamos nosotros (el framework elige su propio puerto). Ojo: en
   // Windows, python no emite su mensaje de arranque por los pipes cuando lo
   // lanza node/bun, así que el readiness se resuelve escaneando el puerto.
+  const root = managed.detected.root ?? managed.directory
   const targetDir = managed.detected.workingDirectory && managed.detected.workingDirectory !== "."
-    ? join(managed.directory, managed.detected.workingDirectory)
-    : managed.directory
+    ? join(root, managed.detected.workingDirectory)
+    : root
 
   if (packageManager === "bare-jsx") {
     const entry = managed.detected.entry
@@ -665,8 +841,9 @@ async function spawnServer(managed: Managed) {
         managed.bareJsx = null
         if (managed.state.status === "starting" || managed.state.status === "ready") setStatus(managed, { status: "stopped" })
       })
-      if (await respondsToHttp(preview.url)) {
-        setStatus(managed, { url: preview.url, port, status: "ready", errorMessage: null })
+      const live = await respondingUrl(preview.url)
+      if (live) {
+        markReady(managed, live, port)
       } else {
         beginReadinessCheck(managed, preview.url, port, "La vista previa JSX no respondio por HTTP.")
       }
@@ -707,8 +884,9 @@ async function spawnServer(managed: Managed) {
       })
       const entrySuffix = managed.detected.entry && managed.detected.entry !== "index.html" ? `/${managed.detected.entry}` : ""
       const fullUrl = `${preview.url}${entrySuffix}`
-      if (await respondsToHttp(fullUrl)) {
-        setStatus(managed, { url: fullUrl, port: localPort, status: "ready", errorMessage: null })
+      const live = await respondingUrl(fullUrl)
+      if (live) {
+        markReady(managed, live, localPort)
       } else {
         beginReadinessCheck(managed, fullUrl, localPort, "La vista previa estatica no respondio por HTTP.")
       }
@@ -730,6 +908,8 @@ async function spawnServer(managed: Managed) {
       stdio: ["ignore", "pipe", "pipe"],
     })
     managed.process = child
+    managed.freePort = port
+    if (child.pid) managed.pids.add(child.pid)
     child.stdout?.on("data", (data: Buffer) => onOutput(managed, data.toString()))
     child.stderr?.on("data", (data: Buffer) => onOutput(managed, data.toString()))
     child.on("error", (error) => {
@@ -762,14 +942,23 @@ async function spawnServer(managed: Managed) {
       setStatus(managed, { status: "error", errorMessage: managed.detected.error ?? "El adaptador de preview no es valido." })
       return
     }
+    // The configured URL is the only one this server is known by, so its port must be free:
+    // otherwise readiness would succeed on whatever already listens there.
+    const blocked = await reclaimPort(managed.detected.port)
+    if (blocked) {
+      setStatus(managed, { status: "error", errorMessage: blocked })
+      return
+    }
+    managed.freePort = managed.detected.port
     const child = spawn(command[0], command.slice(1), {
-      cwd: join(managed.directory, workingDirectory),
+      cwd: join(root, workingDirectory),
       env: scrubEnv(),
       detached: !isWin,
       windowsHide: true,
       stdio: ["ignore", "pipe", "pipe"],
     })
     managed.process = child
+    if (child.pid) managed.pids.add(child.pid)
     child.stdout?.on("data", (data: Buffer) => onOutput(managed, data.toString()))
     child.stderr?.on("data", (data: Buffer) => onOutput(managed, data.toString()))
     child.on("error", (error) => {
@@ -875,6 +1064,11 @@ async function spawnServer(managed: Managed) {
     }
   }
 
+  // A leftover of ours on the expected port is reclaimed; a stranger there is left alone, and the
+  // framework (Vite, Next…) picks another port that its output announces.
+  const expectedPortFree = !isDesktop && managed.detected.port > 0 && (await reclaimPort(managed.detected.port)) === null
+  managed.freePort = expectedPortFree ? managed.detected.port : null
+
   // En Windows los gestores son .cmd o comandos de shell: shell:true los resuelve
   // (cmd.exe padre → taskkill /T mata todo el árbol). En Unix, detached + setsid
   // permite matar el grupo de procesos.
@@ -888,6 +1082,7 @@ async function spawnServer(managed: Managed) {
   })
 
   managed.process = child
+  if (child.pid) managed.pids.add(child.pid)
 
   if (isDesktop) {
     setStatus(managed, {
@@ -927,8 +1122,9 @@ async function spawnServer(managed: Managed) {
     return
   }
 
-  // Chequeo proactivo inmediato del puerto esperado mientras se escuchan logs
-  if (managed.detected.port && managed.detected.port > 0) {
+  // Chequeo proactivo inmediato del puerto esperado mientras se escuchan logs; sólo si estaba libre,
+  // porque si no la respuesta sería la de otro servidor.
+  if (expectedPortFree) {
     beginReadinessCheck(
       managed,
       `http://127.0.0.1:${managed.detected.port}`,
@@ -961,33 +1157,53 @@ async function spawnServer(managed: Managed) {
   scheduleReadinessTimeout(managed)
 }
 
-const detectedStateCache = new Map<string, PreviewState>()
+const detectedStateCache = new Map<string, { state: PreviewState; at: number }>()
+// detectProject walks parents and subfolders with statSync; the UI asks for the state on every
+// poll, so a short-lived cache keeps idle folders (home, Desktop) from hitting the disk nonstop.
+const DETECT_TTL_MS = 10_000
 
 export async function detectPreviewState(directory: string): Promise<PreviewState> {
   const existing = servers.get(directory)
   if (existing) return existing.state
+  const cached = detectedStateCache.get(directory)
+  if (cached && Date.now() - cached.at < DETECT_TTL_MS) return cached.state
   const detected = await detectProject(directory)
   const state = idleState(detected)
-  detectedStateCache.set(directory, state)
+  detectedStateCache.set(directory, { state, at: Date.now() })
   return state
 }
 
 export function getPreviewState(directory: string): PreviewState {
-  return servers.get(directory)?.state ?? detectedStateCache.get(directory) ?? idleState(null)
+  return servers.get(directory)?.state ?? detectedStateCache.get(directory)?.state ?? idleState(null)
 }
 
 export function getPreviewLogs(directory: string) {
   return [...(servers.get(directory)?.logs ?? [])]
 }
 
+// What identifies the server a project runs: when it changes (an edited tiancode.preview.json, a
+// new dev script), the running server is not the one asked for any more.
+function serverSignature(detected: DetectedProject) {
+  return JSON.stringify([
+    detected.packageManager,
+    detected.script,
+    detected.command,
+    detected.url,
+    detected.workingDirectory,
+    detected.entry,
+    detected.executable,
+    detected.root,
+  ])
+}
+
 export async function startPreviewServer(directory: string) {
   const existing = servers.get(directory)
-  if (existing && (existing.state.status === "starting" || existing.state.status === "ready")) {
-    return existing.state
-  }
-  if (existing) stopPreviewServer(directory)
-
   const detected = await detectProject(directory)
+  if (existing && (existing.state.status === "starting" || existing.state.status === "ready")) {
+    if (detected && serverSignature(detected) === serverSignature(existing.detected)) return existing.state
+  }
+  if (existing) await stopAndRelease(directory)
+
   if (!detected) {
     const state = idleState(null)
     state.status = "error"
@@ -996,14 +1212,13 @@ export async function startPreviewServer(directory: string) {
   }
 
   // Detener cualquier servidor previo que comparta ancestro/descendiente o el mismo puerto
-  for (const [dir, running] of servers.entries()) {
-    if (dir !== directory && (running.state.status === "starting" || running.state.status === "ready")) {
+  // (también uno que falló al arrancar pero sigue vivo: conserva su puerto).
+  for (const [dir, running] of [...servers.entries()]) {
+    if (dir !== directory && (running.state.status === "starting" || running.state.status === "ready" || running.process)) {
       const normDir = dir.replace(/\\/g, "/").toLowerCase()
       const normTarget = directory.replace(/\\/g, "/").toLowerCase()
       const related = normDir.startsWith(normTarget) || normTarget.startsWith(normDir) || running.state.port === detected.port
-      if (related) {
-        stopPreviewServer(dir)
-      }
+      if (related) await stopAndRelease(dir)
     }
   }
 
@@ -1017,6 +1232,8 @@ export async function startPreviewServer(directory: string) {
     logs: [],
     readyTimer: null,
     readinessUrls: new Set(),
+    pids: new Set(),
+    freePort: null,
   }
   servers.set(directory, managed)
   await spawnServer(managed)
@@ -1043,8 +1260,22 @@ export function stopPreviewServer(directory: string) {
   return managed.state
 }
 
-export async function restartPreviewServer(directory: string) {
+/**
+ * Stops the server and waits until its port is really free on both loopback stacks, reclaiming it
+ * from leftovers of ours. Without the wait a restart started the new server while the old one
+ * still answered, and the panel kept showing the old site.
+ */
+async function stopAndRelease(directory: string) {
+  const managed = servers.get(directory)
+  // In-process servers (static, JSX) close their socket synchronously and hold no other process.
+  const port = managed?.process ? (managed.state.port ?? (managed.detected.port > 0 ? managed.detected.port : null)) : null
   stopPreviewServer(directory)
+  // The record goes once its port is free again; a leftover keeps it for the next reclaim.
+  if (!port || (await reclaimPort(port)) === null) forgetOwned(directory)
+}
+
+export async function restartPreviewServer(directory: string) {
+  await stopAndRelease(directory)
   return startPreviewServer(directory)
 }
 

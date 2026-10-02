@@ -17,6 +17,9 @@ import {
   type PreviewBridgePresence,
 } from "../preview/agent-bridge"
 import type { PreviewState } from "../preview/types"
+import { detectProject } from "../preview/project-detector"
+import { ShellID } from "./shell/id"
+import { BashArity } from "@/permission/arity"
 
 function describe(state: PreviewState) {
   return JSON.stringify(state, null, 2)
@@ -40,20 +43,44 @@ function waitForReady(directory: string) {
   })
 }
 
+/**
+ * A tiancode.preview.json command runs like a shell command, and the agent can write that file
+ * itself: it asks under the same permission as the shell instead of bypassing it.
+ */
+const askForAdapter = (directory: string, ctx: Tool.Context) =>
+  Effect.gen(function* () {
+    const detected = yield* Effect.promise(() => detectProject(directory))
+    if (detected?.packageManager !== "custom" || !detected.command?.length) return
+    const command = detected.command.join(" ")
+    yield* ctx.ask({
+      permission: ShellID.ToolID,
+      patterns: [command],
+      // The same "always" the shell would offer for this command, never a wider one.
+      always: [`${BashArity.prefix(detected.command).join(" ")} *`],
+      metadata: { command, description: "tiancode.preview.json" },
+    })
+  })
+
+// Machine-readable copy of what `describe` prints, so the app can read the URL from the part.
+function previewMetadata(state: ReturnType<typeof getPreviewState>) {
+  return { status: state.status, url: state.url, isDesktop: state.isDesktop, framework: state.framework }
+}
+
 export const PreviewStartTool = Tool.define(
   "preview_start",
   Effect.succeed({
     description:
-      "Detecta el proyecto web del workspace (Vite, Next, etc.) y arranca su servidor de desarrollo; también sirve proyectos estáticos con index.html y apps JSX/TSX sin configuración con una entrada convencional o declarada por index.html. La vista JSX sin configuración admite React/react-dom y módulos relativos; los paquetes externos requieren package.json y un script de desarrollo real. Para Python, Go, .NET, PHP, Ruby u otro runtime HTTP usa un tiancode.preview.json explícito (command como array y URL localhost). Espera hasta que el servidor responda por HTTP y devuelve su URL y puerto. Usa preview_status para leer los errores de compilación. Esta es la única ruta para una vista previa durante la implementación: nunca abras Chrome, el navegador del sistema ni un archivo HTML mediante Start-Process, explorer, browser tools o comandos de shell. Tiancode muestra la URL automáticamente dentro de Vista en vivo; abrir fuera solo corresponde a una petición explícita del usuario.",
+      "Detecta el proyecto web del workspace (Vite, Next, etc.) y arranca su servidor de desarrollo; también sirve proyectos estáticos con index.html y apps JSX/TSX sin configuración con una entrada convencional o declarada por index.html. La vista JSX sin configuración admite React/react-dom y módulos relativos; los paquetes externos requieren package.json y un script de desarrollo real. Para Python, Go, .NET, PHP, Ruby u otro runtime HTTP usa un tiancode.preview.json explícito (command como array y URL localhost). Espera hasta que el servidor responda por HTTP y devuelve su URL y puerto. Si cambiaste tiancode.preview.json, vuelve a llamarla: reinicia el servidor con la configuración nueva. No arranques servidores de vista previa con la shell (python -m http.server, npx serve…): quedan fuera del control de Tiancode, sobreviven a los reinicios y el panel puede seguir mostrando el sitio viejo; para HTML estático no hace falta tiancode.preview.json, Tiancode lo sirve con UTF-8 y sin caché. Usa preview_status para leer los errores de compilación. Esta es la única ruta para una vista previa durante la implementación: nunca abras Chrome, el navegador del sistema ni un archivo HTML mediante Start-Process, explorer, browser tools o comandos de shell. Tiancode muestra la URL automáticamente dentro de Vista en vivo; abrir fuera solo corresponde a una petición explícita del usuario.",
     parameters: NoArgs,
-    execute: () =>
+    execute: (_args, ctx) =>
       Effect.gen(function* () {
         const directory = yield* InstanceState.directory
+        yield* askForAdapter(directory, ctx)
         return yield* Effect.tryPromise({
           try: async () => {
             await startPreviewServer(directory)
             await waitForReady(directory)
-            return { title: "Preview iniciado", output: describe(getPreviewState(directory)), metadata: {} }
+            return { title: "Preview iniciado", output: describe(getPreviewState(directory)), metadata: previewMetadata(getPreviewState(directory)) }
           },
           catch: (error) => new Error(error instanceof Error ? error.message : String(error)),
         }).pipe(
@@ -87,16 +114,17 @@ export const PreviewRestartTool = Tool.define(
   "preview_restart",
   Effect.succeed({
     description:
-      "Reinicia el servidor de desarrollo del proyecto actual (útil tras un error que no se recupera con HMR).",
+      "Reinicia el servidor de desarrollo del proyecto actual (útil tras un error que no se recupera con HMR o tras cambiar tiancode.preview.json). Detiene el servidor anterior y espera a que su puerto quede libre antes de arrancar el nuevo, y la Vista en vivo recarga la página sola. Si otro proceso que Tiancode no inició ocupa el puerto, lo dice con su nombre y PID en vez de matarlo.",
     parameters: NoArgs,
-    execute: () =>
+    execute: (_args, ctx) =>
       Effect.gen(function* () {
         const directory = yield* InstanceState.directory
+        yield* askForAdapter(directory, ctx)
         return yield* Effect.tryPromise({
           try: async () => {
             await restartPreviewServer(directory)
             await waitForReady(directory)
-            return { title: "Preview reiniciado", output: describe(getPreviewState(directory)), metadata: {} }
+            return { title: "Preview reiniciado", output: describe(getPreviewState(directory)), metadata: previewMetadata(getPreviewState(directory)) }
           },
           catch: (error) => new Error(error instanceof Error ? error.message : String(error)),
         }).pipe(
@@ -117,10 +145,11 @@ export const PreviewStatusTool = Tool.define(
     execute: () =>
       Effect.gen(function* () {
         const directory = yield* InstanceState.directory
+        const state = getPreviewState(directory)
         return {
           title: "Estado del preview",
-          output: describe(getPreviewState(directory)),
-          metadata: {},
+          output: describe(state),
+          metadata: previewMetadata(state),
         }
       }),
   }),

@@ -13,9 +13,20 @@ import { useLayout, type LiveViewTab } from "@/context/layout"
 import { useSDK } from "@/context/sdk"
 import { useSync } from "@/context/sync"
 import { useSessionLayout } from "@/pages/session/session-layout"
+import { showToast } from "@/utils/toast"
 import { LivePreview } from "@/pages/session/live-preview/live-preview"
 import { ScrollView } from "@tiancode-ai/ui/scroll-view"
 import { liveViewProjectFolder, liveViewSessionTools, liveViewToolDetail, liveViewToolFiles } from "./live-view-activity"
+import { toolDisplay } from "@tiancode-ai/session-ui/tool-display"
+import type { ToolPart } from "@tiancode-ai/sdk/v2/client"
+import { usePreviewOpeners } from "./live-preview/use-preview-openers"
+import { isAppFile } from "./timeline/preview-offer"
+import {
+  liveViewManagedTarget,
+  managedUrlForDirectory,
+  setLiveViewManagedTarget,
+  type LiveViewManagedTarget,
+} from "./live-view-target"
 
 export const LIVE_VIEW_URL = "http://127.0.0.1:8790/"
 const LIVE_VIEW_CHECK_MS = 3000
@@ -237,16 +248,6 @@ export function previewAutoStartKey(snapshot: SnapshotPayload | undefined) {
   return unique.length > 0 ? unique.join("|") : undefined
 }
 
-// Destino confirmado por preview_start. Tiene prioridad sobre el preview del
-// dashboard, que sólo representa los archivos estáticos de la sesión y no el
-// runtime gestionado (Vite, JSX, Python, etc.). Se mantiene ligado al
-// directorio para que una sesión nueva nunca herede la URL de otra.
-export type LiveViewManagedTarget = { directory: string; url: string }
-export const [liveViewManagedTarget, setLiveViewManagedTarget] = createSignal<LiveViewManagedTarget | undefined>(undefined)
-
-export function managedUrlForDirectory(target: LiveViewManagedTarget | undefined, directory: string | undefined) {
-  return target && target.directory === directory ? target.url : undefined
-}
 
 // El dashboard `/preview/` es una representación de archivos, no el runtime
 // de una aplicación. Para entradas ejecutables esperamos al preview
@@ -473,6 +474,9 @@ function CodeEditor(props: {
 }
 
 function CodePane(props: {
+  // False while the Preview tab is showing: the pane stays mounted to keep drafts, but the
+  // project tree is only listed when someone can see it.
+  active?: boolean
   followPath?: string
   requestedPath?: string
   currentCode?: string | null
@@ -576,6 +580,7 @@ function CodePane(props: {
   // Re-list when the project changes and after the live server publishes an
   // update. A small debounce batches an agent's sequence of file writes.
   createEffect(() => {
+    if (props.active === false) return
     const directory = sdk().directory
     void props.files?.map((entry) => `${entry.rel}:${entry.mtime ?? ""}:${entry.size ?? ""}`).join("|")
     const timer = window.setTimeout(refreshWorkspaceFiles, 180)
@@ -1018,6 +1023,7 @@ function CodePane(props: {
 
 export function LiveViewPanel(props: { onCapture?: (file: File) => void; expandable?: boolean; sessionID?: string }) {
   const language = useLanguage()
+  const openers = usePreviewOpeners()
   const { view, tabs: sessionTabs } = useSessionLayout()
   const layout = useLayout()
   const sync = useSync()
@@ -1096,6 +1102,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
     return liveViewSessionTools(id, id ? sync().data.message[id] ?? [] : [], sync().data.part)
   })
   const recentTools = createMemo(() => sessionTools().slice(-12).reverse())
+  const toolTitle = (part: ToolPart) => toolDisplay(part.tool, part.state.input, language.t).title
   const runningEditFile = createMemo(() => {
     const part = sessionTools().findLast((part) => part.state.status === "running" && liveViewToolFiles(part).length > 0)
     return part ? liveViewToolFiles(part)[0] : undefined
@@ -1145,9 +1152,11 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
   const autoStartKey = createMemo(() => {
     const fromSnap = previewAutoStartKey(snapshot())
     if (fromSnap) return fromSnap
-    const diffs = sessionDiffs()
+    // Only app files restart a dev server that is not running: a README or backend edit must not.
+    const diffs = sessionDiffs().filter((d) => isAppFile(d.file))
     if (diffs.length > 0) return diffs.map((d) => d.file).join("|")
-    return activeEditFile()
+    const editing = activeEditFile()
+    return editing && isAppFile(editing) ? editing : undefined
   })
   const browserTarget = () => embeddedPreviewTarget(liveViewManagedTarget(), effectiveProjectDir(), snapshot())
 
@@ -1652,6 +1661,28 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
         </div>
         {/* shrink-0: IconButtonV2 no lo trae de serie y sin él los botones de la
             derecha se aplastarían antes que el chip de carpeta. */}
+        <Show when={content() === "preview"}>
+          <IconButtonV2
+            type="button"
+            variant="ghost-muted"
+            size="large"
+            class="shrink-0"
+            data-action="live-view-open-external"
+            onClick={() => {
+              const url = browserTarget()
+              void (url ? openers.openInBrowser(url) : openers.desktop()).catch((error: unknown) =>
+                showToast({
+                  variant: "error",
+                  title: language.t("session.previewOffer.failed"),
+                  description: error instanceof Error && error.message ? error.message : undefined,
+                }),
+              )
+            }}
+            aria-label={language.t("liveView.openExternal")}
+            title={language.t("liveView.openExternal")}
+            icon={<IconV2 name="outline-square-arrow" />}
+          />
+        </Show>
         <IconButtonV2
           type="button"
           variant="ghost-muted"
@@ -1695,7 +1726,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
           <summary class="cursor-pointer px-3 py-2 text-v2-text-text-muted">
             {language.t("liveView.activity.title")}
             <span class="ml-2 text-v2-text-text-base" role="status" aria-live="polite">
-              {language.t(`liveView.activity.${recentTools()[0].state.status}`)} · {recentTools()[0].tool}
+              {language.t(`liveView.activity.${recentTools()[0].state.status}`)} · {toolTitle(recentTools()[0])}
             </span>
           </summary>
           <ol class="max-h-40 overflow-auto px-3 pb-2" aria-label={language.t("liveView.activity.title")}>
@@ -1703,7 +1734,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
               {(part) => (
                 <li class="flex min-w-0 items-center gap-2 py-1" data-tool-status={part.state.status}>
                   <span class="w-20 shrink-0 text-v2-text-text-muted">{language.t(`liveView.activity.${part.state.status}`)}</span>
-                  <span class="shrink-0 font-mono text-v2-text-text-base">{part.tool}</span>
+                  <span class="shrink-0 text-v2-text-text-base" title={part.tool}>{toolTitle(part)}</span>
                   <span class="min-w-0 truncate text-v2-text-text-muted" title={liveViewToolDetail(part)}>{liveViewToolDetail(part)}</span>
                 </li>
               )}
@@ -1759,6 +1790,7 @@ export function LiveViewPanel(props: { onCapture?: (file: File) => void; expanda
           aria-hidden={content() !== "code" || undefined}
         >
           <CodePane
+            active={content() === "code"}
             followPath={snapshot()?.current_file ?? activeEditFile() ?? undefined}
             requestedPath={requestedCodePath()}
             currentCode={snapshot()?.current_code}

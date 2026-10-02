@@ -3,8 +3,8 @@ import { Effect, Schema } from "effect"
 import { Global } from "@tiancode-ai/core/global"
 import { projectStoragePath } from "@tiancode-ai/core/project-storage"
 import { FSUtil } from "@tiancode-ai/core/fs-util"
-import { ConfigIntelligence } from "@tiancode-ai/core/config/intelligence"
-import { Config } from "@tiancode-ai/core/config"
+import { Config } from "@/config/config"
+import { IntelligenceSwitches } from "@/config/intelligence-switches"
 import { LocationServiceMap } from "@tiancode-ai/core/location-services"
 import { Location } from "@tiancode-ai/core/location"
 import { AbsolutePath } from "@tiancode-ai/core/schema"
@@ -44,7 +44,7 @@ type Metadata = Record<string, unknown>
 export const SkillCreateTool = Tool.define<
   typeof Parameters,
   Metadata,
-  FSUtil.Service | Global.Service | Skill.Service | LocationServiceMap.Service
+  FSUtil.Service | Global.Service | Skill.Service | LocationServiceMap.Service | Config.Service
 >(
   "skill_create",
   Effect.gen(function* () {
@@ -52,6 +52,7 @@ export const SkillCreateTool = Tool.define<
     const global = yield* Global.Service
     const skill = yield* Skill.Service
     const locations = yield* LocationServiceMap.Service
+    const config = yield* Config.Service
 
     return {
       description:
@@ -61,10 +62,7 @@ export const SkillCreateTool = Tool.define<
         Effect.gen(function* () {
           const instCtx = yield* InstanceState.context
 
-          // Config is location-scoped in core, so it resolves through the same layer.
-          const locLayer = locations.get(Location.Ref.make({ directory: AbsolutePath.make(instCtx.directory) }))
-          const config = yield* Config.Service.pipe(Effect.provide(locLayer))
-          const intelligence = ConfigIntelligence.fromEntries(yield* config.entries())
+          const intelligence = yield* IntelligenceSwitches.read(config, locations)
           if (!intelligence.autoSkillLearn) {
             return {
               title: "Skill creation disabled",

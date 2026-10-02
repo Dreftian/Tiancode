@@ -2,6 +2,7 @@ import { FSUtil } from "@tiancode-ai/core/fs-util"
 import { Effect, Stream } from "effect"
 import { HttpBody, HttpClient, HttpClientRequest, HttpServerRequest, HttpServerResponse } from "effect/unstable/http"
 import { createHash } from "node:crypto"
+import path from "node:path"
 import { ProxyUtil } from "../proxy-util"
 
 let embeddedUIPromise: Promise<Record<string, string> | null> | undefined
@@ -75,18 +76,39 @@ export function serveEmbeddedUIEffect(
   )
 }
 
+/**
+ * Serves a built web app from a directory. Paths without an extension are client-side routes and
+ * get the app shell; a missing asset is a 404, never the shell under a script's name.
+ */
+export function serveDirectoryUIEffect(requestPath: string, fs: FSUtil.Interface, dir: string) {
+  const root = path.resolve(dir)
+  const relative = path.normalize(requestPath).replace(/^[/\\]+/, "")
+  const asset = path.resolve(root, relative)
+  const inside = !path.relative(root, asset).startsWith("..")
+  const index = path.join(root, "index.html")
+  // /assets/ is public (see public-ui.ts), so it never falls back to the shell.
+  const file = inside && (path.extname(relative) || relative.startsWith("assets")) ? asset : index
+  return fs.readFile(file).pipe(
+    Effect.map((body) => embeddedUIResponse(file, body)),
+    // NotFound for a missing file, BadResource for a directory such as /assets/.
+    Effect.catchReason("PlatformError", "NotFound", () => Effect.succeed(notFound())),
+    Effect.catchReason("PlatformError", "BadResource", () => Effect.succeed(notFound())),
+  )
+}
+
 export function serveUIEffect(
   request: HttpServerRequest.HttpServerRequest,
-  services: { fs: FSUtil.Interface; client: HttpClient.HttpClient; disableEmbeddedWebUi: boolean },
+  services: { fs: FSUtil.Interface; client: HttpClient.HttpClient; disableEmbeddedWebUi: boolean; webUiDir?: string },
 ) {
   return Effect.gen(function* () {
-    const embeddedWebUI = yield* Effect.promise(() => embeddedUI(services.disableEmbeddedWebUi))
-    const path = new URL(request.url, "http://localhost").pathname
+    const pathname = new URL(request.url, "http://localhost").pathname
+    if (services.webUiDir) return yield* serveDirectoryUIEffect(pathname, services.fs, services.webUiDir)
 
-    if (embeddedWebUI) return yield* serveEmbeddedUIEffect(path, services.fs, embeddedWebUI)
+    const embeddedWebUI = yield* Effect.promise(() => embeddedUI(services.disableEmbeddedWebUi))
+    if (embeddedWebUI) return yield* serveEmbeddedUIEffect(pathname, services.fs, embeddedWebUI)
 
     const response = yield* services.client.execute(
-      HttpClientRequest.make(request.method)(upstreamURL(path), {
+      HttpClientRequest.make(request.method)(upstreamURL(pathname), {
         headers: ProxyUtil.headers(request.headers, { host: UI_UPSTREAM.host }),
         body: requestBody(request),
       }),

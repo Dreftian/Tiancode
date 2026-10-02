@@ -37,7 +37,8 @@ const PROVIDER_LABEL: Record<ConnectionProvider, string> = {
 const REFRESH_MS = 10_000
 const SAVE_DEBOUNCE_MS = 600
 
-export const SettingsConnectionsV2: Component<{ active?: boolean }> = (props) => {
+/** `embedded`: shown inside Settings › Conexiones, which already titles it. */
+export const SettingsConnectionsV2: Component<{ active?: boolean; embedded?: boolean }> = (props) => {
   const language = useLanguage()
   const serverSdk = useServerSDK()
   const t = (key: string, params?: Record<string, string | number>) => language.t(key, params)
@@ -181,7 +182,7 @@ export const SettingsConnectionsV2: Component<{ active?: boolean }> = (props) =>
 
   return (
     <div class="settings-v2-connections">
-      <div class="settings-v2-tab-header">
+      <div class="settings-v2-tab-header" classList={{ "settings-v2-tab-header--embedded": props.embedded }}>
         <div class="flex items-center justify-between gap-3">
           <h2 class="settings-v2-tab-title">{t("settings.connections.title")}</h2>
           <Show when={statuses.error}>

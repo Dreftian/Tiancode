@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import type { PermissionRequest, Session } from "@tiancode-ai/sdk/v2/client"
 import { base64Encode } from "@tiancode-ai/core/util/encode"
-import { autoRespondsPermission, isDirectoryAutoAccepting, sessionAutoAccept } from "./permission-auto-respond"
+import { autoRespondsPermission, isDirectoryAutoAccepting, requiresUser, sessionAutoAccept } from "./permission-auto-respond"
 
 const session = (input: { id: string; parentID?: string }) =>
   ({
@@ -141,6 +141,34 @@ describe("the global auto-accept gate", () => {
   test("an explicit true is the same as unset", () => {
     expect(autoRespondsPermission({ "*": true }, sessions, permission("root"), "/tmp/project")).toBe(true)
   })
+
+  test("a session turned off stays off while the global switch is on or unset", () => {
+    const directory = "/tmp/project"
+    const off = { [`${base64Encode(directory)}/root`]: false }
+    expect(autoRespondsPermission(off, sessions, permission("root"), directory)).toBe(false)
+    expect(autoRespondsPermission({ ...off, "*": true }, sessions, permission("root"), directory)).toBe(false)
+  })
+
+  test("a folder turned off overrides the global switch, a session turned on overrides the folder", () => {
+    const directory = "/tmp/project"
+    const folderOff = { [`${base64Encode(directory)}/*`]: false }
+    expect(autoRespondsPermission(folderOff, sessions, permission("root"), directory)).toBe(false)
+    expect(
+      autoRespondsPermission(
+        { ...folderOff, [`${base64Encode(directory)}/root`]: true },
+        sessions,
+        permission("root"),
+        directory,
+      ),
+    ).toBe(true)
+  })
+
+  test("a child session inherits its parent's explicit off", () => {
+    const directory = "/tmp/project"
+    const lineage = [session({ id: "root" }), session({ id: "child", parentID: "root" })]
+    const off = { [`${base64Encode(directory)}/root`]: false }
+    expect(autoRespondsPermission(off, lineage, permission("child"), directory)).toBe(false)
+  })
 })
 
 describe("isDirectoryAutoAccepting", () => {
@@ -158,5 +186,12 @@ describe("isDirectoryAutoAccepting", () => {
     const directory = "/tmp/project"
     const autoAccept = { [`${base64Encode(directory)}/*`]: false }
     expect(isDirectoryAutoAccepting(autoAccept, directory)).toBe(false)
+  })
+})
+
+describe("requiresUser", () => {
+  test("AgentShield's shell_risk is never answered automatically", () => {
+    expect(requiresUser({ permission: "shell_risk" })).toBe(true)
+    expect(requiresUser({ permission: "bash" })).toBe(false)
   })
 })

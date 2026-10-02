@@ -25,7 +25,7 @@ import { render } from "solid-js/web"
 import pkg from "../../package.json"
 import { t } from "./i18n"
 import { initializationData } from "./initialization"
-import { resetZoom, setPinchZoomEnabled, webviewZoom, zoomIn, zoomOut } from "./webview-zoom"
+import { resetZoom, setPinchZoomEnabled, setZoomLevel, webviewZoom, zoomIn, zoomOut } from "./webview-zoom"
 import { windowFullscreen } from "./window-fullscreen"
 import { availableStartupServer, readyWslConnections } from "./wsl/connections"
 import { Splash } from "@tiancode-ai/ui/logo"
@@ -214,6 +214,7 @@ const createPlatform = (windowState: DesktopWindowState): Platform => {
     openExternal(url: string) {
       window.api.openExternal(url)
     },
+    openSystemBrowser: (url: string) => window.api.openInSystemBrowser(url),
     openLocalFile(url: string) {
       window.api.openLocalFile(url)
     },
@@ -241,6 +242,7 @@ const createPlatform = (windowState: DesktopWindowState): Platform => {
       state: updaterState,
       check: () => window.api.updater.check(),
       install: () => window.api.updater.install(),
+      onShow: (cb) => window.api.updater.onShow(cb),
     },
 
     exportDebugLogs: () => window.api.exportDebugLogs(),
@@ -254,9 +256,9 @@ const createPlatform = (windowState: DesktopWindowState): Platform => {
       window.api.relaunch()
     },
 
-    notify: async (title, description, onClick) => {
+    notify: async (title, description, onClick, options) => {
       const focused = await window.api.getWindowFocused().catch(() => document.hasFocus())
-      if (focused) return
+      if (focused && !options?.force) return
 
       const notification = new Notification(title, {
         body: description ?? "",
@@ -307,10 +309,22 @@ const createPlatform = (windowState: DesktopWindowState): Platform => {
     },
 
     webviewZoom,
+    setUiZoom: (factor) => setZoomLevel(factor),
 
     windowFullscreen,
 
     getPinchZoomEnabled: () => window.api.getPinchZoomEnabled(),
+    getKeepScreenActive: () => window.api.getKeepScreenActive(),
+    pairing: {
+      info: () => window.api.pairingInfo(),
+      setEnabled: (enabled: boolean) => window.api.setPairingEnabled(enabled),
+    },
+    appInfo: () => window.api.appInfo(),
+    dataFolder: {
+      info: () => window.api.dataFolderInfo(),
+      switchTo: (path: string) => window.api.switchDataFolder(path),
+    },
+    setKeepScreenActive: (enabled: boolean) => window.api.setKeepScreenActive(enabled),
 
     setPinchZoomEnabled,
 
@@ -385,7 +399,7 @@ listenForDeepLinks()
 function LoadingSplash() {
   return (
     <div class="h-dvh w-screen flex flex-col items-center justify-center bg-background-base">
-      <Splash class="w-16 h-20 opacity-50 animate-pulse" />
+      <Splash class="w-28 opacity-50 animate-pulse" />
     </div>
   )
 }

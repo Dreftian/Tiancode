@@ -15,7 +15,11 @@ import { LLMEvent } from "@tiancode-ai/llm"
 import { ToolJsonSchema } from "@/tool/json-schema"
 import { ToolRegistry } from "@/tool/registry"
 import { Worktree } from "@/worktree"
-import { Cause, Effect, Option, Stream } from "effect"
+import { Cause, Effect, Layer, Option, Stream } from "effect"
+import { Memory } from "@tiancode-ai/core/memory"
+import { Location } from "@tiancode-ai/core/location"
+import { AbsolutePath } from "@tiancode-ai/core/schema"
+import { LocationServiceMap, locationServiceMapLayer } from "@tiancode-ai/core/location-services"
 import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
 import { HttpApiBuilder, HttpApiError } from "effect/unstable/httpapi"
 import { InstanceHttpApi } from "../api"
@@ -235,6 +239,30 @@ export const experimentalHandlers = HttpApiBuilder.group(InstanceHttpApi, "exper
     const flags = yield* RuntimeFlags.Service
     const llm = yield* LLM.Service
     const provider = yield* Provider.Service
+    const locations = yield* LocationServiceMap.Service
+
+    const memoryService = Effect.fnUntraced(function* () {
+      const ctx = yield* InstanceState.context
+      return yield* Memory.Service.pipe(
+        Effect.provide(locations.get(Location.Ref.make({ directory: AbsolutePath.make(ctx.directory) }))),
+      )
+    })
+
+    const memoryFiles = Effect.fn("ExperimentalHttpApi.memory")(function* () {
+      const memory = yield* memoryService()
+      return {
+        user: { path: memory.userPath(), text: yield* memory.readUser(), limit: Memory.USER_MAX_CHARS },
+        project: { path: memory.projectPath(), text: yield* memory.readProject(), limit: Memory.PROJECT_MAX_CHARS },
+      }
+    })
+
+    const memoryReplace = Effect.fn("ExperimentalHttpApi.memoryReplace")(function* (ctx: {
+      payload: { target: "user" | "project"; text: string }
+    }) {
+      const memory = yield* memoryService()
+      yield* memory.replace(ctx.payload.target, ctx.payload.text)
+      return yield* memoryFiles()
+    })
 
     const capabilities = Effect.fn("ExperimentalHttpApi.capabilities")(function* () {
       return { backgroundSubagents: flags.experimentalBackgroundSubagents }
@@ -586,5 +614,7 @@ export const experimentalHandlers = HttpApiBuilder.group(InstanceHttpApi, "exper
       .handle("sessionBackground", sessionBackground)
       .handle("resource", resource)
       .handle("optimizePrompt", optimizePrompt)
+      .handle("memory", memoryFiles)
+      .handle("memoryReplace", memoryReplace)
   }),
-)
+).pipe(Layer.provide(locationServiceMapLayer))

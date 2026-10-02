@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 import { createSignal } from "solid-js"
+import { stepUiScale } from "@tiancode-ai/app/ui-scale"
 
 const OS_NAME = (() => {
   if (navigator.userAgent.includes("Mac")) return "macos"
@@ -50,6 +51,13 @@ window.api.onZoomFactorChanged((factor) => {
   setWebviewZoom(requestedZoom)
 })
 
+// Windows open at the saved interface scale, so start from it rather than from 1.
+void window.api.getZoomFactor().then((factor) => {
+  if (requestedZoom !== 1 || !Number.isFinite(factor)) return
+  requestedZoom = clamp(factor)
+  setWebviewZoom(requestedZoom)
+})
+
 void window.api.getPinchZoomEnabled().then((enabled) => {
   pinchZoomEnabled = enabled
 })
@@ -66,8 +74,10 @@ const setPinchZoomEnabled = (enabled: boolean) => {
 }
 
 const resetZoom = () => applyZoom(1)
-const zoomIn = () => applyZoom(clamp(requestedZoom + 0.2))
-const zoomOut = () => applyZoom(clamp(requestedZoom - 0.2))
+const setZoomLevel = (factor: number) => applyZoom(clamp(factor))
+// Ctrl + and Ctrl - walk the same 80-120 % steps that Settings › General offers.
+const zoomIn = () => applyZoom(stepUiScale(requestedZoom, 1))
+const zoomOut = () => applyZoom(stepUiScale(requestedZoom, -1))
 
 const resetWheelPinch = () => {
   clearTimeout(wheelPinch?.timeout)
@@ -135,4 +145,4 @@ window.addEventListener("keydown", (event) => {
   }
 })
 
-export { webviewZoom, resetZoom, setPinchZoomEnabled, zoomIn, zoomOut }
+export { webviewZoom, resetZoom, setPinchZoomEnabled, setZoomLevel, zoomIn, zoomOut }

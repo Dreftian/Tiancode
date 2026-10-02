@@ -19,6 +19,9 @@ const updaterHandler = (_: unknown, state: UpdaterState) => {
   updaterCallbacks.forEach((callback) => callback(state))
 }
 
+// Mounted update assistants in this page (see updater.onShow).
+let updateAssistants = 0
+
 const api: ElectronAPI = {
   killSidecar: () => ipcRenderer.invoke("kill-sidecar"),
   relaunchApp: () => ipcRenderer.invoke("relaunch-app"),
@@ -54,7 +57,6 @@ const api: ElectronAPI = {
     select: (voiceId) => ipcRenderer.invoke("voices-select", voiceId),
     downloadVoice: (voiceId) => ipcRenderer.invoke("voices-download-voice", voiceId),
     deleteVoice: (voiceId) => ipcRenderer.invoke("voices-delete-voice", voiceId),
-    setEnabled: (voiceId, enabled) => ipcRenderer.invoke("voices-set-enabled", voiceId, enabled),
     onProgress: (cb) => {
       const handler = (_: unknown, event: VoicesProgress) => cb(event)
       ipcRenderer.on("voices-progress", handler)
@@ -112,6 +114,19 @@ const api: ElectronAPI = {
     },
     check: () => ipcRenderer.invoke("updater-check"),
     install: () => ipcRenderer.invoke("updater-install"),
+    onShow: (cb) => {
+      const handler = () => cb()
+      ipcRenderer.on("updater-show", handler)
+      // Main hands "Check for updates" to this window only while an assistant is listening; the
+      // count keeps one unmounting assistant from switching that off for another.
+      updateAssistants += 1
+      if (updateAssistants === 1) ipcRenderer.send("updater-assistant", true)
+      return () => {
+        ipcRenderer.removeListener("updater-show", handler)
+        updateAssistants -= 1
+        if (updateAssistants === 0) ipcRenderer.send("updater-assistant", false)
+      }
+    },
   },
   consumeInitialDeepLinks: () => ipcRenderer.invoke("consume-initial-deep-links"),
   getDefaultServerUrl: () => ipcRenderer.invoke("get-default-server-url"),
@@ -159,6 +174,7 @@ const api: ElectronAPI = {
   writeTextFile: (path, content) => ipcRenderer.invoke("write-text-file", path, content),
   openExternal: (url) => ipcRenderer.send("open-external", url),
   openInChrome: (url) => ipcRenderer.invoke("open-in-chrome", url),
+  openInSystemBrowser: (url) => ipcRenderer.invoke("open-in-system-browser", url),
   openLocalFile: (url) => ipcRenderer.send("open-local-file", url),
   onLiveViewNavigate: (cb) => {
     const handler = (_: unknown, url: string) => cb(url)
@@ -246,6 +262,13 @@ const api: ElectronAPI = {
   setZoomFactor: (factor) => ipcRenderer.invoke("set-zoom-factor", factor),
   getPinchZoomEnabled: () => ipcRenderer.invoke("get-pinch-zoom-enabled"),
   setPinchZoomEnabled: (enabled) => ipcRenderer.invoke("set-pinch-zoom-enabled", enabled),
+  getKeepScreenActive: () => ipcRenderer.invoke("get-keep-screen-active"),
+  pairingInfo: () => ipcRenderer.invoke("pairing-info"),
+  appInfo: () => ipcRenderer.invoke("app-info"),
+  dataFolderInfo: () => ipcRenderer.invoke("data-folder-info"),
+  switchDataFolder: (path) => ipcRenderer.invoke("data-folder-switch", path),
+  setPairingEnabled: (enabled) => ipcRenderer.invoke("pairing-set-enabled", enabled),
+  setKeepScreenActive: (enabled) => ipcRenderer.invoke("set-keep-screen-active", enabled),
   onPinchZoomEnabledChanged: (cb) => {
     const handler = (_: unknown, enabled: boolean) => cb(enabled)
     ipcRenderer.on("pinch-zoom-enabled-changed", handler)
@@ -267,9 +290,12 @@ const api: ElectronAPI = {
     update: (partial) => ipcRenderer.invoke("desktop-pet-update", partial),
     toggle: () => ipcRenderer.invoke("desktop-pet-toggle"),
     getState: () => ipcRenderer.invoke("desktop-pet-get-state"),
-  },
-  modelHub: {
-    deleteFile: (target) => ipcRenderer.invoke("model-hub-delete-file", target),
+    resetPosition: () => ipcRenderer.invoke("desktop-pet-reset-position"),
+    onHidden: (cb) => {
+      const handler = () => cb()
+      ipcRenderer.on("desktop-pet-hidden", handler)
+      return () => ipcRenderer.removeListener("desktop-pet-hidden", handler)
+    },
   },
   localModels: {
     getDir: () => ipcRenderer.invoke("local-models-dir-get"),

@@ -46,11 +46,22 @@ describe("retry", () => {
   test("retries an unexpected status only when the status can recover", async () => {
     expect(await attempts(clientError("UnexpectedStatus", { status: 408 }))).toBe(3)
     expect(await attempts(clientError("UnexpectedStatus", { status: 429 }))).toBe(3)
+    expect(await attempts(clientError("UnexpectedStatus", { status: 499 }))).toBe(3)
     expect(await attempts(clientError("UnexpectedStatus", { status: 500 }))).toBe(3)
     expect(await attempts(clientError("UnexpectedStatus", { status: 503 }))).toBe(3)
     expect(await attempts(clientError("UnexpectedStatus", { status: 400 }))).toBe(1)
     expect(await attempts(clientError("UnexpectedStatus", { status: 404 }))).toBe(1)
     expect(await attempts(clientError("UnexpectedStatus"))).toBe(1)
+  })
+
+  test("retries legacy SDK errors by the status they carry", async () => {
+    const wrapped = (status: number) =>
+      new Error(`tiancode server GET http://127.0.0.1/provider → ${status}: (empty response body)`, {
+        cause: { body: undefined, status },
+      })
+    expect(await attempts(wrapped(499))).toBe(3)
+    expect(await attempts(wrapped(503))).toBe(3)
+    expect(await attempts(wrapped(404))).toBe(1)
   })
 
   test("keeps matching transient messages", async () => {

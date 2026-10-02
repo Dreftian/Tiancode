@@ -1,7 +1,8 @@
 #!/usr/bin/env bun
 // Builds the Tiancode CLI (the same server + TUI the desktop app embeds) as standalone binaries for
 // Windows, macOS and Linux, then packs them as release assets in backend/tiancode/dist/cli.
-// Usage: bun tools/script/build-cli.ts [--targets linux-x64,darwin-arm64,...] [--version 1.0.0]
+// Usage: bun tools/script/build-cli.ts [--targets linux-x64,darwin-arm64,...] [--version 1.0.6]
+// The version defaults to the desktop app's, so every release ships a CLI that `tiancode upgrade` finds.
 import { $ } from "bun"
 import { existsSync, mkdirSync, readdirSync, rmSync } from "node:fs"
 import path from "node:path"
@@ -13,7 +14,7 @@ const flag = (name: string) => {
   const index = argv.indexOf(name)
   return index >= 0 ? argv[index + 1] : undefined
 }
-const version = flag("--version") ?? "1.0.0"
+const version = flag("--version") ?? (await Bun.file(path.join(root, "frontend/desktop/package.json")).json()).version
 const packOnly = argv.includes("--pack-only")
 const targets = (flag("--targets") ?? "win32-x64,darwin-arm64,darwin-x64,linux-x64,linux-arm64").split(",").map((t) => t.trim())
 

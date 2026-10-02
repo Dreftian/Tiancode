@@ -54,7 +54,7 @@ const setStorage = (key: string, value: string | null) => {
 const readDefaultServerUrl = () => getStorage(DEFAULT_SERVER_URL_KEY)
 const writeDefaultServerUrl = (url: string | null) => setStorage(DEFAULT_SERVER_URL_KEY, url)
 
-const notify: Platform["notify"] = async (title, description, onClick) => {
+const notify: Platform["notify"] = async (title, description, onClick, options) => {
   if (!("Notification" in window)) return
 
   const permission =
@@ -65,11 +65,11 @@ const notify: Platform["notify"] = async (title, description, onClick) => {
   if (permission !== "granted") return
 
   const inView = document.visibilityState === "visible" && document.hasFocus()
-  if (inView) return
+  if (inView && !options?.force) return
 
   const notification = new Notification(title, {
     body: description ?? "",
-    icon: "https://tiancode.ai/favicon-96x96-v3.png",
+    icon: "/favicon-96x96-v3.png",
   })
 
   notification.onclick = () => {
@@ -118,8 +118,11 @@ const clearAuthToken = () => {
 const platform: Platform = {
   platform: "web",
   draftStore: createBrowserDraftStore(),
-  version: pkg.version,
+  // The desktop ships this build for paired devices and stamps it with its own version.
+  version: import.meta.env.VITE_TIANCODE_VERSION || pkg.version,
   openExternal,
+  // The web build never reroutes links into the Sandbox, so a new tab already is "the desktop".
+  openSystemBrowser: async (url) => openExternal(url),
   restart,
   notify,
   getDefaultServer: async () => {

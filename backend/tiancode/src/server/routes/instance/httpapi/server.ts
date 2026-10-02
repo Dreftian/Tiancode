@@ -93,6 +93,10 @@ import { fileHandlers } from "./handlers/file"
 import { githubHandlers } from "./handlers/github"
 import { globalHandlers } from "./handlers/global"
 import { connectionsHandlers } from "./handlers/connections"
+import { decisionHandlers } from "./handlers/decision"
+import { marketplaceHandlers } from "./handlers/marketplace"
+import { Marketplace } from "@/marketplace"
+import { DecisionEngine } from "@/decision/engine"
 import { Connections } from "@/connections/connections"
 import { instanceHandlers } from "./handlers/instance"
 import { mcpHandlers } from "./handlers/mcp"
@@ -147,7 +151,14 @@ const ptyConnectHttpApiAuthLayer = ptyConnectAuthorizationLayer.pipe(Layer.provi
 const serverHttpApiAuthLayer = serverAuthorizationLayer.pipe(Layer.provide(ServerAuth.Config.layer))
 const workspaceRoutingLive = workspaceRoutingLayer.pipe(Layer.provide(Socket.layerWebSocketConstructorGlobal))
 const rootApiRoutes = HttpApiBuilder.layer(RootHttpApi).pipe(
-  Layer.provide([controlHandlers, controlPlaneHandlers, globalHandlers, connectionsHandlers]),
+  Layer.provide([
+    controlHandlers,
+    controlPlaneHandlers,
+    globalHandlers,
+    connectionsHandlers,
+    decisionHandlers,
+    marketplaceHandlers,
+  ]),
   Layer.provide(schemaErrorLayer),
   Layer.provide(httpApiAuthLayer),
 )
@@ -208,7 +219,12 @@ const uiRoute = HttpRouter.use((router) =>
     const client = yield* HttpClient.HttpClient
     const flags = yield* RuntimeFlags.Service
     yield* router.add("*", "/*", (request) =>
-      serveUIEffect(request, { fs, client, disableEmbeddedWebUi: flags.disableEmbeddedWebUi }),
+      serveUIEffect(request, {
+        fs,
+        client,
+        disableEmbeddedWebUi: flags.disableEmbeddedWebUi,
+        webUiDir: flags.webUiDir,
+      }),
     )
   }),
 ).pipe(Layer.provide(authOnlyRouterLayer))
@@ -226,6 +242,8 @@ const app = LayerNode.group([
   Database.node,
   Auth.node,
   Connections.node,
+  DecisionEngine.node,
+  Marketplace.node,
   Account.node,
   Config.node,
   Global.node,

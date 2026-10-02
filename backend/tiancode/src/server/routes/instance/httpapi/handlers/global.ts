@@ -13,6 +13,7 @@ import * as Sse from "effect/unstable/encoding/Sse"
 import { RootHttpApi } from "../api"
 import { GlobalUpgradeInput } from "../groups/global"
 import { redactConfigInfo, unredactConfigInfo } from "@/server/redact-config"
+import { splitFields } from "./config"
 
 function eventData(data: unknown): Sse.Event {
   return {
@@ -86,9 +87,24 @@ export const globalHandlers = HttpApiBuilder.group(RootHttpApi, "global", (handl
     })
 
     const configUpdate = Effect.fn("GlobalHttpApi.configUpdate")(function* (ctx) {
-      const result = yield* config.updateGlobal(unredactConfigInfo(ctx.payload, yield* config.getGlobal()))
-      if (result.changed) bridge.fork(disposeAllInstancesAndEmitGlobalDisposed({ swallowErrors: true }))
+      // Hidden secrets come back from the file as written first, so a `{env:TOKEN}` placeholder stays a
+      // placeholder; values only the merged config knows (other global files) come from it after.
+      const restored = unredactConfigInfo(unredactConfigInfo(ctx.payload, yield* config.getGlobalRaw()), yield* config.getGlobal())
+      const result = yield* config.updateGlobal(restored)
+      // Reopening every project cancels running sessions. The Intelligence switches are read live
+      // (IntelligenceSwitches.read), so a change that only touches them skips that.
+      if (result.changed && !onlyIntelligence(ctx.payload))
+        bridge.fork(disposeAllInstancesAndEmitGlobalDisposed({ swallowErrors: true }))
       return result.info
+    })
+
+    const configResetAgent = Effect.fn("GlobalHttpApi.configResetAgent")(function* (ctx: {
+      params: { name: string }
+      query: { fields?: string }
+    }) {
+      const changed = yield* config.resetAgent(ctx.params.name, "global", splitFields(ctx.query.fields))
+      if (changed) bridge.fork(disposeAllInstancesAndEmitGlobalDisposed({ swallowErrors: true }))
+      return changed
     })
 
     const dispose = Effect.fn("GlobalHttpApi.dispose")(function* () {
@@ -152,7 +168,19 @@ export const globalHandlers = HttpApiBuilder.group(RootHttpApi, "global", (handl
       .handleRaw("event", event)
       .handle("configGet", configGet)
       .handle("configUpdate", configUpdate)
+      .handle("configResetAgent", configResetAgent)
       .handle("dispose", dispose)
       .handleRaw("upgrade", upgradeRaw)
   }),
 )
+
+function onlyIntelligence(payload: object) {
+  const experimental: unknown = "experimental" in payload ? payload.experimental : undefined
+  return (
+    Object.keys(payload).length === 1 &&
+    typeof experimental === "object" &&
+    experimental !== null &&
+    Object.keys(experimental).length === 1 &&
+    "intelligence" in experimental
+  )
+}

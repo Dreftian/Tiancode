@@ -28,6 +28,8 @@ export interface AgentPresentation {
   icon: string
   color: string
   category: string
+  /** Stable id of the category, for grouping (the label is translated). */
+  group?: string
   description?: string
 }
 
@@ -60,6 +62,12 @@ export interface PanelAgent {
   tools: ToolSummary
   /** The system prompt the agent runs with (the instructions that shape how it thinks). */
   prompt?: string
+  /** Category id for grouping; "other" for agents without presentation metadata. */
+  group: string
+  /** The user's settings for this agent in the scope being shown. */
+  overrides: AgentOverrides
+  /** Whether those settings change anything besides switching it off. */
+  customized: boolean
 }
 
 /** One `task` permission rule: the target it names and the verdict for it. */
@@ -229,7 +237,9 @@ export interface MergeOptions {
    * Agent entries from config. The server *removes* a disabled agent from its list, so without
    * these a user who switches one off loses the switch that would bring it back.
    */
-  config?: Readonly<Record<string, { description?: string; mode?: string; disable?: boolean; disabled?: boolean }>>
+  config?: Readonly<
+    Record<string, { description?: string; mode?: string; disable?: boolean; disabled?: boolean; [key: string]: unknown }>
+  >
   isEnabled: (name: string) => boolean
   /** Copy for agents with no metadata of their own. */
   fallback: { role: string; category: string }
@@ -248,7 +258,9 @@ export function mergePanelAgents(options: MergeOptions): PanelAgent[] {
   const hidden = new Set(server.filter((agent) => agent.hidden).map((agent) => agent.name))
 
   for (const agent of server) {
-    if (!agent?.name || agent.hidden === true) continue
+    // Hidden ones are internal or aliases, except a built-in the user hid from @ in Settings: it
+    // stays here, or it could never be shown again.
+    if (!agent?.name || (agent.hidden === true && !meta[agent.name])) continue
     byName.set(agent.name, agent)
   }
   // Built-ins and user agents that are switched off are absent from the server list; keep them
@@ -267,14 +279,20 @@ export function mergePanelAgents(options: MergeOptions): PanelAgent[] {
     const presentation = meta[agent.name]
     const builtin = presentation !== undefined || agent.native === true
     const mode = normalizeMode(agent.mode ?? (presentation ? undefined : "all"))
+    const overrides = readOverrides(config[agent.name])
+    // A colour the user picked wins over the catalogue's; theme names ("primary") are not colours.
+    const userColor = overrides.color && /^#[0-9a-f]{6}$/i.test(overrides.color) ? overrides.color : undefined
     result.push({
       name: agent.name,
       title: presentation?.title ?? agent.name,
       role: presentation?.role ?? fallback.role,
       category: presentation?.category ?? fallback.category,
+      group: presentation?.group ?? "other",
+      overrides,
+      customized: hasOverrides(overrides),
       description: presentation?.description ?? agent.description ?? "",
       icon: presentation?.icon ?? agent.icon ?? "🤖",
-      color: presentation?.color ?? agent.color ?? "#3B82F6",
+      color: userColor ?? presentation?.color ?? agent.color ?? "#3B82F6",
       mode,
       builtin,
       enabled: isEnabled(agent.name),
@@ -357,12 +375,12 @@ export function scopeTarget(scope: SettingsScope, directory: string | undefined)
  * It used to copy the whole merged `cfg.agent` map — every markdown agent's parsed Info, system
  * prompt included — and PATCH it back, so flipping one switch serialized every agent's prompt
  * into the repository's `tiancode.json`. `Config.update` deep-merges, so naming the one agent is
- * enough. Both spellings are written because the loader reads `agents` and `agent`, and older
- * configs on disk use the plural.
+ * enough.
  */
 export function agentDisablePatch(name: string, enable: boolean) {
-  const entry = { [name]: { disable: !enable, disabled: !enable } }
-  return { agent: entry, agents: entry }
+  // Only `disable`: the config schema files any other key (`disabled`) under the agent's model
+  // options, so `disabled: false` rode along in every provider request once re-enabled.
+  return { agent: { [name]: { disable: !enable } } }
 }
 
 export interface AgentDraft {
@@ -405,4 +423,93 @@ export function draftFromGenerated(generated: GeneratedAgent, base: AgentDraft):
     description: (generated.whenToUse ?? "").trim() || base.description,
     prompt: (generated.systemPrompt ?? "").trim() || base.prompt,
   }
+}
+
+/** The tool permissions the editor sets per sub-agent (`edit` also covers write and patch). */
+export const EDITABLE_TOOLS = ["read", "edit", "bash", "glob", "grep", "webfetch", "websearch", "task"] as const
+export type EditableTool = (typeof EDITABLE_TOOLS)[number]
+export type ToolAction = "allow" | "ask" | "deny"
+
+/** What Settings › Sub-agentes writes under `agent.<name>` in tiancode.json. */
+export interface AgentOverrides {
+  model?: string
+  temperature?: number
+  steps?: number
+  prompt_append?: string
+  color?: string
+  hidden?: boolean
+  disable?: boolean
+  permission?: Partial<Record<EditableTool, ToolAction>>
+}
+
+const isAction = (value: unknown): value is ToolAction => value === "allow" || value === "ask" || value === "deny"
+
+/**
+ * The overrides an agent has in config, reduced to the fields this editor manages. Anything else
+ * in the entry (options, a hand-written pattern map) is left out here and left alone on disk.
+ */
+export function readOverrides(entry: unknown): AgentOverrides {
+  if (typeof entry !== "object" || entry === null) return {}
+  const value = entry as Record<string, unknown>
+  const permission = Object.fromEntries(
+    EDITABLE_TOOLS.flatMap((tool) => {
+      const action = (value.permission as Record<string, unknown> | undefined)?.[tool]
+      return isAction(action) ? [[tool, action]] : []
+    }),
+  ) as AgentOverrides["permission"]
+  return {
+    ...(typeof value.model === "string" && value.model.trim() ? { model: value.model.trim() } : {}),
+    ...(typeof value.temperature === "number" ? { temperature: value.temperature } : {}),
+    ...(typeof value.steps === "number" ? { steps: value.steps } : {}),
+    ...(typeof value.prompt_append === "string" && value.prompt_append.trim() ? { prompt_append: value.prompt_append } : {}),
+    ...(typeof value.color === "string" && value.color ? { color: value.color } : {}),
+    ...(value.hidden === true ? { hidden: true } : {}),
+    ...(value.disable === true || value.disabled === true ? { disable: true } : {}),
+    ...(permission && Object.keys(permission).length > 0 ? { permission } : {}),
+  }
+}
+
+/** Whether the agent carries any setting of the user's own besides being switched off. */
+export function hasOverrides(overrides: AgentOverrides) {
+  return Object.keys(overrides).some((key) => key !== "disable")
+}
+
+function flatten(overrides: AgentOverrides) {
+  const { permission, ...rest } = overrides
+  return new Map<string, unknown>([
+    ...Object.entries(rest).filter(([, value]) => value !== undefined),
+    ...Object.entries(permission ?? {}).map(([tool, action]) => [`permission.${tool}`, action] as const),
+  ])
+}
+
+export function sameOverrides(a: AgentOverrides, b: AgentOverrides) {
+  const left = flatten(a)
+  const right = flatten(b)
+  return left.size === right.size && [...left].every(([key, value]) => right.get(key) === value)
+}
+
+/**
+ * How to save an edited agent. Config writes merge and cannot delete a key, so the fields the user
+ * cleared (back to "inherit") are removed by name ("model", "permission.bash") and the rest is
+ * merged. Keys this editor does not manage (a custom prompt, options, pattern rules) are untouched.
+ */
+export function overridePlan(saved: AgentOverrides, draft: AgentOverrides) {
+  const remaining = flatten(draft)
+  return { cleared: [...flatten(saved).keys()].filter((key) => key !== "disable" && !remaining.has(key)), patch: draft }
+}
+
+/**
+ * A number typed into the editor: empty means "not set", anything unparsable or out of range is
+ * reported so the save button can refuse it.
+ */
+export function parseOverrideNumber(raw: string, range: { min: number; max?: number; integer?: boolean }) {
+  const text = raw.trim().replace(",", ".")
+  if (!text) return { value: undefined, valid: true }
+  const value = Number(text)
+  const valid =
+    Number.isFinite(value) &&
+    value >= range.min &&
+    (range.max === undefined || value <= range.max) &&
+    (!range.integer || Number.isInteger(value))
+  return { value: valid ? value : undefined, valid }
 }

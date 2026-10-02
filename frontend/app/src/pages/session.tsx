@@ -14,6 +14,7 @@ import {
   createEffect,
   createComputed,
   createSignal,
+  lazy,
   on,
   onMount,
   type ParentProps,
@@ -102,7 +103,7 @@ import { createReviewPanelV2State } from "@/pages/session/v2/review-panel-v2-sta
 import { reviewDiffDirectory, reviewDiffNeedsLoad, reviewRootDirectory } from "@/pages/session/v2/review-diff-kinds"
 import { TerminalPanel } from "@/pages/session/terminal-panel"
 import { TerminalPanelV2 } from "@/pages/session/terminal-panel-v2"
-import { LiveViewPanel, setLiveViewManagedTarget } from "@/pages/session/live-view-panel"
+import { setLiveViewManagedTarget } from "@/pages/session/live-view-target"
 import { useLiveViewAutoOpen } from "@/pages/session/live-view-auto-open"
 import { liveViewNavigateRequest, requestLiveViewNavigation } from "@/pages/session/live-view-navigate"
 import { setPreviewPanelOpen } from "@/components/preview/preview-panel"
@@ -270,6 +271,12 @@ function SessionProviders(props: ParentProps) {
   )
 }
 
+// The Sandbox (live preview, code view, agent bridge) is the heaviest part of the session page
+// and most sessions never open it: it loads the first time the panel opens.
+const LiveViewPanel = lazy(() =>
+  import("@/pages/session/live-view-panel").then((module) => ({ default: module.LiveViewPanel })),
+)
+
 export default function Page() {
   const serverSync = useServerSync()
   const layout = useLayout()
@@ -396,9 +403,16 @@ export default function Page() {
   // window, its rounded frame stays visible, and no off-screen panel is
   // produced while the desktop window is resized.
   const desktopSandboxExpanded = createMemo(() => desktopSandboxOpen() && view().liveView.expanded())
-  const bottomDockOpen = createMemo(() => terminalOpen() || (!sandboxSideAvailable() && liveViewOpen()))
+  // Ajustes > General > Posición del terminal. Las ventanas estrechas y el
+  // diseño clásico siempre usan el dock inferior.
+  const sideTerminal = createMemo(
+    () => isDesktop() && newSessionDesign() && settings.general.terminalPlacement() === "side",
+  )
+  const sideTerminalOpen = createMemo(() => terminalOpen() && sideTerminal())
+  const bottomTerminalOpen = createMemo(() => terminalOpen() && !sideTerminal())
+  const bottomDockOpen = createMemo(() => bottomTerminalOpen() || (!sandboxSideAvailable() && liveViewOpen()))
   createEffect(() => {
-    if (sandboxSideAvailable() || !terminalOpen() || !liveViewOpen()) return
+    if (sandboxSideAvailable() || !bottomTerminalOpen() || !liveViewOpen()) return
     view().liveView.close()
   })
   const desktopFileTreeOpen = createMemo(
@@ -409,8 +423,9 @@ export default function Page() {
         opened: layout.fileTree.opened(),
       }),
   )
-  const desktopSessionResizeOpen = createMemo(() =>
-    desktopSandboxOpen() || (newSessionDesign() ? desktopV2ReviewOpen() : desktopReviewOpen()),
+  const desktopSessionResizeOpen = createMemo(
+    () =>
+      desktopSandboxOpen() || sideTerminalOpen() || (newSessionDesign() ? desktopV2ReviewOpen() : desktopReviewOpen()),
   )
   const desktopSidePanelOpen = createMemo(() => desktopSessionResizeOpen() || desktopFileTreeOpen())
   let panelRow: HTMLDivElement | undefined
@@ -461,13 +476,14 @@ export default function Page() {
   const dockMaxHeight = () => (typeof window === "undefined" ? 600 : window.innerHeight * 0.6)
   const bottomDockHeight = createMemo(() => Math.min(layout.terminal.height(), dockMaxHeight()))
   const closeBottomDock = () => {
-    view().terminal.close()
+    if (bottomTerminalOpen()) view().terminal.close()
     if (!sandboxSideAvailable()) view().liveView.close()
   }
   const desktopV2PanelLayout = createMemo(() =>
     sessionPanelLayout({
       review: desktopV2ReviewOpen(),
       files: desktopFileTreeOpen(),
+      terminal: sideTerminalOpen(),
     }),
   )
 
@@ -571,11 +587,14 @@ export default function Page() {
       failed: Record<string, string | undefined>
       paused: Record<string, boolean | undefined>
       edit: Record<string, FollowupEdit | undefined>
+      // The queued item loaded into the composer: it keeps its place until resubmitted or sent.
+      editing?: Record<string, string | undefined>
     }>({
       items: {},
       failed: {},
       paused: {},
       edit: {},
+      editing: {},
     }),
   )
 
@@ -597,8 +616,10 @@ export default function Page() {
   let diffFrame: number | undefined
   let diffTimer: number | undefined
 
+  // Opening the review or the side terminal snaps the chat width: a terminal that mounts
+  // mid-animation would size its PTY to the narrow in-between width.
   createComputed((prev) => {
-    const open = desktopReviewOpen()
+    const open = `${desktopReviewOpen()}:${sideTerminalOpen()}`
     if (prev === undefined || prev === open) return open
 
     if (reviewFrame !== undefined) cancelAnimationFrame(reviewFrame)
@@ -608,7 +629,7 @@ export default function Page() {
       setUi("reviewSnap", false)
     })
     return open
-  }, desktopReviewOpen())
+  }, `${desktopReviewOpen()}:${sideTerminalOpen()}`)
 
   const turnDiffs = createMemo(() => list(lastUserMessage()?.summary?.diffs))
   const nogit = createMemo(() => {
@@ -1097,26 +1118,18 @@ export default function Page() {
     inputRef?.focus()
   }
 
-  // Heurística de intención: si el prompt pide construir una web, una app, un
-  // documento o una hoja de cálculo, abrimos automáticamente la vista en vivo
-  // (que por exclusión mutua del dock inferior cierra la terminal). Es solo un
-  // regex barato sobre el texto plano del prompt, sin llamadas adicionales.
-  const BUILD_INTENT_REGEX =
-    /\b(website|websites|pagina|página|web|landing|frontend|app|apps|aplicacion|aplicación|excel|hoja de calculo|hoja de cálculo|documento|documentos|docs|doc|construye|construir|crea|crear|build|make|interfaz|ui)\b/i
-  const maybeOpenLiveView = () => {
-    if (!newSessionDesign()) return
-    const text = prompt
-      .current()
-      .map((part) => ("content" in part ? part.content : ""))
-      .join("")
-    if (BUILD_INTENT_REGEX.test(text)) view().liveView.open()
-  }
-
   // Navegación del agente a mitad de sesión (set_preview o dev server en los
   // logs): abre el sandbox si está cerrado para que la app aparezca en el
   // panel "Vista en vivo", no en el navegador flotante (que solo se abre por
   // clic del usuario).
-  useLiveViewAutoOpen({ enabled: () => newSessionDesign() && !!params.id && settings.general.previewAutoOpen() })
+  // The app the agent built is offered at the end of the turn (timeline PreviewOffer row); this
+  // watcher only opens the Sandbox while the agent itself needs to look at the page.
+  useLiveViewAutoOpen({
+    enabled: () =>
+      newSessionDesign() && !!params.id && settings.general.previewAutoOpen() && settings.general.agentBrowser(),
+    busy: () => !!params.id && (sync().data.session_status[params.id]?.type ?? "idle") !== "idle",
+    sessionID: () => params.id,
+  })
 
   // Redirección interna de destinos de vista previa local: el desktop shell
   // reenvía aquí los clics del renderer a un dev server local (o a un HTML del
@@ -1756,11 +1769,13 @@ export default function Page() {
     return followupMutation.variables?.id
   })
 
-  const queueEnabled = createMemo(() => {
+  // Enter follows Settings > Follow-up behavior while the agent works; Mod+Enter does the other one.
+  const queueEnabled = (alternate: boolean) => {
     const id = params.id
-    if (!id) return false
-    return settings.general.followup() === "queue" && busy(id) && !composer.blocked() && !isChildSession()
-  })
+    if (!id || !busy(id) || composer.blocked() || isChildSession()) return false
+    const queue = settings.general.followup() === "queue"
+    return alternate ? !queue : queue
+  }
 
   const followupText = (item: FollowupDraft) => {
     const text = item.prompt
@@ -1780,6 +1795,17 @@ export default function Page() {
   }
 
   const queueFollowup = (draft: FollowupDraft) => {
+    const editing = followup.editing?.[draft.sessionID]
+    const current = followup.items[draft.sessionID] ?? []
+    setFollowup("editing", (value) => ({ ...value, [draft.sessionID]: undefined }))
+    if (editing && current.some((entry) => entry.id === editing)) {
+      setFollowup("items", draft.sessionID, (items) =>
+        (items ?? []).map((entry) => (entry.id === editing ? { id: editing, ...draft } : entry)),
+      )
+      setFollowup("failed", draft.sessionID, undefined)
+      setFollowup("paused", draft.sessionID, undefined)
+      return
+    }
     setFollowup("items", draft.sessionID, (items) => [
       ...(items ?? []),
       { id: Identifier.ascending("message"), ...draft },
@@ -1807,8 +1833,8 @@ export default function Page() {
     const item = queuedFollowups().find((entry) => entry.id === id)
     if (!item) return
 
-    setFollowup("items", sessionID, (items) => (items ?? []).filter((entry) => entry.id !== id))
     setFollowup("failed", sessionID, (value) => (value === id ? undefined : value))
+    setFollowup("editing", (value) => ({ ...value, [sessionID]: id }))
     setFollowup("edit", sessionID, {
       id: item.id,
       prompt: item.prompt,
@@ -1820,6 +1846,36 @@ export default function Page() {
     const id = params.id
     if (!id) return
     setFollowup("edit", id, undefined)
+  }
+
+  // The edited queued item was sent straight away (steer): it no longer belongs in the queue.
+  const dropEditedFollowup = () => {
+    const id = params.id
+    const editing = id ? followup.editing?.[id] : undefined
+    if (!id || !editing) return
+    setFollowup("editing", (value) => ({ ...value, [id]: undefined }))
+    setFollowup("items", id, (items) => (items ?? []).filter((entry) => entry.id !== editing))
+  }
+
+  const removeFollowup = (id: string) => {
+    const sessionID = params.id
+    if (!sessionID || followupBusy(sessionID)) return
+    setFollowup("items", sessionID, (items) => (items ?? []).filter((entry) => entry.id !== id))
+    setFollowup("failed", sessionID, (value) => (value === id ? undefined : value))
+    if (followup.editing?.[sessionID] === id) setFollowup("editing", (value) => ({ ...value, [sessionID]: undefined }))
+  }
+
+  const moveFollowupUp = (id: string) => {
+    const sessionID = params.id
+    if (!sessionID) return
+    setFollowup("items", sessionID, (items) => {
+      const list = [...(items ?? [])]
+      const index = list.findIndex((entry) => entry.id === id)
+      if (index < 1) return list
+      const [entry] = list.splice(index, 1)
+      list.splice(index - 1, 0, entry)
+      return list
+    })
   }
 
   const halt = (sessionID: string) =>
@@ -1938,7 +1994,8 @@ export default function Page() {
     const sessionID = params.id
     if (!sessionID) return
 
-    const item = queuedFollowups()[0]
+    // The item being edited in the composer waits; the rest of the queue keeps draining.
+    const item = queuedFollowups().find((entry) => entry.id !== followup.editing?.[sessionID])
     if (!item) return
     if (followupBusy(sessionID)) return
     if (followup.failed[sessionID] === item.id) return
@@ -2157,6 +2214,9 @@ export default function Page() {
                     sending: sendingFollowup(),
                     onSend: (id) => void sendFollowup(params.id!, id, { manual: true }),
                     onEdit: editFollowup,
+                    onRemove: removeFollowup,
+                    onMoveUp: moveFollowupUp,
+                    editing: params.id ? followup.editing?.[params.id] : undefined,
                   }
                 : undefined,
             revert: () =>
@@ -2202,6 +2262,7 @@ export default function Page() {
                       onSubmit={() => {
                         comments.clear()
                         resumeScroll()
+                        dropEditedFollowup()
                       }}
                       edit={editingFollowup()}
                       onEditLoaded={clearFollowupEdit}
@@ -2230,7 +2291,7 @@ export default function Page() {
                       onSubmit: () => {
                         comments.clear()
                         resumeScroll()
-                        maybeOpenLiveView()
+                        dropEditedFollowup()
                         // Sincronización de voz: al enviar una petición se corta
                         // la lectura del anuncio anterior; la voz del nuevo
                         // anuncio arranca limpia cuando el modelo empieza a
@@ -2341,6 +2402,7 @@ export default function Page() {
             </Show>
             <Show when={newSessionDesign() && desktopV2PanelLayout().visible}>
               <div class="min-w-0 h-full flex flex-1 flex-col">
+                <Show when={desktopV2ReviewOpen() || desktopFileTreeOpen()}>
                 <div class="min-h-0 flex-1">
                   <Suspense>
                     <SessionSidePanel
@@ -2368,6 +2430,27 @@ export default function Page() {
                     />
                   </Suspense>
                 </div>
+                </Show>
+                <Show when={sideTerminalOpen()}>
+                  <Show when={desktopV2PanelLayout().stacked}>
+                    <div class="relative h-2 shrink-0" onPointerDown={() => size.start()}>
+                      <ResizeHandle
+                        class="!relative !inset-auto !h-full !w-full !transform-none"
+                        direction="vertical"
+                        size={layout.terminal.height()}
+                        min={100}
+                        max={dockMaxHeight()}
+                        collapseThreshold={50}
+                        onResize={(height) => {
+                          size.touch()
+                          layout.terminal.resize(height)
+                        }}
+                        onCollapse={() => view().terminal.close()}
+                      />
+                    </div>
+                  </Show>
+                  <TerminalPanelV2 stacked={desktopV2PanelLayout().stacked} />
+                </Show>
               </div>
             </Show>
             <Show when={desktopSandboxOpen()}>
@@ -2389,14 +2472,18 @@ export default function Page() {
                   />
                 </div>
                 <div class="min-h-0 min-w-0 flex-1 h-full">
-                  <LiveViewPanel onCapture={attachLiveViewCapture} expandable sessionID={params.id} />
+                  <Suspense>
+                    <LiveViewPanel onCapture={attachLiveViewCapture} expandable sessionID={params.id} />
+                  </Suspense>
                 </div>
               </div>
             </Show>
           </Show>
           <Show when={desktopSandboxExpanded()}>
             <div class="h-full min-h-0 min-w-0 flex-1 overflow-hidden">
-              <LiveViewPanel onCapture={attachLiveViewCapture} expandable sessionID={params.id} />
+              <Suspense>
+                    <LiveViewPanel onCapture={attachLiveViewCapture} expandable sessionID={params.id} />
+                  </Suspense>
             </div>
           </Show>
         </div>
@@ -2421,11 +2508,13 @@ export default function Page() {
             class="min-h-0 shrink-0 border-t border-[var(--v2-border-border-base)]"
             style={{ height: `${bottomDockHeight()}px` }}
           >
-            <Show when={terminalOpen()}>
+            <Show when={bottomTerminalOpen()}>
               <TerminalPanelV2 stacked />
             </Show>
-            <Show when={!terminalOpen() && !sandboxSideAvailable() && liveViewOpen()}>
-              <LiveViewPanel onCapture={attachLiveViewCapture} sessionID={params.id} />
+            <Show when={!bottomTerminalOpen() && !sandboxSideAvailable() && liveViewOpen()}>
+              <Suspense>
+                <LiveViewPanel onCapture={attachLiveViewCapture} sessionID={params.id} />
+              </Suspense>
             </Show>
           </div>
         </Show>

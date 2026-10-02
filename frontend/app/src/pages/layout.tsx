@@ -32,6 +32,7 @@ import { Dialog } from "@tiancode-ai/ui/dialog"
 import { getFilename } from "@tiancode-ai/core/util/path"
 import { Session } from "@tiancode-ai/sdk/v2/client"
 import { usePlatform } from "@/context/platform"
+import { DataFolderNotice } from "@/components/data-folder-notice"
 import { useSettings } from "@/context/settings"
 import { createStore, produce, reconcile } from "solid-js/store"
 import { DragDropProvider, DragDropSensors, DragOverlay, SortableProvider, closestCenter } from "@thisbeyond/solid-dnd"
@@ -277,18 +278,6 @@ export default function LegacyLayout(props: ParentProps) {
 
   const useSDKNotificationToasts = () =>
     onMount(() => {
-      const toastBySession = new Map<string, number>()
-      const alertedAtBySession = new Map<string, number>()
-      const cooldownMs = 5000
-
-      const dismissSessionAlert = (sessionKey: string) => {
-        const toastId = toastBySession.get(sessionKey)
-        if (toastId === undefined) return
-        dismissToast(toastId)
-        toastBySession.delete(sessionKey)
-        alertedAtBySession.delete(sessionKey)
-      }
-
       const unsub = serverSDK().event.listen((e) => {
         if (e.details?.type === "worktree.ready") {
           setBusy(e.name, false)
@@ -306,96 +295,10 @@ export default function LegacyLayout(props: ParentProps) {
           return
         }
 
-        if (
-          e.details?.type === "question.replied" ||
-          e.details?.type === "question.rejected" ||
-          e.details?.type === "permission.replied"
-        ) {
-          const props = e.details.properties as { sessionID: string }
-          const sessionKey = `${e.name}:${props.sessionID}`
-          dismissSessionAlert(sessionKey)
-          return
-        }
-
-        if (e.details?.type !== "permission.asked" && e.details?.type !== "question.asked") return
-        const title =
-          e.details.type === "permission.asked"
-            ? language.t("notification.permission.title")
-            : language.t("notification.question.title")
-        const icon = e.details.type === "permission.asked" ? ("checklist" as const) : ("bubble-5" as const)
-        const directory = e.name
-        const props = e.details.properties
-        if (e.details.type === "permission.asked" && permission.autoResponds(e.details.properties, directory)) return
-
-        const [store] = serverSync().child(directory, { bootstrap: false })
-        const session = store.session.find((s) => s.id === props.sessionID)
-        const sessionKey = `${directory}:${props.sessionID}`
-
-        const sessionTitle = session?.title ?? language.t("command.session.new")
-        const projectName = getFilename(directory)
-        const description =
-          e.details.type === "permission.asked"
-            ? language.t("notification.permission.description", { sessionTitle, projectName })
-            : language.t("notification.question.description", { sessionTitle, projectName })
-        const href = `/${base64Encode(directory)}/session/${props.sessionID}`
-
-        const now = Date.now()
-        const lastAlerted = alertedAtBySession.get(sessionKey) ?? 0
-        if (now - lastAlerted < cooldownMs) return
-        alertedAtBySession.set(sessionKey, now)
-
-        if (e.details.type === "permission.asked") {
-          if (settings.sounds.permissionsEnabled()) {
-            void playSoundById(settings.sounds.permissions())
-          }
-          if (settings.notifications.permissions()) {
-            void platform.notify(title, description, () => navigate(href))
-          }
-        }
-
-        if (e.details.type === "question.asked") {
-          if (settings.notifications.agent()) {
-            void platform.notify(title, description, () => navigate(href))
-          }
-        }
-
-        const currentSession = params.id
-        if (pathKey(directory) === pathKey(currentDir()) && props.sessionID === currentSession) return
-        if (pathKey(directory) === pathKey(currentDir()) && session?.parentID === currentSession) return
-
-        dismissSessionAlert(sessionKey)
-
-        const toastId = showToast({
-          persistent: true,
-          icon,
-          title,
-          description,
-          actions: [
-            {
-              label: language.t("notification.action.goToSession"),
-              onClick: () => navigate(href),
-            },
-            {
-              label: language.t("common.dismiss"),
-              onClick: "dismiss",
-            },
-          ],
-        })
-        toastBySession.set(sessionKey, toastId)
+        // permission.asked / question.asked alerts live in context/notification.tsx, which is mounted
+        // in every layout; handling them here as well would alert twice.
       })
       onCleanup(unsub)
-
-      createEffect(() => {
-        const currentSession = params.id
-        if (!currentDir() || !currentSession) return
-        const sessionKey = `${currentDir()}:${currentSession}`
-        dismissSessionAlert(sessionKey)
-        const [store] = serverSync().child(currentDir(), { bootstrap: false })
-        const childSessions = store.session.filter((s) => s.parentID === currentSession)
-        for (const child of childSessions) {
-          dismissSessionAlert(`${currentDir()}:${child.id}`)
-        }
-      })
     })
 
   useSDKNotificationToasts()
@@ -959,34 +862,34 @@ export default function LegacyLayout(props: ParentProps) {
         },
       },
       {
+        // No default keybind: mod+shift+p belongs to the command palette, which always won.
         id: "pet.toggle",
-        title: "Alternar Mascota de Escritorio",
+        title: language.t("command.pet.toggle"),
         category: language.t("command.category.view"),
-        keybind: "mod+shift+p",
         onSelect: () => {
           window.dispatchEvent(new CustomEvent("tiancode:pet-toggle"))
         },
       },
       {
         id: "mcp.health",
-        title: "Diagnóstico y Salud de Servidores MCP",
-        category: "MCP",
+        title: language.t("command.mcp.open"),
+        category: language.t("command.category.mcp"),
         keybind: "mod+shift+c",
-        onSelect: () => openSettings(),
+        onSelect: () => openSettings("mcp-plugins"),
       },
       {
         id: "skills.open",
-        title: "Gestor de Habilidades y Auto-Harness (Skills)",
-        category: "Agente",
+        title: language.t("command.skills.open"),
+        category: language.t("command.category.agent"),
         keybind: "mod+shift+k",
-        onSelect: () => openSettings(),
+        onSelect: () => openSettings("skills"),
       },
       {
         id: "rlm.tree",
-        title: "Árbol de Recursión RLM de Sub-Agentes",
-        category: "Agente",
+        title: language.t("command.subagents.open"),
+        category: language.t("command.category.agent"),
         keybind: "mod+shift+r",
-        onSelect: () => openSettings(),
+        onSelect: () => openSettings("sub-agents"),
       },
     ]
 
@@ -2195,7 +2098,7 @@ export default function LegacyLayout(props: ParentProps) {
       renderProjectOverlay={projectOverlay}
       settingsLabel={() => language.t("sidebar.settings")}
       settingsKeybind={() => command.keybind("settings.open")}
-      onOpenSettings={openSettings}
+      onOpenSettings={() => openSettings()}
       helpLabel={() => language.t("sidebar.help")}
       onOpenHelp={() => platform.openExternal("https://tiancode.vercel.app/")}
       renderPanel={() =>
@@ -2215,9 +2118,6 @@ export default function LegacyLayout(props: ParentProps) {
             : undefined
         }
       />
-      <Show when={updateVersion() !== undefined}>
-        <UpdateAvailableToast version={updateVersion() ?? ""} install={installUpdate} language={language} />
-      </Show>
       <div class="flex-1 min-h-0 min-w-0 flex">
         <div class="flex-1 min-h-0 relative">
           <div class="size-full relative overflow-x-hidden">
@@ -2363,41 +2263,8 @@ export default function LegacyLayout(props: ParentProps) {
         {import.meta.env.DEV && import.meta.env.VITE_DISABLE_DEBUG_BAR !== "1" && state.debugTools && <DebugBar />}
       </div>
       <TabsInfoPopup />
+      <DataFolderNotice />
       <ToastRegion v2={false} />
     </div>
   )
-}
-
-function UpdateAvailableToast(props: {
-  version: string
-  install: () => void
-  language: ReturnType<typeof useLanguage>
-}) {
-  let toastId: number | undefined
-
-  onMount(() => {
-    toastId = showToast({
-      persistent: true,
-      icon: "download",
-      title: props.language.t("toast.update.title"),
-      description: props.language.t("toast.update.description", { version: props.version }),
-      actions: [
-        {
-          label: props.language.t("toast.update.action.installRestart"),
-          onClick: props.install,
-        },
-        {
-          label: props.language.t("toast.update.action.notYet"),
-          onClick: "dismiss",
-        },
-      ],
-    })
-  })
-
-  onCleanup(() => {
-    if (toastId === undefined) return
-    dismissToast(toastId)
-  })
-
-  return null
 }

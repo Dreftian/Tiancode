@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import type { PromptInputV2Prompt } from "@tiancode-ai/session-ui/v2/prompt-input/types"
-import { promptWithOptimizedText, promptWithDictation } from "./optimized-prompt"
+import { promptWithBlock, promptWithOptimizedText, promptWithDictation } from "./optimized-prompt"
 
 const image = {
   type: "image",
@@ -47,5 +47,21 @@ describe("promptWithOptimizedText", () => {
     const result = promptWithOptimizedText([], "hola")
 
     expect(result).toEqual([{ type: "text", content: "hola", start: 0, end: 4 }])
+  })
+})
+
+describe("promptWithBlock", () => {
+  test("starts an empty prompt with the block", () => {
+    expect(promptWithBlock([], "ctx")).toEqual([{ type: "text", content: "ctx", start: 0, end: 3 }])
+  })
+
+  test("keeps the draft and its mentions, then adds the block after a blank line", () => {
+    const parts: PromptInputV2Prompt = [
+      { type: "text", content: "cambia ", start: 0, end: 7 },
+      { type: "file", path: "src/a.ts", content: "@src/a.ts", start: 7, end: 16 },
+    ]
+    const result = promptWithBlock(parts, "ctx")
+    expect(result.slice(0, 2)).toEqual(parts)
+    expect(result[2]).toEqual({ type: "text", content: String.fromCharCode(10, 10) + "ctx", start: 16, end: 21 })
   })
 })

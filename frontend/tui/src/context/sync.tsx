@@ -189,7 +189,8 @@ export const {
 
         case "permission.asked": {
           const request = event.properties
-          if (permission.mode === "auto") {
+          // AgentShield's critical matches (`shell_risk`) always wait for the user, even in auto mode.
+          if (permission.mode === "auto" && request.permission !== "shell_risk") {
             void sdk.client.permission.reply({
               requestID: request.id,
               reply: "once",

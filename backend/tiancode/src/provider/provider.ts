@@ -94,6 +94,41 @@ function timeoutController(ms: number) {
   }
 }
 
+// Applies the `headerTimeout`, `chunkTimeout` (SSE idle) and `timeout` provider options at the
+// fetch layer, on top of `options.fetch` when a custom fetch is configured.
+function timeoutFetch(options: Record<string, any>) {
+  const customFetch = options["fetch"]
+  const chunkTimeout = options["chunkTimeout"]
+  const headerTimeout = options["headerTimeout"]
+  const timeout = options["timeout"]
+
+  return async (input: any, init?: BunFetchRequestInit) => {
+    const fetchFn = customFetch ?? fetch
+    const opts = init ?? {}
+    const chunkAbortCtl = typeof chunkTimeout === "number" && chunkTimeout > 0 ? new AbortController() : undefined
+    const headerTimeoutMs = headerTimeout === false ? undefined : headerTimeout
+    const headerTimeoutCtl = typeof headerTimeoutMs === "number" ? timeoutController(headerTimeoutMs) : undefined
+    const signals: AbortSignal[] = []
+
+    if (opts.signal) signals.push(opts.signal)
+    if (chunkAbortCtl) signals.push(chunkAbortCtl.signal)
+    if (headerTimeoutCtl) signals.push(headerTimeoutCtl.signal)
+    if (timeout !== undefined && timeout !== null && timeout !== false) signals.push(AbortSignal.timeout(timeout))
+
+    const combined = signals.length === 0 ? null : signals.length === 1 ? signals[0] : AbortSignal.any(signals)
+    if (combined) opts.signal = combined
+
+    const res = await fetchFn(input, {
+      ...opts,
+      // @ts-ignore see here: https://github.com/oven-sh/bun/issues/16682
+      timeout: false,
+    }).finally(() => headerTimeoutCtl?.clear())
+
+    if (!chunkAbortCtl) return res
+    return wrapSSE(res, chunkTimeout, chunkAbortCtl)
+  }
+}
+
 function googleVertexAnthropicBaseURL(project: string | undefined, location: string | undefined) {
   if (!project) return
   if (location !== "eu" && location !== "us") return
@@ -147,6 +182,49 @@ type CustomLoader = (provider: Info) => Effect.Effect<{
   discoverModels?: CustomDiscoverModels
 }>
 
+const LOCAL_ENGINE_URL = "http://127.0.0.1:58282"
+
+function localModelName(value: string) {
+  return value
+    .replaceAll("\\", "/")
+    .split("/")
+    .at(-1)
+    ?.replace(/\.(?:gguf|bin|safetensors)$/i, "")
+    .toLowerCase()
+}
+
+/**
+ * Returns undefined when llama-server cannot identify its current model. An unknown response is
+ * treated as compatible so an older but healthy server is not restarted just because it lacks
+ * `/props`; a definite mismatch must reload before the request is sent.
+ */
+export function localEngineModelMatches(requested: string, props: unknown): boolean | undefined {
+  if (!isRecord(props)) return undefined
+  const candidates = [props.model_path, props.model_alias, props.model]
+    .filter((value): value is string => typeof value === "string")
+    .map(localModelName)
+    .filter((value): value is string => Boolean(value))
+  const wanted = localModelName(requested)
+  if (!wanted || candidates.length === 0) return undefined
+  return candidates.some((candidate) => candidate === wanted || (candidate.length > 8 && (candidate.includes(wanted) || wanted.includes(candidate))))
+}
+
+async function localEngineHasModel(modelID: string) {
+  try {
+    const health = await fetch(`${LOCAL_ENGINE_URL}/health`, { signal: AbortSignal.timeout(1000) })
+    if (!health.ok) return false
+    try {
+      const propsResponse = await fetch(`${LOCAL_ENGINE_URL}/props`, { signal: AbortSignal.timeout(1000) })
+      if (!propsResponse.ok) return true
+      return localEngineModelMatches(modelID, await propsResponse.json()) !== false
+    } catch {
+      return true
+    }
+  } catch {
+    return false
+  }
+}
+
 export type CustomDep = {
   auth: (id: string) => Effect.Effect<Auth.Info | undefined>
   config: () => Effect.Effect<ConfigV1.Info>
@@ -178,6 +256,15 @@ function selectBedrockMantleLanguageModel(sdk: BundledSDK, modelID: string) {
   if (modelID === "openai.gpt-oss-safeguard-20b" || modelID === "openai.gpt-oss-safeguard-120b")
     return sdk.chat?.(modelID) ?? sdk.languageModel(modelID)
   return sdk.responses?.(modelID) ?? sdk.languageModel(modelID)
+}
+
+function localRuntime(baseURL: string) {
+  return Effect.promise(() =>
+    fetch(`${baseURL}/models`, { signal: AbortSignal.timeout(600) }).then(
+      (response) => response.ok,
+      () => false,
+    ),
+  ).pipe(Effect.map((running) => ({ autoload: running, options: { baseURL } })))
 }
 
 /** Exported for tests: the local loader must delegate to `dep.startLocalEngine`, never spawn. */
@@ -218,37 +305,23 @@ export function custom(dep: CustomDep): Record<string, CustomLoader> {
     local: () =>
       Effect.succeed({
         autoload: true,
-        options: { baseURL: "http://127.0.0.1:58282/v1" },
+        options: { baseURL: `${LOCAL_ENGINE_URL}/v1` },
         async getModel(sdk: any, modelID: string, _options?: Record<string, any>, _model?: Model) {
-          const probe = async () => {
-            try {
-              const res = await fetch("http://127.0.0.1:58282/health", { signal: AbortSignal.timeout(1000) })
-              return res.ok
-            } catch {
-              return false
-            }
-          }
-
           // Selecting a local model in the composer has to be enough to get it running: most users
           // never open the Models Hub, so this is the path that matters. It hands the work to the
           // one engine implementation rather than repeating it (see CustomDep.startLocalEngine).
-          if (!(await probe())) {
+          if (!(await localEngineHasModel(modelID))) {
             await dep.startLocalEngine({ model: modelID, file: modelID }).catch(() => undefined)
           }
 
           return sdk.languageModel(modelID)
         },
       }),
-    ollama: () =>
-      Effect.succeed({
-        autoload: true,
-        options: { baseURL: "http://localhost:11434/v1" },
-      }),
-    lmstudio: () =>
-      Effect.succeed({
-        autoload: true,
-        options: { baseURL: "http://localhost:1234/v1" },
-      }),
+    // Ollama and LM Studio are offered only while they answer: loaded blindly, a fresh install with
+    // no keys made LM Studio the default model and every `tiancode run` spent a minute retrying a
+    // refused connection before failing.
+    ollama: () => localRuntime("http://localhost:11434/v1"),
+    lmstudio: () => localRuntime("http://localhost:1234/v1"),
     openai: () =>
       Effect.succeed({
         autoload: false,
@@ -851,7 +924,7 @@ export function custom(dep: CustomDep): Record<string, CustomLoader> {
       }
 
       // Use official ai-gateway-provider package (v2.x for AI SDK v5 compatibility)
-      const { createAiGateway } = yield* Effect.promise(() => import("ai-gateway-provider"))
+      const { createAiGateway, parseAiGatewayOptions } = yield* Effect.promise(() => import("ai-gateway-provider"))
       const { createUnified } = yield* Effect.promise(() => import("ai-gateway-provider/providers/unified"))
 
       const metadata = iife(() => {
@@ -873,12 +946,6 @@ export function custom(dep: CustomDep): Record<string, CustomLoader> {
         },
       }
 
-      const aigateway = createAiGateway({
-        accountId,
-        gateway,
-        apiKey: apiToken,
-        ...(Object.values(opts).some((v) => v !== undefined) ? { options: opts } : {}),
-      })
       // The gateway token authenticates us to Cloudflare and travels in cf-aig-authorization,
       // which createAiGateway sets. Passing it as the model's apiKey as well puts it in
       // Authorization, which the gateway forwards verbatim to OpenAI/Anthropic/whichever
@@ -888,7 +955,28 @@ export function custom(dep: CustomDep): Record<string, CustomLoader> {
 
       return {
         autoload: true,
-        async getModel(_sdk: any, modelID: string, _options?: Record<string, any>) {
+        async getModel(_sdk: any, modelID: string, options?: Record<string, any>) {
+          // This loader builds its own client instead of the SDK from resolveSDK, so the provider
+          // timeouts (headerTimeout, chunkTimeout, timeout) have to be applied here (opencode
+          // 1.18.33). The library's REST path always calls the global fetch; its binding path hands
+          // over the request, so send what the REST path would send through the timeout-aware fetch.
+          const gatewayFetch = timeoutFetch(options ?? {})
+          const aigateway = createAiGateway({
+            binding: {
+              run(body, init) {
+                const headers = parseAiGatewayOptions(opts)
+                headers.set("Content-Type", "application/json")
+                headers.set("cf-aig-authorization", `Bearer ${apiToken}`)
+                headers.set("User-Agent", opts.headers["User-Agent"])
+                return gatewayFetch(`https://gateway.ai.cloudflare.com/v1/${accountId}/${gateway}`, {
+                  body: JSON.stringify(body),
+                  headers,
+                  method: "POST",
+                  signal: init?.signal,
+                })
+              },
+            },
+          })
           // Model IDs use Unified API format: provider/model (e.g., "anthropic/claude-sonnet-4-5")
           return aigateway(unified(modelID))
         },
@@ -1948,38 +2036,9 @@ const layer = Layer.effect(
         const existing = s.sdk.get(key)
         if (existing) return existing
 
-        const customFetch = options["fetch"]
-        const chunkTimeout = options["chunkTimeout"]
-        const headerTimeout = options["headerTimeout"]
+        options["fetch"] = timeoutFetch(options)
         delete options["chunkTimeout"]
         delete options["headerTimeout"]
-
-        options["fetch"] = async (input: any, init?: BunFetchRequestInit) => {
-          const fetchFn = customFetch ?? fetch
-          const opts = init ?? {}
-          const chunkAbortCtl = typeof chunkTimeout === "number" && chunkTimeout > 0 ? new AbortController() : undefined
-          const headerTimeoutMs = headerTimeout === false ? undefined : headerTimeout
-          const headerTimeoutCtl = typeof headerTimeoutMs === "number" ? timeoutController(headerTimeoutMs) : undefined
-          const signals: AbortSignal[] = []
-
-          if (opts.signal) signals.push(opts.signal)
-          if (chunkAbortCtl) signals.push(chunkAbortCtl.signal)
-          if (headerTimeoutCtl) signals.push(headerTimeoutCtl.signal)
-          if (options["timeout"] !== undefined && options["timeout"] !== null && options["timeout"] !== false)
-            signals.push(AbortSignal.timeout(options["timeout"]))
-
-          const combined = signals.length === 0 ? null : signals.length === 1 ? signals[0] : AbortSignal.any(signals)
-          if (combined) opts.signal = combined
-
-          const res = await fetchFn(input, {
-            ...opts,
-            // @ts-ignore see here: https://github.com/oven-sh/bun/issues/16682
-            timeout: false,
-          }).finally(() => headerTimeoutCtl?.clear())
-
-          if (!chunkAbortCtl) return res
-          return wrapSSE(res, chunkTimeout, chunkAbortCtl)
-        }
 
         const bundledLoader = BUNDLED_PROVIDERS[model.api.npm]
         if (bundledLoader) {
@@ -2050,7 +2109,9 @@ const layer = Layer.effect(
       const s = yield* InstanceState.get(state)
       const envs = yield* env.all()
       const key = `${model.providerID}/${model.id}`
-      if (s.models.has(key)) return s.models.get(key)!
+      // The single local engine may have switched models since this SDK model
+      // was cached. Run the local loader's health/model check on every turn.
+      if (s.models.has(key) && model.providerID !== "local") return s.models.get(key)!
 
       const provider = s.providers[model.providerID]
       return yield* EffectPromise.refineRejection(

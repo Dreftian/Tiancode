@@ -1,19 +1,22 @@
 import { execFile } from "node:child_process"
+import { release } from "node:os"
 import { stat, writeFile } from "node:fs/promises"
-import { basename, isAbsolute, join, relative, resolve } from "node:path"
+import { basename, isAbsolute, join, resolve } from "node:path"
 import { app, BrowserWindow, clipboard, dialog, globalShortcut, ipcMain, screen, shell } from "electron"
 import type { IpcMainEvent, IpcMainInvokeEvent } from "electron"
 import type { DesktopMenuAction } from "@tiancode-ai/app/desktop-menu"
 import { parseDesktopNativeBundle, type DesktopNativeBundle } from "@tiancode-ai/app/i18n/desktop-native"
 
 import type { FatalRendererError, ServerReadyData, TitlebarTheme } from "../preload/types"
-import { getLogger, write as writeLog } from "./logging"
+import { write as writeLog } from "./logging"
 import { runDesktopMenuAction } from "./desktop-menu-actions"
 import { setForceFocus } from "./debug"
 import { assertAttachmentBudget, createPickedFileAuthorizations } from "./attachment-picker"
 import { getStore, removeStoreFileIfEmpty } from "./store"
 import { LOCAL_MODELS_DIR_KEY } from "./store-keys"
 import {
+  getAnyMainWindow,
+  getLastFocusedWindow,
   getPinchZoomEnabled,
   getWindowID,
   getWelcomeWindow,
@@ -22,13 +25,15 @@ import {
   openLocalFileURL,
   setPinchZoomEnabled,
   setTitlebar,
-  updateTitlebar,
+  setUiZoom,
+  flushUiZoom,
   preferredWindowSize,
   clearWebviewData,
   WEBVIEW_RETENTION_KEY,
 } from "./windows"
 import type { UpdaterController } from "./updater-controller"
 import { createUpdaterSubscriptions } from "./updater-subscriptions"
+import { setUpdateAssistant } from "./updater"
 import { createDesktopDraftStore } from "./draft-store"
 import { nativeT } from "./native-translations"
 import {
@@ -38,20 +43,24 @@ import {
   getVoicesStatus,
   listVoices,
   selectVoice,
-  setVoiceEnabled,
   speakVoice,
   speakFishVoice,
 } from "./voices"
 import { asrChunk, asrStart, asrStop, ensureAsrModel, getAsrStatus, resolveAsrLanguage } from "./asr"
 import { getRuntimeInstallState, installRuntime } from "./runtime-install"
 import { captureArea, captureLiveView, capturePreview, captureScreen, captureWindow } from "./capture"
-import { backupNow, deleteBackup, listBackups, restoreBackup } from "./backup"
+import { backupNow, deleteBackup, listBackups, scheduleRestore } from "./backup"
 import { registerPreviewViewIpc } from "./preview-view"
 import { registerPreviewAgentIpc } from "./preview-agent"
 import { registerWindowMirrorIpc } from "./window-mirror"
 import { registerDesktopPetIpc } from "./desktop-pet"
 import { COMPUTER_DENIED_KEY, COMPUTER_ENABLED_KEY, COMPUTER_RESTORE_KEY, registerComputerUseIpc } from "./computer-use"
 import { openInChrome } from "./chrome"
+import { getKeepScreenActive, setKeepScreenActive } from "./screen-activity"
+import { pairingInfo, setPairingEnabled } from "./pairing"
+import { saveProfileChoice } from "./profile"
+import { resolvedProfile } from "./profile-state"
+import { CHANNEL, DISTRIBUTION } from "./constants"
 
 // Apps "abrir con" que acepta open-path. En macOS y Linux el renderer envía
 // el nombre tal cual; en Windows envía el path resuelto por resolveAppPath
@@ -179,8 +188,16 @@ export function registerIpcHandlers(deps: Deps) {
   // Canales exclusivos window-mirror:*.
   registerWindowMirrorIpc()
 
-  // Mascota de escritorio independiente
-  registerDesktopPetIpc()
+  // Mascota de escritorio independiente. Double-clicking it opens the window the user used last.
+  registerDesktopPetIpc({
+    focusMain: () => {
+      const win = getLastFocusedWindow() ?? getAnyMainWindow()
+      if (!win || win.isDestroyed()) return
+      if (win.isMinimized()) win.restore()
+      win.show()
+      win.focus()
+    },
+  })
 
   // Uso del computador: el agente mueve el ratón y teclea en el escritorio real (sólo Windows).
   // Canales exclusivos computer:*. computer-use.ts no importa electron para poder probarse con
@@ -216,7 +233,10 @@ export function registerIpcHandlers(deps: Deps) {
   }
 
   app.once("will-quit", updaterSubscriptions.clear)
-  app.on("before-quit", () => drafts.flush())
+  app.on("before-quit", () => {
+    drafts.flush()
+    flushUiZoom()
+  })
   app.once("will-quit", () => drafts.close())
   app.on("browser-window-created", (_event, win) => win.on("session-end", () => drafts.flush()))
 
@@ -262,6 +282,22 @@ export function registerIpcHandlers(deps: Deps) {
     event.sender.once("destroyed", () => updaterSubscriptions.delete(id))
   })
   ipcMain.handle("updater-unsubscribe", (event) => updaterSubscriptions.delete(event.sender.id))
+  ipcMain.on("updater-assistant", (event, listening: unknown) => {
+    const contents = event.sender
+    const id = contents.id
+    setUpdateAssistant(id, listening === true)
+    if (listening !== true) return
+    const clear = () => setUpdateAssistant(id, false)
+    contents.once("destroyed", clear)
+    // A reload or navigation drops the page's listener without running its cleanup.
+    const navigated = (details: { isMainFrame: boolean; isSameDocument: boolean }) => {
+      if (!details.isMainFrame || details.isSameDocument) return
+      contents.off("did-start-navigation", navigated)
+      contents.off("destroyed", clear)
+      clear()
+    }
+    contents.on("did-start-navigation", navigated)
+  })
   ipcMain.handle("updater-check", () => deps.updater.check())
   ipcMain.handle("updater-install", () => deps.updater.install())
   ipcMain.handle("set-background-color", (_event: IpcMainInvokeEvent, color: string) => deps.setBackgroundColor(color))
@@ -297,9 +333,6 @@ export function registerIpcHandlers(deps: Deps) {
   ipcMain.handle("voices-select", (_event: IpcMainInvokeEvent, voiceId: string) => selectVoice(voiceId))
   ipcMain.handle("voices-download-voice", (_event: IpcMainInvokeEvent, voiceId: string) => downloadVoice(voiceId))
   ipcMain.handle("voices-delete-voice", (_event: IpcMainInvokeEvent, voiceId: string) => deleteVoice(voiceId))
-  ipcMain.handle("voices-set-enabled", (_event: IpcMainInvokeEvent, voiceId: string, enabled: boolean) =>
-    setVoiceEnabled(voiceId, enabled),
-  )
   ipcMain.handle("asr-status", () => getAsrStatus())
   ipcMain.handle("asr-ensure-model", (_event: IpcMainInvokeEvent, language: unknown) =>
     ensureAsrModel(resolveAsrLanguage(language)),
@@ -459,6 +492,53 @@ export function registerIpcHandlers(deps: Deps) {
     openExternalURL(url)
   })
   ipcMain.handle("open-in-chrome", (_event: IpcMainInvokeEvent, url: string) => openInChrome(url))
+  // An explicit "open on the desktop" request from the UI (preview offer card, Sandbox header).
+  // Unlike "open-external" it never reroutes loopback previews into the Sandbox: the user asked for
+  // the PC browser. It still honours "Open links in" when that names Chrome.
+  ipcMain.handle("open-in-system-browser", async (_event: IpcMainInvokeEvent, url: string) => {
+    if (getStore().get("browserLinkTarget") === "chrome" && process.platform === "win32") {
+      const opened = await openInChrome(url).then(
+        () => true,
+        () => false,
+      )
+      if (opened) return
+    }
+    openExternalURL(url)
+  })
+  ipcMain.handle("get-keep-screen-active", () => getKeepScreenActive())
+  ipcMain.handle("pairing-info", () => pairingInfo())
+  // Settings › About: build and runtime facts the sandboxed renderer cannot read itself.
+  ipcMain.handle("app-info", () => ({
+    version: app.getVersion(),
+    channel: CHANNEL,
+    distribution: DISTRIBUTION,
+    portable: resolvedProfile()?.kind === "portable",
+    electron: process.versions.electron,
+    chrome: process.versions.chrome,
+    node: process.versions.node,
+    arch: process.arch,
+    osRelease: release(),
+    logs: join(app.getPath("userData"), "logs"),
+  }))
+  // Settings › General › Data: the folder in use and the other Tiancode folder that holds data.
+  ipcMain.handle("data-folder-info", () => ({
+    path: app.getPath("userData"),
+    alternative: resolvedProfile()?.alternative ?? null,
+    chosen: resolvedProfile()?.reason === "chosen",
+  }))
+  // Only the folder data-folder-info offered can be chosen, never a path the renderer names.
+  ipcMain.handle("data-folder-switch", (_event: IpcMainInvokeEvent, path: string) => {
+    if (typeof path !== "string" || path !== resolvedProfile()?.alternative?.path) return false
+    if (!saveProfileChoice(app.getPath("appData"), { path, reason: "chosen" })) return false
+    deps.relaunch()
+    return true
+  })
+  ipcMain.handle("pairing-set-enabled", (_event: IpcMainInvokeEvent, enabled: boolean) =>
+    setPairingEnabled(enabled === true),
+  )
+  ipcMain.handle("set-keep-screen-active", (_event: IpcMainInvokeEvent, enabled: boolean) =>
+    setKeepScreenActive(enabled === true),
+  )
 
   ipcMain.on("open-local-file", (event: IpcMainEvent, url: string) => {
     if (isLiveViewPreviewUrl(url)) {
@@ -523,16 +603,20 @@ export function registerIpcHandlers(deps: Deps) {
   ipcMain.handle("clear-webview-data", () => clearWebviewData())
 
   // Inicio con Windows: el estado lo gestiona el sistema operativo.
+  // The portable build runs from a temporary copy; the login item must point at the .exe the
+  // user keeps (electron-builder passes it as PORTABLE_EXECUTABLE_FILE).
+  const loginPath = () => process.env.PORTABLE_EXECUTABLE_FILE || process.execPath
   ipcMain.handle("set-login-item", (_event: IpcMainInvokeEvent, enabled: boolean) => {
-    app.setLoginItemSettings({ openAtLogin: enabled, path: process.execPath })
-    return app.getLoginItemSettings().openAtLogin
+    app.setLoginItemSettings({ openAtLogin: enabled, path: loginPath() })
+    return app.getLoginItemSettings({ path: loginPath() }).openAtLogin
   })
-  ipcMain.handle("get-login-item", () => app.getLoginItemSettings().openAtLogin)
+  ipcMain.handle("get-login-item", () => app.getLoginItemSettings({ path: loginPath() }).openAtLogin)
 
   // Respaldos de datos (sesiones + configuración; los modelos no se respaldan).
   ipcMain.handle("backup-now", () => backupNow())
   ipcMain.handle("backup-list", () => listBackups())
-  ipcMain.handle("backup-restore", (_event: IpcMainInvokeEvent, name: string) => restoreBackup(name))
+  // Applied at the next start, before the server opens the databases (the renderer relaunches).
+  ipcMain.handle("backup-restore", (_event: IpcMainInvokeEvent, name: string) => scheduleRestore(name))
   ipcMain.handle("backup-delete", (_event: IpcMainInvokeEvent, name: string) => deleteBackup(name))
 
   ipcMain.handle("get-window-id", (event: IpcMainInvokeEvent) => {
@@ -595,10 +679,8 @@ export function registerIpcHandlers(deps: Deps) {
 
   ipcMain.handle("get-zoom-factor", (event: IpcMainInvokeEvent) => event.sender.getZoomFactor())
   ipcMain.handle("set-zoom-factor", (event: IpcMainInvokeEvent, factor: number) => {
-    event.sender.setZoomFactor(factor)
-    const win = BrowserWindow.fromWebContents(event.sender)
-    if (!win) return
-    updateTitlebar(win)
+    if (typeof factor !== "number" || !Number.isFinite(factor)) return
+    setUiZoom(factor, BrowserWindow.fromWebContents(event.sender))
   })
   ipcMain.handle("get-pinch-zoom-enabled", () => getPinchZoomEnabled())
   ipcMain.handle("set-pinch-zoom-enabled", (_event: IpcMainInvokeEvent, enabled: boolean) => {
@@ -615,120 +697,6 @@ export function registerIpcHandlers(deps: Deps) {
       relaunch: deps.relaunch,
     })
   })
-
-  ipcMain.handle(
-    "model-hub-delete-file",
-    async (_event: IpcMainInvokeEvent, target: { file?: string; id?: string; destPath?: string }) => {
-      getLogger()?.info("model-hub-delete-file requested", target)
-
-      // 1. Matar cualquier proceso de llama-server para liberar bloqueos en Windows
-      if (process.platform === "win32") {
-        try {
-          execFile("taskkill", ["/F", "/IM", "llama-server.exe", "/T"])
-          execFile("taskkill", ["/F", "/IM", "llama.exe", "/T"])
-        } catch {}
-      }
-
-      const fileOrName = target.file || target.id || ""
-      const cleanFileName = fileOrName.replace(/\.gguf$/i, "")
-
-      const candidateDirs = [
-        join(app.getPath("appData"), "ai.tiancode.desktop", "xdg", "data", "tiancode", "models"),
-        join(app.getPath("appData"), "ai.tiancode.desktop.codex", "xdg", "data", "tiancode", "models"),
-        join(app.getPath("userData"), "xdg", "data", "tiancode", "models"),
-        join(app.getPath("home"), ".tiancode", "models"),
-        join(app.getPath("home"), ".local", "share", "tiancode", "models"),
-      ]
-
-      const { rm, readdir, readFile, writeFile } = await import("node:fs/promises")
-
-      for (const dir of candidateDirs) {
-        // Limpieza en .jobs.json
-        try {
-          const jobsPath = join(dir, ".jobs.json")
-          const content = await readFile(jobsPath, "utf-8")
-          const jobsList = JSON.parse(content)
-          if (Array.isArray(jobsList)) {
-            const filtered = jobsList.filter((j: any) => {
-              if (!j) return false
-              if (target.id && j.id === target.id) return false
-              if (target.file && j.file === target.file) return false
-              if (target.destPath && j.destPath === target.destPath) return false
-              if (fileOrName && (j.file?.includes(fileOrName) || j.destPath?.includes(fileOrName))) return false
-              return true
-            })
-            await writeFile(jobsPath, JSON.stringify(filtered, null, 2), "utf-8")
-          }
-        } catch {}
-
-        // Eliminación física recursiva de archivos .gguf o carpetas
-        try {
-          const deleteMatching = async (currentDir: string) => {
-            const entries = await readdir(currentDir, { withFileTypes: true }).catch(() => [])
-            for (const entry of entries) {
-              const full = join(currentDir, entry.name)
-              const nameLower = entry.name.toLowerCase()
-              const isMatch =
-                (target.file && nameLower === target.file.toLowerCase()) ||
-                (target.destPath && full.toLowerCase() === target.destPath.toLowerCase()) ||
-                (fileOrName && nameLower.includes(fileOrName.toLowerCase())) ||
-                (cleanFileName && nameLower.includes(cleanFileName.toLowerCase()))
-
-              if (isMatch) {
-                await rm(full, { recursive: true, force: true }).catch(() => {})
-              } else if (entry.isDirectory() && entry.name !== "." && entry.name !== "..") {
-                await deleteMatching(full)
-              }
-            }
-          }
-          await deleteMatching(dir)
-        } catch {}
-      }
-
-      const isInsideCandidateDir = (targetPath: string) => {
-        const resolvedTarget = resolve(targetPath)
-        return candidateDirs.some((dir) => {
-          const rel = relative(resolve(dir), resolvedTarget)
-          return !rel.startsWith("..") && !isAbsolute(rel)
-        })
-      }
-
-      if (target.destPath && isInsideCandidateDir(target.destPath)) {
-        try {
-          await rm(target.destPath, { recursive: true, force: true }).catch(() => {})
-          await rm(`${target.destPath}.part`, { recursive: true, force: true }).catch(() => {})
-        } catch {}
-      }
-
-      // Verify the artifact is really gone; a locked file (llama-server still
-      // holding the handle, AV quarantine, etc.) must not report success or
-      // the model silently resurrects via auto-discovery on next start.
-      let stillExists = false
-      for (const dir of candidateDirs) {
-        try {
-          const verifyDir = async (currentDir: string) => {
-            const entries = await readdir(currentDir, { withFileTypes: true }).catch(() => [])
-            for (const entry of entries) {
-              if (stillExists) return
-              const nameLower = entry.name.toLowerCase()
-              const isMatch =
-                (target.file && nameLower === target.file.toLowerCase()) ||
-                (fileOrName && nameLower.includes(fileOrName.toLowerCase())) ||
-                (cleanFileName && nameLower.includes(cleanFileName.toLowerCase()))
-              if (isMatch && entry.isFile() && !nameLower.endsWith(".part")) {
-                stillExists = true
-                return
-              }
-              if (entry.isDirectory()) await verifyDir(join(currentDir, entry.name))
-            }
-          }
-          await verifyDir(dir)
-        } catch {}
-      }
-
-      return { success: !stillExists }
-    },
-  )
 }
 
 export function sendMenuCommand(win: BrowserWindow, id: string) {

@@ -18,6 +18,9 @@ const AgentSchema = Schema.StructWithRest(
     temperature: Schema.optional(Schema.Finite),
     top_p: Schema.optional(Schema.Finite),
     prompt: Schema.optional(Schema.String),
+    prompt_append: Schema.optional(Schema.String).annotate({
+      description: "Extra instructions added after the agent's prompt, keeping the built-in one (unlike 'prompt', which replaces it)",
+    }),
     injectAgentsMd: Schema.optional(Schema.Boolean).annotate({
       description: "Inject AGENTS.md context into this agent's system prompt",
     }),
@@ -51,6 +54,7 @@ const KNOWN_KEYS = new Set([
   "model",
   "variant",
   "prompt",
+  "prompt_append",
   "injectAgentsMd",
   "description",
   "temperature",

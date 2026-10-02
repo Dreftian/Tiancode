@@ -1,17 +1,18 @@
-import { createEffect, onCleanup } from "solid-js"
-import { setPreviewPanelOpen } from "@/components/preview/preview-panel"
+import { createEffect, createSignal, on, onCleanup } from "solid-js"
+import { previewPanelOpen, setPreviewPanelOpen } from "@/components/preview/preview-panel"
 import { usePlatform } from "@/context/platform"
 import { useSDK } from "@/context/sdk"
 import { useServer } from "@/context/server"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { previewAgentDemandUrl, previewStatusUrl } from "@/pages/session/live-preview/live-preview-url"
-import { LIVE_VIEW_URL, serverTargetOf, setLiveViewManagedTarget } from "@/pages/session/live-view-panel"
+import { setLiveViewManagedTarget } from "@/pages/session/live-view-target"
 import { authTokenFromCredentials } from "@/utils/server"
 
-// Intervalos del vigía: el poll corre solo mientras el sandbox está cerrado
-// (cuando está abierto, el propio panel consulta el snapshot y navega).
-const LIVE_VIEW_POLL_MS = 5_000
+// The watcher only runs while the agent works (plus a short grace for its last tool call): an idle
+// session sends no requests at all.
+const LIVE_VIEW_POLL_MS = 4_000
 const LIVE_VIEW_CHECK_MS = 3_000
+const LIVE_VIEW_GRACE_MS = 10_000
 
 type ManagedPreviewState = {
   status?: unknown
@@ -33,9 +34,6 @@ function embeddedUrl(value: unknown) {
   }
 }
 
-// El estado administrado es la señal canónica después de preview_start. No se
-// infieren URLs de Start-Process, shells ni herramientas de navegador: esas
-// tools pueden abrir software externo y no representan un preview embebido.
 /**
  * A stable key for "the agent is waiting for a page", or undefined when it is not.
  *
@@ -64,116 +62,109 @@ export function managedPreviewTargetOf(value: unknown, since?: number) {
   return { url, key: `managed:${url}:${stamp}` }
 }
 
-// The live dashboard snapshot is global to the machine: a dev server another project started
-// earlier must not open this session's panel. Only snapshots refreshed after the session view
-// opened qualify (timestamps may arrive in seconds or milliseconds).
-export function liveSnapshotIsFresh(session: unknown, since: number) {
-  if (!isRecord(session)) return false
-  const updated = session.updated_at
-  if (typeof updated !== "number") return false
-  const stamp = updated < 1e12 ? updated * 1000 : updated
-  return stamp >= since
-}
-
-// La app construida por el agente aparece siempre en el panel de código +
-// preview: se cierra el navegador flotante (no compite), se fuerza la pestaña
-// App (no Dev tools) y se abre el sandbox.
-function showLiveView(view: ReturnType<typeof useSessionLayout>["view"]) {
-  setPreviewPanelOpen(false)
-  view().liveView.setTab("preview")
-  view().liveView.open()
-}
-
-// Abre el sandbox cuando hay un preview publicado por el Live Frontend MCP o
-// cuando preview_start confirma que un servidor administrado ya responde.
-// Nunca usa una navegación genérica del chat como señal, por lo que pedir una
-// vista previa no provoca que Tiancode trate Chrome/Start-Process como ruta de
-// visualización.
-export function useLiveViewAutoOpen(input: { enabled: () => boolean }) {
+/**
+ * Opens the Sandbox while the agent needs to look at the page (preview_inspect / preview_interact
+ * waiting for a surface). Finished apps are offered by the timeline's PreviewOffer card instead,
+ * so this never opens the panel just because a dev server is running.
+ */
+export function useLiveViewAutoOpen(input: {
+  enabled: () => boolean
+  busy: () => boolean
+  sessionID: () => string | undefined
+}) {
   const { view } = useSessionLayout()
   const sdk = useSDK()
   const server = useServer()
   const platform = usePlatform()
   const capable = !!platform.previewAgent
-  let lastAutoOpenedKey: string | undefined
-  // Anything older than this view (servers, snapshots) stays closed until the agent acts again.
-  const openedAt = Date.now()
+  // Demands already answered, by opening the panel or by the user closing it while they waited.
+  const handled = new Set<string>()
+  const [active, setActive] = createSignal(false)
 
-  createEffect(() => {
-    if (!input.enabled() || view().liveView.opened()) return
-
+  const request = () => {
     const directory = sdk().directory
     const http = server.current?.http
-    const headers = http?.password
+    if (!directory || directory === "main" || !http?.url) return
+    const headers = http.password
       ? { Authorization: `Basic ${authTokenFromCredentials({ username: http.username ?? "tiancode", password: http.password })}` }
       : undefined
-    let dashboardRequest: AbortController | undefined
-    let managedRequest: AbortController | undefined
-    let demandRequest: AbortController | undefined
+    return { directory, url: http.url, headers }
+  }
+
+  const fetchJson = async (url: string, headers: Record<string, string> | undefined, signal: AbortSignal) => {
+    const controller = new AbortController()
+    const abort = () => controller.abort()
+    signal.addEventListener("abort", abort, { once: true })
+    const timer = window.setTimeout(abort, LIVE_VIEW_CHECK_MS)
+    const result: unknown = await fetch(url, { headers, signal: controller.signal })
+      .then((res) => (res.ok ? res.json() : undefined))
+      .catch(() => undefined)
+    window.clearTimeout(timer)
+    signal.removeEventListener("abort", abort)
+    return result
+  }
+
+  const currentDemand = async (signal: AbortSignal) => {
+    const target = request()
+    if (!target) return
+    const demand = await fetchJson(
+      previewAgentDemandUrl(target.url, target.directory, { capable }),
+      target.headers,
+      signal,
+    )
+    return liveViewDemandKey(demand)
+  }
+
+  createEffect(() => {
+    if (input.busy()) {
+      setActive(true)
+      return
+    }
+    const timer = window.setTimeout(() => setActive(false), LIVE_VIEW_GRACE_MS)
+    onCleanup(() => window.clearTimeout(timer))
+  })
+
+  // Closing the panel while the agent still waits means "not now": remember that demand.
+  createEffect(
+    on(
+      () => view().liveView.opened(),
+      (opened, wasOpened) => {
+        if (opened || !wasOpened) return
+        const controller = new AbortController()
+        void currentDemand(controller.signal).then((key) => {
+          if (key) handled.add(key)
+        })
+        onCleanup(() => controller.abort())
+      },
+      { defer: true },
+    ),
+  )
+
+  createEffect(() => {
+    input.sessionID()
+    if (!input.enabled() || !active() || view().liveView.opened()) return
+    // The floating integrated browser is the user's chosen surface; never replace it with the Sandbox.
+    if (previewPanelOpen()) return
+
+    const controller = new AbortController()
     let polling = false
-
-    const clearManagedTarget = () => {
-      if (!directory || directory === "main") return
-      setLiveViewManagedTarget((current) => (current?.directory === directory ? undefined : current))
-    }
-
-    const open = (key: string, managedUrl?: string) => {
-      if (key === lastAutoOpenedKey) return
-      lastAutoOpenedKey = key
-      if (managedUrl && directory && directory !== "main") setLiveViewManagedTarget({ directory, url: managedUrl })
-      if (!managedUrl) clearManagedTarget()
-      showLiveView(view)
-    }
 
     const poll = async () => {
       if (polling) return
       polling = true
       try {
-        if (directory && directory !== "main" && http?.url) {
-          managedRequest?.abort()
-          managedRequest = new AbortController()
-          const managedTimer = window.setTimeout(() => managedRequest?.abort(), LIVE_VIEW_CHECK_MS)
-          const payload = await fetch(previewStatusUrl(http.url, directory), { headers, signal: managedRequest.signal })
-            .then((res) => (res.ok ? res.json() : undefined))
-            .catch(() => undefined)
-          window.clearTimeout(managedTimer)
-          const target = managedPreviewTargetOf(payload, openedAt)
-
-          // Checked even when a managed target already exists: the `return` below plus the
-          // lastAutoOpenedKey dedupe is exactly why a panel the user closed never reopened, and
-          // an agent action that cannot reach a page is a dead end mid-run.
-          demandRequest?.abort()
-          demandRequest = new AbortController()
-          const demandTimer = window.setTimeout(() => demandRequest?.abort(), LIVE_VIEW_CHECK_MS)
-          const demand = await fetch(previewAgentDemandUrl(http.url, directory, { capable }), {
-            headers,
-            signal: demandRequest.signal,
-          })
-            .then((res) => (res.ok ? res.json() : undefined))
-            .catch(() => undefined)
-          window.clearTimeout(demandTimer)
-          const demandKey = liveViewDemandKey(demand)
-          if (demandKey) {
-            open(demandKey, target?.url)
-            return
-          }
-
-          if (target) {
-            open(target.key, target.url)
-            return
-          }
-          clearManagedTarget()
+        const key = await currentDemand(controller.signal)
+        if (!key || handled.has(key)) return
+        handled.add(key)
+        const target = request()
+        if (target) {
+          const status = await fetchJson(previewStatusUrl(target.url, target.directory), target.headers, controller.signal)
+          const managed = managedPreviewTargetOf(status)
+          if (managed) setLiveViewManagedTarget({ directory: target.directory, url: managed.url })
         }
-
-        dashboardRequest?.abort()
-        dashboardRequest = new AbortController()
-        const dashboardTimer = window.setTimeout(() => dashboardRequest?.abort(), LIVE_VIEW_CHECK_MS)
-        const payload = await fetch(`${LIVE_VIEW_URL}api/snapshot`, { signal: dashboardRequest.signal })
-          .then((res) => (res.ok ? res.json() : undefined))
-          .catch(() => undefined)
-        window.clearTimeout(dashboardTimer)
-        const target = liveSnapshotIsFresh(payload?.session, openedAt) ? serverTargetOf(payload?.session) : undefined
-        if (target) open(`live:${target}`)
+        setPreviewPanelOpen(false)
+        view().liveView.setTab("preview")
+        view().liveView.open()
       } finally {
         polling = false
       }
@@ -183,9 +174,7 @@ export function useLiveViewAutoOpen(input: { enabled: () => boolean }) {
     const interval = window.setInterval(() => void poll(), LIVE_VIEW_POLL_MS)
     onCleanup(() => {
       window.clearInterval(interval)
-      dashboardRequest?.abort()
-      managedRequest?.abort()
-      demandRequest?.abort()
+      controller.abort()
     })
   })
 }

@@ -1,6 +1,6 @@
-/* Brand logo. The source has a centred cat face in a 3:2 canvas. Marks and
-   splash screens crop that outer padding so the face remains recognisable in
-   compact controls; the wider Logo keeps the full lockup-style canvas. */
+/* Brand logo. The source is a cat face that fills a 3:2 canvas almost edge to
+   edge, so every variant keeps that ratio and is shown whole (contain): cropping
+   it to a square cut off the mouth corners, the outer teeth and the eye tips. */
 
 [data-component="logo-mark"],
 [data-component="logo-splash"],
@@ -12,11 +12,6 @@
 
 [data-component="logo-mark"] {
   width: 16px;
-  aspect-ratio: 1;
-}
-
-[data-component="logo-splash"] {
-  aspect-ratio: 1;
 }
 
 [data-component="logo-mark"] img,
@@ -27,12 +22,6 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
-}
-
-[data-component="logo-mark"] img,
-[data-component="logo-splash"] img {
-  object-fit: cover;
-  object-position: center;
 }
 
 /* Light theme (default until data-color-scheme applies): black logo */

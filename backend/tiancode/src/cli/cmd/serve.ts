@@ -1,6 +1,6 @@
 import { Effect } from "effect"
 import { effectCmd } from "../effect-cmd"
-import { withNetworkOptions, resolveNetworkOptions, ensureSecuredListen } from "../network"
+import { withNetworkOptions, resolveNetworkOptions, ensureSecuredListen, listenFailure } from "../network"
 import { Flag } from "@tiancode-ai/core/flag/flag"
 
 export const ServeCommand = effectCmd({
@@ -13,7 +13,7 @@ export const ServeCommand = effectCmd({
   handler: Effect.fn("Cli.serve")(function* (args) {
     const { Server } = yield* Effect.promise(() => import("../../server/server"))
     if (!Flag.TIANCODE_SERVER_PASSWORD) {
-      console.log("Warning: TIANCODE_SERVER_PASSWORD is not set; server is unsecured.")
+      console.error("Warning: TIANCODE_SERVER_PASSWORD is not set; server is unsecured.")
     }
     const opts = yield* resolveNetworkOptions(args)
     // El hostname por defecto es 127.0.0.1 (ver cli/network.ts): el servidor
@@ -22,7 +22,10 @@ export const ServeCommand = effectCmd({
     // exige TIANCODE_SERVER_PASSWORD. No exponer un servidor sin password
     // fuera de loopback (p. ej. mDNS → 0.0.0.0).
     yield* ensureSecuredListen(opts)
-    const server = yield* Effect.promise(() => Server.listen(opts))
+    const server = yield* Effect.tryPromise({
+      try: () => Server.listen(opts),
+      catch: (error) => listenFailure(error, opts),
+    })
     console.log(`tiancode server listening on http://${server.hostname}:${server.port}`)
 
     yield* Effect.never

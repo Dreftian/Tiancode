@@ -9,11 +9,14 @@
 // name overrides them.
 
 import accessibility from "../../../../../skills/accessibility.md" with { type: "text" }
+import adversarial_code_review from "../../../../../skills/adversarial-code-review.md" with { type: "text" }
 import anti_ai_slop_rules from "../../../../../skills/anti-ai-slop-rules.md" with { type: "text" }
 import api_and_interface_design from "../../../../../skills/api-and-interface-design.md" with { type: "text" }
 import api_rest_graphql_openapi from "../../../../../skills/api-rest-graphql-openapi.md" with { type: "text" }
 import apple_hig from "../../../../../skills/apple-hig.md" with { type: "text" }
+import architecture_spine from "../../../../../skills/architecture-spine.md" with { type: "text" }
 import better_auth_patterns from "../../../../../skills/better-auth-patterns.md" with { type: "text" }
+import brainstorm_session from "../../../../../skills/brainstorm-session.md" with { type: "text" }
 import browser_automation from "../../../../../skills/browser-automation.md" with { type: "text" }
 import browser_testing_with_devtools from "../../../../../skills/browser-testing-with-devtools.md" with { type: "text" }
 import ci_cd_and_automation from "../../../../../skills/ci-cd-and-automation.md" with { type: "text" }
@@ -30,6 +33,7 @@ import debugging_and_error_recovery from "../../../../../skills/debugging-and-er
 import deploy_checklist from "../../../../../skills/deploy-checklist.md" with { type: "text" }
 import deprecation_and_migration from "../../../../../skills/deprecation-and-migration.md" with { type: "text" }
 import design_system_spec from "../../../../../skills/design-system-spec.md" with { type: "text" }
+import diagram_design from "../../../../../skills/diagram-design.md" with { type: "text" }
 import dispatching_parallel_agents from "../../../../../skills/dispatching-parallel-agents.md" with { type: "text" }
 import doc_coauthoring from "../../../../../skills/doc-coauthoring.md" with { type: "text" }
 import docker_containerization_expert from "../../../../../skills/docker-containerization-expert.md" with { type: "text" }
@@ -89,11 +93,15 @@ import pentest_web_fuzzing from "../../../../../skills/pentest-web-fuzzing.md" w
 import pentest_xss from "../../../../../skills/pentest-xss.md" with { type: "text" }
 import pentest_xxe from "../../../../../skills/pentest-xxe.md" with { type: "text" }
 import performance_optimization from "../../../../../skills/performance-optimization.md" with { type: "text" }
+import persona_roundtable from "../../../../../skills/persona-roundtable.md" with { type: "text" }
 import planning_and_task_breakdown from "../../../../../skills/planning-and-task-breakdown.md" with { type: "text" }
 import playwright_e2e_testing from "../../../../../skills/playwright-e2e-testing.md" with { type: "text" }
+import product_brief from "../../../../../skills/product-brief.md" with { type: "text" }
+import product_requirements from "../../../../../skills/product-requirements.md" with { type: "text" }
 import receiving_code_review from "../../../../../skills/receiving-code-review.md" with { type: "text" }
 import redteam_ai_agents from "../../../../../skills/redteam-ai-agents.md" with { type: "text" }
 import redteam_injection_templates from "../../../../../skills/redteam-injection-templates.md" with { type: "text" }
+import refine_output from "../../../../../skills/refine-output.md" with { type: "text" }
 import requesting_code_review from "../../../../../skills/requesting-code-review.md" with { type: "text" }
 import research from "../../../../../skills/research.md" with { type: "text" }
 import resolving_merge_conflicts from "../../../../../skills/resolving-merge-conflicts.md" with { type: "text" }
@@ -134,11 +142,14 @@ import xlsx_spreadsheet_builder from "../../../../../skills/xlsx-spreadsheet-bui
 
 export const builtinAgentSkills: Record<string, string> = {
   "accessibility": accessibility,
+  "adversarial-code-review": adversarial_code_review,
   "anti-ai-slop-rules": anti_ai_slop_rules,
   "api-and-interface-design": api_and_interface_design,
   "api-rest-graphql-openapi": api_rest_graphql_openapi,
   "apple-hig": apple_hig,
+  "architecture-spine": architecture_spine,
   "better-auth-patterns": better_auth_patterns,
+  "brainstorm-session": brainstorm_session,
   "browser-automation": browser_automation,
   "browser-testing-with-devtools": browser_testing_with_devtools,
   "ci-cd-and-automation": ci_cd_and_automation,
@@ -155,6 +166,7 @@ export const builtinAgentSkills: Record<string, string> = {
   "deploy-checklist": deploy_checklist,
   "deprecation-and-migration": deprecation_and_migration,
   "design-system-spec": design_system_spec,
+  "diagram-design": diagram_design,
   "dispatching-parallel-agents": dispatching_parallel_agents,
   "doc-coauthoring": doc_coauthoring,
   "docker-containerization-expert": docker_containerization_expert,
@@ -214,11 +226,15 @@ export const builtinAgentSkills: Record<string, string> = {
   "pentest-xss": pentest_xss,
   "pentest-xxe": pentest_xxe,
   "performance-optimization": performance_optimization,
+  "persona-roundtable": persona_roundtable,
   "planning-and-task-breakdown": planning_and_task_breakdown,
   "playwright-e2e-testing": playwright_e2e_testing,
+  "product-brief": product_brief,
+  "product-requirements": product_requirements,
   "receiving-code-review": receiving_code_review,
   "redteam-ai-agents": redteam_ai_agents,
   "redteam-injection-templates": redteam_injection_templates,
+  "refine-output": refine_output,
   "requesting-code-review": requesting_code_review,
   "research": research,
   "resolving-merge-conflicts": resolving_merge_conflicts,

@@ -4,6 +4,193 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.7] — 2026-10-02
+
+Descubrir pasa a ser una tienda completa. El servidor reúne los catálogos que usan Claude Code y
+Codex: el directorio de conectores de Anthropic, todos sus marketplaces de plugins (oficial, Knowledge
+Work, servicios financieros, ciencias de la vida, legal, salud, Claude Tag y la comunidad), los plugins
+y skills de Codex, las skills de Anthropic, el registro MCP de GitHub, el registro oficial y Cline:
+unas 3.600 entradas con filtros por tipo, fuente y categoría, y una búsqueda que también consulta el
+registro oficial. El catálogo viaja con la app para usarse sin conexión y se renueva cada seis horas;
+si una fuente falla, conserva sus entradas anteriores. Los plugins de Claude Code y Codex se instalan
+con un clic: Tiancode traduce sus skills, comandos, subagentes y servidores MCP, nunca pisa nombres
+tuyos ni de Tiancode (un plugin con un agente `explore` lo instala como `<plugin>-explore`), deja sus
+servidores MCP apagados hasta que los actives, convierte las líneas «!`comando`» de Claude Code en
+código que el agente ejecuta con permiso, y desinstalar quita exactamente lo que se añadió.
+
+Conexiones estrena Conectores: cerca de 300 apps a las que se conectan Claude y Codex. Conectar añade
+el servidor MCP de la app en el proyecto abierto y abre su inicio de sesión en el navegador, sin
+bloquear las demás tarjetas; las que necesitan tu propio client ID o la dirección de tu espacio de
+trabajo abren el diálogo del servidor, y las que solo aceptan los clientes de Anthropic se marcan como
+restringidas. Cada entrada muestra su logo real: la marca de la app, el logo de su catálogo o el icono
+que declara su sitio, que el servidor descarga solo desde las webs del catálogo, nunca desde
+direcciones de tu red local, con tamaño limitado y caché.
+
+Las actualizaciones ya no reabren el asistente de bienvenida, que aparece solo en la primera
+instalación. «Buscar actualizaciones» abre un asistente dentro de la app con la comprobación, el
+progreso de la descarga, las novedades de la versión y «Reiniciar e instalar» / «Más tarde» (sin
+ventana abierta siguen los diálogos del sistema). La ventana de carga mide 465×385 y muestra el logo
+completo. La escala de la interfaz va del 80 % al 120 % en pasos de 5 %, y Ctrl +/− recorren los
+mismos pasos sin ir nunca en contra de la tecla.
+
+## [1.0.6] — 2026-10-01
+
+Inteligencia deja de ser decorativa: sus interruptores se leen en vivo (guardarlos ya no reabre
+los proyectos ni cancela sesiones en curso), CodeGraph indexa el proyecto de verdad, y memoria,
+creación de skills y grafo de código respetan su interruptor. AgentShield y el resumidor de salida
+corren en la shell que usa la app; un comando crítico (borrar un disco, enviar secretos, ejecutar un
+script descargado) pide permiso con `shell_risk`, que ni la aprobación automática ni el modo sin
+preguntas responden. Capturas de pantalla y portapapeles preguntan por defecto, como ya decía
+Ajustes. Guardar en un proyecto ya no borra su propio `config.json` (solo el archivo heredado de
+Tiancode). Restaurar una copia de seguridad ocurre en el siguiente arranque, antes de abrir las bases
+de datos.
+
+Decisiones locales: un modelo de decisión sin conexión basado en laya-multilingual (Convai
+Innovations, Apache-2.0) se descarga a petición (~360 MB, con reanudación y SHA-256), corre en el
+onnxruntime que ya trae la app, responde en 30-50 ms y se descarga de memoria tras diez minutos sin
+uso. Con él, los avisos dicen «Necesita tu respuesta» o «No se pudo terminar» en lugar de un
+genérico «Respuesta lista», también en Telegram, Discord y Slack. La lectura en voz alta usa el
+detector de idioma de laya y lee cada texto con la voz de su idioma.
+
+Ajustes se rediseña en cuatro páginas. Inteligencia: Memoria (USER.md y MEMORY.md con su uso,
+editor y «Vaciar»), Contexto (compactación, poda, turnos íntegros, límite de salida de
+herramientas), Protección y Decisiones locales. Uso de la PC: Escritorio (control de ratón y
+teclado en vivo con «Detener ahora», permisos con Preguntar/Permitir/Bloquear), Navegador (reglas
+por sitio) y Acceso remoto; los permisos van a la configuración global y Bridges desaparece porque
+duplicaba MCP y Plugins. Notificaciones: estado del permiso del sistema con «Probar aviso»,
+silenciar todo, volumen, sonar solo en segundo plano y una fila por evento con aviso y sonido.
+General: cinco mosaicos compactos (Chat, Vista, Espacio de trabajo, Escritorio, Datos) con controles
+segmentados, la barra superior del chat como fila de interruptores, copias de seguridad con fecha y
+sin opciones muertas.
+
+El CLI funciona como el de opencode: `run --attach` muestra la respuesta, `attach` y `run --attach`
+dicen si el servidor está caído o pide contraseña, Ollama y LM Studio solo se cargan si responden (un
+equipo sin claves ya no espera un minuto reintentando), un proveedor o modelo ausente explica qué
+hacer (`tiancode auth login`, `--model`), `serve` explica un puerto ocupado o inválido, los argumentos
+desconocidos se nombran, los códigos de salida son correctos y PowerShell conserva tildes y eñes (sin
+añadir un BOM a lo que se canaliza a otros programas). El logo dice tiancode.
+
+Una revisión antes de publicar corrigió: «Omitir permisos» y `"permission": "allow"` ya no aprueban
+un comando crítico de AgentShield (solo una regla `shell_risk` explícita lo hace, y `run --yolo` o el
+modo automático del TUI lo rechazan o lo dejan para ti); guardar un permiso parcial conserva un
+`"permission": "allow"` y la regla por defecto del navegador queda antes de las reglas por sitio, así
+que bloquear un sitio sobrevive a cambiar el valor por defecto; Uso de la PC resuelve las reglas
+como el servidor y avisa cuando otra configuración (como la que 1.0.5 guardó en el proyecto) manda en
+el proyecto abierto; restaurar una copia ya no se queda a medias en Windows; la
+escala de la interfaz se recuerda; y AgentShield deja de detenerse en `rm -rf $HOME/.cache`,
+`--exclude .env` o una simple mención de `diskpart`.
+
+## [1.0.5] — 2026-10-01
+
+Modelos locales deja de poner en riesgo otros archivos: eliminar un modelo borraba cualquier
+archivo cuyo nombre lo contuviera y cancelar una descarga mataba todos los `llama-server` del
+equipo. Ahora se borra una ruta exacta dentro de una carpeta de modelos (el motor se detiene solo si
+servía ese archivo), cancelar afecta a su descarga y «Usar en el chat» ya no copia el mapa de
+proveedores entre la configuración global y la del proyecto ni envía el GGUF a Ollama o LM Studio.
+El motor arranca un modelo a la vez, informa de un cierre inesperado con su causa y muestra su
+registro; se añaden el lote físico (`-ub`), los hilos para el prompt (`-tb`), los expertos MoE en la
+CPU (`--n-cpu-moe`), el tiempo máximo de carga y el modo ligero del chat, guardados en el servidor.
+La lista de cuantizaciones incluye subcarpetas y omite fragmentos sueltos y proyectores `mmproj`.
+
+Ajustes se rediseña: Skills compacta su cabecera para dar el espacio a la lista y la ficha; MCP y
+Plugins pasa a tarjetas, catálogo en cuadrícula y diálogos con campos (Escape ya no cierra Ajustes,
+`sse://` ya no se guarda como comando y apagar un plugin de `.tiancode/plugins` se respeta); Voces
+usa la voz elegida, no corta a los 30 s, no lee mensajes viejos, libera el micrófono, entiende tildes
+en el diccionario y añade prueba de micrófono, pulsar para hablar y voces de Fish Audio; Mascotas
+muestra la mascota actual y la de escritorio se arrastra, recuerda su posición, sigue el idioma, no
+duplica notificaciones y se cierra con la app; Acerca de añade estado de actualización, versiones,
+carpetas y enlaces. El menú de la bandeja está traducido y suma Ajustes y Buscar actualizaciones.
+
+## [1.0.4] — 2026-10-01
+
+Guardar ajustes ya no borra configuración: activar o desactivar un sub-agente o una skill eliminaba
+las secciones `provider` y `mcp` de `tiancode.json` (proveedores y servidores MCP), porque el paso
+que restaura los secretos añadía ambas claves vacías a cada cambio parcial. Ahora solo viajan las
+secciones del cambio, un `tiancode.jsonc` de proyecto se edita en su sitio y conserva los
+comentarios, importar una skill ya no copia la configuración completa (con los `{env:}` resueltos)
+al proyecto y activar una skill solo toca `skills.disabled`. Los 14 sub-agentes especialistas
+respetan tus reglas de `permission` como el resto de agentes.
+
+El agente controla el Sandbox de forma fiable: reiniciar la vista previa espera a que el puerto
+quede libre en IPv4 e IPv6, recupera el puerto de servidores que Tiancode inició (también los que
+quedaron huérfanos), no adopta un puerto de otro proceso y lo nombra con su PID, detiene un servidor
+que no llegó a arrancar, publica la dirección que responde de verdad y, al volver a iniciarla, aplica los cambios de
+`tiancode.preview.json` (ese comando ya no arranca solo desde la Vista en vivo). La Vista en vivo recarga sola tras un reinicio, la página previa no se
+guarda en caché y el informe de `preview_inspect` incluye el estado HTTP y avisa del texto mal
+codificado. La página previsualizada queda aislada: sin cámara, micrófono, lectura del portapapeles
+ni notificaciones, sin CORS abierto, sin navegar la ventana de la app ni escapar con ventanas
+emergentes, y sin navegaciones a otro sitio ni descargas iniciadas por el agente. Ejecutar el
+comando de `tiancode.preview.json` pide permiso como la shell.
+
+Sub-agentes se puede editar: una lista por categorías y un editor con modelo, temperatura, pasos
+máximos, permisos por herramienta (con lo que aplica hoy), instrucciones adicionales que no
+reemplazan las integradas, color y ocultar del menú @, guardados en el proyecto o en global y con
+«Restablecer». Skills tiene buscador, filtros con nombre y recuento, acciones rápidas,
+auto-selección a la vista, una lista sin paginación de cuatro en cuatro y una ficha con tipo,
+origen, uso y ubicación. En el chat, las herramientas se muestran con nombre («Inspeccionar
+página», «Abrir en la vista previa · /ruta») en lugar de «Se llamó a `preview_inspect`», con la
+salida desplegable. Ajustes se reorganiza: Servidores, Proyectos y Worktrees forman la página
+Servidor, GitHub pasa a Conexiones junto a la mensajería y los webhooks, cada grupo abre con una
+cabecera y una tarjeta por sección, y Emparejar y Experimental son pestañas de Uso de la PC. El
+logo se ve completo, el cuadro de Ajustes es 3 px más ancho y alto y el menú de la sesión dice
+«Transcripción».
+
+## [1.0.3] — 2026-10-01
+
+Actualizar desde GitHub ya no oculta los datos de una instalación anterior. Las dos ediciones se
+instalan en la misma carpeta y comparten el canal de actualizaciones, así que el instalador de
+GitHub podía sustituir una instalación local o anterior y abrir su propio perfil vacío
+(`ai.tiancode.desktop.release`): sesiones, claves de proveedores y ajustes parecían perdidos,
+aunque seguían en `ai.tiancode.desktop`. Ahora la edición de GitHub usa esa carpeta cuando su
+propio perfil está vacío o cuando la otra tiene las claves de proveedores y al menos las mismas
+sesiones (las sesiones se cuentan en la base de datos, también las que aún están en el WAL). Si el
+perfil de GitHub ya tiene sus propias claves, se respeta y un aviso indica dónde están los datos
+anteriores. La decisión se guarda al arrancar y se revisa si el perfil de GitHub gana datos; nada
+se borra ni se mueve. En un equipo sin Tiancode sigue empezando limpia y la edición local nunca
+adopta el perfil de GitHub.
+
+Ajustes › General › Datos muestra la carpeta de datos en uso, la abre y, si la otra carpeta
+también tiene sesiones o claves, permite cambiar a ella con un reinicio; esa elección se respeta
+siempre. Un aviso, una sola vez por carpeta, indica cuándo la otra carpeta tiene datos. Se
+descartan las rutas de datos heredadas del proceso que lanza la actualización, una app instalada
+que abre la actualización de la portátil ya no toma los datos de la portátil, una clave de
+cifrado ilegible nunca se sobrescribe (si no se puede descifrar se guarda aparte) y las sesiones
+MCP cifradas con otra clave se conservan al guardar las demás. Para probar una instalación limpia
+de GitHub en un equipo con datos, usa la edición portátil en una carpeta vacía o
+`TIANCODE_TEST_ONBOARDING=1`.
+
+## [1.0.2] — 2026-09-30
+
+Paridad con opencode v2 de escritorio. Omitir permisos pide confirmación con el aviso «¿Omitir
+todos los permisos?». Los ajustes estrenan buscador, General por secciones (Línea de tiempo, Vista
+previa, Barra superior, Apariencia, Actualizaciones, Pantalla y Datos) y las páginas
+Notificaciones, Proyectos, Worktrees, Emparejamiento, Experimental y Acerca de. La línea de tiempo
+gana un control de detalle, la selección de modelo sigue las reglas de opencode v2 (variantes por
+modelo, elección recordada por agente) y el resumen de sesión (Ctrl/⌘+Mayús+Y) muestra proyecto,
+rama, archivos cambiados y extensiones. Llegan las pestañas verticales con nombre de proyecto, la
+posición del terminal (lateral o inferior), Ajustar líneas en los diffs, los mensajes de
+seguimiento en cola editables y el entorno predeterminado de las sesiones nuevas.
+
+Al terminar una tarea que cambia una app, el chat ofrece abrirla en el Sandbox o en el escritorio.
+El modo diseño añade al chat el elemento elegido en la vista previa (selector, HTML, estilos y
+captura), también con servidores de otro origen. El emparejamiento por red local abre Tiancode en
+otro dispositivo con un código QR y la app web propia de Tiancode; la contraseña se guarda cifrada.
+La ventana se abre mientras arranca el servidor y el Sandbox y el diseño clásico se cargan bajo
+demanda. El agente del navegador usa referencias estables, marca lo nuevo, lo tapado y lo que está
+fuera de vista, y no pulsa lo que el usuario no podría pulsar. El marketplace suma Composio y las
+skills de ui-skills.com; las skills integradas suman product-brief, product-requirements,
+architecture-spine, brainstorm-session, adversarial-code-review, persona-roundtable y refine-output
+(adaptadas de BMAD-METHOD, MIT) y diagram-design (MIT). Se incorporan las correcciones de opencode
+1.18.33 y 1.18.34.
+
+## [1.0.1] — 2026-09-23
+
+Modelos locales Llama 3 sin llamadas de herramienta inválidas ni bucles de reintento, comprobación
+del modelo cargado antes de reutilizar el motor local, índice compacto de skills y agentes en el
+modo ligero, mascotas con textos breves, permisos del micrófono por ventana, marketplace de Cline
+con copia local, MCP configurables con OAuth y entradas nuevas desactivadas hasta completarlas,
+ajustes que caben a 390 px y las correcciones de opencode 1.18.32.
+
 ## [1.0.0] — 2026-09-16
 
 La numeración se reinicia en 1.0.0. El chat adopta el diseño de Claude Code Desktop: esfuerzo

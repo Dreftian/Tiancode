@@ -8,7 +8,7 @@ export function useMcpToggle() {
   const language = useLanguage()
 
   return useMutation(() => ({
-    mutationFn: sync().mcp.toggle,
+    mutationFn: (input: { name: string; enabled: boolean }) => sync().mcp.setEnabled(input.name, input.enabled),
     onError: (error) =>
       showToast({
         variant: "error",

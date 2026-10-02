@@ -6,6 +6,7 @@ import { useFile, selectionFromLines, type FileSelection, type SelectedLineRange
 import { useLanguage } from "@/context/language"
 import { useLayout } from "@/context/layout"
 import { usePermission } from "@/context/permission"
+import { useConfirmSkipPermissions } from "@/components/dialogs/dialog-skip-permissions"
 import { usePrompt } from "@/context/prompt"
 import { useSDK } from "@/context/sdk"
 import { useSettings } from "@/context/settings"
@@ -41,6 +42,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
   const file = useFile()
   const language = useLanguage()
   const permission = usePermission()
+  const confirmSkip = useConfirmSkipPermissions()
   const prompt = usePrompt()
   const sdk = useSDK()
   const settings = useSettings()
@@ -284,8 +286,12 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
     )
   }
 
-  const toggleAutoAccept = () => {
+  const toggleAutoAccept = async () => {
     const sessionID = params.id
+    const enabling = sessionID
+      ? !permission.isAutoAccepting(sessionID, sdk().directory)
+      : !permission.isAutoAcceptingDirectory(sdk().directory)
+    if (enabling && !(await confirmSkip(sdk().directory))) return
     if (sessionID) permission.toggleAutoAccept(sessionID, sdk().directory)
     else permission.toggleAutoAcceptDirectory(sdk().directory)
 

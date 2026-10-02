@@ -40,6 +40,18 @@ describe("local-engine: argument construction", () => {
     expect(buildServerArgs(baseArgs)).not.toContain("--no-jinja")
   })
 
+  test("passes the micro-batch, batch threads and MoE offload only when set", () => {
+    const args = buildServerArgs({ ...baseArgs, ubatchSize: 256, threadsBatch: 12, nCpuMoe: 20 })
+    const valueAfter = (flag: string) => args[args.indexOf(flag) + 1]
+    expect(valueAfter("-ub")).toBe("256")
+    expect(valueAfter("-tb")).toBe("12")
+    expect(valueAfter("--n-cpu-moe")).toBe("20")
+    const plain = buildServerArgs({ ...baseArgs, ubatchSize: 0, nCpuMoe: 0 })
+    expect(plain).not.toContain("-ub")
+    expect(plain).not.toContain("-tb")
+    expect(plain).not.toContain("--n-cpu-moe")
+  })
+
   test("keeps the model, port, gpu-layer, context and thread wiring intact", () => {
     const args = buildServerArgs(baseArgs)
     const valueAfter = (flag: string) => args[args.indexOf(flag) + 1]
