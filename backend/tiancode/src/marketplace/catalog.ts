@@ -103,7 +103,11 @@ export function domainOf(value: unknown) {
   return host
 }
 
-/** `https://github.com/owner/...` → the owner's avatar, the logo organisations use on GitHub. */
+/**
+ * `https://github.com/owner/...` → the owner's avatar, the logo organisations use on GitHub.
+ * github.com/<owner>.png redirects to the real picture; avatars.githubusercontent.com/<name> only
+ * resolves users and gives organisations a generic placeholder.
+ */
 export function githubAvatar(value: unknown) {
   const url = httpsUrl(value)
   if (!url) return
@@ -111,7 +115,7 @@ export function githubAvatar(value: unknown) {
   if (parsed.hostname !== "github.com") return
   const owner = parsed.pathname.split("/").filter(Boolean)[0]
   if (!owner || !/^[\w.-]+$/.test(owner)) return
-  return `https://avatars.githubusercontent.com/${owner}?size=96`
+  return `https://github.com/${owner}.png?size=96`
 }
 
 /** `owner/repo` or `git@github.com:owner/repo.git`. */
@@ -900,7 +904,7 @@ function cleanPath(value: string) {
 }
 
 function avatarOf(owner: string) {
-  return /^[\w.-]+$/.test(owner) ? `https://avatars.githubusercontent.com/${owner}?size=96` : undefined
+  return /^[\w.-]+$/.test(owner) ? `https://github.com/${owner}.png?size=96` : undefined
 }
 
 function titleCase(value: string) {

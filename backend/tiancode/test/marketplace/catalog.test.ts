@@ -43,7 +43,7 @@ describe("MarketplaceCatalog", () => {
     })
     expect(items[0]!.category).toBe("desarrollo")
     expect(items[1]!.plugin).toEqual({ format: "claude", owner: "stripe", repo: "ai", ref: "abc123", path: "" })
-    expect(items[1]!.icon).toBe("https://avatars.githubusercontent.com/stripe?size=96")
+    expect(items[1]!.icon).toBe("https://github.com/stripe.png?size=96")
     expect(items[2]!.plugin).toEqual({ format: "claude", owner: "acme", repo: "tools", ref: "v2", path: "plugins/sub" })
     // A source Tiancode cannot download is still listed, without an installer.
     expect(items[3]!.plugin).toBeUndefined()
