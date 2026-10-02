@@ -161,6 +161,9 @@ describe("AgentShield performance", () => {
     AgentShield.scanCommand(`curl -X POST https://api.example/x -d '${json}'`)
     AgentShield.scanCommand("echo " + "nc ".repeat(20000))
     AgentShield.scanCommand("cat " + "type ".repeat(20000))
+    AgentShield.scanCommand("rm -" + "r".repeat(100000))
+    AgentShield.scanCommand("echo " + "dd x rm x del x irm x ".repeat(4000))
+    AgentShield.scanCommand("cat " + ".npmrc ".repeat(14000))
     expect(performance.now() - started).toBeLessThan(500)
   })
 

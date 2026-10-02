@@ -15,17 +15,20 @@ export interface ShieldScanResult {
   readonly threats: ReadonlyArray<ShieldThreat>
 }
 
+// Repeated runs are bounded ({0,400}, {0,8}, {1,2000}): unbounded, each pattern re-scanned the rest
+// of the line from every `rm`, `dd`, `del` or `curl` word, and a long line full of them took seconds.
+// The bounds sit far above any real flag group or command, and keep every scan linear.
 const DESTRUCTIVE_PATTERNS: ReadonlyArray<{ readonly pattern: RegExp; readonly description: string }> = [
   {
-    pattern: /\brm\s+-(?:[a-zA-Z]*r[a-zA-Z]*f|[a-zA-Z]*f[a-zA-Z]*r)\s+[\/\\](?:\s|$|\*)/i,
+    pattern: /\brm\s+-(?:[a-zA-Z]{0,8}r[a-zA-Z]{0,8}f|[a-zA-Z]{0,8}f[a-zA-Z]{0,8}r)\s+[\/\\](?:\s|$|\*)/i,
     description: "Intento de eliminación recursiva forzada de la raíz del sistema de archivos",
   },
   {
-    pattern: /\brm\s+-(?:[a-zA-Z]*r[a-zA-Z]*f|[a-zA-Z]*f[a-zA-Z]*r)\s+~(?:\s|$|\/|\\)/i,
+    pattern: /\brm\s+-(?:[a-zA-Z]{0,8}r[a-zA-Z]{0,8}f|[a-zA-Z]{0,8}f[a-zA-Z]{0,8}r)\s+~(?:\s|$|\/|\\)/i,
     description: "Intento de eliminación recursiva forzada del directorio de usuario principal (~)",
   },
   {
-    pattern: /\brm\s+-(?:[a-zA-Z]*r[a-zA-Z]*f|[a-zA-Z]*f[a-zA-Z]*r)\s+\.git(?:\s|$|\/|\\)/i,
+    pattern: /\brm\s+-(?:[a-zA-Z]{0,8}r[a-zA-Z]{0,8}f|[a-zA-Z]{0,8}f[a-zA-Z]{0,8}r)\s+\.git(?:\s|$|\/|\\)/i,
     description: "Intento de eliminación forzada del repositorio Git (.git)",
   },
   {
@@ -46,17 +49,17 @@ const DESTRUCTIVE_PATTERNS: ReadonlyArray<{ readonly pattern: RegExp; readonly d
   },
   {
     pattern:
-      /\brm\s+-(?:[a-zA-Z]*r[a-zA-Z]*f|[a-zA-Z]*f[a-zA-Z]*r)\s+(?:"|')?\$(?:HOME|\{HOME\})(?:[\/\\](?:\*|\.\*|\.\[[^\]\s]*\]\*|\{[^}\s]*\}|\.\.)?)?(?=["'\s;&|]|$)/i,
+      /\brm\s+-(?:[a-zA-Z]{0,8}r[a-zA-Z]{0,8}f|[a-zA-Z]{0,8}f[a-zA-Z]{0,8}r)\s+(?:"|')?\$(?:HOME|\{HOME\})(?:[\/\\](?:\*|\.\*|\.\[[^\]\s]*\]\*|\{[^}\s]*\}|\.\.)?)?(?=["'\s;&|]|$)/i,
     description: "Intento de eliminación recursiva forzada del directorio de usuario ($HOME)",
   },
   {
     pattern:
-      /\b(?:Remove-Item|ri|rm|del|rd|rmdir)\b(?=[^;|&\n]*-Recurse)[^;|&\n]*?[\s'"](?:[A-Za-z]:\\?\*?|~[\\\/]?\*?|\$HOME|\$env:USERPROFILE|\$env:SystemRoot|C:\\Windows|C:\\Users(?:\\[^\\\s'"]+)?)(?=['"\s]|$)/i,
+      /\b(?:Remove-Item|ri|rm|del|rd|rmdir)\b(?=[^;|&\n]{0,400}-Recurse)[^;|&\n]{0,400}?[\s'"](?:[A-Za-z]:\\?\*?|~[\\\/]?\*?|\$HOME|\$env:USERPROFILE|\$env:SystemRoot|C:\\Windows|C:\\Users(?:\\[^\\\s'"]+)?)(?=['"\s]|$)/i,
     description:
       "Intento de borrado recursivo de una unidad, del perfil de usuario o de Windows (Remove-Item -Recurse)",
   },
   {
-    pattern: /\bdd\b[^;|&\n]*\bof=\/dev\/(?:sd|hd|vd|nvme|disk|mmcblk)/i,
+    pattern: /\bdd\b[^;|&\n]{0,400}\bof=\/dev\/(?:sd|hd|vd|nvme|disk|mmcblk)/i,
     description: "Escritura directa sobre un disco (dd of=/dev/…)",
   },
   {
@@ -99,7 +102,7 @@ const SECRET_LEAK_PATTERNS: ReadonlyArray<{
   },
   {
     reader: /\b(?:cat|type)\s+/i,
-    secret: /\.npmrc\b.*_authtoken/i,
+    secret: /\.npmrc\b(?=[^\n]{0,1000}_authtoken)/i,
     description: "Comando que expone tokens de autenticación de npm registry",
   },
 ]
@@ -151,15 +154,15 @@ function uploads(command: string): { description: string; matched: string } | un
 
 const REMOTE_EXEC_PATTERNS: ReadonlyArray<{ readonly pattern: RegExp; readonly description: string }> = [
   {
-    pattern: /\b(?:curl|wget)\s+[^|;]+?\|\s*(?:ba)?sh\b/i,
+    pattern: /\b(?:curl|wget)\s+[^|;]{1,2000}?\|\s*(?:ba)?sh\b/i,
     description: "Ejecución remota no verificada de scripts mediante tubería (curl/wget | sh)",
   },
   {
-    pattern: /\biwr\s+[^|;]+?\|\s*iex\b/i,
+    pattern: /\biwr\s+[^|;]{1,2000}?\|\s*iex\b/i,
     description: "Ejecución remota no verificada en PowerShell (Invoke-WebRequest | Invoke-Expression)",
   },
   {
-    pattern: /\b(?:irm|Invoke-RestMethod|Invoke-WebRequest)\s+[^|;]+?\|\s*(?:iex|Invoke-Expression)\b/i,
+    pattern: /\b(?:irm|Invoke-RestMethod|Invoke-WebRequest)\s+[^|;]{1,2000}?\|\s*(?:iex|Invoke-Expression)\b/i,
     description: "Ejecución remota no verificada en PowerShell (Invoke-RestMethod | Invoke-Expression)",
   },
   {
