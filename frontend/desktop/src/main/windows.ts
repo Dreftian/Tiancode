@@ -222,11 +222,9 @@ export function getUiZoom() {
 
 export function setUiZoom(factor: number, source?: BrowserWindow | null) {
   const next = clampZoom(factor)
-  // Ctrl +/- in the welcome card zooms that card only; the app's scale is chosen in its windows.
-  if (source && !zoomWindows.has(source)) {
-    if (!source.isDestroyed()) source.webContents.setZoomFactor(next)
-    return
-  }
+  // The scale is chosen in the app's windows. The welcome card shares their host, and Chromium zooms
+  // a host as a whole, so zooming the card alone would resize the app behind the app's back.
+  if (source && !zoomWindows.has(source)) return
   uiZoom = next
   for (const win of BrowserWindow.getAllWindows()) {
     if (!zoomWindows.has(win) || win.isDestroyed() || win.webContents.isDestroyed()) continue

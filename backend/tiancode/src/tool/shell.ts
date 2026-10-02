@@ -330,7 +330,9 @@ const PS_UTF8 =
   "$OutputEncoding=[Console]::InputEncoding=[Console]::OutputEncoding=New-Object System.Text.UTF8Encoding $false;"
 // `using` statements and a `param` block only parse at the very start of a script (after comments
 // and `#requires` lines).
-const PS_PREAMBLE = /^\s*(?:(?:#[^\n]*\n|<#[\s\S]*?#>)\s*)*(?:using\s|param\s*\(|\[cmdletbinding)/i
+// A block comment ends at its first `#>`: a lazy match could close at any later one, and stacked
+// blocks then backtracked exponentially (30 of them took 95 s).
+const PS_PREAMBLE = /^\s*(?:(?:#[^\n]*\n|<#(?:[^#]|#(?!>))*#>)\s*)*(?:using\s|param\s*\(|\[cmdletbinding)/i
 
 function cmd(shell: string, command: string, cwd: string, env: NodeJS.ProcessEnv) {
   if (process.platform === "win32" && Shell.ps(shell)) {

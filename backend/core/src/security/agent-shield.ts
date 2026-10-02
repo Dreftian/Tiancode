@@ -61,7 +61,7 @@ const DESTRUCTIVE_PATTERNS: ReadonlyArray<{ readonly pattern: RegExp; readonly d
   },
   {
     pattern:
-      /(?:^|[;&|({=]|\bcmd(?:\.exe)?[ \t]+\/[ck]|\b(?:powershell|pwsh)(?:\.exe)?(?:[ \t]+-[\w:]+)*|\bStart-Process\b[^;&|\n]{0,200}?|\bstart|\bsudo)[ \t]*["']?[ \t]*(?:Format-Volume|Clear-Disk|Initialize-Disk|diskpart(?:\.exe)?)\b/im,
+      /(?:^|[;&|({"'=]|\bcmd(?:\.exe)?[ \t]+\/[ck]|\b(?:powershell|pwsh)(?:\.exe)?(?:[ \t]+-[\w:]+)*|\bStart-Process\b[^;&|\n]{0,200}?|\bstart|\bsudo)[ \t]*["']?[ \t]*(?:Format-Volume|Clear-Disk|Initialize-Disk|diskpart(?:\.exe)?)\b/im,
     description: "Comando que formatea o reparticiona discos",
   },
   {
@@ -74,46 +74,80 @@ const DESTRUCTIVE_PATTERNS: ReadonlyArray<{ readonly pattern: RegExp; readonly d
   },
 ]
 
-const SECRET_LEAK_PATTERNS: ReadonlyArray<{ readonly pattern: RegExp; readonly description: string }> = [
+// A reader command and, later on its line, a secret file. Checked from the first reader word only:
+// `reader .* secret` as one pattern restarted at every `type` word and grew with the square of the
+// line (a 100 KB line took seconds).
+const SECRET_LEAK_PATTERNS: ReadonlyArray<{
+  readonly reader: RegExp
+  readonly secret: RegExp
+  readonly description: string
+}> = [
   {
-    pattern: /\b(?:cat|type|more|less|tail|head)\s+.*(?:\.env|\.env\.local|\.env\.production|\.env\.prod)\b/i,
+    reader: /\b(?:cat|type|more|less|tail|head)\s+/i,
+    secret: /(?:\.env|\.env\.local|\.env\.production|\.env\.prod)\b/i,
     description: "Comando que expone variables de entorno y claves secretas (.env)",
   },
   {
-    pattern: /\b(?:cat|type|more|less)\s+.*(?:id_rsa|id_ed25519|id_ecdsa)\b/i,
+    reader: /\b(?:cat|type|more|less)\s+/i,
+    secret: /(?:id_rsa|id_ed25519|id_ecdsa)\b/i,
     description: "Comando que expone claves privadas SSH del sistema",
   },
   {
-    pattern: /\b(?:cat|type)\s+.*(?:\.aws[\\\/]credentials|\.azure[\\\/]credentials)\b/i,
+    reader: /\b(?:cat|type)\s+/i,
+    secret: /(?:\.aws[\\\/]credentials|\.azure[\\\/]credentials)\b/i,
     description: "Comando que expone credenciales en la nube (AWS/Azure)",
   },
   {
-    pattern: /\b(?:cat|type)\s+.*\.npmrc\b.*_authtoken/i,
+    reader: /\b(?:cat|type)\s+/i,
+    secret: /\.npmrc\b.*_authtoken/i,
     description: "Comando que expone tokens de autenticación de npm registry",
   },
 ]
 
 // Sending secrets over the network is critical, not a warning: once uploaded they cannot be recalled.
-// The patterns read the whole line, so a network command behind a wrapper (timeout, cmd /c,
-// `if ...; then`) or a file read through `$(cat .env)` / `(Get-Content .env)` is still seen. The
-// secret alternatives start with a literal, so a long argument scans in linear time.
+// Uploads of secret files are found by uploads() below; this is what a single pattern catches.
 const EXFILTRATION_PATTERNS: ReadonlyArray<{ readonly pattern: RegExp; readonly description: string }> = [
-  {
-    pattern:
-      /\b(?:curl|wget|Invoke-WebRequest|iwr|Invoke-RestMethod|irm|nc|ncat|scp|sftp|rsync)\b[^\n]*(?:(?<!--exclude[= ]['"]?)(?<!process|meta)\.env(?!\.(?:example|sample|template|dist)\b)(?:\.[\w-]+)*(?![\w-])|id_(?:rsa|ed25519|ecdsa|dsa)\b(?!\.pub)|\.aws[\\\/]credentials|\.azure[\\\/]credentials|\.npmrc|\.netrc|\.git-credentials|\.ssh(?:[\\\/]|(?![\w.-])))/i,
-    description: "Envía a la red archivos con secretos (.env, claves SSH o credenciales)",
-  },
-  {
-    pattern:
-      /\b(?:cat|type|Get-Content|gc)\b(?=[^|\n]*(?:(?<!--exclude[= ]['"]?)(?<!process|meta)\.env(?!\.(?:example|sample|template|dist)\b)(?:\.[\w-]+)*(?![\w-])|id_(?:rsa|ed25519|ecdsa|dsa)\b(?!\.pub)|\.aws[\\\/]credentials|\.azure[\\\/]credentials|\.npmrc|\.netrc|\.git-credentials|\.ssh(?:[\\\/]|(?![\w.-]))))[^|\n]*\|\s*(?:curl|wget|nc|ncat|iwr|irm|Invoke-WebRequest|Invoke-RestMethod)\b/i,
-    description: "Pasa archivos con secretos a un comando de red",
-  },
   {
     pattern:
       /\b(?:printenv|env|set|Get-ChildItem\s+env:|gci\s+env:|dir\s+env:)\s*\|\s*(?:curl|wget|nc|ncat|iwr|irm|Invoke-WebRequest|Invoke-RestMethod)\b/i,
     description: "Envía las variables de entorno (con posibles claves) a la red",
   },
 ]
+
+// A secret file anywhere after the network command on its line: a wrapper (timeout, cmd /c,
+// `if ...; then`) or `$(cat .env)` / `(Get-Content .env)` does not hide it. Not process.env,
+// import.meta.env, a .env template or `--exclude .env`. Every alternative starts with a literal.
+const SECRET_FILE =
+  /(?:(?<!--exclude[= ]['"]?)(?<!process|meta)\.env(?!\.(?:example|sample|template|dist)\b)(?:\.[\w-]+)*(?![\w-])|id_(?:rsa|ed25519|ecdsa|dsa)\b(?!\.pub)|\.aws[\\/]credentials|\.azure[\\/]credentials|\.npmrc|\.netrc|\.pgpass|\.git-credentials|\.ssh(?:[\\/]|(?![\w.-])))/i
+const NETWORK_WORD = /\b(?:curl|wget|Invoke-WebRequest|iwr|Invoke-RestMethod|irm|nc|ncat|scp|sftp|rsync)\b/i
+const NETWORK_START = /^\s*(?:curl|wget|nc|ncat|iwr|irm|Invoke-WebRequest|Invoke-RestMethod)\b/i
+const READER_WORD = /\b(?:cat|type|more|less|head|tail|Get-Content|gc)\b/i
+
+/**
+ * A network command sending a secret file, or a secret file piped into one. Written as a scan, not
+ * one pattern: a pattern restarting at every `curl` or `type` word (a minified JSON body has one per
+ * key) went over the rest of the line each time and froze the server for seconds.
+ */
+function uploads(command: string): { description: string; matched: string } | undefined {
+  for (const line of command.split("\n")) {
+    const network = NETWORK_WORD.exec(line)
+    if (network && SECRET_FILE.test(line.slice(network.index)))
+      return {
+        description: "Envía a la red archivos con secretos (.env, claves SSH o credenciales)",
+        matched: line.slice(network.index, network.index + 200),
+      }
+    const parts = line.split(/(?<!\|)\|(?!\|)/)
+    const piped = parts.findIndex(
+      (part, i) =>
+        i + 1 < parts.length && READER_WORD.test(part) && SECRET_FILE.test(part) && NETWORK_START.test(parts[i + 1]),
+    )
+    if (piped !== -1)
+      return {
+        description: "Pasa archivos con secretos a un comando de red",
+        matched: `${parts[piped]}|${parts[piped + 1]}`.trim().slice(0, 200),
+      }
+  }
+}
 
 const REMOTE_EXEC_PATTERNS: ReadonlyArray<{ readonly pattern: RegExp; readonly description: string }> = [
   {
@@ -152,16 +186,19 @@ export function scanCommand(command: string): ShieldScanResult {
   }
 
   for (const item of SECRET_LEAK_PATTERNS) {
-    const match = item.pattern.exec(trimmed)
-    if (match) {
+    const matched = readsSecret(trimmed, item.reader, item.secret)
+    if (matched) {
       threats.push({
         level: "warning",
         category: "secret_leak",
         description: item.description,
-        matched: match[0],
+        matched,
       })
     }
   }
+
+  const upload = uploads(trimmed)
+  if (upload) threats.push({ level: "critical", category: "secret_leak", ...upload })
 
   for (const item of EXFILTRATION_PATTERNS) {
     const match = item.pattern.exec(trimmed)
@@ -190,5 +227,14 @@ export function scanCommand(command: string): ShieldScanResult {
   return {
     safe: threats.length === 0,
     threats,
+  }
+}
+
+function readsSecret(command: string, reader: RegExp, secret: RegExp) {
+  for (const line of command.split("\n")) {
+    const start = reader.exec(line)
+    if (!start) continue
+    const found = secret.exec(line.slice(start.index + start[0].length))
+    if (found) return `${start[0]}${found[0]}`
   }
 }
