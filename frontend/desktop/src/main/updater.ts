@@ -4,7 +4,7 @@ import { UPDATER_ENABLED } from "./constants"
 import { createUpdaterController, type UpdaterReadyRecord } from "./updater-controller"
 import { getLogger } from "./logging"
 import { getStore } from "./store"
-import { setAppQuitting } from "./windows"
+import { getAnyMainWindow, getLastFocusedWindow, setAppQuitting } from "./windows"
 import { nativeT } from "./native-translations"
 import { notifyUser } from "./notifications"
 import { backupNow } from "./backup"
@@ -86,6 +86,16 @@ export function setupAutoUpdater(stop: () => Promise<void>) {
 }
 
 export async function showUpdaterDialog(controller: ReturnType<typeof setupAutoUpdater>, alertOnFail: boolean) {
+  // With a window open, the app's own update assistant shows the check, the notes and the progress;
+  // the system dialogs below stay for the tray with every window closed.
+  const win = getLastFocusedWindow() ?? getAnyMainWindow()
+  if (alertOnFail && win && !win.isDestroyed() && !win.webContents.isLoading()) {
+    if (win.isMinimized()) win.restore()
+    win.show()
+    win.focus()
+    win.webContents.send("updater-show")
+    return
+  }
   const state = await controller.check()
   if (state.status === "error") {
     if (!alertOnFail) return

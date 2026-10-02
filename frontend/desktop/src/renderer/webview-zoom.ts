@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 import { createSignal } from "solid-js"
+import { stepUiScale } from "@tiancode-ai/app/ui-scale"
 
 const OS_NAME = (() => {
   if (navigator.userAgent.includes("Mac")) return "macos"
@@ -74,8 +75,9 @@ const setPinchZoomEnabled = (enabled: boolean) => {
 
 const resetZoom = () => applyZoom(1)
 const setZoomLevel = (factor: number) => applyZoom(clamp(factor))
-const zoomIn = () => applyZoom(clamp(requestedZoom + 0.2))
-const zoomOut = () => applyZoom(clamp(requestedZoom - 0.2))
+// Ctrl + and Ctrl - walk the same 80-120 % steps that Settings › General offers.
+const zoomIn = () => applyZoom(stepUiScale(requestedZoom, 1))
+const zoomOut = () => applyZoom(stepUiScale(requestedZoom, -1))
 
 const resetWheelPinch = () => {
   clearTimeout(wheelPinch?.timeout)

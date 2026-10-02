@@ -111,6 +111,11 @@ const api: ElectronAPI = {
     },
     check: () => ipcRenderer.invoke("updater-check"),
     install: () => ipcRenderer.invoke("updater-install"),
+    onShow: (cb) => {
+      const handler = () => cb()
+      ipcRenderer.on("updater-show", handler)
+      return () => ipcRenderer.removeListener("updater-show", handler)
+    },
   },
   consumeInitialDeepLinks: () => ipcRenderer.invoke("consume-initial-deep-links"),
   getDefaultServerUrl: () => ipcRenderer.invoke("get-default-server-url"),

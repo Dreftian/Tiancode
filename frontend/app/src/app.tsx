@@ -11,7 +11,6 @@ import {
   DialogWelcomeSetup,
   FIRST_LAUNCH_KEY,
   welcomeSetupMode,
-  welcomeSetupVersion,
   type WelcomeSetupMode,
 } from "@/components/dialogs/dialog-welcome-setup"
 import { ThemeProvider, useTheme } from "@tiancode-ai/ui/theme/context"
@@ -543,12 +542,14 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
   const startupChecking = createMemo(
     () => startupHealthCheck.latest === true && ["unresolved", "pending"].includes(startup.state),
   )
-  // El asistente se abre en la instalación nueva Y después de actualizar: lo decide la versión
-  // que lo completó, no un booleano. Se resuelve aquí de forma síncrona porque de ello depende
-  // si el splash llega a mostrarse.
+  // El asistente se abre solo en una instalación nueva. En el escritorio lo decide el proceso
+  // principal (abre su propia ventana antes que la de la app), así que la ventana principal nunca
+  // lo vuelve a abrir aunque su almacenamiento se haya borrado. Se resuelve aquí de forma
+  // síncrona porque de ello depende si el splash llega a mostrarse.
   const pendingWelcomeSetup = () => {
+    if (window.api?.welcomeOpen) return undefined
     try {
-      return welcomeSetupMode(localStorage.getItem(FIRST_LAUNCH_KEY), welcomeSetupVersion(platform.version))
+      return welcomeSetupMode(localStorage.getItem(FIRST_LAUNCH_KEY))
     } catch {
       // Sin localStorage no se puede saber si ya se hizo; abrirlo en cada arranque sería peor.
       return undefined
@@ -566,12 +567,7 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
   // With a desktop shell the upgrade confirmation gets its own window too instead of a modal.
   const initialWelcome = (): WelcomeSetupMode | undefined => {
     if (standaloneWelcome) return standaloneMode()
-    const pending = pendingWelcomeSetup()
-    if (pending === "upgrade" && window.api?.welcomeOpen) {
-      void window.api.welcomeOpen("upgrade")
-      return undefined
-    }
-    return pending
+    return pendingWelcomeSetup()
   }
   const [welcomeMode, setWelcomeMode] = createSignal<WelcomeSetupMode | undefined>(initialWelcome())
   // Only the very first setup blocks the app; a review or an upgrade confirmation is a modal
@@ -760,29 +756,29 @@ export function AppInterface(props: {
       <GlobalProvider>
         <SettingsProvider>
           <FileComponentProvider component={SettingsFile}>
-          <ConnectionGate disableHealthCheck={props.disableHealthCheck} startup={props.startup}>
-            <Show when={useSettings().general.newLayoutDesigns().toString()} keyed>
-              <Dynamic
-                component={props.router ?? Router}
-                root={(routerProps) => (
-                  <TabsProvider>
-                    <PermissionProvider>
-                      <NotificationProvider>
-                        <ServerShell>
-                          <StartModeRunner />
-                          <Show when={useSettings().general.newLayoutDesigns()} fallback={routerProps.children}>
-                            <NewAppLayout serverScoped={props.serverScoped}>{routerProps.children}</NewAppLayout>
-                          </Show>
-                        </ServerShell>
-                      </NotificationProvider>
-                    </PermissionProvider>
-                  </TabsProvider>
-                )}
-              >
-                <Routes serverScoped={props.serverScoped} />
-              </Dynamic>
-            </Show>
-          </ConnectionGate>
+            <ConnectionGate disableHealthCheck={props.disableHealthCheck} startup={props.startup}>
+              <Show when={useSettings().general.newLayoutDesigns().toString()} keyed>
+                <Dynamic
+                  component={props.router ?? Router}
+                  root={(routerProps) => (
+                    <TabsProvider>
+                      <PermissionProvider>
+                        <NotificationProvider>
+                          <ServerShell>
+                            <StartModeRunner />
+                            <Show when={useSettings().general.newLayoutDesigns()} fallback={routerProps.children}>
+                              <NewAppLayout serverScoped={props.serverScoped}>{routerProps.children}</NewAppLayout>
+                            </Show>
+                          </ServerShell>
+                        </NotificationProvider>
+                      </PermissionProvider>
+                    </TabsProvider>
+                  )}
+                >
+                  <Routes serverScoped={props.serverScoped} />
+                </Dynamic>
+              </Show>
+            </ConnectionGate>
           </FileComponentProvider>
         </SettingsProvider>
       </GlobalProvider>
@@ -794,7 +790,12 @@ export function AppInterface(props: {
 // horizontally. An explicit overflow from the caller still wins.
 function SettingsFile(props: ComponentProps<typeof File>) {
   const settings = useSettings()
-  return <File {...(props.mode === "diff" && !settings.general.diffWrap() ? { overflow: "scroll" as const } : {})} {...props} />
+  return (
+    <File
+      {...(props.mode === "diff" && !settings.general.diffWrap() ? { overflow: "scroll" as const } : {})}
+      {...props}
+    />
+  )
 }
 
 function Routes(props: { serverScoped?: JSX.Element }) {

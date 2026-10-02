@@ -11,7 +11,7 @@ import { Mark } from "@tiancode-ai/ui/logo"
 import { useLanguage, type Locale } from "@/context/language"
 import { useTheme, type ColorScheme } from "@tiancode-ai/ui/theme/context"
 import { usePlatform } from "@/context/platform"
-import { compareVersions, isAppUpgrade, useSettings } from "@/context/settings"
+import { useSettings } from "@/context/settings"
 import "./dialog-welcome-setup.css"
 
 /**
@@ -45,12 +45,10 @@ export function readStartMode(): StartMode {
 /**
  * Por qué se abre el asistente:
  * - `first-run`: instalación nueva, no hay nada guardado → configuración completa.
- * - `upgrade`: la versión en marcha es más nueva que la que lo completó → confirmación rápida.
+ * - `upgrade`: ya no se abre solo; queda para ventanas antiguas que lo pidan.
  * - `review`: lo abrió el usuario desde Ajustes → misma confirmación, otro encabezado.
  */
 export type WelcomeSetupMode = "first-run" | "upgrade" | "review"
-
-const VERSION_PATTERN = /^v?\d+\.\d+\.\d+(?:[-+].*)?$/i
 
 /** La versión que ve el asistente: el escritorio la trae en Platform; la web, en el define de Vite. */
 export function welcomeSetupVersion(version?: string) {
@@ -58,22 +56,14 @@ export function welcomeSetupVersion(version?: string) {
 }
 
 /**
- * Decide si toca abrirlo y con qué encabezado; `undefined` es «no abrir».
+ * Decide si toca abrirlo; `undefined` es «no abrir».
  *
- * Un valor guardado que no es una versión solo puede venir del "true" de 1.0.48: esa instalación
- * ya pasó por el asistente, así que se trata como actualización (una confirmación de un clic) y
- * al terminar queda sellada con la versión real. Sin versión en marcha no se puede comparar, y
- * abrirlo «por si acaso» en cada arranque sería peor que no abrirlo.
+ * Solo una instalación que nunca lo terminó lo ve. Una actualización conserva todo lo que el
+ * usuario eligió, así que no abre nada (antes volvía a preguntar tras cada versión); desde
+ * Ajustes › General se puede abrir cuando se quiera.
  */
-export function welcomeSetupMode(completed: string | null, current: string): WelcomeSetupMode | undefined {
-  if (!completed) return "first-run"
-  if (!current) return undefined
-  if (!VERSION_PATTERN.test(completed.trim())) return "upgrade"
-  // A lower version installed on purpose (a fresh numbering such as 1.0.0 over 1.0.54) is a new
-  // beginning for the user, so it gets the full setup again.
-  const comparison = compareVersions(current, completed)
-  if (comparison !== undefined && comparison < 0) return "first-run"
-  return isAppUpgrade(completed, current) ? "upgrade" : undefined
+export function welcomeSetupMode(completed: string | null): WelcomeSetupMode | undefined {
+  return completed ? undefined : "first-run"
 }
 
 const STEPS = ["welcome.step.preferences", "welcome.step.workspace", "welcome.step.start"] as const
@@ -365,7 +355,11 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void; mode?: Welcome
             </div>
 
             <Show when={confirming()}>
-              <div class="welcome-setup-stack welcome-setup-stack--start" role="radiogroup" aria-labelledby="welcome-setup-start-review-label">
+              <div
+                class="welcome-setup-stack welcome-setup-stack--start"
+                role="radiogroup"
+                aria-labelledby="welcome-setup-start-review-label"
+              >
                 <span class="welcome-setup-field-name" id="welcome-setup-start-review-label">
                   {t("welcome.start.title")}
                 </span>
@@ -396,7 +390,6 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void; mode?: Welcome
                   : t("welcome.workspace.chooseLater.desc")}
               </p>
             </div>
-
           </div>
         </Show>
 
@@ -440,7 +433,11 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void; mode?: Welcome
             onClick={goNext}
             disabled={finishing()}
           >
-            {confirming() ? t("welcome.confirm.done") : step() === totalSteps() ? t("welcome.finish") : t("welcome.next")}
+            {confirming()
+              ? t("welcome.confirm.done")
+              : step() === totalSteps()
+                ? t("welcome.finish")
+                : t("welcome.next")}
           </ButtonV2>
         </div>
       </div>

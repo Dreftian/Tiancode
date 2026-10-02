@@ -364,8 +364,9 @@ export function createMainWindow(id: string = randomUUID()) {
   const win = new BrowserWindow({
     x: undefined,
     y: undefined,
-    width: isOnboarding ? 780 : 440,
-    height: isOnboarding ? 560 : 380,
+    // While it loads the window shows the splash; 465×385 leaves the whole logo room around it.
+    width: isOnboarding ? 780 : 465,
+    height: isOnboarding ? 560 : 385,
     resizable: false,
     maximizable: false,
     center: true,

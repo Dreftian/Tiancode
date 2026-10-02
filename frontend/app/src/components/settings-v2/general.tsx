@@ -1,3 +1,4 @@
+import { UI_SCALES } from "@/ui-scale"
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
 import { SegmentedControlItemV2, SegmentedControlV2 } from "@tiancode-ai/ui/v2/segmented-control-v2"
 import { SelectV2 } from "@tiancode-ai/ui/v2/select-v2"
@@ -58,7 +59,6 @@ const MINIMIZE_TO_TRAY = "minimizeToTray"
 const FILE_WATCHER = "fileWatcher"
 const CHECK_UPDATES = "checkUpdatesOnStart"
 const AUTO_BACKUP = "autoBackup"
-const SCALES = [0.9, 1, 1.1, 1.25] as const
 // The chat's top bar from left to right (session-header.tsx).
 const TITLEBAR: readonly { key: TitlebarKey; icon: IconName }[] = [
   { key: "showCapture", icon: "photo" },
@@ -677,9 +677,9 @@ export const SettingsGeneralV2: Component<{
             <Show when={platform.setUiZoom}>
               <SettingsRowV2 title={language.t("settings.general.scale.title")} description={language.t("settings.general.scale.description")}>
                 {segmented({
-                  value: String(SCALES.find((scale) => Math.abs(scale - (platform.webviewZoom?.() ?? 1)) < 0.01) ?? ""),
-                  options: SCALES.map(String),
-                  label: (option) => `${Math.round(Number(option) * 100)} %`,
+                  value: String(UI_SCALES.find((scale) => Math.abs(scale - (platform.webviewZoom?.() ?? 1)) < 0.01) ?? ""),
+                  options: UI_SCALES.map(String),
+                  label: (option) => `${Math.round(Number(option) * 100)}%`,
                   onChange: (value) => platform.setUiZoom?.(Number(value)),
                   aria: language.t("settings.general.scale.title"),
                   action: "settings-ui-scale",

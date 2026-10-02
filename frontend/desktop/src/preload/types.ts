@@ -28,6 +28,7 @@ export type UpdaterAPI = {
   subscribe: (cb: (state: UpdaterState) => void) => Promise<() => void>
   check: () => Promise<UpdaterState>
   install: () => Promise<void>
+  onShow: (cb: () => void) => () => void
 }
 
 // "kokoro" ya no tiene voces en el catálogo (las 10 inglesas se retiraron en 1.0.45); se conserva

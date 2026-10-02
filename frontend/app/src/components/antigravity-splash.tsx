@@ -195,7 +195,7 @@ export const AntigravitySplash: Component<{
       }
 
       // 2. Escala del emblema completo para el marco central de carga
-      const maxTargetW = Math.min(width * 0.82, 420)
+      const maxTargetW = Math.min(width * 0.76, 420)
       const textScale = maxTargetW / totalW
 
       constellationStars.length = 0
@@ -422,7 +422,8 @@ export const AntigravitySplash: Component<{
 
       const cx = width / 2
       const cy = height * 0.41
-      const maxTargetW = Math.min(width * 0.86, 490)
+      // Margins on both sides, so the whole word and the cat's whiskers stay inside the window.
+      const maxTargetW = Math.min(width * 0.78, 490)
       const textScale = maxTargetW / totalW
       const formationFactor = assembleT
 

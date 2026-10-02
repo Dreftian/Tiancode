@@ -62,6 +62,7 @@ import { Titlebar, type TitlebarUpdate } from "@/components/titlebar/titlebar"
 import { useDirectoryPicker } from "@/components/file-tree/directory-picker"
 import { ServerConnection, useServer } from "@/context/server"
 import { useLanguage, type Locale } from "@/context/language"
+import { UpdateAssistant } from "@/components/update-assistant"
 import { pathKey } from "@/utils/path-key"
 import {
   displayName,
@@ -2118,9 +2119,7 @@ export default function LegacyLayout(props: ParentProps) {
             : undefined
         }
       />
-      <Show when={updateVersion() !== undefined}>
-        <UpdateAvailableToast version={updateVersion() ?? ""} install={installUpdate} language={language} />
-      </Show>
+      <UpdateAssistant />
       <div class="flex-1 min-h-0 min-w-0 flex">
         <div class="flex-1 min-h-0 relative">
           <div class="size-full relative overflow-x-hidden">
@@ -2270,38 +2269,4 @@ export default function LegacyLayout(props: ParentProps) {
       <ToastRegion v2={false} />
     </div>
   )
-}
-
-function UpdateAvailableToast(props: {
-  version: string
-  install: () => void
-  language: ReturnType<typeof useLanguage>
-}) {
-  let toastId: number | undefined
-
-  onMount(() => {
-    toastId = showToast({
-      persistent: true,
-      icon: "download",
-      title: props.language.t("toast.update.title"),
-      description: props.language.t("toast.update.description", { version: props.version }),
-      actions: [
-        {
-          label: props.language.t("toast.update.action.installRestart"),
-          onClick: props.install,
-        },
-        {
-          label: props.language.t("toast.update.action.notYet"),
-          onClick: "dismiss",
-        },
-      ],
-    })
-  })
-
-  onCleanup(() => {
-    if (toastId === undefined) return
-    dismissToast(toastId)
-  })
-
-  return null
 }
