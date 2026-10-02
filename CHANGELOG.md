@@ -4,6 +4,35 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.7] — 2026-10-02
+
+Descubrir pasa a ser una tienda completa. El servidor reúne los catálogos que usan Claude Code y
+Codex: el directorio de conectores de Anthropic, todos sus marketplaces de plugins (oficial, Knowledge
+Work, servicios financieros, ciencias de la vida, legal, salud, Claude Tag y la comunidad), los plugins
+y skills de Codex, las skills de Anthropic, el registro MCP de GitHub, el registro oficial y Cline:
+unas 3.600 entradas con filtros por tipo, fuente y categoría, y una búsqueda que también consulta el
+registro oficial. El catálogo viaja con la app para usarse sin conexión y se renueva cada seis horas;
+si una fuente falla, conserva sus entradas anteriores. Los plugins de Claude Code y Codex se instalan
+con un clic: Tiancode traduce sus skills, comandos, subagentes y servidores MCP, nunca pisa nombres
+tuyos ni de Tiancode (un plugin con un agente `explore` lo instala como `<plugin>-explore`), deja sus
+servidores MCP apagados hasta que los actives, convierte las líneas «!`comando`» de Claude Code en
+código que el agente ejecuta con permiso, y desinstalar quita exactamente lo que se añadió.
+
+Conexiones estrena Conectores: cerca de 300 apps a las que se conectan Claude y Codex. Conectar añade
+el servidor MCP de la app en el proyecto abierto y abre su inicio de sesión en el navegador, sin
+bloquear las demás tarjetas; las que necesitan tu propio client ID o la dirección de tu espacio de
+trabajo abren el diálogo del servidor, y las que solo aceptan los clientes de Anthropic se marcan como
+restringidas. Cada entrada muestra su logo real: la marca de la app, el logo de su catálogo o el icono
+que declara su sitio, que el servidor descarga solo desde las webs del catálogo, nunca desde
+direcciones de tu red local, con tamaño limitado y caché.
+
+Las actualizaciones ya no reabren el asistente de bienvenida, que aparece solo en la primera
+instalación. «Buscar actualizaciones» abre un asistente dentro de la app con la comprobación, el
+progreso de la descarga, las novedades de la versión y «Reiniciar e instalar» / «Más tarde» (sin
+ventana abierta siguen los diálogos del sistema). La ventana de carga mide 465×385 y muestra el logo
+completo. La escala de la interfaz va del 80 % al 120 % en pasos de 5 %, y Ctrl +/− recorren los
+mismos pasos sin ir nunca en contra de la tecla.
+
 ## [1.0.6] — 2026-10-01
 
 Inteligencia deja de ser decorativa: sus interruptores se leen en vivo (guardarlos ya no reabre
