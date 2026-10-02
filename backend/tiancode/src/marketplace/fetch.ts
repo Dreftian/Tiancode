@@ -46,9 +46,13 @@ export async function get(url: string, options: { timeoutMs?: number; maxBytes?:
   let current = url
   for (let hop = 0; hop < 4; hop++) {
     if (!publicHttps(current)) throw new Error(`refused URL: ${current}`)
-    const addresses = await lookup(new URL(current).hostname.replace(/\.+$/, ""), { all: true })
-    if (addresses.length === 0 || addresses.some((entry) => privateAddress(entry.address)))
-      throw new Error(`refused host: ${current}`)
+    const host = new URL(current).hostname.replace(/\.+$/, "")
+    // Behind a proxy the proxy resolves and connects (local DNS may not even resolve outside names).
+    if (!proxied(host)) {
+      const addresses = await lookup(host, { all: true })
+      if (addresses.length === 0 || addresses.some((entry) => privateAddress(entry.address)))
+        throw new Error(`refused host: ${current}`)
+    }
     const response = await fetch(current, {
       redirect: "manual",
       signal,
@@ -68,6 +72,17 @@ export async function get(url: string, options: { timeoutMs?: number; maxBytes?:
     return { url: current, bytes: await capped(response, limit, current), type: response.headers.get("content-type") ?? "" }
   }
   throw new Error(`too many redirects: ${url}`)
+}
+
+/** Whether fetch sends a request for `host` through HTTPS_PROXY (and NO_PROXY does not exempt it). */
+export function proxied(host: string, env: Record<string, string | undefined> = process.env) {
+  const proxy = env.HTTPS_PROXY ?? env.https_proxy ?? env.ALL_PROXY ?? env.all_proxy
+  if (!proxy) return false
+  const exempt = (env.NO_PROXY ?? env.no_proxy ?? "")
+    .split(",")
+    .map((entry) => entry.trim().toLowerCase().replace(/^\*?\./, ""))
+    .filter(Boolean)
+  return !exempt.some((entry) => entry === "*" || host === entry || host.endsWith(`.${entry}`))
 }
 
 // Counted as it arrives (after decompression), so neither a lying length nor a compressed bomb can

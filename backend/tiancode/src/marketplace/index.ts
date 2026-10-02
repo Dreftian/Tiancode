@@ -1,5 +1,6 @@
 export * as Marketplace from "."
 
+import { createHash } from "node:crypto"
 import { mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
@@ -7,6 +8,7 @@ import { Cause, Context, Effect, Layer, Schema, Semaphore } from "effect"
 import { makeGlobalNode } from "@tiancode-ai/core/effect/app-node"
 import { Global } from "@tiancode-ai/core/global"
 import { SPECIALISTS, SPECIALIST_ALIASES } from "@tiancode-ai/core/plugin/agent-specialists"
+import { builtinAgentSkills } from "@tiancode-ai/core/plugin/skill/builtin"
 import { Command } from "@/command"
 import { Config } from "@/config/config"
 import { MarketplaceCatalog, type Item, type McpInstall } from "./catalog"
@@ -62,7 +64,7 @@ type Kind = "skills" | "commands" | "agents" | "mcp"
 
 // Names Tiancode itself defines: a plugin never takes them over.
 const BUILTIN: Record<Kind, string[]> = {
-  skills: [],
+  skills: [...Object.keys(builtinAgentSkills), "customize-tiancode"],
   commands: Object.values(Command.Default),
   agents: [
     "build",
@@ -281,8 +283,7 @@ const layer = Layer.effect(
         try: () => MarketplaceInstaller.download(source),
         catch: (error) => new InstallError({ message: error instanceof Error ? error.message : String(error) }),
       })
-      const key = MarketplaceCatalog.slug(item.id.replaceAll(":", "-"))
-      const root = path.join(pluginsDir, key)
+      const root = path.join(pluginsDir, pluginKey(item.id))
       const plan = MarketplaceInstaller.plan(files, { format: source.format, root, paths: folderVariables(), source })
       if (plan.skills.length + plan.commands.length + plan.agents.length + Object.keys(plan.mcp).length === 0)
         return yield* new InstallError({
@@ -300,13 +301,25 @@ const layer = Layer.effect(
             if (entry.id !== item.id)
               for (const kind of ["skills", "commands", "agents", "mcp"] as const)
                 for (const name of entry[kind]) taken[kind].add(name.toLowerCase())
-          const owned = (kind: Kind, name: string) => previous?.[kind].some((own) => own.toLowerCase() === name.toLowerCase()) ?? false
+          const owned = (kind: Kind, name: string) =>
+            previous?.[kind].some((own) => own.toLowerCase() === name.toLowerCase()) ?? false
+          // Names this install has already given out: two files called test.md in different folders
+          // must not both take the "test" an earlier install owned.
+          const used: Record<Kind, Set<string>> = { skills: new Set(), commands: new Set(), agents: new Set(), mcp: new Set() }
           // A name in use gets the plugin's name in front, then a number, until one is free.
           const pick = (kind: Kind, name: string) => {
-            const candidates = [name, `${item.name}-${name}`, ...Array.from({ length: 20 }, (_, index) => `${item.name}-${name}-${index + 2}`)]
-            const chosen = candidates.find((candidate) => !taken[kind].has(candidate.toLowerCase()) || owned(kind, candidate))
+            const candidates = [
+              name,
+              `${item.name}-${name}`,
+              ...Array.from({ length: 20 }, (_, index) => `${item.name}-${name}-${index + 2}`),
+            ]
+            const chosen = candidates.find((candidate) => {
+              const lower = candidate.toLowerCase()
+              return !used[kind].has(lower) && (!taken[kind].has(lower) || owned(kind, candidate))
+            })
             if (!chosen) throw new Error(`no free name for ${name}`)
             taken[kind].add(chosen.toLowerCase())
+            used[kind].add(chosen.toLowerCase())
             return chosen
           }
 
@@ -430,9 +443,7 @@ const layer = Layer.effect(
               await rm(inside(path.join(Global.Path.config, "command"), `${name}.md`), { force: true }).catch(() => undefined)
             for (const name of entry.agents)
               await rm(inside(path.join(Global.Path.config, "agent"), `${name}.md`), { force: true }).catch(() => undefined)
-            await rm(path.join(pluginsDir, MarketplaceCatalog.slug(id.replaceAll(":", "-"))), { recursive: true, force: true }).catch(
-              () => undefined,
-            )
+            await rm(path.join(pluginsDir, pluginKey(id)), { recursive: true, force: true }).catch(() => undefined)
           })
           const { [id]: _, ...rest } = manifest
           yield* Effect.tryPromise({
@@ -447,6 +458,14 @@ const layer = Layer.effect(
     return Service.of({ catalog, search, icon, installed, install, uninstall })
   }),
 )
+
+/**
+ * The folder a plugin's raw copy lives in. Ids are long (source, repository and name) and slugs stop
+ * at 64 characters, so a short hash of the whole id keeps similar names apart.
+ */
+function pluginKey(id: string) {
+  return `${MarketplaceCatalog.slug(id).slice(0, 48)}-${createHash("sha256").update(id).digest("hex").slice(0, 8)}`
+}
 
 /** Folder variables a plugin's MCP config may use, resolved here (see MarketplaceCatalog.envPlaceholders). */
 function folderVariables() {

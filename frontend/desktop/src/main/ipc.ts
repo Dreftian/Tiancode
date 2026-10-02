@@ -283,9 +283,20 @@ export function registerIpcHandlers(deps: Deps) {
   })
   ipcMain.handle("updater-unsubscribe", (event) => updaterSubscriptions.delete(event.sender.id))
   ipcMain.on("updater-assistant", (event, listening: unknown) => {
-    const id = event.sender.id
+    const contents = event.sender
+    const id = contents.id
     setUpdateAssistant(id, listening === true)
-    if (listening === true) event.sender.once("destroyed", () => setUpdateAssistant(id, false))
+    if (listening !== true) return
+    const clear = () => setUpdateAssistant(id, false)
+    contents.once("destroyed", clear)
+    // A reload or navigation drops the page's listener without running its cleanup.
+    const navigated = (details: { isMainFrame: boolean; isSameDocument: boolean }) => {
+      if (!details.isMainFrame || details.isSameDocument) return
+      contents.off("did-start-navigation", navigated)
+      contents.off("destroyed", clear)
+      clear()
+    }
+    contents.on("did-start-navigation", navigated)
   })
   ipcMain.handle("updater-check", () => deps.updater.check())
   ipcMain.handle("updater-install", () => deps.updater.install())

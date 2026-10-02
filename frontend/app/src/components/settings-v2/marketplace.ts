@@ -99,12 +99,35 @@ export function mergeCatalog(...lists: MarketplaceItem[][]) {
   })
 }
 
+/**
+ * What identifies a server across versions: the URL's host and path, or the command without
+ * version pins (pkg@1.2.3, pkg==1.2, image:tag) and docker's -e flags, so an upgraded catalog
+ * entry still matches the server added from it.
+ */
 export function mcpKey(mcp: { url?: string; command?: readonly string[] }) {
   if (mcp.url && URL.canParse(mcp.url)) {
     const url = new URL(mcp.url)
     return `${url.hostname}${url.pathname.replace(/\/+$/, "")}`
   }
-  return (mcp.command ?? []).join(" ")
+  return normalizedCommand(mcp.command ?? []).join(" ")
+}
+
+/** The package or image a local command runs: the first argument after the runner and its flags. */
+export function mcpPackage(command: readonly string[]) {
+  return normalizedCommand(command)
+    .slice(1)
+    .find((token) => !token.startsWith("-") && token !== "run")
+}
+
+function normalizedCommand(command: readonly string[]) {
+  return command
+    .filter((token, index) => token !== "-e" && command[index - 1] !== "-e")
+    .map((token) =>
+      token
+        .replace(/^(@?[^@\s]+)@[\w.^~<>=*-]+$/, "$1")
+        .replace(/==[\w.*-]+$/, "")
+        .replace(/^([\w.-]+\/[\w./-]+):[\w.-]+$/, "$1"),
+    )
 }
 
 function skill(name: string, title: string, category: string, url: string): MarketplaceItem {

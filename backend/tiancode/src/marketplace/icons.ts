@@ -17,11 +17,11 @@ export async function resolve(domain: string): Promise<{ icon?: string; reachabl
     maxBytes: 768 * 1024,
     accept: "text/html",
   }).catch(() => undefined)
-  // Only the site's own hosts: a page must not be able to send the server to arbitrary addresses.
-  const base = siteOf(domain)
+  // Sites often serve their icon from a CDN; every hop is still refused when it is not public https
+  // (MarketplaceFetch.get), and only a handful of candidates are tried.
   const candidates = [
     ...new Set([
-      ...(page ? iconLinks(page.text, page.url) : []).filter((url) => siteOf(new URL(url).hostname) === base),
+      ...(page ? iconLinks(page.text, page.url) : []),
       `https://${domain}/apple-touch-icon.png`,
       `https://${domain}/favicon.ico`,
     ]),
@@ -43,11 +43,6 @@ export async function resolve(domain: string): Promise<{ icon?: string; reachabl
     return { icon: `data:${type};base64,${Buffer.from(image.bytes).toString("base64")}`, reachable: true }
   }
   return { reachable: reached }
-}
-
-/** The last two labels of a host (www.notion.so → notion.so), enough to tell a site's own hosts. */
-export function siteOf(host: string) {
-  return host.toLowerCase().replace(/\.+$/, "").split(".").slice(-2).join(".")
 }
 
 /** `<link rel="…icon…" href sizes>` from a page, best first. */

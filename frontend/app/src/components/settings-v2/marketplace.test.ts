@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import type { MarketplaceItem } from "@tiancode-ai/sdk/v2/client"
-import { CURATED_ITEMS, mcpConfig, mcpKey, mergeCatalog, searchCatalog, sourceGroup } from "./marketplace"
+import { CURATED_ITEMS, mcpConfig, mcpKey, mcpPackage, mergeCatalog, searchCatalog, sourceGroup } from "./marketplace"
 import { parseCommand, parseMcpConfig } from "./mcp-config"
 
 const item = (id: string, extra: Partial<MarketplaceItem> = {}): MarketplaceItem => ({
@@ -37,6 +37,14 @@ describe("Discover catalog", () => {
     )
     expect(merged.map((entry) => entry.id)).toEqual(["claude:linear", "cline:other"])
     expect(mcpKey({ command: ["npx", "-y", "other"] })).toBe("npx -y other")
+    // Version pins and docker's -e flags do not change which server it is.
+    expect(mcpKey({ command: ["npx", "-y", "@acme/mcp@1.2.3"] })).toBe(mcpKey({ command: ["npx", "-y", "@acme/mcp"] }))
+    expect(mcpKey({ command: ["uvx", "markitdown-mcp==0.0.1a4"] })).toBe("uvx markitdown-mcp")
+    expect(mcpKey({ command: ["docker", "run", "-i", "--rm", "-e", "TOKEN", "docker.io/acme/mcp:1.0"] })).toBe(
+      "docker run -i --rm docker.io/acme/mcp",
+    )
+    expect(mcpPackage(["npx", "-y", "@acme/mcp@2.0.0", "--root", "C:\\x"])).toBe("@acme/mcp")
+    expect(mcpPackage(["docker", "run", "-i", "--rm", "-e", "T", "acme/mcp:1"])).toBe("acme/mcp")
   })
 
   test("search ranks name matches ahead of description matches", () => {

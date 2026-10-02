@@ -19,6 +19,9 @@ const updaterHandler = (_: unknown, state: UpdaterState) => {
   updaterCallbacks.forEach((callback) => callback(state))
 }
 
+// Mounted update assistants in this page (see updater.onShow).
+let updateAssistants = 0
+
 const api: ElectronAPI = {
   killSidecar: () => ipcRenderer.invoke("kill-sidecar"),
   relaunchApp: () => ipcRenderer.invoke("relaunch-app"),
@@ -114,11 +117,14 @@ const api: ElectronAPI = {
     onShow: (cb) => {
       const handler = () => cb()
       ipcRenderer.on("updater-show", handler)
-      // Main hands "Check for updates" to this window only while an assistant is listening.
-      ipcRenderer.send("updater-assistant", true)
+      // Main hands "Check for updates" to this window only while an assistant is listening; the
+      // count keeps one unmounting assistant from switching that off for another.
+      updateAssistants += 1
+      if (updateAssistants === 1) ipcRenderer.send("updater-assistant", true)
       return () => {
         ipcRenderer.removeListener("updater-show", handler)
-        ipcRenderer.send("updater-assistant", false)
+        updateAssistants -= 1
+        if (updateAssistants === 0) ipcRenderer.send("updater-assistant", false)
       }
     },
   },

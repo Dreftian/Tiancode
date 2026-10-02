@@ -32,7 +32,16 @@ import { usePlatform } from "@/context/platform"
 import { useServerSDK } from "@/context/server-sdk"
 import type { dict } from "@/i18n/en"
 import { showToast } from "@/utils/toast"
-import { CURATED_ITEMS, mcpConfig, mcpKey, mergeCatalog, searchCatalog, SOURCE_GROUPS, sourceGroup } from "./marketplace"
+import {
+  CURATED_ITEMS,
+  mcpConfig,
+  mcpKey,
+  mcpPackage,
+  mergeCatalog,
+  searchCatalog,
+  SOURCE_GROUPS,
+  sourceGroup,
+} from "./marketplace"
 import { DialogMcpPlugin, DialogMcpServer } from "./mcp-dialogs"
 import { SettingsConfirmDialog } from "./parts/confirm-dialog"
 import { BrandOrFallback } from "./parts/brand-icon"
@@ -319,9 +328,20 @@ export const SettingsMcpPluginsV2: Component<{
       ),
   )
   const installed = (item: MarketplaceItem) => {
-    if (item.type === "mcp") return item.mcp ? configuredServers().has(mcpKey(item.mcp)) : false
+    if (item.type === "mcp") return item.mcp ? configuredServers().has(mcpKey(item.mcp)) || sameNamed(item) : false
     if (item.type === "skill") return installedSkills().some((skill) => skill.name === item.name)
     return installedPlugins().some((plugin) => plugin.id === item.id)
+  }
+  // A server added under the entry's name that runs the same package or reaches the same host (the
+  // user may have edited its arguments or headers).
+  const sameNamed = (item: MarketplaceItem) => {
+    const conf = (configData().mcp ?? {})[item.name] as McpConfigValue | undefined
+    if (!conf || !("type" in conf) || !item.mcp) return false
+    if (conf.type === "remote")
+      return item.mcp.transport === "remote" && URL.canParse(conf.url) && URL.canParse(item.mcp.url ?? "")
+        ? new URL(conf.url).hostname === new URL(item.mcp.url!).hostname
+        : false
+    return item.mcp.transport === "local" && mcpPackage(conf.command) === mcpPackage(item.mcp.command ?? [])
   }
   const obtainable = (item: MarketplaceItem) =>
     Boolean((item.mcp && mcpConfig(item.mcp)) || item.skillUrl || (item.type === "plugin" && item.installable))

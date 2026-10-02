@@ -62,7 +62,6 @@ import { Titlebar, type TitlebarUpdate } from "@/components/titlebar/titlebar"
 import { useDirectoryPicker } from "@/components/file-tree/directory-picker"
 import { ServerConnection, useServer } from "@/context/server"
 import { useLanguage, type Locale } from "@/context/language"
-import { UpdateAssistant } from "@/components/update-assistant"
 import { pathKey } from "@/utils/path-key"
 import {
   displayName,
@@ -2119,7 +2118,6 @@ export default function LegacyLayout(props: ParentProps) {
             : undefined
         }
       />
-      <UpdateAssistant />
       <div class="flex-1 min-h-0 min-w-0 flex">
         <div class="flex-1 min-h-0 relative">
           <div class="size-full relative overflow-x-hidden">

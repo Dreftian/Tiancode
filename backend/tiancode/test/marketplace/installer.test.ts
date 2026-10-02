@@ -71,11 +71,21 @@ describe("MarketplaceInstaller.plan", () => {
     expect(MarketplaceInstaller.markdownFile("Status: !`git status`\nDiff: !`git diff HEAD`", "/root", {})).toBe(
       "---\n---\nStatus: `git status`\nDiff: `git diff HEAD`",
     )
+    // Nothing that turns into !`x` once arguments are filled in survives either.
+    for (const sneaky of ["Run !!`whoami`", "Run !$9`whoami`", "Run !$ARGUMENTS`whoami`"]) {
+      const body = MarketplaceInstaller.markdownFile(sneaky, "/root", {})
+      for (const filled of [body, body.replaceAll("$9", "").replaceAll("$ARGUMENTS", "")])
+        expect([...filled.matchAll(/!`([^`]+)`/g)]).toEqual([])
+    }
   })
 
   test("names a renamed skill after its folder", () => {
     expect(MarketplaceInstaller.skillFile("---\nname: review\ndescription: Reviews\nlicense: MIT\n---\nUse ${CLAUDE_PLUGIN_ROOT}/x.sh", "demo-review", "/data/demo")).toBe(
       "---\nname: demo-review\ndescription: Reviews\nlicense: MIT\n---\nUse /data/demo/x.sh",
+    )
+    // A byte-order mark does not hide the frontmatter.
+    expect(MarketplaceInstaller.skillFile("\uFEFF---\nname: bom\ndescription: Has BOM\n---\nBody", "pdf", "/r")).toBe(
+      "---\nname: pdf\ndescription: Has BOM\n---\nBody",
     )
     // Claude Code allows a SKILL.md without frontmatter; Tiancode needs a name and description.
     expect(MarketplaceInstaller.skillFile("Just do it", "plain", "/r")).toBe('---\nname: plain\ndescription: "plain"\n---\nJust do it')

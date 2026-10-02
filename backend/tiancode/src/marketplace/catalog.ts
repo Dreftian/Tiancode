@@ -189,6 +189,22 @@ export function envPlaceholders(value: string, root?: string, paths?: Record<str
 // declared (`{file:~/.ssh/id_rsa}` as a header), so such a server is refused.
 const CONFIG_TOKEN = /\{(file|env):/
 
+/**
+ * The server as it will be written, unless one of its strings could still turn into a config token
+ * Tiancode did not put there: `{${UNSET}file:…}` becomes `{file:…}` once the variable is
+ * substituted, so the check looks at the values with Tiancode's own {env:NAME} removed.
+ */
+function safe(install: McpInstall | undefined): McpInstall | undefined {
+  if (!install) return
+  const strings = [
+    install.url ?? "",
+    ...(install.command ?? []),
+    ...Object.values(install.headers ?? {}),
+    ...Object.values(install.environment ?? {}),
+  ]
+  return strings.some((value) => CONFIG_TOKEN.test(value.replace(/\{env:[A-Z_][A-Z0-9_]*\}/g, ""))) ? undefined : install
+}
+
 /** An MCP server entry from a `.mcp.json` (Claude Code or Codex) in Tiancode's config shape. */
 export function mcpFromEntry(entry: unknown, root?: string, paths?: Record<string, string>): McpInstall | undefined {
   if (!record(entry)) return
@@ -211,7 +227,7 @@ export function mcpFromEntry(entry: unknown, root?: string, paths?: Record<strin
             .map(([key, value]) => [key, envPlaceholders(value, root, paths)]),
         )
       : undefined
-    return { transport: "remote", url: resolved, ...(headers && Object.keys(headers).length ? { headers } : {}) }
+    return safe({ transport: "remote", url: resolved, ...(headers && Object.keys(headers).length ? { headers } : {}) })
   }
   const command = text(entry.command)
   if (!command) return
@@ -223,11 +239,11 @@ export function mcpFromEntry(entry: unknown, root?: string, paths?: Record<strin
           .map(([key, value]) => [key, envPlaceholders(value, root, paths)]),
       )
     : undefined
-  return {
+  return safe({
     transport: "local",
     command: [command, ...args].map((part) => envPlaceholders(part, root, paths)),
     ...(env && Object.keys(env).length ? { environment: env } : {}),
-  }
+  })
 }
 
 /** `.mcp.json` comes flat (`{name: entry}`) or wrapped (`{mcpServers: {name: entry}}`). */
@@ -285,9 +301,9 @@ function claudePlugin(raw: Json, marketplace: { owner: string; repo: string; ref
   if (!source) return
   const components = Object.fromEntries(COMPONENTS.filter((key) => raw[key] !== undefined).map((key) => [key, raw[key]]))
   const strict = raw.strict !== false
-  // A strict:false entry is its whole definition: one that only brings LSP servers or hooks has
-  // nothing Tiancode runs.
-  if (!strict && !RUNNABLE.some((key) => components[key] !== undefined)) return
+  // A strict:false entry is its whole definition: one that only declares LSP servers or hooks has
+  // nothing Tiancode runs. One that declares nothing uses the default folders, like Claude Code.
+  if (!strict && Object.keys(components).length && !RUNNABLE.some((key) => components[key] !== undefined)) return
   const folders = RUNNABLE.flatMap((key) => {
     const value = components[key]
     return (Array.isArray(value) ? value : [value]).filter((entry): entry is string => typeof entry === "string")
@@ -426,11 +442,13 @@ export function fromAnthropicDirectory(value: unknown): Connector[] {
     // Connectors that do not list Claude Code accept only Anthropic's own clients; "requiredFields"
     // means the user brings something (their OAuth client ID, their workspace URL).
     const auth: Auth =
-      worksWith.length && !worksWith.includes("claude-code")
-        ? "restricted"
-        : list(meta.requiredFields).length
-          ? "own-app"
-          : connectorAuth(url, meta.isAuthless === true)
+      meta.isAuthless === true && !list(meta.requiredFields).length
+        ? "none"
+        : worksWith.length && !worksWith.includes("claude-code")
+          ? "restricted"
+          : list(meta.requiredFields).length
+            ? "own-app"
+            : connectorAuth(url, false)
     return [
       {
         id: slug(text(meta.slug) || title),
@@ -583,7 +601,7 @@ export function fromMcpRegistry(value: unknown, source: "github" | "registry"): 
     const github = record(meta) && record(meta.github) ? meta.github : {}
     const icons = list(server.icons).filter(record)
     const repository = record(server.repository) ? httpsUrl(server.repository.url) : undefined
-    const mcp = registryInstall(server, envName(name.split("/").pop() ?? name))
+    const mcp = registryInstall(server, envName(name))
     if (!mcp) return []
     const title = text(github.displayName) || text(server.title) || titleCase(name.split("/").pop() ?? name)
     return [
@@ -608,10 +626,14 @@ export function fromMcpRegistry(value: unknown, source: "github" | "registry"): 
 }
 
 /**
- * How to run a registry server. `prefix` namespaces the variables it invents (APIFY_AUTHORIZATION),
- * so one vendor's token is never sent to another that happens to use the same header name.
+ * How to run a registry server. `prefix` (the whole server name) namespaces the variables it
+ * invents, so one vendor's token is never sent to another that uses the same header name.
  */
 function registryInstall(server: Json, prefix: string): McpInstall | undefined {
+  return safe(registryCommand(server, prefix))
+}
+
+function registryCommand(server: Json, prefix: string): McpInstall | undefined {
   const variable = (name: string) => `{env:${prefix}_${envName(name)}}`
   const fill = (value: string) => value.replace(/\{([a-z_][\w]*)\}/gi, (_, name: string) => variable(name))
   const remote = list(server.remotes).find(
@@ -647,15 +669,18 @@ function registryInstall(server: Json, prefix: string): McpInstall | undefined {
   const argument = (raw: unknown): string[] => {
     if (!record(raw)) return []
     const value = text(raw.value) || text(raw.default)
+    const hint = text(raw.valueHint) || text(raw.name).replace(/^-+/, "")
+    // A path goes in as text for the user to fill in: an {env:} holding a Windows path would break
+    // the config file it is spliced into.
+    const missing = text(raw.format) === "filepath" ? `<${hint || "path"}>` : variable(hint)
     if (text(raw.type) === "named") {
       const name = text(raw.name)
       if (!name) return []
       if (value) return [name, fill(value)]
-      return raw.isRequired ? [name, variable(name.replace(/^-+/, ""))] : []
+      return raw.isRequired ? [name, missing] : []
     }
     if (value) return [fill(value)]
-    const hint = text(raw.valueHint)
-    return raw.isRequired && hint ? [variable(hint)] : []
+    return raw.isRequired && hint ? [missing] : []
   }
   const runtime = list(pkg.runtimeArguments).flatMap(argument)
   const args = list(pkg.packageArguments).flatMap(argument)
@@ -811,7 +836,7 @@ function clineInstall(args: string[]): McpInstall | undefined {
   if (args.some((arg) => CLINE_PLACEHOLDER.test(arg) || CONFIG_TOKEN.test(arg))) return
   const separator = args.indexOf("--")
   if (separator > 0 && separator < args.length - 1)
-    return { transport: "local", command: args.slice(separator + 1).map((arg) => envPlaceholders(arg)) }
+    return safe({ transport: "local", command: args.slice(separator + 1).map((arg) => envPlaceholders(arg)) })
   const transport = args.indexOf("--transport")
   if (transport < 1 || !["http", "sse"].includes(args[transport + 1] ?? "")) return
   const url = httpsUrl(args[transport + 2])
@@ -823,10 +848,11 @@ function clineInstall(args: string[]): McpInstall | undefined {
     const colon = header.indexOf(":")
     if (colon <= 0) return
     const value = header.slice(colon + 1).trim()
-    if (/^[a-z][a-z_]*$/.test(value)) return
+    // "cld-api-key: api_key" is a fill-me-in; "X-Lusha-Plugin: claude" is a real value.
+    if (/^(api_?key|api_?secret|secret|token|access_?token|password|[a-z]+_(key|secret|token|id))$/.test(value)) return
     headers[header.slice(0, colon).trim()] = envPlaceholders(value)
   }
-  return { transport: "remote", url, ...(Object.keys(headers).length ? { headers } : {}) }
+  return safe({ transport: "remote", url, ...(Object.keys(headers).length ? { headers } : {}) })
 }
 
 // ---------------------------------------------------------------------------------- merging

@@ -169,7 +169,8 @@ export function plan(
  * as `allowed-tools` or a `model: sonnet` alias that Tiancode's schema would reject, and a file
  * that fails to load breaks the whole config.
  */
-export function markdownFile(source: string, root: string, options: { mode?: "subagent" }) {
+export function markdownFile(text: string, root: string, options: { mode?: "subagent" }) {
+  const source = text.replace(/^\uFEFF/, "")
   const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(source)
   const body = runnableText(match ? source.slice(match[0].length) : source, root)
   const description = match ? frontmatterValue(match[1]!, "description") : undefined
@@ -187,7 +188,8 @@ export function markdownFile(source: string, root: string, options: { mode?: "su
  * SKILL.md with `name` set to the folder it is written to: the skill loader keys skills by that
  * name, so a renamed copy must say so, and Claude Code allows leaving it out.
  */
-export function skillFile(source: string, name: string, root: string) {
+export function skillFile(text: string, name: string, root: string) {
+  const source = text.replace(/^\uFEFF/, "")
   const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(source)
   const body = runnableText(match ? source.slice(match[0].length) : source, root)
   const lines = (match ? match[1]! : "").split(/\r?\n/).filter((line) => line.trim() && !/^name\s*:/.test(line))
@@ -203,8 +205,15 @@ export function skillFile(source: string, name: string, root: string) {
  * choose to run through its bash tool, which asks.
  */
 function runnableText(source: string, root: string) {
-  // Same pattern as the prompt's shell expansion (session/prompt.ts), so nothing it would run survives.
-  return source.replace(/\$\{CLAUDE_PLUGIN_ROOT\}/g, root).replace(/!`([^`]+)`/g, "`$1`")
+  return (
+    source
+      .replace(/\$\{CLAUDE_PLUGIN_ROOT\}/g, root)
+      // The prompt's own pattern (session/prompt.ts bashRegex)...
+      .replace(/!`([^`]+)`/g, "`$1`")
+      // ...and whatever could still become one: "!!`x`", or "!$1`x`" once an empty argument fills
+      // $1. No "!" is left right before a backtick or a placeholder.
+      .replace(/!(?=[`$])/g, "! ")
+  )
 }
 
 function frontmatterValue(block: string, key: string) {
