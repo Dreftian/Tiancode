@@ -6,9 +6,9 @@
    capturas reales de la app y sus puntos de interés.
    ============================================================ */
 
-import { getLang, t } from './i18n.js?v=1.0.5-r1';
-import { setGalaxyDispersal, setGalaxyForceActive } from './galaxy.js?v=1.0.5-r1';
-import { reducedMotion } from './utils.js?v=1.0.5-r1';
+import { getLang, t } from './i18n.js?v=1.0.6-r1';
+import { setGalaxyDispersal, setGalaxyForceActive } from './galaxy.js?v=1.0.6-r1';
+import { reducedMotion } from './utils.js?v=1.0.6-r1';
 
 const PANELS = ['overview', 'capabilities', 'app', 'benchmarks', 'architecture', 'skills', 'downloads', 'faq'];
 
