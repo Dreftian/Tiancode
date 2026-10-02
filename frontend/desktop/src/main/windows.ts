@@ -220,8 +220,13 @@ export function getUiZoom() {
   return Number.isFinite(value) && value > 0 ? clampZoom(value) : 1
 }
 
-export function setUiZoom(factor: number) {
+export function setUiZoom(factor: number, source?: BrowserWindow | null) {
   const next = clampZoom(factor)
+  // Ctrl +/- in the welcome card zooms that card only; the app's scale is chosen in its windows.
+  if (source && !zoomWindows.has(source)) {
+    if (!source.isDestroyed()) source.webContents.setZoomFactor(next)
+    return
+  }
   uiZoom = next
   for (const win of BrowserWindow.getAllWindows()) {
     if (!zoomWindows.has(win) || win.isDestroyed() || win.webContents.isDestroyed()) continue
@@ -231,9 +236,14 @@ export function setUiZoom(factor: number) {
   // A pinch sends dozens of steps a second, and each store write syncs the file to disk on the main
   // thread: only the value the gesture settles on is written.
   clearTimeout(uiZoomWrite)
-  uiZoomWrite = setTimeout(() => {
-    if (getStore().get(UI_ZOOM_FACTOR_KEY) !== next) getStore().set(UI_ZOOM_FACTOR_KEY, next)
-  }, 400)
+  uiZoomWrite = setTimeout(flushUiZoom, 400)
+}
+
+/** Writes a scale still waiting for its gesture to settle; called again before quitting. */
+export function flushUiZoom() {
+  clearTimeout(uiZoomWrite)
+  uiZoomWrite = undefined
+  if (uiZoom !== undefined && getStore().get(UI_ZOOM_FACTOR_KEY) !== uiZoom) getStore().set(UI_ZOOM_FACTOR_KEY, uiZoom)
 }
 
 export function getPinchZoomEnabled() {

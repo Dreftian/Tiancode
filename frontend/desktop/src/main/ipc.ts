@@ -26,6 +26,7 @@ import {
   setPinchZoomEnabled,
   setTitlebar,
   setUiZoom,
+  flushUiZoom,
   preferredWindowSize,
   clearWebviewData,
   WEBVIEW_RETENTION_KEY,
@@ -231,7 +232,10 @@ export function registerIpcHandlers(deps: Deps) {
   }
 
   app.once("will-quit", updaterSubscriptions.clear)
-  app.on("before-quit", () => drafts.flush())
+  app.on("before-quit", () => {
+    drafts.flush()
+    flushUiZoom()
+  })
   app.once("will-quit", () => drafts.close())
   app.on("browser-window-created", (_event, win) => win.on("session-end", () => drafts.flush()))
 
@@ -657,9 +661,9 @@ export function registerIpcHandlers(deps: Deps) {
   })
 
   ipcMain.handle("get-zoom-factor", (event: IpcMainInvokeEvent) => event.sender.getZoomFactor())
-  ipcMain.handle("set-zoom-factor", (_event: IpcMainInvokeEvent, factor: number) => {
+  ipcMain.handle("set-zoom-factor", (event: IpcMainInvokeEvent, factor: number) => {
     if (typeof factor !== "number" || !Number.isFinite(factor)) return
-    setUiZoom(factor)
+    setUiZoom(factor, BrowserWindow.fromWebContents(event.sender))
   })
   ipcMain.handle("get-pinch-zoom-enabled", () => getPinchZoomEnabled())
   ipcMain.handle("set-pinch-zoom-enabled", (_event: IpcMainInvokeEvent, enabled: boolean) => {

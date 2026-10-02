@@ -1270,6 +1270,10 @@ describe("tool.shell encoding", () => {
           Effect.gen(function* () {
             const result = yield* run({ command: "using namespace System.Net\n[WebUtility]::UrlEncode('a b')" })
             expect(result.metadata.output).toContain("a+b")
+            const commented = yield* run({
+              command: "#requires -Version 5\n# encode\nusing namespace System.Net\n[WebUtility]::UrlEncode('c d')",
+            })
+            expect(commented.metadata.output).toContain("c+d")
           }),
         ),
   )

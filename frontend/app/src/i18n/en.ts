@@ -3325,4 +3325,5 @@ export const dict = {
   "settings.computerUse.projectRules": "Another config loaded after the global one (this project's tiancode.json, .tiancode/ or ~/.tiancode) has its own browser rules here, and they take priority over these.",
   "settings.config.loadFailed": "Could not load the settings from the server. The values shown may be out of date.",
   "settings.computerUse.projectOverride": "In this project “{{action}}” applies: a config loaded after the global one sets it.",
+  "settings.computerUse.wildcardWins": "A general rule (\"*\") written further down in your global config takes priority over these, so changes here save but do not apply. Move it to the top or remove it in tiancode.json.",
 }

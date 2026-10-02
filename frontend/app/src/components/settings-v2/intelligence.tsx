@@ -14,7 +14,6 @@ import { useServerSDK } from "@/context/server-sdk"
 import { showToast } from "@/utils/toast"
 import { SettingsConfirmDialog } from "./parts/confirm-dialog"
 import { SettingsHubHeader } from "./parts/hub-header"
-import { permissionRules, resolveRule } from "./computer-use-logic"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
 import "./parts/kit.css"
@@ -135,7 +134,15 @@ export const SettingsIntelligenceV2: Component<{
     save({ compaction: patch }, (draft) => ({ ...draft, compaction: { ...draft.compaction, ...patch } }))
   const outputLines = () => config.value.tool_output?.max_lines ?? 2000
   // The last of `doom_loop` and `*` wins, and a single action ("allow") covers it, as on the server.
-  const doomLoop = () => resolveRule(permissionRules(config.value.permission), "doom_loop") ?? "ask"
+  // Not by position: the HTTP response writes known keys such as doom_loop before `*`, whatever the
+  // file says. The app writes `*` first and doom_loop after it, so an explicit rule is the one in force.
+  const doomLoop = () => {
+    const permission: unknown = config.value.permission
+    if (typeof permission === "string") return permission
+    const rules = permission && typeof permission === "object" ? (permission as Record<string, unknown>) : {}
+    const rule = rules.doom_loop ?? rules["*"]
+    return typeof rule === "string" ? rule : "ask"
+  }
   const continueOnDeny = () => config.value.experimental?.continue_loop_on_deny === true
 
   // ------------------------------------------------------------------ Memory

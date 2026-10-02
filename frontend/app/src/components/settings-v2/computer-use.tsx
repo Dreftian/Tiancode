@@ -138,7 +138,7 @@ export const SettingsComputerUseV2: Component<{
   // managed config) overrides these rules in the open project; 1.0.5 wrote them into the project.
   // The page edits only the global config, so it says what applies here instead of writing files
   // it cannot rank. Both are read together, so a difference means another layer sets the rule.
-  const [layers] = createResource(
+  const [layers, { refetch: refetchLayers }] = createResource(
     () => props.directory,
     (directory) =>
       Promise.all([
@@ -151,6 +151,20 @@ export const SettingsComputerUseV2: Component<{
         }))
         .catch(() => undefined),
   )
+  // A global save reopens the projects; read both layers again once the server says it did (read
+  // before that, the project still answered with the old merge).
+  onCleanup(
+    serverSdk().event.listen((event) => {
+      if (event.details?.type === "global.disposed") void refetchLayers()
+    }),
+  )
+  // A top-level `*` written after a key in the global config wins over it, so edits to that key save
+  // but change nothing; the page says so instead of failing silently.
+  const shadowed = (keys: readonly string[]) =>
+    keys.some((key) => {
+      const own = rules().findLastIndex((rule) => rule.key === key)
+      return own !== -1 && rules().findLastIndex((rule) => rule.key === "*") > own
+    })
   const overridden = (key: string, fallback: PermissionAction) => {
     const value = layers()
     if (!value) return undefined
@@ -464,6 +478,11 @@ export const SettingsComputerUseV2: Component<{
               </For>
             </div>
             <p class="settings-v2-kit-note">{language.t("settings.computerUse.permissions.note")}</p>
+            <Show when={shadowed(TOOLS)}>
+              <p class="settings-v2-kit-note" data-tone="warn">
+                {language.t("settings.computerUse.wildcardWins")}
+              </p>
+            </Show>
           </div>
 
           <Show when={windows()}>
@@ -645,6 +664,11 @@ export const SettingsComputerUseV2: Component<{
                 </div>
               </Show>
             </div>
+            <Show when={shadowed(["browser"])}>
+              <p class="settings-v2-kit-note" data-tone="warn">
+                {language.t("settings.computerUse.wildcardWins")}
+              </p>
+            </Show>
             <Show when={browserOverridden()}>
               <p class="settings-v2-kit-note" data-tone="warn">
                 {language.t("settings.computerUse.projectRules")}

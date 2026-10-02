@@ -328,8 +328,9 @@ const ask = Effect.fn("ShellTool.ask")(function* (
 // the console input encoding when the system code page is UTF-8, so both are set.
 const PS_UTF8 =
   "$OutputEncoding=[Console]::InputEncoding=[Console]::OutputEncoding=New-Object System.Text.UTF8Encoding $false;"
-// `using` statements and a `param` block only parse at the very start of a script.
-const PS_PREAMBLE = /^\s*(?:using\s|param\s*\(|\[cmdletbinding)/i
+// `using` statements and a `param` block only parse at the very start of a script (after comments
+// and `#requires` lines).
+const PS_PREAMBLE = /^\s*(?:(?:#[^\n]*\n|<#[\s\S]*?#>)\s*)*(?:using\s|param\s*\(|\[cmdletbinding)/i
 
 function cmd(shell: string, command: string, cwd: string, env: NodeJS.ProcessEnv) {
   if (process.platform === "win32" && Shell.ps(shell)) {

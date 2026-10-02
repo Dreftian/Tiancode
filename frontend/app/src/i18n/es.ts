@@ -3477,4 +3477,5 @@ export const dict = {
   "settings.computerUse.projectRules": "Otra configuración que se carga después de la global (el tiancode.json de este proyecto, .tiancode/ o ~/.tiancode) tiene sus propias reglas de navegador aquí y prevalecen sobre estas.",
   "settings.config.loadFailed": "No se pudo cargar la configuración del servidor. Los valores que ves pueden no estar al día.",
   "settings.computerUse.projectOverride": "En este proyecto se aplica «{{action}}»: lo fija una configuración que se carga después de la global.",
+  "settings.computerUse.wildcardWins": "Una regla general («*») escrita más abajo en tu configuración global prevalece sobre estas, así que lo que cambies aquí se guarda pero no se aplica. Muévela arriba o quítala en tiancode.json.",
 }
