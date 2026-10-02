@@ -22,6 +22,14 @@ export interface PluginSource {
   repo: string
   ref: string
   path: string
+  /**
+   * What the marketplace entry itself declares (skills, commands, agents, mcpServers…). With
+   * `strict: false` it is the whole definition and the folder may have no plugin.json.
+   */
+  components?: Record<string, unknown>
+  strict?: boolean
+  /** Only these folders of `path` are downloaded (an entry whose source is a whole repository). */
+  include?: string[]
 }
 
 export interface Item {
@@ -106,6 +114,13 @@ export function githubAvatar(value: unknown) {
   return `https://avatars.githubusercontent.com/${owner}?size=96`
 }
 
+/** `owner/repo` or `git@github.com:owner/repo.git`. */
+export function githubShorthand(value: string) {
+  const match = /^(?:git@github\.com:)?([\w.-]+)\/([\w.-]+?)(?:\.git)?$/.exec(value.trim())
+  if (!match || match[1]!.startsWith(".")) return
+  return { owner: match[1]!, repo: match[2]! }
+}
+
 export function githubRepo(value: unknown) {
   const url = httpsUrl(value)
   if (!url) return
@@ -138,25 +153,62 @@ export function category(...hints: unknown[]) {
   return "herramientas"
 }
 
-// A `${VAR}` written for Claude Code or Codex is an environment variable; Tiancode spells it {env:VAR}.
-export function envPlaceholders(value: string, root?: string) {
+// Folders, not secrets. Tiancode splices {env:} values into its JSON config as they are, so a
+// Windows path there (C:\Users\…) would break the whole file: these are written as real paths at
+// install time instead, and left as they are when there is nothing to resolve them with.
+const PATH_VARIABLES = new Set([
+  "HOME",
+  "USERPROFILE",
+  "APPDATA",
+  "LOCALAPPDATA",
+  "TEMP",
+  "TMP",
+  "TMPDIR",
+  "PWD",
+  "PROGRAMFILES",
+  "PROGRAMDATA",
+  "XDG_CONFIG_HOME",
+  "XDG_DATA_HOME",
+  "XDG_CACHE_HOME",
+  "XDG_STATE_HOME",
+])
+
+/**
+ * A `${VAR}` written for Claude Code or Codex is an environment variable; Tiancode spells it
+ * {env:VAR}. `paths` resolves the folder variables above.
+ */
+export function envPlaceholders(value: string, root?: string, paths?: Record<string, string>) {
   return value
     .replace(/\$\{(?:CLAUDE_PLUGIN_ROOT|PLUGIN_ROOT|CODEX_PLUGIN_ROOT)\}/g, root ?? "")
-    .replace(/\$\{([A-Z_][A-Z0-9_]*)(?::-[^}]*)?\}/g, "{env:$1}")
+    .replace(/\$\{([A-Z_][A-Z0-9_]*)(?::-[^}]*)?\}/g, (token, name: string) =>
+      PATH_VARIABLES.has(name) ? (paths?.[name] ?? token) : `{env:${name}}`,
+    )
 }
 
+// Tiancode's own config tokens: a plugin that writes them would read files or variables it never
+// declared (`{file:~/.ssh/id_rsa}` as a header), so such a server is refused.
+const CONFIG_TOKEN = /\{(file|env):/
+
 /** An MCP server entry from a `.mcp.json` (Claude Code or Codex) in Tiancode's config shape. */
-export function mcpFromEntry(entry: unknown, root?: string): McpInstall | undefined {
+export function mcpFromEntry(entry: unknown, root?: string, paths?: Record<string, string>): McpInstall | undefined {
   if (!record(entry)) return
+  const strings = [
+    entry.url,
+    entry.command,
+    ...list(entry.args),
+    ...Object.values(record(entry.headers) ? entry.headers : {}),
+    ...Object.values(record(entry.env) ? entry.env : {}),
+  ]
+  if (strings.some((value) => typeof value === "string" && CONFIG_TOKEN.test(value))) return
   const url = text(entry.url)
   if (url) {
-    const resolved = envPlaceholders(url, root)
+    const resolved = envPlaceholders(url, root, paths)
     if (!httpsUrl(resolved) && !/^https:\/\/[^\s]+$/.test(resolved)) return
     const headers = record(entry.headers)
       ? Object.fromEntries(
           Object.entries(entry.headers)
             .filter((pair): pair is [string, string] => typeof pair[1] === "string")
-            .map(([key, value]) => [key, envPlaceholders(value, root)]),
+            .map(([key, value]) => [key, envPlaceholders(value, root, paths)]),
         )
       : undefined
     return { transport: "remote", url: resolved, ...(headers && Object.keys(headers).length ? { headers } : {}) }
@@ -168,12 +220,12 @@ export function mcpFromEntry(entry: unknown, root?: string): McpInstall | undefi
     ? Object.fromEntries(
         Object.entries(entry.env)
           .filter((pair): pair is [string, string] => typeof pair[1] === "string")
-          .map(([key, value]) => [key, envPlaceholders(value, root)]),
+          .map(([key, value]) => [key, envPlaceholders(value, root, paths)]),
       )
     : undefined
   return {
     transport: "local",
-    command: [command, ...args].map((part) => envPlaceholders(part, root)),
+    command: [command, ...args].map((part) => envPlaceholders(part, root, paths)),
     ...(env && Object.keys(env).length ? { environment: env } : {}),
   }
 }
@@ -200,12 +252,14 @@ export function fromClaudeMarketplace(
     if (!record(raw)) return []
     const name = text(raw.name)
     if (!name) return []
-    const plugin = claudeSource(raw.source, input)
+    const plugin = claudePlugin(raw, input)
     const homepage = httpsUrl(raw.homepage) ?? httpsUrl(record(raw.author) ? raw.author.url : undefined)
     const author = record(raw.author) ? text(raw.author.name) : ""
     return [
       {
-        id: `${input.source}:${slug(name)}`,
+        // The repository is part of the id: the work marketplaces share a source and reuse names
+        // ("operations", "datadog") for different plugins.
+        id: `${input.source}:${input.repo}:${slug(name)}`,
         type: "plugin",
         name: slug(name),
         title: text(raw.displayName) || titleCase(name),
@@ -220,6 +274,31 @@ export function fromClaudeMarketplace(
       },
     ]
   })
+}
+
+const COMPONENTS = ["skills", "commands", "agents", "mcpServers", "hooks", "lspServers", "outputStyles"]
+const RUNNABLE = ["skills", "commands", "agents", "mcpServers"]
+
+/** The entry's source plus what the entry declares; undefined when nothing in it can run here. */
+function claudePlugin(raw: Json, marketplace: { owner: string; repo: string; ref: string }): PluginSource | undefined {
+  const source = claudeSource(raw.source, marketplace)
+  if (!source) return
+  const components = Object.fromEntries(COMPONENTS.filter((key) => raw[key] !== undefined).map((key) => [key, raw[key]]))
+  const strict = raw.strict !== false
+  // A strict:false entry is its whole definition: one that only brings LSP servers or hooks has
+  // nothing Tiancode runs.
+  if (!strict && !RUNNABLE.some((key) => components[key] !== undefined)) return
+  const folders = RUNNABLE.flatMap((key) => {
+    const value = components[key]
+    return (Array.isArray(value) ? value : [value]).filter((entry): entry is string => typeof entry === "string")
+  }).map(cleanPath)
+  return {
+    ...source,
+    ...(Object.keys(components).length ? { components } : {}),
+    ...(strict ? {} : { strict: false }),
+    // An entry sourced at a whole repository (life-sciences' "./") names the folders it uses.
+    ...(!strict && folders.length && !folders.includes("") ? { include: folders } : {}),
+  }
 }
 
 function claudeSource(
@@ -238,7 +317,8 @@ function claudeSource(
     return { format: "claude", owner, repo, ref: text(value.sha) || text(value.ref) || "HEAD", path: "" }
   }
   if (kind === "url" || kind === "git-subdir") {
-    const repo = githubRepo(value.url)
+    // Claude Code also accepts GitHub shorthand ("owner/repo") and SSH remotes here.
+    const repo = githubRepo(value.url) ?? githubShorthand(text(value.url))
     if (!repo) return
     return {
       format: "claude",
@@ -288,7 +368,11 @@ export function fromCodexMarketplace(
         category: category(raw.category),
         icon: httpsUrl(extra?.logo),
         domain: domainOf(extra?.website),
-        homepage: httpsUrl(extra?.website) ?? `https://github.com/${input.owner}/${input.repo}/tree/${input.ref}/${plugin?.path ?? ""}`,
+        homepage:
+          httpsUrl(extra?.website) ??
+          (plugin
+            ? `https://github.com/${plugin.owner}/${plugin.repo}/tree/${plugin.ref}/${plugin.path}`
+            : `https://github.com/${input.owner}/${input.repo}`),
         verified: true,
         plugin,
       },
@@ -338,6 +422,15 @@ export function fromAnthropicDirectory(value: unknown): Connector[] {
     const title = text(meta.displayName) || text(raw.server.title) || text(raw.server.name)
     const author = record(meta.author) ? meta.author : {}
     const logo = directoryLogo(meta.iconUrl, author.url, url)
+    const worksWith = list(meta.worksWith).map(text)
+    // Connectors that do not list Claude Code accept only Anthropic's own clients; "requiredFields"
+    // means the user brings something (their OAuth client ID, their workspace URL).
+    const auth: Auth =
+      worksWith.length && !worksWith.includes("claude-code")
+        ? "restricted"
+        : list(meta.requiredFields).length
+          ? "own-app"
+          : connectorAuth(url, meta.isAuthless === true)
     return [
       {
         id: slug(text(meta.slug) || title),
@@ -347,7 +440,7 @@ export function fromAnthropicDirectory(value: unknown): Connector[] {
         category: category(meta.useCases, raw.server.description),
         url,
         transport: remote && text(remote.type) === "sse" ? "sse" : "http",
-        auth: connectorAuth(url, meta.isAuthless === true),
+        auth,
         icon: logo.icon,
         domain: logo.domain,
         docs: httpsUrl(meta.documentation),
@@ -437,16 +530,23 @@ export const CODEX_CONNECTORS: { title: string; url: string; domain: string; cat
 export function mergeConnectors(directory: Connector[]): Connector[] {
   const seen = new Map(directory.map((connector) => [connectorKey(connector.url), connector]))
   const byTitle = new Map(directory.map((connector) => [connector.title.toLowerCase(), connector]))
+  const ids = new Set(directory.map((connector) => connector.id))
   const extra = CODEX_CONNECTORS.flatMap((entry): Connector[] => {
     const known = seen.get(connectorKey(entry.url)) ?? byTitle.get(entry.title.toLowerCase())
     if (known) {
       if (!known.sources.includes("codex")) known.sources.push("codex")
+      // Codex reaching it proves a third-party client can sign in, whatever the directory lists.
+      if (known.auth === "restricted" && !RESTRICTED.test(new URL(known.url).hostname))
+        known.auth = connectorAuth(known.url, false)
       return []
     }
+    // Codex's "Cloudflare" is not the directory's "Cloudflare Developer Platform" (slug cloudflare).
+    const id = ids.has(slug(entry.title)) ? `${slug(entry.title)}-codex` : slug(entry.title)
+    ids.add(id)
     return [
       {
-        id: slug(entry.title),
-        name: slug(entry.title),
+        id,
+        name: id,
         title: entry.title,
         // Codex lists these without a description; the app shows a generic line for them.
         description: "",
@@ -483,7 +583,7 @@ export function fromMcpRegistry(value: unknown, source: "github" | "registry"): 
     const github = record(meta) && record(meta.github) ? meta.github : {}
     const icons = list(server.icons).filter(record)
     const repository = record(server.repository) ? httpsUrl(server.repository.url) : undefined
-    const mcp = registryInstall(server)
+    const mcp = registryInstall(server, envName(name.split("/").pop() ?? name))
     if (!mcp) return []
     const title = text(github.displayName) || text(server.title) || titleCase(name.split("/").pop() ?? name)
     return [
@@ -507,7 +607,13 @@ export function fromMcpRegistry(value: unknown, source: "github" | "registry"): 
   })
 }
 
-function registryInstall(server: Json): McpInstall | undefined {
+/**
+ * How to run a registry server. `prefix` namespaces the variables it invents (APIFY_AUTHORIZATION),
+ * so one vendor's token is never sent to another that happens to use the same header name.
+ */
+function registryInstall(server: Json, prefix: string): McpInstall | undefined {
+  const variable = (name: string) => `{env:${prefix}_${envName(name)}}`
+  const fill = (value: string) => value.replace(/\{([a-z_][\w]*)\}/gi, (_, name: string) => variable(name))
   const remote = list(server.remotes).find(
     (entry): entry is Json => record(entry) && Boolean(httpsUrl(entry.url)) && !/\{[^}]+\}/.test(text(entry.url)),
   )
@@ -518,33 +624,65 @@ function registryInstall(server: Json): McpInstall | undefined {
         .flatMap((header) => {
           const key = text(header.name)
           if (!key) return []
-          const value = text(header.value) || (header.isSecret ? `{env:${envName(key)}}` : "")
-          return value ? [[key, value.replace(/\{([a-z_][\w]*)\}/gi, (_, variable: string) => `{env:${envName(variable)}}`)]] : []
+          // An optional secret header is for clients without OAuth: sending it empty would replace
+          // the token the OAuth flow adds.
+          const value = text(header.value) || (header.isRequired ? variable(key) : "")
+          return value ? [[key, fill(value)]] : []
         }),
     )
     return { transport: "remote", url: httpsUrl(remote.url)!, ...(Object.keys(headers).length ? { headers } : {}) }
   }
   const pkg = list(server.packages).find(
-    (entry): entry is Json => record(entry) && ["npm", "pypi", "oci"].includes(text(entry.registryType)) && Boolean(text(entry.identifier)),
+    (entry): entry is Json =>
+      record(entry) &&
+      ["npm", "pypi", "oci"].includes(text(entry.registryType)) &&
+      Boolean(text(entry.identifier)) &&
+      // A package that serves over HTTP on localhost is not something to start as a stdio command.
+      (!record(entry.transport) || !text(entry.transport.type) || text(entry.transport.type) === "stdio"),
   )
   if (!pkg) return
   const identifier = text(pkg.identifier)
-  const version = text(pkg.version)
+  const version = text(pkg.version) === "latest" ? "" : text(pkg.version)
   const kind = text(pkg.registryType)
-  const command =
-    kind === "npm"
-      ? ["npx", "-y", version ? `${identifier}@${version}` : identifier]
-      : kind === "pypi"
-        ? ["uvx", version ? `${identifier}==${version}` : identifier]
-        : ["docker", "run", "-i", "--rm", version ? `${identifier}:${version}` : identifier]
+  const argument = (raw: unknown): string[] => {
+    if (!record(raw)) return []
+    const value = text(raw.value) || text(raw.default)
+    if (text(raw.type) === "named") {
+      const name = text(raw.name)
+      if (!name) return []
+      if (value) return [name, fill(value)]
+      return raw.isRequired ? [name, variable(name.replace(/^-+/, ""))] : []
+    }
+    if (value) return [fill(value)]
+    const hint = text(raw.valueHint)
+    return raw.isRequired && hint ? [variable(hint)] : []
+  }
+  const runtime = list(pkg.runtimeArguments).flatMap(argument)
+  const args = list(pkg.packageArguments).flatMap(argument)
   const environment = Object.fromEntries(
     list(pkg.environmentVariables)
       .filter(record)
-      .flatMap((variable) => {
-        const key = text(variable.name)
-        return key && variable.isRequired ? [[key, `{env:${key}}`]] : []
+      .flatMap((entry) => {
+        const key = text(entry.name)
+        return key && entry.isRequired ? [[key, `{env:${key}}`]] : []
       }),
   )
+  const command =
+    kind === "npm"
+      ? ["npx", "-y", ...runtime, version ? `${identifier}@${version}` : identifier, ...args]
+      : kind === "pypi"
+        ? ["uvx", ...runtime, version ? `${identifier}==${version}` : identifier, ...args]
+        : [
+            "docker",
+            "run",
+            "-i",
+            "--rm",
+            // docker passes a variable into the container only when -e names it.
+            ...Object.keys(environment).flatMap((key) => ["-e", key]),
+            ...runtime,
+            version ? `${identifier}:${version}` : identifier,
+            ...args,
+          ]
   return { transport: "local", command, ...(Object.keys(environment).length ? { environment } : {}) }
 }
 
@@ -633,7 +771,7 @@ export function fromCline(value: unknown): Item[] {
     const args = record(raw.install) ? list(raw.install.args).filter((arg): arg is string => typeof arg === "string") : []
     const mcp = type === "mcp" ? clineInstall(args) : undefined
     if (type === "mcp" && !mcp) return []
-    const skillUrl = type === "skill" && homepage?.startsWith("https://github.com/") ? homepage : undefined
+    const skillUrl = type === "skill" ? clineSkillUrl(homepage, args) : undefined
     if (type === "skill" && !skillUrl) return []
     return [
       {
@@ -656,9 +794,24 @@ export function fromCline(value: unknown): Item[] {
   })
 }
 
+// Fill-me-in values in Cline's commands ("<key>", "YOUR_API_KEY", a bare "api_key" header): an
+// entry with one cannot run as listed.
+const CLINE_PLACEHOLDER = /<[^>]+>|YOUR_[A-Z_]+|\{[a-z_]+\}/
+
+/** A skill entry's folder: the homepage, or `skills/<name>` of the repository `--skill` names. */
+function clineSkillUrl(homepage: string | undefined, args: string[]) {
+  if (!homepage?.startsWith("https://github.com/")) return
+  const skill = args[args.indexOf("--skill") + 1]
+  const parts = new URL(homepage).pathname.split("/").filter(Boolean)
+  if (args.includes("--skill") && skill && parts.length === 2) return `https://github.com/${parts[0]}/${parts[1]}/tree/HEAD/skills/${skill}`
+  return homepage
+}
+
 function clineInstall(args: string[]): McpInstall | undefined {
+  if (args.some((arg) => CLINE_PLACEHOLDER.test(arg) || CONFIG_TOKEN.test(arg))) return
   const separator = args.indexOf("--")
-  if (separator > 0 && separator < args.length - 1) return { transport: "local", command: args.slice(separator + 1) }
+  if (separator > 0 && separator < args.length - 1)
+    return { transport: "local", command: args.slice(separator + 1).map((arg) => envPlaceholders(arg)) }
   const transport = args.indexOf("--transport")
   if (transport < 1 || !["http", "sse"].includes(args[transport + 1] ?? "")) return
   const url = httpsUrl(args[transport + 2])
@@ -669,7 +822,9 @@ function clineInstall(args: string[]): McpInstall | undefined {
     const header = args[index + 1] ?? ""
     const colon = header.indexOf(":")
     if (colon <= 0) return
-    headers[header.slice(0, colon).trim()] = envPlaceholders(header.slice(colon + 1).trim())
+    const value = header.slice(colon + 1).trim()
+    if (/^[a-z][a-z_]*$/.test(value)) return
+    headers[header.slice(0, colon).trim()] = envPlaceholders(value)
   }
   return { transport: "remote", url, ...(Object.keys(headers).length ? { headers } : {}) }
 }
@@ -697,7 +852,8 @@ export function merge(...sources: Item[][]): Item[] {
 /** Directory connectors are MCP servers too; Discover lists them with the rest. */
 export function connectorItems(connectors: Connector[]): Item[] {
   return connectors.map((connector) => ({
-    id: `claude:${connector.id}`,
+    // Their own namespace: an official plugin named "github" or "linear" is a different entry.
+    id: `connector:${connector.id}`,
     type: "mcp",
     name: connector.name,
     title: connector.title,

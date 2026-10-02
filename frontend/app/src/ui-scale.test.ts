@@ -14,5 +14,10 @@ describe("ui scale", () => {
     // A scale from before the list (125 %, or a pinch) steps back into it.
     expect(stepUiScale(1.25, -1)).toBe(1.2)
     expect(stepUiScale(1.02, 1)).toBe(1.05)
+    // ...and never against the key: Ctrl + does not shrink 125 % to 120 %.
+    expect(stepUiScale(1.25, 1)).toBe(1.25)
+    expect(stepUiScale(1.4, 1)).toBe(1.4)
+    expect(stepUiScale(0.6, -1)).toBe(0.6)
+    expect(stepUiScale(0.6, 1)).toBe(0.8)
   })
 })

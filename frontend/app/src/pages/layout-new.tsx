@@ -10,6 +10,7 @@ import { PreviewPanel } from "@/components/preview/preview-panel"
 import { Titlebar, type TitlebarUpdate } from "@/components/titlebar/titlebar"
 import { usePlatform } from "@/context/platform"
 import { DataFolderNotice } from "@/components/data-folder-notice"
+import { UpdateAssistant } from "@/components/update-assistant"
 import { setV2Toast, ToastRegion } from "@/utils/toast"
 
 export default function NewLayout(props: ParentProps) {
@@ -55,6 +56,7 @@ export default function NewLayout(props: ParentProps) {
       />
       <PreviewPanel />
       <PetCompanion />
+      <UpdateAssistant />
       <div class="flex flex-1 min-h-0 min-w-0 flex-row">
         <Show when={vertical()}>
           <aside

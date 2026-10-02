@@ -50,6 +50,37 @@ describe("MarketplaceInstaller.plan", () => {
     expect(plan.skipped).toEqual(["chatgpt-apps"])
   })
 
+  test("uses what the marketplace entry declares, and every .mcp.json a manifest lists", () => {
+    const plan = MarketplaceInstaller.plan(
+      files({
+        "single-cell-rna-qc/SKILL.md": "---\nname: single-cell-rna-qc\ndescription: QC\n---\nRun it",
+        "servers/a.json": JSON.stringify({ mcpServers: { a: { command: "node", args: ["a.js"] } } }),
+        "servers/b.json": JSON.stringify({ b: { url: "https://b.dev/mcp" } }),
+      }),
+      {
+        format: "claude",
+        root: "/data/qc",
+        source: { strict: false, components: { skills: ["./single-cell-rna-qc"], mcpServers: ["./servers/a.json", "./servers/b.json"] } },
+      },
+    )
+    expect(plan.skills.map((skill) => skill.name)).toEqual(["single-cell-rna-qc"])
+    expect(Object.keys(plan.mcp).sort()).toEqual(["a", "b"])
+  })
+
+  test("leaves Claude Code's !`command` lines for the agent to run, never the prompt loader", () => {
+    expect(MarketplaceInstaller.markdownFile("Status: !`git status`\nDiff: !`git diff HEAD`", "/root", {})).toBe(
+      "---\n---\nStatus: `git status`\nDiff: `git diff HEAD`",
+    )
+  })
+
+  test("names a renamed skill after its folder", () => {
+    expect(MarketplaceInstaller.skillFile("---\nname: review\ndescription: Reviews\nlicense: MIT\n---\nUse ${CLAUDE_PLUGIN_ROOT}/x.sh", "demo-review", "/data/demo")).toBe(
+      "---\nname: demo-review\ndescription: Reviews\nlicense: MIT\n---\nUse /data/demo/x.sh",
+    )
+    // Claude Code allows a SKILL.md without frontmatter; Tiancode needs a name and description.
+    expect(MarketplaceInstaller.skillFile("Just do it", "plain", "/r")).toBe('---\nname: plain\ndescription: "plain"\n---\nJust do it')
+  })
+
   test("keeps a command without frontmatter as plain Markdown", () => {
     expect(MarketplaceInstaller.markdownFile("Just text\n", "/root", {})).toBe("---\n---\nJust text\n")
     expect(MarketplaceInstaller.markdownFile("---\ndescription: 'It''s fine'\n---\nBody", "/root", {})).toBe(

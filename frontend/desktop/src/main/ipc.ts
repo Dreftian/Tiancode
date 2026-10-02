@@ -33,6 +33,7 @@ import {
 } from "./windows"
 import type { UpdaterController } from "./updater-controller"
 import { createUpdaterSubscriptions } from "./updater-subscriptions"
+import { setUpdateAssistant } from "./updater"
 import { createDesktopDraftStore } from "./draft-store"
 import { nativeT } from "./native-translations"
 import {
@@ -281,6 +282,11 @@ export function registerIpcHandlers(deps: Deps) {
     event.sender.once("destroyed", () => updaterSubscriptions.delete(id))
   })
   ipcMain.handle("updater-unsubscribe", (event) => updaterSubscriptions.delete(event.sender.id))
+  ipcMain.on("updater-assistant", (event, listening: unknown) => {
+    const id = event.sender.id
+    setUpdateAssistant(id, listening === true)
+    if (listening === true) event.sender.once("destroyed", () => setUpdateAssistant(id, false))
+  })
   ipcMain.handle("updater-check", () => deps.updater.check())
   ipcMain.handle("updater-install", () => deps.updater.install())
   ipcMain.handle("set-background-color", (_event: IpcMainInvokeEvent, color: string) => deps.setBackgroundColor(color))

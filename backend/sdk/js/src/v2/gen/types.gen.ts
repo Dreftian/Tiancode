@@ -8101,9 +8101,9 @@ export type GlobalMarketplaceUninstallData = {
 
 export type GlobalMarketplaceUninstallErrors = {
   /**
-   * Bad request
+   * MarketplaceInstallError | InvalidRequestError
    */
-  400: BadRequestError
+  400: MarketplaceInstallError | InvalidRequestError
 }
 
 export type GlobalMarketplaceUninstallError = GlobalMarketplaceUninstallErrors[keyof GlobalMarketplaceUninstallErrors]

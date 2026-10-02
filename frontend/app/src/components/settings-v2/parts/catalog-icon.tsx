@@ -83,11 +83,12 @@ export function namedBrand(...names: Array<string | undefined>): BrandIconName |
     const brand = brandFor(text)
     if (!brand) continue
     const title = BRAND_ICONS[brand][0].toLowerCase()
-    const compact = text.replace(/[\s._-]+/g, "")
-    if (text.includes(title) || compact.includes(brand)) return brand
-    // A shortened brand name counts ("postgres" for PostgreSQL), a word the brand merely contains does not.
-    const words = text.split(/[^a-z0-9]+/).filter((word) => word.length >= 4)
-    if (words.some((word) => brand.startsWith(word) || title.startsWith(word))) return brand
+    const words = text.split(/[^a-z0-9]+/).filter(Boolean)
+    // Whole words only: "LegalZoom" and "ZoomInfo" are not Zoom, "Canvas Design" is not Canva.
+    const phrase = new RegExp(`(^|[^a-z0-9])${title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^a-z0-9]|$)`)
+    if (phrase.test(text) || words.includes(brand) || words.join("") === brand) return brand
+    // A shortened brand name counts ("postgres" for PostgreSQL).
+    if (words.some((word) => word.length >= 4 && (brand.startsWith(word) || title.startsWith(word)))) return brand
   }
   return undefined
 }

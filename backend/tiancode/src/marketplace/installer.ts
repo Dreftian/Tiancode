@@ -32,6 +32,13 @@ export async function download(source: PluginSource): Promise<File[]> {
     maxBytes: 32 * 1024 * 1024,
   })
   const prefix = source.path ? `${source.path}/` : ""
+  // An entry that names its folders inside a whole repository downloads only those (and manifests).
+  const wanted = (path: string) =>
+    !source.include ||
+    path === ".mcp.json" ||
+    path.startsWith(".claude-plugin/") ||
+    path.startsWith(".codex-plugin/") ||
+    source.include.some((folder) => path === folder || path.startsWith(`${folder}/`))
   const entries = (
     tree && typeof tree === "object" && Array.isArray((tree as { tree?: unknown }).tree)
       ? (tree as { tree: { path?: unknown; type?: unknown; size?: unknown }[] }).tree
@@ -42,6 +49,7 @@ export async function download(source: PluginSource): Promise<File[]> {
       typeof entry.path === "string" &&
       entry.path.startsWith(prefix) &&
       !SKIP_PATH.test(entry.path.slice(prefix.length)) &&
+      wanted(entry.path.slice(prefix.length)) &&
       (typeof entry.size !== "number" || entry.size <= MAX_FILE),
   )
   if (entries.length === 0) throw new Error("the plugin has no files at its source")
@@ -61,15 +69,30 @@ export async function download(source: PluginSource): Promise<File[]> {
   return files.flatMap((file): File[] => (file ? [file] : []))
 }
 
-/** What to write, given the plugin's files. `root` is where its raw copy lives on disk. */
-export function plan(files: File[], input: { format: PluginSource["format"]; root: string }): Plan {
+/**
+ * What to write, given the plugin's files. `root` is where its raw copy lives on disk, `paths`
+ * resolves folder variables such as ${HOME}, and `source` carries what the marketplace entry
+ * declares (the whole definition when it is `strict: false`).
+ */
+export function plan(
+  files: File[],
+  input: {
+    format: PluginSource["format"]
+    root: string
+    paths?: Record<string, string>
+    source?: Pick<PluginSource, "components" | "strict">
+  },
+): Plan {
   const decoder = new TextDecoder()
   const byPath = new Map(files.map((file) => [file.path, file]))
   const read = (path: string) => {
     const file = byPath.get(path)
     return file ? decoder.decode(file.bytes) : undefined
   }
-  const manifest = parseJson(read(input.format === "codex" ? ".codex-plugin/plugin.json" : ".claude-plugin/plugin.json"))
+  const own = parseJson(read(input.format === "codex" ? ".codex-plugin/plugin.json" : ".claude-plugin/plugin.json"))
+  const declared = input.source?.components ?? {}
+  const manifest: Record<string, unknown> | undefined =
+    input.source?.strict === false ? declared : own || Object.keys(declared).length ? { ...declared, ...own } : undefined
   const dirs = (key: string, fallback: string) => {
     const value = manifest?.[key]
     const paths = (Array.isArray(value) ? value : typeof value === "string" ? [value] : [fallback])
@@ -106,15 +129,20 @@ export function plan(files: File[], input: { format: PluginSource["format"]; roo
     content: markdownFile(decoder.decode(file.bytes), input.root, { mode: "subagent" }),
   }))
 
+  // `mcpServers` is inline servers, a path to a .mcp.json, or a list of such paths.
+  const declaredServers = manifest?.mcpServers
   const servers =
-    manifest && typeof manifest.mcpServers === "object" && manifest.mcpServers !== null
-      ? MarketplaceCatalog.mcpServers({ mcpServers: manifest.mcpServers })
-      : MarketplaceCatalog.mcpServers(
-          parseJson(read(typeof manifest?.mcpServers === "string" ? manifest.mcpServers.replace(/^\.\//, "") : ".mcp.json")),
+    declaredServers && typeof declaredServers === "object" && !Array.isArray(declaredServers)
+      ? MarketplaceCatalog.mcpServers({ mcpServers: declaredServers })
+      : Object.assign(
+          {},
+          ...(Array.isArray(declaredServers) ? declaredServers : [typeof declaredServers === "string" ? declaredServers : ".mcp.json"])
+            .filter((path): path is string => typeof path === "string")
+            .map((path) => MarketplaceCatalog.mcpServers(parseJson(read(path.replace(/^\.\//, ""))))),
         )
   const mcp = Object.fromEntries(
     Object.entries(servers).flatMap(([name, entry]) => {
-      const config = MarketplaceCatalog.mcpFromEntry(entry, input.root)
+      const config = MarketplaceCatalog.mcpFromEntry(entry, input.root, input.paths)
       return config ? [[MarketplaceCatalog.slug(name), config]] : []
     }),
   )
@@ -143,7 +171,7 @@ export function plan(files: File[], input: { format: PluginSource["format"]; roo
  */
 export function markdownFile(source: string, root: string, options: { mode?: "subagent" }) {
   const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(source)
-  const body = (match ? source.slice(match[0].length) : source).replace(/\$\{CLAUDE_PLUGIN_ROOT\}/g, root)
+  const body = runnableText(match ? source.slice(match[0].length) : source, root)
   const description = match ? frontmatterValue(match[1]!, "description") : undefined
   const lines = [
     "---",
@@ -153,6 +181,30 @@ export function markdownFile(source: string, root: string, options: { mode?: "su
     "",
   ]
   return `${lines.join("\n")}${body.trimStart()}`
+}
+
+/**
+ * SKILL.md with `name` set to the folder it is written to: the skill loader keys skills by that
+ * name, so a renamed copy must say so, and Claude Code allows leaving it out.
+ */
+export function skillFile(source: string, name: string, root: string) {
+  const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(source)
+  const body = runnableText(match ? source.slice(match[0].length) : source, root)
+  const lines = (match ? match[1]! : "").split(/\r?\n/).filter((line) => line.trim() && !/^name\s*:/.test(line))
+  const description = match ? frontmatterValue(match[1]!, "description") : undefined
+  const head = description || lines.some((line) => /^description\s*:/.test(line)) ? lines : [...lines, `description: ${JSON.stringify(name)}`]
+  return `---\nname: ${name}\n${head.join("\n")}\n---\n${body}`
+}
+
+/**
+ * Plugin text as Tiancode should read it: the plugin root resolved, and Claude Code's
+ * !`command` lines (which Tiancode would run in a shell before the model sees anything, without
+ * the permission prompt Claude Code's allowed-tools gives them) left as plain code the agent can
+ * choose to run through its bash tool, which asks.
+ */
+function runnableText(source: string, root: string) {
+  // Same pattern as the prompt's shell expansion (session/prompt.ts), so nothing it would run survives.
+  return source.replace(/\$\{CLAUDE_PLUGIN_ROOT\}/g, root).replace(/!`([^`]+)`/g, "`$1`")
 }
 
 function frontmatterValue(block: string, key: string) {

@@ -155,6 +155,7 @@ export const MarketplaceGroup = HttpApiGroup.make("marketplace")
     HttpApiEndpoint.delete("marketplaceUninstall", MarketplacePaths.plugins, {
       query: MarketplacePluginQuery,
       success: described(Schema.Boolean, "Whether the plugin was installed"),
+      error: [Marketplace.InstallError],
     }).annotateMerge(
       OpenApi.annotations({
         identifier: "global.marketplace.uninstall",

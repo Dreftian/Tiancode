@@ -3,32 +3,51 @@ export * as MarketplaceIcons from "./icons"
 import { MarketplaceFetch } from "./fetch"
 
 const MAX_ICON = 256 * 1024
+const MAX_CANDIDATES = 5
 
 /**
  * The logo a site publishes for itself: its apple-touch-icon (the largest, made for app grids),
  * else the biggest declared icon, else /favicon.ico. Returned as a data URL so the app can show
- * it without the renderer reaching the site.
+ * it without the renderer reaching the site. `reachable` is false when the site could not be
+ * reached at all, so a network outage is not remembered as "this site has no icon".
  */
-export async function resolve(domain: string): Promise<string | undefined> {
+export async function resolve(domain: string): Promise<{ icon?: string; reachable: boolean }> {
   const page = await MarketplaceFetch.textOf(`https://${domain}/`, {
     timeoutMs: 8000,
     maxBytes: 768 * 1024,
     accept: "text/html",
   }).catch(() => undefined)
+  // Only the site's own hosts: a page must not be able to send the server to arbitrary addresses.
+  const base = siteOf(domain)
   const candidates = [
-    ...(page ? iconLinks(page.text, page.url) : []),
-    `https://${domain}/apple-touch-icon.png`,
-    `https://${domain}/favicon.ico`,
-  ]
+    ...new Set([
+      ...(page ? iconLinks(page.text, page.url) : []).filter((url) => siteOf(new URL(url).hostname) === base),
+      `https://${domain}/apple-touch-icon.png`,
+      `https://${domain}/favicon.ico`,
+    ]),
+  ].slice(0, MAX_CANDIDATES)
+  let reached = Boolean(page)
   for (const candidate of candidates) {
     const image = await MarketplaceFetch.get(candidate, { timeoutMs: 8000, maxBytes: MAX_ICON, accept: "image/*" }).catch(
-      () => undefined,
+      (error: unknown) => {
+        // An HTTP status means the host answered; anything else (DNS, timeout) does not.
+        if (error instanceof Error && error.message.startsWith("HTTP ")) reached = true
+        return undefined
+      },
     )
-    if (!image || image.bytes.byteLength < 64) continue
+    if (!image) continue
+    reached = true
+    if (image.bytes.byteLength < 64) continue
     const type = imageType(image.type, image.bytes)
     if (!type) continue
-    return `data:${type};base64,${Buffer.from(image.bytes).toString("base64")}`
+    return { icon: `data:${type};base64,${Buffer.from(image.bytes).toString("base64")}`, reachable: true }
   }
+  return { reachable: reached }
+}
+
+/** The last two labels of a host (www.notion.so → notion.so), enough to tell a site's own hosts. */
+export function siteOf(host: string) {
+  return host.toLowerCase().replace(/\.+$/, "").split(".").slice(-2).join(".")
 }
 
 /** `<link rel="…icon…" href sizes>` from a page, best first. */

@@ -22,11 +22,18 @@ describe("MarketplaceCatalog", () => {
           },
           { name: "", source: "./nothing" },
           { name: "npm-only", source: { source: "npm", package: "x" } },
+          { name: "short", source: { source: "git-subdir", url: "42Crunch-AI/claude-plugins", path: "plugins/x", sha: "abc" } },
         ],
       },
       { source: "claude", owner: "anthropics", repo: "claude-plugins-official", ref: "main", verified: true },
     )
-    expect(items.map((item) => item.id)).toEqual(["claude:code-review", "claude:stripe", "claude:sub", "claude:npm-only"])
+    expect(items.map((item) => item.id)).toEqual([
+      "claude:claude-plugins-official:code-review",
+      "claude:claude-plugins-official:stripe",
+      "claude:claude-plugins-official:sub",
+      "claude:claude-plugins-official:npm-only",
+      "claude:claude-plugins-official:short",
+    ])
     expect(items[0]!.plugin).toEqual({
       format: "claude",
       owner: "anthropics",
@@ -40,6 +47,30 @@ describe("MarketplaceCatalog", () => {
     expect(items[2]!.plugin).toEqual({ format: "claude", owner: "acme", repo: "tools", ref: "v2", path: "plugins/sub" })
     // A source Tiancode cannot download is still listed, without an installer.
     expect(items[3]!.plugin).toBeUndefined()
+    // GitHub shorthand, as Claude Code accepts it.
+    expect(items[4]!.plugin).toMatchObject({ owner: "42Crunch-AI", repo: "claude-plugins", ref: "abc", path: "plugins/x" })
+  })
+
+  test("keeps what a marketplace entry declares, and drops strict:false entries with nothing runnable", () => {
+    const items = MarketplaceCatalog.fromClaudeMarketplace(
+      {
+        plugins: [
+          { name: "qc", source: "./", strict: false, skills: ["./single-cell-rna-qc"] },
+          { name: "pyright-lsp", source: "./plugins/pyright", strict: false, lspServers: { pyright: {} } },
+          { name: "normal", source: "./plugins/normal", commands: ["./extra"] },
+        ],
+      },
+      { source: "claude-work", owner: "anthropics", repo: "life-sciences", ref: "main" },
+    )
+    expect(items[0]!.plugin).toMatchObject({
+      path: "",
+      strict: false,
+      components: { skills: ["./single-cell-rna-qc"] },
+      include: ["single-cell-rna-qc"],
+    })
+    expect(items[1]!.plugin).toBeUndefined()
+    expect(items[2]!.plugin).toMatchObject({ path: "plugins/normal", components: { commands: ["./extra"] } })
+    expect(items[2]!.plugin?.strict).toBeUndefined()
   })
 
   test("reads Codex plugins with their manifest logos and skips unavailable ones", () => {
@@ -58,6 +89,13 @@ describe("MarketplaceCatalog", () => {
       { owner: "openai", repo: "plugins", ref: "main", logos: { linear: info! } },
     )
     expect(items).toHaveLength(1)
+    // A plugin hosted elsewhere links to its own repository.
+    expect(
+      MarketplaceCatalog.fromCodexMarketplace(
+        { plugins: [{ name: "qodo", source: { source: "url", url: "https://github.com/qodo-ai/qodo-skills", path: "./codex-packages/qodo" } }] },
+        { owner: "openai", repo: "plugins", ref: "main" },
+      )[0]!.homepage,
+    ).toBe("https://github.com/qodo-ai/qodo-skills/tree/HEAD/codex-packages/qodo")
     expect(items[0]).toMatchObject({
       id: "codex:linear",
       title: "Linear",
@@ -74,12 +112,16 @@ describe("MarketplaceCatalog", () => {
       entry("slack", "Slack", "https://mcp.slack.com/mcp"),
       entry("figma", "Figma", "https://mcp.figma.com/mcp"),
       entry("docs", "Docs", "https://docs.example.com/mcp", true),
+      entry("harness", "Harness", "https://mcp.harness.io/mcp", false, { requiredFields: [{ field: "custom_oauth_client_id" }] }),
+      entry("karma", "Credit Karma", "https://anthropic.mcp.creditkarma.com/mcp", false, { worksWith: ["claude", "claude-api"] }),
     ])
     expect(connectors.map((connector) => [connector.id, connector.auth])).toEqual([
       ["notion", "oauth"],
       ["slack", "own-app"],
       ["figma", "restricted"],
       ["docs", "none"],
+      ["harness", "own-app"],
+      ["karma", "restricted"],
     ])
     expect(connectors[0]!.domain).toBe("notion.so")
   })
@@ -122,6 +164,20 @@ describe("MarketplaceCatalog", () => {
     expect(merged.map((connector) => connector.title)).toEqual(
       [...merged.map((connector) => connector.title)].sort((a, b) => a.localeCompare(b)),
     )
+    // Codex's Cloudflare gets its own id next to the directory's "cloudflare".
+    const withCloudflare = MarketplaceCatalog.mergeConnectors(
+      MarketplaceCatalog.fromAnthropicDirectory([entry("cloudflare", "Cloudflare Developer Platform", "https://bindings.mcp.cloudflare.com/mcp")]),
+    )
+    expect(new Set(withCloudflare.map((connector) => connector.id)).size).toBe(withCloudflare.length)
+    expect(withCloudflare.find((connector) => connector.title === "Cloudflare")?.id).toBe("cloudflare-codex")
+
+    // Listed by Codex, so not restricted just because the directory omits Claude Code.
+    const airtable = MarketplaceCatalog.mergeConnectors(
+      MarketplaceCatalog.fromAnthropicDirectory([
+        entry("airtable", "Airtable", "https://mcp.airtable.com/mcp", false, { worksWith: ["claude"] }),
+      ]),
+    ).find((connector) => connector.title === "Airtable")
+    expect(airtable?.auth).toBe("oauth")
   })
 
   test("turns registry servers into installable MCP entries", () => {
@@ -137,7 +193,11 @@ describe("MarketplaceCatalog", () => {
                 {
                   type: "streamable-http",
                   url: "https://mcp.acme.dev/mcp",
-                  headers: [{ name: "Authorization", value: "Bearer {api_key}", isSecret: true }],
+                  headers: [
+                    { name: "Authorization", value: "Bearer {api_key}", isSecret: true },
+                    { name: "X-Optional", isSecret: true },
+                    { name: "X-Team", isRequired: true },
+                  ],
                 },
               ],
               _meta: {
@@ -174,13 +234,80 @@ describe("MarketplaceCatalog", () => {
       name: "remote",
       icon: "https://avatars.githubusercontent.com/u/1",
       stars: 42,
-      mcp: { transport: "remote", url: "https://mcp.acme.dev/mcp", headers: { Authorization: "Bearer {env:API_KEY}" } },
+      // Variables it invents carry the server's name; an optional secret header is left out.
+      mcp: {
+        transport: "remote",
+        url: "https://mcp.acme.dev/mcp",
+        headers: { Authorization: "Bearer {env:REMOTE_API_KEY}", "X-Team": "{env:REMOTE_X_TEAM}" },
+      },
     })
     expect(items[1]!.mcp).toEqual({
       transport: "local",
       command: ["npx", "-y", "@acme/mcp@1.2.3"],
       environment: { ACME_TOKEN: "{env:ACME_TOKEN}" },
     })
+  })
+
+  test("builds registry package commands with their arguments", () => {
+    const [pypi, oci, http] = MarketplaceCatalog.fromMcpRegistry(
+      {
+        servers: [
+          {
+            server: {
+              name: "io.github.oraios/serena",
+              packages: [
+                {
+                  registryType: "pypi",
+                  identifier: "serena-agent",
+                  version: "latest",
+                  runtimeArguments: [{ type: "named", name: "--from", value: "git+https://github.com/oraios/serena" }],
+                  packageArguments: [
+                    { type: "positional", value: "start-mcp-server" },
+                    { type: "named", name: "--org", isRequired: true },
+                    { type: "positional", valueHint: "project", isRequired: true },
+                  ],
+                },
+              ],
+            },
+          },
+          {
+            server: {
+              name: "io.github.SonarSource/sonarqube",
+              packages: [
+                {
+                  registryType: "oci",
+                  identifier: "docker.io/sonarsource/sonarqube-mcp",
+                  environmentVariables: [{ name: "SONARQUBE_TOKEN", isRequired: true }],
+                },
+              ],
+            },
+          },
+          {
+            server: {
+              name: "io.github.x/http-only",
+              packages: [{ registryType: "npm", identifier: "http-only", transport: { type: "streamable-http" } }],
+            },
+          },
+        ],
+      },
+      "registry",
+    )
+    expect(pypi!.mcp?.command).toEqual([
+      "uvx",
+      "--from",
+      "git+https://github.com/oraios/serena",
+      "serena-agent",
+      "start-mcp-server",
+      "--org",
+      "{env:SERENA_ORG}",
+      "{env:SERENA_PROJECT}",
+    ])
+    expect(oci!.mcp).toEqual({
+      transport: "local",
+      command: ["docker", "run", "-i", "--rm", "-e", "SONARQUBE_TOKEN", "docker.io/sonarsource/sonarqube-mcp"],
+      environment: { SONARQUBE_TOKEN: "{env:SONARQUBE_TOKEN}" },
+    })
+    expect(http).toBeUndefined()
   })
 
   test("translates .mcp.json entries, including plugin-root and environment placeholders", () => {
@@ -191,6 +318,13 @@ describe("MarketplaceCatalog", () => {
       ),
     ).toEqual({ transport: "local", command: ["node", "/data/plugins/x/server.js"], environment: { KEY: "{env:API_KEY}" } })
     expect(MarketplaceCatalog.mcpFromEntry({ type: "http", url: "http://localhost:3000/mcp" })).toBeUndefined()
+    // Tiancode's own tokens in a plugin's strings would read files or variables it never declared.
+    expect(MarketplaceCatalog.mcpFromEntry({ url: "https://x.dev/mcp", headers: { K: "{file:~/.ssh/id_rsa}" } })).toBeUndefined()
+    expect(MarketplaceCatalog.mcpFromEntry({ command: "node", env: { K: "{env:SECRET}" } })).toBeUndefined()
+    // Folder variables become real paths (an {env:} with a Windows path would break the config).
+    expect(
+      MarketplaceCatalog.mcpFromEntry({ command: "node", args: ["${HOME}/x.js", "${USERPROFILE}"] }, "/root", { HOME: "/home/me" }),
+    ).toEqual({ transport: "local", command: ["node", "/home/me/x.js", "${USERPROFILE}"] })
     expect(MarketplaceCatalog.mcpServers({ mcpServers: { a: { command: "x" } } })).toEqual({ a: { command: "x" } })
     expect(MarketplaceCatalog.mcpServers({ a: { command: "x" }, version: 1 })).toEqual({ a: { command: "x" } })
   })
@@ -229,11 +363,30 @@ describe("MarketplaceCatalog", () => {
           install: { args: ["mcp", "add", "--transport", "http", "https://mcp.example.dev/mcp", "--header", "X-Key: ${KEY}"] },
         },
         { id: "broken", type: "mcp", install: { args: ["mcp", "add"] } },
+        { id: "stripe", type: "mcp", install: { args: ["mcp", "add", "--", "npx", "-y", "@stripe/mcp", "--api-key=<key>"] } },
+        { id: "shop", type: "mcp", install: { args: ["mcp", "add", "--transport", "http", "https://{shop}.myshopify.com/api/mcp"] } },
+        {
+          id: "cloudinary",
+          type: "mcp",
+          install: { args: ["mcp", "add", "--transport", "http", "https://x.dev/mcp", "--header", "cld-api-key: api_key"] },
+        },
         { id: "skill", type: "skill", homepage: "https://github.com/acme/skills/tree/main/skill" },
+        {
+          id: "web-design-guidelines",
+          type: "skill",
+          homepage: "https://github.com/vercel-labs/agent-skills",
+          install: { args: ["vercel-labs/agent-skills", "--skill", "web-design-guidelines"] },
+        },
         { id: "bundle", type: "plugin" },
       ],
     })
-    expect(items.map((item) => item.id)).toEqual(["cline:context7", "cline:remote", "cline:skill"])
+    expect(items.map((item) => item.id)).toEqual([
+      "cline:context7",
+      "cline:remote",
+      "cline:skill",
+      "cline:web-design-guidelines",
+    ])
+    expect(items[3]!.skillUrl).toBe("https://github.com/vercel-labs/agent-skills/tree/HEAD/skills/web-design-guidelines")
     expect(items[0]!.mcp).toEqual({ transport: "local", command: ["npx", "-y", "@upstash/context7-mcp"] })
     expect(items[1]!.mcp).toEqual({ transport: "remote", url: "https://mcp.example.dev/mcp", headers: { "X-Key": "{env:KEY}" } })
   })
@@ -247,7 +400,16 @@ describe("MarketplaceCatalog", () => {
       "registry",
     )
     const merged = MarketplaceCatalog.merge(directory, registry, directory)
-    expect(merged.map((item) => item.id)).toEqual(["claude:linear"])
+    expect(merged.map((item) => item.id)).toEqual(["connector:linear"])
+    // A connector and an official plugin with the same name are different entries.
+    const plugins = MarketplaceCatalog.fromClaudeMarketplace(
+      { plugins: [{ name: "linear", source: "./plugins/linear" }] },
+      { source: "claude", owner: "anthropics", repo: "claude-plugins-official", ref: "main" },
+    )
+    expect(MarketplaceCatalog.merge(directory, plugins).map((item) => item.id)).toEqual([
+      "connector:linear",
+      "claude:claude-plugins-official:linear",
+    ])
   })
 
   test("only accepts https URLs and public host names", () => {
@@ -262,6 +424,12 @@ describe("MarketplaceCatalog", () => {
     expect(MarketplaceFetch.publicHttps("https://[::1]/x")).toBe(false)
     expect(MarketplaceFetch.publicHttps("https://localhost/x")).toBe(false)
     expect(MarketplaceFetch.publicHttps("https://nas.home/x")).toBe(false)
+    expect(MarketplaceFetch.publicHttps("https://localhost./x")).toBe(false)
+    expect(MarketplaceFetch.publicHttps("https://api.github.com:8443/x")).toBe(false)
+    expect(MarketplaceFetch.publicHttps("https://api.github.com:443/x")).toBe(true)
+    for (const address of ["127.0.0.1", "10.2.3.4", "172.20.0.1", "192.168.1.1", "169.254.1.1", "100.64.0.1", "::1", "fd00::1", "fe80::1", "::ffff:10.0.0.1"])
+      expect(MarketplaceFetch.privateAddress(address)).toBe(true)
+    for (const address of ["140.82.112.3", "172.32.0.1", "2606:4700::1111"]) expect(MarketplaceFetch.privateAddress(address)).toBe(false)
   })
 
   test("prefers a site's apple-touch-icon, then its largest declared icon", () => {
@@ -279,8 +447,8 @@ describe("MarketplaceCatalog", () => {
     ).toEqual(["https://cdn.example.com/touch.png", "https://example.com/favicon-192.png", "https://example.com/favicon-16.png"])
   })
 
-  test("the bundled snapshot holds every kind of entry", () => {
-    const snapshot = MarketplaceSnapshot.load()
+  test("the bundled snapshot holds every kind of entry", async () => {
+    const snapshot = await MarketplaceSnapshot.load()
     const types = new Set(snapshot.items.map((item) => item.type))
     expect([...types].sort()).toEqual(["mcp", "plugin", "skill"])
     expect(snapshot.connectors.length).toBeGreaterThan(100)
@@ -288,7 +456,7 @@ describe("MarketplaceCatalog", () => {
   })
 })
 
-function entry(slug: string, displayName: string, url: string, isAuthless = false) {
+function entry(slug: string, displayName: string, url: string, isAuthless = false, extra: Record<string, unknown> = {}) {
   return {
     server: { name: `com.example/${slug}`, title: displayName, remotes: [{ type: "streamable-http", url }] },
     _meta: {
@@ -299,6 +467,7 @@ function entry(slug: string, displayName: string, url: string, isAuthless = fals
         url,
         isAuthless,
         iconUrl: slug === "notion" ? "https://notion.so" : undefined,
+        ...extra,
       },
     },
   }

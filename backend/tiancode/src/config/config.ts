@@ -1061,6 +1061,9 @@ const layer = Layer.effect(
       const file = globalConfigFile()
       const before = yield* readConfigFile(file)
       if (!before) return
+      // Only a key that exists: jsonc-parser refuses to delete one whose parent is missing.
+      const tree = parseTree(before)
+      if (!tree || !findNodeAtLocation(tree, ["mcp", name])) return
       const after = removeJsoncPath(before, ["mcp", name])
       if (after === before) return
       yield* writeGlobalAtomic(file, after).pipe(Effect.orDie)

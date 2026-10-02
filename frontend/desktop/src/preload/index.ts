@@ -114,7 +114,12 @@ const api: ElectronAPI = {
     onShow: (cb) => {
       const handler = () => cb()
       ipcRenderer.on("updater-show", handler)
-      return () => ipcRenderer.removeListener("updater-show", handler)
+      // Main hands "Check for updates" to this window only while an assistant is listening.
+      ipcRenderer.send("updater-assistant", true)
+      return () => {
+        ipcRenderer.removeListener("updater-show", handler)
+        ipcRenderer.send("updater-assistant", false)
+      }
     },
   },
   consumeInitialDeepLinks: () => ipcRenderer.invoke("consume-initial-deep-links"),

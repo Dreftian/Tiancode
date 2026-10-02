@@ -30,7 +30,7 @@ type State = "connected" | "needs_auth" | "needs_client_registration" | "failed"
 const PAGE_SIZE = 24
 const REFRESH_MS = 10_000
 
-export const SettingsConnectorsV2: Component<{ active?: boolean }> = (props) => {
+export const SettingsConnectorsV2: Component<{ active?: boolean; directory?: string }> = (props) => {
   const language = useLanguage()
   const platform = usePlatform()
   const serverSdk = useServerSDK()
@@ -40,10 +40,13 @@ export const SettingsConnectorsV2: Component<{ active?: boolean }> = (props) => 
     view: "all" as View,
     category: "all",
     page: 1,
-    // The connector a connect, sign-in or removal is running for.
-    busy: "",
+    // What each connector is doing: other cards stay usable while one waits for a browser sign-in.
+    busy: {} as Record<string, "connecting" | "browser" | "removing" | undefined>,
     requested: false,
   })
+
+  // MCP clients belong to the open project, like Settings › MCP y Plugins; without one, the server's.
+  const params = () => (props.directory ? { directory: props.directory } : undefined)
 
   createEffect(() => {
     if (props.active !== false && !ui.requested) setUi("requested", true)
@@ -52,15 +55,26 @@ export const SettingsConnectorsV2: Component<{ active?: boolean }> = (props) => 
     () => ui.requested || undefined,
     async () => (await serverSdk().client.global.marketplace.connectors({ throwOnError: true })).data,
   )
+  // A failed request must not read as "no servers": connecting would then reuse a taken name and
+  // replace that server's definition, so actions wait for a config that really loaded.
   const [config, { refetch: refetchConfig }] = createResource(
     () => ui.requested || undefined,
-    async () => ((await serverSdk().client.global.config.get().catch(() => ({ data: {} }))).data ?? {}) as Config,
+    async () => (await serverSdk().client.config.get(params(), { throwOnError: true })).data as Config,
   )
   const [status, { refetch: refetchStatus }] = createResource(
     () => ui.requested || undefined,
     async () =>
-      ((await serverSdk().client.mcp.status().catch(() => ({ data: {} }))).data ?? {}) as Record<string, McpStatus>,
+      ((await serverSdk().client.mcp.status(params()).catch(() => ({ data: {} }))).data ?? {}) as Record<string, McpStatus>,
   )
+  // `.latest` re-throws a failed request's error, so every read goes through these.
+  const connectorList = () => (connectors.error ? [] : (connectors.latest ?? []))
+  const servers = () => (config.error ? undefined : config.latest?.mcp)
+  const ready = () => !config.error && config.latest !== undefined
+  const failed = () => Boolean(connectors.error || config.error)
+  const retry = () => {
+    if (connectors.error) void refetchConnectors()
+    if (config.error) void refetchConfig()
+  }
   createEffect(() => {
     if (props.active === false) return
     const timer = setInterval(() => void refetchStatus(), REFRESH_MS)
@@ -70,7 +84,7 @@ export const SettingsConnectorsV2: Component<{ active?: boolean }> = (props) => 
   // Configured remote servers by URL, so a connector added by hand (under any name) shows as connected.
   const configured = createMemo(() => {
     const byUrl = new Map<string, { name: string; enabled: boolean }>()
-    for (const [name, entry] of Object.entries(config.latest?.mcp ?? {})) {
+    for (const [name, entry] of Object.entries(servers() ?? {})) {
       if ("type" in entry && entry.type === "remote") byUrl.set(mcpKey({ url: entry.url }), { name, enabled: entry.enabled !== false })
     }
     return byUrl
@@ -92,7 +106,7 @@ export const SettingsConnectorsV2: Component<{ active?: boolean }> = (props) => 
   }
   // The apps Codex ships first (the everyday ones: Gmail, Drive, GitHub, Notion…), then the rest.
   const sorted = createMemo(() =>
-    (connectors.latest ?? []).toSorted(
+    connectorList().toSorted(
       (a, b) => Number(!a.sources.includes("codex")) - Number(!b.sources.includes("codex")) || a.title.localeCompare(b.title),
     ),
   )
@@ -109,15 +123,16 @@ export const SettingsConnectorsV2: Component<{ active?: boolean }> = (props) => 
   )
   const categories = createMemo(() => {
     const counts = new Map<string, number>()
-    for (const connector of connectors.latest ?? []) counts.set(connector.category, (counts.get(connector.category) ?? 0) + 1)
+    for (const connector of connectorList()) counts.set(connector.category, (counts.get(connector.category) ?? 0) + 1)
     return [
-      { id: "all", label: language.t("settings.mcpPlugins.discover.allCategories"), count: connectors.latest?.length ?? 0 },
+      { id: "all", label: language.t("settings.mcpPlugins.discover.allCategories"), count: connectorList().length },
       ...[...counts]
         .map(([id, count]) => ({ id, label: categoryLabel(id), count }))
         .toSorted((a, b) => b.count - a.count || a.label.localeCompare(b.label)),
     ]
   })
-  const connectedCount = () => (connectors.latest ?? []).filter((connector) => stateOf(connector) === "connected").length
+  // The "Mine" view lists every connector added, signed in or not; its count says the same.
+  const addedCount = () => connectorList().filter((connector) => stateOf(connector) !== "available").length
   const pages = () => Math.max(1, Math.ceil(visible().length / PAGE_SIZE))
   const page = createMemo(() => {
     const current = Math.min(ui.page, pages())
@@ -132,56 +147,71 @@ export const SettingsConnectorsV2: Component<{ active?: boolean }> = (props) => 
 
   // A free config name: the connector's own, or the same with a number when another server has it.
   const nameFor = (connector: MarketplaceConnector) => {
-    const taken = new Set(Object.keys(config.latest?.mcp ?? {}))
+    const taken = new Set(Object.keys(servers() ?? {}))
     if (!taken.has(connector.name)) return connector.name
     return Array.from({ length: 50 }, (_, index) => `${connector.name}-${index + 2}`).find((name) => !taken.has(name))!
   }
 
+  const setBusy = (connector: MarketplaceConnector, value: (typeof ui.busy)[string]) => setUi("busy", connector.id, value)
+  const report = (connector: MarketplaceConnector, final: McpStatus | undefined) => {
+    if (final?.status === "connected") {
+      showToast({ variant: "success", title: language.t("settings.connections.connectors.connected", { name: connector.title }) })
+      return
+    }
+    showToast({
+      variant: "error",
+      title: language.t("settings.connections.connectors.failed", { name: connector.title }),
+      description: final && "error" in final ? final.error : undefined,
+    })
+  }
+
   // One step: add the server, then sign in when it asks for it (the browser opens on the vendor's page).
   const connect = async (connector: MarketplaceConnector) => {
-    if (ui.busy) return
+    if (!ready() || ui.busy[connector.id]) return
     if (connector.auth === "own-app" || connector.auth === "restricted") return configure(connector)
     const name = nameFor(connector)
-    setUi("busy", connector.id)
+    setBusy(connector, "connecting")
     try {
-      const result = await serverSdk().client.mcp.add(
-        { name, config: { type: "remote", url: connector.url, enabled: true } },
+      const added = await serverSdk().client.mcp.add(
+        { ...params(), name, config: { type: "remote", url: connector.url, enabled: true } },
         { throwOnError: true },
       )
-      const state = result.data[name]?.status
-      if (state === "needs_auth") {
-        showToast({ title: language.t("settings.connections.connectors.signingIn", { name: connector.title }) })
-        await serverSdk().client.mcp.auth.authenticate({ name }, { throwOnError: true })
-      }
+      const first = added.data[name]
       await refresh()
-      if (state === "needs_client_registration") return configure(connector, name)
-      showToast({ variant: "success", title: language.t("settings.connections.connectors.connected", { name: connector.title }) })
+      if (first?.status === "needs_client_registration") return configure(connector, name)
+      if (first?.status !== "needs_auth") return report(connector, first)
+      setBusy(connector, "browser")
+      showToast({ title: language.t("settings.connections.connectors.signingIn", { name: connector.title }) })
+      const signedIn = await serverSdk().client.mcp.auth.authenticate({ ...params(), name }, { throwOnError: true })
+      await refresh()
+      report(connector, signedIn.data)
     } catch {
       await refresh()
-      showToast({ variant: "error", title: language.t("settings.connections.connectors.failed", { name: connector.title }) })
+      report(connector, undefined)
     } finally {
-      setUi("busy", "")
+      setBusy(connector, undefined)
     }
   }
 
   const signIn = async (connector: MarketplaceConnector) => {
     const entry = entryOf(connector)
-    if (!entry || ui.busy) return
-    setUi("busy", connector.id)
+    if (!entry || ui.busy[connector.id]) return
+    setBusy(connector, "browser")
     try {
-      await serverSdk().client.mcp.auth.authenticate({ name: entry.name }, { throwOnError: true })
+      const signedIn = await serverSdk().client.mcp.auth.authenticate({ ...params(), name: entry.name }, { throwOnError: true })
       await refresh()
+      report(connector, signedIn.data)
     } catch {
       showToast({ variant: "error", title: language.t("settings.mcpPlugins.toast.authFailed", { name: connector.title }) })
     } finally {
-      setUi("busy", "")
+      setBusy(connector, undefined)
     }
   }
 
   // Vendors that only accept OAuth apps they registered need the user's own client ID: the server
   // dialog, prefilled, takes it.
   const configure = (connector: MarketplaceConnector, existing?: string) => {
-    const current = existing ? config.latest?.mcp?.[existing] : undefined
+    const current = existing ? servers()?.[existing] : undefined
     const base: McpRemoteConfig =
       current && "type" in current && current.type === "remote"
         ? current
@@ -194,7 +224,7 @@ export const SettingsConnectorsV2: Component<{ active?: boolean }> = (props) => 
         onClose={() => dialog.close()}
         onSave={async (name, definition, activate) => {
           if (activate && !existing) {
-            await serverSdk().client.mcp.add({ name, config: { ...definition, enabled: true } }, { throwOnError: true })
+            await serverSdk().client.mcp.add({ ...params(), name, config: { ...definition, enabled: true } }, { throwOnError: true })
           } else {
             await serverSdk().client.global.config.update(
               { config: { mcp: { [name]: existing ? definition : { ...definition, enabled: false } } } },
@@ -217,15 +247,15 @@ export const SettingsConnectorsV2: Component<{ active?: boolean }> = (props) => 
         description={language.t("settings.connections.connectors.disconnectDescription")}
         confirm={language.t("settings.connections.connectors.disconnect")}
         onConfirm={async () => {
-          setUi("busy", connector.id)
+          setBusy(connector, "removing")
           try {
-            await serverSdk().client.mcp.remove({ name: entry.name }, { throwOnError: true })
+            await serverSdk().client.mcp.remove({ ...params(), name: entry.name }, { throwOnError: true })
             await refresh()
             showToast({ variant: "success", title: language.t("settings.mcpPlugins.toast.serverRemoved", { name: connector.title }) })
           } catch {
             showToast({ variant: "error", title: language.t("settings.mcpPlugins.toast.serverRemoveFailed") })
           } finally {
-            setUi("busy", "")
+            setBusy(connector, undefined)
           }
         }}
         onClose={() => dialog.close()}
@@ -270,7 +300,7 @@ export const SettingsConnectorsV2: Component<{ active?: boolean }> = (props) => 
         >
           <SegmentedControlItemV2 value="all">{language.t("settings.mcpPlugins.discover.category.all")}</SegmentedControlItemV2>
           <SegmentedControlItemV2 value="connected">
-            {language.t("settings.connections.connectors.connectedView", { count: connectedCount() })}
+            {language.t("settings.connections.connectors.connectedView", { count: addedCount() })}
           </SegmentedControlItemV2>
         </SegmentedControlV2>
         <SelectV2
@@ -284,10 +314,10 @@ export const SettingsConnectorsV2: Component<{ active?: boolean }> = (props) => 
         />
       </div>
       <p class="settings-v2-mp-hint">{language.t("settings.connections.connectors.description")}</p>
-      <Show when={connectors.error}>
+      <Show when={failed()}>
         <p class="settings-v2-mp-discover-status" role="status">
           {language.t("settings.mcpPlugins.discover.loadFailed")}
-          <button type="button" class="settings-v2-mp-link" onClick={() => void refetchConnectors()}>
+          <button type="button" class="settings-v2-mp-link" onClick={retry}>
             {language.t("settings.mcpPlugins.discover.retry")}
           </button>
         </p>
@@ -303,7 +333,7 @@ export const SettingsConnectorsV2: Component<{ active?: boolean }> = (props) => 
         >
           {(connector) => {
             const state = () => stateOf(connector)
-            const busy = () => ui.busy === connector.id
+            const busy = () => ui.busy[connector.id]
             return (
               <li class="settings-v2-mp-item" data-component="connector-card" data-state={state()}>
                 <div class="settings-v2-mp-item-head">
@@ -352,7 +382,7 @@ export const SettingsConnectorsV2: Component<{ active?: boolean }> = (props) => 
                         <ButtonV2
                           size="small"
                           variant={connector.auth === "restricted" ? "outline" : "contrast"}
-                          disabled={Boolean(ui.busy)}
+                          disabled={!ready() || Boolean(busy())}
                           title={
                             connector.auth === "own-app"
                               ? language.t("settings.connections.connectors.ownApp.hint")
@@ -363,7 +393,11 @@ export const SettingsConnectorsV2: Component<{ active?: boolean }> = (props) => 
                           onClick={() => void connect(connector)}
                         >
                           {busy()
-                            ? language.t("settings.connections.connectors.connecting")
+                            ? language.t(
+                                busy() === "browser"
+                                  ? "settings.connections.connectors.waitingBrowser"
+                                  : "settings.connections.connectors.connecting",
+                              )
                             : language.t(
                                 connector.auth === "own-app" || connector.auth === "restricted"
                                   ? "settings.connections.connectors.configure"
@@ -373,15 +407,19 @@ export const SettingsConnectorsV2: Component<{ active?: boolean }> = (props) => 
                       }
                     >
                       <Show when={state() === "needs_auth"}>
-                        <ButtonV2 size="small" variant="contrast" disabled={Boolean(ui.busy)} onClick={() => void signIn(connector)}>
-                          {language.t("settings.mcpServers.action.authenticate")}
+                        <ButtonV2 size="small" variant="contrast" disabled={Boolean(busy())} onClick={() => void signIn(connector)}>
+                          {language.t(
+                            busy() === "browser"
+                              ? "settings.connections.connectors.waitingBrowser"
+                              : "settings.mcpServers.action.authenticate",
+                          )}
                         </ButtonV2>
                       </Show>
                       <Show when={state() === "needs_client_registration"}>
                         <ButtonV2
                           size="small"
                           variant="contrast"
-                          disabled={Boolean(ui.busy)}
+                          disabled={!ready() || Boolean(busy())}
                           onClick={() => configure(connector, entryOf(connector)?.name)}
                         >
                           {language.t("settings.connections.connectors.configure")}

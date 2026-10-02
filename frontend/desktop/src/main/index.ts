@@ -40,6 +40,7 @@ import {
   clearWebviewData,
   createMainWindow,
   createWelcomeWindow,
+  getWelcomeWindow,
   getAnyMainWindow,
   getLastFocusedWindow,
   getMinimizeToTrayEnabled,
@@ -571,6 +572,14 @@ const main = Effect.gen(function* () {
   yield* Fiber.await(loadingTask)
 
   const showWindow = () => {
+    // While the first-run card is open it is the app's only window: the main window comes after it,
+    // so it can start with the choices made there.
+    const welcome = getWelcomeWindow()
+    if (welcome && isFirstLaunchOnboardingPending()) {
+      welcome.show()
+      welcome.focus()
+      return
+    }
     const win = getLastFocusedWindow() ?? getAnyMainWindow()
     if (win && !win.isDestroyed()) {
       if (win.isMinimized()) win.restore()

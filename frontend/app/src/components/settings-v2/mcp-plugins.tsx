@@ -308,7 +308,8 @@ export const SettingsMcpPluginsV2: Component<{
     }),
   )
 
-  // A catalog server counts as added under its own name or under any name that points at it.
+  // A catalog server counts as added when a configured server points at the same URL or command,
+  // whatever its name: names like "memory" or "github" are shared by unrelated servers.
   const configuredServers = createMemo(
     () =>
       new Set(
@@ -318,8 +319,7 @@ export const SettingsMcpPluginsV2: Component<{
       ),
   )
   const installed = (item: MarketplaceItem) => {
-    if (item.type === "mcp")
-      return Boolean(configData().mcp?.[item.name]) || (item.mcp ? configuredServers().has(mcpKey(item.mcp)) : false)
+    if (item.type === "mcp") return item.mcp ? configuredServers().has(mcpKey(item.mcp)) : false
     if (item.type === "skill") return installedSkills().some((skill) => skill.name === item.name)
     return installedPlugins().some((plugin) => plugin.id === item.id)
   }
@@ -497,10 +497,20 @@ export const SettingsMcpPluginsV2: Component<{
       />
     ))
 
+  // The catalog name, or the same with a number when another server already uses it.
+  const freeName = (name: string) => {
+    const taken = new Set(Object.keys(configData().mcp ?? {}))
+    return taken.has(name)
+      ? (Array.from({ length: 50 }, (_, index) => `${name}-${index + 2}`).find((next) => !taken.has(next)) ?? name)
+      : name
+  }
+
   const install = async (item: MarketplaceItem) => {
+    // One install at a time: each one reopens the projects when it finishes.
+    if (ui.pending) return
     const config = item.mcp ? mcpConfig(item.mcp) : undefined
     if (config) {
-      openServer(item.name, config)
+      openServer(freeName(item.name), config)
       return
     }
     if (item.type === "plugin" && item.installable) {
@@ -561,6 +571,8 @@ export const SettingsMcpPluginsV2: Component<{
       entry.agents.length && language.t("settings.mcpPlugins.installed.agents", { count: entry.agents.length }),
       entry.mcp.length && language.t("settings.mcpPlugins.installed.servers", { count: entry.mcp.length }),
       entry.skipped.length && language.t("settings.mcpPlugins.installed.skipped", { list: entry.skipped.join(", ") }),
+      // Plugin servers arrive off: the user sees each command or URL before it runs.
+      entry.mcp.length && language.t("settings.mcpPlugins.installed.serversOff"),
     ]
       .filter(Boolean)
       .join(" · ")
@@ -1059,7 +1071,7 @@ export const SettingsMcpPluginsV2: Component<{
                       size="small"
                       class="ml-auto"
                       variant={installed(item) ? "ghost" : obtainable(item) ? "contrast" : "outline"}
-                      disabled={installed(item) || ui.pending === item.id || (!obtainable(item) && !item.homepage)}
+                      disabled={installed(item) || Boolean(ui.pending) || (!obtainable(item) && !item.homepage)}
                       onClick={() => void install(item)}
                     >
                       {installed(item)

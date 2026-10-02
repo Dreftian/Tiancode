@@ -46,7 +46,7 @@ export const SettingsConnectionsHubV2: Component<{
         ]}
       />
       <Show when={props.section === "connectors"}>
-        <SettingsConnectorsV2 active={props.active !== false} />
+        <SettingsConnectorsV2 active={props.active !== false} directory={props.directory} />
       </Show>
       <Show when={props.section === "gateways"}>
         <SettingsConnectionsV2 embedded active={props.active !== false} />
