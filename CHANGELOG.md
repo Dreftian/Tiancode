@@ -4,6 +4,53 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.6] — 2026-10-01
+
+Inteligencia deja de ser decorativa: sus interruptores se leen en vivo (guardarlos ya no reabre
+los proyectos ni cancela sesiones en curso), CodeGraph indexa el proyecto de verdad, y memoria,
+creación de skills y grafo de código respetan su interruptor. AgentShield y el resumidor de salida
+corren en la shell que usa la app; un comando crítico (borrar un disco, enviar secretos, ejecutar un
+script descargado) pide permiso con `shell_risk`, que ni la aprobación automática ni el modo sin
+preguntas responden. Capturas de pantalla y portapapeles preguntan por defecto, como ya decía
+Ajustes. Guardar en un proyecto ya no borra su propio `config.json` (solo el archivo heredado de
+Tiancode). Restaurar una copia de seguridad ocurre en el siguiente arranque, antes de abrir las bases
+de datos.
+
+Decisiones locales: un modelo de decisión sin conexión basado en laya-multilingual (Convai
+Innovations, Apache-2.0) se descarga a petición (~360 MB, con reanudación y SHA-256), corre en el
+onnxruntime que ya trae la app, responde en 30-50 ms y se descarga de memoria tras diez minutos sin
+uso. Con él, los avisos dicen «Necesita tu respuesta» o «No se pudo terminar» en lugar de un
+genérico «Respuesta lista», también en Telegram, Discord y Slack. La lectura en voz alta usa el
+detector de idioma de laya y lee cada texto con la voz de su idioma.
+
+Ajustes se rediseña en cuatro páginas. Inteligencia: Memoria (USER.md y MEMORY.md con su uso,
+editor y «Vaciar»), Contexto (compactación, poda, turnos íntegros, límite de salida de
+herramientas), Protección y Decisiones locales. Uso de la PC: Escritorio (control de ratón y
+teclado en vivo con «Detener ahora», permisos con Preguntar/Permitir/Bloquear), Navegador (reglas
+por sitio) y Acceso remoto; los permisos van a la configuración global y Bridges desaparece porque
+duplicaba MCP y Plugins. Notificaciones: estado del permiso del sistema con «Probar aviso»,
+silenciar todo, volumen, sonar solo en segundo plano y una fila por evento con aviso y sonido.
+General: cinco mosaicos compactos (Chat, Vista, Espacio de trabajo, Escritorio, Datos) con controles
+segmentados, la barra superior del chat como fila de interruptores, copias de seguridad con fecha y
+sin opciones muertas.
+
+El CLI funciona como el de opencode: `run --attach` muestra la respuesta, `attach` y `run --attach`
+dicen si el servidor está caído o pide contraseña, Ollama y LM Studio solo se cargan si responden (un
+equipo sin claves ya no espera un minuto reintentando), un proveedor o modelo ausente explica qué
+hacer (`tiancode auth login`, `--model`), `serve` explica un puerto ocupado o inválido, los argumentos
+desconocidos se nombran, los códigos de salida son correctos y PowerShell conserva tildes y eñes (sin
+añadir un BOM a lo que se canaliza a otros programas). El logo dice tiancode.
+
+Una revisión antes de publicar corrigió: «Omitir permisos» y `"permission": "allow"` ya no aprueban
+un comando crítico de AgentShield (solo una regla `shell_risk` explícita lo hace, y `run --yolo` o el
+modo automático del TUI lo rechazan o lo dejan para ti); guardar un permiso parcial conserva un
+`"permission": "allow"` y la regla por defecto del navegador queda antes de las reglas por sitio, así
+que bloquear un sitio sobrevive a cambiar el valor por defecto; Uso de la PC resuelve las reglas
+como el servidor y avisa cuando otra configuración (como la que 1.0.5 guardó en el proyecto) manda en
+el proyecto abierto; restaurar una copia ya no se queda a medias en Windows; la
+escala de la interfaz se recuerda; y AgentShield deja de detenerse en `rm -rf $HOME/.cache`,
+`--exclude .env` o una simple mención de `diskpart`.
+
 ## [1.0.5] — 2026-10-01
 
 Modelos locales deja de poner en riesgo otros archivos: eliminar un modelo borraba cualquier
