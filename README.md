@@ -78,6 +78,14 @@ Tiancode es un fork de escritorio de [OpenCode](https://github.com/sst/opencode)
 
 Todo vive en tu equipo: las sesiones, la memoria del agente y las skills aprendidas se guardan en SQLite; los modelos GGUF se ejecutan con el motor nativo (llama.cpp), Ollama o LM Studio; y cualquier proveedor en la nube se conecta con su propia clave, que nunca sale de tu máquina salvo hacia ese proveedor.
 
+## Uso de la PC en 1.0.8
+
+El modelo de la conversación puede observar y controlar aplicaciones de Windows: activar ventanas, hacer clic, arrastrar, escribir, usar atajos y desplazar contenido. Recibe capturas y contexto de UI Automation; después de cada acción vuelve a observar. Una luz azul en los bordes de todos los monitores indica control activo y la barra permite detenerlo.
+
+Selecciona un modelo con visión y herramientas, abre Ajustes › Uso de la PC › Escritorio y elige el monitor. Pide, por ejemplo: «Abre la Calculadora, calcula 23 × 17 y comprueba el resultado». Tiancode solicita autorización por aplicación y conserva los permisos de captura y los ejecutables vetados. Las predicciones `Action:` de UI-TARS se interpretan como datos, con cajas 0..1000, sin ejecutar código.
+
+[Capacidades y límites](tools/releases/ui-tars-1.0.8.md) · [Validación](tools/qa/pc-control-1.0.8.md) · [UI-TARS Desktop](https://github.com/bytedance/UI-TARS-desktop), Apache-2.0. El control nativo requiere Windows; no se descargan pesos ni se incorporan servicios remotos o Android. La actualización conserva claves, sesiones y configuración.
+
 ## Características
 
 | | |

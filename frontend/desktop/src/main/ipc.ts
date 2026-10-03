@@ -49,12 +49,13 @@ import {
 import { asrChunk, asrStart, asrStop, ensureAsrModel, getAsrStatus, resolveAsrLanguage } from "./asr"
 import { getRuntimeInstallState, installRuntime } from "./runtime-install"
 import { captureArea, captureLiveView, capturePreview, captureScreen, captureWindow } from "./capture"
+import { captureComputerScreen } from "./computer-capture"
 import { backupNow, deleteBackup, listBackups, scheduleRestore } from "./backup"
 import { registerPreviewViewIpc } from "./preview-view"
 import { registerPreviewAgentIpc } from "./preview-agent"
 import { registerWindowMirrorIpc } from "./window-mirror"
 import { registerDesktopPetIpc } from "./desktop-pet"
-import { COMPUTER_DENIED_KEY, COMPUTER_ENABLED_KEY, COMPUTER_RESTORE_KEY, registerComputerUseIpc } from "./computer-use"
+import { COMPUTER_DENIED_KEY, COMPUTER_DISPLAY_KEY, COMPUTER_ENABLED_KEY, COMPUTER_RESTORE_KEY, registerComputerUseIpc } from "./computer-use"
 import { openInChrome } from "./chrome"
 import { getKeepScreenActive, setKeepScreenActive } from "./screen-activity"
 import { pairingInfo, setPairingEnabled } from "./pairing"
@@ -109,6 +110,7 @@ const RENDERER_SETTINGS_KEYS = new Set([
   COMPUTER_ENABLED_KEY,
   COMPUTER_DENIED_KEY,
   COMPUTER_RESTORE_KEY,
+  COMPUTER_DISPLAY_KEY,
   // Cookies del navegador integrado: "always" | "session". index.ts limpia al salir y al arrancar.
   WEBVIEW_RETENTION_KEY,
   "browserLinkTarget",
@@ -209,6 +211,7 @@ export function registerIpcHandlers(deps: Deps) {
     globalShortcut,
     screen,
     browserWindow: BrowserWindow,
+    capture: captureComputerScreen,
     // El mismo store que escribe la pantalla de ajustes por store-set, así que apagar el
     // interruptor surte efecto en la siguiente acción sin reiniciar nada.
     store: getStore(),

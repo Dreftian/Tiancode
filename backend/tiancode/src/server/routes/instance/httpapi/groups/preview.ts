@@ -1,4 +1,5 @@
 import { Schema } from "effect"
+import { Computer } from "@tiancode-ai/schema/computer"
 import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
 import { Authorization } from "../middleware/authorization"
 import { InstanceContextMiddleware } from "../middleware/instance-context"
@@ -53,19 +54,7 @@ export const PreviewStateSchema = Schema.Struct({
  * el DOM de la página. Viaja anidado y no suelto para no mezclar sus campos con los de las
  * acciones de página (`target`, `value`, `key`… significan otra cosa ahí).
  */
-export const PreviewComputerActionSchema = Schema.Struct({
-  action: Schema.Literals(["move", "click", "type", "key", "scroll", "cursor_position", "foreground_window"]),
-  /** Píxeles físicos de la pantalla, origen arriba a la izquierda. */
-  x: Schema.optional(Schema.Number),
-  y: Schema.optional(Schema.Number),
-  button: Schema.optional(Schema.Literals(["left", "right", "middle"])),
-  double: Schema.optional(Schema.Boolean),
-  text: Schema.optional(Schema.String),
-  /** Acorde tipo "ctrl+shift+p". */
-  keys: Schema.optional(Schema.String),
-  direction: Schema.optional(Schema.Literals(["up", "down", "left", "right"])),
-  amount: Schema.optional(Schema.Number),
-})
+export const PreviewComputerActionSchema = Computer.Request
 
 /**
  * Una acción que el agente quiere ejecutar sobre la página de la Vista en vivo. Los campos son

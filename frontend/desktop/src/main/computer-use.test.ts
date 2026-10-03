@@ -6,6 +6,7 @@ import {
   computerUseEnabled,
   FALLBACK_TEXT,
   encodedHostCommand,
+  hostStartupLine,
   formatFallback,
   guardForeground,
   isCredentialProcess,
@@ -253,11 +254,12 @@ describe("host script", () => {
         ["-NoProfile", "-NonInteractive", "-EncodedCommand", encodedHostCommand()],
         { windowsHide: true, stdio: ["pipe", "pipe", "pipe"] },
       )
+      child.stdin.write(hostStartupLine())
       const lines = createInterface({ input: child.stdout })[Symbol.asyncIterator]()
       try {
         const ready = await lines.next()
         expect(JSON.parse(ready.value ?? "{}").type).toBe("ready")
-        for (const action of ["move", "click", "type", "scroll", "remember"]) {
+        for (const action of ["move", "click", "drag", "type", "scroll", "remember", "inspect"]) {
           // Windows cannot have this PID. This exercises the actual P/Invoke guard without sending input.
           child.stdin.write(
             JSON.stringify({
@@ -293,7 +295,7 @@ describe("host script", () => {
   })
 
   test("carries no backtick or template hazards", () => {
-    const command = Buffer.from(encodedHostCommand(), "base64").toString("utf16le")
+    const command = Buffer.from(hostStartupLine().trim(), "base64").toString("utf8")
     expect(command).not.toContain("`")
     expect(command).toContain("SendInput")
   })

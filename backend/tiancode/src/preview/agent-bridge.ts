@@ -15,6 +15,7 @@
 // la destruiría, así que la presencia se mide en tres niveles y sólo el más alto recibe trabajo.
 
 import { randomUUID } from "node:crypto"
+import type { Computer } from "@tiancode-ai/schema/computer"
 
 /**
  * Superficie a la que va dirigida una acción de página.
@@ -48,6 +49,7 @@ export type PreviewAgentAction = {
   direction?: string
   /** `capture` sobre `area`: recorte en coordenadas CSS de la pantalla principal. */
   bounds?: { x: number; y: number; width: number; height: number }
+  computer?: Computer.Request
 }
 
 /**

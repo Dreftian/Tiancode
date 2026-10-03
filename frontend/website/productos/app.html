@@ -36,10 +36,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/tokens.css?v=1.0.7-r1">
-  <link rel="stylesheet" href="../css/layout.css?v=1.0.7-r1">
-  <link rel="stylesheet" href="../css/components.css?v=1.0.7-r1">
-  <link rel="stylesheet" href="../css/pages.css?v=1.0.7-r1">
+  <link rel="stylesheet" href="../css/tokens.css?v=1.0.8-r1">
+  <link rel="stylesheet" href="../css/layout.css?v=1.0.8-r1">
+  <link rel="stylesheet" href="../css/components.css?v=1.0.8-r1">
+  <link rel="stylesheet" href="../css/pages.css?v=1.0.8-r1">
 </head>
 <body>
 
@@ -128,7 +128,14 @@
           </header>
           <div class="page-body reveal" style="--rd:.08s">
               <p>Tiancode es una aplicación de escritorio para Windows que pone asistentes de IA en el centro de tu flujo de programación. Todo funciona en una sola ventana: conversa con agentes, revisa el explorador de archivos y ejecuta comandos en la terminal integrada sin cambiar de herramienta.</p>
-              <h2>Lo esencial</h2>
+              <section id="pc-control" class="news-block"><h2 data-i18n="pc.title">Uso visual de la PC · 1.0.8</h2><p data-i18n="pc.description">El modelo observa tu pantalla, elige una acción y comprueba el resultado. Ventanas, clics, arrastre, teclado y desplazamiento, con compatibilidad para acciones de UI-TARS.</p>
+<p data-i18n="pc.workflow">En Ajustes › Uso de la PC › Escritorio, elige el monitor y configura los permisos. Pide una tarea en el chat; autoriza la aplicación cuando Tiancode te muestre su nombre.</p>
+<p data-i18n="pc.model">Selecciona un modelo con visión y herramientas. Recibe capturas y contexto de los controles accesibles de Windows; no necesitas un segundo agente ni descargar los pesos de UI-TARS.</p>
+<p data-i18n="pc.stop">La luz azul en los bordes de todos los monitores indica control activo. Detener o el atajo de la barra corta la acción y suelta el ratón. El interruptor principal y los ejecutables vetados siguen aplicándose.</p>
+<p data-i18n="pc.example">Ejemplo: abre la Calculadora, calcula 23 × 17 y comprueba el resultado antes de terminar.</p>
+<p data-i18n="pc.windows">Control nativo en Windows. UI Automation depende de cada aplicación. Los operadores remotos y Android de UI-TARS requieren servicios adicionales que esta versión no incorpora.</p>
+<figure style="margin:24px 0"><img src="../img/app/computer-use-1.0.8.png" alt="Tiancode controlling an isolated Windows test application with blue monitor edges" width="1800" height="1012" loading="lazy" style="display:block;width:100%;height:auto;border-radius:12px"><figcaption data-i18n="pc.caption" style="margin-top:10px;color:var(--text-muted)">Captura real de la prueba de Windows: aplicación aislada, operador nativo de Tiancode y luz azul de control activo.</figcaption></figure></section>
+<h2>Lo esencial</h2>
               <ul class="page-list">
                 <li><strong>Agentes de IA:</strong> chat de programación con múltiples agentes y sub-agentes que colaboran, codean y depuran contigo.</li>
                 <li><strong>Terminal integrada:</strong> ejecuta comandos, aplica cambios y ve resultados sin salir de la conversación.</li>
@@ -173,7 +180,7 @@
           </a>
           <p>El asistente de IA para programar, hecho para Windows.</p>
         </div>
-        <span class="footer-version"><i aria-hidden="true"></i>v1.0.7 · MIT</span>
+        <span class="footer-version"><i aria-hidden="true"></i>v1.0.8 · MIT</span>
       </div>
       <div class="footer-grid">
         <nav class="footer-col" aria-label="Producto">
@@ -244,7 +251,7 @@
     });
   </script>
   <script type="module">
-    import { initTheme } from '../js/theme.js?v=1.0.7-r1';
+    import { initTheme } from '../js/theme.js?v=1.0.8-r1';
     initTheme();
   </script>
 </body>

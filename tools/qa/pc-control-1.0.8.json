@@ -1,0 +1,123 @@
+{
+  "platform": "win32",
+  "fixturePid": 26664,
+  "simulatedConsent": true,
+  "checks": [
+    {
+      "name": "real window enumeration",
+      "ok": true
+    },
+    {
+      "name": "real window focus",
+      "ok": true,
+      "detail": "Ventana activada: electron.exe — \"Tiancode Windows QA fixture\". Usa observe antes de actuar."
+    },
+    {
+      "name": "blue edge overlay active",
+      "ok": true
+    },
+    {
+      "name": "native observation",
+      "ok": true
+    },
+    {
+      "name": "accessible Windows controls",
+      "ok": true,
+      "detail": 20
+    },
+    {
+      "name": "real click",
+      "ok": true,
+      "detail": "Clic left en (383, 286) sobre electron.exe — \"Tiancode Windows QA fixture\"."
+    },
+    {
+      "name": "consumed observation refused",
+      "ok": true
+    },
+    {
+      "name": "native observation",
+      "ok": true
+    },
+    {
+      "name": "real Unicode typing",
+      "ok": true,
+      "detail": "Escritos 25 caracteres en electron.exe — \"Tiancode Windows QA fixture\". Comprueba con una captura que han ido donde esperabas."
+    },
+    {
+      "name": "native observation",
+      "ok": true
+    },
+    {
+      "name": "real keyboard shortcut",
+      "ok": true
+    },
+    {
+      "name": "native observation",
+      "ok": true
+    },
+    {
+      "name": "UI-TARS double click on Windows",
+      "ok": true,
+      "detail": {
+        "result": "Clic doble left en (133, 395) sobre electron.exe — \"Tiancode Windows QA fixture\".",
+        "clicks": 2,
+        "doubles": 1
+      }
+    },
+    {
+      "name": "native observation",
+      "ok": true
+    },
+    {
+      "name": "real right click",
+      "ok": true
+    },
+    {
+      "name": "native observation",
+      "ok": true
+    },
+    {
+      "name": "real drag and mouse release",
+      "ok": true,
+      "detail": {
+        "result": "Arrastre de (130, 496) a (330, 556). Usa observe para comprobar el resultado.",
+        "moves": 21,
+        "ups": 1
+      }
+    },
+    {
+      "name": "native observation",
+      "ok": true
+    },
+    {
+      "name": "real scroll at observed point",
+      "ok": true,
+      "detail": "Scroll down (3) en electron.exe — \"Tiancode Windows QA fixture\"."
+    },
+    {
+      "name": "native observation",
+      "ok": true
+    },
+    {
+      "name": "stop interrupts an in-flight drag and releases the mouse",
+      "ok": true,
+      "detail": {
+        "elapsedMs": 85,
+        "result": "Excepción al llamar a \"Drag\" con los argumentos \"6\": \"Computer control stopped. No further input was sent.\"",
+        "held": false
+      }
+    },
+    {
+      "name": "blue edges disappear on stop",
+      "ok": true
+    },
+    {
+      "name": "reduced-motion edge indicator",
+      "ok": true
+    },
+    {
+      "name": "master switch blocks input",
+      "ok": true
+    }
+  ]
+}

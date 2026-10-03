@@ -1,7 +1,7 @@
 {
   "name": "@tiancode-ai/desktop",
   "private": true,
-  "version": "1.0.7",
+  "version": "1.0.8",
   "type": "module",
   "license": "MIT",
   "homepage": "https://tiancode.ai",
@@ -51,6 +51,7 @@
     "@actions/artifact": "4.0.0",
     "@lydell/node-pty": "catalog:",
     "@tiancode-ai/app": "workspace:*",
+    "@tiancode-ai/schema": "workspace:*",
     "@tiancode-ai/ui": "workspace:*",
     "@sentry/solid": "catalog:",
     "@sentry/vite-plugin": "catalog:",

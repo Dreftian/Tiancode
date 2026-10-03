@@ -294,19 +294,7 @@ export type PreviewAgentAPI = {
 // `computer` del agente llega hasta aquí por el puente de la Vista en vivo, y el proceso
 // principal (frontend/desktop/src/main/computer-use.ts) es quien aplica los controles: ventana
 // elevada, lista de apps autorizadas, gestores de contraseñas, indicador y parada.
-export type ComputerAction = {
-  action: "move" | "click" | "type" | "key" | "scroll" | "cursor_position" | "foreground_window"
-  /** Píxeles físicos de la pantalla, con el origen arriba a la izquierda. */
-  x?: number
-  y?: number
-  button?: "left" | "right" | "middle"
-  double?: boolean
-  text?: string
-  /** Acorde tipo "ctrl+shift+p". */
-  keys?: string
-  direction?: "up" | "down" | "left" | "right"
-  amount?: number
-}
+export type ComputerAction = import("@tiancode-ai/schema/computer").Computer.Request
 
 export type ComputerStatus = {
   /** Sólo Windows en la v1. */
@@ -322,6 +310,9 @@ export type ComputerStatus = {
   enabled: boolean
   /** Ejecutables vetados siempre, por nombre en minúsculas. Ver main/computer-use.ts. */
   denied: string[]
+  displays: import("@tiancode-ai/schema/computer").Computer.Display[]
+  displayId: string
+  capabilities: string[]
 }
 
 export type ComputerAPI = {

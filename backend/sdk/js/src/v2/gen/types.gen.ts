@@ -11999,15 +11999,38 @@ export type PreviewAgentPendingResponses = {
         height: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
       }
       computer?: {
-        action: "move" | "click" | "type" | "key" | "scroll" | "cursor_position" | "foreground_window"
+        action:
+          | "observe"
+          | "windows"
+          | "focus"
+          | "move"
+          | "click"
+          | "drag"
+          | "type"
+          | "key"
+          | "scroll"
+          | "wait"
+          | "finished"
+          | "call_user"
+          | "tars"
+          | "cursor_position"
+          | "foreground_window"
         x?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
         y?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+        endX?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+        endY?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
         button?: "left" | "right" | "middle"
         double?: boolean
         text?: string
         keys?: string
         direction?: "up" | "down" | "left" | "right"
         amount?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+        durationMs?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+        windowId?: string
+        displayId?: string
+        snapshotId?: string
+        coordinateSpace?: "screen" | "screenshot" | "normalized"
+        prediction?: string
       }
     }
     createdAt: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"

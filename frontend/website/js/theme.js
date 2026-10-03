@@ -4,7 +4,7 @@
    Emite 'tiancode:themechange' para que las gráficas repinten.
    ============================================================ */
 
-import { LS_KEYS, readLS, writeLS } from './utils.js?v=1.0.7-r1';
+import { LS_KEYS, readLS, writeLS } from './utils.js?v=1.0.8-r1';
 
 export function initTheme() {
   const rootEl = document.documentElement;

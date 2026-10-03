@@ -78,6 +78,14 @@ Tiancode is a desktop fork of [OpenCode](https://github.com/sst/opencode) built 
 
 Everything lives on your machine: sessions, the agent's memory and learned skills are stored in SQLite; GGUF models run through the native engine (llama.cpp), Ollama or LM Studio; and any cloud provider connects with its own key, which never leaves your computer except towards that provider.
 
+## Computer use in 1.0.8
+
+The conversation model can observe and control Windows applications: activate windows, click, drag, type, use shortcuts and scroll. It receives screenshots and UI Automation context and observes again after each action. Blue light along every monitor edge indicates active control, with a toolbar to stop it.
+
+Select a model with vision and tools, open Settings › Computer use › Desktop and choose the monitor. Try: ‘Open Calculator, calculate 23 × 17 and verify the result.’ Tiancode requests authorization per application and preserves screenshot permissions and blocked executables. UI-TARS `Action:` predictions are parsed as data with 0..1000 boxes, without executing code.
+
+[Capabilities and limits](tools/releases/ui-tars-1.0.8.md) · [Validation](tools/qa/pc-control-1.0.8.md) · [UI-TARS Desktop](https://github.com/bytedance/UI-TARS-desktop), Apache-2.0. Native control requires Windows; no model weights or remote/Android services are installed. Updates preserve keys, sessions and configuration.
+
 ## Features
 
 | | |

@@ -59,6 +59,7 @@ const SETTINGS_STORE = "tiancode.settings"
 const COMPUTER_ENABLED_KEY = "computerUseEnabled"
 const COMPUTER_DENIED_KEY = "computerUseDeniedApps"
 const COMPUTER_RESTORE_KEY = "computerUseRestoreWindows"
+const COMPUTER_DISPLAY_KEY = "computerUseDisplay"
 const WEBVIEW_RETENTION_KEY = "webviewRetention"
 
 const ACTIONS: readonly PermissionAction[] = ["ask", "allow", "deny"]
@@ -208,6 +209,7 @@ export const SettingsComputerUseV2: Component<{
     restore: true,
     denied: [] as string[],
     retention: "always" as CookieRetention,
+    displayId: "",
   })
   createEffect(() => {
     if (!desktop()) return
@@ -216,12 +218,14 @@ export const SettingsComputerUseV2: Component<{
       store.get(COMPUTER_RESTORE_KEY),
       store.get(COMPUTER_DENIED_KEY),
       store.get(WEBVIEW_RETENTION_KEY),
-    ]).then(([enabled, restore, denied, retention]) =>
+      store.get(COMPUTER_DISPLAY_KEY),
+    ]).then(([enabled, restore, denied, retention, displayId]) =>
       setMachine({
         enabled: enabled !== "false",
         restore: restore !== "false",
         denied: parseList(denied),
         retention: retention === "session" ? "session" : "always",
+        displayId: displayId ?? "",
       }),
     )
   })
@@ -242,6 +246,13 @@ export const SettingsComputerUseV2: Component<{
   const [status, { refetch: refetchStatus }] = createResource(
     () => windows() && section() === "desktop" && (props.active ?? true),
     () => window.api?.computer?.status().catch(() => undefined) ?? Promise.resolve(undefined),
+  )
+  const displayOptions = createMemo(
+    () => ["primary", ...(status()?.displays ?? []).map((display) => display.id)],
+    undefined,
+    {
+      equals: (before, after) => before.length === after.length && before.every((id, index) => id === after[index]),
+    },
   )
   createEffect(() => {
     if (!windows() || section() !== "desktop" || !(props.active ?? true)) return
@@ -438,6 +449,80 @@ export const SettingsComputerUseV2: Component<{
                 </Switch>
               </div>
             </Show>
+          </div>
+
+          <div class="settings-v2-kit-section" data-action="settings-computer-use-visual">
+            <p class="settings-v2-kit-label">{language.t("settings.computerUse.visual.title")}</p>
+            <div class="settings-v2-kit-cards">
+              <For each={["observe", "act", "verify"] as const}>
+                {(step, index) => (
+                  <div class="settings-v2-kit-card">
+                    <div class="settings-v2-kit-card-head">
+                      <span class="settings-v2-kit-card-icon" aria-hidden="true">
+                        {index() + 1}
+                      </span>
+                      <div class="settings-v2-kit-card-copy">
+                        <span class="settings-v2-kit-card-title">
+                          {language.t(`settings.computerUse.visual.${step}`)}
+                        </span>
+                        <span class="settings-v2-kit-card-description">
+                          {language.t(`settings.computerUse.visual.${step}Description`)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </For>
+            </div>
+            <p class="settings-v2-kit-note">{language.t("settings.computerUse.visual.description")}</p>
+            <Show when={windows()}>
+              <SettingsListV2 density="compact">
+                <SettingsRowV2
+                  title={language.t("settings.computerUse.visual.monitor")}
+                  description={language.t("settings.computerUse.visual.monitorDescription")}
+                >
+                  <SelectV2
+                    appearance="inline"
+                    data-action="settings-computer-use-monitor"
+                    options={displayOptions()}
+                    current={machine.displayId || "primary"}
+                    label={(id) => {
+                      const display = status()?.displays.find((item) => item.id === id)
+                      return display
+                        ? `${display.label} · ${display.bounds.width} × ${display.bounds.height}`
+                        : language.t("settings.computerUse.visual.primary")
+                    }}
+                    onSelect={(id) =>
+                      id != null &&
+                      void setMachineValue(
+                        "displayId",
+                        id === "primary" ? "" : id,
+                        COMPUTER_DISPLAY_KEY,
+                        id === "primary" ? "" : id,
+                      )
+                    }
+                  />
+                </SettingsRowV2>
+                <SettingsRowV2
+                  title={language.t("settings.computerUse.visual.promptTitle")}
+                  description={language.t("settings.computerUse.visual.prompt")}
+                >
+                  <ButtonV2
+                    size="small"
+                    variant="outline"
+                    onClick={() =>
+                      void navigator.clipboard
+                        .writeText(language.t("settings.computerUse.visual.prompt"))
+                        .then(() => showToast({ title: language.t("settings.computerUse.visual.copied") }))
+                        .catch(() => showToast({ variant: "error", title: language.t("common.requestFailed") }))
+                    }
+                  >
+                    {language.t("settings.computerUse.visual.copy")}
+                  </ButtonV2>
+                </SettingsRowV2>
+              </SettingsListV2>
+            </Show>
+            <p class="settings-v2-kit-note">{language.t("settings.computerUse.visual.compatibility")}</p>
           </div>
 
           <div class="settings-v2-kit-section">

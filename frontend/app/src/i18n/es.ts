@@ -1,5 +1,7 @@
 import { SUBAGENT_CATALOG_SPANISH } from "./subagent-catalog"
+import { COMPUTER_USE_SPANISH } from "./computer-use"
 export const dict = {
+  ...COMPUTER_USE_SPANISH,
   "settings.marketplace.description": "Servidores MCP, skills y plugins del catálogo de Cline. La instalación es opcional. Los plugins del motor de Cline abren su código fuente porque requieren un adaptador compatible.",
   "settings.marketplace.source": "Ver código fuente",
   "settings.marketplace.diagramDescription": "Diagramas de arquitectura y procesos en archivos HTML y SVG independientes.",

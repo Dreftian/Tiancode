@@ -704,7 +704,7 @@
     },
     "frontend/desktop": {
       "name": "@tiancode-ai/desktop",
-      "version": "1.0.5",
+      "version": "1.0.8",
       "dependencies": {
         "@huggingface/transformers": "3.8.1",
         "@zip.js/zip.js": "2.7.62",
@@ -730,6 +730,7 @@
         "@solidjs/meta": "catalog:",
         "@solidjs/router": "0.15.4",
         "@tiancode-ai/app": "workspace:*",
+        "@tiancode-ai/schema": "workspace:*",
         "@tiancode-ai/ui": "workspace:*",
         "@types/bun": "catalog:",
         "@types/node": "catalog:",

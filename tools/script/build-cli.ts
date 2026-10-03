@@ -16,7 +16,9 @@ const flag = (name: string) => {
 }
 const version = flag("--version") ?? (await Bun.file(path.join(root, "frontend/desktop/package.json")).json()).version
 const packOnly = argv.includes("--pack-only")
-const targets = (flag("--targets") ?? "win32-x64,darwin-arm64,darwin-x64,linux-x64,linux-arm64").split(",").map((t) => t.trim())
+const targets = (flag("--targets") ?? "win32-x64,darwin-arm64,darwin-x64,linux-x64,linux-arm64")
+  .split(",")
+  .map((t) => t.trim())
 
 if (!packOnly) {
   console.log(`building tiancode CLI ${version} for ${targets.join(", ")}`)
@@ -37,8 +39,8 @@ for (const name of readdirSync(path.join(backend, "dist"))) {
   if (!existsSync(bin)) continue
   const asset = name.replace("win32", "windows")
   if (name.includes("linux")) {
-    // --force-local: GNU tar on Windows would read "C:" as a remote host.
-    await $`tar --force-local -czf ${path.join(out, `${asset}.tar.gz`)} -C ${bin} .`
+    // A relative archive name works with both GNU tar and Windows' bundled BSD tar.
+    await $`tar -czf ${`${asset}.tar.gz`} -C ${bin} .`.cwd(out)
   } else {
     const zip = path.join(out, `${asset}.zip`)
     await $`powershell -NoProfile -Command Compress-Archive -Path ${bin + "/*"} -DestinationPath ${zip} -CompressionLevel Optimal -Force`

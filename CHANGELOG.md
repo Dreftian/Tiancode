@@ -4,6 +4,14 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.8] — 2026-10-03
+
+Uso visual de Windows inspirado en UI-TARS: capturas adjuntas para el modelo, contexto de UI Automation, enumeración y activación de ventanas, arrastre nativo, clics, escritura Unicode, atajos y desplazamiento en un punto. Coordenadas de captura y normalizadas se convierten al monitor físico seleccionado; se rechazan observaciones consumidas o con una ventana o monitor distintos.
+
+El control activo enciende una luz azul transparente a los clics en los bordes de todos los monitores. Detener interrumpe el arrastre, suelta el ratón y los modificadores y retira los indicadores. Ajustes añade la guía Observar / Actuar / Verificar y la selección de monitor. Las predicciones UI-TARS se validan como una única acción, sin evaluar código. Se mantienen claves, ajustes, sesiones, backups y autenticación MCP.
+
+Requiere Windows y un modelo con visión y herramientas; no incorpora pesos ni operadores remotos o Android. El CLI sigue disponible en Windows, macOS y Linux.
+
 ## [1.0.7] — 2026-10-02
 
 Descubrir pasa a ser una tienda completa. El servidor reúne los catálogos que usan Claude Code y

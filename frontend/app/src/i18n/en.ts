@@ -1,7 +1,9 @@
 import { SUBAGENT_CATALOG_ENGLISH } from "./subagent-catalog"
 import { DESKTOP_NATIVE_ENGLISH } from "./desktop-native"
+import { COMPUTER_USE_ENGLISH } from "./computer-use"
 
 export const dict = {
+  ...COMPUTER_USE_ENGLISH,
   "settings.marketplace.description": "MCP servers, skills and plugins from the Cline catalog. Installations are optional. Cline runtime plugins open their source because they require a compatible adapter.",
   "settings.marketplace.source": "View source",
   "settings.marketplace.diagramDescription": "Architecture and process diagrams as self-contained HTML and SVG.",
