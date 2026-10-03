@@ -32,9 +32,21 @@ Informe estructurado: [pc-control-1.0.8.json](pc-control-1.0.8.json). Captura re
 
 ## Interfaz y publicación
 
-La interfaz del paquete usa un perfil de prueba separado de la instalación del usuario. Se verifica la guía Observar / Actuar / Verificar, los permisos, la selección persistente del monitor y el texto de la versión. La web incorpora la guía, la imagen real, novedades, enlaces de descarga y traducciones de las nuevas funciones en español e inglés. La guía móvil se comprueba a 390 × 844, sin desbordamiento horizontal.
+La interfaz del paquete usa un perfil de prueba separado de la instalación del usuario. Se verificaron la guía Observar / Actuar / Verificar, los permisos, la opción inicial «Monitor principal» y el texto de la versión. La web incorpora la guía, la imagen real, novedades, enlaces de descarga y traducciones de las nuevas funciones en español e inglés. La guía se comprobó a 390 × 844 y 1280 × 900, sin desbordamiento horizontal.
 
-Los resultados definitivos de empaquetado, publicación y detección de la actualización se registran al terminar la entrega. El instalador y portable se construyen con `TIANCODE_CHANNEL=prod`; sus nombres siguen siendo `Tiancode.exe` y `Tiancode-portable.exe`. Los archivos Windows locales no tienen firma de editor; SHA-256 y el SHA-512 de `latest.yml` verifican integridad.
+El instalador y portable se construyeron con `TIANCODE_CHANNEL=prod` y distribución GitHub. `verify:win-release` aprobó versión, archivos, iconos y recursos MCP. Sus nombres siguen siendo `Tiancode.exe` y `Tiancode-portable.exe`. Los archivos Windows no tienen firma de editor; SHA-256 y el SHA-512 de `latest.yml` verifican integridad.
+
+La [release de la app 1.0.8](https://github.com/Dreftian/Tiancode/releases/tag/v1.0.8) se publicó como predeterminada y apunta al commit `eb62c6fbfa11e76489137483b6c02114c6f366e7`, disponible en `dev`. Se verificaron el tamaño y SHA-256 de los diez archivos: instalador, portátil, blockmap, `latest.yml`, cinco archivos CLI y `SHA256SUMS.txt`. El manifiesto descargado mediante la URL pública de actualización coincide exactamente con el archivo probado. El control previo al push también aprobó los 27 paquetes que tienen comprobación de tipos.
+
+SHA-256 del instalador: `6aa72f26bf1db8358b57204bc5711b2161d64ef54ca83fbbf3ce9a770c0ccef5`.
+
+SHA-256 del portátil: `a765cfbcb8dc6d5dfc1ed1d81afe5f33b87ca13dc001004ec305f28f302356ed`.
+
+La web se publicó en `main` de `Dreftian/zenithai-web`, commit `e793bd13f4fb43c607911e7a659d7d4d06f6992a`. Vercel informó despliegue satisfactorio y se comprobó la [guía pública](https://tiancode.vercel.app/recursos/docs.html#pc-control), incluida la carga de la imagen real. La web también tiene su [release 1.0.8](https://github.com/Dreftian/zenithai-web/releases/tag/v1.0.8).
+
+La instalación existente, todavía en 1.0.7, detectó 1.0.8 desde «Buscar ahora», descargó el instalador y mostró «La versión 1.0.8 está lista para instalar» con «Instalar y reiniciar». Los registros confirmaron la detección y la descarga. El proceso original conservó PID 14044 y su hora de inicio de las 11:10:52; no se instaló ni reinició la app.
+
+Capturas locales de la interfaz final, el aviso del actualizador y la guía publicada están en `frontend/desktop/tmp/settings-1.0.8-final.jpg`, `frontend/desktop/tmp/update-1.0.8-ready.jpg` y `frontend/desktop/tmp/web-1.0.8-published.png`; el directorio de evidencias temporales está excluido de Git.
 
 ## Alcance de la evidencia
 

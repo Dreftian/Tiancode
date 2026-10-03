@@ -31,4 +31,8 @@ La entrada nativa de esta release se valida en Windows. Los operadores remotos d
 
 ## Evidencia
 
-Se completará en `tools/qa/pc-control-1.0.8.md` con pruebas reales, limitaciones pendientes y comprobaciones de publicación.
+Plan ejecutado. La evidencia se registra en [tools/qa/pc-control-1.0.8.md](../qa/pc-control-1.0.8.md): 101 pruebas automatizadas y 24 comprobaciones nativas de Windows. Los bordes azules, las acciones y la parada se validaron con el operador de producción en una aplicación de prueba aislada.
+
+La [release 1.0.8](https://github.com/Dreftian/Tiancode/releases/tag/v1.0.8) es la predeterminada y contiene diez archivos verificados por tamaño y SHA-256. El código se publicó en `dev`. La web se publicó desde `main` de `Dreftian/zenithai-web` y tiene su [release 1.0.8](https://github.com/Dreftian/zenithai-web/releases/tag/v1.0.8).
+
+La instalación existente 1.0.7 detectó y descargó 1.0.8; muestra «La versión 1.0.8 está lista para instalar». Su proceso original siguió activo. La instalación y el reinicio quedan a cargo del usuario.
