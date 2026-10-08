@@ -3,7 +3,7 @@ import { Component, ComponentProps, createEffect, createMemo, For, JSX, Show } f
 import { createStore } from "solid-js/store"
 import { useLocal } from "@/context/local"
 import { useDialog } from "@tiancode-ai/ui/context/dialog"
-import { popularProviders } from "@/hooks/use-providers"
+import { isFreeModel, popularProviders } from "@/hooks/use-providers"
 import { Button } from "@tiancode-ai/ui/button"
 import { IconButton } from "@tiancode-ai/ui/icon-button"
 import { ScrollView } from "@tiancode-ai/ui/scroll-view"
@@ -23,8 +23,7 @@ import { createMenuDismissController } from "@/utils/menu-dismiss-controller"
 import { createEventListener } from "@solid-primitives/event-listener"
 import { matchesModelSearch } from "./dialog-select-model-search"
 
-const isFree = (provider: string, cost: { input: number } | undefined) =>
-  provider === "tiancode" && (!cost || cost.input === 0)
+const isFree = isFreeModel
 
 type ModelState = ReturnType<typeof useLocal>["model"]
 type ModelItem = ReturnType<ModelState["list"]>[number]

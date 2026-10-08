@@ -588,3 +588,11 @@ body:not([data-new-layout]) {
     }
   }
 }
+
+/* The user's pet beside a running step; its size never squeezes the title. */
+[data-slot="basic-tool-working-mascot"] {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  line-height: 0;
+}

@@ -80,6 +80,9 @@ export function useLiveViewAutoOpen(input: {
   // Demands already answered, by opening the panel or by the user closing it while they waited.
   const handled = new Set<string>()
   const [active, setActive] = createSignal(false)
+  // When the user last closed the panel. Closing restarts the watcher, whose first poll raced the
+  // fetch that records the dismissed demand and could reopen the panel the user had just closed.
+  let dismissedAt = 0
 
   const request = () => {
     const directory = sdk().directory
@@ -130,6 +133,7 @@ export function useLiveViewAutoOpen(input: {
       () => view().liveView.opened(),
       (opened, wasOpened) => {
         if (opened || !wasOpened) return
+        dismissedAt = Date.now()
         const controller = new AbortController()
         void currentDemand(controller.signal).then((key) => {
           if (key) handled.add(key)
@@ -155,6 +159,9 @@ export function useLiveViewAutoOpen(input: {
       try {
         const key = await currentDemand(controller.signal)
         if (!key || handled.has(key)) return
+        // Not recorded: a demand seen right after a close is looked at again once the window passes.
+        // The one pending at close time is recorded by the close handler itself.
+        if (Date.now() - dismissedAt < LIVE_VIEW_POLL_MS + LIVE_VIEW_CHECK_MS) return
         handled.add(key)
         const target = request()
         if (target) {

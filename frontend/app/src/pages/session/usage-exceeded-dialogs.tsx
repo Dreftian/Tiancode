@@ -78,7 +78,7 @@ export function useUsageExceededDialogs() {
               else {
                 void import("../../components/dialogs/dialog-connect-provider").then((x) => {
                   const controller = x.useProviderConnectController()
-                  controller.select("tiancode-go")
+                  controller.select("opencode-go")
                   void dialog.show(() => <x.DialogConnectProvider controller={controller} />)
                 })
               }

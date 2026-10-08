@@ -1,4 +1,4 @@
-import { createSignal, For, Show, type Component } from "solid-js"
+import { createMemo, createSignal, For, type JSX, onMount, type ParentProps, Show, type Component } from "solid-js"
 import { setSpeed2xActive } from "@/utils/speed-mode"
 import { useDialog } from "@tiancode-ai/ui/context/dialog"
 import { ButtonV2 } from "@tiancode-ai/ui/v2/button-v2"
@@ -10,8 +10,21 @@ import { Switch } from "@tiancode-ai/ui/v2/switch-v2"
 import { Mark } from "@tiancode-ai/ui/logo"
 import { useLanguage, type Locale } from "@/context/language"
 import { useTheme, type ColorScheme } from "@tiancode-ai/ui/theme/context"
+import { useGlobal } from "@/context/global"
 import { usePlatform } from "@/context/platform"
-import { useSettings } from "@/context/settings"
+import { ServerConnection, useServer } from "@/context/server"
+import {
+  previewOnFinishOptions,
+  tabLayouts,
+  terminalPlacements,
+  transcriptTextSizes,
+  transcriptWidths,
+  useSettings,
+} from "@/context/settings"
+import { freeZenModels, PENDING_FREE_MODELS_KEY } from "@/components/settings-v2/free-models"
+import { SettingsTimelineDetailV2 } from "@/components/settings-v2/timeline-detail"
+import { UI_SCALES } from "@/ui-scale"
+import "@/components/settings-v2/settings-v2.css"
 import "./dialog-welcome-setup.css"
 
 /**
@@ -46,7 +59,7 @@ export function readStartMode(): StartMode {
  * Por qué se abre el asistente:
  * - `first-run`: instalación nueva, no hay nada guardado → configuración completa.
  * - `upgrade`: ya no se abre solo; queda para ventanas antiguas que lo pidan.
- * - `review`: lo abrió el usuario desde Ajustes → misma confirmación, otro encabezado.
+ * - `review`: lo abrió el usuario desde Ajustes → los mismos pasos con lo ya guardado.
  */
 export type WelcomeSetupMode = "first-run" | "upgrade" | "review"
 
@@ -66,7 +79,8 @@ export function welcomeSetupMode(completed: string | null): WelcomeSetupMode | u
   return completed ? undefined : "first-run"
 }
 
-const STEPS = ["welcome.step.preferences", "welcome.step.workspace", "welcome.step.start"] as const
+const STEPS = ["preferences", "interface", "layout", "conversation", "models", "start"] as const
+type StepID = (typeof STEPS)[number]
 
 /** Los nombres de idioma van en su propia lengua a propósito: no se traducen. */
 const LOCALE_OPTIONS: { locale: Locale; name: string }[] = [
@@ -84,6 +98,10 @@ const THEME_OPTIONS: { mode: ColorScheme; key: string }[] = [
   { mode: "light", key: "welcome.theme.light" },
   { mode: "system", key: "welcome.theme.system" },
 ]
+const THEME_MODES = THEME_OPTIONS.map((option) => option.mode)
+const UI_SCALE_OPTIONS = UI_SCALES.map(String)
+const WORKSPACE_OPTIONS = ["starter", "own"] as const
+const FOLLOWUP_OPTIONS = ["steer", "queue"] as const
 
 export const DialogWelcomeSetup: Component<{ onDone?: () => void; mode?: WelcomeSetupMode }> = (props) => {
   const dialog = useDialog()
@@ -91,87 +109,49 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void; mode?: Welcome
   const theme = useTheme()
   const platform = usePlatform()
   const settings = useSettings()
+  const global = useGlobal()
+  const server = useServer()
 
-  const [step, setStep] = createSignal(1)
+  // The welcome window has no server sync of its own, but the global context already holds the
+  // connection to the app's server (the sidecar boots while this card is on screen).
+  const serverCtx = () => {
+    const list = global.servers.list()
+    const conn = list.find((item) => ServerConnection.key(item) === server.key) ?? list[0]
+    return conn ? global.ensureServerCtx(conn) : undefined
+  }
+  const savedFreeModels = () => serverCtx()?.sync.data.config?.free_models === true
+  const zenModels = createMemo(() => freeZenModels(serverCtx()?.sync.data.provider?.all?.get("opencode")))
+
+  const [step, setStep] = createSignal(0)
+  const [visited, setVisited] = createSignal(1)
   const [finishing, setFinishing] = createSignal(false)
   const [createDefaultProject, setCreateDefaultProject] = createSignal(true)
   const [startMode, setStartMode] = createSignal<StartMode>(readStartMode())
   const [selectedLocale, setSelectedLocale] = createSignal<Locale>(language.locale())
   const [selectedTheme, setSelectedTheme] = createSignal<ColorScheme>(theme.colorScheme())
+  // Only a choice the user makes here is saved. The switch shows the saved value until then: the
+  // server's config can arrive after this card opens, and reading it once at mount turned an
+  // untouched switch into `free_models: false` on Finish.
+  const [freeChoice, setFreeChoice] = createSignal<boolean>()
+  const freeModels = () => freeChoice() ?? savedFreeModels()
 
   const t = (key: string, params?: Record<string, string | number>) => language.t(key, params)
+  const firstRun = () => props.mode === undefined || props.mode === "first-run"
+  const current = () => STEPS[step()]!
+  const last = () => step() === STEPS.length - 1
+  const themes = createMemo(() => theme.ids().map((id) => ({ id, name: theme.name(id) })))
+  const scale = () => UI_SCALES.find((value) => Math.abs(value - (platform.webviewZoom?.() ?? 1)) < 0.01)
 
-  // Reabrirlo en cada actualización solo es aceptable si no vuelve a preguntar lo ya respondido:
-  // en este modo los cuatro controles llegan con el valor guardado, no hay paso de espacio de
-  // trabajo (ya existe uno) y terminar es un clic.
-  const confirming = () => props.mode !== undefined && props.mode !== "first-run"
-  const totalSteps = () => (confirming() ? 1 : STEPS.length)
+  onMount(() => void theme.loadThemes())
 
-  const startChooser = () => (
-    <div class="welcome-setup-start">
-      <button
-        type="button"
-        class="welcome-setup-start-card"
-        role="radio"
-        aria-checked={startMode() === "chat"}
-        data-selected={startMode() === "chat"}
-        onClick={() => setStartMode("chat")}
-      >
-        <span class="welcome-setup-start-art" aria-hidden="true">
-          <span class="welcome-setup-start-art-word">TIANCODE</span>
-          <span class="welcome-setup-start-art-box">
-            <i />
-            <b />
-          </span>
-        </span>
-        <span class="welcome-setup-start-name">{t("welcome.start.chat")}</span>
-        <span class="welcome-setup-start-desc">{t("welcome.start.chat.desc")}</span>
-      </button>
-      <button
-        type="button"
-        class="welcome-setup-start-card"
-        role="radio"
-        aria-checked={startMode() === "code"}
-        data-selected={startMode() === "code"}
-        onClick={() => setStartMode("code")}
-      >
-        <span class="welcome-setup-start-art welcome-setup-start-art--code" aria-hidden="true">
-          <span class="welcome-setup-start-art-folder">
-            <i />
-            <b />
-          </span>
-          <span class="welcome-setup-start-art-box">
-            <i />
-            <b />
-          </span>
-        </span>
-        <span class="welcome-setup-start-name">{t("welcome.start.code")}</span>
-        <span class="welcome-setup-start-desc">{t("welcome.start.code.desc")}</span>
-      </button>
-      <button
-        type="button"
-        class="welcome-setup-start-card"
-        role="radio"
-        aria-checked={startMode() === "home"}
-        data-selected={startMode() === "home"}
-        onClick={() => setStartMode("home")}
-      >
-        <span class="welcome-setup-start-art welcome-setup-start-art--home" aria-hidden="true">
-          <span class="welcome-setup-start-art-side">
-            <i />
-            <i />
-            <i />
-          </span>
-          <span class="welcome-setup-start-art-main">
-            <i />
-            <b />
-          </span>
-        </span>
-        <span class="welcome-setup-start-name">{t("welcome.start.home")}</span>
-        <span class="welcome-setup-start-desc">{t("welcome.start.home.desc")}</span>
-      </button>
-    </div>
-  )
+  let stepsNav: HTMLElement | undefined
+  const go = (index: number) => {
+    const next = Math.max(0, Math.min(STEPS.length - 1, index))
+    setStep(next)
+    setVisited((count) => Math.max(count, next + 1))
+    // On narrow windows the steps are a scrolling row: keep the current one in view.
+    stepsNav?.children[next]?.scrollIntoView({ block: "nearest", inline: "nearest" })
+  }
 
   const handleSelectLanguage = (loc: Locale) => {
     setSelectedLocale(loc)
@@ -187,30 +167,49 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void; mode?: Welcome
     theme.setColorScheme(mode)
   }
 
+  // The switch reaches the server directly when it can. Otherwise the main window applies it once
+  // its server answers (PendingFreeModelsRunner), before any session can be running.
+  const saveFreeModels = async () => {
+    const choice = freeChoice()
+    if (choice === undefined || choice === savedFreeModels()) return
+    const ctx = serverCtx()
+    const applied = ctx?.sync.data.path
+      ? await ctx.sdk.client.global.config.update({ config: { free_models: choice } }).then(
+          () => true,
+          () => false,
+        )
+      : false
+    if (applied) return
+    try {
+      localStorage.setItem(PENDING_FREE_MODELS_KEY, choice ? "on" : "off")
+    } catch {
+      // Without storage the choice is lost; Settings › Providers still offers the same switch.
+    }
+  }
+
   const handleFinish = async () => {
     if (finishing()) return
     setFinishing(true)
     try {
       localStorage.setItem(FIRST_LAUNCH_KEY, version() || "true")
       localStorage.setItem(START_MODE_KEY, startMode())
-      if (!confirming()) {
+      if (firstRun()) {
         // The chat opens with reasoning on Auto, fast mode off and permissions on Auto: the app's
         // defaults, so only the persisted fast-mode switch needs resetting.
         setSpeed2xActive(false)
         localStorage.setItem(START_PENDING_KEY, startMode())
+        // Una instalación nueva no tiene ningún proveedor, así que siempre dejamos abiertos los
+        // ajustes: es lo único que hace utilizable la app y se cierra con Esc si no toca ahora.
+        localStorage.setItem(PENDING_PROVIDER_SETUP_KEY, "true")
       }
-      // Una instalación nueva no tiene ningún proveedor, así que siempre dejamos abiertos los
-      // ajustes: es lo único que hace utilizable la app y se cierra con Esc si no toca ahora.
-      // Al confirmar tras una actualización no: esa instalación ya eligió proveedor.
-      if (!confirming()) localStorage.setItem(PENDING_PROVIDER_SETUP_KEY, "true")
     } catch {
       // Onboarding must never trap the user behind a storage failure — continue to the app.
     }
+    await saveFreeModels()
     try {
-      // Segunda llamada inofensiva cuando solo se confirma: marca la clave del electron-store
-      // (el único registro que sobrevive a un borrado de localStorage) y, con `false`, no crea
-      // ninguna carpeta.
-      await window.api?.finishFirstLaunchOnboarding?.(confirming() ? false : createDefaultProject())
+      // Al repasarlo desde Ajustes marca la clave del electron-store (el único registro que
+      // sobrevive a un borrado de localStorage) y, con `false`, no crea ninguna carpeta.
+      await window.api?.finishFirstLaunchOnboarding?.(firstRun() ? createDefaultProject() : false)
     } catch {
       // The desktop shell may be unavailable in the browser build; the app still opens.
     }
@@ -218,229 +217,458 @@ export const DialogWelcomeSetup: Component<{ onDone?: () => void; mode?: Welcome
     dialog.close()
   }
 
-  const goNext = () => {
-    if (step() >= totalSteps()) return void handleFinish()
-    setStep((s) => Math.min(totalSteps(), s + 1))
-  }
-  const goBack = () => setStep((s) => Math.max(1, s - 1))
-
   const version = () => welcomeSetupVersion(platform.version)
-  const stepLabel = () => t("welcome.stepLabel", { current: step(), total: totalSteps() })
-  const currentLocale = () => LOCALE_OPTIONS.find((option) => option.locale === selectedLocale())
-  const title = () => (confirming() ? t("welcome.confirm.title") : t("welcome.title"))
-  const subtitle = () => {
-    if (props.mode === "upgrade") return t("welcome.confirm.updated")
-    if (confirming()) return t("welcome.confirm.review")
-    return `${stepLabel()} · ${t(STEPS[step() - 1])}`
+
+  const startChooser = () => (
+    <div class="welcome-setup-start" role="radiogroup" aria-label={t("welcome.start.title")}>
+      <For each={START_MODES}>
+        {(mode) => (
+          <button
+            type="button"
+            class="welcome-setup-start-card"
+            role="radio"
+            aria-checked={startMode() === mode}
+            data-selected={startMode() === mode}
+            onClick={() => setStartMode(mode)}
+          >
+            <span
+              class="welcome-setup-start-art"
+              classList={{
+                "welcome-setup-start-art--code": mode === "code",
+                "welcome-setup-start-art--home": mode === "home",
+              }}
+              aria-hidden="true"
+            >
+              <Show when={mode === "chat"}>
+                <span class="welcome-setup-start-art-word">TIANCODE</span>
+                <span class="welcome-setup-start-art-box">
+                  <i />
+                  <b />
+                </span>
+              </Show>
+              <Show when={mode === "code"}>
+                <span class="welcome-setup-start-art-folder">
+                  <i />
+                  <b />
+                </span>
+                <span class="welcome-setup-start-art-box">
+                  <i />
+                  <b />
+                </span>
+              </Show>
+              <Show when={mode === "home"}>
+                <span class="welcome-setup-start-art-side">
+                  <i />
+                  <i />
+                  <i />
+                </span>
+                <span class="welcome-setup-start-art-main">
+                  <i />
+                  <b />
+                </span>
+              </Show>
+            </span>
+            <span class="welcome-setup-start-name">{t(`welcome.start.${mode}`)}</span>
+            <span class="welcome-setup-start-desc">{t(`welcome.start.${mode}.desc`)}</span>
+          </button>
+        )}
+      </For>
+    </div>
+  )
+
+  // A small conversation drawn with the transcript's own CSS variables, so the size and width
+  // picked on this step show up here exactly as they will in the chat.
+  const transcriptPreview = () => (
+    <div class="welcome-setup-preview" aria-hidden="true">
+      <span class="welcome-setup-preview-label">{t("welcome.preview.title")}</span>
+      <div class="welcome-setup-preview-transcript">
+        <p class="welcome-setup-preview-user">{t("welcome.preview.user")}</p>
+        <p class="welcome-setup-preview-assistant">{t("welcome.preview.assistant")}</p>
+        <span class="welcome-setup-preview-status">
+          <i />
+          {t("welcome.preview.status")}
+        </span>
+      </div>
+    </div>
+  )
+
+  const tabsPreview = (layout: (typeof tabLayouts)[number]) => (
+    <button
+      type="button"
+      class="welcome-setup-layout-card"
+      role="radio"
+      aria-checked={settings.appearance.tabLayout() === layout}
+      data-selected={settings.appearance.tabLayout() === layout}
+      onClick={() => settings.appearance.setTabLayout(layout)}
+    >
+      <span class={`welcome-setup-layout-art welcome-setup-layout-art--${layout}`} aria-hidden="true">
+        <span class="welcome-setup-layout-tabs">
+          <i />
+          <i />
+          <i />
+        </span>
+        <span class="welcome-setup-layout-page" />
+      </span>
+      <span class="welcome-setup-start-name">{t(`settings.experimental.tabs.${layout}`)}</span>
+    </button>
+  )
+
+  // Each control is a component with lazy props: a value change updates it in place, so keyboard
+  // focus stays on it (helpers that read their values when called rebuilt it on every change).
+  const panels: Record<StepID, () => JSX.Element> = {
+    preferences: () => (
+      <>
+        <WelcomeField name={t("welcome.language.field")}>
+          <SelectV2
+            options={LOCALE_OPTIONS}
+            current={LOCALE_OPTIONS.find((option) => option.locale === selectedLocale())}
+            value={(option) => option.locale}
+            label={(option) => option.name}
+            placement="bottom-end"
+            gutter={6}
+            onSelect={(option) => option && handleSelectLanguage(option.locale)}
+          />
+        </WelcomeField>
+        <WelcomeField name={t("welcome.theme.label")}>
+          <WelcomeSegmented
+            value={selectedTheme()}
+            options={THEME_MODES}
+            label={(mode) => t(THEME_OPTIONS.find((option) => option.mode === mode)!.key)}
+            onChange={handleSelectTheme}
+            aria={t("welcome.theme.label")}
+          />
+        </WelcomeField>
+        <WelcomeField name={t("settings.general.row.theme.title")} hint={t("settings.general.row.theme.description")}>
+          <SelectV2
+            options={themes()}
+            current={themes().find((option) => option.id === theme.themeId())}
+            value={(option) => option.id}
+            label={(option) => option.name}
+            placement="bottom-end"
+            gutter={6}
+            onSelect={(option) => option && theme.setTheme(option.id)}
+          />
+        </WelcomeField>
+        {/* Mientras el store todavía se lee del disco los interruptores van desactivados: enseñar
+            "apagado" cuando el valor guardado aún no ha llegado sería mentir. */}
+        <WelcomeToggle
+          name={t("welcome.pet.label")}
+          hint={t("welcome.pet.desc")}
+          checked={settings.general.petEnabled()}
+          disabled={!settings.ready()}
+          onChange={(checked) => settings.general.setPetEnabled(checked)}
+        />
+        <WelcomeToggle
+          name={t("welcome.speak.label")}
+          hint={t("welcome.speak.desc")}
+          checked={settings.general.autoSpeak()}
+          disabled={!settings.ready()}
+          onChange={(checked) => settings.general.setAutoSpeak(checked)}
+        />
+      </>
+    ),
+    interface: () => (
+      <div class="welcome-setup-split">
+        <div class="welcome-setup-fields">
+          <Show when={platform.setUiZoom}>
+            <WelcomeField name={t("settings.general.scale.title")} hint={t("welcome.scale.hint")} stack>
+              <WelcomeSegmented
+                value={scale() === undefined ? undefined : String(scale())}
+                options={UI_SCALE_OPTIONS}
+                label={(option) => `${Math.round(Number(option) * 100)} %`}
+                onChange={(value) => platform.setUiZoom?.(Number(value))}
+                aria={t("settings.general.scale.title")}
+              />
+            </WelcomeField>
+          </Show>
+          <WelcomeField
+            name={t("settings.general.row.transcriptText.title")}
+            hint={t("settings.general.row.transcriptText.description")}
+            stack
+          >
+            <WelcomeSegmented
+              value={settings.appearance.transcriptText()}
+              options={transcriptTextSizes}
+              label={(option) => t(`settings.general.row.transcriptText.option.${option}`)}
+              onChange={(value) => settings.appearance.setTranscriptText(value)}
+              aria={t("settings.general.row.transcriptText.title")}
+            />
+          </WelcomeField>
+          <WelcomeField
+            name={t("settings.general.row.transcriptWidth.title")}
+            hint={t("settings.general.row.transcriptWidth.description")}
+            stack
+          >
+            <WelcomeSegmented
+              value={settings.appearance.transcriptWidth()}
+              options={transcriptWidths}
+              label={(option) => t(`settings.general.row.transcriptWidth.option.${option}`)}
+              onChange={(value) => settings.appearance.setTranscriptWidth(value)}
+              aria={t("settings.general.row.transcriptWidth.title")}
+            />
+          </WelcomeField>
+        </div>
+        {transcriptPreview()}
+      </div>
+    ),
+    layout: () => (
+      <>
+        <div class="welcome-setup-stack">
+          <span class="welcome-setup-field-name">{t("settings.experimental.tabs.title")}</span>
+          <span class="welcome-setup-hint">{t("settings.general.tabs.description")}</span>
+          <div class="welcome-setup-layout" role="radiogroup" aria-label={t("settings.experimental.tabs.title")}>
+            <For each={tabLayouts}>{(layout) => tabsPreview(layout)}</For>
+          </div>
+        </div>
+        <Show when={settings.appearance.tabLayout() === "vertical"}>
+          <WelcomeToggle
+            name={t("settings.experimental.projectNames.title")}
+            hint={t("welcome.projectNames.hint")}
+            checked={settings.appearance.showProjectName()}
+            onChange={(value) => settings.appearance.setShowProjectName(value)}
+          />
+        </Show>
+        <WelcomeField
+          name={t("settings.general.row.terminalPlacement.title")}
+          hint={t("settings.general.row.terminalPlacement.description")}
+        >
+          <WelcomeSegmented
+            value={settings.general.terminalPlacement()}
+            options={terminalPlacements}
+            label={(option) => t(`settings.general.row.terminalPlacement.${option}`)}
+            onChange={(value) => settings.general.setTerminalPlacement(value)}
+            aria={t("settings.general.row.terminalPlacement.title")}
+          />
+        </WelcomeField>
+        <WelcomeField
+          name={t("settings.general.row.previewOnFinish.title")}
+          hint={t("settings.general.row.previewOnFinish.description")}
+        >
+          <SelectV2
+            options={[...previewOnFinishOptions]}
+            current={settings.general.previewOnFinish()}
+            label={(option) => t(`settings.general.row.previewOnFinish.${option}`)}
+            onSelect={(option) => option && settings.general.setPreviewOnFinish(option)}
+            placement="bottom-end"
+            gutter={6}
+          />
+        </WelcomeField>
+        <Show when={firstRun()}>
+          <div class="welcome-setup-stack">
+            <span class="welcome-setup-field-name">{t("welcome.workspace.title")}</span>
+            <WelcomeSegmented
+              value={createDefaultProject() ? "starter" : "own"}
+              options={WORKSPACE_OPTIONS}
+              label={(option) =>
+                t(option === "starter" ? "welcome.workspace.createDefault" : "welcome.workspace.chooseLater")
+              }
+              onChange={(value) => setCreateDefaultProject(value === "starter")}
+              aria={t("welcome.workspace.title")}
+            />
+            <span class="welcome-setup-hint">
+              {createDefaultProject() ? t("welcome.workspace.createDefault.desc") : t("welcome.workspace.chooseLater.desc")}
+            </span>
+          </div>
+        </Show>
+      </>
+    ),
+    conversation: () => (
+      <>
+        <div class="welcome-setup-timeline">
+          <SettingsTimelineDetailV2 />
+        </div>
+        <WelcomeField name={t("settings.general.row.followup.title")} hint={t("welcome.followup.hint")}>
+          <WelcomeSegmented
+            value={settings.general.followup()}
+            options={FOLLOWUP_OPTIONS}
+            label={(option) => t(`settings.general.row.followup.option.${option}`)}
+            onChange={(value) => settings.general.setFollowup(value)}
+            aria={t("settings.general.row.followup.title")}
+          />
+        </WelcomeField>
+        <WelcomeToggle
+          name={t("welcome.petStatus.label")}
+          hint={t("welcome.petStatus.desc")}
+          checked={settings.general.petInChat()}
+          disabled={!settings.ready()}
+          onChange={(value) => settings.general.setPetInChat(value)}
+        />
+      </>
+    ),
+    models: () => (
+      <>
+        <WelcomeToggle
+          name={t("settings.providers.free.title")}
+          hint={t("settings.providers.free.description")}
+          checked={freeModels()}
+          onChange={setFreeChoice}
+        />
+        <Show when={freeModels() && zenModels().length > 0}>
+          <div class="settings-v2-free-models-list welcome-setup-free-list" aria-label={t("settings.providers.free.available")}>
+            <For each={zenModels()}>{(name) => <span class="settings-v2-free-models-chip">{name}</span>}</For>
+          </div>
+        </Show>
+        <p class="welcome-setup-hint">{t("settings.providers.free.note")}</p>
+        <p class="welcome-setup-note">
+          <Icon name="settings-gear" size="small" />
+          <span>{t(firstRun() ? "welcome.provider.autoOpen" : "welcome.models.review")}</span>
+        </p>
+      </>
+    ),
+    start: () => (
+      <>
+        <div class="welcome-setup-stack welcome-setup-stack--start">
+          <span class="welcome-setup-field-name">{t("welcome.start.title")}</span>
+          {startChooser()}
+          <span class="welcome-setup-hint">{t(firstRun() ? "welcome.start.defaults" : "welcome.start.every")}</span>
+        </div>
+      </>
+    ),
   }
 
   return (
     <div class="welcome-setup" role="dialog" aria-labelledby="welcome-setup-title">
-      <div class="welcome-setup-header">
-        <div class="welcome-setup-mark">
-          {/* Mark alterna el logo blanco/negro desde data-color-scheme, que el preload ya estampó
-              antes de que hidrate el contexto de tema: aquí eso importa porque es el primer pintado. */}
-          <Mark class="welcome-setup-mark-logo" />
-        </div>
-        <div class="welcome-setup-heading">
-          <div class="welcome-setup-titlerow">
-            <h2 class="welcome-setup-title" id="welcome-setup-title">
-              {title()}
-            </h2>
-            <Show when={version()}>
-              <Tag variant="neutral">v{version()}</Tag>
-            </Show>
+      <aside class="welcome-setup-sidebar">
+        <div class="welcome-setup-header">
+          <div class="welcome-setup-mark">
+            {/* Mark alterna el logo blanco/negro desde data-color-scheme, que el preload ya estampó
+                antes de que hidrate el contexto de tema: aquí eso importa porque es el primer pintado. */}
+            <Mark class="welcome-setup-mark-logo" />
           </div>
-          <p class="welcome-setup-subtitle">{subtitle()}</p>
+          <div class="welcome-setup-heading">
+            <div class="welcome-setup-titlerow">
+              <h2 class="welcome-setup-title" id="welcome-setup-title">
+                {firstRun() ? t("welcome.title") : t("welcome.confirm.title")}
+              </h2>
+              <Show when={version()}>
+                <Tag variant="neutral">v{version()}</Tag>
+              </Show>
+            </div>
+            <p class="welcome-setup-subtitle">{t("welcome.tagline")}</p>
+          </div>
         </div>
-      </div>
 
-      {/* Una sola pantalla no tiene progreso que enseñar: la barra solo aparece cuando hay pasos. */}
-      <Show when={!confirming()}>
-        <div
-          class="welcome-setup-progress"
-          role="progressbar"
-          aria-label={t("welcome.progress")}
-          aria-valuemin={1}
-          aria-valuemax={totalSteps()}
-          aria-valuenow={step()}
-          aria-valuetext={stepLabel()}
-        >
+        <nav ref={stepsNav} class="welcome-setup-steps" aria-label={t("welcome.progress")}>
           <For each={STEPS}>
-            {(_, index) => (
-              <span
-                class="welcome-setup-progress-segment"
-                data-state={index() + 1 < step() ? "done" : index() + 1 === step() ? "current" : "todo"}
-              />
+            {(id, index) => (
+              <button
+                type="button"
+                class="welcome-setup-step"
+                data-state={index() === step() ? "current" : index() < visited() ? "done" : "todo"}
+                aria-current={index() === step() ? "step" : undefined}
+                disabled={finishing()}
+                onClick={() => go(index())}
+              >
+                <span class="welcome-setup-step-index">
+                  <Show when={index() < visited() && index() !== step()} fallback={index() + 1}>
+                    <Icon name="check" size="small" />
+                  </Show>
+                </span>
+                <span class="welcome-setup-step-copy">
+                  <span class="welcome-setup-step-name">{t(`welcome.step.${id}`)}</span>
+                  <span class="welcome-setup-step-desc">{t(`welcome.step.${id}.short`)}</span>
+                </span>
+              </button>
             )}
           </For>
+        </nav>
+
+        <p class="welcome-setup-sidebar-note">{t("welcome.everythingLater")}</p>
+      </aside>
+
+      <section class="welcome-setup-main">
+        <header class="welcome-setup-main-header">
+          <span class="welcome-setup-step-label">{t("welcome.stepLabel", { current: step() + 1, total: STEPS.length })}</span>
+          <h3 class="welcome-setup-main-title">{t(`welcome.step.${current()}`)}</h3>
+          <p class="welcome-setup-main-desc">{t(`welcome.step.${current()}.desc`)}</p>
+        </header>
+
+        <div class="welcome-setup-body">
+          <Show when={current()} keyed>
+            {(id) => <div class="welcome-setup-panel">{panels[id]()}</div>}
+          </Show>
         </div>
-      </Show>
 
-      <div class="welcome-setup-body" classList={{ "welcome-setup-body--flush": confirming() }}>
-        <Show when={step() === 1}>
-          <div class="welcome-setup-panel">
-            <div class="welcome-setup-field" role="group" aria-labelledby="welcome-setup-language-label">
-              <span class="welcome-setup-field-name" id="welcome-setup-language-label">
-                {t("welcome.language.field")}
-              </span>
-              <div class="welcome-setup-field-control">
-                <SelectV2
-                  options={LOCALE_OPTIONS}
-                  current={currentLocale()}
-                  value={(option) => option.locale}
-                  label={(option) => option.name}
-                  placement="bottom-start"
-                  gutter={6}
-                  onSelect={(option) => option && handleSelectLanguage(option.locale)}
-                />
-              </div>
-            </div>
-
-            <div class="welcome-setup-field" role="group" aria-labelledby="welcome-setup-theme-label">
-              <span class="welcome-setup-field-name" id="welcome-setup-theme-label">
-                {t("welcome.theme.label")}
-              </span>
-              <div class="welcome-setup-field-control">
-                <SegmentedControlV2
-                  value={selectedTheme()}
-                  onChange={(value) => value && handleSelectTheme(value as ColorScheme)}
-                >
-                  <For each={THEME_OPTIONS}>
-                    {(option) => <SegmentedControlItemV2 value={option.mode}>{t(option.key)}</SegmentedControlItemV2>}
-                  </For>
-                </SegmentedControlV2>
-              </div>
-            </div>
-
-            {/*
-              Las dos preguntas nuevas escriben directamente en settings.v3 —la misma clave que
-              lee el panel de Ajustes—, así que al reabrirse tras una actualización llegan ya con
-              la respuesta anterior sin copiarla a ningún sitio. Mientras el store todavía se lee
-              del disco los interruptores van desactivados: enseñar "apagado" cuando el valor
-              guardado aún no ha llegado sería mentir, y escribir antes de tiempo se perdería.
-            */}
-            <div class="welcome-setup-field welcome-setup-field--switch">
-              <span class="welcome-setup-field-text">
-                <span class="welcome-setup-field-name">{t("welcome.pet.label")}</span>
-                <span class="welcome-setup-hint">{t("welcome.pet.desc")}</span>
-              </span>
-              <div class="welcome-setup-field-control">
-                <Switch
-                  hideLabel
-                  checked={settings.general.petEnabled()}
-                  disabled={!settings.ready()}
-                  onChange={(checked) => settings.general.setPetEnabled(checked)}
-                >
-                  {t("welcome.pet.label")}
-                </Switch>
-              </div>
-            </div>
-
-            <div class="welcome-setup-field welcome-setup-field--switch">
-              <span class="welcome-setup-field-text">
-                <span class="welcome-setup-field-name">{t("welcome.speak.label")}</span>
-                <span class="welcome-setup-hint">{t("welcome.speak.desc")}</span>
-              </span>
-              <div class="welcome-setup-field-control">
-                <Switch
-                  hideLabel
-                  checked={settings.general.autoSpeak()}
-                  disabled={!settings.ready()}
-                  onChange={(checked) => settings.general.setAutoSpeak(checked)}
-                >
-                  {t("welcome.speak.label")}
-                </Switch>
-              </div>
-            </div>
-
-            <Show when={confirming()}>
-              <div
-                class="welcome-setup-stack welcome-setup-stack--start"
-                role="radiogroup"
-                aria-labelledby="welcome-setup-start-review-label"
-              >
-                <span class="welcome-setup-field-name" id="welcome-setup-start-review-label">
-                  {t("welcome.start.title")}
-                </span>
-                {startChooser()}
-                <p class="welcome-setup-hint">{t("welcome.start.every")}</p>
-              </div>
-            </Show>
-          </div>
-        </Show>
-
-        <Show when={step() === 2}>
-          <div class="welcome-setup-panel">
-            <div class="welcome-setup-stack" role="group" aria-labelledby="welcome-setup-workspace-label">
-              <span class="welcome-setup-field-name" id="welcome-setup-workspace-label">
-                {t("welcome.workspace.title")}
-              </span>
-              <SegmentedControlV2
-                class="segmented-control-v2--full-width"
-                value={createDefaultProject() ? "starter" : "own"}
-                onChange={(value) => value && setCreateDefaultProject(value === "starter")}
-              >
-                <SegmentedControlItemV2 value="starter">{t("welcome.workspace.createDefault")}</SegmentedControlItemV2>
-                <SegmentedControlItemV2 value="own">{t("welcome.workspace.chooseLater")}</SegmentedControlItemV2>
-              </SegmentedControlV2>
-              <p class="welcome-setup-hint">
-                {createDefaultProject()
-                  ? t("welcome.workspace.createDefault.desc")
-                  : t("welcome.workspace.chooseLater.desc")}
-              </p>
-            </div>
-          </div>
-        </Show>
-
-        <Show when={step() === 3}>
-          <div class="welcome-setup-panel">
-            <div class="welcome-setup-stack" role="radiogroup" aria-labelledby="welcome-setup-start-label">
-              <span class="welcome-setup-field-name" id="welcome-setup-start-label">
-                {t("welcome.start.title")}
-              </span>
-              {startChooser()}
-              <p class="welcome-setup-hint">{t("welcome.start.defaults")}</p>
-            </div>
-
-            {/* El asistente ya no pregunta por el proveedor: siempre abre sus ajustes al terminar,
-                así que hay que decirlo antes de pulsar Finalizar. */}
-            <p class="welcome-setup-note">
-              <Icon name="settings-gear" size="small" />
-              <span>{t("welcome.provider.autoOpen")}</span>
-            </p>
-          </div>
-        </Show>
-      </div>
-
-      <div class="welcome-setup-footer">
-        <Show when={step() > 1} fallback={<span />}>
-          <ButtonV2 variant="ghost-muted" icon="arrow-left" onClick={goBack} disabled={finishing()}>
-            {t("welcome.back")}
-          </ButtonV2>
-        </Show>
-
-        <div class="welcome-setup-footer-actions">
-          {/* Al confirmar no hay nada que omitir: el único botón ya termina. */}
-          <Show when={!confirming() && step() < totalSteps()}>
-            <ButtonV2 variant="ghost-muted" onClick={() => void handleFinish()} disabled={finishing()}>
-              {t("welcome.skip")}
+        <footer class="welcome-setup-footer">
+          <Show when={step() > 0} fallback={<span />}>
+            <ButtonV2 variant="ghost-muted" icon="arrow-left" onClick={() => go(step() - 1)} disabled={finishing()}>
+              {t("welcome.back")}
             </ButtonV2>
           </Show>
-          <ButtonV2
-            variant="contrast"
-            icon={step() === totalSteps() ? "check" : undefined}
-            onClick={goNext}
-            disabled={finishing()}
-          >
-            {confirming()
-              ? t("welcome.confirm.done")
-              : step() === totalSteps()
-                ? t("welcome.finish")
-                : t("welcome.next")}
-          </ButtonV2>
-        </div>
-      </div>
+          <div class="welcome-setup-footer-actions">
+            <Show when={!last()}>
+              <ButtonV2 variant="ghost-muted" onClick={() => void handleFinish()} disabled={finishing()}>
+                {firstRun() ? t("welcome.skip") : t("welcome.confirm.done")}
+              </ButtonV2>
+            </Show>
+            <ButtonV2
+              variant="contrast"
+              icon={last() ? "check" : undefined}
+              onClick={() => (last() ? void handleFinish() : go(step() + 1))}
+              disabled={finishing()}
+            >
+              {last() ? (firstRun() ? t("welcome.finish") : t("welcome.confirm.done")) : t("welcome.next")}
+            </ButtonV2>
+          </div>
+        </footer>
+      </section>
     </div>
+  )
+}
+
+/** One setting: its name and explanation, and the control beside them (or below with `stack`). */
+function WelcomeField(props: ParentProps<{ name: string; hint?: string; stack?: boolean; inline?: boolean }>) {
+  return (
+    <div
+      class="welcome-setup-field"
+      classList={{ "welcome-setup-field--stack": props.stack, "welcome-setup-field--inline": props.inline }}
+    >
+      <span class="welcome-setup-field-text">
+        <span class="welcome-setup-field-name">{props.name}</span>
+        <Show when={props.hint}>
+          <span class="welcome-setup-hint">{props.hint}</span>
+        </Show>
+      </span>
+      <div class="welcome-setup-field-control">{props.children}</div>
+    </div>
+  )
+}
+
+function WelcomeToggle(props: {
+  name: string
+  hint: string
+  checked: boolean
+  disabled?: boolean
+  onChange: (value: boolean) => void
+}) {
+  return (
+    <WelcomeField name={props.name} hint={props.hint} inline>
+      <Switch hideLabel checked={props.checked} disabled={props.disabled} onChange={props.onChange}>
+        {props.name}
+      </Switch>
+    </WelcomeField>
+  )
+}
+
+function WelcomeSegmented<T extends string>(props: {
+  value: T | undefined
+  options: readonly T[]
+  label: (option: T) => string
+  onChange: (value: T) => void
+  aria: string
+}) {
+  return (
+    <SegmentedControlV2
+      value={props.value}
+      onChange={(value) => {
+        const option = props.options.find((item) => item === value)
+        if (option) props.onChange(option)
+      }}
+      aria-label={props.aria}
+    >
+      <For each={props.options}>
+        {(option) => <SegmentedControlItemV2 value={option}>{props.label(option)}</SegmentedControlItemV2>}
+      </For>
+    </SegmentedControlV2>
   )
 }

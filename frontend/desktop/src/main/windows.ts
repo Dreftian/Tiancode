@@ -14,6 +14,7 @@ import {
   type NativeImage,
   nativeTheme,
   protocol,
+  screen,
   session,
   shell,
 } from "electron"
@@ -222,15 +223,19 @@ export function getUiZoom() {
 
 export function setUiZoom(factor: number, source?: BrowserWindow | null) {
   const next = clampZoom(factor)
-  // The scale is chosen in the app's windows. The welcome card shares their host, and Chromium zooms
-  // a host as a whole, so zooming the card alone would resize the app behind the app's back.
-  if (source && !zoomWindows.has(source)) return
+  // The scale is chosen in the app's windows and in the welcome wizard. Other windows (the pet)
+  // share the app's host, and Chromium zooms a host as a whole, so a zoom from one of them would
+  // resize the app behind the user's back.
+  const welcome = getWelcomeWindow()
+  if (source && !zoomWindows.has(source) && source !== welcome) return
   uiZoom = next
   for (const win of BrowserWindow.getAllWindows()) {
     if (!zoomWindows.has(win) || win.isDestroyed() || win.webContents.isDestroyed()) continue
     win.webContents.setZoomFactor(next)
     updateZoom(win)
   }
+  // The wizard shows the scale on itself; on first launch there is no app window to carry it yet.
+  if (welcome && !welcome.webContents.isDestroyed()) welcome.webContents.setZoomFactor(next)
   // A pinch sends dozens of steps a second, and each store write syncs the file to disk on the main
   // thread: only the value the gesture settles on is written.
   clearTimeout(uiZoomWrite)
@@ -312,20 +317,33 @@ export function getWelcomeWindow() {
   return welcomeWindow && !welcomeWindow.isDestroyed() ? welcomeWindow : undefined
 }
 
+// The wizard is 1200×850; on a smaller screen it takes the work area minus a margin and its layout
+// scrolls inside instead of running off the screen. Size and position come from the same display:
+// `center` would centre it on the primary one, which may be smaller than the display it was sized for.
+export function welcomeWindowBounds(workArea: { x: number; y: number; width: number; height: number }) {
+  const width = Math.min(1200, Math.max(workArea.width - 48, Math.min(720, workArea.width)))
+  const height = Math.min(850, Math.max(workArea.height - 48, Math.min(560, workArea.height)))
+  return {
+    x: workArea.x + Math.round((workArea.width - width) / 2),
+    y: workArea.y + Math.round((workArea.height - height) / 2),
+    width,
+    height,
+  }
+}
+
 export function createWelcomeWindow(mode: WelcomeWindowMode = "first") {
   const existing = getWelcomeWindow()
   if (existing) {
     existing.focus()
     return existing
   }
+  const bounds = welcomeWindowBounds(screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea)
   const win = new BrowserWindow({
-    width: 660,
-    height: 680,
+    ...bounds,
     resizable: false,
     maximizable: false,
     minimizable: false,
     fullscreenable: false,
-    center: true,
     show: false,
     frame: false,
     transparent: true,

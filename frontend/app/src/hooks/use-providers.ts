@@ -12,6 +12,7 @@ import { selectProviderCatalog } from "./provider-catalog"
 export const popularProviders = [
   "tiancode",
   "tiancode-go",
+  "opencode",
   "local",
   "anthropic",
   "github-copilot",
@@ -25,6 +26,19 @@ export const popularProviders = [
   "vercel",
 ]
 const popularProviderSet = new Set(popularProviders)
+
+/**
+ * Providers that can be connected with nothing but their free models: Tiancode's console and
+ * OpenCode Zen through Ajustes › Proveedores › Modelos gratuitos. Connected that way they are not
+ * a paid provider, and their free models carry the "free" tag in the model pickers.
+ */
+export function isFreeTierProvider(id: string) {
+  return id === "tiancode" || id === "opencode"
+}
+
+export function isFreeModel(providerID: string, cost: { input: number; output?: number } | undefined) {
+  return isFreeTierProvider(providerID) && (!cost || (cost.input === 0 && !cost.output))
+}
 
 const DEFAULT_FALLBACK_PROVIDERS: Record<string, Provider> = {
   openai: {
@@ -235,7 +249,7 @@ export function useProviders(directory: Accessor<string | undefined>) {
           providers().all,
           ([id]) =>
             connected.has(id) &&
-            (id !== "tiancode" || Object.values(providers().all.get(id)?.models ?? {}).some((m) => m.cost?.input)),
+            (!isFreeTierProvider(id) || Object.values(providers().all.get(id)?.models ?? {}).some((m) => m.cost?.input)),
         ),
       ]
       return paid

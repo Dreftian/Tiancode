@@ -3,13 +3,14 @@ import { Tag } from "@tiancode-ai/ui/v2/badge-v2"
 import { useDialog } from "@tiancode-ai/ui/context/dialog"
 import { ProviderIcon } from "@tiancode-ai/ui/provider-icon"
 import { showToast } from "@/utils/toast"
-import { clearProviderPending, markProviderPending, popularProviders, useProviders } from "@/hooks/use-providers"
+import { clearProviderPending, isFreeTierProvider, markProviderPending, popularProviders, useProviders } from "@/hooks/use-providers"
 import { createMemo, type Accessor, type Component, For, Show } from "solid-js"
 import { useLanguage } from "@/context/language"
 import { useServerProtocol, useServerSDK } from "@/context/server-sdk"
 import { useServerSync } from "@/context/server-sync"
 import { DialogConnectProvider, useProviderConnectController } from "../dialogs/dialog-connect-provider"
 import { DialogCustomProvider } from "../dialogs/dialog-custom-provider"
+import { SettingsFreeModelsV2 } from "./free-models"
 import { SettingsListV2 } from "./parts/list"
 import { disconnectProvider } from "@/utils/provider-disconnect"
 import { createStore } from "solid-js/store"
@@ -92,7 +93,7 @@ export const SettingsProvidersV2: Component<{
     // the pending overlay lives in useProviders so this panel and the model picker agree.
     return providers
       .connected()
-      .filter((p) => p.id !== "tiancode" || Object.values(p.models).find((m) => m.cost?.input))
+      .filter((p) => !isFreeTierProvider(p.id) || Object.values(p.models).find((m) => m.cost?.input))
   })
 
   const popular = createMemo(() => {
@@ -174,6 +175,8 @@ export const SettingsProvidersV2: Component<{
       </div>
 
       <div class="settings-v2-tab-body settings-v2-providers">
+        <SettingsFreeModelsV2 directory={props.directory} />
+
         <div class="settings-v2-section" data-component="connected-providers-section">
           <h3 class="settings-v2-section-title">{language.t("settings.providers.section.connected")}</h3>
           <SettingsListV2>

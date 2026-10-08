@@ -54,7 +54,8 @@ type Direction = (typeof DIRECTIONS)[number]
 type Reaction = (typeof REACTIONS)[number]
 
 // What the character is doing on its own: idle follows the pointer, the others play a loop.
-export type MascotMood = "idle" | "thinking" | "writing" | "waiting" | "blocked" | "sleepy"
+// `running` is a command in progress (Shell): quick glances side to side while it works.
+export type MascotMood = "idle" | "thinking" | "writing" | "running" | "waiting" | "blocked" | "sleepy"
 
 // Clockwise from the right, matching atan2 with y pointing down.
 const CLOCKWISE: Direction[] = ["right", "down-right", "down", "down-left", "left", "up-left", "up", "up-right"]
@@ -153,6 +154,20 @@ export function Mascot(props: {
         later(2400, () => blink(wonder))
       }
       wonder()
+      return
+    }
+    if (current === "running") {
+      let ticks = 0
+      const watch = () => {
+        setDirection(++ticks % 2 ? "down-left" : "down-right")
+        if (ticks % 8 !== 0) return later(320, watch)
+        setReaction("wink")
+        later(420, () => {
+          setReaction(null)
+          watch()
+        })
+      }
+      watch()
       return
     }
     if (current === "thinking") {

@@ -145,6 +145,8 @@ export interface Settings {
     designStyle: import("@/utils/design-style").DesignStyle
     clearResponses: boolean
     petEnabled: boolean
+    /** The chosen pet beside the chat's working steps (thinking, editing, Shell…), even with the companion off. */
+    petInChat: boolean
     petDesktop: boolean
     petDisplay: PetDisplay
     petKind: PetKind
@@ -347,6 +349,7 @@ const defaultSettings: Settings = {
     designStyle: "ask",
     clearResponses: false,
     petEnabled: defaultPetSettings.enabled,
+    petInChat: true,
     petDesktop: true,
     petDisplay: "both",
     petKind: defaultPetSettings.kind,
@@ -651,6 +654,10 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         petDisplay: withFallback(() => store.general?.petDisplay, defaultSettings.general.petDisplay),
         setPetDisplay(value: PetDisplay) {
           setStore("general", "petDisplay", value)
+        },
+        petInChat: withFallback(() => store.general?.petInChat, defaultSettings.general.petInChat),
+        setPetInChat(value: boolean) {
+          setStore("general", "petInChat", value)
         },
         petDesktop: withFallback(() => store.general?.petDesktop, defaultSettings.general.petDesktop),
         setPetDesktop(value: boolean) {

@@ -137,6 +137,16 @@ export const SettingsPetsV2: Component<{ active?: boolean }> = (props) => {
         </section>
 
         <SettingsListV2>
+          <SettingsRowV2 title={language.t("welcome.petStatus.label")} description={language.t("welcome.petStatus.desc")}>
+            <Switch
+              hideLabel
+              data-action="settings-pet-in-chat"
+              checked={settings.general.petInChat()}
+              onChange={(checked) => settings.general.setPetInChat(checked)}
+            >
+              {language.t("welcome.petStatus.label")}
+            </Switch>
+          </SettingsRowV2>
           <SettingsRowV2
             title={language.t("settings.pets.display.title")}
             description={

@@ -7,7 +7,7 @@ import { Tag } from "@tiancode-ai/ui/tag"
 import { Tooltip } from "@tiancode-ai/ui/tooltip"
 import { type Component, Show } from "solid-js"
 import { useLocal } from "@/context/local"
-import { popularProviders, useProviders } from "@/hooks/use-providers"
+import { isFreeModel, popularProviders, useProviders } from "@/hooks/use-providers"
 import { ModelTooltip } from "../model-tooltip"
 import { useLanguage } from "@/context/language"
 import { decode64 } from "@/utils/base64"
@@ -61,7 +61,7 @@ export const DialogSelectModelUnpaid: Component<{ model?: ModelState }> = (props
                 <ModelTooltip
                   model={item}
                   latest={item.latest}
-                  free={item.provider.id === "tiancode" && (!item.cost || item.cost.input === 0)}
+                  free={isFreeModel(item.provider.id, item.cost)}
                 />
               }
             >

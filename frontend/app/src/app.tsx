@@ -55,6 +55,8 @@ import { ServerSDKProvider } from "@/context/server-sdk"
 import { ServerSyncProvider, useServerSync } from "@/context/server-sync"
 import { GlobalProvider, useGlobal } from "@/context/global"
 import { StartModeRunner } from "@/components/start-mode"
+import { PendingFreeModelsRunner } from "@/components/settings-v2/free-models"
+import { StatusPetProvider } from "@/components/pet/status-pet-provider"
 import { HighlightsProvider } from "@/context/highlights"
 import { LanguageProvider, type Locale, useLanguage } from "@/context/language"
 import { LayoutProvider } from "@/context/layout"
@@ -637,10 +639,11 @@ function ConnectionGate(props: ParentProps<{ disableHealthCheck?: boolean; start
             comparación sobra y no puede volver a desincronizarse.
           */
           <div
-            class="fixed inset-0 z-[99998] w-full h-full flex items-center justify-center p-4 select-none overflow-hidden transition-colors duration-200"
+            class="fixed inset-0 z-[99998] w-full h-full flex items-center justify-center select-none overflow-hidden transition-colors duration-200"
             classList={{
-              // Standalone card: the window itself is transparent, nothing behind the card.
-              "bg-transparent": standaloneWelcome,
+              // Standalone card: the window itself is transparent and exactly the card's size.
+              "bg-transparent p-0": standaloneWelcome,
+              "p-4": !standaloneWelcome,
               // First setup inside the web build: the theme's deep background.
               "bg-v2-background-bg-deep": !standaloneWelcome && mode === "first-run",
               // Review or upgrade: a dimmed, blurred app behind a modal card.
@@ -747,6 +750,7 @@ export function AppInterface(props: {
     >
       <GlobalProvider>
         <SettingsProvider>
+          <StatusPetProvider>
           <FileComponentProvider component={SettingsFile}>
             <ConnectionGate disableHealthCheck={props.disableHealthCheck} startup={props.startup}>
               <Show when={useSettings().general.newLayoutDesigns().toString()} keyed>
@@ -758,6 +762,7 @@ export function AppInterface(props: {
                         <NotificationProvider>
                           <ServerShell>
                             <StartModeRunner />
+                            <PendingFreeModelsRunner />
                             <Show when={useSettings().general.newLayoutDesigns()} fallback={routerProps.children}>
                               <NewAppLayout serverScoped={props.serverScoped}>{routerProps.children}</NewAppLayout>
                             </Show>
@@ -772,6 +777,7 @@ export function AppInterface(props: {
               </Show>
             </ConnectionGate>
           </FileComponentProvider>
+          </StatusPetProvider>
         </SettingsProvider>
       </GlobalProvider>
     </ServerProvider>

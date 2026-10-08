@@ -11,6 +11,7 @@ import { useModels } from "@/context/models"
 import { useServerSDK } from "@/context/server-sdk"
 import { popularProviders } from "@/hooks/use-providers"
 import { Persist, persisted } from "@/utils/persist"
+import { SettingsFreeModelsSwitchV2 } from "./free-models"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
 import "./settings-v2.css"
@@ -82,6 +83,9 @@ export const SettingsModelsV2: Component = () => {
       </div>
 
       <div class="settings-v2-tab-body settings-v2-models">
+        <Show when={!list.filter()}>
+          <SettingsFreeModelsSwitchV2 />
+        </Show>
         <Show
           when={!list.grouped.loading}
           fallback={

@@ -105,7 +105,7 @@ import { TerminalPanel } from "@/pages/session/terminal-panel"
 import { TerminalPanelV2 } from "@/pages/session/terminal-panel-v2"
 import { setLiveViewManagedTarget } from "@/pages/session/live-view-target"
 import { useLiveViewAutoOpen } from "@/pages/session/live-view-auto-open"
-import { liveViewNavigateRequest, requestLiveViewNavigation } from "@/pages/session/live-view-navigate"
+import { requestLiveViewNavigation, useLiveViewNavigation } from "@/pages/session/live-view-navigate"
 import { setPreviewPanelOpen } from "@/components/preview/preview-panel"
 import { useComposerCommands } from "@/pages/session/use-composer-commands"
 import { useSessionCommands } from "@/pages/session/use-session-commands"
@@ -1140,15 +1140,15 @@ export default function Page() {
     const unsubscribe = platform.onLiveViewNavigate?.((url) => requestLiveViewNavigation(url))
     if (unsubscribe) onCleanup(unsubscribe)
   })
-  createEffect(() => {
-    const request = liveViewNavigateRequest()
-    if (!request || !params.id) return
-    if (!newSessionDesign()) return
-    setPreviewPanelOpen(false)
-    view().liveView.setTab("preview")
-    view().liveView.open()
-    const directory = sdk().directory
-    if (directory && directory !== "main") setLiveViewManagedTarget({ directory, url: request.url })
+  useLiveViewNavigation({
+    enabled: () => !!params.id && newSessionDesign(),
+    open: (url) => {
+      setPreviewPanelOpen(false)
+      view().liveView.setTab("preview")
+      view().liveView.open()
+      const directory = sdk().directory
+      if (directory && directory !== "main") setLiveViewManagedTarget({ directory, url })
+    },
   })
 
   useComposerCommands()

@@ -302,6 +302,28 @@ export function custom(dep: CustomDep): Record<string, CustomLoader> {
         options: ok ? {} : { apiKey: "public" },
       }
     }),
+    // OpenCode Zen. With a key it is an ordinary provider. Without one, Ajustes › Proveedores ›
+    // Modelos gratuitos (`free_models`) offers its free models through Zen's public key; the list
+    // is whatever the catalog says today, so it follows Zen's changes. Requests keep identifying as
+    // Tiancode: Zen gives clients other than OpenCode a smaller free quota and refuses some free
+    // models outright, and that decision is Zen's to make.
+    opencode: Effect.fnUntraced(function* (input: Info) {
+      const env = yield* dep.env()
+      const cfg = yield* dep.config()
+      const keyed =
+        input.env.some((item) => env[item]) ||
+        Boolean(yield* dep.auth(input.id)) ||
+        Boolean(cfg.provider?.["opencode"]?.options?.apiKey)
+      if (keyed || cfg.free_models !== true) return { autoload: false }
+
+      // The name opencode gives Zen's keyless group, so the free models read the same in both apps.
+      input.name = "OpenCode Free"
+      for (const [key, value] of Object.entries(input.models)) {
+        if (value.cost.input === 0 && value.cost.output === 0) continue
+        delete input.models[key]
+      }
+      return { autoload: Object.keys(input.models).length > 0, options: { apiKey: "public" } }
+    }),
     local: () =>
       Effect.succeed({
         autoload: true,

@@ -215,6 +215,18 @@
   padding: 4px;
 }
 
+/* A lone switch fits beside its title at any panel width (Ajustes › Modelos lists dozens of them);
+   only wider controls drop below the text in a narrow panel. */
+[data-component="settings-v2-row"]:has(> [data-slot="settings-v2-row-control"] > [data-component="switch"]:only-child),
+[data-component="settings-v2-row"]:has(> [data-slot="settings-v2-row-control"] > div:only-child > [data-component="switch"]:only-child) {
+  flex-wrap: nowrap;
+}
+[data-slot="settings-v2-row-control"]:has(> [data-component="switch"]:only-child),
+[data-slot="settings-v2-row-control"]:has(> div:only-child > [data-component="switch"]:only-child) {
+  width: auto;
+  flex: none;
+}
+
 @container settings-panel (min-width: 640px) {
   [data-slot="settings-v2-row-control"] {
     width: auto;
@@ -2792,4 +2804,43 @@
 
 .settings-v2-about-inline-link:hover {
   color: var(--v2-text-text-accent);
+}
+
+/* Proveedores › Modelos gratuitos: the same card as the provider lists, plus the live model list. */
+.settings-v2-free-models {
+  display: flex;
+  flex-direction: column;
+  padding: 0 20px 14px;
+  border-radius: 8px;
+  background-color: var(--v2-background-bg-layer-01);
+  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
+  gap: 10px;
+}
+
+.settings-v2-free-models-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.settings-v2-free-models-chip {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background-color: var(--v2-background-bg-layer-02);
+  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-base);
+  color: var(--v2-text-text-base);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.settings-v2-free-models-note {
+  margin: 0;
+  color: var(--v2-text-text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.settings-v2-free-models--compact {
+  margin-bottom: 8px;
+  padding-bottom: 0;
 }

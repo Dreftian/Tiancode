@@ -58,6 +58,8 @@ type FilePart = {
 }
 
 const ATTACH_FILE_MAX_BYTES = 10 * 1024 * 1024
+// Longest provider back-off a one-shot `run` waits through before it stops and reports the limit.
+const RUN_MAX_RETRY_WAIT = 2 * 60 * 1000
 
 type Inline = {
   icon: string
@@ -798,6 +800,29 @@ export const RunCommand = effectCmd({
               event.properties.status.type === "idle"
             ) {
               break
+            }
+
+            // A provider limit puts the session into retry, sometimes for most of an hour (Zen's free
+            // tier answers with its retry-after). A one-shot run says so, and gives up on long waits
+            // instead of sitting silent until the caller kills it.
+            if (
+              event.type === "session.status" &&
+              event.properties.sessionID === sessionID &&
+              event.properties.status.type === "retry"
+            ) {
+              const status = event.properties.status
+              const wait = Math.max(0, status.next - Date.now())
+              if (!emit("retry", { attempt: status.attempt, message: status.message, next: status.next })) {
+                UI.println(
+                  UI.Style.TEXT_WARNING_BOLD + "!",
+                  UI.Style.TEXT_NORMAL + `${status.message} (retry ${status.attempt} in ${Math.ceil(wait / 1000)}s)`,
+                )
+              }
+              if (wait > RUN_MAX_RETRY_WAIT) {
+                await client.session.abort({ sessionID }).catch(() => undefined)
+                error = error ? error + EOL + status.message : status.message
+                break
+              }
             }
 
             if (event.type === "permission.asked") {

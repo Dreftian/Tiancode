@@ -26,6 +26,7 @@ import { TextReveal } from "@tiancode-ai/ui/text-reveal"
 import { createAutoScroll } from "@tiancode-ai/ui/hooks"
 import { useI18n } from "@tiancode-ai/ui/context/i18n"
 import { normalize } from "./session-diff"
+import { StatusPet } from "../context/status-pet"
 
 function record(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value)
@@ -421,6 +422,7 @@ export function SessionTurn(
               </Show>
               <Show when={showThinking()}>
                 <div data-slot="session-turn-thinking">
+                  <StatusPet mood="thinking" size={24} />
                   <TextShimmer text={i18n.t("ui.sessionTurn.status.thinking")} />
                   <Show when={!showReasoningSummaries()}>
                     <TextReveal

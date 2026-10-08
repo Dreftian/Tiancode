@@ -71,6 +71,10 @@ export const Info = Schema.Struct({
   enabled_providers: Schema.optional(Schema.mutable(Schema.Array(Schema.String))).annotate({
     description: "When set, ONLY these providers will be enabled. All other providers will be ignored",
   }),
+  free_models: Schema.optional(Schema.Boolean).annotate({
+    description:
+      "Offer OpenCode Zen's free models without an API key, through Zen's public access. The list follows the models catalog",
+  }),
   model: Schema.optional(Schema.String).annotate({
     description: "Model to use in the format of provider/model, eg anthropic/claude-2",
   }),

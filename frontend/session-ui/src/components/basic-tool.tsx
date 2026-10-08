@@ -6,7 +6,8 @@ import { createStore } from "solid-js/store"
 import { Collapsible } from "@tiancode-ai/ui/collapsible"
 import type { IconProps } from "@tiancode-ai/ui/icon"
 import { TextShimmer } from "@tiancode-ai/ui/text-shimmer"
-import { Mascot } from "@tiancode-ai/ui/mascot"
+import type { MascotMood } from "@tiancode-ai/ui/mascot"
+import { StatusPet } from "../context/status-pet"
 
 export type TriggerTitle = {
   title: string
@@ -26,6 +27,8 @@ const isTriggerTitle = (val: any): val is TriggerTitle => {
 
 export interface BasicToolProps {
   icon: IconProps["name"]
+  /** What the pet beside the running step does: explore, write, run a command… Writes by default. */
+  mood?: MascotMood
   trigger: TriggerTitle | JSX.Element | ((open: Accessor<boolean>) => JSX.Element)
   children?: JSX.Element
   status?: string
@@ -193,7 +196,7 @@ export function BasicTool(props: BasicToolProps) {
       <div data-slot="basic-tool-tool-trigger-content">
         <Show when={pending()}>
           <span data-slot="basic-tool-working-mascot" aria-hidden="true">
-            <Mascot name="cat" size={22} mood="writing" track={false} />
+            <StatusPet mood={props.mood ?? "writing"} />
           </span>
         </Show>
         <div data-slot="basic-tool-tool-info">

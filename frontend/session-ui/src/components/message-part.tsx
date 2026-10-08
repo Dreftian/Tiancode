@@ -37,7 +37,7 @@ import { useDialog } from "@tiancode-ai/ui/context/dialog"
 import { type UiI18n, useI18n } from "@tiancode-ai/ui/context/i18n"
 import { BasicTool, GenericTool } from "./basic-tool"
 import { toolDisplay } from "./tool-display"
-import { Mascot } from "@tiancode-ai/ui/mascot"
+import { StatusPet } from "../context/status-pet"
 import { Accordion } from "@tiancode-ai/ui/accordion"
 import { StickyAccordionHeader } from "@tiancode-ai/ui/sticky-accordion-header"
 import { Collapsible } from "@tiancode-ai/ui/collapsible"
@@ -1233,6 +1233,11 @@ export function ContextToolGroup(props: {
             data-slot="context-tool-group-title"
             class="min-w-0 flex items-center gap-2 text-14-medium text-text-strong"
           >
+            <Show when={pending()}>
+              <span data-slot="basic-tool-working-mascot" aria-hidden="true">
+                <StatusPet mood="thinking" />
+              </span>
+            </Show>
             <span data-slot="context-tool-group-label" class="shrink-0">
               <ToolStatusTitle
                 active={pending()}
@@ -1526,7 +1531,7 @@ export function SubagentRow(props: {
           {/* The working mascot while the sub-agent runs; its own mark once it is done */}
           <span class="subagent-avatar" data-running={isRunning() || undefined}>
             <Show when={isRunning()} fallback={agent().icon ?? "🤖"}>
-              <Mascot name="cat" size={22} mood="writing" track={false} />
+              <StatusPet mood="thinking" />
             </Show>
           </span>
 
@@ -2244,6 +2249,7 @@ ToolRegistry.register({
     return (
       <>
         <BasicTool
+          mood="thinking"
           {...props}
           icon="glasses"
           trigger={{
@@ -2273,6 +2279,7 @@ ToolRegistry.register({
     const i18n = useI18n()
     return (
       <BasicTool
+        mood="thinking"
         {...props}
         icon="bullet-list"
         trigger={{ title: i18n.t("ui.tool.list"), subtitle: getDirectory(props.input.path || "/") }}
@@ -2299,6 +2306,7 @@ ToolRegistry.register({
     const i18n = useI18n()
     return (
       <BasicTool
+        mood="thinking"
         {...props}
         icon="magnifying-glass-menu"
         trigger={{
@@ -2332,6 +2340,7 @@ ToolRegistry.register({
     if (props.input.include) args.push("include=" + props.input.include)
     return (
       <BasicTool
+        mood="thinking"
         {...props}
         icon="magnifying-glass-menu"
         trigger={{
@@ -2368,6 +2377,7 @@ ToolRegistry.register({
     })
     return (
       <BasicTool
+        mood="thinking"
         {...props}
         hideDetails
         icon="window-cursor"
@@ -2415,6 +2425,7 @@ ToolRegistry.register({
 
     return (
       <BasicTool
+        mood="thinking"
         {...props}
         icon="window-cursor"
         trigger={{
@@ -2485,6 +2496,7 @@ ToolRegistry.register({
 
     return (
       <BasicTool
+        mood="running"
         {...props}
         icon="console"
         allowOpenWhilePending
@@ -2981,6 +2993,7 @@ ToolRegistry.register({
 
     return (
       <BasicTool
+        mood="waiting"
         {...props}
         defaultOpen={completed()}
         icon="bubble-5"
@@ -3028,6 +3041,6 @@ ToolRegistry.register({
       </div>
     )
 
-    return <BasicTool icon="brain" status={props.status} trigger={trigger()} hideDetails />
+    return <BasicTool mood="thinking" icon="brain" status={props.status} trigger={trigger()} hideDetails />
   },
 })
