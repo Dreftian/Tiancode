@@ -8,12 +8,12 @@
 
 Sitio oficial de ZenithAI para Tiancode: la app de escritorio para Windows y el CLI para Windows, macOS y Linux. La cabecera del sitio lleva la marca ZenithAI; el producto es Tiancode.
 
-[Sitio publicado](https://tiancode.vercel.app/) · [Código de la app](https://github.com/Dreftian/Tiancode) · [Tiancode 1.0.8](https://github.com/Dreftian/Tiancode/releases/tag/v1.0.8)
+[Sitio publicado](https://tiancode.vercel.app/) · [Código de la app](https://github.com/Dreftian/Tiancode) · [Tiancode 1.0.0](https://github.com/Dreftian/Tiancode/releases/tag/v1.0.0)
 
 ## Cómo está hecho
 
 - **Portada astral:** `js/galaxy.js` dibuja el logo de partículas TIANCODE en un canvas a pantalla completa.
-- **Cabecera única:** marca ZenithAI, píldora de secciones centrada (con iconos, solo texto o solo iconos según el ancho) y el botón **Descargar v1.0.8** con su menú de instalación (Tiancode.exe, portable y los comandos `curl`, PowerShell, npm, bun y Homebrew con copia en un clic).
+- **Cabecera única:** marca ZenithAI, píldora de secciones centrada (con iconos, solo texto o solo iconos según el ancho) y el botón **Descargar v1.0.0** con su menú de instalación (Tiancode.exe, portable y los comandos `curl`, PowerShell, npm, bun y Homebrew con copia en un clic).
 - **Universo:** `js/universe.js` gestiona el salto astral y los paneles (Visión general, Capacidades, La app, Novedades, Arquitectura, Skills, Descargar, FAQ); la misma píldora de la cabecera marca el panel activo. `css/universe.css` los estiliza.
 - **Instaladores:** `install` (bash, macOS y Linux) e `install.ps1` (PowerShell) descargan el binario del CLI desde la release de GitHub; `vercel.json` los sirve como texto plano.
 - **La app:** galería 3D con capturas reales en `img/app/*.webp` y puntos de interés definidos en `js/universe.js`.
@@ -28,7 +28,7 @@ python -m http.server 4182 --directory .
 
 ## Caché
 
-Los archivos CSS y JS se enlazan con `?v=1.0.8-r1`; al publicar cambios hay que subir ese sufijo para que los navegadores dejen de usar la copia en caché (Vercel los cachea una hora).
+Los archivos CSS y JS se enlazan con `?v=1.0.0-b1007`; al publicar cambios hay que subir ese sufijo para que los navegadores dejen de usar la copia en caché (Vercel los cachea una hora).
 
 ## Descargas de la app
 
@@ -37,11 +37,11 @@ Los archivos CSS y JS se enlazan con `?v=1.0.8-r1`; al publicar cambios hay que 
 - [Notas y archivos de cada versión](https://github.com/Dreftian/Tiancode/releases)
 
 Los archivos de la publicación incluyen huellas SHA-256. El actualizador usa `latest.yml`, que contiene el tamaño y SHA-512 del instalador.
-## Uso visual de la PC · 1.0.8
+## Uso visual de la PC · 1.0.0
 
 Sitio público de [Tiancode](https://github.com/Dreftian/Tiancode), disponible en [tiancode.vercel.app](https://tiancode.vercel.app/). Esta publicación documenta el control visual de Windows inspirado en UI-TARS: observar, actuar y verificar con el modelo de la conversación, capturas y controles accesibles, selección de monitor y luz azul durante el control.
 
-La [guía de Uso de la PC](https://tiancode.vercel.app/recursos/docs.html#pc-control) explica cómo seleccionar un modelo con visión y herramientas, configurar los permisos y detener el control. La imagen muestra una prueba real del operador de Tiancode en una aplicación aislada. Las [novedades de 1.0.8](https://tiancode.vercel.app/recursos/novedades.html) conservan el historial anterior; las [descargas](https://tiancode.vercel.app/recursos/descargas.html) apuntan a la nueva versión predeterminada.
+La [guía de Uso de la PC](https://tiancode.vercel.app/recursos/docs.html#pc-control) explica cómo seleccionar un modelo con visión y herramientas, configurar los permisos y detener el control. La imagen muestra una prueba real del operador de Tiancode en una aplicación aislada. Las [novedades de 1.0.0](https://tiancode.vercel.app/recursos/novedades.html) conservan el historial anterior; las [descargas](https://tiancode.vercel.app/recursos/descargas.html) apuntan a la nueva versión predeterminada.
 
 El control nativo requiere Windows. No se instalan pesos de UI-TARS ni sus servicios remotos o Android. El CLI de Tiancode sigue disponible en Windows, macOS y Linux. La actualización conserva claves, sesiones y configuración existentes.
 

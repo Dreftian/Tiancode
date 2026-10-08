@@ -4,6 +4,47 @@ Todas las versiones notables de Tiancode se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.0] — 2026-10-07
+
+La numeración vuelve a empezar en 1.0.0 en la app, el CLI, la web y GitHub. Esta versión reúne
+todo lo publicado entre 1.0.1 y 1.0.8 (Descubrir, conectores, uso visual de Windows, modelos
+locales, Inteligencia, CLI multiplataforma) y añade lo siguiente.
+
+La vista previa ya se puede cerrar: la petición que abre el Sandbox (un enlace a un servidor local
+o «Abrir en el Sandbox») se usa una sola vez, así que cerrar el panel no lo vuelve a abrir en
+bucle, ni con una web ni con una app. Cerrarlo mientras el agente mira la página tampoco lo
+reabre al instante.
+
+Modelos gratuitos de OpenCode: un interruptor en Ajustes › Proveedores, en Ajustes › Modelos y en
+el asistente de bienvenida activa el grupo «OpenCode Free» (Big Pickle, Exo, Fledge Alpha, Ling,
+LongCat, MiMo, Muse Spark, Nemotron, Space Bunny…), con un interruptor por modelo para elegir
+cuáles aparecen en el selector. La lista sale del catálogo de OpenCode y se renueva cada hora, así
+que sigue sus altas y bajas. Viene apagado y no cambia nada a quien no lo active. Tiancode se
+identifica como Tiancode: Zen limita el uso gratuito desde apps que no son OpenCode, y al llegar
+al límite lo dice y ofrece conectar una clave de OpenCode Zen.
+
+El asistente de bienvenida mide 1200×850 (menos en pantallas pequeñas) y tiene seis pasos con
+barra lateral: idioma y tema; interfaz (escala de 80 % a 120 % aplicada al momento, tamaño y
+ancho de la conversación con vista previa); pestañas, terminal y vista previa; línea de tiempo y
+mensajes durante una respuesta; modelos gratuitos; y qué se abre al iniciar. Se adapta a ventanas
+estrechas y a móvil, y desde Ajustes se puede repasar con lo ya guardado.
+
+La mascota acompaña al modelo en el chat: aparece junto a Pensando, Explorando, Editar, Escribir,
+Shell, preguntas y sub-agentes, con la expresión de lo que hace (piensa, escribe, ejecuta o
+espera), y usa la mascota elegida en Ajustes › Mascotas, donde «Mascota en el chat» la apaga.
+
+De opencode 1.18.35: las imágenes de los resultados de herramientas llegan a xAI y los formatos que
+xAI rechaza (GIF) se omiten en vez de hacer fallar la petición (`@ai-sdk/xai` 3.0.139);
+`gitlab-ai-provider` 6.19.0.
+
+CLI: `tiancode run` avisa de los reintentos del proveedor y, si la espera supera dos minutos, se
+detiene con el motivo y código de salida 1 en lugar de quedarse en silencio. El aviso de límite
+gratuito nombra OpenCode Go. En Ajustes, una fila con solo un interruptor ya no salta de línea en
+paneles estrechos.
+
+La actualización conserva claves de proveedores, ajustes, sesiones, copias de seguridad y
+autenticación MCP.
+
 ## [1.0.8] — 2026-10-03
 
 Uso visual de Windows inspirado en UI-TARS: capturas adjuntas para el modelo, contexto de UI Automation, enumeración y activación de ventanas, arrastre nativo, clics, escritura Unicode, atajos y desplazamiento en un punto. Coordenadas de captura y normalizadas se convierten al monitor físico seleccionado; se rechazan observaciones consumidas o con una ventana o monitor distintos.
