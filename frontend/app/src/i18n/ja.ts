@@ -2522,7 +2522,7 @@ export const dict = {
   "settings.modelsHub.reason.exceeds_memory": "このマシンのメモリを超えています。非常に遅くなるか失敗する可能性があります。",
   "settings.modelsHub.size.unknown": "計算中…",
   "welcome.start.code": "コード",
-  "welcome.start.code.desc": "起動時にフォルダーを選び、その中でコーディングセッションを始めます。",
+  "welcome.start.code.desc": "前回のプロジェクトで新しいコーディングセッションを開きます。フォルダーを尋ねるのは初回だけです。",
   "welcome.start.every": "Tiancode を開くたびに適用されます。ここでいつでも変更できます。",
   "settings.modelsHub.auto.limits.title": "自動設定の上限",
   "settings.modelsHub.auto.limits.description": "各リソースをモデルがどれだけ使えるか。VRAM を下げると層を RAM に振り分け（GPU + RAM）、PC が軽くなります。CPU を下げるとコアに余裕ができます。",

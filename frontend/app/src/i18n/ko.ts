@@ -2491,7 +2491,7 @@ export const dict = {
   "settings.modelsHub.reason.exceeds_memory": "이 PC의 메모리를 초과합니다. 매우 느리거나 실패할 수 있습니다.",
   "settings.modelsHub.size.unknown": "계산 중…",
   "welcome.start.code": "코드",
-  "welcome.start.code.desc": "열 때 폴더를 선택하고 그 안에서 코딩 세션을 시작합니다.",
+  "welcome.start.code.desc": "마지막 프로젝트에서 새 코딩 세션을 엽니다. 폴더는 처음 한 번만 묻습니다.",
   "welcome.start.every": "Tiancode를 열 때마다 적용됩니다. 언제든 여기서 바꿀 수 있습니다.",
   "settings.modelsHub.auto.limits.title": "자동 구성 한도",
   "settings.modelsHub.auto.limits.description": "모델이 각 리소스를 얼마나 사용할 수 있는지입니다. VRAM을 낮추면 레이어가 RAM으로 분산되어(GPU + RAM) PC가 더 원활해지고, CPU를 낮추면 코어가 남습니다.",

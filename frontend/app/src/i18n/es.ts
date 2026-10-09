@@ -2891,7 +2891,7 @@ export const dict = {
   "settings.modelsHub.reason.exceeds_memory": "Supera la memoria de este equipo: puede ir muy lento o fallar.",
   "settings.modelsHub.size.unknown": "calculando…",
   "welcome.start.code": "Code",
-  "welcome.start.code.desc": "Elige una carpeta al abrir y empieza una sesión de programación en ella.",
+  "welcome.start.code.desc": "Abre tu último proyecto en una sesión de programación nueva; solo pide una carpeta la primera vez.",
   "welcome.start.every": "Se aplica cada vez que abres Tiancode. Puedes cambiarlo aquí cuando quieras.",
   "settings.modelsHub.auto.limits.title": "Límites de la configuración automática",
   "settings.modelsHub.auto.limits.description": "Cuánto puede tomar el modelo de cada recurso. Bajar la VRAM reparte capas a la RAM (GPU + RAM) y deja el equipo más fluido; bajar la CPU deja núcleos libres.",

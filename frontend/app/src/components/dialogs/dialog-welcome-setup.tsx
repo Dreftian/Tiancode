@@ -24,7 +24,6 @@ import {
 import { freeZenModels, PENDING_FREE_MODELS_KEY } from "@/components/settings-v2/free-models"
 import { SettingsTimelineDetailV2 } from "@/components/settings-v2/timeline-detail"
 import { UI_SCALES } from "@/ui-scale"
-import "@/components/settings-v2/settings-v2.css"
 import "./dialog-welcome-setup.css"
 
 /**

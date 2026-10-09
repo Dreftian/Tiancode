@@ -2512,7 +2512,7 @@ export const dict = {
   "settings.modelsHub.reason.exceeds_memory": "超出本机内存：可能非常慢或失败。",
   "settings.modelsHub.size.unknown": "计算中…",
   "welcome.start.code": "代码",
-  "welcome.start.code.desc": "打开时选择文件夹，并在其中开始编程会话。",
+  "welcome.start.code.desc": "在上次的项目中打开新的编程会话；只有第一次会要求选择文件夹。",
   "welcome.start.every": "每次打开 Tiancode 时都会应用。可随时在此更改。",
   "settings.modelsHub.auto.limits.title": "自动配置上限",
   "settings.modelsHub.auto.limits.description": "模型可占用每种资源的比例。降低显存会把部分层放到内存（GPU + 内存），电脑更流畅；降低 CPU 会留出空闲核心。",

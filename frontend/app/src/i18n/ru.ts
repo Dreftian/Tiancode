@@ -2621,7 +2621,7 @@ export const dict = {
   "settings.modelsHub.reason.exceeds_memory": "Превышает память этого компьютера: может работать очень медленно или не запуститься.",
   "settings.modelsHub.size.unknown": "вычисляется…",
   "welcome.start.code": "Код",
-  "welcome.start.code.desc": "Выберите папку при открытии и начните сеанс программирования в ней.",
+  "welcome.start.code.desc": "Открывает последний проект в новом сеансе программирования; папку спрашивает только в первый раз.",
   "welcome.start.every": "Применяется при каждом открытии Tiancode. Изменить можно здесь в любое время.",
   "settings.modelsHub.auto.limits.title": "Пределы автоматической настройки",
   "settings.modelsHub.auto.limits.description": "Сколько каждого ресурса может занять модель. Меньше VRAM — часть слоёв уходит в ОЗУ (GPU + ОЗУ), компьютер остаётся отзывчивым; меньше CPU — свободные ядра.",

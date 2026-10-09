@@ -2739,7 +2739,7 @@ export const dict = {
   "settings.modelsHub.reason.exceeds_memory": "Exceeds this machine's memory: it may be very slow or fail.",
   "settings.modelsHub.size.unknown": "working it out…",
   "welcome.start.code": "Code",
-  "welcome.start.code.desc": "Pick a folder on open and start a coding session inside it.",
+  "welcome.start.code.desc": "Opens your last project in a new coding session; asks for a folder only the first time.",
   "welcome.start.every": "Applied every time Tiancode opens. Change it here whenever you like.",
   "settings.modelsHub.auto.limits.title": "Automatic configuration limits",
   "settings.modelsHub.auto.limits.description": "How much of each resource the model may take. Lowering VRAM moves layers to RAM (GPU + RAM) and keeps the machine responsive; lowering CPU leaves cores free.",

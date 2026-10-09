@@ -27,7 +27,8 @@ const createEmbeddedWebUIBundle = async () => {
   console.log(`Building Web UI to embed in the binary`)
   const appDir = path.join(import.meta.dirname, "../../../frontend/app")
   const dist = path.join(appDir, "dist")
-  await $`TIANCODE_CHANNEL=${Script.channel} bun run --cwd ${appDir} build`
+  // Without the release version the web UI falls back to frontend/app's package version.
+  await $`TIANCODE_CHANNEL=${Script.channel} VITE_TIANCODE_VERSION=${Script.version} bun run --cwd ${appDir} build`
   const files = (await Array.fromAsync(new Bun.Glob("**/*").scan({ cwd: dist })))
     .map((file) => file.replaceAll("\\", "/"))
     .filter((file) => !file.endsWith(".map"))

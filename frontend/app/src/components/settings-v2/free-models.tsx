@@ -9,6 +9,7 @@ import { ServerConnection, useServer } from "@/context/server"
 import { useServerSync } from "@/context/server-sync"
 import { useProviders } from "@/hooks/use-providers"
 import { showToast } from "@/utils/toast"
+import "./free-models.css"
 
 /** Written by the welcome wizard, whose window has no server sync; the main window applies it. */
 export const PENDING_FREE_MODELS_KEY = "tiancode.first_launch.free_models"
