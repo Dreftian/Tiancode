@@ -562,6 +562,13 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
       root.style.setProperty("--transcript-text-scale", transcriptTextScales[text])
     })
 
+    // La escala de la interfaz (zoom de la ventana de escritorio) como variable CSS: Ajustes divide
+    // su tamaño entre ella para medir en pantalla lo mismo que al 100 %; solo cambia su contenido.
+    createEffect(() => {
+      if (typeof document === "undefined") return
+      document.documentElement.style.setProperty("--ui-zoom", String(platform.webviewZoom?.() ?? 1))
+    })
+
     // Reescribe el número heredado al escalón equivalente para que el disco deje
     // de guardar la forma vieja en cuanto el usuario abre la app.
     createEffect(() => {

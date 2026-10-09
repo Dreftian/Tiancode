@@ -27,11 +27,14 @@
    x-large size so master-detail panes (skills, models hub) can show all
    their content without heavy scrolling. The [data-size] attribute outranks
    dialog-v2's x-large rule, which has the same specificity otherwise and won
-   whenever the bundler placed it later (1.0.0 shrank Settings to 980x600). */
+   whenever the bundler placed it later (1.0.0 shrank Settings to 980x600).
+   Sizes and margins are divided by the interface scale (--ui-zoom, desktop
+   only), so the window measures on screen what it measures at 100 % and only
+   its content follows the scale. */
 [data-component="dialog-v2"][data-variant="settings"][data-size] [data-slot="dialog-container"] {
   background: var(--v2-background-bg-base);
-  width: min(calc(100vw - 29px), 1243px);
-  height: min(calc(100vh - 69px), 763px);
+  width: min(calc(100vw - 29px / var(--ui-zoom, 1)), calc(1243px / var(--ui-zoom, 1)));
+  height: min(calc(100vh - 69px / var(--ui-zoom, 1)), calc(763px / var(--ui-zoom, 1)));
   isolation: isolate;
   contain: layout paint;
 }
@@ -39,14 +42,14 @@
 /* Small windows: keep a narrow margin instead of the desktop one so the panels keep their room. */
 @media (max-height: 640px) {
   [data-component="dialog-v2"][data-variant="settings"][data-size] [data-slot="dialog-container"] {
-    height: calc(100vh - 48px);
+    height: calc(100vh - 48px / var(--ui-zoom, 1));
   }
 }
 
 @media (max-width: 639px) {
   [data-component="dialog-v2"][data-variant="settings"][data-size] [data-slot="dialog-container"] {
-    width: calc(100vw - 16px);
-    height: calc(100vh - 56px);
+    width: calc(100vw - 16px / var(--ui-zoom, 1));
+    height: calc(100vh - 56px / var(--ui-zoom, 1));
   }
 }
 
