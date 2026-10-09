@@ -4,7 +4,7 @@
 // uploaded with the same size is kept.
 // Usage: bun tools/script/publish-cli-assets.ts v1.0.0
 import { execFileSync } from "node:child_process"
-import { readdirSync, readFileSync, statSync } from "node:fs"
+import { readdirSync, statSync } from "node:fs"
 import path from "node:path"
 
 const tag = process.argv[2]
@@ -38,27 +38,25 @@ for (const file of readdirSync(dir).sort()) {
 }
 console.log("done")
 
-// A stalled socket once kept an upload open for 25+ minutes with no output, so each attempt has a
-// deadline and a failed attempt's partial asset is removed before trying again.
+// Bun's fetch stalled on the fifth large upload of a run (twice, 30 minutes each) and ignored its
+// AbortSignal, so each upload is a curl process with a hard deadline; the token goes in on stdin,
+// never on the command line. A failed attempt's partial asset is removed before trying again.
 async function upload(file: string, full: string, size: number, stale: number | undefined) {
   const url = release.upload_url.replace(/\{.*\}$/, "") + `?name=${encodeURIComponent(file)}`
   const type = file.endsWith(".zip") ? "application/zip" : file.endsWith(".gz") ? "application/gzip" : "text/plain"
   for (const attempt of [1, 2, 3]) {
     const leftover = attempt === 1 ? stale : await findAsset(file)
     if (leftover) await api(`/releases/assets/${leftover}`, { method: "DELETE" })
-    const done = await api(url, {
-      method: "POST",
-      headers: { "content-type": type, "content-length": String(size) },
-      body: readFileSync(full),
-      signal: AbortSignal.timeout(10 * 60 * 1000),
-    }).then(
-      () => true,
-      (error) => {
-        console.log(`attempt ${attempt} for ${file} failed: ${error instanceof Error ? error.message : error}`)
-        return false
+    const curl = Bun.spawn(
+      ["curl", "-sS", "--fail-with-body", "--max-time", "600", "-o", "-", "-H", "@-", "-H", `Content-Type: ${type}`, "-H", `Content-Length: ${size}`, "--data-binary", `@${full}`, url],
+      {
+        stdin: new Blob([Object.entries(headers).map(([name, value]) => `${name}: ${value}`).join("\n") + "\n"]),
+        stdout: "pipe",
+        stderr: "pipe",
       },
     )
-    if (done) return
+    if ((await curl.exited) === 0) return
+    console.log(`attempt ${attempt} for ${file} failed: ${(await new Response(curl.stderr).text()).trim()}`)
   }
   throw new Error(`Could not upload ${file}`)
 }
