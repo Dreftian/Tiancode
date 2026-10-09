@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="386" viewBox="0 0 920 386" role="img" aria-label="Sesión de ejemplo del CLI de Tiancode">
+  <title>Tiancode CLI</title>
+  <style>
+    text { font: 15.5px 'Cascadia Code', 'JetBrains Mono', Consolas, 'SFMono-Regular', Menlo, monospace; white-space: pre; }
+    .cursor { animation: blink 1s steps(1) infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+  </style>
+  <rect width="920" height="386" rx="14" fill="#0b0d14"/>
+  <rect width="920" height="40" rx="14" fill="#151927"/>
+  <rect y="26" width="920" height="14" fill="#151927"/>
+  <circle cx="24" cy="20" r="6" fill="#ff5f57"/>
+  <circle cx="44" cy="20" r="6" fill="#febc2e"/>
+  <circle cx="64" cy="20" r="6" fill="#28c840"/>
+  <text x="460.0" y="25" fill="#8a93a8" text-anchor="middle" style="font-size:13px">tiancode — ~/proyectos/web</text>
+  <g>
+    <g opacity="0"><animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.0250;0.0260;0.94;1" dur="16.0s" repeatCount="indefinite"/>
+      <text x="28" y="70" fill="#7aa2ff">❯</text>
+      <clipPath id="c0"><rect x="48" y="52" height="24" width="0">
+        <animate attributeName="width" values="0;0;252;252;0" keyTimes="0;0.0250;0.1000;0.94;1" dur="16.0s" repeatCount="indefinite"/>
+      </rect></clipPath>
+      <text x="48" y="70" fill="#ffffff" clip-path="url(#c0)">tiancode models opencode</text>
+    </g>
+    <text x="28" y="96" fill="#c9d1e3" opacity="0">opencode/big-pickle<animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.1250;0.1260;0.94;1" dur="16.0s" repeatCount="indefinite"/></text>
+    <text x="28" y="122" fill="#c9d1e3" opacity="0">opencode/ling-3.1-flash-free<animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.1375;0.1385;0.94;1" dur="16.0s" repeatCount="indefinite"/></text>
+    <text x="28" y="148" fill="#c9d1e3" opacity="0">opencode/nemotron-3.5-lightning-free<animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.1500;0.1510;0.94;1" dur="16.0s" repeatCount="indefinite"/></text>
+    <text x="28" y="174" fill="#c9d1e3" opacity="0">opencode/space-bunny-free<animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.1625;0.1635;0.94;1" dur="16.0s" repeatCount="indefinite"/></text>
+    <g opacity="0"><animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.2375;0.2385;0.94;1" dur="16.0s" repeatCount="indefinite"/>
+      <text x="28" y="200" fill="#7aa2ff">❯</text>
+      <clipPath id="c5"><rect x="48" y="182" height="24" width="0">
+        <animate attributeName="width" values="0;0;550;550;0" keyTimes="0;0.2375;0.3125;0.94;1" dur="16.0s" repeatCount="indefinite"/>
+      </rect></clipPath>
+      <text x="48" y="200" fill="#ffffff" clip-path="url(#c5)">tiancode run &quot;Añade un modo oscuro que siga al sistema&quot;</text>
+    </g>
+    <text x="28" y="226" fill="#7d879c" opacity="0">&gt; build · deepseek-v4-pro<animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.3500;0.3510;0.94;1" dur="16.0s" repeatCount="indefinite"/></text>
+    <text x="28" y="252" fill="#5bd38c" opacity="0">✓ Leer      src/styles.css<animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.4000;0.4010;0.94;1" dur="16.0s" repeatCount="indefinite"/></text>
+    <text x="28" y="278" fill="#5bd38c" opacity="0">✓ Editar    src/styles.css  +38 −4<animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.4500;0.4510;0.94;1" dur="16.0s" repeatCount="indefinite"/></text>
+    <text x="28" y="304" fill="#5bd38c" opacity="0">✓ Shell     bun run build<animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.5125;0.5135;0.94;1" dur="16.0s" repeatCount="indefinite"/></text>
+    <text x="28" y="330" fill="#e8ecf6" opacity="0">Listo: el tema oscuro sigue al sistema y la preferencia se guarda.<animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.5875;0.5885;0.94;1" dur="16.0s" repeatCount="indefinite"/></text>
+  </g>
+  <rect class="cursor" x="28" y="356" width="9" height="18" fill="#7aa2ff"/>
+</svg>

@@ -40,7 +40,15 @@ xAI rechaza (GIF) se omiten en vez de hacer fallar la petición (`@ai-sdk/xai` 3
 CLI: `tiancode run` avisa de los reintentos del proveedor y, si la espera supera dos minutos, se
 detiene con el motivo y código de salida 1 en lugar de quedarse en silencio. El aviso de límite
 gratuito nombra OpenCode Go. En Ajustes, una fila con solo un interruptor ya no salta de línea en
-paneles estrechos.
+paneles estrechos. La interfaz de `tiancode web` muestra la versión de la publicación (1.0.0) en
+lugar de la del paquete interno.
+
+Ajustes vuelve a medir 1243×763, como en 1.0.8: en la primera publicación de 1.0.0 el asistente
+cargaba la hoja de Ajustes antes que la de los diálogos y la regla genérica (980×600) ganaba. El
+asistente ya no importa esa hoja y la regla de Ajustes gana en cualquier orden. Al abrir en modo
+Code, Tiancode continúa en el último proyecto y solo la primera vez pide una carpeta, que queda
+guardada como proyecto; si ya hay una sesión nueva sin enviar en esa carpeta, la reutiliza en vez
+de abrir otra pestaña.
 
 La actualización conserva claves de proveedores, ajustes, sesiones, copias de seguridad y
 autenticación MCP.

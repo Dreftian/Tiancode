@@ -36,10 +36,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/tokens.css?v=1.0.0-b1007">
-  <link rel="stylesheet" href="../css/layout.css?v=1.0.0-b1007">
-  <link rel="stylesheet" href="../css/components.css?v=1.0.0-b1007">
-  <link rel="stylesheet" href="../css/pages.css?v=1.0.0-b1007">
+  <link rel="stylesheet" href="../css/tokens.css?v=1.0.0-b1008">
+  <link rel="stylesheet" href="../css/layout.css?v=1.0.0-b1008">
+  <link rel="stylesheet" href="../css/components.css?v=1.0.0-b1008">
+  <link rel="stylesheet" href="../css/pages.css?v=1.0.0-b1008">
 </head>
 <body>
 
@@ -139,17 +139,17 @@
               <ul class="page-list">
                 <li><strong>Agentes de IA:</strong> chat de programación con múltiples agentes y sub-agentes que colaboran, codean y depuran contigo.</li>
                 <li><strong>Terminal integrada:</strong> ejecuta comandos, aplica cambios y ve resultados sin salir de la conversación.</li>
-                <li><strong>Modelos locales GGUF:</strong> descarga y ejecuta modelos desde HuggingFace con compatibilidad según tu RAM. Sin nube, sin límites.</li>
+                <li><strong>Modelos locales GGUF:</strong> descarga y ejecuta modelos de Hugging Face; Tiancode calcula antes si caben en tu VRAM y RAM.</li>
+                <li><strong>Modelos gratuitos de OpenCode:</strong> el grupo «OpenCode Free», con un interruptor por modelo y la lista al día con el catálogo de OpenCode.</li>
                 <li><strong>Multi-proveedor:</strong> OpenAI, Anthropic y otros proveedores, o combínalos con modelos locales.</li>
                 <li><strong>Modo portable:</strong> llévate Tiancode en un USB, sin instalación.</li>
               </ul>
-              <h2>Todo lo nuevo en v1.0.2</h2><ul class="news-list"><li><span>Los controles del chat comparten una sola fila, incluso con Ultracode. En paneles estrechos, captura, micrófono y mejora del prompt quedan accesibles desde Más.</span></li>
-<li><span>Sub-Agentes muestra los 14 especialistas integrados, con búsqueda, estado y configuración por proyecto o global. El selector principal mantiene Build, Plan y Web App.</span></li>
-<li><span>Web App permite elegir seis direcciones visuales con una vista de ejemplo o dejar que la IA proponga opciones. La elección se guarda y se envía con el siguiente mensaje.</span></li>
-<li><span>Respuestas directas es una preferencia opcional para empezar por la acción y presentar instrucciones breves sin omitir errores ni verificaciones.</span></li>
-<li><span>El navegador permite elegir el integrado, el predeterminado del sistema o Google Chrome para abrir enlaces. Las herramientas de navegación y DOM de la IA siguen usando el navegador integrado.</span></li>
-<li><span>Uso de la PC puede restaurar ventanas minimizadas de aplicaciones autorizadas al terminar el control. La opción de cookies Hasta salir limpia los datos del navegador al cerrar normalmente.</span></li>
-<li><span>El especialista de investigación incorpora hipótesis, presupuesto, prueba piloto y decisiones de continuar o detenerse basadas en evidencia, inspiradas en AutoResearch.</span></li></ul>
+              <h2>Todo lo nuevo en v1.0.0</h2><ul class="news-list"><li><span>Modelos gratuitos de OpenCode: el grupo «OpenCode Free» se activa en Ajustes › Proveedores, Ajustes › Modelos o la bienvenida, con un interruptor por modelo.</span></li>
+<li><span>Bienvenida de 1200×850 en seis pasos: idioma y tema, escala de la interfaz, tamaño y ancho de la conversación, pestañas, línea de tiempo, modelos y cómo empezar.</span></li>
+<li><span>La mascota aparece en el chat junto a Pensando, Explorando, Editar, Shell, preguntas y sub-agentes, con la expresión de lo que hace el modelo.</span></li>
+<li><span>Cerrar la vista previa ya no la vuelve a abrir en bucle, ni con una web ni con una app.</span></li>
+<li><span>El modo Code al abrir continúa en tu último proyecto y solo pide una carpeta la primera vez.</span></li>
+<li><span>Incluye todo lo de 1.0.1 a 1.0.8: Descubrir con unas 3600 extensiones, cerca de 300 conectores, uso visual de Windows, modelos locales e Inteligencia.</span></li></ul>
               <h2>Requisitos y descarga</h2>
               <p>Windows 10 u 11 de 64 bits, 4 GB de RAM (8 GB recomendados con modelos locales) y 1 GB de espacio libre. Tiancode es gratuito y su código se distribuye bajo licencia MIT.</p>
               <div class="page-note reveal" role="note" style="--rd:.15s">
@@ -204,10 +204,9 @@
         </nav>
         <nav class="footer-col" aria-label="Comunidad">
           <h2>Comunidad</h2>
-          <a href="https://github.com/" rel="noopener noreferrer" target="_blank">GitHub</a>
-          <a href="https://discord.com/" rel="noopener noreferrer" target="_blank">Discord</a>
-          <a href="https://x.com/" rel="noopener noreferrer" target="_blank">X / Twitter</a>
-          <a href="https://www.youtube.com/" rel="noopener noreferrer" target="_blank">YouTube</a>
+          <a href="https://github.com/Dreftian/Tiancode" rel="noopener noreferrer" target="_blank">GitHub</a>
+          <a href="https://github.com/Dreftian/Tiancode/releases" rel="noopener noreferrer" target="_blank">Releases</a>
+          <a href="https://github.com/Dreftian/Tiancode/issues" rel="noopener noreferrer" target="_blank">Incidencias</a>
         </nav>
       </div>
       <div class="footer-bottom">
@@ -251,7 +250,7 @@
     });
   </script>
   <script type="module">
-    import { initTheme } from '../js/theme.js?v=1.0.0-b1007';
+    import { initTheme } from '../js/theme.js?v=1.0.0-b1008';
     initTheme();
   </script>
 </body>

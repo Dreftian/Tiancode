@@ -6,9 +6,9 @@
    capturas reales de la app y sus puntos de interés.
    ============================================================ */
 
-import { getLang, t } from './i18n.js?v=1.0.0-b1007';
-import { setGalaxyDispersal, setGalaxyForceActive } from './galaxy.js?v=1.0.0-b1007';
-import { reducedMotion } from './utils.js?v=1.0.0-b1007';
+import { getLang, t } from './i18n.js?v=1.0.0-b1008';
+import { setGalaxyDispersal, setGalaxyForceActive } from './galaxy.js?v=1.0.0-b1008';
+import { reducedMotion } from './utils.js?v=1.0.0-b1008';
 
 const PANELS = ['overview', 'capabilities', 'app', 'benchmarks', 'architecture', 'skills', 'downloads', 'faq'];
 
@@ -509,8 +509,6 @@ export function initUniverse() {
   document.addEventListener('keydown', function (e) {
     if (isTypingTarget(e.target) || e.altKey || e.ctrlKey || e.metaKey) return;
     if (body.classList.contains('page-open')) return;
-    const modal = document.getElementById('feature-modal');
-    if (modal && modal.classList.contains('is-open')) return;
     if (!open) {
       if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === 'Enter' || e.key === ' ') {
         if (document.getElementById('loader')) return;

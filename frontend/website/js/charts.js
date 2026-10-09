@@ -1,17 +1,89 @@
-import { getLang } from './i18n.js?v=1.0.0-b1007';
+import { getLang } from './i18n.js?v=1.0.0-b1008';
 
 const details = {
-  es: {
-    swe: { title: 'Modelos y especialistas', label: 'GGUF', summary: 'Un catálogo que refleja los modelos disponibles.', items: ['El borrado elimina las entradas antiguas de la interfaz.', 'Especialistas enfocados en desarrollo, pruebas, diseño, marketing y seguridad autorizada.', 'Los agentes personalizados y sus instrucciones se conservan.'] },
-    latency: { title: 'Sigue el trabajo en el Sandbox', label: 'En vivo', summary: 'Actividad real de la sesión que estás viendo.', items: ['La vista previa sigue el proyecto correcto.', 'Las herramientas muestran su estado y los archivos que modifican.', 'Las recargas se agrupan al completar cambios; los errores se muestran en contexto.'] },
-    tokens: { title: 'Instrucciones y controles más claros', label: 'Control', summary: 'Elige cómo trabajar con tu modelo.', items: ['Selector visible de micrófono y mantener pulsado para grabar.', 'Mejorar input usa el modelo seleccionado y permite deshacer.', 'Rápido está disponible con cualquier modelo; Ultracode usa el esfuerzo más alto compatible.'] },
-    offline: { title: 'Actualiza conservando tu configuración', label: 'SHA-256', summary: 'Cada archivo se verifica antes de publicar.', items: ['Claves, ajustes, sesiones y autenticación MCP se conservan.', 'Una descarga fallida muestra un error y permite reintentar.', 'La versión estable se publica después de comprobar instalador, portable y metadatos.'] }
+  "es": {
+    "swe": {
+      "title": "Modelos gratuitos de OpenCode",
+      "label": "Free",
+      "summary": "La lista de modelos gratuitos sigue el catálogo de OpenCode.",
+      "items": [
+        "El grupo «OpenCode Free» se activa en Proveedores, Modelos o la bienvenida.",
+        "Cada modelo tiene su propio interruptor para el selector.",
+        "Con tu clave de OpenCode Zen tienes además todos sus modelos de pago."
+      ]
+    },
+    "latency": {
+      "title": "Una bienvenida completa",
+      "label": "1200×850",
+      "summary": "Seis pasos para dejar Tiancode a tu gusto.",
+      "items": [
+        "Idioma, tema, mascota y lectura en voz alta.",
+        "Escala de la interfaz del 80 % al 120 %, tamaño y ancho de la conversación con vista previa.",
+        "Pestañas, terminal, línea de tiempo, modelos gratuitos y qué se abre al iniciar."
+      ]
+    },
+    "tokens": {
+      "title": "Chat y vista previa",
+      "label": "Chat",
+      "summary": "La mascota acompaña cada paso del modelo.",
+      "items": [
+        "La mascota aparece junto a Pensando, Editar, Shell y los demás pasos.",
+        "Cerrar la vista previa ya no la vuelve a abrir en bucle.",
+        "El modo Code continúa en tu último proyecto."
+      ]
+    },
+    "offline": {
+      "title": "Actualiza conservando tu configuración",
+      "label": "SHA-256",
+      "summary": "Cada archivo se verifica antes de publicar.",
+      "items": [
+        "Claves, ajustes, sesiones y autenticación MCP se conservan.",
+        "Quien tenga 1.0.1–1.0.8 instala Tiancode.exe encima.",
+        "Instalador, portable, CLI y metadatos se comprueban antes de publicar."
+      ]
+    }
   },
-  en: {
-    swe: { title: 'Models and specialists', label: 'GGUF', summary: 'A catalog reflecting available models.', items: ['Deleting a model removes stale UI entries.', 'Focused specialists for development, tests, design, marketing and authorized security.', 'Custom agents and their instructions are preserved.'] },
-    latency: { title: 'Follow work in the Sandbox', label: 'Live', summary: 'Real activity from the session you are viewing.', items: ['Preview follows the correct project.', 'Tools show their status and the files they change.', 'Reloads are coalesced after changes finish; errors appear in context.'] },
-    tokens: { title: 'Clearer instructions and controls', label: 'Control', summary: 'Choose how to work with your model.', items: ['Visible microphone selector and hold-to-record.', 'Improve input uses the selected model and supports undo.', 'Fast is available for every model; Ultracode uses the highest compatible effort.'] },
-    offline: { title: 'Update while keeping your settings', label: 'SHA-256', summary: 'Every file is verified before publication.', items: ['Provider keys, settings, sessions and MCP authentication are preserved.', 'A failed download shows an error and allows retrying.', 'The stable release is published after checking installer, portable and metadata.'] }
+  "en": {
+    "swe": {
+      "title": "OpenCode's free models",
+      "label": "Free",
+      "summary": "The free model list follows OpenCode's catalog.",
+      "items": [
+        "The “OpenCode Free” group can be turned on in Providers, Models or the welcome wizard.",
+        "Every model has its own switch for the picker.",
+        "With your OpenCode Zen key you also get all of its paid models."
+      ]
+    },
+    "latency": {
+      "title": "A complete welcome",
+      "label": "1200×850",
+      "summary": "Six steps to set Tiancode up your way.",
+      "items": [
+        "Language, theme, pet and read-aloud.",
+        "Interface scale from 80% to 120%, conversation size and width with a preview.",
+        "Tabs, terminal, timeline, free models and what opens on start."
+      ]
+    },
+    "tokens": {
+      "title": "Chat and preview",
+      "label": "Chat",
+      "summary": "The pet follows every step of the model.",
+      "items": [
+        "The pet sits next to Thinking, Edit, Shell and the other steps.",
+        "Closing the preview no longer reopens it in a loop.",
+        "Code mode continues in your last project."
+      ]
+    },
+    "offline": {
+      "title": "Update while keeping your settings",
+      "label": "SHA-256",
+      "summary": "Every file is verified before publication.",
+      "items": [
+        "Provider keys, settings, sessions and MCP sign-ins are kept.",
+        "If you have 1.0.1–1.0.8, install Tiancode.exe on top.",
+        "Installer, portable, CLI and metadata are checked before release."
+      ]
+    }
   }
 };
 

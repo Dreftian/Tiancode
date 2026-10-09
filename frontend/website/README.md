@@ -28,7 +28,7 @@ python -m http.server 4182 --directory .
 
 ## Caché
 
-Los archivos CSS y JS se enlazan con `?v=1.0.0-b1007`; al publicar cambios hay que subir ese sufijo para que los navegadores dejen de usar la copia en caché (Vercel los cachea una hora).
+Los archivos CSS y JS se enlazan con `?v=1.0.0-b1008`; al publicar cambios hay que subir ese sufijo para que los navegadores dejen de usar la copia en caché (Vercel los cachea una hora).
 
 ## Descargas de la app
 

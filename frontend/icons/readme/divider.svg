@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="8" viewBox="0 0 900 8" role="presentation">
+  <defs>
+    <linearGradient id="base" x1="0" x2="1">
+      <stop offset="0" stop-color="#4f7cff" stop-opacity="0"/>
+      <stop offset=".5" stop-color="#4f7cff" stop-opacity=".45"/>
+      <stop offset="1" stop-color="#4f7cff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="spark" x1="0" x2="1">
+      <stop offset="0" stop-color="#9fbaff" stop-opacity="0"/>
+      <stop offset=".5" stop-color="#ffffff" stop-opacity=".95"/>
+      <stop offset="1" stop-color="#9fbaff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <style>
+    .spark { animation: sweep 4.5s ease-in-out infinite; }
+    @keyframes sweep { 0% { transform: translateX(-180px); } 100% { transform: translateX(900px); } }
+    @media (prefers-reduced-motion: reduce) { .spark { animation: none; opacity: 0; } }
+  </style>
+  <rect y="3" width="900" height="2" rx="1" fill="url(#base)"/>
+  <rect class="spark" y="2" width="180" height="4" rx="2" fill="url(#spark)"/>
+</svg>

@@ -36,10 +36,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/tokens.css?v=1.0.0-b1007">
-  <link rel="stylesheet" href="../css/layout.css?v=1.0.0-b1007">
-  <link rel="stylesheet" href="../css/components.css?v=1.0.0-b1007">
-  <link rel="stylesheet" href="../css/pages.css?v=1.0.0-b1007">
+  <link rel="stylesheet" href="../css/tokens.css?v=1.0.0-b1008">
+  <link rel="stylesheet" href="../css/layout.css?v=1.0.0-b1008">
+  <link rel="stylesheet" href="../css/components.css?v=1.0.0-b1008">
+  <link rel="stylesheet" href="../css/pages.css?v=1.0.0-b1008">
 </head>
 <body>
 
@@ -132,112 +132,98 @@
                   <span>¿Qué es Tiancode?</span>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
                 </summary>
-                <div class="faq-a"><div class="faq-a-inner"><p>Tiancode es una aplicación de escritorio para Windows que integra asistentes de IA en tu flujo de programación: chat con agentes, terminal integrada, 120+ skills de ingeniería de software, GitHub, servidores MCP y modelos de IA locales.</p></div></div>
+                <div class="faq-a"><div class="faq-a-inner"><p>Tiancode es un asistente de programación con IA de código abierto: una app de escritorio para Windows y un CLI para Windows, macOS y Linux. Reúne chat con agentes y 14 sub-agentes especialistas, terminal, vista previa de tu app, más de 130 skills de ingeniería, GitHub, extensiones MCP, modelos gratuitos de OpenCode y modelos locales GGUF.</p></div></div>
               </details>
               <details class="faq-item reveal" style="--rd:0.03s">
                 <summary class="faq-q">
                   <span>¿Es gratis?</span>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
                 </summary>
-                <div class="faq-a"><div class="faq-a-inner"><p>Sí. Tiancode es gratuito para uso personal y profesional, y su código se distribuye bajo licencia MIT.</p></div></div>
+                <div class="faq-a"><div class="faq-a-inner"><p>Sí. Tiancode es gratuito y de código abierto, con licencia MIT. Los modelos gratuitos de OpenCode y los modelos locales no cuestan nada; si conectas un proveedor de pago, pagas a ese proveedor según su tarifa.</p></div></div>
               </details>
               <details class="faq-item reveal" style="--rd:0.06s">
+                <summary class="faq-q">
+                  <span>¿Cómo activo los modelos gratuitos de OpenCode?</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                </summary>
+                <div class="faq-a"><div class="faq-a-inner"><p>En Ajustes › Proveedores (tarjeta «Modelos gratuitos»), en Ajustes › Modelos o en la bienvenida. El grupo «OpenCode Free» tiene un interruptor general y otro por modelo para elegir cuáles aparecen en el selector. La lista sigue el catálogo de OpenCode y se actualiza cada hora. OpenCode Zen limita el uso gratuito desde apps que no son OpenCode: si aparece el aviso de límite, espera un poco o conecta tu clave de OpenCode Zen.</p></div></div>
+              </details>
+              <details class="faq-item reveal" style="--rd:0.09s">
                 <summary class="faq-q">
                   <span>¿Qué hace Tiancode con mi código y mis conversaciones?</span>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
                 </summary>
-                <div class="faq-a"><div class="faq-a-inner"><p>Nada sin tu permiso. Por defecto, todo se procesa en tu equipo. Solo se envía información al proveedor de IA que elijas explícitamente, y únicamente los mensajes de esa conversación.</p></div></div>
+                <div class="faq-a"><div class="faq-a-inner"><p>Se guardan en tu equipo. Tiancode no tiene telemetría ni servidores propios: los mensajes de una conversación solo van al proveedor que eliges (o a OpenCode Zen si usas sus modelos gratuitos), y con un modelo local no salen de tu equipo.</p></div></div>
               </details>
-              <details class="faq-item reveal" style="--rd:0.09s">
+              <details class="faq-item reveal" style="--rd:0.12s">
                 <summary class="faq-q">
                   <span>¿Cómo conecto GitHub?</span>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
                 </summary>
-                <div class="faq-a"><div class="faq-a-inner"><p>En Configuración → GitHub pulsa «Conectar cuenta»: inicia sesión una vez y podrás listar tus repositorios, clonar o crear proyectos y hacer commit, push y pull directamente desde la conversación. Tu token se guarda solo en tu equipo.</p></div></div>
-              </details>
-              <details class="faq-item reveal" style="--rd:0.12s">
-                <summary class="faq-q">
-                  <span>¿Qué son los servidores MCP?</span>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-                </summary>
-                <div class="faq-a"><div class="faq-a-inner"><p>Los servidores MCP (Model Context Protocol) conectan herramientas externas a tus agentes. Tiancode incluye 8 presets locales y un catálogo Discover con 15 servidores populares (Playwright, Chrome DevTools, Canva, Circle, Appwrite…), cada uno con estado en vivo: conectado, errores, desactivado o desconocido.</p></div></div>
+                <div class="faq-a"><div class="faq-a-inner"><p>En Ajustes › Conexiones › GitHub pega un token de acceso personal (fine-grained, con permiso repo). Después puedes explorar tus repositorios, clonarlos o crear proyectos y hacer commits desde la app. El token se guarda solo en tu equipo.</p></div></div>
               </details>
               <details class="faq-item reveal" style="--rd:0.15s">
                 <summary class="faq-q">
-                  <span>¿Puedo instalar plugins?</span>
+                  <span>¿Qué son Descubrir y Conectores?</span>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
                 </summary>
-                <div class="faq-a"><div class="faq-a-inner"><p>Sí. La pestaña Plugins ofrece un catálogo de apps npm (@biomejs/biome, @octokit/rest, @slack/web-api…) y plugins locales (env-guard, commit-helper, shell-env…), instalables con un clic.</p></div></div>
+                <div class="faq-a"><div class="faq-a-inner"><p>Descubrir es la tienda de extensiones: unas 3600 entradas entre plugins de Claude Code y Codex, skills y servidores MCP, con búsqueda y filtros, y se renueva cada seis horas. Conectores reúne cerca de 300 apps: al conectar una, Tiancode añade su servidor MCP al proyecto y abre su inicio de sesión en el navegador.</p></div></div>
               </details>
               <details class="faq-item reveal" style="--rd:0.18s">
+                <summary class="faq-q">
+                  <span>¿Puedo añadir mis propios servidores MCP?</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                </summary>
+                <div class="faq-a"><div class="faq-a-inner"><p>Sí. En Ajustes › MCP y Plugins añades servidores locales (un comando) o remotos (URL, SSE y OAuth), que aparecen como tarjetas con sus herramientas. Desde el terminal, con <code>tiancode mcp</code>.</p></div></div>
+              </details>
+              <details class="faq-item reveal" style="--rd:0.21s">
                 <summary class="faq-q">
                   <span>¿Qué son los sub-agentes?</span>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
                 </summary>
-                <div class="faq-a"><div class="faq-a-inner"><p>Son agentes secundarios que puedes crear con su propio modelo, color (8 disponibles), herramientas y system prompt. Se usan para delegar tareas dentro de una conversación, con permisos finos entre herramientas de lectura y de escritura.</p></div></div>
-              </details>
-              <details class="faq-item reveal" style="--rd:0.21s">
-                <summary class="faq-q">
-                  <span>¿Cómo funcionan las voces TTS?</span>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-                </summary>
-                <div class="faq-a"><div class="faq-a-inner"><p>Con el modelo de voz kokoro incluido, Tiancode lee las respuestas en voz alta. Las voces femeninas aparecen primero y hay voces en español, inglés, francés, hindi, italiano, japonés, portugués y chino. También puedes dictar con el botón de micrófono en lugar de escribir.</p></div></div>
+                <div class="faq-a"><div class="faq-a-inner"><p>Son 14 especialistas en los que el agente delega tareas. En Ajustes › Sub-agentes cambias el modelo, la temperatura, los pasos máximos, los permisos por herramienta, las instrucciones y el color de cada uno, o lo ocultas del menú @.</p></div></div>
               </details>
               <details class="faq-item reveal" style="--rd:0.24s">
+                <summary class="faq-q">
+                  <span>¿Cómo funciona la voz?</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                </summary>
+                <div class="faq-a"><div class="faq-a-inner"><p>El dictado usa Whisper en tu equipo, con pulsar para hablar y prueba de micrófono. La lectura en voz alta usa voces locales Kokoro y Piper o, con tu clave, Fish Audio en la nube, y elige la voz según el idioma de cada texto.</p></div></div>
+              </details>
+              <details class="faq-item reveal" style="--rd:0.27s">
                 <summary class="faq-q">
                   <span>¿Qué son los modelos locales GGUF?</span>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
                 </summary>
-                <div class="faq-a"><div class="faq-a-inner"><p>Son modelos de IA listos para ejecutarse en tu propia máquina. Tiancode te permite descargarlos desde HuggingFace e instalarlos con un clic, al estilo LM Studio. Con ellos trabajas sin conexión y sin enviar datos a nadie.</p></div></div>
+                <div class="faq-a"><div class="faq-a-inner"><p>Modelos que se ejecutan en tu equipo. En Ajustes › Modelos Locales buscas en Hugging Face, ves el tamaño real de cada cuantización y si cabe en tu VRAM y RAM, y Tiancode ajusta la carga por ti. También usa Ollama y LM Studio si están en marcha.</p></div></div>
               </details>
-              <details class="faq-item reveal" style="--rd:0.27s">
+              <details class="faq-item reveal" style="--rd:0.30s">
                 <summary class="faq-q">
                   <span>¿Funciona sin internet?</span>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
                 </summary>
-                <div class="faq-a"><div class="faq-a-inner"><p>Sí, si usas un modelo local GGUF: el chat, los agentes y la terminal funcionan completamente offline. Los proveedores en la nube, lógicamente, requieren conexión.</p></div></div>
-              </details>
-              <details class="faq-item reveal" style="--rd:0.30s">
-                <summary class="faq-q">
-                  <span>¿Puedo minimizar Tiancode a la bandeja del sistema?</span>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-                </summary>
-                <div class="faq-a"><div class="faq-a-inner"><p>Sí. Activa «Minimizar a bandeja» en Configuración → General: al cerrar o minimizar, la app se queda en la bandeja y vuelves a tu conversación con un clic.</p></div></div>
-              </details>
-              <details class="faq-item reveal" style="--rd:0.30s">
-                <summary class="faq-q">
-                  <span>¿Dónde se guarda todo?</span>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-                </summary>
-                <div class="faq-a"><div class="faq-a-inner"><p>La configuración, las claves y las conversaciones se guardan en tu equipo, en %APPDATA%\Tiancode con el instalador o en la carpeta de la aplicación en modo portable. Los modelos locales y las voces se guardan en la carpeta de modelos.</p></div></div>
+                <div class="faq-a"><div class="faq-a-inner"><p>Sí, con un modelo local: el chat, los agentes y la terminal funcionan sin conexión. Los proveedores en la nube y los modelos gratuitos de OpenCode necesitan conexión.</p></div></div>
               </details>
               <details class="faq-item reveal" style="--rd:0.30s">
                 <summary class="faq-q">
                   <span>¿Necesito una GPU potente?</span>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
                 </summary>
-                <div class="faq-a"><div class="faq-a-inner"><p>No. Los modelos locales se ejecutan en CPU gracias al backend de llama.cpp. Si tienes una GPU NVIDIA o AMD, Tiancode la aprovecha automáticamente para ir más rápido.</p></div></div>
+                <div class="faq-a"><div class="faq-a-inner"><p>No. Los modelos en la nube y los gratuitos de OpenCode no usan tu GPU, y los modelos locales también funcionan en la CPU. Con una GPU compatible con Vulkan, el motor llama.cpp la aprovecha.</p></div></div>
               </details>
               <details class="faq-item reveal" style="--rd:0.30s">
                 <summary class="faq-q">
-                  <span>¿Qué significan los colores de compatibilidad de los modelos?</span>
+                  <span>¿Puedo minimizar Tiancode a la bandeja del sistema?</span>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
                 </summary>
-                <div class="faq-a"><div class="faq-a-inner"><p>Cada modelo local muestra un indicador según tu RAM: verde (cabe con margen), azul (cabe justo) y rojo (no cabe). El panel de Información del sistema detecta automáticamente tu RAM, disco libre, GPU y CPU para que elijas con datos reales.</p></div></div>
+                <div class="faq-a"><div class="faq-a-inner"><p>Sí. Activa «Minimizar a la bandeja del sistema» en Ajustes › General: al cerrar la ventana, Tiancode sigue en la bandeja y vuelves con un clic.</p></div></div>
               </details>
-              <details class="faq-item reveal" style="--rd:0.33s">
+              <details class="faq-item reveal" style="--rd:0.30s">
                 <summary class="faq-q">
-                  <span>¿Cómo vinculo WhatsApp o Telegram con Tiancode?</span>
+                  <span>¿Dónde se guarda todo?</span>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
                 </summary>
-                <div class="faq-a"><div class="faq-a-inner"><p>En Configuración → Conexiones, activa la pasarela Gateway. Para WhatsApp, solicita un código temporal de emparejamiento (ej. <code>TIAN-XXXX-WAPP</code>) e ingrésalo en el chat. Para Telegram, configura el token de tu bot y pulsa «Probar conexión» para validar la latencia y recibir mensajes de inmediato.</p></div></div>
-              </details>
-              <details class="faq-item reveal" style="--rd:0.36s">
-                <summary class="faq-q">
-                  <span>¿Qué ventajas ofrece el motor OpenClaw y el Sandbox Keep-Alive?</span>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-                </summary>
-                <div class="faq-a"><div class="faq-a-inner"><p>OpenClaw repara en milisegundos llamadas de herramientas rotas o JSON truncado emitido por LLMs, e interrumpe bucles infinitos tras 25 llamadas repetidas idénticas. El Sandbox Keep-Alive conserva 100% de los formularios y el scroll al alternar entre código y preview, e incluye un inspector DOM interactivo (<code>Ctrl+Alt+I</code>) con auto-reparación de pantallas blancas.</p></div></div>
+                <div class="faq-a"><div class="faq-a-inner"><p>En tu equipo: en el perfil de la app dentro de <code>%APPDATA%</code> (<code>ai.tiancode.desktop.release</code> con el instalador de GitHub) o junto al ejecutable en modo portable. Ajustes › General › Datos muestra la carpeta en uso y crea y restaura copias de seguridad.</p></div></div>
               </details>
           </div>
 
@@ -285,10 +271,9 @@
         </nav>
         <nav class="footer-col" aria-label="Comunidad">
           <h2>Comunidad</h2>
-          <a href="https://github.com/" rel="noopener noreferrer" target="_blank">GitHub</a>
-          <a href="https://discord.com/" rel="noopener noreferrer" target="_blank">Discord</a>
-          <a href="https://x.com/" rel="noopener noreferrer" target="_blank">X / Twitter</a>
-          <a href="https://www.youtube.com/" rel="noopener noreferrer" target="_blank">YouTube</a>
+          <a href="https://github.com/Dreftian/Tiancode" rel="noopener noreferrer" target="_blank">GitHub</a>
+          <a href="https://github.com/Dreftian/Tiancode/releases" rel="noopener noreferrer" target="_blank">Releases</a>
+          <a href="https://github.com/Dreftian/Tiancode/issues" rel="noopener noreferrer" target="_blank">Incidencias</a>
         </nav>
       </div>
       <div class="footer-bottom">
@@ -332,7 +317,7 @@
     });
   </script>
   <script type="module">
-    import { initTheme } from '../js/theme.js?v=1.0.0-b1007';
+    import { initTheme } from '../js/theme.js?v=1.0.0-b1008';
     initTheme();
   </script>
 </body>
