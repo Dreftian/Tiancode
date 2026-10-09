@@ -45,7 +45,9 @@ lugar de la del paquete interno.
 
 Ajustes vuelve a medir 1243×763, como en 1.0.8: en la primera publicación de 1.0.0 el asistente
 cargaba la hoja de Ajustes antes que la de los diálogos y la regla genérica (980×600) ganaba. El
-asistente ya no importa esa hoja y la regla de Ajustes gana en cualquier orden. Al abrir en modo
+asistente ya no importa esa hoja y la regla de Ajustes gana en cualquier orden. Además, la ventana
+de Ajustes divide su tamaño y sus márgenes entre la escala de la interfaz, así que al 85 % ocupa
+en pantalla lo mismo que al 100 % y solo su contenido se reduce. Al abrir en modo
 Code, Tiancode continúa en el último proyecto y solo la primera vez pide una carpeta, que queda
 guardada como proyecto; si ya hay una sesión nueva sin enviar en esa carpeta, la reutiliza en vez
 de abrir otra pestaña.
